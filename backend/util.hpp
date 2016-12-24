@@ -1,7 +1,5 @@
 #pragma once
 
-#include "run-in-thread.hpp"
-
 #include <memory>
 #include <cmath>
 #include <utility>
