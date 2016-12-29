@@ -28,8 +28,11 @@ static void fun(text_window::sequence_type f)
 }
 #endif
 
+extern void gen();
+
 extern "C" int main(int argc, char** argv)
 {
+#if 0
     QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
 
     QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
@@ -44,6 +47,8 @@ extern "C" int main(int argc, char** argv)
     w.show();
 
     app.exec();
-
+#else
+    gen();
+#endif
     return 0;
 }

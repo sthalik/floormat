@@ -4,3 +4,6 @@
 [submodule "deps/Range-V3-VS2015"]
 	path = deps/Range-V3-VS2015
 	url = https://github.com/Microsoft/Range-V3-VS2015.git
+[submodule "deps/cppunit"]
+	path = deps/cppunit
+	url = git://anongit.freedesktop.org/git/libreoffice/cppunit/
