@@ -30,10 +30,10 @@ struct xorshift final
             (void) operator()();
     }
 
-    void reseed(const seed& value = default_seed);
-    seed get_seed() const { return ss; }
-    xorshift(u64 s1, u64 s2) : ss { s1, s2 } {}
-    xorshift(const seed& res) : ss(res) {}
+    void reseed(const seed &value);
+    seed state() const { return ss; }
+    xorshift(u64 s1, u64 s2) : ss(sanitize_seed(seed(s1, s2))) {}
+    xorshift(const seed& s = default_seed) : ss(sanitize_seed(s)) {}
 
     static constexpr u64 min() { return 1u; }
     static constexpr u64 max() { return std::numeric_limits<result_type>::max(); }
@@ -42,4 +42,6 @@ struct xorshift final
 
 private:
     seed ss;
+
+    static seed sanitize_seed(const seed& s);
 };

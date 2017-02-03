@@ -39,7 +39,7 @@ struct murmur128_impl final
     using uint32_t = std::uint32_t;
 
 #ifdef _MSC_VER
-    static inline uint32_t murmur_rotl32(uint32_t x, int n)
+    static inline uint32_t rotl32(uint32_t x, int n)
     {
         return _rotl(x, n);
     }

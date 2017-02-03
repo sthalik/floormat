@@ -43,7 +43,7 @@ murmur_result_type murmur128_impl::murmur128(const void* key, int len, std::uint
         h4 = rotl32(h4,13); h4 += h1; h4 = h4*5+0x32ac3b17;
     }
 
-    const uint8_t * tail = (const uint8_t*)(data + nblocks*16);
+    const uint8_t* __restrict tail = reinterpret_cast<const uint8_t*>(data + nblocks*16);
 
       uint32_t k1 = 0;
       uint32_t k2 = 0;
@@ -91,6 +91,6 @@ murmur_result_type murmur128_impl::murmur128(const void* key, int len, std::uint
       h1 += h2; h1 += h3; h1 += h4;
       h2 += h1; h3 += h1; h4 += h1;
 
-      return murmur_result_type(uint64_t(h1) << 32 | uint64_t(h2),
-                                uint64_t(h3) << 32 | uint64_t(h4));
+      return murmur_result_type(uint64_t(h1) << 32 | uint64_t(h2) << 0,
+                                uint64_t(h3) << 32 | uint64_t(h4) << 0);
 }

@@ -1,4 +1,5 @@
 #include "xorshift.hpp"
+#include "murmur.hpp"
 #include <ctime>
 #include <climits>
 #include <cinttypes>
@@ -20,16 +21,22 @@ u64 xorshift::operator()()
 
 void xorshift::reseed(const seed& value)
 {
+    ss = value;
+}
+
+xorshift::seed xorshift::sanitize_seed(const xorshift::seed& value)
+{
     if (value == default_seed)
     {
-
+        std::time_t t = std::time(nullptr);
+        return make_seed_from_bytes(&t, sizeof(t));
     }
-    ss = value;
+    return value;
 }
 
 constexpr seed xorshift::default_seed;
 
 seed xorshift::make_seed_from_bytes(const void* in, unsigned len)
 {
-    auto bytes = reinterpret_cast<const uint8_t*>(in);
+    return sanitize_seed(murmur128(in, len, 0));
 }

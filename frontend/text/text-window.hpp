@@ -1,35 +1,14 @@
 #pragma once
 
-#include "window-cell.hpp"
+#include "cell.hpp"
+#include "world-data.hpp"
 #include "constants.hpp"
-
-#include "range-v3.hpp"
-
-#include <functional>
-#include <type_traits>
 
 #include <QMainWindow>
 #include <QFont>
 #include <QFontMetrics>
 #include <QSize>
-
-struct qt_impl final
-{
-    // CAVEAT defining as static function outside class leads to link errors
-    static auto iter_cells(QPainter* painter, QFontMetrics* m, const QSize& sz)
-    {
-        using namespace constants;
-        using namespace ranges;
-        // CAVEAT using capture by reference leads to use-after-free of the i, j indices
-        return view::ints(0, nrows) >>= [=](int i) { return
-                    view::ints(0, ncolumns) >>= [=](int j) { return
-                        yield(window_cell(painter, m, j, i, sz));
-            };
-        };
-    }
-
-    qt_impl() = delete;
-};
+#include <QPainter>
 
 class text_window : public QMainWindow
 {
@@ -37,14 +16,12 @@ class text_window : public QMainWindow
 
     QFont monospace_font;
     QFontMetrics font_metrics;
-    const QSize sz;
+    const QSize font_size;
+    const QSize window_size;
+    world_data world;
 
     void paintEvent(QPaintEvent* e) override;
-
+    void draw_cell(QPainter*painter, const cell& c, int x, int y);
 public:
-    using sequence_type = decltype(qt_impl::iter_cells(nullptr, nullptr, QSize()));
-    using fun_type = std::function<void(sequence_type)>;
-
-    fun_type functor;
-    text_window(fun_type f);
+    text_window();
 };

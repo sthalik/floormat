@@ -1,0 +1,1 @@
+enum placeholder {foo};
