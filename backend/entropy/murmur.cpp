@@ -2,7 +2,7 @@
 
 using namespace detail;
 
-murmur_result_type murmur128_impl::murmur128(const void* key, int len, std::uint32_t seed)
+murmur128_impl::result_type murmur128_impl::murmur128(const void* key, int len, std::uint32_t seed)
 {
     const uint8_t* __restrict data = reinterpret_cast<const uint8_t*>(key);
     const int nblocks = len / 16;
@@ -91,6 +91,6 @@ murmur_result_type murmur128_impl::murmur128(const void* key, int len, std::uint
       h1 += h2; h1 += h3; h1 += h4;
       h2 += h1; h3 += h1; h4 += h1;
 
-      return murmur_result_type(uint64_t(h1) << 32 | uint64_t(h2) << 0,
-                                uint64_t(h3) << 32 | uint64_t(h4) << 0);
+      return result_type(uint64_t(h1) << 32 | uint64_t(h2) << 0,
+                         uint64_t(h3) << 32 | uint64_t(h4) << 0);
 }

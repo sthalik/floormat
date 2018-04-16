@@ -1,24 +1,27 @@
 #if 1
-#include "xorshift.hpp"
+#include "xoroshiro.hpp"
 #include "murmur.hpp"
 #include <random>
 #include <cstdio>
 
+volatile union {
+    std::uint32_t u32;
+    std::uint8_t u8[4];
+} tmp;
+static_assert(sizeof(tmp) == 4, "");
+
 void gen()
 {
 #if 1
-    xorshift gen;
-    std::uniform_int_distribution<std::int32_t> d;
-    volatile union {
-        std::uint32_t u32;
-        std::uint8_t u8[4];
-    } tmp; static_assert(sizeof(tmp) == 4, "");
-    for (unsigned i = 0; i < 100 * 1024 * 1024; i++)
+    std::independent_bits_engine<xoroshiro, 8, unsigned> d;
+    for (unsigned i = 0; i < 10; i++)
     {
-        //printf("%c", d(gen));
-        tmp.u32 = d(gen);
+        for (unsigned k = 0; k < 50; k++)
+        {
+            printf("%02x ", d());
+        }
+        printf("\n");
     }
-    (void)tmp;
 #else
     const char* foo = "bleh bleh";
     const char* bar = "DUPA";
@@ -30,6 +33,7 @@ void gen()
 
     std::tie(a, b) = murmur128(bar, sizeof(bar) - 1);
     printf("%llu, %llu\n", t(a), t(b));
+    fflush(stdout);
 #endif
 }
 

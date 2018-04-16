@@ -11,28 +11,23 @@
 
 #include <cinttypes>
 #include <type_traits>
-#include <tuple>
+#include <utility>
 
 #ifdef _MSC_VER
-#   define MURMUR_FORCE_INLINE	__forceinline
+#   define MURMUR_FORCE_INLINE __forceinline
 #   include <intrin.h>
 #   include <cstdlib>
-
-#   define MURMUR_BIG_CONSTANT(x) (x)
-
 #else
-#   define MURMUR_BIG_CONSTANT(x) (x##LLU)
 #   define MURMUR_FORCE_INLINE inline __attribute__((always_inline))
-
 #endif
-
-using murmur_result_type = std::tuple<uint64_t, uint64_t>;
 
 namespace detail {
 
 struct murmur128_impl final
 {
     murmur128_impl() = delete;
+
+    using result_type = std::pair<std::uint64_t, std::uint64_t>;
 
     using uint64_t = std::uint64_t;
     using uint8_t = std::uint8_t;
@@ -66,12 +61,12 @@ struct murmur128_impl final
       return p[i];
     }
 
-    static murmur_result_type murmur128(const void* key, int len, uint32_t seed);
+    static result_type murmur128(const void* key, int len, uint32_t seed);
 };
 
 } // ns detail
 
-static MURMUR_FORCE_INLINE murmur_result_type murmur128(const void* key, int len, uint32_t seed = 0u)
+static MURMUR_FORCE_INLINE detail::murmur128_impl::result_type murmur128(const void* key, int len, uint32_t seed = 0u)
 {
     return detail::murmur128_impl::murmur128(key, len, seed);
 }
