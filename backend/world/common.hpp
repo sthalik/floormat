@@ -2,7 +2,7 @@
 
 #include <tuple>
 
-namespace world_detail {
+namespace world {
 
 using Len = int;
 using Len2 = std::tuple<Len, Len>;

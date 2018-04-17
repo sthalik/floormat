@@ -1,11 +1,6 @@
 #include "static.hpp"
 
-#include <utility>
-
-using namespace world_detail;
-using namespace hilbert_detail;
-
-Ord const* hilbert::LUT_2d_to_1d = hilbert::make_LUT_2d_to_1d();
+using namespace world;
 
 static void rot(long s, Len& x, Len& y, Ord rx, Ord ry)
 {
@@ -37,7 +32,7 @@ static Ord from_2d_(Len x, Len y)
     return d;
 }
 
-Ord const* hilbert::make_LUT_2d_to_1d()
+Ord const* make_LUT_2d_to_1d()
 {
     static Ord array[BLOCK_AREA];
 
@@ -48,8 +43,12 @@ Ord const* hilbert::make_LUT_2d_to_1d()
     return array;
 }
 
-Ord hilbert::lookup_2d_to_1d(Len2 xy)
+static Ord const* LUT_2d_to_1d = make_LUT_2d_to_1d();
+
+namespace world {
+Ord hilbert_lookup_2d_to_1d(Len2 xy)
 {
     auto [x, y] = xy;
     return LUT_2d_to_1d[y * BLOCK_LEN + x];
 }
+} // ns world

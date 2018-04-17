@@ -45,7 +45,7 @@ extern "C" int main(int argc, char** argv)
 
     for (int x = 0; x < 8; x++)
         for (int y = 0; y < 8; y++)
-            qDebug() << x << y << "=>" << hilbert::lookup_2d_to_1d({x, y});
+            qDebug() << x << y << "=>" << world::hilbert_lookup_2d_to_1d({x, y});
 
     return 0;
 
