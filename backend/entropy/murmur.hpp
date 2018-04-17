@@ -21,7 +21,7 @@
 #   define MURMUR_FORCE_INLINE inline __attribute__((always_inline))
 #endif
 
-namespace detail {
+namespace ent_detail {
 
 struct murmur128_impl final
 {
@@ -66,7 +66,7 @@ struct murmur128_impl final
 
 } // ns detail
 
-static MURMUR_FORCE_INLINE detail::murmur128_impl::result_type murmur128(const void* key, int len, uint32_t seed = 0u)
+static MURMUR_FORCE_INLINE ent_detail::murmur128_impl::result_type murmur128(const void* key, int len, uint32_t seed = 0u)
 {
-    return detail::murmur128_impl::murmur128(key, len, seed);
+    return ent_detail::murmur128_impl::murmur128(key, len, seed);
 }

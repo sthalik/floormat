@@ -12,14 +12,6 @@
 #define progn(...) ([&]() { __VA_ARGS__ }())
 template<typename t, typename... xs> using ptr = std::unique_ptr<t, xs...>;
 
-#ifdef Q_CREATOR_RUN
-#   define DEFUN_WARN_UNUSED
-#elif defined(_MSC_VER)
-#   define DEFUN_WARN_UNUSED _Check_return_
-#else
-#   define DEFUN_WARN_UNUSED __attribute__((warn_unused_result))
-#endif
-
 template<typename t>
 int iround(const t& val)
 {
@@ -35,7 +27,7 @@ inline auto clamp_float(n val, n min, n max)
 }
 
 template<typename t, typename n>
-struct clamp final
+struct clamp
 {
     static inline auto clamp_(const n& val, const n& min, const n& max)
     {

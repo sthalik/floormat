@@ -7,9 +7,11 @@
 struct cell final
 {
     QChar symbol;
-    const color c;
+    const color foreground, background;
 
-    cell(QChar symbol, color c) : symbol(symbol), c(c) {}
+    cell(QChar symbol, color foreground, color background = color::from_rgb(0, 0, 0, 0))
+        : symbol(symbol), foreground(foreground), background(background)
+    {}
 
-    cell() : symbol(0), c(color::from_rgb(0, 0, 0, 0)) {}
+    cell() : symbol(0), foreground(color::from_rgb(0, 0, 0, 0)), background(color::from_rgb(0, 0, 0, 0)) {}
 };

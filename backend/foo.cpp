@@ -1,18 +1,13 @@
 #if 1
-#include "xoroshiro.hpp"
-#include "murmur.hpp"
+#include "entropy/xoroshiro.hpp"
+#include "entropy/murmur.hpp"
 #include <random>
 #include <cstdio>
-
-volatile union {
-    std::uint32_t u32;
-    std::uint8_t u8[4];
-} tmp;
-static_assert(sizeof(tmp) == 4, "");
+#include <cinttypes>
 
 void gen()
 {
-#if 1
+#if 0
     std::independent_bits_engine<xoroshiro, 8, unsigned> d;
     for (unsigned i = 0; i < 10; i++)
     {
@@ -23,16 +18,14 @@ void gen()
         printf("\n");
     }
 #else
-    const char* foo = "bleh bleh";
-    const char* bar = "DUPA";
-    using t = unsigned long long;
-    std::uint64_t a, b;
+    static constexpr char const foo[] = "bleh bleh";
+    static constexpr char const bar[] = "DUPA";
 
-    std::tie(a, b) = murmur128(foo, sizeof(foo) - 1);
-    printf("%llu, %llu\n", t(a), t(b));
+    auto [a, b] = murmur128(foo, sizeof(foo) - 1);
+    printf("%" PRIx64 "%" PRIx64 "\n", a, b);
 
-    std::tie(a, b) = murmur128(bar, sizeof(bar) - 1);
-    printf("%llu, %llu\n", t(a), t(b));
+    auto [c, d] = murmur128(bar, sizeof(bar) - 1);
+    printf("%" PRIx64 "%" PRIx64 "\n", c, d);
     fflush(stdout);
 #endif
 }

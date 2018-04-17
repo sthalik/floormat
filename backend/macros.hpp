@@ -2,30 +2,22 @@
 
 #if defined _MSC_VER
 #   define never_inline __declspec(noinline)
-#elif defined __GNUG__
+#elif defined __GNUC__
 #   define never_inline __attribute__((noinline))
 #else
 #   define never_inline
 #endif
 
-#if defined _MSC_VER || defined __GNUG__
-#   define restrict __restrict
+#if defined _MSC_VER || defined __GNUC__
+#   define restrict_ptr __restrict
 #else
-#   define restrict
-#endif
-
-#if defined _MSC_VER
-#   define restrict_ref restrict
-#elif defined __GNUG__
-#   define restrict_ref restrict
-#else
-#   define restrict_ref
+#   define restrict_ptr
 #endif
 
 #if defined _MSC_VER
 #   define force_inline __forceinline
 #elif defined __GNUG__
-#   define force_inline __attribute__((always_inline, gnu_inline)) inline
+#   define force_inline __attribute__((always_inline))
 #else
 #   define force_inline inline
 #endif
@@ -37,23 +29,11 @@
 #endif
 
 #ifdef Q_CREATOR_RUN
-#   define DEFUN_WARN_UNUSED
-#elif defined(_MSC_VER)
-#   define DEFUN_WARN_UNUSED _Check_return_
+#   define WARN_UNUSED
+#elif defined _MSC_VER
+#   define WARN_UNUSED _Check_return_
 #else
-#   define DEFUN_WARN_UNUSED __attribute__((warn_unused_result))
-#endif
-
-#if defined(__GNUG__)
-#   define unused(t, i) t __attribute__((unused)) i
-#else
-#   define unused(t, i) t
-#endif
-
-#if !defined(_WIN32)
-#   define unused_on_unix(t, i) unused(t, i)
-#else
-#   define unused_on_unix(t, i) t i
+#   define WARN_UNUSED __attribute__((warn_unused_result))
 #endif
 
 #if defined __GNUC__

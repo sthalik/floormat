@@ -21,6 +21,8 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+cmake_policy(SET CMP0020 NEW)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(CMAKE_COMPILER_IS_GNUCXX TRUE)
     set(CMAKE_COMPILER_IS_CLANG TRUE)
@@ -41,13 +43,14 @@ IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(MSVC)
+    add_definitions(-D_USE_MATH_DEFINES=1)
     add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
     add_definitions(-D_ITERATOR_DEBUG_LEVEL=0 -D_HAS_ITERATOR_DEBUGGING=0 -D_SECURE_SCL=0)
-    set(CMAKE_CXX_FLAGS " /std:c++14 -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS ${CMAKE_CXX_FLAGS} ")
-    set(CMAKE_C_FLAGS " -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS ${CMAKE_C_FLAGS} ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std:c++17 -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS")
 
     foreach (i SHARED MODULE EXE)
-        set(CMAKE_${i}_LINKER_FLAGS " /DYNAMICBASE /NXCOMPAT ${CMAKE_${i}_LINKER_FLAGS} ")
+        set(CMAKE_${i}_LINKER_FLAGS "-DYNAMICBASE -NXCOMPAT ${CMAKE_${i}_LINKER_FLAGS} ")
     endforeach()
 endif()
 
@@ -57,7 +60,6 @@ if(WIN32)
     set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> --use-temp-file -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
   endif()
   enable_language(RC)
-  add_definitions(-D_USE_MATH_DEFINES=1)
 endif(WIN32)
 
 #if(opentrack-install-rpath)
@@ -87,7 +89,7 @@ if(APPLE)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS " -std=c++14 ${CMAKE_CXX_FLAGS} ")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS OFF)
@@ -102,3 +104,18 @@ endif()
 if(MINGW)
     add_definitions(-DMINGW_HAS_SECURE_API)
 endif()
+
+function(maybe_install_pdb target)
+    if(MSVC)
+        get_property(name TARGET "${target}" PROPERTY OUTPUT_NAME)
+        if(NOT name)
+            set(name "${target}")
+        endif()
+        set(path "${CMAKE_CURRENT_BINARY_DIR}/${name}")
+
+        otr_pdb_for_dll(pdb-path "${path}")
+        if(pdb-path)
+            install(FILES "${pdb-path}" DESTINATION "debug/")
+        endif()
+    endif()
+endfunction()

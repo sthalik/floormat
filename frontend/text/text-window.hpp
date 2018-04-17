@@ -19,6 +19,7 @@ class text_window : public QMainWindow
     const QSize font_size;
     const QSize window_size;
     world_data world;
+    const int nrows, ncols;
 
     void paintEvent(QPaintEvent* e) override;
     void draw_cell(QPainter*painter, const cell& c, int x, int y);
