@@ -20,12 +20,12 @@ static void rot(long s, Len& x, Len& y, Ord rx, Ord ry)
 
 static Ord from_2d_(Len x, Len y)
 {
-    Ord rx, ry, d = 0;
+    Ord d = 0;
 
     for (Ord s = BLOCK_LEN/2; s > 0; s /= 2)
     {
-        rx = (Ord(x) & s) > 0;
-        ry = (Ord(y) & s) > 0;
+        Ord rx = (Ord(x) & s) > 0;
+        Ord ry = (Ord(y) & s) > 0;
         d += s * s * ((3 * rx) ^ ry);
         rot(s, x, y, rx, ry);
     }
