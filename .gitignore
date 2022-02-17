@@ -1,0 +1,5 @@
+/build*/
+/.clang-tidy
+/.clang-format
+/.idea/
+/userconfig-*.cmake
