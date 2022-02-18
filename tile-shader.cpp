@@ -37,7 +37,8 @@
 
 namespace Magnum::Examples {
 
-tile_shader::tile_shader() {
+tile_shader::tile_shader()
+{
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL460);
 
     const Utility::Resource rs{"texturedquad-data"};
@@ -54,7 +55,9 @@ tile_shader::tile_shader() {
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    _colorUniform = uniformLocation("color");
+    _color_uniform = uniformLocation("color");
+    _projection_uniform = uniformLocation("projection");
+
     setUniform(uniformLocation("textureData"), TextureUnit);
 }
 

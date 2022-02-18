@@ -56,7 +56,6 @@ add_executable(magnum-triangle WIN32  "${sources}" "${TexturedQuad_RESOURCES}")
 target_link_libraries(magnum-triangle PRIVATE
                       Magnum::Application
                       Magnum::GL
-                      Magnum::WglContext
                       Magnum::Magnum
                       Magnum::Shaders
                       Magnum::Trade)
