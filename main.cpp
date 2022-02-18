@@ -82,11 +82,14 @@ void application::drawEvent() {
 
 MAGNUM_APPLICATION_MAIN(Magnum::Examples::application);
 
-#include <windows.h>
+#ifdef _MSC_VER
+#   include <cstdlib>
+#   ifdef __clang__
+#       pragma clang diagnostic ignored "-Wmissing-prototypes"
+#       pragma clang diagnostic ignored "-Wmain"
+#   endif
 
-#if defined _MSC_VER
-int __stdcall WinMain(HINSTANCE, HINSTANCE, LPSTR, int /* nCmdShow */)
-{
+extern "C" int __stdcall WinMain(void*, void*, void*, int /* nCmdShow */) {
     return main(__argc, __argv);
 }
 #endif
