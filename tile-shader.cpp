@@ -37,13 +37,13 @@
 
 namespace Magnum::Examples {
 
-TexturedQuadShader::TexturedQuadShader() {
-    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
+tile_shader::tile_shader() {
+    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL460);
 
     const Utility::Resource rs{"texturedquad-data"};
 
-    GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
-    GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
+    GL::Shader vert{GL::Version::GL460, GL::Shader::Type::Vertex};
+    GL::Shader frag{GL::Version::GL460, GL::Shader::Type::Fragment};
 
     vert.addSource(rs.get("shaders/tile-shader.vert"));
     frag.addSource(rs.get("shaders/tile-shader.frag"));

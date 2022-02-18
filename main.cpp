@@ -18,8 +18,8 @@
 
 namespace Magnum::Examples {
 
-struct TexturedQuadExample: Platform::Application {
-    explicit TexturedQuadExample(const Arguments& arguments);
+struct application : Platform::Application {
+    explicit application(const Arguments& arguments);
     void drawEvent() override;
 
     const Utility::Resource rs{"texturedquad-data"};
@@ -28,7 +28,7 @@ struct TexturedQuadExample: Platform::Application {
         plugins.loadAndInstantiate("TgaImporter");
 
     GL::Mesh _mesh;
-    TexturedQuadShader _shader;
+    tile_shader _shader;
     atlas_texture atlas = make_atlas("images/tiles.tga", {8, 4});
 
     atlas_texture make_atlas(const std::string& file, Vector2i dims)
@@ -43,7 +43,7 @@ struct TexturedQuadExample: Platform::Application {
     }
 };
 
-TexturedQuadExample::TexturedQuadExample(const Arguments& arguments):
+application::application(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
         .setTitle("Magnum Textured Quad Example")
         .setSize({512, 512})}
@@ -60,15 +60,13 @@ TexturedQuadExample::TexturedQuadExample(const Arguments& arguments):
     for (unsigned i = 0; i < std::size(vertices); i++)
         vertices[i] = { positions[i], texcoords[i] };
 
-    _mesh.setCount(std::size(indices))
-        .addVertexBuffer(GL::Buffer{vertices}, 0,
-            TexturedQuadShader::Position{},
-            TexturedQuadShader::TextureCoordinates{})
+    _mesh.setCount((int)std::size(indices))
+        .addVertexBuffer(GL::Buffer{vertices}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{})
         .setIndexBuffer(GL::Buffer{indices}, 0,
             GL::MeshIndexType::UnsignedShort);
 }
 
-void TexturedQuadExample::drawEvent() {
+void application::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
 
     using namespace Math::Literals;
@@ -83,7 +81,7 @@ void TexturedQuadExample::drawEvent() {
 
 } // namespace Magnum::Examples
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::TexturedQuadExample);
+MAGNUM_APPLICATION_MAIN(Magnum::Examples::application);
 
 #include <windows.h>
 

@@ -1,5 +1,4 @@
-#ifndef Magnum_Examples_TexturedQuad_TexturedQuadShader_h
-#define Magnum_Examples_TexturedQuad_TexturedQuadShader_h
+#pragma once
 /*
     This file is part of Magnum.
 
@@ -35,19 +34,19 @@
 
 namespace Magnum::Examples {
 
-class TexturedQuadShader: public GL::AbstractShaderProgram {
+class tile_shader : public GL::AbstractShaderProgram {
 public:
     typedef GL::Attribute<0, Vector3> Position;
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
 
-    explicit TexturedQuadShader();
+    explicit tile_shader();
 
-    TexturedQuadShader& setColor(const Color3& color) {
+    tile_shader& setColor(const Color3& color) {
         setUniform(_colorUniform, color);
         return *this;
     }
 
-    TexturedQuadShader& bindTexture(GL::Texture2D& texture) {
+    tile_shader& bindTexture(GL::Texture2D& texture) {
         texture.bind(TextureUnit);
         return *this;
     }
@@ -59,5 +58,3 @@ private:
 };
 
 } // namespace Magnum::Examples
-
-#endif
