@@ -14,7 +14,7 @@
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Trade/ImageData.h>
 
-#include "TexturedQuadShader.h"
+#include "tile-shader.hpp"
 
 namespace Magnum::Examples {
 

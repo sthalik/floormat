@@ -27,7 +27,7 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "TexturedQuadShader.h"
+#include "tile-shader.hpp"
 
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
@@ -45,8 +45,8 @@ TexturedQuadShader::TexturedQuadShader() {
     GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
     GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
 
-    vert.addSource(rs.get("shaders/TexturedQuadShader.vert"));
-    frag.addSource(rs.get("shaders/TexturedQuadShader.frag"));
+    vert.addSource(rs.get("shaders/tile-shader.vert"));
+    frag.addSource(rs.get("shaders/tile-shader.frag"));
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(GL::Shader::compile({vert, frag}));
 
