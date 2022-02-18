@@ -6,7 +6,6 @@
 #include <array>
 
 namespace Magnum::Examples {
-using Vector2i = Math::Vector<2, int>;
 
 struct atlas_texture final
 {
