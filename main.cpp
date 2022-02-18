@@ -42,8 +42,8 @@ struct application final : Platform::Application
 
 application::application(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
-        .setTitle("Magnum Textured Quad Example")
-        .setSize({512, 512})}
+        .setTitle("Test")
+        .setSize({640, 480})}
 {
     struct QuadVertex {
         Vector3 position;
