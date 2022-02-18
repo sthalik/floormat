@@ -40,10 +40,12 @@ struct application final : Platform::Application
     Matrix4x4 make_projection(Vector3 offset);
 };
 
+using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
+
 application::application(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
         .setTitle("Test")
-        .setSize({640, 480})}
+        .setSize({640, 480}, dpi_policy::Physical)}
 {
     struct QuadVertex {
         Vector3 position;
