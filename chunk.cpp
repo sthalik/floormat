@@ -1,6 +1,6 @@
 #include "chunk.hpp"
-#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/ImageView.h>
+#include <Magnum/GL/TextureFormat.h>
 
 namespace Magnum::Examples {
 

@@ -1,10 +1,8 @@
 #pragma once
-#include <Magnum/Magnum.h>
-#include <Magnum/GL/Texture.h>
 #include <Magnum/Math/Vector.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/GL/Texture.h>
 #include <Magnum/Trade/ImageData.h>
-#include <tuple>
 #include <array>
 
 namespace Magnum::Examples {
