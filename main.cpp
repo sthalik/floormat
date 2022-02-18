@@ -59,9 +59,9 @@ application::application(const Arguments& arguments):
         vertices[i] = { positions[i], texcoords[i] };
 
     _mesh.setCount((int)std::size(indices))
-        .addVertexBuffer(GL::Buffer{vertices}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{})
-        .setIndexBuffer(GL::Buffer{indices}, 0,
-            GL::MeshIndexType::UnsignedShort);
+        .addVertexBuffer(GL::Buffer{vertices}, 0,
+                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
+        .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
 }
 
 void application::drawEvent() {
