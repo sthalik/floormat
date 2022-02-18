@@ -1,4 +1,4 @@
-#include "chunk.hpp"
+#include "atlas.hpp"
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 

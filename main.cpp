@@ -1,4 +1,4 @@
-#include "chunk.hpp"
+#include "atlas.hpp"
 
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/ArrayViewStl.h>
