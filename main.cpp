@@ -95,7 +95,9 @@ atlas_texture application::make_atlas(const std::string& file, Vector2i dims)
 Matrix4x4 application::make_projection(Vector3 offset)
 {
     auto m = glm::mat4{1};
-    m = glm::ortho<float>(-256, 256, -256, 256, -512, 512);
+    auto size = windowSize();
+    float x = size[0]*.5f, y = size[1]*.5f, w = 4*sqrt(x*x+y*y);
+    m = glm::ortho<float>(-x, x, -y, y, -w, w);
     m = glm::translate(m, { offset[0], -offset[1], offset[2] });
     m = glm::scale(m, { 1.f, 0.6f, 1.f });
     m = glm::rotate(m, glm::radians(-45.f),  glm::vec3(1.0f, 0.0f, 0.0f));
