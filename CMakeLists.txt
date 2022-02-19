@@ -24,13 +24,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR CMAKE_INSTALL_PREFIX STREQUAL 
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 endif()
 
-set(_userconfig "userconfig-${CMAKE_CXX_COMPILER_ID}.cmake")
-if(EXISTS "${CMAKE_SOURCE_DIR}/${_userconfig}")
-    include("${CMAKE_SOURCE_DIR}/${_userconfig}")
-else()
-    message(STATUS "user config '${_userconfig}' not found")
-endif()
-
 if(MSVC)
     add_compile_options(-EHsc)
 endif()
@@ -39,25 +32,40 @@ if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES=1 -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 endif()
 
-include_directories("glm")
-
-find_package(SDL2 QUIET)
-find_package(Corrade REQUIRED)
-find_package(Magnum REQUIRED GL Shaders WglContext Sdl2Application Trade)
-
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
 set_directory_properties(PROPERTIES CORRADE_CXX_STANDARD 20)
 set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD 20)
 
-corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+set(_userconfig "userconfig-${CMAKE_CXX_COMPILER_ID}.cmake")
+if(EXISTS "${CMAKE_SOURCE_DIR}/${_userconfig}")
+    include("${CMAKE_SOURCE_DIR}/${_userconfig}")
+else()
+    message(STATUS "user config '${_userconfig}' not found")
+endif()
 
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
-add_executable(magnum-triangle WIN32  "${sources}" "${TexturedQuad_RESOURCES}")
-target_link_libraries(magnum-triangle PRIVATE
-                      Magnum::Application
-                      Magnum::GL
-                      Magnum::Magnum
-                      Magnum::Shaders
-                      Magnum::Trade)
+if(NOT DEFINED BOOTSTRAP_DEPENDS)
+    set(BOOTSTRAP_DEPENDS "$ENV{BOOTSTRAP_DEPENDS}")
+endif()
 
-install(TARGETS DESTINATION .)
+if(NOT BOOTSTRAP_DEPENDS)
+    find_package(Corrade QUIET REQUIRED)
+    find_package(Magnum COMPONENTS GL Shaders Trade Sdl2Application QUIET REQUIRED)
+    find_package(MagnumPlugins QUIET REQUIRED)
+    find_package(MagnumIntegration COMPONENTS Glm QUIET REQUIRED)
+
+    corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+    file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+
+    add_executable(${PROJECT_NAME} WIN32 "${sources}" "${TexturedQuad_RESOURCES}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+                          Magnum::Application
+                          Magnum::GL
+                          Magnum::Magnum
+                          Magnum::Shaders
+                          Magnum::Trade
+                          MagnumIntegration::Glm)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
+    target_include_directories(${PROJECT_NAME} PRIVATE magnum-integration/src)
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+    install(DIRECTORY images DESTINATION "share/${PROJECT_NAME}")
+endif()

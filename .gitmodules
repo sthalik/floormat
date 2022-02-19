@@ -1,3 +1,12 @@
-[submodule "glm"]
-	path = glm
-	url = https://github.com/g-truc/glm.git
+[submodule "magnum"]
+	path = magnum
+	url = https://github.com/mosra/magnum
+[submodule "magnum-plugins"]
+	path = magnum-plugins
+	url = https://github.com/mosra/magnum-plugins
+[submodule "magnum-integration"]
+	path = magnum-integration
+	url = https://github.com/mosra/magnum-integration
+[submodule "corrade"]
+	path = corrade
+	url = https://github.com/mosra/corrade
