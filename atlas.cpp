@@ -22,11 +22,10 @@ atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
 std::array<Vector2, 4> atlas_texture::texcoords_for_id(int id_) const
 {
     CORRADE_INTERNAL_ASSERT(id_ >= 0 && id_ < dims_.product());
-    constexpr Vector2 _05 = { 0.5f, 0.5f };
     constexpr Vector2i _1 = { 1, 1 };
-    Vector2i id = { id_ % dims_[1], id_ / dims_[1] };
-    auto p0 = (Vector2(id * tile_size_) + _05) / Vector2(size_);
-    auto p1 = (Vector2((id + _1) * tile_size_) + _05) / Vector2(size_);
+    Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
+    auto p0 = Vector2(id * tile_size_) / Vector2(size_);
+    auto p1 = Vector2((id + _1) * tile_size_) / Vector2(size_);
     return {{
         { p1[0], p1[1] }, // bottom right
         { p1[0], p0[1] }, // top right

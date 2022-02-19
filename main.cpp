@@ -5,6 +5,8 @@
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/PluginManager/Manager.h>
 #include <Corrade/Utility/Resource.h>
+#include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -34,7 +36,7 @@ struct application final : Platform::Application
 
     GL::Mesh _mesh;
     tile_shader _shader;
-    atlas_texture atlas = make_atlas("images/tiles.tga", {8, 4});
+    atlas_texture atlas = make_atlas("../share/game/images/tiles.tga", {8, 4});
 
     atlas_texture make_atlas(const std::string& file, Vector2i dims);
     Matrix4x4 make_projection(Vector3 offset);
@@ -52,15 +54,27 @@ application::application(const Arguments& arguments):
         Vector2 textureCoordinates;
         // todo gl_FragDepth
     };
-    QuadVertex vertices[4];
-    auto positions = atlas.floor_quad({}, {48, 48});
-    auto texcoords = atlas.texcoords_for_id(2);
-    auto indices   = atlas.indices(0);
 
-    for (unsigned i = 0; i < std::size(vertices); i++)
-        vertices[i] = { positions[i], texcoords[i] };
+    std::vector<QuadVertex> vertices; vertices.reserve(64*64*4);
+    std::vector<Short> indices; indices.reserve(64*64*4);
 
-    _mesh.setCount((int)std::size(indices))
+    int k = 0;
+    for (int j = -2; j <= 2; j++)
+        for (int i = -2; i <= 2; i++)
+        {
+            constexpr int sz = 48;
+            auto positions = atlas.floor_quad({(float)(sz*i), (float)(sz*j), 0}, {sz, sz});
+            auto texcoords = atlas.texcoords_for_id(k % atlas.size());
+            auto indices_  = atlas.indices(k);
+
+            for (unsigned x = 0; x < 4; x++)
+                vertices.push_back({ positions[x], texcoords[x] });
+            for (auto x : indices_)
+                indices.push_back((Short)x);
+            k++;
+        }
+
+    _mesh.setCount((int)indices.size())
         .addVertexBuffer(GL::Buffer{vertices}, 0,
                          tile_shader::Position{}, tile_shader::TextureCoordinates{})
         .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
@@ -96,16 +110,18 @@ atlas_texture application::make_atlas(const std::string& file, Vector2i dims)
 
 Matrix4x4 application::make_projection(Vector3 offset)
 {
-    auto m = glm::mat4{1};
+    using vec3 = glm::vec<3, double, glm::highp>;
+    using mat4 = glm::mat<4, 4, double, glm::highp>;
+    auto m = mat4{1};
     auto size = windowSize();
-    float x = size[0]*.5f, y = size[1]*.5f, w = 4*sqrt(x*x+y*y);
-    m = glm::ortho<float>(-x, x, -y, y, -w, w);
-    m = glm::translate(m, { offset[0], -offset[1], offset[2] });
-    m = glm::scale(m, { 1.f, 0.6f, 1.f });
-    m = glm::rotate(m, glm::radians(-45.f),  glm::vec3(1.0f, 0.0f, 0.0f));
-    m = glm::rotate(m, glm::radians(0.0f),   glm::vec3(0.0f, 1.0f, 0.0f));
-    m = glm::rotate(m, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    return Matrix4x4{m};
+    double x = size[0]*.5, y = size[1]*.5, w = 4*sqrt(x*x+y*y);
+    m = glm::ortho<double>(-x, x, -y, y, -w, w);
+    m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
+    m = glm::scale(m, { 1., 0.6, 1. });
+    m = glm::rotate(m, glm::radians(-45.), vec3(1, 0, 0));
+    m = glm::rotate(m, glm::radians(0.),   vec3(0, 1, 0));
+    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
+    return Matrix4x4{glm::mat4(m)};
 }
 
 } // namespace Magnum::Examples

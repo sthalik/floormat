@@ -14,6 +14,7 @@ struct atlas_texture final
     static std::array<Vector3, 4> floor_quad(Vector3 center, Vector2 size);
     static std::array<UnsignedShort, 6> indices(int N);
     GL::Texture2D& texture() { return tex_; }
+    constexpr int size() const { return dims_.product(); }
 
     atlas_texture(const atlas_texture&) = delete;
     atlas_texture& operator=(const atlas_texture&) = delete;
