@@ -1,4 +1,5 @@
 #include "tile-shader.hpp"
+#include "loader.hpp"
 
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
@@ -12,13 +13,11 @@ tile_shader::tile_shader()
 {
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL460);
 
-    const Utility::Resource rs{"texturedquad-data"};
-
     GL::Shader vert{GL::Version::GL460, GL::Shader::Type::Vertex};
     GL::Shader frag{GL::Version::GL460, GL::Shader::Type::Fragment};
 
-    vert.addSource(rs.get("shaders/tile-shader.vert"));
-    frag.addSource(rs.get("shaders/tile-shader.frag"));
+    vert.addSource(loader.shader("shaders/tile-shader.vert"));
+    frag.addSource(loader.shader("shaders/tile-shader.frag"));
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(GL::Shader::compile({vert, frag}));
 

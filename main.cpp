@@ -1,4 +1,5 @@
 #include "atlas.hpp"
+#include "loader.hpp"
 #include "tile-shader.hpp"
 
 #include <Corrade/Containers/Optional.h>
@@ -27,18 +28,13 @@ namespace Magnum::Examples {
 struct application final : Platform::Application
 {
     explicit application(const Arguments& arguments);
+    virtual ~application();
     void drawEvent() override;
-
-    const Utility::Resource rs{"texturedquad-data"};
-    PluginManager::Manager<Trade::AbstractImporter> plugins;
-    Containers::Pointer<Trade::AbstractImporter> tga_importer =
-        plugins.loadAndInstantiate("TgaImporter");
 
     GL::Mesh _mesh;
     tile_shader _shader;
-    atlas_texture atlas = make_atlas("../share/game/images/tiles.tga", {8, 4});
+    std::shared_ptr<atlas_texture> atlas = loader.tile_atlas("../share/game/images/tiles.tga");
 
-    atlas_texture make_atlas(const std::string& file, Vector2i dims);
     Matrix4x4 make_projection(Vector3 offset);
 };
 
@@ -63,9 +59,9 @@ application::application(const Arguments& arguments):
         for (int i = -2; i <= 2; i++)
         {
             constexpr int sz = 48;
-            auto positions = atlas.floor_quad({(float)(sz*i), (float)(sz*j), 0}, {sz, sz});
-            auto texcoords = atlas.texcoords_for_id(((k+5)*101) % atlas.size());
-            auto indices_  = atlas.indices(k);
+            auto positions = atlas->floor_quad({(float)(sz*i), (float)(sz*j), 0}, {sz, sz});
+            auto texcoords = atlas->texcoords_for_id(((k+5)*101) % atlas->size());
+            auto indices_  = atlas->indices(k);
 
             for (unsigned x = 0; x < 4; x++)
                 vertices.push_back({ positions[x], texcoords[x] });
@@ -91,21 +87,10 @@ void application::drawEvent() {
     _shader
         .set_projection(make_projection({0, 0, 0}))
         .set_color(0xffffff_rgbf)
-        .bindTexture(atlas.texture())
+        .bindTexture(atlas->texture())
         .draw(_mesh);
 
     swapBuffers();
-}
-
-atlas_texture application::make_atlas(const std::string& file, Vector2i dims)
-{
-    if(!tga_importer || !tga_importer->openFile(file))
-        std::exit(1);
-
-    Containers::Optional<Trade::ImageData2D> image = tga_importer->image2D(0);
-    CORRADE_INTERNAL_ASSERT(image);
-
-    return atlas_texture{*image, dims};
 }
 
 Matrix4x4 application::make_projection(Vector3 offset)
@@ -122,6 +107,10 @@ Matrix4x4 application::make_projection(Vector3 offset)
     m = glm::rotate(m, glm::radians(0.),   vec3(0, 1, 0));
     m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
     return Matrix4x4{glm::mat4(m)};
+}
+application::~application()
+{
+    loader_::destroy();
 }
 
 } // namespace Magnum::Examples

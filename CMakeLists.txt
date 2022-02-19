@@ -53,10 +53,10 @@ if(NOT BOOTSTRAP_DEPENDS)
     find_package(MagnumPlugins QUIET REQUIRED)
     find_package(MagnumIntegration COMPONENTS Glm QUIET REQUIRED)
 
-    corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+    corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
-    add_executable(${PROJECT_NAME} WIN32 "${sources}" "${TexturedQuad_RESOURCES}")
+    add_executable(${PROJECT_NAME} WIN32 "${sources}" "${game_RESOURCES}")
     target_link_libraries(${PROJECT_NAME} PRIVATE
                           Magnum::Application
                           Magnum::GL
