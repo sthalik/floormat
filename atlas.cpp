@@ -13,7 +13,7 @@ atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
     CORRADE_INTERNAL_ASSERT(tile_size_ * dims_ == size_);
     CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2i{});
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);

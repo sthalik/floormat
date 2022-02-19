@@ -56,7 +56,7 @@ application::application(const Arguments& arguments):
     };
 
     std::vector<QuadVertex> vertices; vertices.reserve(64*64*4);
-    std::vector<Short> indices; indices.reserve(64*64*4);
+    std::vector<UnsignedShort> indices; indices.reserve(256);
 
     int k = 0;
     for (int j = -2; j <= 2; j++)
@@ -64,13 +64,13 @@ application::application(const Arguments& arguments):
         {
             constexpr int sz = 48;
             auto positions = atlas.floor_quad({(float)(sz*i), (float)(sz*j), 0}, {sz, sz});
-            auto texcoords = atlas.texcoords_for_id(k % atlas.size());
+            auto texcoords = atlas.texcoords_for_id(((k+5)*101) % atlas.size());
             auto indices_  = atlas.indices(k);
 
             for (unsigned x = 0; x < 4; x++)
                 vertices.push_back({ positions[x], texcoords[x] });
             for (auto x : indices_)
-                indices.push_back((Short)x);
+                indices.push_back(x);
             k++;
         }
 
