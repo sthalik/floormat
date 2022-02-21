@@ -35,8 +35,19 @@ struct local_coords final {
 };
 
 struct chunk_coords final {
-    Short x = 0, y = 0;
+    std::int16_t x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
+};
+
+struct global_coords final {
+    decltype(chunk_coords{}.x) x = 0, y = 0;
+    constexpr global_coords() noexcept = default;
+    constexpr global_coords(decltype(x) x, decltype(x) y) noexcept : x{x}, y{y} {}
+
+    constexpr std::size_t to_index() const noexcept {
+        using type = std::make_unsigned_t<decltype(x)>;
+        return (std::size_t)(type)y * (1 << sizeof(x)*8) + (std::size_t)(type)x;
+    }
 };
 
 struct chunk final
@@ -50,9 +61,10 @@ struct chunk final
 
     std::array<index_type, TILE_COUNT> indices = make_tile_indices();
 
-    constexpr struct tile& tile(local_coords xy);
-    constexpr struct tile& tile(local_coords xy) const { return const_cast<chunk&>(*this).tile(xy); }
-    constexpr struct tile& operator[](std::size_t i);
+    constexpr tile& operator[](local_coords xy);
+    constexpr const tile& operator[](local_coords xy) const;
+    constexpr tile& operator[](std::size_t i);
+    constexpr const tile& operator[](std::size_t i) const;
 
     template<typename F> constexpr inline void foreach_tile(F&& fun) { foreach_tile_<F, chunk&>(fun); }
     template<typename F> constexpr inline void foreach_tile(F&& fun) const { foreach_tile_<F, const chunk&>(fun); }
@@ -68,18 +80,24 @@ constexpr std::size_t local_coords::to_index() const noexcept {
     return y*chunk::N + x;
 }
 
-constexpr struct tile& chunk::operator[](std::size_t i) {
+constexpr tile& chunk::operator[](std::size_t i) {
     if (i >= TILE_COUNT)
         throw OUT_OF_RANGE(i, 0, TILE_COUNT);
     return tiles[i];
 }
 
-constexpr tile& chunk::tile(local_coords xy)
+constexpr const tile& chunk::operator[](std::size_t i) const {
+    return const_cast<chunk&>(*this).operator[](i);
+}
+
+constexpr const tile& chunk::operator[](local_coords xy) const {
+    return const_cast<chunk&>(*this).operator[](xy);
+}
+
+constexpr tile& chunk::operator[](local_coords xy)
 {
     auto idx = xy.to_index();
-    if (idx >= TILE_COUNT)
-        throw OUT_OF_RANGE(idx, 0, TILE_COUNT);
-    return tiles[idx];
+    return operator[](idx);
 }
 
 template<typename F, typename Self>
@@ -99,7 +117,7 @@ constexpr std::size_t chunk_coords::to_index() const noexcept
     using unsigned_type = std::make_unsigned_t<decltype(x)>;
     using limits = std::numeric_limits<unsigned_type>;
     constexpr auto N = limits::max() + std::size_t{1};
-    static_assert(sizeof(unsigned_type) <= sizeof(std::size_t)/2);
+    static_assert(sizeof(unsigned_type) <= sizeof(UnsignedInt)/2);
     return (std::size_t)(unsigned_type)y * N + (std::size_t)(unsigned_type)x;
 }
 
@@ -121,11 +139,26 @@ private:
 template<typename F>
 std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
 {
+    static_assert(sizeof(xy.x) <= sizeof(std::size_t)/2);
+    using max_coord_bits = std::integral_constant<decltype(xy.x), sizeof(xy.x)*8 * 3 / 4>;
+    static_assert(max_coord_bits::value*4/3/8 == sizeof(decltype(xy.x)));
+
+    ASSERT(xy.x < 1 << max_coord_bits::value);
+    ASSERT(xy.y < 1 << max_coord_bits::value);
+
     auto it = chunks.find(xy);
     if (it != chunks.end())
         return it->second;
     else
-        return chunks[xy] = fun();
+    {
+        std::shared_ptr<chunk> ptr{fun()};
+        ASSERT(ptr);
+        return chunks[xy] = std::move(ptr);
+    }
 }
+
+static_assert(std::is_same_v<decltype(local_coords{}.x), decltype(local_coords{}.y)>);
+static_assert(std::is_same_v<decltype(chunk_coords{}.x), decltype(chunk_coords{}.y)>);
+static_assert(std::is_same_v<decltype(global_coords{}.x), decltype(global_coords{}.y)>);
 
 } //namespace Magnum::Examples

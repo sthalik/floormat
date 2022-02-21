@@ -49,9 +49,9 @@ endif()
 
 if(NOT BOOTSTRAP_DEPENDS)
     find_package(Corrade QUIET REQUIRED)
-    find_package(Magnum COMPONENTS GL Shaders Trade Sdl2Application QUIET REQUIRED)
+    find_package(Magnum QUIET REQUIRED COMPONENTS GL Shaders Trade Sdl2Application)
     find_package(MagnumPlugins QUIET REQUIRED)
-    find_package(MagnumIntegration COMPONENTS Glm QUIET REQUIRED)
+    find_package(MagnumIntegration QUIET REQUIRED COMPONENTS Glm)
 
     corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
