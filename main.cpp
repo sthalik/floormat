@@ -2,10 +2,8 @@
 #include "loader.hpp"
 #include "tile-shader.hpp"
 
-#include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/PluginManager/Manager.h>
-#include <Corrade/Utility/Resource.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector.h>
 #include <Magnum/ImageView.h>
@@ -16,7 +14,6 @@
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Trade/AbstractImporter.h>
-#include <Magnum/Trade/ImageData.h>
 
 #include <Magnum/GlmIntegration/Integration.h>
 #include <glm/glm.hpp>

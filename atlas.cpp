@@ -1,4 +1,5 @@
 #include "atlas.hpp"
+#include "defs.hpp"
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -12,10 +13,11 @@ atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
     CORRADE_INTERNAL_ASSERT(dims_[0] > 0 && dims_[1] > 0);
     CORRADE_INTERNAL_ASSERT(tile_size_ * dims_ == size_);
     CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2i{});
+    CORRADE_INTERNAL_ASSERT(dims.product() < 256);
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setStorage(1, GL::textureFormat(image.format()), image.size())
+        .setStorage(MIPMAP_LEVEL, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);
 }
 

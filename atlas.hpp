@@ -21,6 +21,8 @@ struct atlas_texture final
 private:
     GL::Texture2D tex_;
     Vector2i size_, dims_, tile_size_;
+
+    static constexpr int MIPMAP_LEVEL = 1;
 };
 
 } // namespace Magnum::Examples
