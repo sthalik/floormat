@@ -1,5 +1,4 @@
 #pragma once
-#include "loader.hpp"
 #include "atlas.hpp"
 #include "hash.hpp"
 #include "defs.hpp"
@@ -13,10 +12,10 @@
 
 namespace Magnum::Examples {
 
-struct tile_image final : std::tuple<atlas_ptr, UnsignedByte>
+struct tile_image final
 {
-    constexpr int variant() const noexcept { return std::get<1>(*this); }
-    atlas_ptr atlas() const noexcept { return std::get<0>(*this); }
+    std::shared_ptr<atlas_texture> atlas;
+    int variant = -1;
 };
 
 struct tile final
@@ -27,27 +26,29 @@ struct tile final
     tile_image ground_image_;
     pass_mode passability_ = pass_obscured;
 
-    explicit operator bool() const noexcept { return !!std::get<0>(ground_image_); }
+    explicit operator bool() const noexcept { return !!ground_image_.atlas; }
 };
 
-struct local_coords final : std::pair<UnsignedByte, UnsignedByte> {
+struct local_coords final {
+    std::uint8_t x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
 };
 
-struct chunk_coords final : std::pair<Short, Short> {
+struct chunk_coords final {
+    Short x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
 };
-
-struct global_coords final : std::pair<chunk_coords, local_coords> {};
 
 struct chunk final
 {
     static constexpr std::size_t N = 16;
     static constexpr std::size_t TILE_COUNT = N*N;
-    using tile_index_type = std::array<UnsignedByte, TILE_COUNT>;
-    static tile_index_type make_tile_indices() noexcept;
 
-    tile_index_type indices = make_tile_indices();
+    using index_type = decltype(local_coords{}.x);
+    using tile_index_array_type = std::array<index_type, TILE_COUNT>;
+    //static constexpr inline local_coords center = { (index_type)(N/2), (index_type)(N/2) };
+
+    std::array<index_type, TILE_COUNT> indices = make_tile_indices();
 
     constexpr struct tile& tile(local_coords xy);
     constexpr struct tile& tile(local_coords xy) const { return const_cast<chunk&>(*this).tile(xy); }
@@ -58,11 +59,13 @@ struct chunk final
 
 private:
     template<typename F, typename Self> constexpr void foreach_tile_(F&& fun);
+    static std::array<index_type, TILE_COUNT> make_tile_indices() noexcept;
+
     std::array<struct tile, TILE_COUNT> tiles = {};
 };
 
 constexpr std::size_t local_coords::to_index() const noexcept {
-    return second*chunk::N + first;
+    return y*chunk::N + x;
 }
 
 constexpr struct tile& chunk::operator[](std::size_t i) {
@@ -93,11 +96,11 @@ constexpr void chunk::foreach_tile_(F&& fun)
 
 constexpr std::size_t chunk_coords::to_index() const noexcept
 {
-    using unsigned_type = std::make_unsigned_t<decltype(second)>;
+    using unsigned_type = std::make_unsigned_t<decltype(x)>;
     using limits = std::numeric_limits<unsigned_type>;
     constexpr auto N = limits::max() + std::size_t{1};
     static_assert(sizeof(unsigned_type) <= sizeof(std::size_t)/2);
-    return (std::size_t)(unsigned_type)second * N + (std::size_t)(unsigned_type)first;
+    return (std::size_t)(unsigned_type)y * N + (std::size_t)(unsigned_type)x;
 }
 
 struct hash_chunk final {
@@ -109,9 +112,20 @@ struct hash_chunk final {
 struct world final
 {
     explicit world();
+    template<typename F> std::shared_ptr<chunk> ensure_chunk(chunk_coords xy, F&& fun);
 
 private:
     std::unordered_map<chunk_coords, std::shared_ptr<chunk>, hash_chunk> chunks;
 };
+
+template<typename F>
+std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
+{
+    auto it = chunks.find(xy);
+    if (it != chunks.end())
+        return it->second;
+    else
+        return chunks[xy] = fun();
+}
 
 } //namespace Magnum::Examples

@@ -12,6 +12,8 @@
 
 namespace Magnum::Examples {
 
+using atlas_ptr = std::shared_ptr<atlas_texture>;
+
 struct loader_impl final : loader_
 {
     const Utility::Resource shader_res{"game/shaders"};

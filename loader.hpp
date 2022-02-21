@@ -9,13 +9,12 @@
 namespace Magnum::Examples {
 
 struct atlas_texture;
-using atlas_ptr = std::shared_ptr<atlas_texture>;
 
 struct loader_
 {
     virtual std::string shader(const std::string& filename) = 0;
     virtual Trade::ImageData2D tile_texture(const std::string& filename) = 0;
-    virtual atlas_ptr tile_atlas(const std::string& filename) = 0;
+    virtual std::shared_ptr<atlas_texture> tile_atlas(const std::string& filename) = 0;
     static void destroy();
 
     loader_(const loader_&) = delete;

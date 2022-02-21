@@ -3,9 +3,9 @@
 
 namespace Magnum::Examples {
 
-chunk::tile_index_type chunk::make_tile_indices() noexcept
+chunk::tile_index_array_type chunk::make_tile_indices() noexcept
 {
-    tile_index_type array;
+    tile_index_array_type array;
     for (unsigned i = 0; i < N*N; i++)
         array[i] = (UnsignedByte)i;
     return array;
