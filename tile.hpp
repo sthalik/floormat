@@ -40,22 +40,23 @@ struct chunk_coords final {
 };
 
 struct global_coords final {
-    decltype(chunk_coords{}.x) x = 0, y = 0;
+    decltype(chunk_coords::x) x = 0, y = 0;
     constexpr global_coords() noexcept = default;
-    constexpr global_coords(decltype(x) x, decltype(x) y) noexcept : x{x}, y{y} {}
+    constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
 
-    constexpr std::size_t to_index() const noexcept {
-        using type = std::make_unsigned_t<decltype(x)>;
-        return (std::size_t)(type)y * (1 << sizeof(x)*8) + (std::size_t)(type)x;
-    }
+    constexpr std::size_t to_index() const noexcept;
 };
+
+static_assert(std::is_same_v<decltype(local_coords::x), decltype(local_coords::y)>);
+static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y)>);
+static_assert(std::is_same_v<decltype(global_coords::x), decltype(global_coords::y)>);
 
 struct chunk final
 {
     static constexpr std::size_t N = 16;
     static constexpr std::size_t TILE_COUNT = N*N;
 
-    using index_type = decltype(local_coords{}.x);
+    using index_type = decltype(local_coords::x);
     using tile_index_array_type = std::array<index_type, TILE_COUNT>;
     //static constexpr inline local_coords center = { (index_type)(N/2), (index_type)(N/2) };
 
@@ -129,6 +130,10 @@ struct hash_chunk final {
 
 struct world final
 {
+    static_assert(sizeof(chunk_coords::x) <= sizeof(std::size_t)/2);
+    using max_coord_bits = std::integral_constant<decltype(chunk_coords::x), sizeof(chunk_coords::x)*8 * 3 / 4>;
+    static_assert(max_coord_bits::value*4/3/8 == sizeof(decltype(chunk_coords::x)));
+
     explicit world();
     template<typename F> std::shared_ptr<chunk> ensure_chunk(chunk_coords xy, F&& fun);
 
@@ -139,10 +144,6 @@ private:
 template<typename F>
 std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
 {
-    static_assert(sizeof(xy.x) <= sizeof(std::size_t)/2);
-    using max_coord_bits = std::integral_constant<decltype(xy.x), sizeof(xy.x)*8 * 3 / 4>;
-    static_assert(max_coord_bits::value*4/3/8 == sizeof(decltype(xy.x)));
-
     ASSERT(xy.x < 1 << max_coord_bits::value);
     ASSERT(xy.y < 1 << max_coord_bits::value);
 
@@ -157,8 +158,10 @@ std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
     }
 }
 
-static_assert(std::is_same_v<decltype(local_coords{}.x), decltype(local_coords{}.y)>);
-static_assert(std::is_same_v<decltype(chunk_coords{}.x), decltype(chunk_coords{}.y)>);
-static_assert(std::is_same_v<decltype(global_coords{}.x), decltype(global_coords{}.y)>);
+constexpr std::size_t global_coords::to_index() const noexcept
+{
+    using type = std::make_unsigned_t<decltype(x)>;
+    return (std::size_t)(type)y * (1 << sizeof(x)*8) + (std::size_t)(type)x;
+}
 
 } //namespace Magnum::Examples
