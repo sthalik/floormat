@@ -17,22 +17,23 @@ atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setStorage(MIPMAP_LEVEL, GL::textureFormat(image.format()), image.size())
+        .setMaxAnisotropy(8)
+        .setStorage(6, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);
 }
 
 std::array<Vector2, 4> atlas_texture::texcoords_for_id(int id_) const
 {
     CORRADE_INTERNAL_ASSERT(id_ >= 0 && id_ < dims_.product());
-    constexpr Vector2i _1 = { 1, 1 };
     Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
     auto p0 = Vector2(id * tile_size_) / Vector2(size_);
-    auto p1 = Vector2((id + _1) * tile_size_) / Vector2(size_);
+    auto p1 = (Vector2(Vector2i{1,1} * tile_size_) - Vector2{0.5f, 0.5f}) / Vector2(size_);
+    auto x0 = p0.x(), x1 = p1.x(), y0 = p0.y(), y1 = p1.y();
     return {{
-        { p1[0], p1[1] }, // bottom right
-        { p1[0], p0[1] }, // top right
-        { p0[0], p1[1] }, // bottom left
-        { p0[0], p0[1] }  // top left
+        { x0+x1, y0+y1 }, // bottom right
+        { x0+x1, y0    }, // top right
+        { x0,    y0+y1 }, // bottom left
+        { x0,    y0    }  // top left
     }};
 }
 

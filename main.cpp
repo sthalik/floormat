@@ -24,23 +24,56 @@ namespace Magnum::Examples {
 
 struct application final : Platform::Application
 {
+    using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
+
     explicit application(const Arguments& arguments);
     virtual ~application();
     void drawEvent() override;
 
     GL::Mesh _mesh;
     tile_shader _shader;
-    std::shared_ptr<atlas_texture> atlas = loader.tile_atlas("../share/game/images/tiles.tga");
+    std::shared_ptr<atlas_texture> atlas =
+        //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
+        //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
+        //loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
+        loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
 
-    Matrix4x4 make_projection(Vector3 offset);
+    static glm::mat<4, 4, double> make_projection(Vector2i window_size, Vector3 offset);
+    static float projection_size_ratio();
+    Matrix4x4 make_projection(Vector3 offset) const;
 };
 
-using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
+float application::projection_size_ratio()
+{
+    auto m = make_projection({1, 1}, {});
+    glm::vec<4, double> pos = glm::vec<4, double>{.5, 0, 0, 1} * m;
+    return (float)(pos[0] / pos[3]);
+}
+
+glm::mat<4, 4, double> application::make_projection(Vector2i window_size, Vector3 offset)
+{
+    using vec3 = glm::vec<3, double>;
+    using mat4 = glm::mat<4, 4, double>;
+    double x = window_size[0]*.5, y = window_size[1]*.5, w = 2*std::sqrt(x*x+y*y);
+    auto m = glm::ortho(-x, x, -y, y, -w, w);
+    //m = glm::ortho<double>(-.5, .5, -.5, .5, -100, 100);
+    m = glm::scale(m, { 1., 0.6, 1. });
+    m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
+    m = glm::rotate(m, glm::radians(std::asin(1./std::sqrt(2))), vec3(1, 0, 0));
+    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
+
+    return glm::mat4(m);
+}
+
+Matrix4x4 application::make_projection(Vector3 offset) const
+{
+    return Magnum::Matrix4x4{glm::mat4{make_projection(windowSize(), offset)}};
+}
 
 application::application(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
         .setTitle("Test")
-        .setSize({640, 480}, dpi_policy::Physical)}
+        .setSize({1024, 768}, dpi_policy::Physical)}
 {
     struct QuadVertex {
         Vector3 position;
@@ -51,13 +84,14 @@ application::application(const Arguments& arguments):
     std::vector<QuadVertex> vertices; vertices.reserve(64*64*4);
     std::vector<UnsignedShort> indices; indices.reserve(256);
 
+    auto sz = Vector2{50, 50} * projection_size_ratio();
+
     int k = 0;
     for (int j = -2; j <= 2; j++)
         for (int i = -2; i <= 2; i++)
         {
-            constexpr int sz = 48;
-            auto positions = atlas->floor_quad({(float)(sz*i), (float)(sz*j), 0}, {sz, sz});
-            auto texcoords = atlas->texcoords_for_id(((k+5)*101) % atlas->size());
+            auto positions = atlas->floor_quad({(float)(sz[0]*i), (float)(sz[1]*j), 0}, sz);
+            auto texcoords = atlas->texcoords_for_id(k % atlas->size());
             auto indices_  = atlas->indices(k);
 
             for (unsigned x = 0; x < 4; x++)
@@ -82,7 +116,7 @@ void application::drawEvent() {
     using namespace Math::Literals;
 
     _shader
-        .set_projection(make_projection({0, 0, 0}))
+        .set_projection(make_projection({}))
         .set_color(0xffffff_rgbf)
         .bindTexture(atlas->texture())
         .draw(_mesh);
@@ -90,21 +124,6 @@ void application::drawEvent() {
     swapBuffers();
 }
 
-Matrix4x4 application::make_projection(Vector3 offset)
-{
-    using vec3 = glm::vec<3, double, glm::highp>;
-    using mat4 = glm::mat<4, 4, double, glm::highp>;
-    auto m = mat4{1};
-    auto size = windowSize();
-    double x = size[0]*.5, y = size[1]*.5, w = 4*sqrt(x*x+y*y);
-    m = glm::ortho<double>(-x, x, -y, y, -w, w);
-    m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
-    m = glm::scale(m, { 1., 0.6, 1. });
-    m = glm::rotate(m, glm::radians(-45.), vec3(1, 0, 0));
-    m = glm::rotate(m, glm::radians(0.),   vec3(0, 1, 0));
-    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
-    return Matrix4x4{glm::mat4(m)};
-}
 application::~application()
 {
     loader_::destroy();

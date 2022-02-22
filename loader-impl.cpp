@@ -25,7 +25,7 @@ struct loader_impl final : loader_
 
     std::string shader(const std::string& filename) override;
     Trade::ImageData2D tile_texture(const std::string& filename) override;
-    atlas_ptr tile_atlas(const std::string& filename) override;
+    atlas_ptr tile_atlas(const std::string& filename, Vector2i size) override;
 
     explicit loader_impl();
     ~loader_impl() override;
@@ -39,10 +39,8 @@ std::string loader_impl::shader(const std::string& filename)
     return ret;
 }
 
-atlas_ptr loader_impl::tile_atlas(const std::string& name)
+atlas_ptr loader_impl::tile_atlas(const std::string& name, Vector2i size)
 {
-    constexpr Vector2i size{8, 4}; // TODO
-
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())
         return it->second;

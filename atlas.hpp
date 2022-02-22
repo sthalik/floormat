@@ -15,14 +15,13 @@ struct atlas_texture final
     static std::array<UnsignedShort, 6> indices(int N);
     GL::Texture2D& texture() { return tex_; }
     constexpr int size() const { return dims_.product(); }
+    constexpr Vector2i tile_size() const { return tile_size_; }
 
     atlas_texture(const atlas_texture&) = delete;
     atlas_texture& operator=(const atlas_texture&) = delete;
 private:
     GL::Texture2D tex_;
     Vector2i size_, dims_, tile_size_;
-
-    static constexpr int MIPMAP_LEVEL = 1;
 };
 
 } // namespace Magnum::Examples

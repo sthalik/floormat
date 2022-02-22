@@ -37,14 +37,16 @@ struct local_coords final {
 struct chunk_coords final {
     std::int16_t x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
+
+    static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
+    static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
 };
 
 struct global_coords final {
-    decltype(chunk_coords::x) x = 0, y = 0;
+    std::uint32_t x = 0, y = 0;
     constexpr global_coords() noexcept = default;
     constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
-
-    constexpr std::size_t to_index() const noexcept;
+    constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
 };
 
 static_assert(std::is_same_v<decltype(local_coords::x), decltype(local_coords::y)>);
@@ -131,8 +133,6 @@ struct hash_chunk final {
 struct world final
 {
     static_assert(sizeof(chunk_coords::x) <= sizeof(std::size_t)/2);
-    using max_coord_bits = std::integral_constant<decltype(chunk_coords::x), sizeof(chunk_coords::x)*8 * 3 / 4>;
-    static_assert(max_coord_bits::value*4/3/8 == sizeof(decltype(chunk_coords::x)));
 
     explicit world();
     template<typename F> std::shared_ptr<chunk> ensure_chunk(chunk_coords xy, F&& fun);
@@ -144,8 +144,8 @@ private:
 template<typename F>
 std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
 {
-    ASSERT(xy.x < 1 << max_coord_bits::value);
-    ASSERT(xy.y < 1 << max_coord_bits::value);
+    ASSERT(xy.x < 1 << chunk_coords::max_bits);
+    ASSERT(xy.y < 1 << chunk_coords::max_bits);
 
     auto it = chunks.find(xy);
     if (it != chunks.end())
@@ -158,10 +158,10 @@ std::shared_ptr<chunk> world::ensure_chunk(chunk_coords xy, F&& fun)
     }
 }
 
-constexpr std::size_t global_coords::to_index() const noexcept
+constexpr global_coords::global_coords(chunk_coords c, local_coords tile) noexcept :
+    x{tile.x + ((std::uint32_t)(std::make_unsigned_t<decltype(c.x)>)c.x << chunk_coords::max_bits)},
+    y{tile.y + ((std::uint32_t)(std::make_unsigned_t<decltype(c.y)>)c.y << chunk_coords::max_bits)}
 {
-    using type = std::make_unsigned_t<decltype(x)>;
-    return (std::size_t)(type)y * (1 << sizeof(x)*8) + (std::size_t)(type)x;
 }
 
 } //namespace Magnum::Examples

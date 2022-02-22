@@ -2,4 +2,5 @@
 /.clang-tidy
 /.clang-format
 /.idea/
+/images/
 /userconfig-*.cmake
