@@ -121,8 +121,6 @@ application::application(const Arguments& arguments):
         for (int j = -2; j <= 2; j++)
             for (int i = -2; i <= 2; i++)
             {
-                if (i == 0 && j == 0)
-                    continue;
                 auto positions = atlas->floor_quad({(float)(sz[0]*i), (float)(sz[1]*j), 0}, sz);
                 auto texcoords = atlas->texcoords_for_id(k % atlas->size());
                 auto indices_  = atlas->indices(k);
