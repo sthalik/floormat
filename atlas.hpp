@@ -9,10 +9,15 @@ namespace Magnum::Examples {
 
 struct atlas_texture final
 {
+    using vertex_array_type = std::array<Vector3, 4>;
+
     atlas_texture(const Trade::ImageData2D& img, Vector2i dims);
     std::array<Vector2, 4> texcoords_for_id(int id) const;
-    static std::array<Vector3, 4> floor_quad(Vector3 center, Vector2 size);
-    static std::array<Vector3, 4> wall_quad(Vector3 center, Vector3 size);
+    static vertex_array_type floor_quad(Vector3 center, Vector2 size);
+    static vertex_array_type wall_quad_W(Vector3 center, Vector3 size);
+    static vertex_array_type wall_quad_S(Vector3 center, Vector3 size);
+    static vertex_array_type wall_quad_E(Vector3 center, Vector3 size);
+    static vertex_array_type wall_quad_N(Vector3 center, Vector3 size);
     static std::array<UnsignedShort, 6> indices(int N);
     GL::Texture2D& texture() { return tex_; }
     constexpr int size() const { return dims_.product(); }

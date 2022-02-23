@@ -37,7 +37,9 @@ std::array<Vector2, 4> atlas_texture::texcoords_for_id(int id_) const
     }};
 }
 
-std::array<Vector3, 4> atlas_texture::floor_quad(Vector3 center, Vector2 size)
+using vertex_array_type = atlas_texture::vertex_array_type;
+
+vertex_array_type atlas_texture::floor_quad(Vector3 center, Vector2 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f;
     return {{
@@ -48,14 +50,47 @@ std::array<Vector3, 4> atlas_texture::floor_quad(Vector3 center, Vector2 size)
     }};
 }
 
-std::array<Vector3, 4> atlas_texture::wall_quad(Vector3 center, Vector3 size)
+vertex_array_type atlas_texture::wall_quad_N(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
-        { x + center[0], -y + center[1], +    center[2] },
-        { x + center[0], -y + center[1], z+    center[2] },
-        {-x + center[0],  y + center[1], +    center[2] },
-        {-x + center[0],  y + center[1], z+    center[2] },
+        { x + center[0], y + center[1],     center[2] },
+        { x + center[0], y + center[1], z + center[2] },
+        {-x + center[0], y + center[1],     center[2] },
+        {-x + center[0], y + center[1], z + center[2] },
+    }};
+}
+
+vertex_array_type atlas_texture::wall_quad_W(Vector3 center, Vector3 size)
+{
+    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    return {{
+        {-x + center[0],  y + center[1],     center[2] },
+        {-x + center[0],  y + center[1], z + center[2] },
+        {-x + center[0], -y + center[1],     center[2] },
+        {-x + center[0], -y + center[1], z + center[2] },
+    }};
+}
+
+vertex_array_type atlas_texture::wall_quad_S(Vector3 center, Vector3 size)
+{
+    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    return {{
+        { x + center[0], -y + center[1],     center[2] },
+        { x + center[0], -y + center[1], z + center[2] },
+        {-x + center[0], -y + center[1],     center[2] },
+        {-x + center[0], -y + center[1], z + center[2] },
+    }};
+}
+
+vertex_array_type atlas_texture::wall_quad_E(Vector3 center, Vector3 size)
+{
+    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    return {{
+        { x + center[0], -y + center[1],     center[2] },
+        { x + center[0], -y + center[1], z + center[2] },
+        { x + center[0],  y + center[1],     center[2] },
+        { x + center[0],  y + center[1], z + center[2] },
     }};
 }
 

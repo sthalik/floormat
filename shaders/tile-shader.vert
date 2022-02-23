@@ -12,5 +12,5 @@ void main() {
     interpolatedTextureCoordinates = textureCoordinates;
 
     gl_Position = projection * vec4(position.xy, 0, position.w) + vec4(0, position.z * y_scale, 0, 0);
-    interpolated_frag_depth = position.z;
+    interpolated_frag_depth = -position.z;
 }

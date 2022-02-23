@@ -51,7 +51,7 @@ struct application final : Platform::Application
         loader.tile_atlas("../share/game/images/metal1.tga", {1, 1});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
     std::shared_ptr<atlas_texture> atlas2 =
-        loader.tile_atlas("../share/game/images/tiles2.tga", {8, 5});
+        loader.tile_atlas("../share/game/images/metal2.tga", {4, 4});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector3 camera_offset;
@@ -76,11 +76,12 @@ float application::projection_size_ratio()
 
 glm::mat<4, 4, double> application::make_view(Vector3 offset) {
     using vec3 = glm::vec<3, double>;
-    auto m = glm::scale(glm::mat<4, 4, double>{1}, { 1., .6, 1. });
-    //auto m = glm::mat<4, 4, double>{1};
+    using mat4 = glm::mat<4, 4, double>;
+    mat4 m{1};
+    m = glm::scale(glm::mat<4, 4, double>{1}, { 1., .6, 1. });
     m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
-    m = glm::rotate(m, glm::radians(std::asin(1./std::sqrt(2))), vec3(1, 0, 0));
-    m = glm::rotate(m, glm::radians(45.), vec3(0, 0, 1));
+    m = glm::rotate(m, glm::radians(-std::atan(1./std::sqrt(2))), vec3(0, 1, 0));
+    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
     return m;
 }
 
@@ -117,6 +118,8 @@ application::application(const Arguments& arguments):
     auto sz = Vector2{100, 100} * ratio;
 
     {
+        vertices.clear();
+        indices.clear();
         int k = 0;
         for (int j = -2; j <= 2; j++)
             for (int i = -2; i <= 2; i++)
@@ -142,33 +145,43 @@ application::application(const Arguments& arguments):
     indices.clear();
 
     {
-        auto positions = atlas2->wall_quad({}, Vector3(sz[0], sz[1], sz[1]));
-        //auto positions = atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
-        auto texcoords = atlas->texcoords_for_id(0);
-        auto indices_ = atlas->indices(0);
-        for (unsigned x = 0; x < 4; x++)
-        {
-            Utility::Debug{} << "wall" << x << positions[x];
-            vertices.push_back({ positions[x], texcoords[x] });
-        }
-        for (auto x : indices_)
-            indices.push_back(x);
+        atlas_texture::vertex_array_type walls[] = {
+            atlas2->wall_quad_W({}, Vector3(sz[0], sz[1], sz[1]*2)),
+            atlas2->wall_quad_S({}, Vector3(sz[0], sz[1], sz[1]*2)),
+            atlas2->wall_quad_N({}, Vector3(sz[0], sz[1], sz[1]*2)),
+            atlas2->wall_quad_E({}, Vector3(sz[0], sz[1], sz[1]*2)),
+        };
 
-        _mesh2.setCount((int)indices.size())
-            .addVertexBuffer(GL::Buffer{vertices}, 0,
-                             tile_shader::Position{}, tile_shader::TextureCoordinates{})
-            .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
+        int k = 0;
+        for (const auto& positions : walls)
+        {
+            auto texcoords = atlas2->texcoords_for_id(k);
+            auto indices_ = atlas2->indices(k);
+            for (unsigned x = 0; x < 4; x++)
+                vertices.push_back({ positions[x], texcoords[x] });
+            for (auto x : indices_)
+                indices.push_back(x);
+            k++;
+        }
+
+        //auto positions = atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
     }
+
+    _mesh2.setCount((int)indices.size())
+        .addVertexBuffer(GL::Buffer{vertices}, 0,
+                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
+        .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
 
     (void)get_dt();
 }
 
 void application::drawEvent() {
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
 
-    GL::Renderer::setDepthMask(true);
-    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    //GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
+    //GL::Renderer::setDepthMask(true);
+    //GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
+    //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
     {
         float dt = get_dt();
@@ -199,7 +212,7 @@ void application::drawEvent() {
 
 void application::update(float dt)
 {
-    constexpr float pixels_per_second = 10;
+    constexpr float pixels_per_second = 100;
     if (keys[(int)key::camera_up])
         camera_offset += Vector3(0, -1, 0)  * dt * pixels_per_second;
     else if (keys[(int)key::camera_down])
@@ -215,7 +228,7 @@ void application::update(float dt)
 
 void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
 {
-    using Mods = KeyEvent::Modifiers;
+    //using Mods = KeyEvent::Modifiers;
 
     (void)m;
     (void)repeated;
