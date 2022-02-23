@@ -1,6 +1,9 @@
 #include "atlas.hpp"
 #include "loader.hpp"
 #include "tile-shader.hpp"
+#include "defs.hpp"
+
+#include <bitset>
 
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/PluginManager/Manager.h>
@@ -15,10 +18,11 @@
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Trade/AbstractImporter.h>
 
-#include <Magnum/GlmIntegration/Integration.h>
 #include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <Magnum/GlmIntegration/Integration.h>
+#include <SDL_timer.h>
 
 namespace Magnum::Examples {
 
@@ -29,19 +33,39 @@ struct application final : Platform::Application
     explicit application(const Arguments& arguments);
     virtual ~application();
     void drawEvent() override;
+    void update(float dt);
+    void keyPressEvent(KeyEvent& event) override;
+    void keyReleaseEvent(KeyEvent& event) override;
+    void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
 
-    GL::Mesh _mesh;
+    enum class key {
+        camera_up, camera_left, camera_right, camera_down, camera_reset,
+        MAX
+    };
+
+    GL::Mesh _mesh, _mesh2;
     tile_shader _shader;
     std::shared_ptr<atlas_texture> atlas =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
-        //loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
-        loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
+        loader.tile_atlas("../share/game/images/metal1.tga", {1, 1});
+        //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
+    std::shared_ptr<atlas_texture> atlas2 =
+        loader.tile_atlas("../share/game/images/tiles2.tga", {8, 5});
+
+    std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
+    Vector3 camera_offset;
+    std::bitset<(std::size_t)key::MAX> keys{0ul};
+
+    float get_dt();
 
     static glm::mat<4, 4, double> make_projection(Vector2i window_size, Vector3 offset);
+    static glm::mat<4, 4, double> make_view(Vector3 offset);
     static float projection_size_ratio();
     Matrix4x4 make_projection(Vector3 offset) const;
 };
+
+using namespace Math::Literals;
 
 float application::projection_size_ratio()
 {
@@ -50,19 +74,20 @@ float application::projection_size_ratio()
     return (float)(pos[0] / pos[3]);
 }
 
-glm::mat<4, 4, double> application::make_projection(Vector2i window_size, Vector3 offset)
-{
+glm::mat<4, 4, double> application::make_view(Vector3 offset) {
     using vec3 = glm::vec<3, double>;
-    using mat4 = glm::mat<4, 4, double>;
-    double x = window_size[0]*.5, y = window_size[1]*.5, w = 2*std::sqrt(x*x+y*y);
-    auto m = glm::ortho(-x, x, -y, y, -w, w);
-    //m = glm::ortho<double>(-.5, .5, -.5, .5, -100, 100);
-    m = glm::scale(m, { 1., 0.6, 1. });
+    auto m = glm::scale(glm::mat<4, 4, double>{1}, { 1., .6, 1. });
+    //auto m = glm::mat<4, 4, double>{1};
     m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
     m = glm::rotate(m, glm::radians(std::asin(1./std::sqrt(2))), vec3(1, 0, 0));
-    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
+    m = glm::rotate(m, glm::radians(45.), vec3(0, 0, 1));
+    return m;
+}
 
-    return glm::mat4(m);
+glm::mat<4, 4, double> application::make_projection(Vector2i window_size, Vector3 offset)
+{
+    double x = window_size[0]*.5, y = window_size[1]*.5, w = 1 << 16;
+    return glm::mat4(glm::ortho(-x, x, -y, y, -w, w) * make_view(offset));
 }
 
 Matrix4x4 application::make_projection(Vector3 offset) const
@@ -71,62 +96,169 @@ Matrix4x4 application::make_projection(Vector3 offset) const
 }
 
 application::application(const Arguments& arguments):
-    Platform::Application{arguments, Configuration{}
-        .setTitle("Test")
-        .setSize({1024, 768}, dpi_policy::Physical)}
+    Platform::Application{
+          arguments,
+          Configuration{}
+              .setTitle("Test")
+              .setSize({1024, 768}, dpi_policy::Physical),
+          GLConfiguration{}
+              //.setSampleCount(16)
+    }
 {
     struct QuadVertex {
         Vector3 position;
         Vector2 textureCoordinates;
-        // todo gl_FragDepth
     };
 
-    std::vector<QuadVertex> vertices; vertices.reserve(64*64*4);
-    std::vector<UnsignedShort> indices; indices.reserve(256);
+    std::vector<QuadVertex> vertices; vertices.reserve(1024);
+    std::vector<UnsignedShort> indices; indices.reserve(1024);
 
-    auto sz = Vector2{50, 50} * projection_size_ratio();
+    float ratio = projection_size_ratio();
+    auto sz = Vector2{100, 100} * ratio;
 
-    int k = 0;
-    for (int j = -2; j <= 2; j++)
-        for (int i = -2; i <= 2; i++)
+    {
+        int k = 0;
+        for (int j = -2; j <= 2; j++)
+            for (int i = -2; i <= 2; i++)
+            {
+                if (i == 0 && j == 0)
+                    continue;
+                auto positions = atlas->floor_quad({(float)(sz[0]*i), (float)(sz[1]*j), 0}, sz);
+                auto texcoords = atlas->texcoords_for_id(k % atlas->size());
+                auto indices_  = atlas->indices(k);
+
+                for (unsigned x = 0; x < 4; x++)
+                    vertices.push_back({ positions[x], texcoords[x] });
+                for (auto x : indices_)
+                    indices.push_back(x);
+                k++;
+            }
+
+        _mesh.setCount((int)indices.size())
+            .addVertexBuffer(GL::Buffer{vertices}, 0,
+                             tile_shader::Position{}, tile_shader::TextureCoordinates{})
+            .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
+    }
+
+    vertices.clear();
+    indices.clear();
+
+    {
+        auto positions = atlas2->wall_quad({}, Vector3(sz[0], sz[1], sz[1]));
+        //auto positions = atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
+        auto texcoords = atlas->texcoords_for_id(0);
+        auto indices_ = atlas->indices(0);
+        for (unsigned x = 0; x < 4; x++)
         {
-            auto positions = atlas->floor_quad({(float)(sz[0]*i), (float)(sz[1]*j), 0}, sz);
-            auto texcoords = atlas->texcoords_for_id(k % atlas->size());
-            auto indices_  = atlas->indices(k);
-
-            for (unsigned x = 0; x < 4; x++)
-                vertices.push_back({ positions[x], texcoords[x] });
-            for (auto x : indices_)
-                indices.push_back(x);
-            k++;
+            Utility::Debug{} << "wall" << x << positions[x];
+            vertices.push_back({ positions[x], texcoords[x] });
         }
+        for (auto x : indices_)
+            indices.push_back(x);
 
-    _mesh.setCount((int)indices.size())
-        .addVertexBuffer(GL::Buffer{vertices}, 0,
-                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
-        .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
+        _mesh2.setCount((int)indices.size())
+            .addVertexBuffer(GL::Buffer{vertices}, 0,
+                             tile_shader::Position{}, tile_shader::TextureCoordinates{})
+            .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
+    }
+
+    (void)get_dt();
 }
 
 void application::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
-    //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    //GL::Renderer::setDepthMask(true);
+    GL::Renderer::setDepthMask(true);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
-    using namespace Math::Literals;
+    {
+        float dt = get_dt();
+        update(dt);
+    }
 
+    {
+        auto projection = make_projection(camera_offset);
+        //auto ratio = projection_size_ratio();
+        float y_scale = 1.f/windowSize()[1];
+        _shader.set_projection(projection, y_scale);
+    }
+
+#if 1
     _shader
-        .set_projection(make_projection({}))
-        .set_color(0xffffff_rgbf)
         .bindTexture(atlas->texture())
         .draw(_mesh);
+#endif
+#if 1
+    _shader
+        .bindTexture(atlas2->texture())
+        .draw(_mesh2);
+#endif
 
     swapBuffers();
+    redraw();
+}
+
+void application::update(float dt)
+{
+    constexpr float pixels_per_second = 10;
+    if (keys[(int)key::camera_up])
+        camera_offset += Vector3(0, -1, 0)  * dt * pixels_per_second;
+    else if (keys[(int)key::camera_down])
+        camera_offset += Vector3(0, 1, 0) * dt * pixels_per_second;
+    if (keys[(int)key::camera_left])
+        camera_offset += Vector3(-1, 0, 0) * dt * pixels_per_second;
+    else if (keys[(int)key::camera_right])
+        camera_offset += Vector3(1, 0, 0)  * dt * pixels_per_second;
+
+    if (keys[(int)key::camera_reset])
+        camera_offset = {};
+}
+
+void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
+{
+    using Mods = KeyEvent::Modifiers;
+
+    (void)m;
+    (void)repeated;
+
+    key x = key::MAX;
+
+    switch (k)
+    {
+    using enum KeyEvent::Key;
+    case W: x = key::camera_up; break;
+    case A: x = key::camera_left; break;
+    case S: x = key::camera_down; break;
+    case D: x = key::camera_right; break;
+    case Home: x = key::camera_reset; break;
+    default: (void)0; break;
+    }
+
+    if (x != key::MAX)
+        keys[(std::size_t)x] = pressed;
+}
+
+float application::get_dt()
+{
+    const std::uint64_t t = SDL_GetPerformanceCounter();
+    float dt = (float)((t - time_ticks) / (double)time_freq);
+    time_ticks = t;
+    return dt;
 }
 
 application::~application()
 {
     loader_::destroy();
+}
+void application::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    do_key(event.key(), event.modifiers(), true, event.isRepeated());
+}
+
+void application::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    do_key(event.key(), event.modifiers(), false, false);
 }
 
 } // namespace Magnum::Examples

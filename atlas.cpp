@@ -17,8 +17,8 @@ atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setMaxAnisotropy(8)
-        .setStorage(6, GL::textureFormat(image.format()), image.size())
+        .setMaxAnisotropy(0)
+        .setStorage(1, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);
 }
 
@@ -41,10 +41,21 @@ std::array<Vector3, 4> atlas_texture::floor_quad(Vector3 center, Vector2 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f;
     return {{
-        { x + center[0], -y + center[1], 0},
-        { x + center[0],  y + center[1], 0},
-        {-x + center[0], -y + center[1], 0},
-        {-x + center[0],  y + center[1], 0},
+        { x + center[0], -y + center[1], center[2]},
+        { x + center[0],  y + center[1], center[2]},
+        {-x + center[0], -y + center[1], center[2]},
+        {-x + center[0],  y + center[1], center[2]},
+    }};
+}
+
+std::array<Vector3, 4> atlas_texture::wall_quad(Vector3 center, Vector3 size)
+{
+    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    return {{
+        { x + center[0], -y + center[1], +    center[2] },
+        { x + center[0], -y + center[1], z+    center[2] },
+        {-x + center[0],  y + center[1], +    center[2] },
+        {-x + center[0],  y + center[1], z+    center[2] },
     }};
 }
 

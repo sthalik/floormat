@@ -80,3 +80,4 @@ struct key_error final : exception {
 #define ERR(...)    GAME_DEBUG_OUT("error: ", __VA_ARGS__)
 #define DEBUG(...)  GAME_DEBUG_OUT("", __VA_ARGS__)
 
+#define progn(...) [&]{__VA_ARGS__;}()
