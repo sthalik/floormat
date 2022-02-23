@@ -25,7 +25,6 @@ tile_shader::tile_shader()
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    _color_uniform = uniformLocation("color");
     _projection_uniform = uniformLocation("projection");
     _y_scale_uniform = uniformLocation("y_scale");
 

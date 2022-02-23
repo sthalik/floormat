@@ -48,7 +48,7 @@ struct application final : Platform::Application
     std::shared_ptr<atlas_texture> atlas =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
-        loader.tile_atlas("../share/game/images/metal1.tga", {1, 1});
+        loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
     std::shared_ptr<atlas_texture> atlas2 =
         loader.tile_atlas("../share/game/images/metal2.tga", {4, 4});
@@ -63,7 +63,11 @@ struct application final : Platform::Application
     static glm::mat<4, 4, double> make_view(Vector3 offset);
     static float projection_size_ratio();
     Matrix4x4 make_projection(Vector3 offset) const;
+    static const Vector3 TILE_SIZE;
 };
+
+const Vector3 application::TILE_SIZE =
+    [] { auto x = 50 * application::projection_size_ratio(); return Vector3{x, x, 50}; }();
 
 using namespace Math::Literals;
 
@@ -87,7 +91,7 @@ glm::mat<4, 4, double> application::make_view(Vector3 offset) {
 
 glm::mat<4, 4, double> application::make_projection(Vector2i window_size, Vector3 offset)
 {
-    double x = window_size[0]*.5, y = window_size[1]*.5, w = 1 << 16;
+    double x = window_size[0]*.5, y = window_size[1]*.5, w = 2*std::max(window_size[0], window_size[1]);
     return glm::mat4(glm::ortho(-x, x, -y, y, -w, w) * make_view(offset));
 }
 
@@ -114,8 +118,8 @@ application::application(const Arguments& arguments):
     std::vector<QuadVertex> vertices; vertices.reserve(1024);
     std::vector<UnsignedShort> indices; indices.reserve(1024);
 
-    float ratio = projection_size_ratio();
-    auto sz = Vector2{100, 100} * ratio;
+    //float ratio = projection_size_ratio();
+    const float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
 
     {
         vertices.clear();
@@ -124,7 +128,7 @@ application::application(const Arguments& arguments):
         for (int j = -2; j <= 2; j++)
             for (int i = -2; i <= 2; i++)
             {
-                auto positions = atlas->floor_quad({(float)(sz[0]*i), (float)(sz[1]*j), 0}, sz);
+                auto positions = atlas->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
                 auto texcoords = atlas->texcoords_for_id(k % atlas->size());
                 auto indices_  = atlas->indices(k);
 
@@ -146,10 +150,10 @@ application::application(const Arguments& arguments):
 
     {
         atlas_texture::vertex_array_type walls[] = {
-            atlas2->wall_quad_W({}, Vector3(sz[0], sz[1], sz[1]*2)),
-            atlas2->wall_quad_S({}, Vector3(sz[0], sz[1], sz[1]*2)),
-            atlas2->wall_quad_N({}, Vector3(sz[0], sz[1], sz[1]*2)),
-            atlas2->wall_quad_E({}, Vector3(sz[0], sz[1], sz[1]*2)),
+            atlas2->wall_quad_W({}, Vector3(X, Y, Z)),
+            atlas2->wall_quad_S({}, Vector3(X, Y, Z)),
+            atlas2->wall_quad_N({}, Vector3(X, Y, Z)),
+            atlas2->wall_quad_E({}, Vector3(X, Y, Z)),
         };
 
         int k = 0;
@@ -190,8 +194,8 @@ void application::drawEvent() {
 
     {
         auto projection = make_projection(camera_offset);
-        //auto ratio = projection_size_ratio();
-        float y_scale = 1.f/windowSize()[1];
+        auto ratio = projection_size_ratio();
+        float y_scale = 1.2f/windowSize()[1];
         _shader.set_projection(projection, y_scale);
     }
 

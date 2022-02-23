@@ -14,7 +14,6 @@ struct tile_shader : GL::AbstractShaderProgram
 
     explicit tile_shader();
 
-    tile_shader& set_color(const Color3& color) { setUniform(_color_uniform, color); return *this; }
     tile_shader& set_projection(const Math::Matrix4<float>& mat, float y_scale);
 
     tile_shader& bindTexture(GL::Texture2D& texture);
@@ -22,7 +21,7 @@ struct tile_shader : GL::AbstractShaderProgram
 private:
     enum: Int { TextureUnit = 0 };
 
-    Int _color_uniform, _projection_uniform, _y_scale_uniform;
+    Int _projection_uniform, _y_scale_uniform;
 };
 
 } // namespace Magnum::Examples
