@@ -27,7 +27,7 @@ std::array<Vector2, 4> atlas_texture::texcoords_for_id(int id_) const
     CORRADE_INTERNAL_ASSERT(id_ >= 0 && id_ < dims_.product());
     Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
     auto p0 = Vector2(id * tile_size_) / Vector2(size_);
-    auto p1 = Vector2(Vector2i{1,1} * tile_size_) / Vector2(size_);
+    auto p1 = Vector2(tile_size_) / Vector2(size_);
     auto x0 = p0.x(), x1 = p1.x(), y0 = p0.y(), y1 = p1.y();
     return {{
         { x0+x1, y0+y1 }, // bottom right

@@ -107,7 +107,7 @@ application::application(const Arguments& arguments):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
-              //.setSampleCount(16)
+              .setSampleCount(16)
     }
 {
     struct QuadVertex {
@@ -194,7 +194,7 @@ void application::drawEvent() {
 
     {
         auto projection = make_projection(camera_offset);
-        auto ratio = projection_size_ratio();
+        //auto ratio = projection_size_ratio();
         float y_scale = 1.2f/windowSize()[1];
         _shader.set_projection(projection, y_scale);
     }
@@ -211,7 +211,7 @@ void application::drawEvent() {
 #endif
 
     swapBuffers();
-    redraw();
+    //redraw();
 }
 
 void application::update(float dt)
