@@ -55,7 +55,7 @@ struct key_error final : exception {
     _e.file = __FILE__;                                         \
     _e.function = FUNCTION_NAME;                                \
     std::snprintf(_e.msg, sizeof(_e.msg), __VA_ARGS__);         \
-    throw _e;                                                   \
+    throw _e;/*NOLINT(misc-throw-by-value-catch-by-reference)*/ \
 }())
 
 #define ABORT(...) \
