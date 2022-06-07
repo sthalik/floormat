@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Corrade/Containers/StringView.h>
 #include <Magnum/Trade/ImageData.h>
 
 #include <string>
@@ -12,9 +13,9 @@ struct atlas_texture;
 
 struct loader_
 {
-    virtual std::string shader(const std::string& filename) = 0;
-    virtual Trade::ImageData2D tile_texture(const std::string& filename) = 0;
-    virtual std::shared_ptr<atlas_texture> tile_atlas(const std::string& filename, Vector2i size) = 0;
+    virtual std::string shader(const Containers::StringView& filename) = 0;
+    virtual Trade::ImageData2D tile_texture(const Containers::StringView& filename) = 0;
+    virtual std::shared_ptr<atlas_texture> tile_atlas(const Containers::StringView& filename, Vector2i size) = 0;
     static void destroy();
 
     loader_(const loader_&) = delete;

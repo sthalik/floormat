@@ -2,11 +2,11 @@
 #include "loader.hpp"
 #include "atlas.hpp"
 #include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/StringView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Trade/ImageData.h>
-#include <string>
 #include <unordered_map>
 #include <utility>
 
@@ -23,23 +23,23 @@ struct loader_impl final : loader_
 
     std::unordered_map<std::string, atlas_ptr> atlas_map;
 
-    std::string shader(const std::string& filename) override;
-    Trade::ImageData2D tile_texture(const std::string& filename) override;
-    atlas_ptr tile_atlas(const std::string& filename, Vector2i size) override;
+    std::string shader(const Containers::StringView& filename) override;
+    Trade::ImageData2D tile_texture(const Containers::StringView& filename) override;
+    atlas_ptr tile_atlas(const Containers::StringView& filename, Vector2i size) override;
 
     explicit loader_impl();
     ~loader_impl() override;
 };
 
-std::string loader_impl::shader(const std::string& filename)
+std::string loader_impl::shader(const Containers::StringView& filename)
 {
-    auto ret = shader_res.get(filename);
-    if (ret.empty())
-        ABORT("can't find shader resource '%s'", filename.c_str());
+    auto ret = shader_res.getString(filename);
+    if (ret.isEmpty())
+        ABORT("can't find shader resource '%s'", filename.cbegin());
     return ret;
 }
 
-atlas_ptr loader_impl::tile_atlas(const std::string& name, Vector2i size)
+atlas_ptr loader_impl::tile_atlas(const Containers::StringView& name, Vector2i size)
 {
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())
@@ -49,13 +49,13 @@ atlas_ptr loader_impl::tile_atlas(const std::string& name, Vector2i size)
     return atlas;
 }
 
-Trade::ImageData2D loader_impl::tile_texture(const std::string& filename)
+Trade::ImageData2D loader_impl::tile_texture(const Containers::StringView& filename)
 {
     if(!tga_importer || !tga_importer->openFile(filename))
-        ABORT("can't open tile image '%s'", filename.c_str());
+        ABORT("can't open tile image '%s'", filename.cbegin());
     auto img = tga_importer->image2D(0);
     if (!img)
-        ABORT("can't allocate tile image for '%s'", filename.c_str());
+        ABORT("can't allocate tile image for '%s'", filename.cbegin());
     auto ret = std::move(*img);
     return ret;
 }
