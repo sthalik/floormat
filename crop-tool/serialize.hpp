@@ -1,12 +1,15 @@
 #pragma once
+
+#include <string>
 #include <array>
 #include <vector>
+#include <optional>
+#include <filesystem>
 #include <Magnum/Trade/ImageData.h>
 
 struct anim_frame
 {
-    Magnum::Trade::ImageData2D image;
-    Magnum::Vector2us ground_offset = {};
+    Magnum::Vector2i ground = {};
 };
 
 enum class anim_direction : unsigned char
@@ -18,14 +21,20 @@ enum class anim_direction : unsigned char
 
 struct anim_direction_group
 {
+    static const char* anim_direction_string(anim_direction group);
+    anim_direction group;
     std::vector<anim_frame> frames;
-    anim_direction dir = anim_direction::Invalid;
+
+    Magnum::Vector2i ground = {};
 };
 
 struct anim
 {
+    std::string name;
     std::array<anim_direction_group, (unsigned)anim_direction::MAX> directions;
-    int num_frames = 0, action_frame = 0, fps = default_fps;
+    int nframes = 0, actionframe = 0, fps = default_fps;
+
+    static std::optional<anim> from_json(const std::filesystem::path& pathname);
 
     static constexpr int default_fps = 24;
 };

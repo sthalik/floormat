@@ -1,5 +1,5 @@
 #include "../defs.hpp"
-#include "atlas.hpp"
+#include "serialize.hpp"
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
@@ -15,6 +15,9 @@
 #include <cstring>
 #include <cmath>
 
+#undef MIN
+#undef MAX
+
 #ifdef _WIN32
 #   define EX_OK        0   /* successful termination */
 #   define EX_USAGE     64  /* command line usage error */
@@ -24,18 +27,20 @@
 #   include <sysexits.h>
 #endif
 
+#if 0
 static std::string fix_path_separators(const std::filesystem::path& path)
 {
     auto str = path.string();
     std::replace(str.begin(), str.end(), '\\', '/');
     return str;
 }
+#endif
 
 struct file
 {
     std::filesystem::path name;
     cv::Mat4b mat;
-    cv::Point2i offset, orig_size;
+    cv::Point2i offset;
 };
 
 struct dir
@@ -85,8 +90,6 @@ find_image_bounds(const std::filesystem::path& path, const cv::Mat4b& mat)
 
 static std::optional<file> load_file(const std::filesystem::path& filename)
 {
-    Debug{} << "load" << fix_path_separators(filename.string());
-
     auto mat = progn(
         cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
         if (mat_.empty() || mat_.type() != CV_8UC4)
@@ -135,7 +138,7 @@ static std::optional<file> load_file(const std::filesystem::path& filename)
 
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
-    file ret {filename, resized.clone(), start, size};
+    file ret { filename, resized.clone(), offset };
     return std::make_optional(std::move(ret));
 }
 
@@ -146,8 +149,6 @@ static std::optional<dir> load_directory(const std::filesystem::path& dirname)
         Error{} << "can't open directory" << dirname.string() << ":" << ec.message();
         return std::nullopt;
     }
-
-    Debug{} << "loading" << dirname.string();
 
     dir ret;
     for (int i = 1; i <= 9999; i++)
@@ -184,15 +185,21 @@ int main(int argc, char** argv)
     if (auto* c = strrchr(argv[0], '/'); c && c[1])
         args.setCommand(c+1);
 #endif
-    args.addOption('o', "output", "output")
-        .addArrayArgument("directories")
+    args.addOption('o', "output", "./output")
+        .addArgument("directory")
         .addOption('W', "width", "")
         .addOption('H', "height", "")
         .addOption('x', "offset")
         .setHelp("offset", {}, "WxH");
     args.parse(argc, argv);
-    auto output = args.value<std::string>("output");
+    std::filesystem::path output = args.value<std::string>("output");
+    std::filesystem::path pathname = args.value<std::string>("directory");
     std::vector<dir> dirs;
+    auto anim_info = anim::from_json(pathname / "atlas.json");
+
+    if (!anim_info)
+        goto usage;
+
     if (unsigned w = args.value<unsigned>("width"); w != 0)
         options.width = w;
     if (unsigned h = args.value<unsigned>("height"); h != 0)
@@ -220,12 +227,14 @@ int main(int argc, char** argv)
         options.offset = {x, y};
     }
 
-    for (std::size_t i = 0, cnt = args.arrayValueCount("directories"); i < cnt; i++)
+    using anim_dir_t = std::underlying_type_t<anim_direction>;
+    for (auto i = (anim_dir_t)anim_direction::MIN; i < (anim_dir_t)anim_direction::MAX; i++)
     {
-        auto dir = load_directory(args.arrayValue("directories", i));
-        if (!dir)
+        auto name = anim_direction_group::anim_direction_string((anim_direction)i);
+        auto result = load_directory(pathname / name);
+        if (!result)
             goto usage;
-        dirs.push_back(std::move(*dir));
+        dirs.push_back(std::move(*result));
     }
 
     return 0;
