@@ -53,6 +53,8 @@ if(NOT BOOTSTRAP_DEPENDS)
     find_package(MagnumPlugins QUIET REQUIRED)
     find_package(MagnumIntegration QUIET REQUIRED COMPONENTS Glm)
 
+    add_subdirectory(crop-tool)
+
     corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 

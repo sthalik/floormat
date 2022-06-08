@@ -1,8 +1,6 @@
 #pragma once
-#include <Magnum/Math/Vector.h>
-#include <Magnum/Math/Vector2.h>
+#include <Magnum/Magnum.h>
 #include <Magnum/GL/Texture.h>
-#include <Magnum/Trade/ImageData.h>
 #include <array>
 
 namespace Magnum::Examples {
@@ -11,7 +9,7 @@ struct atlas_texture final
 {
     using vertex_array_type = std::array<Vector3, 4>;
 
-    atlas_texture(const Trade::ImageData2D& img, Vector2i dims);
+    atlas_texture(const ImageView2D& img, Vector2i dims);
     std::array<Vector2, 4> texcoords_for_id(int id) const;
     static vertex_array_type floor_quad(Vector3 center, Vector2 size);
     static vertex_array_type wall_quad_W(Vector3 center, Vector3 size);

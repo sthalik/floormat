@@ -1,0 +1,6 @@
+find_package(OpenCV QUIET REQUIRED COMPONENTS core imgcodecs imgproc highgui)
+file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+add_executable(crop-tool ${sources})
+target_include_directories(crop-tool SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(crop-tool opencv_highgui opencv_imgproc opencv_imgcodecs opencv_core)
+target_link_libraries(crop-tool Corrade::Utility Magnum::Trade)

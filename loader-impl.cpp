@@ -5,8 +5,10 @@
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
+#include <Magnum/ImageView.h>
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Trade/ImageData.h>
+#include <Magnum/Trade/AbstractImageConverter.h>
 #include <unordered_map>
 #include <utility>
 
@@ -17,9 +19,13 @@ using atlas_ptr = std::shared_ptr<atlas_texture>;
 struct loader_impl final : loader_
 {
     const Utility::Resource shader_res{"game/shaders"};
-    PluginManager::Manager<Trade::AbstractImporter> plugins;
+    PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> tga_importer =
-        plugins.loadAndInstantiate("TgaImporter");
+        importer_plugins.loadAndInstantiate("TgaImporter");
+
+    PluginManager::Manager<Trade::AbstractImageConverter> image_converter_plugins;
+    Containers::Pointer<Trade::AbstractImageConverter> tga_converter =
+        image_converter_plugins.loadAndInstantiate("TgaImageConverter");
 
     std::unordered_map<std::string, atlas_ptr> atlas_map;
 
@@ -44,7 +50,8 @@ atlas_ptr loader_impl::tile_atlas(const Containers::StringView& name, Vector2i s
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())
         return it->second;
-    auto atlas = std::make_shared<atlas_texture>(tile_texture(name), size);
+    auto image = tile_texture(name);
+    auto atlas = std::make_shared<atlas_texture>(image, size);
     atlas_map[name] = atlas;
     return atlas;
 }

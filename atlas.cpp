@@ -5,7 +5,7 @@
 
 namespace Magnum::Examples {
 
-atlas_texture::atlas_texture(const Trade::ImageData2D& image, Vector2i dims) :
+atlas_texture::atlas_texture(const ImageView2D& image, Vector2i dims) :
     size_{image.size()},
     dims_{dims},
     tile_size_{size_ / dims}
