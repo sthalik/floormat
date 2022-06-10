@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../defs.hpp"
 #include <string>
 #include <array>
 #include <vector>
@@ -7,34 +8,34 @@
 #include <filesystem>
 #include <Magnum/Trade/ImageData.h>
 
-struct anim_frame
+struct anim_frame final
 {
     Magnum::Vector2i ground = {};
 };
 
 enum class anim_direction : unsigned char
 {
-    Invalid,
     N, NE, E, SE, S, SW, W, NW,
-    MIN = N, MAX = NW,
+    COUNT = NW + 1,
 };
 
-struct anim_direction_group
+struct anim_group final
 {
-    static const char* anim_direction_string(anim_direction group);
-    anim_direction group;
+    anim_direction direction = (anim_direction)-1;
     std::vector<anim_frame> frames;
-
     Magnum::Vector2i ground = {};
+
+    static const char* direction_to_string(anim_direction group);
+    static anim_direction string_to_direction(const std::string& str);
 };
 
-struct anim
+struct anim final
 {
-    std::string name;
-    std::array<anim_direction_group, (unsigned)anim_direction::MAX> directions;
-    int nframes = 0, actionframe = 0, fps = default_fps;
-
     static std::optional<anim> from_json(const std::filesystem::path& pathname);
-
+    bool to_json(const std::filesystem::path& pathname);
     static constexpr int default_fps = 24;
+
+    std::string name;
+    std::array<anim_group, (std::size_t)anim_direction::COUNT> groups;
+    int nframes = 0, actionframe = -1, fps = default_fps;
 };

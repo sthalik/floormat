@@ -21,32 +21,18 @@
 #ifdef _WIN32
 #   define EX_OK        0   /* successful termination */
 #   define EX_USAGE     64  /* command line usage error */
+#   define EX_DATAERR   65  /* data format error */
 #   define EX_SOFTWARE  70  /* internal software error */
+#   define EX_CANTCREAT 73  /* can't create (user) output file */
 #   define EX_IOERR     74  /* input/output error */
 #else
 #   include <sysexits.h>
 #endif
 
-#if 0
-static std::string fix_path_separators(const std::filesystem::path& path)
-{
-    auto str = path.string();
-    std::replace(str.begin(), str.end(), '\\', '/');
-    return str;
-}
-#endif
-
 struct file
 {
-    std::filesystem::path name;
     cv::Mat4b mat;
-    cv::Point2i offset;
-};
-
-struct dir
-{
-    std::filesystem::path name;
-    std::vector<file> files;
+    Magnum::Vector2i ground_offset;
 };
 
 using Corrade::Utility::Error;
@@ -55,12 +41,13 @@ using Corrade::Utility::Debug;
 static struct options_ {
     std::optional<unsigned> width, height;
     std::optional<double> scale;
-    cv::Vec2i offset{-1, -1};
 } options;
+
+using std::filesystem::path;
 
 static
 std::tuple<cv::Vec2i, cv::Vec2i, bool>
-find_image_bounds(const std::filesystem::path& path, const cv::Mat4b& mat)
+find_image_bounds(const path& path, const cv::Mat4b& mat)
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
     for (int y = 0; y < mat.rows; y++)
@@ -81,27 +68,27 @@ find_image_bounds(const std::filesystem::path& path, const cv::Mat4b& mat)
     }
     if (start[0] >= end[0] || start[1] >= end[1])
     {
-        Error{} << "image" << path.string() << "contains only fully transparent pixels!";
+        Error{} << "image" << path << "contains only fully transparent pixels!";
         return {{}, {}, false};
     }
 
     return {start, end, true};
 }
 
-static std::optional<file> load_file(const std::filesystem::path& filename)
+static bool load_file(anim_group& group, const path& filename, const path& output_filename)
 {
     auto mat = progn(
         cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
         if (mat_.empty() || mat_.type() != CV_8UC4)
         {
-            Error{} << "failed to load" << filename.string() << "as RGBA32 image";
+            Error{} << "failed to load" << filename << "as RGBA32 image";
             return cv::Mat4b{};
         }
         return cv::Mat4b(std::move(mat_));
     );
 
     if (mat.empty())
-        return {};
+        return false;
 
     auto [start, end, bounds_ok] = find_image_bounds(filename, mat);
 
@@ -120,55 +107,56 @@ static std::optional<file> load_file(const std::filesystem::path& filename)
             std::abort();
     }
 
-    cv::Vec2i offset = {
-            (int)std::round((options.offset[0] - start[0]) * *options.scale),
-            (int)std::round((options.offset[1] - start[1]) * *options.scale),
-    };
-
     dest_size = {(int)std::round(*options.scale * size.width),
                  (int)std::round(*options.scale * size.height)};
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
-        Error{} << "refusing to upscale image" << filename.string();
+        Error{} << "refusing to upscale image" << filename;
         return {};
     }
 
-    Debug{} << "file" << filename.string() << offset[0] << offset[1];
-
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
-    file ret { filename, resized.clone(), offset };
-    return std::make_optional(std::move(ret));
+    if (!cv::imwrite(output_filename.string(), resized))
+    {
+        Error{} << "failed writing image" << output_filename;
+        return false;
+    }
+    Magnum::Vector2i ground = {
+        (int)std::round((group.ground[0] - start[0]) * *options.scale),
+        (int)std::round((group.ground[1] - start[1]) * *options.scale),
+    };
+    group.frames.push_back({ground});
+    return true;
 }
 
-static std::optional<dir> load_directory(const std::filesystem::path& dirname)
+static bool load_directory(anim_group& group, const path& dirname, const path& output_dir)
 {
     if (std::error_code ec{}; !std::filesystem::exists(dirname / ".", ec))
     {
-        Error{} << "can't open directory" << dirname.string() << ":" << ec.message();
-        return std::nullopt;
+        Error{} << "can't open directory" << dirname << ':' << ec.message();
+        return {};
     }
 
-    dir ret;
-    for (int i = 1; i <= 9999; i++)
+    int i;
+    for (i = 1; i <= 9999; i++)
     {
         char buf[9];
         sprintf(buf, "%04d.png", i);
-        auto path = dirname / buf;
-        if (!std::filesystem::exists(path))
+        if (!std::filesystem::exists(dirname/buf))
             break;
-        auto file = load_file(path);
-        if (!file)
-            return std::nullopt;
-        ret.files.push_back(std::move(*file));
+        if (!load_file(group, dirname/buf, output_dir/buf))
+            return false;
     }
-    if (ret.files.empty())
+
+    if (i == 1)
     {
-        Error{} << "directory" << dirname.string() << "is empty!";
-        return std::nullopt;
+        Error{} << "no files in anim group directory" << dirname;
+        return false;
     }
-    return std::make_optional(std::move(ret));
+
+    return true;
 }
 
 int main(int argc, char** argv)
@@ -188,14 +176,12 @@ int main(int argc, char** argv)
     args.addOption('o', "output", "./output")
         .addArgument("directory")
         .addOption('W', "width", "")
-        .addOption('H', "height", "")
-        .addOption('x', "offset")
-        .setHelp("offset", {}, "WxH");
+        .addOption('H', "height", "");
     args.parse(argc, argv);
-    std::filesystem::path output = args.value<std::string>("output");
-    std::filesystem::path pathname = args.value<std::string>("directory");
-    std::vector<dir> dirs;
-    auto anim_info = anim::from_json(pathname / "atlas.json");
+    const path output_dir = args.value<std::string>("output");
+    const path input_dir = args.value<std::string>("directory");
+    auto anim_info = anim::from_json(input_dir / "atlas.json");
+    //std::vector<dir> dirs; dirs.reserve((std::size_t)anim_direction::COUNT);
 
     if (!anim_info)
         goto usage;
@@ -210,34 +196,33 @@ int main(int argc, char** argv)
         goto usage;
     }
 
-    {
-        auto str = args.value<std::string>("offset");
-        if (str.empty())
-        {
-            Error{} << "offset argument is required";
-            goto usage;
-        }
-        int x, y;
-        int ret = std::sscanf(str.c_str(), "%dx%d", &x, &y);
-        if (ret != 2)
-        {
-            Error{} << "can't parse offset --" << str;
-            goto usage;
-        }
-        options.offset = {x, y};
+    try {
+        std::filesystem::create_directory(output_dir);
+    } catch (const std::filesystem::filesystem_error& error) {
+        Error{} << "failed to create output directory" << output_dir << ':' << error.what();
+        return EX_CANTCREAT;
     }
 
-    using anim_dir_t = std::underlying_type_t<anim_direction>;
-    for (auto i = (anim_dir_t)anim_direction::MIN; i < (anim_dir_t)anim_direction::MAX; i++)
+    for (std::size_t i = 0; i < (std::size_t)anim_direction::COUNT; i++)
     {
-        auto name = anim_direction_group::anim_direction_string((anim_direction)i);
-        auto result = load_directory(pathname / name);
-        if (!result)
-            goto usage;
-        dirs.push_back(std::move(*result));
+        auto group_name = anim_group::direction_to_string((anim_direction)i);
+        try {
+            std::filesystem::remove_all(output_dir/group_name);
+            std::filesystem::create_directory(output_dir/group_name);
+        } catch (const std::filesystem::filesystem_error& e) {
+            Error{} << "failed creating output directory" << group_name << ':' << e.what();
+            return EX_CANTCREAT;
+        }
+        auto& group = anim_info->groups[i];
+        group.frames.clear(); group.frames.reserve(64);
+        if (!load_directory(group, input_dir/group_name, input_dir/group_name))
+            return EX_DATAERR;
+        if (!anim_info->to_json(output_dir/"atlas.json"))
+            return EX_CANTCREAT;
     }
 
     return 0;
+
 usage:
     Error{Error::Flag::NoNewlineAtTheEnd} << Corrade::Containers::StringView{args.usage()};
     return EX_USAGE;
