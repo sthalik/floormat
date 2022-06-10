@@ -29,12 +29,6 @@
 #   include <sysexits.h>
 #endif
 
-struct file
-{
-    cv::Mat4b mat;
-    Magnum::Vector2i ground_offset;
-};
-
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
 
@@ -131,28 +125,28 @@ static bool load_file(anim_group& group, const path& filename, const path& outpu
     return true;
 }
 
-static bool load_directory(anim_group& group, const path& dirname, const path& output_dir)
+static bool load_directory(anim_group& group, const path& input_dir, const path& output_dir)
 {
-    if (std::error_code ec{}; !std::filesystem::exists(dirname / ".", ec))
+    if (std::error_code ec{}; !std::filesystem::exists(input_dir/".", ec))
     {
-        Error{} << "can't open directory" << dirname << ':' << ec.message();
+        Error{} << "can't open directory" << input_dir << ':' << ec.message();
         return {};
     }
 
     int i;
     for (i = 1; i <= 9999; i++)
     {
-        char buf[9];
-        sprintf(buf, "%04d.png", i);
-        if (!std::filesystem::exists(dirname/buf))
+        char filename[9];
+        sprintf(filename, "%04d.png", i);
+        if (!std::filesystem::exists(input_dir/filename))
             break;
-        if (!load_file(group, dirname/buf, output_dir/buf))
+        if (!load_file(group, input_dir/filename, output_dir/filename))
             return false;
     }
 
     if (i == 1)
     {
-        Error{} << "no files in anim group directory" << dirname;
+        Error{} << "no files in anim group directory" << input_dir;
         return false;
     }
 
@@ -181,7 +175,6 @@ int main(int argc, char** argv)
     const path output_dir = args.value<std::string>("output");
     const path input_dir = args.value<std::string>("directory");
     auto anim_info = anim::from_json(input_dir / "atlas.json");
-    //std::vector<dir> dirs; dirs.reserve((std::size_t)anim_direction::COUNT);
 
     if (!anim_info)
         goto usage;
@@ -215,7 +208,7 @@ int main(int argc, char** argv)
         }
         auto& group = anim_info->groups[i];
         group.frames.clear(); group.frames.reserve(64);
-        if (!load_directory(group, input_dir/group_name, input_dir/group_name))
+        if (!load_directory(group, input_dir/group_name, output_dir/group_name))
             return EX_DATAERR;
         if (!anim_info->to_json(output_dir/"atlas.json"))
             return EX_CANTCREAT;
