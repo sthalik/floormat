@@ -52,7 +52,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const path& path
     }
     if (start[0] >= end[0] || start[1] >= end[1])
     {
-        Error{} << "image" << path << "contains only fully transparent pixels!";
+        Error{Error::Flag::NoSpace} << "image '" << path << "' contains only fully transparent pixels!";
         return {{}, {}, false};
     }
 
@@ -66,7 +66,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
         if (mat_.empty() || mat_.type() != CV_8UC4)
         {
-            Error{} << "failed to load" << filename << "as RGBA32 image";
+            Error{Error::Flag::NoSpace} << "failed to load '" << filename << "' as RGBA32 image";
             return cv::Mat4b{};
         }
         return cv::Mat4b(std::move(mat_));
@@ -80,7 +80,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
     if (!bounds_ok)
         return false;
 
-    cv::Size size{end - start}, dest_size;
+    cv::Size size{end - start};
 
     if (opts.scale == 0.0)
     {
@@ -92,24 +92,27 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         ASSERT(opts.scale > 1e-6);
     }
 
-    dest_size = {(int)std::round(opts.scale * size.width),
-                 (int)std::round(opts.scale * size.height)};
+    const cv::Size dest_size = {
+        (int)std::round(opts.scale * size.width),
+        (int)std::round(opts.scale * size.height)
+    };
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
-        Error{} << "refusing to upscale image" << filename;
+        Error{Error::Flag::NoSpace} << "refusing to upscale image '" << filename << "'";
         return false;
     }
 
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
-    Magnum::Vector2i ground = {
+
+    const Magnum::Vector2i ground = {
         (int)std::round((group.ground[0] - start[0]) * opts.scale),
         (int)std::round((group.ground[1] - start[1]) * opts.scale),
     };
 
     group.frames.push_back({ground, atlas.offset(), {dest_size.width, dest_size.height}});
-    atlas.add_entry({&group.frames.back(), std::move(mat)});
+    atlas.add_entry({&group.frames.back(), std::move(resized)});
     return true;
 }
 
@@ -118,7 +121,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, 
 {
     if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
-        Error{} << "can't open directory" << input_dir << ':' << ec.message();
+        Error{Error::Flag::NoSpace} << "can't open directory '" << input_dir << "':" << ec.message();
         return false;
     }
 
@@ -210,7 +213,8 @@ int main(int argc, char** argv)
         !std::filesystem::exists(opts.output_dir/".") &&
         !std::filesystem::create_directory(opts.output_dir, error))
     {
-        Error{} << "failed to create output directory" << opts.output_dir << ':' << error.message();
+        Error{Error::Flag::NoSpace} << "failed to create output directory '" << opts.output_dir << "':"
+                                    << error.message();
         return EX_CANTCREAT;
     }
 

@@ -7,7 +7,6 @@
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 
-using Corrade::Utility::Debug;
 using Corrade::Utility::Error;
 
 namespace nlohmann {
@@ -44,7 +43,7 @@ std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
     try {
         s.open(pathname, std::ios_base::in);
     } catch (const std::ios::failure& e) {
-        Error{} << "failed to open" << pathname << ':' << e.what();
+        Error{Error::Flag::NoSpace} << "failed to open '" << pathname << "':" << e.what();
         return { {}, false };
     }
     anim ret;
@@ -54,7 +53,7 @@ std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
         using nlohmann::from_json;
         from_json(j, ret);
     } catch (const std::exception& e) {
-        Error{} << "failed to parse" << pathname << ':' << e.what();
+        Error{Error::Flag::NoSpace} << "failed to parse '" << pathname << "':" << e.what();
         return { {}, false };
     }
     return { std::move(ret), true };
@@ -69,14 +68,14 @@ bool anim::to_json(const std::filesystem::path& pathname)
     try {
         s.open(pathname, std::ios_base::out | std::ios_base::trunc);
     } catch (const std::ios::failure& e) {
-        Error{} << "failed to open" << pathname << "for writing:" << e.what();
+        Error{Error::Flag::NoSpace} << "failed to open '" << pathname << "' for writing: " << e.what();
         return false;
     }
     try {
         s << j.dump(4);
         s.flush();
     } catch (const std::exception& e) {
-        Error{} << "failed writing" << pathname << ':' << e.what();
+        Error{Error::Flag::NoSpace} << "failed writing '" << pathname << "' :" << e.what();
         return false;
     }
 
