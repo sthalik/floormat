@@ -36,7 +36,7 @@ void adl_serializer<Magnum::Vector2i>::from_json(const json& j, Magnum::Vector2i
         msg += "failed to parse string '";
         msg += str;
         msg += "' as Magnum::Vector2i";
-        throw std::out_of_range(msg);
+        throw std::invalid_argument(msg);
     }
     val = { x, y };
 }
