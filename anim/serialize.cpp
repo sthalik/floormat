@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <utility>
 #include <fstream>
+#include <exception>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 
@@ -17,16 +18,27 @@ struct adl_serializer<Magnum::Vector2i> final {
     static void from_json(const json& j, Magnum::Vector2i& x);
 };
 
-void adl_serializer<Magnum::Vector2i>::to_json(json& j, const Magnum::Vector2i& x)
+void adl_serializer<Magnum::Vector2i>::to_json(json& j, const Magnum::Vector2i& val)
 {
-    j["x"] = x[0];
-    j["y"] = x[1];
+    char buf[64];
+    snprintf(buf, sizeof(buf), "%d x %d", val[0], val[1]);
+    j = buf;
 }
 
-void adl_serializer<Magnum::Vector2i>::from_json(const json& j, Magnum::Vector2i& x)
+void adl_serializer<Magnum::Vector2i>::from_json(const json& j, Magnum::Vector2i& val)
 {
-    j.at("x").get_to(x[0]);
-    j.at("y").get_to(x[1]);
+    std::string str = j;
+    int x = 0, y = 0, n = 0;
+    int ret = std::sscanf(str.c_str(), "%d x %d%n", &x, &y, &n);
+    if (ret != 2 || (std::size_t)n != str.size())
+    {
+        std::string msg; msg.reserve(64 + str.size());
+        msg += "failed to parse string '";
+        msg += str;
+        msg += "' as Magnum::Vector2i";
+        throw std::out_of_range(msg);
+    }
+    val = { x, y };
 }
 
 } // namespace nlohmann
