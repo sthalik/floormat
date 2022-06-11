@@ -1,12 +1,13 @@
 #include "serialize.hpp"
-#include "json.hpp"
 
 #include <algorithm>
 #include <utility>
 #include <fstream>
 #include <exception>
+
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
+#include <nlohmann/json.hpp>
 
 using Corrade::Utility::Error;
 

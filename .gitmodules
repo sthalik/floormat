@@ -10,3 +10,6 @@
 [submodule "corrade"]
 	path = corrade
 	url = https://github.com/mosra/corrade
+[submodule "json"]
+	path = json
+	url = https://github.com/nlohmann/json.git
