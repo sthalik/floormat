@@ -58,47 +58,12 @@ struct application final : Platform::Application
     std::bitset<(std::size_t)key::MAX> keys{0ul};
 
     float get_dt();
-
-    static glm::mat<4, 4, double> make_projection(Vector2i window_size, Vector3 offset);
-    static glm::mat<4, 4, double> make_view(Vector3 offset);
-    static float projection_size_ratio();
-    Matrix4x4 make_projection(Vector3 offset) const;
     static const Vector3 TILE_SIZE;
 };
 
-const Vector3 application::TILE_SIZE =
-    [] { auto x = 50 * application::projection_size_ratio(); return Vector3{x, x, 50}; }();
+const Vector3 application::TILE_SIZE = { 50, 50, 50 };
 
 using namespace Math::Literals;
-
-float application::projection_size_ratio()
-{
-    auto m = make_projection({1, 1}, {});
-    glm::vec<4, double> pos = glm::vec<4, double>{.5, 0, 0, 1} * m;
-    return (float)(pos[0] / pos[3]);
-}
-
-glm::mat<4, 4, double> application::make_view(Vector3 offset) {
-    using vec3 = glm::vec<3, double>;
-    using mat4 = glm::mat<4, 4, double>;
-    mat4 m{1};
-    m = glm::scale(glm::mat<4, 4, double>{1}, { 1., .6, 1. });
-    m = glm::translate(m, { (double)offset[0], (double)-offset[1], (double)offset[2] });
-    m = glm::rotate(m, glm::radians(-std::atan(1./std::sqrt(2))), vec3(0, 1, 0));
-    m = glm::rotate(m, glm::radians(-45.), vec3(0, 0, 1));
-    return m;
-}
-
-glm::mat<4, 4, double> application::make_projection(Vector2i window_size, Vector3 offset)
-{
-    double x = window_size[0]*.5, y = window_size[1]*.5, w = 2*std::max(window_size[0], window_size[1]);
-    return glm::mat4(glm::ortho(-x, x, -y, y, -w, w) * make_view(offset));
-}
-
-Matrix4x4 application::make_projection(Vector3 offset) const
-{
-    return Magnum::Matrix4x4{glm::mat4{make_projection(windowSize(), offset)}};
-}
 
 application::application(const Arguments& arguments):
     Platform::Application{
@@ -107,7 +72,7 @@ application::application(const Arguments& arguments):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
-              .setSampleCount(16)
+              //.setSampleCount(16)
     }
 {
     struct QuadVertex {
@@ -151,9 +116,9 @@ application::application(const Arguments& arguments):
     {
         atlas_texture::vertex_array_type walls[] = {
             atlas2->wall_quad_W({}, Vector3(X, Y, Z)),
-            atlas2->wall_quad_S({}, Vector3(X, Y, Z)),
             atlas2->wall_quad_N({}, Vector3(X, Y, Z)),
             atlas2->wall_quad_E({}, Vector3(X, Y, Z)),
+            atlas2->wall_quad_S({}, Vector3(X, Y, Z)),
         };
 
         int k = 0;
@@ -193,10 +158,9 @@ void application::drawEvent() {
     }
 
     {
-        auto projection = make_projection(camera_offset);
         //auto ratio = projection_size_ratio();
-        float y_scale = 1.2f/windowSize()[1];
-        _shader.set_projection(projection, y_scale);
+        auto sz = windowSize();
+        _shader.set_projection({(float)sz[0], (float)sz[1]}, 1);
     }
 
 #if 1
