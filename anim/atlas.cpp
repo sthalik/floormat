@@ -1,41 +1,43 @@
+#undef NDEBUG
+
 #include "atlas.hpp"
 #include "serialize.hpp"
-#include "../defs.hpp"
 
+#include <cassert>
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
 
-void anim_atlas_row::add_entry(const anim_atlas_entry& x)
+void anim_atlas_row::add_entry(const anim_atlas_entry& x) noexcept
 {
     auto& frame = *x.frame;
     const auto& mat = x.mat;
     frame.offset = {xpos, ypos};
     frame.size = {mat.cols, mat.rows};
 
-    ASSERT(mat.rows > 0 && mat.cols > 0);
+    assert(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
     xpos += mat.cols;
     max_height = std::max(mat.rows, max_height);
 }
 
-void anim_atlas::advance_row()
+void anim_atlas::advance_row() noexcept
 {
     auto& row = rows.back();
     if (row.data.empty())
         return;
-    ASSERT(row.xpos); ASSERT(row.max_height);
+    assert(row.xpos); assert(row.max_height);
     ypos += row.max_height;
     maxx = std::max(row.xpos, maxx);
     rows.push_back({{}, 0, 0, ypos});
 }
 
-Magnum::Vector2i anim_atlas::offset() const
+Magnum::Vector2i anim_atlas::offset() const noexcept
 {
     const auto& row = rows.back();
     return {row.xpos, row.ypos};
 }
 
-Magnum::Vector2i anim_atlas::size() const
+Magnum::Vector2i anim_atlas::size() const noexcept
 {
     const anim_atlas_row& row = rows.back();
     // prevent accidentally writing out of bounds by forgetting to call
@@ -43,7 +45,7 @@ Magnum::Vector2i anim_atlas::size() const
     return {std::max(maxx, row.xpos), ypos + row.max_height};
 }
 
-bool anim_atlas::dump(const std::filesystem::path& filename) const
+bool anim_atlas::dump(const std::filesystem::path& filename) const noexcept
 {
     auto sz = size();
     cv::Mat4b mat(sz[1], sz[0]);

@@ -54,6 +54,8 @@ if(NOT BOOTSTRAP_DEPENDS)
     find_package(MagnumIntegration QUIET REQUIRED COMPONENTS Glm)
 
     include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+    include_directories(SYSTEM "./include")
+
     add_subdirectory(crop-tool)
     add_subdirectory(anim)
 

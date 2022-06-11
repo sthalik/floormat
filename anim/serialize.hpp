@@ -19,7 +19,7 @@ struct anim_frame final
 enum class anim_direction : unsigned char
 {
     N, NE, E, SE, S, SW, W, NW,
-    COUNT = NW + 1,
+    COUNT,
 };
 
 struct anim_group final
@@ -31,11 +31,13 @@ struct anim_group final
 
 struct anim final
 {
-    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname);
-    [[nodiscard]] bool to_json(const std::filesystem::path& pathname);
+    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname) noexcept;
+    [[nodiscard]] bool to_json(const std::filesystem::path& pathname) noexcept;
     static constexpr int default_fps = 24;
 
     std::string name;
     std::array<anim_group, (std::size_t)anim_direction::COUNT> groups;
-    int nframes = 0, actionframe = -1, fps = default_fps;
+    int nframes = 0;
+    int width = 0, height = 0;
+    int actionframe = -1, fps = default_fps;
 };

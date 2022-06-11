@@ -1,5 +1,5 @@
 #include "serialize.hpp"
-#include "../json.hpp"
+#include "json.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -43,11 +43,21 @@ void adl_serializer<Magnum::Vector2i>::from_json(const json& j, Magnum::Vector2i
 
 } // namespace nlohmann
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups);
+#if defined __clang__ || defined __CLION_IDE__
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wweak-vtables"
+#   pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
 
-std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups, width, height)
+
+#if defined __clang__ || defined __CLION_IDE__
+#   pragma clang diagnostic pop
+#endif
+
+std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname) noexcept
 {
     using namespace nlohmann;
     std::ifstream s;
@@ -55,7 +65,7 @@ std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
     try {
         s.open(pathname, std::ios_base::in);
     } catch (const std::ios::failure& e) {
-        Error{Error::Flag::NoSpace} << "failed to open '" << pathname << "':" << e.what();
+        Error{Error::Flag::NoSpace} << "failed to open " << pathname << ": " << e.what();
         return { {}, false };
     }
     anim ret;
@@ -65,29 +75,29 @@ std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
         using nlohmann::from_json;
         from_json(j, ret);
     } catch (const std::exception& e) {
-        Error{Error::Flag::NoSpace} << "failed to parse '" << pathname << "':" << e.what();
+        Error{Error::Flag::NoSpace} << "failed to parse " << pathname << ": " << e.what();
         return { {}, false };
     }
     return { std::move(ret), true };
 }
 
-bool anim::to_json(const std::filesystem::path& pathname)
+bool anim::to_json(const std::filesystem::path& pathname) noexcept
 {
-    nlohmann::json j = *this;
+    try {
+        nlohmann::json j = *this;
 
-    std::ofstream s;
-    s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    try {
-        s.open(pathname, std::ios_base::out | std::ios_base::trunc);
-    } catch (const std::ios::failure& e) {
-        Error{Error::Flag::NoSpace} << "failed to open '" << pathname << "' for writing: " << e.what();
-        return false;
-    }
-    try {
+        std::ofstream s;
+        s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
+        try {
+            s.open(pathname, std::ios_base::out | std::ios_base::trunc);
+        } catch (const std::ios::failure& e) {
+            Error{} << "failed to open" << pathname << "for writing:" << e.what();
+            return false;
+        }
         s << j.dump(4);
         s.flush();
     } catch (const std::exception& e) {
-        Error{Error::Flag::NoSpace} << "failed writing '" << pathname << "' :" << e.what();
+        Error{Error::Flag::NoSpace} << "failed writing to " << pathname << ": " << e.what();
         return false;
     }
 

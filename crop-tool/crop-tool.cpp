@@ -1,6 +1,18 @@
+#undef NDEBUG
+
 #include "defs.hpp"
 #include "anim/atlas.hpp"
 #include "anim/serialize.hpp"
+
+#include <cassert>
+#include <cmath>
+#include <cstring>
+
+#include <algorithm>
+#include <utility>
+#include <tuple>
+
+#include <filesystem>
 
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
@@ -10,14 +22,6 @@
 #include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <algorithm>
-#include <utility>
-#include <tuple>
-
-#include <cmath>
-#include <cstring>
-#include <filesystem>
-
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
 
@@ -25,24 +29,25 @@ using std::filesystem::path;
 
 struct options
 {
-    unsigned width = 0, height = 0;
     double scale = 0;
-    path input_dir, output_dir;
+    path input_dir, input_file, output_dir;
+    int width = 0, height = 0, nframes = 0;
 };
 
 [[nodiscard]]
-static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const path& path, const cv::Mat4b& mat)
+static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) noexcept
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
+    bool ok = false;
     for (int y = 0; y < mat.rows; y++)
     {
         const auto* ptr = mat.ptr<cv::Vec4b>(y);
         for (int x = 0; x < mat.cols; x++)
         {
             enum {R, G, B, A};
-            cv::Vec4b px = ptr[x];
-            if (px[A] != 0)
+            if (cv::Vec4b px = ptr[x]; px[A] != 0)
             {
+                ok = true;
                 start[0] = std::min(x, start[0]);
                 start[1] = std::min(y, start[1]);
                 end[0] = std::max(x+1, end[0]);
@@ -50,46 +55,46 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const path& path
             }
         }
     }
-    if (start[0] >= end[0] || start[1] >= end[1])
-    {
-        Error{Error::Flag::NoSpace} << "image '" << path << "' contains only fully transparent pixels!";
+    if (ok)
+        return {start, end, true};
+    else
         return {{}, {}, false};
-    }
-
-    return {start, end, true};
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename)
+static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename) noexcept
 {
     auto mat = progn(
-        cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
-        if (mat_.empty() || mat_.type() != CV_8UC4)
+        cv::Mat mat = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
+        if (mat.empty() || mat.type() != CV_8UC4)
         {
-            Error{Error::Flag::NoSpace} << "failed to load '" << filename << "' as RGBA32 image";
+            Error{} << "failed to load" << filename << "as RGBA32 image";
             return cv::Mat4b{};
         }
-        return cv::Mat4b(std::move(mat_));
+        return cv::Mat4b(std::move(mat));
     );
 
     if (mat.empty())
         return false;
 
-    auto [start, end, bounds_ok] = find_image_bounds(filename, mat);
+    auto [start, end, bounds_ok] = find_image_bounds(mat);
 
     if (!bounds_ok)
+    {
+        Error{} << "no valid image data in" << filename;
         return false;
+    }
 
     cv::Size size{end - start};
 
     if (opts.scale == 0.0)
     {
-        ASSERT(opts.width || opts.height);
+        assert(opts.width || opts.height);
         if (opts.width)
             opts.scale = (double)opts.width / size.width;
         else
             opts.scale = (double)opts.height / size.height;
-        ASSERT(opts.scale > 1e-6);
+        assert(opts.scale > 1e-6);
     }
 
     const cv::Size dest_size = {
@@ -99,7 +104,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
-        Error{Error::Flag::NoSpace} << "refusing to upscale image '" << filename << "'";
+        Error{} << "refusing to upscale image" << filename;
         return false;
     }
 
@@ -117,31 +122,42 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, const path& input_dir)
+static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, const path& input_dir) noexcept
 {
     if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
-        Error{Error::Flag::NoSpace} << "can't open directory '" << input_dir << "':" << ec.message();
+        Error{Error::Flag::NoSpace} << "can't open directory " << input_dir << ": " << ec.message();
         return false;
     }
 
-    std::size_t max;
+    int max;
     for (max = 1; max <= 9999; max++)
     {
         char filename[9];
-        sprintf(filename, "%04zu.png", max);
-        if (!std::filesystem::exists(input_dir/filename))
+        sprintf(filename, "%04d.png", max);
+        if (std::error_code ec; !std::filesystem::exists(input_dir/filename, ec))
             break;
     }
+
+    if (!opts.nframes)
+        opts.nframes = max-1;
+    else if (opts.nframes != max-1)
+    {
+        Error{Error::Flag::NoSpace} << "wrong frame count for direction '"
+                                    << group.name << "', " << max-1
+                                    << " should be " << opts.nframes;
+        return false;
+    }
+
     group.frames.clear();
     // atlas stores its entries through a pointer.
     // vector::reserve() is necessary to avoid use-after-free.
-    group.frames.reserve(max-1);
+    group.frames.reserve((std::size_t)max-1);
 
-    for (std::size_t i = 1; i < max; i++)
+    for (int i = 1; i < max; i++)
     {
         char filename[9];
-        sprintf(filename, "%04zu.png", i);
+        sprintf(filename, "%04d.png", i);
         if (!load_file(group, opts, atlas, input_dir/filename))
             return false;
     }
@@ -151,7 +167,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, 
     return true;
 }
 
-static char* fix_argv0(char* argv0)
+static char* fix_argv0(char* argv0) noexcept
 {
 #ifdef _WIN32
     if (auto* c = strrchr(argv0, '\\'); c && c[1])
@@ -167,67 +183,90 @@ static char* fix_argv0(char* argv0)
     return argv0;
 }
 
-static std::tuple<options, bool> parse_cmdline(int argc, const char* const* argv)
+using Corrade::Utility::Arguments;
+
+static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output")
-        .addArgument("directory")
+        .addArgument("input")
         .addOption('W', "width", "")
         .addOption('H', "height", "");
     args.parse(argc, argv);
     options opts;
-    if (unsigned w = args.value<unsigned>("width"); w != 0)
+    if (int w = args.value<int>("width"); w != 0)
         opts.width = w;
-    if (unsigned h = args.value<unsigned>("height"); h != 0)
+    if (int h = args.value<int>("height"); h != 0)
         opts.height = h;
-    if (!(!opts.width ^ !opts.height))
-    {
-        Error{} << "exactly one of --width, --height must be given";
-        goto usage;
-    }
-    opts.output_dir = args.value<std::string>("output");
-    opts.input_dir = args.value<std::string>("directory");
+    opts.input_file = args.value<std::string>("input");
+    opts.input_dir = opts.input_file.parent_path();
 
     if (opts.output_dir.empty())
         opts.output_dir = opts.input_dir;
 
-    return { std::move(opts), true };
-usage:
+    return { std::move(opts), std::move(args), true };
+}
+
+[[nodiscard]] static int usage(const Arguments& args) noexcept
+{
     Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
-    return { {}, false };
+    return EX_USAGE;
+}
+
+[[nodiscard]] static bool check_atlas_name(const std::string& str) noexcept
+{
+    constexpr auto npos = std::string::npos;
+
+    if (str.empty())
+        return false;
+    if (str[0] == '.' || str[0] == '\\' || str[0] == '/')
+        return false;
+    if (str.find('"') != npos || str.find('\'') != npos)
+        return false;
+    if (str.find("/.") != npos || str.find("\\.") != npos)
+        return false; // NOLINT(readability-simplify-boolean-expr)
+
+    return true;
 }
 
 int main(int argc, char** argv)
 {
     argv[0] = fix_argv0(argv[0]);
-    auto [opts, opts_ok] = parse_cmdline(argc, argv);
+    auto [opts, args, opts_ok] = parse_cmdline(argc, argv);
     if (!opts_ok)
-        return EX_USAGE;
+        return usage(args);
 
-    auto [anim_info, anim_ok] = anim::from_json(opts.input_dir/"atlas.json");
+    auto [anim_info, anim_ok] = anim::from_json(opts.input_file);
 
     if (!anim_ok)
         return EX_DATAERR;
 
-    if (std::error_code error;
-        !std::filesystem::exists(opts.output_dir/".") &&
-        !std::filesystem::create_directory(opts.output_dir, error))
+    if (!check_atlas_name(anim_info.name))
     {
-        Error{Error::Flag::NoSpace} << "failed to create output directory '" << opts.output_dir << "':"
-                                    << error.message();
-        return EX_CANTCREAT;
+        Error{Error::Flag::NoSpace} << "atlas name '" << anim_info.name << "' contains invalid characters";
+        return EX_DATAERR;
     }
 
-    anim_atlas atlas;
+    if (!opts.width)
+        opts.width = anim_info.width;
+    if (!opts.height)
+        opts.height = anim_info.height;
+    opts.nframes = anim_info.nframes;
 
-    for (anim_group& group : anim_info.groups)
+    if (!(opts.width ^ opts.height) || opts.width < 0 || opts.height < 0)
     {
-        group.frames.clear(); group.frames.reserve(64);
+        Error{} << "exactly one of --width, --height must be specified";
+        return usage(args);
+    }
+
+    for (anim_atlas atlas;
+         anim_group& group : anim_info.groups)
+    {
         if (!load_directory(group, opts, atlas, opts.input_dir/group.name))
             return EX_DATAERR;
-        if (!atlas.dump(opts.output_dir/"atlas.png"))
+        if (!atlas.dump(opts.output_dir/(anim_info.name + ".png")))
             return EX_CANTCREAT;
-        if (!anim_info.to_json(opts.output_dir/"atlas.json.new"))
+        if (!anim_info.to_json(opts.output_dir/(anim_info.name + ".json")))
             return EX_CANTCREAT;
     }
 
