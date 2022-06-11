@@ -144,7 +144,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, 
     else if (opts.nframes != max-1)
     {
         Error{Error::Flag::NoSpace} << "wrong frame count for direction '"
-                                    << group.name << "', " << max-1
+                                    << group.name << "' -- " << max-1
                                     << " should be " << opts.nframes;
         return false;
     }
