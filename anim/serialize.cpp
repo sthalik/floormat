@@ -68,6 +68,7 @@ void adl_serializer<Magnum::Vector2i>::from_json(const json& j, Magnum::Vector2i
     j.at("y").get_to(x[1]);
 }
 
+#if 0
 void adl_serializer<anim_direction>::to_json(json& j, anim_direction x)
 {
     j = anim_group::direction_to_string(x);
@@ -77,6 +78,7 @@ void adl_serializer<anim_direction>::from_json(const json& j, anim_direction& x)
 {
     x = anim_group::string_to_direction(j);
 }
+#endif
 
 } // namespace nlohmann
 

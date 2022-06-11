@@ -53,7 +53,9 @@ if(NOT BOOTSTRAP_DEPENDS)
     find_package(MagnumPlugins QUIET REQUIRED)
     find_package(MagnumIntegration QUIET REQUIRED COMPONENTS Glm)
 
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
     add_subdirectory(crop-tool)
+    add_subdirectory(anim)
 
     corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)

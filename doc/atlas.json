@@ -2,16 +2,16 @@
     "name": "character",
     "nframes": 24,
     "actionframe": 0,
-    "fps": 1,
+    "fps": 24,
     "groups": [
-        { "direction": "N",  "frames": [], "ground": {"x":484, "y":488} },
-        { "direction": "NE", "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "E",  "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "SE", "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "S",  "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "SW", "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "W",  "frames": [], "ground": {"x":  0, "y":  0} },
-        { "direction": "NW", "frames": [], "ground": {"x":  0, "y":  0} }
+        { "name": "n",  "frames": [], "ground": {"x":484, "y":488} },
+        { "name": "ne", "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "e",  "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "se", "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "s",  "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "sw", "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "w",  "frames": [], "ground": {"x":  0, "y":  0} },
+        { "name": "nw", "frames": [], "ground": {"x":  0, "y":  0} }
     ]
 }
 

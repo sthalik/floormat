@@ -11,7 +11,7 @@ namespace std::filesystem { class path; }
 struct anim_atlas_entry
 {
     anim_frame* frame;
-    const cv::Mat4b mat;
+    cv::Mat4b mat;
 };
 
 struct anim_atlas_row

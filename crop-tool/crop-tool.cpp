@@ -1,13 +1,12 @@
 #include "../defs.hpp"
-#include "atlas.hpp"
-#include "serialize.hpp"
+#include "anim/atlas.hpp"
+#include "anim/serialize.hpp"
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 #include <optional>
 #include <tuple>
 #include <filesystem>
@@ -35,9 +34,10 @@ using Corrade::Utility::Debug;
 
 using std::filesystem::path;
 
-struct options_ {
-    std::optional<unsigned> width, height;
-    std::optional<double> scale;
+struct options
+{
+    unsigned width = 0, height = 0;
+    double scale = 0;
     path input_dir, output_dir;
 };
 
@@ -71,7 +71,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const path& path
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options_& opts, anim_atlas& atlas, const path& filename)
+static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename)
 {
     auto mat = progn(
         cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
@@ -93,18 +93,18 @@ static bool load_file(anim_group& group, options_& opts, anim_atlas& atlas, cons
 
     cv::Size size{end - start}, dest_size;
 
-    if (!opts.scale)
+    if (opts.scale == 0.0)
     {
+        ASSERT(opts.width || opts.height);
         if (opts.width)
-            opts.scale = (double)*opts.width / size.width;
-        else if (opts.height)
-            opts.scale = (double)*opts.height / size.height;
+            opts.scale = (double)opts.width / size.width;
         else
-            std::abort();
+            opts.scale = (double)opts.height / size.height;
+        ASSERT(opts.scale > 1e-6);
     }
 
-    dest_size = {(int)std::round(*opts.scale * size.width),
-                 (int)std::round(*opts.scale * size.height)};
+    dest_size = {(int)std::round(opts.scale * size.width),
+                 (int)std::round(opts.scale * size.height)};
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
@@ -122,19 +122,17 @@ static bool load_file(anim_group& group, options_& opts, anim_atlas& atlas, cons
     }
 #endif
     Magnum::Vector2i ground = {
-        (int)std::round((group.ground[0] - start[0]) * *opts.scale),
-        (int)std::round((group.ground[1] - start[1]) * *opts.scale),
+        (int)std::round((group.ground[0] - start[0]) * opts.scale),
+        (int)std::round((group.ground[1] - start[1]) * opts.scale),
     };
 
-    auto offset = atlas.offset();
-
-    group.frames.push_back({ground, offset, {dest_size.width, dest_size.height}});
+    group.frames.push_back({ground, atlas.offset(), {dest_size.width, dest_size.height}});
     atlas.add_entry({&group.frames.back(), std::move(mat)});
     return true;
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options_& opts, anim_atlas& atlas, const path& input_dir)
+static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, const path& input_dir)
 {
     if (std::error_code ec{}; !std::filesystem::exists(input_dir/".", ec))
     {
@@ -184,7 +182,7 @@ static char* fix_argv0(char* argv0)
     return argv0;
 }
 
-static std::tuple<options_, int> parse_cmdline(int argc, const char* const* argv)
+static std::tuple<options, int> parse_cmdline(int argc, const char* const* argv)
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output")
@@ -192,23 +190,23 @@ static std::tuple<options_, int> parse_cmdline(int argc, const char* const* argv
         .addOption('W', "width", "")
         .addOption('H', "height", "");
     args.parse(argc, argv);
-    options_ options;
+    options opts;
     if (unsigned w = args.value<unsigned>("width"); w != 0)
-        options.width = w;
+        opts.width = w;
     if (unsigned h = args.value<unsigned>("height"); h != 0)
-        options.height = h;
-    if (!(!options.width ^ !options.height))
+        opts.height = h;
+    if (!(!opts.width ^ !opts.height))
     {
         Error{} << "exactly one of --width, --height must be given";
         goto usage;
     }
-    options.output_dir = args.value<std::string>("output");
-    options.input_dir = args.value<std::string>("directory");
+    opts.output_dir = args.value<std::string>("output");
+    opts.input_dir = args.value<std::string>("directory");
 
-    if (options.output_dir.empty())
-        options.output_dir = options.input_dir;
+    if (opts.output_dir.empty())
+        opts.output_dir = opts.input_dir;
 
-    return {options, 0};
+    return { opts, 0};
 usage:
     Error{Error::Flag::NoNewlineAtTheEnd} << Corrade::Containers::StringView{args.usage()};
     return {{}, EX_USAGE};
