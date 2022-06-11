@@ -1,12 +1,15 @@
 #pragma once
 
-#include "../defs.hpp"
+#include "defs.hpp"
+
 #include <string>
 #include <array>
 #include <vector>
-#include <optional>
-#include <filesystem>
-#include <Magnum/Trade/ImageData.h>
+
+#include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector2.h>
+
+namespace std::filesystem { class path; }
 
 struct anim_frame final
 {
@@ -24,15 +27,12 @@ struct anim_group final
     std::string name;
     std::vector<anim_frame> frames;
     Magnum::Vector2i ground;
-
-    static const char* direction_to_string(anim_direction group);
-    static anim_direction string_to_direction(const std::string& str);
 };
 
 struct anim final
 {
-    static std::optional<anim> from_json(const std::filesystem::path& pathname);
-    bool to_json(const std::filesystem::path& pathname);
+    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname);
+    [[nodiscard]] bool to_json(const std::filesystem::path& pathname);
     static constexpr int default_fps = 24;
 
     std::string name;

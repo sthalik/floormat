@@ -103,13 +103,6 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
-#if 0
-    if (!cv::imwrite(output_filename.string(), resized))
-    {
-        Error{} << "failed writing image" << output_filename;
-        return false;
-    }
-#endif
     Magnum::Vector2i ground = {
         (int)std::round((group.ground[0] - start[0]) * opts.scale),
         (int)std::round((group.ground[1] - start[1]) * opts.scale),
@@ -195,22 +188,22 @@ static std::tuple<options, bool> parse_cmdline(int argc, const char* const* argv
     if (opts.output_dir.empty())
         opts.output_dir = opts.input_dir;
 
-    return { opts, false };
+    return { std::move(opts), true };
 usage:
     Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
-    return { {}, true };
+    return { {}, false };
 }
 
 int main(int argc, char** argv)
 {
     argv[0] = fix_argv0(argv[0]);
-    auto [opts, error_code] = parse_cmdline(argc, argv);
-    if (error_code)
-        return error_code;
+    auto [opts, opts_ok] = parse_cmdline(argc, argv);
+    if (!opts_ok)
+        return EX_USAGE;
 
-    auto anim_info = anim::from_json(opts.input_dir/"atlas.json");
+    auto [anim_info, anim_ok] = anim::from_json(opts.input_dir/"atlas.json");
 
-    if (!anim_info)
+    if (!anim_ok)
         return EX_DATAERR;
 
     if (std::error_code error;
@@ -223,14 +216,14 @@ int main(int argc, char** argv)
 
     anim_atlas atlas;
 
-    for (anim_group& group : anim_info->groups)
+    for (anim_group& group : anim_info.groups)
     {
         group.frames.clear(); group.frames.reserve(64);
         if (!load_directory(group, opts, atlas, opts.input_dir/group.name))
             return EX_DATAERR;
         if (!atlas.dump(opts.output_dir/"atlas.png"))
             return EX_CANTCREAT;
-        if (!anim_info->to_json(opts.output_dir/"atlas.json.new"))
+        if (!anim_info.to_json(opts.output_dir/"atlas.json.new"))
             return EX_CANTCREAT;
     }
 
