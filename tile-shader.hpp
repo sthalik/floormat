@@ -13,13 +13,12 @@ struct tile_shader : GL::AbstractShaderProgram
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
 
     explicit tile_shader();
-    tile_shader& set_projection(const Vector2& mat, float y_scale);
+    tile_shader& set_scale(const Vector2& scale);
     tile_shader& bindTexture(GL::Texture2D& texture);
 
 private:
-    enum: Int { TextureUnit = 0 };
-
-    enum { _projection_uniform = 0, _y_scale_uniform = 1 };
+    enum { TextureUnit = 0 };
+    enum { ProjectionUniform = 0, };
 };
 
 } // namespace Magnum::Examples

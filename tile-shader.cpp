@@ -25,7 +25,7 @@ tile_shader::tile_shader()
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    setUniform(uniformLocation("textureData"), TextureUnit);
+    setUniform(TextureUnit, TextureUnit);
 }
 
 tile_shader& tile_shader::bindTexture(GL::Texture2D& texture)
@@ -34,10 +34,9 @@ tile_shader& tile_shader::bindTexture(GL::Texture2D& texture)
     return *this;
 }
 
-tile_shader& tile_shader::set_projection(const Vector2& mat, float y_scale)
+tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
-    setUniform(_projection_uniform, mat);
-    setUniform(_y_scale_uniform, y_scale);
+    setUniform(ProjectionUniform, scale);
     return *this;
 }
 

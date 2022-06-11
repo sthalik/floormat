@@ -51,7 +51,7 @@ struct application final : Platform::Application
         loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
     std::shared_ptr<atlas_texture> atlas2 =
-        loader.tile_atlas("../share/game/images/metal2.tga", {4, 4});
+        loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector3 camera_offset;
@@ -160,7 +160,7 @@ void application::drawEvent() {
     {
         //auto ratio = projection_size_ratio();
         auto sz = windowSize();
-        _shader.set_projection({(float)sz[0], (float)sz[1]}, 1);
+        _shader.set_scale({ (float)sz[0], (float)sz[1] });
     }
 
 #if 1
