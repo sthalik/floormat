@@ -10,7 +10,7 @@
 
 struct anim_frame final
 {
-    Magnum::Vector2i ground = {};
+    Magnum::Vector2i ground, offset, size;
 };
 
 enum class anim_direction : unsigned char
@@ -21,9 +21,9 @@ enum class anim_direction : unsigned char
 
 struct anim_group final
 {
-    anim_direction direction = (anim_direction)-1;
+    std::string name;
     std::vector<anim_frame> frames;
-    Magnum::Vector2i ground = {};
+    Magnum::Vector2i ground;
 
     static const char* direction_to_string(anim_direction group);
     static anim_direction string_to_direction(const std::string& str);

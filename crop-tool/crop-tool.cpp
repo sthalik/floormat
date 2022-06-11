@@ -1,4 +1,5 @@
 #include "../defs.hpp"
+#include "atlas.hpp"
 #include "serialize.hpp"
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
@@ -32,16 +33,16 @@
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
 
-static struct options_ {
-    std::optional<unsigned> width, height;
-    std::optional<double> scale;
-} options;
-
 using std::filesystem::path;
 
-static
-std::tuple<cv::Vec2i, cv::Vec2i, bool>
-find_image_bounds(const path& path, const cv::Mat4b& mat)
+struct options_ {
+    std::optional<unsigned> width, height;
+    std::optional<double> scale;
+    path input_dir, output_dir;
+};
+
+[[nodiscard]]
+static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const path& path, const cv::Mat4b& mat)
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
     for (int y = 0; y < mat.rows; y++)
@@ -69,7 +70,8 @@ find_image_bounds(const path& path, const cv::Mat4b& mat)
     return {start, end, true};
 }
 
-static bool load_file(anim_group& group, const path& filename, const path& output_filename)
+[[nodiscard]]
+static bool load_file(anim_group& group, options_& opts, anim_atlas& atlas, const path& filename)
 {
     auto mat = progn(
         cv::Mat mat_ = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
@@ -87,98 +89,110 @@ static bool load_file(anim_group& group, const path& filename, const path& outpu
     auto [start, end, bounds_ok] = find_image_bounds(filename, mat);
 
     if (!bounds_ok)
-        return {};
+        return false;
 
     cv::Size size{end - start}, dest_size;
 
-    if (!options.scale)
+    if (!opts.scale)
     {
-        if (options.width)
-            options.scale = (double)*options.width / size.width;
-        else if (options.height)
-            options.scale = (double)*options.height / size.height;
+        if (opts.width)
+            opts.scale = (double)*opts.width / size.width;
+        else if (opts.height)
+            opts.scale = (double)*opts.height / size.height;
         else
             std::abort();
     }
 
-    dest_size = {(int)std::round(*options.scale * size.width),
-                 (int)std::round(*options.scale * size.height)};
+    dest_size = {(int)std::round(*opts.scale * size.width),
+                 (int)std::round(*opts.scale * size.height)};
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
         Error{} << "refusing to upscale image" << filename;
-        return {};
+        return false;
     }
 
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
+#if 0
     if (!cv::imwrite(output_filename.string(), resized))
     {
         Error{} << "failed writing image" << output_filename;
         return false;
     }
+#endif
     Magnum::Vector2i ground = {
-        (int)std::round((group.ground[0] - start[0]) * *options.scale),
-        (int)std::round((group.ground[1] - start[1]) * *options.scale),
+        (int)std::round((group.ground[0] - start[0]) * *opts.scale),
+        (int)std::round((group.ground[1] - start[1]) * *opts.scale),
     };
-    group.frames.push_back({ground});
+
+    auto offset = atlas.offset();
+
+    group.frames.push_back({ground, offset, {dest_size.width, dest_size.height}});
+    atlas.add_entry({&group.frames.back(), std::move(mat)});
     return true;
 }
 
-static bool load_directory(anim_group& group, const path& input_dir, const path& output_dir)
+[[nodiscard]]
+static bool load_directory(anim_group& group, options_& opts, anim_atlas& atlas, const path& input_dir)
 {
     if (std::error_code ec{}; !std::filesystem::exists(input_dir/".", ec))
     {
         Error{} << "can't open directory" << input_dir << ':' << ec.message();
-        return {};
+        return false;
     }
 
-    int i;
-    for (i = 1; i <= 9999; i++)
+    std::size_t max;
+    for (max = 1; max <= 9999; max++)
     {
         char filename[9];
-        sprintf(filename, "%04d.png", i);
+        sprintf(filename, "%04zu.png", max);
         if (!std::filesystem::exists(input_dir/filename))
             break;
-        if (!load_file(group, input_dir/filename, output_dir/filename))
+    }
+    group.frames.clear();
+    // atlas stores its entries through a pointer.
+    // vector::reserve() is necessary to avoid use-after-free.
+    group.frames.reserve(max-1);
+
+    for (std::size_t i = 1; i < max; i++)
+    {
+        char filename[9];
+        sprintf(filename, "%04zu.png", i);
+        if (!load_file(group, opts, atlas, input_dir/filename))
             return false;
     }
 
-    if (i == 1)
-    {
-        Error{} << "no files in anim group directory" << input_dir;
-        return false;
-    }
+    atlas.advance_row();
 
     return true;
 }
 
-int main(int argc, char** argv)
+static char* fix_argv0(char* argv0)
 {
-    Corrade::Utility::Arguments args{};
 #ifdef _WIN32
-    if (auto* c = strrchr(argv[0], '\\'); c && c[1])
+    if (auto* c = strrchr(argv0, '\\'); c && c[1])
     {
         if (auto* s = strrchr(c, '.'); s && !strcmp(".exe", s))
             *s = '\0';
-        args.setCommand(c+1);
+        return c+1;
     }
 #else
     if (auto* c = strrchr(argv[0], '/'); c && c[1])
-        args.setCommand(c+1);
+        return c+1;
 #endif
-    args.addOption('o', "output", "./output")
+    return argv0;
+}
+
+static std::tuple<options_, int> parse_cmdline(int argc, const char* const* argv)
+{
+    Corrade::Utility::Arguments args{};
+    args.addOption('o', "output")
         .addArgument("directory")
         .addOption('W', "width", "")
         .addOption('H', "height", "");
     args.parse(argc, argv);
-    const path output_dir = args.value<std::string>("output");
-    const path input_dir = args.value<std::string>("directory");
-    auto anim_info = anim::from_json(input_dir / "atlas.json");
-
-    if (!anim_info)
-        goto usage;
-
+    options_ options;
     if (unsigned w = args.value<unsigned>("width"); w != 0)
         options.width = w;
     if (unsigned h = args.value<unsigned>("height"); h != 0)
@@ -188,35 +202,49 @@ int main(int argc, char** argv)
         Error{} << "exactly one of --width, --height must be given";
         goto usage;
     }
+    options.output_dir = args.value<std::string>("output");
+    options.input_dir = args.value<std::string>("directory");
+
+    if (options.output_dir.empty())
+        options.output_dir = options.input_dir;
+
+    return {options, 0};
+usage:
+    Error{Error::Flag::NoNewlineAtTheEnd} << Corrade::Containers::StringView{args.usage()};
+    return {{}, EX_USAGE};
+}
+
+int main(int argc, char** argv)
+{
+    argv[0] = fix_argv0(argv[0]);
+    auto [opts, error_code] = parse_cmdline(argc, argv);
+    if (error_code)
+        return error_code;
+
+    auto anim_info = anim::from_json(opts.input_dir/"atlas.json");
+
+    if (!anim_info)
+        return EX_DATAERR;
 
     try {
-        std::filesystem::create_directory(output_dir);
+        std::filesystem::create_directory(opts.output_dir);
     } catch (const std::filesystem::filesystem_error& error) {
-        Error{} << "failed to create output directory" << output_dir << ':' << error.what();
+        Error{} << "failed to create output directory" << opts.output_dir << ':' << error.what();
         return EX_CANTCREAT;
     }
 
-    for (std::size_t i = 0; i < (std::size_t)anim_direction::COUNT; i++)
+    anim_atlas atlas;
+
+    for (anim_group& group : anim_info->groups)
     {
-        auto group_name = anim_group::direction_to_string((anim_direction)i);
-        try {
-            std::filesystem::remove_all(output_dir/group_name);
-            std::filesystem::create_directory(output_dir/group_name);
-        } catch (const std::filesystem::filesystem_error& e) {
-            Error{} << "failed creating output directory" << group_name << ':' << e.what();
-            return EX_CANTCREAT;
-        }
-        auto& group = anim_info->groups[i];
         group.frames.clear(); group.frames.reserve(64);
-        if (!load_directory(group, input_dir/group_name, output_dir/group_name))
+        if (!load_directory(group, opts, atlas, opts.input_dir/group.name))
             return EX_DATAERR;
-        if (!anim_info->to_json(output_dir/"atlas.json"))
+        if (!atlas.dump(opts.output_dir/"atlas.png"))
+            return EX_CANTCREAT;
+        if (!anim_info->to_json(opts.output_dir/"atlas.json.new"))
             return EX_CANTCREAT;
     }
 
     return 0;
-
-usage:
-    Error{Error::Flag::NoNewlineAtTheEnd} << Corrade::Containers::StringView{args.usage()};
-    return EX_USAGE;
 }

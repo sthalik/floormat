@@ -168,7 +168,7 @@ application::application(const Arguments& arguments):
             k++;
         }
 
-        //auto positions = atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
+        //auto positions = anim_atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
     }
 
     _mesh2.setCount((int)indices.size())

@@ -80,8 +80,8 @@ void adl_serializer<anim_direction>::from_json(const json& j, anim_direction& x)
 
 } // namespace nlohmann
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, direction, frames, ground);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups);
 
 std::optional<anim> anim::from_json(const std::filesystem::path& pathname)
