@@ -139,6 +139,12 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, 
             break;
     }
 
+    if (max == 1)
+    {
+        Error{Error::Flag::NoSpace} << "no files in directory " << input_dir << "!";
+        return false;
+    }
+
     if (!opts.nframes)
         opts.nframes = max-1;
     else if (opts.nframes != max-1)
