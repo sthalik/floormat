@@ -1,33 +1,22 @@
-#include "../defs.hpp"
+#include "defs.hpp"
 #include "anim/atlas.hpp"
 #include "anim/serialize.hpp"
+
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
+
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <optional>
-#include <tuple>
-#include <filesystem>
+
 #include <algorithm>
 #include <utility>
-#include <cstring>
+#include <tuple>
+
 #include <cmath>
-
-#undef MIN
-#undef MAX
-
-#ifdef _WIN32
-#   define EX_OK        0   /* successful termination */
-#   define EX_USAGE     64  /* command line usage error */
-#   define EX_DATAERR   65  /* data format error */
-#   define EX_SOFTWARE  70  /* internal software error */
-#   define EX_CANTCREAT 73  /* can't create (user) output file */
-#   define EX_IOERR     74  /* input/output error */
-#else
-#   include <sysexits.h>
-#endif
+#include <cstring>
+#include <filesystem>
 
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
@@ -134,7 +123,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 [[nodiscard]]
 static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, const path& input_dir)
 {
-    if (std::error_code ec{}; !std::filesystem::exists(input_dir/".", ec))
+    if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
         Error{} << "can't open directory" << input_dir << ':' << ec.message();
         return false;
@@ -182,7 +171,7 @@ static char* fix_argv0(char* argv0)
     return argv0;
 }
 
-static std::tuple<options, int> parse_cmdline(int argc, const char* const* argv)
+static std::tuple<options, bool> parse_cmdline(int argc, const char* const* argv)
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output")
@@ -206,10 +195,10 @@ static std::tuple<options, int> parse_cmdline(int argc, const char* const* argv)
     if (opts.output_dir.empty())
         opts.output_dir = opts.input_dir;
 
-    return { opts, 0};
+    return { opts, false };
 usage:
-    Error{Error::Flag::NoNewlineAtTheEnd} << Corrade::Containers::StringView{args.usage()};
-    return {{}, EX_USAGE};
+    Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
+    return { {}, true };
 }
 
 int main(int argc, char** argv)
@@ -224,10 +213,11 @@ int main(int argc, char** argv)
     if (!anim_info)
         return EX_DATAERR;
 
-    try {
-        std::filesystem::create_directory(opts.output_dir);
-    } catch (const std::filesystem::filesystem_error& error) {
-        Error{} << "failed to create output directory" << opts.output_dir << ':' << error.what();
+    if (std::error_code error;
+        !std::filesystem::exists(opts.output_dir/".") &&
+        !std::filesystem::create_directory(opts.output_dir, error))
+    {
+        Error{} << "failed to create output directory" << opts.output_dir << ':' << error.message();
         return EX_CANTCREAT;
     }
 
