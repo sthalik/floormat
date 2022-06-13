@@ -72,7 +72,7 @@ application::application(const Arguments& arguments):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
-              //.setSampleCount(16)
+              //.setSampleCount(4)
     }
 {
     struct QuadVertex {
@@ -201,18 +201,17 @@ void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, b
     (void)m;
     (void)repeated;
 
-    key x = key::MAX;
+    const key x = progn(switch (k) {
+        using enum KeyEvent::Key;
+        using enum key;
 
-    switch (k)
-    {
-    using enum KeyEvent::Key;
-    case W: x = key::camera_up; break;
-    case A: x = key::camera_left; break;
-    case S: x = key::camera_down; break;
-    case D: x = key::camera_right; break;
-    case Home: x = key::camera_reset; break;
-    default: (void)0; break;
-    }
+        case W:     return camera_up;
+        case A:     return camera_left;
+        case S:     return camera_down;
+        case D:     return camera_right;
+        case Home:  return camera_reset;
+        default:    return MAX;
+    });
 
     if (x != key::MAX)
         keys[(std::size_t)x] = pressed;
@@ -230,6 +229,7 @@ application::~application()
 {
     loader_::destroy();
 }
+
 void application::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     do_key(event.key(), event.modifiers(), true, event.isRepeated());

@@ -15,7 +15,7 @@ atlas_texture::atlas_texture(const ImageView2D& image, Vector2i dims) :
     CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2i{});
     CORRADE_INTERNAL_ASSERT(dims.product() < 256);
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Linear)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(0)
         .setStorage(1, GL::textureFormat(image.format()), image.size())

@@ -265,16 +265,16 @@ int main(int argc, char** argv)
         return usage(args);
     }
 
-    for (anim_atlas atlas;
-         anim_group& group : anim_info.groups)
-    {
+    anim_atlas atlas;
+
+    for (anim_group& group : anim_info.groups)
         if (!load_directory(group, opts, atlas, opts.input_dir/group.name))
             return EX_DATAERR;
-        if (!atlas.dump(opts.output_dir/(anim_info.name + ".png")))
-            return EX_CANTCREAT;
-        if (!anim_info.to_json(opts.output_dir/(anim_info.name + ".json")))
-            return EX_CANTCREAT;
-    }
+
+    if (!atlas.dump(opts.output_dir/(anim_info.name + ".png")))
+        return EX_CANTCREAT;
+    if (!anim_info.to_json(opts.output_dir/(anim_info.name + ".json")))
+        return EX_CANTCREAT;
 
     return 0;
 }
