@@ -122,8 +122,10 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas, const path& input_dir) noexcept
+static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas) noexcept
 {
+    const auto input_dir = opts.input_dir/group.name;
+
     if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
         Error{Error::Flag::NoSpace} << "can't open directory " << input_dir << ": " << ec.message();
@@ -268,7 +270,7 @@ int main(int argc, char** argv)
     anim_atlas atlas;
 
     for (anim_group& group : anim_info.groups)
-        if (!load_directory(group, opts, atlas, opts.input_dir/group.name))
+        if (!load_directory(group, opts, atlas))
             return EX_DATAERR;
 
     if (!atlas.dump(opts.output_dir/(anim_info.name + ".png")))
