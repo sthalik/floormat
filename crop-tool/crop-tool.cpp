@@ -38,7 +38,6 @@ struct options
 static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) noexcept
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
-    bool ok = false;
     for (int y = 0; y < mat.rows; y++)
     {
         const auto* ptr = mat.ptr<cv::Vec4b>(y);
@@ -47,7 +46,6 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
             enum {R, G, B, A};
             if (cv::Vec4b px = ptr[x]; px[A] != 0)
             {
-                ok = true;
                 start[0] = std::min(x, start[0]);
                 start[1] = std::min(y, start[1]);
                 end[0] = std::max(x+1, end[0]);
@@ -55,7 +53,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
             }
         }
     }
-    if (ok)
+    if (start[0] < end[0] && start[1] < end[1])
         return {start, end, true};
     else
         return {{}, {}, false};

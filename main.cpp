@@ -45,12 +45,12 @@ struct application final : Platform::Application
 
     GL::Mesh _mesh, _mesh2;
     tile_shader _shader;
-    std::shared_ptr<atlas_texture> atlas =
+    std::shared_ptr<texture_atlas> atlas =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
         loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    std::shared_ptr<atlas_texture> atlas2 =
+    std::shared_ptr<texture_atlas> atlas2 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
@@ -114,7 +114,7 @@ application::application(const Arguments& arguments):
     indices.clear();
 
     {
-        atlas_texture::vertex_array_type walls[] = {
+        texture_atlas::vertex_array_type walls[] = {
             atlas2->wall_quad_W({}, Vector3(X, Y, Z)),
             atlas2->wall_quad_N({}, Vector3(X, Y, Z)),
             atlas2->wall_quad_E({}, Vector3(X, Y, Z)),

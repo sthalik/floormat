@@ -5,11 +5,11 @@
 
 namespace Magnum::Examples {
 
-struct atlas_texture final
+struct texture_atlas final
 {
     using vertex_array_type = std::array<Vector3, 4>;
 
-    atlas_texture(const ImageView2D& img, Vector2i dims);
+    texture_atlas(const ImageView2D& img, Vector2i dims);
     std::array<Vector2, 4> texcoords_for_id(int id) const;
     static vertex_array_type floor_quad(Vector3 center, Vector2 size);
     static vertex_array_type wall_quad_S(Vector3 center, Vector3 size);
@@ -21,8 +21,8 @@ struct atlas_texture final
     constexpr int size() const { return dims_.product(); }
     constexpr Vector2i tile_size() const { return tile_size_; }
 
-    atlas_texture(const atlas_texture&) = delete;
-    atlas_texture& operator=(const atlas_texture&) = delete;
+    texture_atlas(const texture_atlas&) = delete;
+    texture_atlas& operator=(const texture_atlas&) = delete;
 private:
     GL::Texture2D tex_;
     Vector2i size_, dims_, tile_size_;

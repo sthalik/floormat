@@ -14,7 +14,7 @@
 
 namespace Magnum::Examples {
 
-using atlas_ptr = std::shared_ptr<atlas_texture>;
+using atlas_ptr = std::shared_ptr<texture_atlas>;
 
 struct loader_impl final : loader_
 {
@@ -51,7 +51,7 @@ atlas_ptr loader_impl::tile_atlas(const Containers::StringView& name, Vector2i s
     if (it != atlas_map.end())
         return it->second;
     auto image = tile_texture(name);
-    auto atlas = std::make_shared<atlas_texture>(image, size);
+    auto atlas = std::make_shared<texture_atlas>(image, size);
     atlas_map[name] = atlas;
     return atlas;
 }

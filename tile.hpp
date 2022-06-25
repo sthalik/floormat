@@ -14,8 +14,8 @@ namespace Magnum::Examples {
 
 struct tile_image final
 {
-    std::shared_ptr<atlas_texture> atlas;
-    int variant = -1;
+    std::shared_ptr<texture_atlas> atlas;
+    std::uint8_t variant = 0xff;
 };
 
 struct tile final
@@ -62,8 +62,6 @@ struct chunk final
     using tile_index_array_type = std::array<index_type, TILE_COUNT>;
     //static constexpr inline local_coords center = { (index_type)(N/2), (index_type)(N/2) };
 
-    std::array<index_type, TILE_COUNT> indices = make_tile_indices();
-
     constexpr tile& operator[](local_coords xy);
     constexpr const tile& operator[](local_coords xy) const;
     constexpr tile& operator[](std::size_t i);
@@ -74,7 +72,6 @@ struct chunk final
 
 private:
     template<typename F, typename Self> constexpr void foreach_tile_(F&& fun);
-    static std::array<index_type, TILE_COUNT> make_tile_indices() noexcept;
 
     std::array<struct tile, TILE_COUNT> tiles = {};
 };
