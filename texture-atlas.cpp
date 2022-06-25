@@ -1,4 +1,4 @@
-#include "atlas.hpp"
+#include "texture-atlas.hpp"
 #include "defs.hpp"
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>

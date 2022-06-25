@@ -1,5 +1,5 @@
 #pragma once
-#include "atlas.hpp"
+#include "texture-atlas.hpp"
 #include "hash.hpp"
 #include "defs.hpp"
 

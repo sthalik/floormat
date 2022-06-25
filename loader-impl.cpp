@@ -1,6 +1,6 @@
 #include "defs.hpp"
 #include "loader.hpp"
-#include "atlas.hpp"
+#include "texture-atlas.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/PluginManager/PluginManager.h>

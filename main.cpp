@@ -1,4 +1,4 @@
-#include "atlas.hpp"
+#include "texture-atlas.hpp"
 #include "loader.hpp"
 #include "tile-shader.hpp"
 #include "defs.hpp"
