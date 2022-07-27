@@ -2,6 +2,7 @@
 #include "loader.hpp"
 #include "tile-shader.hpp"
 #include "defs.hpp"
+#include "tile.hpp"
 
 #include <bitset>
 
@@ -26,20 +27,23 @@
 
 namespace Magnum::Examples {
 
-struct application final : Platform::Application
+struct app final : Platform::Application
 {
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
 
-    explicit application(const Arguments& arguments);
-    virtual ~application();
+    explicit app(const Arguments& arguments);
+    virtual ~app();
     void drawEvent() override;
     void update(float dt);
+    void do_camera(float dt);
+    void reset_camera_offset();
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
 
     enum class key {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
+        quit,
         MAX
     };
 
@@ -54,18 +58,16 @@ struct application final : Platform::Application
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
-    Vector3 camera_offset;
+    Vector2 camera_offset;
     std::bitset<(std::size_t)key::MAX> keys{0ul};
 
     float get_dt();
-    static const Vector3 TILE_SIZE;
+    static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
 };
-
-const Vector3 application::TILE_SIZE = { 50, 50, 50 };
 
 using namespace Math::Literals;
 
-application::application(const Arguments& arguments):
+app::app(const Arguments& arguments):
     Platform::Application{
           arguments,
           Configuration{}
@@ -86,12 +88,14 @@ application::application(const Arguments& arguments):
     //float ratio = projection_size_ratio();
     const float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
 
+    reset_camera_offset();
+
     {
         vertices.clear();
         indices.clear();
         int k = 0;
-        for (int j = -2; j <= 2; j++)
-            for (int i = -2; i <= 2; i++)
+        for (unsigned j = 0; j < chunk::N; j++) // TODO draw walls in correct order
+            for (unsigned i = 0; i < chunk::N; i++)
             {
                 auto positions = atlas->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
                 auto texcoords = atlas->texcoords_for_id(k % atlas->size());
@@ -114,11 +118,12 @@ application::application(const Arguments& arguments):
     indices.clear();
 
     {
+        Vector3 center{chunk::N/2.f*TILE_SIZE[0], chunk::N/2.f*TILE_SIZE[1], 0};
         texture_atlas::vertex_array_type walls[] = {
-            atlas2->wall_quad_W({}, Vector3(X, Y, Z)),
-            atlas2->wall_quad_N({}, Vector3(X, Y, Z)),
-            atlas2->wall_quad_E({}, Vector3(X, Y, Z)),
-            atlas2->wall_quad_S({}, Vector3(X, Y, Z)),
+            atlas2->wall_quad_W(center, Vector3(X, Y, Z)),
+            atlas2->wall_quad_N(center, Vector3(X, Y, Z)),
+            atlas2->wall_quad_E(center, Vector3(X, Y, Z)),
+            atlas2->wall_quad_S(center, Vector3(X, Y, Z)),
         };
 
         int k = 0;
@@ -144,7 +149,7 @@ application::application(const Arguments& arguments):
     (void)get_dt();
 }
 
-void application::drawEvent() {
+void app::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
 
     //GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
@@ -161,6 +166,11 @@ void application::drawEvent() {
         //auto ratio = projection_size_ratio();
         auto sz = windowSize();
         _shader.set_scale({ (float)sz[0], (float)sz[1] });
+        static bool once = true;
+        if (once) {
+            once = false;
+            Debug{} << _shader.project({16*50, 0, 0});
+        }
     }
 
 #if 1
@@ -175,26 +185,40 @@ void application::drawEvent() {
 #endif
 
     swapBuffers();
-    //redraw();
+    redraw();
 }
 
-void application::update(float dt)
+void app::do_camera(float dt)
 {
     constexpr float pixels_per_second = 100;
     if (keys[(int)key::camera_up])
-        camera_offset += Vector3(0, -1, 0)  * dt * pixels_per_second;
+        camera_offset += Vector2(0, 1) * dt * pixels_per_second;
     else if (keys[(int)key::camera_down])
-        camera_offset += Vector3(0, 1, 0) * dt * pixels_per_second;
+        camera_offset += Vector2(0, -1)  * dt * pixels_per_second;
     if (keys[(int)key::camera_left])
-        camera_offset += Vector3(-1, 0, 0) * dt * pixels_per_second;
+        camera_offset += Vector2(1, 0) * dt * pixels_per_second;
     else if (keys[(int)key::camera_right])
-        camera_offset += Vector3(1, 0, 0)  * dt * pixels_per_second;
+        camera_offset += Vector2(-1, 0)  * dt * pixels_per_second;
 
     if (keys[(int)key::camera_reset])
-        camera_offset = {};
+        reset_camera_offset();
+    if (keys[(int)key::quit])
+        Platform::Sdl2Application::exit(0);
+
+    _shader.set_camera_offset(camera_offset);
 }
 
-void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
+void app::reset_camera_offset()
+{
+    camera_offset = _shader.project({chunk::N*TILE_SIZE[0]/2.f, chunk::N*TILE_SIZE[1]/2.f, 0});
+}
+
+void app::update(float dt)
+{
+    do_camera(dt);
+}
+
+void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
 {
     //using Mods = KeyEvent::Modifiers;
 
@@ -210,6 +234,7 @@ void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, b
         case S:     return camera_down;
         case D:     return camera_right;
         case Home:  return camera_reset;
+        case Esc:   return quit;
         default:    return MAX;
     });
 
@@ -217,7 +242,7 @@ void application::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, b
         keys[(std::size_t)x] = pressed;
 }
 
-float application::get_dt()
+float app::get_dt()
 {
     const std::uint64_t t = SDL_GetPerformanceCounter();
     float dt = (float)((t - time_ticks) / (double)time_freq);
@@ -225,24 +250,24 @@ float application::get_dt()
     return dt;
 }
 
-application::~application()
+app::~app()
 {
     loader_::destroy();
 }
 
-void application::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
+void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     do_key(event.key(), event.modifiers(), true, event.isRepeated());
 }
 
-void application::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
+void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     do_key(event.key(), event.modifiers(), false, false);
 }
 
 } // namespace Magnum::Examples
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::application);
+MAGNUM_APPLICATION_MAIN(Magnum::Examples::app);
 
 #ifdef _MSC_VER
 #   include <cstdlib>

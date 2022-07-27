@@ -25,7 +25,7 @@ tile_shader::tile_shader()
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    setUniform(TextureUnit, TextureUnit);
+    setUniform(ScaleUniform, Vector2{640, 480});
 }
 
 tile_shader& tile_shader::bindTexture(GL::Texture2D& texture)
@@ -36,8 +36,20 @@ tile_shader& tile_shader::bindTexture(GL::Texture2D& texture)
 
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
-    setUniform(ProjectionUniform, scale);
+    scale_ = scale;
+    setUniform(ScaleUniform, scale);
     return *this;
+}
+tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
+{
+    camera_offset_ = camera_offset;
+    setUniform(OffsetUniform, camera_offset);
+    return *this;
+}
+Vector2 tile_shader::project(Vector3 pt) const
+{
+    float x = pt[1], y = pt[0], z = pt[2];
+    return { x-y+camera_offset_[0], (x+y+z*2)*.75f - camera_offset_[1] };
 }
 
 } // namespace Magnum::Examples
