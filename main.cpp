@@ -27,6 +27,17 @@
 
 namespace Magnum::Examples {
 
+template<typename enum_type>
+struct enum_bitset : std::bitset<(std::size_t)enum_type::MAX> {
+    static_assert(std::is_same_v<std::size_t, std::common_type_t<std::size_t, std::underlying_type_t<enum_type>>>);
+    static_assert(std::is_same_v<enum_type, std::decay_t<enum_type>>);
+    using std::bitset<(std::size_t)enum_type::MAX>::bitset;
+    constexpr bool operator[](enum_type x) const { return operator[]((std::size_t)x); }
+    constexpr decltype(auto) operator[](enum_type x) {
+        return std::bitset<(std::size_t)enum_type::MAX>::operator[]((std::size_t)x);
+    }
+};
+
 struct app final : Platform::Application
 {
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
@@ -41,7 +52,7 @@ struct app final : Platform::Application
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
 
-    enum class key {
+    enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
         quit,
         MAX
@@ -59,7 +70,7 @@ struct app final : Platform::Application
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector2 camera_offset;
-    std::bitset<(std::size_t)key::MAX> keys{0ul};
+    enum_bitset<key> keys;
 
     float get_dt();
     static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
@@ -191,21 +202,19 @@ void app::drawEvent() {
 void app::do_camera(float dt)
 {
     constexpr float pixels_per_second = 100;
-    if (keys[(int)key::camera_up])
+    if (keys[key::camera_up])
         camera_offset += Vector2(0, 1) * dt * pixels_per_second;
-    else if (keys[(int)key::camera_down])
+    else if (keys[key::camera_down])
         camera_offset += Vector2(0, -1)  * dt * pixels_per_second;
-    if (keys[(int)key::camera_left])
+    if (keys[key::camera_left])
         camera_offset += Vector2(1, 0) * dt * pixels_per_second;
-    else if (keys[(int)key::camera_right])
+    else if (keys[key::camera_right])
         camera_offset += Vector2(-1, 0)  * dt * pixels_per_second;
 
-    if (keys[(int)key::camera_reset])
-        reset_camera_offset();
-    if (keys[(int)key::quit])
-        Platform::Sdl2Application::exit(0);
-
     _shader.set_camera_offset(camera_offset);
+
+    if (keys[key::camera_reset])
+        reset_camera_offset();
 }
 
 void app::reset_camera_offset()
@@ -216,6 +225,8 @@ void app::reset_camera_offset()
 void app::update(float dt)
 {
     do_camera(dt);
+    if (keys[key::quit])
+        Platform::Sdl2Application::exit(0);
 }
 
 void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
@@ -239,7 +250,7 @@ void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repe
     });
 
     if (x != key::MAX)
-        keys[(std::size_t)x] = pressed;
+        keys[x] = pressed;
 }
 
 float app::get_dt()

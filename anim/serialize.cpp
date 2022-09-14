@@ -7,7 +7,8 @@
 
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
-#include <nlohmann/json.hpp>
+
+#include "../fake-json.hpp"
 
 using Corrade::Utility::Error;
 

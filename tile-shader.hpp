@@ -13,10 +13,14 @@ struct tile_shader : GL::AbstractShaderProgram
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
 
     explicit tile_shader();
+
     Vector2 scale() const { return scale_; }
-    Vector2 project(Vector3 pt) const;
     tile_shader& set_scale(const Vector2& scale);
+    Vector2 camera_offset() const { return camera_offset_; }
     tile_shader& set_camera_offset(Vector2 camera_offset);
+
+    static Vector2 project(Vector3 pt);
+
     tile_shader& bindTexture(GL::Texture2D& texture);
 
 private:

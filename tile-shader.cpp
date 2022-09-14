@@ -42,14 +42,16 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
 }
 tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
 {
+    CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[0]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
+    CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[1]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
     camera_offset_ = camera_offset;
     setUniform(OffsetUniform, camera_offset);
     return *this;
 }
-Vector2 tile_shader::project(Vector3 pt) const
+Vector2 tile_shader::project(Vector3 pt)
 {
     float x = pt[1], y = pt[0], z = pt[2];
-    return { x-y+camera_offset_[0], (x+y+z*2)*.75f - camera_offset_[1] };
+    return { x-y, (x+y+z*2)*.75f };
 }
 
 } // namespace Magnum::Examples
