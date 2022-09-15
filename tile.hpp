@@ -3,6 +3,7 @@
 #include "hash.hpp"
 #include "defs.hpp"
 
+#include <concepts>
 #include <cstddef>
 #include <tuple>
 #include <array>
@@ -12,10 +13,14 @@
 
 namespace Magnum::Examples {
 
+static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
+
 struct tile_image final
 {
     std::shared_ptr<texture_atlas> atlas;
     std::uint8_t variant = 0xff;
+
+    explicit operator bool() const noexcept { return !!atlas; }
 };
 
 struct tile final
@@ -26,7 +31,7 @@ struct tile final
     tile_image ground_image_, wall_west_, wall_north_;
     pass_mode passability_ = pass_shoot_through;
 
-    explicit operator bool() const noexcept { return !!ground_image_.atlas; }
+    //explicit operator bool() const noexcept { return !!ground_image_.atlas; }
 };
 
 struct local_coords final {
@@ -67,8 +72,13 @@ struct chunk final
     constexpr tile& operator[](std::size_t i);
     constexpr const tile& operator[](std::size_t i) const;
 
-    template<typename F> constexpr inline void foreach_tile(F&& fun) { foreach_tile_<F, chunk&>(fun); }
-    template<typename F> constexpr inline void foreach_tile(F&& fun) const { foreach_tile_<F, const chunk&>(fun); }
+    template<typename F>
+    requires std::invocable<F, tile&, int, int>
+    constexpr inline void foreach_tile(F&& fun) { foreach_tile_<F, chunk&>(std::forward<F>(fun)); }
+
+    template<typename F>
+    requires std::invocable<F, const tile&, int, int>
+    constexpr inline void foreach_tile(F&& fun) const { foreach_tile_<F, const chunk&>(std::forward<F>(fun)); }
 
 private:
     template<typename F, typename Self> constexpr void foreach_tile_(F&& fun);
@@ -107,8 +117,7 @@ constexpr void chunk::foreach_tile_(F&& fun)
         for (unsigned i = 0; i < N; i++)
         {
             unsigned idx = j*N + i;
-            if (tiles[idx])
-                fun(*static_cast<Self>(*this).tiles[idx]);
+            fun(const_cast<Self>(*this).tiles[idx], i, j);
         }
 }
 

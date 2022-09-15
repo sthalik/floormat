@@ -6,7 +6,6 @@ layout(location = 0) uniform vec2 scale;
 layout(location = 3) uniform vec2 offset;
 
 out vec2 interpolatedTextureCoordinates;
-out float interpolated_frag_depth;
 
 void main() {
     interpolatedTextureCoordinates = textureCoordinates;
@@ -14,5 +13,4 @@ void main() {
     float cx = 2/scale.x, cy = 2/scale.y;
     float x = position.y, y = position.x, z = position.z;
     gl_Position = vec4((x-y+offset.x)*cx, (x+y+z*2)*cx*0.75-offset.y*cx, 0, 1);
-    interpolated_frag_depth = -position.z;
 }

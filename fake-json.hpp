@@ -1,5 +1,6 @@
 #pragma once
-#ifndef __CLION_IDE__
+//#define GAME_REAL_JSON
+#if !defined __CLION_IDE__ || defined GAME_REAL_JSON
 #   include <nlohmann/json.hpp>
 #else
 
