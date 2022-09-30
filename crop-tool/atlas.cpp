@@ -1,7 +1,7 @@
 #undef NDEBUG
 
 #include "atlas.hpp"
-#include "../anim/serialize.hpp"
+#include "anim/serialize.hpp"
 
 #include <cassert>
 #include <filesystem>

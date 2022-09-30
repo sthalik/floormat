@@ -3,7 +3,7 @@
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 
-#include "../json-magnum.hpp"
+#include "json-magnum.hpp"
 
 using Corrade::Utility::Error;
 
