@@ -1,5 +1,5 @@
 find_package(OpenCV QUIET REQUIRED COMPONENTS core imgcodecs imgproc)
-set(self "${PROJECT_NAME}-crop-tool")
+set(self "${PROJECT_NAME}-anim-crop-tool")
 
 include_directories(SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
 link_libraries(Corrade::Utility)

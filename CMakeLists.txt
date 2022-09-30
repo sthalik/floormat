@@ -57,8 +57,8 @@ if(NOT BOOTSTRAP_DEPENDS)
 
     include_directories(.)
 
-    add_subdirectory(crop-tool)
-    add_subdirectory(tile-tool)
+    add_subdirectory(anim-crop-tool)
+    add_subdirectory(big-atlas-tool)
     add_subdirectory(anim)
     add_subdirectory(tile)
 
