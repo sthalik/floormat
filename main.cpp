@@ -1,4 +1,4 @@
-#include "texture-atlas.hpp"
+#include "tile-atlas.hpp"
 #include "loader.hpp"
 #include "tile-shader.hpp"
 #include "defs.hpp"
@@ -60,12 +60,12 @@ struct app final : Platform::Application
 
     GL::Mesh _mesh, _mesh2;
     tile_shader _shader;
-    std::shared_ptr<texture_atlas> atlas =
+    std::shared_ptr<tile_atlas> atlas =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
         loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    std::shared_ptr<texture_atlas> atlas2 =
+    std::shared_ptr<tile_atlas> atlas2 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
@@ -130,7 +130,7 @@ app::app(const Arguments& arguments):
 
     {
         Vector3 center{chunk::N/2.f*TILE_SIZE[0], chunk::N/2.f*TILE_SIZE[1], 0};
-        texture_atlas::vertex_array_type walls[] = {
+        tile_atlas::vertex_array_type walls[] = {
             atlas2->wall_quad_W(center, Vector3(X, Y, Z)),
             atlas2->wall_quad_N(center, Vector3(X, Y, Z)),
             atlas2->wall_quad_E(center, Vector3(X, Y, Z)),
@@ -140,7 +140,7 @@ app::app(const Arguments& arguments):
         int k = 0;
         for (const auto& positions : walls)
         {
-            auto texcoords = atlas2->texcoords_for_id(k);
+            auto texcoords = atlas2->texcoords_for_id(k % atlas2->size());
             auto indices_ = atlas2->indices(k);
             for (unsigned x = 0; x < 4; x++)
                 vertices.push_back({ positions[x], texcoords[x] });

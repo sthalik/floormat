@@ -1,11 +1,11 @@
-#include "texture-atlas.hpp"
+#include "tile-atlas.hpp"
 #include "defs.hpp"
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
 namespace Magnum::Examples {
 
-texture_atlas::texture_atlas(const ImageView2D& image, Vector2i dims) :
+tile_atlas::tile_atlas(const ImageView2D& image, Vector2i dims) :
     size_{image.size()},
     dims_{dims},
     tile_size_{size_ / dims}
@@ -22,7 +22,7 @@ texture_atlas::texture_atlas(const ImageView2D& image, Vector2i dims) :
         .setSubImage(0, {}, image);
 }
 
-std::array<Vector2, 4> texture_atlas::texcoords_for_id(int id_) const
+std::array<Vector2, 4> tile_atlas::texcoords_for_id(int id_) const
 {
     CORRADE_INTERNAL_ASSERT(id_ >= 0 && id_ < dims_.product());
     Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
@@ -37,9 +37,9 @@ std::array<Vector2, 4> texture_atlas::texcoords_for_id(int id_) const
     }};
 }
 
-using vertex_array_type = texture_atlas::vertex_array_type;
+using vertex_array_type = tile_atlas::vertex_array_type;
 
-vertex_array_type texture_atlas::floor_quad(Vector3 center, Vector2 size)
+vertex_array_type tile_atlas::floor_quad(Vector3 center, Vector2 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f;
     return {{
@@ -50,7 +50,7 @@ vertex_array_type texture_atlas::floor_quad(Vector3 center, Vector2 size)
     }};
 }
 
-vertex_array_type texture_atlas::wall_quad_W(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_W(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
@@ -61,7 +61,7 @@ vertex_array_type texture_atlas::wall_quad_W(Vector3 center, Vector3 size)
     }};
 }
 
-vertex_array_type texture_atlas::wall_quad_S(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_S(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
@@ -72,7 +72,7 @@ vertex_array_type texture_atlas::wall_quad_S(Vector3 center, Vector3 size)
     }};
 }
 
-vertex_array_type texture_atlas::wall_quad_E(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_E(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
@@ -83,7 +83,7 @@ vertex_array_type texture_atlas::wall_quad_E(Vector3 center, Vector3 size)
     }};
 }
 
-vertex_array_type texture_atlas::wall_quad_N(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_N(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
@@ -94,7 +94,7 @@ vertex_array_type texture_atlas::wall_quad_N(Vector3 center, Vector3 size)
     }};
 }
 
-std::array<UnsignedShort, 6> texture_atlas::indices(int N)
+std::array<UnsignedShort, 6> tile_atlas::indices(int N)
 {
     CORRADE_INTERNAL_ASSERT(N >= 0);
     using u16 = UnsignedShort;

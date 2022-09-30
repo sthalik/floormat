@@ -1,6 +1,6 @@
 #include "defs.hpp"
 #include "loader.hpp"
-#include "texture-atlas.hpp"
+#include "tile-atlas.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/PluginManager/PluginManager.h>
@@ -14,18 +14,18 @@
 
 namespace Magnum::Examples {
 
-using atlas_ptr = std::shared_ptr<texture_atlas>;
+using atlas_ptr = std::shared_ptr<tile_atlas>;
 
 struct loader_impl final : loader_
 {
     const Utility::Resource shader_res{"game/shaders"};
     PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> tga_importer =
-        importer_plugins.loadAndInstantiate("TgaImporter");
+        importer_plugins.loadAndInstantiate("AnyImageImporter");
 
     PluginManager::Manager<Trade::AbstractImageConverter> image_converter_plugins;
     Containers::Pointer<Trade::AbstractImageConverter> tga_converter =
-        image_converter_plugins.loadAndInstantiate("TgaImageConverter");
+        image_converter_plugins.loadAndInstantiate("AnyImageConverter");
 
     std::unordered_map<std::string, atlas_ptr> atlas_map;
 
@@ -51,7 +51,7 @@ atlas_ptr loader_impl::tile_atlas(const Containers::StringView& name, Vector2i s
     if (it != atlas_map.end())
         return it->second;
     auto image = tile_texture(name);
-    auto atlas = std::make_shared<texture_atlas>(image, size);
+    auto atlas = std::make_shared<struct tile_atlas>(image, size);
     atlas_map[name] = atlas;
     return atlas;
 }

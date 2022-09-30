@@ -57,7 +57,9 @@ if(NOT BOOTSTRAP_DEPENDS)
     include_directories(SYSTEM "./include")
 
     add_subdirectory(crop-tool)
+    add_subdirectory(tile-tool)
     add_subdirectory(anim)
+    add_subdirectory(tile)
 
     corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)

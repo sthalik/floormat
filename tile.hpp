@@ -1,5 +1,5 @@
 #pragma once
-#include "texture-atlas.hpp"
+#include "tile-atlas.hpp"
 #include "hash.hpp"
 #include "defs.hpp"
 
@@ -17,7 +17,7 @@ static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
 
 struct tile_image final
 {
-    std::shared_ptr<texture_atlas> atlas;
+    std::shared_ptr<tile_atlas> atlas;
     std::uint8_t variant = 0xff;
 
     explicit operator bool() const noexcept { return !!atlas; }
@@ -140,7 +140,7 @@ struct world final
 {
     static_assert(sizeof(chunk_coords::x) <= sizeof(std::size_t)/2);
 
-    explicit world();
+    explicit world() = default;
     template<typename F> std::shared_ptr<chunk> ensure_chunk(chunk_coords xy, F&& fun);
 
 private:
