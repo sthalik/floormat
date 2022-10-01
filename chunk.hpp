@@ -27,9 +27,8 @@ struct chunk_coords final {
 
 struct chunk_sampler_array final {
     using shared_sampler = std::shared_ptr<tile_atlas>;
-    using sampler_tuple = std::pair<shared_sampler, int>;
+    static constexpr inline int MAX_SAMPLERS = 32;
 
-    static constexpr inline int MAX_SAMPLERS = 16;
     std::vector<std::shared_ptr<tile_atlas>> samplers;
     std::array<UnsignedInt, TILE_COUNT> sampler_map = {};
 

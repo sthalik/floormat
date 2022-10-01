@@ -13,7 +13,7 @@
 
 namespace Magnum::Examples {
 
-static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
+constexpr inline Vector3 TILE_SIZE = { 50, 50, 50 };
 
 struct tile_image final
 {
@@ -25,14 +25,11 @@ struct tile_image final
 
 struct tile final
 {
-    enum class pass_mode : std::uint8_t { pass_blocked, pass_yes, pass_shoot_through, pass_obscured };
+    enum class pass_mode : std::uint8_t { pass_blocked, pass_ok, pass_shoot_through, };
     using enum pass_mode;
 
-    tile_image ground_image_, wall_west_, wall_north_;
-    pass_mode passability_ = pass_shoot_through;
-
-    //explicit operator bool() const noexcept { return !!ground_image_.atlas; }
+    tile_image ground_image, wall_west, wall_north;
+    pass_mode passability = pass_shoot_through;
 };
-
 
 } //namespace Magnum::Examples

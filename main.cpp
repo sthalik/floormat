@@ -76,7 +76,6 @@ struct app final : Platform::Application
     chunk c;
 
     float get_dt();
-    static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
 };
 
 using namespace Math::Literals;
