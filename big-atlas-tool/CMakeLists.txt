@@ -1,0 +1,10 @@
+find_package(OpenCV QUIET REQUIRED COMPONENTS core imgcodecs imgproc)
+set(self "${PROJECT_NAME}-big-atlas-tool")
+
+include_directories(SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
+link_libraries(Corrade::Utility)
+link_libraries(${PROJECT_NAME}-tile)
+
+file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+add_executable(${self} ${sources})
+install(TARGETS ${self} RUNTIME DESTINATION "bin")
