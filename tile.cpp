@@ -1,4 +1,5 @@
 #include "tile.hpp"
+#include "tile-atlas.hpp"
 
 namespace Magnum::Examples {
 

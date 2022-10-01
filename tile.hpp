@@ -1,18 +1,14 @@
 #pragma once
-#include "tile-atlas.hpp"
-#include "hash.hpp"
 #include "defs.hpp"
-
-#include <concepts>
+#include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector3.h>
 #include <cstddef>
-#include <tuple>
-#include <array>
+#include <cstdint>
 #include <memory>
-#include <unordered_map>
-#include <utility>
 
 namespace Magnum::Examples {
 
+struct tile_atlas;
 constexpr inline Vector3 TILE_SIZE = { 50, 50, 50 };
 
 struct tile_image final

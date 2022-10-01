@@ -4,6 +4,7 @@
 #include "defs.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
+#include "tile-mesh.hpp"
 
 #include <bitset>
 
@@ -38,54 +39,6 @@ struct enum_bitset : std::bitset<(std::size_t)enum_type::MAX> {
         return std::bitset<(std::size_t)enum_type::MAX>::operator[]((std::size_t)x);
     }
 };
-
-class tile_mesh final
-{
-    static constexpr std::size_t index_count = std::tuple_size_v<decltype(tile_atlas{}.indices(0))>;
-    static constexpr std::array<UnsignedShort, index_count> _indices =
-        tile_atlas::indices(0);
-
-    struct vertex_data final {
-        Vector3 position;
-        Vector2 texcoords;
-    };
-    std::array<vertex_data, 4> _vertex_data = {};
-    GL::Buffer _vertex_buffer{_vertex_data, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{_indices, Magnum::GL::BufferUsage::StaticDraw};
-    GL::Mesh _mesh;
-
-public:
-    tile_mesh();
-    tile_mesh(tile_mesh&&) = delete;
-    tile_mesh(const tile_mesh&) = delete;
-
-    void draw_quad(tile_shader& shader, tile_image& img, const std::array<Vector3, 4>& positions);
-    void draw_floor_quad(tile_shader& shader, tile_image& img, Vector3 center);
-};
-
-tile_mesh::tile_mesh()
-{
-    _mesh.setCount((int)index_count)
-        .addVertexBuffer(_vertex_buffer, 0,
-                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
-        .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
-}
-
-void tile_mesh::draw_quad(tile_shader& shader, tile_image& img, const std::array<Vector3, 4>& positions)
-{
-    auto texcoords = img.atlas->texcoords_for_id(img.variant);
-    //auto positions = img.atlas->floor_quad(position, { TILE_SIZE[0], TILE_SIZE[1] });
-    for (std::size_t i = 0; i < 4; i++)
-        _vertex_data[i] = {positions[i], texcoords[i]};
-    img.atlas->texture().bind(0);
-    _vertex_buffer.setData(_vertex_data, Magnum::GL::BufferUsage::DynamicDraw);
-    shader.draw(_mesh);
-}
-
-void tile_mesh::draw_floor_quad(tile_shader& shader, tile_image& img, Vector3 center)
-{
-    draw_quad(shader, img, img.atlas->floor_quad(center, { TILE_SIZE[0], TILE_SIZE[1] }));
-}
 
 struct app final : Platform::Application
 {

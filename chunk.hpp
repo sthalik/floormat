@@ -1,7 +1,7 @@
 #pragma once
 #include "tile.hpp"
 #include <type_traits>
-#include <vector>
+#include <array>
 
 namespace Magnum::Examples {
 
@@ -17,6 +17,7 @@ constexpr std::size_t local_coords::to_index() const noexcept {
     return y*TILE_MAX_DIM + x;
 }
 
+#if 0
 struct chunk_coords final {
     std::int16_t x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
@@ -24,16 +25,16 @@ struct chunk_coords final {
     static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
     static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
 };
+#endif
 
+#if 0
 struct global_coords final {
     std::uint32_t x = 0, y = 0;
     constexpr global_coords() noexcept = default;
     constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
     constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
 };
-
-static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y)>);
-static_assert(std::is_same_v<decltype(global_coords::x), decltype(global_coords::y)>);
+#endif
 
 struct chunk final
 {
@@ -94,6 +95,7 @@ constexpr void chunk::foreach_tile_(F&& fun)
                 k);
 }
 
+#if 0
 constexpr std::size_t chunk_coords::to_index() const noexcept
 {
     using unsigned_type = std::make_unsigned_t<decltype(x)>;
@@ -102,7 +104,9 @@ constexpr std::size_t chunk_coords::to_index() const noexcept
     static_assert(sizeof(unsigned_type) <= sizeof(UnsignedInt)/2);
     return (std::size_t)(unsigned_type)y * N + (std::size_t)(unsigned_type)x;
 }
+#endif
 
+#if 0
 struct hash_chunk final {
     constexpr std::size_t operator()(chunk_coords xy) const noexcept {
         return hash<sizeof(std::size_t)*8>{}(xy.to_index());
@@ -142,5 +146,7 @@ constexpr global_coords::global_coords(chunk_coords c, local_coords tile) noexce
       y{tile.y + ((std::uint32_t)(std::make_unsigned_t<decltype(c.y)>)c.y << chunk_coords::max_bits)}
 {
 }
+
+#endif
 
 } // namespace Magnum::Examples
