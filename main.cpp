@@ -60,12 +60,13 @@ struct app final : Platform::Application
 
     GL::Mesh _mesh, _mesh2;
     tile_shader _shader;
-    std::shared_ptr<tile_atlas> atlas =
+    std::shared_ptr<tile_atlas> floor1 =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
         loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    std::shared_ptr<tile_atlas> atlas2 =
+    std::shared_ptr<tile_atlas> floor2 = loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
+    std::shared_ptr<tile_atlas> wall1 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
@@ -108,9 +109,9 @@ app::app(const Arguments& arguments):
         for (unsigned j = 0; j < chunk::N; j++) // TODO draw walls in correct order
             for (unsigned i = 0; i < chunk::N; i++)
             {
-                auto positions = atlas->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
-                auto texcoords = atlas->texcoords_for_id(k % atlas->size());
-                auto indices_  = atlas->indices(k);
+                auto positions = floor1->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
+                auto texcoords = floor1->texcoords_for_id(k % floor1->size());
+                auto indices_  = floor1->indices(k);
 
                 for (unsigned x = 0; x < 4; x++)
                     vertices.push_back({ positions[x], texcoords[x] });
@@ -131,17 +132,17 @@ app::app(const Arguments& arguments):
     {
         Vector3 center{chunk::N/2.f*TILE_SIZE[0], chunk::N/2.f*TILE_SIZE[1], 0};
         tile_atlas::vertex_array_type walls[] = {
-            atlas2->wall_quad_W(center, Vector3(X, Y, Z)),
-            atlas2->wall_quad_N(center, Vector3(X, Y, Z)),
-            atlas2->wall_quad_E(center, Vector3(X, Y, Z)),
-            atlas2->wall_quad_S(center, Vector3(X, Y, Z)),
+            wall1->wall_quad_W(center, Vector3(X, Y, Z)),
+            wall1->wall_quad_N(center, Vector3(X, Y, Z)),
+            wall1->wall_quad_E(center, Vector3(X, Y, Z)),
+            wall1->wall_quad_S(center, Vector3(X, Y, Z)),
         };
 
         int k = 0;
         for (const auto& positions : walls)
         {
-            auto texcoords = atlas2->texcoords_for_id(k % atlas2->size());
-            auto indices_ = atlas2->indices(k);
+            auto texcoords = wall1->texcoords_for_id(k % wall1->size());
+            auto indices_ = wall1->indices(k);
             for (unsigned x = 0; x < 4; x++)
                 vertices.push_back({ positions[x], texcoords[x] });
             for (auto x : indices_)
@@ -184,15 +185,16 @@ void app::drawEvent() {
         }
     }
 
+    _shader.clear_samplers();
+
+    auto floor1_sampler = _shader.bind_sampler(floor1);
+    auto wall_sampler = _shader.bind_sampler(wall1);
+
 #if 1
-    _shader
-        .bindTexture(atlas->texture())
-        .draw(_mesh);
+    _shader.draw(_mesh);
 #endif
 #if 1
-    _shader
-        .bindTexture(atlas2->texture())
-        .draw(_mesh2);
+    _shader.draw(_mesh2);
 #endif
 
     swapBuffers();

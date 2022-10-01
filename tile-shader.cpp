@@ -1,6 +1,6 @@
 #include "tile-shader.hpp"
 #include "loader.hpp"
-
+#include <algorithm>
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
 #include <Magnum/GL/Context.h>
@@ -26,11 +26,13 @@ tile_shader::tile_shader()
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
     setUniform(ScaleUniform, Vector2{640, 480});
+
+    samplers.reserve(MAX_SAMPLERS);
 }
 
-tile_shader& tile_shader::bindTexture(GL::Texture2D& texture)
+tile_shader& tile_shader::bind_texture(GL::Texture2D& texture, int id)
 {
-    texture.bind(TextureUnit);
+    texture.bind(id);
     return *this;
 }
 
@@ -52,6 +54,32 @@ Vector2 tile_shader::project(Vector3 pt)
 {
     float x = pt[1], y = pt[0], z = pt[2];
     return { x-y, (x+y+z*2)*.75f };
+}
+
+int tile_shader::bind_sampler(const tile_shader::shared_sampler& atlas)
+{
+    CORRADE_INTERNAL_ASSERT(samplers.size() < MAX_SAMPLERS);
+    auto sampler_comparator = [](const sampler_tuple& a, const sampler_tuple& b) {
+        const auto& [ptr1, n1] = a;
+        const auto& [ptr2, n2] = b;
+        return ptr1.get() < ptr2.get();
+    };
+    auto it = std::lower_bound(samplers.begin(), samplers.end(),
+                               sampler_tuple{atlas, -1}, sampler_comparator);
+    int idx;
+    if (it == samplers.end()) {
+        idx = (int)samplers.size();
+        samplers.emplace_back(atlas, idx);
+    } else
+        idx = it->second;
+    atlas->texture().bind(idx);
+    return idx;
+}
+
+void tile_shader::clear_samplers()
+{
+    Magnum::GL::AbstractTexture::unbindImages(0, samplers.size());
+    samplers.clear();
 }
 
 } // namespace Magnum::Examples

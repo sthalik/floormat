@@ -1,16 +1,25 @@
 #pragma once
+#include "tile-atlas.hpp"
+#include <vector>
+#include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Matrix4.h>
 
+struct tile_atlas;
+
 namespace Magnum::Examples {
 
 struct tile_shader : GL::AbstractShaderProgram
 {
+    using shared_sampler = std::shared_ptr<tile_atlas>;
+    using sampler_tuple = std::pair<shared_sampler, int>;
+
     typedef GL::Attribute<0, Vector3> Position;
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
+    typedef GL::Attribute<2, int> SamplerId;
 
     explicit tile_shader();
 
@@ -21,11 +30,18 @@ struct tile_shader : GL::AbstractShaderProgram
 
     static Vector2 project(Vector3 pt);
 
-    tile_shader& bindTexture(GL::Texture2D& texture);
+    [[nodiscard]] int bind_sampler(const shared_sampler& atlas);
+    void clear_samplers();
+
+    tile_shader& bind_texture(GL::Texture2D& texture, int id);
 
 private:
+    std::vector<sampler_tuple> samplers;
     Vector2 scale_, camera_offset_;
-    enum { TextureUnit = 0 };
+
+    static constexpr int MAX_SAMPLERS = 16;
+
+    enum { SamplerIdAttribute = 1, };
     enum { ScaleUniform = 0, OffsetUniform = 3, };
 };
 
