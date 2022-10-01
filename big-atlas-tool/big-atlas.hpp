@@ -19,7 +19,7 @@ struct big_atlas_row {
 struct big_atlas_builder {
     [[nodiscard]] std::vector<big_atlas_frame> add_atlas(const std::filesystem::path& filename);
     big_atlas_frame& add_frame(const cv::Mat4b& frame);
-    constexpr Magnum::Vector2i size() const { return {maxy, maxx}; }
+    constexpr Magnum::Vector2i size() const { return {maxx, maxy}; }
     const std::vector<big_atlas_row>& rows() const { return _rows; }
 
 private:
@@ -28,7 +28,7 @@ private:
     int ypos = 0, maxx = 0, maxy = 0;
 
     static constexpr Magnum::Vector2i TILE_SIZE = { 100, 100 },
-                                      MAX_TEXTURE_SIZE = { 500, 500 };
+                                      MAX_TEXTURE_SIZE = { 8192, 8192 };
 
     static_assert(!!TILE_SIZE[0] && !!TILE_SIZE[1] && !!MAX_TEXTURE_SIZE[0] && !!MAX_TEXTURE_SIZE[1]);
     static_assert(MAX_TEXTURE_SIZE[0] >= TILE_SIZE[0] && MAX_TEXTURE_SIZE[1] >= TILE_SIZE[1]);

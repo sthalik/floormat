@@ -21,19 +21,26 @@ std::vector<big_atlas_frame> big_atlas_builder::add_atlas(const std::filesystem:
     if (mat.type() == CV_8UC3) {
         cv::Mat mat2;
         cv::cvtColor(mat, mat2, cv::COLOR_RGB2RGBA);
-        mat = mat2.clone();
+        mat = std::move(mat2);
     }
 
     Error{} << "file" << filename;
 
     assert(mat.cols % TILE_SIZE[0] == 0 && mat.rows % TILE_SIZE[1] == 0);
 
+    cv::Mat1b cn;
+
     for (int y = 0; y + TILE_SIZE[1] <= mat.rows; y += TILE_SIZE[1])
         for (int x = 0; x + TILE_SIZE[0] <= mat.cols; x += TILE_SIZE[0])
         {
             cv::Rect roi { x, y, TILE_SIZE[0], TILE_SIZE[1] };
-            auto frame = add_frame(mat(roi));
-            ret.push_back(frame);
+            const auto m = mat(roi);
+            cv::extractChannel(m, cn, 3);
+            if (cv::countNonZero(cn) > 0)
+            {
+                auto frame = add_frame(m);
+                ret.push_back(frame);
+            }
         }
 
     return ret;
