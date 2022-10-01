@@ -88,9 +88,9 @@ using namespace Math::Literals;
 chunk app::make_test_chunk()
 {
     chunk c;
-    c.foreach_tile([&, this](tile& x, local_coords, std::size_t k) {
+    c.foreach_tile([&, this](tile& x, std::size_t k, local_coords) {
       //const auto& atlas = (pt.y*TILE_MAX_DIM+pt.x+1) % 2 == 0 ? floor1 : floor2;
-      const auto& atlas = floor1;
+      const auto& atlas = floor2;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
     return c;
