@@ -1,12 +1,14 @@
+#version 450
 precision highp float;
 
-layout(location = 2) uniform sampler2D textureData;
+const int MAX_SAMPLERS = 16;
+layout (location = 0) uniform sampler2D samplers[MAX_SAMPLERS];
 
-in vec2 interpolatedTextureCoordinates;
-
+layout (location = 0) in vec2 texcoord;
+layout (location = 1) flat in uint sampler_id;
 out vec4 fragmentColor;
 
 void main() {
-    fragmentColor.rgb = texture(textureData, interpolatedTextureCoordinates).rgb;
+    fragmentColor.rgb = texture(samplers[sampler_id], texcoord).rgb;
     fragmentColor.a = 1;
 }

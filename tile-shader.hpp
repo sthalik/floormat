@@ -14,12 +14,9 @@ namespace Magnum::Examples {
 
 struct tile_shader : GL::AbstractShaderProgram
 {
-    using shared_sampler = std::shared_ptr<tile_atlas>;
-    using sampler_tuple = std::pair<shared_sampler, int>;
-
     typedef GL::Attribute<0, Vector3> Position;
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
-    typedef GL::Attribute<2, int> SamplerId;
+    typedef GL::Attribute<2, int> TextureID;
 
     explicit tile_shader();
 
@@ -30,19 +27,10 @@ struct tile_shader : GL::AbstractShaderProgram
 
     static Vector2 project(Vector3 pt);
 
-    [[nodiscard]] int bind_sampler(const shared_sampler& atlas);
-    void clear_samplers();
-
-    tile_shader& bind_texture(GL::Texture2D& texture, int id);
-
 private:
-    std::vector<sampler_tuple> samplers;
     Vector2 scale_, camera_offset_;
 
-    static constexpr int MAX_SAMPLERS = 16;
-
-    enum { SamplerIdAttribute = 1, };
-    enum { ScaleUniform = 0, OffsetUniform = 3, };
+    enum { ScaleUniform = 0, OffsetUniform = 1, };
 };
 
 } // namespace Magnum::Examples

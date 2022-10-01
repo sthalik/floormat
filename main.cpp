@@ -3,6 +3,7 @@
 #include "tile-shader.hpp"
 #include "defs.hpp"
 #include "tile.hpp"
+#include "chunk.hpp"
 
 #include <bitset>
 
@@ -72,6 +73,7 @@ struct app final : Platform::Application
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector2 camera_offset;
     enum_bitset<key> keys;
+    chunk c;
 
     float get_dt();
     static constexpr Vector3 TILE_SIZE = { 50, 50, 50 };
@@ -106,8 +108,9 @@ app::app(const Arguments& arguments):
         vertices.clear();
         indices.clear();
         int k = 0;
-        for (unsigned j = 0; j < chunk::N; j++) // TODO draw walls in correct order
-            for (unsigned i = 0; i < chunk::N; i++)
+        constexpr auto N = TILE_MAX_DIM;
+        for (unsigned j = 0; j < N; j++) // TODO draw walls in correct order
+            for (unsigned i = 0; i < N; i++)
             {
                 auto positions = floor1->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
                 auto texcoords = floor1->texcoords_for_id(k % floor1->size());
@@ -130,7 +133,8 @@ app::app(const Arguments& arguments):
     indices.clear();
 
     {
-        Vector3 center{chunk::N/2.f*TILE_SIZE[0], chunk::N/2.f*TILE_SIZE[1], 0};
+        constexpr auto N = TILE_MAX_DIM;
+        Vector3 center{N/2.f*TILE_SIZE[0], N/2.f*TILE_SIZE[1], 0};
         tile_atlas::vertex_array_type walls[] = {
             wall1->wall_quad_W(center, Vector3(X, Y, Z)),
             wall1->wall_quad_N(center, Vector3(X, Y, Z)),
@@ -221,7 +225,7 @@ void app::do_camera(float dt)
 
 void app::reset_camera_offset()
 {
-    camera_offset = _shader.project({chunk::N*TILE_SIZE[0]/2.f, chunk::N*TILE_SIZE[1]/2.f, 0});
+    camera_offset = _shader.project({TILE_MAX_DIM*TILE_SIZE[0]/2.f, TILE_MAX_DIM*TILE_SIZE[1]/2.f, 0});
 }
 
 void app::update(float dt)
@@ -280,7 +284,7 @@ void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 
 } // namespace Magnum::Examples
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::app);
+MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)
 
 #ifdef _MSC_VER
 #   include <cstdlib>
