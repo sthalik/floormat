@@ -5,8 +5,8 @@
 
 namespace Magnum::Examples {
 
-static constexpr std::size_t TILE_MAX_DIM = 16;
-static constexpr std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
+constexpr inline std::size_t TILE_MAX_DIM = 16;
+constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
 
 struct local_coords final {
     std::uint8_t x = 0, y = 0;
@@ -25,22 +25,6 @@ struct chunk_coords final {
     static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
 };
 
-struct chunk_sampler_array final {
-    using shared_sampler = std::shared_ptr<tile_atlas>;
-    static constexpr inline int MAX_SAMPLERS = 32;
-
-    std::vector<std::shared_ptr<tile_atlas>> samplers;
-    std::array<UnsignedInt, TILE_COUNT> sampler_map = {};
-
-    chunk_sampler_array();
-    void ensure_sampler(std::size_t tile_id, const shared_sampler& x);
-    std::shared_ptr<tile_atlas> operator[](std::size_t tile_id) const;
-    void clear();
-    void bind();
-
-    static_assert(MAX_SAMPLERS <= 0xff);
-};
-
 struct global_coords final {
     std::uint32_t x = 0, y = 0;
     constexpr global_coords() noexcept = default;
@@ -53,8 +37,8 @@ static_assert(std::is_same_v<decltype(global_coords::x), decltype(global_coords:
 
 struct chunk final
 {
-    using index_type = decltype(local_coords::x);
-    using tile_index_array_type = std::array<index_type, TILE_COUNT>;
+    //using index_type = std::common_type_t<decltype(local_coords::x), decltype(local_coords::y)>;
+    //using tile_index_array_type = std::array<index_type, TILE_COUNT>;
     //static constexpr inline local_coords center = { (index_type)(N/2), (index_type)(N/2) };
 
     constexpr tile& operator[](local_coords xy);
@@ -62,19 +46,20 @@ struct chunk final
     constexpr tile& operator[](std::size_t i);
     constexpr const tile& operator[](std::size_t i) const;
 
+    // TODO use local_coords
     template<typename F>
-        requires std::invocable<F, tile&, int, int>
+    requires std::invocable<F, tile&, local_coords, std::size_t>
     constexpr inline void foreach_tile(F&& fun) { foreach_tile_<F, chunk&>(std::forward<F>(fun)); }
 
     template<typename F>
-        requires std::invocable<F, const tile&, int, int>
+    requires std::invocable<F, const tile&, local_coords, std::size_t>
     constexpr inline void foreach_tile(F&& fun) const { foreach_tile_<F, const chunk&>(std::forward<F>(fun)); }
 
 private:
-    template<typename F, typename Self> constexpr void foreach_tile_(F&& fun);
+    template<typename F, typename Self>
+    constexpr void foreach_tile_(F&& fun);
 
     std::array<tile, TILE_COUNT> tiles = {};
-    chunk_sampler_array samplers;
 };
 
 constexpr tile& chunk::operator[](std::size_t i) {
@@ -101,12 +86,12 @@ template<typename F, typename Self>
 constexpr void chunk::foreach_tile_(F&& fun)
 {
     constexpr auto N = TILE_MAX_DIM;
-    for (unsigned j = 0; j < N; j++)
-        for (unsigned i = 0; i < N; i++)
-        {
-            unsigned idx = j*N + i;
-            fun(const_cast<Self>(*this).tiles[idx], i, j);
-        }
+    std::size_t k = 0;
+    for (std::size_t j = 0; j < N; j++)
+        for (std::size_t i = 0; i < N; i++, k++)
+            fun(const_cast<Self>(*this).tiles[k],
+                local_coords{(std::uint8_t)i, (std::uint8_t)j},
+                k);
 }
 
 constexpr std::size_t chunk_coords::to_index() const noexcept

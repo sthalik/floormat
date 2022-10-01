@@ -39,9 +39,58 @@ struct enum_bitset : std::bitset<(std::size_t)enum_type::MAX> {
     }
 };
 
+class tile_mesh final
+{
+    static constexpr std::size_t index_count = std::tuple_size_v<decltype(tile_atlas{}.indices(0))>;
+    static constexpr std::array<UnsignedShort, index_count> _indices =
+        tile_atlas::indices(0);
+
+    struct vertex_data final {
+        Vector3 position;
+        Vector2 texcoords;
+    };
+    std::array<vertex_data, 4> _vertex_data = {};
+    GL::Buffer _vertex_buffer{_vertex_data, Magnum::GL::BufferUsage::DynamicDraw},
+               _index_buffer{_indices, Magnum::GL::BufferUsage::StaticDraw};
+    GL::Mesh _mesh;
+
+public:
+    tile_mesh();
+    tile_mesh(tile_mesh&&) = delete;
+    tile_mesh(const tile_mesh&) = delete;
+
+    void draw_quad(tile_shader& shader, tile_image& img, const std::array<Vector3, 4>& positions);
+    void draw_floor_quad(tile_shader& shader, tile_image& img, Vector3 center);
+};
+
+tile_mesh::tile_mesh()
+{
+    _mesh.setCount((int)index_count)
+        .addVertexBuffer(_vertex_buffer, 0,
+                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
+        .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
+}
+
+void tile_mesh::draw_quad(tile_shader& shader, tile_image& img, const std::array<Vector3, 4>& positions)
+{
+    auto texcoords = img.atlas->texcoords_for_id(img.variant);
+    //auto positions = img.atlas->floor_quad(position, { TILE_SIZE[0], TILE_SIZE[1] });
+    for (std::size_t i = 0; i < 4; i++)
+        _vertex_data[i] = {positions[i], texcoords[i]};
+    img.atlas->texture().bind(0);
+    _vertex_buffer.setData(_vertex_data, Magnum::GL::BufferUsage::DynamicDraw);
+    shader.draw(_mesh);
+}
+
+void tile_mesh::draw_floor_quad(tile_shader& shader, tile_image& img, Vector3 center)
+{
+    draw_quad(shader, img, img.atlas->floor_quad(center, { TILE_SIZE[0], TILE_SIZE[1] }));
+}
+
 struct app final : Platform::Application
 {
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
+    using shared_tile_atlas = std::shared_ptr<tile_atlas>;
 
     explicit app(const Arguments& arguments);
     virtual ~app();
@@ -52,33 +101,58 @@ struct app final : Platform::Application
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
+    void draw_chunk(chunk& c);
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
         quit,
         MAX
     };
+    chunk make_test_chunk();
 
-    GL::Mesh _mesh, _mesh2;
     tile_shader _shader;
-    std::shared_ptr<tile_atlas> floor1 =
+    shared_tile_atlas floor1 =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
-        loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    std::shared_ptr<tile_atlas> floor2 = loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    std::shared_ptr<tile_atlas> wall1 =
+        loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
+    shared_tile_atlas floor2 =
+        loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
+    shared_tile_atlas wall1 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
+    chunk _chunk = make_test_chunk();
+    tile_mesh _tile_mesh;
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector2 camera_offset;
     enum_bitset<key> keys;
-    chunk c;
 
     float get_dt();
 };
 
 using namespace Math::Literals;
+
+chunk app::make_test_chunk()
+{
+    chunk c;
+    c.foreach_tile([&, this](tile& x, local_coords, std::size_t k) {
+      //const auto& atlas = (pt.y*TILE_MAX_DIM+pt.x+1) % 2 == 0 ? floor1 : floor2;
+      const auto& atlas = floor1;
+      x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
+    });
+    return c;
+}
+
+void app::draw_chunk(chunk& c)
+{
+    constexpr auto N = TILE_MAX_DIM;
+    constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1];
+
+    for (std::size_t j = 0, k = 0; j < N; j++)
+        for (std::size_t i = 0; i < N; i++, k++)
+            _tile_mesh.draw_floor_quad(_shader, c[k].ground_image,
+                                       {(float)(X*i), (float)(Y*j), 0});
+}
 
 app::app(const Arguments& arguments):
     Platform::Application{
@@ -90,11 +164,7 @@ app::app(const Arguments& arguments):
               //.setSampleCount(4)
     }
 {
-    struct QuadVertex {
-        Vector3 position;
-        Vector2 textureCoordinates;
-    };
-
+#if 0
     std::vector<QuadVertex> vertices; vertices.reserve(1024);
     std::vector<UnsignedShort> indices; indices.reserve(1024);
 
@@ -125,6 +195,7 @@ app::app(const Arguments& arguments):
         _mesh.setCount((int)indices.size())
             .addVertexBuffer(GL::Buffer{vertices}, 0,
                              tile_shader::Position{}, tile_shader::TextureCoordinates{})
+            .addVertexBuffer(GL::Buffer{c.sampler_array()}, 0, tile_shader::TextureID{})
             .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
     }
 
@@ -160,6 +231,7 @@ app::app(const Arguments& arguments):
         .addVertexBuffer(GL::Buffer{vertices}, 0,
                          tile_shader::Position{}, tile_shader::TextureCoordinates{})
         .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
+#endif
 
     (void)get_dt();
 }
@@ -188,16 +260,11 @@ void app::drawEvent() {
         }
     }
 
-    _shader.clear_samplers();
-
-    auto floor1_sampler = _shader.bind_sampler(floor1);
-    auto wall_sampler = _shader.bind_sampler(wall1);
+    //auto floor1_sampler = _shader.bind_sampler(floor1);
+    //auto wall_sampler = _shader.bind_sampler(wall1);
 
 #if 1
-    _shader.draw(_mesh);
-#endif
-#if 1
-    _shader.draw(_mesh2);
+    draw_chunk(_chunk);
 #endif
 
     swapBuffers();

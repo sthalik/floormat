@@ -22,8 +22,9 @@ tile_atlas::tile_atlas(const ImageView2D& image, Vector2i dims) :
         .setSubImage(0, {}, image);
 }
 
-std::array<Vector2, 4> tile_atlas::texcoords_for_id(int id_) const
+std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id2) const
 {
+    auto id_ = (int)id2;
     CORRADE_INTERNAL_ASSERT(id_ >= 0 && id_ < dims_.product());
     Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
     auto p0 = Vector2(id * tile_size_) / Vector2(size_);
@@ -92,16 +93,6 @@ vertex_array_type tile_atlas::wall_quad_N(Vector3 center, Vector3 size)
         { x + center[0],  y + center[1],     center[2] },
         { x + center[0],  y + center[1], z + center[2] },
     }};
-}
-
-std::array<UnsignedShort, 6> tile_atlas::indices(int N)
-{
-    CORRADE_INTERNAL_ASSERT(N >= 0);
-    using u16 = UnsignedShort;
-    return {                                        /* 3--1 1 */
-        (u16)(0+N*4), (u16)(1+N*4), (u16)(2+N*4),   /* | / /| */
-        (u16)(2+N*4), (u16)(1+N*4), (u16)(3+N*4),   /* |/ / | */
-    };                                              /* 2 2--0 */
 }
 
 } // namespace Magnum::Examples

@@ -16,7 +16,6 @@ struct tile_shader : GL::AbstractShaderProgram
 {
     typedef GL::Attribute<0, Vector3> Position;
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
-    typedef GL::Attribute<2, int> TextureID;
 
     explicit tile_shader();
 
