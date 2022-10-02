@@ -1,5 +1,4 @@
 #include "floor-mesh.hpp"
-#include "tile-atlas.hpp"
 #include "shaders/tile-shader.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
@@ -9,30 +8,31 @@ namespace Magnum::Examples {
 
 floor_mesh::floor_mesh()
 {
-    _mesh.setCount((int)(quad_index_count * _index_data.size()))
+    _mesh.setCount((int)(_index_data.size() * _index_data[0].size()))
          .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
          .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }
 
-void floor_mesh::set_tile(tile& x, const local_coords pt)
+void floor_mesh::set_tile(std::array<quad_data, TILE_COUNT>& data, tile& x, const local_coords pt)
 {
     CORRADE_INTERNAL_ASSERT(x.ground_image);
 
     const auto idx = pt.to_index();
     auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
     for (std::size_t i = 0; i < 4; i++)
-        _vertex_data[idx][i] = { texcoords[i] };
+        data[idx][i] = { texcoords[i] };
 }
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
+    std::array<quad_data, TILE_COUNT> data;
     c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
-      set_tile(x, pt);
+      set_tile(data, x, pt);
     });
-    _vertex_buffer.setData(_vertex_data, Magnum::GL::BufferUsage::DynamicDraw);
+    _vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
 #if 1
-    Magnum::GL::MeshView mesh{ _mesh };
+    Magnum::GL::MeshView mesh{_mesh};
     mesh.setCount(quad_index_count);
     tile_atlas* last_tile_atlas = nullptr;
     c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
@@ -52,9 +52,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
 
 static auto make_index_array()
 {
-    constexpr auto quad_index_count = std::tuple_size_v<decltype(tile_atlas::indices(0))>;
-    std::array<std::array<UnsignedShort, quad_index_count>, TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
-
+    std::array<std::array<UnsignedShort, 6>, TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (std::size_t i = 0; i < std::size(array); i++)
         array[i] = tile_atlas::indices(i);
     return array;

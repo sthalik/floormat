@@ -86,10 +86,6 @@ chunk app::make_test_chunk()
 void app::draw_chunk(chunk& c)
 {
     constexpr auto N = TILE_MAX_DIM;
-
-    for (std::size_t j = 0, k = 0; j < N; j++)
-        for (std::size_t i = 0; i < N; i++, k++)
-            _floor_mesh.set_tile(c[k], {i, j});
     _floor_mesh.draw(_shader, c);
 }
 

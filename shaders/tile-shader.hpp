@@ -1,5 +1,4 @@
 #pragma once
-#include "tile-atlas.hpp"
 #include <vector>
 #include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>
@@ -7,8 +6,6 @@
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Matrix4.h>
-
-struct tile_atlas;
 
 namespace Magnum::Examples {
 
