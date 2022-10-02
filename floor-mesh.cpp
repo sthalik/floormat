@@ -30,7 +30,6 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
       set_tile(data[idx], x);
     });
     _vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
-#if 1
     Magnum::GL::MeshView mesh{_mesh};
     mesh.setCount(quad_index_count);
     tile_atlas* last_tile_atlas = nullptr;
@@ -43,10 +42,6 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
       }
       shader.draw(mesh);
     });
-#else
-    c[0].ground_image.atlas->texture().bind(0);
-    shader.draw(_mesh);
-#endif
 }
 
 static auto make_index_array()
