@@ -1,7 +1,5 @@
 #pragma once
 
-#include "defs.hpp"
-
 #include <string>
 #include <array>
 #include <vector>

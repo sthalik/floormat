@@ -62,7 +62,7 @@ if(NOT BOOTSTRAP_DEPENDS)
     add_subdirectory(tile)
 
     corrade_add_resource(game_RESOURCES resources.conf)
-    file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+    file(GLOB sources "*.cpp" "shaders/*.cpp" CONFIGURE_ARGS)
 
     add_executable(${PROJECT_NAME} WIN32 "${sources}" "${game_RESOURCES}")
     target_link_libraries(${PROJECT_NAME} PRIVATE

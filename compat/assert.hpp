@@ -1,30 +1,8 @@
 #pragma once
-#include <cstddef>
-#include <cstdio>
+#include "defs.hpp"
 #include <limits>
-#include <type_traits>
-
-#ifdef _MSC_VER
-#   define FUNCTION_NAME __FUNCSIG__
-#else
-#   define FUNCTION_NAME __PRETTY_FUNCTION__
-#endif
-
-#ifdef _WIN32
-#   define EX_OK        0   /* successful termination */
-#   define EX_USAGE     64  /* command line usage error */
-#   define EX_DATAERR   65  /* data format error */
-#   define EX_SOFTWARE  70  /* internal software error */
-#   define EX_CANTCREAT 73  /* can't create (user) output file */
-#   define EX_IOERR     74  /* input/output error */
-#else
-#   include <sysexits.h>
-#endif
 
 namespace Magnum::Examples {
-
-using size_t = std::size_t;
-using ssize_t = std::make_signed_t<std::size_t>;
 
 struct exception {
     const char* file = nullptr;
@@ -46,8 +24,6 @@ struct out_of_range final : exception {
 struct key_error final : exception {
     ssize_t value = 0;
 };
-
-} // namespace Magnum::Examples
 
 #define KEY_ERROR(value) \
     ::Magnum::Examples::key_error{{__FILE__, FUNCTION_NAME, __LINE__}, (value)}
@@ -91,4 +67,4 @@ struct key_error final : exception {
 #define ERR(...)    GAME_DEBUG_OUT("error: ", __VA_ARGS__)
 #define DEBUG(...)  GAME_DEBUG_OUT("", __VA_ARGS__)
 
-#define progn(...) [&]{__VA_ARGS__;}()
+} // namespace Magnum::Examples

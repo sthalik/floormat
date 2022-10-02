@@ -1,10 +1,10 @@
 #include "tile-atlas.hpp"
 #include "loader.hpp"
-#include "tile-shader.hpp"
-#include "defs.hpp"
+#include "shaders/tile-shader.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
 #include "floor-mesh.hpp"
+#include "compat/defs.hpp"
 
 #include <bitset>
 
@@ -79,7 +79,7 @@ chunk app::make_test_chunk()
     chunk c;
     c.foreach_tile([&, this](tile& x, std::size_t k, local_coords) {
       //const auto& atlas = (pt.y*TILE_MAX_DIM+pt.x+1) % 2 == 0 ? floor1 : floor2;
-      const auto& atlas = floor2;
+      const auto& atlas = floor1;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
     return c;
@@ -88,7 +88,6 @@ chunk app::make_test_chunk()
 void app::draw_chunk(chunk& c)
 {
     constexpr auto N = TILE_MAX_DIM;
-    constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1];
 
     for (std::size_t j = 0, k = 0; j < N; j++)
         for (std::size_t i = 0; i < N; i++, k++)
@@ -114,35 +113,6 @@ app::app(const Arguments& arguments):
     const float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
 
     reset_camera_offset();
-
-    {
-        vertices.clear();
-        indices.clear();
-        int k = 0;
-        constexpr auto N = TILE_MAX_DIM;
-        for (unsigned j = 0; j < N; j++) // TODO draw walls in correct order
-            for (unsigned i = 0; i < N; i++)
-            {
-                auto positions = floor1->floor_quad({(float)(X*i), (float)(Y*j), 0}, {X, Y});
-                auto texcoords = floor1->texcoords_for_id(k % floor1->size());
-                auto indices_  = floor1->indices(k);
-
-                for (unsigned x = 0; x < 4; x++)
-                    vertices.push_back({ positions[x], texcoords[x] });
-                for (auto x : indices_)
-                    indices.push_back(x);
-                k++;
-            }
-
-        _mesh.setCount((int)indices.size())
-            .addVertexBuffer(GL::Buffer{vertices}, 0,
-                             tile_shader::Position{}, tile_shader::TextureCoordinates{})
-            .addVertexBuffer(GL::Buffer{c.sampler_array()}, 0, tile_shader::TextureID{})
-            .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
-    }
-
-    vertices.clear();
-    indices.clear();
 
     {
         constexpr auto N = TILE_MAX_DIM;

@@ -1,5 +1,4 @@
 #include "tile-atlas.hpp"
-#include "defs.hpp"
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 

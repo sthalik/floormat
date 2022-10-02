@@ -1,8 +1,9 @@
 #undef NDEBUG
 
-#include "defs.hpp"
 #include "atlas.hpp"
 #include "anim/serialize.hpp"
+#include "compat/defs.hpp"
+#include "compat/sysexits.hpp"
 
 #include <cassert>
 #include <cmath>

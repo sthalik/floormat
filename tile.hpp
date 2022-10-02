@@ -1,5 +1,4 @@
 #pragma once
-#include "defs.hpp"
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector3.h>
 #include <cstddef>

@@ -1,4 +1,4 @@
-#include "tile-shader.hpp"
+#include "shaders/tile-shader.hpp"
 #include "loader.hpp"
 #include <algorithm>
 #include <Corrade/Containers/Reference.h>
@@ -49,12 +49,6 @@ tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
     camera_offset_ = camera_offset;
     setUniform(OffsetUniform, camera_offset);
     return *this;
-}
-
-Vector2 tile_shader::project(Vector3 pt)
-{
-    float x = pt[1], y = pt[0], z = pt[2];
-    return { x-y, (x+y+z*2)*.75f };
 }
 
 } // namespace Magnum::Examples

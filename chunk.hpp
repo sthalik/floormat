@@ -7,14 +7,10 @@ namespace Magnum::Examples {
 
 struct chunk final
 {
-    //using index_type = std::common_type_t<decltype(local_coords::x), decltype(local_coords::y)>;
-    //using tile_index_array_type = std::array<index_type, TILE_COUNT>;
-    //static constexpr inline local_coords center = { (index_type)(N/2), (index_type)(N/2) };
-
-    constexpr tile& operator[](local_coords xy);
-    constexpr const tile& operator[](local_coords xy) const;
-    constexpr tile& operator[](std::size_t i);
-    constexpr const tile& operator[](std::size_t i) const;
+    constexpr tile& operator[](local_coords xy) { return tiles[xy.to_index()]; }
+    constexpr const tile& operator[](local_coords xy) const { return tiles[xy.to_index()]; }
+    constexpr tile& operator[](std::size_t i) { return tiles[i]; }
+    constexpr const tile& operator[](std::size_t i) const { return tiles[i]; }
 
     template<typename F>
     requires std::invocable<F, tile&, std::size_t, local_coords>
@@ -30,26 +26,6 @@ private:
 
     std::array<tile, TILE_COUNT> tiles = {};
 };
-
-constexpr tile& chunk::operator[](std::size_t i) {
-    if (i >= TILE_COUNT)
-        throw OUT_OF_RANGE(i, 0, TILE_COUNT);
-    return tiles[i];
-}
-
-constexpr const tile& chunk::operator[](std::size_t i) const {
-    return const_cast<chunk&>(*this).operator[](i);
-}
-
-constexpr const tile& chunk::operator[](local_coords xy) const {
-    return const_cast<chunk&>(*this).operator[](xy);
-}
-
-constexpr tile& chunk::operator[](local_coords xy)
-{
-    auto idx = xy.to_index();
-    return operator[](idx);
-}
 
 template<typename F, typename Self>
 constexpr void chunk::foreach_tile_(F&& fun)

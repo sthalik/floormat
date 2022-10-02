@@ -1,5 +1,4 @@
 #pragma once
-#include "defs.hpp"
 #include "tile.hpp"
 #include "tile-atlas.hpp"
 #include <array>
