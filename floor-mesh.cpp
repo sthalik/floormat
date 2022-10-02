@@ -14,21 +14,20 @@ floor_mesh::floor_mesh()
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }
 
-void floor_mesh::set_tile(std::array<quad_data, TILE_COUNT>& data, tile& x, const local_coords pt)
+void floor_mesh::set_tile(quad_data& data, tile& x)
 {
     CORRADE_INTERNAL_ASSERT(x.ground_image);
 
-    const auto idx = pt.to_index();
     auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
     for (std::size_t i = 0; i < 4; i++)
-        data[idx][i] = { texcoords[i] };
+        data[i] = { texcoords[i] };
 }
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
     std::array<quad_data, TILE_COUNT> data;
-    c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
-      set_tile(data, x, pt);
+    c.foreach_tile([&](tile& x, std::size_t idx, local_coords) {
+      set_tile(data[idx], x);
     });
     _vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
 #if 1

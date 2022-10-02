@@ -31,7 +31,7 @@ private:
     using quad_positions_data = std::array<Vector3, 4>;
     using index_type = std::array<UnsignedShort, quad_index_count>;
 
-    static void set_tile(std::array<quad_data, TILE_COUNT>& data, tile& x, local_coords pt);
+    static void set_tile(quad_data& data, tile& x);
 
     static const std::array<index_type, TILE_COUNT> _index_data;
     static const std::array<quad_positions_data, TILE_COUNT> _position_data;
