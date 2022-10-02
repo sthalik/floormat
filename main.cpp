@@ -14,7 +14,7 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Trade/AbstractImporter.h>
-#include <SDL_timer.h>
+#include <Magnum/Timeline.h>
 
 namespace Magnum::Examples {
 
@@ -65,11 +65,9 @@ struct app final : Platform::Application
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
 
-    std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector2 camera_offset;
     enum_bitset<key> keys;
-
-    float get_dt();
+    Magnum::Timeline timeline;
 };
 
 using namespace Math::Literals;
@@ -145,7 +143,7 @@ app::app(const Arguments& arguments):
         .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
 #endif
 
-    (void)get_dt();
+    timeline.start();
 }
 
 void app::drawEvent() {
@@ -157,7 +155,7 @@ void app::drawEvent() {
     //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
     {
-        float dt = get_dt();
+        float dt = timeline.previousFrameDuration();
         update(dt);
     }
 
@@ -181,6 +179,7 @@ void app::drawEvent() {
 
     swapBuffers();
     redraw();
+    timeline.nextFrame();
 }
 
 void app::do_camera(float dt)
@@ -235,14 +234,6 @@ void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repe
 
     if (x != key::MAX)
         keys[x] = pressed;
-}
-
-float app::get_dt()
-{
-    const std::uint64_t t = SDL_GetPerformanceCounter();
-    float dt = (float)((t - time_ticks) / (double)time_freq);
-    time_ticks = t;
-    return dt;
 }
 
 app::~app()
