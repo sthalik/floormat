@@ -34,9 +34,10 @@ private:
 
     static const std::array<index_type, TILE_COUNT> _index_data;
     static const std::array<vertex_positions_data, TILE_COUNT> _position_data;
+
+    GL::Mesh _mesh;
     std::array<quad_data, TILE_COUNT> _vertex_data = {};
 
-    GL::Mesh _floor_mesh;
     GL::Buffer _vertex_buffer{_vertex_data, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw},
                _positions_buffer{_position_data, Magnum::GL::BufferUsage::StaticDraw};

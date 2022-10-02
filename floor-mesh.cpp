@@ -9,7 +9,7 @@ namespace Magnum::Examples {
 
 floor_mesh::floor_mesh()
 {
-    _floor_mesh.setCount((int)(quad_index_count * _index_data.size()))
+    _mesh.setCount((int)(quad_index_count * _index_data.size()))
                .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
                .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
                .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
@@ -35,16 +35,16 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
 
     _vertex_buffer.setData(_vertex_data, Magnum::GL::BufferUsage::DynamicDraw);
 #if 1
-    Magnum::GL::MeshView mesh{_floor_mesh};
+    Magnum::GL::MeshView mesh{ _mesh };
     mesh.setCount(quad_index_count);
     c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
-      mesh.setIndexRange((int)(i*quad_index_count));
+      mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
       x.ground_image.atlas->texture().bind(0);
       shader.draw(mesh);
     });
 #else
-    c[0].ground_image.atlas->texture().bind(0); // TODO
-    shader.draw(_floor_mesh);
+    c[0].ground_image.atlas->texture().bind(0);
+    shader.draw(_mesh);
 #endif
 }
 

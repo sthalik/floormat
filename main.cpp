@@ -134,7 +134,7 @@ app::app(const Arguments& arguments):
                 k++;
             }
 
-        _floor_mesh.setCount((int)indices.size())
+        _mesh.setCount((int)indices.size())
             .addVertexBuffer(GL::Buffer{vertices}, 0,
                              tile_shader::Position{}, tile_shader::TextureCoordinates{})
             .addVertexBuffer(GL::Buffer{c.sampler_array()}, 0, tile_shader::TextureID{})
