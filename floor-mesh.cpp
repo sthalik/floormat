@@ -10,9 +10,9 @@ namespace Magnum::Examples {
 floor_mesh::floor_mesh()
 {
     _mesh.setCount((int)(quad_index_count * _index_data.size()))
-               .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
-               .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
-               .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
+         .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
+         .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
+         .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }
 
 void floor_mesh::set_tile(tile& x, const local_coords pt)
@@ -22,7 +22,6 @@ void floor_mesh::set_tile(tile& x, const local_coords pt)
     constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1];
     const auto idx = pt.to_index();
     auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
-    //auto positions = img.atlas->floor_quad(center, { TILE_SIZE[0], TILE_SIZE[1] });
     for (std::size_t i = 0; i < 4; i++)
         _vertex_data[idx][i] = { texcoords[i] };
 }
