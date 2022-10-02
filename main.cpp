@@ -85,7 +85,6 @@ chunk app::make_test_chunk()
 
 void app::draw_chunk(chunk& c)
 {
-    constexpr auto N = TILE_MAX_DIM;
     _floor_mesh.draw(_shader, c);
 }
 
@@ -99,6 +98,7 @@ app::app(const Arguments& arguments):
               //.setSampleCount(4)
     }
 {
+    reset_camera_offset();
 #if 0
     std::vector<QuadVertex> vertices; vertices.reserve(1024);
     std::vector<UnsignedShort> indices; indices.reserve(1024);
@@ -180,7 +180,7 @@ void app::drawEvent() {
 
 void app::do_camera(float dt)
 {
-    constexpr float pixels_per_second = 100;
+    constexpr float pixels_per_second = 512;
     if (keys[key::camera_up])
         camera_offset += Vector2(0, 1) * dt * pixels_per_second;
     else if (keys[key::camera_down])

@@ -16,9 +16,6 @@ struct chunk;
 struct wall_mesh final
 {
     wall_mesh();
-    wall_mesh(wall_mesh&&) = delete;
-    wall_mesh(const wall_mesh&) = delete;
-
     void draw(tile_shader& shader, chunk& c);
 
 private:
@@ -34,7 +31,6 @@ private:
     };
 
     using quad = std::array<vertex, 4>;
-    using index_type = std::array<UnsignedShort, 6>;
     using vertex_array = std::array<quad, COUNT>;
     using texture_array = std::array<GL::Texture2D*, COUNT>;
 
@@ -47,7 +43,7 @@ private:
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::StaticDraw},
                _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw};
 
-    static const std::array<index_type, COUNT> _index_data;
+    static const std::array<std::array<UnsignedShort, 6>, COUNT> _index_data;
     static decltype(_index_data) make_index_array();
 };
 

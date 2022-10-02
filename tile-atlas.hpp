@@ -19,14 +19,14 @@ struct tile_atlas final
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
     GL::Texture2D& texture() { return tex_; }
     constexpr std::size_t size() const { return (std::size_t)dims_.product(); }
-    constexpr Vector2i tile_size() const { return tile_size_; }
+    constexpr Vector2i tile_size() const { return size_ / dims_; }
 
     tile_atlas() = default;
     tile_atlas(const tile_atlas&) = delete;
     tile_atlas& operator=(const tile_atlas&) = delete;
 private:
     GL::Texture2D tex_;
-    Vector2i size_, dims_, tile_size_;
+    Vector2i size_, dims_;
 };
 
 constexpr std::array<UnsignedShort, 6> tile_atlas::indices(std::size_t N)

@@ -78,8 +78,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
 
 decltype(wall_mesh::_index_data) wall_mesh::make_index_array()
 {
-    constexpr auto quad_index_count = std::tuple_size_v<decltype(tile_atlas::indices(0))>;
-    std::array<std::array<UnsignedShort, quad_index_count>, COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
+    std::array<std::array<UnsignedShort, 6>, COUNT> array = {};
 
     for (std::size_t i = 0; i < std::size(array); i++)
         array[i] = tile_atlas::indices(i);
