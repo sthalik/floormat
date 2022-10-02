@@ -4,27 +4,16 @@
 #include "defs.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
-#include "tile-mesh.hpp"
+#include "floor-mesh.hpp"
 
 #include <bitset>
 
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/PluginManager/Manager.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector.h>
-#include <Magnum/ImageView.h>
-#include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
-#include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Trade/AbstractImporter.h>
-
-#include <glm/glm.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <Magnum/GlmIntegration/Integration.h>
 #include <SDL_timer.h>
 
 namespace Magnum::Examples {
@@ -74,7 +63,7 @@ struct app final : Platform::Application
     shared_tile_atlas wall1 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
     chunk _chunk = make_test_chunk();
-    tile_mesh _tile_mesh;
+    floor_mesh _floor_mesh;
 
     std::uint64_t time_ticks = 0, time_freq = SDL_GetPerformanceFrequency();
     Vector2 camera_offset;
@@ -103,8 +92,8 @@ void app::draw_chunk(chunk& c)
 
     for (std::size_t j = 0, k = 0; j < N; j++)
         for (std::size_t i = 0; i < N; i++, k++)
-            _tile_mesh.draw_floor_quad(_shader, c[k].ground_image,
-                                       {(float)(X*i), (float)(Y*j), 0});
+            _floor_mesh.set_tile(c[k], {i, j});
+    _floor_mesh.draw(_shader);
 }
 
 app::app(const Arguments& arguments):
@@ -145,7 +134,7 @@ app::app(const Arguments& arguments):
                 k++;
             }
 
-        _mesh.setCount((int)indices.size())
+        _floor_mesh.setCount((int)indices.size())
             .addVertexBuffer(GL::Buffer{vertices}, 0,
                              tile_shader::Position{}, tile_shader::TextureCoordinates{})
             .addVertexBuffer(GL::Buffer{c.sampler_array()}, 0, tile_shader::TextureID{})

@@ -10,6 +10,8 @@ namespace Magnum::Examples {
 
 struct tile_atlas;
 constexpr inline Vector3 TILE_SIZE = { 50, 50, 50 };
+constexpr inline std::size_t TILE_MAX_DIM = 16;
+constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
 
 struct tile_image final
 {
@@ -26,6 +28,14 @@ struct tile final
 
     tile_image ground_image, wall_west, wall_north;
     pass_mode passability = pass_shoot_through;
+};
+
+struct local_coords final {
+    std::uint8_t x = 0, y = 0;
+    constexpr local_coords() = default;
+    local_coords(std::size_t x, std::size_t y);
+    constexpr local_coords(std::uint8_t x, std::uint8_t y) : x{x}, y{y} {}
+    constexpr std::size_t to_index() const { return y*TILE_MAX_DIM + x; }
 };
 
 } //namespace Magnum::Examples

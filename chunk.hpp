@@ -5,37 +5,6 @@
 
 namespace Magnum::Examples {
 
-constexpr inline std::size_t TILE_MAX_DIM = 16;
-constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
-
-struct local_coords final {
-    std::uint8_t x = 0, y = 0;
-    constexpr std::size_t to_index() const noexcept;
-};
-
-constexpr std::size_t local_coords::to_index() const noexcept {
-    return y*TILE_MAX_DIM + x;
-}
-
-#if 0
-struct chunk_coords final {
-    std::int16_t x = 0, y = 0;
-    constexpr std::size_t to_index() const noexcept;
-
-    static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
-    static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
-};
-#endif
-
-#if 0
-struct global_coords final {
-    std::uint32_t x = 0, y = 0;
-    constexpr global_coords() noexcept = default;
-    constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
-    constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
-};
-#endif
-
 struct chunk final
 {
     //using index_type = std::common_type_t<decltype(local_coords::x), decltype(local_coords::y)>;
@@ -92,5 +61,24 @@ constexpr void chunk::foreach_tile_(F&& fun)
             fun(const_cast<Self>(*this).tiles[k], k,
                 local_coords{(std::uint8_t)i, (std::uint8_t)j});
 }
+
+#if 0
+struct chunk_coords final {
+    std::int16_t x = 0, y = 0;
+    constexpr std::size_t to_index() const noexcept;
+
+    static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
+    static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
+};
+#endif
+
+#if 0
+struct global_coords final {
+    std::uint32_t x = 0, y = 0;
+    constexpr global_coords() noexcept = default;
+    constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
+    constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
+};
+#endif
 
 } // namespace Magnum::Examples

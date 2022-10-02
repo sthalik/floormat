@@ -31,7 +31,8 @@ tile_shader::tile_shader()
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    setUniform(ScaleUniform, Vector2{640, 480});
+    set_scale({640, 480});
+    set_camera_offset({0, 0});
 }
 
 tile_shader& tile_shader::set_scale(const Vector2& scale)
