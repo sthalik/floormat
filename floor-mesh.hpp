@@ -22,24 +22,18 @@ struct floor_mesh final
     void draw(tile_shader& shader, chunk& c);
 
 private:
-    static constexpr auto quad_index_count = 6;
-
-    struct vertex_data final {
-        Vector2 texcoords;
-    };
+    struct vertex_data final { Vector2 texcoords; };
     using quad_data = std::array<vertex_data, 4>;
-    using quad_positions_data = std::array<Vector3, 4>;
-    using index_type = std::array<UnsignedShort, quad_index_count>;
 
-    static void set_tile(quad_data& data, tile& x);
-
-    static const std::array<index_type, TILE_COUNT> _index_data;
-    static const std::array<quad_positions_data, TILE_COUNT> _position_data;
+    static const std::array<std::array<UnsignedShort, 6>, TILE_COUNT> _index_data;
+    static const std::array<std::array<Vector3, 4>, TILE_COUNT> _position_data;
 
     GL::Mesh _mesh;
-    GL::Buffer _vertex_buffer{{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw},
-               _positions_buffer{_position_data, Magnum::GL::BufferUsage::StaticDraw};
+    GL::Buffer _vertex_buffer{std::array<quad_data, TILE_COUNT>{} /*, Magnum::GL::BufferUsage::DynamicDraw*/},
+               _index_buffer{_index_data},
+               _positions_buffer{_position_data};
+
+    static void set_tile(quad_data& data, tile& x);
 };
 
 } // namespace Magnum::Examples

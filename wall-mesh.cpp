@@ -24,51 +24,56 @@ wall_mesh::wall_mesh()
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
 }
 
-void wall_mesh::add_wall(vertex_array& data, std::size_t& pos_, tile_image& img, const position_array& positions)
+void wall_mesh::add_wall(vertex_array& data, texture_array& textures, std::size_t& pos_,
+                         tile_image& img, const position_array& positions)
 {
     const auto pos = pos_++;
     CORRADE_INTERNAL_ASSERT(pos < data.size());
     auto texcoords = img.atlas->texcoords_for_id(img.variant);
     for (std::size_t i = 0; i < 4; i++)
+    {
         data[pos][i] = { texcoords[i], positions[i] };
+        textures[pos] = &img.atlas->texture();
+    }
 }
 
-void wall_mesh::add_tile(vertex_array& data, std::size_t& pos, tile& x, local_coords pt)
+void wall_mesh::maybe_add_tile(vertex_array& data, texture_array& textures, std::size_t& pos, tile& x, local_coords pt)
 {
     constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
     constexpr Vector3 size = {X, Y, Z};
     Vector3 center{(float)(X*pt.x), (float)(Y*pt.y), 0};
 
     if (auto& wall = x.wall_north; wall.atlas)
-        add_wall(data, pos, wall, tile_atlas::wall_quad_N(center, size));
+        add_wall(data, textures, pos, wall, tile_atlas::wall_quad_N(center, size));
     if (auto& wall = x.wall_west; wall.atlas)
-        add_wall(data, pos, wall, tile_atlas::wall_quad_W(center, size));
+        add_wall(data, textures, pos, wall, tile_atlas::wall_quad_W(center, size));
 }
 
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
+    texture_array textures = {};
+    std::size_t pos = 0;
     {
         vertex_array data;
-        std::size_t pos = 0;
         c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
-          add_tile(data, pos, x, pt);
+          maybe_add_tile(data, textures, pos, x, pt);
         });
-        _vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
+        _vertex_buffer.setSubData(0, Containers::arrayView(data.data(), pos));
     }
+
+    const GL::Texture2D* last_texture = nullptr;
+    Magnum::GL::MeshView mesh{_mesh};
+    mesh.setCount(quad_index_count);
+    for (std::size_t i = 0; i < pos; i++)
     {
-        tile_atlas* last_tile_atlas = nullptr;
-        Magnum::GL::MeshView mesh{_mesh};
-        mesh.setCount(quad_index_count);
-        c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
-          mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*COUNT - 1);
-          if (auto* atlas = x.ground_image.atlas.get(); atlas != last_tile_atlas)
-          {
-              atlas->texture().bind(0);
-              last_tile_atlas = atlas;
-          }
-          shader.draw(mesh);
-        });
+        auto* const tex = textures[i];
+        CORRADE_INTERNAL_ASSERT(tex != nullptr);
+        mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*COUNT - 1);
+        if (tex != last_texture)
+            tex->bind(0);
+        last_texture = tex;
     }
+    shader.draw(mesh);
 }
 
 decltype(wall_mesh::_index_data) wall_mesh::make_index_array()

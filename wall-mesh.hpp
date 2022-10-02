@@ -36,12 +36,15 @@ private:
     using quad = std::array<vertex, 4>;
     using index_type = std::array<UnsignedShort, 6>;
     using vertex_array = std::array<quad, COUNT>;
+    using texture_array = std::array<GL::Texture2D*, COUNT>;
 
-    static void add_tile(vertex_array& data, std::size_t& pos, tile& x, local_coords pt);
-    static void add_wall(vertex_array& data, std::size_t& pos, tile_image& img, const position_array& positions);
+    static void maybe_add_tile(vertex_array& data, texture_array& textures, std::size_t& pos,
+                         tile& x, local_coords pt);
+    static void add_wall(vertex_array& data, texture_array& textures, std::size_t& pos,
+                         tile_image& img, const position_array& positions);
 
     GL::Mesh _mesh;
-    GL::Buffer _vertex_buffer{{}, Magnum::GL::BufferUsage::DynamicDraw},
+    GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::StaticDraw},
                _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw};
 
     static const std::array<index_type, COUNT> _index_data;
