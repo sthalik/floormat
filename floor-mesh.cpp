@@ -3,6 +3,7 @@
 #include "tile-shader.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
+#include <Magnum/GL/MeshView.h>
 
 namespace Magnum::Examples {
 
@@ -24,13 +25,27 @@ void floor_mesh::set_tile(tile& x, const local_coords pt)
     //auto positions = img.atlas->floor_quad(center, { TILE_SIZE[0], TILE_SIZE[1] });
     for (std::size_t i = 0; i < 4; i++)
         _vertex_data[idx][i] = { texcoords[i] };
-    x.ground_image.atlas->texture().bind(0); // TODO
 }
 
-void floor_mesh::draw(tile_shader& shader)
+void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
+    c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
+      set_tile(x, pt);
+    });
+
     _vertex_buffer.setData(_vertex_data, Magnum::GL::BufferUsage::DynamicDraw);
+#if 1
+    Magnum::GL::MeshView mesh{_floor_mesh};
+    mesh.setCount(quad_index_count);
+    c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
+      mesh.setIndexRange((int)(i*quad_index_count));
+      x.ground_image.atlas->texture().bind(0);
+      shader.draw(mesh);
+    });
+#else
+    c[0].ground_image.atlas->texture().bind(0); // TODO
     shader.draw(_floor_mesh);
+#endif
 }
 
 static auto make_index_array()

@@ -93,7 +93,7 @@ void app::draw_chunk(chunk& c)
     for (std::size_t j = 0, k = 0; j < N; j++)
         for (std::size_t i = 0; i < N; i++, k++)
             _floor_mesh.set_tile(c[k], {i, j});
-    _floor_mesh.draw(_shader);
+    _floor_mesh.draw(_shader, c);
 }
 
 app::app(const Arguments& arguments):

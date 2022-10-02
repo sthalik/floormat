@@ -12,7 +12,7 @@
 namespace Magnum::Examples {
 
 struct tile_shader;
-struct tile_image;
+struct chunk;
 
 struct floor_mesh final
 {
@@ -21,7 +21,7 @@ struct floor_mesh final
     floor_mesh(const floor_mesh&) = delete;
 
     void set_tile(tile& x, local_coords pt);
-    void draw(tile_shader& shader);
+    void draw(tile_shader& shader, chunk& c);
 
 private:
     struct vertex_data final {
