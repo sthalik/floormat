@@ -32,7 +32,7 @@ struct enum_bitset : std::bitset<(std::size_t)enum_type::MAX> {
 struct app final : Platform::Application
 {
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
-    using shared_tile_atlas = std::shared_ptr<tile_atlas>;
+    using tile_atlas_ = std::shared_ptr<tile_atlas>;
 
     explicit app(const Arguments& arguments);
     virtual ~app();
@@ -44,6 +44,7 @@ struct app final : Platform::Application
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
+    void update_window_scale();
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
@@ -53,14 +54,14 @@ struct app final : Platform::Application
     chunk make_test_chunk();
 
     tile_shader _shader;
-    shared_tile_atlas floor1 =
+    tile_atlas_ floor1 =
         //loader.tile_atlas("../share/game/images/tiles.tga", {8,4});
         //loader.tile_atlas("../share/game/images/tiles2.tga", {8,5});
         //loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
         loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
-    shared_tile_atlas floor2 =
+    tile_atlas_ floor2 =
         loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    shared_tile_atlas wall1 =
+    tile_atlas_ wall1 =
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
@@ -76,11 +77,16 @@ chunk app::make_test_chunk()
 {
     chunk c;
     c.foreach_tile([&, this](tile& x, std::size_t k, local_coords) {
-      //const auto& atlas = (pt.y*TILE_MAX_DIM+pt.x+1) % 2 == 0 ? floor1 : floor2;
       const auto& atlas = floor1;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
     return c;
+}
+
+void app::update_window_scale()
+{
+    auto sz = windowSize();
+    _shader.set_scale({ (float)sz[0], (float)sz[1] });
 }
 
 void app::draw_chunk(chunk& c)
@@ -150,6 +156,7 @@ void app::drawEvent() {
     //GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
     //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
+    update_window_scale();
     {
         float dt = timeline.previousFrameDuration();
         update(dt);
