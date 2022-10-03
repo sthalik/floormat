@@ -11,12 +11,13 @@
 #include <Magnum/Trade/AbstractImageConverter.h>
 #include <unordered_map>
 #include <utility>
+#include <optional>
 
 namespace Magnum::Examples {
 
 struct loader_impl final : loader_
 {
-    const Utility::Resource shader_res{"game/shaders"};
+    std::optional<Utility::Resource> shader_res;
     PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> tga_importer =
         importer_plugins.loadAndInstantiate("AnyImageImporter");
@@ -37,7 +38,9 @@ struct loader_impl final : loader_
 
 std::string loader_impl::shader(const Containers::StringView& filename)
 {
-    auto ret = shader_res.getString(filename);
+    if (!shader_res)
+        shader_res = std::make_optional<Utility::Resource>("game/shaders");
+    auto ret = shader_res->getString(filename);
     if (ret.isEmpty())
         ABORT("can't find shader resource '%s'", filename.cbegin());
     return ret;
@@ -76,8 +79,8 @@ loader_impl::~loader_impl() = default;
 
 static loader_& make_default_loader()
 {
-    static loader_impl loader{};
-    return loader;
+    static loader_impl loader_singleton{};
+    return loader_singleton;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)

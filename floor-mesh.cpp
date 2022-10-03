@@ -67,7 +67,7 @@ static auto make_floor_positions_array()
     return array;
 }
 
-const auto floor_mesh::_index_data = make_index_array();
-const auto floor_mesh::_position_data = make_floor_positions_array();
+const decltype(floor_mesh::_index_data) floor_mesh::_index_data = make_index_array();
+const decltype(floor_mesh::_position_data) floor_mesh::_position_data = make_floor_positions_array();
 
 } // namespace Magnum::Examples

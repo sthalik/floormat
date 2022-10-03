@@ -38,7 +38,7 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD 20)
 
 set(_userconfig "userconfig-${CMAKE_CXX_COMPILER_ID}.cmake")
 if(EXISTS "${CMAKE_SOURCE_DIR}/${_userconfig}")
-    include("${CMAKE_SOURCE_DIR}/${_userconfig}")
+    include("${CMAKE_SOURCE_DIR}/${_userconfig}" NO_POLICY_SCOPE)
 else()
     message(STATUS "user config '${_userconfig}' not found")
 endif()

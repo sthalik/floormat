@@ -75,6 +75,6 @@ decltype(wall_mesh::_index_data) wall_mesh::make_index_array()
     return array;
 }
 
-const auto wall_mesh::_index_data = wall_mesh::make_index_array();
+const decltype(wall_mesh::_index_data) wall_mesh::_index_data = wall_mesh::make_index_array();
 
 } // namespace Magnum::Examples
