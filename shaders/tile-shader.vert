@@ -3,8 +3,8 @@ precision highp float;
 layout (location = 0) uniform vec2 scale;
 layout (location = 1) uniform vec2 offset;
 
-in vec4 position;
-in vec2 texcoords;
+layout (location = 0) in vec4 position;
+layout (location = 1) in vec2 texcoords;
 noperspective out vec2 frag_texcoords;
 
 void main() {
