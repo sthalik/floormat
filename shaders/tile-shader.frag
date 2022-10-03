@@ -2,7 +2,7 @@ precision highp float;
 
 uniform sampler2D sampler;
 
-in vec2 frag_texcoords;
+noperspective in vec2 frag_texcoords;
 out vec4 color;
 
 void main() {

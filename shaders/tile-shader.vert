@@ -5,7 +5,7 @@ layout (location = 1) uniform vec2 offset;
 
 in vec4 position;
 in vec2 texcoords;
-out vec2 frag_texcoords;
+noperspective out vec2 frag_texcoords;
 
 void main() {
     frag_texcoords = texcoords;
