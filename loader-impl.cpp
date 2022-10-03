@@ -14,8 +14,6 @@
 
 namespace Magnum::Examples {
 
-using atlas_ptr = std::shared_ptr<tile_atlas>;
-
 struct loader_impl final : loader_
 {
     const Utility::Resource shader_res{"game/shaders"};
@@ -27,11 +25,11 @@ struct loader_impl final : loader_
     Containers::Pointer<Trade::AbstractImageConverter> tga_converter =
         image_converter_plugins.loadAndInstantiate("AnyImageConverter");
 
-    std::unordered_map<std::string, atlas_ptr> atlas_map;
+    std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> atlas_map;
 
     std::string shader(const Containers::StringView& filename) override;
     Trade::ImageData2D tile_texture(const Containers::StringView& filename) override;
-    atlas_ptr tile_atlas(const Containers::StringView& filename, Vector2i size) override;
+    std::shared_ptr<struct tile_atlas> tile_atlas(const Containers::StringView& filename, Vector2i size) override;
 
     explicit loader_impl();
     ~loader_impl() override;
@@ -45,7 +43,7 @@ std::string loader_impl::shader(const Containers::StringView& filename)
     return ret;
 }
 
-atlas_ptr loader_impl::tile_atlas(const Containers::StringView& name, Vector2i size)
+std::shared_ptr<tile_atlas> loader_impl::tile_atlas(const Containers::StringView& name, Vector2i size)
 {
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())

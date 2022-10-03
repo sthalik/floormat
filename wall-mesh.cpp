@@ -6,16 +6,6 @@
 
 namespace Magnum::Examples {
 
-#if 0
-static auto make_wall_positions_array()
-{
-    constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
-    Vector3 center {(float)(X*i), (float)(Y*j), 0};
-    array[k] = { tile_atlas::wall_quad_N(center, {X, Y, Z}) };
-    array[k+1] = { tile_atlas::wall_quad_W(center, {X, Y, Z}) };
-}
-#endif
-
 wall_mesh::wall_mesh()
 {
     _mesh.setCount((int)(_index_data.size() * _index_data[0].size()))
