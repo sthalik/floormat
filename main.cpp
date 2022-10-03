@@ -155,6 +155,7 @@ void app::drawEvent() {
         update(dt);
     }
 
+#if 0
     {
         //auto ratio = projection_size_ratio();
         auto sz = windowSize();
@@ -165,6 +166,7 @@ void app::drawEvent() {
             Debug{} << _shader.project({16*50, 0, 0});
         }
     }
+#endif
 
     //auto floor1_sampler = _shader.bind_sampler(floor1);
     //auto wall_sampler = _shader.bind_sampler(wall1);

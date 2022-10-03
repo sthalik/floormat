@@ -1,12 +1,10 @@
 precision highp float;
 
-uniform sampler2D samplers[32];
+uniform sampler2D sampler;
 
-in vec2 out_texcoords;
-flat in uint frag_sampler_id;
-out vec4 fragmentColor;
+in vec2 frag_texcoords;
+out vec4 color;
 
 void main() {
-    fragmentColor.rgb = texture(samplers[frag_sampler_id], out_texcoords).rgb;
-    fragmentColor.a = 1;
+    color = vec4(texture(sampler, frag_texcoords).rgb, 1);
 }
