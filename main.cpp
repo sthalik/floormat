@@ -83,9 +83,11 @@ chunk app::make_test_chunk()
       const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? floor2 : floor1;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
-    c[{N/2 + 1, N/2}].wall_north = { wall1, 0 };
-    c[{N/2, N/2}].wall_north = { wall1, 0 };
-    c[{N/2, N/2}].wall_west = { wall1, 0 };
+    constexpr auto C = N/2;
+    c[{C, C}].wall_north = { wall1, 0 };
+    c[{C, C}].wall_west = { floor1, 0 };
+    c[{C, C+1}].wall_north = { wall1, 0 };
+    c[{C+1, C}].wall_west = { floor1, 0 };
     return c;
 }
 

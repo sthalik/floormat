@@ -11,6 +11,6 @@ void main() {
     frag_texcoords = texcoords;
 
     float cx = 2/scale.x, cy = 2/scale.y;
-    float x = -position.x, y = -position.y, z = position.z;
+    float x = -position.y, y = -position.x, z = position.z;
     gl_Position = vec4((x-y+offset.x)*cx, (x+y+z*2)*cx*0.75-offset.y*cx, 0, 1);
 }
