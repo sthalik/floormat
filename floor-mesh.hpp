@@ -1,6 +1,5 @@
 #pragma once
 #include "tile.hpp"
-#include "tile-atlas.hpp"
 #include <array>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Magnum.h>

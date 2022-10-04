@@ -84,8 +84,8 @@ chunk app::make_test_chunk()
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
     c[{N/2 + 1, N/2}].wall_north = { wall1, 0 };
-    c[{N/2 + 1, N/2 + 1}].wall_north = { wall1, 0 };
     c[{N/2, N/2}].wall_north = { wall1, 0 };
+    c[{N/2, N/2}].wall_west = { wall1, 0 };
     return c;
 }
 
@@ -158,10 +158,12 @@ app::app(const Arguments& arguments):
 void app::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
 
-    //GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
-    //GL::Renderer::setDepthMask(true);
-    //GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
-    //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+#if 1
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
+    GL::Renderer::setDepthMask(true);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+#endif
 
     update_window_scale();
     {
@@ -214,7 +216,8 @@ void app::do_camera(float dt)
 
 void app::reset_camera_offset()
 {
-    camera_offset = _shader.project({TILE_MAX_DIM*TILE_SIZE[0]/2.f, TILE_MAX_DIM*TILE_SIZE[1]/2.f, 0});
+    //camera_offset = _shader.project({TILE_MAX_DIM*TILE_SIZE[0]/2.f, TILE_MAX_DIM*TILE_SIZE[1]/2.f, 0});
+    camera_offset = {};
 }
 
 void app::update(float dt)

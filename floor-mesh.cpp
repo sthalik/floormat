@@ -2,6 +2,7 @@
 #include "shaders/tile-shader.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
+#include "tile-atlas.hpp"
 #include <Magnum/GL/MeshView.h>
 
 namespace Magnum::Examples {
