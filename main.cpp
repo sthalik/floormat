@@ -79,8 +79,8 @@ chunk app::make_test_chunk()
 {
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
-    c.foreach_tile([&, this](tile& x, std::size_t k, local_coords) {
-      const auto& atlas = floor1;
+    c.foreach_tile([&, this](tile& x, std::size_t k, local_coords pt) {
+      const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? floor2 : floor1;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
     c[{N/2 + 1, N/2}].wall_north = { wall1, 0 };

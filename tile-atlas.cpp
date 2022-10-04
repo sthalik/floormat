@@ -50,17 +50,6 @@ vertex_array_type tile_atlas::floor_quad(const Vector3 center, const Vector2 siz
     }};
 }
 
-vertex_array_type tile_atlas::wall_quad_E(const Vector3 center, const Vector3 size)
-{
-    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
-    return {{
-        { x + center[0], y + center[1],     center[2] },
-        { x + center[0], y + center[1], z + center[2] },
-        {-x + center[0], y + center[1],     center[2] },
-        {-x + center[0], y + center[1], z + center[2] },
-    }};
-}
-
 vertex_array_type tile_atlas::wall_quad_N(const Vector3 center, const Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
@@ -80,17 +69,6 @@ vertex_array_type tile_atlas::wall_quad_W(const Vector3 center, const Vector3 si
         { x + center[0], -y + center[1], z + center[2] },
         {-x + center[0], -y + center[1],     center[2] },
         {-x + center[0], -y + center[1], z + center[2] },
-    }};
-}
-
-vertex_array_type tile_atlas::wall_quad_S(const Vector3 center, const Vector3 size)
-{
-    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
-    return {{
-        { x + center[0], -y + center[1],     center[2] },
-        { x + center[0], -y + center[1], z + center[2] },
-        { x + center[0],  y + center[1],     center[2] },
-        { x + center[0],  y + center[1], z + center[2] },
     }};
 }
 
