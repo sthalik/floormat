@@ -4,6 +4,7 @@
 #include "tile.hpp"
 #include "chunk.hpp"
 #include "floor-mesh.hpp"
+#include "wall-mesh.hpp"
 #include "compat/defs.hpp"
 
 #include <bitset>
@@ -65,6 +66,7 @@ struct app final : Platform::Application
         loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
+    wall_mesh _wall_mesh;
 
     Vector2 camera_offset;
     enum_bitset<key> keys;
@@ -75,11 +77,15 @@ using namespace Math::Literals;
 
 chunk app::make_test_chunk()
 {
+    constexpr auto N = TILE_MAX_DIM;
     chunk c;
     c.foreach_tile([&, this](tile& x, std::size_t k, local_coords) {
       const auto& atlas = floor1;
       x.ground_image = { atlas, (std::uint8_t)(k % atlas->size()) };
     });
+    c[{N/2 + 1, N/2}].wall_north = { wall1, 0 };
+    c[{N/2 + 1, N/2 + 1}].wall_north = { wall1, 0 };
+    c[{N/2, N/2}].wall_north = { wall1, 0 };
     return c;
 }
 
@@ -92,6 +98,7 @@ void app::update_window_scale()
 void app::draw_chunk(chunk& c)
 {
     _floor_mesh.draw(_shader, c);
+    _wall_mesh.draw(_shader, c);
 }
 
 app::app(const Arguments& arguments):

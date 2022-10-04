@@ -27,7 +27,7 @@ private:
 
     struct vertex final {
         typename texcoords_array::value_type texcoords;
-        typename position_array::value_type  position;
+        typename position_array::value_type position;
     };
 
     using quad = std::array<vertex, 4>;
@@ -40,7 +40,7 @@ private:
                          tile_image& img, const position_array& positions);
 
     GL::Mesh _mesh;
-    GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::StaticDraw},
+    GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw};
 
     static const std::array<std::array<UnsignedShort, 6>, COUNT> _index_data;

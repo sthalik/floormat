@@ -29,7 +29,7 @@ private:
     static const std::array<std::array<Vector3, 4>, TILE_COUNT> _position_data;
 
     GL::Mesh _mesh;
-    GL::Buffer _vertex_buffer{std::array<quad_data, TILE_COUNT>{} /*, Magnum::GL::BufferUsage::DynamicDraw*/},
+    GL::Buffer _vertex_buffer{std::array<quad_data, TILE_COUNT>{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{_index_data},
                _positions_buffer{_position_data};
 

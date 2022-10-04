@@ -48,22 +48,42 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
           maybe_add_tile(data, textures, pos, x, pt);
         });
-        _vertex_buffer.setSubData(0, Containers::arrayView(data.data(), pos));
+        //_vertex_buffer.setSubData(0, Containers::arrayView(data.data(), pos));
+        _vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
     }
 
     const GL::Texture2D* last_texture = nullptr;
+#if 0
+    if (pos > 0)
+    {
+        Magnum::GL::MeshView mesh{_mesh};
+        mesh.setCount((int)(pos * quad_index_count));
+        mesh.setIndexRange(0);
+        textures[0]->bind(0);
+        shader.draw(mesh);
+    }
+#elif 0
+    if (pos > 0)
+    {
+        textures[0]->bind(0);
+        shader.draw(_mesh);
+    }
+#else
     Magnum::GL::MeshView mesh{_mesh};
-    mesh.setCount(quad_index_count);
     for (std::size_t i = 0; i < pos; i++)
     {
         auto* const tex = textures[i];
         CORRADE_INTERNAL_ASSERT(tex != nullptr);
+        mesh.setCount(quad_index_count);
         mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*COUNT - 1);
+        //mesh.setIndexRange((int)(i*quad_index_count));
+        //Debug{} << "draw " << "i:" << i << "count:" << quad_index_count << "range:" << (i*quad_index_count);
         if (tex != last_texture)
             tex->bind(0);
         last_texture = tex;
+        shader.draw(mesh);
     }
-    shader.draw(mesh);
+#endif
 }
 
 decltype(wall_mesh::_index_data) wall_mesh::make_index_array()

@@ -50,7 +50,7 @@ vertex_array_type tile_atlas::floor_quad(Vector3 center, Vector2 size)
     }};
 }
 
-vertex_array_type tile_atlas::wall_quad_W(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_N(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
@@ -83,7 +83,7 @@ vertex_array_type tile_atlas::wall_quad_E(Vector3 center, Vector3 size)
     }};
 }
 
-vertex_array_type tile_atlas::wall_quad_N(Vector3 center, Vector3 size)
+vertex_array_type tile_atlas::wall_quad_W(Vector3 center, Vector3 size)
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
