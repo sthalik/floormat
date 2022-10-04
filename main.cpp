@@ -121,7 +121,7 @@ app::app(const Arguments& arguments):
     {
         constexpr auto N = TILE_MAX_DIM;
         Vector3 center{N/2.f*TILE_SIZE[0], N/2.f*TILE_SIZE[1], 0};
-        tile_atlas::vertex_array_type walls[] = {
+        tile_atlas::quad walls[] = {
             wall1->wall_quad_W(center, Vector3(X, Y, Z)),
             wall1->wall_quad_N(center, Vector3(X, Y, Z)),
             wall1->wall_quad_E(center, Vector3(X, Y, Z)),
