@@ -30,8 +30,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     c.foreach_tile([&](tile& x, std::size_t idx, local_coords) {
       set_tile(data[idx], x);
     });
-    //_vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
-    _vertex_buffer.setSubData(0, Containers::arrayView(data.data(), data.size()));
+    _vertex_buffer.setSubData(0, data);
     Magnum::GL::MeshView mesh{_mesh};
     mesh.setCount(quad_index_count);
     const tile_atlas* last_tile_atlas = nullptr;
