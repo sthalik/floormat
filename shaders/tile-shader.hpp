@@ -31,7 +31,7 @@ private:
 
 constexpr Vector2 tile_shader::project(const Vector3 pt)
 {
-    float x = pt[1], y = pt[0], z = pt[2];
+    float x = -pt[1], y = -pt[0], z = pt[2];
     return { x-y, (x+y+z*2)*.75f };
 }
 
