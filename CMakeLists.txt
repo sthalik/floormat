@@ -59,7 +59,6 @@ if(NOT BOOTSTRAP_DEPENDS)
 
     add_subdirectory(anim-crop-tool)
     add_subdirectory(anim)
-    add_subdirectory(tile)
 
     corrade_add_resource(game_RESOURCES resources.conf)
     file(GLOB sources "*.cpp" "shaders/*.cpp" CONFIGURE_ARGS)
