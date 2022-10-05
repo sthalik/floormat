@@ -1,9 +1,10 @@
 #include "atlas.hpp"
-#include "anim/serialize.hpp"
+#include "serialize/anim.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/assert.hpp"
 
+#include <cerrno>
 #include <cmath>
 #include <cstring>
 
@@ -25,6 +26,8 @@ using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
 
 using std::filesystem::path;
+
+using namespace Magnum::Examples::Serialize;
 
 struct options
 {
@@ -65,7 +68,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         cv::Mat mat = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
         if (mat.empty() || mat.type() != CV_8UC4)
         {
-            Error{} << "failed to load" << filename << "as RGBA32 image";
+            Error{} << "error: failed to load" << filename << "as RGBA32 image";
             return cv::Mat4b{};
         }
         return cv::Mat4b(std::move(mat));
@@ -78,7 +81,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     if (!bounds_ok)
     {
-        Error{} << "no valid image data in" << filename;
+        Error{} << "error: no valid image data in" << filename;
         return false;
     }
 
@@ -101,7 +104,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
-        Error{} << "refusing to upscale image" << filename;
+        Error{} << "error: refusing to upscale image" << filename;
         return false;
     }
 
@@ -125,7 +128,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
 
     if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
-        Error{Error::Flag::NoSpace} << "can't open directory " << input_dir << ": " << ec.message();
+        Error{} << "error: can't open directory" << input_dir << ":" << ec.message();
         return false;
     }
 
@@ -148,9 +151,8 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
         opts.nframes = max-1;
     else if (opts.nframes != max-1)
     {
-        Error{Error::Flag::NoSpace} << "wrong frame count for direction '"
-                                    << group.name << "' -- " << max-1
-                                    << " should be " << opts.nframes;
+        Error{} << "error: wrong frame count for direction" << group.name << ":"
+                << max-1 << "should be" << opts.nframes;
         return false;
     }
 
@@ -203,6 +205,7 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
         opts.width = w;
     if (int h = args.value<int>("height"); h != 0)
         opts.height = h;
+    opts.output_dir = args.value<std::string>("output");
     opts.input_file = args.value<std::string>("input");
     opts.input_dir = opts.input_file.parent_path();
 
@@ -248,7 +251,7 @@ int main(int argc, char** argv)
 
     if (!check_atlas_name(anim_info.name))
     {
-        Error{Error::Flag::NoSpace} << "atlas name '" << anim_info.name << "' contains invalid characters";
+        Error{} << "error: atlas name" << anim_info.name << "contains invalid characters";
         return EX_DATAERR;
     }
 
@@ -260,7 +263,7 @@ int main(int argc, char** argv)
 
     if (!(opts.width ^ opts.height) || opts.width < 0 || opts.height < 0)
     {
-        Error{} << "exactly one of --width, --height must be specified";
+        Error{} << "error: exactly one of --width, --height must be specified";
         return usage(args);
     }
 
@@ -270,8 +273,18 @@ int main(int argc, char** argv)
         if (!load_directory(group, opts, atlas))
             return EX_DATAERR;
 
-    if (!atlas.dump(opts.output_dir/(anim_info.name + ".png")))
+    if (std::error_code ec{}; !std::filesystem::exists(opts.output_dir/".", ec) &&
+                              !std::filesystem::create_directory(opts.output_dir, ec)) {
+        Error{} << "error: failed to create output directory"
+                << opts.output_dir << ":" << ec.message();
         return EX_CANTCREAT;
+    }
+
+    if (auto pathname = opts.output_dir/(anim_info.name + ".png"); !atlas.dump(pathname)) {
+        Error{} << "error: failed writing image to" << pathname << ":"
+                << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
+        return EX_CANTCREAT;
+    }
     if (!anim_info.to_json(opts.output_dir/(anim_info.name + ".json")))
         return EX_CANTCREAT;
 

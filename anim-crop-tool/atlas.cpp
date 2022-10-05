@@ -1,9 +1,11 @@
 #include "atlas.hpp"
-#include "anim/serialize.hpp"
+#include "serialize/anim.hpp"
 #include "compat/assert.hpp"
 
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
+
+using namespace Magnum::Examples::Serialize;
 
 void anim_atlas_row::add_entry(const anim_atlas_entry& x)
 {

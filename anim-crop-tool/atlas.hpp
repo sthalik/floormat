@@ -5,9 +5,11 @@
 #include <Magnum/Math/Vector2.h>
 #include <opencv2/core/mat.hpp>
 
-struct anim_frame;
-
 namespace std::filesystem { class path; }
+
+namespace Magnum::Examples::Serialize {
+
+struct anim_frame;
 
 struct anim_atlas_entry
 {
@@ -35,3 +37,5 @@ public:
     Magnum::Vector2i size() const noexcept;
     [[nodiscard]] bool dump(const std::filesystem::path& filename) const;
 };
+
+} // namespace Magnum::Examples::Serialize

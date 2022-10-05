@@ -1,13 +1,16 @@
 #pragma once
 
-#include <string>
+#include <tuple>
 #include <array>
 #include <vector>
+#include <string>
 
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 
 namespace std::filesystem { class path; }
+
+namespace Magnum::Examples::Serialize {
 
 struct anim_frame final
 {
@@ -39,3 +42,6 @@ struct anim final
     int width = 0, height = 0;
     int actionframe = -1, fps = default_fps;
 };
+
+} // namespace Magnum::Examples::Serialize
+

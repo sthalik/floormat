@@ -60,10 +60,10 @@ if(NOT BOOTSTRAP_DEPENDS)
     include_directories(.)
 
     add_subdirectory(anim-crop-tool)
-    add_subdirectory(anim)
+    add_subdirectory(serialize)
 
     corrade_add_resource(game_RESOURCES resources.conf)
-    file(GLOB sources "*.cpp" "shaders/*.cpp" CONFIGURE_ARGS)
+    file(GLOB sources "*.cpp" "shaders/*.cpp" "serialize/*.cpp" CONFIGURE_ARGS)
 
     add_executable(${PROJECT_NAME} WIN32 "${sources}" "${game_RESOURCES}")
     target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -72,7 +72,9 @@ if(NOT BOOTSTRAP_DEPENDS)
                           Magnum::Magnum
                           Magnum::Shaders
                           Magnum::Trade
-                          MagnumIntegration::Glm)
+                          MagnumIntegration::Glm
+                          nlohmann_json::nlohmann_json
+                          )
     target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
     target_include_directories(${PROJECT_NAME} PRIVATE magnum-integration/src)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

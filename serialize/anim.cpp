@@ -1,11 +1,13 @@
-#include "serialize.hpp"
+#include "serialize/vector.hpp"
+#include "serialize/helper.hpp"
+#include "serialize/anim.hpp"
 
+#include <tuple>
+#include <filesystem>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 
-#include "json-magnum.hpp"
-
-using Corrade::Utility::Error;
+namespace Magnum::Examples::Serialize {
 
 #if defined __clang__ || defined __CLION_IDE__
 #   pragma clang diagnostic push
@@ -30,3 +32,5 @@ bool anim::to_json(const std::filesystem::path& pathname) const noexcept
 {
     return json_helper<anim>::to_json(*this, pathname);
 }
+
+} // namespace Magnum::Examples::Serialize
