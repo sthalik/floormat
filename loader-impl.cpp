@@ -52,7 +52,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(const Containers::StringView
     if (it != atlas_map.end())
         return it->second;
     auto image = tile_texture(name);
-    auto atlas = std::make_shared<struct tile_atlas>(image, size);
+    auto atlas = std::make_shared<struct tile_atlas>(name, image, size);
     atlas_map[name] = atlas;
     return atlas;
 }

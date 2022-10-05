@@ -4,7 +4,8 @@
 
 namespace Magnum::Examples {
 
-tile_atlas::tile_atlas(const ImageView2D& image, Vector2i dims) :
+tile_atlas::tile_atlas(const Containers::StringView& name, const ImageView2D& image, Vector2i dims) :
+    name_{name},
     size_{image.size()},
     dims_{dims}
 {

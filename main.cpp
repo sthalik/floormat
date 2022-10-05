@@ -153,13 +153,14 @@ app::app(const Arguments& arguments):
 }
 
 void app::drawEvent() {
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
-
-#if 1
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Depth);
+#if 0
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
     GL::Renderer::setDepthMask(true);
     GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+#else
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Never);
 #endif
 
     update_window_scale();
@@ -180,9 +181,6 @@ void app::drawEvent() {
         }
     }
 #endif
-
-    //auto floor1_sampler = _shader.bind_sampler(floor1);
-    //auto wall_sampler = _shader.bind_sampler(wall1);
 
 #if 1
     draw_chunk(_chunk);

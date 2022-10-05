@@ -3,6 +3,7 @@
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/Texture.h>
 #include <array>
+#include <string>
 
 namespace Magnum::Examples {
 
@@ -10,7 +11,7 @@ struct tile_atlas final
 {
     using quad = std::array<Vector3, 4>;
 
-    tile_atlas(const ImageView2D& img, Vector2i dims);
+    tile_atlas(const Containers::StringView& name, const ImageView2D& img, Vector2i dims);
     std::array<Vector2, 4> texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
     static constexpr quad wall_quad_N(Vector3 center, Vector3 size);
@@ -19,9 +20,11 @@ struct tile_atlas final
     std::size_t size() const { return (std::size_t)dims_.product(); }
     Vector2i tile_size() const { return size_ / dims_; }
     GL::Texture2D& texture() { return tex_; }
+    std::string name() const { return name_; }
 
 private:
     GL::Texture2D tex_;
+    std::string name_;
     Vector2i size_, dims_;
 };
 
