@@ -109,46 +109,6 @@ app::app(const Arguments& arguments):
     }
 {
     reset_camera_offset();
-#if 0
-    std::vector<QuadVertex> vertices; vertices.reserve(1024);
-    std::vector<UnsignedShort> indices; indices.reserve(1024);
-
-    //float ratio = projection_size_ratio();
-    const float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
-
-    reset_camera_offset();
-
-    {
-        constexpr auto N = TILE_MAX_DIM;
-        Vector3 center{N/2.f*TILE_SIZE[0], N/2.f*TILE_SIZE[1], 0};
-        tile_atlas::quad walls[] = {
-            wall1->wall_quad_W(center, Vector3(X, Y, Z)),
-            wall1->wall_quad_N(center, Vector3(X, Y, Z)),
-            wall1->wall_quad_E(center, Vector3(X, Y, Z)),
-            wall1->wall_quad_S(center, Vector3(X, Y, Z)),
-        };
-
-        int k = 0;
-        for (const auto& positions : walls)
-        {
-            auto texcoords = wall1->texcoords_for_id(k % wall1->size());
-            auto indices_ = wall1->indices(k);
-            for (unsigned x = 0; x < 4; x++)
-                vertices.push_back({ positions[x], texcoords[x] });
-            for (auto x : indices_)
-                indices.push_back(x);
-            k++;
-        }
-
-        //auto positions = anim_atlas->floor_quad({(float)(sz[0]*0), (float)(sz[1]*0), sz[1]*2}, sz);
-    }
-
-    _mesh2.setCount((int)indices.size())
-        .addVertexBuffer(GL::Buffer{vertices}, 0,
-                         tile_shader::Position{}, tile_shader::TextureCoordinates{})
-        .setIndexBuffer(GL::Buffer{indices}, 0, GL::MeshIndexType::UnsignedShort);
-#endif
-
     timeline.start();
 }
 
@@ -169,22 +129,7 @@ void app::drawEvent() {
         update(dt);
     }
 
-#if 0
-    {
-        //auto ratio = projection_size_ratio();
-        auto sz = windowSize();
-        _shader.set_scale({ (float)sz[0], (float)sz[1] });
-        static bool once = true;
-        if (once) {
-            once = false;
-            Debug{} << _shader.project({16*50, 0, 0});
-        }
-    }
-#endif
-
-#if 1
     draw_chunk(_chunk);
-#endif
 
     swapBuffers();
     redraw();

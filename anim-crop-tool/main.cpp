@@ -1,11 +1,9 @@
-#undef NDEBUG
-
 #include "atlas.hpp"
 #include "anim/serialize.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
+#include "compat/assert.hpp"
 
-#include <cassert>
 #include <cmath>
 #include <cstring>
 
@@ -61,7 +59,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename) noexcept
+static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename)
 {
     auto mat = progn(
         cv::Mat mat = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
@@ -88,12 +86,12 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     if (opts.scale == 0.0)
     {
-        assert(opts.width || opts.height);
+        ASSERT(opts.width || opts.height);
         if (opts.width)
             opts.scale = (double)opts.width / size.width;
         else
             opts.scale = (double)opts.height / size.height;
-        assert(opts.scale > 1e-6);
+        ASSERT(opts.scale > 1e-6);
     }
 
     const cv::Size dest_size = {
@@ -121,7 +119,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas) noexcept
+static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
 {
     const auto input_dir = opts.input_dir/group.name;
 

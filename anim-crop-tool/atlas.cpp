@@ -1,31 +1,29 @@
-#undef NDEBUG
-
 #include "atlas.hpp"
 #include "anim/serialize.hpp"
+#include "compat/assert.hpp"
 
-#include <cassert>
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
 
-void anim_atlas_row::add_entry(const anim_atlas_entry& x) noexcept
+void anim_atlas_row::add_entry(const anim_atlas_entry& x)
 {
     auto& frame = *x.frame;
     const auto& mat = x.mat;
     frame.offset = {xpos, ypos};
     frame.size = {mat.cols, mat.rows};
 
-    assert(mat.rows > 0 && mat.cols > 0);
+    ASSERT(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
     xpos += mat.cols;
     max_height = std::max(mat.rows, max_height);
 }
 
-void anim_atlas::advance_row() noexcept
+void anim_atlas::advance_row()
 {
     auto& row = rows.back();
     if (row.data.empty())
         return;
-    assert(row.xpos); assert(row.max_height);
+    ASSERT(row.xpos > 0); ASSERT(row.max_height > 0);
     ypos += row.max_height;
     maxx = std::max(row.xpos, maxx);
     rows.push_back({{}, 0, 0, ypos});
@@ -45,7 +43,7 @@ Magnum::Vector2i anim_atlas::size() const noexcept
     return {std::max(maxx, row.xpos), ypos + row.max_height};
 }
 
-bool anim_atlas::dump(const std::filesystem::path& filename) const noexcept
+bool anim_atlas::dump(const std::filesystem::path& filename) const
 {
     auto sz = size();
     cv::Mat4b mat(sz[1], sz[0]);
