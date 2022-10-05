@@ -105,7 +105,7 @@ app::app(const Arguments& arguments):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
-              //.setSampleCount(4)
+              //.setSampleCount(16)
     }
 {
     reset_camera_offset();

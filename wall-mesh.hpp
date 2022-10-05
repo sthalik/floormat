@@ -20,7 +20,6 @@ struct wall_mesh final
 
 private:
     static constexpr auto COUNT = TILE_MAX_DIM*2 * TILE_MAX_DIM*2;
-    static constexpr auto quad_index_count = 6;
 
     using texcoords_array = std::array<Vector2, 4>;
     using position_array = std::array<Vector3, 4>;
@@ -41,10 +40,8 @@ private:
 
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{_index_data, Magnum::GL::BufferUsage::StaticDraw};
-
-    static const std::array<std::array<UnsignedShort, 6>, COUNT> _index_data;
-    static decltype(_index_data) make_index_array();
+               _index_buffer{make_index_array(), Magnum::GL::BufferUsage::StaticDraw};
+    static std::array<std::array<UnsignedShort, 6>, COUNT> make_index_array();
 };
 
 } // namespace Magnum::Examples

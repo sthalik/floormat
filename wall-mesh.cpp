@@ -6,9 +6,11 @@
 
 namespace Magnum::Examples {
 
+constexpr auto quad_index_count = 6;
+
 wall_mesh::wall_mesh()
 {
-    _mesh.setCount((int)(_index_data.size() * _index_data[0].size()))
+    _mesh.setCount((int)(quad_index_count * COUNT))
          .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{}, tile_shader::Position{})
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
@@ -49,7 +51,6 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
           maybe_add_tile(data, textures, pos, x, pt);
         });
         _vertex_buffer.setSubData(0, Containers::arrayView(data.data(), pos));
-        //_vertex_buffer.setData(data, Magnum::GL::BufferUsage::DynamicDraw);
     }
 
     const GL::Texture2D* last_texture = nullptr;
@@ -67,15 +68,14 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
     }
 }
 
-decltype(wall_mesh::_index_data) wall_mesh::make_index_array()
+std::array<std::array<UnsignedShort, 6>, wall_mesh::COUNT> wall_mesh::make_index_array()
 {
-    std::array<std::array<UnsignedShort, 6>, COUNT> array = {};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    std::array<std::array<UnsignedShort, 6>, COUNT> array;
 
     for (std::size_t i = 0; i < std::size(array); i++)
         array[i] = tile_atlas::indices(i);
     return array;
 }
-
-const decltype(wall_mesh::_index_data) wall_mesh::_index_data = wall_mesh::make_index_array();
 
 } // namespace Magnum::Examples

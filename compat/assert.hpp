@@ -1,54 +1,33 @@
 #pragma once
-#include "defs.hpp"
+#include <cstdlib>
 #include <cstdio>
-#include <limits>
 #include <type_traits>
 
-namespace Magnum::Examples {
+namespace Magnum::Examples::detail {
 
-struct exception {
-    const char* file = nullptr;
-    const char* function = nullptr;
-    int line = -1;
-};
-
-struct assertion_failure final : exception
+template<typename...Xs>
+constexpr inline void abort(const char* fmt, Xs... xs)
 {
-    char msg[128 - sizeof(int) - sizeof(char*)];
-};
+    if (std::is_constant_evaluated()) {
+        std::fprintf(stderr, fmt, xs...);
+        std::putc('\n', stderr);
+        std::fflush(stderr);
+        std::abort();
+    } else
+        throw "aborting";
+}
 
-struct out_of_range final : exception {
-    ssize_t value = 0;
-    ssize_t min = std::numeric_limits<ssize_t>::min();
-    ssize_t max = std::numeric_limits<ssize_t>::max();
-};
+} // namespace Magnum::Examples::detail
 
-#define OUT_OF_RANGE(value, min, max)                                       \
-    ::Magnum::Examples::out_of_range{                                       \
-        {__FILE__, FUNCTION_NAME, __LINE__},                                \
-        ::Magnum::Examples::ssize_t((value)),                               \
-        ::Magnum::Examples::ssize_t((min)),                                 \
-        ::Magnum::Examples::ssize_t((max))                                  \
-    }
-
-#define ABORT_WITH(exc_type, ...) ([&]() { \
-    if (std::is_constant_evaluated()) {                                     \
-        exc_type _e;                                                        \
-        _e.line = __LINE__;                                                 \
-        _e.file = __FILE__;                                                 \
-        _e.function = FUNCTION_NAME;                                        \
-        std::snprintf(_e.msg, sizeof(_e.msg), __VA_ARGS__);                 \
-        throw _e;/*NOLINT(misc-throw-by-value-catch-by-reference)*/         \
-    } else                                                                  \
-        throw "aborting";                                                   \
-}())
+namespace Magnum::Examples {
 
 #define ABORT(...) \
     do {                                                                    \
         if (std::is_constant_evaluated())                                   \
             throw "aborting";                                               \
         else                                                                \
-            ABORT_WITH(::Magnum::Examples::assertion_failure, __VA_ARGS__); \
+            ::Magnum::Examples::detail::                                    \
+                abort("aborting at %s:%d", __FILE__, __LINE__);             \
     } while (false)
 
 #define ASSERT(expr)                                                        \

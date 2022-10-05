@@ -7,9 +7,11 @@
 
 namespace Magnum::Examples {
 
+constexpr auto quad_index_count = 6;
+
 floor_mesh::floor_mesh()
 {
-    _mesh.setCount((int)(_index_data.size() * _index_data[0].size()))
+    _mesh.setCount((int)(quad_index_count * TILE_COUNT))
          .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
          .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
@@ -26,7 +28,6 @@ void floor_mesh::set_tile(quad_data& data, tile& x)
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
-    constexpr auto quad_index_count = _index_data[0].size();
     std::array<quad_data, TILE_COUNT> data;
     c.foreach_tile([&](tile& x, std::size_t idx, local_coords) {
       set_tile(data[idx], x);
@@ -46,15 +47,16 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     });
 }
 
-static auto make_index_array()
+std::array<std::array<UnsignedShort, 6>, TILE_COUNT> floor_mesh::make_index_array()
 {
-    std::array<std::array<UnsignedShort, 6>, TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    std::array<std::array<UnsignedShort, quad_index_count>, TILE_COUNT> array;
     for (std::size_t i = 0; i < std::size(array); i++)
         array[i] = tile_atlas::indices(i);
     return array;
 }
 
-static auto make_floor_positions_array()
+std::array<std::array<Vector3, 4>, TILE_COUNT> floor_mesh::make_position_array()
 {
     std::array<std::array<Vector3, 4>, TILE_COUNT> array;
     constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1];
@@ -67,7 +69,7 @@ static auto make_floor_positions_array()
     return array;
 }
 
-const decltype(floor_mesh::_index_data) floor_mesh::_index_data = make_index_array();
-const decltype(floor_mesh::_position_data) floor_mesh::_position_data = make_floor_positions_array();
+//const decltype(floor_mesh::_index_data) floor_mesh::_index_data = make_index_array();
+//const decltype(floor_mesh::_position_data) floor_mesh::_position_data = make_floor_positions_array();
 
 } // namespace Magnum::Examples
