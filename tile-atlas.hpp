@@ -39,7 +39,6 @@ constexpr std::array<UnsignedShort, 6> tile_atlas::indices(std::size_t N)
 
 constexpr tile_atlas::quad tile_atlas::floor_quad(const Vector3 center, const Vector2 size)
 {
-    ASSERT(size[0] > 0);
     float x = size[0]*.5f, y = size[1]*.5f;
     return {{
         { x + center[0], -y + center[1], center[2]},

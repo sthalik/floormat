@@ -1,20 +1,22 @@
 #pragma once
+#include "defs.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include <type_traits>
 
 namespace Magnum::Examples::detail {
 
-template<typename...Xs>
-constexpr inline void abort(const char* fmt, Xs... xs)
+template<std::size_t N, typename...Xs>
+constexpr void abort(const char (&fmt)[N], Xs... xs)
 {
-    if (std::is_constant_evaluated()) {
+    if (std::is_constant_evaluated())
+        throw "aborting";
+    else {
         std::fprintf(stderr, fmt, xs...);
         std::putc('\n', stderr);
         std::fflush(stderr);
         std::abort();
-    } else
-        throw "aborting";
+    }
 }
 
 } // namespace Magnum::Examples::detail
@@ -22,28 +24,29 @@ constexpr inline void abort(const char* fmt, Xs... xs)
 namespace Magnum::Examples {
 
 #define ABORT(...) \
-    do {                                                                    \
-        if (std::is_constant_evaluated())                                   \
-            throw "aborting";                                               \
-        else                                                                \
-            ::Magnum::Examples::detail::                                    \
-                abort("aborting at %s:%d", __FILE__, __LINE__);             \
+    do {                                                                            \
+        if (std::is_constant_evaluated())                                           \
+            throw "aborting";                                                       \
+        else                                                                        \
+            ::Magnum::Examples::detail::                                            \
+                abort("%s: aborting at %s:%d", FUNCTION_NAME, __FILE__, __LINE__);  \
     } while (false)
 
-#define ASSERT(expr)                                                        \
-    do {                                                                    \
-        if (!(expr)) {                                                      \
-            ABORT("assertion failed: '%s' in %s:%d",                        \
-                  #expr, __FILE__, __LINE__);                               \
-        }                                                                   \
+#define ASSERT(expr)                                                                \
+    do {                                                                            \
+        if (!(expr)) {                                                              \
+            ::Magnum::Examples::detail::                                            \
+                abort("%s: assertion failed: '%s' in %s:%d",                        \
+                      FUNCTION_NAME, #expr, __FILE__, __LINE__);                    \
+        }                                                                           \
     } while(false)
 
-#define GAME_DEBUG_OUT(pfx, ...) ([&]() {                                   \
-    if constexpr (sizeof((pfx)) > 1)                                        \
-        std::fputs((pfx), stderr);                                          \
-    std::fprintf(stderr, __VA_ARGS__);                                      \
-    std::fputs("\n", stderr);                                               \
-    std::fflush(stderr);                                                    \
+#define GAME_DEBUG_OUT(pfx, ...) ([&]() {                                           \
+    if constexpr (sizeof((pfx)) > 1)                                                \
+        std::fputs((pfx), stderr);                                                  \
+    std::fprintf(stderr, __VA_ARGS__);                                              \
+    std::fputs("\n", stderr);                                                       \
+    std::fflush(stderr);                                                            \
 }())
 
 #define WARN(...)   GAME_DEBUG_OUT("warning: ", __VA_ARGS__)

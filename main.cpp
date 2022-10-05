@@ -5,7 +5,6 @@
 #include "chunk.hpp"
 #include "floor-mesh.hpp"
 #include "wall-mesh.hpp"
-#include "compat/defs.hpp"
 
 #include <bitset>
 

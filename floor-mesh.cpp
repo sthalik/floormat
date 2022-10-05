@@ -22,7 +22,7 @@ void floor_mesh::set_tile(quad_data& data, tile& x)
     CORRADE_INTERNAL_ASSERT(x.ground_image);
 
     auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
-    for (std::size_t i = 0; i < 4; i++)
+    for (size_t i = 0; i < 4; i++)
         data[i] = { texcoords[i] };
 }
 
@@ -68,8 +68,5 @@ std::array<std::array<Vector3, 4>, TILE_COUNT> floor_mesh::make_position_array()
         }
     return array;
 }
-
-//const decltype(floor_mesh::_index_data) floor_mesh::_index_data = make_index_array();
-//const decltype(floor_mesh::_position_data) floor_mesh::_position_data = make_floor_positions_array();
 
 } // namespace Magnum::Examples
