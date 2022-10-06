@@ -56,7 +56,7 @@ struct app final : Platform::Application
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
     tile_atlas_ floor2 = loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    tile_atlas_ wall1 = loader.tile_atlas("../share/game/images/metal2.tga", {2, 2});
+    tile_atlas_ wall1 = loader.tile_atlas("../share/game/images/wood2.tga", {2, 2});
     tile_atlas_ wall2 = loader.tile_atlas("../share/game/images/wood1.tga", {2, 2});
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
@@ -104,7 +104,7 @@ app::app(const Arguments& arguments):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
-              //.setSampleCount(16)
+              .setSampleCount(4)
     }
 {
     reset_camera_offset();

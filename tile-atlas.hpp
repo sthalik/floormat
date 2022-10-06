@@ -11,7 +11,7 @@ struct tile_atlas final
 {
     using quad = std::array<Vector3, 4>;
 
-    tile_atlas(const Containers::StringView& name, const ImageView2D& img, Vector2i dimensions);
+    tile_atlas(Containers::StringView name, const ImageView2D& img, Vector2i dimensions);
 
     std::array<Vector2, 4> texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
@@ -22,7 +22,7 @@ struct tile_atlas final
     Vector2i tile_size() const { return size_ / dims_; }
     Vector2i dimensions() const { return dims_; }
     GL::RectangleTexture& texture() { return tex_; }
-    std::string name() const { return name_; }
+    Containers::StringView name() const { return name_; }
 
 private:
     GL::RectangleTexture tex_;

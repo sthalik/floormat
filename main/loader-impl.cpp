@@ -28,15 +28,15 @@ struct loader_impl final : loader_
 
     std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> atlas_map;
 
-    std::string shader(const Containers::StringView& filename) override;
-    Trade::ImageData2D tile_texture(const Containers::StringView& filename) override;
-    std::shared_ptr<struct tile_atlas> tile_atlas(const Containers::StringView& filename, Vector2i size) override;
+    std::string shader(Containers::StringView filename) override;
+    Trade::ImageData2D tile_texture(Containers::StringView filename) override;
+    std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2i size) override;
 
     explicit loader_impl();
     ~loader_impl() override;
 };
 
-std::string loader_impl::shader(const Containers::StringView& filename)
+std::string loader_impl::shader(Containers::StringView filename)
 {
     if (!shader_res)
         shader_res = std::make_optional<Utility::Resource>("game/shaders");
@@ -46,7 +46,7 @@ std::string loader_impl::shader(const Containers::StringView& filename)
     return ret;
 }
 
-std::shared_ptr<tile_atlas> loader_impl::tile_atlas(const Containers::StringView& name, Vector2i size)
+std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name, Vector2i size)
 {
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())
@@ -57,7 +57,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(const Containers::StringView
     return atlas;
 }
 
-Trade::ImageData2D loader_impl::tile_texture(const Containers::StringView& filename)
+Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename)
 {
     if(!tga_importer || !tga_importer->openFile(filename))
         ABORT("can't open tile image '%s'", filename.cbegin());
