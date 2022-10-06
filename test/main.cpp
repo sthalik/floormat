@@ -25,7 +25,7 @@ int app::exec()
 {
     bool ret = true;
     ret &= test_json();
-    return ret;
+    return !ret;
 }
 
 } // namespace Magnum::Examples
