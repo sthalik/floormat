@@ -40,19 +40,4 @@ constexpr void chunk::foreach_tile_(F&& fun)
                 local_coords{(std::uint8_t)i, (std::uint8_t)j});
 }
 
-struct chunk_coords final {
-    std::int16_t x = 0, y = 0;
-    constexpr std::size_t to_index() const noexcept;
-
-    static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
-    static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
-};
-
-struct global_coords final {
-    std::uint32_t x = 0, y = 0;
-    constexpr global_coords() noexcept = default;
-    constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
-    constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
-};
-
 } // namespace Magnum::Examples
