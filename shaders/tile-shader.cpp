@@ -18,17 +18,9 @@ tile_shader::tile_shader()
 
     vert.addSource(loader.shader("shaders/tile-shader.vert"));
     frag.addSource(loader.shader("shaders/tile-shader.frag"));
-
-#ifdef __clang__
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    CORRADE_INTERNAL_ASSERT_OUTPUT(GL::Shader::compile({vert, frag}));
-#ifdef __clang__
-#   pragma clang diagnostic pop
-#endif
+    CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile());
+    CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
-
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
     set_scale({640, 480});
