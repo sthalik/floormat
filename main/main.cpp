@@ -5,6 +5,7 @@
 #include "chunk.hpp"
 #include "floor-mesh.hpp"
 #include "wall-mesh.hpp"
+#include "compat/defs.hpp"
 
 #include <bitset>
 
@@ -105,6 +106,7 @@ app::app(const Arguments& arguments):
               .setSize({1024, 768}, dpi_policy::Physical),
           GLConfiguration{}
               .setSampleCount(4)
+              .setFlags(Platform::Sdl2Application::GLConfiguration::Flag::Debug)
     }
 {
     reset_camera_offset();

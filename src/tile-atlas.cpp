@@ -1,4 +1,5 @@
 #include "tile-atlas.hpp"
+#include "compat/assert.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>

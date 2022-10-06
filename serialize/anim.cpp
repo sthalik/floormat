@@ -1,5 +1,5 @@
-#include "serialize/magnum-vector.hpp"
-#include "serialize/helper.hpp"
+#include "serialize/magnum-vector2i.hpp"
+#include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 
 #include <tuple>

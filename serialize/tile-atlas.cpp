@@ -1,6 +1,6 @@
 #include "src/tile-atlas.hpp"
 #include "serialize/tile-atlas.hpp"
-#include "serialize/magnum-vector.hpp"
+#include "serialize/magnum-vector2i.hpp"
 #include "loader.hpp"
 
 #include <nlohmann/json.hpp>

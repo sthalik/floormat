@@ -51,7 +51,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         c.foreach_tile([&](tile& x, std::size_t, local_coords pt) {
           maybe_add_tile(data, textures, pos, x, pt);
         });
-        _vertex_buffer.setSubData(0, Containers::arrayView(data.data(), pos));
+        _vertex_buffer.setSubData(0, {data.data(), pos});
     }
 
     const GL::RectangleTexture* last_texture = nullptr;

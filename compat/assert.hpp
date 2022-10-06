@@ -23,30 +23,29 @@ constexpr void abort(const char (&fmt)[N], Xs... xs)
 
 namespace Magnum::Examples {
 
-#define ABORT(...) \
-    do {                                                                            \
-        if (std::is_constant_evaluated())                                           \
-            throw "aborting";                                                       \
-        else                                                                        \
-            ::Magnum::Examples::detail::                                            \
-                abort("%s: aborting at %s:%d", FUNCTION_NAME, __FILE__, __LINE__);  \
+#define ABORT(fmt, ...)                                             \
+    do {                                                            \
+        if (std::is_constant_evaluated())                           \
+            throw "aborting";                                       \
+        else                                                        \
+            ::Magnum::Examples::detail:: abort(fmt, __VA_ARGS__);   \
     } while (false)
 
-#define ASSERT(expr)                                                                \
-    do {                                                                            \
-        if (!(expr)) {                                                              \
-            ::Magnum::Examples::detail::                                            \
-                abort("%s: assertion failed: '%s' in %s:%d",                        \
-                      FUNCTION_NAME, #expr, __FILE__, __LINE__);                    \
-        }                                                                           \
+#define ASSERT(expr)                                                \
+    do {                                                            \
+        if (!(expr)) {                                              \
+            ::Magnum::Examples::detail::                            \
+                abort("assertion failed: '%s' in %s:%d",            \
+                      #expr, __FILE__, __LINE__);                   \
+        }                                                           \
     } while(false)
 
-#define GAME_DEBUG_OUT(pfx, ...) ([&]() {                                           \
-    if constexpr (sizeof((pfx)) > 1)                                                \
-        std::fputs((pfx), stderr);                                                  \
-    std::fprintf(stderr, __VA_ARGS__);                                              \
-    std::fputs("\n", stderr);                                                       \
-    std::fflush(stderr);                                                            \
+#define GAME_DEBUG_OUT(pfx, ...) ([&]() {                           \
+    if constexpr (sizeof((pfx)) > 1)                                \
+        std::fputs((pfx), stderr);                                  \
+    std::fprintf(stderr, __VA_ARGS__);                              \
+    std::fputs("\n", stderr);                                       \
+    std::fflush(stderr);                                            \
 }())
 
 #define WARN(...)   GAME_DEBUG_OUT("warning: ", __VA_ARGS__)

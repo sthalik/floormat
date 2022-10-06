@@ -41,7 +41,7 @@ template<typename t>
 bool json_helper<t>::to_json(const t& self, const std::filesystem::path& pathname) noexcept {
     using Corrade::Utility::Error;
     try {
-        nlohmann::json j = self;
+        nlohmann::json j(self);
 
         std::ofstream s;
         s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);

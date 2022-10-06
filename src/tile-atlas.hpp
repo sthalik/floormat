@@ -1,9 +1,10 @@
 #pragma once
-#include "compat/assert.hpp"
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/RectangleTexture.h>
 #include <array>
 #include <string>
+
+namespace std::filesystem { class path; }
 
 namespace Magnum::Examples {
 

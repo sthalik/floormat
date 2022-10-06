@@ -61,6 +61,7 @@ if(NOT BOOTSTRAP_DEPENDS)
     add_subdirectory(src)
     add_subdirectory(main)
     add_subdirectory(anim-crop-tool)
+    add_subdirectory(test)
 
     install(DIRECTORY images DESTINATION "share/${PROJECT_NAME}")
 endif()
