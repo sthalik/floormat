@@ -37,7 +37,7 @@ private:
 
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{make_index_array(), Magnum::GL::BufferUsage::StaticDraw},
+               _index_buffer{make_index_array()},
                 _positions_buffer{make_position_array()};
     static std::array<std::array<UnsignedShort, 6>, COUNT> make_index_array();
     static std::array<std::array<Vector3, 4>, COUNT> make_position_array();
