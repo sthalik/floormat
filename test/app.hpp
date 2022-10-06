@@ -1,13 +1,12 @@
 #pragma once
 #include <Magnum/Magnum.h>
-#include <Magnum/Platform/Sdl2Application.h>
+#include <Magnum/Platform/WindowlessWglApplication.h>
 namespace Magnum::Examples {
-struct app final : Platform::Application // NOLINT(cppcoreguidelines-virtual-class-destructor)
+struct app final : Platform::WindowlessWglApplication // NOLINT(cppcoreguidelines-virtual-class-destructor)
 {
     explicit app(const Arguments& arguments);
     ~app();
-    void drawEvent() override;
-    static void test_json();
-    void test();
+    int exec() override;
+    static bool test_json();
 };
 } // namespace Magnum::Examples

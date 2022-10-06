@@ -9,14 +9,14 @@
 namespace Magnum::Examples {
 
 app::app(const Arguments& arguments):
-      Platform::Application{
+      Platform::WindowlessWglApplication{
           arguments,
           Configuration{}
-              .setTitle("Test")
-              .setSize({1024, 768}, Platform::Implementation::Sdl2DpiScalingPolicy::Physical),
+#if 0
           GLConfiguration{}
               .setSampleCount(4)
               .setFlags(Platform::Sdl2Application::GLConfiguration::Flag::Debug)
+#endif
       }
 {
 }
@@ -26,19 +26,20 @@ app::~app()
     loader_::destroy();
 }
 
-void app::drawEvent()
+int app::exec()
 {
-    test();
-    Platform::Sdl2Application::exit(0);
-}
-
-void app::test()
-{
-    test_json();
+    bool ret = true;
+    ret &= test_json();
+    return ret;
 }
 
 } // namespace Magnum::Examples
 
+int main(int argc, char** argv)
+{
+    Magnum::Examples::app application{{argc, argv}};
+    return application.exec();
+}
 using namespace Magnum::Examples;
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)
+//MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)

@@ -7,7 +7,7 @@
 #include "loader.hpp"
 
 namespace Magnum::Examples {
-void app::test_json() // NOLINT(readability-convert-member-functions-to-static)
+bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     bool ret = true;
     using nlohmann::to_json;
@@ -24,6 +24,7 @@ void app::test_json() // NOLINT(readability-convert-member-functions-to-static)
         ret &= json_helper::to_json(v2i_2, output_dir/"vec2i_2.json");
     }
     ASSERT(ret);
+    return 0;
 }
 
 } // namespace Magnum::Examples
