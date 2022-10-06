@@ -19,29 +19,28 @@ struct wall_mesh final
     void draw(tile_shader& shader, chunk& c);
 
 private:
-    static constexpr auto COUNT = TILE_MAX_DIM*2 * TILE_MAX_DIM*2;
+    static constexpr auto COUNT1 = TILE_MAX_DIM*2, COUNT = COUNT1 * COUNT1;
 
     using texcoords_array = std::array<Vector2, 4>;
     using position_array = std::array<Vector3, 4>;
 
     struct vertex final {
         typename texcoords_array::value_type texcoords;
-        typename position_array::value_type position;
     };
 
     using quad = std::array<vertex, 4>;
     using vertex_array = std::array<quad, COUNT>;
     using texture_array = std::array<GL::RectangleTexture*, COUNT>;
 
-    static void maybe_add_tile(vertex_array& data, texture_array& textures, std::size_t& pos,
-                         tile& x, local_coords pt);
-    static void add_wall(vertex_array& data, texture_array& textures, std::size_t& pos,
-                         tile_image& img, const position_array& positions);
+    static void maybe_add_tile(vertex_array& data, texture_array& textures, tile& x, std::size_t pos);
+    static void add_wall(vertex_array& data, texture_array& textures, tile_image& img, std::size_t pos);
 
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{make_index_array(), Magnum::GL::BufferUsage::StaticDraw};
+               _index_buffer{make_index_array(), Magnum::GL::BufferUsage::StaticDraw},
+                _positions_buffer{make_position_array()};
     static std::array<std::array<UnsignedShort, 6>, COUNT> make_index_array();
+    static std::array<std::array<Vector3, 4>, COUNT> make_position_array();
 };
 
 } // namespace Magnum::Examples
