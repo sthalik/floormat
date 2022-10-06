@@ -12,11 +12,6 @@ app::app(const Arguments& arguments):
       Platform::WindowlessWglApplication{
           arguments,
           Configuration{}
-#if 0
-          GLConfiguration{}
-              .setSampleCount(4)
-              .setFlags(Platform::Sdl2Application::GLConfiguration::Flag::Debug)
-#endif
       }
 {
 }
@@ -40,6 +35,4 @@ int main(int argc, char** argv)
     Magnum::Examples::app application{{argc, argv}};
     return application.exec();
 }
-using namespace Magnum::Examples;
 
-//MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)

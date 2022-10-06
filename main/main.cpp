@@ -66,7 +66,20 @@ struct app final : Platform::Application
     Magnum::Timeline timeline;
 };
 
-using namespace Math::Literals;
+app::app(const Arguments& arguments):
+      Platform::Application{
+          arguments,
+          Configuration{}
+              .setTitle("Test")
+              .setSize({1024, 768}, dpi_policy::Physical),
+          GLConfiguration{}
+              .setSampleCount(4)
+              .setFlags(GLConfiguration::Flag::GpuValidation)
+      }
+{
+    reset_camera_offset();
+    timeline.start();
+}
 
 chunk app::make_test_chunk()
 {
@@ -82,33 +95,6 @@ chunk app::make_test_chunk()
     c[{K,   K+1}].wall_north = { wall1, 0 };
     c[{K+1, K  }].wall_west  = { wall2, 0 };
     return c;
-}
-
-void app::update_window_scale()
-{
-    auto sz = windowSize();
-    _shader.set_scale({ (float)sz[0], (float)sz[1] });
-}
-
-void app::draw_chunk(chunk& c)
-{
-    _floor_mesh.draw(_shader, c);
-    _wall_mesh.draw(_shader, c);
-}
-
-app::app(const Arguments& arguments):
-    Platform::Application{
-          arguments,
-          Configuration{}
-              .setTitle("Test")
-              .setSize({1024, 768}, dpi_policy::Physical),
-          GLConfiguration{}
-              .setSampleCount(4)
-              .setFlags(Platform::Sdl2Application::GLConfiguration::Flag::Debug)
-    }
-{
-    reset_camera_offset();
-    timeline.start();
 }
 
 void app::drawEvent() {
@@ -133,6 +119,18 @@ void app::drawEvent() {
     swapBuffers();
     redraw();
     timeline.nextFrame();
+}
+
+void app::update_window_scale()
+{
+    auto sz = windowSize();
+    _shader.set_scale({ (float)sz[0], (float)sz[1] });
+}
+
+void app::draw_chunk(chunk& c)
+{
+    _floor_mesh.draw(_shader, c);
+    _wall_mesh.draw(_shader, c);
 }
 
 void app::do_camera(float dt)
