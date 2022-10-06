@@ -11,10 +11,8 @@ namespace Magnum::Examples {
 bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     bool ret = true;
-    using nlohmann::to_json;
     const std::filesystem::path output_dir = "../test/";
     {
-        nlohmann::json j;
         auto atlas = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
         ret &= json_helper::to_json(atlas, output_dir/"atlas.json");
     }

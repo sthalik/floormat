@@ -11,7 +11,8 @@ struct chunk final
     constexpr const tile& operator[](local_coords xy) const { return _tiles[xy.to_index()]; }
     constexpr tile& operator[](std::size_t i) { return _tiles[i]; }
     constexpr const tile& operator[](std::size_t i) const { return _tiles[i]; }
-    auto& tiles() const { return _tiles; }
+    const auto& tiles() const { return _tiles; }
+    auto& tiles() { return _tiles; }
 
     template<typename F>
     requires std::invocable<F, tile&, std::size_t, local_coords>
@@ -39,7 +40,6 @@ constexpr void chunk::foreach_tile_(F&& fun)
                 local_coords{(std::uint8_t)i, (std::uint8_t)j});
 }
 
-#if 0
 struct chunk_coords final {
     std::int16_t x = 0, y = 0;
     constexpr std::size_t to_index() const noexcept;
@@ -47,15 +47,12 @@ struct chunk_coords final {
     static constexpr std::size_t max_bits = sizeof(chunk_coords::x)*8 * 3 / 4;
     static_assert(max_bits*4/3/8 == sizeof(decltype(chunk_coords::x)));
 };
-#endif
 
-#if 0
 struct global_coords final {
     std::uint32_t x = 0, y = 0;
     constexpr global_coords() noexcept = default;
     constexpr global_coords(decltype(x) x, decltype(y) y) noexcept : x{x}, y{y} {}
     constexpr global_coords(chunk_coords c, local_coords tile) noexcept;
 };
-#endif
 
 } // namespace Magnum::Examples

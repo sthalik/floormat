@@ -18,7 +18,6 @@ struct json_helper final {
 
 template<typename t>
 std::tuple<t, bool> json_helper::from_json(const std::filesystem::path& pathname) {
-    using namespace nlohmann;
     using Corrade::Utility::Error;
     std::ifstream s;
     s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
@@ -29,10 +28,9 @@ std::tuple<t, bool> json_helper::from_json(const std::filesystem::path& pathname
         return {};
     }
     t ret;
-    json j;
+    nlohmann::json j;
     s >> j;
-    using nlohmann::from_json;
-    from_json(j, ret);
+    ret = j;
     return { std::move(ret), true };
 }
 

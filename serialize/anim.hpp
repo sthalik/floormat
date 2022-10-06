@@ -4,9 +4,9 @@
 #include <array>
 #include <vector>
 #include <string>
-
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
+#include <nlohmann/json_fwd.hpp>
 
 namespace std::filesystem { class path; }
 
@@ -45,3 +45,8 @@ struct anim final
 
 } // namespace Magnum::Examples::Serialize
 
+namespace nlohmann {
+
+
+
+} // namespace nlohmann
