@@ -8,12 +8,14 @@
 namespace nlohmann {
 
 template<typename t>
+requires std::is_integral_v<t>
 struct adl_serializer<Magnum::Math::Vector2<t>> final {
     static void to_json(json& j, const Magnum::Math::Vector2<t>& x);
     static void from_json(const json& j, Magnum::Math::Vector2<t>& x);
 };
 
 template<typename t>
+requires std::is_integral_v<t>
 void adl_serializer<Magnum::Math::Vector2<t>>::to_json(json& j, const Magnum::Math::Vector2<t>& val)
 {
     char buf[64];
@@ -22,11 +24,12 @@ void adl_serializer<Magnum::Math::Vector2<t>>::to_json(json& j, const Magnum::Ma
 }
 
 template<typename t>
+requires std::is_integral_v<t>
 void adl_serializer<Magnum::Math::Vector2<t>>::from_json(const json& j, Magnum::Math::Vector2<t>& val)
 {
     std::string str = j;
-    int x = 0, y = 0, n = 0;
-    int ret = std::sscanf(str.c_str(), "%d x %d%n", &x, &y, &n);
+    long long x = 0, y = 0; int n = 0;
+    int ret = std::sscanf(str.c_str(), "%lld x %lld%n", &x, &y, &n);
     if (ret != 2 || (std::size_t)n != str.size())
     {
         std::string msg; msg.reserve(64 + str.size());
@@ -35,7 +38,7 @@ void adl_serializer<Magnum::Math::Vector2<t>>::from_json(const json& j, Magnum::
         msg += "' as Magnum::Vector2i";
         throw std::invalid_argument(msg);
     }
-    val = { x, y };
+    val = { (t)x, (t)y };
 }
 
 } // namespace nlohmann

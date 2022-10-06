@@ -9,10 +9,10 @@ namespace Magnum::Examples::Serialize {
 
 struct proxy_atlas final {
     std::string name;
-    Vector2i size;
+    Vector2ui num_tiles;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(proxy_atlas, name, size)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(proxy_atlas, name, num_tiles)
 
 } // namespace Magnum::Examples::Serialize
 
@@ -29,14 +29,14 @@ void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
         j = nullptr;
     else {
         using nlohmann::to_json;
-        to_json(j, proxy_atlas{x->name(), x->dimensions()});
+        to_json(j, proxy_atlas{x->name(), x->num_tiles()});
     }
 }
 
 void adl_serializer<shared_atlas>::from_json(const json& j, shared_atlas& x)
 {
     proxy_atlas proxy = j;
-    x = loader.tile_atlas(proxy.name, proxy.size);
+    x = loader.tile_atlas(proxy.name, proxy.num_tiles);
 }
 
 } // namespace nlohmann

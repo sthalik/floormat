@@ -30,7 +30,7 @@ struct loader_impl final : loader_
 
     std::string shader(Containers::StringView filename) override;
     Trade::ImageData2D tile_texture(Containers::StringView filename) override;
-    std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2i size) override;
+    std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2ui size) override;
 
     explicit loader_impl();
     ~loader_impl() override;
@@ -46,7 +46,7 @@ std::string loader_impl::shader(Containers::StringView filename)
     return ret;
 }
 
-std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name, Vector2i size)
+std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name, Vector2ui size)
 {
     auto it = atlas_map.find(name);
     if (it != atlas_map.end())

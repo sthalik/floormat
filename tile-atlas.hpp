@@ -11,23 +11,22 @@ struct tile_atlas final
 {
     using quad = std::array<Vector3, 4>;
 
-    tile_atlas(Containers::StringView name, const ImageView2D& img, Vector2i dimensions);
+    tile_atlas(Containers::StringView name, const ImageView2D& img, Vector2ui dimensions);
 
     std::array<Vector2, 4> texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
     static constexpr quad wall_quad_N(Vector3 center, Vector3 size);
     static constexpr quad wall_quad_W(Vector3 center, Vector3 size);
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
-    std::size_t size() const { return (std::size_t)dims_.product(); }
-    Vector2i tile_size() const { return size_ / dims_; }
-    Vector2i dimensions() const { return dims_; }
+    Vector2ui pixel_size() const { return size_; }
+    Vector2ui num_tiles() const { return dims_; }
     GL::RectangleTexture& texture() { return tex_; }
     Containers::StringView name() const { return name_; }
 
 private:
     GL::RectangleTexture tex_;
     std::string name_;
-    Vector2i size_, dims_;
+    Vector2ui size_, dims_;
 };
 
 constexpr std::array<UnsignedShort, 6> tile_atlas::indices(std::size_t N)
