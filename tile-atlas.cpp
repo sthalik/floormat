@@ -14,12 +14,12 @@ tile_atlas::tile_atlas(const Containers::StringView& name, const ImageView2D& im
     CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2i{});
     CORRADE_INTERNAL_ASSERT(dims.product() < 256);
     CORRADE_INTERNAL_ASSERT(tile_size() * dims_ == size_);
-    tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
+    tex_.setWrapping(GL::SamplerWrapping::Repeat)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
-        .setMinificationFilter(GL::SamplerFilter::Linear)
+        .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMaxAnisotropy(0)
-        .setStorage(1, GL::textureFormat(image.format()), image.size())
-        .setSubImage(0, {}, image);
+        .setStorage(GL::textureFormat(image.format()), image.size())
+        .setSubImage({}, image);
 }
 
 std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id2) const
@@ -28,8 +28,9 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id2) const
     auto id_ = (int)id2;
     ASSERT(id_ >= 0 && id_ < dims_.product());
     Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
-    auto p0 = Vector2(id * tile_size_) / Vector2(size_);
-    auto p1 = Vector2(tile_size_) / Vector2(size_);
+    constexpr Vector2 half{.5f, .5f};
+    auto p0 = Vector2(id * tile_size_) + half;
+    auto p1 = Vector2(tile_size_);
     auto x0 = p0.x(), x1 = p1.x(), y0 = p0.y(), y1 = p1.y();
     return {{
         { x0+x1, y0+y1 }, // bottom right

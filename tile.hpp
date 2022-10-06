@@ -8,7 +8,7 @@
 namespace Magnum::Examples {
 
 struct tile_atlas;
-constexpr inline Vector3 TILE_SIZE = { 50, 50, 50 };
+constexpr inline Vector3 TILE_SIZE = { 64, 64, 64 };
 constexpr inline std::size_t TILE_MAX_DIM = 16;
 constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
 

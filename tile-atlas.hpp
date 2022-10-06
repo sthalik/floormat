@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/assert.hpp"
 #include <Magnum/Magnum.h>
-#include <Magnum/GL/Texture.h>
+#include <Magnum/GL/RectangleTexture.h>
 #include <array>
 #include <string>
 
@@ -21,11 +21,11 @@ struct tile_atlas final
     std::size_t size() const { return (std::size_t)dims_.product(); }
     Vector2i tile_size() const { return size_ / dims_; }
     Vector2i dimensions() const { return dims_; }
-    GL::Texture2D& texture() { return tex_; }
+    GL::RectangleTexture& texture() { return tex_; }
     std::string name() const { return name_; }
 
 private:
-    GL::Texture2D tex_;
+    GL::RectangleTexture tex_;
     std::string name_;
     Vector2i size_, dims_;
 };

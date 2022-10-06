@@ -31,7 +31,7 @@ private:
 
     using quad = std::array<vertex, 4>;
     using vertex_array = std::array<quad, COUNT>;
-    using texture_array = std::array<GL::Texture2D*, COUNT>;
+    using texture_array = std::array<GL::RectangleTexture*, COUNT>;
 
     static void maybe_add_tile(vertex_array& data, texture_array& textures, std::size_t& pos,
                          tile& x, local_coords pt);
