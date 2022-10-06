@@ -8,4 +8,3 @@ link_libraries(Magnum::Application Magnum::Trade)
 
 add_executable(${self} "${sources}" "../main/loader-impl.cpp")
 install(TARGETS ${self} RUNTIME DESTINATION bin)
-

@@ -7,7 +7,7 @@
 namespace Magnum::Examples::detail {
 
 template<std::size_t N, typename...Xs>
-constexpr void abort(const char (&fmt)[N], Xs... xs)
+constexpr inline void abort(const char (&fmt)[N], Xs... xs)
 {
     if (std::is_constant_evaluated())
         throw "aborting";
@@ -23,7 +23,7 @@ constexpr void abort(const char (&fmt)[N], Xs... xs)
 
 namespace Magnum::Examples {
 
-#define ABORT(...)                                                   \
+#define ABORT(...)                                                  \
     do {                                                            \
         if (std::is_constant_evaluated())                           \
             throw "aborting";                                       \
