@@ -22,17 +22,13 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
         .setSubImage({}, image);
 }
 
-std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id2) const
+std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id_) const
 {
-    const auto tile_size_ = tile_size();
-    auto id_ = (int)id2;
-    ASSERT(id_ >= 0 && id_ < dims_.product());
-    Vector2i id = { id_ % dims_[0], id_ / dims_[0] };
-    constexpr Vector2 _05{.5f, .5f};
-    constexpr Vector2 _10{1, 1};
-    auto p0 = Vector2(id * tile_size_);
-    auto p1 = Vector2(tile_size_);
-    auto x0 = p0.x(), x1 = p1.x(), y0 = p0.y(), y1 = p1.y();
+    ASSERT(id_ < size());
+    const Vector2i id = { (int)id_ % dims_[0], (int)id_ / dims_[0] };
+    const Vector2 p1(tile_size());
+    const auto p0 = Vector2(id * p1);
+    const auto x0 = p0.x(), x1 = p1.x(), y0 = p0.y(), y1 = p1.y();
     return {{
         { x0+x1, y0+y1 }, // bottom right
         { x0+x1, y0    }, // top right
