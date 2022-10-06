@@ -14,7 +14,7 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
     CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2ui{});
     CORRADE_INTERNAL_ASSERT(dims_.product() < 256);
     tex_.setWrapping(GL::SamplerWrapping::ClampToBorder)
-        .setMagnificationFilter(GL::SamplerFilter::Linear)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(0)
         .setStorage(GL::textureFormat(image.format()), image.size())
