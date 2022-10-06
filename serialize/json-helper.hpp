@@ -45,6 +45,7 @@ bool json_helper::to_json(const t& self, const std::filesystem::path& pathname) 
         return false;
     }
     s << j.dump(4);
+    s << '\n';
     s.flush();
     return true;
 }

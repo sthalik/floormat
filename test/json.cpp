@@ -11,7 +11,7 @@ void app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     bool ret = true;
     using nlohmann::to_json;
-    const std::filesystem::path output_dir = "f:/dev/game/build/test/";
+    const std::filesystem::path output_dir = "../test/";
     {
         nlohmann::json j;
         auto atlas = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
@@ -19,7 +19,7 @@ void app::test_json() // NOLINT(readability-convert-member-functions-to-static)
     }
     {
         Magnum::Math::Vector<2, int> v2i_1{1, 2};
-        Vector2 v2i_2{2, 3};
+        Vector2i v2i_2{2, 3};
         ret &= json_helper::to_json(v2i_1, output_dir/"vec2i_1.json");
         ret &= json_helper::to_json(v2i_2, output_dir/"vec2i_2.json");
     }
