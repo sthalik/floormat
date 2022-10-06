@@ -1,5 +1,0 @@
-find_package(nlohmann_json QUIET REQUIRED)
-set(self "${PROJECT_NAME}-serialize")
-link_libraries(Magnum::Magnum nlohmann_json::nlohmann_json)
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
-add_library(${self} STATIC ${sources})
