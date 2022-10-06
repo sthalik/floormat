@@ -19,8 +19,6 @@ app::app(const Arguments& arguments):
               .setFlags(Platform::Sdl2Application::GLConfiguration::Flag::Debug)
       }
 {
-    if (auto path_opt = Utility::Path::executableLocation(); path_opt)
-        std::filesystem::current_path(std::string{Utility::Path::split(*path_opt).first()});
 }
 
 app::~app()

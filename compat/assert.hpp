@@ -50,6 +50,7 @@ namespace Magnum::Examples {
 
 #define WARN(...)   GAME_DEBUG_OUT("warning: ", __VA_ARGS__)
 #define ERR(...)    GAME_DEBUG_OUT("error: ", __VA_ARGS__)
+#define MESSAGE(...) GAME_DEBUG_OUT("", __VA_ARGS__)
 #define DEBUG(...)  GAME_DEBUG_OUT("", __VA_ARGS__)
 
 } // namespace Magnum::Examples

@@ -75,8 +75,11 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name,
 
 Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename)
 {
-    if(!tga_importer || !tga_importer->openFile(filename))
+    if(!tga_importer || !tga_importer->openFile(filename)) {
+        const auto path = Utility::Path::currentDirectory();
+        MESSAGE("note: current working directory: '%s'", path->data());
         ABORT("can't open tile image '%s'", filename.cbegin());
+    }
     auto img = tga_importer->image2D(0);
     if (!img)
         ABORT("can't allocate tile image for '%s'", filename.cbegin());
