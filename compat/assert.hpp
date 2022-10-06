@@ -12,6 +12,7 @@ constexpr inline void abort(const char (&fmt)[N], Xs... xs)
     if (std::is_constant_evaluated())
         throw "aborting";
     else {
+        std::fputs("fatal: ", stderr);
         std::fprintf(stderr, fmt, xs...);
         std::putc('\n', stderr);
         std::fflush(stderr);

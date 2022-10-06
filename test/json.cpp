@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "serialize/magnum-vector.hpp"
+#include "serialize/tile.hpp"
 #include "serialize/json-helper.hpp"
 #include "compat/assert.hpp"
 #include "tile-atlas.hpp"
@@ -23,8 +24,7 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
         ret &= json_helper::to_json(v2i_1, output_dir/"vec2i_1.json");
         ret &= json_helper::to_json(v2i_2, output_dir/"vec2i_2.json");
     }
-    ASSERT(ret);
-    return 0;
+    return ret;
 }
 
 } // namespace Magnum::Examples

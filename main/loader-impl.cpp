@@ -18,19 +18,6 @@
 
 namespace Magnum::Examples {
 
-static void set_application_working_directory()
-{
-    static bool once = false;
-    if (once)
-        return;
-    once = true;
-    const auto location = *Utility::Path::executableLocation();
-    if (const auto dir = Utility::Path::split(location).first(); !dir.isEmpty()) {
-        const std::filesystem::path path(std::string{dir});
-        std::filesystem::current_path(path/"..");
-    }
-}
-
 struct loader_impl final : loader_
 {
     std::optional<Utility::Resource> shader_res;
@@ -47,6 +34,8 @@ struct loader_impl final : loader_
     std::string shader(Containers::StringView filename) override;
     Trade::ImageData2D tile_texture(Containers::StringView filename) override;
     std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2ui size) override;
+
+    static void set_application_working_directory();
 
     explicit loader_impl();
     ~loader_impl() override;
@@ -91,6 +80,25 @@ void loader_::destroy()
 {
     loader.~loader_();
     new (&loader) loader_impl();
+}
+
+void loader_impl::set_application_working_directory()
+{
+    static bool once = false;
+    if (once)
+        return;
+    once = true;
+    const auto location = Utility::Path::executableLocation();
+    if (!location)
+        return;
+    std::filesystem::path path((std::string)*location);
+    path.replace_filename("..");
+    std::error_code error;
+    std::filesystem::current_path(path, error);
+    if (error.value()) {
+        WARN("failed to change working directory to '%s' (%s)",
+             path.string().data(), error.message().data());
+    }
 }
 
 loader_impl::loader_impl()
