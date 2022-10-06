@@ -56,24 +56,11 @@ if(NOT BOOTSTRAP_DEPENDS)
     find_package(MagnumIntegration QUIET REQUIRED COMPONENTS Glm)
 
     include_directories(.)
+    include_directories(src)
 
-    file(GLOB sources "*.cpp" "shaders/*.cpp" "serialize/*.cpp" CONFIGURE_ARGS)
-    add_library(${PROJECT_NAME} STATIC "${sources}")
-    target_link_libraries(
-        ${PROJECT_NAME} PUBLIC
-        Magnum::GL
-        Magnum::Magnum
-        Magnum::Shaders
-        nlohmann_json::nlohmann_json
-    )
-    target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIRS})
-    target_include_directories(${PROJECT_NAME} PRIVATE magnum-integration/src)
-
+    add_subdirectory(src)
     add_subdirectory(main)
     add_subdirectory(anim-crop-tool)
 
-    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
-    install(DIRECTORY images DESTINATION /src)
-    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
     install(DIRECTORY images DESTINATION "share/${PROJECT_NAME}")
 endif()
