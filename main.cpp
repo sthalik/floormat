@@ -16,6 +16,8 @@
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Timeline.h>
 
+#include "serialize/tile-atlas.hpp" //test
+
 namespace Magnum::Examples {
 
 template<typename enum_type>

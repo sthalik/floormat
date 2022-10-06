@@ -1,4 +1,4 @@
-#include "serialize/vector.hpp"
+#include "serialize/magnum-vector.hpp"
 #include "serialize/helper.hpp"
 #include "serialize/anim.hpp"
 
