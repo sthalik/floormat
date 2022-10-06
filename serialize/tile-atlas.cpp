@@ -2,25 +2,16 @@
 #include "serialize/tile-atlas.hpp"
 #include "serialize/magnum-vector2i.hpp"
 #include "loader.hpp"
+#include <tuple>
 
 #include <nlohmann/json.hpp>
 
-namespace Magnum::Examples::Serialize {
-
-struct proxy_atlas final {
-    std::string name;
-    Vector2ui num_tiles;
-};
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(proxy_atlas, name, num_tiles)
-
-} // namespace Magnum::Examples::Serialize
+using namespace Magnum;
+using namespace Magnum::Examples;
 
 namespace nlohmann {
 
-using namespace Magnum::Examples;
-using namespace Magnum::Examples::Serialize;
-
+using proxy_atlas = std::tuple<std::string, Vector2ui>;
 using shared_atlas = std::shared_ptr<Magnum::Examples::tile_atlas>;
 
 void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
@@ -36,7 +27,8 @@ void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
 void adl_serializer<shared_atlas>::from_json(const json& j, shared_atlas& x)
 {
     proxy_atlas proxy = j;
-    x = loader.tile_atlas(proxy.name, proxy.num_tiles);
+    const auto& [name, num_tiles] = proxy;
+    x = loader.tile_atlas(name, num_tiles);
 }
 
 } // namespace nlohmann

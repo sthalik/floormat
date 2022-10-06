@@ -7,10 +7,11 @@ namespace Magnum::Examples {
 
 struct chunk final
 {
-    constexpr tile& operator[](local_coords xy) { return tiles[xy.to_index()]; }
-    constexpr const tile& operator[](local_coords xy) const { return tiles[xy.to_index()]; }
-    constexpr tile& operator[](std::size_t i) { return tiles[i]; }
-    constexpr const tile& operator[](std::size_t i) const { return tiles[i]; }
+    constexpr tile& operator[](local_coords xy) { return _tiles[xy.to_index()]; }
+    constexpr const tile& operator[](local_coords xy) const { return _tiles[xy.to_index()]; }
+    constexpr tile& operator[](std::size_t i) { return _tiles[i]; }
+    constexpr const tile& operator[](std::size_t i) const { return _tiles[i]; }
+    auto& tiles() const { return _tiles; }
 
     template<typename F>
     requires std::invocable<F, tile&, std::size_t, local_coords>
@@ -24,7 +25,7 @@ private:
     template<typename F, typename Self>
     constexpr void foreach_tile_(F&& fun);
 
-    std::array<tile, TILE_COUNT> tiles = {};
+    std::array<tile, TILE_COUNT> _tiles = {};
 };
 
 template<typename F, typename Self>
@@ -34,7 +35,7 @@ constexpr void chunk::foreach_tile_(F&& fun)
     std::size_t k = 0;
     for (std::size_t j = 0; j < N; j++)
         for (std::size_t i = 0; i < N; i++, k++)
-            fun(const_cast<Self>(*this).tiles[k], k,
+            fun(const_cast<Self>(*this)._tiles[k], k,
                 local_coords{(std::uint8_t)i, (std::uint8_t)j});
 }
 

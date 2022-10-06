@@ -25,7 +25,7 @@ struct tile final
     enum class pass_mode : std::uint8_t { pass_blocked, pass_ok, pass_shoot_through, };
     using enum pass_mode;
 
-    tile_image ground_image, wall_west, wall_north;
+    tile_image ground_image, wall_north, wall_west;
     pass_mode passability = pass_shoot_through;
 };
 

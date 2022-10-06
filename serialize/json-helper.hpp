@@ -22,7 +22,12 @@ std::tuple<t, bool> json_helper::from_json(const std::filesystem::path& pathname
     using Corrade::Utility::Error;
     std::ifstream s;
     s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    s.open(pathname, std::ios_base::in);
+    try {
+        s.open(pathname, std::ios_base::in);
+    } catch (const std::ios::failure& e) {
+        Error{} << "failed to open" << pathname << "for reading:" << e.what();
+        return {};
+    }
     t ret;
     json j;
     s >> j;
@@ -41,7 +46,7 @@ bool json_helper::to_json(const t& self, const std::filesystem::path& pathname) 
     try {
         s.open(pathname, std::ios_base::out | std::ios_base::trunc);
     } catch (const std::ios::failure& e) {
-        Error{Error::Flag::NoSpace} << "failed to open '" << pathname << "' for writing: " << e.what();
+        Error{} << "failed to open" << pathname << "for writing:" << e.what();
         return false;
     }
     s << j.dump(4);
@@ -49,4 +54,3 @@ bool json_helper::to_json(const t& self, const std::filesystem::path& pathname) 
     s.flush();
     return true;
 }
-
