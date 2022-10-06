@@ -1,19 +1,35 @@
 #include "loader.hpp"
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
+#include <filesystem>
+#include <unordered_map>
+#include <utility>
+#include <optional>
 #include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
+#include <Corrade/Utility/Path.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
-#include <unordered_map>
-#include <utility>
-#include <optional>
 
 namespace Magnum::Examples {
+
+static void set_application_working_directory()
+{
+    static bool once = false;
+    if (once)
+        return;
+    once = true;
+    const auto location = *Utility::Path::executableLocation();
+    if (const auto dir = Utility::Path::split(location).first(); !dir.isEmpty()) {
+        const std::filesystem::path path(std::string{dir});
+        std::filesystem::current_path(path/"..");
+    }
+}
 
 struct loader_impl final : loader_
 {
@@ -74,7 +90,11 @@ void loader_::destroy()
     new (&loader) loader_impl();
 }
 
-loader_impl::loader_impl() = default;
+loader_impl::loader_impl()
+{
+    set_application_working_directory();
+}
+
 loader_impl::~loader_impl() = default;
 
 static loader_& make_default_loader()

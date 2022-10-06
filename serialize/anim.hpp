@@ -32,8 +32,8 @@ struct anim_group final
 
 struct anim final
 {
-    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname) noexcept;
-    [[nodiscard]] bool to_json(const std::filesystem::path& pathname) const noexcept;
+    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname);
+    [[nodiscard]] bool to_json(const std::filesystem::path& pathname) const;
     static constexpr int default_fps = 24;
 
     std::string name;

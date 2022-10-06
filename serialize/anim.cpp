@@ -23,14 +23,14 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups
 #   pragma clang diagnostic pop
 #endif
 
-std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname) noexcept
+std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
 {
-    return json_helper<anim>::from_json(pathname);
+    return json_helper::from_json<anim>(pathname);
 }
 
-bool anim::to_json(const std::filesystem::path& pathname) const noexcept
+bool anim::to_json(const std::filesystem::path& pathname) const
 {
-    return json_helper<anim>::to_json(*this, pathname);
+    return json_helper::to_json(*this, pathname);
 }
 
 } // namespace Magnum::Examples::Serialize

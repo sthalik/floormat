@@ -1,25 +1,35 @@
 #pragma once
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector.h>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
+#include <Magnum/Math/Vector4.h>
+#include <Magnum/Math/Color.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {
 
 template<std::size_t N, typename T>
-struct adl_serializer<Magnum::Math::Vector<N, T>> final {
-    static void to_json(json& j, const Magnum::Math::Vector2<T>& val)
+struct adl_serializer<Magnum::Math::Vector<N, T>> {
+    static void to_json(json& j, const Magnum::Math::Vector<N, T>& val)
     {
         std::array<T, N> array{};
-        for (std::size_t i; i < std::size(val); i++)
+        for (std::size_t i = 0; i < N; i++)
             array[i] = val[i];
         j = array;
     }
-    static void from_json(const json& j, Magnum::Math::Vector2<T>& val)
+    static void from_json(const json& j, Magnum::Math::Vector<N, T>& val)
     {
         std::array<T, N> array = j;
-        for (std::size_t i; i < std::size(val); i++)
+        for (std::size_t i = 0; i < N; i++)
             val[i] = array[i];
     }
 };
+
+template<typename T> struct adl_serializer<Magnum::Math::Vector2<T>> : adl_serializer<Magnum::Math::Vector<2, T>> {};
+template<typename T> struct adl_serializer<Magnum::Math::Vector3<T>> : adl_serializer<Magnum::Math::Vector<3, T>> {};
+template<typename T> struct adl_serializer<Magnum::Math::Vector4<T>> : adl_serializer<Magnum::Math::Vector<4, T>> {};
+template<typename T> struct adl_serializer<Magnum::Math::Color3<T>>  : adl_serializer<Magnum::Math::Vector<3, T>> {};
+template<typename T> struct adl_serializer<Magnum::Math::Color4<T>>  : adl_serializer<Magnum::Math::Vector<4, T>> {};
 
 } // namespace nlohmann

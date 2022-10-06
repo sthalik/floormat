@@ -23,12 +23,12 @@ constexpr void abort(const char (&fmt)[N], Xs... xs)
 
 namespace Magnum::Examples {
 
-#define ABORT(fmt, ...)                                             \
+#define ABORT(...)                                                   \
     do {                                                            \
         if (std::is_constant_evaluated())                           \
             throw "aborting";                                       \
         else                                                        \
-            ::Magnum::Examples::detail:: abort(fmt, __VA_ARGS__);   \
+            ::Magnum::Examples::detail:: abort(__VA_ARGS__);        \
     } while (false)
 
 #define ASSERT(expr)                                                \

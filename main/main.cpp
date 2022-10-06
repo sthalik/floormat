@@ -6,9 +6,7 @@
 #include "floor-mesh.hpp"
 #include "wall-mesh.hpp"
 #include "compat/defs.hpp"
-
 #include <bitset>
-
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -55,10 +53,10 @@ struct app final : Platform::Application
     chunk make_test_chunk();
 
     tile_shader _shader;
-    tile_atlas_ floor1 = loader.tile_atlas("../share/game/images/metal1.tga", {2, 2});
-    tile_atlas_ floor2 = loader.tile_atlas("../share/game/images/floor1.tga", {4, 4});
-    tile_atlas_ wall1 = loader.tile_atlas("../share/game/images/wood2.tga", {2, 2});
-    tile_atlas_ wall2 = loader.tile_atlas("../share/game/images/wood1.tga", {2, 2});
+    tile_atlas_ floor1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
+    tile_atlas_ floor2 = loader.tile_atlas("share/game/images/floor1.tga", {4, 4});
+    tile_atlas_ wall1  = loader.tile_atlas("share/game/images/wood2.tga", {2, 2});
+    tile_atlas_ wall2  = loader.tile_atlas("share/game/images/wood1.tga", {2, 2});
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
