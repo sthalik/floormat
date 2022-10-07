@@ -1,5 +1,4 @@
 #include "serialize/magnum-vector2i.hpp"
-#include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 
 #include <tuple>
@@ -9,28 +8,23 @@
 
 namespace Magnum::Examples::Serialize {
 
-#if defined __clang__ || defined __CLION_IDE__
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wweak-vtables"
-#   pragma clang diagnostic ignored "-Wcovered-switch-default"
-#endif
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups, width, height)
 
-#if defined __clang__ || defined __CLION_IDE__
-#   pragma clang diagnostic pop
-#endif
-
-std::tuple<anim, bool> anim::from_json(const std::filesystem::path& pathname)
-{
-    return json_helper::from_json<anim>(pathname);
-}
-
-bool anim::to_json(const std::filesystem::path& pathname) const
-{
-    return json_helper::to_json(*this, pathname);
-}
-
 } // namespace Magnum::Examples::Serialize
+
+using namespace Magnum::Examples::Serialize;
+
+namespace nlohmann {
+
+void adl_serializer<anim_frame>::to_json(json& j, const anim_frame& val) { using nlohmann::to_json; to_json(j, val); }
+void adl_serializer<anim_frame>::from_json(const json& j, anim_frame& val) { using nlohmann::from_json; from_json(j, val); }
+
+void adl_serializer<anim_group>::to_json(json& j, const anim_group& val) { using nlohmann::to_json; to_json(j, val); }
+void adl_serializer<anim_group>::from_json(const json& j, anim_group& val) { using nlohmann::from_json; from_json(j, val); }
+
+void adl_serializer<anim>::to_json(json& j, const anim& val) { using nlohmann::to_json; to_json(j, val); }
+void adl_serializer<anim>::from_json(const json& j, anim& val) { using nlohmann::from_json; from_json(j, val); }
+
+} // namespace nlohmann

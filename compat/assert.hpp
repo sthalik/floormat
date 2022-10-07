@@ -41,6 +41,13 @@ namespace Magnum::Examples {
         }                                                           \
     } while(false)
 
+#define ASSERT_EXPR(var, expr, cond)                                \
+    [&] {                                                           \
+        decltype(auto) var = (expr);                                \
+        ASSERT(cond);                                               \
+        return (var);                                               \
+    }()
+
 #define GAME_DEBUG_OUT(pfx, ...) ([&]() {                           \
     if constexpr (sizeof((pfx)) > 1)                                \
         std::fputs((pfx), stderr);                                  \

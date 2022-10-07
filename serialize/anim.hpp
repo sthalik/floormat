@@ -32,8 +32,6 @@ struct anim_group final
 
 struct anim final
 {
-    static std::tuple<anim, bool> from_json(const std::filesystem::path& pathname);
-    [[nodiscard]] bool to_json(const std::filesystem::path& pathname) const;
     static constexpr int default_fps = 24;
 
     std::string name;
@@ -47,6 +45,22 @@ struct anim final
 
 namespace nlohmann {
 
+template<>
+struct adl_serializer<Magnum::Examples::Serialize::anim_frame> {
+    static void to_json(json& j, const Magnum::Examples::Serialize::anim_frame& val);
+    static void from_json(const json& j, Magnum::Examples::Serialize::anim_frame& val);
+};
 
+template<>
+struct adl_serializer<Magnum::Examples::Serialize::anim_group> {
+    static void to_json(json& j, const Magnum::Examples::Serialize::anim_group& val);
+    static void from_json(const json& j, Magnum::Examples::Serialize::anim_group& val);
+};
+
+template<>
+struct adl_serializer<Magnum::Examples::Serialize::anim> {
+    static void to_json(json& j, const Magnum::Examples::Serialize::anim& val);
+    static void from_json(const json& j, Magnum::Examples::Serialize::anim& val);
+};
 
 } // namespace nlohmann

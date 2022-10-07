@@ -1,5 +1,6 @@
 #include "atlas.hpp"
 #include "serialize/anim.hpp"
+#include "serialize/json-helper.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/assert.hpp"
@@ -244,7 +245,7 @@ int main(int argc, char** argv)
     if (!opts_ok)
         return usage(args);
 
-    auto [anim_info, anim_ok] = anim::from_json(opts.input_file);
+    auto [anim_info, anim_ok] = json_helper::from_json<anim>(opts.input_file);
 
     if (!anim_ok)
         return EX_DATAERR;
@@ -285,7 +286,7 @@ int main(int argc, char** argv)
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
-    if (!anim_info.to_json(opts.output_dir/(anim_info.name + ".json")))
+    if (!json_helper::to_json<anim>(anim_info, opts.output_dir/(anim_info.name + ".json")))
         return EX_CANTCREAT;
 
     return 0;
