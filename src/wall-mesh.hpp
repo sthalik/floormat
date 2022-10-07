@@ -19,7 +19,7 @@ struct wall_mesh final
     void draw(tile_shader& shader, chunk& c);
 
 private:
-    static constexpr auto COUNT1 = TILE_MAX_DIM*2, COUNT = COUNT1 * COUNT1;
+    static constexpr auto COUNT = TILE_MAX_DIM*2 * TILE_MAX_DIM*2;
 
     struct vertex final {
         std::array<Vector2, 4> texcoords;

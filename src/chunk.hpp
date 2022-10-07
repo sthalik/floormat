@@ -5,6 +5,11 @@
 
 namespace Magnum::Examples {
 
+template<typename F, typename Tile>
+concept tile_iterator = requires(F fn, Tile& tile) {
+    { fn.operator()(tile, std::size_t{}, local_coords{}) } -> std::same_as<void>;
+};
+
 struct chunk final
 {
     constexpr tile& operator[](local_coords xy) { return _tiles[xy.to_index()]; }
@@ -14,11 +19,15 @@ struct chunk final
     const auto& tiles() const { return _tiles; }
     auto& tiles() { return _tiles; }
 
-    template<std::invocable<tile&, std::size_t, local_coords> F>
-    constexpr inline void foreach_tile(F&& fun) { foreach_tile_<F, chunk&>(std::forward<F>(fun)); }
+    template<tile_iterator<tile&> F>
+    constexpr inline void foreach_tile(F&& fun) {
+        foreach_tile_<F, chunk&>(std::forward<F>(fun));
+    }
 
-    template<std::invocable<tile&, std::size_t, local_coords> F>
-    constexpr inline void foreach_tile(F&& fun) const { foreach_tile_<F, const chunk&>(std::forward<F>(fun)); }
+    template<tile_iterator<const tile&> F>
+    constexpr inline void foreach_const_tile(F&& fun) const {
+        const_cast<chunk*>(this)->foreach_tile_<F, const chunk&>(std::forward<F>(fun));
+    }
 
 private:
     template<typename F, typename Self>

@@ -7,3 +7,7 @@
 #endif
 
 #define progn(...) [&]{__VA_ARGS__;}()
+
+#define DECLARE_DEPRECATED_COPY_OPERATOR(type)              \
+    [[deprecated]] type(const type&) = default;             \
+    [[deprecated]] type& operator=(const type&) = default

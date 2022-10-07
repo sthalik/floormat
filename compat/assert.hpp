@@ -6,31 +6,34 @@
 
 namespace Magnum::Examples::detail {
 
+template<std::size_t N, std::size_t M, typename... Xs>
+constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs)
+{
+    if (std::is_constant_evaluated())
+        return;
+    else {
+        if constexpr (M > 1)
+            std::fputs(pfx, stderr);
+        std::fprintf(stderr, fmt, xs...);
+        std::fputc('\n', stderr);
+        std::fflush(stderr);
+    }
+}
+
 template<std::size_t N, typename...Xs>
 constexpr inline void abort(const char (&fmt)[N], Xs... xs)
 {
     if (std::is_constant_evaluated())
         throw "aborting";
     else {
-        std::fputs("fatal: ", stderr);
-        std::fprintf(stderr, fmt, xs...);
-        std::putc('\n', stderr);
-        std::fflush(stderr);
+        emit_debug("fatal: ", fmt, xs...);
         std::abort();
     }
 }
 
 } // namespace Magnum::Examples::detail
 
-namespace Magnum::Examples {
-
-#define ABORT(...)                                                  \
-    do {                                                            \
-        if (std::is_constant_evaluated())                           \
-            throw "aborting";                                       \
-        else                                                        \
-            ::Magnum::Examples::detail:: abort(__VA_ARGS__);        \
-    } while (false)
+#define ABORT(...) ::Magnum::Examples::detail::abort(__VA_ARGS__)
 
 #define ASSERT(expr)                                                \
     do {                                                            \
@@ -42,23 +45,13 @@ namespace Magnum::Examples {
     } while(false)
 
 #define ASSERT_EXPR(var, expr, cond)                                \
-    [&] {                                                           \
+    ([&] {                                                          \
         decltype(auto) var = (expr);                                \
         ASSERT(cond);                                               \
         return (var);                                               \
-    }()
+    })()
 
-#define GAME_DEBUG_OUT(pfx, ...) ([&]() {                           \
-    if constexpr (sizeof((pfx)) > 1)                                \
-        std::fputs((pfx), stderr);                                  \
-    std::fprintf(stderr, __VA_ARGS__);                              \
-    std::fputs("\n", stderr);                                       \
-    std::fflush(stderr);                                            \
-}())
-
-#define WARN(...)   GAME_DEBUG_OUT("warning: ", __VA_ARGS__)
-#define ERR(...)    GAME_DEBUG_OUT("error: ", __VA_ARGS__)
-#define MESSAGE(...) GAME_DEBUG_OUT("", __VA_ARGS__)
-#define DEBUG(...)  GAME_DEBUG_OUT("", __VA_ARGS__)
-
-} // namespace Magnum::Examples
+#define WARN(...)       ::Magnum::Examples::detail::emit_debug("warning: ", __VA_ARGS__)
+#define ERR(...)        ::Magnum::Examples::detail::emit_debug("error: ", __VA_ARGS__)
+#define MESSAGE(...)    ::Magnum::Examples::detail::emit_debug("", __VA_ARGS__)
+#define DEBUG(...)      ::Magnum::Examples::detail::emit_debug("", __VA_ARGS__)
