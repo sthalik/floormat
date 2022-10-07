@@ -19,11 +19,15 @@ floor_mesh::floor_mesh()
 
 void floor_mesh::set_tile(quad_data& data, tile& x)
 {
-    CORRADE_INTERNAL_ASSERT(x.ground_image);
-
-    auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
-    for (size_t i = 0; i < 4; i++)
-        data[i] = { texcoords[i] };
+    if (x.ground_image)
+    {
+        auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
+        for (size_t i = 0; i < 4; i++)
+            data[i] = { texcoords[i] };
+    }
+    else
+        for (size_t i = 0; i < 4; i++)
+            data[i] = {};
 }
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
@@ -37,6 +41,8 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     mesh.setCount(quad_index_count);
     const tile_atlas* last_tile_atlas = nullptr;
     c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
+      if (!x.ground_image)
+          return;
       mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
       if (auto* atlas = x.ground_image.atlas.get(); atlas != last_tile_atlas)
       {
