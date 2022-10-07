@@ -9,7 +9,7 @@
 struct json_helper final {
     template<typename t>
     [[nodiscard]]
-     static std::tuple<t, bool> from_json(const std::filesystem::path& pathname);
+    static std::tuple<t, bool> from_json(const std::filesystem::path& pathname);
 
     template<typename t>
     [[nodiscard]]

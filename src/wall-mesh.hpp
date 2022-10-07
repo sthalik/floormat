@@ -21,11 +21,8 @@ struct wall_mesh final
 private:
     static constexpr auto COUNT1 = TILE_MAX_DIM*2, COUNT = COUNT1 * COUNT1;
 
-    using texcoords_array = std::array<Vector2, 4>;
-    using position_array = std::array<Vector3, 4>;
-
     struct vertex final {
-        typename texcoords_array::value_type texcoords;
+        std::array<Vector2, 4> texcoords;
     };
 
     using quad = std::array<vertex, 4>;

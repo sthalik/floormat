@@ -33,7 +33,7 @@ static chunk make_test_chunk()
 bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     bool ret = true;
-    const std::filesystem::path output_dir = "../test/";
+    const std::filesystem::path output_dir = "../test/.";
     {
         auto atlas = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
         ret &= json_helper::to_json(atlas, output_dir/"atlas.json");
@@ -50,7 +50,7 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
     }
     {
         const auto chunk = make_test_chunk();
-        ret &= json_helper::to_json(chunk, output_dir/"chunk-1.json");
+        ret &= json_helper::to_json(chunk, output_dir/"zzz_chunk-1.json");
     }
     return ret;
 }

@@ -27,12 +27,12 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final {
         type x = 0, y = 0;
         int n = 0;
         int ret = std::sscanf(str.c_str(), format_string, &x, &y, &n);
-        if (ret != 2 || (std::size_t)n != str.size() || x != (type)x || y != (type)y)
+        if (ret != 2 || (std::size_t)n != str.size() || x != (t)x || y != (t)y)
         {
             std::string msg; msg.reserve(128);
             msg += "failed to parse string '";
             msg += str;
-            msg += "' as Magnum::Vector2i";
+            msg += "' as Magnum::Vector2";
             throw std::invalid_argument(msg);
         }
         val = { (t)x, (t)y };
