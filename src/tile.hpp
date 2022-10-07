@@ -2,8 +2,6 @@
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
 #include "tile-defs.hpp"
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector3.h>
 #include <cstdint>
 #include <memory>
 

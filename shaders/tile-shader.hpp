@@ -1,11 +1,7 @@
 #pragma once
-#include <vector>
-#include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>
-#include <Magnum/GL/Texture.h>
-#include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Matrix4.h>
+#include <Magnum/Math/Vector3.h>
 
 namespace Magnum::Examples {
 

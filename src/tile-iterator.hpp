@@ -66,7 +66,7 @@ namespace std {
 
 template<typename Tile>
 class iterator_traits<Magnum::Examples::basic_tile_iterator<Tile>> {
-    using T = typename Magnum::Examples::basic_tile_iterator<Tile>::value_type;
+    using T = Magnum::Examples::basic_tile_iterator<Tile>;
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T;

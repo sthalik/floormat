@@ -12,7 +12,7 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     auto& frame = *x.frame;
     const auto& mat = x.mat;
     frame.offset = {xpos, ypos};
-    frame.size = {mat.cols, mat.rows};
+    frame.size = {(unsigned)mat.cols, (unsigned)mat.rows};
 
     ASSERT(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
@@ -54,8 +54,9 @@ bool anim_atlas::dump(const std::filesystem::path& filename) const
     for (const anim_atlas_row& row : rows)
         for (const anim_atlas_entry& x : row.data)
         {
-            auto offset = x.frame->offset, size = x.frame->size;
-            cv::Rect roi = {offset[0], offset[1], size[0], size[1]};
+            auto offset = x.frame->offset;
+            auto size = x.frame->size;
+            cv::Rect roi = {offset[0], offset[1], (int)size[0], (int)size[1]};
             x.mat.copyTo(mat(roi));
         }
 

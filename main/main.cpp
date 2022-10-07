@@ -5,10 +5,10 @@
 #include "chunk.hpp"
 #include "floor-mesh.hpp"
 #include "wall-mesh.hpp"
-#include "compat/defs.hpp"
-#include <bitset>
+#include "compat/enum-bitset.hpp"
+
 #include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector.h>
+#include <Magnum/Math/Vector2.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -16,17 +16,6 @@
 #include <Magnum/Timeline.h>
 
 namespace Magnum::Examples {
-
-template<typename enum_type>
-struct enum_bitset : std::bitset<(std::size_t)enum_type::MAX> {
-    static_assert(std::is_same_v<std::size_t, std::common_type_t<std::size_t, std::underlying_type_t<enum_type>>>);
-    static_assert(std::is_same_v<enum_type, std::decay_t<enum_type>>);
-    using std::bitset<(std::size_t)enum_type::MAX>::bitset;
-    constexpr bool operator[](enum_type x) const { return operator[]((std::size_t)x); }
-    constexpr decltype(auto) operator[](enum_type x) {
-        return std::bitset<(std::size_t)enum_type::MAX>::operator[]((std::size_t)x);
-    }
-};
 
 struct app final : Platform::Application
 {
