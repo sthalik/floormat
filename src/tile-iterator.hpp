@@ -45,8 +45,7 @@ public:
     basic_tile_iterator<T>& operator*() { return *this; }
     auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
     void swap(basic_tile_iterator<T>& other);
-    template<std::size_t N>
-    typename std::tuple_element<N, basic_tile_iterator<T>>::type get();
+    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get();
 };
 
 extern template class basic_tile_iterator<tile>;
