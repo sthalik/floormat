@@ -33,16 +33,16 @@ void floor_mesh::set_tile(quad_data& data, tile& x)
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
     std::array<quad_data, TILE_COUNT> data;
-    c.foreach_tile([&](tile& x, std::size_t idx, local_coords) {
-      set_tile(data[idx], x);
-    });
+    for (auto [x, idx, pt] : c) {
+        set_tile(data[idx], x);
+    }
     _vertex_buffer.setSubData(0, data);
     Magnum::GL::MeshView mesh{_mesh};
     mesh.setCount(quad_index_count);
     const tile_atlas* last_tile_atlas = nullptr;
-    c.foreach_tile([&](tile& x, std::size_t i, local_coords) {
+    for (auto [x, i, pt] : c) {
       if (!x.ground_image)
-          return;
+          continue;
       mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
       if (auto* atlas = x.ground_image.atlas.get(); atlas != last_tile_atlas)
       {
@@ -50,7 +50,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
           last_tile_atlas = atlas;
       }
       shader.draw(mesh);
-    });
+    }
 }
 
 std::array<std::array<UnsignedShort, 6>, TILE_COUNT> floor_mesh::make_index_array()

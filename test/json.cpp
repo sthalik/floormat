@@ -18,10 +18,10 @@ static chunk make_test_chunk()
          metal3 = loader.tile_atlas("share/game/images/metal3.tga", {2, 2});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
-    c.foreach_tile([&](tile& x, std::size_t k, local_coords pt) {
+    for (auto [x, k, pt] : c) {
                        const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? metal1 : metal2;
                        x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
-                   });
+    }
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north = { metal3, 0 };
     c[{K,   K  }].wall_west  = { metal3, 0 };

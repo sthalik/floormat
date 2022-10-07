@@ -22,16 +22,6 @@ struct chunk final
     const auto& tiles() const { return _tiles; }
     auto& tiles() { return _tiles; }
 
-    template<tile_iterator_fn<tile&> F>
-    constexpr inline void foreach_tile(F&& fun) {
-        foreach_tile_<F, chunk&>(std::forward<F>(fun));
-    }
-
-    template<tile_iterator_fn<const tile&> F>
-    constexpr inline void foreach_const_tile(F&& fun) const {
-        const_cast<chunk*>(this)->foreach_tile_<F, const chunk&>(std::forward<F>(fun));
-    }
-
     using iterator = basic_tile_iterator<tile>;
     using const_iterator = basic_tile_iterator<const tile>;
 

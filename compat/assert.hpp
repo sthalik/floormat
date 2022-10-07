@@ -7,7 +7,7 @@
 namespace Magnum::Examples::detail {
 
 template<std::size_t N, std::size_t M, typename... Xs>
-constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs)
+constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) noexcept
 {
     if (std::is_constant_evaluated())
         return;
@@ -21,7 +21,7 @@ constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs)
 }
 
 template<std::size_t N, typename...Xs>
-constexpr inline void abort(const char (&fmt)[N], Xs... xs)
+constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept // NOLINT(bugprone-exception-escape)
 {
     if (std::is_constant_evaluated())
         throw "aborting";
