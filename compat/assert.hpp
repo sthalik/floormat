@@ -24,9 +24,12 @@ template<std::size_t N, typename...Xs>
 [[noreturn]]
 constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
 {
+#if 0
     if (std::is_constant_evaluated())
         throw "aborting";
-    else {
+    else
+#endif
+    {
         emit_debug("fatal: ", fmt, xs...);
         std::abort();
     }

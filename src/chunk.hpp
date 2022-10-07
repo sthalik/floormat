@@ -15,10 +15,10 @@ template<typename T> class basic_tile_iterator;
 
 struct chunk final
 {
-    constexpr tile& operator[](local_coords xy) { return _tiles[xy.to_index()]; }
-    constexpr const tile& operator[](local_coords xy) const { return _tiles[xy.to_index()]; }
-    constexpr tile& operator[](std::size_t i) { return _tiles[i]; }
-    constexpr const tile& operator[](std::size_t i) const { return _tiles[i]; }
+    tile& operator[](local_coords xy) { return _tiles[xy.to_index()]; }
+    const tile& operator[](local_coords xy) const { return _tiles[xy.to_index()]; }
+    tile& operator[](std::size_t i) { return _tiles[i]; }
+    const tile& operator[](std::size_t i) const { return _tiles[i]; }
     const auto& tiles() const { return _tiles; }
     auto& tiles() { return _tiles; }
 
@@ -33,21 +33,7 @@ struct chunk final
     const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
 
 private:
-    template<typename F, typename Self>
-    constexpr void foreach_tile_(F&& fun);
-
     std::array<tile, TILE_COUNT> _tiles = {};
 };
-
-template<typename F, typename Self>
-constexpr void chunk::foreach_tile_(F&& fun)
-{
-    constexpr auto N = TILE_MAX_DIM;
-    std::size_t k = 0;
-    for (std::size_t j = 0; j < N; j++)
-        for (std::size_t i = 0; i < N; i++, k++)
-            fun(const_cast<Self>(*this)._tiles[k], k,
-                local_coords{(std::uint8_t)i, (std::uint8_t)j});
-}
 
 } // namespace Magnum::Examples

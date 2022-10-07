@@ -28,7 +28,9 @@ struct tile final
     pass_mode passability = pass_shoot_through;
 
     constexpr tile() = default;
-    DECLARE_DEPRECATED_COPY_OPERATOR(tile);
+    tile(tile&&) = default;
+
+    DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
 };
 
 } //namespace Magnum::Examples
