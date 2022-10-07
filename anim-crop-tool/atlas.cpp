@@ -12,7 +12,7 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     auto& frame = *x.frame;
     const auto& mat = x.mat;
     frame.offset = {xpos, ypos};
-    frame.size = {(unsigned)mat.cols, (unsigned)mat.rows};
+    frame.size = {mat.cols, mat.rows};
 
     ASSERT(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);

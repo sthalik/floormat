@@ -14,8 +14,7 @@ namespace Magnum::Examples::Serialize {
 
 struct anim_frame final
 {
-    Vector2i ground, offset;
-    Vector2ui size;
+    Vector2i ground, offset, size;
 };
 
 enum class anim_direction : unsigned char

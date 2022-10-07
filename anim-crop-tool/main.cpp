@@ -117,7 +117,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         (int)std::round((group.ground[1] - start[1]) * opts.scale),
     };
 
-    group.frames.push_back({ground, atlas.offset(), {(unsigned)dest_size.width, (unsigned)dest_size.height}});
+    group.frames.push_back({ground, atlas.offset(), {dest_size.width, dest_size.height}});
     atlas.add_entry({&group.frames.back(), std::move(resized)});
     return true;
 }
