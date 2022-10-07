@@ -21,7 +21,8 @@ constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) no
 }
 
 template<std::size_t N, typename...Xs>
-constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept // NOLINT(bugprone-exception-escape)
+[[noreturn]]
+constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
 {
     if (std::is_constant_evaluated())
         throw "aborting";

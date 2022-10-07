@@ -27,6 +27,8 @@ struct chunk final
 
     constexpr iterator begin() { return iterator{_tiles.data(), 0}; }
     constexpr iterator end() { return iterator{_tiles.data(), _tiles.size()}; }
+    constexpr const_iterator begin() const { return const_iterator{_tiles.data(), 0}; }
+    constexpr const_iterator end() const { return const_iterator{_tiles.data(), _tiles.size()}; }
     constexpr const_iterator cbegin() const { return const_iterator{_tiles.data(), 0}; }
     constexpr const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
 
