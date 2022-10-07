@@ -25,6 +25,7 @@ int app::exec()
 {
     bool ret = true;
     ret &= test_json();
+    ret &= test_tile_iter();
     return !ret;
 }
 

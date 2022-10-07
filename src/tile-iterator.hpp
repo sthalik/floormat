@@ -18,10 +18,12 @@ template<typename T>
 void swap(Magnum::Examples::basic_tile_iterator<T>& lhs,
           Magnum::Examples::basic_tile_iterator<T>& rhs) noexcept;
 
-template<typename T> struct tuple_size<Magnum::Examples::basic_tile_iterator<T>> : std::integral_constant<std::size_t, 3> {};
 template<typename T> struct tuple_element<0, Magnum::Examples::basic_tile_iterator<T>> { using type = T&; };
+template<typename T> struct tuple_element<0, const Magnum::Examples::basic_tile_iterator<T>> { using type = const T&; };
+
 template<typename T> struct tuple_element<1, Magnum::Examples::basic_tile_iterator<T>> { using type = std::size_t; };
 template<typename T> struct tuple_element<2, Magnum::Examples::basic_tile_iterator<T>> { using type = Magnum::Examples::local_coords; };
+template<typename T> struct tuple_size<Magnum::Examples::basic_tile_iterator<T>> : std::integral_constant<std::size_t, 3> {};
 
 } // namespace std
 
@@ -41,23 +43,47 @@ public:
     basic_tile_iterator<T>& operator=(const basic_tile_iterator<T>&) = default;
     basic_tile_iterator<T>& operator++() { pos++; return *this; }
     basic_tile_iterator<T>  operator++(int) { auto tmp = *this; operator++(); return tmp; }
-    basic_tile_iterator<T>* operator->() { return this; }
-    basic_tile_iterator<T>& operator*() { return *this; }
+    basic_tile_iterator<T>* operator->() & { return this; }
+    basic_tile_iterator<T>& operator*() & { return *this; }
+    basic_tile_iterator<T> const* operator->() const& { return this; }
+    basic_tile_iterator<T> const& operator*() const& { return *this; }
     auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
     void swap(basic_tile_iterator<T>& other);
-    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get();
+    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get() &;
+    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get() const&;
 };
+
+template <typename T>
+void basic_tile_iterator<T>::swap(basic_tile_iterator<T>& other)
+{
+    using std::swap;
+    swap(ptr, other.ptr);
+    swap(pos, other.pos);
+}
+
+template <typename T>
+template <std::size_t N>
+typename std::tuple_element<N, basic_tile_iterator<T>>::type basic_tile_iterator<T>::get() &
+{
+    if constexpr(N == 0)
+        return pos == TILE_COUNT ? ptr[0] : ptr[pos];
+    else if constexpr(N == 1)
+        return pos;
+    else if constexpr(N == 2)
+        return local_coords{pos};
+    else
+        return std::void_t<std::integral_constant<int, N>>();
+}
+
+template <typename T>
+template <std::size_t N>
+typename std::tuple_element<N, basic_tile_iterator<T>>::type basic_tile_iterator<T>::get() const&
+{
+    return const_cast<basic_tile_iterator<T>&>(*this).get<N>();
+}
 
 extern template class basic_tile_iterator<tile>;
 extern template class basic_tile_iterator<const tile>;
-
-extern template typename std::tuple_element<0, basic_tile_iterator<tile>>::type basic_tile_iterator<tile>::get<0>();
-extern template typename std::tuple_element<1, basic_tile_iterator<tile>>::type basic_tile_iterator<tile>::get<1>();
-extern template typename std::tuple_element<2, basic_tile_iterator<tile>>::type basic_tile_iterator<tile>::get<2>();
-
-extern template typename std::tuple_element<0, basic_tile_iterator<const tile>>::type basic_tile_iterator<const tile>::get<0>();
-extern template typename std::tuple_element<1, basic_tile_iterator<const tile>>::type basic_tile_iterator<const tile>::get<1>();
-extern template typename std::tuple_element<2, basic_tile_iterator<const tile>>::type basic_tile_iterator<const tile>::get<2>();
 
 } // namespace Magnum::Examples
 

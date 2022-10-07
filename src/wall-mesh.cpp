@@ -42,7 +42,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
     texture_array textures = {};
     {
         vertex_array data;
-        for (auto [x, idx, pt] : c) {
+        for (auto& [x, idx, pt] : c) {
           maybe_add_tile(data, textures, x, idx);
         }
         _vertex_buffer.setSubData(0, data);

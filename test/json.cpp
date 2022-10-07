@@ -18,7 +18,7 @@ static chunk make_test_chunk()
          metal3 = loader.tile_atlas("share/game/images/metal3.tga", {2, 2});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
-    for (auto [x, k, pt] : c) {
+    for (auto& [x, k, pt] : c) {
         const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? metal1 : metal2;
         x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
     }
@@ -52,6 +52,7 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
         const auto chunk = make_test_chunk();
         ret &= json_helper::to_json(chunk, output_dir/"zzz_chunk-1.json");
     }
+
     return ret;
 }
 

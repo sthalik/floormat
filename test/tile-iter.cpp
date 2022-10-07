@@ -1,0 +1,39 @@
+#include "app.hpp"
+#include "chunk.hpp"
+namespace Magnum::Examples {
+
+static inline bool always_false()
+{
+    volatile bool ret = false;
+    return ret;
+}
+
+bool app::test_tile_iter() // NOLINT(readability-function-size)
+{
+    if (always_false())
+    {
+        const chunk c;
+        for (const auto& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+        for (auto& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+        for (auto [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+    }
+    if (always_false())
+    {
+        chunk c;
+        for (auto& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), tile&>);
+        for (const auto& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+#if 1
+        for (auto [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), tile&>);
+#endif
+    }
+    return true;
+}
+
+} // namespace Magnum::Examples
+

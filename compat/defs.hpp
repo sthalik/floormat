@@ -9,7 +9,7 @@
 #define progn(...) [&]{__VA_ARGS__;}()
 
 #define DECLARE_DEPRECATED_COPY_ASSIGNMENT(type)            \
-    [[deprecated]] type(const type&) = default;             \
+    [[deprecated]] type(const type&) = default;    \
     [[deprecated]] type& operator=(const type&) = default
 
 #define DECLARE_DELETED_COPY_ASSIGNMENT(type)               \
