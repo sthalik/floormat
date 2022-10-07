@@ -11,3 +11,7 @@
 #define DECLARE_DEPRECATED_COPY_OPERATOR(type)              \
     [[deprecated]] type(const type&) = default;             \
     [[deprecated]] type& operator=(const type&) = default
+
+#define DECLARE_DELETED_COPY_OPERATOR(type)                 \
+    type(const type&) = delete;                             \
+    type& operator=(const type&) = delete

@@ -25,12 +25,12 @@ struct chunk final
     using iterator = basic_tile_iterator<tile>;
     using const_iterator = basic_tile_iterator<const tile>;
 
-    constexpr iterator begin() { return iterator{_tiles.data(), 0}; }
-    constexpr iterator end() { return iterator{_tiles.data(), _tiles.size()}; }
-    constexpr const_iterator begin() const { return const_iterator{_tiles.data(), 0}; }
-    constexpr const_iterator end() const { return const_iterator{_tiles.data(), _tiles.size()}; }
-    constexpr const_iterator cbegin() const { return const_iterator{_tiles.data(), 0}; }
-    constexpr const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
+    iterator begin() { return iterator{_tiles.data(), 0}; }
+    iterator end() { return iterator{_tiles.data(), _tiles.size()}; }
+    const_iterator begin() const { return const_iterator{_tiles.data(), 0}; }
+    const_iterator end() const { return const_iterator{_tiles.data(), _tiles.size()}; }
+    const_iterator cbegin() const { return const_iterator{_tiles.data(), 0}; }
+    const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
 
 private:
     template<typename F, typename Self>
