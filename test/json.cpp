@@ -19,8 +19,8 @@ static chunk make_test_chunk()
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
     for (auto [x, k, pt] : c) {
-                       const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? metal1 : metal2;
-                       x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
+        const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? metal1 : metal2;
+        x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
     }
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north = { metal3, 0 };
