@@ -27,10 +27,8 @@ bool app::test_tile_iter() // NOLINT(readability-function-size)
             static_assert(std::is_same_v<decltype(x), tile&>);
         for (const auto& [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile&>);
-#if 1
         for (auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), tile&>);
-#endif
     }
     return true;
 }
