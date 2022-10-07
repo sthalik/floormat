@@ -2,6 +2,4 @@
 
 namespace Magnum::Examples {
 
-
-
 } // namespace Magnum::Examples

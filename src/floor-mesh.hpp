@@ -1,9 +1,10 @@
 #pragma once
-#include "tile.hpp"
+#include "tile-defs.hpp"
 #include <array>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Buffer.h>
 
@@ -11,6 +12,7 @@ namespace Magnum::Examples {
 
 struct tile_shader;
 struct chunk;
+struct tile;
 
 struct floor_mesh final
 {

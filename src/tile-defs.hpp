@@ -1,0 +1,9 @@
+#pragma once
+#include <cstddef>
+
+namespace Magnum::Examples {
+
+constexpr inline std::size_t TILE_MAX_DIM = 16;
+constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
+
+} // namespace Magnum::Examples

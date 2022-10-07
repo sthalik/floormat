@@ -1,14 +1,17 @@
 #pragma once
 #include "tile.hpp"
+#include "tile-iterator.hpp"
 #include <type_traits>
 #include <array>
 
 namespace Magnum::Examples {
 
 template<typename F, typename Tile>
-concept tile_iterator = requires(F fn, Tile& tile) {
+concept tile_iterator_fn = requires(F fn, Tile& tile) {
     { fn.operator()(tile, std::size_t{}, local_coords{}) } -> std::same_as<void>;
 };
+
+template<typename T> class basic_tile_iterator;
 
 struct chunk final
 {
@@ -19,15 +22,23 @@ struct chunk final
     const auto& tiles() const { return _tiles; }
     auto& tiles() { return _tiles; }
 
-    template<tile_iterator<tile&> F>
+    template<tile_iterator_fn<tile&> F>
     constexpr inline void foreach_tile(F&& fun) {
         foreach_tile_<F, chunk&>(std::forward<F>(fun));
     }
 
-    template<tile_iterator<const tile&> F>
+    template<tile_iterator_fn<const tile&> F>
     constexpr inline void foreach_const_tile(F&& fun) const {
         const_cast<chunk*>(this)->foreach_tile_<F, const chunk&>(std::forward<F>(fun));
     }
+
+    using iterator = basic_tile_iterator<tile>;
+    using const_iterator = basic_tile_iterator<const tile>;
+
+    constexpr iterator begin() { return iterator{_tiles.data(), 0}; }
+    constexpr iterator end() { return iterator{_tiles.data(), _tiles.size()}; }
+    constexpr const_iterator cbegin() const { return const_iterator{_tiles.data(), 0}; }
+    constexpr const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
 
 private:
     template<typename F, typename Self>
