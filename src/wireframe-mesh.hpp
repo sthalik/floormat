@@ -75,4 +75,6 @@ private:
 extern template struct wireframe_mesh<wireframe_traits::null>;
 extern template struct wireframe_mesh<wireframe_traits::quad>;
 
+using wireframe_quad_mesh = wireframe_mesh<wireframe_traits::quad>;
+
 } // namespace Magnum::Examples

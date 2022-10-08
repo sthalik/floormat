@@ -1,0 +1,43 @@
+#include "app.hpp"
+namespace Magnum::Examples {
+
+void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
+{
+    //using Mods = KeyEvent::Modifiers;
+
+    (void)m;
+    (void)repeated;
+
+    const key x = progn(switch (k) {
+        using enum KeyEvent::Key;
+        using enum key;
+
+    case W:     return camera_up;
+    case A:     return camera_left;
+    case S:     return camera_down;
+    case D:     return camera_right;
+    case Home:  return camera_reset;
+    case Esc:   return quit;
+    default:    return MAX;
+    });
+
+    if (x != key::MAX)
+        keys[x] = pressed;
+}
+
+app::~app()
+{
+    loader_::destroy();
+}
+
+void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    do_key(event.key(), event.modifiers(), true, event.isRepeated());
+}
+
+void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    do_key(event.key(), event.modifiers(), false, false);
+}
+
+} // namespace Magnum::Examples

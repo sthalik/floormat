@@ -5,6 +5,7 @@
 #include "src/loader.hpp"
 #include "floor-mesh.hpp"
 #include "wall-mesh.hpp"
+#include "wireframe-mesh.hpp"
 #include "compat/enum-bitset.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -44,6 +45,7 @@ struct app final : Platform::Application
     chunk _chunk = make_test_chunk();
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
+    wireframe_quad_mesh _wireframe_quad;
 
     Vector2 camera_offset;
     enum_bitset<key> keys;

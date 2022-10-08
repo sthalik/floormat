@@ -2,6 +2,7 @@
 #include "shaders/tile-shader.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Magnum/ImageView.h>
+#include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/PixelFormat.h>
 #include <Magnum/Trade/ImageData.h>
@@ -55,9 +56,11 @@ template <traits T> wireframe_mesh<T>::wireframe_mesh()
 
 template <traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
 {
+    GL::Renderer::setLineWidth(2);
     _positions_buffer.setData(x.make_vertex_positions_array(), GL::BufferUsage::DynamicDraw);
     if constexpr(T::num_indices > 0)
         _index_buffer.setData(x.make_index_array(), GL::BufferUsage::DynamicDraw);
+    _texture.bind(0);
     shader.draw(_mesh);
 }
 
