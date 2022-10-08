@@ -19,6 +19,8 @@ bool app::test_tile_iter() // NOLINT(readability-function-size)
             static_assert(std::is_same_v<decltype(x), const tile&>);
         for (auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile&>);
+        for (auto&& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
     }
     if (always_false())
     {
@@ -29,6 +31,14 @@ bool app::test_tile_iter() // NOLINT(readability-function-size)
             static_assert(std::is_same_v<decltype(x), const tile&>);
         for (auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), tile&>);
+        for (const auto [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+        for (auto&& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), tile&>);
+#if 0
+        for (const auto&& [x, k, pt] : c)
+            static_assert(std::is_same_v<decltype(x), const tile&>);
+#endif
     }
     return true;
 }

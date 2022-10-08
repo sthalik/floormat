@@ -14,13 +14,8 @@ struct tile;
 
 namespace std {
 
-template<typename T>
-void swap(Magnum::Examples::basic_tile_iterator<T>& lhs,
-          Magnum::Examples::basic_tile_iterator<T>& rhs) noexcept;
-
 template<typename T> struct tuple_element<0, Magnum::Examples::basic_tile_iterator<T>> { using type = T&; };
 template<typename T> struct tuple_element<0, const Magnum::Examples::basic_tile_iterator<T>> { using type = const T&; };
-
 template<typename T> struct tuple_element<1, Magnum::Examples::basic_tile_iterator<T>> { using type = std::size_t; };
 template<typename T> struct tuple_element<2, Magnum::Examples::basic_tile_iterator<T>> { using type = Magnum::Examples::local_coords; };
 template<typename T> struct tuple_size<Magnum::Examples::basic_tile_iterator<T>> : std::integral_constant<std::size_t, 3> {};
@@ -43,10 +38,8 @@ public:
     basic_tile_iterator<T>& operator=(const basic_tile_iterator<T>&) = default;
     basic_tile_iterator<T>& operator++() { pos++; return *this; }
     basic_tile_iterator<T>  operator++(int) { auto tmp = *this; operator++(); return tmp; }
-    basic_tile_iterator<T>* operator->() & { return this; }
-    basic_tile_iterator<T>& operator*() & { return *this; }
-    basic_tile_iterator<T> const* operator->() const& { return this; }
-    basic_tile_iterator<T> const& operator*() const& { return *this; }
+    basic_tile_iterator<T>* operator->() { return this; }
+    basic_tile_iterator<T>& operator*() { return *this; }
     auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
     void swap(basic_tile_iterator<T>& other);
     template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get() &;
