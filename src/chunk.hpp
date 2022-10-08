@@ -27,10 +27,10 @@ struct chunk final
 
     iterator begin() { return iterator{_tiles.data(), 0}; }
     iterator end() { return iterator{_tiles.data(), _tiles.size()}; }
-    const_iterator begin() const { return const_iterator{_tiles.data(), 0}; }
-    const_iterator end() const { return const_iterator{_tiles.data(), _tiles.size()}; }
     const_iterator cbegin() const { return const_iterator{_tiles.data(), 0}; }
-    const_iterator cend() { return const_iterator{_tiles.data(), _tiles.size()}; }
+    const_iterator cend() const { return const_iterator{_tiles.data(), _tiles.size()}; }
+    const_iterator begin() const { return cbegin(); }
+    const_iterator end() const { return cend(); }
 
 private:
     std::array<tile, TILE_COUNT> _tiles = {};
