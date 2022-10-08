@@ -7,70 +7,77 @@
 
 namespace Magnum::Examples {
 
-template<typename T> class basic_tile_iterator;
 struct tile;
+template<typename T> class basic_tile_iterator;
+template<typename T> struct tile_tuple;
 
 } // namespace Magnum::Examples
 
 namespace std {
 
-template<typename T> struct tuple_element<0, Magnum::Examples::basic_tile_iterator<T>> { using type = T&; };
-template<typename T> struct tuple_element<0, const Magnum::Examples::basic_tile_iterator<T>> { using type = const T&; };
-template<typename T> struct tuple_element<1, Magnum::Examples::basic_tile_iterator<T>> { using type = std::size_t; };
-template<typename T> struct tuple_element<2, Magnum::Examples::basic_tile_iterator<T>> { using type = Magnum::Examples::local_coords; };
-template<typename T> struct tuple_size<Magnum::Examples::basic_tile_iterator<T>> : std::integral_constant<std::size_t, 3> {};
+template<typename T> struct tuple_size<Magnum::Examples::tile_tuple<T>> : std::integral_constant<std::size_t, 3> {};
+
+template<> struct tuple_element<0, Magnum::Examples::tile_tuple<Magnum::Examples::tile>> { using type = Magnum::Examples::tile&; };
+template<> struct tuple_element<0, Magnum::Examples::tile_tuple<const Magnum::Examples::tile>> { using type = const Magnum::Examples::tile&; };
+template<> struct tuple_element<0, const Magnum::Examples::tile_tuple<Magnum::Examples::tile>> { using type = const Magnum::Examples::tile&; };
+
+template<typename T> struct tuple_element<1, Magnum::Examples::tile_tuple<T>> { using type = std::size_t; };
+template<typename T> struct tuple_element<2, Magnum::Examples::tile_tuple<T>> { using type = Magnum::Examples::local_coords; };
 
 } // namespace std
 
 namespace Magnum::Examples {
 
 template<typename T>
-class basic_tile_iterator final {
-    T* ptr;
-    std::size_t pos = 0;
+struct tile_tuple {
+    tile_tuple(T* ptr, std::size_t pos) : data{ptr, pos} {}
+    tile_tuple(const tile_tuple<T>&) = default;
+    tile_tuple<T>& operator=(const tile_tuple<T>&) = default;
 
-public:
-    explicit basic_tile_iterator(T* ptr, std::size_t pos) noexcept : ptr(ptr), pos(pos) {}
-    ~basic_tile_iterator() noexcept = default;
+    template <std::size_t N>
+    typename std::tuple_element<N, tile_tuple<T>>::type get()
+    {
+        auto& [ptr, pos] = data;
+        if constexpr(N == 0)
+            return pos == TILE_COUNT ? ptr[0] : ptr[pos];
+        else if constexpr(N == 1)
+            return pos;
+        else if constexpr(N == 2)
+            return local_coords{pos};
+        else
+            return std::void_t<std::integral_constant<int, N>>();
+    }
 
-    basic_tile_iterator<T>& operator=(const basic_tile_iterator<T>&) = default;
-    basic_tile_iterator<T>& operator++() { pos++; return *this; }
-    basic_tile_iterator<T>  operator++(int) { auto tmp = *this; operator++(); return tmp; }
-    basic_tile_iterator<T>& operator*() { return *this; }
-    auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
-    void swap(basic_tile_iterator<T>& other);
-    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get() &;
-    template<std::size_t N> typename std::tuple_element<N, basic_tile_iterator<T>>::type get() const&;
+    template <std::size_t N>
+    typename std::tuple_element<N, const tile_tuple<const T>>::type get() const {
+        return const_cast<tile_tuple<T>&>(*this).get<N>();
+    }
+
+    auto operator<=>(const tile_tuple<T>&) const noexcept = default;
+
+protected:
+    std::tuple<T*, std::size_t> data = {nullptr, 0};
 };
 
-template <typename T>
-void basic_tile_iterator<T>::swap(basic_tile_iterator<T>& other)
-{
-    using std::swap;
-    swap(ptr, other.ptr);
-    swap(pos, other.pos);
-}
+} // namespace Magnum::Examples
 
-template <typename T>
-template <std::size_t N>
-typename std::tuple_element<N, basic_tile_iterator<T>>::type basic_tile_iterator<T>::get() &
-{
-    if constexpr(N == 0)
-        return pos == TILE_COUNT ? ptr[0] : ptr[pos];
-    else if constexpr(N == 1)
-        return pos;
-    else if constexpr(N == 2)
-        return local_coords{pos};
-    else
-        return std::void_t<std::integral_constant<int, N>>();
-}
+namespace Magnum::Examples {
 
-template <typename T>
-template <std::size_t N>
-typename std::tuple_element<N, basic_tile_iterator<T>>::type basic_tile_iterator<T>::get() const&
-{
-    return const_cast<basic_tile_iterator<T>&>(*this).get<N>();
-}
+template<typename T>
+class basic_tile_iterator final : private tile_tuple<T> {
+public:
+    explicit basic_tile_iterator(T* ptr, std::size_t pos) noexcept : tile_tuple<T>{ptr, pos} {}
+    basic_tile_iterator(const basic_tile_iterator&) = default;
+    basic_tile_iterator<T>& operator=(const basic_tile_iterator<T>&) = default;
+
+    auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
+    void swap(basic_tile_iterator<T>& other) { std::swap(this->data, other.data); }
+
+    basic_tile_iterator<T>& operator++() { auto& [ptr, pos] = this->data; pos++; return *this; }
+    basic_tile_iterator<T>  operator++(int) { auto tmp = *this; operator++(); return tmp; }
+    tile_tuple<T>* operator->() { return this; }
+    tile_tuple<T>& operator*() { return *this; }
+};
 
 extern template class basic_tile_iterator<tile>;
 extern template class basic_tile_iterator<const tile>;
