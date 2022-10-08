@@ -30,15 +30,12 @@ class basic_tile_iterator final {
     std::size_t pos = 0;
 
 public:
-    using value_type = std::tuple<T&, std::size_t, local_coords>;
-
     explicit basic_tile_iterator(T* ptr, std::size_t pos) noexcept : ptr(ptr), pos(pos) {}
     ~basic_tile_iterator() noexcept = default;
 
     basic_tile_iterator<T>& operator=(const basic_tile_iterator<T>&) = default;
     basic_tile_iterator<T>& operator++() { pos++; return *this; }
     basic_tile_iterator<T>  operator++(int) { auto tmp = *this; operator++(); return tmp; }
-    basic_tile_iterator<T>* operator->() { return this; }
     basic_tile_iterator<T>& operator*() { return *this; }
     auto operator<=>(const basic_tile_iterator<T>&) const noexcept = default;
     void swap(basic_tile_iterator<T>& other);
