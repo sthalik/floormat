@@ -1,59 +1,9 @@
-#include "tile-atlas.hpp"
-#include "loader.hpp"
-#include "shaders/tile-shader.hpp"
-#include "tile.hpp"
-#include "chunk.hpp"
-#include "floor-mesh.hpp"
-#include "wall-mesh.hpp"
-#include "compat/enum-bitset.hpp"
-
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
+#include "app.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
-#include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Trade/AbstractImporter.h>
-#include <Magnum/Timeline.h>
 
 namespace Magnum::Examples {
-
-struct app final : Platform::Application
-{
-    using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
-    using tile_atlas_ = std::shared_ptr<tile_atlas>;
-
-    explicit app(const Arguments& arguments);
-    virtual ~app();
-    void drawEvent() override;
-    void update(float dt);
-    void do_camera(float dt);
-    void reset_camera_offset();
-    void keyPressEvent(KeyEvent& event) override;
-    void keyReleaseEvent(KeyEvent& event) override;
-    void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
-    void draw_chunk(chunk& c);
-    void update_window_scale();
-
-    enum class key : int {
-        camera_up, camera_left, camera_right, camera_down, camera_reset,
-        quit,
-        MAX
-    };
-    chunk make_test_chunk();
-
-    tile_shader _shader;
-    tile_atlas_ floor1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
-    tile_atlas_ floor2 = loader.tile_atlas("share/game/images/floor1.tga", {4, 4});
-    tile_atlas_ wall1  = loader.tile_atlas("share/game/images/wood2.tga", {2, 2});
-    tile_atlas_ wall2  = loader.tile_atlas("share/game/images/wood1.tga", {2, 2});
-    chunk _chunk = make_test_chunk();
-    floor_mesh _floor_mesh;
-    wall_mesh _wall_mesh;
-
-    Vector2 camera_offset;
-    enum_bitset<key> keys;
-    Magnum::Timeline timeline;
-};
 
 app::app(const Arguments& arguments):
       Platform::Application{
