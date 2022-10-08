@@ -2,7 +2,7 @@
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Color.h>
+#include <Magnum/Math/Vector4.h>
 
 namespace Magnum::Examples {
 
@@ -17,14 +17,14 @@ struct tile_shader : GL::AbstractShaderProgram
     tile_shader& set_scale(const Vector2& scale);
     Vector2 camera_offset() const { return camera_offset_; }
     tile_shader& set_camera_offset(Vector2 camera_offset);
-    Color4 tint () const { return tint_; }
-    tile_shader& set_tint(const Color4& tint);
+    Vector4 tint() const { return tint_; }
+    tile_shader& set_tint(const Vector4& tint);
 
     static constexpr Vector2 project(Vector3 pt);
 
 private:
     Vector2 scale_, camera_offset_;
-    Color4 tint_;
+    Vector4 tint_;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };

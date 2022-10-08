@@ -14,10 +14,10 @@ namespace Magnum::Examples::wireframe
 
 GL::RectangleTexture wireframe::null::make_constant_texture()
 {
-    const Vector4ub pixel{255, 255, 255, 255};
+    const Vector4ub data[] = { {255, 255, 255, 255} };
     Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1).setAlignment(1),
                            PixelFormat::RGBA8Unorm, {1, 1}, {},
-                           Containers::arrayView(&pixel, 1), {}, {}};
+                           Containers::arrayView(data, 1), {}, {}};
     GL::RectangleTexture tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)

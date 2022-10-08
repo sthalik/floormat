@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
+#include <Magnum/Math/Vector4.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
@@ -43,7 +44,7 @@ tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
     return *this;
 }
 
-tile_shader& tile_shader::set_tint(const Color4& tint)
+tile_shader& tile_shader::set_tint(const Vector4& tint)
 {
     if (tint != tint_)
         setUniform(TintUniform, tint_ = tint);
