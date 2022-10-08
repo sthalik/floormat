@@ -33,8 +33,8 @@ struct app final : Platform::Application
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                        GL::DebugOutput::Severity severity, const std::string& str) const;
-    void register_debug_callback();
+                        GL::DebugOutput::Severity severity, Containers::StringView str) const;
+    void* register_debug_callback();
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
@@ -43,7 +43,7 @@ struct app final : Platform::Application
     };
     chunk make_test_chunk();
 
-    const void* const _dummy = (register_debug_callback(), nullptr);
+    const void* const _dummy = register_debug_callback();
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
     tile_atlas_ floor2 = loader.tile_atlas("share/game/images/floor1.tga", {4, 4});
