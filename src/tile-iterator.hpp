@@ -39,7 +39,7 @@ struct tile_tuple {
     {
         auto& [ptr, pos] = data;
         if constexpr(N == 0)
-            return pos == TILE_COUNT ? ptr[0] : ptr[pos];
+            return ptr[pos];
         else if constexpr(N == 1)
             return pos;
         else if constexpr(N == 2)
