@@ -24,7 +24,6 @@ concept traits = requires (const T& x) {
     {x.make_vertex_array() } -> std::same_as<std::array<Vector3, T::num_vertices>>;
 };
 
-
 struct null final
 {
     static constexpr auto primitive = GL::MeshPrimitive::Triangles;
@@ -58,7 +57,7 @@ struct wireframe_mesh final
     void draw(tile_shader& shader, T traits);
 
 private:
-    GL::Buffer _vertex_buffer{}, _texcoords_buffer{std::array<Vector2, T::num_vertices>{}};
+    GL::Buffer _vertex_buffer{std::array<Vector3, T::num_vertices>{}}, _texcoords_buffer{std::array<Vector2, T::num_vertices>{}};
     GL::RectangleTexture _texture = wireframe::null::make_constant_texture();
     GL::Mesh _mesh;
 };

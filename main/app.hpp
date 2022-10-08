@@ -9,6 +9,7 @@
 #include "compat/enum-bitset.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
+#include <Magnum/GL/DebugOutput.h>
 #include <memory>
 
 namespace Magnum::Examples {
@@ -28,8 +29,12 @@ struct app final : Platform::Application
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
+    void draw_wireframe();
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
+    void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+                        GL::DebugOutput::Severity severity, const std::string& str) const;
+    void register_debug_callback();
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
@@ -38,6 +43,7 @@ struct app final : Platform::Application
     };
     chunk make_test_chunk();
 
+    const void* const _dummy = (register_debug_callback(), nullptr);
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
     tile_atlas_ floor2 = loader.tile_atlas("share/game/images/floor1.tga", {4, 4});

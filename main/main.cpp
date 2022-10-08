@@ -39,6 +39,7 @@ void app::drawEvent() {
     }
 
     draw_chunk(_chunk);
+    draw_wireframe();
 
     swapBuffers();
     redraw();
@@ -47,8 +48,15 @@ void app::drawEvent() {
 
 void app::draw_chunk(chunk& c)
 {
+    _shader.set_tint({1, 1, 1, 1});
     _floor_mesh.draw(_shader, c);
     _wall_mesh.draw(_shader, c);
+}
+
+void app::draw_wireframe()
+{
+    _shader.set_tint({1.f, 0, 0, 1.f});
+    _wireframe_quad.draw(_shader, {{}, {TILE_SIZE[0], TILE_SIZE[1]}});
 }
 
 } // namespace Magnum::Examples

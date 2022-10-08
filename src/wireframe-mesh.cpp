@@ -5,21 +5,23 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/PixelFormat.h>
+#include <Magnum/PixelStorage.h>
 #include <Magnum/Trade/ImageData.h>
+#include <Magnum/ImageFlags.h>
 
 namespace Magnum::Examples::wireframe
 {
 
 GL::RectangleTexture wireframe::null::make_constant_texture()
 {
-    Trade::ImageData2D img{PixelFormat::RGBA8UI, {1, 1}, // NOLINT(misc-const-correctness)
+    Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1),
+                           PixelFormat::RGBA8UI, {1, 1},
                            Containers::Array<char>{Corrade::DirectInit, 4, (char)(unsigned char)255}};
-
     GL::RectangleTexture tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
        .setMinificationFilter(GL::SamplerFilter::Nearest)
-       .setMaxAnisotropy(0)
+       .setMaxAnisotropy(1)
        .setStorage(GL::textureFormat(img.format()), img.size())
        .setSubImage({}, std::move(img));
     return tex;
@@ -29,12 +31,13 @@ quad::vertex_array quad::make_vertex_array() const
 {
     constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
     constexpr float Z = 0;
-    return {{
+    vertex_array ret = {{
         { -X + center[0], -Y + center[1], Z + center[2] },
         {  X + center[0], -Y + center[1], Z + center[2] },
         {  X + center[0],  Y + center[1], Z + center[2] },
         { -X + center[0],  Y + center[1], Z + center[2] },
     }};
+    return ret;
 }
 
 quad::quad(Vector3 center, Vector2 size) : center(center), size(size) {}
@@ -46,6 +49,7 @@ namespace Magnum::Examples {
 template <wireframe::traits T> wireframe_mesh<T>::wireframe_mesh()
 {
     _mesh.setCount((int)T::num_vertices)
+         .setPrimitive(T::primitive)
          .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{})
          .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{});
     CORRADE_INTERNAL_ASSERT(!_mesh.isIndexed());

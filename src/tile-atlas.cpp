@@ -17,7 +17,7 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setMaxAnisotropy(0)
+        .setMaxAnisotropy(1)
         .setStorage(GL::textureFormat(image.format()), image.size())
         .setSubImage({}, image);
 }
