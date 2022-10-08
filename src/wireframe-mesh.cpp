@@ -14,9 +14,10 @@ namespace Magnum::Examples::wireframe
 
 GL::RectangleTexture wireframe::null::make_constant_texture()
 {
-    Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1),
-                           PixelFormat::RGBA8UI, {1, 1},
-                           Containers::Array<char>{Corrade::DirectInit, 4, (char)(unsigned char)255}};
+    const Vector4ub pixel{255, 255, 255, 255};
+    Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1).setAlignment(1),
+                           PixelFormat::RGBA8Unorm, {1, 1}, {},
+                           Containers::arrayView(&pixel, 1), {}, {}};
     GL::RectangleTexture tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
@@ -59,7 +60,7 @@ template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader,
 {
     GL::Renderer::setLineWidth(2);
     _vertex_buffer.setData(x.make_vertex_array(), GL::BufferUsage::DynamicDraw);
-    _texture.bind(0);
+    //_texture.bind(0);
     shader.draw(_mesh);
 }
 
