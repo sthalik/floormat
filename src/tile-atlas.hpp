@@ -8,8 +8,6 @@ namespace std::filesystem { class path; }
 
 namespace Magnum::Examples {
 
-constexpr inline Vector3 TILE_SIZE = { 64, 64, 64 };
-
 struct tile_atlas final
 {
     using quad = std::array<Vector3, 4>;

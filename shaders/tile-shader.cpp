@@ -29,8 +29,8 @@ tile_shader::tile_shader()
 
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
-    scale_ = scale;
-    setUniform(ScaleUniform, scale);
+    if (scale != scale_)
+        setUniform(ScaleUniform, scale_ = scale);
     return *this;
 }
 
@@ -38,8 +38,15 @@ tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
 {
     CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[0]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
     CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[1]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
-    camera_offset_ = camera_offset;
-    setUniform(OffsetUniform, camera_offset);
+    if (camera_offset != camera_offset_)
+        setUniform(OffsetUniform, camera_offset_ = camera_offset);
+    return *this;
+}
+
+tile_shader& tile_shader::set_tint(const Color4& tint)
+{
+    if (tint != tint_)
+        setUniform(TintUniform, tint_ = tint);
     return *this;
 }
 
