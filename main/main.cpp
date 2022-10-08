@@ -32,7 +32,7 @@ void app::drawEvent() {
     GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Never);
 #endif
 
-    update_window_scale();
+    update_window_scale(windowSize());
     {
         float dt = timeline.previousFrameDuration();
         update(dt);
@@ -51,44 +51,23 @@ void app::draw_chunk(chunk& c)
     _wall_mesh.draw(_shader, c);
 }
 
-void app::do_camera(float dt)
-{
-    constexpr float pixels_per_second = 512;
-    if (keys[key::camera_up])
-        camera_offset += Vector2(0, 1) * dt * pixels_per_second;
-    else if (keys[key::camera_down])
-        camera_offset += Vector2(0, -1)  * dt * pixels_per_second;
-    if (keys[key::camera_left])
-        camera_offset += Vector2(1, 0) * dt * pixels_per_second;
-    else if (keys[key::camera_right])
-        camera_offset += Vector2(-1, 0)  * dt * pixels_per_second;
-
-    _shader.set_camera_offset(camera_offset);
-
-    if (keys[key::camera_reset])
-        reset_camera_offset();
-}
-
-void app::reset_camera_offset()
-{
-    camera_offset = _shader.project({TILE_MAX_DIM*TILE_SIZE[0]/2.f, TILE_MAX_DIM*TILE_SIZE[1]/2.f, 0});
-    //camera_offset = {};
-}
-
-
-
 } // namespace Magnum::Examples
 
 MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)
 
 #ifdef _MSC_VER
-#   include <cstdlib>
-#   ifdef __clang__
-#       pragma clang diagnostic ignored "-Wmissing-prototypes"
-#       pragma clang diagnostic ignored "-Wmain"
-#   endif
+#include <cstdlib> // for __arg{c,v}
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wmain"
+#endif
+extern "C" int __stdcall WinMain(void*, void*, void*, int);
 
-extern "C" int __stdcall WinMain(void*, void*, void*, int /* nCmdShow */) {
+extern "C" int __stdcall WinMain(void*, void*, void*, int)
+{
     return main(__argc, __argv);
 }
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
 #endif

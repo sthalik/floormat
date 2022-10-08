@@ -7,7 +7,8 @@ app::app(const Arguments& arguments):
           arguments,
           Configuration{}
               .setTitle("Test")
-              .setSize({1024, 768}, dpi_policy::Physical),
+              .setSize({1024, 768}, dpi_policy::Physical)
+              .setWindowFlags(Configuration::WindowFlag::Resizable),
           GLConfiguration{}
               .setSampleCount(4)
               .setFlags(GLConfiguration::Flag::GpuValidation)
@@ -15,12 +16,6 @@ app::app(const Arguments& arguments):
 {
     reset_camera_offset();
     timeline.start();
-}
-
-void app::update_window_scale()
-{
-    auto sz = windowSize();
-    _shader.set_scale({ (float)sz[0], (float)sz[1] });
 }
 
 void app::update(float dt)

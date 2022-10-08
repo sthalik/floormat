@@ -28,7 +28,8 @@ struct app final : Platform::Application
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
-    void update_window_scale();
+    void update_window_scale(Vector2i window_size);
+    void viewportEvent(ViewportEvent& event) override;
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
