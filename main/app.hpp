@@ -3,10 +3,10 @@
 #include "chunk.hpp"
 #include "shaders/tile-shader.hpp"
 #include "src/loader.hpp"
-#include "floor-mesh.hpp"
-#include "wall-mesh.hpp"
-#include "wireframe-mesh.hpp"
-#include "wireframe-quad.hpp"
+#include "draw/floor-mesh.hpp"
+#include "draw/wall-mesh.hpp"
+#include "draw/wireframe-mesh.hpp"
+#include "draw/wireframe-quad.hpp"
 #include "compat/enum-bitset.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -44,13 +44,14 @@ struct app final : Platform::Application
     };
     chunk make_test_chunk();
 
-    const void* const _dummy = register_debug_callback();
+    const void* _dummy = register_debug_callback();
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2});
     tile_atlas_ floor2 = loader.tile_atlas("share/game/images/floor1.tga", {4, 4});
     tile_atlas_ wall1  = loader.tile_atlas("share/game/images/wood2.tga", {2, 2});
     tile_atlas_ wall2  = loader.tile_atlas("share/game/images/wood1.tga", {2, 2});
     chunk _chunk = make_test_chunk();
+
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     wireframe_mesh<wireframe::quad> _wireframe_quad;

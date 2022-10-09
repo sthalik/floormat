@@ -59,6 +59,7 @@ if(NOT BOOTSTRAP_DEPENDS)
     include_directories(src)
 
     add_subdirectory(src)
+    add_subdirectory(draw)
     add_subdirectory(main)
     add_subdirectory(anim-crop-tool)
     add_subdirectory(test)
