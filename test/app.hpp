@@ -9,5 +9,6 @@ struct app final : Platform::WindowlessWglApplication // NOLINT(cppcoreguideline
     int exec() override;
     static bool test_json();
     static bool test_tile_iter();
+    static bool test_const_math();
 };
 } // namespace Magnum::Examples

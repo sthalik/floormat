@@ -39,12 +39,12 @@ constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
 
 #define ABORT(...) ::Magnum::Examples::detail::abort(__VA_ARGS__)
 
-#define ASSERT(expr)                                                \
+#define ASSERT(...)                                                 \
     do {                                                            \
-        if (!(expr)) {                                              \
+        if (!(__VA_ARGS__)) {                                       \
             ::Magnum::Examples::detail::                            \
                 abort("assertion failed: '%s' in %s:%d",            \
-                      #expr, __FILE__, __LINE__);                   \
+                      #__VA_ARGS__, __FILE__, __LINE__);            \
         }                                                           \
     } while(false)
 

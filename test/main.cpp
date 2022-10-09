@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/assert.hpp"
 #include "loader.hpp"
 #include <filesystem>
 #include <Corrade/Containers/Pair.h>
@@ -26,6 +27,7 @@ int app::exec()
     bool ret = true;
     ret &= test_json();
     ret &= test_tile_iter();
+    ret &= test_const_math();
     return !ret;
 }
 

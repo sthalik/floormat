@@ -1,0 +1,72 @@
+#include "app.hpp"
+#include "compat/assert.hpp"
+#include <type_traits>
+#include <Magnum/Math/Vector.h>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
+#include <Magnum/Math/Vector4.h>
+
+#ifdef __GNUG__
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
+using namespace Magnum;
+using Magnum::Math::Vector;
+
+template<typename vec, typename f>
+static constexpr void test_float2()
+{
+    const vec a{(f)1, (f)2}, b{(f)2, (f)3};
+
+    ASSERT(a[0] == (f)1 && a[1] == (f)2);
+    ASSERT(a + b == vec{(f)3,  (f)5});
+    ASSERT(a - b == vec{(f)-1, (f)-1});
+    ASSERT(a * b == vec{(f)2,  (f)6});
+    ASSERT(b / a == vec{(f)2,  (f)1.5});
+    ASSERT(b.product() == (f)6);
+    ASSERT(b.sum() == (f)5);
+}
+
+template<typename ivec>
+static constexpr void test_int()
+{
+    using I = typename ivec::Type;
+    constexpr auto vec = [](auto x, auto y) { return ivec{(I)x, (I)y}; };
+    const auto a = vec(3, 5), b = vec(11, 7);
+
+    ASSERT(a[0] == 3 && a[1] == 5);
+    ASSERT(a + b == vec(14,12));
+    ASSERT(b - a == vec(8, 2));
+    ASSERT(b % a == vec(2, 2));
+    ASSERT(b / a == vec(3, 1));
+    ASSERT(a.product() == 15);
+    ASSERT(a.sum() == 8);
+}
+
+static constexpr void* compile_tests()
+{
+    test_float2<Vector<2, float>, float>();
+    test_float2<Vector<2, double>, double>();
+    test_float2<Vector2, float>();
+
+    test_int<Vector<2, int>>();
+    test_int<Vector<2, unsigned>>();
+    test_int<Vector<2, char>>();
+
+    return nullptr;
+}
+
+namespace Magnum::Examples {
+
+bool app::test_const_math()
+{
+    static_assert(compile_tests() == nullptr);
+    return true;
+}
+
+} // namespace Magnum::Examples
+
+#ifdef __GNUG__
+#   pragma GCC diagnostic pop
+#endif
