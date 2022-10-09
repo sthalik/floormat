@@ -34,7 +34,7 @@ void app::drawEvent() {
     GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Never);
 #endif
 
-    update_window_scale(windowSize());
+    //update_window_scale(windowSize());
     {
         float dt = timeline.previousFrameDuration();
         update(dt);

@@ -15,6 +15,7 @@ app::app(const Arguments& arguments):
       }
 {
     reset_camera_offset();
+    update_window_scale(windowSize());
     timeline.start();
 }
 

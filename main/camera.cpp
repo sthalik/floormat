@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include <Magnum/GL/DefaultFramebuffer.h>
 
 namespace Magnum::Examples {
 
@@ -34,6 +35,7 @@ void app::update_window_scale(Vector2i sz)
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     update_window_scale(event.windowSize());
+    GL::defaultFramebuffer.setViewport({{}, event.windowSize()});
 }
 
 } // namespace Magnum::Examples
