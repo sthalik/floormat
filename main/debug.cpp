@@ -28,9 +28,9 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     if (str.starts_with("Buffer detailed info: "))
         p = str.data() + sizeof("Buffer detailed info: ") - 1;
 
-    using millis = std::chrono::duration<double, std::milli>;
-    const auto t = std::chrono::duration_cast<millis>(clock.now() - t0).count();
-    printf("[%-9.1f] ", t);
+    using seconds = std::chrono::duration<double>;
+    const auto t = std::chrono::duration_cast<seconds>(clock.now() - t0).count();
+    printf("[%10.03f] ", t);
 
     switch (severity)
     {
@@ -41,7 +41,7 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     case High: std::fputs("ERROR ", stdout); break;
     default: std::fputs("????? ", stdout); break;
     }
-    printf("%6u: ", id);
+    printf("%6u ", id);
 
     std::puts(p);
     std::fflush(stdout);
