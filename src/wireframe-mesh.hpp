@@ -1,6 +1,5 @@
 #pragma once
 
-#include "tile-atlas.hpp"
 #include "tile-defs.hpp"
 #include <array>
 #include <utility>
@@ -20,16 +19,19 @@ namespace wireframe
 template<typename T>
 concept traits = requires (const T& x) {
     {T::num_vertices} -> std::convertible_to<std::size_t>;
+    {T::num_indexes} -> std::convertible_to<std::size_t>;
     {x.primitive} -> std::convertible_to<GL::MeshPrimitive>;
     {x.make_vertex_array() } -> std::same_as<std::array<Vector3, T::num_vertices>>;
+    {x.make_index_array() } -> std::same_as<std::array<UnsignedShort, T::num_indexes>>;
 };
 
 struct null final
 {
     static constexpr auto primitive = GL::MeshPrimitive::Triangles;
-    static constexpr std::size_t num_vertices = 0;
+    static constexpr std::size_t num_vertices = 0, num_indexes = 0;
     static GL::RectangleTexture make_constant_texture();
     static std::array<Vector3, 0> make_vertex_array() { return {}; }
+    static std::array<UnsignedShort, 0> make_index_array() { return {}; }
 };
 
 struct quad final
@@ -37,11 +39,14 @@ struct quad final
     quad(Vector3 center, Vector2 size);
     constexpr quad() = default;
 
-    static constexpr std::size_t num_vertices = 4;
-    static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::LineLoop;
+    static constexpr std::size_t num_vertices = 4, num_indexes = 6;
+    static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::Triangles;
 
     using vertex_array = std::array<Vector3, num_vertices>;
+    using index_array = std::array<UnsignedShort, num_indexes>;
+
     vertex_array make_vertex_array() const;
+    static index_array make_index_array() ;
 
 private:
     Vector3 center = {};
@@ -57,7 +62,9 @@ struct wireframe_mesh final
     void draw(tile_shader& shader, T traits);
 
 private:
-    GL::Buffer _vertex_buffer{std::array<Vector3, T::num_vertices>{}}, _texcoords_buffer{std::array<Vector2, T::num_vertices>{}};
+    GL::Buffer _vertex_buffer{std::array<Vector3, T::num_vertices>{}, GL::BufferUsage::DynamicDraw},
+               _texcoords_buffer{std::array<Vector2, T::num_vertices>{}, GL::BufferUsage::DynamicDraw},
+               _index_buffer{std::array<UnsignedShort , T::num_indexes>{}, GL::BufferUsage::DynamicDraw};
     GL::RectangleTexture _texture = wireframe::null::make_constant_texture();
     GL::Mesh _mesh;
 };
