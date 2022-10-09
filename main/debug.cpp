@@ -50,8 +50,10 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     std::fflush(stdout);
     std::fputs("", stdout); // put breakpoint here
 
+#if 0
     if (severity != Severity::Notification)
         std::abort();
+#endif
 
     std::fputs("", stdout); // put breakpoint here
 }

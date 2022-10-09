@@ -36,7 +36,7 @@ void app::drawEvent() {
 
     //update_window_scale(windowSize());
     {
-        float dt = timeline.previousFrameDuration();
+        float dt = std::min(1.f/20, timeline.previousFrameDuration());
         update(dt);
     }
 
