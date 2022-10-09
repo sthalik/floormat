@@ -59,7 +59,7 @@ void app::draw_wireframe()
     constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
     constexpr float N = TILE_MAX_DIM/2.f;
     const Vector3 center {(float)(X*N), (float)(Y*N), 0};
-    _shader.set_tint({1.f, 1.f, 0, 1.f});
+    _shader.set_tint({1, 0, 0, 1});
     _wireframe_quad.draw(_shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}});
     _shader.set_tint({1, 1, 1, 1});
 }

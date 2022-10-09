@@ -33,7 +33,7 @@ struct app final : Platform::Application
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                        GL::DebugOutput::Severity severity, Containers::StringView str) const;
+                        GL::DebugOutput::Severity severity, const std::string& str) const;
     void* register_debug_callback();
 
     enum class key : int {

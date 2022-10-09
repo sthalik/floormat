@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include <cstring>
+#include <chrono>
 #include <Magnum/GL/Renderer.h>
 
 namespace Magnum::Examples {
@@ -13,9 +13,10 @@ using GL::DebugOutput;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                         Severity severity, Containers::StringView str) const
+                         Severity severity, const std::string& str) const
 {
-    static thread_local auto t = progn(auto t = Magnum::Timeline{}; t.start(); return t; );
+    static thread_local auto clock = std::chrono::steady_clock{};
+    static const auto t0 = clock.now();
 
     [[maybe_unused]] volatile auto _type = type;
     [[maybe_unused]] volatile auto _id = id;
@@ -23,11 +24,13 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     [[maybe_unused]] volatile auto _severity = severity;
     [[maybe_unused]] volatile const char* _str = str.data();
 
-    const Containers::ArrayView<const char> prefix{"Buffer detailed info: "};
-    if (!std::strncmp(str.data(), prefix.data(), prefix.size()-1))
-        str = str.exceptPrefix(prefix.size()-1);
+    const char* p = str.c_str();
+    if (str.starts_with("Buffer detailed info: "))
+        p = str.data() + sizeof("Buffer detailed info: ") - 1;
 
-    printf("%12.2f ", (double)t.previousFrameTime() * 1000);
+    using millis = std::chrono::duration<double, std::milli>;
+    const auto t = std::chrono::duration_cast<millis>(clock.now() - t0).count();
+    printf("[%-9.1f] ", t);
 
     switch (severity)
     {
@@ -38,8 +41,9 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     case High: std::fputs("ERROR ", stdout); break;
     default: std::fputs("????? ", stdout); break;
     }
+    printf("%6u: ", id);
 
-    std::puts(str.data());
+    std::puts(p);
     std::fflush(stdout);
     std::fputs("", stdout); // put breakpoint here
 
@@ -50,7 +54,7 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                            GL::DebugOutput::Severity severity, Containers::StringView str, const void* self)
+                            GL::DebugOutput::Severity severity, const std::string& str, const void* self)
 {
     static_cast<const app*>(self)->debug_callback(src, type, id, severity, str);
 }
@@ -62,8 +66,10 @@ void* app::register_debug_callback()
     GL::DebugOutput::setCallback(_debug_callback, this);
     GL::DebugOutput::setEnabled(true);
 
+#if 0
     /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */
     GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false);
+#endif
 
     return nullptr;
 }
