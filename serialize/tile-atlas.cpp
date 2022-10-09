@@ -7,12 +7,12 @@
 #include <nlohmann/json.hpp>
 
 using namespace Magnum;
-using namespace Magnum::Examples;
+using namespace floormat;
 
 namespace nlohmann {
 
 using proxy_atlas = std::tuple<std::string, Vector2ui>;
-using shared_atlas = std::shared_ptr<Magnum::Examples::tile_atlas>;
+using shared_atlas = std::shared_ptr<floormat::tile_atlas>;
 
 void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
 {

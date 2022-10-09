@@ -7,7 +7,7 @@
 #include <optional>
 #include <memory>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_atlas;
 
@@ -29,4 +29,4 @@ protected:
 
 extern loader_& loader; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-} // namespace Magnum::Examples
+} // namespace floormat

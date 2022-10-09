@@ -7,7 +7,7 @@
 
 namespace std::filesystem { class path; }
 
-namespace Magnum::Examples::Serialize {
+namespace floormat::Serialize {
 
 struct anim_frame;
 
@@ -38,4 +38,4 @@ public:
     [[nodiscard]] bool dump(const std::filesystem::path& filename) const;
 };
 
-} // namespace Magnum::Examples::Serialize
+} // namespace floormat::Serialize

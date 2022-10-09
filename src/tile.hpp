@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_atlas;
 
@@ -31,4 +31,4 @@ struct tile final
     DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
 };
 
-} //namespace Magnum::Examples
+} //namespace floormat

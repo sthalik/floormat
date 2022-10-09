@@ -4,7 +4,7 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_shader : GL::AbstractShaderProgram
 {
@@ -35,4 +35,4 @@ constexpr Vector2 tile_shader::project(const Vector3 pt)
     return { x-y, (x+y+z*2)*.75f };
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

@@ -5,28 +5,28 @@
 #include <utility>
 #include <type_traits>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile;
 template<typename T> class basic_tile_iterator;
 template<typename T> struct tile_tuple;
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
 namespace std {
 
-template<typename T> struct tuple_size<Magnum::Examples::tile_tuple<T>> : std::integral_constant<std::size_t, 3> {};
+template<typename T> struct tuple_size<floormat::tile_tuple<T>> : std::integral_constant<std::size_t, 3> {};
 
-template<> struct tuple_element<0, Magnum::Examples::tile_tuple<Magnum::Examples::tile>> { using type = Magnum::Examples::tile&; };
-template<> struct tuple_element<0, Magnum::Examples::tile_tuple<const Magnum::Examples::tile>> { using type = const Magnum::Examples::tile&; };
-template<> struct tuple_element<0, const Magnum::Examples::tile_tuple<Magnum::Examples::tile>> { using type = const Magnum::Examples::tile&; };
+template<> struct tuple_element<0, floormat::tile_tuple<floormat::tile>> { using type = floormat::tile&; };
+template<> struct tuple_element<0, floormat::tile_tuple<const floormat::tile>> { using type = const floormat::tile&; };
+template<> struct tuple_element<0, const floormat::tile_tuple<floormat::tile>> { using type = const floormat::tile&; };
 
-template<typename T> struct tuple_element<1, Magnum::Examples::tile_tuple<T>> { using type = std::size_t; };
-template<typename T> struct tuple_element<2, Magnum::Examples::tile_tuple<T>> { using type = Magnum::Examples::local_coords; };
+template<typename T> struct tuple_element<1, floormat::tile_tuple<T>> { using type = std::size_t; };
+template<typename T> struct tuple_element<2, floormat::tile_tuple<T>> { using type = floormat::local_coords; };
 
 } // namespace std
 
-namespace Magnum::Examples {
+namespace floormat {
 
 template<typename T>
 struct tile_tuple {
@@ -59,9 +59,9 @@ protected:
     std::tuple<T*, std::size_t> data = {nullptr, 0};
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
-namespace Magnum::Examples {
+namespace floormat {
 
 template<typename T>
 class basic_tile_iterator final : private tile_tuple<T> {
@@ -82,13 +82,13 @@ public:
 extern template class basic_tile_iterator<tile>;
 extern template class basic_tile_iterator<const tile>;
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
 namespace std {
 
 template<typename Tile>
-class iterator_traits<Magnum::Examples::basic_tile_iterator<Tile>> {
-    using T = Magnum::Examples::basic_tile_iterator<Tile>;
+class iterator_traits<floormat::basic_tile_iterator<Tile>> {
+    using T = floormat::basic_tile_iterator<Tile>;
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T;

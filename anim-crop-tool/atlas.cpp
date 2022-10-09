@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
 
-using namespace Magnum::Examples::Serialize;
+using namespace floormat::Serialize;
 
 void anim_atlas_row::add_entry(const anim_atlas_entry& x)
 {

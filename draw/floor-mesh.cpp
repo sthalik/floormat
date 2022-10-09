@@ -5,7 +5,7 @@
 #include "tile-atlas.hpp"
 #include <Magnum/GL/MeshView.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 constexpr auto quad_index_count = 6;
 
@@ -75,4 +75,4 @@ std::array<std::array<Vector3, 4>, TILE_COUNT> floor_mesh::make_position_array()
     return array;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

@@ -5,7 +5,7 @@
 #include <Magnum/GL/RectangleTexture.h>
 #include <Magnum/GL/MeshView.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 constexpr auto quad_index_count = 6;
 
@@ -90,4 +90,4 @@ std::array<std::array<Vector3, 4>, wall_mesh::COUNT> wall_mesh::make_position_ar
     return array;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

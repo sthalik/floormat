@@ -8,7 +8,7 @@
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 tile_shader::tile_shader()
 {
@@ -51,4 +51,4 @@ tile_shader& tile_shader::set_tint(const Vector4& tint)
     return *this;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

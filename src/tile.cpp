@@ -1,5 +1,5 @@
 #include "tile.hpp"
 
-namespace Magnum::Examples {
+namespace floormat {
 
-} // namespace Magnum::Examples
+} // namespace floormat

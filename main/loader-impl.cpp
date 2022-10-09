@@ -16,7 +16,7 @@
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct loader_impl final : loader_
 {
@@ -117,4 +117,4 @@ static loader_& make_default_loader()
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 loader_& loader = make_default_loader();
 
-} // namespace Magnum::Examples
+} // namespace floormat

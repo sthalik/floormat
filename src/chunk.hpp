@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <array>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 template<typename F, typename Tile>
 concept tile_iterator_fn = requires(F fn, Tile& tile) {
@@ -36,4 +36,4 @@ private:
     std::array<tile, TILE_COUNT> _tiles = {};
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat

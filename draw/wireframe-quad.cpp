@@ -2,7 +2,7 @@
 #include <array>
 #include <Magnum/GL/Renderer.h>
 
-namespace Magnum::Examples::wireframe {
+namespace floormat::wireframe {
 
 quad::vertex_array quad::make_vertex_array() const
 {
@@ -22,4 +22,4 @@ void quad::on_draw() const
     GL::Renderer::setLineWidth(line_width);
 }
 
-} // namespace Magnum::Examples::wireframe
+} // namespace floormat::wireframe

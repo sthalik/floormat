@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 template<unsigned N = sizeof(std::size_t)*8> struct hash;
 
@@ -22,4 +22,4 @@ struct hash<64> final {
     }
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat

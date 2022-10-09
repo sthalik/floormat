@@ -4,7 +4,7 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
 
-namespace Magnum::Examples::wireframe {
+namespace floormat::wireframe {
 
 struct quad final
 {
@@ -25,4 +25,4 @@ private:
     float line_width;
 };
 
-} // namespace Magnum::Examples::wireframe
+} // namespace floormat::wireframe

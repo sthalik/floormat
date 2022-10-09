@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <type_traits>
 
-namespace Magnum::Examples::detail {
+namespace floormat::detail {
 
 template<std::size_t N, std::size_t M, typename... Xs>
 constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) noexcept
@@ -35,14 +35,14 @@ constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
     }
 }
 
-} // namespace Magnum::Examples::detail
+} // namespace floormat::detail
 
-#define ABORT(...) ::Magnum::Examples::detail::abort(__VA_ARGS__)
+#define ABORT(...) ::floormat::detail::abort(__VA_ARGS__)
 
 #define ASSERT(...)                                                 \
     do {                                                            \
         if (!(__VA_ARGS__)) {                                       \
-            ::Magnum::Examples::detail::                            \
+            ::floormat::detail::                            \
                 abort("assertion failed: '%s' in %s:%d",            \
                       #__VA_ARGS__, __FILE__, __LINE__);            \
         }                                                           \
@@ -55,7 +55,7 @@ constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
         return (var);                                               \
     })()
 
-#define WARN(...)       ::Magnum::Examples::detail::emit_debug("warning: ", __VA_ARGS__)
-#define ERR(...)        ::Magnum::Examples::detail::emit_debug("error: ", __VA_ARGS__)
-#define MESSAGE(...)    ::Magnum::Examples::detail::emit_debug("", __VA_ARGS__)
-#define DEBUG(...)      ::Magnum::Examples::detail::emit_debug("", __VA_ARGS__)
+#define WARN(...)       ::floormat::detail::emit_debug("warning: ", __VA_ARGS__)
+#define ERR(...)        ::floormat::detail::emit_debug("error: ", __VA_ARGS__)
+#define MESSAGE(...)    ::floormat::detail::emit_debug("", __VA_ARGS__)
+#define DEBUG(...)      ::floormat::detail::emit_debug("", __VA_ARGS__)

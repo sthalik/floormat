@@ -9,7 +9,7 @@
 #include <Magnum/GL/Mesh.h>
 #include "Magnum/GL/RectangleTexture.h"
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_shader;
 
@@ -60,4 +60,4 @@ template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader,
     mesh_base::draw(shader);
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

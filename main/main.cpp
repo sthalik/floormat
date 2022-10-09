@@ -5,7 +5,7 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Trade/AbstractImporter.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 chunk app::make_test_chunk()
 {
@@ -82,9 +82,9 @@ void app::draw_wireframe_box()
     _wireframe_box.draw(_shader, {center2, size, LINE_WIDTH});
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
-MAGNUM_APPLICATION_MAIN(Magnum::Examples::app)
+MAGNUM_APPLICATION_MAIN(floormat::app)
 
 #ifdef _MSC_VER
 #include <cstdlib> // for __arg{c,v}

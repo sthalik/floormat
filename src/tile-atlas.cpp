@@ -4,7 +4,7 @@
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Vector2ui dims) :
     name_{name},
@@ -37,4 +37,4 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id_) const
     }};
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

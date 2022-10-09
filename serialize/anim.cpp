@@ -6,15 +6,15 @@
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 
-namespace Magnum::Examples::Serialize {
+namespace floormat::Serialize {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups, width, height)
 
-} // namespace Magnum::Examples::Serialize
+} // namespace floormat::Serialize
 
-using namespace Magnum::Examples::Serialize;
+using namespace floormat::Serialize;
 
 namespace nlohmann {
 

@@ -1,6 +1,6 @@
 #pragma once
 
 namespace Magnum {}
-namespace GAME_PROJECT_NAME {
+namespace floormat {
     using namespace ::Magnum;
-} // namespace GAME_PROJECT_NAME
+} // namespace floormat

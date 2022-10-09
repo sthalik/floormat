@@ -14,7 +14,7 @@
 #include <Magnum/GL/DebugOutput.h>
 #include <memory>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct app final : Platform::Application
 {
@@ -64,4 +64,4 @@ struct app final : Platform::Application
     Magnum::Timeline timeline;
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat

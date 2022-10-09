@@ -3,7 +3,7 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Renderer.h>
 
-namespace Magnum::Examples::wireframe {
+namespace floormat::wireframe {
 
 box::box(Vector3 center, Vector3 size, float line_width) :
     center{center}, size{size}, line_width{line_width}
@@ -50,4 +50,4 @@ box::index_array box::make_index_array()
     }};
 }
 
-} // namespace Magnum::Examples::wireframe
+} // namespace floormat::wireframe

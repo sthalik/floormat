@@ -1,5 +1,5 @@
 #include "chunk.hpp"
 
-namespace Magnum::Examples {
+namespace floormat {
 
-} // namespace Magnum::Examples
+} // namespace floormat

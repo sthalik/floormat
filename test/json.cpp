@@ -9,7 +9,7 @@
 #include "chunk.hpp"
 #include "loader.hpp"
 
-namespace Magnum::Examples {
+namespace floormat {
 
 static chunk make_test_chunk()
 {
@@ -56,4 +56,4 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
     return ret;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

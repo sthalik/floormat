@@ -57,7 +57,7 @@ static constexpr void* compile_tests()
     return nullptr;
 }
 
-namespace Magnum::Examples {
+namespace floormat {
 
 bool app::test_const_math()
 {
@@ -65,7 +65,7 @@ bool app::test_const_math()
     return true;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop

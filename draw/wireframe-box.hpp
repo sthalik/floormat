@@ -2,7 +2,7 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
 
-namespace Magnum::Examples::wireframe {
+namespace floormat::wireframe {
 
 struct box final
 {
@@ -24,4 +24,4 @@ private:
     float line_width = 2;
 };
 
-} // namespace Magnum::Examples::wireframe
+} // namespace floormat::wireframe

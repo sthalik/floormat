@@ -1,5 +1,5 @@
 #include "app.hpp"
-namespace Magnum::Examples {
+namespace floormat {
 
 void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
 {
@@ -40,4 +40,4 @@ void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
     do_key(event.key(), event.modifiers(), false, false);
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

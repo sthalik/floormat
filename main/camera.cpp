@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 void app::do_camera(float dt)
 {
@@ -38,4 +38,4 @@ void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
     GL::defaultFramebuffer.setViewport({{}, event.windowSize()});
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

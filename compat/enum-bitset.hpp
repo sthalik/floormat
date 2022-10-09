@@ -1,7 +1,7 @@
 #pragma once
 #include <bitset>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 template<typename Enum>
 struct enum_bitset : std::bitset<(std::size_t)Enum::MAX> {
@@ -14,4 +14,4 @@ struct enum_bitset : std::bitset<(std::size_t)Enum::MAX> {
     }
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat

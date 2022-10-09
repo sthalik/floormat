@@ -7,7 +7,7 @@
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Magnum.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 app::app(const Arguments& arguments):
       Platform::WindowlessWglApplication{
@@ -31,11 +31,11 @@ int app::exec()
     return !ret;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
 int main(int argc, char** argv)
 {
-    Magnum::Examples::app application{{argc, argv}};
+    floormat::app application{{argc, argv}};
     return application.exec();
 }
 

@@ -10,7 +10,7 @@
 
 namespace std::filesystem { class path; }
 
-namespace Magnum::Examples::Serialize {
+namespace floormat::Serialize {
 
 struct anim_frame final
 {
@@ -41,26 +41,26 @@ struct anim final
     int actionframe = -1, fps = default_fps;
 };
 
-} // namespace Magnum::Examples::Serialize
+} // namespace floormat::Serialize
 
 namespace nlohmann {
 
 template<>
-struct adl_serializer<Magnum::Examples::Serialize::anim_frame> {
-    static void to_json(json& j, const Magnum::Examples::Serialize::anim_frame& val);
-    static void from_json(const json& j, Magnum::Examples::Serialize::anim_frame& val);
+struct adl_serializer<floormat::Serialize::anim_frame> {
+    static void to_json(json& j, const floormat::Serialize::anim_frame& val);
+    static void from_json(const json& j, floormat::Serialize::anim_frame& val);
 };
 
 template<>
-struct adl_serializer<Magnum::Examples::Serialize::anim_group> {
-    static void to_json(json& j, const Magnum::Examples::Serialize::anim_group& val);
-    static void from_json(const json& j, Magnum::Examples::Serialize::anim_group& val);
+struct adl_serializer<floormat::Serialize::anim_group> {
+    static void to_json(json& j, const floormat::Serialize::anim_group& val);
+    static void from_json(const json& j, floormat::Serialize::anim_group& val);
 };
 
 template<>
-struct adl_serializer<Magnum::Examples::Serialize::anim> {
-    static void to_json(json& j, const Magnum::Examples::Serialize::anim& val);
-    static void from_json(const json& j, Magnum::Examples::Serialize::anim& val);
+struct adl_serializer<floormat::Serialize::anim> {
+    static void to_json(json& j, const floormat::Serialize::anim& val);
+    static void from_json(const json& j, floormat::Serialize::anim& val);
 };
 
 } // namespace nlohmann

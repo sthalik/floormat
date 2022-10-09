@@ -2,7 +2,7 @@
 #include <chrono>
 #include <Magnum/GL/Renderer.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 using Feature = GL::Renderer::Feature;
 using Source = GL::DebugOutput::Source;
@@ -79,4 +79,4 @@ void* app::register_debug_callback()
     return nullptr;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

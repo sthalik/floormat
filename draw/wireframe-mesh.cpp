@@ -9,7 +9,7 @@
 #include <Magnum/PixelStorage.h>
 #include <Magnum/Trade/ImageData.h>
 
-namespace Magnum::Examples::wireframe
+namespace floormat::wireframe
 {
 
 GL::RectangleTexture mesh_base::make_constant_texture()
@@ -48,4 +48,4 @@ void mesh_base::draw(tile_shader& shader)
 }
 
 
-} // namespace Magnum::Examples::wireframe
+} // namespace floormat::wireframe

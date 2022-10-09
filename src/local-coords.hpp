@@ -5,7 +5,7 @@
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector3.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct local_coords final {
     std::uint8_t x = 0, y = 0;
@@ -29,4 +29,4 @@ constexpr local_coords::local_coords(std::size_t x, std::size_t y) noexcept
     ASSERT(x <= 0xff && y <= 0xff);
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

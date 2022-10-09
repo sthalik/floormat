@@ -8,7 +8,7 @@
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Buffer.h>
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_shader;
 struct chunk;
@@ -40,4 +40,4 @@ private:
     static std::array<std::array<Vector3, 4>, COUNT> make_position_array();
 };
 
-} // namespace Magnum::Examples
+} // namespace floormat

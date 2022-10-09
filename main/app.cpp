@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/fpu.hpp"
 
-namespace Magnum::Examples {
+namespace floormat {
 
 app::app(const Arguments& arguments):
       Platform::Application{
@@ -28,4 +28,4 @@ void app::update(float dt)
         Platform::Sdl2Application::exit(0);
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

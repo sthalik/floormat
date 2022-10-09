@@ -2,7 +2,7 @@
 #include "src/chunk.hpp"
 #include "compat/assert.hpp"
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct chunk_coords final {
     std::int16_t x = 0, y = 0;
@@ -26,4 +26,4 @@ constexpr chunk_coords global_coords::local() const noexcept {
     return {x_, y_};
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

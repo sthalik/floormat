@@ -28,7 +28,7 @@ using Corrade::Utility::Debug;
 
 using std::filesystem::path;
 
-using namespace Magnum::Examples::Serialize;
+using namespace floormat::Serialize;
 
 struct options
 {

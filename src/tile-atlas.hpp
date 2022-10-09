@@ -6,7 +6,7 @@
 
 namespace std::filesystem { class path; }
 
-namespace Magnum::Examples {
+namespace floormat {
 
 struct tile_atlas final
 {
@@ -72,4 +72,4 @@ constexpr tile_atlas::quad tile_atlas::wall_quad_N(const Vector3 center, const V
     }};
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat

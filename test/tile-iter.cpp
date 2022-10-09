@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "chunk.hpp"
-namespace Magnum::Examples {
+namespace floormat {
 
 static inline bool always_false()
 {
@@ -47,5 +47,5 @@ bool app::test_tile_iter() // NOLINT(readability-function-size)
     return true;
 }
 
-} // namespace Magnum::Examples
+} // namespace floormat
 
