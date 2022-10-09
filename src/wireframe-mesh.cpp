@@ -1,7 +1,5 @@
 #include "wireframe-mesh.hpp"
 #include "shaders/tile-shader.hpp"
-#include "tile-atlas.hpp"
-#include "compat/assert.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
@@ -14,7 +12,7 @@
 namespace Magnum::Examples::wireframe
 {
 
-GL::RectangleTexture wireframe::null::make_constant_texture()
+GL::RectangleTexture mesh_base::make_constant_texture()
 {
     const Vector4ub data[] = { {255, 255, 255, 255} };
     Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1).setAlignment(1),
@@ -30,42 +28,20 @@ GL::RectangleTexture wireframe::null::make_constant_texture()
     return tex;
 }
 
-quad::vertex_array quad::make_vertex_array() const
+mesh_base::mesh_base(GL::MeshPrimitive primitive, std::size_t num_vertices) :
+    _texcoords_buffer{std::vector<Vector2>{num_vertices}}
 {
-    constexpr auto X = TILE_SIZE[0]*.5f, Y = TILE_SIZE[1]*.5f;
-    return {{
-        { -X + center[0], -Y + center[1], center[2] },
-        {  X + center[0], -Y + center[1], center[2] },
-        {  X + center[0],  Y + center[1], center[2] },
-        { -X + center[0],  Y + center[1], center[2] },
-    }};
-}
-
-quad::quad(Vector3 center, Vector2 size) : center(center), size(size) {}
-
-} // namespace Magnum::Examples::wireframe
-
-namespace Magnum::Examples {
-
-template <wireframe::traits T> wireframe_mesh<T>::wireframe_mesh()
-{
-    _mesh.setCount((int)T::num_vertices)
-        .setPrimitive(T::primitive)
+    _mesh.setCount((int)num_vertices)
+        .setPrimitive(primitive)
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
         .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{});
 }
 
-template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
+void mesh_base::draw(tile_shader& shader)
 {
-    GL::Renderer::setLineWidth(3);
-    auto array = x.make_vertex_array();
-    _vertex_buffer.setSubData(0, array);
     _texture.bind(0);
     shader.draw(_mesh);
 }
 
-template struct wireframe_mesh<wireframe::null>;
-template struct wireframe_mesh<wireframe::quad>;
 
-} // namespace Magnum::Examples
-
+} // namespace Magnum::Examples::wireframe

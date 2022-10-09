@@ -20,51 +20,39 @@ template<typename T>
 concept traits = requires (const T& x) {
     {T::num_vertices} -> std::convertible_to<std::size_t>;
     {x.primitive} -> std::convertible_to<GL::MeshPrimitive>;
-    {x.make_vertex_array() } -> std::same_as<std::array<Vector3, T::num_vertices>>;
+    {x.make_vertex_array() } -> std::convertible_to<Containers::ArrayView<const void>>;
+    {x.on_draw()} -> std::same_as<void>;
 };
 
-struct null final
+struct mesh_base
 {
-    static constexpr auto primitive = GL::MeshPrimitive::Triangles;
-    static constexpr std::size_t num_vertices = 0;
     static GL::RectangleTexture make_constant_texture();
-    static std::array<Vector3, 0> make_vertex_array() { return {}; }
-};
+    GL::Buffer _vertex_buffer, _texcoords_buffer;
+    GL::RectangleTexture _texture = make_constant_texture();
+    GL::Mesh _mesh;
 
-struct quad final
-{
-    quad(Vector3 center, Vector2 size);
-
-    static constexpr std::size_t num_vertices = 4;
-    static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::LineLoop;
-
-    using vertex_array = std::array<Vector3, num_vertices>;
-
-    vertex_array make_vertex_array() const;
-
-private:
-    Vector3 center;
-    Vector2 size;
+    mesh_base(GL::MeshPrimitive primitive, std::size_t num_vertices);
+    void draw(tile_shader& shader);
 };
 
 } // namespace wireframe
 
 template<wireframe::traits T>
-struct wireframe_mesh final
+struct wireframe_mesh final : private wireframe::mesh_base
 {
     wireframe_mesh();
     void draw(tile_shader& shader, T traits);
-
-private:
-    GL::Buffer _vertex_buffer{std::array<Vector3, T::num_vertices>{}, GL::BufferUsage::DynamicDraw},
-               _texcoords_buffer{std::array<Vector2, T::num_vertices>{}, GL::BufferUsage::DynamicDraw};
-    GL::RectangleTexture _texture = wireframe::null::make_constant_texture();
-    GL::Mesh _mesh;
 };
 
-extern template struct wireframe_mesh<wireframe::null>;
-extern template struct wireframe_mesh<wireframe::quad>;
+template<wireframe::traits T>
+wireframe_mesh<T>::wireframe_mesh() :
+      wireframe::mesh_base{T::primitive, T::num_vertices}
+{}
 
-using wireframe_quad_mesh = wireframe_mesh<wireframe::quad>;
+template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
+{
+    _vertex_buffer.setData(x.make_vertex_array(), GL::BufferUsage::DynamicDraw);
+    mesh_base::draw(shader);
+}
 
 } // namespace Magnum::Examples
