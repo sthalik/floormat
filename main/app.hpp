@@ -7,6 +7,7 @@
 #include "draw/wall-mesh.hpp"
 #include "draw/wireframe-mesh.hpp"
 #include "draw/wireframe-quad.hpp"
+#include "draw/wireframe-box.hpp"
 #include "compat/enum-bitset.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -30,7 +31,8 @@ struct app final : Platform::Application
     void keyReleaseEvent(KeyEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
-    void draw_wireframe();
+    void draw_wireframe_quad();
+    void draw_wireframe_box();
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
@@ -55,6 +57,7 @@ struct app final : Platform::Application
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     wireframe_mesh<wireframe::quad> _wireframe_quad;
+    wireframe_mesh<wireframe::box> _wireframe_box;
 
     Vector2 camera_offset;
     enum_bitset<key> keys;

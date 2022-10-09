@@ -15,7 +15,7 @@ quad::vertex_array quad::make_vertex_array() const
     }};
 }
 
-quad::quad(Vector3 center, Vector2 size) : center(center), size(size) {}
+quad::quad(Vector3 center, Vector2 size, float line_width) : center(center), size(size), line_width{line_width} {}
 
 void quad::on_draw() const
 {

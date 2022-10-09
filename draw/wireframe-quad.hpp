@@ -6,27 +6,23 @@
 
 namespace Magnum::Examples::wireframe {
 
-template<typename T>
-struct wireframe_mesh;
-
 struct quad final
 {
-    quad(Vector3 center, Vector2 size);
+    quad(Vector3 center, Vector2 size, float line_width);
 
-    static constexpr std::size_t num_vertices = 4;
+    static constexpr std::size_t num_vertices = 4, num_indexes = 0;
     static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::LineLoop;
 
     using vertex_array = std::array<Vector3, num_vertices>;
 
+    static Containers::ArrayView<const void> make_index_array() { return {}; }
     vertex_array make_vertex_array() const;
     void on_draw() const;
 
 private:
     Vector3 center;
     Vector2 size;
-    float line_width = 2;
+    float line_width;
 };
-
-
 
 } // namespace Magnum::Examples::wireframe

@@ -1,0 +1,53 @@
+#include "wireframe-box.hpp"
+#include <array>
+#include <Magnum/Math/Vector3.h>
+#include <Magnum/GL/Renderer.h>
+
+namespace Magnum::Examples::wireframe {
+
+box::box(Vector3 center, Vector3 size, float line_width) :
+    center{center}, size{size}, line_width{line_width}
+{}
+
+box::vertex_array box::make_vertex_array() const
+{
+    const auto Sx = size[0]*.5f, Sy = size[1]*.5f, Sz = size[2];
+    const auto Cx_0 = center[0] - Sx, Cx_1 = center[0] + Sx;
+    const auto Cy_0 = center[1] - Sy, Cy_1 = center[1] + Sy;
+    const auto Cz_0 = center[2] + 0,  Cz_1 = center[2] + Sz;
+    return {{
+        {Cx_0, Cy_0, Cz_0}, // (0) left  front bottom
+        {Cx_1, Cy_0, Cz_0}, // (1) right front bottom
+        {Cx_0, Cy_1, Cz_0}, // (2) left  back  bottom
+        {Cx_1, Cy_1, Cz_0}, // (3) right back  bottom
+        {Cx_0, Cy_0, Cz_1}, // (4) left  front top
+        {Cx_1, Cy_0, Cz_1}, // (5) right front top
+        {Cx_0, Cy_1, Cz_1}, // (6) left  back  top
+        {Cx_1, Cy_1, Cz_1}, // (7) right back  top
+    }};
+}
+
+void box::on_draw() const
+{
+    GL::Renderer::setLineWidth(line_width);
+}
+
+box::index_array box::make_index_array()
+{
+    return {{
+        0, 1,
+        0, 2,
+        0, 4,
+        1, 3,
+        1, 5,
+        2, 3,
+        2, 6,
+        3, 7,
+        4, 5,
+        4, 6,
+        5, 7,
+        6, 7,
+    }};
+}
+
+} // namespace Magnum::Examples::wireframe

@@ -1,7 +1,7 @@
 #include "wireframe-mesh.hpp"
 #include "shaders/tile-shader.hpp"
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Array.h>
-#include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/ImageFlags.h>
 #include <Magnum/ImageView.h>
@@ -15,8 +15,7 @@ namespace Magnum::Examples::wireframe
 GL::RectangleTexture mesh_base::make_constant_texture()
 {
     const Vector4ub data[] = { {255, 255, 255, 255} };
-    Trade::ImageData2D img{PixelStorage{}.setImageHeight(1).setRowLength(1).setAlignment(1),
-                           PixelFormat::RGBA8Unorm, {1, 1}, {},
+    Trade::ImageData2D img{PixelFormat::RGBA8Unorm, {1, 1}, {},
                            Containers::arrayView(data, 1), {}, {}};
     GL::RectangleTexture tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
@@ -28,13 +27,18 @@ GL::RectangleTexture mesh_base::make_constant_texture()
     return tex;
 }
 
-mesh_base::mesh_base(GL::MeshPrimitive primitive, std::size_t num_vertices) :
-    _texcoords_buffer{std::vector<Vector2>{num_vertices}}
+mesh_base::mesh_base(GL::MeshPrimitive primitive, Containers::ArrayView<const void> index_data,
+                     std::size_t num_vertices, std::size_t num_indexes) :
+    _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}},
+    _texcoords_buffer{Containers::Array<Vector2>{ValueInit, num_vertices}},
+    _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}}
 {
-    _mesh.setCount((int)num_vertices)
+    _mesh.setCount((int)(num_indexes > 0 ? num_indexes : num_vertices))
         .setPrimitive(primitive)
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
         .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{});
+    if (num_indexes > 0)
+        _mesh.setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }
 
 void mesh_base::draw(tile_shader& shader)

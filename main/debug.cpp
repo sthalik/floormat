@@ -18,11 +18,14 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     static thread_local auto clock = std::chrono::steady_clock{};
     static const auto t0 = clock.now();
 
+#if 0
     [[maybe_unused]] volatile auto _type = type;
     [[maybe_unused]] volatile auto _id = id;
     [[maybe_unused]] volatile auto _src = src;
     [[maybe_unused]] volatile auto _severity = severity;
     [[maybe_unused]] volatile const char* _str = str.data();
+#endif
+    (void)src; (void)type;
 
     const char* p = str.c_str();
     if (str.starts_with("Buffer detailed info: "))
