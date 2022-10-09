@@ -16,14 +16,14 @@ box::vertex_array box::make_vertex_array() const
     const auto Cy_0 = center[1] - Sy, Cy_1 = center[1] + Sy;
     const auto Cz_0 = center[2] + 0,  Cz_1 = center[2] + Sz;
     return {{
-        {Cx_0, Cy_0, Cz_0}, // (0) left  front bottom
-        {Cx_1, Cy_0, Cz_0}, // (1) right front bottom
-        {Cx_0, Cy_1, Cz_0}, // (2) left  back  bottom
-        {Cx_1, Cy_1, Cz_0}, // (3) right back  bottom
-        {Cx_0, Cy_0, Cz_1}, // (4) left  front top
-        {Cx_1, Cy_0, Cz_1}, // (5) right front top
-        {Cx_0, Cy_1, Cz_1}, // (6) left  back  top
-        {Cx_1, Cy_1, Cz_1}, // (7) right back  top
+        {Cx_0, Cy_0, Cz_0}, // (0) front left  bottom
+        {Cx_1, Cy_0, Cz_0}, // (1) front right bottom
+        {Cx_0, Cy_1, Cz_0}, // (2) back  left  bottom
+        {Cx_1, Cy_1, Cz_0}, // (3) back  right bottom
+        {Cx_0, Cy_0, Cz_1}, // (4) front left  top
+        {Cx_1, Cy_0, Cz_1}, // (5) front right top
+        {Cx_0, Cy_1, Cz_1}, // (6) back  left  top
+        {Cx_1, Cy_1, Cz_1}, // (7) back  right top
     }};
 }
 

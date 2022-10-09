@@ -70,11 +70,11 @@ void app::draw_wireframe_quad()
 
 void app::draw_wireframe_box()
 {
-    constexpr float LINE_WIDTH = 1;
+    constexpr float LINE_WIDTH = 1.5;
 
     constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
     constexpr float N = TILE_MAX_DIM/2.f;
-    constexpr Vector3 size{TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]};
+    constexpr Vector3 size{TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]*1.5f};
     const Vector3 center1{X*(N+3), Y*(N+2), 0},
                   center2{X*(N-2), Y*(N-4), 0};
     _shader.set_tint({0, 1, 0, 1});
