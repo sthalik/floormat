@@ -15,7 +15,7 @@ using GL::DebugOutput;
 void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                          Severity severity, Containers::StringView str) const
 {
-    static thread_local Magnum::Timeline t{};
+    static thread_local auto t = progn(auto t = Magnum::Timeline{}; t.start(); return t; );
 
     [[maybe_unused]] volatile auto _type = type;
     [[maybe_unused]] volatile auto _id = id;
@@ -27,14 +27,16 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     if (!std::strncmp(str.data(), prefix.data(), prefix.size()-1))
         str = str.exceptPrefix(prefix.size()-1);
 
+    printf("%12.2f ", (double)t.previousFrameTime() * 1000);
+
     switch (severity)
     {
     using enum GL::DebugOutput::Severity;
-    case Notification: std::fputs("[DEBUG] ", stdout); break;
-    case Low: std::fputs("[INFO ] ", stdout); break;
-    case Medium: std::fputs("[NOTICE] ", stdout); break;
-    case High: std::fputs("[ERROR] ", stdout); break;
-    default: std::fputs("[?????] ", stdout); break;
+    case Notification: std::fputs("DEBUG ", stdout); break;
+    case Low: std::fputs("INFO  ", stdout); break;
+    case Medium: std::fputs("NOTICE ", stdout); break;
+    case High: std::fputs("ERROR ", stdout); break;
+    default: std::fputs("????? ", stdout); break;
     }
 
     std::puts(str.data());

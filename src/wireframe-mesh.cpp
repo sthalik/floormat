@@ -1,6 +1,7 @@
 #include "wireframe-mesh.hpp"
 #include "shaders/tile-shader.hpp"
 #include "tile-atlas.hpp"
+#include "compat/assert.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
@@ -31,23 +32,13 @@ GL::RectangleTexture wireframe::null::make_constant_texture()
 
 quad::vertex_array quad::make_vertex_array() const
 {
-#if 0
-    constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    constexpr float Z = 0;
+    constexpr auto X = TILE_SIZE[0]*.5f, Y = TILE_SIZE[1]*.5f;
     return {{
-        { -X + center[0], -Y + center[1], Z + center[2] },
-        {  X + center[0], -Y + center[1], Z + center[2] },
-        {  X + center[0],  Y + center[1], Z + center[2] },
-        { -X + center[0],  Y + center[1], Z + center[2] },
+        { -X + center[0], -Y + center[1], center[2] },
+        {  X + center[0], -Y + center[1], center[2] },
+        {  X + center[0],  Y + center[1], center[2] },
+        { -X + center[0],  Y + center[1], center[2] },
     }};
-#else
-    return tile_atlas::floor_quad(center, {TILE_SIZE[0], TILE_SIZE[1]});
-#endif
-}
-
-quad::index_array quad::make_index_array()
-{
-    return tile_atlas::indices(0);
 }
 
 quad::quad(Vector3 center, Vector2 size) : center(center), size(size) {}
@@ -58,17 +49,17 @@ namespace Magnum::Examples {
 
 template <wireframe::traits T> wireframe_mesh<T>::wireframe_mesh()
 {
-    _mesh.setCount((int)T::num_indexes)
-         .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{})
-         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
-         .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
+    _mesh.setCount((int)T::num_vertices)
+        .setPrimitive(T::primitive)
+        .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
+        .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{});
 }
 
 template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
 {
-    GL::Renderer::setLineWidth(2);
-    _vertex_buffer.setSubData(0, x.make_vertex_array());
-    _index_buffer.setSubData(0, x.make_index_array());
+    GL::Renderer::setLineWidth(3);
+    auto array = x.make_vertex_array();
+    _vertex_buffer.setSubData(0, array);
     _texture.bind(0);
     shader.draw(_mesh);
 }
