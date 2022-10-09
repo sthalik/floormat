@@ -58,6 +58,14 @@ if(NOT BOOTSTRAP_DEPENDS)
     include_directories(.)
     include_directories(src)
 
+if(MSVC)
+    add_definitions(-FI"compat/prelude.hpp")
+else()
+    # GCC or Clang
+    add_definitions(-include compat/prelude.hpp)
+endif()
+
+    add_definitions(-DGAME_PROJECT_NAME=floormat)
     add_subdirectory(src)
     add_subdirectory(draw)
     add_subdirectory(main)

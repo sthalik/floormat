@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/fpu.hpp"
 
 namespace Magnum::Examples {
 
@@ -14,6 +15,7 @@ app::app(const Arguments& arguments):
               .setFlags(GLConfiguration::Flag::GpuValidation)
       }
 {
+    set_fp_mask();
     reset_camera_offset();
     update_window_scale(windowSize());
     timeline.start();
