@@ -14,18 +14,18 @@
 using namespace Magnum;
 using Magnum::Math::Vector;
 
-template<typename vec, typename f>
+template<typename vec, typename T>
 static constexpr void test_float2()
 {
-    const vec a{(f)1, (f)2}, b{(f)2, (f)3};
+    const vec a{(T)1, (T)2}, b{(T)2, (T)3};
 
-    ASSERT(a[0] == (f)1 && a[1] == (f)2);
-    ASSERT(a + b == vec{(f)3,  (f)5});
-    ASSERT(a - b == vec{(f)-1, (f)-1});
-    ASSERT(a * b == vec{(f)2,  (f)6});
-    ASSERT(b / a == vec{(f)2,  (f)1.5});
-    ASSERT(b.product() == (f)6);
-    ASSERT(b.sum() == (f)5);
+    ASSERT(a[0] == (T)1 && a[1] == (T)2);
+    ASSERT(a + b == vec{(T)3,  (T)5});
+    ASSERT(a - b == vec{(T)-1, (T)-1});
+    ASSERT(a * b == vec{(T)2,  (T)6});
+    ASSERT(b / a == vec{(T)2,  (T)1.5});
+    ASSERT(b.product() == (T)6);
+    ASSERT(b.sum() == (T)5);
 }
 
 template<typename ivec>
