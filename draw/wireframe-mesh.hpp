@@ -29,7 +29,7 @@ concept traits = requires (const T& x) {
 struct mesh_base
 {
     static GL::RectangleTexture make_constant_texture();
-    GL::Buffer _vertex_buffer, _texcoords_buffer, _index_buffer;
+    GL::Buffer _vertex_buffer{{}, GL::BufferUsage::DynamicDraw}, _texcoords_buffer, _index_buffer;
     GL::RectangleTexture _texture = make_constant_texture();
     GL::Mesh _mesh;
 
