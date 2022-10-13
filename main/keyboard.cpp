@@ -1,4 +1,6 @@
 #include "app.hpp"
+#include <Magnum/ImGuiIntegration/Context.hpp>
+
 namespace floormat {
 
 void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
@@ -32,11 +34,15 @@ app::~app()
 
 void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
+    if (_imgui.handleKeyPressEvent(event))
+        return event.setAccepted();
     do_key(event.key(), event.modifiers(), true, event.isRepeated());
 }
 
 void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
+    if (_imgui.handleKeyReleaseEvent(event))
+        return event.setAccepted();
     do_key(event.key(), event.modifiers(), false, false);
 }
 

@@ -45,7 +45,8 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
         ret &= json_helper::to_json(v2i_2, output_dir/"vec2i_2.json");
     }
     {
-        Magnum::Math::Vector3 vec{0.f/0, -1.f/0, 123.f};
+        volatile float zero = 0;
+        Magnum::Math::Vector3 vec{0.f/zero, -1.f/zero, 123.f};
         ret &= json_helper::to_json(vec, output_dir/"vec3_inf.json");
     }
     {

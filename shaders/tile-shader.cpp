@@ -26,6 +26,7 @@ tile_shader::tile_shader()
 
     set_scale({640, 480});
     set_camera_offset({0, 0});
+    set_tint({1, 1, 1, 1});
 }
 
 tile_shader& tile_shader::set_scale(const Vector2& scale)

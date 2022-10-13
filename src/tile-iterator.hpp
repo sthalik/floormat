@@ -2,6 +2,7 @@
 
 #include "local-coords.hpp"
 #include <iterator>
+#include <tuple>
 #include <utility>
 #include <type_traits>
 

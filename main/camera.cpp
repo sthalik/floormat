@@ -32,10 +32,4 @@ void app::update_window_scale(Vector2i sz)
     _shader.set_scale(Vector2{sz});
 }
 
-void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
-{
-    update_window_scale(event.windowSize());
-    GL::defaultFramebuffer.setViewport({{}, event.windowSize()});
-}
-
 } // namespace floormat

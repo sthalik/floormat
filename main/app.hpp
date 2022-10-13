@@ -12,6 +12,7 @@
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
+#include <Magnum/ImGuiIntegration/Context.h>
 #include <memory>
 
 namespace floormat {
@@ -29,12 +30,21 @@ struct app final : Platform::Application
     void reset_camera_offset();
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
+    void mousePressEvent(MouseEvent& event) override;
+    void mouseReleaseEvent(MouseEvent& event) override;
+    void mouseMoveEvent(MouseMoveEvent& event) override;
+    void mouseScrollEvent(MouseScrollEvent& event) override;
+    void textInputEvent(TextInputEvent& event) override;
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
     void draw_wireframe_quad();
     void draw_wireframe_box();
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
+    void draw_menu();
+    void draw_menu_bar();
+    void setup_menu();
+    void display_menu();
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
     void* register_debug_callback();
@@ -58,6 +68,8 @@ struct app final : Platform::Application
     wall_mesh _wall_mesh;
     wireframe_mesh<wireframe::quad> _wireframe_quad;
     wireframe_mesh<wireframe::box> _wireframe_box;
+
+    ImGuiIntegration::Context _imgui{NoCreate};
 
     Vector2 camera_offset;
     enum_bitset<key> keys;

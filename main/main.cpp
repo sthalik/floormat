@@ -43,6 +43,8 @@ void app::drawEvent() {
     draw_chunk(_chunk);
     draw_wireframe_quad();
     draw_wireframe_box();
+    draw_menu();
+    display_menu();
 
     swapBuffers();
     redraw();
