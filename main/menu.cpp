@@ -4,29 +4,47 @@
 
 namespace floormat {
 
-template<typename F>
+constexpr inline auto noop = []{};
+
 struct raii_wrapper final
 {
-    raii_wrapper(F&& fn) : dtor{fn} {}
-    [[no_unique_address]] F dtor;
+    using F = void(*)(void);
+    raii_wrapper(bool ok = false, F fn = noop) : dtor{fn}, ok{ok} {}
     inline ~raii_wrapper() { dtor(); }
-    raii_wrapper(const raii_wrapper<F>&) = delete;
-    raii_wrapper<F>& operator=(const raii_wrapper<F>&) = delete;
+    raii_wrapper(const raii_wrapper&) = delete;
+    raii_wrapper& operator=(const raii_wrapper&) = delete;
+    raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor}, ok{other.ok} { other.dtor = noop; }
+    inline operator bool() const noexcept { return ok; }
+
+    [[no_unique_address]] F dtor;
+    const bool ok;
 };
 
 constexpr inline const auto* imgui_name = "floormat editor";
 
-[[nodiscard]] static auto gui_begin() {
-    ImGui::Begin(imgui_name, nullptr, ImGuiWindowFlags_::ImGuiWindowFlags_NoMove);
-    return raii_wrapper{[]{ ImGui::End(); }};
+#if 0
+[[nodiscard]] static raii_wrapper gui_begin() {
+    using f = ImGuiWindowFlags_;
+    int flags = 0;
+    //flags |= ImGuiWindowFlags_AlwaysAutoResize;
+    flags |= f::ImGuiWindowFlags_NoDecoration;
+    if (ImGui::Begin(imgui_name, nullptr, flags))
+        return {true, []{ ImGui::End(); }};
+    else
+        return {};
 }
-[[nodiscard]] static auto begin_main_menu() {
-    ImGui::BeginMainMenuBar();
-    return raii_wrapper{[] { ImGui::EndMainMenuBar(); }};
+#endif
+[[nodiscard]] static raii_wrapper begin_main_menu() {
+    if (ImGui::BeginMainMenuBar())
+        return raii_wrapper{true, [] { ImGui::EndMainMenuBar(); }};
+    else
+        return {};
 }
-[[nodiscard]] static auto begin_menu(const char* name, bool enabled = true) {
-    ImGui::BeginMenu(name, enabled);
-    return raii_wrapper{[] { ImGui::EndMenu(); }};
+[[nodiscard]] static raii_wrapper begin_menu(const char* name, bool enabled = true) {
+    if (ImGui::BeginMenu(name, enabled))
+        return raii_wrapper{true, [] { ImGui::EndMenu(); }};
+    else
+        return {};
 }
 
 void app::setup_menu()
@@ -54,29 +72,29 @@ void app::draw_menu()
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    auto b = gui_begin();
     draw_menu_bar();
 }
 
 void app::draw_menu_bar()
 {
-    auto bm = begin_main_menu();
+    if (auto b = begin_main_menu())
     {
-        auto m = begin_menu("File");
-        ImGui::MenuItem("Open");
-        ImGui::MenuItem("Recent");
-        ImGui::Separator();
-        ImGui::MenuItem("Save");
-        ImGui::MenuItem("Save as...");
-        ImGui::Separator();
-        ImGui::MenuItem("Close");
-    }
-    {
-        auto m = begin_menu("Mode");
-        ImGui::MenuItem("Select", "F1");
-        ImGui::MenuItem("Floors", "F2");
-        ImGui::MenuItem("Walls", "F3");
-        ImGui::MenuItem("Floors", "F4");
+        if (auto b = begin_menu("File"))
+        {
+            ImGui::MenuItem("Open", "Ctrl+O");
+            ImGui::MenuItem("Recent");
+            ImGui::Separator();
+            ImGui::MenuItem("Save", "Ctrl+S");
+            ImGui::MenuItem("Save as...", "Ctrl+Shift+S");
+            ImGui::Separator();
+            ImGui::MenuItem("Close");
+        }
+        if (auto b = begin_menu("Mode"))
+        {
+            ImGui::MenuItem("Select", "F1", _editor_mode == editor_mode::select);
+            ImGui::MenuItem("Floors", "F2", _editor_mode == editor_mode::floors);
+            ImGui::MenuItem("Walls", "F3", _editor_mode == editor_mode::walls);
+        }
     }
 }
 

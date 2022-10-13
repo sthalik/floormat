@@ -9,6 +9,7 @@
 #include "draw/wireframe-quad.hpp"
 #include "draw/wireframe-box.hpp"
 #include "compat/enum-bitset.hpp"
+#include "editor.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
@@ -74,6 +75,7 @@ struct app final : Platform::Application
     Vector2 camera_offset;
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
+    editor_mode _editor_mode = editor_mode{};
 };
 
 } // namespace floormat

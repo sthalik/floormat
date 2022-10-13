@@ -29,7 +29,7 @@ GL::RectangleTexture mesh_base::make_constant_texture()
 
 mesh_base::mesh_base(GL::MeshPrimitive primitive, Containers::ArrayView<const void> index_data,
                      std::size_t num_vertices, std::size_t num_indexes) :
-    _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}},
+    _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
     _texcoords_buffer{Containers::Array<Vector2>{ValueInit, num_vertices}},
     _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}}
 {

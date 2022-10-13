@@ -23,7 +23,7 @@ app::app(const Arguments& arguments):
     reset_camera_offset();
     update_window_scale(windowSize());
     setMinimalLoopPeriod(5);
-    _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
+    _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
     setup_menu();
     timeline.start();
 }

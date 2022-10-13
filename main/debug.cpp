@@ -71,7 +71,7 @@ void* app::register_debug_callback()
     GL::DebugOutput::setCallback(_debug_callback, this);
     GL::DebugOutput::setEnabled(true);
 
-#if 0
+#if 1
     /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */
     GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false);
 #endif
