@@ -9,15 +9,16 @@ constexpr inline auto noop = []{};
 struct raii_wrapper final
 {
     using F = void(*)(void);
-    raii_wrapper(bool ok = false, F fn = noop) : dtor{fn}, ok{ok} {}
-    inline ~raii_wrapper() { dtor(); }
+    raii_wrapper(F fn) : dtor{fn} {}
+    raii_wrapper() = default;
+    ~raii_wrapper() { if (dtor) dtor(); }
     raii_wrapper(const raii_wrapper&) = delete;
     raii_wrapper& operator=(const raii_wrapper&) = delete;
-    raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor}, ok{other.ok} { other.dtor = noop; }
-    inline operator bool() const noexcept { return ok; }
+    raii_wrapper& operator=(raii_wrapper&&) = delete;
+    raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor} { other.dtor = nullptr; }
+    inline operator bool() const noexcept { return dtor != nullptr; }
 
-    [[no_unique_address]] F dtor;
-    const bool ok;
+    F dtor = nullptr;
 };
 
 constexpr inline const auto* imgui_name = "floormat editor";
@@ -29,20 +30,20 @@ constexpr inline const auto* imgui_name = "floormat editor";
     //flags |= ImGuiWindowFlags_AlwaysAutoResize;
     flags |= f::ImGuiWindowFlags_NoDecoration;
     if (ImGui::Begin(imgui_name, nullptr, flags))
-        return {true, []{ ImGui::End(); }};
+        return {&ImGui::End; };
     else
         return {};
 }
 #endif
 [[nodiscard]] static raii_wrapper begin_main_menu() {
     if (ImGui::BeginMainMenuBar())
-        return raii_wrapper{true, [] { ImGui::EndMainMenuBar(); }};
+        return raii_wrapper{&ImGui::EndMainMenuBar};
     else
         return {};
 }
 [[nodiscard]] static raii_wrapper begin_menu(const char* name, bool enabled = true) {
     if (ImGui::BeginMenu(name, enabled))
-        return raii_wrapper{true, [] { ImGui::EndMenu(); }};
+        return raii_wrapper{&ImGui::EndMenu};
     else
         return {};
 }
