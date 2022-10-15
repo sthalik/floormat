@@ -1,6 +1,7 @@
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include <Corrade/Containers/StringView.h>
+#include <Magnum/Math/Color.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -18,6 +19,7 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(1)
+        .setBorderColor(Color4{1, 0, 0, 1})
         .setStorage(GL::textureFormat(image.format()), image.size())
         .setSubImage({}, image);
 }
