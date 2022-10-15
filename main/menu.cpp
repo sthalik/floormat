@@ -75,6 +75,13 @@ void app::draw_menu()
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
+    auto& style = ImGui::GetStyle();
+    ImGui::StyleColorsDark(&style);
+    style.WindowPadding = {8, 8};
+    style.WindowBorderSize = {};
+    style.Colors[ImGuiCol_WindowBg] = {0, 0, 0, .5};
+    style.Colors[ImGuiCol_FrameBg] = {0, 0, 0, 0};
+
     ImVec2 main_menu_pos;
 
     if (auto b = begin_main_menu())
@@ -91,21 +98,15 @@ void app::draw_menu()
         }
         if (auto b = begin_menu("Mode"))
         {
-            ImGui::MenuItem("Select", "F1", _editor.mode == editor_mode::select);
-            ImGui::MenuItem("Floors", "F2", _editor.mode == editor_mode::floors);
-            ImGui::MenuItem("Walls", "F3", _editor.mode == editor_mode::walls);
+            ImGui::MenuItem("Select", "F1", _editor.mode() == editor_mode::select);
+            ImGui::MenuItem("Floors", "F2", _editor.mode() == editor_mode::floors);
+            ImGui::MenuItem("Walls", "F3", _editor.mode() == editor_mode::walls);
         }
         main_menu_pos = ImGui::GetContentRegionMax();
     }
     if (main_menu_pos.y > 0)
     {
-        auto& style = ImGui::GetStyle();
-        ImGui::StyleColorsDark(&style);
-        style.WindowPadding = {8, 8};
-        style.WindowBorderSize = {};
-        style.Colors[ImGuiCol_WindowBg] = {0, 0, 0, .5};
-        style.Colors[ImGuiCol_FrameBg] = {0, 0, 0, 0};
-
+        return;
         ImGui::SetNextWindowPos({0, main_menu_pos.y+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
         if (auto b = begin_window(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings))
@@ -113,11 +114,23 @@ void app::draw_menu()
             ImGui::Text("Items:");
             //ImGui::SetNextWindowBgAlpha(.2f);
 
-            if (auto b = begin_list_box("##tiles", {-FLT_MIN, 100}))
+            if (auto b = begin_list_box("##tiles", {200, 200}))
             {
-                for (const auto& label : {"foo", "bar", "baz"})
+                for (const auto& [k, v] : _editor.floors())
                 {
-                    ImGui::Selectable(label);
+                    const std::size_t N = v->num_tiles().product();
+                    ImGui::CollapsingHeader(k.data());
+                    constexpr std::size_t per_row = 8;
+                    for (std::size_t i = 0; i < N; i++)
+                    {
+                        if (i > 0 && i % per_row == 0)
+                            ImGui::NewLine();
+                        const auto uv = v->texcoords_for_id(i);
+                        ImGui::Image((void*)0,
+                                     {TILE_SIZE[0], TILE_SIZE[1]},
+                                     { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] },
+                                     {1, 1, 1, 1}, {1, 1, 1, 1});
+                    }
                 }
             }
         }

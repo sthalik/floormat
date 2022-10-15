@@ -19,12 +19,15 @@ app::app(const Arguments& arguments):
               .setFlags(GLConfiguration::Flag::GpuValidation)
       }
 {
+    if (!setSwapInterval(-1))
+        (void)setSwapInterval(1);
     set_fp_mask();
     reset_camera_offset();
     update_window_scale(windowSize());
     setMinimalLoopPeriod(5);
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
     setup_menu();
+    SDL_MaximizeWindow(window());
     timeline.start();
 }
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)

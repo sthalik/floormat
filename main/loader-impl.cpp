@@ -1,6 +1,7 @@
 #include "loader.hpp"
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
+#include "compat/alloca.hpp"
 #include <filesystem>
 #include <unordered_map>
 #include <utility>
@@ -62,16 +63,21 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name,
     return atlas;
 }
 
-Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename)
+Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
 {
+    static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
+
+    char* const filename = (char*)alloca(filename_.size() + sizeof(IMAGE_PATH));
+    std::memcpy(filename, IMAGE_PATH, sizeof(IMAGE_PATH)-1);
+    std::strcpy(filename + sizeof(IMAGE_PATH)-1, filename_.cbegin());
     if (!tga_importer || !tga_importer->openFile(filename)) {
         const auto path = Utility::Path::currentDirectory();
         MESSAGE("note: current working directory: '%s'", path->data());
-        ABORT("can't open tile image '%s'", filename.cbegin());
+        ABORT("can't open tile image '%s'", filename);
     }
     auto img = tga_importer->image2D(0);
     if (!img)
-        ABORT("can't allocate tile image for '%s'", filename.cbegin());
+        ABORT("can't allocate tile image for '%s'", filename);
     auto ret = std::move(*img);
     return ret;
 }

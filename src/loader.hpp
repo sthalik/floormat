@@ -7,6 +7,8 @@
 #include <optional>
 #include <memory>
 
+#define IMAGE_PATH "share/game/images/"
+
 namespace floormat {
 
 struct tile_atlas;
