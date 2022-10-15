@@ -1,5 +1,6 @@
 {
-    "name": "test",
+    "object_name": "test",
+    "anim_name": "walk",
     "width": 0, "height": 0,
     "nframes": 0, "fps": 24,
     "actionframe": 0,

@@ -31,8 +31,7 @@ void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     update_window_scale(event.windowSize());
     GL::defaultFramebuffer.setViewport({{}, event.windowSize()});
-    _imgui.relayout(Vector2{event.windowSize()}/event.dpiScaling(),
-                    event.windowSize(), event.framebufferSize());
+    _imgui.relayout(Vector2{event.windowSize()}, event.windowSize(), event.framebufferSize());
 }
 
 
@@ -63,7 +62,7 @@ void app::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 void app::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
 {
     if (_imgui.handleTextInputEvent(event))
-        return event.setAccepted();
+        return keys = {}, event.setAccepted();
 }
 
 void app::update(float dt)

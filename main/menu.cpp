@@ -23,27 +23,29 @@ struct raii_wrapper final
 
 constexpr inline const auto* imgui_name = "floormat editor";
 
-#if 0
-[[nodiscard]] static raii_wrapper gui_begin() {
-    using f = ImGuiWindowFlags_;
-    int flags = 0;
-    //flags |= ImGuiWindowFlags_AlwaysAutoResize;
-    flags |= f::ImGuiWindowFlags_NoDecoration;
+[[nodiscard]] static raii_wrapper begin_window(int flags = 0) {
     if (ImGui::Begin(imgui_name, nullptr, flags))
-        return {&ImGui::End; };
+        return {&ImGui::End};
     else
         return {};
 }
-#endif
+
 [[nodiscard]] static raii_wrapper begin_main_menu() {
     if (ImGui::BeginMainMenuBar())
-        return raii_wrapper{&ImGui::EndMainMenuBar};
+        return {&ImGui::EndMainMenuBar};
     else
         return {};
 }
 [[nodiscard]] static raii_wrapper begin_menu(const char* name, bool enabled = true) {
     if (ImGui::BeginMenu(name, enabled))
-        return raii_wrapper{&ImGui::EndMenu};
+        return {&ImGui::EndMenu};
+    else
+        return {};
+}
+
+[[nodiscard]] static raii_wrapper begin_list_box(const char* name, ImVec2 size = {}) {
+    if (ImGui::BeginListBox(name, size))
+        return {&ImGui::EndListBox};
     else
         return {};
 }
@@ -73,11 +75,8 @@ void app::draw_menu()
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    draw_menu_bar();
-}
+    ImVec2 main_menu_pos;
 
-void app::draw_menu_bar()
-{
     if (auto b = begin_main_menu())
     {
         if (auto b = begin_menu("File"))
@@ -92,9 +91,35 @@ void app::draw_menu_bar()
         }
         if (auto b = begin_menu("Mode"))
         {
-            ImGui::MenuItem("Select", "F1", _editor_mode == editor_mode::select);
-            ImGui::MenuItem("Floors", "F2", _editor_mode == editor_mode::floors);
-            ImGui::MenuItem("Walls", "F3", _editor_mode == editor_mode::walls);
+            ImGui::MenuItem("Select", "F1", _editor.mode == editor_mode::select);
+            ImGui::MenuItem("Floors", "F2", _editor.mode == editor_mode::floors);
+            ImGui::MenuItem("Walls", "F3", _editor.mode == editor_mode::walls);
+        }
+        main_menu_pos = ImGui::GetContentRegionMax();
+    }
+    if (main_menu_pos.y > 0)
+    {
+        auto& style = ImGui::GetStyle();
+        ImGui::StyleColorsDark(&style);
+        style.WindowPadding = {8, 8};
+        style.WindowBorderSize = {};
+        style.Colors[ImGuiCol_WindowBg] = {0, 0, 0, .5};
+        style.Colors[ImGuiCol_FrameBg] = {0, 0, 0, 0};
+
+        ImGui::SetNextWindowPos({0, main_menu_pos.y+style.WindowPadding.y});
+        ImGui::SetNextFrameWantCaptureKeyboard(false);
+        if (auto b = begin_window(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings))
+        {
+            ImGui::Text("Items:");
+            //ImGui::SetNextWindowBgAlpha(.2f);
+
+            if (auto b = begin_list_box("##tiles", {-FLT_MIN, 100}))
+            {
+                for (const auto& label : {"foo", "bar", "baz"})
+                {
+                    ImGui::Selectable(label);
+                }
+            }
         }
     }
 }

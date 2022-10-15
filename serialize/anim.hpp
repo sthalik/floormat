@@ -34,7 +34,7 @@ struct anim final
 {
     static constexpr int default_fps = 24;
 
-    std::string name;
+    std::string object_name, anim_name;
     std::array<anim_group, (std::size_t)anim_direction::COUNT> groups;
     int nframes = 0;
     int width = 0, height = 0;

@@ -250,9 +250,15 @@ int main(int argc, char** argv)
     if (!anim_ok)
         return EX_DATAERR;
 
-    if (!check_atlas_name(anim_info.name))
+    if (!check_atlas_name(anim_info.object_name))
     {
-        Error{} << "error: atlas name" << anim_info.name << "contains invalid characters";
+        Error{} << "error: atlas object name" << anim_info.object_name << "is invalid";
+        return EX_DATAERR;
+    }
+
+    if (!check_atlas_name(anim_info.anim_name))
+    {
+        Error{} << "error: atlas animation name" << anim_info.object_name << "contains invalid characters";
         return EX_DATAERR;
     }
 
@@ -281,12 +287,14 @@ int main(int argc, char** argv)
         return EX_CANTCREAT;
     }
 
-    if (auto pathname = opts.output_dir/(anim_info.name + ".png"); !atlas.dump(pathname)) {
+    const std::string base_name = anim_info.object_name + "_" + anim_info.anim_name;
+
+    if (auto pathname = opts.output_dir/(base_name + ".png"); !atlas.dump(pathname)) {
         Error{} << "error: failed writing image to" << pathname << ":"
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
-    if (!json_helper::to_json<anim>(anim_info, opts.output_dir/(anim_info.name + ".json")))
+    if (!json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json")))
         return EX_CANTCREAT;
 
     return 0;

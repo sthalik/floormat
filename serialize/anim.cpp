@@ -10,7 +10,7 @@ namespace floormat::Serialize {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, name, nframes, actionframe, fps, groups, width, height)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim, object_name, anim_name, nframes, actionframe, fps, groups, width, height)
 
 } // namespace floormat::Serialize
 

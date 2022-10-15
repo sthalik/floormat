@@ -43,7 +43,6 @@ struct app final : Platform::Application
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
     void draw_menu();
-    void draw_menu_bar();
     void setup_menu();
     void display_menu();
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
@@ -75,7 +74,7 @@ struct app final : Platform::Application
     Vector2 camera_offset;
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
-    editor_mode _editor_mode = editor_mode{};
+    editor_state _editor;
 };
 
 } // namespace floormat

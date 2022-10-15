@@ -42,7 +42,7 @@ void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     if (_imgui.handleKeyReleaseEvent(event))
-        return event.setAccepted();
+        return keys = {}, event.setAccepted();
     do_key(event.key(), event.modifiers(), false, false);
 }
 
