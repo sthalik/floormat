@@ -7,7 +7,7 @@
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
-#include "Magnum/GL/RectangleTexture.h"
+#include "Magnum/GL/Texture.h"
 
 namespace floormat {
 
@@ -28,9 +28,9 @@ concept traits = requires (const T& x) {
 
 struct mesh_base
 {
-    static GL::RectangleTexture make_constant_texture();
+    static GL::Texture2D make_constant_texture();
     GL::Buffer _vertex_buffer{{}, GL::BufferUsage::DynamicDraw}, _texcoords_buffer, _index_buffer;
-    GL::RectangleTexture _texture = make_constant_texture();
+    GL::Texture2D _texture = make_constant_texture();
     GL::Mesh _mesh;
 
     mesh_base(GL::MeshPrimitive primitive, Containers::ArrayView<const void> index_data,

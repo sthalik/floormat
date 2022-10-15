@@ -1,6 +1,6 @@
 #pragma once
 #include <Magnum/Magnum.h>
-#include <Magnum/GL/RectangleTexture.h>
+#include <Magnum/GL/Texture.h>
 #include <array>
 #include <string>
 
@@ -21,11 +21,11 @@ struct tile_atlas final
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
     Vector2ui pixel_size() const { return size_; }
     Vector2ui num_tiles() const { return dims_; }
-    GL::RectangleTexture& texture() { return tex_; }
+    GL::Texture2D& texture() { return tex_; }
     Containers::StringView name() const { return name_; }
 
 private:
-    GL::RectangleTexture tex_;
+    GL::Texture2D tex_;
     std::string name_;
     Vector2ui size_, dims_;
 };

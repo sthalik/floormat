@@ -12,18 +12,17 @@
 namespace floormat::wireframe
 {
 
-GL::RectangleTexture mesh_base::make_constant_texture()
+GL::Texture2D mesh_base::make_constant_texture()
 {
     const Vector4ub data[] = { {255, 255, 255, 255} };
     Trade::ImageData2D img{PixelFormat::RGBA8Unorm, {1, 1}, {},
                            Containers::arrayView(data, 1), {}, {}};
-    GL::RectangleTexture tex;
+    GL::Texture2D tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
        .setMinificationFilter(GL::SamplerFilter::Nearest)
-       .setMaxAnisotropy(1)
-       .setStorage(GL::textureFormat(img.format()), img.size())
-       .setSubImage({}, std::move(img));
+       .setStorage(1, GL::textureFormat(img.format()), img.size())
+       .setSubImage(0, {}, std::move(img));
     return tex;
 }
 

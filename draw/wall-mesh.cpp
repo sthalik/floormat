@@ -2,7 +2,7 @@
 #include "tile-atlas.hpp"
 #include "shaders/tile-shader.hpp"
 #include "chunk.hpp"
-#include <Magnum/GL/RectangleTexture.h>
+#include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>
 
 namespace floormat {
@@ -49,7 +49,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         _vertex_buffer.setSubData(0, data);
     }
 
-    const GL::RectangleTexture* last_texture = nullptr;
+    const GL::Texture2D* last_texture = nullptr;
     Magnum::GL::MeshView mesh{_mesh};
     for (std::size_t i = 0; i < COUNT; i++)
     {
