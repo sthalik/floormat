@@ -31,12 +31,11 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t id_) const
     const Vector2ui id = { (UnsignedInt)id_ % dims_[0], (UnsignedInt)id_ / dims_[0] };
     const Vector2 p0(id * sz), p1(sz);
     const auto x0 = p0.x(), x1 = p1.x()-1, y0 = p0.y(), y1 = p1.y()-1;
-    Vector2 size{size_};
     return {{
-        { (x0+x1)/size[0], (y0+y1)/size[1]  }, // bottom right
-        { (x0+x1)/size[0], y0/size[1]       }, // top right
-        { x0/size[0],      (y0+y1)/size[1]  }, // bottom left
-        { x0/size[0],      y0/size[1]       }  // top left
+        { (x0+x1)/size_[0], (y0+y1)/size_[1]  }, // bottom right
+        { (x0+x1)/size_[0], y0/size_[1]       }, // top right
+        { x0/size_[0],      (y0+y1)/size_[1]  }, // bottom left
+        { x0/size_[0],      y0/size_[1]       }  // top left
     }};
 }
 
