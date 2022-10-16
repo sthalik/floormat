@@ -2,6 +2,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "src/loader.hpp"
+#include "compat/assert.hpp"
 #include <filesystem>
 #include <vector>
 
@@ -24,6 +25,22 @@ void tile_type::load_atlases()
             name = name.prefix(x.data());
         _atlases[name] = std::move(atlas);
     }
+}
+std::shared_ptr<tile_atlas> tile_type::maybe_atlas(Containers::StringView str)
+{
+    auto it = _atlases.find(str);
+    if (it == _atlases.end())
+        return nullptr;
+    else
+        return it->second;
+}
+
+std::shared_ptr<tile_atlas> tile_type::atlas(Containers::StringView str)
+{
+    if (auto ptr = maybe_atlas(str); ptr)
+        return ptr;
+    else
+        ABORT("no such atlas: %s", str.cbegin());
 }
 
 editor_state::editor_state()

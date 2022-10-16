@@ -14,7 +14,8 @@ enum class editor_mode : unsigned char {
 struct tile_type final
 {
     tile_type(Containers::StringView name);
-    std::shared_ptr<struct tile_atlas> atlas(Containers::StringView str);
+    std::shared_ptr<tile_atlas> maybe_atlas(Containers::StringView str);
+    std::shared_ptr<tile_atlas> atlas(Containers::StringView str);
     auto begin() & { return _atlases.begin(); }
     auto end() & { return _atlases.end(); }
     auto begin() const&& { return _atlases.cbegin(); }
@@ -25,7 +26,7 @@ struct tile_type final
 
 private:
     std::string _name;
-    std::map<std::string, std::shared_ptr<struct tile_atlas>> _atlases;
+    std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
     void load_atlases();
 };
 
