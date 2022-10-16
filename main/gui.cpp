@@ -87,9 +87,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                     const auto& v_ = v;
                     const auto click_event = [&] {
                         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-                        {
-                            Debug{} << "shuffle" << k_.data();
-                        }
+                        _editor.floor().select_tile_permutation(v_);
                     };
                     const auto add_tile_count = [&] {
                         snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles().product());
@@ -115,10 +113,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                             ImGui::ImageButton(buf, (void*)&v->texture(), {TILE_SIZE[0]/2, TILE_SIZE[1]/2},
                                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
                             if (ImGui::IsItemClicked())
-                            {
-                                Debug{} << "tile" << buf+2 << i;
-                                fflush(stdout);
-                            }
+                                _editor.floor().select_tile(v, (std::uint8_t)i);
                             else
                                 click_event();
                             ImGui::SameLine();

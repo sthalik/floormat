@@ -5,6 +5,7 @@
 #include "random.hpp"
 #include "compat/assert.hpp"
 #include "compat/unreachable.hpp"
+#include "src/tile-defs.hpp"
 #include <filesystem>
 #include <vector>
 
@@ -117,12 +118,23 @@ std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::
     case sel_none: return std::nullopt;
     case sel_tile: return _selected_tile;
     case sel_perm: return get_selected_perm();
-    default: unreachable();
+    default : unreachable();
     }
 }
 
-editor_state::editor_state()
+editor::editor()
 {
+}
+
+void editor::click_at_tile(Vector2 pos, int mouse_button)
+{
+    if (mouse_button == 0)
+    {
+        if (pos[0] >= 0 && pos[1] >= 0 && pos[0] < TILE_MAX_DIM && pos[1] < TILE_MAX_DIM)
+        {
+
+        }
+    }
 }
 
 } // namespace floormat

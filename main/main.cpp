@@ -7,22 +7,6 @@
 
 namespace floormat {
 
-chunk app::make_test_chunk()
-{
-    constexpr auto N = TILE_MAX_DIM;
-    chunk c;
-    for (auto [x, k, pt] : c) {
-        const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? floor2 : floor1;
-        x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
-    }
-    constexpr auto K = N/2;
-    c[{K,   K  }].wall_north = { wall1, 0 };
-    c[{K,   K  }].wall_west  = { wall2, 0 };
-    c[{K,   K+1}].wall_north = { wall1, 0 };
-    c[{K+1, K  }].wall_west  = { wall2, 0 };
-    return c;
-}
-
 void app::drawEvent() {
 #if 0
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
@@ -52,6 +36,27 @@ void app::drawEvent() {
 
 void app::draw_chunk(chunk& c)
 {
+    {
+        int minx = 0, maxx = 0, miny = 0, maxy = 0;
+        auto fn = [&](int x, int y) {
+          const auto pos = pixel_to_tile({(float)x, (float)y}) / Vector2{TILE_MAX_DIM, TILE_MAX_DIM};
+          minx = std::min(minx, (int)std::floor(pos[0]));
+          maxx = std::max(maxx, (int)(pos[0]));
+          miny = std::min(miny, (int)std::floor(pos[1]));
+          maxy = std::max(maxy, (int)(pos[1]));
+        };
+        const auto sz = windowSize();
+        const auto x = sz[0], y = sz[1];
+        fn(0, 0);
+        fn(x, 0);
+        fn(0, y);
+        fn(x, y);
+
+        printf("%d %d -> %d %d\n", minx, miny, maxx, maxy);
+        fflush(stdout);
+        printf(""); // put breakpoint here
+    }
+
     _shader.set_tint({1, 1, 1, 1});
     _floor_mesh.draw(_shader, c);
     _wall_mesh.draw(_shader, c);

@@ -32,23 +32,4 @@ void app::update_window_scale(Vector2i sz)
     _shader.set_scale(Vector2{sz});
 }
 
-Vector2 app::pixel_to_tile(Vector2 position) const
-{
-    const auto px = position - Vector2{windowSize()}*.5f - camera_offset;
-    return unproject(px) / Vector2{TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f} + Vector2{.5f, .5f};
-}
-
-void app::draw_cursor_tile()
-{
-    if (_cursor_pos)
-    {
-        const auto tile = pixel_to_tile(Vector2(*_cursor_pos));
-        if (std::min(tile[0], tile[1]) >= 0 && std::max(tile[0], tile[1]) < (int)TILE_MAX_DIM)
-        {
-            const auto x = std::uint8_t(tile[0]), y = std::uint8_t(tile[1]);
-            draw_wireframe_quad({x, y});
-        }
-    }
-}
-
 } // namespace floormat

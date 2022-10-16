@@ -32,6 +32,7 @@ app::app(const Arguments& arguments):
     SDL_MaximizeWindow(window());
     timeline.start();
 }
+
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     update_window_scale(event.windowSize());
@@ -44,6 +45,20 @@ void app::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     if (_imgui.handleMousePressEvent(event))
         return event.setAccepted();
+    {
+        const auto tile = pixel_to_tile(Vector2(*_cursor_pos));
+        int button;
+        switch (event.button())
+        {
+        case MouseEvent::Button::Left:   button = 0; break;
+        case MouseEvent::Button::Right:  button = 1; break;
+        case MouseEvent::Button::Middle: button = 2; break;
+        case MouseEvent::Button::X1:     button = 5; break;
+        case MouseEvent::Button::X2:     button = 6; break;
+        default: button = -1; break;
+        }
+        do_mouse_click(tile, button);
+    }
 }
 
 void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
@@ -112,14 +127,6 @@ void app::event_mouse_leave()
 
 void app::event_mouse_enter()
 {
-}
-
-void app::update(float dt)
-{
-    do_camera(dt);
-    do_menu();
-    if (keys[key::quit])
-        Platform::Sdl2Application::exit(0);
 }
 
 } // namespace floormat

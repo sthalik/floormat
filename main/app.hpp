@@ -59,6 +59,7 @@ struct app final : Platform::Application
 
     Vector2 pixel_to_tile(Vector2 position) const;
     void draw_cursor_tile();
+    void do_mouse_click(Vector2 pos, int button);
 
     std::optional<Vector2i> _cursor_pos;
 
@@ -90,7 +91,7 @@ struct app final : Platform::Application
     Vector2 camera_offset;
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
-    editor_state _editor;
+    editor _editor;
 };
 
 constexpr Vector2 app::project(const Vector3 pt)

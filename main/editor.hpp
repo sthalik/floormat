@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/defs.hpp"
 #include "tile-atlas.hpp"
 #include <map>
 #include <memory>
@@ -53,7 +54,7 @@ private:
     std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> get_selected_perm();
 };
 
-struct editor_state final
+struct editor final
 {
     [[nodiscard]] bool dirty() const { return _dirty; }
     void set_dirty(bool value) { _dirty = value; }
@@ -63,13 +64,12 @@ struct editor_state final
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
 
-    editor_state();
+    void click_at_tile(Vector2 pos, int mouse_button);
 
-    editor_state(const editor_state&) = delete;
-    editor_state& operator=(const editor_state&) = delete;
-
-    editor_state(editor_state&&) noexcept = default;
-    editor_state& operator=(editor_state&&) noexcept = default;
+    editor();
+    editor(editor&&) noexcept = default;
+    editor& operator=(editor&&) noexcept = default;
+    DECLARE_DELETED_COPY_ASSIGNMENT(editor);
 
 private:
     tile_type _floor{editor_mode::floor, "floor"};
