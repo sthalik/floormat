@@ -1,78 +1,11 @@
 #include "app.hpp"
+#include "imgui-raii.hpp"
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/ImGuiIntegration/Integration.h>
-#include <Magnum/Math/Color.h>
 
 namespace floormat {
 
-struct raii_wrapper final
-{
-    using F = void(*)(void);
-    raii_wrapper(F fn) : dtor{fn} {}
-    raii_wrapper() = default;
-    ~raii_wrapper() { if (dtor) dtor(); }
-    raii_wrapper(const raii_wrapper&) = delete;
-    raii_wrapper& operator=(const raii_wrapper&) = delete;
-    raii_wrapper& operator=(raii_wrapper&&) = delete;
-    raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor} { other.dtor = nullptr; }
-    inline operator bool() const noexcept { return dtor != nullptr; }
-
-    F dtor = nullptr;
-};
-
-constexpr inline const auto* imgui_name = "floormat editor";
-
-[[nodiscard]] static raii_wrapper begin_window(int flags = 0) {
-    if (ImGui::Begin(imgui_name, nullptr, flags))
-        return {&ImGui::End};
-    else
-        return {};
-}
-
-[[nodiscard]] static raii_wrapper begin_main_menu() {
-    if (ImGui::BeginMainMenuBar())
-        return {&ImGui::EndMainMenuBar};
-    else
-        return {};
-}
-[[nodiscard]] static raii_wrapper begin_menu(Containers::StringView name, bool enabled = true) {
-    if (ImGui::BeginMenu(name.data(), enabled))
-        return {&ImGui::EndMenu};
-    else
-        return {};
-}
-
-[[nodiscard]] static raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size = {}) {
-    if (ImGui::BeginListBox(name.data(), size))
-        return {&ImGui::EndListBox};
-    else
-        return {};
-}
-
-[[nodiscard]] static raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags_ flags = {}) {
-    if (ImGui::TreeNodeEx(name.data(), flags))
-        return {&ImGui::TreePop};
-    else
-        return {};
-}
-
-[[nodiscard]] static raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
-{
-    ImGui::PushStyleVar(var, {value[0], value[1]});
-    return {[]{ ImGui::PopStyleVar(); }};
-}
-
-[[nodiscard]] static raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
-{
-    ImGui::PushStyleVar(var, value);
-    return {[]{ ImGui::PopStyleVar(); }};
-}
-
-[[nodiscard]] static raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
-{
-    ImGui::PushStyleColor(var, {value[0], value[1], value[2], value[3]});
-    return {[]{ ImGui::PopStyleColor(); }};
-}
+using namespace floormat::imgui;
 
 void app::setup_menu()
 {
@@ -90,7 +23,7 @@ void app::display_menu()
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
 }
 
-void app::draw_menu()
+void app::do_menu()
 {
     _imgui.newFrame();
     float main_menu_height = 0;
@@ -109,13 +42,13 @@ void app::draw_menu()
         if (auto b = begin_menu("Mode"))
         {
             ImGui::MenuItem("Select", "F1", _editor.mode() == editor_mode::select);
-            ImGui::MenuItem("Floors", "F2", _editor.mode() == editor_mode::floors);
+            ImGui::MenuItem("Floor", "F2", _editor.mode() == editor_mode::floor);
             ImGui::MenuItem("Walls", "F3", _editor.mode() == editor_mode::walls);
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;
     }
-    draw_menu_(_editor.floors(), main_menu_height);
+    draw_menu_(_editor.floor(), main_menu_height);
 }
 
 void app::draw_menu_(tile_type& type, float main_menu_height)
@@ -138,7 +71,8 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
         ImGui::SetNextWindowSize({450, windowSize()[1] - main_menu_height - style.WindowPadding.y});
-        if (auto b = begin_window(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings))
+        if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+            auto b = begin_window({}, flags))
         {
             const float window_width = ImGui::GetWindowWidth() - 32;
 
@@ -163,7 +97,8 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                         ImGui::Text("%s", buf);
                     };
                     const std::size_t N = v->num_tiles().product();
-                    if (auto b = tree_node(k.data(), ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed)))
+                    if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
+                        auto b = tree_node(k.data(), flags))
                     {
                         click_event();
                         add_tile_count();
@@ -175,7 +110,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                         {
                             if (i > 0 && i % per_row == 0)
                                 ImGui::NewLine();
-                            sprintf(buf, "##item_%zu", i);
+                            snprintf(buf, sizeof(buf), "##item_%zu", i);
                             const auto uv = v->texcoords_for_id(i);
                             ImGui::ImageButton(buf, (void*)&v->texture(), {TILE_SIZE[0]/2, TILE_SIZE[1]/2},
                                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });

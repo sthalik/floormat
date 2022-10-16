@@ -40,10 +40,9 @@ void app::drawEvent() {
         update(dt);
     }
 
+    _shader.set_tint({1, 1, 1, 1});
     draw_chunk(_chunk);
-    draw_wireframe_quad();
-    draw_wireframe_box();
-    draw_menu();
+    draw_cursor_tile();
     display_menu();
 
     swapBuffers();
@@ -58,30 +57,25 @@ void app::draw_chunk(chunk& c)
     _wall_mesh.draw(_shader, c);
 }
 
-void app::draw_wireframe_quad()
+void app::draw_wireframe_quad(local_coords pt)
 {
     constexpr float LINE_WIDTH = 1;
 
     constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    constexpr float N = TILE_MAX_DIM/2.f;
-    const Vector3 center {X*N, Y*N, 0};
+    const Vector3 center {X*pt.x, Y*pt.y, 0};
     _shader.set_tint({1, 0, 0, 1});
     _wireframe_quad.draw(_shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}, LINE_WIDTH});
-    _shader.set_tint({1, 1, 1, 1});
 }
 
-void app::draw_wireframe_box()
+void app::draw_wireframe_box(local_coords pt)
 {
     constexpr float LINE_WIDTH = 1.5;
 
     constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    constexpr float N = TILE_MAX_DIM/2.f;
     constexpr Vector3 size{TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]*1.5f};
-    const Vector3 center1{X*(N+3), Y*(N+2), 0},
-                  center2{X*(N-2), Y*(N-4), 0};
+    const Vector3 center1{X*pt.x, Y*pt.y, 0};
     _shader.set_tint({0, 1, 0, 1});
     _wireframe_box.draw(_shader, {center1, size, LINE_WIDTH});
-    _wireframe_box.draw(_shader, {center2, size, LINE_WIDTH});
 }
 
 } // namespace floormat

@@ -4,6 +4,8 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
+#include <SDL_events.h>
+#include <SDL_video.h>
 
 namespace floormat {
 
@@ -48,12 +50,19 @@ void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     if (_imgui.handleMouseReleaseEvent(event))
         return event.setAccepted();
+#if 0
+    using Button = Platform::Sdl2Application::MouseEvent::Button;
+    if (event.button() == Button::Left)
+    {
+    }
+#endif
 }
 
 void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
     if (_imgui.handleMouseMoveEvent(event))
-        return event.setAccepted();
+        return _cursor_pos = {}, event.setAccepted();
+    _cursor_pos = event.position();
 }
 
 void app::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
@@ -68,9 +77,47 @@ void app::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
         return keys = {}, event.setAccepted();
 }
 
+void app::anyEvent(SDL_Event& event)
+{
+    if (event.type == SDL_WINDOWEVENT)
+        switch (event.window.event)
+        {
+        case SDL_WINDOWEVENT_FOCUS_LOST:
+            return event_leave();
+        case SDL_WINDOWEVENT_FOCUS_GAINED:
+            return event_enter();
+        case SDL_WINDOWEVENT_LEAVE:
+            return event_mouse_leave();
+        case SDL_WINDOWEVENT_ENTER:
+            return event_mouse_enter();
+        default:
+            printf(""); break; // put breakpoint here
+        }
+}
+
+void app::event_leave()
+{
+    _cursor_pos = std::nullopt;
+}
+
+void app::event_enter()
+{
+
+}
+
+void app::event_mouse_leave()
+{
+    _cursor_pos = std::nullopt;
+}
+
+void app::event_mouse_enter()
+{
+}
+
 void app::update(float dt)
 {
     do_camera(dt);
+    do_menu();
     if (keys[key::quit])
         Platform::Sdl2Application::exit(0);
 }

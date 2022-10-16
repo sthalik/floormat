@@ -41,7 +41,7 @@ tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
     CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[0]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
     CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[1]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
     if (camera_offset != camera_offset_)
-        setUniform(OffsetUniform, camera_offset_ = camera_offset);
+        setUniform(OffsetUniform, 2*(camera_offset_ = camera_offset));
     return *this;
 }
 

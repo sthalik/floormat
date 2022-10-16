@@ -29,6 +29,7 @@ struct app final : Platform::Application
     void update(float dt);
     void do_camera(float dt);
     void reset_camera_offset();
+
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
     void mousePressEvent(MouseEvent& event) override;
@@ -36,19 +37,33 @@ struct app final : Platform::Application
     void mouseMoveEvent(MouseMoveEvent& event) override;
     void mouseScrollEvent(MouseScrollEvent& event) override;
     void textInputEvent(TextInputEvent& event) override;
+    void anyEvent(SDL_Event& event) override;
+    void event_leave();
+    void event_enter();
+    void event_mouse_enter();
+    void event_mouse_leave();
+
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void draw_chunk(chunk& c);
-    void draw_wireframe_quad();
-    void draw_wireframe_box();
+    void draw_wireframe_quad(local_coords pt);
+    void draw_wireframe_box(local_coords pt);
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
-    void draw_menu();
+    void do_menu();
     void draw_menu_(tile_type& type, float main_menu_height);
     void setup_menu();
     void display_menu();
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
     void* register_debug_callback();
+
+    Vector2 pixel_to_tile(Vector2 position) const;
+    void draw_cursor_tile();
+
+    std::optional<Vector2i> _cursor_pos;
+
+    static constexpr Vector2 project(Vector3 pt);
+    static constexpr Vector2 unproject(Vector2 px);
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
@@ -77,5 +92,17 @@ struct app final : Platform::Application
     Magnum::Timeline timeline;
     editor_state _editor;
 };
+
+constexpr Vector2 app::project(const Vector3 pt)
+{
+    const float x = -pt[1], y = -pt[0], z = pt[2];
+    return { x-y, (x+y+z*2)*.59f };
+}
+
+constexpr Vector2 app::unproject(const Vector2 px)
+{
+    const float X = px[0], Y = px[1];
+    return { X/2 + 50.f * Y / 59, 50 * Y / 59 - X/2 };
+}
 
 } // namespace floormat

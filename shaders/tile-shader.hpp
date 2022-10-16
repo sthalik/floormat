@@ -20,19 +20,11 @@ struct tile_shader : GL::AbstractShaderProgram
     Vector4 tint() const { return tint_; }
     tile_shader& set_tint(const Vector4& tint);
 
-    static constexpr Vector2 project(Vector3 pt);
-
 private:
     Vector2 scale_, camera_offset_;
     Vector4 tint_;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };
-
-constexpr Vector2 tile_shader::project(const Vector3 pt)
-{
-    float x = -pt[1], y = -pt[0], z = pt[2];
-    return { x-y, (x+y+z*2)*.75f };
-}
 
 } // namespace floormat

@@ -9,7 +9,7 @@
 namespace floormat {
 
 enum class editor_mode : unsigned char {
-    select, floors, walls,
+    select, floor, walls,
 };
 
 struct tile_type final
@@ -60,8 +60,8 @@ struct editor_state final
     [[nodiscard]] editor_mode mode() const { return _mode; }
     void set_mode(editor_mode mode) { _mode = mode; }
 
-    tile_type& floors() { return _floors; }
-    const tile_type& floors() const { return _floors; }
+    tile_type& floor() { return _floor; }
+    const tile_type& floor() const { return _floor; }
 
     editor_state();
 
@@ -72,7 +72,7 @@ struct editor_state final
     editor_state& operator=(editor_state&&) noexcept = default;
 
 private:
-    tile_type _floors{editor_mode::floors, "floor"};
+    tile_type _floor{editor_mode::floor, "floor"};
     editor_mode _mode = {};
     bool _dirty = false;
 };
