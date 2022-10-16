@@ -75,8 +75,8 @@ struct app final : Platform::Application
 
     const void* _dummy = register_debug_callback();
     tile_shader _shader;
-    tile_atlas_ floor1 = loader.tile_atlas("metal1.tga", {2, 2});
-    tile_atlas_ floor2 = loader.tile_atlas("floor1.tga", {4, 4});
+    tile_atlas_ floor1 = loader.tile_atlas("floor-tiles.tga", {44, 4});
+    tile_atlas_ floor2 = loader.tile_atlas("metal1.tga", {2, 2});
     tile_atlas_ wall1  = loader.tile_atlas("wood2.tga", {2, 2});
     tile_atlas_ wall2  = loader.tile_atlas("wood1.tga", {2, 2});
     chunk _chunk = make_test_chunk();

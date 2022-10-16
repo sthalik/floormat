@@ -52,8 +52,7 @@ void app::draw_chunk(chunk& c)
         fn(0, y);
         fn(x, y);
 
-        printf("%d %d -> %d %d\n", minx, miny, maxx, maxy);
-        fflush(stdout);
+        // TODO
         printf(""); // put breakpoint here
     }
 

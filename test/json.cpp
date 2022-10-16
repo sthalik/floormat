@@ -15,18 +15,17 @@ static chunk make_test_chunk()
 {
     auto metal1 = loader.tile_atlas("share/game/images/metal1.tga", {2, 2}),
          metal2 = loader.tile_atlas("share/game/images/metal2.tga", {2, 2}),
-         metal3 = loader.tile_atlas("share/game/images/metal3.tga", {2, 2});
+         tiles = loader.tile_atlas("share/game/images/tiles.tga", {8, 5});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
     for (auto& [x, k, pt] : c) {
-        const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? metal1 : metal2;
-        x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
+        x.ground_image = { tiles, (std::uint8_t)(k % tiles->num_tiles().product()) };
     }
     constexpr auto K = N/2;
-    c[{K,   K  }].wall_north = { metal3, 0 };
-    c[{K,   K  }].wall_west  = { metal3, 0 };
-    c[{K,   K+1}].wall_north = { metal3, 0 };
-    c[{K+1, K  }].wall_west  = { metal3, 0 };
+    c[{K,   K  }].wall_north = { metal1, 0 };
+    c[{K,   K  }].wall_west  = { metal2, 0 };
+    c[{K,   K+1}].wall_north = { metal1, 0 };
+    c[{K+1, K  }].wall_west  = { metal2, 0 };
     return c;
 }
 

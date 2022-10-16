@@ -15,6 +15,11 @@ void app::do_camera(float dt)
     else if (keys[key::camera_right])
         camera_offset += Vector2(-1, 0)  * dt * pixels_per_second;
 
+    {
+        const auto max_camera_offset = Vector2(windowSize() * 10);
+        camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
+        camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
+    }
     _shader.set_camera_offset(camera_offset);
 
     if (keys[key::camera_reset])

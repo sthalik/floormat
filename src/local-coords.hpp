@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "tile-defs.hpp"
 #include <cstdint>
+#include <concepts>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector3.h>
 
@@ -11,7 +12,8 @@ struct local_coords final {
     std::uint8_t x = 0, y = 0;
     explicit constexpr local_coords(std::size_t idx) noexcept;
     constexpr local_coords() noexcept = default;
-    constexpr local_coords(std::size_t x, std::size_t y) noexcept;
+    template<std::integral T> requires (sizeof(T) <= sizeof(std::size_t))
+    constexpr local_coords(T x, T y) noexcept;
     constexpr local_coords(std::uint8_t x, std::uint8_t y) noexcept : x{x}, y{y} {}
     constexpr std::size_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
 };
@@ -23,10 +25,12 @@ constexpr local_coords::local_coords(std::size_t index) noexcept :
     ASSERT(index < TILE_COUNT);
 }
 
-constexpr local_coords::local_coords(std::size_t x, std::size_t y) noexcept
+template<std::integral T>
+requires (sizeof(T) <= sizeof(std::size_t))
+constexpr local_coords::local_coords(T x, T y) noexcept
     : x{(std::uint8_t)x}, y{(std::uint8_t)y}
 {
-    ASSERT(x <= 0xff && y <= 0xff);
+    ASSERT(static_cast<std::size_t>(x) < TILE_MAX_DIM && static_cast<std::size_t>(y) < TILE_MAX_DIM);
 }
 
 } // namespace floormat
