@@ -2,7 +2,9 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "src/loader.hpp"
+#include "random.hpp"
 #include "compat/assert.hpp"
+#include "compat/unreachable.hpp"
 #include <filesystem>
 #include <vector>
 
@@ -23,6 +25,7 @@ void tile_type::load_atlases()
         Containers::StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)
             name = name.prefix(x.data());
+        std::get<1>(_permutation).reserve((std::size_t)atlas->num_tiles().product());
         _atlases[name] = std::move(atlas);
     }
 }
@@ -41,6 +44,81 @@ std::shared_ptr<tile_atlas> tile_type::atlas(Containers::StringView str)
         return ptr;
     else
         ABORT("no such atlas: %s", str.cbegin());
+}
+
+void tile_type::clear_selection()
+{
+    _selected_tile = {};
+    _permutation = {};
+    _selection_mode = sel_none;
+}
+
+void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
+{
+    ASSERT(atlas);
+    clear_selection();
+    _selection_mode = sel_tile;
+    _selected_tile = { atlas, variant };
+}
+
+void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
+{
+    ASSERT(atlas);
+    clear_selection();
+    _selection_mode = sel_perm;
+    _permutation = { atlas, {} };
+}
+
+bool tile_type::is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
+{
+    ASSERT(atlas);
+    return _selection_mode == sel_tile && _selected_tile == std::make_tuple(atlas, variant);
+}
+
+bool tile_type::is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas)
+{
+    ASSERT(atlas);
+    return _selection_mode == sel_perm && std::get<0>(_permutation) == atlas;
+}
+
+template<std::random_access_iterator T>
+void fisher_yates(T begin, T end)
+{
+    const auto N = std::distance(begin, end);
+    for (auto i = N-1; i >= 1; i--)
+    {
+        const auto j = random(i+1);
+        using std::swap;
+        swap(begin[i], begin[j]);
+    }
+}
+
+std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> tile_type::get_selected_perm()
+{
+    auto& [atlas, vec] = _permutation;
+    const std::size_t N = atlas->num_tiles().product();
+    if (N == 0)
+        return {};
+    if (vec.empty())
+    {
+        for (std::uint8_t i = 0; i < N; i++)
+            vec.push_back(i);
+        fisher_yates(vec.begin(), vec.end());
+    }
+    const auto idx = vec.back();
+    vec.pop_back();
+    return {atlas, idx};
+}
+
+std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::get_selected()
+{
+    switch (_selection_mode)
+    {
+    case sel_none: return std::nullopt;
+    case sel_tile: return _selected_tile;
+    case sel_perm: return get_selected_perm();
+    default: unreachable();
+    }
 }
 
 editor_state::editor_state()

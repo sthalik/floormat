@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <tuple>
+#include <optional>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {
@@ -25,13 +26,31 @@ struct tile_type final
     Containers::StringView name() const { return _name; }
     editor_mode mode() const { return _mode; }
 
+    void clear_selection();
+    void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
+    void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
+    bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
+    bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas);
+    std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> get_selected();
+
 private:
+    enum selection_mode : std::uint8_t {
+        sel_none, sel_tile, sel_perm,
+    };
+    enum rotation : std::uint8_t {
+        rot_N, rot_W,
+    };
+
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
     std::tuple<std::shared_ptr<tile_atlas>, std::uint32_t> _selected_tile;
+    std::tuple<std::shared_ptr<tile_atlas>, std::vector<std::uint8_t>> _permutation;
+    selection_mode _selection_mode = sel_none;
     editor_mode _mode;
+    rotation _rotation{};
 
     void load_atlases();
+    std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> get_selected_perm();
 };
 
 struct editor_state final

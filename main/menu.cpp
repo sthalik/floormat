@@ -152,7 +152,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                     const auto& k_ = k;
                     const auto& v_ = v;
                     const auto click_event = [&] {
-                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && ImGui::GetIO().MouseClicked[1])
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                         {
                             Debug{} << "shuffle" << k_.data();
                         }
