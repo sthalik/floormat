@@ -10,7 +10,7 @@ namespace floormat {
 
 static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
 
-tile_type::tile_type(Containers::StringView name) : _name{name}
+tile_type::tile_type(editor_mode mode, Containers::StringView name) : _name{name}, _mode{mode}
 {
     load_atlases();
 }

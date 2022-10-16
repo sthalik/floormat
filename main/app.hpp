@@ -43,6 +43,7 @@ struct app final : Platform::Application
     void update_window_scale(Vector2i window_size);
     void viewportEvent(ViewportEvent& event) override;
     void draw_menu();
+    void draw_menu_(tile_type& type, float main_menu_height);
     void setup_menu();
     void display_menu();
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,

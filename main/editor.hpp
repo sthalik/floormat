@@ -13,7 +13,7 @@ enum class editor_mode : unsigned char {
 
 struct tile_type final
 {
-    tile_type(Containers::StringView name);
+    tile_type(editor_mode mode, Containers::StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(Containers::StringView str);
     std::shared_ptr<tile_atlas> atlas(Containers::StringView str);
     auto begin() & { return _atlases.begin(); }
@@ -23,10 +23,14 @@ struct tile_type final
     auto cbegin() const { return _atlases.cbegin(); }
     auto cend() const { return _atlases.cend(); }
     Containers::StringView name() const { return _name; }
+    editor_mode mode() const { return _mode; }
 
 private:
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
+    std::tuple<std::shared_ptr<tile_atlas>, std::uint32_t> _selected_tile;
+    editor_mode _mode;
+
     void load_atlases();
 };
 
@@ -49,7 +53,7 @@ struct editor_state final
     editor_state& operator=(editor_state&&) noexcept = default;
 
 private:
-    tile_type _floors{"floor"};
+    tile_type _floors{editor_mode::floors, "floor"};
     editor_mode _mode = {};
     bool _dirty = false;
 };
