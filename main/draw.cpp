@@ -43,10 +43,12 @@ void app::drawEvent() {
 
 std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 {
-    std::int16_t minx = BASE_X, maxx = BASE_X, miny = BASE_Y, maxy = BASE_Y;
+    using limits = std::numeric_limits<std::int16_t>;
+    constexpr auto MIN = limits::min(), MAX = limits::max();
+    std::int16_t minx = MAX, maxx = MIN, miny = MAX, maxy = MIN;
     {
         auto fn = [&](std::int32_t x, std::int32_t y) {
-            const auto pos = pixel_to_tile({float(x + BASE_X), float(y + BASE_Y)}).chunk();
+            const auto pos = pixel_to_tile(Vector2(x, y)).chunk();
             minx = std::min(minx, pos.x);
             maxx = std::max(maxx, pos.x);
             miny = std::min(miny, pos.y);
@@ -59,7 +61,10 @@ std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
         fn(0, y);
         fn(x, y);
     }
-    return {minx, maxx, miny, maxy};
+    return {
+        std::int16_t(minx), std::int16_t(maxx),
+        std::int16_t(miny), std::int16_t(maxy),
+    };
 }
 
 void app::draw_world()
