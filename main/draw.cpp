@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "tile-defs.hpp"
+#include "camera-offset.hpp"
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
@@ -8,25 +9,21 @@
 namespace floormat {
 
 void app::drawEvent() {
-#if 0
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
-    GL::Renderer::setDepthMask(true);
-    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-#else
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
     GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Never);
-#endif
 
-    //update_window_scale(windowSize());
     {
-        float dt = std::min(1.f/20, timeline.previousFrameDuration());
+        const float dt = std::min(1.f/10, timeline.previousFrameDuration());
         update(dt);
     }
 
     _shader.set_tint({1, 1, 1, 1});
-    draw_world();
-    draw_cursor_tile();
+    {
+        const with_shifted_camera_offset o{_shader, BASE_X, BASE_Y};
+        draw_world();
+        draw_cursor_tile();
+    }
+
     display_menu();
 
     swapBuffers();
@@ -60,16 +57,11 @@ void app::draw_world()
 {
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
 
-    const auto old_camera_offset = _shader.camera_offset();
     _shader.set_tint({1, 1, 1, 1});
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            const auto offset = project({float(x + BASE_X)*TILE_MAX_DIM*TILE_SIZE[0],
-                                         float(y + BASE_Y)*TILE_MAX_DIM*TILE_SIZE[1],
-                                         0});
-            _shader.set_camera_offset(offset + old_camera_offset);
             auto c = _world[chunk_coords{x, y}];
             _floor_mesh.draw(_shader, *c);
         }
@@ -77,29 +69,22 @@ void app::draw_world()
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            const auto offset = project({float(x + BASE_X)*TILE_MAX_DIM*TILE_SIZE[0],
-                                         float(y + BASE_Y)*TILE_MAX_DIM*TILE_SIZE[1],
-                                         0});
-            _shader.set_camera_offset(offset + old_camera_offset);
             auto c = _world[chunk_coords{x, y}];
             _wall_mesh.draw(_shader, *c);
         }
-
-    _shader.set_camera_offset(old_camera_offset);
 }
 
 void app::draw_wireframe_quad(global_coords pos)
 {
     constexpr float LINE_WIDTH = 1;
-
-    if (const auto& [c, tile] = _world[pos]; !tile.ground_image)
-        return;
-
     const auto pt = pos.to_signed();
-    constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    const Vector3 center {X*pt[0], Y*pt[1], 0};
-    _shader.set_tint({1, 0, 0, 1});
-    _wireframe_quad.draw(_shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}, LINE_WIDTH});
+
+    if (const auto& [c, tile] = _world[pos]; tile.ground_image)
+    {
+        const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
+        _shader.set_tint({1, 0, 0, 1});
+        _wireframe_quad.draw(_shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}, LINE_WIDTH});
+    }
 }
 
 void app::draw_wireframe_box(local_coords pt)
@@ -111,6 +96,12 @@ void app::draw_wireframe_box(local_coords pt)
     const Vector3 center1{X*pt.x, Y*pt.y, 0};
     _shader.set_tint({0, 1, 0, 1});
     _wireframe_box.draw(_shader, {center1, size, LINE_WIDTH});
+}
+
+void app::draw_cursor_tile()
+{
+    if (_cursor_tile)
+        draw_wireframe_quad(*_cursor_tile);
 }
 
 } // namespace floormat

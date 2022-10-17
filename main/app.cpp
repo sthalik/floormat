@@ -50,18 +50,21 @@ void app::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
     if (_imgui.handleMousePressEvent(event))
         return event.setAccepted();
     {
-        const auto tile = pixel_to_tile(Vector2(*_cursor_pos));
-        int button;
-        switch (event.button())
+        if (_cursor_tile)
         {
-        case MouseEvent::Button::Left:   button = 0; break;
-        case MouseEvent::Button::Right:  button = 1; break;
-        case MouseEvent::Button::Middle: button = 2; break;
-        case MouseEvent::Button::X1:     button = 5; break;
-        case MouseEvent::Button::X2:     button = 6; break;
-        default: button = -1; break;
+            const auto& tile = *_cursor_tile;
+            int button;
+            switch (event.button())
+            {
+            case MouseEvent::Button::Left:   button = 0; break;
+            case MouseEvent::Button::Right:  button = 1; break;
+            case MouseEvent::Button::Middle: button = 2; break;
+            case MouseEvent::Button::X1:     button = 5; break;
+            case MouseEvent::Button::X2:     button = 6; break;
+            default: button = -1; break;
+            }
+            do_mouse_click(tile, button);
         }
-        do_mouse_click(tile, button);
     }
 }
 
@@ -80,8 +83,23 @@ void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
     if (_imgui.handleMouseMoveEvent(event))
-        return _cursor_pos = {}, event.setAccepted();
+        return _cursor_tile = std::nullopt, event.setAccepted();
+
     _cursor_pos = event.position();
+    recalc_cursor_tile();
+}
+
+void app::recalc_cursor_tile()
+{
+    if (_cursor_pos)
+    {
+        constexpr Vector2 base_offset =
+            tile_shader::project({(float)TILE_MAX_DIM*BASE_X*TILE_SIZE[0],
+                                  (float)TILE_MAX_DIM*BASE_Y*TILE_SIZE[1], 0});
+        _cursor_tile = pixel_to_tile(Vector2(*_cursor_pos) - base_offset);
+    }
+    else
+        _cursor_tile = std::nullopt;
 }
 
 void app::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
@@ -117,16 +135,17 @@ void app::anyEvent(SDL_Event& event)
 void app::event_leave()
 {
     _cursor_pos = std::nullopt;
+    _cursor_tile = std::nullopt;
 }
 
 void app::event_enter()
 {
-
 }
 
 void app::event_mouse_leave()
 {
     _cursor_pos = std::nullopt;
+    _cursor_tile = std::nullopt;
 }
 
 void app::event_mouse_enter()

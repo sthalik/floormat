@@ -34,6 +34,8 @@ struct app final : Platform::Application
 
     void do_camera(float dt);
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
+    void do_mouse_click(global_coords pos, int button);
+    void recalc_cursor_tile();
 
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
@@ -52,6 +54,7 @@ struct app final : Platform::Application
     void drawEvent() override;
     std::array<std::int16_t, 4> get_draw_bounds() const noexcept;
     void draw_world();
+    void draw_cursor_tile();
     void draw_wireframe_quad(global_coords pt);
     void draw_wireframe_box(local_coords pt);
 
@@ -66,13 +69,6 @@ struct app final : Platform::Application
     void* register_debug_callback();
 
     global_coords pixel_to_tile(Vector2 position) const;
-    void draw_cursor_tile();
-    void do_mouse_click(global_coords pos, int button);
-
-    std::optional<Vector2i> _cursor_pos;
-
-    static constexpr Vector2 project(Vector3 pt);
-    static constexpr Vector2 unproject(Vector2 px);
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
@@ -100,20 +96,11 @@ struct app final : Platform::Application
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
     editor _editor;
+    std::optional<Vector2i> _cursor_pos;
+    std::optional<global_coords> _cursor_tile;
 
-    static constexpr std::int32_t BASE_X = 0, BASE_Y = 0;
+
+    static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
 };
-
-constexpr Vector2 app::project(const Vector3 pt)
-{
-    const float x = -pt[1], y = -pt[0], z = pt[2];
-    return { x-y, (x+y+z*2)*.59f };
-}
-
-constexpr Vector2 app::unproject(const Vector2 px)
-{
-    const float X = px[0], Y = px[1];
-    return { X/2 + 50.f * Y / 59, 50 * Y / 59 - X/2 };
-}
 
 } // namespace floormat

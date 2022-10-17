@@ -5,7 +5,7 @@ namespace floormat {
 
 void app::do_camera(float dt)
 {
-    constexpr float pixels_per_second = 256;
+    constexpr float pixels_per_second = 384;
     if (keys[key::camera_up])
         camera_offset += Vector2(0, 1) * dt * pixels_per_second;
     else if (keys[key::camera_down])
@@ -24,12 +24,14 @@ void app::do_camera(float dt)
 
     if (keys[key::camera_reset])
         reset_camera_offset();
+
+    recalc_cursor_tile();
 }
 
 void app::reset_camera_offset()
 {
-    camera_offset = project({TILE_MAX_DIM*TILE_SIZE[0]/2.f, TILE_MAX_DIM*TILE_SIZE[1]/2.f, 0});
-    //camera_offset = {};
+    camera_offset = tile_shader::project({TILE_MAX_DIM/2.f*TILE_SIZE[0], TILE_MAX_DIM/2.f*TILE_SIZE[1], 0});
+    recalc_cursor_tile();
 }
 
 void app::update_window_scale(Vector2i sz)
