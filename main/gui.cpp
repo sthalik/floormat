@@ -1,7 +1,7 @@
 #include "app.hpp"
-#include "imgui-raii.hpp"
 #include <Magnum/GL/Renderer.h>
-#ifndef __CLION_IDE__
+#ifndef __CLION_IDE__zz
+#include "imgui-raii.hpp"
 #include <Magnum/ImGuiIntegration/Integration.h>
 #endif
 
