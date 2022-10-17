@@ -149,8 +149,9 @@ void app::draw_fps([[maybe_unused]] float main_menu_height)
                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
         auto b = begin_window("framerate", ImGuiWindowFlags_(flags)))
     {
+        const double dt = _frame_time > 1e-6 ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
         char buf[16];
-        snprintf(buf, sizeof(buf), "%.1f FPS", 0.f);
+        snprintf(buf, sizeof(buf), "%.1f FPS", dt);
         ImGui::SameLine(max_size.x - ImGui::CalcTextSize(buf).x);
         ImGui::Text("%s", buf);
     }

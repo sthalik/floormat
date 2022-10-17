@@ -7,8 +7,20 @@
 namespace floormat {
 
 void app::drawEvent() {
+
+    if (const float dt = timeline.previousFrameDuration(); dt > 0)
     {
-        const float dt = std::min(1.f/10, timeline.previousFrameDuration());
+        constexpr float RC = 0.5f;
+        const float alpha = dt/(dt + RC);
+
+        if (_frame_time > 0)
+            _frame_time = _frame_time*(1-alpha) + alpha*dt;
+        else
+            _frame_time = dt;
+    }
+
+    {
+        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-3f, 1e-1f);
         update(dt);
     }
 

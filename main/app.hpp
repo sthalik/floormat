@@ -29,12 +29,12 @@ struct app final : Platform::Application
 
     void update(float dt);
 
-    void reset_camera_offset();
-    void update_window_scale(Vector2i window_size);
-
-    void do_camera(float dt);
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void do_mouse_click(global_coords pos, int button);
+
+    void do_camera(float dt);
+    void reset_camera_offset();
+    void update_window_scale(Vector2i window_size);
     void recalc_cursor_tile();
 
     void keyPressEvent(KeyEvent& event) override;
@@ -46,13 +46,14 @@ struct app final : Platform::Application
     void textInputEvent(TextInputEvent& event) override;
     void viewportEvent(ViewportEvent& event) override;
     void anyEvent(SDL_Event& event) override;
+
     void event_leave();
     void event_enter();
     void event_mouse_enter();
     void event_mouse_leave();
 
-    void drawEvent() override;
     std::array<std::int16_t, 4> get_draw_bounds() const noexcept;
+    void drawEvent() override;
     void draw_world();
     void draw_cursor_tile();
     void draw_wireframe_quad(global_coords pt);
@@ -96,6 +97,7 @@ struct app final : Platform::Application
     editor _editor;
     std::optional<Vector2i> _cursor_pos;
     std::optional<global_coords> _cursor_tile;
+    float _frame_time = 0;
 
     static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
 };
