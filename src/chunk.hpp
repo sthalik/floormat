@@ -32,6 +32,13 @@ struct chunk final
     const_iterator begin() const { return cbegin(); }
     const_iterator end() const { return cend(); }
 
+    bool empty() const;
+
+    chunk() = default;
+    chunk(chunk&&) = default;
+    chunk& operator=(chunk&&) = default;
+    DECLARE_DELETED_COPY_ASSIGNMENT(chunk);
+
 private:
     std::array<tile, TILE_COUNT> _tiles = {};
 };

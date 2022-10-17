@@ -1,10 +1,12 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "tile-atlas.hpp"
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <tuple>
 #include <optional>
+#include <vector>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {

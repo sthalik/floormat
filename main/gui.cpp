@@ -83,7 +83,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
             {
                 for (const auto& [k, v] : type)
                 {
-                    const auto& k_ = k;
+                    ///const auto& k_ = k;
                     const auto& v_ = v;
                     const auto click_event = [&] {
                         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))

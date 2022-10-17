@@ -1,43 +1,31 @@
 #pragma once
-#include "src/chunk.hpp"
-#include "compat/assert.hpp"
+#include "global-coords.hpp"
+#include <unordered_map>
+#include <memory>
 
 namespace floormat {
 
-struct chunk_coords final {
-    std::int16_t x = 0, y = 0;
+struct chunk;
 
-    constexpr bool operator==(const chunk_coords& other) const noexcept = default;
-};
-
-struct global_coords final {
-    std::uint32_t x = 0, y = 0;
-
-    constexpr global_coords(chunk_coords c, local_coords xy) :
-        x{ std::uint32_t(c.x + (1 << 15)) << 4 | (xy.x & 0x0f) },
-        y{ std::uint32_t(c.y + (1 << 15)) << 4 | (xy.y & 0x0f) }
-    {}
-    constexpr global_coords(std::uint32_t x, std::uint32_t y) noexcept : x{x}, y{y} {}
-    constexpr global_coords() noexcept = default;
-
-    constexpr local_coords local() const noexcept;
-    constexpr chunk_coords chunk() const noexcept;
-
-    constexpr bool operator==(const global_coords& other) const noexcept = default;
-};
-
-constexpr local_coords global_coords::local() const noexcept
+struct world final
 {
-    return { (std::uint8_t)(x % TILE_MAX_DIM), (std::uint8_t)(y % TILE_MAX_DIM) };
-}
+    world();
+    std::shared_ptr<chunk> operator[](chunk_coords c) noexcept;
+    std::shared_ptr<chunk> maybe_chunk(chunk_coords c) noexcept;
+    std::shared_ptr<const chunk> maybe_chunk(chunk_coords c) const noexcept;
+    bool contains(chunk_coords c) const noexcept;
+    void clear();
+    void collect();
 
+private:
+    static constexpr std::size_t initial_capacity = 64, collect_every = 100;
+    static constexpr float max_load_factor = .5;
+    std::size_t _last_collection = 0;
 
-constexpr chunk_coords global_coords::chunk() const noexcept
-{
-    return {
-        (std::int16_t)(std::int32_t(x >> 4) - (1 << 15)),
-        (std::int16_t)(std::int32_t(y >> 4) - (1 << 15)),
-    };
-}
+    void maybe_collect();
+    struct hasher final { std::size_t operator()(chunk_coords c) const noexcept; };
+
+    std::unordered_map<chunk_coords, std::shared_ptr<chunk>, hasher> _chunks{initial_capacity};
+};
 
 } // namespace floormat

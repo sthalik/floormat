@@ -3,8 +3,6 @@
 #include "tile-defs.hpp"
 #include <cstdint>
 #include <concepts>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
