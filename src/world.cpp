@@ -64,9 +64,8 @@ void world::collect()
 
 std::size_t world::hasher::operator()(chunk_coords c) const noexcept
 {
-    void _really_unreachable();
-
     std::size_t x = (std::size_t)c.y << 16 | (std::size_t)c.x;
+
     if constexpr(sizeof(std::size_t) == 4)
     {
         // by Chris Wellons <https://nullprogram.com/blog/2018/07/31/>
@@ -78,14 +77,13 @@ std::size_t world::hasher::operator()(chunk_coords c) const noexcept
     }
     else if constexpr(sizeof(std::size_t) == 8)
     {
+        // splitmix64 by George Marsaglia
         x ^= x >> 30;
         x *= 0xbf58476d1ce4e5b9U;
         x ^= x >> 27;
         x *= 0x94d049bb133111ebU;
         x ^= x >> 31;
     }
-    else
-        _really_unreachable();
 
     return x;
 }
