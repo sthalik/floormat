@@ -69,11 +69,6 @@ void app::draw_world()
             const auto offset = project({float(x + BASE_X)*TILE_MAX_DIM*TILE_SIZE[0],
                                          float(y + BASE_Y)*TILE_MAX_DIM*TILE_SIZE[1],
                                          0});
-            if (x == 0 && y == 0)
-            {
-                printf("0 0 --> %f %f\n", offset[0], offset[1]);
-                fflush(stdout);
-            }
             _shader.set_camera_offset(offset + old_camera_offset);
             auto c = _world[chunk_coords{x, y}];
             _floor_mesh.draw(_shader, *c);
