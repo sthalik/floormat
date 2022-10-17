@@ -31,7 +31,8 @@ void app::do_camera(float dt)
 
 void app::reset_camera_offset()
 {
-    _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM/2.f*TILE_SIZE[0]/2.f, TILE_MAX_DIM/2.f*TILE_SIZE[1]/2.f, 0}));
+
+    _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*.25f*TILE_SIZE[0], TILE_MAX_DIM*.25f*TILE_SIZE[1], 0}));
     recalc_cursor_tile();
 }
 
