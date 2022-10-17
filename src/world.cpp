@@ -5,7 +5,7 @@ namespace floormat {
 
 struct chunk_pointer_maker final
 {
-    operator std::shared_ptr<chunk>() const { return std::make_shared<chunk>(); }
+    inline operator std::shared_ptr<chunk>() const { return std::make_shared<chunk>(); }
 };
 
 world::world()
@@ -15,22 +15,26 @@ world::world()
 
 std::shared_ptr<chunk> world::operator[](chunk_coords c) noexcept
 {
+    maybe_collect();
+
+    if (_last_chunk)
+    {
+        auto& [ret, pos] = *_last_chunk;
+        if (pos == c)
+            return ret;
+    }
+
     auto [it, inserted] = _chunks.try_emplace(c, chunk_pointer_maker{});
-    const auto ret = it->second;
-    return maybe_collect(), ret;
+    auto ret = it->second;
+    _last_chunk = { ret, c };
+    return ret;
 }
 
-std::shared_ptr<chunk> world::maybe_chunk(chunk_coords c) noexcept
-{
-    if (const auto it = _chunks.find(c); it != _chunks.cend())
-        return it->second;
-    else
-        return nullptr;
-}
 
-std::shared_ptr<const chunk> world::maybe_chunk(chunk_coords c) const noexcept
+std::tuple<std::shared_ptr<chunk>, tile&> world::operator[](global_coords pt) noexcept
 {
-    return const_cast<world&>(*this).maybe_chunk(c);
+    auto c = operator[](pt.chunk());
+    return { c, (*c)[pt.local()] };
 }
 
 bool world::contains(chunk_coords c) const noexcept
@@ -41,6 +45,7 @@ bool world::contains(chunk_coords c) const noexcept
 void world::clear()
 {
     _last_collection = 0;
+    _last_chunk = std::nullopt;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
 }
@@ -61,7 +66,9 @@ void world::collect()
         else
             ++it;
     }
+
     _last_collection = _chunks.size();
+    _last_chunk = std::nullopt;
 }
 
 } // namespace floormat

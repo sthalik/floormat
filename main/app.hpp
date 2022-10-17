@@ -10,6 +10,7 @@
 #include "draw/wireframe-box.hpp"
 #include "compat/enum-bitset.hpp"
 #include "editor.hpp"
+#include "world.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
@@ -25,10 +26,14 @@ struct app final : Platform::Application
 
     explicit app(const Arguments& arguments);
     virtual ~app();
-    void drawEvent() override;
+
     void update(float dt);
-    void do_camera(float dt);
+
     void reset_camera_offset();
+    void update_window_scale(Vector2i window_size);
+
+    void do_camera(float dt);
+    void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
 
     void keyPressEvent(KeyEvent& event) override;
     void keyReleaseEvent(KeyEvent& event) override;
@@ -37,29 +42,30 @@ struct app final : Platform::Application
     void mouseMoveEvent(MouseMoveEvent& event) override;
     void mouseScrollEvent(MouseScrollEvent& event) override;
     void textInputEvent(TextInputEvent& event) override;
+    void viewportEvent(ViewportEvent& event) override;
     void anyEvent(SDL_Event& event) override;
     void event_leave();
     void event_enter();
     void event_mouse_enter();
     void event_mouse_leave();
 
-    void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
-    void draw_chunk(chunk& c);
-    void draw_wireframe_quad(local_coords pt);
+    void drawEvent() override;
+    void draw_world();
+    void draw_wireframe_quad(global_coords pt);
     void draw_wireframe_box(local_coords pt);
-    void update_window_scale(Vector2i window_size);
-    void viewportEvent(ViewportEvent& event) override;
+
     void do_menu();
     void draw_menu_(tile_type& type, float main_menu_height);
     void setup_menu();
     void display_menu();
+
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
     void* register_debug_callback();
 
-    Vector2 pixel_to_tile(Vector2 position) const;
+    global_coords pixel_to_tile(Vector2 position) const;
     void draw_cursor_tile();
-    void do_mouse_click(Vector2 pos, int button);
+    void do_mouse_click(global_coords pos, int button);
 
     std::optional<Vector2i> _cursor_pos;
 
@@ -71,7 +77,7 @@ struct app final : Platform::Application
         quit,
         MAX
     };
-    chunk make_test_chunk();
+    void make_test_chunk(chunk& c);
 
     const void* _dummy = register_debug_callback();
     tile_shader _shader;
@@ -79,7 +85,6 @@ struct app final : Platform::Application
     tile_atlas_ floor2 = loader.tile_atlas("metal1.tga", {2, 2});
     tile_atlas_ wall1  = loader.tile_atlas("wood2.tga", {2, 2});
     tile_atlas_ wall2  = loader.tile_atlas("wood1.tga", {2, 2});
-    chunk _chunk = make_test_chunk();
 
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
@@ -88,6 +93,7 @@ struct app final : Platform::Application
 
     ImGuiIntegration::Context _imgui{NoCreate};
 
+    world _world;
     Vector2 camera_offset;
     enum_bitset<key> keys;
     Magnum::Timeline timeline;

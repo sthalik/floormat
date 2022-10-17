@@ -30,6 +30,10 @@ app::app(const Arguments& arguments):
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
     setup_menu();
     SDL_MaximizeWindow(window());
+    {
+        auto c = _world[chunk_coords{0, 0}];
+        make_test_chunk(*c);
+    }
     timeline.start();
 }
 
@@ -130,3 +134,22 @@ void app::event_mouse_enter()
 }
 
 } // namespace floormat
+
+MAGNUM_APPLICATION_MAIN(floormat::app)
+
+#ifdef _MSC_VER
+#include <cstdlib> // for __arg{c,v}
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wmain"
+#endif
+extern "C" int __stdcall WinMain(void*, void*, void*, int);
+
+extern "C" int __stdcall WinMain(void*, void*, void*, int)
+{
+    return main(__argc, __argv);
+}
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
+#endif

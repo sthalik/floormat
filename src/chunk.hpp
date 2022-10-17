@@ -41,6 +41,7 @@ struct chunk final
 
 private:
     std::array<tile, TILE_COUNT> _tiles = {};
+    mutable bool _maybe_empty = true;
 };
 
 } // namespace floormat

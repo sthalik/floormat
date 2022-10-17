@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "tile-atlas.hpp"
+#include "global-coords.hpp"
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -66,7 +67,7 @@ struct editor final
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
 
-    void click_at_tile(Vector2 pos, int mouse_button);
+    void click_at_tile(global_coords pos, int mouse_button);
 
     editor();
     editor(editor&&) noexcept = default;

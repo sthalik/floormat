@@ -126,14 +126,11 @@ editor::editor()
 {
 }
 
-void editor::click_at_tile(Vector2 pos, int mouse_button)
+void editor::click_at_tile(const global_coords pos, int mouse_button)
 {
     if (mouse_button == 0)
     {
-        if (pos[0] >= 0 && pos[1] >= 0 && pos[0] < TILE_MAX_DIM && pos[1] < TILE_MAX_DIM)
-        {
-
-        }
+        // TODO
     }
 }
 

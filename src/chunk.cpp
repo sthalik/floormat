@@ -4,9 +4,15 @@ namespace floormat {
 
 bool chunk::empty() const
 {
+    if (!_maybe_empty)
+        return false;
+
     for (const tile& x : _tiles)
         if (x.ground_image || x.wall_north || x.wall_west)
+        {
+            _maybe_empty = false;
             return false;
+        }
 
     return true;
 }

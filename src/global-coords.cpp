@@ -9,9 +9,10 @@ static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y
 
 static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y)>);
 
-static_assert(global_coords{{-1, -1}, {2, 3}} == global_coords{((-1 + (1 << 15)) << 4) + 2, ((-1 + (1 << 15)) << 4) + 3});
-static_assert(global_coords{15, 15}.chunk() == global_coords{}.chunk());
-static_assert(global_coords{15, 16}.chunk() != global_coords{}.chunk());
-static_assert(global_coords{(1 + (1<<15)) << 4 | 3, (2 + (1<<15)) << 4 | 4} == global_coords{{1, 2}, {3, 4}});
+static_assert(TILE_MAX_DIM == (1 << 4));
+
+static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM-1}.chunk() == global_coords{}.chunk());
+static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM}.chunk() != global_coords{}.chunk());
+static_assert(global_coords{(1u + (1<<15)) << 4 | 3, (2u + (1<<15)) << 4 | 4} == global_coords{{1, 2}, {3, 4}});
 
 } // namespace floormat
