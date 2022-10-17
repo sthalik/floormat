@@ -22,12 +22,8 @@ void app::display_menu()
     _imgui.drawFrame();
 }
 
-void app::do_menu()
+float app::draw_main_menu()
 {
-    _imgui.newFrame();
-
-    ImGui::StyleColorsDark(&ImGui::GetStyle());
-
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
@@ -50,22 +46,33 @@ void app::do_menu()
 
         main_menu_height = ImGui::GetContentRegionMax().y;
     }
-    draw_menu_(_editor.floor(), main_menu_height);
-    draw_fps(main_menu_height);
+    return main_menu_height;
 }
 
-void app::draw_menu_(tile_type& type, float main_menu_height)
+void app::draw_ui()
+{
+    _imgui.newFrame();
+    ImGui::StyleColorsDark(&ImGui::GetStyle());
+
+    const float main_menu_height = draw_main_menu();
+    draw_editor_pane(_editor.floor(), main_menu_height);
+    draw_fps();
+}
+
+void app::draw_editor_pane(tile_type& type, float main_menu_height)
 {
     if (ImGui::GetIO().WantTextInput && !isTextInputActive())
         startTextInput();
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    auto c1 = push_style_var(ImGuiStyleVar_WindowPadding, {8, 8});
-    auto c2 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
-    auto c3 = push_style_var(ImGuiStyleVar_FramePadding, {4, 4});
-    auto c4 = push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5});
-    auto c5 = push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0});
+    const raii_wrapper vars[] = {
+        push_style_var(ImGuiStyleVar_WindowPadding, {8, 8}),
+        push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
+        push_style_var(ImGuiStyleVar_FramePadding, {4, 4}),
+        push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
+        push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
+    };
 
     const auto& style = ImGui::GetStyle();
 
@@ -103,9 +110,11 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                     {
                         click_event();
                         add_tile_count();
-                        auto c = push_style_var(ImGuiStyleVar_FramePadding, {1, 1});
-                        auto c2 = push_style_var(ImGuiStyleVar_FrameBorderSize, 3);
-                        auto c3 = push_style_color(ImGuiCol_Button, {1, 1, 1, 1});
+                        const raii_wrapper vars[] = {
+                            push_style_var(ImGuiStyleVar_FramePadding, {1, 1}),
+                            push_style_var(ImGuiStyleVar_FrameBorderSize, 3),
+                            push_style_color(ImGuiCol_Button, {1, 1, 1, 1}),
+                        };
                         constexpr std::size_t per_row = 8;
                         for (std::size_t i = 0; i < N; i++)
                         {
@@ -134,7 +143,7 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
     }
 }
 
-void app::draw_fps([[maybe_unused]] float main_menu_height)
+void app::draw_fps()
 {
     const ImVec2 max_size = ImGui::CalcTextSize("999.1 FPS");
     auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});

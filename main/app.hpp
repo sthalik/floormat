@@ -59,9 +59,10 @@ struct app final : Platform::Application
     void draw_wireframe_quad(global_coords pt);
     void draw_wireframe_box(local_coords pt);
 
-    void do_menu();
-    void draw_menu_(tile_type& type, float main_menu_height);
-    void draw_fps(float main_menu_height);
+    void draw_ui();
+    float draw_main_menu();
+    void draw_editor_pane(tile_type& type, float main_menu_height);
+    void draw_fps();
     void display_menu();
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,

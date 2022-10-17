@@ -24,7 +24,7 @@ void app::do_mouse_click(const global_coords pos, int button)
 void app::update(float dt)
 {
     do_camera(dt);
-    do_menu();
+    draw_ui();
     if (keys[key::quit])
         Platform::Sdl2Application::exit(0);
 }
