@@ -9,20 +9,17 @@ namespace floormat {
 
 using namespace floormat::imgui;
 
-void app::setup_menu()
+void app::display_menu()
 {
     GL::Renderer::setBlendEquation(GL::Renderer::BlendEquation::Add, GL::Renderer::BlendEquation::Add);
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha, GL::Renderer::BlendFunction::OneMinusSourceAlpha);
-}
-
-void app::display_menu()
-{
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
+
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+
     _imgui.drawFrame();
-    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
 }
 
 void app::do_menu()

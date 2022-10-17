@@ -31,7 +31,7 @@ void app::update(float dt)
 
 global_coords app::pixel_to_tile(Vector2 position) const
 {
-    const Vector2 px = position - Vector2{windowSize()}*.5f - camera_offset;
+    const Vector2 px = position - Vector2{windowSize()}*.5f - _shader.camera_offset();
     const Vector2 vec = tile_shader::unproject(px) / Vector2{TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f} + Vector2{.5f, .5f};
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };

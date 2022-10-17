@@ -61,7 +61,6 @@ struct app final : Platform::Application
     void do_menu();
     void draw_menu_(tile_type& type, float main_menu_height);
     void draw_fps(float main_menu_height);
-    void setup_menu();
     void display_menu();
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
@@ -92,7 +91,6 @@ struct app final : Platform::Application
     ImGuiIntegration::Context _imgui{NoCreate};
 
     world _world;
-    Vector2 camera_offset;
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
     editor _editor;

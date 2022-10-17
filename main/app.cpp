@@ -28,7 +28,6 @@ app::app(const Arguments& arguments):
     update_window_scale(windowSize());
     setMinimalLoopPeriod(5);
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
-    setup_menu();
     SDL_MaximizeWindow(window());
     {
         auto c = _world[chunk_coords{0, 0}];
