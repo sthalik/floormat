@@ -69,18 +69,30 @@ std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 
 void app::draw_world()
 {
+#if 0
     _floor_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
     _wall_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
-#if 0
+#else
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
 
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
-            _floor_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+    printf("%hd %hd -> %hd %hd\n", minx, miny, maxx, maxy);
+    fflush(stdout);
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
+        {
+            if (!_world.contains(chunk_coords{x, y}))
+                make_test_chunk(*_world[chunk_coords{x, y}]);
+            const with_shifted_camera_offset o{_shader, x, y};
+            _floor_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+        }
+
+    for (std::int16_t y = miny; y <= maxy; y++)
+        for (std::int16_t x = minx; x <= maxx; x++)
+        {
+            const with_shifted_camera_offset o{_shader, x, y};
             _wall_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+        }
 #endif
 }
 
