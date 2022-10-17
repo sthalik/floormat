@@ -12,7 +12,7 @@ struct with_shifted_camera_offset final
     ~with_shifted_camera_offset();
 private:
     tile_shader& _shader; // NOLINT
-    Vector2 _offset;
+    Vector2d _offset;
 };
 
 } // namespace floormat

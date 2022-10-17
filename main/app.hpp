@@ -63,13 +63,14 @@ struct app final : Platform::Application
     float draw_main_menu();
     void draw_editor_pane(tile_type& type, float main_menu_height);
     void draw_fps();
+    void draw_cursor_coord();
     void display_menu();
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
     void* register_debug_callback();
 
-    global_coords pixel_to_tile(Vector2 position) const;
+    global_coords pixel_to_tile(Vector2d position) const;
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,

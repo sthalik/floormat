@@ -15,31 +15,32 @@ struct tile_shader : GL::AbstractShaderProgram
 
     Vector2 scale() const { return scale_; }
     tile_shader& set_scale(const Vector2& scale);
-    Vector2 camera_offset() const { return camera_offset_; }
-    tile_shader& set_camera_offset(Vector2 camera_offset);
+    Vector2d camera_offset() const { return camera_offset_; }
+    tile_shader& set_camera_offset(Vector2d camera_offset);
     Vector4 tint() const { return tint_; }
     tile_shader& set_tint(const Vector4& tint);
 
-    static constexpr Vector2 project(Vector3 pt);
-    static constexpr Vector2 unproject(Vector2 px);
+    static constexpr Vector2d project(Vector3d pt);
+    static constexpr Vector2d unproject(Vector2d px);
 
 private:
-    Vector2 scale_, camera_offset_;
+    Vector2d camera_offset_;
+    Vector2 scale_;
     Vector4 tint_;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };
 
-constexpr Vector2 tile_shader::project(const Vector3 pt)
+constexpr Vector2d tile_shader::project(const Vector3d pt)
 {
-    const float x = -pt[1], y = -pt[0], z = pt[2];
-    return { x-y, (x+y+z*2)*.59f };
+    const auto x = -pt[0]*.5, y = pt[1]*.5, z = pt[2];
+    return { (x-y), (x+y+z)*.59 };
 }
 
-constexpr Vector2 tile_shader::unproject(const Vector2 px)
+constexpr Vector2d tile_shader::unproject(const Vector2d px)
 {
-    const float X = px[0], Y = px[1];
-    return { X/2 + 50.f * Y / 59, 50 * Y / 59 - X/2 };
+    const auto X = px[0], Y = px[1];
+    return { X/2 + 50 * Y / 59, 50 * Y / 59 - X/2 };
 }
 
 } // namespace floormat

@@ -3,21 +3,23 @@
 
 namespace floormat {
 
-void app::do_camera(float dt)
+void app::do_camera(float dt_)
 {
+    constexpr int pixels_per_second = 768;
+    const auto dt = (double)dt_;
     auto camera_offset = _shader.camera_offset();
-    constexpr float pixels_per_second = 768;
+
     if (keys[key::camera_up])
-        camera_offset += Vector2{0,  1} * dt * pixels_per_second;
+        camera_offset += Vector2d{0,  1} * dt * pixels_per_second;
     else if (keys[key::camera_down])
-        camera_offset += Vector2{0, -1} * dt * pixels_per_second;
+        camera_offset += Vector2d{0, -1} * dt * pixels_per_second;
     if (keys[key::camera_left])
-        camera_offset += Vector2{1,  0} * dt * pixels_per_second;
+        camera_offset += Vector2d{1,  0} * dt * pixels_per_second;
     else if (keys[key::camera_right])
-        camera_offset += Vector2{-1, 0} * dt * pixels_per_second;
+        camera_offset += Vector2d{-1, 0} * dt * pixels_per_second;
 
     {
-        const auto max_camera_offset = Vector2(windowSize() * 10);
+        const auto max_camera_offset = Vector2d(windowSize() * 10);
         camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
         camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
     }
@@ -31,7 +33,8 @@ void app::do_camera(float dt)
 
 void app::reset_camera_offset()
 {
-    _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*.25f*TILE_SIZE[0], TILE_MAX_DIM*.25f*TILE_SIZE[1], 0}));
+    //_shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*.25*dTILE_SIZE[0], TILE_MAX_DIM*.25*dTILE_SIZE[1], 0}));
+    _shader.set_camera_offset({});
     recalc_cursor_tile();
 }
 
@@ -43,22 +46,46 @@ void app::update_window_scale(Vector2i sz)
 void app::recalc_cursor_tile()
 {
     if (_cursor_pos)
-    {
-        constexpr Vector2 base_offset =
-            tile_shader::project({(float)TILE_MAX_DIM*BASE_X*TILE_SIZE[0],
-                                  (float)TILE_MAX_DIM*BASE_Y*TILE_SIZE[1], 0});
-        _cursor_tile = pixel_to_tile(Vector2(*_cursor_pos) - base_offset);
-    }
+        _cursor_tile = pixel_to_tile(Vector2d(*_cursor_pos));
     else
         _cursor_tile = std::nullopt;
 }
 
-global_coords app::pixel_to_tile(Vector2 position) const
+global_coords app::pixel_to_tile(Vector2d position) const
 {
-    const Vector2 px = position - Vector2{windowSize()}*.5f - _shader.camera_offset();
-    const Vector2 vec = tile_shader::unproject(px) / Vector2{TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f} + Vector2{.5f, .5f};
+    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset();
+    const Vector2d vec = tile_shader::unproject(px) / Vector2d{dTILE_SIZE[0]*.5, dTILE_SIZE[1]*.5} + Vector2d{.5, .5};
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
+}
+
+namespace sqrt_detail
+{
+constexpr double sqrt_Newton_Raphson(double x, double curr, double prev)
+{
+    constexpr auto abs = [](double x) constexpr { return x < 0 ? -x : x; };
+    while (abs(curr - prev) > 1e-16)
+    {
+        prev = curr;
+        curr = .5 * (curr + x/curr);
+    }
+    return curr;
+}
+} // namespace sqrt_detail
+constexpr double ce_sqrt(double x)
+{
+    return sqrt_detail::sqrt_Newton_Raphson(x, x, 0);
+}
+
+std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
+{
+    const auto center = pixel_to_tile(Vector2d(windowSize()/2)).chunk();
+    constexpr auto N = 3;
+
+    return {
+        std::int16_t(center.x - N), std::int16_t(center.x + N),
+        std::int16_t(center.y - N), std::int16_t(center.y + N),
+    };
 }
 
 } // namespace floormat

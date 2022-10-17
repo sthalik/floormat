@@ -1,5 +1,6 @@
 #include "shaders/tile-shader.hpp"
 #include "loader.hpp"
+#include "compat/assert.hpp"
 #include <algorithm>
 #include <Corrade/Containers/Reference.h>
 #include <Corrade/Utility/Resource.h>
@@ -36,12 +37,17 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
     return *this;
 }
 
-tile_shader& tile_shader::set_camera_offset(Vector2 camera_offset)
+tile_shader& tile_shader::set_camera_offset(Vector2d camera_offset)
 {
-    CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[0]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
-    CORRADE_INTERNAL_ASSERT(std::fabs(camera_offset[1]) <= std::scalbn(1.f, std::numeric_limits<float>::digits));
+    static constexpr auto MAX = std::numeric_limits<std::int32_t>::max();
+    ASSERT(std::fabs(camera_offset[0]) <= MAX);
+    ASSERT(std::fabs(camera_offset[1]) <= MAX);
     if (camera_offset != camera_offset_)
-        setUniform(OffsetUniform, 2*(camera_offset_ = camera_offset));
+    {
+        camera_offset_ = camera_offset;
+        setUniform(OffsetUniform, Vector2i{std::int32_t(camera_offset[0]*2), std::int32_t(camera_offset[1]*2)});
+    }
+
     return *this;
 }
 

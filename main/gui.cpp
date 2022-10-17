@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include <Magnum/GL/Renderer.h>
-#ifndef __CLION_IDE__zz
+#ifndef __CLION_IDE__
 #include "imgui-raii.hpp"
 #include <Magnum/ImGuiIntegration/Integration.h>
 #endif
@@ -57,6 +57,7 @@ void app::draw_ui()
     const float main_menu_height = draw_main_menu();
     draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
+    draw_cursor_coord();
 }
 
 void app::draw_editor_pane(tile_type& type, float main_menu_height)
@@ -162,6 +163,35 @@ void app::draw_fps()
         char buf[16];
         snprintf(buf, sizeof(buf), "%.1f FPS", dt);
         ImGui::SameLine(max_size.x - ImGui::CalcTextSize(buf).x);
+        ImGui::Text("%s", buf);
+    }
+}
+
+void app::draw_cursor_coord()
+{
+    if (!_cursor_tile)
+        return;
+
+    auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
+    auto c2 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
+    auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
+    auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
+    auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
+    auto c6 = push_style_color(ImGuiCol_Text, {.9, .9, .9, 1});
+
+    char buf[64];
+    const auto coord = *_cursor_tile;
+    const auto chunk = coord.chunk();
+    const auto local = coord.local();
+    snprintf(buf, sizeof(buf), "%hd:%hd - %hhu:%hhu", chunk.x, chunk.y, local.x, local.y);
+    const auto size = ImGui::CalcTextSize(buf);
+
+    ImGui::SetNextWindowPos({windowSize()[0]/2 - size.x/2, 3});
+    ImGui::SetNextWindowSize(size);
+    if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+        auto b = begin_window("tile-coord", ImGuiWindowFlags_(flags)))
+    {
         ImGui::Text("%s", buf);
     }
 }
