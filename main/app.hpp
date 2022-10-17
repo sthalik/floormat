@@ -50,6 +50,7 @@ struct app final : Platform::Application
     void event_mouse_leave();
 
     void drawEvent() override;
+    std::array<std::int16_t, 4> get_draw_bounds() const noexcept;
     void draw_world();
     void draw_wireframe_quad(global_coords pt);
     void draw_wireframe_box(local_coords pt);
@@ -98,6 +99,8 @@ struct app final : Platform::Application
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
     editor _editor;
+
+    static constexpr std::int32_t BASE_X = 0, BASE_Y = 0;
 };
 
 constexpr Vector2 app::project(const Vector3 pt)
