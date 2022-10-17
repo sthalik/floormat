@@ -69,6 +69,9 @@ std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 
 void app::draw_world()
 {
+    _floor_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
+    _wall_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
+#if 0
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
 
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -78,6 +81,7 @@ void app::draw_world()
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
             _wall_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+#endif
 }
 
 void app::draw_wireframe_quad(global_coords pos)
