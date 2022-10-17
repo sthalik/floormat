@@ -8,7 +8,6 @@ struct chunk_coords final {
     std::int16_t x = 0, y = 0;
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
-    constexpr operator std::size_t() const noexcept { return (std::uint32_t)y << 16 | (std::uint32_t)x; }
 };
 
 struct global_coords final {

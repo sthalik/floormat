@@ -15,3 +15,5 @@
 #define DECLARE_DELETED_COPY_ASSIGNMENT(type)               \
     type(const type&) = delete;                             \
     type& operator=(const type&) = delete
+
+

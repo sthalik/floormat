@@ -16,10 +16,11 @@ world::world()
 std::shared_ptr<chunk> world::operator[](chunk_coords c) noexcept
 {
     auto [it, inserted] = _chunks.try_emplace(c, chunk_pointer_maker{});
-    maybe_collect();    return it->second;
+    const auto ret = it->second;
+    return maybe_collect(), ret;
 }
 
-std::shared_ptr<const chunk> world::maybe_chunk(chunk_coords c) const noexcept
+std::shared_ptr<chunk> world::maybe_chunk(chunk_coords c) noexcept
 {
     if (const auto it = _chunks.find(c); it != _chunks.cend())
         return it->second;
@@ -27,9 +28,9 @@ std::shared_ptr<const chunk> world::maybe_chunk(chunk_coords c) const noexcept
         return nullptr;
 }
 
-std::shared_ptr<chunk> world::maybe_chunk(chunk_coords c) noexcept
+std::shared_ptr<const chunk> world::maybe_chunk(chunk_coords c) const noexcept
 {
-    return std::const_pointer_cast<chunk>(const_cast<const world&>(*this).maybe_chunk(c));
+    return const_cast<world&>(*this).maybe_chunk(c);
 }
 
 bool world::contains(chunk_coords c) const noexcept
@@ -40,6 +41,7 @@ bool world::contains(chunk_coords c) const noexcept
 void world::clear()
 {
     _last_collection = 0;
+    _chunks.clear();
     _chunks.rehash(initial_capacity);
 }
 
@@ -53,39 +55,13 @@ void world::collect()
 {
     for (auto it = _chunks.begin(); it != _chunks.end(); (void)0)
     {
-        const auto& [k, c] = *it;
+        const auto& [_, c] = *it;
         if (c->empty())
             it = _chunks.erase(it);
         else
-            it++;
+            ++it;
     }
     _last_collection = _chunks.size();
-}
-
-std::size_t world::hasher::operator()(chunk_coords c) const noexcept
-{
-    std::size_t x = (std::size_t)c.y << 16 | (std::size_t)c.x;
-
-    if constexpr(sizeof(std::size_t) == 4)
-    {
-        // by Chris Wellons <https://nullprogram.com/blog/2018/07/31/>
-        x ^= x >> 15;
-        x *= 0x2c1b3c6dU;
-        x ^= x >> 12;
-        x *= 0x297a2d39U;
-        x ^= x >> 15;
-    }
-    else if constexpr(sizeof(std::size_t) == 8)
-    {
-        // splitmix64 by George Marsaglia
-        x ^= x >> 30;
-        x *= 0xbf58476d1ce4e5b9U;
-        x ^= x >> 27;
-        x *= 0x94d049bb133111ebU;
-        x ^= x >> 31;
-    }
-
-    return x;
 }
 
 } // namespace floormat

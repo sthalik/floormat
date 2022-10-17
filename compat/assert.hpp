@@ -59,3 +59,19 @@ constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
 #define ERR(...)        ::floormat::detail::emit_debug("error: ", __VA_ARGS__)
 #define MESSAGE(...)    ::floormat::detail::emit_debug("", __VA_ARGS__)
 #define DEBUG(...)      ::floormat::detail::emit_debug("", __VA_ARGS__)
+
+namespace floormat {
+
+template<bool>
+struct static_warning_ final {
+    [[deprecated]] constexpr static_warning_() = default;
+};
+
+template<>
+struct static_warning_<true> final {
+    constexpr static_warning_() = default;
+};
+
+#define static_warning(...) do { (void)static_warning_<(__VA_ARGS__)>{};  } while(false)
+
+} // namespace floormat
