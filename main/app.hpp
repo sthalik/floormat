@@ -97,7 +97,6 @@ struct app final : Platform::Application
     std::optional<Vector2i> _cursor_pos;
     std::optional<global_coords> _cursor_tile;
 
-
     static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
 };
 

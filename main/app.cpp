@@ -88,19 +88,6 @@ void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
     recalc_cursor_tile();
 }
 
-void app::recalc_cursor_tile()
-{
-    if (_cursor_pos)
-    {
-        constexpr Vector2 base_offset =
-            tile_shader::project({(float)TILE_MAX_DIM*BASE_X*TILE_SIZE[0],
-                                  (float)TILE_MAX_DIM*BASE_Y*TILE_SIZE[1], 0});
-        _cursor_tile = pixel_to_tile(Vector2(*_cursor_pos) - base_offset);
-    }
-    else
-        _cursor_tile = std::nullopt;
-}
-
 void app::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 {
     if (_imgui.handleMouseScrollEvent(event))
