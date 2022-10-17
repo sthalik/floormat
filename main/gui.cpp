@@ -26,6 +26,9 @@ void app::display_menu()
 void app::do_menu()
 {
     _imgui.newFrame();
+
+    ImGui::StyleColorsDark(&ImGui::GetStyle());
+
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
@@ -49,6 +52,7 @@ void app::do_menu()
         main_menu_height = ImGui::GetContentRegionMax().y;
     }
     draw_menu_(_editor.floor(), main_menu_height);
+    draw_fps(main_menu_height);
 }
 
 void app::draw_menu_(tile_type& type, float main_menu_height)
@@ -58,13 +62,13 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    auto& style = ImGui::GetStyle();
-    ImGui::StyleColorsDark(&style);
-    style.WindowPadding = {8, 8};
-    style.WindowBorderSize = {};
-    style.FramePadding = {4, 4};
-    style.Colors[ImGuiCol_WindowBg] = {0, 0, 0, .5};
-    style.Colors[ImGuiCol_FrameBg] = {0, 0, 0, 0};
+    auto c1 = push_style_var(ImGuiStyleVar_WindowPadding, {8, 8});
+    auto c2 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
+    auto c3 = push_style_var(ImGuiStyleVar_FramePadding, {4, 4});
+    auto c4 = push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5});
+    auto c5 = push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0});
+
+    const auto& style = ImGui::GetStyle();
 
     if (main_menu_height > 0)
     {
@@ -128,6 +132,28 @@ void app::draw_menu_(tile_type& type, float main_menu_height)
                 }
             }
         }
+    }
+}
+
+void app::draw_fps([[maybe_unused]] float main_menu_height)
+{
+    const ImVec2 max_size = ImGui::CalcTextSize("999.1 FPS");
+    auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
+    auto c2 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
+    auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
+    auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
+    auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
+    auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
+    ImGui::SetNextWindowPos({windowSize()[0] - 5 - max_size.x, 3});
+    ImGui::SetNextWindowSize(max_size);
+    if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+        auto b = begin_window("framerate", ImGuiWindowFlags_(flags)))
+    {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.1f FPS", 0.f);
+        ImGui::SameLine(max_size.x - ImGui::CalcTextSize(buf).x);
+        ImGui::Text("%s", buf);
     }
 }
 

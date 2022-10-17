@@ -57,6 +57,7 @@ struct app final : Platform::Application
 
     void do_menu();
     void draw_menu_(tile_type& type, float main_menu_height);
+    void draw_fps(float main_menu_height);
     void setup_menu();
     void display_menu();
 
