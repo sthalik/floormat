@@ -75,7 +75,7 @@ std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
-    for (const chunk_coords& p : { p00, p10, p01, p11 })
+    for (auto p : { p00, p10, p01, p11 })
     {
         x0 = std::min(x0, p.x);
         x1 = std::max(x1, p.x);
