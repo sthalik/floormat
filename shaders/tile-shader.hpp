@@ -55,7 +55,7 @@ constexpr Vector2d tile_shader::project(const Vector3d pt)
 constexpr Vector2d tile_shader::unproject(const Vector2d px)
 {
     const auto X = px[0], Y = px[1];
-    return { X/2 + 50 * Y / 59, 50 * Y / 59 - X/2 };
+    return { X + 100 * Y / 59, 100 * Y / 59 - X };
 }
 
 } // namespace floormat

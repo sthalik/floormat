@@ -56,8 +56,10 @@ void app::recalc_cursor_tile()
 
 global_coords app::pixel_to_tile(Vector2d position) const
 {
+    constexpr Vector2d pixel_size{dTILE_SIZE[0], dTILE_SIZE[1]};
+    constexpr Vector2d half{.5, .5};
     const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset()*.5;
-    const Vector2d vec = tile_shader::unproject(px) / Vector2d{dTILE_SIZE[0]*.5, dTILE_SIZE[1]*.5} + Vector2d{.5, .5};
+    const Vector2d vec = tile_shader::unproject(px) / pixel_size + half;
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
 }
