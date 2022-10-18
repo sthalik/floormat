@@ -33,8 +33,11 @@ void app::do_camera(float dt_)
 
 void app::reset_camera_offset()
 {
-    //_shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*.25*dTILE_SIZE[0], TILE_MAX_DIM*.25*dTILE_SIZE[1], 0}));
+#if 1
+    _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
+#else
     _shader.set_camera_offset({});
+#endif
     recalc_cursor_tile();
 }
 
@@ -57,24 +60,6 @@ global_coords app::pixel_to_tile(Vector2d position) const
     const Vector2d vec = tile_shader::unproject(px) / Vector2d{dTILE_SIZE[0]*.5, dTILE_SIZE[1]*.5} + Vector2d{.5, .5};
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
-}
-
-namespace sqrt_detail
-{
-constexpr double sqrt_Newton_Raphson(double x, double curr, double prev)
-{
-    constexpr auto abs = [](double x) constexpr { return x < 0 ? -x : x; };
-    while (abs(curr - prev) > 1e-16)
-    {
-        prev = curr;
-        curr = .5 * (curr + x/curr);
-    }
-    return curr;
-}
-} // namespace sqrt_detail
-constexpr double ce_sqrt(double x)
-{
-    return sqrt_detail::sqrt_Newton_Raphson(x, x, 0);
 }
 
 std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept

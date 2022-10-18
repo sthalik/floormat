@@ -12,7 +12,7 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, shor
     _shader{shader},
     _offset{shader.camera_offset()}
 {
-    const auto offset = _offset +  tile_shader::project({-double(x)*TILE_MAX_DIM*dTILE_SIZE[0],
+    const auto offset = _offset +  tile_shader::project({double(x)*TILE_MAX_DIM*dTILE_SIZE[0],
                                                          double(y)*TILE_MAX_DIM*dTILE_SIZE[1],
                                                          0});
     _shader.set_camera_offset(offset);

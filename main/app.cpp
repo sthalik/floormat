@@ -81,7 +81,7 @@ void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 
 void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
-    if (_imgui.handleMouseMoveEvent(event))
+    if (_imgui.handleMouseMoveEvent(event) && false)
         return _cursor_tile = std::nullopt, event.setAccepted();
 
     _cursor_pos = event.position();
@@ -114,7 +114,7 @@ void app::anyEvent(SDL_Event& event)
         case SDL_WINDOWEVENT_ENTER:
             return event_mouse_enter();
         default:
-            printf(""); break; // put breakpoint here
+            std::fputs("", stdout); break; // put breakpoint here
         }
 }
 

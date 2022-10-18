@@ -33,7 +33,7 @@ private:
     Vector2d _camera_offset;
     Vector4 _tint;
     Vector2 _scale;
-    Vector2i _real_camera_offset;
+    Vector2 _real_camera_offset;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };
@@ -48,7 +48,7 @@ auto tile_shader::draw(T&& mesh, Xs&&... xs) ->
 
 constexpr Vector2d tile_shader::project(const Vector3d pt)
 {
-    const auto x = -pt[0], y = pt[1], z = pt[2];
+    const auto x = pt[0], y = pt[1], z = pt[2];
     return { (x-y), (x+y+z*2)*.59 };
 }
 
