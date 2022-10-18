@@ -23,6 +23,10 @@ struct tile_shader : GL::AbstractShaderProgram
     static constexpr Vector2d project(Vector3d pt);
     static constexpr Vector2d unproject(Vector2d px);
 
+    template<typename T, typename... Xs>
+    auto draw(T&& mesh, Xs&&... xs) ->
+        decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...));
+
 private:
     void on_draw();
 
@@ -34,10 +38,18 @@ private:
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };
 
+template<typename T, typename... Xs>
+auto tile_shader::draw(T&& mesh, Xs&&... xs) ->
+    decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...))
+{
+    on_draw();
+    return GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
+}
+
 constexpr Vector2d tile_shader::project(const Vector3d pt)
 {
-    const auto x = -pt[0]*.5, y = pt[1]*.5, z = pt[2];
-    return { (x-y), (x+y+z)*.59 };
+    const auto x = -pt[0], y = pt[1], z = pt[2];
+    return { (x-y), (x+y+z*2)*.59 };
 }
 
 constexpr Vector2d tile_shader::unproject(const Vector2d px)

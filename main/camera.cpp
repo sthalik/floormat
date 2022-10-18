@@ -53,7 +53,7 @@ void app::recalc_cursor_tile()
 
 global_coords app::pixel_to_tile(Vector2d position) const
 {
-    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset();
+    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset()*.5;
     const Vector2d vec = tile_shader::unproject(px) / Vector2d{dTILE_SIZE[0]*.5, dTILE_SIZE[1]*.5} + Vector2d{.5, .5};
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
@@ -80,7 +80,7 @@ constexpr double ce_sqrt(double x)
 std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 {
     const auto center = pixel_to_tile(Vector2d(windowSize()/2)).chunk();
-    constexpr auto N = 3;
+    constexpr auto N = 1;
 
     return {
         std::int16_t(center.x - N), std::int16_t(center.x + N),

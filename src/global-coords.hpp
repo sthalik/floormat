@@ -13,15 +13,18 @@ struct chunk_coords final {
 };
 
 struct global_coords final {
-    std::uint32_t x = 1 << 15, y = 1 << 15;
+    static constexpr std::uint32_t _0u = 1 << 15;
+    static constexpr auto _0s = std::int32_t(_0u);
+
+    std::uint32_t x = _0u, y = _0u;
 
     constexpr global_coords(chunk_coords c, local_coords xy) :
-        x{ std::uint32_t(c.x + (1 << 15)) << 4 | (xy.x & 0x0f) },
-        y{ std::uint32_t(c.y + (1 << 15)) << 4 | (xy.y & 0x0f) }
+        x{ std::uint32_t(c.x + _0s) << 4 | (xy.x & 0x0f) },
+        y{ std::uint32_t(c.y + _0s) << 4 | (xy.y & 0x0f) }
     {}
     constexpr global_coords(std::uint32_t x, std::uint32_t y) noexcept : x{x}, y{y} {}
     constexpr global_coords(std::int32_t x, std::int32_t y) noexcept :
-          x{std::uint32_t(x + (1 << 15))}, y{std::uint32_t(y + (1 << 15))}
+          x{std::uint32_t(x + _0s)}, y{std::uint32_t(y + _0s)}
     {}
     constexpr global_coords() noexcept = default;
 
@@ -35,26 +38,17 @@ struct global_coords final {
 
 constexpr local_coords global_coords::local() const noexcept
 {
-    return {
-        std::uint8_t(x & 0x0f),
-        std::uint8_t(y & 0x0f),
-    };
+    return { std::uint8_t(x & 0x0f), std::uint8_t(y & 0x0f), };
 }
 
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
-    return {
-        std::int16_t((x - (1 << 15)) >> 4),
-        std::int16_t((y - (1 << 15)) >> 4),
-    };
+    return { std::int16_t((x - _0u) >> 4), std::int16_t((y - _0u) >> 4), };
 }
 
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
-    return {
-        std::int32_t(x - (1 << 15)),
-        std::int32_t(y - (1 << 15)),
-    };
+    return { std::int32_t(x - _0s), std::int32_t(y - _0s), };
 }
 
 } // namespace floormat

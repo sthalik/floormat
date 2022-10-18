@@ -6,7 +6,7 @@ void app::make_test_chunk(chunk& c)
 {
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
-        const auto& atlas = pt.x > N/2 && pt.y >= N/2 ? floor2 : floor1;
+        const auto& atlas = pt.x == N/2 || pt.y == N/2 ? floor2 : floor1;
         x.ground_image = { atlas, (std::uint8_t)(k % atlas->num_tiles().product()) };
     }
     constexpr auto K = N/2;
