@@ -3,16 +3,13 @@
 #include "serialize/json-helper.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
-#include "compat/assert.hpp"
 
 #include <cerrno>
 #include <cmath>
 #include <cstring>
-
 #include <algorithm>
 #include <utility>
 #include <tuple>
-
 #include <filesystem>
 
 #include <Corrade/Utility/Arguments.h>
@@ -22,6 +19,8 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include "compat/assert.hpp"
 
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;

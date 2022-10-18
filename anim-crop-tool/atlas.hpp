@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vector>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>

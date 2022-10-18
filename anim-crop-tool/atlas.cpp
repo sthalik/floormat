@@ -1,10 +1,8 @@
 #include "atlas.hpp"
 #include "serialize/anim.hpp"
-#include "compat/assert.hpp"
-
 #include <filesystem>
 #include <opencv2/imgcodecs.hpp>
-
+#include "compat/assert.hpp" // must go below opencv headers
 using namespace floormat::Serialize;
 
 void anim_atlas_row::add_entry(const anim_atlas_entry& x)
