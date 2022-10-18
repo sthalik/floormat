@@ -49,9 +49,7 @@ auto tile_atlas::make_texcoords_array(Vector2ui size, Vector2ui dims) -> std::un
     const std::uint32_t max = sz.product();
     auto ptr = std::make_unique<std::array<Vector2, 4>[]>(max);
     for (std::uint_fast16_t i = 0; i < max; i++)
-    {
         ptr[i] = make_texcoords(size, dims, i);
-    }
     return ptr;
 }
 
