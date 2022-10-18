@@ -81,10 +81,8 @@ void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 
 void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
-    if (_imgui.handleMouseMoveEvent(event) && false)
-        return _cursor_tile = std::nullopt, event.setAccepted();
-
-    _cursor_pos = event.position();
+    _cursor_in_imgui = _imgui.handleMouseMoveEvent(event);
+    _cursor_pixel = event.position();
     recalc_cursor_tile();
 }
 
@@ -100,15 +98,29 @@ void app::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
         return keys = {}, event.setAccepted();
 }
 
+void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    if (_imgui.handleKeyPressEvent(event))
+        return event.setAccepted();
+    do_key(event.key(), event.modifiers(), true, event.isRepeated());
+}
+
+void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
+{
+    if (_imgui.handleKeyReleaseEvent(event))
+        return keys = {}, event.setAccepted();
+    do_key(event.key(), event.modifiers(), false, false);
+}
+
 void app::anyEvent(SDL_Event& event)
 {
     if (event.type == SDL_WINDOWEVENT)
         switch (event.window.event)
         {
         case SDL_WINDOWEVENT_FOCUS_LOST:
-            return event_leave();
+            return event_focus_out();
         case SDL_WINDOWEVENT_FOCUS_GAINED:
-            return event_enter();
+            return event_focus_in();
         case SDL_WINDOWEVENT_LEAVE:
             return event_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
@@ -118,19 +130,19 @@ void app::anyEvent(SDL_Event& event)
         }
 }
 
-void app::event_leave()
+void app::event_focus_out()
 {
-    _cursor_pos = std::nullopt;
+    _cursor_pixel = std::nullopt;
     _cursor_tile = std::nullopt;
 }
 
-void app::event_enter()
+void app::event_focus_in()
 {
 }
 
 void app::event_mouse_leave()
 {
-    _cursor_pos = std::nullopt;
+    _cursor_pixel = std::nullopt;
     _cursor_tile = std::nullopt;
 }
 

@@ -32,18 +32,4 @@ app::~app()
     loader_::destroy();
 }
 
-void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
-{
-    if (_imgui.handleKeyPressEvent(event))
-        return event.setAccepted();
-    do_key(event.key(), event.modifiers(), true, event.isRepeated());
-}
-
-void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
-{
-    if (_imgui.handleKeyReleaseEvent(event))
-        return keys = {}, event.setAccepted();
-    do_key(event.key(), event.modifiers(), false, false);
-}
-
 } // namespace floormat

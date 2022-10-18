@@ -94,7 +94,7 @@ void app::draw_wireframe_box(local_coords pt)
 
 void app::draw_cursor_tile()
 {
-    if (_cursor_tile)
+    if (_cursor_tile && !_cursor_in_imgui)
         draw_wireframe_quad(*_cursor_tile);
 }
 

@@ -48,8 +48,8 @@ void app::update_window_scale(Vector2i sz)
 
 void app::recalc_cursor_tile()
 {
-    if (_cursor_pos)
-        _cursor_tile = pixel_to_tile(Vector2d(*_cursor_pos));
+    if (_cursor_pixel)
+        _cursor_tile = pixel_to_tile(Vector2d(*_cursor_pixel));
     else
         _cursor_tile = std::nullopt;
 }

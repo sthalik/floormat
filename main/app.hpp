@@ -37,18 +37,18 @@ struct app final : Platform::Application
     void update_window_scale(Vector2i window_size);
     void recalc_cursor_tile();
 
-    void keyPressEvent(KeyEvent& event) override;
-    void keyReleaseEvent(KeyEvent& event) override;
+    void viewportEvent(ViewportEvent& event) override;
     void mousePressEvent(MouseEvent& event) override;
     void mouseReleaseEvent(MouseEvent& event) override;
     void mouseMoveEvent(MouseMoveEvent& event) override;
     void mouseScrollEvent(MouseScrollEvent& event) override;
     void textInputEvent(TextInputEvent& event) override;
-    void viewportEvent(ViewportEvent& event) override;
+    void keyPressEvent(KeyEvent& event) override;
+    void keyReleaseEvent(KeyEvent& event) override;
     void anyEvent(SDL_Event& event) override;
 
-    void event_leave();
-    void event_enter();
+    void event_focus_out();
+    void event_focus_in();
     void event_mouse_enter();
     void event_mouse_leave();
 
@@ -97,9 +97,10 @@ struct app final : Platform::Application
     enum_bitset<key> keys;
     Magnum::Timeline timeline;
     editor _editor;
-    std::optional<Vector2i> _cursor_pos;
+    std::optional<Vector2i> _cursor_pixel;
     std::optional<global_coords> _cursor_tile;
     float _frame_time = 0;
+    bool _cursor_in_imgui = false;
 
     static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
 };
