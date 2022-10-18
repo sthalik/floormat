@@ -85,8 +85,8 @@ void app::draw_wireframe_box(local_coords pt)
 {
     constexpr float LINE_WIDTH = 1.5;
 
-    constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    constexpr Vector3 size{TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]*1.5f};
+    constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
+    constexpr Vector3 size{X, Y, Z};
     const Vector3 center1{X*pt.x, Y*pt.y, 0};
     _shader.set_tint({0, 1, 0, 1});
     _wireframe_box.draw(_shader, {center1, size, LINE_WIDTH});
