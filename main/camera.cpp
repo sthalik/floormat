@@ -66,13 +66,21 @@ global_coords app::pixel_to_tile(Vector2d position) const
 
 std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 {
-    const auto center = pixel_to_tile(Vector2d(windowSize()/2)).chunk();
-    constexpr auto N = 1;
-
-    return {
-        std::int16_t(center.x - N), std::int16_t(center.x + N),
-        std::int16_t(center.y - N), std::int16_t(center.y + N),
-    };
+    const auto win = Vector2d(windowSize());
+    const auto p00 = pixel_to_tile(Vector2d{-dTILE_SIZE[0], -dTILE_SIZE[1]}).chunk();
+    const auto p10 = pixel_to_tile(Vector2d{win[0] + dTILE_SIZE[0], 0}).chunk();
+    const auto p01 = pixel_to_tile(Vector2d{0, win[1] + dTILE_SIZE[1]}).chunk();
+    const auto p11 = pixel_to_tile(win + Vector2d{dTILE_SIZE[0], dTILE_SIZE[1]}).chunk();
+    using limits = std::numeric_limits<std::int16_t>;
+    auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
+    for (const chunk_coords& p : { p00, p10, p01, p11 })
+    {
+        x0 = std::min(x0, p.x);
+        x1 = std::max(x1, p.x);
+        y0 = std::min(y0, p.y);
+        y1 = std::max(y1, p.y);
+    }
+    return {x0, x1, y0, y1};
 }
 
 } // namespace floormat
