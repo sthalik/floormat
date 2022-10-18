@@ -54,7 +54,7 @@ tile_shader& tile_shader::set_tint(const Vector4& tint)
     return *this;
 }
 
-void tile_shader::on_draw()
+void tile_shader::_draw()
 {
     if (const auto offset = Vector2i{(std::int32_t)_camera_offset[0], (std::int32_t)_camera_offset[1]};
         offset != _real_camera_offset)

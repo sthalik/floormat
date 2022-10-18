@@ -28,7 +28,7 @@ struct tile_shader : GL::AbstractShaderProgram
         decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...));
 
 private:
-    void on_draw();
+    void _draw();
 
     Vector2d _camera_offset;
     Vector4 _tint;
@@ -42,7 +42,7 @@ template<typename T, typename... Xs>
 auto tile_shader::draw(T&& mesh, Xs&&... xs) ->
     decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...))
 {
-    on_draw();
+    _draw();
     return GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
 }
 
