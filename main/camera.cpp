@@ -66,16 +66,15 @@ global_coords app::pixel_to_tile(Vector2d position) const
 
 std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
 {
-    const auto win = Vector2d(windowSize());
-    const auto p00 = pixel_to_tile(Vector2d{0, 0}).chunk();
-    const auto p10 = pixel_to_tile(Vector2d{win[0]-1, 0}).chunk();
-    const auto p01 = pixel_to_tile(Vector2d{0, win[1]-1}).chunk();
-    const auto p11 = pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk();
 
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
-    for (auto p : { p00, p10, p01, p11 })
+    for (const auto win = Vector2d(windowSize());
+         auto p : {pixel_to_tile(Vector2d{0, 0}).chunk(),
+                   pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
+                   pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
+                   pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk()})
     {
         x0 = std::min(x0, p.x);
         x1 = std::max(x1, p.x);
