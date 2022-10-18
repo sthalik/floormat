@@ -3,6 +3,7 @@
 #include <Magnum/GL/Texture.h>
 #include <array>
 #include <string>
+#include <memory>
 
 namespace std::filesystem { class path; }
 
@@ -11,20 +12,25 @@ namespace floormat {
 struct tile_atlas final
 {
     using quad = std::array<Vector3, 4>;
+    using texcoords = std::array<Vector2, 4>;
 
     tile_atlas(Containers::StringView name, const ImageView2D& img, Vector2ui dimensions);
 
-    std::array<Vector2, 4> texcoords_for_id(std::size_t id) const;
+    texcoords texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
     static constexpr quad wall_quad_N(Vector3 center, Vector3 size);
     static constexpr quad wall_quad_W(Vector3 center, Vector3 size);
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
-    Vector2ui pixel_size() const { return size_; }
+    [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
     Vector2ui num_tiles() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
     Containers::StringView name() const { return name_; }
 
 private:
+    static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui size, Vector2ui dims);
+    static texcoords make_texcoords(Vector2ui size, Vector2ui dims, std::uint_fast16_t i);
+
+    std::unique_ptr<const texcoords[]> texcoords_;
     GL::Texture2D tex_;
     std::string name_;
     Vector2ui size_, dims_;
