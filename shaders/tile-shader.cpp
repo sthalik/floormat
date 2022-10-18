@@ -32,8 +32,8 @@ tile_shader::tile_shader()
 
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
-    if (scale != scale_)
-        setUniform(ScaleUniform, scale_ = scale);
+    if (scale != _scale)
+        setUniform(ScaleUniform, _scale = scale);
     return *this;
 }
 
@@ -42,9 +42,9 @@ tile_shader& tile_shader::set_camera_offset(Vector2d camera_offset)
     static constexpr auto MAX = std::numeric_limits<std::int32_t>::max();
     ASSERT(std::fabs(camera_offset[0]) <= MAX);
     ASSERT(std::fabs(camera_offset[1]) <= MAX);
-    if (camera_offset != camera_offset_)
+    if (camera_offset != _camera_offset)
     {
-        camera_offset_ = camera_offset;
+        _camera_offset = camera_offset;
         setUniform(OffsetUniform, Vector2i{std::int32_t(camera_offset[0]*2), std::int32_t(camera_offset[1]*2)});
     }
 
@@ -53,8 +53,8 @@ tile_shader& tile_shader::set_camera_offset(Vector2d camera_offset)
 
 tile_shader& tile_shader::set_tint(const Vector4& tint)
 {
-    if (tint != tint_)
-        setUniform(TintUniform, tint_ = tint);
+    if (tint != _tint)
+        setUniform(TintUniform, _tint = tint);
     return *this;
 }
 

@@ -13,20 +13,23 @@ struct tile_shader : GL::AbstractShaderProgram
 
     explicit tile_shader();
 
-    Vector2 scale() const { return scale_; }
+    Vector2 scale() const { return _scale; }
     tile_shader& set_scale(const Vector2& scale);
-    Vector2d camera_offset() const { return camera_offset_; }
+    Vector2d camera_offset() const { return _camera_offset; }
     tile_shader& set_camera_offset(Vector2d camera_offset);
-    Vector4 tint() const { return tint_; }
+    Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
 
     static constexpr Vector2d project(Vector3d pt);
     static constexpr Vector2d unproject(Vector2d px);
 
 private:
-    Vector2d camera_offset_;
-    Vector2 scale_;
-    Vector4 tint_;
+    void on_draw();
+
+    Vector2d _camera_offset;
+    Vector4 _tint;
+    Vector2 _scale;
+    Vector2i _real_camera_offset;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };

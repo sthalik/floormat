@@ -57,9 +57,7 @@ void app::draw_world()
                 make_test_chunk(*_world[chunk_coords{x, y}]);
             const with_shifted_camera_offset o{_shader, x, y};
             _floor_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
-            printf("OFFSET %hd %hd ---> %f %f\n", x, y, _shader.camera_offset()[0], _shader.camera_offset()[1]);
         }
-    fflush(stdout);
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
