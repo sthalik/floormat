@@ -6,6 +6,6 @@ link_libraries(Magnum::Sdl2Application Magnum::Trade)
 link_libraries(MagnumIntegration::ImGui)
 
 corrade_add_resource(res ../resources.conf)
-add_executable(${self} WIN32 "${sources}" "${res}")
+add_executable(${self} "${sources}" "${res}")
 set_property(TARGET ${self} PROPERTY OUTPUT_NAME "${PROJECT_NAME}")
 install(TARGETS ${self} RUNTIME DESTINATION bin)
