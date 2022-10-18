@@ -30,7 +30,6 @@ std::shared_ptr<chunk> world::operator[](chunk_coords c) noexcept
     return ret;
 }
 
-
 std::tuple<std::shared_ptr<chunk>, tile&> world::operator[](global_coords pt) noexcept
 {
     auto c = operator[](pt.chunk());
