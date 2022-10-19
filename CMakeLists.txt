@@ -26,12 +26,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR CMAKE_INSTALL_PREFIX STREQUAL 
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 endif()
 
-if(MSVC)
-    add_compile_options(-EHsc)
+if(WIN32)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 endif()
 
-if(WIN32)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES=1 -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+if(MSVC)
+    add_definitions(-D_USE_MATH_DEFINES=1)
 endif()
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
@@ -100,7 +100,7 @@ sets(BOOL
      MAGNUM_WITH_MAGNUMFONT                 ON
      MAGNUM_WITH_MAGNUMFONTCONVERTER        ON
      MAGNUM_WITH_OBJIMPORTER                ON
-     MAGNUM_WITH_OPENGLTESTER               OFF
+     MAGNUM_WITH_OPENGLTESTER               ON
      MAGNUM_WITH_SDL2APPLICATION            ON
      MAGNUM_WITH_SHADERCONVERTER            ON
      MAGNUM_WITH_SHADERS                    ON
@@ -110,12 +110,13 @@ sets(BOOL
      MAGNUM_WITH_WINDOWLESSWGLAPPLICATION   ON
 
      MAGNUM_WITH_DDSIMPORTER                ON
+     MAGNUM_WITH_GLTFIMPORTER               ON
      MAGNUM_WITH_ICOIMPORTER                ON
      MAGNUM_WITH_PRIMITIVEIMPORTER          ON
      MAGNUM_WITH_STBIMAGECONVERTER          ON
      MAGNUM_WITH_STBIMAGEIMPORTER           ON
      MAGNUM_WITH_STBTRUETYPEFONT            ON
-     MAGNUM_WITH_TINYGLTFIMPORTER           ON
+     MAGNUM_WITH_TINYGLTFIMPORTER           OFF
 
      MAGNUM_WITH_BULLET                     OFF
      MAGNUM_WITH_DART                       OFF
@@ -215,6 +216,7 @@ else()
 endif()
 
 if(MSVC)
+    target_compile_options(CorradeTestSuite PUBLIC -EHsc)
     add_compile_options(-W4)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Wno-ignored-attributes)
