@@ -1,21 +1,21 @@
 [submodule "magnum"]
-	path = magnum
+	path = external/magnum
 	url = https://github.com/mosra/magnum
 [submodule "magnum-plugins"]
-	path = magnum-plugins
+	path = external/magnum-plugins
 	url = https://github.com/mosra/magnum-plugins
 [submodule "magnum-integration"]
-	path = magnum-integration
+	path = external/magnum-integration
 	url = https://github.com/mosra/magnum-integration
 [submodule "corrade"]
-	path = corrade
+	path = external/corrade
 	url = https://github.com/mosra/corrade
 [submodule "json"]
-	path = json
+	path = external/json
 	url = https://github.com/nlohmann/json.git
 [submodule "imgui"]
-	path = imgui
+	path = external/imgui
 	url = https://github.com/ocornut/imgui.git
 [submodule "sdl2"]
-	path = sdl2
+	path = external/sdl2
 	url = https://github.com/libsdl-org/SDL.git
