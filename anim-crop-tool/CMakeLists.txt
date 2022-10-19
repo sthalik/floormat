@@ -1,5 +1,5 @@
-find_package(OpenCV QUIET COMPONENTS core imgcodecs imgproc)
-if(Opencv_FOUND)
+find_package(OpenCV QUIET)
+if(OpenCV_FOUND)
     set(self "${PROJECT_NAME}-anim-crop-tool")
 
     include_directories(SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
