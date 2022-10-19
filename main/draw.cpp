@@ -6,8 +6,8 @@
 
 namespace floormat {
 
-void app::drawEvent() {
-
+void app::drawEvent()
+{
     if (const float dt = timeline.previousFrameDuration(); dt > 0)
     {
         constexpr float RC = 0.5f;
