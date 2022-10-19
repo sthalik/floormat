@@ -66,11 +66,12 @@ sets(PATH ImGui_INCLUDE_DIR "${ImGui_DIR}")
 if(MSVC)
     add_compile_options(/permissive-)
     add_compile_options(
-            -wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-            -wd4312 # warning C4312: 'reinterpret_cast': conversion from 'GLenum' to 'void *' of greater size
-            -wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
-            -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
+        -wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+        -wd4312 # warning C4312: 'reinterpret_cast': conversion from 'GLenum' to 'void *' of greater size
+        -wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
+        -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
     )
+    string(APPEND CMAKE_STATIC_LINKER_FLAGS " -IGNORE:4006") #warning LNK4006: main already defined in x.cpp.obj; second definition ignored
     add_compile_options(-external:W0 -external:anglebrackets)
 
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
@@ -180,11 +181,23 @@ sets(BOOL
      JSON_SystemInclude      ON
 )
 
-set(_userconfig "userconfig-${CMAKE_CXX_COMPILER_ID}.cmake")
-if(EXISTS "${PROJECT_SOURCE_DIR}/${_userconfig}")
-    include("${PROJECT_SOURCE_DIR}/${_userconfig}" NO_POLICY_SCOPE)
-else()
-    message(STATUS "user config '${_userconfig}' not found")
+function(fm_load_userconfig)
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        set(_fm_username "$ENV{USERNAME}")
+    else()
+        set(_fm_username "$ENV{USER}")
+    endif()
+    set(_fm_userconfig "userconfig-${_fm_username}@${CMAKE_CXX_COMPILER_ID}.cmake")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/${_fm_userconfig}")
+        include("${CMAKE_SOURCE_DIR}/${_fm_userconfig}")
+    else()
+        message(STATUS "user config '${_fm_userconfig}' not found")
+    endif()
+endfunction()
+fm_load_userconfig()
+
+if(NOT MSVC)
+    add_compile_options(-fdiagnostics-color=always)
 endif()
 
 find_package(ImGui QUIET REQUIRED)
@@ -217,6 +230,7 @@ endif()
 
 if(MSVC)
     target_compile_options(CorradeTestSuite PUBLIC -EHsc)
+    target_link_options(CorradeTestSuite PUBLIC -WX:NO)
     add_compile_options(-W4)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Wno-ignored-attributes)
