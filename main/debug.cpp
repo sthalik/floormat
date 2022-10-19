@@ -18,10 +18,7 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     static thread_local auto clock = std::chrono::steady_clock{};
     static const auto t0 = clock.now();
 
-    if (id == 131185 && severity == GL::DebugOutput::Severity::Notification)
-        return;
-
-#if 0
+#if 1
     [[maybe_unused]] volatile auto _type = type;
     [[maybe_unused]] volatile auto _id = id;
     [[maybe_unused]] volatile auto _src = src;
@@ -70,7 +67,6 @@ void app::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type typ
 void* app::register_debug_callback()
 {
     GL::DebugOutput::setCallback(_debug_callback, this);
-    GL::DebugOutput::setEnabled(true);
 
 #if 1
     /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */

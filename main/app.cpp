@@ -48,7 +48,6 @@ app::app(const Arguments& arguments, app_settings opts):
     }
     else
         setSwapInterval(0);
-    register_debug_callback();
     set_fp_mask();
     reset_camera_offset();
     update_window_scale(windowSize());

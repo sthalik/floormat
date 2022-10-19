@@ -87,6 +87,8 @@ private:
     };
     void make_test_chunk(chunk& c);
 
+    [[maybe_unused]] void* _dummy = register_debug_callback();
+
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("floor-tiles.tga", {44, 4});
     tile_atlas_ floor2 = loader.tile_atlas("metal1.tga", {2, 2});
