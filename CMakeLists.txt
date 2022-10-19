@@ -123,14 +123,13 @@ sets(BOOL
 
      MAGNUM_WITH_BULLET                     OFF
      MAGNUM_WITH_DART                       OFF
-     MAGNUM_WITH_EIGEN                      ON
-     MAGNUM_WITH_GLM                        ON
+     MAGNUM_WITH_EIGEN                      OFF
+     MAGNUM_WITH_GLM                        OFF
      MAGNUM_WITH_IMGUI                      ON
 )
 
 sets(BOOL
-     SDL_SHARED                             ON
-     SDL_STATIC                             OFF
+     SDL_ASSERTIONS                         release
 
      SDL_3DNOW                              OFF
      SDL_ALTIVEC                            OFF
@@ -217,6 +216,14 @@ if(MSVC)
     add_definitions(/FI"compat/prelude.hpp")
 else()
     add_definitions(-include compat/prelude.hpp)
+endif()
+
+if(MSVC)
+    add_compile_options(-W4)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Wno-ignored-attributes)
+    add_compile_options(-fcolor-diagnostics)
+    add_compile_options(-ferror-limit=5)
 endif()
 
 add_subdirectory(src)
