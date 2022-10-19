@@ -69,8 +69,6 @@ void app::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type typ
 
 void* app::register_debug_callback()
 {
-    GL::Renderer::setFeature(Feature::DebugOutput, true);
-    GL::Renderer::setFeature(Feature::DebugOutputSynchronous, true);
     GL::DebugOutput::setCallback(_debug_callback, this);
     GL::DebugOutput::setEnabled(true);
 

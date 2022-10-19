@@ -39,7 +39,6 @@ app::app(const Arguments& arguments, app_settings opts):
               .setWindowFlags(Configuration::WindowFlag::Resizable),
           GLConfiguration{}
               .setSampleCount(4)
-              .setFlags(GLConfiguration::Flag::GpuValidation)
       }
 {
     if (opts.vsync)
@@ -49,6 +48,7 @@ app::app(const Arguments& arguments, app_settings opts):
     }
     else
         setSwapInterval(0);
+    register_debug_callback();
     set_fp_mask();
     reset_camera_offset();
     update_window_scale(windowSize());
