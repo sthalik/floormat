@@ -19,13 +19,19 @@
 
 namespace floormat {
 
-struct app final : Platform::Application
+struct app final : private Platform::Application
 {
+    static int run_from_argv(int argc, char** argv);
+    virtual ~app();
+
+private:
+    struct app_settings;
+
+    [[maybe_unused]] static void usage(const Utility::Arguments& args);
+    explicit app(const Arguments& arguments, app_settings opts);
+
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
     using tile_atlas_ = std::shared_ptr<tile_atlas>;
-
-    explicit app(const Arguments& arguments);
-    virtual ~app();
 
     void update(float dt);
 
@@ -68,6 +74,8 @@ struct app final : Platform::Application
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
+    static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+                                GL::DebugOutput::Severity severity, const std::string& str, const void* self);
     void* register_debug_callback();
 
     global_coords pixel_to_tile(Vector2d position) const;
@@ -101,6 +109,12 @@ struct app final : Platform::Application
     std::optional<global_coords> _cursor_tile;
     float _frame_time = 0;
     bool _cursor_in_imgui = false;
+
+    struct app_settings {
+        bool vsync = true;
+    };
+
+    app_settings _settings;
 
     static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
 };

@@ -18,6 +18,9 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     static thread_local auto clock = std::chrono::steady_clock{};
     static const auto t0 = clock.now();
 
+    if (id == 131185 && severity == GL::DebugOutput::Severity::Notification)
+        return;
+
 #if 0
     [[maybe_unused]] volatile auto _type = type;
     [[maybe_unused]] volatile auto _id = id;
@@ -58,8 +61,8 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     std::fputs("", stdout); // put breakpoint here
 }
 
-static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                            GL::DebugOutput::Severity severity, const std::string& str, const void* self)
+void app::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+                          GL::DebugOutput::Severity severity, const std::string& str, const void* self)
 {
     static_cast<const app*>(self)->debug_callback(src, type, id, severity, str);
 }

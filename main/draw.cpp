@@ -53,17 +53,19 @@ void app::draw_world()
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            if (!_world.contains(chunk_coords{x, y}))
-                make_test_chunk(*_world[chunk_coords{x, y}]);
-            const with_shifted_camera_offset o{_shader, x, y};
-            _floor_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+            const chunk_coords c{x, y};
+            if (!_world.contains(c))
+                make_test_chunk(*_world[c]);
+            const with_shifted_camera_offset o{_shader, c};
+            _floor_mesh.draw(_shader, *_world[c]);
         }
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            const with_shifted_camera_offset o{_shader, x, y};
-            _wall_mesh.draw(_shader, *_world[chunk_coords{x, y}]);
+            const chunk_coords c{x, y};
+            const with_shifted_camera_offset o{_shader, c};
+            _wall_mesh.draw(_shader, *_world[c]);
         }
 #endif
 }

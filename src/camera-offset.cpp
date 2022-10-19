@@ -1,8 +1,6 @@
 #include "camera-offset.hpp"
 #include "tile-defs.hpp"
 #include "shaders/tile-shader.hpp"
-#include "compat/assert.hpp"
-#include <Magnum/Math/Vector2.h>
 
 namespace floormat {
 

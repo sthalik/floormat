@@ -1,6 +1,9 @@
 #include <cstddef>
+#include "compat/sysexits.hpp"
 #include "app.hpp"
 #include "compat/fpu.hpp"
+#include <Corrade/Utility/Arguments.h>
+#include <Corrade/Utility/DebugStl.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
@@ -9,7 +12,25 @@
 
 namespace floormat {
 
-app::app(const Arguments& arguments):
+int app::run_from_argv(int argc, char** argv)
+{
+    Corrade::Utility::Arguments args{};
+    app_settings opts;
+    args.addSkippedPrefix("magnum")
+        .addOption("vsync", opts.vsync ? "1" : "0")
+        .parse(argc, argv);
+    opts.vsync = args.value<bool>("vsync");
+    app x{{argc, argv}, std::move(opts)}; // NOLINT(performance-move-const-arg)
+    return x.exec();
+}
+
+void app::usage(const Utility::Arguments& args)
+{
+    Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
+    std::exit(EX_USAGE); // NOLINT(concurrency-mt-unsafe)
+}
+
+app::app(const Arguments& arguments, app_settings opts):
       Platform::Application{
           arguments,
           Configuration{}
@@ -21,8 +42,13 @@ app::app(const Arguments& arguments):
               .setFlags(GLConfiguration::Flag::GpuValidation)
       }
 {
-    if (!setSwapInterval(-1))
-        (void)setSwapInterval(1);
+    if (opts.vsync)
+    {
+        if (!setSwapInterval(-1))
+            (void)setSwapInterval(1);
+    }
+    else
+        setSwapInterval(0);
     set_fp_mask();
     reset_camera_offset();
     update_window_scale(windowSize());
@@ -152,7 +178,10 @@ void app::event_mouse_enter()
 
 } // namespace floormat
 
-MAGNUM_APPLICATION_MAIN(floormat::app)
+int main(int argc, char** argv)
+{
+    return floormat::app::run_from_argv(argc, argv);
+}
 
 #ifdef _MSC_VER
 #include <cstdlib> // for __arg{c,v}

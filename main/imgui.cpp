@@ -146,23 +146,25 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
 
 void app::draw_fps()
 {
-    const ImVec2 max_size = ImGui::CalcTextSize("999.1 FPS");
     auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
     auto c2 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
     auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
     auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
     auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
     auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
-    ImGui::SetNextWindowPos({windowSize()[0] - 5 - max_size.x, 3});
-    ImGui::SetNextWindowSize(max_size);
+
+    char buf[16];
+    const double dt = _frame_time > 1e-6 ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
+    snprintf(buf, sizeof(buf), "%.1f FPS", dt);
+    const ImVec2 size = ImGui::CalcTextSize(buf);
+
+    ImGui::SetNextWindowPos({windowSize()[0] - size.x - 4, 3});
+    ImGui::SetNextWindowSize(size);
+
     if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
         auto b = begin_window("framerate", ImGuiWindowFlags_(flags)))
     {
-        const double dt = _frame_time > 1e-6 ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
-        char buf[16];
-        snprintf(buf, sizeof(buf), "%.1f FPS", dt);
-        ImGui::SameLine(max_size.x - ImGui::CalcTextSize(buf).x);
         ImGui::Text("%s", buf);
     }
 }
