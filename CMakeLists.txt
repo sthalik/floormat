@@ -181,8 +181,8 @@ sets(BOOL
 )
 
 set(_userconfig "userconfig-${CMAKE_CXX_COMPILER_ID}.cmake")
-if(EXISTS "${PROJECT_SOURCE_DIR}/${_userconfig}/${_userconfig}")
-    include("${CMAKE_SOURCE_DIR}/${_userconfig}" NO_POLICY_SCOPE)
+if(EXISTS "${PROJECT_SOURCE_DIR}/${_userconfig}")
+    include("${PROJECT_SOURCE_DIR}/${_userconfig}" NO_POLICY_SCOPE)
 else()
     message(STATUS "user config '${_userconfig}' not found")
 endif()
