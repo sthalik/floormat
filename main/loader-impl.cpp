@@ -45,7 +45,7 @@ struct loader_impl final : loader_
 std::string loader_impl::shader(Containers::StringView filename)
 {
     if (!shader_res)
-        shader_res = std::make_optional<Utility::Resource>("game/shaders");
+        shader_res = std::make_optional<Utility::Resource>("floormat/shaders");
     auto ret = shader_res->getString(filename);
     if (ret.isEmpty())
         ABORT("can't find shader resource '%s'", filename.cbegin());

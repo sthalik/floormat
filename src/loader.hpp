@@ -7,7 +7,7 @@
 #include <optional>
 #include <memory>
 
-#define IMAGE_PATH "share/game/images/"
+#define IMAGE_PATH "share/floormat/images/"
 
 namespace floormat {
 
