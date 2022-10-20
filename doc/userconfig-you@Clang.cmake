@@ -71,6 +71,7 @@ function(fm-userconfig-src)
         -Wno-error=unused-private-field
         -Wno-error=alloca
     )
+endfunction()
 
 sets(BOOL
      SDL_SHARED             ON
@@ -80,7 +81,7 @@ sets(BOOL
      MAGNUM_BUILD_TESTS     TRUE
 )
 
-if (FLOORMAT_WITH-COVERAGE)
+if (FLOORMAT_WITH-COVERAGE OR CMAKE_CXX_BUILD_TYPE STREQUAL "RELEASE")
     sets(BOOL
          CORRADE_BUILD_TESTS    FALSE
          MAGNUM_BUILD_TESTS     FALSE
