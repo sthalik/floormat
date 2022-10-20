@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include <Magnum/GL/Renderer.h>
-#ifndef __CLION_IDE__
 #include "imgui-raii.hpp"
+#ifndef __CLION_IDE__
 #include <Magnum/ImGuiIntegration/Integration.h>
 #endif
 
@@ -9,7 +9,7 @@ namespace floormat {
 
 using namespace floormat::imgui;
 
-void app::display_menu()
+void app::render_menu()
 {
     GL::Renderer::setBlendEquation(GL::Renderer::BlendEquation::Add, GL::Renderer::BlendEquation::Add);
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha, GL::Renderer::BlendFunction::OneMinusSourceAlpha);

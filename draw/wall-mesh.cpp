@@ -39,7 +39,7 @@ void wall_mesh::maybe_add_tile(vertex_array& data, texture_array& textures, tile
 
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
-    _vertex_buffer.setData({nullptr, sizeof(vertex_array)}, Magnum::GL::BufferUsage::DynamicDraw); // orphan the buffer
+    //_vertex_buffer.setData({nullptr, sizeof(vertex_array)}, Magnum::GL::BufferUsage::DynamicDraw); // orphan the buffer
     texture_array textures = {};
     {
         vertex_array data;

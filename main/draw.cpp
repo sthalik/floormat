@@ -37,7 +37,7 @@ void app::drawEvent()
         draw_cursor_tile();
     }
 
-    display_menu();
+    render_menu();
 
     swapBuffers();
     redraw();

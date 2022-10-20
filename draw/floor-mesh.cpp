@@ -32,7 +32,7 @@ void floor_mesh::set_tile(quad_data& data, tile& x)
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
-    _vertex_buffer.setData({nullptr, sizeof(quad_data) * TILE_COUNT}, Magnum::GL::BufferUsage::DynamicDraw); // orphan the buffer
+    //_vertex_buffer.setData({nullptr, sizeof(quad_data) * TILE_COUNT}, Magnum::GL::BufferUsage::DynamicDraw); // orphan the buffer
     std::array<quad_data, TILE_COUNT> data;
     for (auto& [x, idx, pt] : c) {
         set_tile(data[idx], x);

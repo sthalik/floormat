@@ -70,7 +70,7 @@ private:
     void draw_editor_pane(tile_type& type, float main_menu_height);
     void draw_fps();
     void draw_cursor_coord();
-    void display_menu();
+    void render_menu();
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;
