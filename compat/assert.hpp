@@ -4,70 +4,44 @@
 #include <cstdio>
 #include <type_traits>
 
-namespace floormat::detail {
-
 #ifdef __GNUG__
 #   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#   pragma GCC diagnostic ignored "-Wunused-macros"
 #endif
 
-template<std::size_t N, std::size_t M, typename... Xs>
-constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) noexcept
-{
-    if (std::is_constant_evaluated())
-        return;
-    else {
-        if constexpr (M > 1)
-            std::fputs(pfx, stderr);
-        std::fprintf(stderr, fmt, xs...);
-        std::fputc('\n', stderr);
-        std::fflush(stderr);
-    }
-}
+#define emit_debug(pfx, ...)                    \
+    do {                                        \
+        if (!std::is_constant_evaluated()) {    \
+            if constexpr (sizeof(pfx) > 1)      \
+                std::fputs((pfx), stderr);      \
+            std::fprintf(stderr, __VA_ARGS__);  \
+            std::fputc('\n', stderr);           \
+            std::fflush(stderr);                \
+        }                                       \
+    } while (false)
 
-#ifdef __GNUG__
-#   pragma GCC diagnostic pop
-#endif
+#define ABORT(...) do { emit_debug("fatal: ", __VA_ARGS__); std::abort(); } while (false)
 
-template<std::size_t N, typename...Xs>
-[[noreturn]]
-constexpr inline void abort(const char (&fmt)[N], Xs... xs) noexcept
-{
-#if 0
-    if (std::is_constant_evaluated())
-        throw "aborting";
-    else
-#endif
-    {
-        emit_debug("fatal: ", fmt, xs...);
-        std::abort();
-    }
-}
-
-} // namespace floormat::detail
-
-#define ABORT(...) ::floormat::detail::abort(__VA_ARGS__)
-
-#define ASSERT(...)                                                 \
-    do {                                                            \
-        if (!(__VA_ARGS__)) {                                       \
-            ::floormat::detail::                            \
-                abort("assertion failed: '%s' in %s:%d",            \
-                      #__VA_ARGS__, __FILE__, __LINE__);            \
-        }                                                           \
+#define ASSERT(...)                                                     \
+    do {                                                                \
+        if (!(__VA_ARGS__)) {                                           \
+            emit_debug("", "assertion failed: '%s' in %s:%d",           \
+                       #__VA_ARGS__, __FILE__, __LINE__);               \
+            std::abort();                                               \
+        }                                                               \
     } while(false)
 
-#define ASSERT_EXPR(var, expr, cond)                                \
-    ([&] {                                                          \
-        decltype(auto) var = (expr);                                \
-        ASSERT(cond);                                               \
-        return (var);                                               \
+#define ASSERT_EXPR(var, expr, cond)                                    \
+    ([&] {                                                              \
+        decltype(auto) var = (expr);                                    \
+        ASSERT(cond);                                                   \
+        return (var);                                                   \
     })()
 
-#define WARN(...)       ::floormat::detail::emit_debug("warning: ", __VA_ARGS__)
-#define ERR(...)        ::floormat::detail::emit_debug("error: ", __VA_ARGS__)
-#define MESSAGE(...)    ::floormat::detail::emit_debug("", __VA_ARGS__)
-#define DEBUG(...)      ::floormat::detail::emit_debug("", __VA_ARGS__)
+#define WARN(...)       emit_debug("warning: ", __VA_ARGS__)
+#define ERR(...)        emit_debug("error: ", __VA_ARGS__)
+#define MESSAGE(...)    emit_debug("", __VA_ARGS__)
+#define DEBUG(...)      emit_debug("", __VA_ARGS__)
 
 namespace floormat {
 
@@ -84,3 +58,7 @@ struct static_warning_<true> final {
 #define static_warning(...) do { (void)static_warning_<(__VA_ARGS__)>{};  } while(false)
 
 } // namespace floormat
+
+#ifdef __GNUG__
+#   pragma GCC diagnostic pop
+#endif
