@@ -25,7 +25,7 @@ void app::drawEvent()
     }
 
     {
-        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-3f, 1e-1f);
+        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-6f, 1e-1f);
         update(dt);
     }
 
