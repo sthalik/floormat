@@ -68,19 +68,18 @@ function(fm_load_userconfig)
 endfunction()
 
 if(WIN32)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
 endif()
 
 if(MSVC)
     add_definitions(-D_USE_MATH_DEFINES=1)
     add_compile_options(-permissive-)
-    add_compile_options(
-            -wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-            -wd4312 # warning C4312: 'reinterpret_cast': conversion from 'GLenum' to 'void *' of greater size
-            -wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
-            -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
-    )
     add_compile_options(-external:W0 -external:anglebrackets)
+    add_compile_options(
+        #-wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+        #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
+        -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
+    )
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
         add_link_options(-HIGHENTROPYVA)
     endif()

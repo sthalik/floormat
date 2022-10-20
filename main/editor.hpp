@@ -47,7 +47,7 @@ private:
 
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
-    std::tuple<std::shared_ptr<tile_atlas>, std::uint32_t> _selected_tile;
+    std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> _selected_tile;
     std::tuple<std::shared_ptr<tile_atlas>, std::vector<std::uint8_t>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
