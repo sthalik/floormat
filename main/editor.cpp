@@ -6,6 +6,7 @@
 #include "compat/assert.hpp"
 #include "compat/unreachable.hpp"
 #include "src/tile-defs.hpp"
+#include <Corrade/Containers/StringStlView.h>
 #include <filesystem>
 #include <vector>
 
@@ -32,7 +33,10 @@ void tile_type::load_atlases()
 }
 std::shared_ptr<tile_atlas> tile_type::maybe_atlas(Containers::StringView str)
 {
-    auto it = _atlases.find(str);
+    auto it = std::find_if(_atlases.begin(), _atlases.end(), [&](const auto& tuple) -> bool {
+        const auto& [x, _] = tuple;
+        return Containers::StringView{x} == str;
+    });
     if (it == _atlases.end())
         return nullptr;
     else
