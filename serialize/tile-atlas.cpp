@@ -20,7 +20,7 @@ void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
         j = nullptr;
     else {
         using nlohmann::to_json;
-        to_json(j, proxy_atlas{x->name(), x->num_tiles()});
+        to_json(j, proxy_atlas{x->name(), x->num_tiles2()});
     }
 }
 

@@ -29,7 +29,7 @@ void tile_type::load_atlases()
         if (auto x = name.findLast('.'); x)
             name = name.prefix(x.data());
         auto& [_, vec] = _permutation;
-        vec.reserve((std::size_t)atlas->num_tiles().product());
+        vec.reserve((std::size_t)atlas->num_tiles());
         _atlases[name] = std::move(atlas);
     }
 }
@@ -66,7 +66,7 @@ void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8
     fm_assert(atlas);
     clear_selection();
     _selection_mode = sel_tile;
-    _selected_tile = { atlas, variant };
+    _selected_tile = { atlas, variant % atlas->num_tiles() };
 }
 
 void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
@@ -104,7 +104,7 @@ void fisher_yates(T begin, T end)
 std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> tile_type::get_selected_perm()
 {
     auto& [atlas, vec] = _permutation;
-    const std::size_t N = atlas->num_tiles().product();
+    const std::size_t N = atlas->num_tiles();
     if (N == 0)
         return {};
     if (vec.empty())

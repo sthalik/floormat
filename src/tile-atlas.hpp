@@ -22,7 +22,8 @@ struct tile_atlas final
     static constexpr quad wall_quad_W(Vector3 center, Vector3 size);
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
     [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
-    Vector2ui num_tiles() const { return dims_; }
+    std::size_t num_tiles() const { return dims_.product(); }
+    Vector2ui num_tiles2() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
     Containers::StringView name() const { return name_; }
 

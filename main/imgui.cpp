@@ -103,11 +103,11 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                         _editor.floor().select_tile_permutation(v_);
                     };
                     const auto add_tile_count = [&] {
-                        snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles().product());
+                        snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles());
                         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
                         ImGui::Text("%s", buf);
                     };
-                    const std::size_t N = v->num_tiles().product();
+                    const std::size_t N = v->num_tiles();
                     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
                         auto b = tree_node(k.data(), flags))
                     {
