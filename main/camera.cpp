@@ -5,19 +5,24 @@ namespace floormat {
 
 void app::do_camera(double dt)
 {
-    constexpr int pixels_per_second = 768;
+    constexpr double screens_per_second = 1;
+    const auto pixels_per_second = windowSize().length() / screens_per_second;
     auto camera_offset = _shader.camera_offset();
+    Vector2d dir{};
 
     if (keys[key::camera_up])
-        camera_offset += Vector2d{0,  1} * dt * pixels_per_second;
+        dir += Vector2d{0,  1};
     else if (keys[key::camera_down])
-        camera_offset += Vector2d{0, -1} * dt * pixels_per_second;
+        dir += Vector2d{0, -1};
     if (keys[key::camera_left])
-        camera_offset += Vector2d{1,  0} * dt * pixels_per_second;
+        dir += Vector2d{1,  0};
     else if (keys[key::camera_right])
-        camera_offset += Vector2d{-1, 0} * dt * pixels_per_second;
+        dir += Vector2d{-1, 0};
 
+    if (dir != Vector2d{})
     {
+        camera_offset += dir.normalized() * dt * pixels_per_second;
+
         const auto max_camera_offset = Vector2d(windowSize() * 10);
         camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
         camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
