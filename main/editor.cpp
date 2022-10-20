@@ -27,10 +27,12 @@ void tile_type::load_atlases()
         Containers::StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)
             name = name.prefix(x.data());
-        std::get<1>(_permutation).reserve((std::size_t)atlas->num_tiles().product());
+        auto& [_, vec] = _permutation;
+        vec.reserve((std::size_t)atlas->num_tiles().product());
         _atlases[name] = std::move(atlas);
     }
 }
+
 std::shared_ptr<tile_atlas> tile_type::maybe_atlas(Containers::StringView str)
 {
     auto it = std::find_if(_atlases.begin(), _atlases.end(), [&](const auto& tuple) -> bool {
