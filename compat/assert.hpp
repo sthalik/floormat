@@ -6,6 +6,11 @@
 
 namespace floormat::detail {
 
+#ifdef __GNUG__
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+
 template<std::size_t N, std::size_t M, typename... Xs>
 constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) noexcept
 {
@@ -19,6 +24,10 @@ constexpr void emit_debug(const char(&pfx)[M], const char(&fmt)[N], Xs... xs) no
         std::fflush(stderr);
     }
 }
+
+#ifdef __GNUG__
+#   pragma GCC diagnostic pop
+#endif
 
 template<std::size_t N, typename...Xs>
 [[noreturn]]

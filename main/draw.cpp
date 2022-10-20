@@ -19,7 +19,10 @@ void app::drawEvent()
             _frame_time = dt;
     }
     else
-        swapBuffers(), timeline.nextFrame();
+    {
+        swapBuffers();
+        timeline.nextFrame();
+    }
 
     {
         const float dt = std::clamp(timeline.previousFrameDuration(), 1e-3f, 1e-1f);

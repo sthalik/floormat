@@ -12,6 +12,7 @@ struct tile_shader : GL::AbstractShaderProgram
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
 
     explicit tile_shader();
+    ~tile_shader() override;
 
     Vector2 scale() const { return _scale; }
     tile_shader& set_scale(const Vector2& scale);

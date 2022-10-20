@@ -154,7 +154,7 @@ void app::draw_fps()
     auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
 
     char buf[16];
-    const double dt = _frame_time > 1e-6 ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
+    const double dt = _frame_time > 1e-6f ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
     snprintf(buf, sizeof(buf), "%.1f FPS", dt);
     const ImVec2 size = ImGui::CalcTextSize(buf);
 
@@ -179,7 +179,7 @@ void app::draw_cursor_coord()
     auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
     auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
     auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
-    auto c6 = push_style_color(ImGuiCol_Text, {.9, .9, .9, 1});
+    auto c6 = push_style_color(ImGuiCol_Text, {.9f, .9f, .9f, 1});
 
     char buf[64];
     const auto coord = *_cursor_tile;

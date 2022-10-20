@@ -7,7 +7,7 @@ namespace floormat {
 
 struct random_engine
 {
-    virtual inline ~random_engine();
+    virtual ~random_engine();
     virtual std::common_type_t<std::size_t, std::uintptr_t, std::ptrdiff_t> operator()() = 0;
 
     template<std::integral T>
@@ -24,8 +24,6 @@ struct random_engine
 
     virtual float operator()(float min, float max) = 0;
 };
-
-random_engine::~random_engine() = default;
 
 [[maybe_unused]] extern random_engine& random; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 

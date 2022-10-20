@@ -66,6 +66,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name,
 Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
 {
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
+    ASSERT(filename_.size() < 4096);
 
     char* const filename = (char*)alloca(filename_.size() + sizeof(IMAGE_PATH));
     std::memcpy(filename, IMAGE_PATH, sizeof(IMAGE_PATH)-1);

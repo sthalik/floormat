@@ -30,6 +30,8 @@ tile_shader::tile_shader()
     set_tint({1, 1, 1, 1});
 }
 
+tile_shader::~tile_shader() = default;
+
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
     if (scale != _scale)

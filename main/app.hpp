@@ -27,7 +27,7 @@ struct app final : private Platform::Application
 private:
     struct app_settings;
 
-    [[maybe_unused]] static void usage(const Utility::Arguments& args);
+    [[maybe_unused]] [[noreturn]] static void usage(const Utility::Arguments& args);
     explicit app(const Arguments& arguments, app_settings opts);
 
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;

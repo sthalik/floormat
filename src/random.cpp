@@ -6,6 +6,8 @@ namespace floormat {
 
 static thread_local auto g = std::independent_bits_engine<decltype(std::ranlux48{}), 32, std::uint32_t>{std::ranlux48{}};
 
+random_engine::~random_engine() = default;
+
 struct random_engine_impl final : random_engine {
     std::size_t operator()() override;
     float operator()(float min, float max) override;
@@ -21,7 +23,6 @@ std::size_t random_engine_impl::operator()()
             std::size_t x;
             std::uint32_t a[N];
         } ret;
-#pragma omp unroll full
         for (std::size_t i = 0; i < N; i++)
             ret.a[i] = g();
         return ret.x;

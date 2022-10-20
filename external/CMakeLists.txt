@@ -1,16 +1,25 @@
 project(floormat-external)
 
+set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
+    "Use dependencies included in the source directory (needs git submodule update --init).")
+
 foreach(_module corrade magnum magnum-integration magnum-plugins)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${_module}/modules")
 endforeach()
 
 if(MSVC)
     add_link_options(-WX:NO)
+    set_property(DIRECTORY APPEND PROPERTY STATIC_LIBRARY_OPTIONS
+        -IGNORE:4006 #warning LNK4006: main already defined in x.cpp.obj; second definition ignored
+    )
 else()
-    add_compile_options(-Wno-error)
+    add_compile_options(
+        -Wno-error
+        -Wno-undef
+    )
 endif()
 
-if(FLOORMAT_SUBMODULE_DEPENDENCIES)
+if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(BOOL
          CORRADE_BUILD_STATIC                   OFF
          CORRADE_BUILD_TESTS                    OFF
@@ -114,7 +123,9 @@ if(FLOORMAT_SUBMODULE_DEPENDENCIES)
     )
 endif()
 
-if(FLOORMAT_SUBMODULE_DEPENDENCIES)
+fm_run_hook(fm-userconfig-external-pre)
+
+if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
     add_subdirectory(json)
     add_subdirectory(sdl2)
@@ -124,14 +135,13 @@ if(FLOORMAT_SUBMODULE_DEPENDENCIES)
     add_subdirectory(magnum-integration)
 endif()
 
-if(FLOORMAT_SUBMODULE_DEPENDENCIES)
+if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
         target_compile_options(CorradeTestSuite PRIVATE -EHsc)
-        set_property(DIRECTORY APPEND PROPERTY STATIC_LIBRARY_OPTIONS
-            -IGNORE:4006 #warning LNK4006: main already defined in x.cpp.obj; second definition ignored
-        )
     endif()
 endif()
+
+fm_run_hook(fm-userconfig-external)
 
 find_package(SDL2 QUIET REQUIRED)
 find_package(Corrade QUIET REQUIRED)
@@ -139,3 +149,5 @@ find_package(ImGui QUIET REQUIRED)
 find_package(Magnum QUIET REQUIRED)
 find_package(MagnumPlugins QUIET REQUIRED)
 find_package(MagnumIntegration QUIET REQUIRED ImGui)
+
+fm_run_hook(fm-userconfig-external-post)

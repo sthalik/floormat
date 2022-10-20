@@ -2,7 +2,7 @@
 
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Color.h>
-#include <ImGui.h>
+#include <imgui.h>
 
 namespace floormat::imgui {
 
