@@ -46,11 +46,14 @@ app::app(const Arguments& arguments, app_settings opts):
 
     if (opts.vsync)
     {
-        if (!setSwapInterval(-1))
-            (void)setSwapInterval(1);
+        (void)setSwapInterval(1);
+        if (const auto list = GL::Context::current().extensionStrings();
+            std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
+            (void)setSwapInterval(-1);
     }
     else
         setSwapInterval(0);
+
     set_fp_mask();
     reset_camera_offset();
 
