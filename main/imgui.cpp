@@ -51,6 +51,7 @@ float app::draw_main_menu()
 
 void app::draw_ui()
 {
+    ImGui::GetIO().IniFilename = nullptr;
     _imgui.newFrame();
     ImGui::StyleColorsDark(&ImGui::GetStyle());
 
