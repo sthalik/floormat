@@ -25,6 +25,7 @@ else()
     add_compile_options(
         -Wno-error
         -Wno-undef
+        -Wno-old-style-cast
     )
 endif()
 
