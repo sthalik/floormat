@@ -22,6 +22,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR CMAKE_INSTALL_PREFIX STREQUAL "")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "" FORCE)
+endif()
+
 function(sets type)
     set(i 0)
     list(LENGTH ARGN max)
@@ -59,18 +67,6 @@ function(fm_load_userconfig)
     endif()
 endfunction()
 
-if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
-    fm_load_userconfig()
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL "")
-    set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "" FORCE)
-endif()
-
-if(CMAKE_INSTALL_PREFIX STREQUAL "")
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-endif()
-
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 endif()
@@ -100,7 +96,9 @@ set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
 set_directory_properties(PROPERTIES CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
 set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
 
-fm_run_hook(fm-userconfig-init)
+if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
+    fm_load_userconfig()
+endif()
 
 add_subdirectory(external)
 
@@ -115,13 +113,13 @@ fm_run_hook(fm-userconfig-src)
 include_directories(.)
 include_directories(src)
 
-#get_property(_fm-sdl2-include-dirs TARGET SDL2::SDL2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+get_property(_fm-sdl2-include-dirs TARGET SDL2::SDL2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 include_directories(SYSTEM
     "${CORRADE_INCLUDE_DIR}"
     "${MAGNUM_INCLUDE_DIR}"
     "${MAGNUMPLUGINS_INCLUDE_DIR}"
     "${MAGNUMINTEGRATION_INCLUDE_DIR}"
-    #${_fm-sdl2-include-dirs}
+    "${_fm-sdl2-include-dirs}"
 )
 
 add_subdirectory(src)
