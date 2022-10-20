@@ -16,6 +16,8 @@ enum class editor_mode : unsigned char {
     select, floor, walls,
 };
 
+struct world;
+
 struct tile_type final
 {
     tile_type(editor_mode mode, Containers::StringView name);
@@ -36,6 +38,7 @@ struct tile_type final
     bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
     bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas);
     std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> get_selected();
+    void place_tile(world& world, global_coords pos);
 
 private:
     enum selection_mode : std::uint8_t {
@@ -67,7 +70,7 @@ struct editor final
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
 
-    void maybe_place_tile(global_coords pos, int mouse_button);
+    void maybe_place_tile(world& world, global_coords pos, int mouse_button);
 
     editor();
     editor(editor&&) noexcept = default;
@@ -76,7 +79,7 @@ struct editor final
 
 private:
     tile_type _floor{editor_mode::floor, "floor"};
-    editor_mode _mode = {};
+    editor_mode _mode = editor_mode::select;
     bool _dirty = false;
 };
 

@@ -6,6 +6,7 @@
 #include "compat/assert.hpp"
 #include "compat/unreachable.hpp"
 #include "src/tile-defs.hpp"
+#include "src/world.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <filesystem>
 #include <vector>
@@ -128,15 +129,34 @@ std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::
     }
 }
 
+void tile_type::place_tile(world& world, global_coords pos)
+{
+    const auto& [c, t] = world[pos];
+    switch (_mode)
+    {
+    case editor_mode::select:
+        WARN("wrong tile mode 'select'"); break;
+    case editor_mode::floor:
+
+    case editor_mode::walls:
+        break; // todo
+    }
+}
+
 editor::editor()
 {
 }
 
-void editor::maybe_place_tile(const global_coords pos, int mouse_button)
+void editor::maybe_place_tile(world& world, const global_coords pos, int mouse_button)
 {
     if (mouse_button == 0)
     {
-        // TODO
+        switch (_mode)
+        {
+        case editor_mode::select: break;
+        case editor_mode::floor: _floor.place_tile(world, pos); break;
+        case editor_mode::walls: break; // TODO
+        }
     }
 }
 
