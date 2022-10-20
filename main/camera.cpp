@@ -3,10 +3,9 @@
 
 namespace floormat {
 
-void app::do_camera(float dt_)
+void app::do_camera(double dt)
 {
     constexpr int pixels_per_second = 768;
-    const auto dt = (double)dt_;
     auto camera_offset = _shader.camera_offset();
 
     if (keys[key::camera_up])

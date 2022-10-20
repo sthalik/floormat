@@ -10,13 +10,10 @@ void app::drawEvent()
 {
     if (const float dt = timeline.previousFrameDuration(); dt > 0)
     {
-        constexpr float RC = 0.5f;
+        constexpr float RC = 0.1f;
         const float alpha = dt/(dt + RC);
 
-        if (_frame_time > 0)
-            _frame_time = _frame_time*(1-alpha) + alpha*dt;
-        else
-            _frame_time = dt;
+        _frame_time = _frame_time*(1-alpha) + alpha*dt;
     }
     else
     {
@@ -25,14 +22,13 @@ void app::drawEvent()
     }
 
     {
-        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-6f, 1e-1f);
+        const auto dt = std::clamp((double)timeline.previousFrameDuration(), 1e-6, 1e-1);
         update(dt);
     }
 
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        //GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
         _framebuffer.clear(GL::FramebufferClear::Color);
         _framebuffer.bind();
         draw_msaa();

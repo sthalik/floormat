@@ -21,7 +21,7 @@ void app::do_mouse_click(const global_coords pos, int button)
     _editor.click_at_tile(pos, button);
 }
 
-void app::update(float dt)
+void app::update(double dt)
 {
     do_camera(dt);
     draw_ui();

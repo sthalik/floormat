@@ -35,12 +35,12 @@ private:
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
     using tile_atlas_ = std::shared_ptr<tile_atlas>;
 
-    void update(float dt);
+    void update(double dt);
 
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void do_mouse_click(global_coords pos, int button);
 
-    void do_camera(float dt);
+    void do_camera(double dt);
     void reset_camera_offset();
     void recalc_cursor_tile();
     void recalc_viewport(Vector2i size);
