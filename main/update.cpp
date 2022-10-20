@@ -18,7 +18,7 @@ void app::make_test_chunk(chunk& c)
 
 void app::do_mouse_click(const global_coords pos, int button)
 {
-    _editor.click_at_tile(pos, button);
+    _editor.maybe_place_tile(pos, button);
 }
 
 void app::update(double dt)

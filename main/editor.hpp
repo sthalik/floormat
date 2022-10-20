@@ -67,7 +67,7 @@ struct editor final
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
 
-    void click_at_tile(global_coords pos, int mouse_button);
+    void maybe_place_tile(global_coords pos, int mouse_button);
 
     editor();
     editor(editor&&) noexcept = default;

@@ -132,7 +132,7 @@ editor::editor()
 {
 }
 
-void editor::click_at_tile(const global_coords pos, int mouse_button)
+void editor::maybe_place_tile(const global_coords pos, int mouse_button)
 {
     if (mouse_button == 0)
     {
