@@ -14,6 +14,8 @@
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
+#include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/MultisampleTexture.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <memory>
 
@@ -42,6 +44,7 @@ private:
     void reset_camera_offset();
     void update_window_scale(Vector2i window_size);
     void recalc_cursor_tile();
+    void recalc_viewport(Vector2i size);
 
     void viewportEvent(ViewportEvent& event) override;
     void mousePressEvent(MouseEvent& event) override;
@@ -60,6 +63,7 @@ private:
 
     std::array<std::int16_t, 4> get_draw_bounds() const noexcept;
     void drawEvent() override;
+    void draw_msaa();
     void draw_world();
     void draw_cursor_tile();
     void draw_wireframe_quad(global_coords pt);
@@ -88,6 +92,9 @@ private:
     void make_test_chunk(chunk& c);
 
     [[maybe_unused]] void* _dummy = register_debug_callback();
+
+    GL::Framebuffer _framebuffer{{{}, windowSize()}};
+    GL::MultisampleTexture2D _msaa_color_texture{};
 
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("floor-tiles.tga", {44, 4});

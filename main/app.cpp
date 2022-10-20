@@ -5,6 +5,7 @@
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <SDL_events.h>
@@ -38,9 +39,11 @@ app::app(const Arguments& arguments, app_settings opts):
               .setSize({1024, 768}, dpi_policy::Physical)
               .setWindowFlags(Configuration::WindowFlag::Resizable),
           GLConfiguration{}
-              .setSampleCount(4)
+              //.setSampleCount(4)
       }
 {
+    SDL_MaximizeWindow(window());
+
     if (opts.vsync)
     {
         if (!setSwapInterval(-1))
@@ -50,10 +53,21 @@ app::app(const Arguments& arguments, app_settings opts):
         setSwapInterval(0);
     set_fp_mask();
     reset_camera_offset();
-    update_window_scale(windowSize());
-    setMinimalLoopPeriod(5);
+
+#if 1
+    ASSERT(framebufferSize() == windowSize());
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
-    SDL_MaximizeWindow(window());
+    recalc_viewport(windowSize());
+#else
+    _msaa_color_texture.setStorage(1, GL::TextureFormat::RGBA8, windowSize());
+    _framebuffer = GL::Framebuffer{GL::defaultFramebuffer.viewport()};
+    _framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{0}, _msaa_color_texture);
+#endif
+    //_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, depthStencil);
+
+    update_window_scale(windowSize());
+
+    setMinimalLoopPeriod(5);
     {
         auto c = _world[chunk_coords{0, 0}];
         make_test_chunk(*c);
@@ -61,13 +75,25 @@ app::app(const Arguments& arguments, app_settings opts):
     timeline.start();
 }
 
-void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
+void app::recalc_viewport(Vector2i size)
 {
-    update_window_scale(event.windowSize());
-    GL::defaultFramebuffer.setViewport({{}, event.windowSize()});
-    _imgui.relayout(Vector2{event.windowSize()}, event.windowSize(), event.framebufferSize());
+    update_window_scale(size);
+
+    GL::defaultFramebuffer.setViewport({{}, size });
+    _framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
+    _msaa_color_texture = GL::MultisampleTexture2D{};
+    _msaa_color_texture.setStorage(1, GL::TextureFormat::RGBA8, size);
+    _framebuffer.setViewport({{}, size });
+    _framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{0}, _msaa_color_texture);
+
+    _imgui.relayout(Vector2{ size }, size, size);
 }
 
+void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
+{
+    ASSERT(event.framebufferSize() == event.windowSize());
+    recalc_viewport(event.windowSize());
+}
 
 void app::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
@@ -120,20 +146,29 @@ void app::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 void app::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
 {
     if (_imgui.handleTextInputEvent(event))
-        return keys = {}, event.setAccepted();
+    {
+        keys = {};
+        event.setAccepted();
+    }
 }
 
 void app::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     if (_imgui.handleKeyPressEvent(event))
+    {
+        keys = {};
         return event.setAccepted();
+    }
     do_key(event.key(), event.modifiers(), true, event.isRepeated());
 }
 
 void app::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     if (_imgui.handleKeyReleaseEvent(event))
-        return keys = {}, event.setAccepted();
+    {
+        keys = {};
+        return event.setAccepted();
+    }
     do_key(event.key(), event.modifiers(), false, false);
 }
 

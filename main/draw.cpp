@@ -29,12 +29,15 @@ void app::drawEvent()
         update(dt);
     }
 
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
     _shader.set_tint({1, 1, 1, 1});
+
     {
-        const with_shifted_camera_offset o{_shader, BASE_X, BASE_Y};
-        draw_world();
-        draw_cursor_tile();
+        //GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
+        _framebuffer.clear(GL::FramebufferClear::Color);
+        _framebuffer.bind();
+        draw_msaa();
+        GL::defaultFramebuffer.bind();
+        GL::Framebuffer::blit(_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
     }
 
     render_menu();
@@ -42,6 +45,13 @@ void app::drawEvent()
     swapBuffers();
     redraw();
     timeline.nextFrame();
+}
+
+void app::draw_msaa()
+{
+    const with_shifted_camera_offset o{_shader, BASE_X, BASE_Y};
+    draw_world();
+    draw_cursor_tile();
 }
 
 void app::draw_world()
