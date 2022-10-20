@@ -78,7 +78,11 @@ if test $run -gt 0; then
         echo "error: no 'floormat' executable" >&2
         exit 65
     fi
-    LLVM_PROFILE_FILE="../${prof}.profraw" "$exe" --magnum-gpu-validation on --vsync on
+    case "$OS" in
+        Windows_NT) profdir="$(cygpath -m -- "$PWD")" ;;
+        *) profdir="$PWD" ;;
+    esac
+    LLVM_PROFILE_FILE="$profdir/${prof}.profraw" "$exe" --magnum-gpu-validation on --vsync on
 fi
 
 if test $generate -gt 0; then
