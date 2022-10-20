@@ -156,8 +156,8 @@ void app::draw_fps()
     auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
 
     char buf[16];
-    const double dt = _frame_time > 1e-6f ? std::round(1/double(_frame_time)*10.)*.1 + 0.05 : 999;
-    snprintf(buf, sizeof(buf), "%.1f FPS", dt);
+    const double hz = _frame_time > 1e-6f ? std::round(1/double(_frame_time)*10.)*.1 + 0.02 : 9999;
+    snprintf(buf, sizeof(buf), "%.1f FPS", hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
 
     ImGui::SetNextWindowPos({windowSize()[0] - size.x - 4, 3});
