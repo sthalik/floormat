@@ -84,6 +84,8 @@ if(MSVC)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
         add_link_options(-HIGHENTROPYVA)
     endif()
+else()
+    add_compile_options(-fuse-cxa-atexit)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
