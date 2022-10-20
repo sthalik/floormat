@@ -58,6 +58,7 @@ void app::draw_ui()
     draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
     draw_cursor_coord();
+    ImGui::EndFrame();
 }
 
 void app::draw_editor_pane(tile_type& type, float main_menu_height)
