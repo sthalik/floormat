@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include <Magnum/ImGuiIntegration/Context.hpp>
 
 namespace floormat {
 
