@@ -20,7 +20,7 @@ constexpr local_coords::local_coords(std::size_t index) noexcept :
       x{(std::uint8_t)(index % TILE_MAX_DIM)},
       y{(std::uint8_t)(index / TILE_MAX_DIM)}
 {
-    ASSERT(index < TILE_COUNT);
+    fm_assert(index < TILE_COUNT);
 }
 
 template<std::integral T>
@@ -28,7 +28,7 @@ requires (sizeof(T) <= sizeof(std::size_t))
 constexpr local_coords::local_coords(T x, T y) noexcept
     : x{(std::uint8_t)x}, y{(std::uint8_t)y}
 {
-    ASSERT(static_cast<std::size_t>(x) < TILE_MAX_DIM && static_cast<std::size_t>(y) < TILE_MAX_DIM);
+    fm_assert(static_cast<std::size_t>(x) < TILE_MAX_DIM && static_cast<std::size_t>(y) < TILE_MAX_DIM);
 }
 
 } // namespace floormat

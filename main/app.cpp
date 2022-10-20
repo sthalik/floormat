@@ -55,7 +55,7 @@ app::app(const Arguments& arguments, app_settings opts):
     reset_camera_offset();
 
 #if 1
-    ASSERT(framebufferSize() == windowSize());
+    fm_assert(framebufferSize() == windowSize());
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
     recalc_viewport(windowSize());
 #else
@@ -88,7 +88,7 @@ void app::recalc_viewport(Vector2i size)
 
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
-    ASSERT(event.framebufferSize() == event.windowSize());
+    fm_assert(event.framebufferSize() == event.windowSize());
     recalc_viewport(event.windowSize());
 }
 

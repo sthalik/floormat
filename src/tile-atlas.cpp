@@ -25,7 +25,7 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
 
 std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t i) const
 {
-    ASSERT(i < (size_/dims_).product());
+    fm_assert(i < (size_/dims_).product());
     return texcoords_[i];
 }
 

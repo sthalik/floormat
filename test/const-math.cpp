@@ -21,13 +21,13 @@ static constexpr void test_float2()
 {
     const vec a{(T)1, (T)2}, b{(T)2, (T)3};
 
-    ASSERT(a[0] == (T)1 && a[1] == (T)2);
-    ASSERT(a + b == vec{(T)3,  (T)5});
-    ASSERT(a - b == vec{(T)-1, (T)-1});
-    ASSERT(a * b == vec{(T)2,  (T)6});
-    ASSERT(b / a == vec{(T)2,  (T)1.5});
-    ASSERT(b.product() == (T)6);
-    ASSERT(b.sum() == (T)5);
+    fm_assert(a[0] == (T)1 && a[1] == (T)2);
+    fm_assert(a + b == vec{(T)3,  (T)5});
+    fm_assert(a - b == vec{(T)-1, (T)-1});
+    fm_assert(a * b == vec{(T)2,  (T)6});
+    fm_assert(b / a == vec{(T)2,  (T)1.5});
+    fm_assert(b.product() == (T)6);
+    fm_assert(b.sum() == (T)5);
 }
 
 template<typename ivec>
@@ -37,13 +37,13 @@ static constexpr void test_int()
     constexpr auto vec = [](auto x, auto y) { return ivec{(I)x, (I)y}; };
     const auto a = vec(3, 5), b = vec(11, 7);
 
-    ASSERT(a[0] == 3 && a[1] == 5);
-    ASSERT(a + b == vec(14,12));
-    ASSERT(b - a == vec(8, 2));
-    ASSERT(b % a == vec(2, 2));
-    ASSERT(b / a == vec(3, 1));
-    ASSERT(a.product() == 15);
-    ASSERT(a.sum() == 8);
+    fm_assert(a[0] == 3 && a[1] == 5);
+    fm_assert(a + b == vec(14,12));
+    fm_assert(b - a == vec(8, 2));
+    fm_assert(b % a == vec(2, 2));
+    fm_assert(b / a == vec(3, 1));
+    fm_assert(a.product() == 15);
+    fm_assert(a.sum() == 8);
 }
 
 static constexpr void* compile_tests()

@@ -57,7 +57,7 @@ void tile_shader::_draw()
     if (const auto offset = Vector2{(float)_camera_offset[0], (float)_camera_offset[1]};
         offset != _real_camera_offset)
     {
-        ASSERT(offset[0] < 1 << 24 && offset[1] < 1 << 24);
+        fm_assert(offset[0] < 1 << 24 && offset[1] < 1 << 24);
         _real_camera_offset = offset;
         setUniform(OffsetUniform, offset);
     }

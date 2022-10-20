@@ -48,7 +48,7 @@ std::string loader_impl::shader(Containers::StringView filename)
         shader_res = std::make_optional<Utility::Resource>("floormat/shaders");
     auto ret = shader_res->getString(filename);
     if (ret.isEmpty())
-        ABORT("can't find shader resource '%s'", filename.cbegin());
+        fm_abort("can't find shader resource '%s'", filename.cbegin());
     return ret;
 }
 
@@ -66,19 +66,19 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name,
 Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
 {
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
-    ASSERT(filename_.size() < 4096);
+    fm_assert(filename_.size() < 4096);
 
     char* const filename = (char*)alloca(filename_.size() + sizeof(IMAGE_PATH));
     std::memcpy(filename, IMAGE_PATH, sizeof(IMAGE_PATH)-1);
     std::strcpy(filename + sizeof(IMAGE_PATH)-1, filename_.cbegin());
     if (!tga_importer || !tga_importer->openFile(filename)) {
         const auto path = Utility::Path::currentDirectory();
-        MESSAGE("note: current working directory: '%s'", path->data());
-        ABORT("can't open tile image '%s'", filename);
+        fm_log("note: current working directory: '%s'", path->data());
+        fm_abort("can't open tile image '%s'", filename);
     }
     auto img = tga_importer->image2D(0);
     if (!img)
-        ABORT("can't allocate tile image for '%s'", filename);
+        fm_abort("can't allocate tile image for '%s'", filename);
     auto ret = std::move(*img);
     return ret;
 }
@@ -103,7 +103,7 @@ void loader_impl::set_application_working_directory()
     std::error_code error;
     std::filesystem::current_path(path, error);
     if (error.value()) {
-        WARN("failed to change working directory to '%s' (%s)",
+        fm_warn("failed to change working directory to '%s' (%s)",
              path.string().data(), error.message().data());
     }
 }

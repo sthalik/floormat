@@ -89,12 +89,12 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 
     if (opts.scale == 0.0)
     {
-        ASSERT(opts.width || opts.height);
+        fm_assert(opts.width || opts.height);
         if (opts.width)
             opts.scale = (double)opts.width / size.width;
         else
             opts.scale = (double)opts.height / size.height;
-        ASSERT(opts.scale > 1e-6);
+        fm_assert(opts.scale > 1e-6);
     }
 
     const cv::Size dest_size = {

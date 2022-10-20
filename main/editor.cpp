@@ -51,7 +51,7 @@ std::shared_ptr<tile_atlas> tile_type::atlas(Containers::StringView str)
     if (auto ptr = maybe_atlas(str); ptr)
         return ptr;
     else
-        ABORT("no such atlas: %s", str.cbegin());
+        fm_abort("no such atlas: %s", str.cbegin());
 }
 
 void tile_type::clear_selection()
@@ -63,7 +63,7 @@ void tile_type::clear_selection()
 
 void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
 {
-    ASSERT(atlas);
+    fm_assert(atlas);
     clear_selection();
     _selection_mode = sel_tile;
     _selected_tile = { atlas, variant };
@@ -71,7 +71,7 @@ void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8
 
 void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
 {
-    ASSERT(atlas);
+    fm_assert(atlas);
     clear_selection();
     _selection_mode = sel_perm;
     _permutation = { atlas, {} };
@@ -79,13 +79,13 @@ void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas
 
 bool tile_type::is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
 {
-    ASSERT(atlas);
+    fm_assert(atlas);
     return _selection_mode == sel_tile && _selected_tile == std::make_tuple(atlas, variant);
 }
 
 bool tile_type::is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas)
 {
-    ASSERT(atlas);
+    fm_assert(atlas);
     return _selection_mode == sel_perm && std::get<0>(_permutation) == atlas;
 }
 
@@ -135,7 +135,7 @@ void tile_type::place_tile(world& world, global_coords pos)
     switch (_mode)
     {
     case editor_mode::select:
-        WARN("wrong tile mode 'select'"); break;
+        fm_warn("wrong tile mode 'select'"); break;
     case editor_mode::floor:
 
     case editor_mode::walls:

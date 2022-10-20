@@ -12,7 +12,7 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     frame.offset = {xpos, ypos};
     frame.size = {mat.cols, mat.rows};
 
-    ASSERT(mat.rows > 0 && mat.cols > 0);
+    fm_assert(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
     xpos += mat.cols;
     max_height = std::max(mat.rows, max_height);
@@ -23,7 +23,8 @@ void anim_atlas::advance_row()
     auto& row = rows.back();
     if (row.data.empty())
         return;
-    ASSERT(row.xpos > 0); ASSERT(row.max_height > 0);
+    fm_assert(row.xpos > 0);
+    fm_assert(row.max_height > 0);
     ypos += row.max_height;
     maxx = std::max(row.xpos, maxx);
     rows.push_back({{}, 0, 0, ypos});
