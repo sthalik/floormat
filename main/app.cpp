@@ -81,6 +81,9 @@ void app::recalc_viewport(Vector2i size)
     _shader.set_scale(Vector2(size));
     _imgui.relayout(Vector2{ size }, size, size);
 
+    _cursor_pixel = std::nullopt;
+    recalc_cursor_tile();
+
     GL::defaultFramebuffer.setViewport({{}, size });
     _framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
     _msaa_color_texture = GL::MultisampleTexture2D{};
@@ -133,7 +136,10 @@ void app::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 void app::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
     _cursor_in_imgui = _imgui.handleMouseMoveEvent(event);
-    _cursor_pixel = event.position();
+    if (_cursor_in_imgui)
+        _cursor_pixel = std::nullopt;
+    else
+        _cursor_pixel = event.position();
     recalc_cursor_tile();
 }
 
@@ -193,7 +199,7 @@ void app::anyEvent(SDL_Event& event)
 void app::event_focus_out()
 {
     _cursor_pixel = std::nullopt;
-    _cursor_tile = std::nullopt;
+    recalc_cursor_tile();
 }
 
 void app::event_focus_in()
@@ -203,7 +209,7 @@ void app::event_focus_in()
 void app::event_mouse_leave()
 {
     _cursor_pixel = std::nullopt;
-    _cursor_tile = std::nullopt;
+    recalc_cursor_tile();
 }
 
 void app::event_mouse_enter()
