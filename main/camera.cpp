@@ -41,11 +41,6 @@ void app::reset_camera_offset()
     recalc_cursor_tile();
 }
 
-void app::update_window_scale(Vector2i sz)
-{
-    _shader.set_scale(Vector2{sz});
-}
-
 void app::recalc_cursor_tile()
 {
     if (_cursor_pixel)

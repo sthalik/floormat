@@ -65,8 +65,6 @@ app::app(const Arguments& arguments, app_settings opts):
 #endif
     //_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, depthStencil);
 
-    update_window_scale(windowSize());
-
     setMinimalLoopPeriod(5);
     {
         auto c = _world[chunk_coords{0, 0}];
@@ -77,7 +75,8 @@ app::app(const Arguments& arguments, app_settings opts):
 
 void app::recalc_viewport(Vector2i size)
 {
-    update_window_scale(size);
+    _shader.set_scale(Vector2(size));
+    _imgui.relayout(Vector2{ size }, size, size);
 
     GL::defaultFramebuffer.setViewport({{}, size });
     _framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
@@ -85,8 +84,6 @@ void app::recalc_viewport(Vector2i size)
     _msaa_color_texture.setStorage(1, GL::TextureFormat::RGBA8, size);
     _framebuffer.setViewport({{}, size });
     _framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{0}, _msaa_color_texture);
-
-    _imgui.relayout(Vector2{ size }, size, size);
 }
 
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)

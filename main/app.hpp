@@ -42,7 +42,6 @@ private:
 
     void do_camera(float dt);
     void reset_camera_offset();
-    void update_window_scale(Vector2i window_size);
     void recalc_cursor_tile();
     void recalc_viewport(Vector2i size);
 
