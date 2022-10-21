@@ -68,9 +68,10 @@ Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
     fm_assert(filename_.size() < 4096);
 
-    char* const filename = (char*)alloca(filename_.size() + sizeof(IMAGE_PATH));
-    std::memcpy(filename, IMAGE_PATH, sizeof(IMAGE_PATH)-1);
-    std::strcpy(filename + sizeof(IMAGE_PATH)-1, filename_.cbegin());
+    char* const filename = (char*)alloca(filename_.size() + std::size(IMAGE_PATH));
+    std::memcpy(filename, IMAGE_PATH, std::size(IMAGE_PATH)-1);
+    std::memcpy(filename + std::size(IMAGE_PATH)-1, filename_.cbegin(), filename_.size());
+    filename[std::size(IMAGE_PATH)-1 + filename_.size()] = '\0';
     if (!tga_importer || !tga_importer->openFile(filename)) {
         const auto path = Utility::Path::currentDirectory();
         fm_log("note: current working directory: '%s'", path->data());
