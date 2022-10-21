@@ -11,9 +11,9 @@ tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Ve
     texcoords_{make_texcoords_array(Vector2ui(image.size()), dims)},
     name_{name}, size_{image.size()}, dims_{dims}
 {
-    CORRADE_INTERNAL_ASSERT(dims_[0] > 0 && dims_[1] > 0);
-    CORRADE_INTERNAL_ASSERT(size_ % dims_ == Vector2ui());
-    CORRADE_INTERNAL_ASSERT(dims_.product() < 256);
+    fm_assert(dims_[0] > 0 && dims_[1] > 0);
+    fm_assert(size_ % dims_ == Vector2ui());
+    fm_assert(dims_.product() < 256);
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)

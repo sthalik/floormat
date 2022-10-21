@@ -2,7 +2,7 @@
 
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Color.h>
-#ifndef __CLION_IDE__
+#ifndef __CLION_IDE__zz
 #include <imgui.h>
 #endif
 

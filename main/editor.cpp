@@ -77,13 +77,13 @@ void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas
     _permutation = { atlas, {} };
 }
 
-bool tile_type::is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
+bool tile_type::is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant) const
 {
     fm_assert(atlas);
     return _selection_mode == sel_tile && _selected_tile == std::make_tuple(atlas, variant);
 }
 
-bool tile_type::is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas)
+bool tile_type::is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas) const
 {
     fm_assert(atlas);
     return _selection_mode == sel_perm && std::get<0>(_permutation) == atlas;
@@ -141,6 +141,9 @@ void tile_type::place_tile(world& world, global_coords pos,
     const auto& [atlas, variant] = img;
     switch (_mode)
     {
+    default:
+        fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
+        break;
     case editor_mode::select:
         break;
     case editor_mode::floor: {
@@ -165,6 +168,27 @@ void editor::set_mode(editor_mode mode)
     on_release();
 }
 
+const tile_type* editor::current() const
+{
+    switch (_mode)
+    {
+    case editor_mode::select:
+        return nullptr;
+    case editor_mode::floor:
+        return &_floor;
+    case editor_mode::walls:
+        return nullptr; // todo
+    default:
+        fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
+        return nullptr;
+    }
+}
+
+tile_type* editor::current()
+{
+    return const_cast<tile_type*>(static_cast<const editor&>(*this).current());
+}
+
 void editor::on_release()
 {
     _last_pos = std::nullopt;
@@ -181,26 +205,16 @@ void editor::on_mouse_move(world& world, const global_coords pos)
 
 void editor::on_click(world& world, global_coords pos)
 {
-    switch (_mode)
+    if (auto* mode = current(); mode)
     {
-    case editor_mode::select:
-        break;
-    case editor_mode::floor: {
-        auto opt = _floor.get_selected();
+        auto opt = mode->get_selected();
         if (opt)
         {
             _last_pos = pos;
-            _floor.place_tile(world, pos, *opt);
+            mode->place_tile(world, pos, *opt);
         }
         else
             on_release();
-        break;
-    }
-    case editor_mode::walls:
-        break; // TODO
-    default:
-        fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
-        break;
     }
 }
 

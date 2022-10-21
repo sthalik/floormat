@@ -35,8 +35,8 @@ struct tile_type final
     void clear_selection();
     void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
     void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
-    bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
-    bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas);
+    bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant) const;
+    bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas) const;
     std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> get_selected();
     void place_tile(world& world, global_coords pos, const std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>& img);
 
@@ -69,6 +69,9 @@ struct editor final
 
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
+
+    tile_type* current();
+    const tile_type* current() const;
 
     void on_click(world& world, global_coords pos);
     void on_mouse_move(world& world, const global_coords pos);

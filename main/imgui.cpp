@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
-#ifndef __CLION_IDE__
+#ifndef __CLION_IDE__zz
 #include <Magnum/ImGuiIntegration/Integration.h>
 #endif
 
@@ -64,12 +64,17 @@ void app::draw_ui()
 
 void app::draw_editor_pane(tile_type& type, float main_menu_height)
 {
+    constexpr
+    Color4 color_perm_selected{1, 1, 1, .7f},
+           color_selected{1, 0.843f, 0, .8f},
+           color_hover{0, .8f, 1, .7f};
+
     if (ImGui::GetIO().WantTextInput && !isTextInputActive())
         startTextInput();
     else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    const raii_wrapper vars[] = {
+    [[maybe_unused]] const raii_wrapper vars[] = {
         push_style_var(ImGuiStyleVar_WindowPadding, {8, 8}),
         push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
         push_style_var(ImGuiStyleVar_FramePadding, {4, 4}),
@@ -88,11 +93,12 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
             auto b = begin_window({}, flags))
         {
             const float window_width = ImGui::GetWindowWidth() - 32;
+            const auto* ed = _editor.current();
 
             char buf[64];
             //ImGui::SetNextWindowBgAlpha(.2f);
 
-            if (auto b = begin_list_box("##tiles", {-FLT_MIN, -1}))
+            if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 for (const auto& [k, v] : type)
                 {
@@ -107,28 +113,38 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
                         ImGui::Text("%s", buf);
                     };
-                    const std::size_t N = v->num_tiles();
+                    const auto N = (std::uint8_t)v->num_tiles();
                     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
                         auto b = tree_node(k.data(), flags))
                     {
                         click_event();
                         add_tile_count();
-                        const raii_wrapper vars[] = {
-                            push_style_var(ImGuiStyleVar_FramePadding, {1, 1}),
-                            push_style_var(ImGuiStyleVar_FrameBorderSize, 3),
-                            push_style_color(ImGuiCol_Button, {1, 1, 1, 1}),
+                        [[maybe_unused]] const raii_wrapper vars[] = {
+                            push_style_var(ImGuiStyleVar_FramePadding, {2, 2}),
+                            push_style_color(ImGuiCol_ButtonHovered, color_hover),
                         };
+                        const bool perm_selected = ed ? ed->is_permutation_selected(v) : false;
                         constexpr std::size_t per_row = 5;
-                        for (std::size_t i = 0; i < N; i++)
+                        for (std::uint8_t i = 0; i < N; i++)
                         {
+                            const bool selected = ed ? ed->is_tile_selected(v, i) : false;
+
                             if (i > 0 && i % per_row == 0)
                                 ImGui::NewLine();
-                            snprintf(buf, sizeof(buf), "##item_%zu", i);
+
+                            [[maybe_unused]] const raii_wrapper vars[] = {
+                                selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
+                                selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
+                                perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
+                                perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
+                            };
+
+                            snprintf(buf, sizeof(buf), "##item_%hhu", i);
                             const auto uv = v->texcoords_for_id(i);
                             ImGui::ImageButton(buf, (void*)&v->texture(), {TILE_SIZE[0]/2, TILE_SIZE[1]/2},
                                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
                             if (ImGui::IsItemClicked())
-                                _editor.floor().select_tile(v, (std::uint8_t)i);
+                                _editor.floor().select_tile(v, i);
                             else
                                 click_event();
                             ImGui::SameLine();
