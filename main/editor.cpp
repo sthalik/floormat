@@ -129,22 +129,28 @@ std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::
     }
 }
 
-void tile_type::place_tile(world& world, global_coords pos)
+void tile_type::place_tile(world& world, global_coords pos, std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> img)
 {
     const auto& [c, t] = world[pos];
     switch (_mode)
     {
     case editor_mode::select:
         fm_warn("wrong tile mode 'select'"); break;
-    case editor_mode::floor:
-
-    case editor_mode::walls:
+    case editor_mode::floor: {
+        const auto& [c, t] = world[pos];
+        auto& [atlas, variant] = img;
+        t.ground_image = { atlas, variant };
+        break;
+    }
+    case editor_mode::walls: {
         break; // todo
+    }
     }
 }
 
 editor::editor()
 {
+    set_mode(editor_mode::floor); // TODO
 }
 
 void editor::maybe_place_tile(world& world, const global_coords pos, int mouse_button)
@@ -154,7 +160,12 @@ void editor::maybe_place_tile(world& world, const global_coords pos, int mouse_b
         switch (_mode)
         {
         case editor_mode::select: break;
-        case editor_mode::floor: _floor.place_tile(world, pos); break;
+        case editor_mode::floor: {
+            auto opt = _floor.get_selected();
+            if (opt)
+                _floor.place_tile(world, pos, *opt);
+            break;
+        }
         case editor_mode::walls: break; // TODO
         }
     }

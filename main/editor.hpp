@@ -38,7 +38,7 @@ struct tile_type final
     bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
     bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas);
     std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> get_selected();
-    void place_tile(world& world, global_coords pos);
+    void place_tile(world& world, global_coords pos, std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> img);
 
 private:
     enum selection_mode : std::uint8_t {
