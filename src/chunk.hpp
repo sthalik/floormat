@@ -6,11 +6,6 @@
 
 namespace floormat {
 
-template<typename F, typename Tile>
-concept tile_iterator_fn = requires(F fn, Tile& tile) {
-    { fn.operator()(tile, std::size_t{}, local_coords{}) } -> std::same_as<void>;
-};
-
 template<typename T> class basic_tile_iterator;
 
 struct chunk final
