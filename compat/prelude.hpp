@@ -1,7 +1,7 @@
 #pragma once
-#if !(defined __cpp_size_t_suffix && __cpp_size_t_suffix >= 202006L)
-#include "literal-size-type.hpp"
-#endif
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
 
 namespace Magnum {}
 namespace floormat {
