@@ -18,7 +18,21 @@ void app::make_test_chunk(chunk& c)
 
 void app::do_mouse_click(const global_coords pos, int button)
 {
-    _editor.maybe_place_tile(_world, pos, button);
+    if (button == SDL_BUTTON_LEFT)
+        _editor.on_click(_world, pos);
+    else
+        _editor.on_release();
+}
+
+void app::do_mouse_release(int button)
+{
+    (void)button;
+    _editor.on_release();
+}
+
+void app::do_mouse_move(global_coords pos)
+{
+    _editor.on_mouse_move(_world, pos);
 }
 
 void app::update(double dt)

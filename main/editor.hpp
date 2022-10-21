@@ -38,7 +38,7 @@ struct tile_type final
     bool is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant);
     bool is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas);
     std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> get_selected();
-    void place_tile(world& world, global_coords pos, std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> img);
+    void place_tile(world& world, global_coords pos, const std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>& img);
 
 private:
     enum selection_mode : std::uint8_t {
@@ -65,12 +65,14 @@ struct editor final
     [[nodiscard]] bool dirty() const { return _dirty; }
     void set_dirty(bool value) { _dirty = value; }
     [[nodiscard]] editor_mode mode() const { return _mode; }
-    void set_mode(editor_mode mode) { _mode = mode; }
+    void set_mode(editor_mode mode);
 
     tile_type& floor() { return _floor; }
     const tile_type& floor() const { return _floor; }
 
-    void maybe_place_tile(world& world, global_coords pos, int mouse_button);
+    void on_click(world& world, global_coords pos);
+    void on_mouse_move(world& world, const global_coords pos);
+    void on_release();
 
     editor();
     editor(editor&&) noexcept = default;
@@ -79,6 +81,7 @@ struct editor final
 
 private:
     tile_type _floor{editor_mode::floor, "floor"};
+    std::optional<global_coords> _last_pos;
     editor_mode _mode = editor_mode::select;
     bool _dirty = false;
 };

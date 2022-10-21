@@ -39,21 +39,23 @@ private:
 
     void do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated);
     void do_mouse_click(global_coords pos, int button);
+    void do_mouse_release(int button);
+    void do_mouse_move(global_coords pos);
 
     void do_camera(double dt);
     void reset_camera_offset();
     void recalc_cursor_tile();
     void recalc_viewport(Vector2i size);
 
-    void viewportEvent(ViewportEvent& event) override;
-    void mousePressEvent(MouseEvent& event) override;
-    void mouseReleaseEvent(MouseEvent& event) override;
-    void mouseMoveEvent(MouseMoveEvent& event) override;
-    void mouseScrollEvent(MouseScrollEvent& event) override;
-    void textInputEvent(TextInputEvent& event) override;
-    void keyPressEvent(KeyEvent& event) override;
-    void keyReleaseEvent(KeyEvent& event) override;
-    void anyEvent(SDL_Event& event) override;
+    [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
+    [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;
+    [[maybe_unused]] void mouseReleaseEvent(MouseEvent& event) override;
+    [[maybe_unused]] void mouseMoveEvent(MouseMoveEvent& event) override;
+    [[maybe_unused]] void mouseScrollEvent(MouseScrollEvent& event) override;
+    [[maybe_unused]] void textInputEvent(TextInputEvent& event) override;
+    [[maybe_unused]] void keyPressEvent(KeyEvent& event) override;
+    [[maybe_unused]] void keyReleaseEvent(KeyEvent& event) override;
+    [[maybe_unused]] void anyEvent(SDL_Event& event) override;
 
     void event_focus_out();
     void event_focus_in();

@@ -37,6 +37,8 @@ void app::do_camera(double dt)
             return;
     }
     recalc_cursor_tile();
+    if (_cursor_tile)
+        do_mouse_move(*_cursor_tile);
 }
 
 void app::reset_camera_offset()
