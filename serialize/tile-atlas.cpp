@@ -11,7 +11,7 @@ using namespace floormat;
 
 namespace nlohmann {
 
-using proxy_atlas = std::tuple<std::string, Vector2ui>;
+using proxy_atlas = std::tuple<std::string, Vector2ub>;
 using shared_atlas = std::shared_ptr<floormat::tile_atlas>;
 
 void adl_serializer<shared_atlas>::to_json(json& j, const shared_atlas& x)
