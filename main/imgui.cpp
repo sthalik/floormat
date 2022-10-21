@@ -83,7 +83,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
     {
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({450, windowSize()[1] - main_menu_height - style.WindowPadding.y});
+        ImGui::SetNextWindowSize({440, windowSize()[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
@@ -118,7 +118,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                             push_style_var(ImGuiStyleVar_FrameBorderSize, 3),
                             push_style_color(ImGuiCol_Button, {1, 1, 1, 1}),
                         };
-                        constexpr std::size_t per_row = 8;
+                        constexpr std::size_t per_row = 5;
                         for (std::size_t i = 0; i < N; i++)
                         {
                             if (i > 0 && i % per_row == 0)
