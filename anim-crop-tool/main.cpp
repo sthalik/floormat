@@ -64,7 +64,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 [[nodiscard]]
 static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename)
 {
-    auto mat = progn(
+    auto mat = fm_begin(
         cv::Mat mat = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
         if (mat.empty() || mat.type() != CV_8UC4)
         {

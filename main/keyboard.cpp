@@ -9,7 +9,7 @@ void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repe
     (void)m;
     (void)repeated;
 
-    const key x = progn(switch (k) {
+    const key x = fm_begin(switch (k) {
         using enum KeyEvent::Key;
         using enum key;
 

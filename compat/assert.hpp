@@ -47,6 +47,14 @@
 #define fm_log(...)   fm_EMIT_DEBUG("", __VA_ARGS__)
 #define fm_debug(...) fm_EMIT_DEBUG("", __VA_ARGS__)
 
+#define fm_warn_once(...) do {                                          \
+        static bool _fm_once_flag = false;                              \
+        if (!_fm_once_flag) {                                           \
+            _fm_once_flag = true;                                       \
+            fm_warn(__VA_ARGS__);                                       \
+        }                                                               \
+    } while (false)
+
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop
 #endif

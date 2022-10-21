@@ -75,7 +75,7 @@ struct editor final
     editor();
     editor(editor&&) noexcept = default;
     editor& operator=(editor&&) noexcept = default;
-    DECLARE_DELETED_COPY_ASSIGNMENT(editor);
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
 
 private:
     tile_type _floor{editor_mode::floor, "floor"};

@@ -19,6 +19,8 @@ struct world final
     void clear();
     void collect();
 
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(world);
+
 private:
     void maybe_collect();
 

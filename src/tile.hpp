@@ -28,7 +28,7 @@ struct tile final
     constexpr tile() = default;
     tile(tile&&) = default;
 
-    DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
+    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
 };
 
 } //namespace floormat
