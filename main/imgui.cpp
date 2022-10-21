@@ -113,7 +113,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
                         ImGui::Text("%s", buf);
                     };
-                    const auto N = (std::uint8_t)v->num_tiles();
+                    const auto N = v->num_tiles();
                     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
                         auto b = tree_node(k.data(), flags))
                     {
@@ -125,7 +125,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                         };
                         const bool perm_selected = ed ? ed->is_permutation_selected(v) : false;
                         constexpr std::size_t per_row = 5;
-                        for (std::uint8_t i = 0; i < N; i++)
+                        for (std::size_t i = 0; i < N; i++)
                         {
                             const bool selected = ed ? ed->is_tile_selected(v, i) : false;
 
@@ -139,7 +139,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                                 perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
                             };
 
-                            snprintf(buf, sizeof(buf), "##item_%hhu", i);
+                            snprintf(buf, sizeof(buf), "##item_%zu", i);
                             const auto uv = v->texcoords_for_id(i);
                             ImGui::ImageButton(buf, (void*)&v->texture(), {TILE_SIZE[0]/2, TILE_SIZE[1]/2},
                                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });

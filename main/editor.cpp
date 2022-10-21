@@ -61,7 +61,7 @@ void tile_type::clear_selection()
     _selection_mode = sel_none;
 }
 
-void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant)
+void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant)
 {
     fm_assert(atlas);
     clear_selection();
@@ -77,13 +77,14 @@ void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas
     _permutation = { atlas, {} };
 }
 
-bool tile_type::is_tile_selected(const std::shared_ptr<tile_atlas>& atlas, std::uint8_t variant) const
+bool tile_type::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const
 {
     fm_assert(atlas);
-    return _selection_mode == sel_tile && _selected_tile == std::make_tuple(atlas, variant);
+    return _selection_mode == sel_tile && _selected_tile &&
+           atlas == _selected_tile.atlas && variant == _selected_tile.variant;
 }
 
-bool tile_type::is_permutation_selected(const std::shared_ptr<tile_atlas>& atlas) const
+bool tile_type::is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const
 {
     fm_assert(atlas);
     return _selection_mode == sel_perm && std::get<0>(_permutation) == atlas;
@@ -101,7 +102,7 @@ void fisher_yates(T begin, T end)
     }
 }
 
-std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> tile_type::get_selected_perm()
+tile_image tile_type::get_selected_perm()
 {
     auto& [atlas, vec] = _permutation;
     const std::size_t N = atlas->num_tiles();
@@ -109,7 +110,7 @@ std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> tile_type::get_selected_pe
         return {};
     if (vec.empty())
     {
-        for (std::uint8_t i = 0; i < N; i++)
+        for (std::size_t i = 0; i < N; i++)
             vec.push_back(i);
         fisher_yates(vec.begin(), vec.end());
     }
@@ -118,12 +119,12 @@ std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t> tile_type::get_selected_pe
     return {atlas, idx};
 }
 
-std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::get_selected()
+tile_image tile_type::get_selected()
 {
     switch (_selection_mode)
     {
     case sel_none:
-        return std::nullopt;
+        return {};
     case sel_tile:
         return _selected_tile;
     case sel_perm:
@@ -134,8 +135,7 @@ std::optional<std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>> tile_type::
     }
 }
 
-void tile_type::place_tile(world& world, global_coords pos,
-                           const std::tuple<std::shared_ptr<tile_atlas>, std::uint8_t>& img)
+void tile_type::place_tile(world& world, global_coords pos, tile_image& img)
 {
     const auto& [c, t] = world[pos];
     const auto& [atlas, variant] = img;
@@ -211,7 +211,7 @@ void editor::on_click(world& world, global_coords pos)
         if (opt)
         {
             _last_pos = pos;
-            mode->place_tile(world, pos, *opt);
+            mode->place_tile(world, pos, opt);
         }
         else
             on_release();
