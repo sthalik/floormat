@@ -2,10 +2,12 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat {
+
 struct tile_image;
 struct tile;
 struct chunk;
 struct local_coords;
+
 } // namespace floormat
 
 namespace nlohmann {
