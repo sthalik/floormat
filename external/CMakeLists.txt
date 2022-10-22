@@ -36,16 +36,21 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         -DIMGUI_DISABLE_OBSOLETE_KEYIO
     )
     sets(STRING
+         SDL_ASSERTIONS                         release
          SDL_INSTALL_CMAKEDIR                   "share/cmake/SDL2"
          NLOHMANN_JSON_CONFIG_INSTALL_DIR       "share/cmake/nlohmann_json"
-     )
+    )
+    sets(BOOL
+         JSON_Diagnostics        ON
+         JSON_Install            ON
+         JSON_MultipleHeaders    ON
+         JSON_SystemInclude      ON
+    )
     sets(BOOL
          CORRADE_BUILD_STATIC                   OFF
          CORRADE_BUILD_TESTS                    OFF
          CORRADE_BUILD_DEPRECATED               OFF
-
          CORRADE_MSVC_COMPATIBILITY             OFF
-
          CORRADE_UTILITY_USE_ANSI_COLORS        ON
          CORRADE_WITH_TESTSUITE                 ON
 
@@ -84,9 +89,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_EIGEN                      OFF
          MAGNUM_WITH_GLM                        OFF
          MAGNUM_WITH_IMGUI                      ON
-    )
-    sets(STRING
-         SDL_ASSERTIONS                         release
     )
     sets(BOOL
          SDL2_DISABLE_INSTALL                   OFF
@@ -132,13 +134,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_VULKAN                             OFF
          SDL_WASAPI                             OFF
          SDL_XINPUT                             OFF
-    )
-
-    sets(BOOL
-         JSON_Diagnostics        ON
-         JSON_Install            ON
-         JSON_MultipleHeaders    ON
-         JSON_SystemInclude      ON
     )
 endif()
 
