@@ -87,8 +87,9 @@ private:
 
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
+        rotate_tile, quicksave, quickload,
         quit,
-        MAX
+        MAX = quit, COUNT
     };
     void make_test_chunk(chunk& c);
 
