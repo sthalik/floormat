@@ -7,3 +7,6 @@ target_link_libraries(${self} PUBLIC
     Magnum::Shaders
     ${PROJECT_NAME}
 )
+if(FLOORMAT_PRECOMPILED-HEADERS)
+    target_precompile_headers(${self} PRIVATE precomp.hpp)
+endif()

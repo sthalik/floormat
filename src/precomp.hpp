@@ -1,0 +1,27 @@
+#pragma once
+
+#include "compat/prelude.hpp"
+#include "compat/defs.hpp"
+#include "compat/assert.hpp"
+#include "src/tile-defs.hpp"
+#include "src/tile.hpp"
+#include "src/tile-atlas.hpp"
+#include "src/tile-iterator.hpp"
+#include "src/chunk.hpp"
+#include "src/global-coords.hpp"
+#include "shaders/tile-shader.hpp"
+#include "serialize/json-helper.hpp"
+#include <cstddef>
+#include <type_traits>
+#include <cmath>
+#include <array>
+#include <optional>
+#include <limits>
+#include <tuple>
+#include <utility>
+#include <filesystem>
+#include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
+#include <Magnum/Math/Vector4.h>
+#include <nlohmann/json.hpp>

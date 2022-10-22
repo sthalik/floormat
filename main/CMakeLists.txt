@@ -14,3 +14,7 @@ endif()
 add_executable(${self} "${sources}" "${res}")
 set_property(TARGET ${self} PROPERTY OUTPUT_NAME "${PROJECT_NAME}")
 install(TARGETS ${self} RUNTIME DESTINATION bin)
+
+if(FLOORMAT_PRECOMPILED-HEADERS)
+    target_precompile_headers(${self} PRIVATE precomp.hpp)
+endif()
