@@ -31,6 +31,10 @@ else()
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
+    add_definitions(
+        -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
+        -DIMGUI_DISABLE_OBSOLETE_KEYIO
+    )
     sets(STRING
          SDL_INSTALL_CMAKEDIR                   "share/cmake/SDL2"
          NLOHMANN_JSON_CONFIG_INSTALL_DIR       "share/cmake/nlohmann_json"

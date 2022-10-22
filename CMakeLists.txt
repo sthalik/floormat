@@ -112,6 +112,11 @@ else()
     add_definitions(-include compat/prelude.hpp)
 endif()
 
+add_definitions(
+    -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
+    -DIMGUI_DISABLE_OBSOLETE_KEYIO
+)
+
 fm_run_hook(fm-userconfig-src)
 
 include_directories(.)
