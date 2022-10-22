@@ -7,10 +7,12 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
-#ifdef __GNUG__
-#pragma GCC diagnostic push
+#if defined _MSC_VER
+#pragma warning(disable : 4996)
+#elif defined __GNUG__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
+
 namespace floormat {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
@@ -70,7 +72,3 @@ void adl_serializer<world>::from_json(const json& j, world& val)
 }
 
 } // namespace nlohmann
-
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
-#endif

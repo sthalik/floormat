@@ -58,7 +58,7 @@ void app::draw_world()
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-#if 0
+#if 1
             if (const chunk_coords c = {x, y}; !_world.contains(c))
                 make_test_chunk(*_world[c]);
 #endif

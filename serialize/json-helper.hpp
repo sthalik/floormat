@@ -4,7 +4,6 @@
 #include <exception>
 #include <filesystem>
 #include <nlohmann/json.hpp>
-#include <Corrade/Utility/DebugStl.h>
 
 struct json_helper final {
     template<typename t>
