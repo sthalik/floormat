@@ -1,10 +1,5 @@
 #pragma once
-#include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Vector4.h>
-#include <Magnum/Math/Color.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {
@@ -36,10 +31,10 @@ void adl_serializer<Magnum::Math::Vector<N, T>>::from_json(const json& j, vec& v
         val[i] = array[i];
 }
 
+template<typename T> struct adl_serializer<Magnum::Math::Vector2<T>> : adl_serializer<Magnum::Math::Vector<2, T>> {};
 template<typename T> struct adl_serializer<Magnum::Math::Vector3<T>> : adl_serializer<Magnum::Math::Vector<3, T>> {};
 template<typename T> struct adl_serializer<Magnum::Math::Vector4<T>> : adl_serializer<Magnum::Math::Vector<4, T>> {};
 template<typename T> struct adl_serializer<Magnum::Math::Color3<T>>  : adl_serializer<Magnum::Math::Vector<3, T>> {};
 template<typename T> struct adl_serializer<Magnum::Math::Color4<T>>  : adl_serializer<Magnum::Math::Vector<4, T>> {};
-template<typename T> struct adl_serializer<Magnum::Math::Vector2<T>> : adl_serializer<Magnum::Math::Vector<2, T>> {};
 
 } // namespace nlohmann

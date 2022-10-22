@@ -1,8 +1,5 @@
 #include <cstdio>
 #include <string>
-#include <limits>
-#include <exception>
-#include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json.hpp>
 
@@ -10,7 +7,8 @@ namespace nlohmann {
 
 template<typename t>
 requires std::is_integral_v<t>
-struct adl_serializer<Magnum::Math::Vector2<t>> final {
+struct adl_serializer<Magnum::Math::Vector2<t>> final
+{
     static void to_json(json& j, const Magnum::Math::Vector2<t>& val)
     {
         char buf[64];
