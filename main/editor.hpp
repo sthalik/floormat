@@ -25,12 +25,10 @@ struct tile_type final
     tile_type(editor_mode mode, Containers::StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(Containers::StringView str);
     std::shared_ptr<tile_atlas> atlas(Containers::StringView str);
-    auto begin() & { return _atlases.begin(); }
-    auto end() & { return _atlases.end(); }
-    auto begin() const&& { return _atlases.cbegin(); }
-    auto end() const&& { return _atlases.cend(); }
     auto cbegin() const { return _atlases.cbegin(); }
     auto cend() const { return _atlases.cend(); }
+    auto begin() const { return _atlases.cbegin(); }
+    auto end() const { return _atlases.cend(); }
     Containers::StringView name() const { return _name; }
     editor_mode mode() const { return _mode; }
 
