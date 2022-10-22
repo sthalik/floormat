@@ -12,9 +12,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords, x, y)
 
 } // namespace floormat
 
-namespace nlohmann {
-
 using namespace floormat;
+
+namespace nlohmann {
 
 void adl_serializer<tile_image>::to_json(json& j, const tile_image& val) { using nlohmann::to_json; if (val.atlas) to_json(j, val); else j = nullptr; }
 void adl_serializer<tile_image>::from_json(const json& j, tile_image& val) { using nlohmann::from_json; from_json(j, val); }
