@@ -20,6 +20,7 @@ if(MSVC)
         -wd4457 # #warning C4457: declaration of 'name' hides function parameter
         #-wd4530 # warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
         -wd4244 # warning C4244: 'initializing': conversion from 'unsigned int' to '_Ty', possible loss of data
+        -wd4005 # warning C4005: '_USE_MATH_DEFINES': macro redefinition
     )
 else()
     add_compile_options(
