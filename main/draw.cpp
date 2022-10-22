@@ -52,19 +52,17 @@ void app::draw_msaa()
 
 void app::draw_world()
 {
-#if 0
-    _floor_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
-    _wall_mesh.draw(_shader, *_world[chunk_coords{0, 0}]);
-#else
     auto foo = get_draw_bounds();
     auto [minx, maxx, miny, maxy] = foo;
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            const chunk_coords c{x, y};
-            if (!_world.contains(c))
+#if 0
+            if (const chunk_coords c = {x, y}; !_world.contains(c))
                 make_test_chunk(*_world[c]);
+#endif
+            const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
             _floor_mesh.draw(_shader, *_world[c]);
         }
@@ -76,15 +74,14 @@ void app::draw_world()
             const with_shifted_camera_offset o{_shader, c};
             _wall_mesh.draw(_shader, *_world[c]);
         }
-#endif
 }
 
 void app::draw_wireframe_quad(global_coords pos)
 {
-    constexpr float LINE_WIDTH = 1;
+    constexpr float LINE_WIDTH = 2;
     const auto pt = pos.to_signed();
 
-    if (const auto& [c, tile] = _world[pos]; tile.ground_image)
+    //if (const auto& [c, tile] = _world[pos]; tile.ground_image)
     {
         const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
         _shader.set_tint({1, 0, 0, 1});

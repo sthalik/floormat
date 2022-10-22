@@ -38,9 +38,9 @@ app::app(const Arguments& arguments, app_settings opts):
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical)
               .setWindowFlags(Configuration::WindowFlag::Resizable),
-          GLConfiguration{}
-              //.setSampleCount(4)
-      }
+          GLConfiguration{},
+      },
+      _settings{opts}
 {
     SDL_MaximizeWindow(window());
 
