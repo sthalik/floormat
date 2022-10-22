@@ -30,6 +30,10 @@ else()
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
+    sets(STRING
+         SDL_INSTALL_CMAKEDIR                   "share/cmake/SDL2"
+         NLOHMANN_JSON_CONFIG_INSTALL_DIR       "share/cmake/nlohmann_json"
+     )
     sets(BOOL
          CORRADE_BUILD_STATIC                   OFF
          CORRADE_BUILD_TESTS                    OFF
@@ -76,9 +80,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_GLM                        OFF
          MAGNUM_WITH_IMGUI                      ON
     )
-
-    sets(BOOL
+    sets(STRING
          SDL_ASSERTIONS                         release
+    )
+    sets(BOOL
+         SDL2_DISABLE_INSTALL                   OFF
+         SDL2_DISABLE_SDL2MAIN                  ON
 
          SDL_3DNOW                              OFF
          SDL_ALTIVEC                            OFF
@@ -120,9 +127,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_VULKAN                             OFF
          SDL_WASAPI                             OFF
          SDL_XINPUT                             OFF
-
-         SDL2_DISABLE_INSTALL                   OFF
-         SDL2_DISABLE_SDL2MAIN                  ON
     )
 
     sets(BOOL
