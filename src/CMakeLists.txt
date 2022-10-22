@@ -1,5 +1,5 @@
 set(self ${PROJECT_NAME})
-file(GLOB sources "*.cpp" "../shaders/*.cpp" "../serialize/*.cpp" CONFIGURE_ARGS)
+file(GLOB sources "*.cpp" "../shaders/*.cpp" "../serialize/*.cpp" "../draw/*.cpp" CONFIGURE_ARGS)
 add_library(${self} STATIC "${sources}")
 target_link_libraries(
         ${self} PUBLIC

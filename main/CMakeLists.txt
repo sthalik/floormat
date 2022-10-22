@@ -1,7 +1,7 @@
 set(self "${PROJECT_NAME}-main")
 file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
-link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-draw)
+link_libraries(${PROJECT_NAME})
 link_libraries(Magnum::Sdl2Application Magnum::Trade)
 link_libraries(MagnumIntegration::ImGui)
 
