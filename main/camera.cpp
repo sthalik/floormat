@@ -12,13 +12,13 @@ void app::do_camera(double dt)
         Vector2d dir{};
 
         if (keys[key::camera_up])
-            dir += Vector2d{0,  1};
-        else if (keys[key::camera_down])
             dir += Vector2d{0, -1};
+        else if (keys[key::camera_down])
+            dir += Vector2d{0,  1};
         if (keys[key::camera_left])
-            dir += Vector2d{1,  0};
-        else if (keys[key::camera_right])
             dir += Vector2d{-1, 0};
+        else if (keys[key::camera_right])
+            dir += Vector2d{1,  0};
 
         if (dir != Vector2d{})
         {
@@ -27,7 +27,7 @@ void app::do_camera(double dt)
             auto camera_offset = _shader.camera_offset();
             const auto max_camera_offset = Vector2d(windowSize() * 10);
 
-            camera_offset += dir.normalized() * dt * pixels_per_second;
+            camera_offset -= dir.normalized() * dt * pixels_per_second;
             camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
             camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
@@ -43,11 +43,8 @@ void app::do_camera(double dt)
 
 void app::reset_camera_offset()
 {
-#if 1
     _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
-#else
-    _shader.set_camera_offset({});
-#endif
+    recalc_cursor_tile();
 }
 
 void app::recalc_cursor_tile()
