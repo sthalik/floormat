@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "main/floormat-main.hpp"
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
 #include <Magnum/ImGuiIntegration/Context.h>
@@ -64,12 +65,14 @@ void app::draw_ui()
     const float main_menu_height = draw_main_menu();
     draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
-    draw_cursor_coord();
+    draw_cursor_tile();
     ImGui::EndFrame();
 }
 
-void app::draw_editor_pane(tile_type& type, float main_menu_height)
+void app::draw_editor_pane(tile_editor& type, float main_menu_height)
 {
+    const auto window_size = M->window_size();
+
     constexpr
     Color4 color_perm_selected{1, 1, 1, .7f},
            color_selected{1, 0.843f, 0, .8f},
@@ -89,13 +92,13 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
     };
 
     const auto& style = ImGui::GetStyle();
-    tile_type* const ed = _editor.current();
+    tile_editor* const ed = _editor.current();
 
     if (main_menu_height > 0)
     {
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({420, windowSize()[1] - main_menu_height - style.WindowPadding.y});
+        ImGui::SetNextWindowSize({420, window_size[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
@@ -192,12 +195,13 @@ void app::draw_fps()
     auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
     auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
 
+    const auto frame_time = M->smoothed_dt();
     char buf[16];
-    const double hz = _frame_time > 1e-6f ? (int)std::round(10./(double)_frame_time + .05) * .1 : 9999;
+    const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
     snprintf(buf, sizeof(buf), "%.1f FPS", hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
 
-    ImGui::SetNextWindowPos({windowSize()[0] - size.x - 4, 3});
+    ImGui::SetNextWindowPos({M->window_size()[0] - size.x - 4, 3});
     ImGui::SetNextWindowSize(size);
 
     if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
@@ -208,9 +212,9 @@ void app::draw_fps()
     }
 }
 
-void app::draw_cursor_coord()
+void app::draw_cursor_tile()
 {
-    if (!_cursor_tile)
+    if (!cursor.tile)
         return;
 
     auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
@@ -221,13 +225,14 @@ void app::draw_cursor_coord()
     auto c6 = push_style_color(ImGuiCol_Text, {.9f, .9f, .9f, 1});
 
     char buf[64];
-    const auto coord = *_cursor_tile;
+    const auto coord = *cursor.tile;
     const auto chunk = coord.chunk();
     const auto local = coord.local();
     snprintf(buf, sizeof(buf), "%hd:%hd - %hhu:%hhu", chunk.x, chunk.y, local.x, local.y);
     const auto size = ImGui::CalcTextSize(buf);
+    const auto window_size = M->window_size();
 
-    ImGui::SetNextWindowPos({windowSize()[0]/2 - size.x/2, 3});
+    ImGui::SetNextWindowPos({window_size[0]/2 - size.x/2, 3});
     ImGui::SetNextWindowSize(size);
     if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;

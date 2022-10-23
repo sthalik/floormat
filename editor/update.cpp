@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "src/chunk.hpp"
 #include "src/tile-atlas.hpp"
+#include "main/floormat-events.hpp"
+#include "main/floormat-main.hpp"
 
 namespace floormat {
 
@@ -29,8 +31,8 @@ void app::make_test_chunk(chunk& c)
 
 void app::do_mouse_click(const global_coords pos, int button)
 {
-    if (button == mouse_button_event)
-        _editor.on_click(_world, pos);
+    if (button == mouse_button_left)
+        _editor.on_click(M->world(), pos);
     else
         _editor.on_release();
 }

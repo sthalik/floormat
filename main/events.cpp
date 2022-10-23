@@ -1,4 +1,3 @@
-#pragma once
 #include "floormat-main.hpp"
 #include <cstdio>
 #include <SDL_events.h>

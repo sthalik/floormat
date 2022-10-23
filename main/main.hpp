@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "floormat.hpp"
 
 #include "tile-atlas.hpp"
@@ -142,3 +143,4 @@ private:
 };
 
 } // namespace floormat
+#endif

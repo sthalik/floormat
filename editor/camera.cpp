@@ -6,42 +6,45 @@
 
 namespace floormat {
 
-void app::do_camera(flota dt)
+void app::do_camera(float dt)
 {
-    if (keys[key::camera_reset])
+    if (_keys[key::camera_reset])
         reset_camera_offset();
     else
     {
         Vector2d dir{};
 
-        if (keys[key::camera_up])
+        if (_keys[key::camera_up])
             dir += Vector2d{0, -1};
-        else if (keys[key::camera_down])
+        else if (_keys[key::camera_down])
             dir += Vector2d{0,  1};
-        if (keys[key::camera_left])
+        if (_keys[key::camera_left])
             dir += Vector2d{-1, 0};
-        else if (keys[key::camera_right])
+        else if (_keys[key::camera_right])
             dir += Vector2d{1,  0};
 
         if (dir != Vector2d{})
         {
-            constexpr double screens_per_second = 1;
-            const auto pixels_per_second = windowSize().length() / screens_per_second;
-            auto camera_offset = _shader.camera_offset();
-            const auto max_camera_offset = Vector2d(windowSize() * 10);
+            auto& shader = M->shader();
+            const auto sz = M->window_size();
+            constexpr double screens_per_second = 0.75;
 
-            camera_offset -= dir.normalized() * dt * pixels_per_second;
+            const double pixels_per_second = sz.length() / screens_per_second;
+            auto camera_offset = shader.camera_offset();
+            const auto max_camera_offset = Vector2d(sz * 10);
+
+            camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
             camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
             camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
-            _shader.set_camera_offset(camera_offset);
+            shader.set_camera_offset(camera_offset);
         }
         else
             return;
     }
     recalc_cursor_tile();
     if (cursor.tile)
-        do_mouse_move(*_cursor_tile);
+        do_mouse_move(*cursor.tile);
 }
 
 void app::reset_camera_offset()
