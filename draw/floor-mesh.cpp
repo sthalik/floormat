@@ -44,17 +44,17 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     std::size_t last_pos = 0;
 
     const auto do_draw = [&](std::size_t i, tile_atlas* atlas) {
-      if (atlas == last_atlas)
-          return;
-      if (auto len = i - last_pos; last_atlas != nullptr && len > 0)
-      {
-          last_atlas->texture().bind(0);
-          mesh.setCount((int)(quad_index_count * len));
-          mesh.setIndexRange((int)(last_pos*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
-          shader.draw(mesh);
-      }
-      last_atlas = atlas;
-      last_pos = i;
+        if (atlas == last_atlas)
+            return;
+        if (auto len = i - last_pos; last_atlas != nullptr && len > 0)
+        {
+            last_atlas->texture().bind(0);
+            mesh.setCount((int)(quad_index_count * len));
+            mesh.setIndexRange((int)(last_pos*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
+            shader.draw(mesh);
+        }
+        last_atlas = atlas;
+        last_pos = i;
     };
 
     for (auto& [x, i, pt] : c)
