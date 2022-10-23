@@ -26,10 +26,10 @@ void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.on_mouse_down({event.position(),
-                           (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                           mouse_button(event.button()),
-                           std::uint8_t(std::min(255, event.clickCount()))}))
+    if (app.on_mouse_up({event.position(),
+                         (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                         mouse_button(event.button()),
+                         std::uint8_t(std::min(255, event.clickCount()))}))
         return event.setAccepted();
 }
 
@@ -70,12 +70,10 @@ void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 
 void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    if (_imgui.handleKeyReleaseEvent(event))
-    {
-        keys = {};
+    if (app.on_key_up({(SDL_Keycode)(std::uint32_t)event.key(),
+                       (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                       event.isRepeated()}))
         return event.setAccepted();
-    }
-    do_key(event.key(), event.modifiers(), false, false);
 }
 
 void main_impl::anyEvent(SDL_Event& event)
@@ -84,15 +82,15 @@ void main_impl::anyEvent(SDL_Event& event)
         switch (event.window.event)
         {
         case SDL_WINDOWEVENT_FOCUS_LOST:
-            return app.event_focus_out();
+            return app.on_focus_out();
         case SDL_WINDOWEVENT_FOCUS_GAINED:
-            return app.event_focus_in();
+            return app.on_focus_in();
         case SDL_WINDOWEVENT_LEAVE:
-            return app.event_mouse_leave();
+            return app.on_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
-            return app.event_mouse_enter();
+            return app.on_mouse_enter();
         default:
-            std::fputs("", stdout); break; // put breakpoint here
+            return app.on_any_event({event});
         }
 }
 } // namespace floormat

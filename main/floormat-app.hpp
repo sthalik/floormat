@@ -34,7 +34,7 @@ struct floormat_app
     virtual bool on_text_input_event(const text_input_event& event) noexcept = 0;
     virtual bool on_text_editing_event(const text_editing_event& event) noexcept = 0;
     virtual void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept = 0;
-    virtual bool on_any_event(const any_event& event) noexcept = 0;
+    virtual void on_any_event(const any_event& event) noexcept = 0;
     virtual void on_focus_in() noexcept = 0;
     virtual void on_focus_out() noexcept = 0;
     virtual void on_mouse_leave() noexcept = 0;

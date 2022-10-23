@@ -2,6 +2,7 @@
 #include <Magnum/Math/Vector2.h>
 #include <SDL_keycode.h>
 #include <SDL_mouse.h>
+#include <SDL_events.h>
 
 namespace floormat {
 
@@ -46,6 +47,10 @@ struct key_event final {
     SDL_Keycode key = SDLK_UNKNOWN;
     SDL_Keymod mods = KMOD_NONE;
     bool is_repeated = false;
+};
+
+struct any_event final {
+    SDL_Event event = {};
 };
 
 } // namespace floormat
