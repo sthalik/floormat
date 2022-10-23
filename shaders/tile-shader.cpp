@@ -1,9 +1,6 @@
 #include "shaders/tile-shader.hpp"
 #include "loader.hpp"
 #include "compat/assert.hpp"
-#include <algorithm>
-#include <Corrade/Containers/Reference.h>
-#include <Corrade/Utility/Resource.h>
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Shader.h>

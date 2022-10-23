@@ -3,25 +3,37 @@
 #include "compat/prelude.hpp"
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
-#include "src/tile-defs.hpp"
-#include "src/tile.hpp"
-#include "src/tile-atlas.hpp"
-#include "src/tile-iterator.hpp"
-#include "src/chunk.hpp"
-#include "src/global-coords.hpp"
-#include "shaders/tile-shader.hpp"
-#include "serialize/json-helper.hpp"
+
 #include <cstddef>
-#include <type_traits>
+#include <cstdint>
 #include <cmath>
+#include <cstdlib>
+#include <concepts>
+#include <type_traits>
+#include <limits>
+
+#include <tuple>
 #include <array>
 #include <optional>
-#include <limits>
-#include <tuple>
+#include <vector>
+#include <memory>
 #include <utility>
 #include <filesystem>
+
+#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Utility/DebugStl.h>
+
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
+#include <Magnum/Math/Color.h>
+#include <Magnum/GL/AbstractShaderProgram.h>
+#include <Magnum/GL/Buffer.h>
+#include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/Texture.h>
+#include <Magnum/Trade/ImageData.h>
 #include <nlohmann/json.hpp>

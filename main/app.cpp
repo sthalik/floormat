@@ -79,7 +79,7 @@ app::app(const Arguments& arguments, app_settings opts):
 void app::recalc_viewport(Vector2i size)
 {
     _shader.set_scale(Vector2(size));
-    _imgui.relayout(Vector2{ size }, size, size);
+    _imgui.relayout(Vector2{size}, size, size);
 
     _cursor_pixel = std::nullopt;
     recalc_cursor_tile();
