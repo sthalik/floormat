@@ -128,7 +128,6 @@ private:
     std::optional<Vector2i> _cursor_pixel;
     std::optional<global_coords> _cursor_tile;
     float _frame_time = 0;
-    bool _cursor_in_imgui = false;
 
     struct app_settings {
         bool vsync = true;

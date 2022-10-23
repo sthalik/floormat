@@ -20,9 +20,9 @@ enum class editor_mode : unsigned char {
 
 struct world;
 
-struct tile_type final
+struct tile_editor final
 {
-    tile_type(editor_mode mode, Containers::StringView name);
+    tile_editor(editor_mode mode, Containers::StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(Containers::StringView str);
     std::shared_ptr<tile_atlas> atlas(Containers::StringView str);
     auto cbegin() const { return _atlases.cbegin(); }
@@ -68,14 +68,14 @@ struct editor final
     [[nodiscard]] editor_mode mode() const { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_type& floor() { return _floor; }
-    const tile_type& floor() const { return _floor; }
+    tile_editor& floor() { return _floor; }
+    const tile_editor& floor() const { return _floor; }
 
-    tile_type* current();
-    const tile_type* current() const;
+    tile_editor* current();
+    const tile_editor* current() const;
 
     void on_click(world& world, global_coords pos);
-    void on_mouse_move(world& world, const global_coords pos);
+    void on_mouse_move(world& world, global_coords pos);
     void on_release();
 
     editor();
@@ -84,7 +84,7 @@ struct editor final
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
 
 private:
-    tile_type _floor{editor_mode::floor, "floor"};
+    tile_editor _floor{ editor_mode::floor, "floor"};
     std::optional<global_coords> _last_pos;
     editor_mode _mode = editor_mode::select;
     bool _dirty = false;

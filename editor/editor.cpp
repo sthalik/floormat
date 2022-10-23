@@ -15,12 +15,12 @@ namespace floormat {
 
 static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
 
-tile_type::tile_type(editor_mode mode, Containers::StringView name) : _name{name}, _mode{mode}
+tile_editor::tile_editor(editor_mode mode, Containers::StringView name) : _name{ name}, _mode{ mode}
 {
     load_atlases();
 }
 
-void tile_type::load_atlases()
+void tile_editor::load_atlases()
 {
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     for (auto& atlas : json_helper::from_json<atlas_array>(image_path/(_name + ".json")))
@@ -34,7 +34,7 @@ void tile_type::load_atlases()
     }
 }
 
-std::shared_ptr<tile_atlas> tile_type::maybe_atlas(Containers::StringView str)
+std::shared_ptr<tile_atlas> tile_editor::maybe_atlas(Containers::StringView str)
 {
     auto it = std::find_if(_atlases.begin(), _atlases.end(), [&](const auto& tuple) -> bool {
         const auto& [x, _] = tuple;
@@ -46,7 +46,7 @@ std::shared_ptr<tile_atlas> tile_type::maybe_atlas(Containers::StringView str)
         return it->second;
 }
 
-std::shared_ptr<tile_atlas> tile_type::atlas(Containers::StringView str)
+std::shared_ptr<tile_atlas> tile_editor::atlas(Containers::StringView str)
 {
     if (auto ptr = maybe_atlas(str); ptr)
         return ptr;
@@ -54,14 +54,14 @@ std::shared_ptr<tile_atlas> tile_type::atlas(Containers::StringView str)
         fm_abort("no such atlas: %s", str.cbegin());
 }
 
-void tile_type::clear_selection()
+void tile_editor::clear_selection()
 {
     _selected_tile = {};
     _permutation = {};
     _selection_mode = sel_none;
 }
 
-void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant)
+void tile_editor::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant)
 {
     fm_assert(atlas);
     clear_selection();
@@ -69,7 +69,7 @@ void tile_type::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_
     _selected_tile = { atlas, variant % atlas->num_tiles() };
 }
 
-void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
+void tile_editor::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
 {
     fm_assert(atlas);
     clear_selection();
@@ -77,19 +77,19 @@ void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas
     _permutation = { atlas, {} };
 }
 
-bool tile_type::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const
+bool tile_editor::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const
 {
     return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;
 }
 
-bool tile_type::is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const
+bool tile_editor::is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const
 {
     const auto& [perm, _] = _permutation;
     return atlas && _selection_mode == sel_perm && perm == atlas;
 }
 
-bool tile_type::is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const
+bool tile_editor::is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const
 {
     switch (_selection_mode)
     {
@@ -115,7 +115,7 @@ void fisher_yates(T begin, T end)
     }
 }
 
-tile_image tile_type::get_selected_perm()
+tile_image tile_editor::get_selected_perm()
 {
     auto& [atlas, vec] = _permutation;
     const std::size_t N = atlas->num_tiles();
@@ -132,7 +132,7 @@ tile_image tile_type::get_selected_perm()
     return {atlas, idx};
 }
 
-tile_image tile_type::get_selected()
+tile_image tile_editor::get_selected()
 {
     switch (_selection_mode)
     {
@@ -148,7 +148,7 @@ tile_image tile_type::get_selected()
     }
 }
 
-void tile_type::place_tile(world& world, global_coords pos, tile_image& img)
+void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
 {
     const auto& [c, t] = world[pos];
     const auto& [atlas, variant] = img;
@@ -181,7 +181,7 @@ void editor::set_mode(editor_mode mode)
     on_release();
 }
 
-const tile_type* editor::current() const
+const tile_editor* editor::current() const
 {
     switch (_mode)
     {
@@ -197,9 +197,9 @@ const tile_type* editor::current() const
     }
 }
 
-tile_type* editor::current()
+tile_editor* editor::current()
 {
-    return const_cast<tile_type*>(static_cast<const editor&>(*this).current());
+    return const_cast<tile_editor*>(static_cast<const editor&>(*this).current());
 }
 
 void editor::on_release()

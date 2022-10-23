@@ -1,38 +1,28 @@
 #include "app.hpp"
+#include "main/floormat-events.hpp"
 
 namespace floormat {
 
-void app::do_key(KeyEvent::Key k, KeyEvent::Modifiers m, bool pressed, bool repeated)
+bool app::on_key_down(const key_event& event) noexcept
 {
-    //using Mods = KeyEvent::Modifiers;
+    if _imgui.
 
-    (void)m;
-    (void)repeated;
-
-    const key x = fm_begin(switch (k)
+    const key x = fm_begin(switch (event.key)
     {
-    using enum KeyEvent::Key;
-    using enum key;
-
-    default:    return COUNT;
-    case W:     return camera_up;
-    case A:     return camera_left;
-    case S:     return camera_down;
-    case D:     return camera_right;
-    case Home:  return camera_reset;
-    case R:     return rotate_tile;
-    case F5:    return quicksave;
-    case F9:    return quickload;
-    case Esc:   return quit;
+    default:            return key::COUNT;
+    case SDLK_w:        return key::camera_up;
+    case SDLK_a:        return key::camera_left;
+    case SDLK_s:        return key::camera_down;
+    case SDLK_d:        return key::camera_right;
+    case SDLK_HOME:     return key::camera_reset;
+    case SDLK_r:        return key::rotate_tile;
+    case SDLK_F5:       return key::quicksave;
+    case SDLK_F9:       return key::quickload;
+    case SDLK_ESCAPE:   return key::quit;
     });
 
     if (x != key::COUNT)
-        keys[x] = pressed;
-}
-
-app::~app()
-{
-    loader_::destroy();
+        keys[x] = event.is_down && !event.is_repeated;
 }
 
 } // namespace floormat

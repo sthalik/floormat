@@ -46,7 +46,8 @@ struct text_editing_event final {
 struct key_event final {
     SDL_Keycode key = SDLK_UNKNOWN;
     SDL_Keymod mods = KMOD_NONE;
-    bool is_repeated = false;
+    std::uint8_t is_down     : 1 = false;
+    std::uint8_t is_repeated : 1 = false;
 };
 
 struct any_event final {

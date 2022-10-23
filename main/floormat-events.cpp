@@ -64,7 +64,7 @@ void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     if (app.on_key_down({(SDL_Keycode)(std::uint32_t)event.key(),
                          (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                         event.isRepeated()}))
+                         true, event.isRepeated()}))
         return event.setAccepted();
 }
 
@@ -72,7 +72,7 @@ void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
     if (app.on_key_up({(SDL_Keycode)(std::uint32_t)event.key(),
                        (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                       event.isRepeated()}))
+                       false, event.isRepeated()}))
         return event.setAccepted();
 }
 

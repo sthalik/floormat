@@ -1,9 +1,10 @@
 #include "app.hpp"
+#include "src/global-coords.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 
 namespace floormat {
 
-void app::do_camera(double dt)
+void app::do_camera(flota dt)
 {
     if (keys[key::camera_reset])
         reset_camera_offset();
@@ -63,26 +64,6 @@ global_coords app::pixel_to_tile(Vector2d position) const
     const Vector2d vec = tile_shader::unproject(px) / pixel_size + half;
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
-}
-
-std::array<std::int16_t, 4> app::get_draw_bounds() const noexcept
-{
-
-    using limits = std::numeric_limits<std::int16_t>;
-    auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
-
-    for (const auto win = Vector2d(windowSize());
-         auto p : {pixel_to_tile(Vector2d{0, 0}).chunk(),
-                   pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
-                   pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
-                   pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk()})
-    {
-        x0 = std::min(x0, p.x);
-        x1 = std::max(x1, p.x);
-        y0 = std::min(y0, p.y);
-        y1 = std::max(y1, p.y);
-    }
-    return {x0, x1, y0, y1};
 }
 
 } // namespace floormat
