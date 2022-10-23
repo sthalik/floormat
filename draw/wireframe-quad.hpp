@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 
 namespace floormat::wireframe {
 

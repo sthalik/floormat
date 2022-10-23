@@ -12,6 +12,7 @@
 
 namespace floormat {
 
+#if 0
 int floormat::run_from_argv(int argc, char** argv)
 {
     Corrade::Utility::Arguments args{};
@@ -83,6 +84,7 @@ void floormat::recalc_viewport(Vector2i size)
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
 #endif
 }
+#endif
 
 } // namespace floormat
 

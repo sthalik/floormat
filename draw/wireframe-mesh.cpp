@@ -1,12 +1,13 @@
 #include "wireframe-mesh.hpp"
 #include "shaders/tile-shader.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
+//#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/TextureFormat.h>
-#include <Magnum/ImageFlags.h>
+//#include <Magnum/ImageFlags.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/PixelFormat.h>
-#include <Magnum/PixelStorage.h>
+//#include <Magnum/PixelStorage.h>
 #include <Magnum/Trade/ImageData.h>
 
 namespace floormat::wireframe

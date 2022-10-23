@@ -1,10 +1,6 @@
 #pragma once
 
 #include "tile-defs.hpp"
-#include <array>
-#include <utility>
-#include <Corrade/Containers/ArrayView.h>
-#include <Magnum/Math/Vector2.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
 #include "Magnum/GL/Texture.h"

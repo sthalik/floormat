@@ -6,6 +6,7 @@
 
 namespace floormat {
 
+#if 0
 void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     fm_assert(event.framebufferSize() == event.windowSize());
@@ -29,6 +30,7 @@ void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
         return event.setAccepted();
     do_mouse_release((int)event.button());
 }
+#endif
 
 void main_impl::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
@@ -42,6 +44,7 @@ void main_impl::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
         do_mouse_move(*_cursor_tile);
 }
 
+#if 0
 void main_impl::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 {
     if (_imgui.handleMouseScrollEvent(event))
@@ -94,6 +97,7 @@ void main_impl::anyEvent(SDL_Event& event)
             std::fputs("", stdout); break; // put breakpoint here
         }
 }
+#endif
 
 void main_impl::event_focus_out() // TODO move to app
 {

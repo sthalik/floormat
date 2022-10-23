@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
 
