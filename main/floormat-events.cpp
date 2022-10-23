@@ -17,67 +17,61 @@ void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.on_mouse_up_down({event.position(),
-                              (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                              mouse_button(event.button()),
-                              std::uint8_t(std::min(255, event.clickCount()))},
-                             true))
-        return event.setAccepted();
+    app.on_mouse_up_down({event.position(),
+                          (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                          mouse_button(event.button()),
+                          std::uint8_t(std::min(255, event.clickCount()))},
+                         true);
 }
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.on_mouse_up_down({event.position(),
-                              (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                              mouse_button(event.button()),
-                              std::uint8_t(std::min(255, event.clickCount()))},
-                             false))
-        return event.setAccepted();
+    app.on_mouse_up_down({event.position(),
+                          (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                          mouse_button(event.button()),
+                          std::uint8_t(std::min(255, event.clickCount()))},
+                         false);
 }
 
 void main_impl::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
-    if (app.on_mouse_move({event.position(), event.relativePosition(),
-                           (mouse_button)(std::uint8_t)(std::uint32_t)event.buttons(),
-                           (SDL_Keymod)(std::uint16_t)event.modifiers()}))
-        return event.setAccepted();
+    app.on_mouse_move({event.position(), event.relativePosition(),
+                       (mouse_button)(std::uint8_t)(std::uint32_t)event.buttons(),
+                       (SDL_Keymod)(std::uint16_t)event.modifiers()});
 }
 
 void main_impl::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 {
-    if (app.on_mouse_scroll(mouse_scroll_event{event.offset(), event.position(),
-                                               (SDL_Keymod)(std::uint16_t)event.modifiers()}))
-        return event.setAccepted();
+    app.on_mouse_scroll({event.offset(), event.position(),
+                         (SDL_Keymod)(std::uint16_t)event.modifiers()});
 }
 
 void main_impl::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
 {
-    if (app.on_text_input_event({event.text()}))
-        return event.setAccepted();
+    app.on_text_input_event({event.text()});
 }
 
+#if 0
 void main_impl::textEditingEvent(Platform::Sdl2Application::TextEditingEvent& event)
 {
-    if (app.on_text_editing_event({event.text(), event.start(), event.length()}))
-        return event.setAccepted();
+    app.on_text_editing_event({event.text(), event.start(), event.length()})
 }
+#endif
 
 void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    if (app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
-                            (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                            event.isRepeated()},
-                           true))
-        return event.setAccepted();
+    app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
+                        (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                        event.isRepeated()},
+                       true)
 }
 
 void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    if (app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
-                            (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                            event.isRepeated()},
-                           false))
-        return event.setAccepted();
+    app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
+                        (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                        event.isRepeated()},
+                       false)
 }
 
 void main_impl::anyEvent(SDL_Event& event)

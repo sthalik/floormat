@@ -8,10 +8,14 @@
 
 namespace floormat {
 
+void app::on_focus_in() noexcept {}
+void app::on_mouse_enter() noexcept {}
+void app::on_any_event(const floormat::any_event& event) noexcept {}
+
 #define accessor(type, name) \
     type m_##name = {}; auto name() const noexcept { return m_##name; }
 
-bool app::on_mouse_move(const mouse_move_event& event) noexcept
+void app::on_mouse_move(const mouse_move_event& event) noexcept
 {
     struct {
         accessor(Vector2i, position)
@@ -27,11 +31,9 @@ bool app::on_mouse_move(const mouse_move_event& event) noexcept
 
     if (cursor.tile)
         _editor.on_mouse_move(M->world(), *cursor.tile);
-
-    return true;
 }
 
-bool app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
+void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
 {
     enum class Button : std::underlying_type_t<mouse_button> {
         Left = mouse_button_left,
@@ -58,21 +60,18 @@ bool app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
                 _editor.on_release();
         }
     }
-
-    return true;
 }
 
-bool app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
+void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
 {
     struct {
         accessor(Vector2, offset)
         accessor(Vector2i, position)
     } e = {event.offset, event.position};
     _imgui.handleMouseScrollEvent(e);
-    return true;
 }
 
-bool app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcept
+void app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcept
 {
     using KeyEvent = Platform::Sdl2Application::KeyEvent;
     struct Ev final {
@@ -82,6 +81,7 @@ bool app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcep
         accessor(Key, key)
         accessor(Modifiers, modifiers)
     } e = {Ev::Key(event.key), Ev::Modifier(event.mods)};
+
     if (!(is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e)))
     {
         // todo put it into a separate function
@@ -100,17 +100,35 @@ bool app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcep
         if (x != key::COUNT)
             _keys[x] = is_down && !event.is_repeated;
     }
-    return true;
+    else
+        _keys = {};
 }
 
-bool app::on_text_input_event(const floormat::text_input_event& event) noexcept
+void app::on_text_input_event(const floormat::text_input_event& event) noexcept
 {
     struct {
         accessor(Containers::StringView, text)
     } e = {event.text};
     if (_imgui.handleTextInputEvent(e))
         _keys = {};
-    return true;
+}
+
+void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
+{
+    init_imgui(size);
+}
+
+void app::on_focus_out() noexcept
+{
+    cursor.pixel = std::nullopt;
+    recalc_cursor_tile();
+    _keys = {};
+}
+
+void app::on_mouse_leave() noexcept
+{
+    cursor.pixel = std::nullopt;
+    recalc_cursor_tile();
 }
 
 } // namespace floormat

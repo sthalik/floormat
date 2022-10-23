@@ -38,7 +38,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void mouseMoveEvent(MouseMoveEvent& event) override;
     [[maybe_unused]] void mouseScrollEvent(MouseScrollEvent& event) override;
     [[maybe_unused]] void textInputEvent(TextInputEvent& event) override;
-    [[maybe_unused]] void textEditingEvent(TextEditingEvent& event) override;
+    //[[maybe_unused]] void textEditingEvent(TextEditingEvent& event) override;
     [[maybe_unused]] void keyPressEvent(KeyEvent& event) override;
     [[maybe_unused]] void keyReleaseEvent(KeyEvent& event) override;
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;

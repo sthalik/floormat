@@ -39,13 +39,12 @@ struct app final : floormat_app
     void draw_msaa() override;
     void draw() override;
 
-    bool on_mouse_move(const mouse_move_event& event) noexcept override;
-    bool on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
-    bool on_mouse_scroll(const mouse_scroll_event& event) noexcept override;
-    bool on_key_up_down(const key_event& event, bool is_down) noexcept override;
-
-    bool on_text_input_event(const text_input_event& event) noexcept override;
-    bool on_text_editing_event(const text_editing_event& event) noexcept override;
+    void on_mouse_move(const mouse_move_event& event) noexcept override;
+    void on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
+    void on_mouse_scroll(const mouse_scroll_event& event) noexcept override;
+    void on_key_up_down(const key_event& event, bool is_down) noexcept override;
+    void on_text_input_event(const text_input_event& event) noexcept override;
+    //bool on_text_editing_event(const text_editing_event& event) noexcept override;
     void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept override;
     void on_any_event(const any_event& event) noexcept override;
     void on_focus_in() noexcept override;
@@ -74,14 +73,15 @@ private:
     void recalc_cursor_tile();
     void init_imgui(Vector2i size);
 
-    void draw_cursor_tile();
-    void draw_wireframe_quad(global_coords pt);
-    void draw_wireframe_box(global_coords pt);
     void draw_ui();
     float draw_main_menu();
     void draw_editor_pane(tile_editor& type, float main_menu_height);
     void draw_fps();
-    void draw_cursor_coord();
+    void draw_cursor_tile();
+    void render_menu();
+
+    void draw_wireframe_quad(global_coords pt);
+    void draw_wireframe_box(global_coords pt);
 
     Containers::Pointer<floormat_main> M;
     [[maybe_unused]] void* _dummy;
