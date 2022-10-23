@@ -1,6 +1,9 @@
 #pragma once
 #include "floormat.hpp"
 #include "floormat-main.hpp"
+#include "src/world.hpp"
+#include "draw/floor-mesh.hpp"
+#include "draw/wall-mesh.hpp"
 #include "shaders/tile-shader.hpp"
 #include <Corrade/Containers/String.h>
 #include <Magnum/GL/RenderbufferFormat.h>
@@ -14,8 +17,8 @@ struct floormat_app;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
-    main_impl(floormat_app& app, const fm_options& opts);
-    ~main_impl() override;
+    main_impl(floormat_app& app, fm_options opts) noexcept;
+    ~main_impl() noexcept override;
 
     void quit(int status) override;
 
@@ -25,7 +28,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     struct world& world() noexcept override;
     SDL_Window* window() noexcept override;
-    float smoothed_dt() const noexcept override;
+
+    global_coords pixel_to_tile(Vector2d position) const noexcept override;
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
     [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;
@@ -39,19 +43,26 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void drawEvent() override;
 
 private:
-    float _frame_time = 0;
     floormat_app& app;
-    fm_options s;
     tile_shader _shader;
+    struct world _world{};
+    floor_mesh _floor_mesh;
+    wall_mesh _wall_mesh;
     Magnum::Timeline timeline;
+    fm_options s;
     int fake_argc = 1;
+
+    struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 
 #ifdef FM_MSAA
     GL::Framebuffer _msaa_framebuffer{{{}, windowSize()}};
     GL::Renderbuffer _msaa_renderbuffer{};
 #endif
 
-    void recalc_viewport(Vector2i size);
+    void recalc_viewport(Vector2i size) noexcept;
+    void draw_world() noexcept;
+
+    draw_bounds get_draw_bounds() const noexcept;
 
     void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                         GL::DebugOutput::Severity severity, const std::string& str) const;

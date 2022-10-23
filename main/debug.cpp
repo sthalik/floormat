@@ -1,18 +1,12 @@
-#include "main.hpp"
+#include "floormat-main-impl.hpp"
 #include <chrono>
-#include <Magnum/GL/Renderer.h>
 
 namespace floormat {
 
-using Feature = GL::Renderer::Feature;
-using Source = GL::DebugOutput::Source;
-using Type = GL::DebugOutput::Type;
 using Severity = GL::DebugOutput::Severity;
-using GL::Renderer;
-using GL::DebugOutput;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void floormat::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+void main_impl::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                          Severity severity, const std::string& str) const
 {
     static thread_local auto clock = std::chrono::steady_clock{};
@@ -58,13 +52,13 @@ void floormat::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type
     std::fputs("", stdout); // put breakpoint here
 }
 
-void floormat::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+void main_impl::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                           GL::DebugOutput::Severity severity, const std::string& str, const void* self)
 {
-    static_cast<const floormat*>(self)->debug_callback(src, type, id, severity, str);
+    static_cast<const main_impl*>(self)->debug_callback(src, type, id, severity, str);
 }
 
-void* floormat::register_debug_callback()
+void main_impl::register_debug_callback() noexcept
 {
     GL::DebugOutput::setCallback(_debug_callback, this);
 
@@ -72,8 +66,6 @@ void* floormat::register_debug_callback()
     /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */
     GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false);
 #endif
-
-    return nullptr;
 }
 
 } // namespace floormat

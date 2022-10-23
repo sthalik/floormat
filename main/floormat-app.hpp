@@ -20,7 +20,7 @@ struct floormat_app
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_app);
 
-    virtual void update(double dt) = 0;
+    virtual void update(float dt) = 0;
     virtual void draw_msaa();
     virtual void draw() = 0;
 
