@@ -52,6 +52,7 @@ private:
     void reset_camera_offset();
     void recalc_cursor_tile();
     void recalc_viewport(Vector2i size);
+    void init_imgui(Vector2i size);
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
     [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;

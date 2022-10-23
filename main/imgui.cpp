@@ -1,13 +1,19 @@
 #include "app.hpp"
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
-#ifndef __CLION_IDE__zz
-#include <Magnum/ImGuiIntegration/Integration.h>
-#endif
+#include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
 using namespace floormat::imgui;
+
+void app::init_imgui(Vector2i size)
+{
+    if (!_imgui.context())
+        _imgui = ImGuiIntegration::Context(Vector2{size}, size, size);
+    else
+        _imgui.relayout(Vector2{size}, size, size);
+}
 
 void app::render_menu()
 {
