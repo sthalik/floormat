@@ -207,6 +207,16 @@ void main_impl::quit(int status)
     Platform::Sdl2Application::exit(status);
 }
 
+struct world& main_impl::world() noexcept
+{
+    return _world;
+}
+
+SDL_Window* main_impl::window() noexcept
+{
+    return Sdl2Application::window();
+}
+
 Vector2i main_impl::window_size() const noexcept { return windowSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 

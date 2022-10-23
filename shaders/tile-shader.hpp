@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/defs.hpp"
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
