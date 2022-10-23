@@ -26,9 +26,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(global_coords_, chunk, local)
 
 } // namespace floormat
 
-using namespace floormat;
-
 namespace nlohmann {
+
+using namespace floormat;
 
 template<>
 struct adl_serializer<std::shared_ptr<chunk>> final {
@@ -38,16 +38,20 @@ struct adl_serializer<std::shared_ptr<chunk>> final {
 
 void adl_serializer<std::shared_ptr<chunk>>::to_json(json& j, const std::shared_ptr<const chunk>& val)
 {
-    fm_assert(val);
     using nlohmann::to_json;
-    j = *val;
+    if (!val)
+        j = nullptr;
+    else
+        j = *val;
 }
 
 void adl_serializer<std::shared_ptr<chunk>>::from_json(const json& j, std::shared_ptr<chunk>& val)
 {
-    val = std::make_shared<chunk>();
     using nlohmann::from_json;
-    *val = j;
+    if (j.is_null())
+        val = nullptr;
+    else
+        *(val = std::make_shared<chunk>()) = j;
 }
 
 void adl_serializer<chunk_coords>::to_json(json& j, const chunk_coords& val) { using nlohmann::to_json; to_json(j, val); }
