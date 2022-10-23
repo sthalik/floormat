@@ -105,26 +105,35 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                     ///const auto& k_ = k;
                     const auto& v_ = v;
                     const auto click_event = [&] {
-                      if (ed)
+                        if (ed)
+                        {
+                            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                                ed->select_tile_permutation(v_);
+                            else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
+                                ed->clear_selection();
+                        }
+                    };
+                    const auto do_caption = [&] {
+                        if (ed)
+                        {
+                            click_event();
+                            if (ed->is_atlas_selected(v))
+                            {
+                                ImGui::SameLine();
+                                ImGui::Text(" (selected)");
+                            }
+                        }
                       {
-                          if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-                              ed->select_tile_permutation(v_);
-                          else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
-                              ed->clear_selection();
+                          snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles());
+                          ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
+                          ImGui::Text("%s", buf);
                       }
                     };
-                    const auto add_tile_count = [&] {
-                        snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles());
-                        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
-                        ImGui::Text("%s", buf);
-                    };
                     const auto N = v->num_tiles();
-                    std::snprintf(buf, sizeof(buf), "%s%s", k.data(), ed && ed->is_permutation_selected(v) ? " (selected)" : "");
                     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
-                        auto b = tree_node(buf, flags))
+                        auto b = tree_node(k.data(), flags))
                     {
-                        click_event();
-                        add_tile_count();
+                        do_caption();
                         [[maybe_unused]] const raii_wrapper vars[] = {
                             push_style_var(ImGuiStyleVar_FramePadding, {2, 2}),
                             push_style_color(ImGuiCol_ButtonHovered, color_hover),
@@ -161,10 +170,7 @@ void app::draw_editor_pane(tile_type& type, float main_menu_height)
                         ImGui::NewLine();
                     }
                     else
-                    {
-                        click_event();
-                        add_tile_count();
-                    }
+                        do_caption();
                 }
             }
         }

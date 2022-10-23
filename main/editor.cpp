@@ -79,15 +79,28 @@ void tile_type::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas
 
 bool tile_type::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const
 {
-    fm_assert(atlas);
-    return _selection_mode == sel_tile && _selected_tile &&
+    return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;
 }
 
 bool tile_type::is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const
 {
-    fm_assert(atlas);
-    return _selection_mode == sel_perm && std::get<0>(_permutation) == atlas;
+    const auto& [perm, _] = _permutation;
+    return atlas && _selection_mode == sel_perm && perm == atlas;
+}
+
+bool tile_type::is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const
+{
+    switch (_selection_mode)
+    {
+    default:
+    case sel_none:
+        return false;
+    case sel_perm:
+        return is_permutation_selected(atlas);
+    case sel_tile:
+        return atlas && _selected_tile && atlas == _selected_tile.atlas;
+    }
 }
 
 template<std::random_access_iterator T>

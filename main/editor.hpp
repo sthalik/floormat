@@ -37,6 +37,7 @@ struct tile_type final
     void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
     bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
     bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
+    bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     tile_image get_selected();
     void place_tile(world& world, global_coords pos, tile_image& img);
 
