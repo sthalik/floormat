@@ -23,7 +23,7 @@ struct tile_editor;
 
 struct cursor_state final {
     std::optional<Vector2i> pixel;
-    std::optional<global_coords> coord;
+    std::optional<global_coords> tile;
     bool in_imgui = false;
 };
 
@@ -40,11 +40,10 @@ struct app final : floormat_app
     void draw() override;
 
     bool on_mouse_move(const mouse_move_event& event) noexcept override;
-    bool on_mouse_down(const mouse_button_event& event) noexcept override;
-    bool on_mouse_up(const mouse_button_event& event) noexcept override;
+    bool on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
     bool on_mouse_scroll(const mouse_scroll_event& event) noexcept override;
-    bool on_key_down(const key_event& event) noexcept override;
-    bool on_key_up(const key_event& event) noexcept override;
+    bool on_key_up_down(const key_event& event, bool is_down) noexcept override;
+
     bool on_text_input_event(const text_input_event& event) noexcept override;
     bool on_text_editing_event(const text_editing_event& event) noexcept override;
     void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept override;
@@ -84,14 +83,15 @@ private:
     void draw_fps();
     void draw_cursor_coord();
 
+    Containers::Pointer<floormat_main> M;
+    [[maybe_unused]] void* _dummy;
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
-    Containers::Pointer<floormat_main> _fmain;
     ImGuiIntegration::Context _imgui{NoCreate};
     wireframe_mesh<wireframe::quad> _wireframe_quad;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
     enum_bitset<key> _keys;
-    cursor_state _cursor;
+    cursor_state cursor;
 };
 
 } // namespace floormat

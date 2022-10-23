@@ -26,11 +26,9 @@ struct floormat_app
     virtual void draw() = 0;
 
     virtual bool on_mouse_move(const mouse_move_event& event) noexcept = 0;
-    virtual bool on_mouse_down(const mouse_button_event& event) noexcept = 0;
-    virtual bool on_mouse_up(const mouse_button_event& event) noexcept = 0;
+    virtual bool on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept = 0;
     virtual bool on_mouse_scroll(const mouse_scroll_event& event) noexcept = 0;
-    virtual bool on_key_down(const key_event& event) noexcept = 0;
-    virtual bool on_key_up(const key_event& event) noexcept = 0;
+    virtual bool on_key_up_down(const key_event& event, bool is_down) noexcept = 0;
     virtual bool on_text_input_event(const text_input_event& event) noexcept = 0;
     virtual bool on_text_editing_event(const text_editing_event& event) noexcept = 0;
     virtual void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept = 0;

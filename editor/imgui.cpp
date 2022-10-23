@@ -231,7 +231,7 @@ void app::draw_cursor_coord()
     ImGui::SetNextWindowSize(size);
     if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-        auto b = begin_window("tile-coord", ImGuiWindowFlags_(flags)))
+        auto b = begin_window("tile-tile", ImGuiWindowFlags_(flags)))
     {
         ImGui::Text("%s", buf);
     }

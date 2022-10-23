@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "src/global-coords.hpp"
+#include "shaders/tile-shader.hpp"
+#include "main/floormat-main.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 
 namespace floormat {
@@ -38,32 +40,22 @@ void app::do_camera(flota dt)
             return;
     }
     recalc_cursor_tile();
-    if (_cursor_tile)
+    if (cursor.tile)
         do_mouse_move(*_cursor_tile);
 }
 
 void app::reset_camera_offset()
 {
-    _shader.set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
+    M->shader().set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
     recalc_cursor_tile();
 }
 
 void app::recalc_cursor_tile()
 {
-    if (_cursor_pixel && !_cursor_in_imgui)
-        _cursor_tile = pixel_to_tile(Vector2d(*_cursor_pixel));
+    if (cursor.pixel && !cursor.in_imgui)
+        cursor.tile = M->pixel_to_tile(Vector2d(*cursor.pixel));
     else
-        _cursor_tile = std::nullopt;
-}
-
-global_coords app::pixel_to_tile(Vector2d position) const
-{
-    constexpr Vector2d pixel_size{dTILE_SIZE[0], dTILE_SIZE[1]};
-    constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset()*.5;
-    const Vector2d vec = tile_shader::unproject(px) / pixel_size + half;
-    const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
-    return { x, y };
+        cursor.tile = std::nullopt;
 }
 
 } // namespace floormat

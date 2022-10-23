@@ -24,7 +24,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     Magnum::Math::Vector2<int> window_size() const noexcept override;
     tile_shader& shader() noexcept override;
-    void register_debug_callback() noexcept override;
+    const tile_shader& shader() const noexcept override;
+    void* register_debug_callback() noexcept override;
 
     struct world& world() noexcept override;
     SDL_Window* window() noexcept override;

@@ -219,6 +219,7 @@ SDL_Window* main_impl::window() noexcept
 
 Vector2i main_impl::window_size() const noexcept { return windowSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
+const tile_shader& main_impl::shader() const noexcept { return _shader; }
 
 floormat_main* floormat_main::create(floormat_app& app, const fm_options& options)
 {

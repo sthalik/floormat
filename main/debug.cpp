@@ -58,7 +58,7 @@ void main_impl::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Ty
     static_cast<const main_impl*>(self)->debug_callback(src, type, id, severity, str);
 }
 
-void main_impl::register_debug_callback() noexcept
+void* main_impl::register_debug_callback() noexcept
 {
     GL::DebugOutput::setCallback(_debug_callback, this);
 
@@ -66,6 +66,8 @@ void main_impl::register_debug_callback() noexcept
     /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */
     GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false);
 #endif
+
+    return nullptr;
 }
 
 } // namespace floormat

@@ -17,19 +17,21 @@ void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.on_mouse_down(mouse_button_event{event.position(),
-                                             (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                                             mouse_button(event.button()),
-                                             std::uint8_t(std::min(255, event.clickCount()))}))
+    if (app.on_mouse_up_down({event.position(),
+                              (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                              mouse_button(event.button()),
+                              std::uint8_t(std::min(255, event.clickCount()))},
+                             true))
         return event.setAccepted();
 }
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.on_mouse_up({event.position(),
-                         (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                         mouse_button(event.button()),
-                         std::uint8_t(std::min(255, event.clickCount()))}))
+    if (app.on_mouse_up_down({event.position(),
+                              (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                              mouse_button(event.button()),
+                              std::uint8_t(std::min(255, event.clickCount()))},
+                             false))
         return event.setAccepted();
 }
 
@@ -62,17 +64,19 @@ void main_impl::textEditingEvent(Platform::Sdl2Application::TextEditingEvent& ev
 
 void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    if (app.on_key_down({(SDL_Keycode)(std::uint32_t)event.key(),
-                         (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                         true, event.isRepeated()}))
+    if (app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
+                            (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                            event.isRepeated()},
+                           true))
         return event.setAccepted();
 }
 
 void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    if (app.on_key_up({(SDL_Keycode)(std::uint32_t)event.key(),
-                       (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                       false, event.isRepeated()}))
+    if (app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
+                            (SDL_Keymod)(std::uint16_t)event.modifiers(),
+                            event.isRepeated()},
+                           false))
         return event.setAccepted();
 }
 
