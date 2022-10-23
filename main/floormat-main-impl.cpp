@@ -6,6 +6,7 @@
 #include "src/chunk.hpp"
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
+#include <cstdlib>
 
 //#define FM_SKIP_MSAA
 
@@ -36,10 +37,34 @@ auto main_impl::make_window_flags(const fm_options& s) -> Configuration::WindowF
 
 auto main_impl::make_conf(const fm_options& s) -> Configuration
 {
+    switch (s.log_level)
+    {
+    default:
+        SDL_setenv("MAGNUM_LOG_LEVEL", "normal", 1);
+        break;
+    case fm_log_level::quiet:
+        SDL_setenv("MAGNUM_LOG_LEVEL", "quiet", 1);
+        break;
+    case fm_log_level::verbose:
+        SDL_setenv("MAGNUM_LOG_LEVEL", "verbose", 1);
+        break;
+    }
     return Configuration{}
-           .setTitle(s.title)
-           .setSize(s.resolution)
-           .setWindowFlags(make_window_flags(s));
+        .setTitle(s.title)
+        .setSize(s.resolution)
+        .setWindowFlags(make_window_flags(s));
+}
+
+auto main_impl::make_gl_conf(const fm_options& s) -> GLConfiguration
+{
+    GLConfiguration::Flags flags{};
+    using f = GLConfiguration::Flag;
+    if (s.gpu_debug == fm_gpu_debug::on || s.gpu_debug == fm_gpu_debug::robust)
+        flags |= f::Debug | f::GpuValidation;
+    if (s.gpu_debug == fm_gpu_debug::robust)
+        flags |= f::RobustAccess;
+    else if (s.gpu_debug == fm_gpu_debug::no_error)
+        flags |= f::NoError;
 }
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
@@ -52,7 +77,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     _msaa_framebuffer.setViewport({{}, size });
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
 #endif
-    _shader.set_scale(Vector2(size));
+    _shader.set_scale(Vector2{size});
     app.on_viewport_event(size);
 }
 
@@ -183,7 +208,7 @@ void main_impl::quit(int status)
 }
 
 Vector2i main_impl::window_size() const noexcept { return windowSize(); }
-tile_shader& shader() noexcept { return _shader; }
+tile_shader& main_impl::shader() noexcept { return _shader; }
 
 floormat_main* floormat_main::create(floormat_app& app, const fm_options& options)
 {

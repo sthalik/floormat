@@ -25,7 +25,7 @@ struct floormat_main
     virtual Magnum::Math::Vector2<int> window_size() const noexcept = 0;
     virtual tile_shader& shader() noexcept = 0;
     virtual void register_debug_callback() noexcept = 0;
-    constexpr float smoothed_dt() const noexcept { return _smoothed_dt; }
+    constexpr float smoothed_dt() const noexcept { return _frame_time; }
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
 
@@ -33,6 +33,9 @@ struct floormat_main
     virtual SDL_Window* window() noexcept = 0;
 
     static floormat_main* create(floormat_app& app, const fm_options& options);
+
+protected:
+    float _frame_time = 0;
 };
 
 } // namespace floormat

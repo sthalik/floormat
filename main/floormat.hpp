@@ -5,7 +5,7 @@
 
 namespace floormat {
 
-enum class fm_gpu_debug : char { no_error = -1, on, off };
+enum class fm_gpu_debug : char { no_error = -1, on, robust, off };
 enum class fm_tristate : char { maybe = -1, on, off };
 enum class fm_log_level : unsigned char { quiet, normal, verbose, };
 

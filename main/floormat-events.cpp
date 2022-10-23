@@ -1,5 +1,7 @@
 #pragma once
-#include "floormat-main.hpp"
+#include "floormat-main-impl.hpp"
+#include "floormat-app.hpp"
+#include "floormat-events.hpp"
 #include "compat/assert.hpp"
 #include <SDL_events.h>
 #include <SDL_video.h>
@@ -10,19 +12,14 @@ void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     fm_assert(event.framebufferSize() == event.windowSize());
     recalc_viewport(event.windowSize());
-    app.viewport_event(event.windowSize());
+    app.on_viewport_event(event.windowSize());
 }
 
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    if (app.)
-    if (_imgui.handleMousePressEvent(event))
+    event.
+    if (app.on_mouse_down())
         return event.setAccepted();
-    else if (_cursor_tile)
-    {
-        const auto& tile = *_cursor_tile;
-        do_mouse_click(tile, (int)event.button());
-    }
 }
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
