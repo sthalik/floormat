@@ -11,6 +11,10 @@
 #include <SDL_events.h>
 #include <SDL_video.h>
 
+#ifdef FM_MSAA
+#include <Magnum/GL/RenderbufferFormat.h>
+#endif
+
 namespace floormat {
 
 int app::run_from_argv(int argc, char** argv)
@@ -57,16 +61,8 @@ app::app(const Arguments& arguments, app_settings opts):
     set_fp_mask();
     reset_camera_offset();
 
-#if 1
     fm_assert(framebufferSize() == windowSize());
-    _imgui = ImGuiIntegration::Context(Vector2{windowSize()}, windowSize(), framebufferSize());
     recalc_viewport(windowSize());
-#else
-    _msaa_color_texture.setStorage(1, GL::TextureFormat::RGBA8, windowSize());
-    _framebuffer = GL::Framebuffer{GL::defaultFramebuffer.viewport()};
-    _framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{0}, _msaa_color_texture);
-#endif
-    //_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, depthStencil);
 
     setMinimalLoopPeriod(5);
     {
@@ -85,11 +81,13 @@ void app::recalc_viewport(Vector2i size)
     recalc_cursor_tile();
 
     GL::defaultFramebuffer.setViewport({{}, size });
-    _framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
-    _msaa_color_texture = GL::MultisampleTexture2D{};
-    _msaa_color_texture.setStorage(1, GL::TextureFormat::RGBA8, size);
-    _framebuffer.setViewport({{}, size });
-    _framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{0}, _msaa_color_texture);
+#ifdef FM_MSAA
+    _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
+    _msaa_renderbuffer = Magnum::GL::Renderbuffer{};
+    _msaa_renderbuffer.setStorageMultisample(msaa_samples, GL::RenderbufferFormat::RGBA8, size);
+    _msaa_framebuffer.setViewport({{}, size });
+    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
+#endif
 }
 
 void app::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)

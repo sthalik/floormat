@@ -14,10 +14,16 @@
 #include <Magnum/Timeline.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
-#include <Magnum/GL/Framebuffer.h>
-#include <Magnum/GL/MultisampleTexture.h>
+#include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <memory>
+
+#define FM_MSAA
+
+#ifdef FM_MSAA
+#include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/Renderbuffer.h>
+#endif
 
 namespace floormat {
 
@@ -95,8 +101,10 @@ private:
 
     [[maybe_unused]] void* _dummy = register_debug_callback();
 
-    GL::Framebuffer _framebuffer{{{}, windowSize()}};
-    GL::MultisampleTexture2D _msaa_color_texture{};
+#ifdef FM_MSAA
+    GL::Framebuffer _msaa_framebuffer{{{}, windowSize()}};
+    GL::Renderbuffer _msaa_renderbuffer{};
+#endif
 
     tile_shader _shader;
     tile_atlas_ floor1 = loader.tile_atlas("floor-tiles", {44, 4});
@@ -127,6 +135,9 @@ private:
     app_settings _settings;
 
     static constexpr std::int16_t BASE_X = 0, BASE_Y = 0;
+#ifdef FM_MSAA
+    static constexpr int msaa_samples = 16;
+#endif
 };
 
 } // namespace floormat

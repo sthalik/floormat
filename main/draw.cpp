@@ -4,6 +4,8 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 
+//#define FM_SKIP_MSAA
+
 namespace floormat {
 
 void app::drawEvent()
@@ -29,11 +31,16 @@ void app::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        _framebuffer.clear(GL::FramebufferClear::Color);
-        _framebuffer.bind();
+        GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
+#if defined FM_MSAA && !defined FM_SKIP_MSAA
+        _msaa_framebuffer.clear(GL::FramebufferClear::Color);
+        _msaa_framebuffer.bind();
+#endif
         draw_msaa();
+#if defined FM_MSAA && !defined FM_SKIP_MSAA
         GL::defaultFramebuffer.bind();
-        GL::Framebuffer::blit(_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
+        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
+#endif
     }
 
     render_menu();
