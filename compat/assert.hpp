@@ -58,20 +58,3 @@
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop
 #endif
-
-namespace floormat {
-
-template<bool>
-struct static_warning_ final {
-    [[deprecated("compile-time warning valuated to 'true'")]] constexpr static_warning_() = default;
-};
-
-template<>
-struct static_warning_<true> final {
-    constexpr static_warning_() = default;
-};
-
-#define static_warning(...) do { (void)static_warning_<(__VA_ARGS__)>{};  } while(false)
-
-} // namespace floormat
-
