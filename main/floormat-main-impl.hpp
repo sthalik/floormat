@@ -20,6 +20,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     main_impl(floormat_app& app, fm_options opts) noexcept;
     ~main_impl() noexcept override;
 
+    int exec() override;
     void quit(int status) override;
 
     Magnum::Math::Vector2<int> window_size() const noexcept override;

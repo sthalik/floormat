@@ -207,6 +207,11 @@ void main_impl::quit(int status)
     Platform::Sdl2Application::exit(status);
 }
 
+int main_impl::exec()
+{
+    return Sdl2Application::exec();
+}
+
 struct world& main_impl::world() noexcept
 {
     return _world;

@@ -50,14 +50,14 @@ void floormat::drawEvent()
     redraw();
     timeline.nextFrame();
 }
-#endif
+
 void floormat::draw_msaa()
 {
     const with_shifted_camera_offset o{_shader, BASE_X, BASE_Y};
     draw_world();
     draw_cursor_tile();
 }
-#if 0
+
 void floormat::draw_world()
 {
     auto foo = get_draw_bounds();
@@ -83,7 +83,7 @@ void floormat::draw_world()
             _wall_mesh.draw(_shader, *_world[c]);
         }
 }
-#endif
+
 void floormat::draw_wireframe_quad(global_coords pos)
 {
     constexpr float LINE_WIDTH = 2;
@@ -113,5 +113,5 @@ void floormat::draw_cursor_tile()
     if (_cursor_tile && !_cursor_in_imgui)
         draw_wireframe_quad(*_cursor_tile);
 }
-
+#endif
 } // namespace floormat

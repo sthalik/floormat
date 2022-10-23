@@ -20,6 +20,7 @@ struct floormat_main
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_main);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_main);
 
+    virtual int exec() = 0;
     virtual void quit(int status) = 0;
 
     virtual Magnum::Math::Vector2<int> window_size() const noexcept = 0;
