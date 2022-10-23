@@ -46,5 +46,9 @@ void mesh_base::draw(tile_shader& shader)
     shader.draw(_mesh);
 }
 
+void mesh_base::set_subdata(Containers::ArrayView<const void> array)
+{
+    _vertex_buffer.setSubData(0, array);
+}
 
 } // namespace floormat::wireframe

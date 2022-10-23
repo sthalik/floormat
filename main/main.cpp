@@ -1,6 +1,6 @@
 #include <cstddef>
 #include "compat/sysexits.hpp"
-#include "app.hpp"
+#include "main.hpp"
 #include "compat/fpu.hpp"
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
@@ -12,7 +12,7 @@
 
 namespace floormat {
 
-int app::run_from_argv(int argc, char** argv)
+int floormat::run_from_argv(int argc, char** argv)
 {
     Corrade::Utility::Arguments args{};
     app_settings opts;
@@ -20,17 +20,17 @@ int app::run_from_argv(int argc, char** argv)
         .addOption("vsync", opts.vsync ? "1" : "0")
         .parse(argc, argv);
     opts.vsync = args.value<bool>("vsync");
-    app x{{argc, argv}, std::move(opts)}; // NOLINT(performance-move-const-arg)
+    floormat x{{argc, argv}, std::move(opts)}; // NOLINT(performance-move-const-arg)
     return x.exec();
 }
 
-void app::usage(const Utility::Arguments& args)
+void floormat::usage(const Utility::Arguments& args)
 {
     Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
     std::exit(EX_USAGE); // NOLINT(concurrency-mt-unsafe)
 }
 
-app::app(const Arguments& arguments, app_settings opts):
+floormat::floormat(const Arguments& arguments, app_settings opts):
       Platform::Sdl2Application{
           arguments,
           Configuration{}
@@ -67,7 +67,7 @@ app::app(const Arguments& arguments, app_settings opts):
     timeline.start();
 }
 
-void app::recalc_viewport(Vector2i size)
+void floormat::recalc_viewport(Vector2i size)
 {
     _shader.set_scale(Vector2(size));
     init_imgui(size);
@@ -88,7 +88,7 @@ void app::recalc_viewport(Vector2i size)
 
 int main(int argc, char** argv)
 {
-    return floormat::app::run_from_argv(argc, argv);
+    return floormat::floormat::run_from_argv(argc, argv);
 }
 
 #ifdef _MSC_VER

@@ -1,22 +1,12 @@
-set(self "${PROJECT_NAME}-main")
 file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
 link_libraries(${PROJECT_NAME})
 link_libraries(Magnum::Sdl2Application Magnum::Trade)
 link_libraries(MagnumIntegration::ImGui)
 
-corrade_add_resource(res ../resources.conf)
-if(MSVC)
-    set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-W0")
-else()
-    set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w")
-endif()
-add_library(${self}-lib STATIC "${sources}")
-add_executable(${self} "${res}")
-target_link_libraries(${self} ${self}-lib)
-set_property(TARGET ${self} PROPERTY OUTPUT_NAME "${PROJECT_NAME}")
-install(TARGETS ${self} RUNTIME DESTINATION bin)
+add_library(${PROJECT_NAME}-main STATIC "${sources}")
 
 if(FLOORMAT_PRECOMPILED-HEADERS)
-    target_precompile_headers(${self} PRIVATE precomp.hpp)
+    target_precompile_headers(${PROJECT_NAME}-main PRIVATE precomp.hpp)
 endif()
+

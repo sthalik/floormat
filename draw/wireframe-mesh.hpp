@@ -36,6 +36,7 @@ struct mesh_base
     mesh_base(GL::MeshPrimitive primitive, Containers::ArrayView<const void> index_data,
               std::size_t num_vertices, std::size_t num_indexes);
     void draw(tile_shader& shader);
+    void set_subdata(Containers::ArrayView<const void> array);
 };
 
 } // namespace wireframe
@@ -56,7 +57,7 @@ wireframe_mesh<T>::wireframe_mesh() :
 template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
 {
     //_vertex_buffer.setData({nullptr, sizeof(Vector3) * T::num_vertices}, GL::BufferUsage::DynamicDraw); // orphan the buffer
-    _vertex_buffer.setSubData(0, x.make_vertex_array());
+    set_subdata(x.make_vertex_array());
     x.on_draw();
     mesh_base::draw(shader);
 }

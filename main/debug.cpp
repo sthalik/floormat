@@ -1,4 +1,4 @@
-#include "app.hpp"
+#include "main.hpp"
 #include <chrono>
 #include <Magnum/GL/Renderer.h>
 
@@ -12,7 +12,7 @@ using GL::Renderer;
 using GL::DebugOutput;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+void floormat::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                          Severity severity, const std::string& str) const
 {
     static thread_local auto clock = std::chrono::steady_clock{};
@@ -58,13 +58,13 @@ void app::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type
     std::fputs("", stdout); // put breakpoint here
 }
 
-void app::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+void floormat::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                           GL::DebugOutput::Severity severity, const std::string& str, const void* self)
 {
-    static_cast<const app*>(self)->debug_callback(src, type, id, severity, str);
+    static_cast<const floormat*>(self)->debug_callback(src, type, id, severity, str);
 }
 
-void* app::register_debug_callback()
+void* floormat::register_debug_callback()
 {
     GL::DebugOutput::setCallback(_debug_callback, this);
 

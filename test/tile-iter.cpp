@@ -8,7 +8,7 @@ static inline bool always_false()
     return ret;
 }
 
-bool app::test_tile_iter() // NOLINT(readability-function-size)
+bool floormat::test_tile_iter() // NOLINT(readability-function-size)
 {
     if (always_false())
     {

@@ -1,6 +1,6 @@
 #pragma once
 #include "floormat-main.hpp"
-#include <cstdio>
+#include "compat/assert.hpp"
 #include <SDL_events.h>
 #include <SDL_video.h>
 
@@ -10,10 +10,12 @@ void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
     fm_assert(event.framebufferSize() == event.windowSize());
     recalc_viewport(event.windowSize());
+    app.viewport_event(event.windowSize());
 }
 
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
+    if (app.)
     if (_imgui.handleMousePressEvent(event))
         return event.setAccepted();
     else if (_cursor_tile)
@@ -83,28 +85,16 @@ void main_impl::anyEvent(SDL_Event& event)
         switch (event.window.event)
         {
         case SDL_WINDOWEVENT_FOCUS_LOST:
-            return event_focus_out();
+            return app.event_focus_out();
         case SDL_WINDOWEVENT_FOCUS_GAINED:
-            return event_focus_in();
+            return app.event_focus_in();
         case SDL_WINDOWEVENT_LEAVE:
-            return event_mouse_leave();
+            return app.event_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
-            return event_mouse_enter();
+            return app.event_mouse_enter();
         default:
             std::fputs("", stdout); break; // put breakpoint here
         }
 }
-
-void main_impl::event_focus_out() // TODO move to app
-{
-    _cursor_pixel = std::nullopt;
-    recalc_cursor_tile();
-}
-
-void main_impl::event_mouse_leave() // TODO move to app
-{
-    _cursor_pixel = std::nullopt;
-    recalc_cursor_tile();
-}
-
 } // namespace floormat
+

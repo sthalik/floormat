@@ -9,7 +9,7 @@
 
 namespace floormat {
 
-app::app(const Arguments& arguments):
+floormat::floormat(const Arguments& arguments):
       Platform::WindowlessWglApplication{
           arguments,
           Configuration{}
@@ -17,12 +17,12 @@ app::app(const Arguments& arguments):
 {
 }
 
-app::~app()
+floormat::~floormat()
 {
     loader_::destroy();
 }
 
-int app::exec()
+int floormat::exec()
 {
     bool ret = true;
     ret &= test_json();
@@ -35,7 +35,7 @@ int app::exec()
 
 int main(int argc, char** argv)
 {
-    floormat::app application{{argc, argv}};
+    floormat::floormat application{{argc, argv}};
     return application.exec();
 }
 

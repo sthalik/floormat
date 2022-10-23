@@ -1,5 +1,5 @@
-#include "loader.hpp"
-#include "tile-atlas.hpp"
+#include "src/loader.hpp"
+#include "src/tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include "compat/alloca.hpp"
 #include <filesystem>

@@ -1,4 +1,4 @@
-#include "app.hpp"
+#include "main.hpp"
 #include "tile-defs.hpp"
 #include "camera-offset.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -8,7 +8,7 @@
 
 namespace floormat {
 
-void app::drawEvent()
+void floormat::drawEvent()
 {
     if (const float dt = timeline.previousFrameDuration(); dt > 0)
     {
@@ -50,14 +50,14 @@ void app::drawEvent()
     timeline.nextFrame();
 }
 
-void app::draw_msaa()
+void floormat::draw_msaa()
 {
     const with_shifted_camera_offset o{_shader, BASE_X, BASE_Y};
     draw_world();
     draw_cursor_tile();
 }
 
-void app::draw_world()
+void floormat::draw_world()
 {
     auto foo = get_draw_bounds();
     auto [minx, maxx, miny, maxy] = foo;
@@ -83,7 +83,7 @@ void app::draw_world()
         }
 }
 
-void app::draw_wireframe_quad(global_coords pos)
+void floormat::draw_wireframe_quad(global_coords pos)
 {
     constexpr float LINE_WIDTH = 2;
     const auto pt = pos.to_signed();
@@ -96,7 +96,7 @@ void app::draw_wireframe_quad(global_coords pos)
     }
 }
 
-void app::draw_wireframe_box(local_coords pt)
+void floormat::draw_wireframe_box(local_coords pt)
 {
     constexpr float LINE_WIDTH = 1.5;
 
@@ -107,7 +107,7 @@ void app::draw_wireframe_box(local_coords pt)
     _wireframe_box.draw(_shader, {center1, size, LINE_WIDTH});
 }
 
-void app::draw_cursor_tile()
+void floormat::draw_cursor_tile()
 {
     if (_cursor_tile && !_cursor_in_imgui)
         draw_wireframe_quad(*_cursor_tile);

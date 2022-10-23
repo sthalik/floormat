@@ -61,7 +61,7 @@ static constexpr void* compile_tests()
 
 namespace floormat {
 
-bool app::test_const_math()
+bool floormat::test_const_math()
 {
     static_assert(compile_tests() == nullptr);
     return true;
@@ -73,5 +73,5 @@ bool app::test_const_math()
 #   pragma GCC diagnostic pop
 #endif
 #else
-namespace floormat { bool app::test_const_math() { return true; } }
+namespace floormat { bool floormat::test_const_math() { return true; } }
 #endif

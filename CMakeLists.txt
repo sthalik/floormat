@@ -136,6 +136,7 @@ include_directories(SYSTEM
 
 add_subdirectory(src)
 add_subdirectory(main)
+add_subdirectory(editor)
 add_subdirectory(anim-crop-tool)
 add_subdirectory(test)
 

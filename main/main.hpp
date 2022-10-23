@@ -1,6 +1,9 @@
 #pragma once
+
+#include "floormat.hpp"
+
 #include "tile-atlas.hpp"
-#include "chunk.hpp"
+#include "src/chunk.hpp"
 #include "shaders/tile-shader.hpp"
 #include "src/loader.hpp"
 #include "draw/floor-mesh.hpp"
@@ -9,8 +12,7 @@
 #include "draw/wireframe-quad.hpp"
 #include "draw/wireframe-box.hpp"
 #include "compat/enum-bitset.hpp"
-#include "editor.hpp"
-#include "world.hpp"
+#include "src/world.hpp"
 #include <Magnum/Timeline.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -26,16 +28,16 @@
 
 namespace floormat {
 
-struct app final : private Platform::Sdl2Application
+struct floormat final : private Platform::Sdl2Application
 {
     static int run_from_argv(int argc, char** argv);
-    virtual ~app();
+    virtual ~floormat();
 
 private:
     struct app_settings;
 
     [[maybe_unused]] [[noreturn]] static void usage(const Utility::Arguments& args);
-    explicit app(const Arguments& arguments, app_settings opts);
+    explicit floormat(const Arguments& arguments, app_settings opts);
 
     using dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy;
     using tile_atlas_ = std::shared_ptr<tile_atlas>;

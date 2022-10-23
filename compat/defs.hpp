@@ -25,8 +25,12 @@
     type& operator=(const type&) = delete
 
 #define fm_DECLARE_DELETED_MOVE_ASSIGNMENT(type)                    \
-    [[deprecated]] type(type&&) = delete;                           \
-    [[deprecated]] type& operator=(type&&) = delete
+    type(type&&) = delete;                                          \
+    type& operator=(type&&) = delete
+
+#define fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(type)                 \
+    [[deprecated]] type(type&&) = default;                          \
+    [[deprecated]] type& operator=(type&&) = default
 
 #define fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT(type)                    \
     constexpr type(type&&) noexcept = default;                      \

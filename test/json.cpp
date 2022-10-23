@@ -29,7 +29,7 @@ static chunk make_test_chunk()
     return c;
 }
 
-bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
+bool floormat::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     const std::filesystem::path output_dir = "../test/.";
     {
