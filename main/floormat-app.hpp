@@ -10,6 +10,7 @@ struct mouse_button_event;
 struct mouse_scroll_event;
 struct key_event;
 struct text_input_event;
+struct text_editing_event;
 struct any_event;
 
 struct floormat_app
@@ -31,6 +32,7 @@ struct floormat_app
     virtual bool on_key_down(const key_event& event) noexcept = 0;
     virtual bool on_key_up(const key_event& event) noexcept = 0;
     virtual bool on_text_input_event(const text_input_event& event) noexcept = 0;
+    virtual bool on_text_editing_event(const text_editing_event& event) noexcept = 0;
     virtual void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept = 0;
     virtual bool on_any_event(const any_event& event) noexcept = 0;
     virtual void on_focus_in() noexcept = 0;
