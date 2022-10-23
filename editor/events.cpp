@@ -2,6 +2,7 @@
 #include "main/floormat-main.hpp"
 #include "main/floormat-events.hpp"
 #include "src/world.hpp"
+#include <Magnum/Platform/Sdl2Application.h>
 #include <utility>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 
@@ -73,18 +74,17 @@ bool app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
 
 bool app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcept
 {
-    enum Modifier : std::underlying_type_t<SDL_Keymod> {
-        None = KMOD_NONE,
-        Ctrl = KMOD_CTRL,
-        Shift = KMOD_SHIFT,
-        Alt = KMOD_ALT,
-        Super = KMOD_GUI,
-    };
-    struct {
-        accessor(SDL_Keymod, modifiers)
-    } e = {};
+    using KeyEvent = Platform::Sdl2Application::KeyEvent;
+    struct Ev final {
+        using Key = KeyEvent::Key;
+        using Modifier = KeyEvent::Modifier;
+        using Modifiers = KeyEvent::Modifiers;
+        accessor(Key, key)
+        accessor(Modifiers, modifiers)
+    } e = {Ev::Key(event.key), Ev::Modifier(event.mods)};
     if (!(is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e)))
     {
+        // todo put it into a separate function
         const key x = fm_begin(switch (event.key) {
                                default:            return key::COUNT;
                                case SDLK_w:        return key::camera_up;
