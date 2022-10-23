@@ -56,6 +56,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
 
          MAGNUM_BUILD_STATIC                    OFF
          MAGNUM_BUILD_TESTS                     OFF
+         MAGNUM_BUILD_DEPRECATED                ON
 
          MAGNUM_WITH_ANYIMAGECONVERTER          ON
          MAGNUM_WITH_ANYIMAGEIMPORTER           ON

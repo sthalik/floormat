@@ -5,7 +5,6 @@
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
-#include <Magnum/GL/TextureFormat.h>
 
 #ifdef FM_MSAA
 #include <Magnum/GL/RenderbufferFormat.h>
@@ -32,13 +31,13 @@ void app::usage(const Utility::Arguments& args)
 }
 
 app::app(const Arguments& arguments, app_settings opts):
-      Platform::Application{
+      Platform::Sdl2Application{
           arguments,
           Configuration{}
               .setTitle("Test")
               .setSize({1024, 768}, dpi_policy::Physical)
               .setWindowFlags(Configuration::WindowFlag::Resizable),
-          GLConfiguration{},
+          GLConfiguration{}
       },
       _settings{opts}
 {

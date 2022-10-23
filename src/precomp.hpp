@@ -18,11 +18,12 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <algorithm>
 #include <filesystem>
 
-#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/DebugStl.h>
 
 #include <Magnum/Magnum.h>
@@ -36,4 +37,5 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/Trade/ImageData.h>
+
 #include <nlohmann/json.hpp>

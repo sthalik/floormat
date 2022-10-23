@@ -14,6 +14,7 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Framebuffer.h>
 #include <Magnum/GL/MultisampleTexture.h>
+#include <Magnum/GL/Renderbuffer.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <Magnum/Platform/Sdl2Application.h>

@@ -12,7 +12,6 @@
 #include "editor.hpp"
 #include "world.hpp"
 #include <Magnum/Timeline.h>
-#include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.h>
@@ -27,7 +26,7 @@
 
 namespace floormat {
 
-struct app final : private Platform::Application
+struct app final : private Platform::Sdl2Application
 {
     static int run_from_argv(int argc, char** argv);
     virtual ~app();
