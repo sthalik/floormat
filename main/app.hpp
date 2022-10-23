@@ -99,10 +99,10 @@ private:
     GL::MultisampleTexture2D _msaa_color_texture{};
 
     tile_shader _shader;
-    tile_atlas_ floor1 = loader.tile_atlas("floor-tiles.tga", {44, 4});
-    tile_atlas_ floor2 = loader.tile_atlas("metal1.tga", {2, 2});
-    tile_atlas_ wall1  = loader.tile_atlas("wood2.tga", {2, 2});
-    tile_atlas_ wall2  = loader.tile_atlas("wood1.tga", {2, 2});
+    tile_atlas_ floor1 = loader.tile_atlas("floor-tiles", {44, 4});
+    tile_atlas_ floor2 = loader.tile_atlas("metal1", {2, 2});
+    tile_atlas_ wall1  = loader.tile_atlas("wood2", {1, 1});
+    tile_atlas_ wall2  = loader.tile_atlas("wood1", {1, 1});
 
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;

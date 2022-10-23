@@ -13,9 +13,9 @@ namespace floormat {
 
 static chunk make_test_chunk()
 {
-    auto metal1 = loader.tile_atlas("metal1.tga", {2, 2}),
-         metal2 = loader.tile_atlas("metal2.tga", {2, 2}),
-         tiles = loader.tile_atlas("tiles.tga", {8, 5});
+    auto metal1 = loader.tile_atlas("metal1", {2, 2}),
+         metal2 = loader.tile_atlas("metal2", {2, 2}),
+         tiles = loader.tile_atlas("tiles", {8, 5});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
     for (auto& [x, k, pt] : c) {
@@ -33,7 +33,7 @@ bool app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     const std::filesystem::path output_dir = "../test/.";
     {
-        auto atlas = loader.tile_atlas("metal1.tga", {2, 2});
+        auto atlas = loader.tile_atlas("metal1", {2, 2});
         json_helper::to_json(atlas, output_dir/"atlas.json");
     }
     {

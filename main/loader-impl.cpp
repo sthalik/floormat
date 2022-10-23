@@ -17,6 +17,10 @@
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
 
+#ifdef __GNUG__
+#pragma GCC diagnostic ignored "-Walloca"
+#endif
+
 namespace floormat {
 
 struct loader_impl final : loader_
@@ -54,7 +58,10 @@ std::string loader_impl::shader(Containers::StringView filename)
 
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name, Vector2ub size)
 {
-    auto it = atlas_map.find(name);
+    auto it = std::find_if(atlas_map.begin(), atlas_map.end(), [&](const auto& x) {
+        const auto& [k, v] = x;
+        return Containers::StringView{k} == name;
+    });
     if (it != atlas_map.end())
         return it->second;
     auto image = tile_texture(name);
@@ -67,21 +74,35 @@ Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
 {
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
     fm_assert(filename_.size() < 4096);
+    fm_assert(filename_.find('\\') == filename_.end());
+    fm_assert(tga_importer);
+    constexpr std::size_t max_extension_length = 16;
 
-    char* const filename = (char*)alloca(filename_.size() + std::size(IMAGE_PATH));
-    std::memcpy(filename, IMAGE_PATH, std::size(IMAGE_PATH)-1);
-    std::memcpy(filename + std::size(IMAGE_PATH)-1, filename_.cbegin(), filename_.size());
-    filename[std::size(IMAGE_PATH)-1 + filename_.size()] = '\0';
-    if (!tga_importer || !tga_importer->openFile(filename)) {
-        const auto path = Utility::Path::currentDirectory();
-        fm_log("note: current working directory: '%s'", path->data());
-        fm_abort("can't open tile image '%s'", filename);
+    char* const filename = (char*)alloca(filename_.size() + std::size(IMAGE_PATH) + max_extension_length);
+    const std::size_t len = fm_begin(
+        std::size_t off = std::size(IMAGE_PATH)-1;
+        std::memcpy(filename, IMAGE_PATH, off);
+        std::memcpy(filename + off, filename_.cbegin(), filename_.size());
+        return off + filename_.size();
+    );
+
+    for (const auto& extension : std::initializer_list<Containers::StringView>{ ".tga", ".png", ".webp", })
+    {
+        std::memcpy(filename + len, extension.data(), extension.size());
+        filename[len + extension.size()] = '\0';
+        if (tga_importer->openFile(filename))
+        {
+            auto img = tga_importer->image2D(0);
+            if (!img)
+                fm_abort("can't allocate tile image for '%s'", filename);
+            auto ret = std::move(*img);
+            return ret;
+        }
+        Debug{} << "failed to open" << filename << extension;
     }
-    auto img = tga_importer->image2D(0);
-    if (!img)
-        fm_abort("can't allocate tile image for '%s'", filename);
-    auto ret = std::move(*img);
-    return ret;
+    const auto path = Utility::Path::currentDirectory();
+    fm_log("fatal: can't open tile image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
+    std::abort();
 }
 
 void loader_::destroy()
