@@ -89,6 +89,9 @@ void main_impl::anyEvent(SDL_Event& event)
         default:
             return app.on_any_event({event});
         }
+    else
+        return app.on_any_event({event});
 }
+
 } // namespace floormat
 

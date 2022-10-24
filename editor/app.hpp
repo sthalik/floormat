@@ -94,7 +94,7 @@ private:
     wireframe_mesh<wireframe::quad> _wireframe_quad;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
-    enum_bitset<key> _keys;
+    enum_bitset<key> keys;
     cursor_state cursor;
 };
 

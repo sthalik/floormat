@@ -17,3 +17,5 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.h>
+
+#include <SDL_video.h>

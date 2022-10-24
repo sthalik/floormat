@@ -58,11 +58,11 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     using f = GLConfiguration::Flag;
-    if (s.gpu_debug == fm_gpu_debug::on || s.gpu_debug == fm_gpu_debug::robust)
+    if (s.gpu_debug >= fm_gpu_debug::on)
         flags |= f::Debug | f::GpuValidation;
     if (s.gpu_debug == fm_gpu_debug::robust)
         flags |= f::RobustAccess;
-    else if (s.gpu_debug == fm_gpu_debug::no_error)
+    else if (s.gpu_debug <= fm_gpu_debug::off)
         flags |= f::NoError;
     return GLConfiguration{}.setFlags(flags);
 }
@@ -79,7 +79,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     app.on_viewport_event(size);
 }
 
-static int fake_argc = 0;
+static int fake_argc = 0; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
     Platform::Sdl2Application{Arguments{fake_argc, nullptr},
@@ -93,7 +93,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
         if (const auto list = GL::Context::current().extensionStrings();
             std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
             (void)setSwapInterval(-1);
-        setMinimalLoopPeriod(4);
+        setMinimalLoopPeriod(0);
         break;
     case fm_tristate::off:
         setSwapInterval(0);
@@ -173,8 +173,32 @@ void main_impl::drawEvent()
         timeline.nextFrame();
     }
 
-    const float dt = std::clamp(timeline.previousFrameDuration(), 1e-6f, 1e-1f);
-    app.update(dt);
+    {
+        float dt_max;
+        unsigned min_loop_period;
+
+        if (const auto flags = SDL_GetWindowFlags(window());
+            flags & SDL_WINDOW_HIDDEN)
+        {
+            dt_max = 1 + 1e-3f;
+            min_loop_period = 1000;
+        }
+        else if (!(flags & (SDL_WINDOW_INPUT_FOCUS|SDL_WINDOW_MOUSE_FOCUS)))
+        {
+            dt_max = 1.f/10;
+            min_loop_period = 1000/12;
+        }
+        else
+        {
+            dt_max = 1e-1f;
+            min_loop_period = 0;
+        }
+
+        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-6f, dt_max);
+        setMinimalLoopPeriod(min_loop_period);
+
+        app.update(dt);
+    }
 
     _shader.set_tint({1, 1, 1, 1});
 

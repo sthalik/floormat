@@ -53,7 +53,7 @@ void app::update(float dt)
 {
     do_camera(dt);
     draw_ui();
-    if (_keys[key::quit])
+    if (keys[key::quit])
         M->quit(0);
 }
 

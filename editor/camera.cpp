@@ -8,19 +8,19 @@ namespace floormat {
 
 void app::do_camera(float dt)
 {
-    if (_keys[key::camera_reset])
+    if (keys[key::camera_reset])
         reset_camera_offset();
     else
     {
         Vector2d dir{};
 
-        if (_keys[key::camera_up])
+        if (keys[key::camera_up])
             dir += Vector2d{0, -1};
-        else if (_keys[key::camera_down])
+        else if (keys[key::camera_down])
             dir += Vector2d{0,  1};
-        if (_keys[key::camera_left])
+        if (keys[key::camera_left])
             dir += Vector2d{-1, 0};
-        else if (_keys[key::camera_right])
+        else if (keys[key::camera_right])
             dir += Vector2d{1,  0};
 
         if (dir != Vector2d{})
