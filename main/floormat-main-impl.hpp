@@ -5,7 +5,13 @@
 #include "draw/floor-mesh.hpp"
 #include "draw/wall-mesh.hpp"
 #include "shaders/tile-shader.hpp"
+
 #include <Corrade/Containers/String.h>
+
+#include <Magnum/Timeline.h>
+#include <Magnum/GL/DebugOutput.h>
+#include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/Renderbuffer.h>
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
@@ -52,6 +58,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void start_text_input() noexcept override;
     void stop_text_input() noexcept override;
 
+    void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, const std::string& str) const;
+
 private:
     fm_settings s;
     char _dummy = maybe_register_debug_callback(s.gpu_debug);
@@ -74,10 +82,6 @@ private:
 
     draw_bounds get_draw_bounds() const noexcept;
 
-    void debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                        GL::DebugOutput::Severity severity, const std::string& str) const;
-    static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                                GL::DebugOutput::Severity severity, const std::string& str, const void* self);
     char maybe_register_debug_callback(fm_gpu_debug flag);
     void register_debug_callback();
 

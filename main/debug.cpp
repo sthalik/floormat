@@ -6,8 +6,7 @@ namespace floormat {
 using Severity = GL::DebugOutput::Severity;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void main_impl::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                         Severity severity, const std::string& str) const
+void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, const std::string& str) const
 {
     static thread_local auto clock = std::chrono::steady_clock{};
     static const auto t0 = clock.now();
@@ -29,7 +28,7 @@ void main_impl::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Typ
     const auto t = std::chrono::duration_cast<seconds>(clock.now() - t0).count();
     printf("[%10.03f] ", t);
 
-    switch (severity)
+    switch (Severity{severity})
     {
     using enum GL::DebugOutput::Severity;
     case Notification: std::fputs("fm_debug ", stdout); break;
@@ -52,10 +51,10 @@ void main_impl::debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Typ
     std::fputs("", stdout); // put breakpoint here
 }
 
-void main_impl::_debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                          GL::DebugOutput::Severity severity, const std::string& str, const void* self)
+static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
+                            GL::DebugOutput::Severity severity, const std::string& str, const void* self)
 {
-    static_cast<const main_impl*>(self)->debug_callback(src, type, id, severity, str);
+    static_cast<const main_impl*>(self)->debug_callback((unsigned)src, (unsigned)type, (unsigned)id, (unsigned)severity, str);
 }
 
 void main_impl::register_debug_callback()

@@ -6,6 +6,7 @@
 #include "src/chunk.hpp"
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
+#include <Magnum/GL/DefaultFramebuffer.h>
 #include <cstdlib>
 
 //#define FM_SKIP_MSAA
