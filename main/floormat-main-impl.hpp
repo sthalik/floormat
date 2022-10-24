@@ -15,8 +15,6 @@
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
-#define FM_MSAA
-
 namespace floormat {
 
 struct floormat_app;
@@ -72,10 +70,8 @@ private:
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 
-#ifdef FM_MSAA
     GL::Framebuffer _msaa_framebuffer{{{}, window_size()}};
     GL::Renderbuffer _msaa_renderbuffer{};
-#endif
 
     void recalc_viewport(Vector2i size) noexcept;
     void draw_world() noexcept;

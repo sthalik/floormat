@@ -70,13 +70,11 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
 void main_impl::recalc_viewport(Vector2i size) noexcept
 {
     GL::defaultFramebuffer.setViewport({{}, size });
-#ifdef FM_MSAA
     _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
     _msaa_renderbuffer = Magnum::GL::Renderbuffer{};
     _msaa_renderbuffer.setStorageMultisample(s.msaa_samples, GL::RenderbufferFormat::RGBA8, size);
     _msaa_framebuffer.setViewport({{}, size });
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
-#endif
     _shader.set_scale(Vector2{size});
     app.on_viewport_event(size);
 }
@@ -182,13 +180,13 @@ void main_impl::drawEvent()
 
     {
         GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
-#if defined FM_MSAA && !defined FM_SKIP_MSAA
+#ifndef FM_SKIP_MSAA
         _msaa_framebuffer.clear(GL::FramebufferClear::Color);
         _msaa_framebuffer.bind();
 #endif
         draw_world();
         app.draw_msaa();
-#if defined FM_MSAA && !defined FM_SKIP_MSAA
+#ifndef FM_SKIP_MSAA
         GL::defaultFramebuffer.bind();
         GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
 #endif
