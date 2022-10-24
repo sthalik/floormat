@@ -16,7 +16,7 @@ app::app() :
 {
 }
 
-app::~app()
+app::~app() // NOLINT(modernize-use-equals-default)
 {
 }
 
@@ -85,9 +85,11 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     }
 
     int ret;
+    Pointer<floormat_main> ptr;
     {
         app application;
         ret = application.exec();
+        ptr = std::move(application.M);
     }
     loader_::destroy();
     return ret;
