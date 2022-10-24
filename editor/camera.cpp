@@ -34,8 +34,8 @@ void app::do_camera(float dt)
             const auto max_camera_offset = Vector2d(sz * 10);
 
             camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
-            //camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
-            //camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
+            camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
+            camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
             Debug{} << "camera" << camera_offset;
             shader.set_camera_offset(camera_offset);

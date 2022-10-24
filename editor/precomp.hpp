@@ -12,6 +12,7 @@
 #include <Corrade/Utility/Arguments.h>
 
 #include <Magnum/Math/Color.h>
+#include <Magnum/GL/DebugOutput.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Platform/Sdl2Application.h>

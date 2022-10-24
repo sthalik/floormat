@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "main/floormat-main.hpp"
 #include "shaders/tile-shader.hpp"
+#include <Magnum/GL/DebugOutput.h>
 
 namespace floormat {
 
