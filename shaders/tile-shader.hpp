@@ -13,6 +13,7 @@ struct tile_shader : GL::AbstractShaderProgram
     typedef GL::Attribute<1, Vector2> TextureCoordinates;
 
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile_shader);
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(tile_shader);
 
     explicit tile_shader();
     ~tile_shader() override;
