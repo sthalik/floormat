@@ -28,13 +28,15 @@ struct floormat_main
     virtual const tile_shader& shader() const noexcept = 0;
     virtual void* register_debug_callback() noexcept = 0;
     constexpr float smoothed_dt() const noexcept { return _frame_time; }
+    virtual fm_settings& settings() noexcept = 0;
+    virtual const fm_settings& settings() const noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
 
     virtual world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
 
-    static floormat_main* create(floormat_app& app, const fm_options& options);
+    static floormat_main* create(floormat_app& app, const fm_settings& options);
 
 protected:
     float _frame_time = 0;

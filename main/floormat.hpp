@@ -9,8 +9,10 @@ enum class fm_gpu_debug : char { no_error = -1, on, robust, off };
 enum class fm_tristate : char { maybe = -1, on, off };
 enum class fm_log_level : unsigned char { quiet, normal, verbose, };
 
-struct fm_options final
+struct fm_settings
 {
+    virtual ~fm_settings() noexcept;
+
     Magnum::Math::Vector2<int> resolution{1024, 768};
     Corrade::Containers::String title{"Test"};
     Corrade::Containers::String disabled_extensions; // TODO

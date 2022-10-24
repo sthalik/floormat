@@ -18,7 +18,7 @@ void floormat::drawEvent()
 
         _frame_time = _frame_time*(1-alpha) + alpha*dt;
     }
-    else
+    elseś
     {
         swapBuffers();
         timeline.nextFrame();

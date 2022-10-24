@@ -3,6 +3,7 @@
 #include "src/tile-atlas.hpp"
 #include "main/floormat-events.hpp"
 #include "main/floormat-main.hpp"
+#include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
 
@@ -52,8 +53,8 @@ void app::update(float dt)
 {
     do_camera(dt);
     draw_ui();
-    if (keys[key::quit])
-        Platform::Sdl2Application::exit(0);
+    if (_keys[key::quit])
+        M->quit(0);
 }
 
 } // namespace floormat

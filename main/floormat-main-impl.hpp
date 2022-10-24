@@ -17,7 +17,7 @@ struct floormat_app;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
-    main_impl(floormat_app& app, fm_options opts) noexcept;
+    main_impl(floormat_app& app, fm_settings opts) noexcept;
     ~main_impl() noexcept override;
 
     int exec() override;
@@ -30,6 +30,9 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     struct world& world() noexcept override;
     SDL_Window* window() noexcept override;
+
+    fm_settings& settings() noexcept;
+    const fm_settings& settings() const noexcept;
 
     global_coords pixel_to_tile(Vector2d position) const noexcept override;
 
@@ -52,13 +55,13 @@ private:
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     Magnum::Timeline timeline;
-    fm_options s;
+    fm_settings s;
     int fake_argc = 1;
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 
 #ifdef FM_MSAA
-    GL::Framebuffer _msaa_framebuffer{{{}, windowSize()}};
+    GL::Framebuffer _msaa_framebuffer{{{}, window_size()}};
     GL::Renderbuffer _msaa_renderbuffer{};
 #endif
 
@@ -72,9 +75,9 @@ private:
     static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                                 GL::DebugOutput::Severity severity, const std::string& str, const void* self);
 
-    static Configuration make_conf(const fm_options& s);
-    static GLConfiguration make_gl_conf(const fm_options& s);
-    static Configuration::WindowFlags make_window_flags(const fm_options& s);
+    static Configuration make_conf(const fm_settings& s);
+    static GLConfiguration make_gl_conf(const fm_settings& s);
+    static Configuration::WindowFlags make_window_flags(const fm_settings& s);
 };
 
 } // namespace floormat

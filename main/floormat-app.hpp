@@ -13,6 +13,9 @@ struct text_input_event;
 struct text_editing_event;
 struct any_event;
 
+struct chunk_coords;
+struct chunk;
+
 struct floormat_app
 {
     floormat_app() noexcept;
@@ -22,6 +25,7 @@ struct floormat_app
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_app);
 
     virtual void update(float dt) = 0;
+    virtual void maybe_init_chunk(const chunk_coords& pos, chunk& c) = 0;
     virtual void draw_msaa();
     virtual void draw() = 0;
 

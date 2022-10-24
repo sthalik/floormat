@@ -8,6 +8,7 @@
 
 namespace floormat {
 
+// todo remove shared_ptr
 struct chunk;
 
 struct world final

@@ -36,6 +36,7 @@ struct app final : floormat_app
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
 
     void update(float dt) override;
+    void maybe_init_chunk(const chunk_coords& pos, chunk& c) override;
     void draw_msaa() override;
     void draw() override;
 
@@ -51,6 +52,10 @@ struct app final : floormat_app
     void on_focus_out() noexcept override;
     void on_mouse_leave() noexcept override;
     void on_mouse_enter() noexcept override;
+
+    int exec();
+
+    static int run_from_argv(int argv, const char* const* argc);
 
 private:
     using tile_atlas_ = std::shared_ptr<tile_atlas>;
@@ -68,7 +73,7 @@ private:
     void do_mouse_release(int button);
     void do_mouse_move(global_coords pos);
 
-    void do_camera(double dt);
+    void do_camera(float dt);
     void reset_camera_offset();
     void recalc_cursor_tile();
     void init_imgui(Vector2i size);

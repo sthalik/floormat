@@ -18,7 +18,7 @@ main_impl::~main_impl() noexcept = default;
 
 static const char* const fm_fake_argv[] = { "floormat", nullptr };
 
-auto main_impl::make_window_flags(const fm_options& s) -> Configuration::WindowFlags
+auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::WindowFlags
 {
     using flag = Configuration::WindowFlag;
     Configuration::WindowFlags flags{};
@@ -35,7 +35,7 @@ auto main_impl::make_window_flags(const fm_options& s) -> Configuration::WindowF
     return flags;
 }
 
-auto main_impl::make_conf(const fm_options& s) -> Configuration
+auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
     switch (s.log_level)
     {
@@ -55,7 +55,7 @@ auto main_impl::make_conf(const fm_options& s) -> Configuration
         .setWindowFlags(make_window_flags(s));
 }
 
-auto main_impl::make_gl_conf(const fm_options& s) -> GLConfiguration
+auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     using f = GLConfiguration::Flag;
@@ -82,7 +82,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
 }
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-main_impl::main_impl(floormat_app& app, fm_options s) noexcept :
+main_impl::main_impl(floormat_app& app, fm_settings s) noexcept :
     Platform::Sdl2Application{Arguments{fake_argc, fm_fake_argv},
                               make_conf(s), make_gl_conf(s)},
     app{app}, s{std::move(s)}
@@ -143,10 +143,8 @@ void main_impl::draw_world() noexcept
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-#if 0
             if (const chunk_coords c = {x, y}; !_world.contains(c))
-                make_test_chunk(*_world[c]);
-#endif
+                app.maybe_init_chunk(c, *_world[c]);
             const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
             _floor_mesh.draw(_shader, *_world[c]);
@@ -202,31 +200,17 @@ void main_impl::drawEvent()
     timeline.nextFrame();
 }
 
-void main_impl::quit(int status)
-{
-    Platform::Sdl2Application::exit(status);
-}
-
-int main_impl::exec()
-{
-    return Sdl2Application::exec();
-}
-
-struct world& main_impl::world() noexcept
-{
-    return _world;
-}
-
-SDL_Window* main_impl::window() noexcept
-{
-    return Sdl2Application::window();
-}
-
+void main_impl::quit(int status) { Platform::Sdl2Application::exit(status); }
+int main_impl::exec() { return Sdl2Application::exec(); }
+struct world& main_impl::world() noexcept { return _world; }
+SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
+fm_settings& main_impl::settings() noexcept { return s; }
+const fm_settings& main_impl::settings() const noexcept { return s; }
 Vector2i main_impl::window_size() const noexcept { return windowSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 const tile_shader& main_impl::shader() const noexcept { return _shader; }
 
-floormat_main* floormat_main::create(floormat_app& app, const fm_options& options)
+floormat_main* floormat_main::create(floormat_app& app, const fm_settings& options)
 {
     auto* ret = new main_impl(app, options);
     fm_assert(ret);
