@@ -7,7 +7,7 @@
 
 namespace floormat {
 
-tile_atlas::tile_atlas(Containers::StringView name, const ImageView2D& image, Vector2ub tile_count) :
+tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile_count) :
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
     name_{name}, size_{image.size()}, dims_{tile_count}
 {

@@ -15,7 +15,7 @@ namespace floormat {
 
 static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
 
-tile_editor::tile_editor(editor_mode mode, Containers::StringView name) : _name{ name}, _mode{ mode}
+tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mode{ mode}
 {
     load_atlases();
 }
@@ -25,7 +25,7 @@ void tile_editor::load_atlases()
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     for (auto& atlas : json_helper::from_json<atlas_array>(image_path/(_name + ".json")))
     {
-        Containers::StringView name = atlas->name();
+        StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)
             name = name.prefix(x.data());
         auto& [_, vec] = _permutation;
@@ -34,11 +34,11 @@ void tile_editor::load_atlases()
     }
 }
 
-std::shared_ptr<tile_atlas> tile_editor::maybe_atlas(Containers::StringView str)
+std::shared_ptr<tile_atlas> tile_editor::maybe_atlas(StringView str)
 {
     auto it = std::find_if(_atlases.begin(), _atlases.end(), [&](const auto& tuple) -> bool {
         const auto& [x, _] = tuple;
-        return Containers::StringView{x} == str;
+        return StringView{x} == str;
     });
     if (it == _atlases.end())
         return nullptr;
@@ -46,7 +46,7 @@ std::shared_ptr<tile_atlas> tile_editor::maybe_atlas(Containers::StringView str)
         return it->second;
 }
 
-std::shared_ptr<tile_atlas> tile_editor::atlas(Containers::StringView str)
+std::shared_ptr<tile_atlas> tile_editor::atlas(StringView str)
 {
     if (auto ptr = maybe_atlas(str); ptr)
         return ptr;

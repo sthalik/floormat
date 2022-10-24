@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <utility>
 #include <optional>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StringStlView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
@@ -20,6 +18,8 @@
 #ifdef __GNUG__
 #pragma GCC diagnostic ignored "-Walloca"
 #endif
+
+using StringView = Corrade::Containers::StringView;
 
 namespace floormat {
 
@@ -36,9 +36,9 @@ struct loader_impl final : loader_
 
     std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> atlas_map;
 
-    std::string shader(Containers::StringView filename) override;
-    Trade::ImageData2D tile_texture(Containers::StringView filename) override;
-    std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2ub size) override;
+    StringView shader(StringView filename) override;
+    Trade::ImageData2D tile_texture(StringView filename) override;
+    std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
 
     static void set_application_working_directory();
 
@@ -46,7 +46,7 @@ struct loader_impl final : loader_
     ~loader_impl() override;
 };
 
-std::string loader_impl::shader(Containers::StringView filename)
+StringView loader_impl::shader(StringView filename)
 {
     if (!shader_res)
         shader_res = std::make_optional<Utility::Resource>("floormat/shaders");
@@ -56,11 +56,11 @@ std::string loader_impl::shader(Containers::StringView filename)
     return ret;
 }
 
-std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name, Vector2ub size)
+std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size)
 {
     auto it = std::find_if(atlas_map.begin(), atlas_map.end(), [&](const auto& x) {
         const auto& [k, v] = x;
-        return Containers::StringView{k} == name;
+        return StringView{k} == name;
     });
     if (it != atlas_map.end())
         return it->second;
@@ -70,7 +70,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(Containers::StringView name,
     return atlas;
 }
 
-Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
+Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
 {
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
     fm_assert(filename_.size() < 4096);
@@ -86,7 +86,7 @@ Trade::ImageData2D loader_impl::tile_texture(Containers::StringView filename_)
         return off + filename_.size();
     );
 
-    for (const auto& extension : std::initializer_list<Containers::StringView>{ ".tga", ".png", ".webp", })
+    for (const auto& extension : std::initializer_list<StringView>{ ".tga", ".png", ".webp", })
     {
         std::memcpy(filename + len, extension.data(), extension.size());
         filename[len + extension.size()] = '\0';

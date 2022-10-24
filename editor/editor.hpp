@@ -22,14 +22,14 @@ struct world;
 
 struct tile_editor final
 {
-    tile_editor(editor_mode mode, Containers::StringView name);
-    std::shared_ptr<tile_atlas> maybe_atlas(Containers::StringView str);
-    std::shared_ptr<tile_atlas> atlas(Containers::StringView str);
+    tile_editor(editor_mode mode, StringView name);
+    std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
+    std::shared_ptr<tile_atlas> atlas(StringView str);
     auto cbegin() const { return _atlases.cbegin(); }
     auto cend() const { return _atlases.cend(); }
     auto begin() const { return _atlases.cbegin(); }
     auto end() const { return _atlases.cend(); }
-    Containers::StringView name() const { return _name; }
+    StringView name() const { return _name; }
     editor_mode mode() const { return _mode; }
 
     void clear_selection();

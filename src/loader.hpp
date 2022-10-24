@@ -15,7 +15,7 @@ struct tile_atlas;
 
 struct loader_
 {
-    virtual std::string shader(Containers::StringView filename) = 0;
+    virtual StringView shader(Containers::StringView filename) = 0;
     virtual Trade::ImageData2D tile_texture(Containers::StringView filename) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(Containers::StringView filename, Vector2ub size) = 0;
     static void destroy();

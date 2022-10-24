@@ -17,8 +17,8 @@ concept traits = requires (const T& x) {
     {T::num_vertices} -> std::convertible_to<std::size_t>;
     {T::num_indexes} -> std::convertible_to<std::size_t>;
     {x.primitive} -> std::convertible_to<GL::MeshPrimitive>;
-    {x.make_vertex_array() } -> std::convertible_to<Containers::ArrayView<const void>>;
-    {T::make_index_array() } -> std::convertible_to<Containers::ArrayView<const void>>;
+    {x.make_vertex_array() } -> std::convertible_to<ArrayView<const void>>;
+    {T::make_index_array() } -> std::convertible_to<ArrayView<const void>>;
     {x.on_draw()} -> std::same_as<void>;
 };
 
@@ -29,10 +29,10 @@ struct mesh_base
     GL::Texture2D _texture = make_constant_texture();
     GL::Mesh _mesh;
 
-    mesh_base(GL::MeshPrimitive primitive, Containers::ArrayView<const void> index_data,
+    mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
               std::size_t num_vertices, std::size_t num_indexes);
     void draw(tile_shader& shader);
-    void set_subdata(Containers::ArrayView<const void> array);
+    void set_subdata(ArrayView<const void> array);
 };
 
 } // namespace wireframe

@@ -17,7 +17,7 @@ struct quad final
 
     using vertex_array = std::array<Vector3, num_vertices>;
 
-    static Containers::ArrayView<const void> make_index_array() { return {}; }
+    static ArrayView<const void> make_index_array() { return {}; }
     vertex_array make_vertex_array() const;
     void on_draw() const;
 

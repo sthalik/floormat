@@ -18,7 +18,7 @@ void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     app.on_mouse_up_down({event.position(),
                           (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                          mouse_button(event.button()),
+                          mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
                           std::uint8_t(std::min(255, event.clickCount()))},
                          true);
 }
@@ -27,7 +27,7 @@ void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     app.on_mouse_up_down({event.position(),
                           (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                          mouse_button(event.button()),
+                          mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
                           std::uint8_t(std::min(255, event.clickCount()))},
                          false);
 }

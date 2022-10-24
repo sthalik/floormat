@@ -1,8 +1,8 @@
 #pragma once
+#include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/Texture.h>
 #include <array>
-#include <string>
 #include <memory>
 
 namespace std::filesystem { class path; }
@@ -14,7 +14,7 @@ struct tile_atlas final
     using quad = std::array<Vector3, 4>;
     using texcoords = std::array<Vector2, 4>;
 
-    tile_atlas(Containers::StringView name, const ImageView2D& img, Vector2ub tile_count);
+    tile_atlas(StringView name, const ImageView2D& img, Vector2ub tile_count);
 
     texcoords texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
@@ -25,7 +25,7 @@ struct tile_atlas final
     std::size_t num_tiles() const { return Vector2ui{dims_}.product(); }
     Vector2ub num_tiles2() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
-    Containers::StringView name() const { return name_; }
+    StringView name() const { return name_; }
 
 private:
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
@@ -33,7 +33,7 @@ private:
 
     std::unique_ptr<const texcoords[]> texcoords_;
     GL::Texture2D tex_;
-    std::string name_;
+    String name_;
     Vector2ui size_;
     Vector2ub dims_;
 };
