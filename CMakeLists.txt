@@ -109,12 +109,10 @@ endif()
 
 add_subdirectory(external)
 
-if(NOT FLOORMAT_PRECOMPILED-HEADERS)
-    if(MSVC)
-        add_definitions(/FI"compat/prelude.hpp")
-    else()
-        add_definitions(-include compat/prelude.hpp)
-    endif()
+if(MSVC)
+    add_definitions(/FI"compat/prelude.hpp")
+else()
+    add_definitions(-include compat/prelude.hpp)
 endif()
 
 add_definitions(
