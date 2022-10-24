@@ -34,7 +34,6 @@ struct chunk final
     chunk& operator=(chunk&&) = default;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(chunk);
-    fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(chunk);
 
 private:
     std::array<tile, TILE_COUNT> _tiles = {};

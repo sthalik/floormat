@@ -6,6 +6,8 @@
 #include <Corrade/Utility/DebugStl.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 
+#if 0
+
 #ifdef FM_MSAA
 #include <Magnum/GL/RenderbufferFormat.h>
 #endif
@@ -108,4 +110,6 @@ extern "C" int __stdcall WinMain(void*, void*, void*, int)
 #ifdef __clang__
 #    pragma clang diagnostic pop
 #endif
+#endif
+
 #endif

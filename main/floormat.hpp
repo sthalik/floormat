@@ -25,7 +25,7 @@ struct fm_settings
                  fullscreen_desktop : 1 = false,
                  borderless         : 1 = false,
                  maximized          : 1 = false,
-                 msaa               : 1 = true; // TODO
+                 msaa               : 1 = true;
 };
 
 } // namespace floormat

@@ -232,7 +232,7 @@ void app::draw_cursor_tile()
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 
-    ImGui::SetNextWindowPos({window_size[0]/2 - size.x/2, 3});
+    ImGui::SetNextWindowPos({window_size[0]*.5f - size.x/2, 3});
     ImGui::SetNextWindowSize(size);
     if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;

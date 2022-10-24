@@ -1,4 +1,3 @@
-#pragma once
 #include "floormat-main-impl.hpp"
 #include "floormat-app.hpp"
 #include "floormat-events.hpp"
@@ -63,7 +62,7 @@ void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
     app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
                         (SDL_Keymod)(std::uint16_t)event.modifiers(),
                         event.isRepeated()},
-                       true)
+                       true);
 }
 
 void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
@@ -71,7 +70,7 @@ void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
     app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
                         (SDL_Keymod)(std::uint16_t)event.modifiers(),
                         event.isRepeated()},
-                       false)
+                       false);
 }
 
 void main_impl::anyEvent(SDL_Event& event)

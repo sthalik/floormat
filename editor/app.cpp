@@ -62,16 +62,35 @@ static bool parse_bool(StringView name, StringView str, bool def)
 
 int app::run_from_argv(const int argc, const char* const* const argv)
 {
-    fm_options opts;
+    fm_settings opts;
     {
         Corrade::Utility::Arguments args{};
-        args.addOption("vsync", "default")
-            .addOption("gpu-validation", "true")
+        args.addOption("vsync", "m")
+            .addOption("gpu-validation", "1")
+            .addOption("msaa", "1")
             .parse(argc, argv);
         opts.vsync = parse_tristate("--vsync", args.value<StringView>("vsync"), opts.vsync);
+        opts.msaa  = parse_bool("--msaa", args.value<StringView>("msaaa"), opts.msaa);
     }
     app application;
     return application.exec();
 }
+
+#ifdef _MSC_VER
+#include <cstdlib> // for __arg{c,v}
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wmain"
+#endif
+extern "C" int __stdcall WinMain(void*, void*, void*, int);
+
+extern "C" int __stdcall WinMain(void*, void*, void*, int)
+{
+    return main(__argc, __argv);
+}
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
+#endif
 
 } // namespace floormat
