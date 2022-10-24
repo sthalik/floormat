@@ -12,4 +12,8 @@ endif()
 add_executable(${self} "${sources}" "${res}" "../loader/loader-impl.cpp")
 target_link_libraries(${self} ${PROJECT_NAME}-main)
 
+if(FLOORMAT_PRECOMPILED-HEADERS)
+    target_precompile_headers(${self} PRIVATE precomp.hpp)
+endif()
+
 install(TARGETS ${self} RUNTIME DESTINATION bin)

@@ -2,7 +2,6 @@
 #include "src/chunk.hpp"
 #include "main/floormat-events.hpp"
 #include "main/floormat-main.hpp"
-#include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
 

@@ -1,9 +1,12 @@
 #include "app.hpp"
+
 #include "main/floormat-main.hpp"
 #include "main/floormat-events.hpp"
 #include "src/world.hpp"
-#include <Magnum/Platform/Sdl2Application.h>
+
 #include <utility>
+
+#include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 
 namespace floormat {
