@@ -103,7 +103,6 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
     }
     set_fp_mask();
     fm_assert(framebufferSize() == windowSize());
-    recalc_viewport(windowSize());
     timeline.start();
 }
 
@@ -202,7 +201,6 @@ void main_impl::drawEvent()
 }
 
 void main_impl::quit(int status) { Platform::Sdl2Application::exit(status); }
-int main_impl::exec() { return Sdl2Application::exec(); }
 struct world& main_impl::world() noexcept { return _world; }
 SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
 fm_settings& main_impl::settings() noexcept { return s; }
@@ -213,6 +211,12 @@ const tile_shader& main_impl::shader() const noexcept { return _shader; }
 bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
 void main_impl::start_text_input() noexcept { startTextInput(); }
 void main_impl::stop_text_input() noexcept { stopTextInput(); }
+
+int main_impl::exec()
+{
+    recalc_viewport(windowSize());
+    return Sdl2Application::exec();
+}
 
 floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
 {

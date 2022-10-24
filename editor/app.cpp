@@ -8,7 +8,7 @@
 namespace floormat {
 
 app::app() :
-    M{ floormat_main::create(*this, {})},
+    M{floormat_main::create(*this, {})},
     _floor1{loader.tile_atlas("floor-tiles", {44, 4})},
     _floor2{loader.tile_atlas("metal1", {2, 2})},
     _wall1{loader.tile_atlas("wood2", {1, 1})},
@@ -18,7 +18,6 @@ app::app() :
 
 app::~app()
 {
-    loader_::destroy();
 }
 
 int app::exec()
@@ -84,8 +83,14 @@ int app::run_from_argv(const int argc, const char* const* const argv)
                  }
         }
     }
-    app application;
-    return application.exec();
+
+    int ret;
+    {
+        app application;
+        ret = application.exec();
+    }
+    loader_::destroy();
+    return ret;
 }
 
 #ifdef _MSC_VER

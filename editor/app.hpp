@@ -74,8 +74,12 @@ private:
     void do_camera(float dt);
     void reset_camera_offset();
     void recalc_cursor_tile();
-    void init_imgui(Vector2i size);
 
+    void draw_cursor_tile();
+    void draw_wireframe_quad(global_coords pt);
+    void draw_wireframe_box(global_coords pt);
+
+    void init_imgui(Vector2i size);
     void draw_ui();
     float draw_main_menu();
     void draw_fps();
@@ -84,14 +88,9 @@ private:
 
     void draw_editor_pane(tile_editor& type, float main_menu_height);
 
-    void draw_cursor_tile();
-
-    void draw_wireframe_quad(global_coords pt);
-    void draw_wireframe_box(global_coords pt);
-
     Containers::Pointer<floormat_main> M;
-    std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
     ImGuiIntegration::Context _imgui{NoCreate};
+    std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
     wireframe_mesh<wireframe::quad> _wireframe_quad;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;

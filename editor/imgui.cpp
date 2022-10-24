@@ -2,7 +2,6 @@
 #include "main/floormat-main.hpp"
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
-#include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
