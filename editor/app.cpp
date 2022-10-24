@@ -95,6 +95,13 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     return ret;
 }
 
+} // namespace floormat
+
+int main(int argc, char** argv)
+{
+    return floormat::app::run_from_argv(argc, argv);
+}
+
 #ifdef _MSC_VER
 #include <cstdlib> // for __arg{c,v}
 #ifdef __clang__
@@ -111,10 +118,3 @@ extern "C" int __stdcall WinMain(void*, void*, void*, int)
 #    pragma clang diagnostic pop
 #endif
 #endif
-
-} // namespace floormat
-
-int main(int argc, char** argv)
-{
-    return floormat::app::run_from_argv(argc, argv);
-}
