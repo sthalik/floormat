@@ -17,7 +17,7 @@ struct floormat_app;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
-    main_impl(floormat_app& app, fm_settings opts) noexcept;
+    explicit main_impl(floormat_app& app, fm_settings&& opts) noexcept;
     ~main_impl() noexcept override;
 
     int exec() override;
@@ -46,7 +46,12 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void keyPressEvent(KeyEvent& event) override;
     [[maybe_unused]] void keyReleaseEvent(KeyEvent& event) override;
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
+    
     void drawEvent() override;
+
+    bool is_text_input_active() const noexcept override;
+    void start_text_input() noexcept override;
+    void stop_text_input() noexcept override;
 
 private:
     floormat_app& app;

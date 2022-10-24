@@ -1,3 +1,4 @@
+#if 0
 #include "app.hpp"
 #include "main/floormat-main.hpp"
 #include "shaders/tile-shader.hpp"
@@ -48,3 +49,5 @@ void app::draw()
 }
 
 } // namespace floormat
+
+#endif

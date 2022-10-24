@@ -66,11 +66,24 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     {
         Corrade::Utility::Arguments args{};
         args.addOption("vsync", "m")
-            .addOption("gpu-validation", "1")
+            .addOption("gpu-validation", "m")
             .addOption("msaa", "1")
             .parse(argc, argv);
         opts.vsync = parse_tristate("--vsync", args.value<StringView>("vsync"), opts.vsync);
-        opts.msaa  = parse_bool("--msaa", args.value<StringView>("msaaa"), opts.msaa);
+        opts.msaa  = parse_bool("--msaa", args.value<StringView>("msaa"), opts.msaa);
+        {
+            auto str = args.value<StringView>("gpu-validation");
+            if (str == "no-error" || str == "NO-ERROR")
+                opts.gpu_debug = fm_gpu_debug::no_error;
+            else if (str == "robust" || str == "robust")
+                opts.gpu_debug = fm_gpu_debug::robust;
+            else switch (parse_tristate("--gpu-validation", args.value<StringView>("gpu-validation"), fm_tristate::maybe))
+                 {
+                 default:
+                 case fm_tristate::on: opts.gpu_debug = fm_gpu_debug::on; break;
+                 case fm_tristate::off: opts.gpu_debug = fm_gpu_debug::off; break;
+                 }
+        }
     }
     app application;
     return application.exec();
@@ -94,3 +107,8 @@ extern "C" int __stdcall WinMain(void*, void*, void*, int)
 #endif
 
 } // namespace floormat
+
+int main(int argc, char** argv)
+{
+    return floormat::app::run_from_argv(argc, argv);
+}

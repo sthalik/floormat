@@ -18,7 +18,7 @@ struct chunk;
 
 struct floormat_app
 {
-    floormat_app() noexcept;
+    explicit floormat_app() noexcept;
     virtual ~floormat_app() noexcept;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_app);

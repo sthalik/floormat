@@ -65,6 +65,7 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
         flags |= f::RobustAccess;
     else if (s.gpu_debug == fm_gpu_debug::no_error)
         flags |= f::NoError;
+    return GLConfiguration{}.setFlags(flags);
 }
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
@@ -82,7 +83,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
 }
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-main_impl::main_impl(floormat_app& app, fm_settings s) noexcept :
+main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
     Platform::Sdl2Application{Arguments{fake_argc, fm_fake_argv},
                               make_conf(s), make_gl_conf(s)},
     app{app}, s{std::move(s)}
@@ -209,10 +210,13 @@ const fm_settings& main_impl::settings() const noexcept { return s; }
 Vector2i main_impl::window_size() const noexcept { return windowSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 const tile_shader& main_impl::shader() const noexcept { return _shader; }
+bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
+void main_impl::start_text_input() noexcept { startTextInput(); }
+void main_impl::stop_text_input() noexcept { stopTextInput(); }
 
-floormat_main* floormat_main::create(floormat_app& app, const fm_settings& options)
+floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
 {
-    auto* ret = new main_impl(app, options);
+    auto* ret = new main_impl(app, std::move(options));
     fm_assert(ret);
     return ret;
 }

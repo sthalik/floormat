@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/defs.hpp"
 #include <cstdint>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
@@ -11,7 +12,10 @@ enum class fm_log_level : unsigned char { quiet, normal, verbose, };
 
 struct fm_settings
 {
+    inline fm_settings() noexcept = default;
     virtual ~fm_settings() noexcept;
+    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(fm_settings);
+    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(fm_settings);
 
     Magnum::Math::Vector2<int> resolution{1024, 768};
     Corrade::Containers::String title{"Test"};

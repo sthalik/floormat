@@ -78,10 +78,9 @@ void app::draw_editor_pane(tile_editor& type, float main_menu_height)
            color_selected{1, 0.843f, 0, .8f},
            color_hover{0, .8f, 1, .7f};
 
-    if (ImGui::GetIO().WantTextInput && !isTextInputActive())
-        startTextInput();
-    else if (!ImGui::GetIO().WantTextInput && isTextInputActive())
-        stopTextInput();
+    if (const bool active = M->is_text_input_active();
+        ImGui::GetIO().WantTextInput != active)
+        active ? M->start_text_input() : M->stop_text_input();
 
     [[maybe_unused]] const raii_wrapper vars[] = {
         push_style_var(ImGuiStyleVar_WindowPadding, {8, 8}),
@@ -126,7 +125,7 @@ void app::draw_editor_pane(tile_editor& type, float main_menu_height)
                         if (ed)
                         {
                             click_event();
-                            if (ed->is_atlas_selected(v))
+                            if (ed->is_atlas_selected(v_))
                             {
                                 ImGui::SameLine();
                                 ImGui::Text(" (selected)");
