@@ -90,7 +90,6 @@ private:
     void draw_wireframe_box(global_coords pt);
 
     Containers::Pointer<floormat_main> M;
-    [[maybe_unused]] void* _dummy;
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
     ImGuiIntegration::Context _imgui{NoCreate};
     wireframe_mesh<wireframe::quad> _wireframe_quad;

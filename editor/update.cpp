@@ -47,7 +47,7 @@ void app::do_mouse_release(int button)
 
 void app::do_mouse_move(global_coords pos)
 {
-    //_editor.on_mouse_move(_world, pos);
+    _editor.on_mouse_move(M->world(), pos);
 }
 
 void app::update(float dt)

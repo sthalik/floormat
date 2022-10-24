@@ -26,7 +26,6 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     Magnum::Math::Vector2<int> window_size() const noexcept override;
     tile_shader& shader() noexcept override;
     const tile_shader& shader() const noexcept override;
-    void* register_debug_callback() noexcept override;
 
     struct world& world() noexcept override;
     SDL_Window* window() noexcept override;
@@ -54,14 +53,14 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void stop_text_input() noexcept override;
 
 private:
+    fm_settings s;
+    char _dummy = maybe_register_debug_callback(s.gpu_debug);
     floormat_app& app;
     tile_shader _shader;
     struct world _world{};
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     Magnum::Timeline timeline;
-    fm_settings s;
-    int fake_argc = 1;
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 
@@ -79,6 +78,8 @@ private:
                         GL::DebugOutput::Severity severity, const std::string& str) const;
     static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
                                 GL::DebugOutput::Severity severity, const std::string& str, const void* self);
+    char maybe_register_debug_callback(fm_gpu_debug flag);
+    void register_debug_callback();
 
     static Configuration make_conf(const fm_settings& s);
     static GLConfiguration make_gl_conf(const fm_settings& s);

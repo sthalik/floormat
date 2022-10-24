@@ -26,7 +26,6 @@ struct floormat_main
     virtual Magnum::Math::Vector2<int> window_size() const noexcept = 0;
     virtual tile_shader& shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
-    virtual void* register_debug_callback() noexcept = 0;
     constexpr float smoothed_dt() const noexcept { return _frame_time; }
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;

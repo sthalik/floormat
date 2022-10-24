@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/defs.hpp"
 
 namespace Magnum::Math { template<typename T> class Vector2; }
 
@@ -21,8 +20,10 @@ struct floormat_app
     explicit floormat_app() noexcept;
     virtual ~floormat_app() noexcept;
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_app);
-    fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_app);
+    floormat_app(const floormat_app&) = delete;
+    floormat_app& operator=(const floormat_app&) = delete;
+    [[deprecated]] floormat_app(floormat_app&&) = default;
+    [[deprecated]] floormat_app& operator=(floormat_app&&) = default;
 
     virtual void update(float dt) = 0;
     virtual void maybe_init_chunk(const chunk_coords& pos, chunk& c) = 0;

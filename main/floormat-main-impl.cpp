@@ -16,8 +16,6 @@ floormat_main::floormat_main() noexcept = default;
 floormat_main::~floormat_main() noexcept = default;
 main_impl::~main_impl() noexcept = default;
 
-static const char* const fm_fake_argv[] = { "floormat", nullptr };
-
 auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::WindowFlags
 {
     using flag = Configuration::WindowFlag;
@@ -82,11 +80,12 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     app.on_viewport_event(size);
 }
 
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
+static int fake_argc = 0;
+
 main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
-    Platform::Sdl2Application{Arguments{fake_argc, fm_fake_argv},
+    Platform::Sdl2Application{Arguments{fake_argc, nullptr},
                               make_conf(s), make_gl_conf(s)},
-    app{app}, s{std::move(s)}
+    s{std::move(s)}, app{app}
 {
     switch (s.vsync) // NOLINT(bugprone-use-after-move)
     {
@@ -95,6 +94,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
         if (const auto list = GL::Context::current().extensionStrings();
             std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
             (void)setSwapInterval(-1);
+        setMinimalLoopPeriod(4);
         break;
     case fm_tristate::off:
         setSwapInterval(0);

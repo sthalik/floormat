@@ -1,6 +1,11 @@
 #pragma once
 
-#ifdef __MSC_VER
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
+
+#ifdef _MSC_VER
 #ifdef _WIN64
 typedef unsigned __int64   size_t;
 typedef __int64            ptrdiff_t;
@@ -51,3 +56,7 @@ using ::uint16_t;
 using ::uint32_t;
 using ::uint64_t;
 } // namespace std
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
