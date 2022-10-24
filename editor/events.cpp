@@ -101,7 +101,7 @@ void app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcep
                                case SDLK_ESCAPE:   return key::quit;
         });
         if (x != key::COUNT)
-            _keys[x] = is_down && !event.is_repeated;
+            _keys[x] = is_down;
     }
     else
         _keys = {};
