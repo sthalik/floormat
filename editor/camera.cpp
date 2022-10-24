@@ -37,7 +37,6 @@ void app::do_camera(float dt)
             camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
             camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
-            Debug{} << "camera" << camera_offset;
             shader.set_camera_offset(camera_offset);
         }
         else

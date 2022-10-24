@@ -3,17 +3,21 @@
 #include "main/floormat-main.hpp"
 #include "main/floormat.hpp"
 #include "src/loader.hpp"
+#include "world.hpp"
 #include <Corrade/Utility/Arguments.h>
 
 namespace floormat {
 
-app::app() :
-    M{floormat_main::create(*this, {})},
+app::app(fm_settings&& opts) :
+    M{floormat_main::create(*this, std::move(opts))},
     _floor1{loader.tile_atlas("floor-tiles", {44, 4})},
     _floor2{loader.tile_atlas("metal1", {2, 2})},
     _wall1{loader.tile_atlas("wood2", {1, 1})},
     _wall2{loader.tile_atlas("wood1", {1, 1})}
 {
+    world& w = M->world();
+    chunk_coords coord{0 ,0};
+    maybe_initialize_chunk_(coord, w[coord]);
 }
 
 app::~app() // NOLINT(modernize-use-equals-default)
@@ -61,33 +65,32 @@ static bool parse_bool(StringView name, StringView str, bool def)
 int app::run_from_argv(const int argc, const char* const* const argv)
 {
     fm_settings opts;
+    Corrade::Utility::Arguments args{};
+    args.addOption("vsync", "m")
+        .addOption("gpu-validation", "m")
+        .addOption("msaa", "1")
+        .parse(argc, argv);
+    opts.vsync = parse_tristate("--vsync", args.value<StringView>("vsync"), opts.vsync);
+    opts.msaa  = parse_bool("--msaa", args.value<StringView>("msaa"), opts.msaa);
     {
-        Corrade::Utility::Arguments args{};
-        args.addOption("vsync", "m")
-            .addOption("gpu-validation", "m")
-            .addOption("msaa", "1")
-            .parse(argc, argv);
-        opts.vsync = parse_tristate("--vsync", args.value<StringView>("vsync"), opts.vsync);
-        opts.msaa  = parse_bool("--msaa", args.value<StringView>("msaa"), opts.msaa);
-        {
-            auto str = args.value<StringView>("gpu-validation");
-            if (str == "no-error" || str == "NO-ERROR")
-                opts.gpu_debug = fm_gpu_debug::no_error;
-            else if (str == "robust" || str == "robust")
-                opts.gpu_debug = fm_gpu_debug::robust;
-            else switch (parse_tristate("--gpu-validation", args.value<StringView>("gpu-validation"), fm_tristate::maybe))
-                 {
-                 default:
-                 case fm_tristate::on: opts.gpu_debug = fm_gpu_debug::on; break;
-                 case fm_tristate::off: opts.gpu_debug = fm_gpu_debug::off; break;
-                 }
-        }
+        auto str = args.value<StringView>("gpu-validation");
+        if (str == "no-error" || str == "NO-ERROR")
+            opts.gpu_debug = fm_gpu_debug::no_error;
+        else if (str == "robust" || str == "robust")
+            opts.gpu_debug = fm_gpu_debug::robust;
+        else switch (parse_tristate("--gpu-validation", args.value<StringView>("gpu-validation"), fm_tristate::maybe))
+             {
+             default:
+             case fm_tristate::on: opts.gpu_debug = fm_gpu_debug::on; break;
+             case fm_tristate::off: opts.gpu_debug = fm_gpu_debug::off; break;
+             }
     }
+    opts.vsync = parse_tristate("--vsync", args.value<StringView>("vsync"), opts.vsync);
 
     int ret;
     Pointer<floormat_main> ptr;
     {
-        app application;
+        app application{std::move(opts)};
         ret = application.exec();
         ptr = std::move(application.M);
     }

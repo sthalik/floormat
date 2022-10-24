@@ -7,9 +7,9 @@ namespace floormat {
 
 //#define FM_NO_BINDINGS
 
-void app::maybe_init_chunk(const chunk_coords& pos, chunk& c)
+void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 {
-    (void)pos;
+    (void)pos; (void)c;
 
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
@@ -28,6 +28,11 @@ void app::maybe_init_chunk(const chunk_coords& pos, chunk& c)
     c[{K,   K  }].wall_west  = { _wall2, 0 };
     c[{K,   K+1}].wall_north = { _wall1, 0 };
     c[{K+1, K  }].wall_west  = { _wall2, 0 };
+}
+
+void app::maybe_initialize_chunk(const chunk_coords& pos, chunk& c)
+{
+    //maybe_initialize_chunk(pos, c);
 }
 
 void app::do_mouse_click(const global_coords pos, int button)

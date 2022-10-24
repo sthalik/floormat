@@ -20,6 +20,7 @@ struct chunk;
 struct floormat_main;
 struct tile_atlas;
 struct tile_editor;
+struct fm_settings;
 
 struct cursor_state final {
     std::optional<Vector2i> pixel;
@@ -29,14 +30,14 @@ struct cursor_state final {
 
 struct app final : floormat_app
 {
-    app();
+    app(fm_settings&& opts);
     ~app() override;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
 
     void update(float dt) override;
-    void maybe_init_chunk(const chunk_coords& pos, chunk& c) override;
+    void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void draw_msaa() override;
     void draw() override;
 
@@ -66,6 +67,8 @@ private:
         quit,
         MAX = quit, COUNT
     };
+
+    void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
     void do_mouse_click(global_coords pos, int button);
     void do_mouse_release(int button);

@@ -2,13 +2,13 @@
 #include "compat/int-hash.hpp"
 #include "global-coords.hpp"
 #include "tile.hpp"
+#include "chunk.hpp"
 #include <unordered_map>
 #include <memory>
 #include <optional>
 
 namespace floormat {
 
-// todo remove shared_ptr
 struct chunk;
 
 struct world final
@@ -22,18 +22,18 @@ private:
         return int_hash((std::size_t)c.y << 16 | (std::size_t)c.x);
     };
 
-    std::unordered_map<chunk_coords, std::shared_ptr<chunk>, decltype(hasher)> _chunks{initial_capacity, hasher};
-    mutable std::optional<std::tuple<std::shared_ptr<chunk>, chunk_coords>> _last_chunk;
+    std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks{initial_capacity, hasher};
+    mutable std::tuple<chunk*, chunk_coords>_last_chunk;
     std::size_t _last_collection = 0;
 
 public:
     explicit world();
 
     template<typename Hash, typename Alloc, typename Pred>
-    explicit world(std::unordered_map<chunk_coords, std::shared_ptr<chunk>, Hash, Alloc, Pred>&& chunks);
+    explicit world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks);
 
-    std::shared_ptr<chunk> operator[](chunk_coords c) noexcept;
-    std::tuple<std::shared_ptr<chunk>, tile&> operator[](global_coords pt) noexcept;
+    chunk& operator[](chunk_coords c) noexcept;
+    std::tuple<chunk&, tile&> operator[](global_coords pt) noexcept;
     bool contains(chunk_coords c) const noexcept;
     void clear();
     void collect();
@@ -45,10 +45,11 @@ public:
 };
 
 template<typename Hash, typename Alloc, typename Pred>
-world::world(std::unordered_map<chunk_coords, std::shared_ptr<chunk>, Hash, Alloc, Pred>&& chunks) :
-    _chunks{chunks.begin(), chunks.end(),
-            std::max(initial_capacity, std::size_t(1/max_load_factor * 2 * chunks.size())),
-            hasher}
-{}
+world::world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks) :
+    _chunks{std::max(initial_capacity, std::size_t(1/max_load_factor * 2 * chunks.size())), hasher}
+{
+    for (auto&& [coord, c] : chunks)
+        operator[](coord) = std::move(c);
+}
 
 } // namespace floormat

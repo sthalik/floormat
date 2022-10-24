@@ -143,10 +143,10 @@ void main_impl::draw_world() noexcept
         for (std::int16_t x = minx; x <= maxx; x++)
         {
             if (const chunk_coords c = {x, y}; !_world.contains(c))
-                app.maybe_init_chunk(c, *_world[c]);
+                app.maybe_initialize_chunk(c, _world[c]);
             const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
-            _floor_mesh.draw(_shader, *_world[c]);
+            _floor_mesh.draw(_shader, _world[c]);
         }
 
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -154,7 +154,7 @@ void main_impl::draw_world() noexcept
         {
             const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
-            _wall_mesh.draw(_shader, *_world[c]);
+            _wall_mesh.draw(_shader, _world[c]);
         }
 }
 

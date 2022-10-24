@@ -2,9 +2,9 @@
 
 namespace floormat {
 
-bool chunk::empty() const
+bool chunk::empty(bool force) const noexcept
 {
-    if (!_maybe_empty)
+    if (!force && !_maybe_empty)
         return false;
 
     for (const tile& x : _tiles)

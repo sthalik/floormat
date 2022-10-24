@@ -26,7 +26,7 @@ struct floormat_app
     [[deprecated]] floormat_app& operator=(floormat_app&&) = default;
 
     virtual void update(float dt) = 0;
-    virtual void maybe_init_chunk(const chunk_coords& pos, chunk& c) = 0;
+    virtual void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) = 0;
     virtual void draw_msaa();
     virtual void draw() = 0;
 
