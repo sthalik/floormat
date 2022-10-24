@@ -67,8 +67,6 @@ private:
         MAX = quit, COUNT
     };
 
-    void make_test_chunk(chunk& c);
-
     void do_mouse_click(global_coords pos, int button);
     void do_mouse_release(int button);
     void do_mouse_move(global_coords pos);
@@ -80,10 +78,13 @@ private:
 
     void draw_ui();
     float draw_main_menu();
-    void draw_editor_pane(tile_editor& type, float main_menu_height);
     void draw_fps();
-    void draw_cursor_tile();
+    void draw_cursor_tile_coord();
     void render_menu();
+
+    void draw_editor_pane(tile_editor& type, float main_menu_height);
+
+    void draw_cursor_tile();
 
     void draw_wireframe_quad(global_coords pt);
     void draw_wireframe_box(global_coords pt);

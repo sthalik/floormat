@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "src/chunk.hpp"
-#include "src/tile-atlas.hpp"
 #include "main/floormat-events.hpp"
 #include "main/floormat-main.hpp"
 #include <Magnum/Platform/Sdl2Application.h>
@@ -9,8 +8,10 @@ namespace floormat {
 
 //#define FM_NO_BINDINGS
 
-void app::make_test_chunk(chunk& c)
+void app::maybe_init_chunk(const chunk_coords& pos, chunk& c)
 {
+    (void)pos;
+
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
 #if defined FM_NO_BINDINGS

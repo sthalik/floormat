@@ -211,7 +211,7 @@ void app::draw_fps()
     }
 }
 
-void app::draw_cursor_tile()
+void app::draw_cursor_tile_coord()
 {
     if (!cursor.tile)
         return;

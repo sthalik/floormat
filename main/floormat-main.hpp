@@ -1,6 +1,5 @@
 #pragma once
 
-#include "floormat.hpp"
 #include "src/global-coords.hpp"
 #include <Magnum/Math/Vector2.h>
 
@@ -8,6 +7,7 @@ struct SDL_Window;
 
 namespace floormat {
 
+struct fm_settings;
 struct floormat_app;
 struct tile_shader;
 struct world;
