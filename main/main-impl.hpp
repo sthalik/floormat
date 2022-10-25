@@ -51,6 +51,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
     
     void drawEvent() override;
+    void update_from_window_flags();
 
     bool is_text_input_active() const noexcept override;
     void start_text_input() noexcept override;
@@ -60,13 +61,18 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
 private:
     fm_settings s;
-    char _dummy = maybe_register_debug_callback(s.gpu_debug);
-    floormat_app& app;
+    [[maybe_unused]] char _dummy = maybe_register_debug_callback(s.gpu_debug);
+    floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
     struct world _world{};
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     Magnum::Timeline timeline;
+    struct {
+        float value = 1e-1f;
+        float jitter = 0;
+        bool do_sleep = true;
+    } dt_expected;
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 

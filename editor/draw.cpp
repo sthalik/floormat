@@ -51,7 +51,7 @@ void app::draw()
         GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false); // nvidia krap
     render_menu();
     if (debug)
-        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, true); // nvidia krap
+        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, true);  // nvidia krap
 }
 
 } // namespace floormat

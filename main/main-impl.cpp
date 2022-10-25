@@ -6,7 +6,8 @@
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
-#include <cstdlib>
+#include <chrono>
+#include <thread>
 
 //#define FM_SKIP_MSAA
 
@@ -90,7 +91,6 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcep
         if (const auto list = GL::Context::current().extensionStrings();
             std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
             (void)setSwapInterval(-1);
-        setMinimalLoopPeriod(0);
         break;
     case fm_tristate::off:
         setSwapInterval(0);
@@ -155,14 +155,41 @@ void main_impl::draw_world() noexcept
         }
 }
 
+void main_impl::update_from_window_flags()
+{
+    const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
+
+    dt_expected.do_sleep = true;
+    if (flags & SDL_WINDOW_HIDDEN)
+        dt_expected.value = 1;
+    else if (!(flags & SDL_WINDOW_INPUT_FOCUS))
+        dt_expected.value = 1.f / 30;
+#if 1
+    else if (!(flags & SDL_WINDOW_MOUSE_FOCUS))
+        dt_expected.value = 1.f / 60;
+#endif
+    else
+    {
+        dt_expected.do_sleep = false;
+        dt_expected.value = 1e-1f;
+    }
+}
+
 void main_impl::drawEvent()
 {
-    if (const float dt = timeline.previousFrameDuration(); dt > 0)
+    float dt = timeline.previousFrameDuration();
+    if (dt > 0)
     {
-        constexpr float RC = 0.1f;
-        const float alpha = dt/(dt + RC);
+        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/15,
+                    RC2 = dt_expected.do_sleep ? 1.f/15 : 1.f/60;
+        const float alpha1 = dt/(dt + RC1);
+        const float alpha2 = dt/(dt + RC2);
 
-        _frame_time = _frame_time*(1-alpha) + alpha*dt;
+        _frame_time1 = _frame_time1*(1-alpha1) + alpha1*dt;
+        _frame_time2 = _frame_time1*(1-alpha2) + alpha2*dt;
+        constexpr float max_deviation = 5 * 1e-3f;
+        if (std::fabs(_frame_time1 - _frame_time2) > max_deviation)
+            _frame_time1 = _frame_time2;
     }
     else
     {
@@ -170,33 +197,9 @@ void main_impl::drawEvent()
         timeline.nextFrame();
     }
 
-    {
-        float dt_max;
-        unsigned min_loop_period;
+    dt = std::clamp(dt, 1e-5f, dt_expected.value);
 
-        if (const auto flags = SDL_GetWindowFlags(window());
-            flags & SDL_WINDOW_HIDDEN)
-        {
-            dt_max = 1 + 1e-3f;
-            min_loop_period = 1000;
-        }
-        else if (!(flags & (SDL_WINDOW_INPUT_FOCUS|SDL_WINDOW_MOUSE_FOCUS)))
-        {
-            dt_max = 1.f/10;
-            min_loop_period = 1000/12;
-        }
-        else
-        {
-            dt_max = 1e-1f;
-            min_loop_period = 0;
-        }
-
-        const float dt = std::clamp(timeline.previousFrameDuration(), 1e-6f, dt_max);
-        setMinimalLoopPeriod(min_loop_period);
-
-        app.update(dt);
-    }
-
+    app.update(dt);
     _shader.set_tint({1, 1, 1, 1});
 
     {
@@ -217,6 +220,18 @@ void main_impl::drawEvent()
 
     swapBuffers();
     redraw();
+
+    if (dt_expected.do_sleep)
+    {
+        constexpr float jitter_max_seconds = 1 + 1e-3f;
+        const float dt0 = timeline.currentFrameTime(), sleep_secs = dt_expected.value - dt0 - dt_expected.jitter;
+        if (sleep_secs > 0)
+            std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
+        dt_expected.jitter += timeline.currentFrameTime() - dt_expected.value;
+        dt_expected.jitter = std::copysignf(std::fminf(jitter_max_seconds, std::fabsf(dt_expected.jitter)), dt_expected.jitter);
+    }
+    else
+        dt_expected.jitter = 0;
     timeline.nextFrame();
 }
 

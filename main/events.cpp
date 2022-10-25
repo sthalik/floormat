@@ -76,6 +76,8 @@ void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 void main_impl::anyEvent(SDL_Event& event)
 {
     if (event.type == SDL_WINDOWEVENT)
+    {
+        update_from_window_flags();
         switch (event.window.event)
         {
         case SDL_WINDOWEVENT_FOCUS_LOST:
@@ -89,6 +91,7 @@ void main_impl::anyEvent(SDL_Event& event)
         default:
             return app.on_any_event({event});
         }
+    }
     else
         return app.on_any_event({event});
 }

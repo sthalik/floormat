@@ -26,7 +26,7 @@ struct floormat_main
     virtual Magnum::Math::Vector2<int> window_size() const noexcept = 0;
     virtual tile_shader& shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
-    constexpr float smoothed_dt() const noexcept { return _frame_time; }
+    constexpr float smoothed_dt() const noexcept { return _frame_time1; }
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;
 
@@ -42,7 +42,7 @@ struct floormat_main
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
 
 protected:
-    float _frame_time = 0;
+    float _frame_time1 = 0, _frame_time2 = 0;
 };
 
 } // namespace floormat
