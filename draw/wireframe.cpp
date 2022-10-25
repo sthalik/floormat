@@ -1,4 +1,4 @@
-#include "wireframe-mesh.hpp"
+#include "wireframe.hpp"
 #include "shaders/tile-shader.hpp"
 //#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Array.h>

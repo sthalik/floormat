@@ -1,4 +1,4 @@
-#include "wireframe-quad.hpp"
+#include "quad.hpp"
 #include <array>
 #include <Magnum/GL/Renderer.h>
 

@@ -1,4 +1,4 @@
-#include "wireframe-box.hpp"
+#include "box.hpp"
 #include <array>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Renderer.h>

@@ -2,8 +2,8 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
-#include "draw/floor-mesh.hpp"
-#include "draw/wall-mesh.hpp"
+#include "draw/floor.hpp"
+#include "draw/wall.hpp"
 #include "shaders/tile-shader.hpp"
 
 #include <Corrade/Containers/String.h>

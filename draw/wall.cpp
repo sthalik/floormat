@@ -1,4 +1,4 @@
-#include "wall-mesh.hpp"
+#include "wall.hpp"
 #include "tile-atlas.hpp"
 #include "shaders/tile-shader.hpp"
 #include "chunk.hpp"

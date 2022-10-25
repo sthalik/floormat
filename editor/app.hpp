@@ -3,9 +3,9 @@
 #include "compat/enum-bitset.hpp"
 #include "editor.hpp"
 #include "src/global-coords.hpp"
-#include "draw/wireframe-mesh.hpp"
-#include "draw/wireframe-quad.hpp"
-#include "draw/wireframe-box.hpp"
+#include "draw/wireframe.hpp"
+#include "draw/quad.hpp"
+#include "draw/box.hpp"
 #include "floormat/app.hpp"
 
 #include <memory>
