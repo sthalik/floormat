@@ -14,7 +14,10 @@
         if (!std::is_constant_evaluated()) {                            \
             if constexpr (sizeof(pfx) > 1)                              \
                 std::fputs((pfx), stderr);                              \
+            _Pragma( "GCC diagnostic push" )                            \
+            _Pragma( "GCC diagnostic ignored \"-Wdouble-promotion\"" )  \
             std::fprintf(stderr, __VA_ARGS__);                          \
+            _Pragma( "GCC diagnostic pop" )                             \
             std::fputc('\n', stderr);                                   \
             std::fflush(stderr);                                        \
         }                                                               \
