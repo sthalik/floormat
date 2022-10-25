@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
+#include "floormat/settings.hpp"
 #include "shaders/tile.hpp"
 #include <Magnum/GL/DebugOutput.h>
 
@@ -45,7 +46,12 @@ void app::draw_msaa()
 
 void app::draw()
 {
+    const bool debug = M->settings().gpu_debug >= fm_gpu_debug::on;
+    if (debug)
+        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false); // nvidia krap
     render_menu();
+    if (debug)
+        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, true); // nvidia krap
 }
 
 } // namespace floormat

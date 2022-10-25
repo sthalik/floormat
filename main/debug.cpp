@@ -60,11 +60,6 @@ static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type t
 void main_impl::register_debug_callback()
 {
     GL::DebugOutput::setCallback(_debug_callback, this);
-
-#if 1
-    /* Disable rather spammy "Buffer detailed info" debug messages on NVidia drivers */
-    GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false);
-#endif
 }
 
 char main_impl::maybe_register_debug_callback(fm_gpu_debug flag)
