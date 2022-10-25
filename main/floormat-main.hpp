@@ -39,7 +39,7 @@ struct floormat_main
     virtual world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
 
-    static floormat_main* create(floormat_app& app, fm_settings&& options);
+    [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
 
 protected:
     float _frame_time = 0;

@@ -79,9 +79,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     app.on_viewport_event(size);
 }
 
-static int fake_argc = 0; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-
-main_impl::main_impl(floormat_app& app, fm_settings&& s) noexcept :
+main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcept :
     Platform::Sdl2Application{Arguments{fake_argc, nullptr},
                               make_conf(s), make_gl_conf(s)},
     s{std::move(s)}, app{app}
@@ -243,7 +241,8 @@ int main_impl::exec()
 
 floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
 {
-    auto* ret = new main_impl(app, std::move(options));
+    int fake_argc = 0;
+    auto* ret = new main_impl(app, std::move(options), fake_argc);
     fm_assert(ret);
     return ret;
 }

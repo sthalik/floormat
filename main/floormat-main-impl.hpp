@@ -21,7 +21,7 @@ struct floormat_app;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
-    explicit main_impl(floormat_app& app, fm_settings&& opts) noexcept;
+    explicit main_impl(floormat_app& app, fm_settings&& opts, int& fake_argc) noexcept;
     ~main_impl() noexcept override;
 
     int exec() override;
