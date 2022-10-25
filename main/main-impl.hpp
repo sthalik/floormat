@@ -4,7 +4,7 @@
 #include "src/world.hpp"
 #include "draw/floor.hpp"
 #include "draw/wall.hpp"
-#include "shaders/tile-shader.hpp"
+#include "shaders/tile.hpp"
 
 #include <Corrade/Containers/String.h>
 

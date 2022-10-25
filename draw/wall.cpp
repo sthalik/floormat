@@ -1,6 +1,6 @@
 #include "wall.hpp"
 #include "tile-atlas.hpp"
-#include "shaders/tile-shader.hpp"
+#include "shaders/tile.hpp"
 #include "chunk.hpp"
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>

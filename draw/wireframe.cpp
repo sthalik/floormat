@@ -1,5 +1,5 @@
 #include "wireframe.hpp"
-#include "shaders/tile-shader.hpp"
+#include "shaders/tile.hpp"
 //#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>

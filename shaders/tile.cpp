@@ -1,4 +1,4 @@
-#include "shaders/tile-shader.hpp"
+#include "shaders/tile.hpp"
 #include "loader.hpp"
 #include "compat/assert.hpp"
 #include <Magnum/Math/Vector4.h>
@@ -15,8 +15,8 @@ tile_shader::tile_shader()
     GL::Shader vert{GL::Version::GL460, GL::Shader::Type::Vertex};
     GL::Shader frag{GL::Version::GL460, GL::Shader::Type::Fragment};
 
-    vert.addSource(loader.shader("shaders/tile-shader.vert"));
-    frag.addSource(loader.shader("shaders/tile-shader.frag"));
+    vert.addSource(loader.shader("shaders/tile.vert"));
+    frag.addSource(loader.shader("shaders/tile.frag"));
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile());
     CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
