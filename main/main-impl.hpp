@@ -51,7 +51,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
     
     void drawEvent() override;
-    void update_from_window_flags();
+    void update_window_state();
 
     bool is_text_input_active() const noexcept override;
     void start_text_input() noexcept override;
@@ -69,9 +69,9 @@ private:
     wall_mesh _wall_mesh;
     Magnum::Timeline timeline;
     struct {
-        float value = 1e-1f;
+        float value = 0;
         float jitter = 0;
-        bool do_sleep = true;
+        bool do_sleep = false;
     } dt_expected;
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };

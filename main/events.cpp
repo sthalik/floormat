@@ -77,7 +77,7 @@ void main_impl::anyEvent(SDL_Event& event)
 {
     if (event.type == SDL_WINDOWEVENT)
     {
-        update_from_window_flags();
+        update_window_state();
         switch (event.window.event)
         {
         case SDL_WINDOWEVENT_FOCUS_LOST:

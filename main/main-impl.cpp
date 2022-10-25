@@ -69,6 +69,7 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
 {
+    update_window_state();
     GL::defaultFramebuffer.setViewport({{}, size });
     _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
     _msaa_renderbuffer = Magnum::GL::Renderbuffer{};
@@ -95,7 +96,8 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcep
     case fm_tristate::off:
         setSwapInterval(0);
         break;
-    default: break;
+    default:
+        break;
     }
     set_fp_mask();
     fm_assert(framebufferSize() == windowSize());
@@ -155,15 +157,31 @@ void main_impl::draw_world() noexcept
         }
 }
 
-void main_impl::update_from_window_flags()
+static int get_window_refresh_rate(SDL_Window* window)
+{
+    fm_assert(window != nullptr);
+    if (int index = SDL_GetWindowDisplayIndex(window); index < 0)
+        fm_warn_once("SDL_GetWindowDisplayIndex: %s", SDL_GetError());
+    else if (SDL_DisplayMode dpymode; SDL_GetCurrentDisplayMode(index, &dpymode) < 0)
+        fm_warn_once("SDL_GetCurrentDisplayMode: %s", SDL_GetError());
+    else
+        return std::max(30, dpymode.refresh_rate);
+    return 30;
+}
+
+void main_impl::update_window_state()
 {
     const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
 
     dt_expected.do_sleep = true;
+    dt_expected.jitter = 0;
     if (flags & SDL_WINDOW_HIDDEN)
         dt_expected.value = 1;
     else if (!(flags & SDL_WINDOW_INPUT_FOCUS))
         dt_expected.value = 1.f / 30;
+    else if (int interval = std::abs(SDL_GL_GetSwapInterval());
+             s.vsync >= fm_tristate::maybe && interval > 0)
+        dt_expected.value = 0.5f / (get_window_refresh_rate(window()));
 #if 1
     else if (!(flags & SDL_WINDOW_MOUSE_FOCUS))
         dt_expected.value = 1.f / 60;
@@ -197,7 +215,7 @@ void main_impl::drawEvent()
         timeline.nextFrame();
     }
 
-    dt = std::clamp(dt, 1e-5f, dt_expected.value);
+    dt = std::clamp(dt, 1e-5f, std::fmaxf(1e-1f, dt_expected.value));
 
     app.update(dt);
     _shader.set_tint({1, 1, 1, 1});
@@ -223,12 +241,21 @@ void main_impl::drawEvent()
 
     if (dt_expected.do_sleep)
     {
-        constexpr float jitter_max_seconds = 1 + 1e-3f;
-        const float dt0 = timeline.currentFrameTime(), sleep_secs = dt_expected.value - dt0 - dt_expected.jitter;
-        if (sleep_secs > 0)
+#ifdef _WIN32
+        constexpr float eps = 1e-3f;
+#else
+        constexpr float eps = 2e-4f;
+#endif
+
+        const float dt0 = timeline.currentFrameDuration(), sleep_secs = dt_expected.value - dt0 - dt_expected.jitter;
+        if (sleep_secs > eps)
+        {
+            //fm_debug("sleeping for %.1f <- %.1f\n", sleep_secs*1000, dt0*1000);
             std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
-        dt_expected.jitter += timeline.currentFrameTime() - dt_expected.value;
-        dt_expected.jitter = std::copysignf(std::fminf(jitter_max_seconds, std::fabsf(dt_expected.jitter)), dt_expected.jitter);
+        }
+        //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
+        dt_expected.jitter += 0.1f * (timeline.currentFrameDuration() - dt_expected.value);
+        dt_expected.jitter = std::copysignf(std::fminf(dt_expected.value, std::fabsf(dt_expected.jitter)), dt_expected.jitter);
     }
     else
         dt_expected.jitter = 0;
