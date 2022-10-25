@@ -76,7 +76,7 @@ int app::run_from_argv(const int argc, const char* const* const argv)
         auto str = args.value<StringView>("gpu-validation");
         if (str == "no-error" || str == "NO-ERROR")
             opts.gpu_debug = fm_gpu_debug::no_error;
-        else if (str == "robust" || str == "robust")
+        else if (str == "robust" || str == "ROBUST")
             opts.gpu_debug = fm_gpu_debug::robust;
         else switch (parse_tristate("--gpu-validation", args.value<StringView>("gpu-validation"), fm_tristate::maybe))
              {
