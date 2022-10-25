@@ -1,6 +1,6 @@
 #pragma once
-#include "floormat.hpp"
-#include "floormat-main.hpp"
+#include "floormat/main.hpp"
+#include "floormat/settings.hpp"
 #include "src/world.hpp"
 #include "draw/floor-mesh.hpp"
 #include "draw/wall-mesh.hpp"

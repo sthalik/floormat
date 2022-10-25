@@ -1,6 +1,5 @@
-#include "floormat-main-impl.hpp"
-#include "floormat.hpp"
-#include "floormat-app.hpp"
+#include "main-impl.hpp"
+#include "floormat/app.hpp"
 #include "compat/assert.hpp"
 #include "compat/fpu.hpp"
 #include "src/chunk.hpp"

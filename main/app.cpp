@@ -1,5 +1,5 @@
-#include "floormat-app.hpp"
-#include "floormat.hpp"
+#include "floormat/app.hpp"
+#include "floormat/settings.hpp"
 
 namespace floormat {
 

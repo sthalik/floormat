@@ -1,4 +1,4 @@
-#include "floormat-main-impl.hpp"
+#include "main-impl.hpp"
 #include <chrono>
 
 namespace floormat {

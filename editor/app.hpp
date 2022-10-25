@@ -6,7 +6,7 @@
 #include "draw/wireframe-mesh.hpp"
 #include "draw/wireframe-quad.hpp"
 #include "draw/wireframe-box.hpp"
-#include "main/floormat-app.hpp"
+#include "floormat/app.hpp"
 
 #include <memory>
 #include <optional>

@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "src/chunk.hpp"
-#include "main/floormat-events.hpp"
-#include "main/floormat-main.hpp"
+#include "floormat/events.hpp"
+#include "floormat/main.hpp"
 
 namespace floormat {
 

@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "main/floormat-main.hpp"
+#include "floormat/main.hpp"
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
 

@@ -1,7 +1,7 @@
 #include "app.hpp"
 
-#include "main/floormat-main.hpp"
-#include "main/floormat-events.hpp"
+#include "floormat/main.hpp"
+#include "floormat/events.hpp"
 #include "src/world.hpp"
 
 #include <utility>

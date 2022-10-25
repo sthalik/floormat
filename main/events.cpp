@@ -1,6 +1,6 @@
-#include "floormat-main-impl.hpp"
-#include "floormat-app.hpp"
-#include "floormat-events.hpp"
+#include "main-impl.hpp"
+#include "floormat/app.hpp"
+#include "floormat/events.hpp"
 #include "compat/assert.hpp"
 #include <SDL_events.h>
 #include <SDL_video.h>

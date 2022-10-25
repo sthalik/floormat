@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "src/global-coords.hpp"
 #include "shaders/tile-shader.hpp"
-#include "main/floormat-main.hpp"
+#include "floormat/main.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 
 namespace floormat {

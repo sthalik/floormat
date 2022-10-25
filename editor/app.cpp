@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "main/floormat-main.hpp"
-#include "main/floormat.hpp"
+#include "floormat/main.hpp"
+#include "floormat/settings.hpp"
 #include "src/loader.hpp"
 #include "world.hpp"
 #include <Corrade/Utility/Arguments.h>
