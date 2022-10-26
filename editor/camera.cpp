@@ -9,7 +9,10 @@ namespace floormat {
 void app::do_camera(float dt)
 {
     if (keys[key::camera_reset])
-        reset_camera_offset(), do_mouse_move();
+    {
+        reset_camera_offset();
+        do_mouse_move();
+    }
     else
     {
         Vector2d dir{};
