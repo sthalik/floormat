@@ -32,7 +32,6 @@ int app::exec()
 
 static const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };
 static const char* const false_values[] = { "0", "false", "no", "n", "N", "off", "OFF", "disable", "disabled", };
-static const char* const maybe_values[] = { "maybe", "m", "M", "default", };
 
 template<typename T, typename U>
 static inline bool find_arg(const T& list, const U& value) {
