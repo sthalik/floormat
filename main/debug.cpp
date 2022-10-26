@@ -31,7 +31,7 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
     switch (Severity{severity})
     {
     using enum GL::DebugOutput::Severity;
-    case Notification: std::fputs("fm_debug ", stdout); break;
+    case Notification: std::fputs("DEBUG ", stdout); break;
     case Low: std::fputs("INFO  ", stdout); break;
     case Medium: std::fputs("NOTICE ", stdout); break;
     case High: std::fputs("ERROR ", stdout); break;
