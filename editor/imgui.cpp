@@ -65,6 +65,7 @@ void app::draw_ui()
     draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
     draw_cursor_tile();
+    draw_cursor_tile_text();
     ImGui::EndFrame();
 }
 
@@ -210,7 +211,7 @@ void app::draw_fps()
     }
 }
 
-void app::draw_cursor_tile_coord()
+void app::draw_cursor_tile_text()
 {
     if (!cursor.tile)
         return;

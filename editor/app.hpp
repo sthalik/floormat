@@ -86,7 +86,7 @@ private:
     void draw_ui();
     float draw_main_menu();
     void draw_fps();
-    void draw_cursor_tile_coord();
+    void draw_cursor_tile_text();
     void render_menu();
 
     void draw_editor_pane(tile_editor& type, float main_menu_height);
