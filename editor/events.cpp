@@ -49,9 +49,10 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         accessor(Button, button)
     } e = {event.position, Button(event.button)};
 
-    if (!(cursor.in_imgui = is_down
-                            ? _imgui.handleMousePressEvent(e)
-                            : _imgui.handleMouseReleaseEvent(e)))
+    if (cursor.in_imgui = is_down
+                          ? _imgui.handleMousePressEvent(e)
+                          : _imgui.handleMouseReleaseEvent(e);
+        !cursor.in_imgui)
     {
         cursor.pixel = event.position;
         recalc_cursor_tile();
