@@ -90,7 +90,7 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
     {
         std::memcpy(filename + len, extension.data(), extension.size());
         filename[len + extension.size()] = '\0';
-        if (tga_importer->openFile(filename))
+        if (Utility::Path::exists(filename) && tga_importer->openFile(filename))
         {
             auto img = tga_importer->image2D(0);
             if (!img)
@@ -98,11 +98,9 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
             auto ret = std::move(*img);
             return ret;
         }
-        Debug{} << "failed to open" << filename << extension;
     }
     const auto path = Utility::Path::currentDirectory();
-    fm_log("fatal: can't open tile image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
-    std::abort();
+    fm_abort("can't open tile image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
 }
 
 void loader_::destroy()
