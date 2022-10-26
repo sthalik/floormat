@@ -85,6 +85,7 @@ if(MSVC)
         #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
         -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
     )
+    add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
         add_link_options(-HIGHENTROPYVA)
     endif()
