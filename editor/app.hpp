@@ -36,6 +36,13 @@ struct app final : floormat_app
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
 
+    enum class key : int {
+        camera_up, camera_left, camera_right, camera_down, camera_reset,
+        rotate_tile, quicksave, quickload,
+        quit,
+        MAX = quit, COUNT, NO_REPEAT = rotate_tile,
+    };
+
     void update(float dt) override;
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void draw_msaa() override;
@@ -61,19 +68,15 @@ struct app final : floormat_app
 private:
     using tile_atlas_ = std::shared_ptr<tile_atlas>;
 
-    enum class key : int {
-        camera_up, camera_left, camera_right, camera_down, camera_reset,
-        rotate_tile, quicksave, quickload,
-        quit,
-        MAX = quit, COUNT
-    };
-
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
     void do_mouse_move();
     void do_mouse_up_down(std::uint8_t button, bool is_down);
+
     void do_camera(float dt);
+
     void do_keys();
+    enum_bitset<key> get_nonrepeat_keys();
 
     void reset_camera_offset();
     void update_cursor_tile(const std::optional<Vector2i>& pixel);
@@ -97,7 +100,7 @@ private:
     wireframe_mesh<wireframe::quad> _wireframe_quad;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
-    enum_bitset<key> keys;
+    enum_bitset<key> keys, keys_repeat;
     cursor_state cursor;
 };
 

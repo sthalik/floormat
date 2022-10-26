@@ -49,19 +49,54 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down)
         _editor.on_release();
 }
 
+auto app::get_nonrepeat_keys() -> enum_bitset<key>
+{
+    enum_bitset<key> ret;
+    using type = std::underlying_type_t<key>;
+    for (auto i = (type)key::NO_REPEAT; i < (type)key::COUNT; i++)
+    {
+        auto idx = key{i};
+        if (keys_repeat[idx])
+            keys[idx] = false;
+        else
+            ret[idx] = keys[idx];
+        keys[idx] = false;
+        keys_repeat[idx] = false;
+    }
+    return ret;
+}
+
 void app::do_keys()
 {
+    auto k = get_nonrepeat_keys();
+    using type = std::underlying_type_t<key>;
 
+    for (auto i = (type)key::NO_REPEAT; i < (type)key::COUNT; i++)
+    {
+        auto idx = key{i};
+        if (keys_repeat[idx])
+            k[idx] = false;
+        keys[idx] = false;
+        keys_repeat[idx] = false;
+    }
+
+    if (k[key::quicksave])
+        do_quicksave();
+    if (k[key::quickload])
+        do_quickload();
+    if (auto* ed = _editor.current(); ed && k[key::rotate_tile])
+        ed->rotate_tile();
 }
 
 void app::update(float dt)
 {
-    do_camera(dt);
-    draw_ui();
     if (keys[key::quit])
         M->quit(0);
-    if (!keys.any())
+    else {
+        do_camera(dt);
+        draw_ui();
         do_keys();
+    }
 }
 
 } // namespace floormat

@@ -89,10 +89,16 @@ void app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcep
                                case SDLK_ESCAPE:   return key::quit;
         });
         if (x != key::COUNT)
+        {
             keys[x] = is_down;
+            keys_repeat[x] = is_down ? event.is_repeated : false;
+        }
     }
     else
+    {
         keys = {};
+        keys_repeat = {};
+    }
 }
 
 void app::on_text_input_event(const floormat::text_input_event& event) noexcept
@@ -101,7 +107,10 @@ void app::on_text_input_event(const floormat::text_input_event& event) noexcept
         accessor(Containers::StringView, text)
     } e = {event.text};
     if (_imgui.handleTextInputEvent(e))
+    {
         keys = {};
+        keys_repeat = {};
+    }
 }
 
 void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
@@ -113,6 +122,7 @@ void app::on_focus_out() noexcept
 {
     update_cursor_tile(std::nullopt);
     keys = {};
+    keys_repeat = {};
 }
 
 void app::on_mouse_leave() noexcept
