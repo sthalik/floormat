@@ -54,8 +54,8 @@ int app::run_from_argv(const int argc, const char* const* const argv)
 {
     fm_settings opts;
     Corrade::Utility::Arguments args{};
-    args.addOption("vsync", "m")
-        .addOption("gpu-debug", "m")
+    args.addOption("vsync", "1")
+        .addOption("gpu-debug", "1")
         .addOption("msaa", "1")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
