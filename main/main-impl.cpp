@@ -241,20 +241,12 @@ void main_impl::drawEvent()
 
     if (dt_expected.do_sleep)
     {
-#ifdef _WIN32
         constexpr float eps = 1e-3f;
-#else
-        constexpr float eps = 1e-4f;
-#endif
-
         const float Δt൦ = timeline.currentFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
         if (sleep_secs > eps)
-        {
-            //fm_debug("sleeping for %.1f <- %.1f\n", sleep_secs*1000, dt0*1000);
             std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
-        }
         //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
-        const float Δt = (timeline.currentFrameDuration() - dt_expected.value);
+        const float Δt = timeline.currentFrameDuration() - dt_expected.value;
         constexpr float α = .1f;
         dt_expected.jitter = std::fmax(dt_expected.jitter + Δt * α,
                                        dt_expected.jitter * (1-α) + Δt * α);
