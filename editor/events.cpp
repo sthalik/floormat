@@ -13,7 +13,7 @@ namespace floormat {
 
 void app::on_focus_in() noexcept {}
 void app::on_mouse_enter() noexcept {}
-void app::on_any_event(const floormat::any_event& event) noexcept {}
+void app::on_any_event(const any_event& event) noexcept {}
 
 #define accessor(type, name) \
     type m_##name = {}; auto name() const noexcept { return m_##name; }
@@ -62,7 +62,7 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
     _imgui.handleMouseScrollEvent(e);
 }
 
-void app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcept
+void app::on_key_up_down(const key_event& event, bool is_down) noexcept
 {
     using KeyEvent = Platform::Sdl2Application::KeyEvent;
     struct Ev final {
@@ -101,7 +101,7 @@ void app::on_key_up_down(const floormat::key_event& event, bool is_down) noexcep
     }
 }
 
-void app::on_text_input_event(const floormat::text_input_event& event) noexcept
+void app::on_text_input_event(const text_input_event& event) noexcept
 {
     struct {
         accessor(Containers::StringView, text)
