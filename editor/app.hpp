@@ -70,8 +70,6 @@ private:
 
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
-    void do_mouse_click(global_coords pos, int button);
-    void do_mouse_release(int button);
     void do_mouse_move(global_coords pos);
 
     void do_camera(float dt);

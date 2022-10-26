@@ -35,20 +35,6 @@ void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[may
     //maybe_initialize_chunk_(pos, c);
 }
 
-void app::do_mouse_click(const global_coords pos, int button)
-{
-    if (button == mouse_button_left)
-        _editor.on_click(M->world(), pos);
-    else
-        _editor.on_release();
-}
-
-void app::do_mouse_release(int button)
-{
-    (void)button;
-    _editor.on_release();
-}
-
 void app::do_mouse_move(global_coords pos)
 {
     _editor.on_mouse_move(M->world(), pos);
