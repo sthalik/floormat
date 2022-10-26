@@ -18,6 +18,7 @@ app::app(fm_settings&& opts) :
     world& w = M->world();
     chunk_coords coord{0 ,0};
     maybe_initialize_chunk_(coord, w[coord]);
+    reset_camera_offset();
 }
 
 app::~app() // NOLINT(modernize-use-equals-default)
