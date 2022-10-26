@@ -33,7 +33,7 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
     recalc_cursor_tile();
 
     if (cursor.tile)
-        _editor.on_mouse_move(M->world(), *cursor.tile);
+        do_mouse_move(*cursor.tile);
 }
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
