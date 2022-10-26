@@ -78,6 +78,9 @@ private:
     void do_keys();
     enum_bitset<key> get_nonrepeat_keys();
 
+    void do_quicksave();
+    void do_quickload();
+
     void reset_camera_offset();
     void update_cursor_tile(const std::optional<Vector2i>& pixel);
 
