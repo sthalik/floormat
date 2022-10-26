@@ -30,7 +30,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
     c[{K+1, K  }].wall_west  = { _wall2, 0 };
 }
 
-void app::maybe_initialize_chunk(const chunk_coords& pos, chunk& c)
+void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[maybe_unused]] chunk& c)
 {
     //maybe_initialize_chunk_(pos, c);
 }
