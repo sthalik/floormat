@@ -97,15 +97,15 @@ void main_impl::update_window_state()
     dt_expected.jitter = 0;
     if (flags & SDL_WINDOW_HIDDEN)
         dt_expected.value = 1;
-    else if (!(flags & SDL_WINDOW_INPUT_FOCUS))
-        dt_expected.value = 1.f / 30;
     else if (int interval = std::abs(SDL_GL_GetSwapInterval());
-        s.vsync >= fm_tristate::maybe && interval > 0)
-        dt_expected.value = 0.5f / (get_window_refresh_rate(window()));
-#if 1
-    else if (!(flags & SDL_WINDOW_MOUSE_FOCUS))
-        dt_expected.value = 1.f / 60;
-#endif
+             s.vsync >= fm_tristate::maybe && interval > 0)
+    {
+        int hz = get_window_refresh_rate(window()) / interval;
+        if (!(flags & SDL_WINDOW_INPUT_FOCUS))
+            dt_expected.value = 2.f / hz;
+        else
+            dt_expected.value = 0.95f / hz;
+    }
     else
     {
         dt_expected.do_sleep = false;
