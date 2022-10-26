@@ -7,6 +7,13 @@
 #ifdef __GNUG__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wunused-macros"
+#define FM_KILL_WARN_double_promotion1()                                \
+    _Pragma( "GCC diagnostic push" )                                    \
+    _Pragma( "GCC diagnostic ignored \"-Wdouble-promotion\"" )
+#define FM_KILL_WARN_double_promotion2() _Pragma( "GCC diagnostic pop" )
+#else
+#define FM_KILL_WARN_double_promotion1()
+#define FM_KILL_WARN_double_promotion2()
 #endif
 
 #define fm_EMIT_DEBUG(pfx, ...)                                         \
@@ -14,10 +21,9 @@
         if (!std::is_constant_evaluated()) {                            \
             if constexpr (sizeof(pfx) > 1)                              \
                 std::fputs((pfx), stderr);                              \
-            _Pragma( "GCC diagnostic push" )                            \
-            _Pragma( "GCC diagnostic ignored \"-Wdouble-promotion\"" )  \
+            FM_KILL_WARN_double_promotion1()                            \
             std::fprintf(stderr, __VA_ARGS__);                          \
-            _Pragma( "GCC diagnostic pop" )                             \
+            FM_KILL_WARN_double_promotion2()                            \
             std::fputc('\n', stderr);                                   \
             std::fflush(stderr);                                        \
         }                                                               \
