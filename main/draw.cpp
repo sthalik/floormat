@@ -51,6 +51,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 void main_impl::draw_world() noexcept
 {
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
+    const auto sz = windowSize();
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
@@ -59,7 +60,8 @@ void main_impl::draw_world() noexcept
                 app.maybe_initialize_chunk(c, _world[c]);
             const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
-            _floor_mesh.draw(_shader, _world[c]);
+            if (check_chunk_visible(_shader.camera_offset(), sz))
+                _floor_mesh.draw(_shader, _world[c]);
         }
 
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -67,8 +69,27 @@ void main_impl::draw_world() noexcept
         {
             const chunk_coords c{x, y};
             const with_shifted_camera_offset o{_shader, c};
-            _wall_mesh.draw(_shader, _world[c]);
+            if (check_chunk_visible(_shader.camera_offset(), sz))
+                _wall_mesh.draw(_shader, _world[c]);
         }
+}
+
+bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
+{
+    constexpr Vector3d len{ dTILE_SIZE[0]*TILE_MAX_DIM, dTILE_SIZE[1]*TILE_MAX_DIM, 0 };
+    enum : std::size_t { x, y, };
+    constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
+                       p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
+                       p01 = tile_shader::project(Vector3d(0, len[y], 0)),
+                       p11 = tile_shader::project(Vector3d(len[x], len[y], 0));
+    constexpr double xs[] = { p00[x], p10[x], p01[x], p11[x], }, ys[] = { p00[y], p10[y], p01[y], p11[y], };
+    constexpr double minx = *std::min_element(std::cbegin(xs), std::cend(xs)),
+                     maxx = *std::max_element(std::cbegin(xs), std::cend(xs)),
+                     miny = *std::min_element(std::cbegin(ys), std::cend(ys)),
+                     maxy = *std::max_element(std::cbegin(ys), std::cend(ys));
+    constexpr int W = (int)(maxx - minx + .5 + 1e-16), H = (int)(maxy - miny + .5 + 1e-16);
+    const auto X = (int)(minx + (offset[x] + size[x])*.5), Y = (int)(miny + (offset[y] + size[y])*.5);
+    return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
 }
 
 void main_impl::drawEvent()

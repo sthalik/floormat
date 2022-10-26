@@ -83,6 +83,7 @@ private:
     void draw_world() noexcept;
 
     draw_bounds get_draw_bounds() const noexcept;
+    [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
 
     char maybe_register_debug_callback(fm_gpu_debug flag);
     void register_debug_callback();
