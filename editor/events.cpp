@@ -25,15 +25,8 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
     } e = {event.position};
 
     cursor.in_imgui = _imgui.handleMouseMoveEvent(e);
-
-    if (!cursor.in_imgui)
-        cursor.pixel = event.position;
-    else
-        cursor.pixel = std::nullopt;
-    recalc_cursor_tile();
-
-    if (cursor.tile)
-        do_mouse_move(*cursor.tile);
+    update_cursor_tile(event.position);
+    do_mouse_move();
 }
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
@@ -54,15 +47,9 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
                           : _imgui.handleMouseReleaseEvent(e);
         !cursor.in_imgui)
     {
-        cursor.pixel = event.position;
-        recalc_cursor_tile();
+        update_cursor_tile(event.position);
         if (cursor.tile)
-        {
-            if (event.button == mouse_button_left && is_down)
-                _editor.on_click(M->world(), *cursor.tile);
-            else
-                _editor.on_release();
-        }
+            do_mouse_up_down(event.button, is_down);
     }
 }
 
@@ -124,15 +111,13 @@ void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
 
 void app::on_focus_out() noexcept
 {
-    cursor.pixel = std::nullopt;
-    recalc_cursor_tile();
+    update_cursor_tile(std::nullopt);
     keys = {};
 }
 
 void app::on_mouse_leave() noexcept
 {
-    cursor.pixel = std::nullopt;
-    recalc_cursor_tile();
+    update_cursor_tile(std::nullopt);
 }
 
 } // namespace floormat

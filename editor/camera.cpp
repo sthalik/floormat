@@ -9,7 +9,7 @@ namespace floormat {
 void app::do_camera(float dt)
 {
     if (keys[key::camera_reset])
-        reset_camera_offset();
+        reset_camera_offset(), do_mouse_move();
     else
     {
         Vector2d dir{};
@@ -38,25 +38,24 @@ void app::do_camera(float dt)
             camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
             shader.set_camera_offset(camera_offset);
+
+            update_cursor_tile(cursor.pixel);
+            do_mouse_move();
         }
-        else
-            return;
     }
-    recalc_cursor_tile();
-    if (cursor.tile)
-        do_mouse_move(*cursor.tile);
 }
 
 void app::reset_camera_offset()
 {
     M->shader().set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
-    recalc_cursor_tile();
+    update_cursor_tile(cursor.pixel);
 }
 
-void app::recalc_cursor_tile()
+void app::update_cursor_tile(const std::optional<Vector2i>& pixel)
 {
-    if (cursor.pixel && !cursor.in_imgui)
-        cursor.tile = M->pixel_to_tile(Vector2d(*cursor.pixel));
+    cursor.pixel = pixel;
+    if (pixel)
+        cursor.tile = M->pixel_to_tile(Vector2d{*pixel});
     else
         cursor.tile = std::nullopt;
 }

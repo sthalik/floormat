@@ -62,10 +62,10 @@ void app::draw_ui()
     ImGui::StyleColorsDark(&ImGui::GetStyle());
 
     const float main_menu_height = draw_main_menu();
-    draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
     draw_cursor_tile();
     draw_cursor_tile_text();
+    draw_editor_pane(_editor.floor(), main_menu_height);
     ImGui::EndFrame();
 }
 

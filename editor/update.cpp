@@ -35,9 +35,23 @@ void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[may
     //maybe_initialize_chunk_(pos, c);
 }
 
-void app::do_mouse_move(global_coords pos)
+void app::do_mouse_move()
 {
-    _editor.on_mouse_move(M->world(), pos);
+    if (cursor.tile && !cursor.in_imgui)
+        _editor.on_mouse_move(M->world(), *cursor.tile);
+}
+
+void app::do_mouse_up_down(std::uint8_t button, bool is_down)
+{
+    if (!cursor.in_imgui && button == mouse_button_left && is_down)
+        _editor.on_click(M->world(), *cursor.tile);
+    else
+        _editor.on_release();
+}
+
+void app::do_keys()
+{
+
 }
 
 void app::update(float dt)
@@ -46,6 +60,8 @@ void app::update(float dt)
     draw_ui();
     if (keys[key::quit])
         M->quit(0);
+    if (!keys.any())
+        do_keys();
 }
 
 } // namespace floormat

@@ -70,11 +70,13 @@ private:
 
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
-    void do_mouse_move(global_coords pos);
-
+    void do_mouse_move();
+    void do_mouse_up_down(std::uint8_t button, bool is_down);
     void do_camera(float dt);
+    void do_keys();
+
     void reset_camera_offset();
-    void recalc_cursor_tile();
+    void update_cursor_tile(const std::optional<Vector2i>& pixel);
 
     void draw_cursor_tile();
     void draw_wireframe_quad(global_coords pt);
