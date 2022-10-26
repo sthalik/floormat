@@ -32,7 +32,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 
 void app::maybe_initialize_chunk(const chunk_coords& pos, chunk& c)
 {
-    //maybe_initialize_chunk(pos, c);
+    //maybe_initialize_chunk_(pos, c);
 }
 
 void app::do_mouse_click(const global_coords pos, int button)
