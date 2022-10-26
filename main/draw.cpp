@@ -2,6 +2,7 @@
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include <thread>
 
 namespace floormat {
 
