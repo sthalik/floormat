@@ -51,12 +51,12 @@ void world::maybe_collect()
         collect();
 }
 
-void world::collect()
+void world::collect(bool force)
 {
     for (auto it = _chunks.begin(); it != _chunks.end(); (void)0)
     {
         const auto& [_, c] = *it;
-        if (c.empty())
+        if (c.empty(force))
             it = _chunks.erase(it);
         else
             ++it;

@@ -36,7 +36,7 @@ public:
     std::tuple<chunk&, tile&> operator[](global_coords pt) noexcept;
     bool contains(chunk_coords c) const noexcept;
     void clear();
-    void collect();
+    void collect(bool force = false);
 
     [[deprecated]] const auto& chunks() const noexcept {  return _chunks; } // only for serialization
 
