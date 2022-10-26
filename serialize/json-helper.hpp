@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 
+namespace floormat {
+
 struct json_helper final {
     template<typename t>
     [[nodiscard]]
@@ -41,3 +43,5 @@ void json_helper::to_json(const t& self, const std::filesystem::path& pathname)
     s << '\n';
     s.flush();
 }
+
+} // namespace floormat
