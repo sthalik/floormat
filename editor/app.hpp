@@ -65,9 +65,6 @@ struct app final : floormat_app
 
     static int run_from_argv(int argv, const char* const* argc);
 
-private:
-    using tile_atlas_ = std::shared_ptr<tile_atlas>;
-
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
     void do_mouse_move();

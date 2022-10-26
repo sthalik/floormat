@@ -4,7 +4,9 @@
 namespace floormat {
 
 template<typename Enum>
+requires std::is_enum_v<Enum>
 struct enum_bitset : std::bitset<(std::size_t)Enum::MAX> {
+    using type = Enum;
     static_assert(std::is_same_v<std::size_t, std::common_type_t<std::size_t, std::underlying_type_t<Enum>>>);
     static_assert(std::is_same_v<Enum, std::decay_t<Enum>>);
     using std::bitset<(std::size_t)Enum::MAX>::bitset;
