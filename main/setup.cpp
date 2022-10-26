@@ -104,7 +104,7 @@ void main_impl::update_window_state()
         if (!(flags & SDL_WINDOW_INPUT_FOCUS))
             dt_expected.value = 2.f / hz;
         else
-            dt_expected.value = 0.95f / hz;
+            dt_expected.value = std::floorf((1.f/hz - 1e-3f) * 1e3f) * 1e-3f;
     }
     else
     {
