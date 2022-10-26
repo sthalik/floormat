@@ -170,6 +170,27 @@ void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
     }
 }
 
+void tile_editor::rotate_tile()
+{
+    if (_rotation == rotation::rot_W)
+        _rotation = rotation::rot_N;
+    else
+        _rotation = rotation::rot_W;
+}
+
+void tile_editor::rotate_tile(rotation r)
+{
+    switch (r)
+    {
+    default:
+        fm_warn_once("invalid rotation '0x%hhx", r);
+        return;
+    case rotation::rot_W:
+    case rotation::rot_N:
+        _rotation = r;
+    }
+}
+
 editor::editor()
 {
     set_mode(editor_mode::floor); // TODO

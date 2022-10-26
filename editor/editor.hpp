@@ -22,25 +22,6 @@ struct world;
 
 struct tile_editor final
 {
-    tile_editor(editor_mode mode, StringView name);
-    std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
-    std::shared_ptr<tile_atlas> atlas(StringView str);
-    auto cbegin() const { return _atlases.cbegin(); }
-    auto cend() const { return _atlases.cend(); }
-    auto begin() const { return _atlases.cbegin(); }
-    auto end() const { return _atlases.cend(); }
-    StringView name() const { return _name; }
-    editor_mode mode() const { return _mode; }
-
-    void clear_selection();
-    void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
-    void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
-    bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
-    bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
-    bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
-    tile_image get_selected();
-    void place_tile(world& world, global_coords pos, tile_image& img);
-
 private:
     enum selection_mode : std::uint8_t {
         sel_none, sel_tile, sel_perm,
@@ -59,6 +40,28 @@ private:
 
     void load_atlases();
     tile_image get_selected_perm();
+
+public:
+    tile_editor(editor_mode mode, StringView name);
+    std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
+    std::shared_ptr<tile_atlas> atlas(StringView str);
+    auto cbegin() const { return _atlases.cbegin(); }
+    auto cend() const { return _atlases.cend(); }
+    auto begin() const { return _atlases.cbegin(); }
+    auto end() const { return _atlases.cend(); }
+    StringView name() const { return _name; }
+    editor_mode mode() const { return _mode; }
+
+    void clear_selection();
+    void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
+    void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
+    bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
+    bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
+    bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
+    tile_image get_selected();
+    void place_tile(world& world, global_coords pos, tile_image& img);
+    void rotate_tile();
+    void rotate_tile(rotation r);
 };
 
 struct editor final
