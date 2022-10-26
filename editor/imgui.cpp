@@ -62,10 +62,10 @@ void app::draw_ui()
     ImGui::StyleColorsDark(&ImGui::GetStyle());
 
     const float main_menu_height = draw_main_menu();
+    draw_editor_pane(_editor.floor(), main_menu_height);
     draw_fps();
     draw_cursor_tile();
     draw_cursor_tile_text();
-    draw_editor_pane(_editor.floor(), main_menu_height);
     ImGui::EndFrame();
 }
 
@@ -187,41 +187,19 @@ void app::draw_editor_pane(tile_editor& type, float main_menu_height)
 
 void app::draw_fps()
 {
-    auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
-    auto c2 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
-    auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
-    auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
-    auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
-    auto c6 = push_style_color(ImGuiCol_Text, {0, 1, 0, 1});
-
     const auto frame_time = M->smoothed_dt();
     char buf[16];
     const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
     snprintf(buf, sizeof(buf), "%.1f FPS", hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
-
-    ImGui::SetNextWindowPos({M->window_size()[0] - size.x - 4, 3});
-    ImGui::SetNextWindowSize(size);
-
-    if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
-                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-        auto b = begin_window("framerate", ImGuiWindowFlags_(flags)))
-    {
-        ImGui::Text("%s", buf);
-    }
+    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    draw.AddText({M->window_size()[0] - size.x - 4, 3}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 }
 
 void app::draw_cursor_tile_text()
 {
     if (!cursor.tile)
         return;
-
-    auto c1 = push_style_var(ImGuiStyleVar_FramePadding, {0, 0});
-    auto c2 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
-    auto c3 = push_style_var(ImGuiStyleVar_WindowBorderSize, 0);
-    auto c4 = push_style_var(ImGuiStyleVar_WindowMinSize, {1, 1});
-    auto c5 = push_style_var(ImGuiStyleVar_ScrollbarSize, 0);
-    auto c6 = push_style_color(ImGuiCol_Text, {.9f, .9f, .9f, 1});
 
     char buf[64];
     const auto coord = *cursor.tile;
@@ -231,14 +209,8 @@ void app::draw_cursor_tile_text()
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 
-    ImGui::SetNextWindowPos({window_size[0]*.5f - size.x/2, 3});
-    ImGui::SetNextWindowSize(size);
-    if (auto flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs |
-                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-        auto b = begin_window("tile-tile", ImGuiWindowFlags_(flags)))
-    {
-        ImGui::Text("%s", buf);
-    }
+    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    draw.AddText({window_size[0]*.5f - size.x/2, 3}, (unsigned)-1, buf);
 }
 
 } // namespace floormat
