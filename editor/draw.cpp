@@ -12,7 +12,6 @@ void app::draw_wireframe_quad(global_coords pos)
     const auto pt = pos.to_signed();
     auto& shader = M->shader();
 
-    //if (const auto& [c, tile] = _world[pos]; tile.ground_image)
     {
         const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
         shader.set_tint({1, 0, 0, 1});
@@ -46,13 +45,7 @@ void app::draw_msaa()
 
 void app::draw()
 {
-    const bool debug = M->settings().gpu_debug >= fm_gpu_debug::on;
-    if (debug)
-        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false); // nvidia krap
     render_menu();
-    if (debug)
-        GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, true);  // nvidia krap
 }
 
 } // namespace floormat
-

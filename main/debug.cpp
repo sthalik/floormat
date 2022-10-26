@@ -59,6 +59,7 @@ static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type t
 
 void main_impl::register_debug_callback()
 {
+    GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false); // nvidia krap
     GL::DebugOutput::setCallback(_debug_callback, this);
 }
 

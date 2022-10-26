@@ -8,20 +8,15 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcep
                               make_conf(s), make_gl_conf(s)},
     s{std::move(s)}, app{app}
 {
-    switch (s.vsync) // NOLINT(bugprone-use-after-move)
+    if (s.vsync)
     {
-    case fm_tristate::on:
         (void)setSwapInterval(1);
         if (const auto list = GL::Context::current().extensionStrings();
             std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
             (void)setSwapInterval(-1);
-        break;
-    case fm_tristate::off:
-        setSwapInterval(0);
-        break;
-    default:
-        break;
     }
+    else
+        (void)setSwapInterval(0);
     set_fp_mask();
     fm_assert(framebufferSize() == windowSize());
     timeline.start();
@@ -97,8 +92,7 @@ void main_impl::update_window_state()
     dt_expected.jitter = 0;
     if (flags & SDL_WINDOW_HIDDEN)
         dt_expected.value = 1;
-    else if (int interval = std::abs(SDL_GL_GetSwapInterval());
-             s.vsync >= fm_tristate::maybe && interval > 0)
+    else if (int interval = std::abs(SDL_GL_GetSwapInterval()); s.vsync && interval > 0)
     {
         int hz = get_window_refresh_rate(window()) / interval;
         if (!(flags & SDL_WINDOW_INPUT_FOCUS))
