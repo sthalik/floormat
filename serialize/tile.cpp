@@ -17,7 +17,7 @@ using namespace floormat;
 namespace nlohmann {
 
 void adl_serializer<tile_image>::to_json(json& j, const tile_image& val) { using nlohmann::to_json; if (val.atlas) to_json(j, val); else j = nullptr; }
-void adl_serializer<tile_image>::from_json(const json& j, tile_image& val) { using nlohmann::from_json; from_json(j, val); }
+void adl_serializer<tile_image>::from_json(const json& j, tile_image& val) { using nlohmann::from_json; if (j.is_null()) val = {}; else from_json(j, val); }
 
 void adl_serializer<tile>::to_json(json& j, const tile& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<tile>::from_json(const json& j, tile& val) { using nlohmann::from_json; from_json(j, val); }
