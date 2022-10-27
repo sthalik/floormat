@@ -160,7 +160,6 @@ void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
     case editor_mode::select:
         break;
     case editor_mode::floor: {
-        const auto& [c, t] = world[pos];
         t.ground_image = { atlas, variant };
         break;
     }

@@ -23,8 +23,7 @@ struct raii_wrapper final
     F dtor = nullptr;
 };
 
-[[nodiscard]] static inline raii_wrapper begin_window(Containers::StringView name = {},
-                                                      ImGuiWindowFlags_ flags = ImGuiWindowFlags_None)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper begin_window(Containers::StringView name = {}, ImGuiWindowFlags_ flags = ImGuiWindowFlags_None)
 {
     if (name.isEmpty())
         name = "floormat editor";
@@ -34,14 +33,14 @@ struct raii_wrapper final
         return {};
 }
 
-[[nodiscard]] static inline raii_wrapper begin_main_menu()
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper begin_main_menu()
 {
     if (ImGui::BeginMainMenuBar())
         return {&ImGui::EndMainMenuBar};
     else
         return {};
 }
-[[nodiscard]] static inline raii_wrapper begin_menu(Containers::StringView name, bool enabled = true)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper begin_menu(Containers::StringView name, bool enabled = true)
 {
     if (ImGui::BeginMenu(name.data(), enabled))
         return {&ImGui::EndMenu};
@@ -49,7 +48,7 @@ struct raii_wrapper final
         return {};
 }
 
-[[nodiscard]] static inline raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size = {})
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size = {})
 {
     if (ImGui::BeginListBox(name.data(), size))
         return {&ImGui::EndListBox};
@@ -57,7 +56,7 @@ struct raii_wrapper final
         return {};
 }
 
-[[nodiscard]] static inline raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags_ flags = ImGuiTreeNodeFlags_None)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags_ flags = ImGuiTreeNodeFlags_None)
 {
     if (ImGui::TreeNodeEx(name.data(), flags))
         return {&ImGui::TreePop};
@@ -65,19 +64,19 @@ struct raii_wrapper final
         return {};
 }
 
-[[nodiscard]] static inline raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
 {
     ImGui::PushStyleVar(var, {value[0], value[1]});
     return {[]{ ImGui::PopStyleVar(); }};
 }
 
-[[nodiscard]] static inline raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
 {
     ImGui::PushStyleVar(var, value);
     return {[]{ ImGui::PopStyleVar(); }};
 }
 
-[[nodiscard]] static inline raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
+[[nodiscard]] [[maybe_unused]] static inline raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
 {
     ImGui::PushStyleColor(var, {value[0], value[1], value[2], value[3]});
     return {[]{ ImGui::PopStyleColor(); }};
