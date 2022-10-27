@@ -11,6 +11,7 @@
 
 namespace floormat {
 
+[[maybe_unused]]
 static chunk make_test_chunk()
 {
     auto metal1 = loader.tile_atlas("metal1", {2, 2}),
@@ -46,10 +47,6 @@ bool floormat::test_json() // NOLINT(readability-convert-member-functions-to-sta
         volatile float zero = 0;
         Magnum::Math::Vector3 vec{0.f/zero, -1.f/zero, 123.f};
         json_helper::to_json(vec, output_dir/"vec3_inf.json");
-    }
-    {
-        const auto chunk = make_test_chunk();
-        json_helper::to_json(chunk, output_dir/"zzz_chunk-1.json");
     }
 
     return true;

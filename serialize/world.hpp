@@ -24,10 +24,5 @@ struct adl_serializer<floormat::global_coords> {
     static void from_json(const json& j, floormat::global_coords& val);
 };
 
-template<>
-struct adl_serializer<floormat::world> {
-    static void to_json(json& j, const floormat::world& val);
-    static void from_json(const json& j, floormat::world& val);
-};
-
 } // namespace nlohmann
+
