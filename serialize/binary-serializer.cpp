@@ -74,13 +74,7 @@ static constexpr bool test2()
 }
 static_assert(test2());
 
-template<typename T>
-[[maybe_unused]] static constexpr T maybe_byteswap(T x)
-{
-    if constexpr(std::endian::native == std::endian::big)
-        return std::byteswap(x);
-    else
-        return x;
-}
+using test3 = binary_reader<std::array<char, 1>::iterator>;
+static_assert(std::is_same_v<test3&, decltype( std::declval<test3&>() >> std::declval<int&>() )>);
 
 } // namespace floormat::Serialize

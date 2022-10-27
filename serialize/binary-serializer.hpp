@@ -56,27 +56,49 @@ concept char_sequence = requires(T& x, const T& cx) {
     requires std::same_as<char, std::decay_t<decltype(*std::cbegin(x))>>;
 };
 
-template<std::forward_iterator It>
+template<typename It>
+concept string_input_iterator = requires(It it) {
+    requires std::forward_iterator<It>;
+    requires std::is_same_v<char, std::decay_t<decltype(*it)>>;
+};
+
+template<typename T>
+concept serializable = requires(T x) {
+    requires std::floating_point<T> || integer<T>;
+};
+
+template<string_input_iterator It>
 struct binary_reader final {
-    fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(binary_reader<It>);
-    constexpr binary_reader(It begin, It end) noexcept : it{begin}, end{end} {}
-    template<char_sequence Seq>
-    explicit constexpr binary_reader(const Seq& seq) noexcept : it{std::begin(seq)}, end{std::end(seq)} {}
+    template<char_sequence Seq> explicit constexpr binary_reader(const Seq& seq) noexcept;
+    constexpr binary_reader(It begin, It end) noexcept;
     constexpr ~binary_reader() noexcept;
 
     template<integer T> constexpr value_u read_u() noexcept;
     template<std::floating_point T> constexpr value_u read_u() noexcept;
     template<typename T> T read() noexcept;
 
-    static_assert(std::is_same_v<char, std::decay_t<decltype(*std::declval<It>())>>);
+    template<serializable T>
+    friend binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept;
 
 private:
     It it, end;
 };
 
-template<std::forward_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
+template<string_input_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
 
 template<typename Array>
 binary_reader(Array&& array) -> binary_reader<std::decay_t<decltype(std::begin(array))>>;
+
+template<std::output_iterator<char> It>
+struct binary_writer final {
+    explicit constexpr binary_writer(It it) noexcept;
+    template<serializable T> void write(T x) noexcept;
+
+    template<serializable T>
+    friend binary_writer<It>& operator>>(binary_writer<It>& writer, T x) noexcept;
+
+private:
+    It it;
+};
 
 } // namespace floormat::Serialize
