@@ -1,6 +1,5 @@
 #pragma once
 #include "defs.hpp"
-#include <cstdlib>
 #include <cstdio>
 #include <type_traits>
 
@@ -15,6 +14,16 @@
 #define FM_KILL_WARN_double_promotion1()
 #define FM_KILL_WARN_double_promotion2()
 #endif
+
+namespace floormat {
+
+[[noreturn]] [[maybe_unused]] static inline void _fm_abort() {
+    *(volatile int*)nullptr = 0;
+    for (;;)
+        ;
+}
+
+} // namespace floormat
 
 #define fm_EMIT_DEBUG(pfx, ...)                                         \
     do {                                                                \
@@ -32,15 +41,15 @@
 #define fm_abort(...)                                                   \
     do {                                                                \
         fm_EMIT_DEBUG("fatal: ", __VA_ARGS__);                          \
-        std::abort();                                                   \
+        ::floormat::_fm_abort();                                        \
     } while (false)
 
 #define fm_assert(...)                                                  \
     do {                                                                \
         if (!(__VA_ARGS__)) {                                           \
             fm_EMIT_DEBUG("", "assertion failed: '%s' in %s:%d",        \
-                       #__VA_ARGS__, __FILE__, __LINE__);               \
-            std::abort();                                               \
+                          #__VA_ARGS__, __FILE__, __LINE__);            \
+            ::floormat::_fm_abort();                                    \
         }                                                               \
     } while(false)
 
