@@ -1,3 +1,4 @@
+#include "compat/assert.hpp"
 #include <cstdio>
 #include <string>
 #include <Magnum/Math/Vector2.h>
@@ -26,13 +27,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
         int n = 0;
         int ret = std::sscanf(str.c_str(), format_string, &x, &y, &n);
         if (ret != 2 || (std::size_t)n != str.size() || x != (t)x || y != (t)y)
-        {
-            std::string msg; msg.reserve(128);
-            msg += "failed to parse string '";
-            msg += str;
-            msg += "' as Magnum::Vector2";
-            throw std::invalid_argument(msg);
-        }
+            fm_abort("failed to parse Vector2");
         val = { (t)x, (t)y };
     }
 };
