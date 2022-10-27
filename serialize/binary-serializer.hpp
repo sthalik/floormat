@@ -77,12 +77,12 @@ struct binary_reader final {
     template<std::floating_point T> constexpr value_u read_u() noexcept;
     template<typename T> T read() noexcept;
 
-    template<serializable T>
-    friend binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept;
-
 private:
     It it, end;
 };
+
+template<string_input_iterator It, serializable T>
+binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept;
 
 template<string_input_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
 
@@ -92,13 +92,14 @@ binary_reader(Array&& array) -> binary_reader<std::decay_t<decltype(std::begin(a
 template<std::output_iterator<char> It>
 struct binary_writer final {
     explicit constexpr binary_writer(It it) noexcept;
-    template<serializable T> void write(T x) noexcept;
-
-    template<serializable T>
-    friend binary_writer<It>& operator>>(binary_writer<It>& writer, T x) noexcept;
+    template<integer T> void write(T x) noexcept;
+    template<std::floating_point T> void write(T x) noexcept;
 
 private:
     It it;
 };
+
+template<std::output_iterator<char> It, serializable T>
+binary_writer<It>& operator<<(binary_writer<It>& writer, T x) noexcept;
 
 } // namespace floormat::Serialize

@@ -60,8 +60,8 @@ constexpr value_u binary_reader<It>::read_u() noexcept
     return buf;
 }
 
-template<typename T>
-[[maybe_unused]] constexpr inline T maybe_byteswap(T x)
+template<integer T>
+constexpr inline T maybe_byteswap(T x)
 {
     if constexpr(std::endian::native == std::endian::big)
         return std::byteswap(x);
@@ -69,34 +69,48 @@ template<typename T>
         return x;
 }
 
-template<string_input_iterator It, serializable T>
-binary_reader<It>& operator>>(binary_reader<It>& reader, T x) noexcept
-{
-    value_u u = reader.template read<T>();
-    x = *reinterpret_cast<T*>(&u.bytes[0]);
-    return reader;
-}
-
 template<std::output_iterator<char> It>
 constexpr binary_writer<It>::binary_writer(It it) noexcept : it{it} {}
 
 template<std::output_iterator<char> It>
-template<serializable T>
+template<integer T>
 void binary_writer<It>::write(T x) noexcept
 {
     union {
         T datum;
         char bytes[sizeof(T)];
     } buf;
-    buf.datum = x;
+    buf.datum = maybe_byteswap(x);
     for (std::size_t i = 0; i < sizeof(T); i++)
         *it++ = buf.bytes[i];
-};
+}
+
+template<std::output_iterator<char> It>
+template<std::floating_point T>
+void binary_writer<It>::write(T x) noexcept
+{
+    union {
+        T datum;
+        char bytes[sizeof(T)];
+    } buf;
+    buf.datum = maybe_byteswap(x);
+    for (std::size_t i = 0; i < sizeof(T); i++)
+        *it++ = buf.bytes[i];
+}
+
+template<string_input_iterator It, serializable T>
+binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept
+{
+    value_u u = reader.template read<T>();
+    x = *reinterpret_cast<T*>(&u.bytes[0]);
+    return reader;
+}
 
 template<std::output_iterator<char> It, serializable T>
-binary_writer<It>& operator>>(binary_writer<It>& writer, T x) noexcept
+binary_writer<It>& operator<<(binary_writer<It>& writer, T x) noexcept
 {
-
+    writer.template write<T>(x);
+    return writer;
 }
 
 } // namespace floormat::Serialize

@@ -77,4 +77,7 @@ static_assert(test2());
 using test3 = binary_reader<std::array<char, 1>::iterator>;
 static_assert(std::is_same_v<test3&, decltype( std::declval<test3&>() >> std::declval<int&>() )>);
 
+using test4 = binary_writer<std::array<char, sizeof(int)>::iterator>;
+static_assert(std::is_same_v<test4&, decltype( std::declval<test4&>() << int() )>);
+
 } // namespace floormat::Serialize
