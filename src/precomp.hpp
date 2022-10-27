@@ -1,6 +1,8 @@
 #pragma once
 
-#include "compat/prelude.hpp"
+#include "compat/integer-types.hpp"
+#include "compat/defs.hpp"
+#include "compat/assert.hpp"
 
 #include <cstddef>
 #include <cstdint>

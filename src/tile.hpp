@@ -1,8 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/assert.hpp"
+#include "compat/integer-types.hpp"
 #include "tile-defs.hpp"
-#include <cstdint>
 #include <memory>
 
 namespace floormat {

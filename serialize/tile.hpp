@@ -4,9 +4,9 @@
 namespace floormat {
 
 struct tile_image;
-struct tile;
-struct chunk;
 struct local_coords;
+struct chunk_coords;
+struct global_coords;
 
 } // namespace floormat
 
@@ -22,6 +22,18 @@ template<>
 struct adl_serializer<floormat::local_coords> {
     static void to_json(json& j, const floormat::local_coords& val);
     static void from_json(const json& j, floormat::local_coords& val);
+};
+
+template<>
+struct adl_serializer<floormat::chunk_coords> {
+    static void to_json(json& j, const floormat::chunk_coords& val);
+    static void from_json(const json& j, floormat::chunk_coords& val);
+};
+
+template<>
+struct adl_serializer<floormat::global_coords> {
+    static void to_json(json& j, const floormat::global_coords& val);
+    static void from_json(const json& j, floormat::global_coords& val);
 };
 
 } // namespace nlohmann

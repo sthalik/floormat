@@ -1,9 +1,6 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/tile-atlas.hpp"
-#include "serialize/world.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {

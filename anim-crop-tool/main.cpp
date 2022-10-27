@@ -1,5 +1,6 @@
 #include "atlas.hpp"
 #include "serialize/anim.hpp"
+#include "serialize/magnum-vector2i.hpp"
 #include "serialize/json-helper.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
@@ -244,7 +245,7 @@ int main(int argc, char** argv)
     if (!opts_ok)
         return usage(args);
 
-    auto anim_info = json_helper::from_json<anim>(opts.input_file);
+    auto anim_info = floormat::json_helper::from_json<anim>(opts.input_file);
 
     if (!check_atlas_name(anim_info.object_name))
     {
@@ -290,7 +291,7 @@ int main(int argc, char** argv)
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
-    json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json"));
+    floormat::json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json"));
 
     return 0;
 }

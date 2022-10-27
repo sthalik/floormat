@@ -1,6 +1,6 @@
-#include "src/tile.hpp"
-#include "src/chunk.hpp"
 #include "serialize/tile.hpp"
+#include "src/tile.hpp"
+#include "src/global-coords.hpp"
 #include "serialize/tile-atlas.hpp"
 #include <nlohmann/json.hpp>
 
@@ -9,6 +9,14 @@ namespace floormat {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile_image, atlas, variant)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile, ground_image, wall_north, wall_west, passability)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords, x, y)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
+
+struct global_coords_ final {
+    chunk_coords chunk;
+    local_coords local;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(global_coords_, chunk, local)
 
 } // namespace floormat
 
@@ -21,6 +29,13 @@ void adl_serializer<tile_image>::from_json(const json& j, tile_image& val) { usi
 
 void adl_serializer<local_coords>::to_json(json& j, const local_coords& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<local_coords>::from_json(const json& j, local_coords& val) { using nlohmann::from_json; from_json(j, val); }
+
+void adl_serializer<chunk_coords>::to_json(json& j, const chunk_coords& val) { using nlohmann::to_json; to_json(j, val); }
+void adl_serializer<chunk_coords>::from_json(const json& j, chunk_coords& val) { using nlohmann::from_json; from_json(j, val); }
+
+void adl_serializer<global_coords>::to_json(json& j, const global_coords& val) { using nlohmann::to_json; to_json(j, global_coords_{val.chunk(), val.local()}); }
+void adl_serializer<global_coords>::from_json(const json& j, global_coords& val) { using nlohmann::from_json; global_coords_ x; from_json(j, x); val = {x.chunk, x.local}; }
+
 
 } // namespace nlohmann
 

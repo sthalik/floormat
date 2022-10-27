@@ -2,7 +2,6 @@
 #include "serialize/tile-atlas.hpp"
 #include "serialize/magnum-vector2i.hpp"
 #include "loader.hpp"
-#include "compat/assert.hpp"
 #include <tuple>
 
 #include <nlohmann/json.hpp>
