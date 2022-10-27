@@ -1,47 +1,29 @@
 #pragma once
-#include <tuple>
-#include <fstream>
-#include <exception>
-#include <filesystem>
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+
+namespace std::filesystem { class path; }
 
 namespace floormat {
 
 struct json_helper final {
-    template<typename t>
-    [[nodiscard]]
-    static t from_json(const std::filesystem::path& pathname);
+    using json = nlohmann::json;
+    using fspath = std::filesystem::path;
 
-    template<typename t>
-    static void to_json(const t& self, const std::filesystem::path& pathname);
+    template<typename T> static T from_json(const fspath& pathname);
+    template<typename T, int indent = 1> static void to_json(const T& self, const fspath& pathname);
+    static json from_json_(const fspath& pathname);
+    static void to_json_(const json& j, const fspath& pathname, int indent);
+
+    template<typename T> static T from_binary(const fspath& pathname);
+    template<typename T> static void to_binary(const T& self, const fspath& pathname);
+    static json from_binary_(const fspath& pathname);
+    static void to_binary_(const json& j, const fspath& pathname);
 };
 
-template<typename t>
-t json_helper::from_json(const std::filesystem::path& pathname)
-{
-    using Corrade::Utility::Error;
-    std::ifstream s;
-    s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    s.open(pathname, std::ios_base::in);
-    t ret;
-    nlohmann::json j;
-    s >> j;
-    ret = j;
-    return ret;
-}
+template<typename T> T json_helper::from_json(const fspath& pathname) { return from_json_(pathname); }
+template<typename T, int indent> void json_helper::to_json(const T& self, const fspath& pathname) { to_json_(json(self), pathname, indent); }
 
-template<typename t>
-void json_helper::to_json(const t& self, const std::filesystem::path& pathname)
-{
-    using Corrade::Utility::Error;
-    nlohmann::json j = self;
-
-    std::ofstream s;
-    s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    s.open(pathname, std::ios_base::out | std::ios_base::trunc);
-    s << j.dump(4);
-    s << '\n';
-    s.flush();
-}
+template<typename T> T json_helper::from_binary(const fspath& pathname) { return from_binary_(pathname); }
+template<typename T> void json_helper::to_binary(const T& self, const fspath& pathname) { to_binary_(json(self), pathname); }
 
 } // namespace floormat
