@@ -1,11 +1,10 @@
 #pragma once
 #include "compat/int-hash.hpp"
-#include "global-coords.hpp"
-#include "tile.hpp"
+#include "compat/integer-types.hpp"
 #include "chunk.hpp"
+#include "global-coords.hpp"
 #include <unordered_map>
 #include <memory>
-#include <optional>
 
 namespace std::filesystem { class path; }
 
@@ -23,21 +22,24 @@ private:
     };
 
     std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks;
-    mutable std::tuple<chunk*, chunk_coords>_last_chunk;
+    mutable std::tuple<chunk*, chunk_coords> _last_chunk;
     std::size_t _last_collection = 0;
     explicit world(std::size_t capacity);
 
 public:
     explicit world();
 
+    struct pair final { chunk& c; tile& t; }; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+
     template<typename Hash, typename Alloc, typename Pred>
     explicit world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks);
 
     chunk& operator[](chunk_coords c) noexcept;
-    std::tuple<chunk&, tile&> operator[](global_coords pt) noexcept;
+    pair operator[](global_coords pt) noexcept;
     bool contains(chunk_coords c) const noexcept;
     void clear();
     void collect(bool force = false);
+    constexpr std::size_t size() const noexcept { return _chunks.size(); }
 
     [[deprecated]] const auto& chunks() const noexcept {  return _chunks; } // only for serialization
 

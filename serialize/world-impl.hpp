@@ -12,8 +12,9 @@ namespace floormat::Serialize {
 namespace {
 
 using tilemeta  = std::uint8_t;
-using imgvar    = std::uint8_t;
+using imgvar    = decltype(tile_image::variant);
 using atlasid   = std::uint16_t;
+using chunksiz  = std::uint16_t;
 using enum tile::pass_mode;
 
 template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
@@ -45,7 +46,7 @@ namespace {
 
 struct FILE_raii final {
     FILE_raii(FILE* s) noexcept : s{s} {}
-    ~FILE_raii() noexcept { if (s) ::fclose(s); }
+    ~FILE_raii() noexcept { close(); }
     operator FILE*() noexcept { return s; }
     void close() noexcept { if (s) ::fclose(s); s = nullptr; }
 private:

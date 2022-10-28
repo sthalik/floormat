@@ -106,8 +106,6 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
         s << flags;
 
-        static_assert(std::is_same_v<imgvar, imgvar>);
-
         if (img_g != null_atlas)
             s << img_g << x.ground_image.variant;
         if (img_n != null_atlas)
@@ -126,8 +124,8 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
 void writer_state::serialize_atlases()
 {
-    const std::size_t sz = tile_images.size();
-    fm_assert(sz < int_max<atlasid>);
+    fm_assert(tile_images.size() < int_max<atlasid>);
+    const auto sz = (atlasid)tile_images.size();
     const auto atlasbuf_size = sizeof(sz) + atlas_name_max*sz;
     atlas_buf.resize(atlasbuf_size);
     auto s = binary_writer{atlas_buf.begin()};
@@ -143,6 +141,8 @@ void writer_state::serialize_atlases()
         fm_debug_assert(s.bytes_written() + namesiz + 1 <= atlasbuf_size);
         fm_assert(namesiz <= atlas_name_max - 1); // null terminated
         fm_debug_assert(name.find('\0') == name.cend());
+        const auto sz2 = atlas->num_tiles2();
+        s << sz2[0]; s << sz2[1];
         s.write_asciiz_string(name);
     }
     fm_assert(s.bytes_written() <= atlasbuf_size);
@@ -165,9 +165,15 @@ ArrayView<const char> writer_state::serialize_world()
     }
     serialize_atlases();
 
+    using proto_t = std::decay_t<decltype(proto_version)>;
+    union { chunksiz x; char bytes[sizeof x]; } c = {.x = maybe_byteswap((chunksiz)world->size())};
+    union { proto_t x;  char bytes[sizeof x]; } p = {.x = maybe_byteswap(proto_version)};
+    fm_assert(world->size() <= int_max<chunksiz>);
+
     std::size_t len = 0;
     len += std::size(file_magic)-1;
-    len += sizeof(proto_version);
+    len += sizeof(p.x);
+    len += sizeof(c.x);
     for (const auto& buf : chunk_bufs)
         len += buf.size();
     len += atlas_buf.size();
@@ -176,14 +182,15 @@ ArrayView<const char> writer_state::serialize_world()
     const auto copy = [&](const auto& in) {
 #ifndef FM_NO_DEBUG
         auto len1 = std::distance(std::cbegin(in), std::cend(in)),
-                len2 = std::distance(it, file_buf.end());
+             len2 = std::distance(it, file_buf.end());
         fm_assert(len1 <= len2);
 #endif
         it = std::copy(std::cbegin(in), std::cend(in), it);
     };
     copy(Containers::StringView{file_magic, std::size(file_magic)-1});
-    copy(std::initializer_list<char>{ char(proto_version & 0xff), char((proto_version >> 8) & 0xff) });
+    copy(p.bytes);
     copy(atlas_buf);
+    copy(c.bytes);
     for (const auto& buf : chunk_bufs)
         copy(buf);
     return {file_buf.data(), file_buf.size()};

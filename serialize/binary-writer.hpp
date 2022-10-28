@@ -11,7 +11,6 @@ struct binary_writer final {
     template<integer T> constexpr void write(T x) noexcept;
     template<std::floating_point T> void write(T x) noexcept;
     constexpr void write_asciiz_string(StringView str) noexcept;
-
     constexpr std::size_t bytes_written() const noexcept { return _bytes_written; }
 
 private:

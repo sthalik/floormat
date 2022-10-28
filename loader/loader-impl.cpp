@@ -100,6 +100,7 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
         }
     }
     const auto path = Utility::Path::currentDirectory();
+    filename[len] = '\0';
     fm_abort("can't open tile image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
 }
 

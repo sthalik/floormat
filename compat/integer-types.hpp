@@ -20,7 +20,7 @@ typedef unsigned char      uint8_t;
 typedef unsigned short     uint16_t;
 typedef unsigned int       uint32_t;
 typedef unsigned long long uint64_t;
-#else
+#elif __GNUG__
 typedef __SIZE_TYPE__     size_t;
 typedef __PTRDIFF_TYPE__  ptrdiff_t;
 typedef __INTPTR_TYPE__   intptr_t;
@@ -34,8 +34,13 @@ typedef __UINT8_TYPE__    uint8_t;
 typedef __UINT16_TYPE__   uint16_t;
 typedef __UINT32_TYPE__   uint32_t;
 typedef __UINT64_TYPE__   uint64_t;
+#else
+#define FM_NO_INTTYPES_FORWARD_DECLARATION
+#include <cstddef>
+#include <cstdint>
 #endif
 
+#ifndef FM_NO_INTTYPES_FORWARD_DECLARATION
 namespace std {
 using ::size_t;
 using ::ptrdiff_t;
@@ -51,3 +56,4 @@ using ::uint16_t;
 using ::uint32_t;
 using ::uint64_t;
 } // namespace std
+#endif

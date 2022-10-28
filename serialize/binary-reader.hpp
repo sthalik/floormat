@@ -1,11 +1,12 @@
 #pragma once
 #include "binary-serializer.hpp"
 #include <iterator>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat::Serialize {
 
-union value_u {
-    alignas(alignof(double)) char bytes[8];
+union alignas(alignof(double)) value_u {
+    char bytes[8];
     unsigned char uc;
     std::uint8_t u8;
     std::uint16_t u16;
@@ -44,6 +45,7 @@ struct binary_reader final {
     template<typename T> T read() noexcept;
     template<std::size_t N> constexpr std::array<char, N> read() noexcept;
     constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
+    constexpr StringView read_asciiz_string() noexcept;
 
 private:
     std::size_t num_bytes_read = 0;

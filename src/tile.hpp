@@ -12,9 +12,9 @@ struct tile final
     pass_mode passability = pass_shoot_through;
 
     constexpr tile() = default;
-    tile(tile&&) = default;
 
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
+    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile);
 };
 
 } //namespace floormat

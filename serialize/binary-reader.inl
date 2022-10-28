@@ -33,7 +33,7 @@ template<typename T>
 T binary_reader<It>::read() noexcept
 {
     value_u buf = read_u<T>();
-    return *reinterpret_cast<T>(buf.bytes);
+    return *reinterpret_cast<T*>(buf.bytes);
 }
 
 template<string_input_iterator It>
@@ -79,9 +79,18 @@ constexpr value_u binary_reader<It>::read_u() noexcept
 template<string_input_iterator It, serializable T>
 binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept
 {
-    value_u u = reader.template read<T>();
-    x = *reinterpret_cast<T*>(&u.bytes[0]);
+    x = reader.template read<T>();
     return reader;
+}
+
+template<string_input_iterator It>
+constexpr StringView binary_reader<It>::read_asciiz_string() noexcept
+{
+    const It pos = it;
+    while (it != end)
+        if (char c = *it++; c == '\0')
+            return StringView{pos, (std::size_t)std::distance(pos, end), StringViewFlag::NullTerminated};
+    fm_abort("unexpected EOF while reading a string");
 }
 
 } // namespace floormat::Serialize

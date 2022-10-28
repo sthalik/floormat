@@ -29,7 +29,7 @@ chunk& world::operator[](chunk_coords coord) noexcept
     return ret;
 }
 
-std::tuple<chunk&, tile&> world::operator[](global_coords pt) noexcept
+auto world::operator[](global_coords pt) noexcept -> pair
 {
     auto& c = operator[](pt.chunk());
     return { c, c[pt.local()] };
