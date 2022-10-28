@@ -1,5 +1,7 @@
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
+#include "tile-image.hpp"
+#include <limits>
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/ImageView.h>
@@ -11,6 +13,7 @@ tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
     name_{name}, size_{image.size()}, dims_{tile_count}
 {
+    fm_assert(num_tiles() <= std::numeric_limits<decltype(tile_image::variant)>::max());
     fm_assert(dims_[0] > 0 && dims_[1] > 0);
     fm_assert(size_ % Vector2ui{tile_count} == Vector2ui());
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)

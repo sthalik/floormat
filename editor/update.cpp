@@ -18,7 +18,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 #else
         const auto& atlas = pt.x == N/2 || pt.y == N/2 ? _floor2 : _floor1;
 #endif
-        x.ground_image = { atlas, k % atlas->num_tiles() };
+        x.ground_image = { atlas, decltype(tile_image::variant)(k % atlas->num_tiles()) };
     }
 #ifdef FM_NO_BINDINGS
     const auto& wall1 = floor1, wall2 = floor1;

@@ -1,26 +1,8 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/integer-types.hpp"
-#include "tile-defs.hpp"
-#include <memory>
+#include "tile-image.hpp"
 
 namespace floormat {
-
-struct tile_atlas;
-
-struct tile_image final
-{
-    std::shared_ptr<tile_atlas> atlas;
-    std::size_t variant = (std::size_t)-1;
-
-    explicit operator bool() const noexcept { return !!atlas; }
-
-    std::strong_ordering operator<=>(const tile_image& o) const noexcept
-    {
-        const auto ret = atlas.get() <=> o.atlas.get();
-        return ret != std::strong_ordering::equal ? ret : variant <=> o.variant;
-    }
-};
 
 struct tile final
 {

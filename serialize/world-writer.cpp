@@ -88,7 +88,8 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     {
         const tile& x = c[i];
 
-        [[maybe_unused]] constexpr auto tile_size = sizeof(atlasid)*3 + sizeof(tilemeta);
+        [[maybe_unused]] constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(imgvar))*3;
+
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
         auto img_g = maybe_intern_atlas(x.ground_image);
@@ -105,12 +106,14 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
         s << flags;
 
+        static_assert(std::is_same_v<imgvar, imgvar>);
+
         if (img_g != null_atlas)
-            s << img_g;
+            s << img_g << x.ground_image.variant;
         if (img_n != null_atlas)
-            s << img_n;
+            s << img_n << x.wall_north.variant;
         if (img_w != null_atlas)
-            s << img_w;
+            s << img_w << x.wall_west.variant;
     }
 
     const auto nbytes = s.bytes_written();

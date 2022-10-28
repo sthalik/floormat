@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "tile-atlas.hpp"
 #include "global-coords.hpp"
-#include "tile.hpp"
+#include "tile-image.hpp"
 
 #include <cstdint>
 #include <tuple>
@@ -33,7 +33,7 @@ private:
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
     tile_image _selected_tile;
-    std::tuple<std::shared_ptr<tile_atlas>, std::vector<std::size_t>> _permutation;
+    std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image::variant)>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
     rotation _rotation{};
