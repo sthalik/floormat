@@ -18,6 +18,7 @@ struct global_coords final {
 
     std::uint32_t x = _0u, y = _0u;
 
+    constexpr global_coords() noexcept = default;
     constexpr global_coords(chunk_coords c, local_coords xy) :
         x{ std::uint32_t(c.x + _0s) << 4 | (xy.x & 0x0f) },
         y{ std::uint32_t(c.y + _0s) << 4 | (xy.y & 0x0f) }
@@ -26,14 +27,17 @@ struct global_coords final {
     constexpr global_coords(std::int32_t x, std::int32_t y) noexcept :
           x{std::uint32_t(x + _0s)}, y{std::uint32_t(y + _0s)}
     {}
-    constexpr global_coords() noexcept = default;
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
-
     constexpr bool operator==(const global_coords& other) const noexcept = default;
+
+    constexpr global_coords operator+(Vector2i vec) const noexcept;
+    constexpr global_coords operator-(Vector2i vec) const noexcept;
+    constexpr global_coords& operator+=(Vector2i vec) noexcept;
+    constexpr global_coords& operator-=(Vector2i vec) noexcept;
 };
 
 constexpr local_coords global_coords::local() const noexcept
@@ -49,6 +53,30 @@ constexpr chunk_coords global_coords::chunk() const noexcept
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
     return { std::int32_t(x - _0s), std::int32_t(y - _0s), };
+}
+
+constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
+{
+    return { std::uint32_t((std::int64_t)x+vec[0]), std::uint32_t((std::int64_t)y+vec[1]) };
+}
+
+constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
+{
+    x = std::uint32_t((std::int64_t)x+vec[0]);
+    y = std::uint32_t((std::int64_t)y+vec[1]);
+    return *this;
+}
+
+constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
+{
+    return { std::uint32_t((std::int64_t)x-vec[0]), std::uint32_t((std::int64_t)y-vec[1]) };
+}
+
+constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
+{
+    x = std::uint32_t((std::int64_t)x-vec[0]);
+    y = std::uint32_t((std::int64_t)y-vec[1]);
+    return *this;
 }
 
 } // namespace floormat
