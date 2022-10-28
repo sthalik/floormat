@@ -46,16 +46,16 @@ struct interned_atlas final {
     atlasid index;
 };
 
-struct state final {
-    state(const world& world);
+struct writer_state final {
+    writer_state(const world& world);
     atlasid intern_atlas(const tile_image& img);
     atlasid maybe_intern_atlas(const tile_image& img);
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
     ArrayView<const char> serialize_world();
 
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(state);
-    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(state);
+    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(writer_state);
+    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(writer_state);
 
 private:
     const struct world* world;
@@ -74,7 +74,7 @@ constexpr auto chunkbuf_size =
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-state::state(const struct world& world) : world{&world}
+writer_state::writer_state(const struct world& world) : world{&world}
 {
     chunk_buf.reserve(chunkbuf_size);
     chunk_bufs.reserve(world.chunks().size());
@@ -85,7 +85,7 @@ state::state(const struct world& world) : world{&world}
 #pragma GCC diagnostic pop
 #endif
 
-atlasid state::intern_atlas(const tile_image& img)
+atlasid writer_state::intern_atlas(const tile_image& img)
 {
     const void* const ptr = img.atlas.get();
     fm_assert_debug(ptr != nullptr);
@@ -95,12 +95,12 @@ atlasid state::intern_atlas(const tile_image& img)
         return (tile_images[ptr] = { &*img.atlas, (atlasid)tile_images.size() }).index;
 }
 
-atlasid state::maybe_intern_atlas(const tile_image& img)
+atlasid writer_state::maybe_intern_atlas(const tile_image& img)
 {
     return img ? intern_atlas(img) : null_atlas;
 }
 
-void state::serialize_chunk(const chunk& c, chunk_coords coord)
+void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
     chunk_buf.resize(chunkbuf_size);
@@ -146,7 +146,7 @@ void state::serialize_chunk(const chunk& c, chunk_coords coord)
     chunk_buf.clear();
 }
 
-void state::serialize_atlases()
+void writer_state::serialize_atlases()
 {
     const std::size_t sz = tile_images.size();
     fm_assert(sz < int_max<atlasid>);
@@ -175,7 +175,7 @@ void state::serialize_atlases()
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-ArrayView<const char> state::serialize_world()
+ArrayView<const char> writer_state::serialize_world()
 {
     for (const auto& [pos, c] : world->chunks())
     {
@@ -246,7 +246,7 @@ void world::serialize(StringView filename)
     FILE_raii file = ::fopen(filename.data(), "w");
     if (!file)
         fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), strerror(errbuf));
-    Serialize::state s{*this};
+    Serialize::writer_state s{*this};
     const auto array = s.serialize_world();
     if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
         fm_abort("fwrite: %s", strerror(errbuf));
