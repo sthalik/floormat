@@ -217,7 +217,7 @@ void world::serialize(StringView filename)
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
-    FILE_raii file = ::fopen(filename.data(), "w");
+    FILE_raii file = ::fopen(filename.data(), "wb");
     if (!file)
         fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), strerror(errbuf));
     Serialize::writer_state s{*this};

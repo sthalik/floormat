@@ -39,7 +39,7 @@ public:
     bool contains(chunk_coords c) const noexcept;
     void clear();
     void collect(bool force = false);
-    constexpr std::size_t size() const noexcept { return _chunks.size(); }
+    std::size_t size() const noexcept { return _chunks.size(); }
 
     [[deprecated]] const auto& chunks() const noexcept {  return _chunks; } // only for serialization
 

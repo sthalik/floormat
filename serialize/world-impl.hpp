@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-macros"
 #ifndef FM_SERIALIZE_WORLD_IMPL
 #error "not meant to be included directly"
 #endif
@@ -56,5 +54,3 @@ private:
 } // namespace
 
 } // namespace floormat
-
-#pragma clang diagnostic pop

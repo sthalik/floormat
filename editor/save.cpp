@@ -5,16 +5,9 @@
 
 namespace floormat {
 
-#define FM_SAVE_BINARY
-
-#ifdef FM_SAVE_BINARY
-#define quicksave_file save_dir "/" "quicksave.dat"
-#else
-#define quicksave_file save_dir "/" "quicksave.json"
-#endif
-
 #define save_dir "../save"
-#define quicksave_tmp quicksave_file ".tmp"
+#define quicksave_file save_dir "/" "quicksave.dat"
+#define quicksave_tmp save_dir "/" "quicksave.tmp"
 
 namespace Path = Corrade::Utility::Path;
 using std::filesystem::path;
@@ -38,30 +31,24 @@ void app::do_quicksave()
     world.collect(true);
     if (Path::exists(quicksave_tmp))
         Path::remove(quicksave_tmp);
-    fputs("quicksave...", stderr); fflush(stderr);
+    fputs("quicksave... ", stderr); fflush(stderr);
     world.serialize(quicksave_tmp);
     Path::move(quicksave_tmp, quicksave_file);
-    fputs(" done\n", stderr); fflush(stderr);
+    fputs("done\n", stderr); fflush(stderr);
 }
 
 void app::do_quickload()
 {
-    ensure_save_directory();
+    if (!ensure_save_directory())
+        return;
     if (!Path::exists(quicksave_file))
     {
         fm_warn("no quicksave");
         return;
     }
-    auto& world = M->world();
-    fputs("quickload...", stderr); fflush(stderr);
-#if 0
-#ifdef FM_SAVE_BINARY
-    world = json_helper::from_binary<struct world>(quicksave_file);
-#else
-    world = json_helper::from_json<struct world>(quicksave_file);
-#endif
-#endif
-    fputs(" done\n", stderr); fflush(stderr);
+    fputs("quickload... ", stderr); fflush(stderr);
+    M->world() = world::deserialize(quicksave_file);
+    fputs("done\n", stderr); fflush(stderr);
 }
 
 } // namespace floormat

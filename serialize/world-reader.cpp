@@ -64,7 +64,7 @@ void reader_state::read_chunks(reader_t& s)
         for (std::size_t i = 0; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
-            const auto make_atlas = [&] -> tile_image {
+            const auto make_atlas = [&]() -> tile_image {
                 auto atlas = lookup_atlas(s.read<atlasid>());
                 auto id = s.read<imgvar>();
                 return { atlas, id };
@@ -120,7 +120,7 @@ world world::deserialize(StringView filename)
         return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
-    FILE_raii f = ::fopen(filename.data(), "r");
+    FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
         fm_abort("fopen(\"%s\", \"r\"): %s", filename.data(), strerror(errbuf));
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
@@ -133,8 +133,9 @@ world world::deserialize(StringView filename)
     if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
         fm_abort("fseek(SEEK_SET): %s", strerror(errbuf));
     auto buf_ = std::make_unique<char[]>(len);
-    if (auto ret = ::fread(&buf_[0], len, 1, f); ret != 1)
-        fm_abort("fread %zu: %s", len, strerror(errbuf));
+
+    if (auto ret = ::fread(&buf_[0], 1, len, f); ret != len)
+        fm_abort("fread short read: %s", strerror(errbuf));
 
     world w;
     Serialize::reader_state s{w};
