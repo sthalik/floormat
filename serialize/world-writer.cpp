@@ -7,6 +7,7 @@
 #include "src/chunk.hpp"
 #include "src/world.hpp"
 #include <vector>
+#include <algorithm>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 
@@ -90,7 +91,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
-        auto img_g = maybe_intern_atlas(x.ground_image);
+        auto img_g = maybe_intern_atlas(x.ground);
         auto img_n = maybe_intern_atlas(x.wall_north);
         auto img_w = maybe_intern_atlas(x.wall_north);
 
@@ -104,8 +105,18 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
         s << flags;
 
+#ifndef FM_NO_DEBUG
+        constexpr auto check_atlas = [](const tile_image& x) {
+            if (x.atlas)
+                fm_assert(x.variant < x.atlas->num_tiles());
+        };
+        check_atlas(x.ground);
+        check_atlas(x.wall_north);
+        check_atlas(x.wall_west);
+#endif
+
         if (img_g != null_atlas)
-            s << img_g << x.ground_image.variant;
+            s << img_g << x.ground.variant;
         if (img_n != null_atlas)
             s << img_n << x.wall_north.variant;
         if (img_w != null_atlas)
@@ -131,9 +142,17 @@ void writer_state::serialize_atlases()
 
     s << sz;
 
-    for (const auto& [p, t] : tile_images)
+    std::vector<interned_atlas> atlases;
+    atlases.reserve(tile_images.size());
+
+    for (const auto& [_, t] : tile_images)
+        atlases.push_back(t);
+    std::sort(atlases.begin(), atlases.end(), [](const auto& a, const auto& b) {
+        return a.index < b.index;
+    });
+
+    for (const auto& [atlas, _] : atlases)
     {
-        const auto& [atlas, index] = t;
         const auto name = atlas->name();
         const auto namesiz = name.size();
         fm_debug_assert(s.bytes_written() + namesiz + 1 <= atlasbuf_size);

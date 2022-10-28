@@ -8,7 +8,7 @@ bool chunk::empty(bool force) const noexcept
         return false;
 
     for (const tile& x : _tiles)
-        if (x.ground_image || x.wall_north || x.wall_west)
+        if (x.ground || x.wall_north || x.wall_west)
         {
             _maybe_empty = false;
             return false;

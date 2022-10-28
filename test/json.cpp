@@ -20,7 +20,7 @@ static chunk make_test_chunk()
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
     for (auto& [x, k, pt] : c) {
-        x.ground_image = { tiles, decltype(tile_image::variant)(k % tiles->num_tiles()) };
+        x.ground = { tiles, decltype(tile_image::variant)(k % tiles->num_tiles()) };
     }
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north = { metal1, 0 };

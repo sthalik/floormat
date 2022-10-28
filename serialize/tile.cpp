@@ -7,7 +7,6 @@
 namespace floormat {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile_image, atlas, variant)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile, ground_image, wall_north, wall_west, passability)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords, x, y)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
 

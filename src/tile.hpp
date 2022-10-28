@@ -8,7 +8,7 @@ struct tile final
 {
     enum pass_mode : std::uint8_t { pass_blocked, pass_ok, pass_shoot_through, };
 
-    tile_image ground_image, wall_north, wall_west;
+    tile_image ground, wall_north, wall_west;
     pass_mode passability = pass_shoot_through;
 
     constexpr tile() = default;

@@ -35,8 +35,8 @@ void reader_state::read_atlases(reader_t& s)
         Vector2ub size;
         s >> size[0];
         s >> size[1];
-        auto str = s.read_asciiz_string<atlas_name_max>();
-        atlases[i] = loader.tile_atlas({str.buf, str.len}, size);
+        const auto& [buf, len] = s.read_asciiz_string<atlas_name_max>();
+        atlases[i] = loader.tile_atlas({buf, len}, size);
     }
 }
 
@@ -73,7 +73,7 @@ void reader_state::read_chunks(reader_t& s)
             };
             tile& t = chunk[i];
             if (flags & meta_ground)
-                t.ground_image = make_atlas();
+                t.ground = make_atlas();
             if (flags & meta_wall_n)
                 t.wall_north = make_atlas();
             if (flags & meta_wall_w)

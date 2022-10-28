@@ -19,9 +19,9 @@ floor_mesh::floor_mesh()
 
 void floor_mesh::set_tile(quad_data& data, tile& x)
 {
-    if (x.ground_image)
+    if (x.ground)
     {
-        auto texcoords = x.ground_image.atlas->texcoords_for_id(x.ground_image.variant);
+        auto texcoords = x.ground.atlas->texcoords_for_id(x.ground.variant);
         for (size_t i = 0; i < 4; i++)
             data[i] = { texcoords[i] };
     }
@@ -58,7 +58,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     };
 
     for (auto& [x, i, pt] : c)
-        do_draw(i, x.ground_image.atlas.get());
+        do_draw(i, x.ground.atlas.get());
     do_draw(TILE_COUNT, nullptr);
 }
 
