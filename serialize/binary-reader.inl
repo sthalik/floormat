@@ -87,6 +87,8 @@ template<string_input_iterator It>
 template<std::size_t MAX>
 auto binary_reader<It>::read_asciiz_string() noexcept
 {
+    static_assert(MAX > 0);
+
     struct fixed_string final {
         char buf[MAX];
         std::size_t len;
