@@ -53,6 +53,12 @@ namespace floormat {
         }                                                               \
     } while(false)
 
+#ifndef FM_NO_DEBUG
+#define fm_assert_debug(...) fm_assert(__VA_ARGS__)
+#else
+#define fm_assert_debug(...) void()
+#endif
+
 #define ASSERT_EXPR(var, expr, cond)                                    \
     ([&] {                                                              \
         decltype(auto) var = (expr);                                    \
