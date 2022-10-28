@@ -93,7 +93,7 @@ auto binary_reader<It>::read_asciiz_string() noexcept
     };
 
     fixed_string ret;
-    for (std::size_t i = 0; i < MAX-1 && it != end; i++)
+    for (std::size_t i = 0; i < MAX && it != end; i++)
     {
         const char c = *it++;
         ret.buf[i] = c;
