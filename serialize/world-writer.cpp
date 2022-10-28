@@ -93,7 +93,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
         auto img_g = maybe_intern_atlas(x.ground);
         auto img_n = maybe_intern_atlas(x.wall_north);
-        auto img_w = maybe_intern_atlas(x.wall_north);
+        auto img_w = maybe_intern_atlas(x.wall_west);
 
         tilemeta flags = {};
         flags |= meta_ground * (img_g != null_atlas);
