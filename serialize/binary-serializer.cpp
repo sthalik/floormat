@@ -80,4 +80,17 @@ static_assert(std::is_same_v<test3&, decltype( std::declval<test3&>() >> std::de
 using test4 = binary_writer<std::array<char, sizeof(int)>::iterator>;
 static_assert(std::is_same_v<test4&, decltype( std::declval<test4&>() << int() )>);
 
+[[maybe_unused]]
+static constexpr bool test5()
+{
+    std::array<char, 4> bytes = {};
+    auto w = binary_writer(bytes.begin());
+    w << (char)0;
+    w << (char)1;
+    w << (char)2;
+    w << (char)3;
+    return bytes[0] == 0 && bytes[1] == 1 && bytes[2] == 2 && bytes[3] == 3;
+}
+static_assert(test5());
+
 } // namespace floormat::Serialize

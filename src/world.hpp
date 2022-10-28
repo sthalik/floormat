@@ -7,9 +7,9 @@
 #include <memory>
 #include <optional>
 
-namespace floormat {
+namespace std::filesystem { class path; }
 
-struct chunk;
+namespace floormat {
 
 struct world final
 {
@@ -39,6 +39,9 @@ public:
     void collect(bool force = false);
 
     [[deprecated]] const auto& chunks() const noexcept {  return _chunks; } // only for serialization
+
+    void serialize(StringView filename);
+    static world deserialize(StringView filename);
 
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(world);
