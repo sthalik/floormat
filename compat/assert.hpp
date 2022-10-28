@@ -54,9 +54,9 @@ namespace floormat {
     } while(false)
 
 #ifndef FM_NO_DEBUG
-#define fm_assert_debug(...) fm_assert(__VA_ARGS__)
+#define fm_debug_assert(...) fm_assert(__VA_ARGS__)
 #else
-#define fm_assert_debug(...) void()
+#define fm_debug_assert(...) void()
 #endif
 
 #define ASSERT_EXPR(var, expr, cond)                                    \

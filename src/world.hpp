@@ -22,9 +22,10 @@ private:
         return int_hash((std::size_t)c.y << 16 | (std::size_t)c.x);
     };
 
-    std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks{initial_capacity, hasher};
+    std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks;
     mutable std::tuple<chunk*, chunk_coords>_last_chunk;
     std::size_t _last_collection = 0;
+    explicit world(std::size_t capacity);
 
 public:
     explicit world();
@@ -49,7 +50,7 @@ public:
 
 template<typename Hash, typename Alloc, typename Pred>
 world::world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks) :
-    _chunks{std::max(initial_capacity, std::size_t(1/max_load_factor * 2 * chunks.size())), hasher}
+    world{std::max(initial_capacity, std::size_t(1/max_load_factor * 2 * chunks.size()))}
 {
     for (auto&& [coord, c] : chunks)
         operator[](coord) = std::move(c);

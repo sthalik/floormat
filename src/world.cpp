@@ -3,7 +3,11 @@
 
 namespace floormat {
 
-world::world()
+world::world() : world{initial_capacity}
+{
+}
+
+world::world(std::size_t capacity) : _chunks{capacity, hasher}
 {
     _chunks.max_load_factor(max_load_factor);
 }

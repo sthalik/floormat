@@ -1,4 +1,5 @@
-#include "binary-serializer.inl"
+#include "binary-reader.inl"
+#include "binary-writer.inl"
 #include <array>
 
 namespace floormat::Serialize {
@@ -30,28 +31,6 @@ private:
 template struct byte_array_iterator<sizeof(double)>;
 #endif
 
-struct value_buf final {
-    value_u value;
-    std::int8_t len;
-
-    explicit constexpr value_buf(value_u value, std::int8_t len) : value{value}, len{len} {}
-    constexpr bool operator==(const value_buf& o) const noexcept;
-
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(value_buf);
-    fm_DECLARE_DEFAULT_COPY_ASSIGNMENT(value_buf);
-};
-
-constexpr bool value_buf::operator==(const value_buf& o) const noexcept
-{
-    const auto N = len;
-    if (N != o.len)
-        return false;
-    for (std::int8_t i = 0; i < N; i++)
-        if (value.bytes[i] != o.value.bytes[i])
-            return false;
-    return true;
-}
-
 [[maybe_unused]]
 static constexpr bool test1()
 {
@@ -70,6 +49,7 @@ static constexpr bool test2()
     constexpr std::array<char, 4> bytes = { 1, 0, 1, 0 };
     auto r = binary_reader(bytes.cbegin(), bytes.cend());
     const auto x = r.read_u<int>();
+    r.assert_end();
     return x.bytes[0] == 1 && x.bytes[1] == 0 && x.bytes[2] == 1 && x.bytes[3] == 0;
 }
 static_assert(test2());
