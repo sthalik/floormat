@@ -39,13 +39,7 @@ void app::do_quicksave()
     if (Path::exists(quicksave_tmp))
         Path::remove(quicksave_tmp);
     fputs("quicksave...", stderr); fflush(stderr);
-#if 0
-#ifdef FM_SAVE_BINARY
-    json_helper::to_binary(world, quicksave_tmp);
-#else
-    json_helper::to_json(world, quicksave_tmp);
-#endif
-#endif
+    world.serialize(quicksave_tmp);
     Path::move(quicksave_tmp, quicksave_file);
     fputs(" done\n", stderr); fflush(stderr);
 }

@@ -162,6 +162,7 @@ void state::serialize_atlases()
         const auto& [atlas, index] = t;
         const auto name = atlas->name();
         const auto namesiz = name.size();
+        fm_assert_debug(s.bytes_written() + namesiz + 1 <= atlasbuf_size);
         fm_assert(namesiz <= atlas_name_max - 1); // null terminated
         fm_assert_debug(name.find('\0') == name.cend());
         s.write_asciiz_string(name);
@@ -194,8 +195,15 @@ ArrayView<const char> state::serialize_world()
     len += atlas_buf.size();
     file_buf.resize(len);
     auto it = file_buf.begin();
-    const auto copy = [&](const auto& in) { it = std::copy(std::cbegin(in), std::cend(in), it); };
-    copy(file_magic);
+    const auto copy = [&](const auto& in) {
+#ifndef FM_NO_DEBUG
+        auto len1 = std::distance(std::cbegin(in), std::cend(in)),
+             len2 = std::distance(it, file_buf.end());
+        fm_assert(len1 <= len2);
+#endif
+        it = std::copy(std::cbegin(in), std::cend(in), it);
+    };
+    copy(Containers::StringView{file_magic, std::size(file_magic)-1});
     copy(std::initializer_list<char>{ char(proto_version & 0xff), char((proto_version >> 8) & 0xff) });
     copy(atlas_buf);
     for (const auto& buf : chunk_bufs)
@@ -240,7 +248,7 @@ void world::serialize(StringView filename)
         fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), strerror(errbuf));
     Serialize::state s{*this};
     const auto array = s.serialize_world();
-    if (auto len = ::fwrite(array.data(), array.size(), 1, file))
+    if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
         fm_abort("fwrite: %s", strerror(errbuf));
     if (int ret = ::fflush(file); ret != 0)
         fm_abort("fflush: %s", strerror(errbuf));
