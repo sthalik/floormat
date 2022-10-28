@@ -45,7 +45,8 @@ struct binary_reader final {
     template<typename T> T read() noexcept;
     template<std::size_t N> constexpr std::array<char, N> read() noexcept;
     constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
-    constexpr StringView read_asciiz_string() noexcept;
+    template<std::size_t Max>
+    auto read_asciiz_string() noexcept;
 
 private:
     std::size_t num_bytes_read = 0;

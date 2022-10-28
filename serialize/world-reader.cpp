@@ -35,7 +35,8 @@ void reader_state::read_atlases(reader_t& s)
         Vector2ub size;
         s >> size[0];
         s >> size[1];
-        atlases[i] = loader.tile_atlas(s.read_asciiz_string(), size);
+        auto str = s.read_asciiz_string<atlas_name_max>();
+        atlases[i] = loader.tile_atlas({str.buf, str.len}, size);
     }
 }
 
@@ -67,9 +68,10 @@ void reader_state::read_chunks(reader_t& s)
             const auto make_atlas = [&]() -> tile_image {
                 auto atlas = lookup_atlas(s.read<atlasid>());
                 auto id = s.read<imgvar>();
+                fm_assert(id < atlas->num_tiles());
                 return { atlas, id };
             };
-            tile t;
+            tile& t = chunk[i];
             if (flags & meta_ground)
                 t.ground_image = make_atlas();
             if (flags & meta_wall_n)
@@ -86,7 +88,6 @@ void reader_state::read_chunks(reader_t& s)
             default:
                 fm_abort("bad pass mode '%zu' for tile %zu", i, (std::size_t)x);
             }
-            chunk[i] = std::move(t);
         }
     }
 }

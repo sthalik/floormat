@@ -84,13 +84,26 @@ binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept
 }
 
 template<string_input_iterator It>
-constexpr StringView binary_reader<It>::read_asciiz_string() noexcept
+template<std::size_t MAX>
+auto binary_reader<It>::read_asciiz_string() noexcept
 {
-    const It pos = it;
-    while (it != end)
-        if (char c = *it++; c == '\0')
-            return StringView{pos, (std::size_t)std::distance(pos, end), StringViewFlag::NullTerminated};
-    fm_abort("unexpected EOF while reading a string");
+    struct fixed_string final {
+        char buf[MAX];
+        std::size_t len;
+    };
+
+    fixed_string ret;
+    for (std::size_t i = 0; i < MAX-1 && it != end; i++)
+    {
+        const char c = *it++;
+        ret.buf[i] = c;
+        if (c == '\0')
+        {
+            ret.len = i;
+            return ret;
+        }
+    }
+    fm_abort("can't find string terminator");
 }
 
 } // namespace floormat::Serialize

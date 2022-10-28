@@ -10,7 +10,7 @@ struct tile_atlas;
 struct tile_image final
 {
     std::shared_ptr<tile_atlas> atlas;
-    std::uint16_t variant = (std::uint8_t)-1;
+    std::uint16_t variant = (std::uint16_t)-1;
 
     explicit operator bool() const noexcept { return !!atlas; }
 

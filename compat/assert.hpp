@@ -25,22 +25,28 @@ namespace floormat {
 
 } // namespace floormat
 
-#define fm_EMIT_DEBUG(pfx, ...)                                         \
+#define fm_EMIT_DEBUG2(pfx, ...)                                        \
     do {                                                                \
         if (!std::is_constant_evaluated()) {                            \
             if constexpr (sizeof(pfx) > 1)                              \
                 std::fputs((pfx), stderr);                              \
-            FM_KILL_WARN_double_promotion1()                            \
             std::fprintf(stderr, __VA_ARGS__);                          \
-            FM_KILL_WARN_double_promotion2()                            \
-            std::fputc('\n', stderr);                                   \
-            std::fflush(stderr);                                        \
         }                                                               \
+    } while (false)
+
+#define fm_EMIT_DEBUG(pfx, ...)                                         \
+    do {                                                                \
+        FM_KILL_WARN_double_promotion1()                                \
+        fm_EMIT_DEBUG2(pfx, __VA_ARGS__);                               \
+        FM_KILL_WARN_double_promotion2()                                \
+        std::fputc('\n', stderr);                                       \
+        std::fflush(stderr);                                            \
     } while (false)
 
 #define fm_abort(...)                                                   \
     do {                                                                \
-        fm_EMIT_DEBUG("fatal: ", __VA_ARGS__);                          \
+        fm_EMIT_DEBUG2("fatal: ", __VA_ARGS__);                         \
+        fm_EMIT_DEBUG("", "in %s:%d", __FILE__, __LINE__);              \
         ::floormat::_fm_abort();                                        \
     } while (false)
 

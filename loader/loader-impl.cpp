@@ -75,6 +75,7 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
     static_assert(IMAGE_PATH[sizeof(IMAGE_PATH)-2] == '/');
     fm_assert(filename_.size() < 4096);
     fm_assert(filename_.find('\\') == filename_.end());
+    fm_assert(filename_.find('\0') == filename_.end());
     fm_assert(tga_importer);
     constexpr std::size_t max_extension_length = 16;
 
@@ -97,6 +98,10 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
                 fm_abort("can't allocate tile image for '%s'", filename);
             auto ret = std::move(*img);
             return ret;
+        }
+        else
+        {
+            fm_warn("can't open '%s'", filename);
         }
     }
     const auto path = Utility::Path::currentDirectory();

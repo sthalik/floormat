@@ -39,7 +39,7 @@ private:
     std::unordered_map<const void*, interned_atlas> tile_images;
 };
 
-constexpr auto tile_size = sizeof(tilemeta) + sizeof(atlasid)*3;
+constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(imgvar))*3;
 
 constexpr auto chunkbuf_size =
         sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
@@ -87,8 +87,6 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     for (std::size_t i = 0; i < TILE_COUNT; i++)
     {
         const tile& x = c[i];
-
-        [[maybe_unused]] constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(imgvar))*3;
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
@@ -145,6 +143,7 @@ void writer_state::serialize_atlases()
         s << sz2[0]; s << sz2[1];
         s.write_asciiz_string(name);
     }
+    atlas_buf.resize(s.bytes_written());
     fm_assert(s.bytes_written() <= atlasbuf_size);
 }
 
