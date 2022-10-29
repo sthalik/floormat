@@ -1,0 +1,4 @@
+*.[ch]pp text eol=lf
+*.[ch] text eol=lf
+*.inl text eol=lf
+*.rc text eol=lf
