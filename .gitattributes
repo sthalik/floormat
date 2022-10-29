@@ -1,4 +1,17 @@
+* text=auto eol=lf
+
 *.[ch]pp text eol=lf
 *.[ch] text eol=lf
 *.inl text eol=lf
 *.rc text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+*.cmake text eol=lf
+*.conf text eol=lf
+.git?* text eol=lf
+
+*.tga -text
+*.png -text
+*.webp -text
+*.blend -text
+*.blend[0-9] -text
