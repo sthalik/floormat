@@ -78,15 +78,13 @@ std::array<std::array<UnsignedShort, 6>, wall_mesh::COUNT> wall_mesh::make_index
 std::array<std::array<Vector3, 4>, wall_mesh::COUNT> wall_mesh::make_position_array()
 {
     std::array<std::array<Vector3, 4>, COUNT> array;
-    constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
-    constexpr Vector3 size = {X, Y, Z};
     for (std::size_t j = 0; j < TILE_MAX_DIM; j++)
         for (std::size_t i = 0; i < TILE_MAX_DIM; i++)
         {
             const auto idx = (j*TILE_MAX_DIM + i) * 2;
-            Vector3 center{(float)(X*i), (float)(Y*j), 0};
-            array[idx + 0] = tile_atlas::wall_quad_N(center, size);
-            array[idx + 1] = tile_atlas::wall_quad_W(center, size);
+            const auto center = Vector3((float)i, (float)j, 0) * TILE_SIZE;
+            array[idx + 0] = tile_atlas::wall_quad_N(center, TILE_SIZE);
+            array[idx + 1] = tile_atlas::wall_quad_W(center, TILE_SIZE);
         }
     return array;
 }

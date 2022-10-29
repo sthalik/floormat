@@ -3,6 +3,7 @@
 #include "floormat/settings.hpp"
 #include "shaders/tile.hpp"
 #include <Magnum/GL/DebugOutput.h>
+#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
@@ -13,9 +14,9 @@ void app::draw_wireframe_quad(global_coords pos)
     auto& shader = M->shader();
 
     {
-        const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
+        const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
         shader.set_tint({1, 0, 0, 1});
-        _wireframe_quad.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}, LINE_WIDTH});
+        _wireframe_quad.draw(shader, {center, TILE_SIZE2, LINE_WIDTH});
         //_wireframe_wall_n.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]}, LINE_WIDTH});
         //_wireframe_wall_w.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]}, LINE_WIDTH});
     }
@@ -26,12 +27,10 @@ void app::draw_wireframe_box(global_coords pos)
     constexpr float LINE_WIDTH = 1.5;
     auto& shader = M->shader();
 
-    constexpr auto X = TILE_SIZE[0], Y = TILE_SIZE[1], Z = TILE_SIZE[2];
-    constexpr Vector3 size{X, Y, Z};
     const auto pt = pos.to_signed();
-    const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
+    const auto center = Vector3((float)pt[0], (float)pt[1], 0) * TILE_SIZE;
     shader.set_tint({0, 1, 0, 1});
-    _wireframe_box.draw(shader, {center, size, LINE_WIDTH});
+    _wireframe_box.draw(shader, {center, TILE_SIZE, LINE_WIDTH});
 }
 
 void app::draw_cursor_tile()

@@ -1,13 +1,19 @@
 #pragma once
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
+#include "compat/integer-types.hpp"
+#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
-constexpr inline std::size_t TILE_MAX_DIM = 16;
+constexpr inline std::uint8_t TILE_MAX_DIM = 16;
 constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
-constexpr inline float TILE_SIZE[3] = { 64, 64, 64 };
-constexpr inline double dTILE_SIZE[3] = { 64, 64, 64 };
+
+constexpr inline auto TILE_MAX_DIM20d = Magnum::Math::Vector3<double> { TILE_MAX_DIM, TILE_MAX_DIM, 0 };
+constexpr inline auto iTILE_SIZE      = Magnum::Math::Vector3<int>    { 64, 64, 64 };
+constexpr inline auto iTILE_SIZE2     = Magnum::Math::Vector2<int>    { iTILE_SIZE[0], iTILE_SIZE[1] };
+constexpr inline auto TILE_SIZE       = Magnum::Math::Vector3<float>  { iTILE_SIZE };
+constexpr inline auto dTILE_SIZE      = Magnum::Math::Vector3<double> { iTILE_SIZE };
+constexpr inline auto TILE_SIZE2      = Magnum::Math::Vector2<float>  { iTILE_SIZE2 };
+constexpr inline auto dTILE_SIZE2     = Magnum::Math::Vector2<double> { TILE_SIZE2 };
+constexpr inline auto TILE_SIZE20     = Magnum::Math::Vector3<float>  { (float)iTILE_SIZE[0], (float)iTILE_SIZE[1], 0 };
 
 } // namespace floormat

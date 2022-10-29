@@ -74,13 +74,9 @@ std::array<std::array<UnsignedShort, 6>, TILE_COUNT> floor_mesh::make_index_arra
 std::array<std::array<Vector3, 4>, TILE_COUNT> floor_mesh::make_position_array()
 {
     std::array<std::array<Vector3, 4>, TILE_COUNT> array;
-    constexpr float X = TILE_SIZE[0], Y = TILE_SIZE[1];
-    for (std::size_t j = 0, k = 0; j < TILE_MAX_DIM; j++)
-        for (std::size_t i = 0; i < TILE_MAX_DIM; i++, k++)
-        {
-            Vector3 center {(float)(X*i), (float)(Y*j), 0};
-            array[k] = { tile_atlas::floor_quad(center, {X, Y}) };
-        }
+    for (std::uint8_t j = 0, k = 0; j < TILE_MAX_DIM; j++)
+        for (std::uint8_t i = 0; i < TILE_MAX_DIM; i++, k++)
+            array[k] = { tile_atlas::floor_quad(Vector3(i, j, 0) * TILE_SIZE, TILE_SIZE2) };
     return array;
 }
 

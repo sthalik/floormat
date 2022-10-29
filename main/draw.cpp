@@ -21,7 +21,7 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
-    constexpr Vector2d pixel_size{dTILE_SIZE[0], dTILE_SIZE[1]};
+    constexpr Vector2d pixel_size(TILE_SIZE2);
     constexpr Vector2d half{.5, .5};
     const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset()*.5;
     const Vector2d vec = tile_shader::unproject(px) / pixel_size + half;
@@ -77,7 +77,7 @@ void main_impl::draw_world() noexcept
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
-    constexpr Vector3d len{ dTILE_SIZE[0]*TILE_MAX_DIM, dTILE_SIZE[1]*TILE_MAX_DIM, 0 };
+    constexpr Vector3d len = dTILE_SIZE * Vector3d(TILE_MAX_DIM, TILE_MAX_DIM, 0);
     enum : std::size_t { x, y, };
     constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),

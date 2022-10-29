@@ -49,7 +49,8 @@ void app::do_camera(float dt)
 
 void app::reset_camera_offset()
 {
-    M->shader().set_camera_offset(tile_shader::project({TILE_MAX_DIM*-.5*dTILE_SIZE[0], TILE_MAX_DIM*-.5*dTILE_SIZE[1], 0}));
+    constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
+    M->shader().set_camera_offset(tile_shader::project(size));
     update_cursor_tile(cursor.pixel);
 }
 
