@@ -83,6 +83,7 @@ bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
                        p01 = tile_shader::project(Vector3d(0, len[y], 0)),
                        p11 = tile_shader::project(Vector3d(len[x], len[y], 0));
+#if 1
     constexpr double xs[] = { p00[x], p10[x], p01[x], p11[x], }, ys[] = { p00[y], p10[y], p01[y], p11[y], };
     constexpr double minx = *std::min_element(std::cbegin(xs), std::cend(xs)),
                      maxx = *std::max_element(std::cbegin(xs), std::cend(xs)),
@@ -91,6 +92,15 @@ bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size
     constexpr int W = (int)(maxx - minx + .5 + 1e-16), H = (int)(maxy - miny + .5 + 1e-16);
     const auto X = (int)(minx + (offset[x] + size[x])*.5), Y = (int)(miny + (offset[y] + size[y])*.5);
     return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
+#else
+    constexpr auto xminmax = std::minmax({ p00[x], p10[x], p01[x], p11[x] }), std::minmax({ p00[y], p10[y], p01[y], p11[y] });
+    constexpr Vector2d min = {xminmax.first, yminmax.first}, max = {xminmax.second, yminmax.second};
+    constexpr Vector2i WH{max - min + Vector2d{.5 + 1e-16}};
+    constexpr Vector2i imin{min};
+    const Vector2i xy = imin + (Vector2i(offset) + size)/2;
+    const auto tmp = (xy + WH);
+    return (tmp > Vector2i{0}).all() && (xy < WH).all();
+#endif
 }
 
 void main_impl::drawEvent()
