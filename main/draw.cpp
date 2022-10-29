@@ -158,4 +158,3 @@ void main_impl::drawEvent()
 }
 
 } // namespace floormat
-
