@@ -77,7 +77,7 @@ void main_impl::draw_world() noexcept
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
-    constexpr Vector3d len = dTILE_SIZE * Vector3d(TILE_MAX_DIM, TILE_MAX_DIM, 0);
+    constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
     enum : std::size_t { x, y, };
     constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
