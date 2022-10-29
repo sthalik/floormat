@@ -141,9 +141,9 @@ void main_impl::drawEvent()
 
     if (dt_expected.do_sleep)
     {
-        constexpr float eps = 1e-3f;
+        constexpr float ε = 1e-3f;
         const float Δt൦ = timeline.currentFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
-        if (sleep_secs > eps)
+        if (sleep_secs > ε)
             std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
         //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
         const float Δt = timeline.currentFrameDuration() - dt_expected.value;
