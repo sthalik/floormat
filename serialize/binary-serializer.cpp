@@ -34,23 +34,20 @@ template struct byte_array_iterator<sizeof(double)>;
 [[maybe_unused]]
 static constexpr bool test1()
 {
-    constexpr std::array<char, 4> bytes = { 1, 0, 1, 0 };
+    constexpr std::array<char, 4> bytes = { 1, 2, 3, 4 };
     auto x = binary_reader(bytes.cbegin(), bytes.cend());
-    return x.read_u<unsigned char>().bytes[0] == 1 &&
-           x.read_u<unsigned char>().bytes[0] == 0 &&
-           x.read_u<unsigned char>().bytes[0] == 1 &&
-           x.read_u<unsigned char>().bytes[0] == 0;
+    return x.read<std::uint32_t>() == 67305985;
 }
 static_assert(test1());
 
 [[maybe_unused]]
 static constexpr bool test2()
 {
-    constexpr std::array<char, 4> bytes = { 1, 0, 1, 0 };
+    constexpr std::array<char, 4> bytes = { 4, 3, 2, 1 };
     auto r = binary_reader(bytes.cbegin(), bytes.cend());
-    const auto x = r.read_u<int>();
+    const auto x = r.read<std::uint32_t>();
     r.assert_end();
-    return x.bytes[0] == 1 && x.bytes[1] == 0 && x.bytes[2] == 1 && x.bytes[3] == 0;
+    return x == 16909060;
 }
 static_assert(test2());
 

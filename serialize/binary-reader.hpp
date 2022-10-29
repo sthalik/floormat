@@ -5,19 +5,6 @@
 
 namespace floormat::Serialize {
 
-union alignas(alignof(double)) value_u {
-    char bytes[8];
-    unsigned char uc;
-    std::uint8_t u8;
-    std::uint16_t u16;
-    std::uint32_t u32;
-    std::uint64_t u64;
-    float f32;
-    double f64;
-};
-
-static_assert(sizeof(value_u) == 8);
-
 template<typename T>
 concept char_sequence = requires(T& x, const T& cx) {
     requires std::same_as<decltype(std::begin(x)), decltype(std::end(x))>;
@@ -40,13 +27,10 @@ struct binary_reader final {
     constexpr binary_reader(It begin, It end) noexcept;
     constexpr void assert_end() noexcept;
 
-    template<integer T> constexpr value_u read_u() noexcept;
-    template<std::floating_point T> constexpr value_u read_u() noexcept;
-    template<typename T> T read() noexcept;
+    template<serializable T> constexpr T read() noexcept;
     template<std::size_t N> constexpr std::array<char, N> read() noexcept;
     constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
-    template<std::size_t Max>
-    auto read_asciiz_string() noexcept;
+    template<std::size_t Max> constexpr auto read_asciiz_string() noexcept;
 
 private:
     std::size_t num_bytes_read = 0;

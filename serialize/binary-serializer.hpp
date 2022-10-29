@@ -41,8 +41,15 @@ concept integer = requires(T x) {
 
 template<typename T>
 concept serializable = requires(T x) {
+    requires std::same_as<T, std::decay_t<T>>;
     requires std::floating_point<T> || integer<T>;
 };
+
+template<typename T>
+constexpr inline T maybe_byteswap(T x)
+{
+    return x;
+}
 
 template<integer T>
 constexpr inline T maybe_byteswap(T x)
