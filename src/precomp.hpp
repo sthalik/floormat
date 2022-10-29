@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <iterator>
 #include <filesystem>
 
 #include <tuple>
