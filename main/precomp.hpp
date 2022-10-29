@@ -1,9 +1,7 @@
 #pragma once
-
 #include "src/precomp.hpp"
 
 #include <Corrade/Utility/DebugStl.h>
-#include <Corrade/Containers/String.h>
 
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Timeline.h>
@@ -17,5 +15,3 @@
 #include <SDL_keycode.h>
 #include <SDL_mouse.h>
 #include <SDL_events.h>
-
-#include <cstdlib>

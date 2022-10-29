@@ -7,7 +7,7 @@
 #include "compat/unreachable.hpp"
 #include "src/tile-defs.hpp"
 #include "src/world.hpp"
-#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/StringView.h>
 #include <filesystem>
 #include <vector>
 

@@ -1,11 +1,5 @@
 #include "app.hpp"
-#include "compat/assert.hpp"
 #include "loader.hpp"
-#include <filesystem>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/StringStlView.h>
-#include <Corrade/Utility/Path.h>
-#include <Magnum/Magnum.h>
 
 namespace floormat {
 

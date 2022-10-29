@@ -2,7 +2,6 @@
 #include "src/global-coords.hpp"
 #include "shaders/tile.hpp"
 #include "floormat/main.hpp"
-#include <Magnum/GL/DefaultFramebuffer.h>
 
 namespace floormat {
 

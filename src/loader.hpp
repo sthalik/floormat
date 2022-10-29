@@ -1,11 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Trade/ImageData.h>
-
-#include <string>
-#include <optional>
-#include <memory>
 
 #define IMAGE_PATH "share/floormat/images/"
 
