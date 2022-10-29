@@ -16,6 +16,8 @@ void app::draw_wireframe_quad(global_coords pos)
         const Vector3 center{pt[0]*TILE_SIZE[0], pt[1]*TILE_SIZE[1], 0};
         shader.set_tint({1, 0, 0, 1});
         _wireframe_quad.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1]}, LINE_WIDTH});
+        //_wireframe_wall_n.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]}, LINE_WIDTH});
+        //_wireframe_wall_w.draw(shader, {center, {TILE_SIZE[0], TILE_SIZE[1], TILE_SIZE[2]}, LINE_WIDTH});
     }
 }
 

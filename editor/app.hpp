@@ -4,7 +4,9 @@
 #include "editor.hpp"
 #include "src/global-coords.hpp"
 #include "draw/wireframe.hpp"
-#include "draw/quad.hpp"
+#include "draw/quad-floor.hpp"
+#include "draw/quad-wall-n.hpp"
+#include "draw/quad-wall-w.hpp"
 #include "draw/box.hpp"
 #include "floormat/app.hpp"
 
@@ -97,7 +99,9 @@ struct app final : floormat_app
     Containers::Pointer<floormat_main> M;
     ImGuiIntegration::Context _imgui{NoCreate};
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
-    wireframe_mesh<wireframe::quad> _wireframe_quad;
+    wireframe_mesh<wireframe::quad_floor> _wireframe_quad;
+    wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n;
+    wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
     enum_bitset<key> keys, keys_repeat;

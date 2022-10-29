@@ -1,16 +1,15 @@
 #pragma once
 
 #include <array>
-#include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Mesh.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 
 namespace floormat::wireframe {
 
-struct quad final
+struct quad_wall_n final
 {
-    quad(Vector3 center, Vector2 size, float line_width);
+    quad_wall_n(Vector3 center, Vector3 size, float line_width);
 
     static constexpr std::size_t num_vertices = 4, num_indexes = 0;
     static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::LineLoop;
@@ -23,7 +22,7 @@ struct quad final
 
 private:
     Vector3 center;
-    Vector2 size;
+    Vector3 size;
     float line_width;
 };
 
