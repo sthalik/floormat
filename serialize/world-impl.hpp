@@ -10,7 +10,7 @@ namespace floormat::Serialize {
 namespace {
 
 using tilemeta  = std::uint8_t;
-using imgvar    = decltype(tile_image::variant);
+using varid    = decltype(tile_image::variant);
 using atlasid   = std::uint16_t;
 using chunksiz  = std::uint16_t;
 using enum tile::pass_mode;
@@ -29,9 +29,11 @@ constexpr inline std::underlying_type_t<tile::pass_mode> pass_mask = pass_blocke
 constexpr inline auto pass_bits = std::bit_width(pass_mask);
 
 enum : tilemeta {
-    meta_ground     = 1 << (pass_bits + 0),
-    meta_wall_n     = 1 << (pass_bits + 1),
-    meta_wall_w     = 1 << (pass_bits + 2),
+    meta_ground         = 1 << (pass_bits + 0),
+    meta_wall_n         = 1 << (pass_bits + 1),
+    meta_wall_w         = 1 << (pass_bits + 2),
+    meta_short_atlasid  = 1 << (pass_bits + 3),
+    meta_short_variant  = 1 << (pass_bits + 4),
 };
 
 } // namespace

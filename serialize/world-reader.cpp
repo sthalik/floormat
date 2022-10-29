@@ -65,19 +65,23 @@ void reader_state::read_chunks(reader_t& s)
         for (std::size_t i = 0; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
-            const auto make_atlas = [&]() -> tile_image {
-                auto atlas = lookup_atlas(s.read<atlasid>());
-                auto id = s.read<imgvar>();
-                fm_assert(id < atlas->num_tiles());
-                return { atlas, id };
-            };
             tile& t = chunk[i];
+            using uchar = std::uint8_t;
+            const auto make_atlas = [&]() -> tile_image {
+                auto id = flags & meta_short_atlasid ? (atlasid)(s.read<uchar>()) : s.read<atlasid>();
+                auto v  = flags & meta_short_variant ? (varid)  (s.read<uchar>()) : s.read<varid>();
+                auto atlas = lookup_atlas(id);
+                fm_assert(v < atlas->num_tiles());
+                return { atlas, v };
+            };
+
             if (flags & meta_ground)
                 t.ground = make_atlas();
             if (flags & meta_wall_n)
                 t.wall_north = make_atlas();
             if (flags & meta_wall_w)
                 t.wall_west = make_atlas();
+
             switch (auto x = flags & pass_mask)
             {
             case tile::pass_shoot_through:
