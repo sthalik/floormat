@@ -164,8 +164,8 @@ void app::draw_editor_pane(tile_editor& type, float main_menu_height)
 
                             snprintf(buf, sizeof(buf), "##item_%zu", i);
                             const auto uv = v->texcoords_for_id(i);
-                            ImGui::ImageButton(buf, (void*)&v->texture(),
-                                               { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f },
+                            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
+                            ImGui::ImageButton(buf, (void*)&v->texture(), size_2,
                                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
                             if (ed)
                             {
