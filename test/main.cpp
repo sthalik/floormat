@@ -28,6 +28,7 @@ int floormat::exec()
     ret &= test_json();
     ret &= test_tile_iter();
     ret &= test_const_math();
+    ret &= test_serializer();
     return !ret;
 }
 

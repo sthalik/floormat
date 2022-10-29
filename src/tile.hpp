@@ -17,4 +17,6 @@ struct tile final
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile);
 };
 
+bool operator==(const tile& a, const tile& b) noexcept;
+
 } //namespace floormat

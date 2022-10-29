@@ -13,12 +13,8 @@ struct tile_image final
     std::uint16_t variant = (std::uint16_t)-1;
 
     explicit operator bool() const noexcept { return !!atlas; }
-
-    std::strong_ordering operator<=>(const tile_image& o) const noexcept
-    {
-        const auto ret = atlas.get() <=> o.atlas.get();
-        return ret != std::strong_ordering::equal ? ret : variant <=> o.variant;
-    }
 };
+
+bool operator==(const tile_image& a, const tile_image& b) noexcept;
 
 } // namespace floormat
