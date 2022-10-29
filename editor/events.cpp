@@ -13,7 +13,7 @@ namespace floormat {
 
 void app::on_focus_in() noexcept {}
 void app::on_mouse_enter() noexcept {}
-void app::on_any_event(const any_event& event) noexcept {}
+void app::on_any_event(const any_event&) noexcept {}
 
 #define accessor(type, name) \
     type m_##name = {}; auto name() const noexcept { return m_##name; }
@@ -86,8 +86,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
                                case SDLK_r:        return key::rotate_tile;
                                case SDLK_F5:       return key::quicksave;
                                case SDLK_F9:       return key::quickload;
-                               case SDLK_ESCAPE:   return key::quit;
-        });
+                               case SDLK_ESCAPE:   return key::quit; });
         if (x != key::COUNT)
         {
             keys[x] = is_down;

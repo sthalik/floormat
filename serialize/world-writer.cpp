@@ -48,6 +48,9 @@ constexpr auto chunkbuf_size =
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
 #endif
 
 writer_state::writer_state(const struct world& world) : world{&world}
@@ -59,6 +62,8 @@ writer_state::writer_state(const struct world& world) : world{&world}
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
+#elif defined _MSC_VER
+#pragma warning(pop)
 #endif
 
 atlasid writer_state::intern_atlas(const tile_image& img)
@@ -188,6 +193,9 @@ void writer_state::serialize_atlases()
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
 #endif
 
 ArrayView<const char> writer_state::serialize_world()
@@ -235,6 +243,8 @@ ArrayView<const char> writer_state::serialize_world()
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
+#elif defined _MSC_VER
+#pragma warning(pop)
 #endif
 
 } // namespace

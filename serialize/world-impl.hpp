@@ -4,6 +4,8 @@
 
 #pragma once
 #include "src/tile.hpp"
+#include <bit>
+#include <cstdio>
 
 namespace floormat::Serialize {
 

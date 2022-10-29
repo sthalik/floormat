@@ -9,6 +9,7 @@
 #include <optional>
 #include <vector>
 #include <map>
+#include <string>
 #include <memory>
 #include <Corrade/Containers/StringView.h>
 
