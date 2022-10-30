@@ -201,7 +201,7 @@ void editor::set_mode(editor_mode mode)
     on_release();
 }
 
-const tile_editor* editor::current() const
+const tile_editor* editor::current() const noexcept
 {
     switch (_mode)
     {
@@ -217,7 +217,7 @@ const tile_editor* editor::current() const
     }
 }
 
-tile_editor* editor::current()
+tile_editor* editor::current() noexcept
 {
     return const_cast<tile_editor*>(static_cast<const editor&>(*this).current());
 }

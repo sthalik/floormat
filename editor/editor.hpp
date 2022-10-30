@@ -74,8 +74,8 @@ struct editor final
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor* current();
-    const tile_editor* current() const;
+    tile_editor* current() noexcept;
+    const tile_editor* current() const noexcept;
 
     void on_click(world& world, global_coords pos);
     void on_mouse_move(world& world, global_coords pos);
