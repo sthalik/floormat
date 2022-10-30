@@ -160,34 +160,33 @@ void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
         break;
     case editor_mode::select:
         break;
-    case editor_mode::floor: {
+    case editor_mode::floor:
         t.ground = {atlas, variant };
         break;
-    }
-    case editor_mode::walls: {
+    case editor_mode::walls:
         break; // todo
     }
-    }
 }
 
-void tile_editor::rotate_tile()
+void tile_editor::toggle_rotation()
 {
-    if (_rotation == rotation::rot_W)
-        _rotation = rotation::rot_N;
+    if (_rotation == editor::rotation_W)
+        _rotation = editor::rotation_N;
     else
-        _rotation = rotation::rot_W;
+        _rotation = editor::rotation_W;
 }
 
-void tile_editor::rotate_tile(rotation r)
+void tile_editor::set_rotation(editor_wall_rotation r)
 {
     switch (r)
     {
     default:
         fm_warn_once("invalid rotation '0x%hhx", r);
         return;
-    case rotation::rot_W:
-    case rotation::rot_N:
+    case editor::rotation_W:
+    case editor::rotation_N:
         _rotation = r;
+        break;
     }
 }
 

@@ -85,7 +85,7 @@ void app::do_keys()
     if (k[key::quickload])
         do_quickload();
     if (auto* ed = _editor.current(); ed && k[key::rotate_tile])
-        ed->rotate_tile();
+        ed->toggle_rotation();
 }
 
 void app::update(float dt)

@@ -19,6 +19,10 @@ enum class editor_mode : unsigned char {
     select, floor, walls,
 };
 
+enum class editor_wall_rotation : std::uint8_t {
+    N, W,
+};
+
 struct world;
 
 struct tile_editor final
@@ -27,9 +31,6 @@ private:
     enum selection_mode : std::uint8_t {
         sel_none, sel_tile, sel_perm,
     };
-    enum rotation : std::uint8_t {
-        rot_N, rot_W,
-    };
 
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
@@ -37,7 +38,7 @@ private:
     std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image::variant)>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
-    rotation _rotation{};
+    editor_wall_rotation _rotation = editor_wall_rotation::N;
 
     void load_atlases();
     tile_image get_selected_perm();
@@ -52,6 +53,7 @@ public:
     auto end() const { return _atlases.cend(); }
     StringView name() const { return _name; }
     editor_mode mode() const { return _mode; }
+    editor_wall_rotation rotation() const { return _rotation; }
 
     void clear_selection();
     void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
@@ -61,8 +63,8 @@ public:
     bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     tile_image get_selected();
     void place_tile(world& world, global_coords pos, tile_image& img);
-    void rotate_tile();
-    void rotate_tile(rotation r);
+    void toggle_rotation();
+    void set_rotation(editor_wall_rotation r);
 };
 
 struct editor final
@@ -86,6 +88,10 @@ struct editor final
     editor(editor&&) noexcept = default;
     editor& operator=(editor&&) noexcept = default;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
+
+    using rotation = editor_wall_rotation;
+    static constexpr inline auto rotation_N = editor_wall_rotation::N;
+    static constexpr inline auto rotation_W = editor_wall_rotation::W;
 
 private:
     tile_editor _floor{ editor_mode::floor, "floor"};
