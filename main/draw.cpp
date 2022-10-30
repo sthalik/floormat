@@ -83,8 +83,7 @@ bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
                        p01 = tile_shader::project(Vector3d(0, len[y], 0)),
                        p11 = tile_shader::project(Vector3d(len[x], len[y], 0));
-    constexpr auto xx = std::minmax({ p00[x], p10[x], p01[x], p11[x], }),
-                   yy = std::minmax({ p00[y], p10[y], p01[y], p11[y], });
+    constexpr auto xx = std::minmax({ p00[x], p10[x], p01[x], p11[x], }), yy = std::minmax({ p00[y], p10[y], p01[y], p11[y], });
     constexpr auto minx = xx.first, maxx = xx.second, miny = yy.first, maxy = yy.second;
     constexpr int W = (int)(maxx - minx + .5 + 1e-16), H = (int)(maxy - miny + .5 + 1e-16);
     const auto X = (int)(minx + (offset[x] + size[x])*.5), Y = (int)(miny + (offset[y] + size[y])*.5);
