@@ -76,6 +76,8 @@ struct editor final
 
     tile_editor& floor() noexcept { return _floor; }
     const tile_editor& floor() const noexcept { return _floor; }
+    tile_editor& wall() noexcept { return _wall; }
+    const tile_editor& wall() const noexcept { return _wall; }
 
     tile_editor* current();
     const tile_editor* current() const;
@@ -95,6 +97,7 @@ struct editor final
 
 private:
     tile_editor _floor{ editor_mode::floor, "floor"};
+    tile_editor _wall{ editor_mode::floor, "wall"};
     std::optional<global_coords> _last_pos;
     editor_mode _mode = editor_mode::select;
     bool _dirty = false;
