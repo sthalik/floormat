@@ -2,5 +2,6 @@
     ["floor-tiles", "44 x 4"],
     ["metal1",      "2 x 2"],
     ["tiles",       "8 x 5"],
-    ["wood2",       "1 x 1"]
+    ["wood2",       "1 x 1"],
+    ["concrete6",   "4 x 4"]
 ]
