@@ -6,6 +6,8 @@ target_link_libraries(
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
+    Magnum::AnyImageImporter
+    Magnum::TgaImporter
     nlohmann_json::nlohmann_json
 )
 if(FLOORMAT_PRECOMPILED-HEADERS)
