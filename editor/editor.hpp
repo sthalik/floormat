@@ -74,11 +74,6 @@ struct editor final
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor& floor() noexcept { return _floor; }
-    const tile_editor& floor() const noexcept { return _floor; }
-    tile_editor& wall() noexcept { return _wall; }
-    const tile_editor& wall() const noexcept { return _wall; }
-
     tile_editor* current();
     const tile_editor* current() const;
 
