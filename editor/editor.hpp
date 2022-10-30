@@ -47,13 +47,13 @@ public:
     tile_editor(editor_mode mode, StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
     std::shared_ptr<tile_atlas> atlas(StringView str);
-    auto cbegin() const { return _atlases.cbegin(); }
-    auto cend() const { return _atlases.cend(); }
-    auto begin() const { return _atlases.cbegin(); }
-    auto end() const { return _atlases.cend(); }
-    StringView name() const { return _name; }
-    editor_mode mode() const { return _mode; }
-    editor_wall_rotation rotation() const { return _rotation; }
+    auto cbegin() const noexcept { return _atlases.cbegin(); }
+    auto cend() const noexcept { return _atlases.cend(); }
+    auto begin() const noexcept { return _atlases.cbegin(); }
+    auto end() const noexcept { return _atlases.cend(); }
+    StringView name() const noexcept { return _name; }
+    editor_mode mode() const noexcept { return _mode; }
+    editor_wall_rotation rotation() const noexcept { return _rotation; }
 
     void clear_selection();
     void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
@@ -69,13 +69,13 @@ public:
 
 struct editor final
 {
-    [[nodiscard]] bool dirty() const { return _dirty; }
-    void set_dirty(bool value) { _dirty = value; }
-    [[nodiscard]] editor_mode mode() const { return _mode; }
+    [[nodiscard]] bool dirty() const noexcept { return _dirty; }
+    void set_dirty(bool value) noexcept { _dirty = value; }
+    [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor& floor() { return _floor; }
-    const tile_editor& floor() const { return _floor; }
+    tile_editor& floor() noexcept { return _floor; }
+    const tile_editor& floor() const noexcept { return _floor; }
 
     tile_editor* current();
     const tile_editor* current() const;
