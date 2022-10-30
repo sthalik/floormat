@@ -53,7 +53,7 @@ namespace floormat {
 #define fm_assert(...)                                                  \
     do {                                                                \
         if (!(__VA_ARGS__)) {                                           \
-            fm_EMIT_DEBUG("", "assertion failed: '%s' in %s:%d",        \
+            fm_EMIT_DEBUG("", "assertion failed: %s in %s:%d",          \
                           #__VA_ARGS__, __FILE__, __LINE__);            \
             ::floormat::_fm_abort();                                    \
         }                                                               \
