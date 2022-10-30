@@ -73,6 +73,12 @@ endfunction()
 
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
+    if(NOT MSVC)
+        add_link_options(-Wl,--nxcompat -Wl,--dynamicbase)
+        if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
+            add_link_options(-Wl,--high-entropy-va)
+        endif()
+    endif()
 endif()
 
 if(MSVC)
@@ -94,6 +100,7 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+
     add_compile_options(-Wno-reserved-macro-identifier)
 endif()
 
