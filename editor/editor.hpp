@@ -92,7 +92,7 @@ struct editor final
 
 private:
     tile_editor _floor{ editor_mode::floor, "floor"};
-    tile_editor _wall{ editor_mode::floor, "wall"};
+    tile_editor _wall{ editor_mode::walls, "wall"};
     std::optional<global_coords> _last_pos;
     editor_mode _mode = editor_mode::select;
     bool _dirty = false;
