@@ -108,8 +108,8 @@ void main_impl::drawEvent()
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
-        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/15,
-                    RC2 = dt_expected.do_sleep ? 1.f/10 : 1.f/30;
+        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/10,
+                    RC2 = dt_expected.do_sleep ? 1.f/10 : 1.f/15;
         const float alpha1 = dt/(dt + RC1);
         const float alpha2 = dt/(dt + RC2);
 
