@@ -2,6 +2,7 @@
 
 #include "src/precomp.hpp"
 #include <cstdlib>
+
 #include <Corrade/Utility/Arguments.h>
 
 #include <Magnum/Math/Color.h>
