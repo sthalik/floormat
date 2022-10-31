@@ -24,13 +24,11 @@ void app::draw_cursor_tile()
         };
 
         if (const auto* ed = _editor.current(); ed && ed->mode() == editor_mode::walls)
-        {
             switch (ed->rotation())
             {
             case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
             case editor_wall_rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
             }
-        }
         else
             draw(_wireframe_quad, TILE_SIZE2);
     }
