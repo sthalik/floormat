@@ -5,45 +5,45 @@
 
 namespace floormat {
 
-void app::do_camera(float dt)
+void app::do_camera(float dt, const enum_bitset<key>& cmds)
 {
-    if (keys[key::camera_reset])
+    if (cmds[key::camera_reset])
     {
         reset_camera_offset();
+        update_cursor_tile(cursor.pixel);
         do_mouse_move();
+        return;
     }
-    else
+
+    Vector2d dir{};
+
+    if (cmds[key::camera_up])
+        dir += Vector2d{0, -1};
+    else if (cmds[key::camera_down])
+        dir += Vector2d{0,  1};
+    if (cmds[key::camera_left])
+        dir += Vector2d{-1, 0};
+    else if (cmds[key::camera_right])
+        dir += Vector2d{1,  0};
+
+    if (dir != Vector2d{})
     {
-        Vector2d dir{};
+        auto& shader = M->shader();
+        const auto sz = M->window_size();
+        constexpr double screens_per_second = 0.75;
 
-        if (keys[key::camera_up])
-            dir += Vector2d{0, -1};
-        else if (keys[key::camera_down])
-            dir += Vector2d{0,  1};
-        if (keys[key::camera_left])
-            dir += Vector2d{-1, 0};
-        else if (keys[key::camera_right])
-            dir += Vector2d{1,  0};
+        const double pixels_per_second = sz.length() / screens_per_second;
+        auto camera_offset = shader.camera_offset();
+        const auto max_camera_offset = Vector2d(sz * 10);
 
-        if (dir != Vector2d{})
-        {
-            auto& shader = M->shader();
-            const auto sz = M->window_size();
-            constexpr double screens_per_second = 0.75;
+        camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
+        camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
+        camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
 
-            const double pixels_per_second = sz.length() / screens_per_second;
-            auto camera_offset = shader.camera_offset();
-            const auto max_camera_offset = Vector2d(sz * 10);
+        shader.set_camera_offset(camera_offset);
 
-            camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
-            camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
-            camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
-
-            shader.set_camera_offset(camera_offset);
-
-            update_cursor_tile(cursor.pixel);
-            do_mouse_move();
-        }
+        update_cursor_tile(cursor.pixel);
+        do_mouse_move();
     }
 }
 

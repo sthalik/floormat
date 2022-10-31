@@ -18,6 +18,13 @@ void app::on_any_event(const any_event&) noexcept {}
 #define accessor(type, name) \
     type m_##name = {}; auto name() const noexcept { return m_##name; }
 
+void app::clear_non_global_keys()
+{
+    using key_type = decltype(keys)::value_type;
+    for (key i = key::MIN; i < key::GLOBAL; i = key{key_type(i) + 1})
+        keys[i] = false;
+}
+
 void app::on_mouse_move(const mouse_move_event& event) noexcept
 {
     struct {
@@ -42,15 +49,10 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         accessor(Button, button)
     } e = {event.position, Button(event.button)};
 
-    if (cursor.in_imgui = is_down
-                          ? _imgui.handleMousePressEvent(e)
-                          : _imgui.handleMouseReleaseEvent(e);
-        !cursor.in_imgui)
-    {
-        update_cursor_tile(event.position);
-        if (cursor.tile)
-            do_mouse_up_down(event.button, is_down);
-    }
+    if (!(cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
+        do_mouse_up_down(event.button, is_down);
+    else
+        clear_non_global_keys();
 }
 
 void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
@@ -84,24 +86,18 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
                                case SDLK_d:         return key::camera_right;
                                case SDLK_HOME:      return key::camera_reset;
                                case SDLK_r:         return key::rotate_tile;
-                               case SDLK_1:         return key::mode_select;
+                               case SDLK_1:         return key::mode_none;
                                case SDLK_2:         return key::mode_floor;
                                case SDLK_3:         return key::mode_walls;
                                case SDLK_F5:        return key::quicksave;
                                case SDLK_F9:        return key::quickload;
                                case SDLK_ESCAPE:    return key::quit;
         });
-        if (x != key::COUNT)
-        {
+        if (x != key::COUNT && (!event.is_repeated || (key)x < key::NO_REPEAT))
             keys[x] = is_down;
-            keys_repeat[x] = is_down ? event.is_repeated : false;
-        }
     }
     else
-    {
-        keys = {};
-        keys_repeat = {};
-    }
+        clear_non_global_keys();
 }
 
 void app::on_text_input_event(const text_input_event& event) noexcept
@@ -110,10 +106,7 @@ void app::on_text_input_event(const text_input_event& event) noexcept
         accessor(Containers::StringView, text)
     } e = {event.text};
     if (_imgui.handleTextInputEvent(e))
-    {
-        keys = {};
-        keys_repeat = {};
-    }
+        clear_non_global_keys();
 }
 
 void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
@@ -125,7 +118,6 @@ void app::on_focus_out() noexcept
 {
     update_cursor_tile(std::nullopt);
     keys = {};
-    keys_repeat = {};
 }
 
 void app::on_mouse_leave() noexcept

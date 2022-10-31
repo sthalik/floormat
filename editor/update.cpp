@@ -43,70 +43,41 @@ void app::do_mouse_move()
 
 void app::do_mouse_up_down(std::uint8_t button, bool is_down)
 {
-    if (!cursor.in_imgui && button == mouse_button_left && is_down)
+    if (cursor.tile && !cursor.in_imgui && button == mouse_button_left && is_down)
         _editor.on_click(M->world(), *cursor.tile);
     else
         _editor.on_release();
 }
 
-auto app::get_nonrepeat_keys() -> enum_bitset<key>
+void app::apply_commands(const enum_bitset<key>& k)
 {
-    enum_bitset<key> ret;
-    using type = std::underlying_type_t<key>;
-    for (auto i = (type)key::NO_REPEAT; i < (type)key::COUNT; i++)
+    if (keys[key::quit])
     {
-        auto idx = key{i};
-        if (keys_repeat[idx])
-            keys[idx] = false;
-        else
-            ret[idx] = keys[idx];
-        keys[idx] = false;
-        keys_repeat[idx] = false;
+        M->quit(0);
+        return;
     }
-    return ret;
-}
 
-void app::do_keys()
-{
-    auto k = get_nonrepeat_keys();
-    using type = std::underlying_type_t<key>;
-
-    for (auto i = (type)key::NO_REPEAT; i < (type)key::COUNT; i++)
-    {
-        auto idx = key{i};
-        if (keys_repeat[idx])
-            k[idx] = false;
-        keys[idx] = false;
-        keys_repeat[idx] = false;
-    }
+    if (k[key::mode_none])
+        _editor.set_mode(editor_mode::none);
+    if (k[key::mode_floor])
+        _editor.set_mode(editor_mode::floor);
+    if (k[key::mode_walls])
+        _editor.set_mode(editor_mode::walls);
+    if (k[key::rotate_tile])
+        if (auto* ed = _editor.current(); ed)
+            ed->toggle_rotation();
 
     if (k[key::quicksave])
         do_quicksave();
     if (k[key::quickload])
         do_quickload();
-    if (k[key::mode_select])
-        _editor.set_mode(editor_mode::select);
-    if (k[key::mode_floor])
-        _editor.set_mode(editor_mode::floor);
-    if (k[key::mode_walls])
-        _editor.set_mode(editor_mode::walls);
-
-    if (auto* ed = _editor.current(); ed)
-    {
-        if (k[key::rotate_tile])
-            ed->toggle_rotation();
-    }
 }
 
 void app::update(float dt)
 {
-    if (keys[key::quit])
-        M->quit(0);
-    else {
-        do_camera(dt);
-        draw_ui();
-        do_keys();
-    }
+    draw_ui();
+    apply_commands(keys);
+    do_camera(dt, keys);
 }
 
 } // namespace floormat

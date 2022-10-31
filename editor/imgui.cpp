@@ -45,9 +45,16 @@ float app::draw_main_menu()
         }
         if (auto b = begin_menu("Mode"))
         {
-            ImGui::MenuItem("Select", "1", _editor.mode() == editor_mode::select);
-            ImGui::MenuItem("Floor",  "2", _editor.mode() == editor_mode::floor);
-            ImGui::MenuItem("Walls",  "3", _editor.mode() == editor_mode::walls);
+            bool b_none = false, b_floor = false, b_walls = false;
+            ImGui::MenuItem("Select", "1", &b_none);
+            ImGui::MenuItem("Floor",  "2", &b_floor);
+            ImGui::MenuItem("Walls",  "3", &b_walls);
+            if (b_none)
+                keys[key::mode_none] = true;
+            if (b_floor)
+                keys[key::mode_floor] = true;
+            if (b_walls)
+                keys[key::mode_walls] = true;
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;

@@ -158,7 +158,7 @@ void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
     default:
         fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
         break;
-    case editor_mode::select:
+    case editor_mode::none:
         break;
     case editor_mode::floor:
         t.ground = { atlas, variant };
@@ -197,7 +197,6 @@ void tile_editor::set_rotation(editor_wall_rotation r)
 
 editor::editor()
 {
-    set_mode(editor_mode::floor); // TODO
 }
 
 void editor::set_mode(editor_mode mode)
@@ -210,7 +209,7 @@ const tile_editor* editor::current() const noexcept
 {
     switch (_mode)
     {
-    case editor_mode::select:
+    case editor_mode::none:
         return nullptr;
     case editor_mode::floor:
         return &_floor;

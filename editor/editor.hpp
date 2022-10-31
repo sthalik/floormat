@@ -16,7 +16,7 @@
 namespace floormat {
 
 enum class editor_mode : unsigned char {
-    select, floor, walls,
+    none, floor, walls,
 };
 
 enum class editor_wall_rotation : std::uint8_t {
@@ -86,15 +86,15 @@ struct editor final
     editor& operator=(editor&&) noexcept = default;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
 
-    using rotation = editor_wall_rotation;
     static constexpr inline auto rotation_N = editor_wall_rotation::N;
     static constexpr inline auto rotation_W = editor_wall_rotation::W;
 
 private:
-    tile_editor _floor{ editor_mode::floor, "floor"};
-    tile_editor _wall{ editor_mode::walls, "wall"};
+    tile_editor _floor{ editor_mode::floor, "floor" };
+    tile_editor _wall { editor_mode::walls, "wall"  };
+
     std::optional<global_coords> _last_pos;
-    editor_mode _mode = editor_mode::select;
+    editor_mode _mode = editor_mode::none;
     bool _dirty = false;
 };
 

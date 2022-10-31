@@ -41,12 +41,14 @@ private:
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
 
-    enum class key : int {
+    enum class key : unsigned {
+        noop,
         camera_up, camera_left, camera_right, camera_down, camera_reset,
-        rotate_tile, quicksave, quickload,
-        mode_select, mode_floor, mode_walls,
+        rotate_tile,
+        mode_none, mode_floor, mode_walls,
         quit,
-        MAX = quit, COUNT, NO_REPEAT = rotate_tile,
+        quicksave, quickload,
+        COUNT, MIN = noop, NO_REPEAT = rotate_tile, GLOBAL = quicksave,
     };
 
     void update(float dt) override;
@@ -69,17 +71,12 @@ private:
 
     int exec();
 
-    static int run_from_argv(int argv, const char* const* argc);
-
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
     void do_mouse_move();
     void do_mouse_up_down(std::uint8_t button, bool is_down);
 
-    void do_camera(float dt);
-
-    void do_keys();
-    enum_bitset<key> get_nonrepeat_keys();
+    void do_camera(float dt, const enum_bitset<key>& cmds);
 
     void do_quicksave();
     void do_quickload();
@@ -94,6 +91,8 @@ private:
     void draw_fps();
     void draw_cursor_tile_text();
     void render_menu();
+    void apply_commands(const enum_bitset<key>& k);
+    void clear_non_global_keys();
 
     void draw_editor_pane(tile_editor& type, float main_menu_height);
 
@@ -105,7 +104,7 @@ private:
     wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
-    enum_bitset<key> keys, keys_repeat;
+    enum_bitset<key> keys;
     cursor_state cursor;
 };
 
