@@ -22,6 +22,21 @@ void app::on_any_event(const any_event&) noexcept {}
 #define accessor(type, name) \
     type m_##name = {}; auto name() const noexcept { return m_##name; }
 
+static constexpr int fixup_mods_(int mods, int value, int mask)
+{
+    return !!(mods & mask) * value;
+}
+
+static constexpr int fixup_mods(int mods)
+{
+    int ret = 0;
+    ret |= fixup_mods_(mods, kmod_ctrl,  KMOD_CTRL);
+    ret |= fixup_mods_(mods, kmod_shift, KMOD_SHIFT);
+    ret |= fixup_mods_(mods, kmod_alt,   KMOD_ALT);
+    ret |= fixup_mods_(mods, kmod_super, KMOD_GUI);
+    return ret;
+}
+
 void app::clear_keys(key min_inclusive, key max_exclusive)
 {
     using key_type = decltype(keys)::value_type;
@@ -47,7 +62,7 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
 
     cursor.in_imgui = _imgui.handleMouseMoveEvent(e);
     update_cursor_tile(event.position);
-    do_mouse_move(event.mods);
+    do_mouse_move(fixup_mods(event.mods));
 }
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
@@ -64,7 +79,7 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
     } e = {event.position, Button(event.button)};
 
     if (!(cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
-        do_mouse_up_down(event.button, is_down, event.mods);
+        do_mouse_up_down(event.button, is_down, fixup_mods(event.mods));
 }
 
 void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
@@ -74,21 +89,6 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
         accessor(Vector2i, position)
     } e = {event.offset, event.position};
     _imgui.handleMouseScrollEvent(e);
-}
-
-static constexpr int fixup_mods_(int mods, int value, int mask)
-{
-    return !!(mods & mask) * value;
-}
-
-static constexpr int fixup_mods(int mods)
-{
-    int ret = 0;
-    ret |= fixup_mods_(mods, kmod_ctrl,  KMOD_CTRL);
-    ret |= fixup_mods_(mods, kmod_shift, KMOD_SHIFT);
-    ret |= fixup_mods_(mods, kmod_alt,   KMOD_ALT);
-    ret |= fixup_mods_(mods, kmod_super, KMOD_GUI);
-    return ret;
 }
 
 void app::on_key_up_down(const key_event& event, bool is_down) noexcept
@@ -133,7 +133,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
         clear_non_global_keys();
     else {
         keys[x] = is_down;
-        key_modifiers[std::size_t(x)] = event.mods;
+        key_modifiers[std::size_t(x)] = mods;
     }
 }
 
@@ -164,7 +164,7 @@ void app::on_mouse_leave() noexcept
 
 void app::do_key(floormat::key k)
 {
-    do_key(k, SDL_GetModState());
+    do_key(k, get_key_modifiers());
 }
 
 int app::get_key_modifiers()
