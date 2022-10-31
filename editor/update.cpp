@@ -46,7 +46,10 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
     if (cursor.tile && !cursor.in_imgui && button == mouse_button_left && is_down)
         _editor.on_click(M->world(), *cursor.tile, mods);
     else
+    {
         _editor.on_release();
+        update_cursor_tile(cursor.pixel);
+    }
 }
 
 void app::do_key(key k, int mods)

@@ -86,7 +86,7 @@ struct editor final
     const tile_editor* current() const noexcept;
 
     void on_click(world& world, global_coords pos, int mods);
-    void on_mouse_move(world& world, global_coords pos, int modifiers);
+    void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
 
     editor();

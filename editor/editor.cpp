@@ -277,7 +277,7 @@ auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
         return snap_mode::none;
 }
 
-void editor::on_mouse_move(world& world, global_coords pos, int mods)
+void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 {
     if (!current())
         return;
