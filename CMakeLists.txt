@@ -100,7 +100,6 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-
     add_compile_options(-Wno-reserved-macro-identifier)
 endif()
 
@@ -121,6 +120,9 @@ if(MSVC)
     add_definitions(/FI"compat/prelude.hpp")
 else()
     add_definitions(-include compat/prelude.hpp)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+        add_compile_options(-Wimplicit-fallthrough -Werror=implicit-fallthrough)
+    endif()
 endif()
 
 add_definitions(

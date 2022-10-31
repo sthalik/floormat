@@ -32,6 +32,9 @@ struct cursor_state final {
 
 struct app final : floormat_app
 {
+    static int run_from_argv(int argv, const char* const* argc);
+
+private:
     app(fm_settings&& opts);
     ~app() override;
 
