@@ -44,6 +44,13 @@ private:
     tile_image get_selected_perm();
 
 public:
+    enum class snap_mode : std::uint8_t {
+        none       = 0,
+        horizontal = 1 << 0,
+        vertical   = 1 << 1,
+        both       = horizontal | vertical,
+    };
+
     tile_editor(editor_mode mode, StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
     std::shared_ptr<tile_atlas> atlas(StringView str);
@@ -65,6 +72,7 @@ public:
     void place_tile(world& world, global_coords pos, tile_image& img);
     void toggle_rotation();
     void set_rotation(editor_wall_rotation r);
+    snap_mode check_snap(int mods) const;
 };
 
 struct editor final
@@ -77,8 +85,8 @@ struct editor final
     tile_editor* current() noexcept;
     const tile_editor* current() const noexcept;
 
-    void on_click(world& world, global_coords pos);
-    void on_mouse_move(world& world, global_coords pos);
+    void on_click(world& world, global_coords pos, int mods);
+    void on_mouse_move(world& world, global_coords pos, int modifiers);
     void on_release();
 
     editor();
@@ -88,12 +96,19 @@ struct editor final
 
     static constexpr inline auto rotation_N = editor_wall_rotation::N;
     static constexpr inline auto rotation_W = editor_wall_rotation::W;
+    using snap_mode = tile_editor::snap_mode;
 
 private:
+    snap_mode get_snap_value(snap_mode snap, int mods) const;
+
     tile_editor _floor{ editor_mode::floor, "floor" };
     tile_editor _wall { editor_mode::walls, "wall"  };
 
-    std::optional<global_coords> _last_pos;
+    struct drag_pos final {
+        global_coords coord;
+        snap_mode snap = snap_mode::none;
+    };
+    std::optional<drag_pos> _last_pos;
     editor_mode _mode = editor_mode::none;
     bool _dirty = false;
 };

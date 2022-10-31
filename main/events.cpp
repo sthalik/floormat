@@ -2,7 +2,7 @@
 #include "floormat/app.hpp"
 #include "floormat/events.hpp"
 #include <SDL_events.h>
-#include <SDL_video.h>
+//#include <SDL_video.h>
 
 namespace floormat {
 
@@ -72,6 +72,14 @@ void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
                        false);
 }
 
+static any_event make_any_event(const SDL_Event& e)
+{
+    static_assert(sizeof(SDL_Event) <= sizeof(any_event::buf));
+    any_event ret;
+    std::memcpy(&ret.buf, &e, sizeof(SDL_Event));
+    return ret;
+}
+
 void main_impl::anyEvent(SDL_Event& event)
 {
     if (event.type == SDL_WINDOWEVENT)
@@ -87,12 +95,13 @@ void main_impl::anyEvent(SDL_Event& event)
             return app.on_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
             return app.on_mouse_enter();
-        default:
-            return app.on_any_event({event});
+        default: {
+            return app.on_any_event(make_any_event(event));
+        }
         }
     }
     else
-        return app.on_any_event({event});
+        return app.on_any_event(make_any_event(event));
 }
 
 } // namespace floormat

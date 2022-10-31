@@ -14,6 +14,5 @@
 
 #if __has_include(<SDL.h>)
 #include <SDL_keycode.h>
-#include <SDL_mouse.h>
 #include <SDL_events.h>
 #endif

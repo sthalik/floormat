@@ -5,25 +5,25 @@
 
 namespace floormat {
 
-void app::do_camera(float dt, const enum_bitset<key>& cmds)
+void app::do_camera(float dt, const key_set& cmds, int mods)
 {
-    if (cmds[key::camera_reset])
+    if (cmds[key_camera_reset])
     {
         reset_camera_offset();
         update_cursor_tile(cursor.pixel);
-        do_mouse_move();
+        do_mouse_move(mods);
         return;
     }
 
     Vector2d dir{};
 
-    if (cmds[key::camera_up])
+    if (cmds[key_camera_up])
         dir += Vector2d{0, -1};
-    else if (cmds[key::camera_down])
+    else if (cmds[key_camera_down])
         dir += Vector2d{0,  1};
-    if (cmds[key::camera_left])
+    if (cmds[key_camera_left])
         dir += Vector2d{-1, 0};
-    else if (cmds[key::camera_right])
+    else if (cmds[key_camera_right])
         dir += Vector2d{1,  0};
 
     if (dir != Vector2d{})
@@ -43,7 +43,7 @@ void app::do_camera(float dt, const enum_bitset<key>& cmds)
         shader.set_camera_offset(camera_offset);
 
         update_cursor_tile(cursor.pixel);
-        do_mouse_move();
+        do_mouse_move(mods);
     }
 }
 

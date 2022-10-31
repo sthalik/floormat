@@ -10,7 +10,7 @@ struct mouse_scroll_event;
 struct key_event;
 struct text_input_event;
 struct text_editing_event;
-struct any_event;
+union any_event;
 
 struct chunk_coords;
 struct chunk;

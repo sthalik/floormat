@@ -9,6 +9,7 @@
 #include "draw/quad-wall-w.hpp"
 #include "draw/box.hpp"
 #include "floormat/app.hpp"
+#include "keys.hpp"
 
 #include <memory>
 #include <optional>
@@ -33,26 +34,23 @@ struct cursor_state final {
 struct app final : floormat_app
 {
     static int run_from_argv(int argv, const char* const* argc);
+    ~app() override;
 
 private:
+    using key_set = enum_bitset<key, key_COUNT>;
+
     app(fm_settings&& opts);
-    ~app() override;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
 
-    enum class key : unsigned {
-        noop,
-        camera_up, camera_left, camera_right, camera_down, camera_reset,
-        rotate_tile,
-        mode_none, mode_floor, mode_walls,
-        quit,
-        quicksave, quickload,
-        COUNT, MIN = noop, NO_REPEAT = rotate_tile, GLOBAL = quicksave,
-    };
+    int exec();
 
     void update(float dt) override;
+    void update_cursor_tile(const std::optional<Vector2i>& pixel);
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
+    void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
+
     void draw_msaa() override;
     void draw() override;
 
@@ -69,32 +67,32 @@ private:
     void on_mouse_leave() noexcept override;
     void on_mouse_enter() noexcept override;
 
-    int exec();
+    void do_mouse_move(int modifiers);
+    void do_mouse_up_down(std::uint8_t button, bool is_down, int modifiers);
 
-    void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
-
-    void do_mouse_move();
-    void do_mouse_up_down(std::uint8_t button, bool is_down);
-
-    void do_camera(float dt, const enum_bitset<key>& cmds);
+    void do_camera(float dt, const key_set& cmds, int mods);
+    void reset_camera_offset();
 
     void do_quicksave();
     void do_quickload();
 
-    void reset_camera_offset();
-    void update_cursor_tile(const std::optional<Vector2i>& pixel);
-    void draw_cursor_tile();
-
+    void draw_editor_pane(tile_editor& type, float main_menu_height);
+    void draw_cursor();
     void init_imgui(Vector2i size);
     void draw_ui();
     float draw_main_menu();
     void draw_fps();
-    void draw_cursor_tile_text();
+    void draw_tile_under_cursor();
     void render_menu();
-    void apply_commands(const enum_bitset<key>& k);
-    void clear_non_global_keys();
 
-    void draw_editor_pane(tile_editor& type, float main_menu_height);
+    void do_key(key k, int mods);
+    void do_key(key k);
+    void apply_commands(const key_set& k);
+    static int get_key_modifiers();
+    void clear_keys(key min_inclusive, key max_exclusive);
+    void clear_keys();
+    void clear_non_global_keys() { clear_keys(key_noop, key_GLOBAL); }
+    void clear_non_repeated_keys() { clear_keys(key_NO_REPEAT, key_COUNT); }
 
     Containers::Pointer<floormat_main> M;
     ImGuiIntegration::Context _imgui{NoCreate};
@@ -104,7 +102,8 @@ private:
     wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w;
     wireframe_mesh<wireframe::box> _wireframe_box;
     editor _editor;
-    enum_bitset<key> keys;
+    key_set keys;
+    std::array<int, key_set::COUNT> key_modifiers;
     cursor_state cursor;
 };
 

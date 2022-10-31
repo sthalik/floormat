@@ -7,13 +7,14 @@
 #include "compat/unreachable.hpp"
 #include "src/tile-defs.hpp"
 #include "src/world.hpp"
+#include "keys.hpp"
+
 #include <Corrade/Containers/StringView.h>
-#include <filesystem>
+
 #include <vector>
+#include <filesystem>
 
 namespace floormat {
-
-static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
 
 tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mode{ mode}
 {
@@ -22,6 +23,7 @@ tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mod
 
 void tile_editor::load_atlases()
 {
+    static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     for (auto& atlas : json_helper::from_json<atlas_array>(image_path/(_name + ".json")))
     {
@@ -195,6 +197,40 @@ void tile_editor::set_rotation(editor_wall_rotation r)
     }
 }
 
+auto tile_editor::check_snap(int mods) const -> snap_mode
+{
+    enum : int {
+        KMOD_CTRL = 0x0040 | 0x0080,
+        KMOD_SHIFT = 0x0001 | 0x0002,
+    };
+    const bool ctrl = mods & kmod_ctrl, shift = mods & kmod_shift;
+
+    if (!(ctrl | shift))
+        return snap_mode::none;
+
+    switch (_mode)
+    {
+    default:
+    case editor_mode::none:
+        return snap_mode::none;
+    case editor_mode::walls:
+        switch (_rotation)
+        {
+        case editor_wall_rotation::N:
+            return snap_mode::horizontal;
+        case editor_wall_rotation::W:
+            return snap_mode::vertical;
+        default: return snap_mode::none;
+        }
+    case editor_mode::floor:
+        if (shift)
+            return snap_mode::horizontal;
+        if (ctrl)
+            return snap_mode::vertical;
+        return snap_mode::none;
+    }
+}
+
 editor::editor()
 {
 }
@@ -231,28 +267,60 @@ void editor::on_release()
     _last_pos = std::nullopt;
 }
 
-void editor::on_mouse_move(world& world, const global_coords pos)
+auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 {
-    if (_last_pos && *_last_pos != pos)
+    if (snap != snap_mode::none)
+        return snap;
+    else if (const auto* mode = current(); mode != nullptr)
+        return mode->check_snap(mods);
+    else
+        return snap_mode::none;
+}
+
+void editor::on_mouse_move(world& world, global_coords pos, int mods)
+{
+    if (!current())
+        return;
+
+    if (_last_pos)
     {
-        _last_pos = pos;
-        on_click(world, pos);
+        auto& last_pos = *_last_pos;
+        const snap_mode snap = get_snap_value(last_pos.snap, mods);
+        switch (snap)
+        {
+        default:
+        case snap_mode::none:
+            break;
+        case snap_mode::horizontal:
+            pos.y = last_pos.coord.y;
+            break;
+        case snap_mode::vertical:
+            pos.x = last_pos.coord.x;
+            break;
+        }
+        last_pos = { pos, snap };
+        on_click(world, pos, mods);
     }
 }
 
-void editor::on_click(world& world, global_coords pos)
+void editor::on_click(world& world, global_coords pos, int mods)
 {
-    if (auto* mode = current(); mode)
+    if (!current())
+        return;
+    auto& mode = *current();
+
+    if (auto opt = mode.get_selected(); opt)
     {
-        auto opt = mode->get_selected();
-        if (opt)
-        {
-            _last_pos = pos;
-            mode->place_tile(world, pos, opt);
-        }
-        else
-            on_release();
+        if (!_last_pos)
+            _last_pos = { pos, snap_mode::none };
+        auto snap = _last_pos->snap;
+        if (snap == snap_mode::none)
+            snap = mode.check_snap(mods);
+        _last_pos = { pos, snap  };
+        mode.place_tile(world, pos, opt);
     }
+    else
+        on_release();
 }
 
 } // namespace floormat

@@ -50,11 +50,11 @@ float app::draw_main_menu()
             ImGui::MenuItem("Floor",  "2", &b_floor);
             ImGui::MenuItem("Walls",  "3", &b_walls);
             if (b_none)
-                keys[key::mode_none] = true;
-            if (b_floor)
-                keys[key::mode_floor] = true;
-            if (b_walls)
-                keys[key::mode_walls] = true;
+                keys[key_mode_none] = true;
+            else if (b_floor)
+                keys[key_mode_floor] = true;
+            else if (b_walls)
+                keys[key_mode_walls] = true;
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;
@@ -72,8 +72,8 @@ void app::draw_ui()
     if (auto* ed = _editor.current(); ed != nullptr)
         draw_editor_pane(*ed, main_menu_height);
     draw_fps();
-    draw_cursor_tile();
-    draw_cursor_tile_text();
+    draw_cursor();
+    draw_tile_under_cursor();
     ImGui::EndFrame();
 }
 
@@ -191,7 +191,7 @@ void app::draw_fps()
     draw.AddText({M->window_size()[0] - size.x - 4, 3}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 }
 
-void app::draw_cursor_tile_text()
+void app::draw_tile_under_cursor()
 {
     if (!cursor.tile)
         return;

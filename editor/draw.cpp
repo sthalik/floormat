@@ -7,7 +7,7 @@
 
 namespace floormat {
 
-void app::draw_cursor_tile()
+void app::draw_cursor()
 {
     constexpr float LINE_WIDTH = 2;
 
@@ -36,7 +36,7 @@ void app::draw_cursor_tile()
 
 void app::draw_msaa()
 {
-    draw_cursor_tile();
+    draw_cursor();
 }
 
 void app::draw()

@@ -35,49 +35,61 @@ void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[may
     //maybe_initialize_chunk_(pos, c);
 }
 
-void app::do_mouse_move()
+void app::do_mouse_move(int mods)
 {
     if (cursor.tile && !cursor.in_imgui)
-        _editor.on_mouse_move(M->world(), *cursor.tile);
+        _editor.on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
-void app::do_mouse_up_down(std::uint8_t button, bool is_down)
+void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
 {
     if (cursor.tile && !cursor.in_imgui && button == mouse_button_left && is_down)
-        _editor.on_click(M->world(), *cursor.tile);
+        _editor.on_click(M->world(), *cursor.tile, mods);
     else
         _editor.on_release();
 }
 
-void app::apply_commands(const enum_bitset<key>& k)
+void app::do_key(key k, int mods)
 {
-    if (keys[key::quit])
+    (void)mods;
+    switch (k)
     {
-        M->quit(0);
+    default:
+        fm_warn("unhandled key: '%zu'", std::size_t(k));
         return;
-    }
-
-    if (k[key::mode_none])
-        _editor.set_mode(editor_mode::none);
-    if (k[key::mode_floor])
-        _editor.set_mode(editor_mode::floor);
-    if (k[key::mode_walls])
-        _editor.set_mode(editor_mode::walls);
-    if (k[key::rotate_tile])
+    case key_rotate_tile:
         if (auto* ed = _editor.current(); ed)
             ed->toggle_rotation();
+        return;
+    case key_mode_none:
+        return _editor.set_mode(editor_mode::none);
+    case key_mode_floor:
+        return _editor.set_mode(editor_mode::floor);
+    case key_mode_walls:
+        return _editor.set_mode(editor_mode::walls);
+    case key_quicksave:
+        return do_quicksave();
+    case key_quickload:
+        return do_quickload();
+    case key_quit:
+        return M->quit(0);
+    }
+}
 
-    if (k[key::quicksave])
-        do_quicksave();
-    if (k[key::quickload])
-        do_quickload();
+void app::apply_commands(const key_set& keys)
+{
+    using value_type = key_set::value_type;
+    for (value_type i = key_NO_REPEAT; i < key_COUNT; i++)
+        if (const auto k = key(i); keys[k])
+            do_key(k, key_modifiers[i]);
 }
 
 void app::update(float dt)
 {
     draw_ui();
     apply_commands(keys);
-    do_camera(dt, keys);
+    do_camera(dt, keys, get_key_modifiers());
+    clear_non_repeated_keys();
 }
 
 } // namespace floormat
