@@ -91,6 +91,46 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
     _imgui.handleMouseScrollEvent(e);
 }
 
+auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
+{
+    [[maybe_unused]] constexpr int CTRL  = kmod_ctrl;
+    [[maybe_unused]] constexpr int SHIFT = kmod_shift;
+    [[maybe_unused]] constexpr int ALT   = kmod_alt;
+    [[maybe_unused]] constexpr int SUPER = kmod_super;
+
+    const int k = k_ | fixup_mods(mods_);
+    constexpr kmod list[] = { kmod_none, kmod_super, kmod_alt, kmod_shift, kmod_ctrl, };
+    int last = ~0;
+    for (int k1 = k; kmod mod1 : list)
+    {
+        k1 &= ~mod1;
+        for (int k2 = k1; kmod mod2 : list)
+        {
+            k2 &= ~mod2;
+            if (k2 == last)
+                continue;
+            last = k2;
+            switch (int mods = k2 & kmod_mask; k2)
+            {
+            default: continue;
+            case SDLK_w:        return { key_camera_up,    mods };
+            case SDLK_a:        return { key_camera_left,  mods };
+            case SDLK_s:        return { key_camera_down,  mods };
+            case SDLK_d:        return { key_camera_right, mods };
+            case SDLK_HOME:     return { key_camera_reset, mods };
+            case SDLK_r:        return { key_rotate_tile,  mods };
+            case SDLK_1:        return { key_mode_none,    mods };
+            case SDLK_2:        return { key_mode_floor,   mods };
+            case SDLK_3:        return { key_mode_walls,   mods };
+            case SDLK_F5:       return { key_quicksave,    mods };
+            case SDLK_F9:       return { key_quickload,    mods };
+            case SDLK_q | CTRL: return { key_quit,         mods };
+            }
+        }
+    }
+    return { key_COUNT, k & kmod_mask };
+}
+
 void app::on_key_up_down(const key_event& event, bool is_down) noexcept
 {
     using KeyEvent = Platform::Sdl2Application::KeyEvent;
@@ -102,48 +142,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
         accessor(Modifiers, modifiers)
     } e = {Ev::Key(event.key), Ev::Modifier(event.mods)};
 
-    [[maybe_unused]] constexpr int CTRL  = kmod_ctrl;
-    [[maybe_unused]] constexpr int SHIFT = kmod_shift;
-    [[maybe_unused]] constexpr int ALT   = kmod_alt;
-    [[maybe_unused]] constexpr int SUPER = kmod_super;
-
-    const auto mods = fixup_mods(event.mods);
-
-    const key x = fm_begin(
-        int k = event.key | mods;
-        constexpr kmod list[] = { kmod_none, kmod_super, kmod_alt, kmod_shift, kmod_ctrl, };
-        int last = ~0;
-        for (kmod mod1 : list)
-        {
-            k &= ~mod1;
-            for (int k2 = k; kmod mod2 : list)
-            {
-                k2 &= ~mod2;
-                if (k2 == last)
-                    continue;
-                last = k2;
-                switch (k2)
-                {
-                case SDLK_w:        return key_camera_up;
-                case SDLK_a:        return key_camera_left;
-                case SDLK_s:        return key_camera_down;
-                case SDLK_d:        return key_camera_right;
-                case SDLK_HOME:     return key_camera_reset;
-                case SDLK_r:        return key_rotate_tile;
-                case SDLK_1:        return key_mode_none;
-                case SDLK_2:        return key_mode_floor;
-                case SDLK_3:        return key_mode_walls;
-                case SDLK_F5:       return key_quicksave;
-                case SDLK_F9:       return key_quickload;
-                case SDLK_q | CTRL: return key_quit;
-                default: break;
-                }
-            }
-        }
-
-
-        return key_COUNT;
-    );
+    auto [x, mods] = resolve_keybinding(event.key, event.mods);
 
     if (x == key_COUNT)
         void();

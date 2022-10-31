@@ -85,7 +85,9 @@ struct editor final
     tile_editor* current() noexcept;
     const tile_editor* current() const noexcept;
 
-    void on_click(world& world, global_coords pos, int mods);
+    enum class button : std::uint8_t { none, place, remove, };
+
+    void on_click(world& world, global_coords pos, int mods, button b);
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
 
@@ -107,6 +109,7 @@ private:
     struct drag_pos final {
         global_coords coord;
         snap_mode snap = snap_mode::none;
+        button btn;
     };
     std::optional<drag_pos> _last_pos;
     editor_mode _mode = editor_mode::none;

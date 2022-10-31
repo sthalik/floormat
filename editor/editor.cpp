@@ -295,29 +295,27 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
             pos.x = last_pos.coord.x;
             break;
         }
-        last_pos = { pos, snap };
-        on_click(world, pos, mods);
+        last_pos = { pos, snap, last_pos.btn };
+        on_click(world, pos, mods, last_pos.btn);
     }
 }
 
-void editor::on_click(world& world, global_coords pos, int mods)
+void editor::on_click(world& world, global_coords pos, int mods, button b)
 {
-    if (!current())
-        return;
-    auto& mode = *current();
-
-    if (auto opt = mode.get_selected(); opt)
+    if (auto* mode = current(); mode != nullptr)
     {
-        if (!_last_pos)
-            _last_pos = { pos, snap_mode::none };
-        auto snap = _last_pos->snap;
-        if (snap == snap_mode::none)
-            snap = mode.check_snap(mods);
-        _last_pos = { pos, snap  };
-        mode.place_tile(world, pos, opt);
-    }
-    else
+        if (auto opt = mode->get_selected(); opt)
+        {
+            _last_pos = { pos, mode->check_snap(mods), _last_pos ? _last_pos->btn : b };
+            switch (tile_image empty; b)
+            {
+            case button::place: return mode->place_tile(world, pos, opt);
+            case button::remove: return mode->place_tile(world, pos, empty);
+            default: break;
+            }
+        }
         on_release();
+    }
 }
 
 } // namespace floormat

@@ -6,9 +6,10 @@ namespace floormat {
 enum kmod : int {
     kmod_none  = 0x0000,
     kmod_shift = 0x0001 << 8,
-    kmod_ctrl  = 0x0040 << 8,
-    kmod_alt   = 0x0100 << 8,
-    kmod_super = 0x0400 << 8,
+    kmod_ctrl  = 0x0040 << 9,
+    kmod_alt   = 0x0100 << 10,
+    kmod_super = 0x0400 << 11,
+    kmod_mask  = kmod_shift | kmod_ctrl | kmod_alt | kmod_super,
 };
 
 enum key : std::uint32_t {
