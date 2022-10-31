@@ -41,6 +41,7 @@ struct app final : floormat_app
     enum class key : int {
         camera_up, camera_left, camera_right, camera_down, camera_reset,
         rotate_tile, quicksave, quickload,
+        mode_select, mode_floor, mode_walls,
         quit,
         MAX = quit, COUNT, NO_REPEAT = rotate_tile,
     };
@@ -82,10 +83,7 @@ struct app final : floormat_app
 
     void reset_camera_offset();
     void update_cursor_tile(const std::optional<Vector2i>& pixel);
-
     void draw_cursor_tile();
-    void draw_wireframe_quad(global_coords pt);
-    void draw_wireframe_box(global_coords pt);
 
     void init_imgui(Vector2i size);
     void draw_ui();

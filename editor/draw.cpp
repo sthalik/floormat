@@ -7,36 +7,33 @@
 
 namespace floormat {
 
-void app::draw_wireframe_quad(global_coords pos)
-{
-    constexpr float LINE_WIDTH = 2;
-    const auto pt = pos.to_signed();
-    auto& shader = M->shader();
-
-    {
-        const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
-        shader.set_tint({1, 0, 0, 1});
-        _wireframe_quad.draw(shader, {center, TILE_SIZE2, LINE_WIDTH});
-        //_wireframe_wall_n.draw(shader, {center, TILE_SIZE, LINE_WIDTH});
-        //_wireframe_wall_w.draw(shader, {center, TILE_SIZE, LINE_WIDTH});
-    }
-}
-
-void app::draw_wireframe_box(global_coords pos)
-{
-    constexpr float LINE_WIDTH = 1.5;
-    auto& shader = M->shader();
-
-    const auto pt = pos.to_signed();
-    const auto center = Vector3((float)pt[0], (float)pt[1], 0) * TILE_SIZE;
-    shader.set_tint({0, 1, 0, 1});
-    _wireframe_box.draw(shader, {center, TILE_SIZE, LINE_WIDTH});
-}
-
 void app::draw_cursor_tile()
 {
+    constexpr float LINE_WIDTH = 2;
+
     if (cursor.tile && !cursor.in_imgui)
-        draw_wireframe_quad(*cursor.tile);
+    {
+        const auto pos = *cursor.tile;
+
+        const auto draw = [&](auto& mesh, const auto& size) {
+            const auto pt = pos.to_signed();
+            const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
+            auto& shader = M->shader();
+            shader.set_tint({1, 0, 0, 1});
+            mesh.draw(shader, {center, size, LINE_WIDTH});
+        };
+
+        if (const auto* ed = _editor.current(); ed && ed->mode() == editor_mode::walls)
+        {
+            switch (ed->rotation())
+            {
+            case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
+            case editor_wall_rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
+            }
+        }
+        else
+            draw(_wireframe_quad, TILE_SIZE2);
+    }
 }
 
 void app::draw_msaa()

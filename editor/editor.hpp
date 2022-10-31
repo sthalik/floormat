@@ -38,7 +38,7 @@ private:
     std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image::variant)>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
-    editor_wall_rotation _rotation = editor_wall_rotation::N;
+    editor_wall_rotation _rotation = editor_wall_rotation::W;
 
     void load_atlases();
     tile_image get_selected_perm();

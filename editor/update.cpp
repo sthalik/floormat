@@ -84,8 +84,18 @@ void app::do_keys()
         do_quicksave();
     if (k[key::quickload])
         do_quickload();
-    if (auto* ed = _editor.current(); ed && k[key::rotate_tile])
-        ed->toggle_rotation();
+    if (k[key::mode_select])
+        _editor.set_mode(editor_mode::select);
+    if (k[key::mode_floor])
+        _editor.set_mode(editor_mode::floor);
+    if (k[key::mode_walls])
+        _editor.set_mode(editor_mode::walls);
+
+    if (auto* ed = _editor.current(); ed)
+    {
+        if (k[key::rotate_tile])
+            ed->toggle_rotation();
+    }
 }
 
 void app::update(float dt)

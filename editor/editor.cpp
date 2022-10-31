@@ -161,10 +161,15 @@ void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
     case editor_mode::select:
         break;
     case editor_mode::floor:
-        t.ground = {atlas, variant };
+        t.ground = { atlas, variant };
         break;
     case editor_mode::walls:
-        break; // todo
+        switch (tile_image x = { atlas, variant }; _rotation)
+        {
+        case editor_wall_rotation::N: t.wall_north = x; break;
+        case editor_wall_rotation::W: t.wall_west  = x; break;
+        }
+        break;
     }
 }
 
@@ -210,7 +215,7 @@ const tile_editor* editor::current() const noexcept
     case editor_mode::floor:
         return &_floor;
     case editor_mode::walls:
-        return nullptr; // todo
+        return &_wall; // todo
     default:
         fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
         return nullptr;
