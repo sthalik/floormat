@@ -109,21 +109,41 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
 
     const auto mods = fixup_mods(event.mods);
 
-    const key x = fm_begin(switch (auto k = event.key | mods) {
-        default: return key_COUNT;
-        case SDLK_w:         return key_camera_up;
-        case SDLK_a:         return key_camera_left;
-        case SDLK_s:         return key_camera_down;
-        case SDLK_d:         return key_camera_right;
-        case SDLK_HOME:      return key_camera_reset;
-        case SDLK_r:         return key_rotate_tile;
-        case SDLK_1:         return key_mode_none;
-        case SDLK_2:         return key_mode_floor;
-        case SDLK_3:         return key_mode_walls;
-        case SDLK_F5:        return key_quicksave;
-        case SDLK_F9:        return key_quickload;
-        case SDLK_q | CTRL:  return key_quit;
-    });
+    const key x = fm_begin(
+        int k = event.key | mods;
+        constexpr kmod list[] = { kmod_none, kmod_super, kmod_alt, kmod_shift, kmod_ctrl, };
+        int last = ~0;
+        for (kmod mod1 : list)
+        {
+            k &= ~mod1;
+            for (int k2 = k; kmod mod2 : list)
+            {
+                k2 &= ~mod2;
+                if (k2 == last)
+                    continue;
+                last = k2;
+                switch (k2)
+                {
+                case SDLK_w:        return key_camera_up;
+                case SDLK_a:        return key_camera_left;
+                case SDLK_s:        return key_camera_down;
+                case SDLK_d:        return key_camera_right;
+                case SDLK_HOME:     return key_camera_reset;
+                case SDLK_r:        return key_rotate_tile;
+                case SDLK_1:        return key_mode_none;
+                case SDLK_2:        return key_mode_floor;
+                case SDLK_3:        return key_mode_walls;
+                case SDLK_F5:       return key_quicksave;
+                case SDLK_F9:       return key_quickload;
+                case SDLK_q | CTRL: return key_quit;
+                default: break;
+                }
+            }
+        }
+
+
+        return key_COUNT;
+    );
 
     if (x == key_COUNT)
         void();

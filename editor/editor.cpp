@@ -245,14 +245,11 @@ const tile_editor* editor::current() const noexcept
 {
     switch (_mode)
     {
-    case editor_mode::none:
-        return nullptr;
     case editor_mode::floor:
         return &_floor;
     case editor_mode::walls:
         return &_wall; // todo
     default:
-        fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
         return nullptr;
     }
 }
@@ -269,10 +266,11 @@ void editor::on_release()
 
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 {
-    if (snap != snap_mode::none)
-        return snap;
-    else if (const auto* mode = current(); mode != nullptr)
+
+    if (const auto* mode = current(); mode != nullptr)
         return mode->check_snap(mods);
+    else if (snap != snap_mode::none)
+        return snap;
     else
         return snap_mode::none;
 }
@@ -289,7 +287,6 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
         switch (snap)
         {
         default:
-        case snap_mode::none:
             break;
         case snap_mode::horizontal:
             pos.y = last_pos.coord.y;
