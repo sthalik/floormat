@@ -72,14 +72,17 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         Right = mouse_button_right,
         Middle = mouse_button_middle,
     };
+
+    const auto button = std::uint8_t(1 << (event.button-1));
+
     struct ev {
         using Button = Button;
         accessor(Vector2i, position)
         accessor(Button, button)
-    } e = {event.position, Button(event.button)};
+    } e = {event.position, Button(button)};
 
     if (!(cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
-        do_mouse_up_down(event.button, is_down, fixup_mods(event.mods));
+        do_mouse_up_down(button, is_down, fixup_mods(event.mods));
 }
 
 void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept

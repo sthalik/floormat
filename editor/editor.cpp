@@ -153,7 +153,6 @@ tile_image_proto tile_editor::get_selected()
 void tile_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
 {
     auto [c, t] = world[pos];
-    const auto& [atlas, variant] = img;
     switch (_mode)
     {
     case editor_mode::none:
