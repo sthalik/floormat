@@ -299,10 +299,23 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
         const Vector2i offset = pos - last.coord;
         const snap_mode snap = get_snap_value(last.snap, mods);
         const global_coords draw_coord = apply_snap(last.draw_coord + offset, last.draw_coord, snap);
-        if (pos != _last_pos->coord)
+        if (draw_coord != last.draw_coord)
         {
+            const auto draw_offset = draw_coord - last.draw_coord;
+            if (!!draw_offset[0] ^ !!draw_offset[1] && std::abs(draw_offset.sum()) > 1)
+            {
+                const auto [minx, maxx] = std::minmax(draw_coord.x, last.draw_coord.x);
+                const auto [miny, maxy] = std::minmax(draw_coord.y, last.draw_coord.y);
+                if (draw_offset[0])
+                    for (std::uint32_t i = minx; i <= maxx; i++)
+                        on_click_(world, { i, draw_coord.y }, last.btn);
+                else
+                    for (std::uint32_t j = miny; j <= maxy; j++)
+                        on_click_(world, { draw_coord.x, j }, last.btn);
+            }
+            else
+                on_click_(world, draw_coord, last.btn);
             _last_pos = { pos, draw_coord, snap, last.btn };
-            on_click_(world, draw_coord, last.btn);
         }
         pos = draw_coord;
     }
