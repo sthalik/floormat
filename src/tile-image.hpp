@@ -1,20 +1,29 @@
 #pragma once
 #include "compat/integer-types.hpp"
-#include <compare>
-#include <memory>
 
 namespace floormat {
 
 struct tile_atlas;
 
-struct tile_image final
+struct tile_image_proto final
 {
     std::shared_ptr<tile_atlas> atlas;
     std::uint16_t variant = (std::uint16_t)-1;
 
-    explicit operator bool() const noexcept { return !!atlas; }
+    friend bool operator==(const tile_image_proto& a, const tile_image_proto& b) noexcept;
 };
 
-bool operator==(const tile_image& a, const tile_image& b) noexcept;
+struct tile_image_ref final
+{
+    std::shared_ptr<tile_atlas>& atlas;
+    std::uint16_t& variant;
+
+    tile_image_ref(std::shared_ptr<tile_atlas>& atlas, std::uint16_t& variant) noexcept;
+    tile_image_ref(const tile_image_ref&) noexcept;
+    tile_image_ref(tile_image_ref&&) noexcept;
+    tile_image_ref& operator=(tile_image_ref&& tile_rvalue_ref) noexcept;
+    tile_image_ref& operator=(const tile_image_proto& tile_proto) noexcept;
+    operator tile_image_proto() const noexcept;
+};
 
 } // namespace floormat

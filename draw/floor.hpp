@@ -12,7 +12,8 @@ namespace floormat {
 
 struct tile_shader;
 struct chunk;
-struct tile;
+struct tile_ref;
+struct tile_proto;
 
 struct floor_mesh final
 {

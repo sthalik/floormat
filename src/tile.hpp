@@ -4,19 +4,57 @@
 
 namespace floormat {
 
-struct tile final
+struct chunk;
+
+enum pass_mode : std::uint8_t { pass_ok, pass_blocked, pass_shoot_through, };
+
+struct pass_mode_ref final
 {
-    enum pass_mode : std::uint8_t { pass_ok, pass_blocked, pass_shoot_through, };
+    pass_mode_ref(chunk& c, std::uint8_t i) noexcept;
+    pass_mode_ref& operator=(pass_mode x) noexcept;
+    pass_mode_ref& operator=(const pass_mode_ref& x) noexcept;
+    operator pass_mode() const noexcept;
 
-    tile_image ground, wall_north, wall_west;
-    pass_mode passability = pass_ok;
-
-    constexpr tile() = default;
-
-    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(tile);
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile);
+private:
+    chunk* _chunk;
+    std::uint8_t i;
 };
 
-bool operator==(const tile& a, const tile& b) noexcept;
+struct tile_proto final
+{
+    std::shared_ptr<tile_atlas> ground_atlas, wall_north_atlas, wall_west_atlas;
+    std::uint16_t ground_variant = 0xffff, wall_north_variant = 0xffff, wall_west_variant = 0xffff;
+    pass_mode pass_mode = pass_mode::pass_shoot_through;
+
+    friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
+};
+
+struct tile_ref final
+{
+    tile_ref(struct chunk& c, std::uint8_t i) noexcept;
+
+    tile_image_ref ground() noexcept;
+    tile_image_ref wall_north() noexcept;
+    tile_image_ref wall_west() noexcept;
+
+    tile_image_proto ground() const noexcept;
+    tile_image_proto wall_north() const noexcept;
+    tile_image_proto wall_west() const noexcept;
+
+    pass_mode_ref pass_mode() noexcept;
+    enum pass_mode pass_mode() const noexcept;
+
+    explicit operator tile_proto() const noexcept;
+
+    struct chunk& chunk() noexcept { return *_chunk; }
+    const struct chunk& chunk() const noexcept { return *_chunk; }
+    std::size_t index() const noexcept { return i; }
+
+    friend bool operator==(const tile_ref& a, const tile_ref& b) noexcept;
+
+private:
+    struct chunk* _chunk;
+    std::uint8_t i;
+};
 
 } //namespace floormat
