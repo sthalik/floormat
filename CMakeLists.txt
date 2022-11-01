@@ -89,7 +89,8 @@ if(MSVC)
     add_compile_options(
         #-wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
         #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
-        -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
+        -wd4456  # warning C4456: declaration of 'x' hides previous local declaration
+        -wd4458  # warning C4458: declaration of 'keys' hides class member
     )
     add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
@@ -97,6 +98,7 @@ if(MSVC)
     endif()
 else()
     add_compile_options(-fuse-cxa-atexit)
+    add_compile_options(-fno-rtti)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
@@ -122,6 +124,9 @@ else()
     add_definitions(-include compat/prelude.hpp)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
         add_compile_options(-Wimplicit-fallthrough -Werror=implicit-fallthrough)
+    endif()
+    if(NOT APPLE AND NOT WIN32)
+        add_compile_options(-fno-plt)
     endif()
 endif()
 
