@@ -52,16 +52,21 @@ float app::draw_main_menu()
         }
         if (auto b = begin_menu("Mode"))
         {
-            bool b_none = false, b_floor = false, b_walls = false;
+            const bool can_rotate =  _editor.current() ? _editor.current()->can_rotate() : false;
+            bool b_none = false, b_floor = false, b_walls = false, b_rotate = false;
             ImGui::MenuItem("Select", "1", &b_none);
             ImGui::MenuItem("Floor",  "2", &b_floor);
             ImGui::MenuItem("Walls",  "3", &b_walls);
+            ImGui::Separator();
+            ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate);
             if (b_none)
-                keys[key_mode_none] = true;
+                do_key(key_mode_none);
             else if (b_floor)
-                keys[key_mode_floor] = true;
+                do_key(key_mode_floor);
             else if (b_walls)
-                keys[key_mode_walls] = true;
+                do_key(key_mode_walls);
+            if (b_rotate)
+                do_key(key_rotate_tile);
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;

@@ -72,6 +72,7 @@ public:
     void toggle_rotation();
     void set_rotation(editor_wall_rotation r);
     snap_mode check_snap(int mods) const;
+    bool can_rotate() const;
 };
 
 struct editor final

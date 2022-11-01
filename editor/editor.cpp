@@ -230,6 +230,11 @@ auto tile_editor::check_snap(int mods) const -> snap_mode
     }
 }
 
+bool tile_editor::can_rotate() const
+{
+    return _mode == editor_mode::walls;
+}
+
 editor::editor()
 {
 }
