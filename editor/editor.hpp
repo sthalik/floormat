@@ -88,7 +88,7 @@ struct editor final
     enum class button : std::uint8_t { none, place, remove, };
 
     void on_click(world& world, global_coords pos, int mods, button b);
-    void on_click_(world& world, global_coords pos, int mods, button b);
+    void on_click_(world& world, global_coords pos, button b);
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
 

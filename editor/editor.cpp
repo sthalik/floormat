@@ -302,13 +302,13 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
         if (pos != _last_pos->coord)
         {
             _last_pos = { pos, draw_coord, snap, last.btn };
-            on_click_(world, draw_coord, mods, last.btn);
+            on_click_(world, draw_coord, last.btn);
         }
         pos = draw_coord;
     }
 }
 
-void editor::on_click_(world& world, global_coords pos, int mods, button b)
+void editor::on_click_(world& world, global_coords pos, button b)
 {
     if (auto* mode = current(); mode != nullptr)
         if (auto opt = mode->get_selected(); opt)
@@ -328,7 +328,7 @@ void editor::on_click(world& world, global_coords pos, int mods, button b)
     if (auto* mode = current(); mode != nullptr)
     {
         _last_pos = { pos, pos, mode->check_snap(mods), b };
-        on_click_(world, pos, mods, b);
+        on_click_(world, pos, b);
     }
 }
 
