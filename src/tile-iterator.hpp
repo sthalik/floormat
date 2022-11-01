@@ -15,6 +15,15 @@ struct tile_iterator_tuple final { // NOLINT(cppcoreguidelines-pro-type-member-i
     local_coords pt;
 };
 
+struct tile_const_iterator_tuple final { // NOLINT(cppcoreguidelines-pro-type-member-init)
+    const tile_const_iterator_tuple* operator->() const noexcept { return this; }
+    tile_const_iterator_tuple* operator->() noexcept { return this; }
+
+    tile_proto x;
+    std::size_t k;
+    local_coords pt;
+};
+
 class tile_iterator final {
     chunk* c;
     std::size_t pos;
@@ -32,6 +41,25 @@ public:
     tile_iterator operator++(int) noexcept;
     tile_iterator_tuple operator->() noexcept;
     tile_iterator_tuple operator*() noexcept;
+};
+
+class tile_const_iterator final {
+    const chunk* c;
+    std::size_t pos;
+
+    friend bool operator==(const tile_const_iterator&, const tile_const_iterator&) noexcept;
+
+public:
+    explicit tile_const_iterator(const chunk& c, std::size_t pos) noexcept;
+    tile_const_iterator(const tile_const_iterator&) noexcept;
+    tile_const_iterator& operator=(const tile_const_iterator&) noexcept;
+
+    void swap(tile_const_iterator& other) noexcept;
+
+    tile_const_iterator& operator++() noexcept;
+    tile_const_iterator operator++(int) noexcept;
+    tile_const_iterator_tuple operator->() noexcept;
+    tile_const_iterator_tuple operator*() noexcept;
 };
 
 } // namespace floormat
