@@ -38,6 +38,7 @@ struct global_coords final {
     constexpr global_coords operator-(Vector2i vec) const noexcept;
     constexpr global_coords& operator+=(Vector2i vec) noexcept;
     constexpr global_coords& operator-=(Vector2i vec) noexcept;
+    constexpr Vector2i operator-(global_coords other) const noexcept;
 };
 
 constexpr local_coords global_coords::local() const noexcept
@@ -77,6 +78,11 @@ constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
     x = std::uint32_t((std::int64_t)x-vec[0]);
     y = std::uint32_t((std::int64_t)y-vec[1]);
     return *this;
+}
+
+constexpr Vector2i global_coords::operator-(global_coords other) const noexcept
+{
+    return to_signed() - other.to_signed();
 }
 
 } // namespace floormat

@@ -198,10 +198,6 @@ void tile_editor::set_rotation(editor_wall_rotation r)
 
 auto tile_editor::check_snap(int mods) const -> snap_mode
 {
-    enum : int {
-        KMOD_CTRL = 0x0040 | 0x0080,
-        KMOD_SHIFT = 0x0001 | 0x0002,
-    };
     const bool ctrl = mods & kmod_ctrl, shift = mods & kmod_shift;
 
     if (!(ctrl | shift))
@@ -279,46 +275,60 @@ auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
         return snap_mode::none;
 }
 
+global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept
+{
+    switch (snap)
+    {
+    default:
+        break;
+    case snap_mode::horizontal:
+        pos.y = last.y;
+        break;
+    case snap_mode::vertical:
+        pos.x = last.x;
+        break;
+    }
+    return pos;
+}
+
 void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 {
-    if (!current())
-        return;
-
-    if (_last_pos)
+    if (auto* mode = current(); mode && _last_pos && _last_pos->btn != button::none)
     {
-        auto& last_pos = *_last_pos;
-        const snap_mode snap = get_snap_value(last_pos.snap, mods);
-        switch (snap)
+        auto& last = *_last_pos;
+        Vector2i offset = pos - last.coord;
+        const snap_mode snap = get_snap_value(last.snap, mods);
+        global_coords draw_coord = apply_snap(last.draw_coord + offset, last.draw_coord, snap);
+        if (pos != _last_pos->coord)
         {
-        default:
-            break;
-        case snap_mode::horizontal:
-            pos.y = last_pos.coord.y;
-            break;
-        case snap_mode::vertical:
-            pos.x = last_pos.coord.x;
-            break;
+            _last_pos = { pos, draw_coord, snap, last.btn };
+            on_click_(world, draw_coord, mods, last.btn);
         }
-        last_pos = { pos, snap, last_pos.btn };
-        on_click(world, pos, mods, last_pos.btn);
+        pos = draw_coord;
     }
+}
+
+void editor::on_click_(world& world, global_coords pos, int mods, button b)
+{
+    if (auto* mode = current(); mode != nullptr)
+        if (auto opt = mode->get_selected(); opt)
+        {
+            switch (b)
+            {
+            case button::place: return mode->place_tile(world, pos, opt);
+            case button::remove: return mode->place_tile(world, pos, {});
+            default: break;
+            }
+        }
+    on_release();
 }
 
 void editor::on_click(world& world, global_coords pos, int mods, button b)
 {
     if (auto* mode = current(); mode != nullptr)
     {
-        if (auto opt = mode->get_selected(); opt)
-        {
-            _last_pos = { pos, mode->check_snap(mods), _last_pos ? _last_pos->btn : b };
-            switch (tile_image_proto empty; b)
-            {
-            case button::place: return mode->place_tile(world, pos, opt);
-            case button::remove: return mode->place_tile(world, pos, empty);
-            default: break;
-            }
-        }
-        on_release();
+        _last_pos = { pos, pos, mode->check_snap(mods), b };
+        on_click_(world, pos, mods, b);
     }
 }
 

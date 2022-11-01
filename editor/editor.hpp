@@ -88,6 +88,7 @@ struct editor final
     enum class button : std::uint8_t { none, place, remove, };
 
     void on_click(world& world, global_coords pos, int mods, button b);
+    void on_click_(world& world, global_coords pos, int mods, button b);
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
 
@@ -102,12 +103,13 @@ struct editor final
 
 private:
     snap_mode get_snap_value(snap_mode snap, int mods) const;
+    static global_coords apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept;
 
     tile_editor _floor{ editor_mode::floor, "floor" };
     tile_editor _wall { editor_mode::walls, "wall"  };
 
     struct drag_pos final {
-        global_coords coord;
+        global_coords coord, draw_coord;
         snap_mode snap = snap_mode::none;
         button btn;
     };
