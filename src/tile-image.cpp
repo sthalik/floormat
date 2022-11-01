@@ -9,7 +9,7 @@ bool operator==(const tile_image_proto& a, const tile_image_proto& b) noexcept
 
 tile_image_proto::operator bool() const noexcept { return atlas != nullptr; }
 
-tile_image_ref::tile_image_ref(std::shared_ptr<tile_atlas>& atlas, std::uint16_t& variant) noexcept :
+tile_image_ref::tile_image_ref(std::shared_ptr<tile_atlas>& atlas, variant_t& variant) noexcept :
     atlas{atlas}, variant{variant}
 {
 }
