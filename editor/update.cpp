@@ -18,16 +18,16 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 #else
         const auto& atlas = pt.x == N/2 || pt.y == N/2 ? _floor2 : _floor1;
 #endif
-        x.ground = { atlas, decltype(tile_image::variant)(k % atlas->num_tiles()) };
+        x.ground() = { atlas, variant_t(k % atlas->num_tiles()) };
     }
 #ifdef FM_NO_BINDINGS
     const auto& wall1 = floor1, wall2 = floor1;
 #endif
     constexpr auto K = N/2;
-    c[{K,   K  }].wall_north = { _wall1, 0 };
-    c[{K,   K  }].wall_west  = { _wall2, 0 };
-    c[{K,   K+1}].wall_north = { _wall1, 0 };
-    c[{K+1, K  }].wall_west  = { _wall2, 0 };
+    c[{K,   K  }].wall_north() = { _wall1, 0 };
+    c[{K,   K  }].wall_west()  = { _wall2, 0 };
+    c[{K,   K+1}].wall_north() = { _wall1, 0 };
+    c[{K+1, K  }].wall_west()  = { _wall2, 0 };
 }
 
 void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[maybe_unused]] chunk& c)

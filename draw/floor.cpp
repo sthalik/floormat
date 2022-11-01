@@ -17,11 +17,11 @@ floor_mesh::floor_mesh()
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }
 
-void floor_mesh::set_tile(quad_data& data, tile& x)
+void floor_mesh::set_tile(quad_data& data, tile_ref& x)
 {
-    if (x.ground)
+    if (auto ground = x.ground(); ground)
     {
-        auto texcoords = x.ground.atlas->texcoords_for_id(x.ground.variant);
+        auto texcoords = ground.atlas->texcoords_for_id(ground.variant);
         for (size_t i = 0; i < 4; i++)
             data[i] = { texcoords[i] };
     }
@@ -34,7 +34,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
     //_vertex_buffer.setData({nullptr, sizeof(quad_data) * TILE_COUNT}, Magnum::GL::BufferUsage::DynamicDraw); // orphan the buffer
     std::array<quad_data, TILE_COUNT> data;
-    for (auto& [x, idx, pt] : c) {
+    for (auto [x, idx, pt] : c) {
         set_tile(data[idx], x);
     }
     _vertex_buffer.setSubData(0, data);
@@ -57,8 +57,8 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
         last_pos = i;
     };
 
-    for (auto& [x, i, pt] : c)
-        do_draw(i, x.ground.atlas.get());
+    for (auto [x, i, pt] : c)
+        do_draw(i, x.ground_atlas().get());
     do_draw(TILE_COUNT, nullptr);
 }
 

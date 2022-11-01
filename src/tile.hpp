@@ -6,7 +6,8 @@ namespace floormat {
 
 struct chunk;
 
-enum pass_mode : std::uint8_t { pass_ok, pass_blocked, pass_shoot_through, };
+// zero is the default, see bitset in chunk.hpp
+enum pass_mode : std::uint8_t { pass_shoot_through, pass_ok, pass_blocked, };
 
 struct pass_mode_ref final
 {
@@ -26,6 +27,10 @@ struct tile_proto final
     std::uint16_t ground_variant = 0xffff, wall_north_variant = 0xffff, wall_west_variant = 0xffff;
     pass_mode pass_mode = pass_mode::pass_shoot_through;
 
+    tile_image_proto ground_image() const noexcept;
+    tile_image_proto wall_north_image() const noexcept;
+    tile_image_proto wall_west_image() const noexcept;
+
     friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
 };
 
@@ -40,6 +45,14 @@ struct tile_ref final
     tile_image_proto ground() const noexcept;
     tile_image_proto wall_north() const noexcept;
     tile_image_proto wall_west() const noexcept;
+
+    std::shared_ptr<tile_atlas> ground_atlas() noexcept;
+    std::shared_ptr<tile_atlas> wall_north_atlas() noexcept;
+    std::shared_ptr<tile_atlas> wall_west_atlas() noexcept;
+
+    std::shared_ptr<const tile_atlas> ground_atlas() const noexcept;
+    std::shared_ptr<const tile_atlas> wall_north_atlas() const noexcept;
+    std::shared_ptr<const tile_atlas> wall_west_atlas() const noexcept;
 
     pass_mode_ref pass_mode() noexcept;
     enum pass_mode pass_mode() const noexcept;

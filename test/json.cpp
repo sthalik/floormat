@@ -19,14 +19,14 @@ static chunk make_test_chunk()
          tiles = loader.tile_atlas("tiles", {8, 5});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
-    for (auto& [x, k, pt] : c) {
-        x.ground = { tiles, decltype(tile_image::variant)(k % tiles->num_tiles()) };
+    for (auto [x, k, pt] : c) {
+        x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
     }
     constexpr auto K = N/2;
-    c[{K,   K  }].wall_north = { metal1, 0 };
-    c[{K,   K  }].wall_west  = { metal2, 0 };
-    c[{K,   K+1}].wall_north = { metal1, 0 };
-    c[{K+1, K  }].wall_west  = { metal2, 0 };
+    c[{K,   K  }].wall_north() = { metal1, 0 };
+    c[{K,   K  }].wall_west()  = { metal2, 0 };
+    c[{K,   K+1}].wall_north() = { metal1, 0 };
+    c[{K+1, K  }].wall_west()  = { metal2, 0 };
     return c;
 }
 

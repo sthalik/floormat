@@ -68,7 +68,7 @@ void tile_editor::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::siz
     fm_assert(atlas);
     clear_selection();
     _selection_mode = sel_tile;
-    _selected_tile = { atlas, decltype(tile_image::variant)(variant % atlas->num_tiles()) };
+    _selected_tile = { atlas, variant_t(variant % atlas->num_tiles()) };
 }
 
 void tile_editor::select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas)
@@ -117,10 +117,9 @@ void fisher_yates(T begin, T end)
     }
 }
 
-tile_image tile_editor::get_selected_perm()
+tile_image_proto tile_editor::get_selected_perm()
 {
     auto& [atlas, vec] = _permutation;
-    using variant_t = decltype(tile_image::variant);
     const auto N = (variant_t)atlas->num_tiles();
     if (N == 0)
         return {};
@@ -135,7 +134,7 @@ tile_image tile_editor::get_selected_perm()
     return {atlas, idx};
 }
 
-tile_image tile_editor::get_selected()
+tile_image_proto tile_editor::get_selected()
 {
     switch (_selection_mode)
     {
@@ -151,25 +150,26 @@ tile_image tile_editor::get_selected()
     }
 }
 
-void tile_editor::place_tile(world& world, global_coords pos, tile_image& img)
+void tile_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
 {
-    const auto& [c, t] = world[pos];
+    auto [c, t] = world[pos];
     const auto& [atlas, variant] = img;
     switch (_mode)
     {
-    default:
-        fm_warn_once("invalid editor mode '%u'", (unsigned)_mode);
-        break;
     case editor_mode::none:
         break;
     case editor_mode::floor:
-        t.ground = { atlas, variant };
+        t.ground() = img;
         break;
     case editor_mode::walls:
-        switch (tile_image x = { atlas, variant }; _rotation)
+        switch (_rotation)
         {
-        case editor_wall_rotation::N: t.wall_north = x; break;
-        case editor_wall_rotation::W: t.wall_west  = x; break;
+        case editor_wall_rotation::N:
+            t.wall_north() = img;
+            break;
+        case editor_wall_rotation::W:
+            t.wall_west()  = img;
+            break;
         }
         break;
     }
@@ -307,7 +307,7 @@ void editor::on_click(world& world, global_coords pos, int mods, button b)
         if (auto opt = mode->get_selected(); opt)
         {
             _last_pos = { pos, mode->check_snap(mods), _last_pos ? _last_pos->btn : b };
-            switch (tile_image empty; b)
+            switch (tile_image_proto empty; b)
             {
             case button::place: return mode->place_tile(world, pos, opt);
             case button::remove: return mode->place_tile(world, pos, empty);

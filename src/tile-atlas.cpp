@@ -13,7 +13,8 @@ tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
     name_{name}, size_{image.size()}, dims_{tile_count}
 {
-    fm_assert(num_tiles() <= std::numeric_limits<decltype(tile_image::variant)>::max());
+    constexpr auto variant_max = std::numeric_limits<variant_t>::max();
+    fm_assert(num_tiles() <= variant_max);
     fm_assert(dims_[0] > 0 && dims_[1] > 0);
     fm_assert(size_ % Vector2ui{tile_count} == Vector2ui());
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)

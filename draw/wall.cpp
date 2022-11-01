@@ -2,6 +2,7 @@
 #include "tile-atlas.hpp"
 #include "shaders/tile.hpp"
 #include "chunk.hpp"
+#include "tile-image.hpp"
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>
 
@@ -18,7 +19,7 @@ wall_mesh::wall_mesh()
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
 }
 
-void wall_mesh::add_wall(vertex_array& data, texture_array& textures, tile_image& img, std::size_t pos)
+void wall_mesh::add_wall(vertex_array& data, texture_array& textures, const tile_image_ref& img, std::size_t pos)
 {
     CORRADE_INTERNAL_ASSERT(pos < data.size());
     auto texcoords = img.atlas->texcoords_for_id(img.variant);
@@ -29,11 +30,11 @@ void wall_mesh::add_wall(vertex_array& data, texture_array& textures, tile_image
     }
 }
 
-void wall_mesh::maybe_add_tile(vertex_array& data, texture_array& textures, tile& x, std::size_t pos)
+void wall_mesh::maybe_add_tile(vertex_array& data, texture_array& textures, tile_ref x, std::size_t pos)
 {
-    if (auto& wall = x.wall_north; wall.atlas)
+    if (auto wall = x.wall_north(); wall.atlas)
         add_wall(data, textures, wall, pos * 2 + 0);
-    if (auto& wall = x.wall_west; wall.atlas)
+    if (auto wall = x.wall_west(); wall.atlas)
         add_wall(data, textures, wall, pos * 2 + 1);
 }
 
@@ -43,7 +44,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
     texture_array textures = {};
     {
         vertex_array data;
-        for (auto& [x, idx, pt] : c) {
+        for (auto [x, idx, pt] : c) {
           maybe_add_tile(data, textures, x, idx);
         }
         _vertex_buffer.setSubData(0, data);

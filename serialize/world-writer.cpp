@@ -29,8 +29,8 @@ struct writer_state final {
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(writer_state);
 
 private:
-    atlasid intern_atlas(const tile_image& img);
-    atlasid maybe_intern_atlas(const tile_image& img);
+    atlasid intern_atlas(const tile_image_proto& img);
+    atlasid maybe_intern_atlas(const tile_image_proto& img);
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
 
@@ -66,7 +66,7 @@ writer_state::writer_state(const struct world& world) : world{&world}
 #pragma warning(pop)
 #endif
 
-atlasid writer_state::intern_atlas(const tile_image& img)
+atlasid writer_state::intern_atlas(const tile_image_proto& img)
 {
     const void* const ptr = img.atlas.get();
     fm_debug_assert(ptr != nullptr);
@@ -76,7 +76,7 @@ atlasid writer_state::intern_atlas(const tile_image& img)
         return (tile_images[ptr] = { &*img.atlas, (atlasid)tile_images.size() }).index;
 }
 
-atlasid writer_state::maybe_intern_atlas(const tile_image& img)
+atlasid writer_state::maybe_intern_atlas(const tile_image_proto& img)
 {
     return img ? intern_atlas(img) : null_atlas;
 }
@@ -92,13 +92,14 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
     for (std::size_t i = 0; i < TILE_COUNT; i++)
     {
-        const tile& x = c[i];
+        const tile_proto x = c[i];
+        const auto ground = x.ground_image(), wall_north = x.wall_north_image(), wall_west = x.wall_west_image();
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
-        auto img_g = maybe_intern_atlas(x.ground);
-        auto img_n = maybe_intern_atlas(x.wall_north);
-        auto img_w = maybe_intern_atlas(x.wall_west);
+        auto img_g = maybe_intern_atlas(ground);
+        auto img_n = maybe_intern_atlas(wall_north);
+        auto img_w = maybe_intern_atlas(wall_west);
 
         tilemeta flags = {};
         flags |= meta_ground * (img_g != null_atlas);
@@ -110,28 +111,28 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         constexpr auto ashortp = [](atlasid id) {
             return id == null_atlas || id == (uchar)id;
         };
-        constexpr auto vshortp = [](const tile_image& img) {
+        constexpr auto vshortp = [](const tile_image_proto& img) {
             return !img.atlas || img.variant == (uchar)img.variant;
         };
 
         if (flags != 0 && ashortp(img_g) && ashortp(img_n) && ashortp(img_w))
             flags |= meta_short_atlasid;
-        if (flags != 0 && vshortp(x.ground) && vshortp(x.wall_north) && vshortp(x.wall_west))
+        if (flags != 0 && vshortp(ground) && vshortp(wall_north) && vshortp(wall_west))
             flags |= meta_short_variant;
 
-        fm_debug_assert((x.passability & pass_mask) == x.passability);
-        flags |= x.passability;
+        fm_debug_assert((x.pass_mode & pass_mask) == x.pass_mode);
+        flags |= x.pass_mode;
 
         s << flags;
 
 #ifndef FM_NO_DEBUG
-        constexpr auto check_atlas = [](const tile_image& x) {
+        constexpr auto check_atlas = [](const tile_image_proto& x) {
             if (x.atlas)
                 fm_assert(x.variant < x.atlas->num_tiles());
         };
-        check_atlas(x.ground);
-        check_atlas(x.wall_north);
-        check_atlas(x.wall_west);
+        check_atlas(ground);
+        check_atlas(wall_north);
+        check_atlas(wall_west);
 #endif
 
         const auto write = [&](atlasid x, varid v) {
@@ -140,11 +141,11 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         };
 
         if (img_g != null_atlas)
-            write(img_g, x.ground.variant);
+            write(img_g, ground.variant);
         if (img_n != null_atlas)
-            write(img_n, x.wall_north.variant);
+            write(img_n, wall_north.variant);
         if (img_w != null_atlas)
-            write(img_w, x.wall_west.variant);
+            write(img_w, wall_west.variant);
     }
 
     const auto nbytes = s.bytes_written();

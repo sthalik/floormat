@@ -12,25 +12,15 @@ struct chunk final
     friend struct tile_ref;
     friend struct pass_mode_ref;
 
-#if 0
-    tile& operator[](local_coords xy) noexcept { return _tiles[xy.to_index()]; }
-    const tile& operator[](local_coords xy) const noexcept { return _tiles[xy.to_index()]; }
-    tile& operator[](std::size_t i) noexcept { return _tiles[i]; }
-    const tile& operator[](std::size_t i) const noexcept { return _tiles[i]; }
-    const auto& tiles() const noexcept { return _tiles; }
-    auto& tiles() noexcept { return _tiles; }
-#endif
+    tile_ref operator[](std::size_t idx) noexcept { return { *this, std::uint8_t(idx) }; }
+    tile_proto operator[](std::size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), std::uint8_t(idx) }); }
+    tile_ref operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
+    tile_proto operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
     using iterator = tile_iterator;
 
-#if 0
-    iterator begin() noexcept { return iterator{_tiles.data(), 0}; }
-    iterator end() noexcept { return iterator{_tiles.data(), _tiles.size()}; }
-    const_iterator cbegin() const noexcept { return const_iterator{_tiles.data(), 0}; }
-    const_iterator cend() const noexcept { return const_iterator{_tiles.data(), _tiles.size()}; }
-    const_iterator begin() const noexcept { return cbegin(); }
-    const_iterator end() const noexcept { return cend(); }
-#endif
+    iterator begin() noexcept { return iterator { *this, 0 }; }
+    iterator end() noexcept { return iterator { *this, TILE_COUNT }; }
 
     bool empty(bool force = false) const noexcept;
 
@@ -43,8 +33,8 @@ private:
     static constexpr std::size_t PASS_BITS = 2;
 
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases, _wall_north_atlases, _wall_west_atlases;
-    std::array<std::uint16_t, TILE_COUNT> _ground_variants, _wall_north_variants, _wall_west_variants;
-    std::bitset<TILE_COUNT*2> _passability;
+    std::array<std::uint16_t, TILE_COUNT> _ground_variants = {}, _wall_north_variants = {}, _wall_west_variants = {};
+    std::bitset<TILE_COUNT*2> _passability = {};
     mutable bool _maybe_empty = true;
 };
 

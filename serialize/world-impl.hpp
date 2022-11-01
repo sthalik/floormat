@@ -12,10 +12,10 @@ namespace floormat::Serialize {
 namespace {
 
 using tilemeta  = std::uint8_t;
-using varid    = decltype(tile_image::variant);
+using varid     = decltype(tile_image_proto::variant);
 using atlasid   = std::uint16_t;
 using chunksiz  = std::uint16_t;
-using enum tile::pass_mode;
+using proto_t = std::uint16_t;
 
 template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 
@@ -24,10 +24,10 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 constexpr inline std::size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
-constexpr inline std::uint16_t proto_version = 1;
+constexpr inline proto_t proto_version = 1;
 constexpr inline auto chunk_magic = (std::uint16_t)~0xc0d3;
 
-constexpr inline std::underlying_type_t<tile::pass_mode> pass_mask = pass_blocked | pass_shoot_through | pass_ok;
+constexpr inline std::underlying_type_t<pass_mode> pass_mask = pass_blocked | pass_shoot_through | pass_ok;
 constexpr inline auto pass_bits = std::bit_width(pass_mask);
 
 enum : tilemeta {

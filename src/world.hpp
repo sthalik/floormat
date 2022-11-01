@@ -29,7 +29,7 @@ private:
 public:
     explicit world();
 
-    struct pair final { chunk& c; tile& t; }; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    struct pair final { chunk& c; tile_ref t; };
 
     template<typename Hash, typename Alloc, typename Pred>
     explicit world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks);

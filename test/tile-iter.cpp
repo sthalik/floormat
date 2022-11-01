@@ -10,6 +10,7 @@ static inline bool always_false()
 
 bool floormat::test_tile_iter() // NOLINT(readability-function-size)
 {
+#if 0
     if (always_false())
     {
         const chunk c;
@@ -22,23 +23,18 @@ bool floormat::test_tile_iter() // NOLINT(readability-function-size)
         for (auto&& [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile&>);
     }
+#endif
     if (always_false())
     {
         chunk c;
-        for (auto& [x, k, pt] : c)
-            static_assert(std::is_same_v<decltype(x), tile&>);
-        for (const auto& [x, k, pt] : c)
-            static_assert(std::is_same_v<decltype(x), const tile&>);
         for (auto [x, k, pt] : c)
-            static_assert(std::is_same_v<decltype(x), tile&>);
+            static_assert(std::is_same_v<decltype(x), tile_ref>);
 #if 0
         // warns
         for (const auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile&>);
-#endif
         for (auto&& [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), tile&>);
-#if 0
         // fails to compile
         for (const auto&& [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile&>);

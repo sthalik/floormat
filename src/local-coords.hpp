@@ -12,7 +12,7 @@ struct local_coords final {
     template<std::integral T> requires (sizeof(T) <= sizeof(std::size_t))
     constexpr local_coords(T x, T y) noexcept;
     constexpr local_coords(std::uint8_t x, std::uint8_t y) noexcept : x{x}, y{y} {}
-    constexpr std::size_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
+    constexpr std::uint8_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
 };
 
 constexpr local_coords::local_coords(std::size_t index) noexcept :

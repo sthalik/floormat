@@ -10,10 +10,10 @@
 
 namespace floormat {
 
-struct tile_shader;
-struct chunk;
 struct tile_ref;
 struct tile_proto;
+struct tile_shader;
+struct chunk;
 
 struct floor_mesh final
 {
@@ -34,7 +34,7 @@ private:
     GL::Buffer _vertex_buffer{std::array<quad_data, TILE_COUNT>{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{make_index_array()}, _positions_buffer{make_position_array()};
 
-    static void set_tile(quad_data& data, tile& x);
+    static void set_tile(quad_data& data, tile_ref& x);
 };
 
 } // namespace floormat

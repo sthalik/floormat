@@ -10,10 +10,10 @@
 
 namespace floormat {
 
-struct tile;
-struct tile_image;
 struct tile_shader;
 struct chunk;
+struct tile_ref;
+struct tile_image_ref;
 
 struct wall_mesh final
 {
@@ -31,8 +31,8 @@ private:
     using vertex_array = std::array<quad, COUNT>;
     using texture_array = std::array<GL::Texture2D*, COUNT>;
 
-    static void maybe_add_tile(vertex_array& data, texture_array& textures, tile& x, std::size_t pos);
-    static void add_wall(vertex_array& data, texture_array& textures, tile_image& img, std::size_t pos);
+    static void maybe_add_tile(vertex_array& data, texture_array& textures, tile_ref x, std::size_t pos);
+    static void add_wall(vertex_array& data, texture_array& textures, const tile_image_ref& img, std::size_t pos);
 
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},

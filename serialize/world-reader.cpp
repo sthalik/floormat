@@ -65,9 +65,9 @@ void reader_state::read_chunks(reader_t& s)
         for (std::size_t i = 0; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
-            tile& t = chunk[i];
+            tile_ref t = chunk[i];
             using uchar = std::uint8_t;
-            const auto make_atlas = [&]() -> tile_image {
+            const auto make_atlas = [&]() -> tile_image_proto {
                 auto id = flags & meta_short_atlasid ? (atlasid)(s.read<uchar>()) : s.read<atlasid>();
                 auto v  = flags & meta_short_variant ? (varid)  (s.read<uchar>()) : s.read<varid>();
                 auto atlas = lookup_atlas(id);
@@ -76,18 +76,18 @@ void reader_state::read_chunks(reader_t& s)
             };
 
             if (flags & meta_ground)
-                t.ground = make_atlas();
+                t.ground() = make_atlas();
             if (flags & meta_wall_n)
-                t.wall_north = make_atlas();
+                t.wall_north() = make_atlas();
             if (flags & meta_wall_w)
-                t.wall_west = make_atlas();
+                t.wall_west() = make_atlas();
 
-            switch (auto x = flags & pass_mask)
+            switch (auto x = pass_mode(flags & pass_mask))
             {
-            case tile::pass_shoot_through:
-            case tile::pass_blocked:
-            case tile::pass_ok:
-                t.passability = (tile::pass_mode)x;
+            case pass_shoot_through:
+            case pass_blocked:
+            case pass_ok:
+                t.pass_mode() = x;
                 break;
             default:
                 fm_abort("bad pass mode '%zu' for tile %zu", i, (std::size_t)x);

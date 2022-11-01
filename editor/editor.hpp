@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "tile-atlas.hpp"
 #include "global-coords.hpp"
-#include "tile-image.hpp"
+#include "tile.hpp"
 
 #include <cstdint>
 #include <tuple>
@@ -34,14 +34,14 @@ private:
 
     std::string _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
-    tile_image _selected_tile;
-    std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image::variant)>> _permutation;
+    tile_image_proto _selected_tile;
+    std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image_proto::variant)>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
     editor_wall_rotation _rotation = editor_wall_rotation::W;
 
     void load_atlases();
-    tile_image get_selected_perm();
+    tile_image_proto get_selected_perm();
 
 public:
     enum class snap_mode : std::uint8_t {
@@ -68,8 +68,8 @@ public:
     bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
     bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
-    tile_image get_selected();
-    void place_tile(world& world, global_coords pos, tile_image& img);
+    tile_image_proto get_selected();
+    void place_tile(world& world, global_coords pos, const tile_image_proto& img);
     void toggle_rotation();
     void set_rotation(editor_wall_rotation r);
     snap_mode check_snap(int mods) const;

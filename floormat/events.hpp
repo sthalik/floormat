@@ -47,7 +47,6 @@ struct key_event final {
 };
 
 union alignas(alignof(void*)) any_event {
-    std::size_t size[0] = {};
     char buf[64];
 };
 
