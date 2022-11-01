@@ -38,7 +38,7 @@ private:
     std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image_proto::variant)>> _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
-    editor_wall_rotation _rotation = editor_wall_rotation::W;
+    editor_wall_rotation _rotation = editor_wall_rotation::N;
 
     void load_atlases();
     tile_image_proto get_selected_perm();
@@ -48,7 +48,6 @@ public:
         none       = 0,
         horizontal = 1 << 0,
         vertical   = 1 << 1,
-        both       = horizontal | vertical,
     };
 
     tile_editor(editor_mode mode, StringView name);
@@ -112,7 +111,7 @@ private:
         button btn;
     };
     std::optional<drag_pos> _last_pos;
-    editor_mode _mode = editor_mode::none;
+    editor_mode _mode = editor_mode::floor;
     bool _dirty = false;
 };
 
