@@ -35,6 +35,7 @@ float app::draw_main_menu()
     {
         if (auto b = begin_menu("File"))
         {
+#if 0
             ImGui::MenuItem("Open", "Ctrl+O");
             ImGui::MenuItem("Recent");
             ImGui::Separator();
@@ -42,6 +43,12 @@ float app::draw_main_menu()
             ImGui::MenuItem("Save as...", "Ctrl+Shift+S");
             ImGui::Separator();
             ImGui::MenuItem("Close");
+            ImGui::Separator();
+#endif
+            bool do_quit = false;
+            ImGui::MenuItem("menu_quit", "Ctrl+Q", &do_quit);
+            if (do_quit)
+                do_key(key_quit, kmod_none);
         }
         if (auto b = begin_menu("Mode"))
         {
@@ -77,14 +84,77 @@ void app::draw_ui()
     ImGui::EndFrame();
 }
 
+static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
+{
+    constexpr Color4 color_perm_selected{1, 1, 1, .7f},
+                     color_selected{1, 0.843f, 0, .8f},
+                     color_hover{0, .8f, 1, .7f};
+    const float window_width = ImGui::GetWindowWidth() - 32;
+    char buf[128];
+    const auto& style = ImGui::GetStyle();
+    const auto N = atlas->num_tiles();
+
+    const auto click_event = [&] {
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            ed.select_tile_permutation(atlas);
+        else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
+            ed.clear_selection();
+    };
+    const auto do_caption = [&] {
+        click_event();
+        if (ed.is_atlas_selected(atlas))
+        {
+            ImGui::SameLine();
+            ImGui::Text(" (selected)");
+        }
+        std::snprintf(buf, sizeof(buf), "%zu", N);
+        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
+        ImGui::Text("%s", buf);
+    };
+    if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
+        auto b = tree_node(name.data(), flags))
+    {
+        do_caption();
+        [[maybe_unused]] const raii_wrapper vars[] = {
+            push_style_var(ImGuiStyleVar_FramePadding, {2, 2}),
+            push_style_color(ImGuiCol_ButtonHovered, color_hover),
+        };
+        const bool perm_selected = ed.is_permutation_selected(atlas);
+        constexpr std::size_t per_row = 8;
+        for (std::size_t i = 0; i < N; i++)
+        {
+            const bool selected = ed.is_tile_selected(atlas, i);
+
+            if (i > 0 && i % per_row == 0)
+                ImGui::NewLine();
+
+            [[maybe_unused]] const raii_wrapper vars[] = {
+                selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
+                selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
+                perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
+                perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
+            };
+
+            std::snprintf(buf, sizeof(buf), "##item_%zu", i);
+            const auto uv = atlas->texcoords_for_id(i);
+            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
+            ImGui::ImageButton(buf, (void*)&atlas->texture(), size_2,
+                               { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                ed.select_tile(atlas, i);
+            else
+                click_event();
+            ImGui::SameLine();
+        }
+        ImGui::NewLine();
+    }
+    else
+        do_caption();
+}
+
 void app::draw_editor_pane(tile_editor& ed, float main_menu_height)
 {
     const auto window_size = M->window_size();
-
-    constexpr
-    Color4 color_perm_selected{1, 1, 1, .7f},
-           color_selected{1, 0.843f, 0, .8f},
-           color_hover{0, .8f, 1, .7f};
 
     if (const bool active = M->is_text_input_active();
         ImGui::GetIO().WantTextInput != active)
@@ -108,72 +178,11 @@ void app::draw_editor_pane(tile_editor& ed, float main_menu_height)
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
-            const float window_width = ImGui::GetWindowWidth() - 32;
-
-            char buf[128];
-
             if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 for (const auto& [k, v] : ed)
                 {
-                    const auto& v_ = v;
-                    const auto click_event = [&] {
-                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-                            ed.select_tile_permutation(v_);
-                        else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
-                            ed.clear_selection();
-                    };
-                    const auto do_caption = [&] {
-                        click_event();
-                        if (ed.is_atlas_selected(v_))
-                        {
-                          ImGui::SameLine();
-                          ImGui::Text(" (selected)");
-                        }
-                        std::snprintf(buf, sizeof(buf), "%zu", (std::size_t)v_->num_tiles());
-                        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
-                        ImGui::Text("%s", buf);
-                    };
-                    const auto N = v->num_tiles();
-                    if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
-                        auto b = tree_node(k.data(), flags))
-                    {
-                        do_caption();
-                        [[maybe_unused]] const raii_wrapper vars[] = {
-                            push_style_var(ImGuiStyleVar_FramePadding, {2, 2}),
-                            push_style_color(ImGuiCol_ButtonHovered, color_hover),
-                        };
-                        const bool perm_selected = ed.is_permutation_selected(v);
-                        constexpr std::size_t per_row = 8;
-                        for (std::size_t i = 0; i < N; i++)
-                        {
-                            const bool selected = ed.is_tile_selected(v, i);
-
-                            if (i > 0 && i % per_row == 0)
-                                ImGui::NewLine();
-
-                            [[maybe_unused]] const raii_wrapper vars[] = {
-                                selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
-                                selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
-                                perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
-                                perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
-                            };
-
-                            std::snprintf(buf, sizeof(buf), "##item_%zu", i);
-                            const auto uv = v->texcoords_for_id(i);
-                            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-                            ImGui::ImageButton(buf, (void*)&v->texture(), size_2,
-                                               { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
-                            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                                ed.select_tile(v, i);
-                            else
-                                click_event();
-                            ImGui::SameLine();
-                        }
-                        ImGui::NewLine();
-                    }
-                    else
-                        do_caption();
+                    draw_editor_pane_atlas(ed, k, v);
                 }
             }
         }
