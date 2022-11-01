@@ -7,11 +7,6 @@
 
 namespace floormat {
 
-template<typename T> class basic_tile_iterator;
-
-struct tile_ref;
-struct pass_mode_ref;
-
 struct chunk final
 {
     friend struct tile_ref;
@@ -26,8 +21,7 @@ struct chunk final
     auto& tiles() noexcept { return _tiles; }
 #endif
 
-    using iterator = basic_tile_iterator<tile>;
-    using const_iterator = basic_tile_iterator<const tile>;
+    using iterator = tile_iterator;
 
 #if 0
     iterator begin() noexcept { return iterator{_tiles.data(), 0}; }

@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/assert.hpp"
-#include "compat/int-hash.hpp"
 #include "tile-defs.hpp"
 #include <concepts>
 

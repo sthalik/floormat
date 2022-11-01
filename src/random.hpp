@@ -1,6 +1,5 @@
 #pragma once
-#include <cstddef>
-#include <concepts>
+#include "compat/integer-types.hpp"
 #include <type_traits>
 
 namespace floormat {
