@@ -296,9 +296,9 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
     if (auto* mode = current(); mode && _last_pos && _last_pos->btn != button::none)
     {
         auto& last = *_last_pos;
-        Vector2i offset = pos - last.coord;
+        const Vector2i offset = pos - last.coord;
         const snap_mode snap = get_snap_value(last.snap, mods);
-        global_coords draw_coord = apply_snap(last.draw_coord + offset, last.draw_coord, snap);
+        const global_coords draw_coord = apply_snap(last.draw_coord + offset, last.draw_coord, snap);
         if (pos != _last_pos->coord)
         {
             _last_pos = { pos, draw_coord, snap, last.btn };
