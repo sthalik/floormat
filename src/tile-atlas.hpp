@@ -5,8 +5,6 @@
 #include <array>
 #include <memory>
 
-namespace std::filesystem { class path; }
-
 namespace floormat {
 
 struct tile_atlas final

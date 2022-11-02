@@ -8,14 +8,13 @@
 #include "src/world.hpp"
 #include <vector>
 #include <algorithm>
+#include <cstring>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 
 namespace Path = Corrade::Utility::Path;
 
 namespace floormat::Serialize {
-
-namespace {
 
 struct interned_atlas final {
     const tile_atlas* img;
@@ -34,7 +33,7 @@ private:
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
 
-    const struct world* world;
+    const world* _world;
     std::vector<char> atlas_buf, chunk_buf, file_buf;
     std::vector<std::vector<char>> chunk_bufs;
     std::unordered_map<const void*, interned_atlas> tile_images;
@@ -53,7 +52,7 @@ constexpr auto chunkbuf_size =
 #pragma warning(disable : 4996)
 #endif
 
-writer_state::writer_state(const struct world& world) : world{&world}
+writer_state::writer_state(const world& world) : _world{&world}
 {
     chunk_buf.reserve(chunkbuf_size);
     chunk_bufs.reserve(world.chunks().size());
@@ -201,7 +200,7 @@ void writer_state::serialize_atlases()
 
 ArrayView<const char> writer_state::serialize_world()
 {
-    for (const auto& [pos, c] : world->chunks())
+    for (const auto& [pos, c] : _world->chunks())
     {
 #ifndef FM_NO_DEBUG
         if (c.empty(true))
@@ -212,9 +211,9 @@ ArrayView<const char> writer_state::serialize_world()
     serialize_atlases();
 
     using proto_t = std::decay_t<decltype(proto_version)>;
-    union { chunksiz x; char bytes[sizeof x]; } c = {.x = maybe_byteswap((chunksiz)world->size())};
+    union { chunksiz x; char bytes[sizeof x]; } c = {.x = maybe_byteswap((chunksiz)_world->size())};
     union { proto_t x;  char bytes[sizeof x]; } p = {.x = maybe_byteswap(proto_version)};
-    fm_assert(world->size() <= int_max<chunksiz>);
+    fm_assert(_world->size() <= int_max<chunksiz>);
 
     std::size_t len = 0;
     len += std::size(file_magic)-1;
@@ -248,8 +247,6 @@ ArrayView<const char> writer_state::serialize_world()
 #pragma warning(pop)
 #endif
 
-} // namespace
-
 } // namespace floormat::Serialize
 
 namespace floormat {
@@ -259,7 +256,11 @@ void world::serialize(StringView filename)
     collect(true);
     char errbuf[128];
     constexpr auto strerror = []<std::size_t N> (char (&buf)[N]) -> const char* {
+#ifndef _WIN32
+        ::strerror_r(errno, buf, std::size(buf));
+#else
         ::strerror_s(buf, std::size(buf), errno);
+#endif
         return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);

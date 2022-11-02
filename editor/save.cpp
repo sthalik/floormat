@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
+
+#include <filesystem>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {

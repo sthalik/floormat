@@ -4,10 +4,9 @@
 #include "src/world.hpp"
 #include "src/loader.hpp"
 #include "src/tile-atlas.hpp"
+#include <cstring>
 
 namespace floormat::Serialize {
-
-namespace {
 
 struct reader_state final {
     explicit reader_state(world& world) noexcept;
@@ -21,10 +20,10 @@ private:
     void read_chunks(reader_t& reader);
 
     std::unordered_map<atlasid, std::shared_ptr<tile_atlas>> atlases;
-    struct world* world;
+    world* _world;
 };
 
-reader_state::reader_state(struct world& world) noexcept : world{&world} {}
+reader_state::reader_state(world& world) noexcept : _world{&world} {}
 
 void reader_state::read_atlases(reader_t& s)
 {
@@ -61,7 +60,7 @@ void reader_state::read_chunks(reader_t& s)
         chunk_coords coord;
         s >> coord.x;
         s >> coord.y;
-        auto& chunk = (*world)[coord];
+        auto& chunk = (*_world)[coord];
         for (std::size_t i = 0; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
@@ -111,8 +110,6 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
     s.assert_end();
 }
 
-} // namespace
-
 } // namespace floormat::Serialize
 
 namespace floormat {
@@ -121,7 +118,11 @@ world world::deserialize(StringView filename)
 {
     char errbuf[128];
     constexpr auto strerror = []<std::size_t N> (char (&buf)[N]) -> const char* {
+#ifndef _WIN32
+        ::strerror_r(errno, buf, std::size(buf));
+#else
         ::strerror_s(buf, std::size(buf), errno);
+#endif
         return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);

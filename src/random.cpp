@@ -18,7 +18,7 @@ std::size_t random_engine_impl::operator()()
     if constexpr(sizeof(std::size_t) > sizeof(std::uint32_t))
     {
         constexpr std::size_t N = (sizeof(std::size_t) + sizeof(std::uint32_t)-1) / sizeof(std::uint32_t);
-        static_assert(N >= 2);
+        static_assert(N >= 1);
         union {
             std::size_t x;
             std::uint32_t a[N];

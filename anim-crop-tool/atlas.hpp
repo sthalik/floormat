@@ -1,10 +1,9 @@
 #pragma once
 #include <vector>
+#include <filesystem>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <opencv2/core/mat.hpp>
-
-namespace std::filesystem { class path; }
 
 namespace floormat::Serialize {
 

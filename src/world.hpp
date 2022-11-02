@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <memory>
 
-namespace std::filesystem { class path; }
-
 namespace floormat {
 
 struct world final

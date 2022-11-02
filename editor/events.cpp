@@ -67,7 +67,7 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept
 {
-    enum class Button : std::underlying_type_t<mouse_button> {
+    enum class Button_ : std::underlying_type_t<mouse_button> {
         Left = mouse_button_left,
         Right = mouse_button_right,
         Middle = mouse_button_middle,
@@ -76,10 +76,10 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
     const auto button = std::uint8_t(1 << (event.button-1));
 
     struct ev {
-        using Button = Button;
+        using Button = Button_;
         accessor(Vector2i, position)
         accessor(Button, button)
-    } e = {event.position, Button(button)};
+    } e = {event.position, Button_(button)};
 
     if (!(cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
         do_mouse_up_down(button, is_down, fixup_mods(event.mods));

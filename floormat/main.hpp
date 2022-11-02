@@ -36,7 +36,7 @@ struct floormat_main
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
 
-    virtual world& world() noexcept = 0;
+    virtual struct world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);

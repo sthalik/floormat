@@ -185,7 +185,7 @@ static char* fix_argv0(char* argv0) noexcept
         return c+1;
     }
 #else
-    if (auto* c = strrchr(argv[0], '/'); c && c[1])
+    if (auto* c = strrchr(argv0, '/'); c && c[1])
         return c+1;
 #endif
     return argv0;

@@ -25,7 +25,7 @@ struct tile_proto final
 {
     std::shared_ptr<tile_atlas> ground_atlas, wall_north_atlas, wall_west_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
-    pass_mode pass_mode = pass_mode::pass_shoot_through;
+    enum pass_mode pass_mode = pass_mode::pass_shoot_through;
 
     tile_image_proto ground_image() const noexcept;
     tile_image_proto wall_north_image() const noexcept;

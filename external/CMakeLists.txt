@@ -26,8 +26,8 @@ else()
     add_compile_options(
         -Wno-error
         -Wno-undef
-        -Wno-old-style-cast
     )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-old-style-cast")
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
@@ -138,6 +138,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_WASAPI                             OFF
          SDL_XINPUT                             OFF
     )
+    if(NOT WIN32)
+        set(MAGNUM_WITH_WINDOWLESSWGLAPPLICATION OFF)
+    endif()
 endif()
 
 fm_run_hook(fm-userconfig-external-pre)

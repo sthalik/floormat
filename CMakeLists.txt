@@ -97,7 +97,7 @@ if(MSVC)
         add_link_options(-HIGHENTROPYVA)
     endif()
 else()
-    add_compile_options(-fuse-cxa-atexit)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-cxa-atexit")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
@@ -150,7 +150,9 @@ add_subdirectory(src)
 add_subdirectory(main)
 add_subdirectory(editor)
 add_subdirectory(anim-crop-tool)
-add_subdirectory(test)
+if(WIN32) # TODO
+    add_subdirectory(test)
+endif()
 
 install(DIRECTORY images DESTINATION "share/${PROJECT_NAME}")
 

@@ -147,7 +147,7 @@ void main_impl::drawEvent()
         constexpr float α = .1f;
         dt_expected.jitter = std::fmax(dt_expected.jitter + Δt * α,
                                        dt_expected.jitter * (1-α) + Δt * α);
-        dt_expected.jitter = std::copysignf(std::fminf(dt_expected.value, std::fabsf(dt_expected.jitter)), dt_expected.jitter);
+        dt_expected.jitter = std::copysign(std::fmin(dt_expected.value, std::fabs(dt_expected.jitter)), dt_expected.jitter);
     }
     else
         dt_expected.jitter = 0;

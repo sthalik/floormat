@@ -1,7 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
-
-namespace std::filesystem { class path; }
+#include <filesystem>
 
 namespace floormat {
 

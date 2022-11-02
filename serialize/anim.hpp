@@ -8,8 +8,6 @@
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json_fwd.hpp>
 
-namespace std::filesystem { class path; }
-
 namespace floormat::Serialize {
 
 struct anim_frame final
