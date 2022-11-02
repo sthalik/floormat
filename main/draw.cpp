@@ -12,7 +12,8 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     GL::defaultFramebuffer.setViewport({{}, size });
     _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
     _msaa_renderbuffer = Magnum::GL::Renderbuffer{};
-    _msaa_renderbuffer.setStorageMultisample(s.msaa_samples, GL::RenderbufferFormat::RGBA8, size);
+    const int samples = std::min(_msaa_renderbuffer.maxSamples(), (int)s.msaa_samples);
+    _msaa_renderbuffer.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
     _msaa_framebuffer.setViewport({{}, size });
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
     _shader.set_scale(Vector2{size});
