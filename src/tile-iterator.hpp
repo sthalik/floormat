@@ -41,6 +41,12 @@ public:
     tile_iterator operator++(int) noexcept;
     tile_iterator_tuple operator->() noexcept;
     tile_iterator_tuple operator*() noexcept;
+
+    using difference_type = std::ptrdiff_t;
+    using value_type = tile_iterator_tuple;
+    using pointer = value_type;
+    using reference = value_type;
+    using iterator_category = std::input_iterator_tag;
 };
 
 class tile_const_iterator final {
@@ -60,6 +66,12 @@ public:
     tile_const_iterator operator++(int) noexcept;
     tile_const_iterator_tuple operator->() noexcept;
     tile_const_iterator_tuple operator*() noexcept;
+
+    using difference_type = std::ptrdiff_t;
+    using value_type = tile_const_iterator_tuple;
+    using pointer = value_type;
+    using reference = value_type;
+    using iterator_category = std::input_iterator_tag;
 };
 
 } // namespace floormat
