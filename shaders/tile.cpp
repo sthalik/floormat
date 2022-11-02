@@ -11,10 +11,11 @@ namespace floormat {
 tile_shader::tile_shader()
 {
     using V = GL::Version;
-    const auto version = GL::Context::current().supportedVersion({ V::GL460, V::GL450, V::GL440, });
+    constexpr V min_version = GL::Version::GL430;
+    const auto version = GL::Context::current().supportedVersion({ V::GL460, V::GL450, V::GL440, V::GL430, });
 
-    if (version < GL::Version::GL430)
-        fm_abort("floormat requires OpenGL version 430, only %d is supported", (int)version);
+    if (version < min_version)
+        fm_abort("floormat requires OpenGL version %d, only %d is supported", (int)min_version, (int)version);
 
     GL::Shader vert{version, GL::Shader::Type::Vertex};
     GL::Shader frag{version, GL::Shader::Type::Fragment};
