@@ -37,12 +37,12 @@ auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, std:
     const auto sz = pixel_size/Vector2ui{tile_count};
     const Vector2ui id = { std::uint32_t(i % tile_count[0]), std::uint32_t(i / tile_count[0]) };
     const Vector2 p0(id * sz), p1(sz);
-    const auto x0 = p0.x(), x1 = p1.x()-1, y0 = p0.y(), y1 = p1.y()-1;
+    const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     return {{
         { (x0+x1) / pixel_size[0], (y0+y1) / pixel_size[1]  }, // bottom right
         { (x0+x1) / pixel_size[0],      y0 / pixel_size[1]  }, // top right
         {      x0 / pixel_size[0], (y0+y1) / pixel_size[1]  }, // bottom left
-        {      x0 / pixel_size[0],      y0 / pixel_size[1]  }  // top left
+        {      x0 / pixel_size[0],      y0 / pixel_size[1]  }, // top left
     }};
 }
 
