@@ -10,7 +10,6 @@ static inline bool always_false()
 
 bool floormat::test_tile_iter() // NOLINT(readability-function-size)
 {
-#if 1
     if (always_false())
     {
         const chunk c;
@@ -21,7 +20,6 @@ bool floormat::test_tile_iter() // NOLINT(readability-function-size)
         for (auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), tile_proto>);
     }
-#endif
     if (always_false())
     {
         chunk c;
