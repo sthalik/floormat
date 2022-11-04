@@ -1,0 +1,1019 @@
+{
+    "actionframe": 0,
+    "anim_name": "walk",
+    "fps": 24,
+    "groups": [
+        {
+            "frames": [
+                {
+                    "ground": "-160 x -8",
+                    "offset": "0 x 0",
+                    "size": "74 x 200"
+                },
+                {
+                    "ground": "-161 x -8",
+                    "offset": "74 x 0",
+                    "size": "56 x 199"
+                },
+                {
+                    "ground": "-161 x -8",
+                    "offset": "130 x 0",
+                    "size": "56 x 198"
+                },
+                {
+                    "ground": "-162 x -7",
+                    "offset": "186 x 0",
+                    "size": "56 x 198"
+                },
+                {
+                    "ground": "-162 x -6",
+                    "offset": "242 x 0",
+                    "size": "57 x 196"
+                },
+                {
+                    "ground": "-162 x -6",
+                    "offset": "299 x 0",
+                    "size": "57 x 194"
+                },
+                {
+                    "ground": "-163 x -6",
+                    "offset": "356 x 0",
+                    "size": "58 x 193"
+                },
+                {
+                    "ground": "-163 x -6",
+                    "offset": "414 x 0",
+                    "size": "58 x 196"
+                },
+                {
+                    "ground": "-163 x -7",
+                    "offset": "472 x 0",
+                    "size": "59 x 198"
+                },
+                {
+                    "ground": "-163 x -7",
+                    "offset": "531 x 0",
+                    "size": "59 x 200"
+                },
+                {
+                    "ground": "-164 x -8",
+                    "offset": "590 x 0",
+                    "size": "58 x 200"
+                },
+                {
+                    "ground": "-164 x -8",
+                    "offset": "648 x 0",
+                    "size": "57 x 201"
+                },
+                {
+                    "ground": "-164 x -8",
+                    "offset": "705 x 0",
+                    "size": "56 x 200"
+                },
+                {
+                    "ground": "-163 x -8",
+                    "offset": "761 x 0",
+                    "size": "56 x 200"
+                },
+                {
+                    "ground": "-163 x -8",
+                    "offset": "817 x 0",
+                    "size": "56 x 199"
+                },
+                {
+                    "ground": "-163 x -7",
+                    "offset": "873 x 0",
+                    "size": "56 x 198"
+                },
+                {
+                    "ground": "-162 x -6",
+                    "offset": "929 x 0",
+                    "size": "57 x 196"
+                },
+                {
+                    "ground": "-161 x -6",
+                    "offset": "986 x 0",
+                    "size": "58 x 194"
+                },
+                {
+                    "ground": "-160 x -6",
+                    "offset": "1044 x 0",
+                    "size": "59 x 193"
+                },
+                {
+                    "ground": "-160 x -6",
+                    "offset": "1103 x 0",
+                    "size": "59 x 196"
+                },
+                {
+                    "ground": "-159 x -7",
+                    "offset": "1162 x 0",
+                    "size": "59 x 198"
+                },
+                {
+                    "ground": "-159 x -7",
+                    "offset": "1221 x 0",
+                    "size": "58 x 200"
+                },
+                {
+                    "ground": "-160 x -8",
+                    "offset": "1279 x 0",
+                    "size": "58 x 200"
+                },
+                {
+                    "ground": "-160 x -8",
+                    "offset": "1337 x 0",
+                    "size": "57 x 201"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "n"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-161 x -10",
+                    "offset": "0 x 201",
+                    "size": "69 x 198"
+                },
+                {
+                    "ground": "-161 x -10",
+                    "offset": "69 x 201",
+                    "size": "69 x 198"
+                },
+                {
+                    "ground": "-162 x -10",
+                    "offset": "138 x 201",
+                    "size": "69 x 197"
+                },
+                {
+                    "ground": "-163 x -9",
+                    "offset": "207 x 201",
+                    "size": "67 x 196"
+                },
+                {
+                    "ground": "-166 x -9",
+                    "offset": "274 x 201",
+                    "size": "65 x 196"
+                },
+                {
+                    "ground": "-168 x -8",
+                    "offset": "339 x 201",
+                    "size": "62 x 195"
+                },
+                {
+                    "ground": "-169 x -8",
+                    "offset": "401 x 201",
+                    "size": "59 x 194"
+                },
+                {
+                    "ground": "-171 x -9",
+                    "offset": "460 x 201",
+                    "size": "54 x 191"
+                },
+                {
+                    "ground": "-171 x -9",
+                    "offset": "514 x 201",
+                    "size": "51 x 192"
+                },
+                {
+                    "ground": "-168 x -10",
+                    "offset": "565 x 201",
+                    "size": "56 x 192"
+                },
+                {
+                    "ground": "-164 x -11",
+                    "offset": "621 x 201",
+                    "size": "62 x 192"
+                },
+                {
+                    "ground": "-161 x -11",
+                    "offset": "683 x 201",
+                    "size": "69 x 192"
+                },
+                {
+                    "ground": "-160 x -12",
+                    "offset": "752 x 201",
+                    "size": "71 x 191"
+                },
+                {
+                    "ground": "-160 x -12",
+                    "offset": "823 x 201",
+                    "size": "71 x 190"
+                },
+                {
+                    "ground": "-160 x -11",
+                    "offset": "894 x 201",
+                    "size": "69 x 190"
+                },
+                {
+                    "ground": "-161 x -11",
+                    "offset": "963 x 201",
+                    "size": "64 x 188"
+                },
+                {
+                    "ground": "-162 x -10",
+                    "offset": "1027 x 201",
+                    "size": "58 x 187"
+                },
+                {
+                    "ground": "-164 x -10",
+                    "offset": "1085 x 201",
+                    "size": "53 x 188"
+                },
+                {
+                    "ground": "-167 x -10",
+                    "offset": "1138 x 201",
+                    "size": "50 x 190"
+                },
+                {
+                    "ground": "-168 x -10",
+                    "offset": "1188 x 201",
+                    "size": "52 x 192"
+                },
+                {
+                    "ground": "-167 x -10",
+                    "offset": "1240 x 201",
+                    "size": "56 x 194"
+                },
+                {
+                    "ground": "-165 x -10",
+                    "offset": "1296 x 201",
+                    "size": "60 x 196"
+                },
+                {
+                    "ground": "-165 x -10",
+                    "offset": "1356 x 201",
+                    "size": "63 x 198"
+                },
+                {
+                    "ground": "-163 x -11",
+                    "offset": "1419 x 201",
+                    "size": "66 x 198"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "ne"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-153 x -16",
+                    "offset": "0 x 399",
+                    "size": "87 x 187"
+                },
+                {
+                    "ground": "-153 x -16",
+                    "offset": "87 x 399",
+                    "size": "85 x 186"
+                },
+                {
+                    "ground": "-153 x -16",
+                    "offset": "172 x 399",
+                    "size": "82 x 186"
+                },
+                {
+                    "ground": "-155 x -15",
+                    "offset": "254 x 399",
+                    "size": "75 x 187"
+                },
+                {
+                    "ground": "-157 x -15",
+                    "offset": "329 x 399",
+                    "size": "67 x 187"
+                },
+                {
+                    "ground": "-161 x -14",
+                    "offset": "396 x 399",
+                    "size": "62 x 188"
+                },
+                {
+                    "ground": "-165 x -15",
+                    "offset": "458 x 399",
+                    "size": "57 x 187"
+                },
+                {
+                    "ground": "-171 x -15",
+                    "offset": "515 x 399",
+                    "size": "50 x 187"
+                },
+                {
+                    "ground": "-171 x -15",
+                    "offset": "565 x 399",
+                    "size": "51 x 187"
+                },
+                {
+                    "ground": "-163 x -16",
+                    "offset": "616 x 399",
+                    "size": "59 x 186"
+                },
+                {
+                    "ground": "-158 x -17",
+                    "offset": "675 x 399",
+                    "size": "73 x 185"
+                },
+                {
+                    "ground": "-154 x -17",
+                    "offset": "748 x 399",
+                    "size": "83 x 185"
+                },
+                {
+                    "ground": "-153 x -18",
+                    "offset": "831 x 399",
+                    "size": "87 x 184"
+                },
+                {
+                    "ground": "-153 x -18",
+                    "offset": "918 x 399",
+                    "size": "86 x 184"
+                },
+                {
+                    "ground": "-153 x -18",
+                    "offset": "1004 x 399",
+                    "size": "82 x 184"
+                },
+                {
+                    "ground": "-155 x -18",
+                    "offset": "1086 x 399",
+                    "size": "75 x 184"
+                },
+                {
+                    "ground": "-157 x -17",
+                    "offset": "1161 x 399",
+                    "size": "66 x 185"
+                },
+                {
+                    "ground": "-161 x -17",
+                    "offset": "1227 x 399",
+                    "size": "62 x 186"
+                },
+                {
+                    "ground": "-165 x -17",
+                    "offset": "1289 x 399",
+                    "size": "57 x 187"
+                },
+                {
+                    "ground": "-171 x -16",
+                    "offset": "1346 x 399",
+                    "size": "50 x 187"
+                },
+                {
+                    "ground": "-170 x -16",
+                    "offset": "1396 x 399",
+                    "size": "51 x 188"
+                },
+                {
+                    "ground": "-163 x -16",
+                    "offset": "1447 x 399",
+                    "size": "59 x 188"
+                },
+                {
+                    "ground": "-158 x -17",
+                    "offset": "1506 x 399",
+                    "size": "73 x 188"
+                },
+                {
+                    "ground": "-154 x -17",
+                    "offset": "1579 x 399",
+                    "size": "83 x 187"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "e"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-160 x -23",
+                    "offset": "0 x 587",
+                    "size": "71 x 186"
+                },
+                {
+                    "ground": "-160 x -22",
+                    "offset": "71 x 587",
+                    "size": "71 x 186"
+                },
+                {
+                    "ground": "-160 x -22",
+                    "offset": "142 x 587",
+                    "size": "68 x 185"
+                },
+                {
+                    "ground": "-161 x -22",
+                    "offset": "210 x 587",
+                    "size": "64 x 184"
+                },
+                {
+                    "ground": "-162 x -21",
+                    "offset": "274 x 587",
+                    "size": "58 x 183"
+                },
+                {
+                    "ground": "-164 x -21",
+                    "offset": "332 x 587",
+                    "size": "52 x 182"
+                },
+                {
+                    "ground": "-167 x -21",
+                    "offset": "384 x 587",
+                    "size": "49 x 181"
+                },
+                {
+                    "ground": "-169 x -21",
+                    "offset": "433 x 587",
+                    "size": "48 x 180"
+                },
+                {
+                    "ground": "-168 x -21",
+                    "offset": "481 x 587",
+                    "size": "53 x 183"
+                },
+                {
+                    "ground": "-166 x -22",
+                    "offset": "534 x 587",
+                    "size": "57 x 187"
+                },
+                {
+                    "ground": "-163 x -22",
+                    "offset": "591 x 587",
+                    "size": "62 x 189"
+                },
+                {
+                    "ground": "-162 x -23",
+                    "offset": "653 x 587",
+                    "size": "65 x 190"
+                },
+                {
+                    "ground": "-161 x -23",
+                    "offset": "718 x 587",
+                    "size": "67 x 190"
+                },
+                {
+                    "ground": "-161 x -24",
+                    "offset": "785 x 587",
+                    "size": "69 x 190"
+                },
+                {
+                    "ground": "-162 x -24",
+                    "offset": "854 x 587",
+                    "size": "68 x 189"
+                },
+                {
+                    "ground": "-163 x -24",
+                    "offset": "922 x 587",
+                    "size": "67 x 187"
+                },
+                {
+                    "ground": "-166 x -23",
+                    "offset": "989 x 587",
+                    "size": "65 x 186"
+                },
+                {
+                    "ground": "-168 x -23",
+                    "offset": "1054 x 587",
+                    "size": "62 x 185"
+                },
+                {
+                    "ground": "-169 x -23",
+                    "offset": "1116 x 587",
+                    "size": "59 x 184"
+                },
+                {
+                    "ground": "-171 x -22",
+                    "offset": "1175 x 587",
+                    "size": "54 x 183"
+                },
+                {
+                    "ground": "-172 x -22",
+                    "offset": "1229 x 587",
+                    "size": "51 x 181"
+                },
+                {
+                    "ground": "-168 x -22",
+                    "offset": "1280 x 587",
+                    "size": "56 x 180"
+                },
+                {
+                    "ground": "-164 x -22",
+                    "offset": "1336 x 587",
+                    "size": "62 x 184"
+                },
+                {
+                    "ground": "-161 x -23",
+                    "offset": "1398 x 587",
+                    "size": "69 x 185"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "se"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-164 x -25",
+                    "offset": "0 x 777",
+                    "size": "57 x 189"
+                },
+                {
+                    "ground": "-164 x -25",
+                    "offset": "57 x 777",
+                    "size": "56 x 189"
+                },
+                {
+                    "ground": "-163 x -25",
+                    "offset": "113 x 777",
+                    "size": "56 x 189"
+                },
+                {
+                    "ground": "-163 x -25",
+                    "offset": "169 x 777",
+                    "size": "56 x 188"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "225 x 777",
+                    "size": "57 x 186"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "282 x 777",
+                    "size": "57 x 184"
+                },
+                {
+                    "ground": "-161 x -24",
+                    "offset": "339 x 777",
+                    "size": "58 x 182"
+                },
+                {
+                    "ground": "-160 x -24",
+                    "offset": "397 x 777",
+                    "size": "58 x 180"
+                },
+                {
+                    "ground": "-159 x -24",
+                    "offset": "455 x 777",
+                    "size": "58 x 179"
+                },
+                {
+                    "ground": "-159 x -24",
+                    "offset": "513 x 777",
+                    "size": "58 x 185"
+                },
+                {
+                    "ground": "-160 x -25",
+                    "offset": "571 x 777",
+                    "size": "58 x 189"
+                },
+                {
+                    "ground": "-160 x -25",
+                    "offset": "629 x 777",
+                    "size": "58 x 189"
+                },
+                {
+                    "ground": "-161 x -25",
+                    "offset": "687 x 777",
+                    "size": "57 x 189"
+                },
+                {
+                    "ground": "-161 x -25",
+                    "offset": "744 x 777",
+                    "size": "56 x 189"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "800 x 777",
+                    "size": "56 x 189"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "856 x 777",
+                    "size": "56 x 188"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "912 x 777",
+                    "size": "57 x 186"
+                },
+                {
+                    "ground": "-162 x -25",
+                    "offset": "969 x 777",
+                    "size": "58 x 184"
+                },
+                {
+                    "ground": "-162 x -24",
+                    "offset": "1027 x 777",
+                    "size": "59 x 182"
+                },
+                {
+                    "ground": "-163 x -24",
+                    "offset": "1086 x 777",
+                    "size": "59 x 180"
+                },
+                {
+                    "ground": "-163 x -24",
+                    "offset": "1145 x 777",
+                    "size": "59 x 179"
+                },
+                {
+                    "ground": "-163 x -24",
+                    "offset": "1204 x 777",
+                    "size": "58 x 185"
+                },
+                {
+                    "ground": "-163 x -25",
+                    "offset": "1262 x 777",
+                    "size": "58 x 189"
+                },
+                {
+                    "ground": "-164 x -25",
+                    "offset": "1320 x 777",
+                    "size": "57 x 189"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "s"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-151 x -23",
+                    "offset": "0 x 966",
+                    "size": "69 x 190"
+                },
+                {
+                    "ground": "-150 x -23",
+                    "offset": "69 x 966",
+                    "size": "69 x 190"
+                },
+                {
+                    "ground": "-150 x -24",
+                    "offset": "138 x 966",
+                    "size": "69 x 189"
+                },
+                {
+                    "ground": "-150 x -23",
+                    "offset": "207 x 966",
+                    "size": "68 x 188"
+                },
+                {
+                    "ground": "-150 x -23",
+                    "offset": "275 x 966",
+                    "size": "65 x 187"
+                },
+                {
+                    "ground": "-151 x -23",
+                    "offset": "340 x 966",
+                    "size": "62 x 185"
+                },
+                {
+                    "ground": "-153 x -22",
+                    "offset": "402 x 966",
+                    "size": "59 x 184"
+                },
+                {
+                    "ground": "-156 x -22",
+                    "offset": "461 x 966",
+                    "size": "54 x 183"
+                },
+                {
+                    "ground": "-158 x -22",
+                    "offset": "515 x 966",
+                    "size": "51 x 181"
+                },
+                {
+                    "ground": "-157 x -22",
+                    "offset": "566 x 966",
+                    "size": "56 x 180"
+                },
+                {
+                    "ground": "-155 x -22",
+                    "offset": "622 x 966",
+                    "size": "62 x 183"
+                },
+                {
+                    "ground": "-151 x -22",
+                    "offset": "684 x 966",
+                    "size": "69 x 186"
+                },
+                {
+                    "ground": "-150 x -22",
+                    "offset": "753 x 966",
+                    "size": "71 x 186"
+                },
+                {
+                    "ground": "-150 x -22",
+                    "offset": "824 x 966",
+                    "size": "71 x 186"
+                },
+                {
+                    "ground": "-152 x -22",
+                    "offset": "895 x 966",
+                    "size": "69 x 186"
+                },
+                {
+                    "ground": "-156 x -22",
+                    "offset": "964 x 966",
+                    "size": "64 x 184"
+                },
+                {
+                    "ground": "-161 x -21",
+                    "offset": "1028 x 966",
+                    "size": "59 x 183"
+                },
+                {
+                    "ground": "-164 x -21",
+                    "offset": "1087 x 966",
+                    "size": "53 x 182"
+                },
+                {
+                    "ground": "-165 x -21",
+                    "offset": "1140 x 966",
+                    "size": "50 x 181"
+                },
+                {
+                    "ground": "-161 x -21",
+                    "offset": "1190 x 966",
+                    "size": "52 x 180"
+                },
+                {
+                    "ground": "-158 x -21",
+                    "offset": "1242 x 966",
+                    "size": "56 x 184"
+                },
+                {
+                    "ground": "-155 x -22",
+                    "offset": "1298 x 966",
+                    "size": "60 x 187"
+                },
+                {
+                    "ground": "-153 x -22",
+                    "offset": "1358 x 966",
+                    "size": "63 x 189"
+                },
+                {
+                    "ground": "-152 x -23",
+                    "offset": "1421 x 966",
+                    "size": "67 x 190"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "sw"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-142 x -17",
+                    "offset": "0 x 1156",
+                    "size": "87 x 184"
+                },
+                {
+                    "ground": "-143 x -18",
+                    "offset": "87 x 1156",
+                    "size": "85 x 184"
+                },
+                {
+                    "ground": "-146 x -18",
+                    "offset": "172 x 1156",
+                    "size": "82 x 184"
+                },
+                {
+                    "ground": "-151 x -17",
+                    "offset": "254 x 1156",
+                    "size": "75 x 185"
+                },
+                {
+                    "ground": "-156 x -17",
+                    "offset": "329 x 1156",
+                    "size": "67 x 185"
+                },
+                {
+                    "ground": "-159 x -17",
+                    "offset": "396 x 1156",
+                    "size": "62 x 186"
+                },
+                {
+                    "ground": "-159 x -16",
+                    "offset": "458 x 1156",
+                    "size": "57 x 187"
+                },
+                {
+                    "ground": "-159 x -16",
+                    "offset": "515 x 1156",
+                    "size": "50 x 187"
+                },
+                {
+                    "ground": "-160 x -16",
+                    "offset": "565 x 1156",
+                    "size": "51 x 188"
+                },
+                {
+                    "ground": "-158 x -16",
+                    "offset": "616 x 1156",
+                    "size": "59 x 188"
+                },
+                {
+                    "ground": "-150 x -16",
+                    "offset": "675 x 1156",
+                    "size": "73 x 188"
+                },
+                {
+                    "ground": "-144 x -17",
+                    "offset": "748 x 1156",
+                    "size": "83 x 187"
+                },
+                {
+                    "ground": "-142 x -16",
+                    "offset": "831 x 1156",
+                    "size": "87 x 187"
+                },
+                {
+                    "ground": "-143 x -16",
+                    "offset": "918 x 1156",
+                    "size": "86 x 187"
+                },
+                {
+                    "ground": "-146 x -15",
+                    "offset": "1004 x 1156",
+                    "size": "82 x 187"
+                },
+                {
+                    "ground": "-151 x -15",
+                    "offset": "1086 x 1156",
+                    "size": "75 x 187"
+                },
+                {
+                    "ground": "-158 x -14",
+                    "offset": "1161 x 1156",
+                    "size": "66 x 188"
+                },
+                {
+                    "ground": "-159 x -14",
+                    "offset": "1227 x 1156",
+                    "size": "62 x 188"
+                },
+                {
+                    "ground": "-159 x -14",
+                    "offset": "1289 x 1156",
+                    "size": "57 x 188"
+                },
+                {
+                    "ground": "-159 x -14",
+                    "offset": "1346 x 1156",
+                    "size": "50 x 188"
+                },
+                {
+                    "ground": "-160 x -15",
+                    "offset": "1396 x 1156",
+                    "size": "51 x 187"
+                },
+                {
+                    "ground": "-158 x -16",
+                    "offset": "1447 x 1156",
+                    "size": "59 x 186"
+                },
+                {
+                    "ground": "-150 x -17",
+                    "offset": "1506 x 1156",
+                    "size": "73 x 185"
+                },
+                {
+                    "ground": "-144 x -17",
+                    "offset": "1579 x 1156",
+                    "size": "84 x 185"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "w"
+        },
+        {
+            "frames": [
+                {
+                    "ground": "-150 x -12",
+                    "offset": "0 x 1344",
+                    "size": "71 x 191"
+                },
+                {
+                    "ground": "-150 x -12",
+                    "offset": "71 x 1344",
+                    "size": "71 x 190"
+                },
+                {
+                    "ground": "-152 x -11",
+                    "offset": "142 x 1344",
+                    "size": "68 x 189"
+                },
+                {
+                    "ground": "-156 x -11",
+                    "offset": "210 x 1344",
+                    "size": "64 x 188"
+                },
+                {
+                    "ground": "-161 x -10",
+                    "offset": "274 x 1344",
+                    "size": "58 x 187"
+                },
+                {
+                    "ground": "-165 x -10",
+                    "offset": "332 x 1344",
+                    "size": "52 x 188"
+                },
+                {
+                    "ground": "-165 x -10",
+                    "offset": "384 x 1344",
+                    "size": "49 x 191"
+                },
+                {
+                    "ground": "-163 x -10",
+                    "offset": "433 x 1344",
+                    "size": "48 x 192"
+                },
+                {
+                    "ground": "-160 x -10",
+                    "offset": "481 x 1344",
+                    "size": "53 x 194"
+                },
+                {
+                    "ground": "-158 x -10",
+                    "offset": "534 x 1344",
+                    "size": "57 x 195"
+                },
+                {
+                    "ground": "-156 x -10",
+                    "offset": "591 x 1344",
+                    "size": "62 x 197"
+                },
+                {
+                    "ground": "-154 x -11",
+                    "offset": "653 x 1344",
+                    "size": "65 x 198"
+                },
+                {
+                    "ground": "-153 x -10",
+                    "offset": "718 x 1344",
+                    "size": "67 x 198"
+                },
+                {
+                    "ground": "-152 x -10",
+                    "offset": "785 x 1344",
+                    "size": "69 x 198"
+                },
+                {
+                    "ground": "-151 x -10",
+                    "offset": "854 x 1344",
+                    "size": "69 x 198"
+                },
+                {
+                    "ground": "-150 x -9",
+                    "offset": "923 x 1344",
+                    "size": "67 x 197"
+                },
+                {
+                    "ground": "-150 x -8",
+                    "offset": "990 x 1344",
+                    "size": "65 x 197"
+                },
+                {
+                    "ground": "-151 x -8",
+                    "offset": "1055 x 1344",
+                    "size": "62 x 196"
+                },
+                {
+                    "ground": "-153 x -8",
+                    "offset": "1117 x 1344",
+                    "size": "59 x 194"
+                },
+                {
+                    "ground": "-156 x -8",
+                    "offset": "1176 x 1344",
+                    "size": "54 x 192"
+                },
+                {
+                    "ground": "-159 x -9",
+                    "offset": "1230 x 1344",
+                    "size": "51 x 192"
+                },
+                {
+                    "ground": "-157 x -10",
+                    "offset": "1281 x 1344",
+                    "size": "56 x 192"
+                },
+                {
+                    "ground": "-155 x -11",
+                    "offset": "1337 x 1344",
+                    "size": "62 x 192"
+                },
+                {
+                    "ground": "-151 x -11",
+                    "offset": "1399 x 1344",
+                    "size": "69 x 192"
+                }
+            ],
+            "ground": "0 x 0",
+            "name": "nw"
+        }
+    ],
+    "height": 200,
+    "nframes": 0,
+    "object_name": "npc",
+    "width": 0
+}

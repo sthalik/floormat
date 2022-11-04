@@ -160,7 +160,7 @@ if(WIN32) # TODO
     add_subdirectory(test)
 endif()
 
-install(DIRECTORY images DESTINATION "share/${PROJECT_NAME}")
+install(DIRECTORY images anim DESTINATION "share/floormat")
 
 fm_run_hook(fm-userconfig-post)
 get_cmake_property(_variableNames VARIABLES)

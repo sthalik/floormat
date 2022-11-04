@@ -1,7 +1,6 @@
 #pragma once
 
 #include <tuple>
-#include <array>
 #include <vector>
 #include <string>
 #include <Magnum/Magnum.h>
@@ -33,7 +32,7 @@ struct anim final
     static constexpr int default_fps = 24;
 
     std::string object_name, anim_name;
-    std::array<anim_group, (std::size_t)anim_direction::COUNT> groups;
+    std::vector<anim_group> groups;
     int nframes = 0;
     int width = 0, height = 0;
     int actionframe = -1, fps = default_fps;
