@@ -28,8 +28,8 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_i
 }
 
 anim_atlas::anim_atlas() noexcept = default;
-anim_atlas::anim_atlas(StringView name, GL::Texture2D&& tex, Vector2ui pixel_size, anim_info info) noexcept :
-    _tex{std::move(tex)}, _name{name}, _pixel_size{pixel_size},
+anim_atlas::anim_atlas(StringView name, GL::Texture2D&& tex, anim_info info) noexcept :
+    _tex{std::move(tex)}, _name{name},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
 }
@@ -41,7 +41,6 @@ anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 StringView anim_atlas::name() const noexcept { return _name; }
 GL::Texture2D& anim_atlas::texture() noexcept { return _tex; }
 const Serialize::anim& anim_atlas::info() const noexcept { return _info; }
-Vector2ui anim_atlas::pixel_size() const noexcept { return _pixel_size; }
 
 auto anim_atlas::group(rotation r) const noexcept -> const anim_group&
 {
@@ -66,11 +65,12 @@ auto anim_atlas::frame_texcoords(const anim_frame& frame) const noexcept -> texc
 {
     const Vector2 p0(frame.offset), p1(frame.offset + frame.size);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
+    const auto size = _info.pixel_size;
     return {{
-        { (x0+x1) / _pixel_size[0], (y0+y1) / _pixel_size[1]  }, // bottom right
-        { (x0+x1) / _pixel_size[0],      y0 / _pixel_size[1]  }, // top right
-        {      x0 / _pixel_size[0], (y0+y1) / _pixel_size[1]  }, // bottom left
-        {      x0 / _pixel_size[0],      y0 / _pixel_size[1]  }, // top left
+        { (x0+x1) / size[0], (y0+y1) / size[1]  }, // bottom right
+        { (x0+x1) / size[0],      y0 / size[1]  }, // top right
+        {      x0 / size[0], (y0+y1) / size[1]  }, // bottom left
+        {      x0 / size[0],      y0 / size[1]  }, // top left
     }};
 }
 

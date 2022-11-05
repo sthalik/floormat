@@ -17,7 +17,7 @@ struct anim_atlas final
     using texcoords = std::array<Vector2, 4>;
 
     anim_atlas() noexcept;
-    anim_atlas(StringView name, GL::Texture2D&& tex, Vector2ui pixel_size, anim_info info) noexcept;
+    anim_atlas(StringView name, GL::Texture2D&& tex, anim_info info) noexcept;
     ~anim_atlas() noexcept;
 
     anim_atlas(anim_atlas&&) noexcept;
@@ -26,7 +26,6 @@ struct anim_atlas final
     StringView name() const noexcept;
     GL::Texture2D& texture() noexcept;
     const anim_info& info() const noexcept;
-    Vector2ui pixel_size() const noexcept;
 
     const anim_group& group(rotation r) const noexcept;
     const anim_frame& frame(rotation r, std::size_t frame) const noexcept;
@@ -38,7 +37,6 @@ struct anim_atlas final
 private:
     GL::Texture2D _tex;
     String _name;
-    Vector2ui _pixel_size;
     anim_info _info;
     std::array<std::uint8_t, (std::size_t)rotation::COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
