@@ -9,9 +9,8 @@
 #include <optional>
 #include <vector>
 #include <map>
-#include <string>
 #include <memory>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
 
 namespace floormat {
 
@@ -32,7 +31,7 @@ private:
         sel_none, sel_tile, sel_perm,
     };
 
-    std::string _name;
+    String _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
     tile_image_proto _selected_tile;
     std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image_proto::variant)>> _permutation;

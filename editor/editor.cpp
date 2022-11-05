@@ -11,6 +11,7 @@
 
 #include <Corrade/Containers/StringView.h>
 
+#include <string_view>
 #include <vector>
 #include <filesystem>
 
@@ -25,7 +26,9 @@ void tile_editor::load_atlases()
 {
     static const std::filesystem::path image_path{IMAGE_PATH, std::filesystem::path::generic_format};
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
-    for (auto& atlas : json_helper::from_json<atlas_array>(image_path/(_name + ".json")))
+    const String filename = _name + ".json";
+    const auto filename_view = std::string_view{filename.cbegin(), filename.cend()};
+    for (auto& atlas : json_helper::from_json<atlas_array>(image_path/filename_view))
     {
         StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)

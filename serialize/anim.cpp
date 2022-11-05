@@ -1,5 +1,6 @@
 #include "serialize/magnum-vector2i.hpp"
 #include "serialize/anim.hpp"
+#include "serialize/string.hpp"
 
 #include <tuple>
 #include <filesystem>

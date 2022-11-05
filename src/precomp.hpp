@@ -26,7 +26,6 @@
 #include <optional>
 #include <vector>
 #include <unordered_map>
-#include <string> // TODO
 
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h> // TODO maybe remove stl

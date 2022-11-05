@@ -1,6 +1,6 @@
 #include "compat/assert.hpp"
+#include "serialize/string.hpp"
 #include <cstdio>
-#include <string>
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json.hpp>
 
@@ -20,12 +20,12 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
     }
     static void from_json(const json& j, Magnum::Math::Vector2<t>& val)
     {
-        std::string str = j;
+        Corrade::Containers::StringView str = j;
         using type = std::conditional_t<std::is_signed_v<t>, std::intmax_t, std::uintmax_t>;
         constexpr auto format_string = std::is_signed_v<t> ? "%jd x %jd%n" : "%ju x %ju%n";
         type x = 0, y = 0;
         int n = 0;
-        int ret = std::sscanf(str.c_str(), format_string, &x, &y, &n);
+        int ret = std::sscanf(str.data(), format_string, &x, &y, &n);
         if (ret != 2 || (std::size_t)n != str.size() || x != (t)x || y != (t)y)
             fm_abort("failed to parse Vector2");
         val = { (t)x, (t)y };
