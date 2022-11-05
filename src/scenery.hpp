@@ -1,13 +1,19 @@
 #pragma once
 #include "compat/integer-types.hpp"
+#include <memory>
 
 namespace floormat {
 
-using scenery_t = std::uint16_t;
-using scenery_frame_t = std::uint8_t;
+struct anim_atlas;
 
-enum class scenery : scenery_t {
-    none, door_closed, door_empty,
+struct scenery final
+{
+    enum class rotation : std::uint16_t {
+        N, NE, E, SE, S, SW, W, NW,
+    };
+
+    rotation r          : 3  = rotation::N;
+    std::uint16_t frame : 13 = 0;
 };
 
 } // namespace floormat

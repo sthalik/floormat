@@ -1,11 +1,14 @@
 #pragma once
 #include "tile.hpp"
 #include "tile-iterator.hpp"
+#include "scenery.hpp"
 #include <type_traits>
 #include <array>
 #include <bitset>
 
 namespace floormat {
+
+struct anim_atlas;
 
 struct chunk final
 {
@@ -37,7 +40,9 @@ struct chunk final
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases, _wall_north_atlases, _wall_west_atlases;
+    std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery;
     std::array<variant_t, TILE_COUNT> _ground_variants = {}, _wall_north_variants = {}, _wall_west_variants = {};
+    std::array<
     std::bitset<TILE_COUNT*2> _passability = {};
     mutable bool _maybe_empty = true;
 };
