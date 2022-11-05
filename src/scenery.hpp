@@ -4,16 +4,19 @@
 
 namespace floormat {
 
-struct anim_atlas;
+enum class rotation : std::uint16_t {
+    N, NE, E, SE, S, SW, W, NW,
+    COUNT,
+};
 
 struct scenery final
 {
-    enum class rotation : std::uint16_t {
-        N, NE, E, SE, S, SW, W, NW,
-    };
+    using frame_t = std::uint16_t;
 
-    rotation r          : 3  = rotation::N;
-    std::uint16_t frame : 13 = 0;
+    frame_t frame : 13 = 0;
+    rotation r    : 3  = rotation::N;
 };
+
+static_assert(sizeof(scenery) == sizeof(std::uint16_t));
 
 } // namespace floormat

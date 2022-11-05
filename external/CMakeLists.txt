@@ -34,6 +34,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     add_definitions(
         -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
         -DIMGUI_DISABLE_OBSOLETE_KEYIO
+        -DJSON_HAS_THREE_WAY_COMPARISON=1
     )
     sets(STRING
          SDL_ASSERTIONS                         release
