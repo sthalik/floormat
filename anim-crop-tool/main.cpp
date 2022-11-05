@@ -291,6 +291,7 @@ int main(int argc, char** argv)
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
+    anim_info.pixel_size = Magnum::Vector2ui(atlas.size());
     floormat::json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json"));
 
     return 0;

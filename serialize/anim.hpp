@@ -34,6 +34,7 @@ struct anim final
     int nframes = 0;
     int width = 0, height = 0;
     int actionframe = -1, fps = default_fps;
+    Vector2ui pixel_size;
 };
 
 } // namespace floormat::Serialize
