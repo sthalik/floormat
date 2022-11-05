@@ -10,12 +10,12 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     auto& frame = *x.frame;
     const auto& mat = x.mat;
     frame.offset = {xpos, ypos};
-    frame.size = {mat.cols, mat.rows};
+    frame.size = {(unsigned)mat.cols, (unsigned)mat.rows};
 
     fm_assert(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
-    xpos += mat.cols;
-    max_height = std::max(mat.rows, max_height);
+    xpos += (unsigned)mat.cols;
+    max_height = std::max((unsigned)mat.rows, max_height);
 }
 
 void anim_atlas::advance_row()
@@ -30,13 +30,13 @@ void anim_atlas::advance_row()
     rows.push_back({{}, 0, 0, ypos});
 }
 
-Magnum::Vector2i anim_atlas::offset() const noexcept
+Magnum::Vector2ui anim_atlas::offset() const noexcept
 {
     const auto& row = rows.back();
     return {row.xpos, row.ypos};
 }
 
-Magnum::Vector2i anim_atlas::size() const noexcept
+Magnum::Vector2ui anim_atlas::size() const noexcept
 {
     const anim_atlas_row& row = rows.back();
     // prevent accidentally writing out of bounds by forgetting to call
@@ -47,7 +47,7 @@ Magnum::Vector2i anim_atlas::size() const noexcept
 bool anim_atlas::dump(const std::filesystem::path& filename) const
 {
     auto sz = size();
-    cv::Mat4b mat(sz[1], sz[0]);
+    cv::Mat4b mat((int)sz[1], (int)sz[0]);
     mat.setTo(0);
 
     for (const anim_atlas_row& row : rows)
@@ -55,7 +55,7 @@ bool anim_atlas::dump(const std::filesystem::path& filename) const
         {
             auto offset = x.frame->offset;
             auto size = x.frame->size;
-            cv::Rect roi = {offset[0], offset[1], (int)size[0], (int)size[1]};
+            cv::Rect roi = {(int)offset[0], (int)offset[1], (int)size[0], (int)size[1]};
             x.mat.copyTo(mat(roi));
         }
 

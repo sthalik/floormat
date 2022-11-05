@@ -46,7 +46,7 @@ namespace floormat {
 #define fm_abort(...)                                                   \
     do {                                                                \
         fm_EMIT_DEBUG2("fatal: ", __VA_ARGS__);                         \
-        fm_EMIT_DEBUG("", "in %s:%d", __FILE__, __LINE__);              \
+        fm_EMIT_DEBUG("", " in %s:%d", __FILE__, __LINE__);             \
         ::floormat::_fm_abort();                                        \
     } while (false)
 

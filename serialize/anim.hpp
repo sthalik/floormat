@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json_fwd.hpp>
@@ -9,7 +10,8 @@ namespace floormat::Serialize {
 
 struct anim_frame final
 {
-    Vector2ui ground, offset, size;
+    Vector2i ground;
+    Vector2ui offset, size;
 };
 
 enum class anim_direction : unsigned char

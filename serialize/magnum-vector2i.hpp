@@ -27,7 +27,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
         int n = 0;
         int ret = std::sscanf(str.data(), format_string, &x, &y, &n);
         if (ret != 2 || (std::size_t)n != str.size() || x != (t)x || y != (t)y)
-            fm_abort("failed to parse Vector2");
+            fm_abort("failed to parse Vector2 '%s'", str.data());
         val = { (t)x, (t)y };
     }
 };

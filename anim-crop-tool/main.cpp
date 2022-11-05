@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <utility>
 #include <tuple>
+#include <string_view>
 #include <filesystem>
 
 #include <Corrade/Utility/Arguments.h>
@@ -34,7 +35,7 @@ struct options
 {
     double scale = 0;
     path input_dir, input_file, output_dir;
-    int width = 0, height = 0, nframes = 0;
+    std::size_t width = 0, height = 0, nframes = 0;
 };
 
 [[nodiscard]]
@@ -117,7 +118,9 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         (int)std::round((group.ground[1] - start[1]) * opts.scale),
     };
 
-    group.frames.push_back({ground, atlas.offset(), {dest_size.width, dest_size.height}});
+    const Magnum::Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
+
+    group.frames.push_back({ground, atlas.offset(), dest_size_});
     atlas.add_entry({&group.frames.back(), std::move(resized)});
     return true;
 }
@@ -125,7 +128,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 [[nodiscard]]
 static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
 {
-    const auto input_dir = opts.input_dir/group.name;
+    const auto input_dir = opts.input_dir/std::string_view{group.name.cbegin(), group.name.cend()};
 
     if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
     {
@@ -133,7 +136,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
         return false;
     }
 
-    int max;
+    unsigned max;
     for (max = 1; max <= 9999; max++)
     {
         char filename[9];
@@ -162,7 +165,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
     // vector::reserve() is necessary to avoid use-after-free.
     group.frames.reserve((std::size_t)max-1);
 
-    for (int i = 1; i < max; i++)
+    for (unsigned i = 1; i < max; i++)
     {
         char filename[9];
         sprintf(filename, "%04d.png", i);
@@ -202,9 +205,9 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
         .addOption('H', "height", "");
     args.parse(argc, argv);
     options opts;
-    if (int w = args.value<int>("width"); w != 0)
+    if (auto w = args.value<unsigned>("width"); w != 0)
         opts.width = w;
-    if (int h = args.value<int>("height"); h != 0)
+    if (auto h = args.value<unsigned>("height"); h != 0)
         opts.height = h;
     opts.output_dir = args.value<std::string>("output");
     opts.input_file = args.value<std::string>("input");
@@ -265,7 +268,7 @@ int main(int argc, char** argv)
         opts.height = anim_info.height;
     opts.nframes = anim_info.nframes;
 
-    if (!(opts.width ^ opts.height) || opts.width < 0 || opts.height < 0)
+    if (!(opts.width ^ opts.height))
     {
         Error{} << "error: exactly one of --width, --height must be specified";
         return usage(args);
