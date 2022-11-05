@@ -10,10 +10,6 @@ using StringView = BasicStringView<const char>;
 
 } // namespace Corrade::Containers
 
-namespace floormat {
-
-} // namespace floormat
-
 namespace nlohmann {
 
 template<>

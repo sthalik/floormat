@@ -31,8 +31,6 @@ struct loader_impl final : loader_
         importer_plugins.loadAndInstantiate("AnyImageImporter");
 
     PluginManager::Manager<Trade::AbstractImageConverter> image_converter_plugins;
-    Containers::Pointer<Trade::AbstractImageConverter> tga_converter =
-        image_converter_plugins.loadAndInstantiate("AnyImageConverter");
 
     std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> atlas_map;
 

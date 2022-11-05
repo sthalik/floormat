@@ -26,6 +26,7 @@ struct anim_atlas final
     StringView name() const noexcept;
     GL::Texture2D& texture() noexcept;
     const anim_info& info() const noexcept;
+    Vector2ui pixel_size() const noexcept;
 
     const anim_group& group(rotation r) const noexcept;
     const anim_frame& frame(rotation r, std::size_t frame) const noexcept;

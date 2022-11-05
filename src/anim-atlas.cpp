@@ -41,6 +41,7 @@ anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 StringView anim_atlas::name() const noexcept { return _name; }
 GL::Texture2D& anim_atlas::texture() noexcept { return _tex; }
 const Serialize::anim& anim_atlas::info() const noexcept { return _info; }
+Vector2ui anim_atlas::pixel_size() const noexcept { return _pixel_size; }
 
 auto anim_atlas::group(rotation r) const noexcept -> const anim_group&
 {
