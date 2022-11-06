@@ -2,11 +2,6 @@
 #include "serialize/anim.hpp"
 #include "serialize/string.hpp"
 
-#include <tuple>
-#include <filesystem>
-#include <Corrade/Utility/Debug.h>
-#include <Corrade/Utility/DebugStl.h>
-
 namespace floormat::Serialize {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
