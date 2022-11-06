@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/chunk.hpp"
+#include "src/tile-atlas.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 
@@ -69,7 +70,7 @@ void app::do_key(key k, int mods)
         fm_warn("unhandled key: '%zu'", std::size_t(k));
         return;
     case key_rotate_tile:
-        if (auto* ed = _editor.current(); ed)
+        if (auto* ed = _editor.current_tile_editor(); ed)
             ed->toggle_rotation();
         return;
     case key_mode_none:

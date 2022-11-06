@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
+#include "src/tile-atlas.hpp"
+
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
 
@@ -52,7 +54,7 @@ float app::draw_main_menu()
         }
         if (auto b = begin_menu("Mode"))
         {
-            const bool can_rotate =  _editor.current() ? _editor.current()->can_rotate() : false;
+            const bool can_rotate = _editor.current_tile_editor() ? _editor.current_tile_editor()->can_rotate() : false;
             bool b_none = false, b_floor = false, b_walls = false, b_rotate = false;
             ImGui::MenuItem("Select", "1", &b_none);
             ImGui::MenuItem("Floor",  "2", &b_floor);
@@ -81,7 +83,7 @@ void app::draw_ui()
     ImGui::StyleColorsDark(&ImGui::GetStyle());
 
     const float main_menu_height = draw_main_menu();
-    if (auto* ed = _editor.current(); ed != nullptr)
+    if (auto* ed = _editor.current_tile_editor(); ed != nullptr)
         draw_editor_pane(*ed, main_menu_height);
     draw_fps();
     draw_cursor();

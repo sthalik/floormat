@@ -1,77 +1,45 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "tile-atlas.hpp"
+#include "compat/integer-types.hpp"
 #include "global-coords.hpp"
-#include "tile.hpp"
+#include "tile-image.hpp"
+#include "scenery.hpp"
+#include "editor-enums.hpp"
+#include "tile-editor.hpp"
 
-#include <cstdint>
-#include <tuple>
 #include <optional>
-#include <vector>
 #include <map>
 #include <memory>
-#include <Corrade/Containers/String.h>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 
-enum class editor_mode : unsigned char {
-    none, floor, walls,
-};
-
-enum class editor_wall_rotation : std::uint8_t {
-    N, W,
-};
-
 struct world;
+struct anim_atlas;
+struct tile_atlas;
 
-struct tile_editor final
+struct scenery_editor final
 {
-private:
-    enum selection_mode : std::uint8_t {
-        sel_none, sel_tile, sel_perm,
+    struct pair final {
+        std::shared_ptr<anim_atlas> atlas;
+        scenery s;
     };
 
-    String _name;
-    std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
-    tile_image_proto _selected_tile;
-    std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image_proto::variant)>> _permutation;
-    selection_mode _selection_mode = sel_none;
-    editor_mode _mode;
-    editor_wall_rotation _rotation = editor_wall_rotation::N;
+    scenery_editor() noexcept;
 
-    void load_atlases();
-    tile_image_proto get_selected_perm();
+    void set_rotation(rotation r);
+    void rotation() const;
+    void next_rotation();
+    void prev_rotation();
 
-public:
-    enum class snap_mode : std::uint8_t {
-        none       = 0,
-        horizontal = 1 << 0,
-        vertical   = 1 << 1,
-    };
-
-    tile_editor(editor_mode mode, StringView name);
-    std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
-    std::shared_ptr<tile_atlas> atlas(StringView str);
-    auto cbegin() const noexcept { return _atlases.cbegin(); }
-    auto cend() const noexcept { return _atlases.cend(); }
-    auto begin() const noexcept { return _atlases.cbegin(); }
-    auto end() const noexcept { return _atlases.cend(); }
-    StringView name() const noexcept { return _name; }
-    editor_mode mode() const noexcept { return _mode; }
-    editor_wall_rotation rotation() const noexcept { return _rotation; }
-
+    void select_tile(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, std::uint16_t frame);
     void clear_selection();
-    void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
-    void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
-    bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
-    bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
-    bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
-    tile_image_proto get_selected();
-    void place_tile(world& world, global_coords pos, const tile_image_proto& img);
-    void toggle_rotation();
-    void set_rotation(editor_wall_rotation r);
-    snap_mode check_snap(int mods) const;
-    bool can_rotate() const;
+
+private:
+    void load_atlases();
+
+    std::map<StringView, std::shared_ptr<anim_atlas>> _atlases;
+    pair _selected_frame;
 };
 
 struct editor final
@@ -81,8 +49,8 @@ struct editor final
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor* current() noexcept;
-    const tile_editor* current() const noexcept;
+    tile_editor* current_tile_editor() noexcept;
+    const tile_editor* current_tile_editor() const noexcept;
 
     enum class button : std::uint8_t { none, place, remove, };
 
@@ -98,7 +66,7 @@ struct editor final
 
     static constexpr inline auto rotation_N = editor_wall_rotation::N;
     static constexpr inline auto rotation_W = editor_wall_rotation::W;
-    using snap_mode = tile_editor::snap_mode;
+    using snap_mode = editor_snap_mode;
 
 private:
     snap_mode get_snap_value(snap_mode snap, int mods) const;

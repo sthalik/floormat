@@ -23,7 +23,7 @@ void app::draw_cursor()
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
-        if (const auto* ed = _editor.current(); ed && ed->mode() == editor_mode::walls)
+        if (const auto* ed = _editor.current_tile_editor(); ed && ed->mode() == editor_mode::walls)
             switch (ed->rotation())
             {
             case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
