@@ -6,6 +6,7 @@
 #include "scenery.hpp"
 #include "editor-enums.hpp"
 #include "tile-editor.hpp"
+#include "scenery-editor.hpp"
 
 #include <optional>
 #include <map>
@@ -17,30 +18,6 @@ namespace floormat {
 struct world;
 struct anim_atlas;
 struct tile_atlas;
-
-struct scenery_editor final
-{
-    struct pair final {
-        std::shared_ptr<anim_atlas> atlas;
-        scenery s;
-    };
-
-    scenery_editor() noexcept;
-
-    void set_rotation(rotation r);
-    void rotation() const;
-    void next_rotation();
-    void prev_rotation();
-
-    void select_tile(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, std::uint16_t frame);
-    void clear_selection();
-
-private:
-    void load_atlases();
-
-    std::map<StringView, std::shared_ptr<anim_atlas>> _atlases;
-    pair _selected_frame;
-};
 
 struct editor final
 {

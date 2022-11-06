@@ -13,10 +13,17 @@ struct scenery final
 {
     using frame_t = std::uint16_t;
 
-    frame_t frame : 13 = 0;
-    rotation r    : 3  = rotation::N;
+    frame_t frame : 12 = (1 << 12) - 1;
+    rotation r    : 4  = rotation::N;
+
+    constexpr operator bool() const noexcept;
 };
 
 static_assert(sizeof(scenery) == sizeof(std::uint16_t));
+
+constexpr scenery::operator bool() const noexcept
+{
+    return frame == (1 << 13) - 1;
+}
 
 } // namespace floormat

@@ -8,6 +8,7 @@
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/GL/Renderer.h>
-#include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.h>
-
+#if __has_include(<SDL.h>)
+#include <Magnum/Platform/Sdl2Application.h>
+#endif

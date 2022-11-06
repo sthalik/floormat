@@ -1,5 +1,6 @@
 #include "anim-atlas.hpp"
 #include <Corrade/Containers/StringStlView.h>
+#include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
 
@@ -28,10 +29,17 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_i
 }
 
 anim_atlas::anim_atlas() noexcept = default;
-anim_atlas::anim_atlas(StringView name, GL::Texture2D&& tex, anim_info info) noexcept :
-    _tex{std::move(tex)}, _name{name},
+anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_info info) noexcept :
+    _name{name},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
+    _tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setMinificationFilter(GL::SamplerFilter::Linear)
+        .setMaxAnisotropy(1)
+        .setBorderColor(Color4{1, 0, 0, 1})
+        .setStorage(1, GL::textureFormat(image.format()), image.size())
+        .setSubImage(0, {}, image);
 }
 
 anim_atlas::~anim_atlas() noexcept = default;
@@ -73,5 +81,7 @@ auto anim_atlas::frame_texcoords(const anim_frame& frame) const noexcept -> texc
         {      x0 / size[0],      y0 / size[1]  }, // top left
     }};
 }
+
+
 
 } // namespace floormat

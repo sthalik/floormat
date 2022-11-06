@@ -5,6 +5,7 @@
 #include <array>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/ImageView.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
@@ -17,7 +18,7 @@ struct anim_atlas final
     using texcoords = std::array<Vector2, 4>;
 
     anim_atlas() noexcept;
-    anim_atlas(StringView name, GL::Texture2D&& tex, anim_info info) noexcept;
+    anim_atlas(StringView name, const ImageView2D& tex, anim_info info) noexcept;
     ~anim_atlas() noexcept;
 
     anim_atlas(anim_atlas&&) noexcept;

@@ -1,16 +1,3 @@
-if(FLOORMAT_WITH-COVERAGE)
-    set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE)
-    add_definitions(
-        -fprofile-instr-generate
-        -fcoverage-mapping
-        -mllvm -runtime-counter-relocation=true
-    )
-    add_link_options(
-        -fprofile-instr-generate
-        -fcoverage-mapping
-    )
-endif()
-
 add_compile_options(-emit-llvm)
 sets(STRING
      CMAKE_C_FLAGS ""
