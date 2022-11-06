@@ -11,9 +11,11 @@ enum class rotation : std::uint16_t {
 
 struct scenery final
 {
+    static constexpr auto NO_FRAME = (1 << 12) - 1;
+
     using frame_t = std::uint16_t;
 
-    frame_t frame : 12 = (1 << 12) - 1;
+    frame_t frame : 12 = NO_FRAME;
     rotation r    : 4  = rotation::N;
 
     constexpr operator bool() const noexcept;
@@ -23,7 +25,7 @@ static_assert(sizeof(scenery) == sizeof(std::uint16_t));
 
 constexpr scenery::operator bool() const noexcept
 {
-    return frame == (1 << 13) - 1;
+    return frame == NO_FRAME;
 }
 
 } // namespace floormat

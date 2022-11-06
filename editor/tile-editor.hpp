@@ -1,7 +1,7 @@
 #pragma once
 
 #include "editor-enums.hpp"
-#include "tile-image.hpp"
+#include "src/tile-image.hpp"
 #include "global-coords.hpp"
 #include <tuple>
 #include <memory>

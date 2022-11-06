@@ -10,9 +10,13 @@ struct anim_atlas;
 
 struct scenery_editor final
 {
+    using frame_t = scenery::frame_t;
+
     struct pair final {
         std::shared_ptr<anim_atlas> atlas;
-        scenery s;
+        enum rotation r = rotation::COUNT;
+        frame_t frame = scenery::NO_FRAME;
+        operator bool() const;
     };
 
     scenery_editor() noexcept;
@@ -22,10 +26,11 @@ struct scenery_editor final
     void next_rotation();
     void prev_rotation();
 
-    void select_tile(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, std::uint16_t frame);
+    void select_tile(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, frame_t frame);
     void clear_selection();
-    bool is_atlas_selected() const;
-    bool is_item_selected(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, std::uint16_t frame) const;
+    pair get_selected();
+    bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
+    bool is_item_selected(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, frame_t frame) const;
 
 private:
     void load_atlases();
