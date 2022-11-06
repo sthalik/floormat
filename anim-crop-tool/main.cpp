@@ -121,9 +121,15 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
         (int)std::round(((int)group.ground[1] - start[1]) * opts.scale),
     };
 
-    const Magnum::Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
+    if (ground[0] < 0 || ground[1] < 0 || ground[0] >= dest_size.width || ground[1] >= dest_size.height)
+    {
+        Error{} << "ground marker for group" << group.name << "beyond image bounds";
+        return false;
+    }
 
-    group.frames.push_back({ground, atlas.offset(), dest_size_});
+    const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
+
+    group.frames.push_back({Vector2ui(ground), atlas.offset(), dest_size_});
     atlas.add_entry({&group.frames.back(), std::move(resized)});
     return true;
 }

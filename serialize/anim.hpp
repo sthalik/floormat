@@ -10,8 +10,7 @@ namespace floormat::Serialize {
 
 struct anim_frame final
 {
-    Vector2i ground;
-    Vector2ui offset, size;
+    Vector2ui ground, offset, size;
 };
 
 enum class anim_direction : unsigned char
@@ -24,7 +23,7 @@ struct anim_group final
 {
     String name;
     std::vector<anim_frame> frames;
-    Vector2i ground;
+    Vector2ui ground;
 };
 
 struct anim final
