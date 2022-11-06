@@ -31,6 +31,9 @@ using std::filesystem::path;
 
 using namespace floormat::Serialize;
 
+using Magnum::Vector2i;
+using Magnum::Vector2ui;
+
 struct options
 {
     double scale = 0;
@@ -113,9 +116,9 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
     cv::Mat4b resized{size};
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
 
-    const Magnum::Vector2i ground = {
-        (int)std::round((group.ground[0] - start[0]) * opts.scale),
-        (int)std::round((group.ground[1] - start[1]) * opts.scale),
+    const Vector2i ground = {
+        (int)std::round(((int)group.ground[0] - start[0]) * opts.scale),
+        (int)std::round(((int)group.ground[1] - start[1]) * opts.scale),
     };
 
     const Magnum::Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
@@ -294,7 +297,7 @@ int main(int argc, char** argv)
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
-    anim_info.pixel_size = Magnum::Vector2ui(atlas.size());
+    anim_info.pixel_size = Vector2ui(atlas.size());
     floormat::json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json"));
 
     return 0;
