@@ -5,7 +5,7 @@
 
 namespace floormat {
 
-using rotation_ = enum rotation;
+using rotation_ = rotation;
 using rotation_t = std::underlying_type_t<rotation_>;
 
 scenery_editor::pair::operator bool() const { return atlas != nullptr; }
@@ -15,12 +15,12 @@ scenery_editor::scenery_editor() noexcept
     load_atlases();
 }
 
-void scenery_editor::set_rotation(enum rotation r)
+void scenery_editor::set_rotation(rotation_ r)
 {
     _selected.r = r;
 }
 
-rotation scenery_editor::rotation() const
+rotation_ scenery_editor::rotation() const
 {
     return _selected.r;
 }
@@ -52,7 +52,7 @@ void scenery_editor::select_tile(const std::shared_ptr<anim_atlas>& atlas, rotat
 
 void scenery_editor::clear_selection()
 {
-    _selected = { nullptr, rotation::COUNT, scenery::NO_FRAME };
+    _selected = { nullptr, rotation_::COUNT, scenery::NO_FRAME };
 }
 
 auto scenery_editor::get_selected() -> pair
@@ -65,7 +65,7 @@ bool scenery_editor::is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas)
     return _selected.atlas == atlas;
 }
 
-bool scenery_editor::is_item_selected(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, frame_t frame) const
+bool scenery_editor::is_item_selected(const std::shared_ptr<anim_atlas>& atlas, rotation_ r, frame_t frame) const
 {
     return is_atlas_selected(atlas) && _selected.r == r && _selected.frame == frame;
 }
