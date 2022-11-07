@@ -9,6 +9,8 @@ else()
     set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w")
 endif()
 
+link_libraries(MagnumIntegration::ImGui)
+
 add_executable(${self} "${sources}" "${res}" "../loader/loader-impl.cpp")
 target_link_libraries(${self} ${PROJECT_NAME}-main)
 

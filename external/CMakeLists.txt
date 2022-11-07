@@ -27,7 +27,7 @@ else()
         -Wno-error
         -Wno-undef
     )
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-old-style-cast")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-old-style-cast")
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
