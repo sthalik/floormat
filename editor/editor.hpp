@@ -51,6 +51,7 @@ private:
 
     tile_editor _floor{ editor_mode::floor, "floor" };
     tile_editor _wall { editor_mode::walls, "wall"  };
+    scenery_editor _scenery;
 
     struct drag_pos final {
         global_coords coord, draw_coord;

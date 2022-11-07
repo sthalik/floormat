@@ -10,7 +10,10 @@ using rotation_t = std::underlying_type_t<rotation_>;
 
 scenery_editor::pair::operator bool() const { return atlas != nullptr; }
 
-scenery_editor::scenery_editor() noexcept = default;
+scenery_editor::scenery_editor() noexcept
+{
+    load_atlases();
+}
 
 void scenery_editor::set_rotation(enum rotation r)
 {
