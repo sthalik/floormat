@@ -97,6 +97,7 @@ if(MSVC)
         #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
         -wd4456  # warning C4456: declaration of 'x' hides previous local declaration
         -wd4458  # warning C4458: declaration of 'keys' hides class member
+        -wd4127  # warning C4127: conditional expression is constant
     )
     add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
