@@ -5,6 +5,10 @@
 #include "compat/assert.hpp"
 #include "compat/alloca.hpp"
 
+#ifdef __GNUG__
+#pragma GCC system_header
+#endif
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
