@@ -292,7 +292,7 @@ int main(int argc, char** argv)
 
     const std::string base_name = anim_info.object_name + "_" + anim_info.anim_name;
 
-    if (auto pathname = opts.output_dir/(base_name + ".png"); !atlas.dump(pathname)) {
+    if (auto pathname = opts.output_dir/(base_name + ".tga"); !atlas.dump(pathname)) {
         Error{} << "error: failed writing image to" << pathname << ":"
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
