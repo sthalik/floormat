@@ -6,7 +6,7 @@
 *.rc text eol=lf
 *.vert text eol=lf
 *.frag text eol=lf
-*.json text eol=lf
+*.json -text
 *.sh text eol=lf
 *.cmake text eol=lf
 *.conf text eol=lf

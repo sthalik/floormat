@@ -92,12 +92,12 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
 auto anim_atlas::frame_quad(const Vector3& center, const anim_frame& frame) noexcept -> quad
 {
     const auto size = Vector2d(frame.size);
-    const double gx = frame.ground[0], gy = frame.ground[1];
+    const double gx = frame.ground[0]*.25, gy = frame.ground[1]*.25;
     const double sx = size[0]*.25, sy = size[1]*.25;
-    const auto bottom_right = Vector2(tile_shader::unproject({ -sx - gx,  sy - gy })),
-               top_right    = Vector2(tile_shader::unproject({ -sx - gx, -sy - gy })),
-               bottom_left  = Vector2(tile_shader::unproject({  sx - gx,  sy - gy })),
-               top_left     = Vector2(tile_shader::unproject({  sx - gx, -sy - gy }));
+    const auto bottom_right = Vector2(tile_shader::unproject({  sx - gx,  sy - gy })),
+               top_right    = Vector2(tile_shader::unproject({  sx - gx, -sy - gy })),
+               bottom_left  = Vector2(tile_shader::unproject({ -sx - gx,  sy - gy })),
+               top_left     = Vector2(tile_shader::unproject({ -sx - gx, -sy - gy }));
     const auto cx = center[0], cy = center[1], cz = center[2];
     return {{
         { cx + bottom_right[0], cy + bottom_right[1],   cz },

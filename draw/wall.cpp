@@ -72,9 +72,12 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
               tex.bind(0);
           last_texture = &a.atlas->texture();
           auto frame = a.frame;
-#if 0
-          static std::uint8_t f = 0;
-          frame.frame = f++ % a.atlas->info().nframes;
+#if 1
+          static std::size_t f = 0;
+          f++;
+          if (f > a.atlas->info().nframes * 3)
+              f = 0;
+          frame.frame = (scenery::frame_t)std::min(f, a.atlas->info().nframes - 1);
 #endif
           _anim_mesh.draw(shader, *a.atlas, a.atlas->frame(a.frame.r, frame.frame), local_coords{idx});
         }
