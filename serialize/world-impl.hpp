@@ -6,6 +6,7 @@
 #include "src/tile.hpp"
 #include <bit>
 #include <cstdio>
+#include <limits>
 
 namespace floormat::Serialize {
 

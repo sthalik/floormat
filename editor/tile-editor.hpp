@@ -3,8 +3,10 @@
 #include "editor-enums.hpp"
 #include "src/tile-image.hpp"
 #include "global-coords.hpp"
-#include <tuple>
 #include <memory>
+#include <vector>
+#include <map>
+#include <Corrade/Containers/String.h>
 
 namespace floormat {
 
@@ -17,10 +19,15 @@ private:
         sel_none, sel_tile, sel_perm,
     };
 
+    struct tuple final {
+        std::shared_ptr<tile_atlas> atlas;
+        std::vector<decltype(tile_image_proto::variant)> variant;
+    };
+
     String _name;
     std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
     tile_image_proto _selected_tile;
-    std::tuple<std::shared_ptr<tile_atlas>, std::vector<decltype(tile_image_proto::variant)>> _permutation;
+    tuple _permutation;
     selection_mode _selection_mode = sel_none;
     editor_mode _mode;
     editor_wall_rotation _rotation = editor_wall_rotation::N;

@@ -1,5 +1,6 @@
 #pragma once
 #include "binary-serializer.hpp"
+#include <array>
 #include <iterator>
 #include <Corrade/Containers/StringView.h>
 
@@ -46,4 +47,3 @@ template<typename Array>
 binary_reader(Array&& array) -> binary_reader<std::decay_t<decltype(std::begin(array))>>;
 
 } // namespace floormat::Serialize
-

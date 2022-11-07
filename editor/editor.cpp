@@ -6,8 +6,8 @@
 
 #include <Corrade/Containers/StringView.h>
 
-#include <string_view>
 #include <vector>
+#include <algorithm>
 #include <filesystem>
 
 namespace floormat {

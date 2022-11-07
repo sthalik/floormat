@@ -2,6 +2,7 @@
 #include "serialize/string.hpp"
 #include <cstdio>
 #include <Magnum/Math/Vector2.h>
+#include <Corrade/Containers/StringView.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {

@@ -1,5 +1,7 @@
 #include "anim-atlas.hpp"
+#include "compat/assert.hpp"
 #include <Corrade/Containers/StringStlView.h>
+#include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {

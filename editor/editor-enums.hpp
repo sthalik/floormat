@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/integer-types.hpp"
 
 namespace floormat {
 

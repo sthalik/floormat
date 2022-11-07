@@ -4,6 +4,7 @@
 #include "floormat/settings.hpp"
 #include "src/loader.hpp"
 #include "world.hpp"
+#include <algorithm>
 #include <Corrade/Utility/Arguments.h>
 
 namespace floormat {

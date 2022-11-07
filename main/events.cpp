@@ -1,6 +1,7 @@
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
 #include "floormat/events.hpp"
+#include <cstring>
 #include <SDL_events.h>
 //#include <SDL_video.h>
 
@@ -105,4 +106,3 @@ void main_impl::anyEvent(SDL_Event& event)
 }
 
 } // namespace floormat
-

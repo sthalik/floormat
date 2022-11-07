@@ -1,5 +1,7 @@
 #include "main-impl.hpp"
 #include "compat/fpu.hpp"
+#include <algorithm>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 
@@ -12,7 +14,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcep
     {
         (void)setSwapInterval(1);
         if (const auto list = GL::Context::current().extensionStrings();
-            std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cbegin())
+            std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cend())
             (void)setSwapInterval(-1);
     }
     else
