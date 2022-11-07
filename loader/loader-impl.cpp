@@ -136,6 +136,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
     {
         const auto path = Path::join(FM_ANIM_PATH, name);
         std::filesystem::path p = std::string_view{path};
+        p.replace_extension("json");
         auto anim_info = json_helper::from_json<Serialize::anim>(p);
         p.replace_extension({});
         auto tex = tile_texture(path);
