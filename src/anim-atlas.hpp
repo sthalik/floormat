@@ -3,7 +3,7 @@
 #include "scenery.hpp"
 #include "serialize/anim.hpp"
 #include <array>
-#include <Corrade/Containers/String.h>
+#include <string>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/Texture.h>
@@ -40,7 +40,7 @@ struct anim_atlas final
 
 private:
     GL::Texture2D _tex;
-    String _name;
+    std::string _name;
     anim_info _info;
     std::array<std::uint8_t, (std::size_t)rotation::COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,

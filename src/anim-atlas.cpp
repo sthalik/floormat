@@ -1,7 +1,6 @@
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "shaders/tile.hpp"
-#include <Corrade/Containers/StringStlView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 

@@ -19,9 +19,8 @@ void tile_editor::load_atlases()
 {
     static const std::filesystem::path image_path{FM_IMAGE_PATH, std::filesystem::path::generic_format};
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
-    const String filename = _name + ".json";
-    const auto filename_view = std::string_view{filename.cbegin(), filename.cend()};
-    for (auto& atlas : json_helper::from_json<atlas_array>(image_path/filename_view))
+    const auto filename = _name + ".json";
+    for (auto& atlas : json_helper::from_json<atlas_array>(image_path/filename))
     {
         StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)
