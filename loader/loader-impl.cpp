@@ -45,7 +45,7 @@ struct loader_impl final : loader_
     std::vector<String> anim_atlases;
 
     StringView shader(StringView filename) override;
-    Trade::ImageData2D tile_texture(StringView filename) override;
+    Trade::ImageData2D tile_texture(StringView filename);
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
     ArrayView<String> anim_atlas_list() override;
     std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) override;
