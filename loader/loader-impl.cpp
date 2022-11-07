@@ -11,8 +11,8 @@
 #include <optional>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Containers/StringStlHash.h>
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
 #include <Corrade/Utility/Path.h>
@@ -85,7 +85,8 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
 template<std::size_t N>
 Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filename_)
 {
-    fm_assert(N <= 2 || prefix[N-2] == '/');
+    if constexpr(N > 1)
+        fm_assert(prefix[N-2] == '/');
     fm_assert(filename_.size() < 4096);
     fm_assert(filename_.find('\\') == filename_.end());
     fm_assert(filename_.find('\0') == filename_.end());
