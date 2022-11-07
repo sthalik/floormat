@@ -133,15 +133,15 @@ tile_image_proto tile_editor::get_selected()
 {
     switch (_selection_mode)
     {
+    default:
+        fm_warn_once("invalid editor mode '%u'", (unsigned)_selection_mode);
+        [[fallthrough]];
     case sel_none:
         return {};
     case sel_tile:
         return _selected_tile;
     case sel_perm:
         return get_selected_perm();
-    default:
-        fm_warn_once("invalid editor mode '%u'", (unsigned)_selection_mode);
-        break;
     }
 }
 
