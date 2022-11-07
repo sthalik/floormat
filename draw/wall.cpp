@@ -53,19 +53,31 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
 
     const GL::Texture2D* last_texture = nullptr;
     Magnum::GL::MeshView mesh{_mesh};
-    for (std::size_t i = 0; i < COUNT; i++)
+    for (std::size_t idx = 0; idx < TILE_COUNT; idx++)
     {
-        auto* const tex = textures[i];
-        if (!tex)
-            continue;
-        mesh.setCount(quad_index_count);
-        mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*COUNT - 1);
-        if (tex != last_texture)
-            tex->bind(0);
-        last_texture = tex;
-        shader.draw(mesh);
-        if (auto a = c[i].scenery())
-            _anim_mesh.draw(local_coords{i}, *a.atlas, a.atlas->frame(a.frame.r, a.frame.frame));
+        for (std::size_t i = idx*2; i <= idx*2+1; i++)
+          if (auto* const tex = textures[i]; tex)
+          {
+              mesh.setCount(quad_index_count);
+              mesh.setIndexRange((int)(i*quad_index_count), 0, quad_index_count*COUNT - 1);
+              if (tex != last_texture)
+                  tex->bind(0);
+              last_texture = tex;
+              shader.draw(mesh);
+          }
+        if (auto a = c[idx].scenery(); a.atlas)
+        {
+          auto& tex = a.atlas->texture();
+          if (&tex != last_texture)
+              tex.bind(0);
+          last_texture = &a.atlas->texture();
+          auto frame = a.frame;
+#if 0
+          static std::uint8_t f = 0;
+          frame.frame = f++ % a.atlas->info().nframes;
+#endif
+          _anim_mesh.draw(shader, *a.atlas, a.atlas->frame(a.frame.r, frame.frame), local_coords{idx});
+        }
     }
 }
 

@@ -4,6 +4,7 @@
 #include "floormat/settings.hpp"
 #include "src/loader.hpp"
 #include "world.hpp"
+#include "src/anim-atlas.hpp"
 #include <algorithm>
 #include <Corrade/Utility/Arguments.h>
 
@@ -14,7 +15,8 @@ app::app(fm_settings&& opts) :
     _floor1{loader.tile_atlas("floor-tiles", {44, 4})},
     _floor2{loader.tile_atlas("metal1", {2, 2})},
     _wall1{loader.tile_atlas("wood2", {2, 1})},
-    _wall2{loader.tile_atlas("wood1", {2, 1})}
+    _wall2{loader.tile_atlas("wood1", {2, 1})},
+    _door{loader.anim_atlas("door_close")}
 {
     world& w = M->world();
     chunk_coords coord{0 ,0};

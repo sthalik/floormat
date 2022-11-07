@@ -24,6 +24,7 @@ struct floormat_main;
 struct tile_atlas;
 struct tile_editor;
 struct fm_settings;
+struct anim_atlas;
 
 struct cursor_state final {
     std::optional<Vector2i> pixel;
@@ -98,6 +99,7 @@ private:
     Containers::Pointer<floormat_main> M;
     ImGuiIntegration::Context _imgui{NoCreate};
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
+    std::shared_ptr<anim_atlas> _door;
     wireframe_mesh<wireframe::quad_floor> _wireframe_quad;
     wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n;
     wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w;

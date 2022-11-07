@@ -35,10 +35,11 @@ struct loader_impl final : loader_
 {
     std::optional<Utility::Resource> shader_res;
     PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
-    Containers::Pointer<Trade::AbstractImporter> tga_importer =
+    Containers::Pointer<Trade::AbstractImporter> image_importer =
         importer_plugins.loadAndInstantiate("AnyImageImporter");
 
-    PluginManager::Manager<Trade::AbstractImageConverter> image_converter_plugins;
+    Containers::Pointer<Trade::AbstractImporter> tga_importer =
+        importer_plugins.loadAndInstantiate("TgaImporter");
 
     std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
     std::unordered_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
@@ -106,9 +107,10 @@ Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filen
     {
         std::memcpy(filename + len, extension.data(), extension.size());
         filename[len + extension.size()] = '\0';
-        if (Path::exists(filename) && tga_importer->openFile(filename))
+        auto& importer = extension == StringView(".tga") ? tga_importer : image_importer;
+        if (Path::exists(filename) && importer->openFile(filename))
         {
-            auto img = tga_importer->image2D(0);
+            auto img = importer->image2D(0);
             if (!img)
                 fm_abort("can't allocate image for '%s'", filename);
             auto ret = std::move(*img);

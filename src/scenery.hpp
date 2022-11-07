@@ -17,8 +17,8 @@ struct scenery final
 
     using frame_t = std::uint16_t;
 
-    frame_t frame : 12 = NO_FRAME;
     rotation r    : 4  = rotation::N;
+    frame_t frame : 12 = NO_FRAME;
 };
 
 static_assert(sizeof(scenery) == sizeof(std::uint16_t));
@@ -26,6 +26,7 @@ static_assert(sizeof(scenery) == sizeof(std::uint16_t));
 struct scenery_proto final {
     std::shared_ptr<anim_atlas> atlas;
     scenery frame;
+
     operator bool() const noexcept;
 };
 

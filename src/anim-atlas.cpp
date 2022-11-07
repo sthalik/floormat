@@ -73,14 +73,14 @@ auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -
 
 auto anim_atlas::texcoords_for_frame(const anim_frame& frame) const noexcept -> texcoords
 {
-    const Vector2 p0(frame.offset), p1(frame.offset + frame.size);
+    const Vector2 p0(frame.offset), p1(frame.size);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     const auto size = _info.pixel_size;
     return {{
-        { (x0+x1) / size[0], (y0+y1) / size[1]  }, // bottom right
-        { (x0+x1) / size[0],      y0 / size[1]  }, // top right
-        {      x0 / size[0], (y0+y1) / size[1]  }, // bottom left
-        {      x0 / size[0],      y0 / size[1]  }, // top left
+        { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
+        { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top right
+        {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
+        {      x0 / size[0], 1 -      y0 / size[1]  }, // top left
     }};
 }
 
@@ -91,11 +91,13 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
 
 auto anim_atlas::frame_quad(const Vector3& center, const anim_frame& frame) noexcept -> quad
 {
-    const auto size = Vector2d(frame.size) - Vector2d(frame.ground);
-    const auto bottom_right = Vector2(tile_shader::unproject({ size[0]*.5,  0 })),
-               top_right    = Vector2(tile_shader::unproject({ size[0]*.5,  -size[1] })),
-               bottom_left  = Vector2(tile_shader::unproject({ -size[0]*.5, 0 })),
-               top_left     = Vector2(tile_shader::unproject({ -size[0]*.5, -size[1] }));
+    const auto size = Vector2d(frame.size);
+    const double gx = frame.ground[0], gy = frame.ground[1];
+    const double sx = size[0]*.25, sy = size[1]*.25;
+    const auto bottom_right = Vector2(tile_shader::unproject({ -sx - gx,  sy - gy })),
+               top_right    = Vector2(tile_shader::unproject({ -sx - gx, -sy - gy })),
+               bottom_left  = Vector2(tile_shader::unproject({  sx - gx,  sy - gy })),
+               top_left     = Vector2(tile_shader::unproject({  sx - gx, -sy - gy }));
     const auto cx = center[0], cy = center[1], cz = center[2];
     return {{
         { cx + bottom_right[0], cy + bottom_right[1],   cz },
