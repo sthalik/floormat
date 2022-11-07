@@ -45,7 +45,7 @@ struct loader_impl final : loader_
     std::vector<String> anim_atlases;
 
     StringView shader(StringView filename) override;
-    Trade::ImageData2D tile_texture(StringView filename);
+    template<std::size_t N> Trade::ImageData2D texture(const char(&prefix)[N], StringView filename);
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
     ArrayView<String> anim_atlas_list() override;
     std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) override;
@@ -76,25 +76,27 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
     });
     if (it != tile_atlas_map.cend())
         return it->second;
-    auto image = tile_texture(name);
+    auto image = texture(FM_IMAGE_PATH, name);
     auto atlas = std::make_shared<struct tile_atlas>(name, image, size);
     tile_atlas_map[name] = atlas;
     return atlas;
 }
 
-Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
+template<std::size_t N>
+Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filename_)
 {
-    static_assert(FM_IMAGE_PATH[sizeof(FM_IMAGE_PATH)-2] == '/');
+    fm_assert(N == 1 || prefix[N-2] == '/');
     fm_assert(filename_.size() < 4096);
     fm_assert(filename_.find('\\') == filename_.end());
     fm_assert(filename_.find('\0') == filename_.end());
     fm_assert(tga_importer);
     constexpr std::size_t max_extension_length = 16;
 
-    char* const filename = (char*)alloca(filename_.size() + std::size(FM_IMAGE_PATH) + max_extension_length);
+    char* const filename = (char*)alloca(filename_.size() + N + max_extension_length);
     const std::size_t len = fm_begin(
-        std::size_t off = std::size(FM_IMAGE_PATH)-1;
-        std::memcpy(filename, FM_IMAGE_PATH, off);
+        std::size_t off = N-1;
+        if (N > 1)
+            std::memcpy(filename, prefix, off);
         std::memcpy(filename + off, filename_.cbegin(), filename_.size());
         return off + filename_.size();
     );
@@ -107,18 +109,14 @@ Trade::ImageData2D loader_impl::tile_texture(StringView filename_)
         {
             auto img = tga_importer->image2D(0);
             if (!img)
-                fm_abort("can't allocate tile image for '%s'", filename);
+                fm_abort("can't allocate image for '%s'", filename);
             auto ret = std::move(*img);
             return ret;
-        }
-        else
-        {
-            fm_warn("can't open '%s'", filename);
         }
     }
     const auto path = Path::currentDirectory();
     filename[len] = '\0';
-    fm_abort("can't open tile image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
+    fm_abort("can't open image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
 }
 
 ArrayView<String> loader_impl::anim_atlas_list()
@@ -139,7 +137,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         p.replace_extension("json");
         auto anim_info = json_helper::from_json<Serialize::anim>(p);
         p.replace_extension({});
-        auto tex = tile_texture(path);
+        auto tex = texture("", path);
 
         fm_assert(!anim_info.anim_name.isEmpty() && !anim_info.object_name.isEmpty());
         fm_assert(anim_info.pixel_size.product() > 0);
