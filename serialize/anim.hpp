@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <Corrade/Containers/String.h>
+#include <string>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json_fwd.hpp>
@@ -22,7 +22,7 @@ enum class anim_direction : unsigned char
 
 struct anim_group final
 {
-    String name;
+    std::string name;
     std::vector<anim_frame> frames;
     Vector2ui ground;
 };
@@ -31,7 +31,7 @@ struct anim final
 {
     static constexpr int default_fps = 24;
 
-    String object_name, anim_name;
+    std::string object_name, anim_name;
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
     std::size_t nframes = 0, width = 0, height = 0, fps = default_fps, actionframe = 0;

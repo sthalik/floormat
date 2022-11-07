@@ -1,8 +1,7 @@
 #include "compat/assert.hpp"
-#include "serialize/string.hpp"
 #include <cstdio>
+#include <string>
 #include <Magnum/Math/Vector2.h>
-#include <Corrade/Containers/StringView.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {
@@ -21,7 +20,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
     }
     static void from_json(const json& j, Magnum::Math::Vector2<t>& val)
     {
-        Corrade::Containers::StringView str = j;
+        std::string str = j;
         using type = std::conditional_t<std::is_signed_v<t>, std::intmax_t, std::uintmax_t>;
         constexpr auto format_string = std::is_signed_v<t> ? "%jd x %jd%n" : "%ju x %ju%n";
         type x = 0, y = 0;

@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #include <map>
-#include <Corrade/Containers/String.h>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 
@@ -25,7 +25,7 @@ private:
     };
 
     String _name;
-    std::map<std::string, std::shared_ptr<tile_atlas>> _atlases;
+    std::map<StringView, std::shared_ptr<tile_atlas>> _atlases;
     tile_image_proto _selected_tile;
     tuple _permutation;
     selection_mode _selection_mode = sel_none;

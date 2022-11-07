@@ -85,7 +85,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
 template<std::size_t N>
 Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filename_)
 {
-    fm_assert(N == 1 || prefix[N-2] == '/');
+    fm_assert(N <= 2 || prefix[N-2] == '/');
     fm_assert(filename_.size() < 4096);
     fm_assert(filename_.find('\\') == filename_.end());
     fm_assert(filename_.find('\0') == filename_.end());
@@ -95,7 +95,7 @@ Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filen
     char* const filename = (char*)alloca(filename_.size() + N + max_extension_length);
     const std::size_t len = fm_begin(
         std::size_t off = N-1;
-        if (N > 1)
+        if constexpr(N > 1)
             std::memcpy(filename, prefix, off);
         std::memcpy(filename + off, filename_.cbegin(), filename_.size());
         return off + filename_.size();
@@ -139,7 +139,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         p.replace_extension({});
         auto tex = texture("", path);
 
-        fm_assert(!anim_info.anim_name.isEmpty() && !anim_info.object_name.isEmpty());
+        fm_assert(!anim_info.anim_name.empty() && !anim_info.object_name.empty());
         fm_assert(anim_info.pixel_size.product() > 0);
         fm_assert(!anim_info.groups.empty());
         fm_assert(anim_info.nframes > 0);

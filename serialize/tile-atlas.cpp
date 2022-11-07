@@ -1,7 +1,6 @@
 #include "src/tile-atlas.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "serialize/magnum-vector2i.hpp"
-#include "serialize/string.hpp"
 #include "loader.hpp"
 #include <tuple>
 
@@ -11,7 +10,7 @@ using namespace floormat;
 
 namespace nlohmann {
 
-using proxy_atlas = std::tuple<StringView, Vector2ub>;
+using proxy_atlas = std::tuple<std::string, Vector2ub>;
 
 void adl_serializer<std::shared_ptr<tile_atlas>>::to_json(json& j, const std::shared_ptr<const tile_atlas>& x)
 {

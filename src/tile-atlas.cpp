@@ -1,8 +1,9 @@
+
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include "tile-image.hpp"
 #include <limits>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/StringStl.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>

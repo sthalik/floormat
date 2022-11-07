@@ -1,6 +1,5 @@
 #include "serialize/magnum-vector2i.hpp"
 #include "serialize/anim.hpp"
-#include "serialize/string.hpp"
 
 namespace floormat::Serialize {
 
