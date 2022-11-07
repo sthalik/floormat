@@ -16,6 +16,7 @@ struct anim_atlas final
     using anim_group = Serialize::anim_group;
     using anim_frame = Serialize::anim_frame;
     using texcoords = std::array<Vector2, 4>;
+    using quad = std::array<Vector3, 4>;
 
     anim_atlas() noexcept;
     anim_atlas(StringView name, const ImageView2D& tex, anim_info info) noexcept;
@@ -30,8 +31,10 @@ struct anim_atlas final
 
     const anim_group& group(rotation r) const noexcept;
     const anim_frame& frame(rotation r, std::size_t frame) const noexcept;
-    texcoords frame_texcoords(rotation r, std::size_t frame) const noexcept;
-    texcoords frame_texcoords(const anim_frame& frame) const noexcept;
+    texcoords texcoords_for_frame(rotation r, std::size_t frame) const noexcept;
+    texcoords texcoords_for_frame(const anim_frame& frame) const noexcept;
+    quad frame_quad(const Vector3& center, rotation r, std::size_t frame) const noexcept;
+    static quad frame_quad(const Vector3& center, const anim_frame& frame) noexcept;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 

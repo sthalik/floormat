@@ -3,6 +3,7 @@
 #include "shaders/tile.hpp"
 #include "chunk.hpp"
 #include "tile-image.hpp"
+#include "anim-atlas.hpp"
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>
 
@@ -63,6 +64,8 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
             tex->bind(0);
         last_texture = tex;
         shader.draw(mesh);
+        if (auto a = c[i].scenery())
+            _anim_mesh.draw(local_coords{i}, *a.atlas, a.atlas->frame(a.frame.r, a.frame.frame));
     }
 }
 

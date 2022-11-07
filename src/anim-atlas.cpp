@@ -1,5 +1,6 @@
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
+#include "shaders/tile.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
@@ -66,12 +67,12 @@ auto anim_atlas::frame(rotation r, std::size_t frame) const noexcept -> const an
     return g.frames[frame];
 }
 
-auto anim_atlas::frame_texcoords(rotation r, std::size_t idx) const noexcept -> texcoords
+auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -> texcoords
 {
-    return frame_texcoords(frame(r, idx));
+    return texcoords_for_frame(frame(r, i));
 }
 
-auto anim_atlas::frame_texcoords(const anim_frame& frame) const noexcept -> texcoords
+auto anim_atlas::texcoords_for_frame(const anim_frame& frame) const noexcept -> texcoords
 {
     const Vector2 p0(frame.offset), p1(frame.offset + frame.size);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
@@ -84,6 +85,25 @@ auto anim_atlas::frame_texcoords(const anim_frame& frame) const noexcept -> texc
     }};
 }
 
+auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad
+{
+    return frame_quad(center, frame(r, i));
+}
 
+auto anim_atlas::frame_quad(const Vector3& center, const anim_frame& frame) noexcept -> quad
+{
+    const auto size = Vector2d(frame.size) - Vector2d(frame.ground);
+    const auto bottom_right = Vector2(tile_shader::unproject({ size[0]*.5,  0 })),
+               top_right    = Vector2(tile_shader::unproject({ size[0]*.5,  -size[1] })),
+               bottom_left  = Vector2(tile_shader::unproject({ -size[0]*.5, 0 })),
+               top_left     = Vector2(tile_shader::unproject({ -size[0]*.5, -size[1] }));
+    const auto cx = center[0], cy = center[1], cz = center[2];
+    return {{
+        { cx + bottom_right[0], cy + bottom_right[1],   cz },
+        { cx + top_right[0],    cy + top_right[1],      cz },
+        { cx + bottom_left[0],  cy + bottom_left[1],    cz },
+        { cx + top_left[0],     cy + top_left[1],       cz },
+    }};
+}
 
 } // namespace floormat

@@ -40,7 +40,8 @@ struct chunk final
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases, _wall_north_atlases, _wall_west_atlases;
-    std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery;
+    std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
+    std::array<scenery, TILE_COUNT> _scenery_variants = {};
     std::array<variant_t, TILE_COUNT> _ground_variants = {}, _wall_north_variants = {}, _wall_west_variants = {};
     std::bitset<TILE_COUNT*2> _passability = {};
     mutable bool _maybe_empty = true;
