@@ -185,7 +185,7 @@ void tile_editor::set_rotation(editor_wall_rotation r)
     switch (r)
     {
     default:
-        fm_warn_once("invalid rotation '0x%hhx", r);
+        fm_warn_once("invalid rotation '0x%hhx", (char)r);
         return;
     case editor_wall_rotation::W:
     case editor_wall_rotation::N:
