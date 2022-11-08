@@ -25,8 +25,8 @@ struct tile_shader : GL::AbstractShaderProgram
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
 
-    static constexpr Vector2d project(Vector3d pt);
-    static constexpr Vector2d unproject(Vector2d px);
+    template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
+    template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
 
     template<typename T, typename... Xs>
     auto draw(T&& mesh, Xs&&... xs) ->
@@ -51,13 +51,15 @@ auto tile_shader::draw(T&& mesh, Xs&&... xs) ->
     return GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
 }
 
-constexpr Vector2d tile_shader::project(const Vector3d pt)
+template<typename T>
+constexpr Math::Vector2<T> tile_shader::project(const Math::Vector3<T>& pt)
 {
     const auto x = pt[0], y = pt[1], z = pt[2];
-    return { (x-y), (x+y+z*2)*.59 };
+    return { (x-y), (x+y+z*2)*T(.59) };
 }
 
-constexpr Vector2d tile_shader::unproject(const Vector2d px)
+template<typename T>
+constexpr Math::Vector2<T> tile_shader::unproject(const Math::Vector2<T>& px)
 {
     const auto X = px[0], Y = px[1];
     return { X + 100 * Y / 59, 100 * Y / 59 - X };
