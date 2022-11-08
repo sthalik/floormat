@@ -1,6 +1,7 @@
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "shaders/tile.hpp"
+#include "tile-defs.hpp"
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -68,12 +69,8 @@ auto anim_atlas::frame(rotation r, std::size_t frame) const noexcept -> const an
 
 auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -> texcoords
 {
-    return texcoords_for_frame(frame(r, i));
-}
-
-auto anim_atlas::texcoords_for_frame(const anim_frame& frame) const noexcept -> texcoords
-{
-    const Vector2 p0(frame.offset), p1(frame.size);
+    const auto f = frame(r, i);
+    const Vector2 p0(f.offset), p1(f.size);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     const auto size = _info.pixel_size;
     return {{
@@ -86,14 +83,11 @@ auto anim_atlas::texcoords_for_frame(const anim_frame& frame) const noexcept -> 
 
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad
 {
-    return frame_quad(center, frame(r, i));
-}
-
-auto anim_atlas::frame_quad(const Vector3& center, const anim_frame& frame) noexcept -> quad
-{
-    const auto size = Vector2d(frame.size);
-    const double gx = frame.ground[0]*.25, gy = frame.ground[1]*.25;
-    const double sx = size[0]*.25, sy = size[1]*.25;
+    const auto f = frame(r, i);
+    const auto size = Vector2d(f.size);
+    const double gx = f.ground[0]*.5, gy = f.ground[1]*.5;
+    //auto gx = 0, gy = 0;
+    const double sx = size[0]*.5, sy = size[1]*.5;
     const auto bottom_right = Vector2(tile_shader::unproject({  sx - gx,  sy - gy })),
                top_right    = Vector2(tile_shader::unproject({  sx - gx, -sy - gy })),
                bottom_left  = Vector2(tile_shader::unproject({ -sx - gx,  sy - gy })),

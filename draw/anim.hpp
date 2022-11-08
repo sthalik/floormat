@@ -1,6 +1,7 @@
 #pragma once
 
 #include "local-coords.hpp"
+#include "scenery.hpp"
 #include <array>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Magnum.h>
@@ -20,7 +21,7 @@ using anim_frame = Serialize::anim_frame;
 struct anim_mesh final
 {
     anim_mesh();
-    void draw(tile_shader& shader, const anim_atlas& atlas, const anim_frame& frame, local_coords pos);
+    void draw(tile_shader& shader, const anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
 
 private:
     struct vertex_data final { Vector2 texcoords; };

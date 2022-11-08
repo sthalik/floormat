@@ -79,7 +79,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
               f = 0;
           frame.frame = (scenery::frame_t)std::min(f, a.atlas->info().nframes - 1);
 #endif
-          _anim_mesh.draw(shader, *a.atlas, a.atlas->frame(a.frame.r, frame.frame), local_coords{idx});
+          _anim_mesh.draw(shader, *a.atlas, a.frame.r, frame.frame, local_coords{idx});
         }
     }
 }

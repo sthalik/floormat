@@ -23,12 +23,12 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::draw(tile_shader& shader, const anim_atlas& atlas, const anim_frame& frame, local_coords xy)
+void anim_mesh::draw(tile_shader& shader, const anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
 {
     const auto center = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;
-    const auto pos = atlas.frame_quad(center, frame);
+    const auto pos = atlas.frame_quad(center, r, frame);
     _positions_buffer.setSubData(0, pos);
-    const auto texcoords = atlas.texcoords_for_frame(frame);
+    const auto texcoords = atlas.texcoords_for_frame(r, frame);
     _vertex_buffer.setSubData(0, texcoords);
     shader.draw(_mesh);
 }

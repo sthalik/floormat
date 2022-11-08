@@ -32,9 +32,7 @@ struct anim_atlas final
     const anim_group& group(rotation r) const noexcept;
     const anim_frame& frame(rotation r, std::size_t frame) const noexcept;
     texcoords texcoords_for_frame(rotation r, std::size_t frame) const noexcept;
-    texcoords texcoords_for_frame(const anim_frame& frame) const noexcept;
     quad frame_quad(const Vector3& center, rotation r, std::size_t frame) const noexcept;
-    static quad frame_quad(const Vector3& center, const anim_frame& frame) noexcept;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
