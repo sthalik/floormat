@@ -55,7 +55,7 @@ template<typename T>
 constexpr Math::Vector2<T> tile_shader::project(const Math::Vector3<T>& pt)
 {
     const auto x = pt[0], y = pt[1], z = pt[2];
-    return { (x-y), (x+y+z*2)*T(.59) };
+    return { x-y, (x+y+z*2)*T(.59) };
 }
 
 template<typename T>
