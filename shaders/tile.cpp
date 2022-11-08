@@ -37,7 +37,7 @@ tile_shader::~tile_shader() = default;
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
     if (scale != _scale)
-        setUniform(ScaleUniform, _scale = scale);
+        setUniform(ScaleUniform, 1.f/(_scale = scale));
     return *this;
 }
 
