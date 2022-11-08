@@ -86,12 +86,11 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
     const auto f = frame(r, i);
     const auto size = Vector2d(f.size);
     const double gx = f.ground[0]*.5, gy = f.ground[1]*.5;
-    //auto gx = 0, gy = 0;
     const double sx = size[0]*.5, sy = size[1]*.5;
     const auto bottom_right = Vector2(tile_shader::unproject({  sx - gx,  sy - gy })),
-               top_right    = Vector2(tile_shader::unproject({  sx - gx, -sy - gy })),
-               bottom_left  = Vector2(tile_shader::unproject({ -sx - gx,  sy - gy })),
-               top_left     = Vector2(tile_shader::unproject({ -sx - gx, -sy - gy }));
+               top_right    = Vector2(tile_shader::unproject({  sx - gx,     - gy })),
+               bottom_left  = Vector2(tile_shader::unproject({     - gx,  sy - gy })),
+               top_left     = Vector2(tile_shader::unproject({     - gx,     - gy }));
     const auto cx = center[0], cy = center[1], cz = center[2];
     return {{
         { cx + bottom_right[0], cy + bottom_right[1],   cz },
