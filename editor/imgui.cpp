@@ -19,14 +19,6 @@ void app::init_imgui(Vector2i size)
 
 void app::render_menu()
 {
-    GL::Renderer::setBlendEquation(GL::Renderer::BlendEquation::Add, GL::Renderer::BlendEquation::Add);
-    GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha, GL::Renderer::BlendFunction::OneMinusSourceAlpha);
-    GL::Renderer::enable(GL::Renderer::Feature::Blending);
-
-    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
-    GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
-    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
-
     _imgui.drawFrame();
 }
 

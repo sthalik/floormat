@@ -82,7 +82,7 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 void editor::on_click_(world& world, global_coords pos, button b)
 {
     if (auto* mode = current_tile_editor(); mode != nullptr)
-        if (auto opt = mode->get_selected(); opt)
+        if (auto opt = mode->get_selected(); opt || b == button::remove)
         {
             switch (b)
             {

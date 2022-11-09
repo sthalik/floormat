@@ -24,14 +24,18 @@ struct anim_mesh final
     void draw(tile_shader& shader, const anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
 
 private:
-    struct vertex_data final { Vector2 texcoords; };
+    struct vertex_data final {
+        Vector3 position;
+        Vector2 texcoords;
+        float depth = -1;
+    };
     using quad_data = std::array<vertex_data, 4>;
 
     static std::array<UnsignedShort, 6> make_index_array();
 
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{make_index_array()}, _positions_buffer{std::array<Vector3, 4>{}};
+               _index_buffer{make_index_array()};
 };
 
 } // namespace floormat

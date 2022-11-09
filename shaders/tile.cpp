@@ -1,6 +1,7 @@
 #include "shaders/tile.hpp"
 #include "loader.hpp"
 #include "compat/assert.hpp"
+#include "local-coords.hpp"
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Shader.h>
@@ -63,6 +64,15 @@ void tile_shader::_draw()
         _real_camera_offset = offset;
         setUniform(OffsetUniform, offset);
     }
+}
+
+float tile_shader::depth_value(const local_coords& xy) noexcept
+{
+    constexpr float max = (TILE_MAX_DIM+1)*(TILE_MAX_DIM+1) * .5f;
+    constexpr float min = -1 + 1.f/256;
+    float value = min + xy.to_index()/max;
+    fm_assert(value > -1 && value < 1);
+    return value;
 }
 
 } // namespace floormat

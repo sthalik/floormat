@@ -9,8 +9,7 @@ namespace floormat {
 anim_mesh::anim_mesh()
 {
     _mesh.setCount(6)
-        .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
-        .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
+        .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
 }
@@ -27,9 +26,12 @@ void anim_mesh::draw(tile_shader& shader, const anim_atlas& atlas, rotation r, s
 {
     const auto center = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;
     const auto pos = atlas.frame_quad(center, r, frame);
-    _positions_buffer.setSubData(0, pos);
     const auto texcoords = atlas.texcoords_for_frame(r, frame);
-    _vertex_buffer.setSubData(0, texcoords);
+    const float depth = tile_shader::depth_value(xy);
+    quad_data array;
+    for (std::size_t i = 0; i < 4; i++)
+        array[i] = { pos[i], texcoords[i], depth };
+    _vertex_buffer.setSubData(0, array);
     shader.draw(_mesh);
 }
 

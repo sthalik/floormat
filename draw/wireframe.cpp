@@ -27,16 +27,21 @@ GL::Texture2D mesh_base::make_constant_texture()
     return tex;
 }
 
+struct constant_buf {
+    Vector2 texcoords;
+    float depth = 1;
+};
+
 mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
                      std::size_t num_vertices, std::size_t num_indexes) :
     _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
-    _texcoords_buffer{Containers::Array<Vector2>{ValueInit, num_vertices}},
+    _constant_buffer{Containers::Array<constant_buf>{ValueInit, num_vertices}},
     _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}}
 {
     _mesh.setCount((int)(num_indexes > 0 ? num_indexes : num_vertices))
         .setPrimitive(primitive)
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
-        .addVertexBuffer(_texcoords_buffer, 0, tile_shader::TextureCoordinates{});
+        .addVertexBuffer(_constant_buffer, 0, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
     if (num_indexes > 0)
         _mesh.setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
 }

@@ -7,10 +7,13 @@
 
 namespace floormat {
 
+struct local_coords;
+
 struct tile_shader : GL::AbstractShaderProgram
 {
-    typedef GL::Attribute<0, Vector3> Position;
-    typedef GL::Attribute<1, Vector2> TextureCoordinates;
+    using Position           = GL::Attribute<0, Vector3>;
+    using TextureCoordinates = GL::Attribute<1, Vector2>;
+    using Depth              = GL::Attribute<2, float>;
 
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile_shader);
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(tile_shader);
@@ -24,6 +27,7 @@ struct tile_shader : GL::AbstractShaderProgram
     tile_shader& set_camera_offset(Vector2d camera_offset);
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
+    static float depth_value(const local_coords& xy) noexcept;
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);

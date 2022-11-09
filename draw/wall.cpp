@@ -15,7 +15,7 @@ wall_mesh::wall_mesh()
 {
     _mesh.setCount((int)(quad_index_count * COUNT))
          .addVertexBuffer(_vertex_buffer, 0, tile_shader::TextureCoordinates{})
-         .addVertexBuffer(_positions_buffer, 0, tile_shader::Position{})
+         .addVertexBuffer(_constant_buffer, 0, tile_shader::Position{}, tile_shader::Depth{})
          .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
 }
@@ -94,16 +94,23 @@ std::array<std::array<UnsignedShort, 6>, wall_mesh::COUNT> wall_mesh::make_index
     return array;
 }
 
-std::array<std::array<Vector3, 4>, wall_mesh::COUNT> wall_mesh::make_position_array()
+auto wall_mesh::make_constant_array() -> std::array<std::array<constant, 4>, wall_mesh::COUNT>
 {
-    std::array<std::array<Vector3, 4>, COUNT> array;
+    std::array<std::array<constant, 4>, COUNT> array;
     for (std::uint8_t j = 0; j < TILE_MAX_DIM; j++)
         for (std::uint8_t i = 0; i < TILE_MAX_DIM; i++)
         {
-            const std::size_t idx = (j*TILE_MAX_DIM + i) * 2u;
+            const local_coords coord{i, j};
+            const std::size_t idx = coord.to_index() * 2u;
             const auto center = Vector3(i, j, 0) * TILE_SIZE;
-            array[idx + 0] = tile_atlas::wall_quad_N(center, TILE_SIZE);
-            array[idx + 1] = tile_atlas::wall_quad_W(center, TILE_SIZE);
+            auto wall_n_pos = tile_atlas::wall_quad_N(center, TILE_SIZE);
+            auto wall_w_pos = tile_atlas::wall_quad_W(center, TILE_SIZE);
+            auto depth = tile_shader::depth_value(coord);
+            for (std::size_t k = 0; k < 4; k++)
+            {
+                array[idx + 0][k] = { wall_n_pos[k], depth, };
+                array[idx + 1][k] = { wall_w_pos[k], depth, };
+            }
         }
     return array;
 }

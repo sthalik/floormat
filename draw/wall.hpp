@@ -28,6 +28,11 @@ private:
         Vector2 texcoords;
     };
 
+    struct constant final {
+        Vector3 position;
+        float depth = -1;
+    };
+
     using quad = std::array<vertex, 4>;
     using vertex_array = std::array<quad, COUNT>;
     using texture_array = std::array<GL::Texture2D*, COUNT>;
@@ -40,9 +45,9 @@ private:
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{vertex_array{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{make_index_array()},
-               _positions_buffer{make_position_array()};
+               _constant_buffer{make_constant_array()};
     static std::array<std::array<UnsignedShort, 6>, COUNT> make_index_array();
-    static std::array<std::array<Vector3, 4>, COUNT> make_position_array();
+    static std::array<std::array<constant, 4>, COUNT> make_constant_array();
 };
 
 } // namespace floormat

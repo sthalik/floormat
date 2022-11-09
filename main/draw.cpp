@@ -22,16 +22,30 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
         _msaa_framebuffer.setViewport({{}, size});
     else
         _msaa_framebuffer = GL::Framebuffer{{{}, size}};
+
     // --- color ---
     _msaa_color = Magnum::GL::Renderbuffer{};
     const int samples = std::min(_msaa_color.maxSamples(), (int)s.msaa_samples);
     _msaa_color.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_color);
+
     // --- depth ---
     _msaa_depth = Magnum::GL::Renderbuffer{};
     _msaa_depth.setStorageMultisample(samples, GL::RenderbufferFormat::DepthStencil, size);
     _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _msaa_depth);
-    // -- done ---
+
+    // -- state ---
+    using R = GL::Renderer;
+    GL::Renderer::setBlendEquation(R::BlendEquation::Add, R::BlendEquation::Add);
+    GL::Renderer::setBlendFunction(R::BlendFunction::SourceAlpha, R::BlendFunction::OneMinusSourceAlpha);
+    GL::Renderer::disable(R::Feature::FaceCulling);
+    GL::Renderer::disable(R::Feature::DepthTest);
+    GL::Renderer::enable(R::Feature::Blending);
+    GL::Renderer::enable(R::Feature::ScissorTest);
+    GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
+    GL::Renderer::setScissor({{}, size});
+
+    // -- user--
     app.on_viewport_event(size);
 }
 
@@ -69,8 +83,6 @@ void main_impl::draw_world() noexcept
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = windowSize();
 
-    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
-
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -82,8 +94,13 @@ void main_impl::draw_world() noexcept
                 _floor_mesh.draw(_shader, _world[c]);
         }
 
-    //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    constexpr float clear_depth = 0;
+#ifdef FM_SKIP_MSAA
+    GL::defaultFramebuffer.clearDepthStencil(clear_depth, 0);
+#else
+    _msaa_framebuffer.clearDepthStencil(clear_depth, 0);
+#endif
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -92,6 +109,7 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _wall_mesh.draw(_shader, _world[c]);
         }
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
@@ -136,18 +154,21 @@ void main_impl::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        using fc = GL::FramebufferClear;
-        constexpr auto mask = fc::Color | fc::Depth | fc::Stencil;
-        GL::defaultFramebuffer.clear(mask);
-#ifndef FM_SKIP_MSAA
-        _msaa_framebuffer.clear(mask);
+        using namespace Math::Literals;
+        const auto clear_color = 0x222222ff_rgbaf;
+#ifdef FM_SKIP_MSAA
+        GL::defaultFramebuffer.clearColor(clear_color);
+#else
+        _msaa_framebuffer.clearColor(0, clear_color);
         _msaa_framebuffer.bind();
 #endif
         draw_world();
         app.draw_msaa();
 #ifndef FM_SKIP_MSAA
         GL::defaultFramebuffer.bind();
-        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit{(unsigned)mask});
+        using Blit = GL::FramebufferBlit;
+        constexpr auto blit_mask = Blit::Color /* | Blit::Depth | Blit::Stencil */;
+        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, blit_mask);
 #endif
     }
 

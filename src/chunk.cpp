@@ -52,6 +52,7 @@ auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
     struct vertex {
         Vector3 position;
         Vector2 texcoords;
+        float depth = -1;
     };
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (std::size_t k = 0; k < TILE_COUNT; k++)
@@ -61,18 +62,19 @@ auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
             vertexes[k] = {};
         else
         {
-            const std::uint8_t x = i % TILE_MAX_DIM, y = i / TILE_MAX_DIM;
-            auto quad = atlas->floor_quad(Vector3(x, y, 0) * TILE_SIZE, TILE_SIZE2);
-            auto texcoords = atlas->texcoords_for_id(_ground_variants[i] % atlas->num_tiles());
+            const local_coords pos{i};
+            const auto quad = atlas->floor_quad(Vector3(pos.x, pos.y, 0) * TILE_SIZE, TILE_SIZE2);
+            const auto texcoords = atlas->texcoords_for_id(_ground_variants[i] % atlas->num_tiles());
+            const float depth = tile_shader::depth_value(pos);
             auto& v = vertexes[k];
             for (std::size_t j = 0; j < 4; j++)
-                v[j] = { quad[j], texcoords[j] };
+                v[j] = { quad[j], texcoords[j], depth };
         }
     }
     constexpr auto indexes = make_index_array();
 
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(GL::Buffer{vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{})
+    mesh.addVertexBuffer(GL::Buffer{vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{indexes}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(6 * TILE_COUNT);
     ground_mesh = Utility::move(mesh);
