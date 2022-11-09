@@ -33,7 +33,6 @@ global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 
 auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 {
-
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
