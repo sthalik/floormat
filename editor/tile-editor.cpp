@@ -147,6 +147,7 @@ tile_image_proto tile_editor::get_selected()
 void tile_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
 {
     auto [c, t] = world[pos];
+    c.mark_modified();
     switch (_mode)
     {
     case editor_mode::none:
