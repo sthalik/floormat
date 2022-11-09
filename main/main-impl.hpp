@@ -76,8 +76,9 @@ private:
 
     struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
 
-    GL::Framebuffer _msaa_framebuffer{{{}, window_size()}};
-    GL::Renderbuffer _msaa_renderbuffer{};
+    GL::Framebuffer _msaa_framebuffer{NoCreate};
+    GL::Renderbuffer _msaa_depth{NoCreate};
+    GL::Renderbuffer _msaa_color{NoCreate};
 
     void recalc_viewport(Vector2i size) noexcept;
     void draw_world() noexcept;

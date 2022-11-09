@@ -5,19 +5,33 @@
 #include <algorithm>
 #include <thread>
 
+//#define FM_SKIP_MSAA
+
 namespace floormat {
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
 {
     update_window_state();
-    GL::defaultFramebuffer.setViewport({{}, size });
-    _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
-    _msaa_renderbuffer = Magnum::GL::Renderbuffer{};
-    const int samples = std::min(_msaa_renderbuffer.maxSamples(), (int)s.msaa_samples);
-    _msaa_renderbuffer.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
-    _msaa_framebuffer.setViewport({{}, size });
-    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_renderbuffer);
     _shader.set_scale(Vector2{size});
+    GL::defaultFramebuffer.setViewport({{}, size });
+    if (_msaa_color.id())
+        _msaa_framebuffer.detach(GL::Framebuffer::ColorAttachment{0});
+    if (_msaa_depth.id())
+        _msaa_framebuffer.detach(GL::Framebuffer::BufferAttachment::DepthStencil);
+    if (_msaa_framebuffer.id())
+        _msaa_framebuffer.setViewport({{}, size});
+    else
+        _msaa_framebuffer = GL::Framebuffer{{{}, size}};
+    // --- color ---
+    _msaa_color = Magnum::GL::Renderbuffer{};
+    const int samples = std::min(_msaa_color.maxSamples(), (int)s.msaa_samples);
+    _msaa_color.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
+    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_color);
+    // --- depth ---
+    _msaa_depth = Magnum::GL::Renderbuffer{};
+    _msaa_depth.setStorageMultisample(samples, GL::RenderbufferFormat::DepthStencil, size);
+    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _msaa_depth);
+    // -- done ---
     app.on_viewport_event(size);
 }
 
@@ -119,16 +133,18 @@ void main_impl::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
+        using fc = GL::FramebufferClear;
+        constexpr auto mask = fc::Color | fc::Depth | fc::Stencil;
+        GL::defaultFramebuffer.clear(mask);
 #ifndef FM_SKIP_MSAA
-        _msaa_framebuffer.clear(GL::FramebufferClear::Color);
+        _msaa_framebuffer.clear(mask);
         _msaa_framebuffer.bind();
 #endif
         draw_world();
         app.draw_msaa();
 #ifndef FM_SKIP_MSAA
         GL::defaultFramebuffer.bind();
-        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
+        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit{(unsigned)mask});
 #endif
     }
 
