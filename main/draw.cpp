@@ -114,14 +114,13 @@ void main_impl::drawEvent()
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
-        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/4,
-                    RC2 = 1.f/8;
+        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/5, RC2 = 1.f/10;
         const float alpha1 = dt/(dt + RC1);
         const float alpha2 = dt/(dt + RC2);
 
         _frame_time1 = _frame_time1*(1-alpha1) + alpha1*dt;
         _frame_time2 = _frame_time1*(1-alpha2) + alpha2*dt;
-        constexpr float max_deviation = 10 * 1e-3f;
+        constexpr float max_deviation = 5 * 1e-3f;
         if (std::fabs(_frame_time1 - _frame_time2) > max_deviation)
             _frame_time1 = _frame_time2;
     }
