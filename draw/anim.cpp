@@ -1,8 +1,8 @@
 #include "anim.hpp"
 #include "anim-atlas.hpp"
+#include "chunk.hpp"
 #include "shaders/tile.hpp"
-#include "wireframe.hpp"
-#include "quad-floor.hpp"
+#include <Magnum/GL/Texture.h>
 
 namespace floormat {
 
@@ -22,7 +22,28 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::draw(tile_shader& shader, const anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
+void anim_mesh::draw(tile_shader& shader, chunk& c)
+{
+    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    {
+        const local_coords pos{i};
+        if (auto [atlas, s] = c[pos].scenery(); atlas)
+        {
+            draw(shader, *atlas, s.r, s.frame, pos);
+#if 1
+            // todo debugging
+            static std::size_t N = 0;
+            N++;
+            auto nframes = atlas->info().nframes;
+            if (N > nframes*3)
+                N = 0;
+            s.frame = (scenery::frame_t)std::min(N, nframes-1);
+#endif
+        }
+    }
+}
+
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
 {
     const auto center = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;
     const auto pos = atlas.frame_quad(center, r, frame);
@@ -32,6 +53,7 @@ void anim_mesh::draw(tile_shader& shader, const anim_atlas& atlas, rotation r, s
     for (std::size_t i = 0; i < 4; i++)
         array[i] = { pos[i], texcoords[i], depth };
     _vertex_buffer.setSubData(0, array);
+    atlas.texture().bind(0);
     shader.draw(_mesh);
 }
 

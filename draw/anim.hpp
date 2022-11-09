@@ -10,18 +10,20 @@
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Buffer.h>
 
-namespace floormat::Serialize { struct anim_frame; }
+//namespace floormat::Serialize { struct anim_frame; }
 
 namespace floormat {
 
 struct tile_shader;
 struct anim_atlas;
-using anim_frame = Serialize::anim_frame;
+struct chunk;
+//using anim_frame = Serialize::anim_frame;
 
 struct anim_mesh final
 {
     anim_mesh();
-    void draw(tile_shader& shader, const anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
+    void draw(tile_shader& shader, chunk& c);
+    void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
 
 private:
     struct vertex_data final {

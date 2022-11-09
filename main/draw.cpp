@@ -86,12 +86,12 @@ void main_impl::draw_world() noexcept
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            if (const chunk_coords c = {x, y}; !_world.contains(c))
-                app.maybe_initialize_chunk(c, _world[c]);
-            const chunk_coords c{x, y};
-            const with_shifted_camera_offset o{_shader, c};
+            const chunk_coords pos{x, y};
+            if (!_world.contains(pos))
+                app.maybe_initialize_chunk(pos, _world[pos]);
+            const with_shifted_camera_offset o{_shader, pos};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-                _floor_mesh.draw(_shader, _world[c]);
+                _floor_mesh.draw(_shader, _world[pos]);
         }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
@@ -104,10 +104,14 @@ void main_impl::draw_world() noexcept
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
-            const chunk_coords c{x, y};
-            const with_shifted_camera_offset o{_shader, c};
+            const chunk_coords pos{x, y};
+            auto& c = _world[pos];
+            const with_shifted_camera_offset o{_shader, pos};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-                _wall_mesh.draw(_shader, _world[c]);
+            {
+                _wall_mesh.draw(_shader, c);
+                _anim_mesh.draw(_shader, c);
+            }
         }
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }

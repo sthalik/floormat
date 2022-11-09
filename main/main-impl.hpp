@@ -4,6 +4,7 @@
 #include "src/world.hpp"
 #include "draw/floor.hpp"
 #include "draw/wall.hpp"
+#include "draw/anim.hpp"
 #include "shaders/tile.hpp"
 
 #include <Corrade/Containers/String.h>
@@ -67,6 +68,7 @@ private:
     struct world _world{};
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
+    anim_mesh _anim_mesh;
     Magnum::Timeline timeline;
     struct {
         float value = 0;
