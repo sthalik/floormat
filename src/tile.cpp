@@ -44,24 +44,24 @@ scenery_proto tile_proto::scenery_image() const noexcept       { return { scener
 tile_ref::tile_ref(struct chunk& c, std::uint8_t i) noexcept : _chunk{&c}, i{i} {}
 
 std::shared_ptr<tile_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground_atlases[i]; }
-std::shared_ptr<tile_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_wall_north_atlases[i]; }
-std::shared_ptr<tile_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_wall_west_atlases[i]; }
+std::shared_ptr<tile_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_wall_atlases[i*2+0]; }
+std::shared_ptr<tile_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_wall_atlases[i*2+1]; }
 std::shared_ptr<anim_atlas> tile_ref::scenery_atlas()    noexcept { return _chunk->_scenery_atlases[i]; }
 
 std::shared_ptr<const tile_atlas> tile_ref::ground_atlas()      const noexcept { return _chunk->_ground_atlases[i]; }
-std::shared_ptr<const tile_atlas> tile_ref::wall_north_atlas()  const noexcept { return _chunk->_wall_north_atlases[i]; }
-std::shared_ptr<const tile_atlas> tile_ref::wall_west_atlas()   const noexcept { return _chunk->_wall_west_atlases[i]; }
+std::shared_ptr<const tile_atlas> tile_ref::wall_north_atlas()  const noexcept { return _chunk->_wall_atlases[i*2+0]; }
+std::shared_ptr<const tile_atlas> tile_ref::wall_west_atlas()   const noexcept { return _chunk->_wall_atlases[i*2+1]; }
 std::shared_ptr<const anim_atlas> tile_ref::scenery_atlas()     const noexcept { return _chunk->_scenery_atlases[i]; }
 
 tile_image_ref tile_ref::ground() noexcept     { return {_chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
-tile_image_ref tile_ref::wall_north() noexcept { return {_chunk->_wall_north_atlases[i], _chunk->_wall_north_variants[i] }; }
-tile_image_ref tile_ref::wall_west() noexcept  { return {_chunk->_wall_west_atlases[i],  _chunk->_wall_west_variants[i] };  }
+tile_image_ref tile_ref::wall_north() noexcept { return {_chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }
+tile_image_ref tile_ref::wall_west() noexcept  { return {_chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
 scenery_ref tile_ref::scenery() noexcept       { return {_chunk->_scenery_atlases[i],    _chunk->_scenery_variants[i] }; }
 
 tile_image_proto tile_ref::ground() const noexcept     { return { _chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
-tile_image_proto tile_ref::wall_north() const noexcept { return { _chunk->_wall_north_atlases[i], _chunk->_wall_north_variants[i] }; }
-tile_image_proto tile_ref::wall_west() const noexcept  { return { _chunk->_wall_west_atlases[i],  _chunk->_wall_west_variants[i] };  }
-scenery_proto tile_ref::scenery() const noexcept       { return {_chunk->_scenery_atlases[i],    _chunk->_scenery_variants[i] }; }
+tile_image_proto tile_ref::wall_north() const noexcept { return { _chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }
+tile_image_proto tile_ref::wall_west() const noexcept  { return { _chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
+scenery_proto tile_ref::scenery() const noexcept       { return { _chunk->_scenery_atlases[i],    _chunk->_scenery_variants[i] }; }
 
 pass_mode_ref tile_ref::pass_mode() noexcept { return { *_chunk, i }; }
 pass_mode tile_ref::pass_mode() const noexcept { return pass_mode_ref { *const_cast<struct chunk*>(_chunk), i }; }
@@ -69,8 +69,8 @@ pass_mode tile_ref::pass_mode() const noexcept { return pass_mode_ref { *const_c
 tile_ref::operator tile_proto() const noexcept
 {
     return {
-        _chunk->_ground_atlases[i],  _chunk->_wall_north_atlases[i],  _chunk->_wall_west_atlases[i], _chunk->_scenery_atlases[i],
-        _chunk->_ground_variants[i], _chunk->_wall_north_variants[i], _chunk->_wall_west_variants[i], _chunk->_scenery_variants[i],
+        _chunk->_ground_atlases[i],  _chunk->_wall_atlases[i*2+0],  _chunk->_wall_atlases[i*2+1], _chunk->_scenery_atlases[i],
+        _chunk->_ground_variants[i], _chunk->_wall_variants[i*2+0], _chunk->_wall_variants[i*2+1], _chunk->_scenery_variants[i],
         pass_mode(),
     };
 }

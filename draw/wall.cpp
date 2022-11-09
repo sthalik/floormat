@@ -9,7 +9,7 @@
 
 namespace floormat {
 
-#define FM_DEBUG_DRAW_COUNT
+//#define FM_DEBUG_DRAW_COUNT
 
 constexpr auto quad_index_count = 6;
 
@@ -17,7 +17,7 @@ wall_mesh::wall_mesh() = default;
 
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
-    auto [mesh_, ids_n, ids_w] = c.ensure_wall_mesh();
+    auto [mesh_, ids] = c.ensure_wall_mesh();
 
     tile_atlas* last_atlas = nullptr;
     std::size_t last_pos = 0;
@@ -32,7 +32,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         {
             last_atlas->texture().bind(0);
             mesh.setCount((int)(quad_index_count * len));
-            mesh.setIndexRange((int)(last_pos*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
+            mesh.setIndexRange((int)(last_pos*quad_index_count), 0, quad_index_count*TILE_COUNT*2 - 1);
             shader.draw(mesh);
             draw_count++;
         }
@@ -40,12 +40,12 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         last_pos = i;
     };
 
-    for (std::size_t k = 0; k < TILE_COUNT; k++)
-        if (auto* atlas = c.wall_n_atlas_at(ids_n[k]))
+    for (std::size_t k = 0; k < TILE_COUNT*2; k++)
+    {
+        const std::size_t i = ids[k];
+        if (auto* atlas = c.wall_atlas_at(i))
             do_draw(k, atlas);
-    for (std::size_t k = 0; k < TILE_COUNT; k++)
-        if (auto* atlas = c.wall_w_atlas_at(ids_w[k]))
-            do_draw(k + TILE_COUNT, atlas);
+    }
     do_draw(TILE_COUNT*2, nullptr);
 
 #ifdef FM_DEBUG_DRAW_COUNT
