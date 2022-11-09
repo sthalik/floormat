@@ -52,7 +52,7 @@ wireframe_mesh<T>::wireframe_mesh() :
 
 template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
 {
-    //_vertex_buffer.setData({nullptr, sizeof(Vector3) * T::num_vertices}, GL::BufferUsage::DynamicDraw); // orphan the buffer
+    //_texcoord_buffer.setData({nullptr, sizeof(Vector3) * T::num_vertices}, GL::BufferUsage::DynamicDraw); // orphan the buffer
     set_subdata(x.make_vertex_array());
     x.on_draw();
     mesh_base::draw(shader);

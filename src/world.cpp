@@ -16,18 +16,11 @@ fm_noinline
 chunk& world::operator[](chunk_coords coord) noexcept
 {
     maybe_collect();
-
-    if (auto& [c, coord2] = _last_chunk; c && coord == coord2)
-    {
-        return *c;
-    }
-
-    auto [it, inserted] = _chunks.try_emplace(coord);
-    auto& ret = it->second;
-    auto& [_c, _coord] = _last_chunk;
-    _c = &ret;
-    _coord = coord;
-    return ret;
+    auto& [c, coord2] = _last_chunk;
+    if (coord != coord2)
+        c = &_chunks.try_emplace(coord).first->second;
+    coord2 = coord;
+    return *c;
 }
 
 auto world::operator[](global_coords pt) noexcept -> pair
@@ -46,13 +39,14 @@ void world::clear()
     _last_collection = 0;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
-    auto& [c, _] = _last_chunk;
+    auto& [c, pos] = _last_chunk;
     c = nullptr;
+    pos = chunk_tuple::invalid_coords;
 }
 
 void world::maybe_collect()
 {
-    if (_last_collection + collect_every > _chunks.size())
+    if (_chunks.size() > _last_collection + collect_every)
         collect();
 }
 
@@ -68,8 +62,9 @@ void world::collect(bool force)
     }
 
     _last_collection = _chunks.size();
-    auto& [c, _] = _last_chunk;
+    auto& [c, pos] = _last_chunk;
     c = nullptr;
+    pos = chunk_tuple::invalid_coords;
 }
 
 } // namespace floormat

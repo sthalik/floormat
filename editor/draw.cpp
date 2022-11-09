@@ -9,6 +9,8 @@ namespace floormat {
 
 void app::draw_cursor()
 {
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+
     constexpr float LINE_WIDTH = 2;
 
     if (cursor.tile && !cursor.in_imgui)

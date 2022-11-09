@@ -69,6 +69,8 @@ void main_impl::draw_world() noexcept
     auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = windowSize();
 
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -79,6 +81,8 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _floor_mesh.draw(_shader, _world[c]);
         }
+
+    //GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
@@ -110,8 +114,8 @@ void main_impl::drawEvent()
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
-        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/10,
-                    RC2 = dt_expected.do_sleep ? 1.f/10 : 1.f/15;
+        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/5,
+                    RC2 = 1.f/10;
         const float alpha1 = dt/(dt + RC1);
         const float alpha2 = dt/(dt + RC2);
 

@@ -11,23 +11,28 @@ namespace floormat {
 struct world final
 {
 private:
+    struct chunk_tuple final {
+        static constexpr chunk_coords invalid_coords = { -1 << 15, -1 << 15 };
+        chunk* c = nullptr;
+        chunk_coords pos = invalid_coords;
+    } _last_chunk;
+
     void maybe_collect();
 
-    static constexpr std::size_t initial_capacity = 64, collect_every = 32;
+    static constexpr std::size_t initial_capacity = 64, collect_every = 64;
     static constexpr float max_load_factor = .5;
     static constexpr auto hasher = [](chunk_coords c) constexpr -> std::size_t {
         return int_hash((std::size_t)c.y << 16 | (std::size_t)c.x);
     };
-
     std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks;
-    mutable std::tuple<chunk*, chunk_coords> _last_chunk;
     std::size_t _last_collection = 0;
+
     explicit world(std::size_t capacity);
 
 public:
     explicit world();
 
-    struct pair final { chunk& c; tile_ref t; };
+    struct pair final { chunk& c; tile_ref t; }; // NOLINT
 
     template<typename Hash, typename Alloc, typename Pred>
     explicit world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks);
