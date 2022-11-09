@@ -84,6 +84,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
 }
 
 template<std::size_t N>
+fm_noinline
 Trade::ImageData2D loader_impl::texture(const char(&prefix)[N], StringView filename_)
 {
     if constexpr(N > 1)

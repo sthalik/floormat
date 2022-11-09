@@ -27,7 +27,7 @@ struct tile_shader : GL::AbstractShaderProgram
     tile_shader& set_camera_offset(Vector2d camera_offset);
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
-    static float depth_value(const local_coords& xy) noexcept;
+    static float depth_value(const local_coords& xy, float offset = 0) noexcept;
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);

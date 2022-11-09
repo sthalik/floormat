@@ -39,13 +39,26 @@ struct chunk final
     chunk(chunk&&) noexcept;
     chunk& operator=(chunk&&) noexcept;
 
+    void mark_ground_modified() noexcept;
+    void mark_walls_modified() noexcept;
     void mark_modified() noexcept;
-    bool is_modified() const noexcept;
 
-    struct mesh_tuple { GL::Mesh& mesh; const std::array<std::uint8_t, TILE_COUNT>& ids; }; // NOLINT
+    struct ground_mesh_tuple final {
+        GL::Mesh& mesh;
+        const std::array<std::uint8_t, TILE_COUNT>& ids;
+    };
+    struct wall_mesh_tuple final {
+        GL::Mesh& mesh;
+        const std::array<std::uint8_t, TILE_COUNT>& n;
+        const std::array<std::uint8_t, TILE_COUNT>& w;
+    };
 
-    mesh_tuple ensure_ground_mesh() noexcept;
+    ground_mesh_tuple ensure_ground_mesh() noexcept;
     tile_atlas* ground_atlas_at(std::size_t i) const noexcept;
+
+    wall_mesh_tuple ensure_wall_mesh() noexcept;
+    tile_atlas* wall_n_atlas_at(std::size_t i) const noexcept;
+    tile_atlas* wall_w_atlas_at(std::size_t i) const noexcept;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases, _wall_north_atlases, _wall_west_atlases;
@@ -54,9 +67,11 @@ private:
     std::array<variant_t, TILE_COUNT> _ground_variants = {}, _wall_north_variants = {}, _wall_west_variants = {};
     std::bitset<TILE_COUNT*2> _passability = {};
     std::array<std::uint8_t, TILE_COUNT> ground_indexes = {};
-    GL::Mesh ground_mesh{NoCreate};
+    std::array<std::uint8_t, TILE_COUNT> wall_n_indexes = {}, wall_w_indexes = {};
+    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable std::uint8_t _maybe_empty     : 1 = true,
-                         _ground_modified : 1 = true;
+                         _ground_modified : 1 = true,
+                         _walls_modified  : 1 = true;
 };
 
 } // namespace floormat

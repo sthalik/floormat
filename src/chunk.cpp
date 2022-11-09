@@ -24,20 +24,25 @@ bool chunk::empty(bool force) const noexcept
     return true;
 }
 
-tile_atlas* chunk::ground_atlas_at(std::size_t i) const noexcept
-{
-    return _ground_atlases[i].get();
-}
+tile_atlas* chunk::ground_atlas_at(std::size_t i) const noexcept { return _ground_atlases[i].get(); }
+tile_atlas* chunk::wall_n_atlas_at(std::size_t i) const noexcept { return _wall_north_atlases[i].get(); }
+tile_atlas* chunk::wall_w_atlas_at(std::size_t i) const noexcept { return _wall_west_atlases[i].get(); }
 
-static constexpr auto make_index_array()
+static auto make_index_array(std::size_t offset)
 {
-    std::array<std::array<UnsignedShort, 6>, TILE_COUNT> array;
+    std::array<std::array<UnsignedShort, 6>, TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (std::size_t i = 0; i < TILE_COUNT; i++)
-        array[i] = tile_atlas::indices(i);
+        array[i] = tile_atlas::indices(i + offset);
     return array;
 }
 
-auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
+struct vertex {
+    Vector3 position;
+    Vector2 texcoords;
+    float depth = -1;
+};
+
+auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
 {
     if (!_ground_modified)
         return { ground_mesh, ground_indexes };
@@ -49,11 +54,6 @@ auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
         return _ground_atlases[a].get() < _ground_atlases[b].get();
     });
 
-    struct vertex {
-        Vector3 position;
-        Vector2 texcoords;
-        float depth = -1;
-    };
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (std::size_t k = 0; k < TILE_COUNT; k++)
     {
@@ -71,7 +71,7 @@ auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
                 v[j] = { quad[j], texcoords[j], depth };
         }
     }
-    constexpr auto indexes = make_index_array();
+    const auto indexes = make_index_array(0);
 
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
@@ -81,6 +81,69 @@ auto chunk::ensure_ground_mesh() noexcept -> mesh_tuple
     return { ground_mesh, ground_indexes };
 }
 
+auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
+{
+    if (!_walls_modified)
+        return { wall_mesh, wall_n_indexes, wall_w_indexes };
+    _walls_modified = false;
+
+    for (std::size_t i = 0; i < TILE_COUNT; i++)
+        wall_n_indexes[i] = std::uint8_t(i);
+    for (std::size_t i = 0; i < TILE_COUNT; i++)
+        wall_w_indexes[i] = std::uint8_t(i);
+
+    std::sort(wall_n_indexes.begin(), wall_n_indexes.end(), [this](std::uint8_t a, std::uint8_t b) {
+        return _wall_north_atlases[a].get() < _wall_north_atlases[b].get();
+    });
+    std::sort(wall_w_indexes.begin(), wall_w_indexes.end(), [this](std::uint8_t a, std::uint8_t b) {
+        return _wall_west_atlases[a].get() < _wall_west_atlases[b].get();
+    });
+
+    std::array<std::array<vertex, 4>, TILE_COUNT> vertexes[2] = {};
+
+    using ids_ = std::array<std::uint8_t, TILE_COUNT>;
+    using a_ = std::array<std::shared_ptr<tile_atlas>, TILE_COUNT>;
+    using vs_ = std::array<variant_t, TILE_COUNT>;
+    using verts_ = std::array<std::array<vertex, 4>, TILE_COUNT>;
+    constexpr auto do_walls = [](const ids_& ids, const a_& as, const vs_& vs, verts_& verts, const auto& fn) {
+        for (std::size_t k = 0; k < TILE_COUNT; k++)
+        {
+            const std::uint8_t i = ids[k];
+            if (const auto& atlas = as[i]; !atlas)
+                verts[k] = {};
+            else
+            {
+                const local_coords pos{i};
+                const float depth = tile_shader::depth_value(pos);
+                const std::array<Vector3, 4> quad = fn(*atlas, pos);
+                const auto texcoords = atlas->texcoords_for_id(vs[i] % atlas->num_tiles());
+                auto& v = verts[k];
+                for (std::size_t j = 0; j < 4; j++)
+                    v[j] = { quad[j], texcoords[j], depth, };
+            }
+        }
+    };
+    do_walls(wall_n_indexes, _wall_north_atlases, _wall_north_variants, vertexes[0],
+             [](const tile_atlas& a, local_coords pos) {
+        return a.wall_quad_N(Vector3(pos.x, pos.y, 0) * TILE_SIZE, TILE_SIZE);
+    });
+    do_walls(wall_w_indexes, _wall_west_atlases, _wall_west_variants, vertexes[1],
+             [](const tile_atlas& a, local_coords pos) {
+        return a.wall_quad_W(Vector3(pos.x, pos.y, 0) * TILE_SIZE, TILE_SIZE);
+    });
+
+    using index_t = std::array<std::array<UnsignedShort, 6>, TILE_COUNT>;
+    const index_t indexes[2] = { make_index_array(0), make_index_array(TILE_COUNT) };
+
+    GL::Mesh mesh{GL::MeshPrimitive::Triangles};
+    mesh.addVertexBuffer(GL::Buffer{vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+        .setIndexBuffer(GL::Buffer{indexes}, 0, GL::MeshIndexType::UnsignedShort)
+        .setCount(6 * TILE_COUNT);
+    wall_mesh = Utility::move(mesh);
+    return { wall_mesh, wall_n_indexes, wall_w_indexes };
+}
+
+fm_noinline
 chunk::chunk() noexcept // NOLINT(modernize-use-equals-default)
 {
     //fm_debug("chunk ctor");
@@ -101,14 +164,13 @@ auto chunk::end() const noexcept -> const_iterator { return cend(); }
 chunk::chunk(chunk&&) noexcept = default;
 chunk& chunk::operator=(chunk&&) noexcept = default;
 
+void chunk::mark_ground_modified() noexcept { _ground_modified = true; }
+void chunk::mark_walls_modified() noexcept { _walls_modified = true; }
+
 void chunk::mark_modified() noexcept
 {
-    _ground_modified = true;
-}
-
-bool chunk::is_modified() const noexcept
-{
-    return _ground_modified;
+    mark_ground_modified();
+    mark_walls_modified();
 }
 
 } // namespace floormat

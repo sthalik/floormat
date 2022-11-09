@@ -66,11 +66,11 @@ void tile_shader::_draw()
     }
 }
 
-float tile_shader::depth_value(const local_coords& xy) noexcept
+float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
 {
     constexpr float max = (TILE_MAX_DIM+1)*(TILE_MAX_DIM+1) * .5f;
     constexpr float min = -1 + 1.f/256;
-    float value = min + xy.to_index()/max;
+    float value = min + (xy.to_index() + offset)/max;
     fm_assert(value > -1 && value < 1);
     return value;
 }
