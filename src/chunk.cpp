@@ -19,6 +19,8 @@ bool chunk::empty(bool force) const noexcept
     return true;
 }
 
+chunk::chunk() noexcept = default;
+
 tile_ref chunk::operator[](std::size_t idx) noexcept { return { *this, std::uint8_t(idx) }; }
 tile_proto chunk::operator[](std::size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), std::uint8_t(idx) }); }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }

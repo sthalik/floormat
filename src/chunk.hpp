@@ -32,7 +32,7 @@ struct chunk final
 
     bool empty(bool force = false) const noexcept;
 
-    chunk() noexcept = default;
+    chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
     chunk(chunk&&) noexcept;
