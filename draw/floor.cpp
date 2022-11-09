@@ -7,16 +7,14 @@
 
 namespace floormat {
 
-constexpr auto quad_index_count = 6;
-
-floor_mesh::floor_mesh()
-{
-}
+floor_mesh::floor_mesh() = default;
 
 //#define FM_DEBUG_DRAW_COUNT
 
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
+    constexpr auto quad_index_count = 6;
+
     auto [mesh_, ids] = c.ensure_ground_mesh();
 
     tile_atlas* last_atlas = nullptr;

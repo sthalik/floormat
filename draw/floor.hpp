@@ -1,12 +1,4 @@
 #pragma once
-#include "tile-defs.hpp"
-#include <array>
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/GL/Mesh.h>
-#include <Magnum/GL/Buffer.h>
 
 namespace floormat {
 
