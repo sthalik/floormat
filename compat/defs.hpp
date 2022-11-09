@@ -47,3 +47,9 @@
 #define fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS_(type)                             \
     [[maybe_unused]] fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(type);                     \
     [[maybe_unused]] fm_DECLARE_DEFAULT_COPY_ASSIGNMENT_(type)
+
+#ifdef _MSC_VER
+#   define fm_noinline __declspec(noinline)
+#else
+#   define fm_noinline __attribute__((noinline))
+#endif
