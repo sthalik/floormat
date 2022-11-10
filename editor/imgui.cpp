@@ -107,7 +107,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
             ImGui::SameLine();
             text(" (selected)");
         }
-        const auto len = snformat(buf, FMT_COMPILE("{:d}"), N);
+        const auto len = snformat(buf, "{:d}"_cf, N);
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
         text(buf, len);
     };
@@ -134,7 +134,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
                 perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
             };
 
-            snformat(buf, FMT_COMPILE("##item_{}"), i);
+            snformat(buf, "##item_{}"_cf, i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
             ImGui::ImageButton(buf, (void*)&atlas->texture(), size_2,
@@ -193,7 +193,7 @@ void app::draw_fps()
     const auto frame_time = M->smoothed_dt();
     char buf[16];
     const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
-    snformat(buf, FMT_COMPILE("{:.1f} FPS"), hz);
+    snformat(buf, "{:.1f} FPS"_cf, hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText({M->window_size()[0] - size.x - 4, 3}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
@@ -208,7 +208,7 @@ void app::draw_tile_under_cursor()
     const auto coord = *cursor.tile;
     const auto chunk = coord.chunk();
     const auto local = coord.local();
-    snformat(buf, FMT_COMPILE("{}:{} - {}:{}"), chunk.x, chunk.y, local.x, local.y);
+    snformat(buf, "{}:{} - {}:{}"_cf, chunk.x, chunk.y, local.x, local.y);
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 

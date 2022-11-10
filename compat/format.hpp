@@ -2,7 +2,29 @@
 #include <fmt/core.h>
 #include <fmt/compile.h>
 
+namespace floormat::detail::fmt {
+
+template<std::size_t N>
+struct fmt_string final {
+    static constexpr std::size_t size = N;
+    char data[N];
+
+    template <std::size_t... Is>
+    consteval fmt_string(const char (&arr)[N]) noexcept {
+        for (std::size_t i = 0; i < N; i++)
+            data[i] = arr[i];
+    }
+};
+
+} // namespace floormat::detail::fmt
+
 namespace floormat {
+
+template<detail::fmt::fmt_string s>
+consteval auto operator""_cf() noexcept
+{
+    return FMT_COMPILE(s.data);
+}
 
 template<std::size_t N, typename Fmt, typename... Xs>
 std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
