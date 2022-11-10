@@ -4,8 +4,6 @@
 
 namespace floormat {
 
-using namespace fmt::literals;
-
 template<std::size_t N, typename Fmt, typename... Xs>
 std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 {
