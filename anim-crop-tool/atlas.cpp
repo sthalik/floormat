@@ -1,6 +1,5 @@
 #include "atlas.hpp"
 #include "serialize/anim.hpp"
-#include <filesystem>
 #include <opencv2/imgcodecs.hpp>
 #include "compat/assert.hpp" // must go below opencv headers
 using namespace floormat::Serialize;

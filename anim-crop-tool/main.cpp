@@ -11,8 +11,6 @@
 #include <algorithm>
 #include <utility>
 #include <tuple>
-#include <string_view>
-#include <filesystem>
 
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StringView.h>
@@ -252,7 +250,7 @@ int main(int argc, char** argv)
     if (!opts_ok)
         return usage(args);
 
-    auto anim_info = floormat::json_helper::from_json<anim>(opts.input_file);
+    auto anim_info = json_helper::from_json<anim>(opts.input_file);
 
     if (!check_atlas_name(anim_info.object_name))
     {
@@ -262,7 +260,7 @@ int main(int argc, char** argv)
 
     if (!check_atlas_name(anim_info.anim_name))
     {
-        Error{} << "error: atlas animation name" << anim_info.object_name << "contains invalid characters";
+        Error{} << "error: atlas animation name" << anim_info.object_name << "is invalid";
         return EX_DATAERR;
     }
 
@@ -284,12 +282,8 @@ int main(int argc, char** argv)
         if (!load_directory(group, opts, atlas))
             return EX_DATAERR;
 
-    if (std::error_code ec{}; !Path::exists(Path::join(opts.output_dir, ".")) &&
-                              !std::filesystem::create_directory(opts.output_dir.data(), ec)) {
-        Error{} << "error: failed to create output directory"
-                << opts.output_dir << ":" << ec.message();
+    if (!Path::make(opts.output_dir))
         return EX_CANTCREAT;
-    }
 
     const String base_name = anim_info.object_name + "_" + anim_info.anim_name;
 
@@ -299,7 +293,7 @@ int main(int argc, char** argv)
         return EX_CANTCREAT;
     }
     anim_info.pixel_size = Vector2ui(atlas.size());
-    floormat::json_helper::to_json<anim>(anim_info, Path::join(opts.output_dir, (base_name + ".json")));
+    json_helper::to_json<anim>(anim_info, Path::join(opts.output_dir, (base_name + ".json")));
 
     return 0;
 }
