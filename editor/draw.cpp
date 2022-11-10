@@ -2,7 +2,6 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "shaders/tile.hpp"
-#include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Math/Vector3.h>
 
 namespace floormat {
@@ -41,6 +40,7 @@ void app::draw_msaa()
 
 void app::draw()
 {
+    draw_ui();
     render_menu();
 }
 

@@ -159,8 +159,6 @@ void main_impl::do_update()
 
 void main_impl::drawEvent()
 {
-    do_update();
-
     _shader.set_tint({1, 1, 1, 1});
 
     {
@@ -183,6 +181,7 @@ void main_impl::drawEvent()
     }
 
     app.draw();
+    do_update();
 
     swapBuffers();
     redraw();

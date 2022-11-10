@@ -100,7 +100,6 @@ void app::apply_commands(const key_set& keys)
 
 void app::update(float dt)
 {
-    draw_ui();
     apply_commands(keys);
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
