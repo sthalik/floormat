@@ -8,6 +8,8 @@
 #include "tile.hpp"
 #include "chunk.hpp"
 #include "loader.hpp"
+#include <Corrade/Containers/StringView.h>
+#include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
@@ -32,21 +34,21 @@ static chunk make_test_chunk()
 
 bool floormat::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
-    const std::filesystem::path output_dir = "../test/.";
+    constexpr StringView output_dir = "../test/.";
     {
         auto atlas = loader.tile_atlas("metal1", {2, 2});
-        json_helper::to_json(atlas, output_dir/"atlas.json");
+        json_helper::to_json(atlas, Path::join(output_dir, "atlas.json"));
     }
     {
         Magnum::Math::Vector<2, int> v2i_1{1, 2};
         Vector2i v2i_2{2, 3};
-        json_helper::to_json(v2i_1, output_dir/"vec2i_1.json");
-        json_helper::to_json(v2i_2, output_dir/"vec2i_2.json");
+        json_helper::to_json(v2i_1, Path::join(output_dir, "vec2i_1.json"));
+        json_helper::to_json(v2i_2, Path::join(output_dir, "vec2i_2.json"));
     }
     {
         volatile float zero = 0;
         Magnum::Math::Vector3 vec{0.f/zero, -1.f/zero, 123.f};
-        json_helper::to_json(vec, output_dir/"vec3_inf.json");
+        json_helper::to_json(vec, Path::join(output_dir, "vec3_inf.json"));
     }
 
     return true;

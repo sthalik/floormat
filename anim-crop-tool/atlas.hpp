@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <filesystem>
+#include <Corrade/Containers/StringView.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <opencv2/core/mat.hpp>
@@ -33,7 +33,7 @@ public:
     void advance_row();
     Magnum::Vector2ui offset() const noexcept;
     Magnum::Vector2ui size() const noexcept;
-    [[nodiscard]] bool dump(const std::filesystem::path& filename) const;
+    [[nodiscard]] bool dump(StringView filename) const;
 };
 
 } // namespace floormat::Serialize

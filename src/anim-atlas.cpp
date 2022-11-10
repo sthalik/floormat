@@ -7,9 +7,7 @@
 
 namespace floormat {
 
-static constexpr std::array<char[3], (std::size_t)rotation::COUNT> name_array = {
-    "n", "ne", "e", "se", "s", "sw", "w", "nw",
-};
+static constexpr const char* name_array[] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
 
 std::uint8_t anim_atlas::rotation_to_index(const anim_info& info, rotation r) noexcept
 {

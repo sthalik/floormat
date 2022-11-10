@@ -7,6 +7,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
 #include <Corrade/Containers/StringStl.h>
+#include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
@@ -17,10 +18,10 @@ tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mod
 
 void tile_editor::load_atlases()
 {
-    static const std::filesystem::path image_path{FM_IMAGE_PATH, std::filesystem::path::generic_format};
+    const StringView image_path = FM_IMAGE_PATH;
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     const auto filename = _name + ".json";
-    for (auto& atlas : json_helper::from_json<atlas_array>(image_path/filename))
+    for (auto& atlas : json_helper::from_json<atlas_array>(Path::join(image_path, filename)))
     {
         StringView name = atlas->name();
         if (auto x = name.findLast('.'); x)

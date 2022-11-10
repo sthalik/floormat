@@ -1,28 +1,27 @@
 #include "json-helper.hpp"
 #include <fstream>
-#include <filesystem>
 
 namespace floormat {
 
-template<typename T, typename P, std::ios_base::openmode open_mode>
-static T open_stream(const std::remove_cvref_t<P>& filename)
+template<typename T, std::ios_base::openmode mode>
+static T open_stream(StringView filename)
 {
     T s;
     s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    s.open(filename, open_mode);
+    s.open(filename, mode);
     return s;
 }
 
-auto json_helper::from_json_(const fspath& pathname) -> json
+auto json_helper::from_json_(StringView filename) -> json
 {
     json j;
-    open_stream<std::ifstream, fspath, std::ios_base::in>(pathname) >> j;
+    open_stream<std::ifstream, std::ios_base::in>(filename) >> j;
     return j;
 }
 
-void json_helper::to_json_(const json& j, const fspath& pathname, int indent)
+void json_helper::to_json_(const json& j, StringView filename, int indent)
 {
-    (open_stream<std::ofstream, fspath, std::ios_base::out>(pathname) << j.dump(indent, '\t') << '\n').flush();
+    (open_stream<std::ofstream, std::ios_base::out>(filename) << j.dump(indent, '\t') << '\n').flush();
 }
 
 } // namespace floormat

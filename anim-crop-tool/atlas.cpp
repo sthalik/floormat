@@ -44,7 +44,7 @@ Magnum::Vector2ui anim_atlas::size() const noexcept
     return {std::max(maxx, row.xpos), ypos + row.max_height};
 }
 
-bool anim_atlas::dump(const std::filesystem::path& filename) const
+bool anim_atlas::dump(StringView filename) const
 {
     auto sz = size();
     cv::Mat4b mat((int)sz[1], (int)sz[0]);
@@ -59,5 +59,5 @@ bool anim_atlas::dump(const std::filesystem::path& filename) const
             x.mat.copyTo(mat(roi));
         }
 
-    return cv::imwrite(filename.string(), mat);
+    return cv::imwrite(filename.data(), mat);
 }

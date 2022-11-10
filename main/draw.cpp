@@ -183,6 +183,8 @@ void main_impl::drawEvent()
     }
 
     app.draw();
+    GL::Renderer::flush();
+
     do_update();
 
     swapBuffers();

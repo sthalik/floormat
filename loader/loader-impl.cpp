@@ -5,10 +5,10 @@
 #include "src/anim-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include <filesystem>
 #include <unordered_map>
 #include <utility>
 #include <optional>
+#include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/StringStlHash.h>
@@ -137,10 +137,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
     else
     {
         const auto path = Path::join(FM_ANIM_PATH, name);
-        std::filesystem::path p = std::string_view{path};
-        p.replace_extension("json");
-        auto anim_info = json_helper::from_json<Serialize::anim>(p);
-        p.replace_extension({});
+        auto anim_info = json_helper::from_json<Serialize::anim>(Path::splitExtension(path).first() + ".json");
         auto tex = texture("", path);
 
         fm_assert(!anim_info.anim_name.empty() && !anim_info.object_name.empty());
@@ -149,7 +146,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         fm_assert(anim_info.nframes > 0);
         fm_assert(anim_info.nframes == 1 || anim_info.fps > 0);
 
-        auto atlas = std::make_shared<struct anim_atlas>(p.string(), tex, std::move(anim_info));
+        auto atlas = std::make_shared<struct anim_atlas>(Path::splitExtension(path).first(), tex, std::move(anim_info));
         return anim_atlas_map[atlas->name()] = atlas;
     }
 }

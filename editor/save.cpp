@@ -1,8 +1,6 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
-
-#include <filesystem>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -10,9 +8,6 @@ namespace floormat {
 #define save_dir "../save"
 #define quicksave_file save_dir "/" "quicksave.dat"
 #define quicksave_tmp save_dir "/" "quicksave.tmp"
-
-namespace Path = Corrade::Utility::Path;
-using std::filesystem::path;
 
 static bool ensure_save_directory()
 {

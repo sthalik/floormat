@@ -14,9 +14,14 @@
 #include <string_view>
 #include <filesystem>
 
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
+
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
+#include <Corrade/Utility/Path.h>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
@@ -24,20 +29,16 @@
 
 #include "compat/assert.hpp"
 
-using Corrade::Utility::Error;
-using Corrade::Utility::Debug;
-
-using std::filesystem::path;
-
+using namespace floormat;
 using namespace floormat::Serialize;
 
-using Magnum::Vector2i;
-using Magnum::Vector2ui;
+using Corrade::Utility::Error;
+using Corrade::Utility::Debug;
 
 struct options
 {
     double scale = 0;
-    path input_dir, input_file, output_dir;
+    String input_dir, input_file, output_dir;
     std::size_t width = 0, height = 0, nframes = 0;
 };
 
@@ -67,10 +68,10 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const path& filename)
+static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, StringView filename)
 {
     auto mat = fm_begin(
-        cv::Mat mat = cv::imread(filename.string(), cv::IMREAD_UNCHANGED);
+        cv::Mat mat = cv::imread(filename, cv::IMREAD_UNCHANGED);
         if (mat.empty() || mat.type() != CV_8UC4)
         {
             Error{} << "error: failed to load" << filename << "as RGBA32 image";
@@ -131,11 +132,11 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, const
 [[nodiscard]]
 static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
 {
-    const auto input_dir = opts.input_dir/std::string_view{group.name.cbegin(), group.name.cend()};
+    const auto input_dir = Path::join(opts.input_dir, group.name);
 
-    if (std::error_code ec; !std::filesystem::exists(input_dir/".", ec))
+    if (!Path::exists(Path::join(input_dir, ".")))
     {
-        Error{} << "error: can't open directory" << input_dir << ":" << ec.message();
+        Error{} << "error: can't open directory" << input_dir;
         return false;
     }
 
@@ -144,7 +145,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
     {
         char filename[9];
         sprintf(filename, "%04d.png", max);
-        if (std::error_code ec; !std::filesystem::exists(input_dir/filename, ec))
+        if (!Path::exists(Path::join(input_dir, filename)))
             break;
     }
 
@@ -172,7 +173,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
     {
         char filename[9];
         sprintf(filename, "%04d.png", i);
-        if (!load_file(group, opts, atlas, input_dir/filename))
+        if (!load_file(group, opts, atlas, Path::join(input_dir, filename)))
             return false;
     }
 
@@ -214,9 +215,9 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
         opts.height = h;
     opts.output_dir = args.value<std::string>("output");
     opts.input_file = args.value<std::string>("input");
-    opts.input_dir = opts.input_file.parent_path();
+    opts.input_dir = Path::split(opts.input_file).first();
 
-    if (opts.output_dir.empty())
+    if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
     return { std::move(opts), std::move(args), true };
@@ -283,22 +284,22 @@ int main(int argc, char** argv)
         if (!load_directory(group, opts, atlas))
             return EX_DATAERR;
 
-    if (std::error_code ec{}; !std::filesystem::exists(opts.output_dir/".", ec) &&
-                              !std::filesystem::create_directory(opts.output_dir, ec)) {
+    if (std::error_code ec{}; !Path::exists(Path::join(opts.output_dir, ".")) &&
+                              !std::filesystem::create_directory(opts.output_dir.data(), ec)) {
         Error{} << "error: failed to create output directory"
                 << opts.output_dir << ":" << ec.message();
         return EX_CANTCREAT;
     }
 
-    const std::string base_name = anim_info.object_name + "_" + anim_info.anim_name;
+    const String base_name = anim_info.object_name + "_" + anim_info.anim_name;
 
-    if (auto pathname = opts.output_dir/(base_name + ".png"); !atlas.dump(pathname)) {
+    if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
         Error{} << "error: failed writing image to" << pathname << ":"
                 << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
         return EX_CANTCREAT;
     }
     anim_info.pixel_size = Vector2ui(atlas.size());
-    floormat::json_helper::to_json<anim>(anim_info, opts.output_dir/(base_name + ".json"));
+    floormat::json_helper::to_json<anim>(anim_info, Path::join(opts.output_dir, (base_name + ".json")));
 
     return 0;
 }
