@@ -211,8 +211,8 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
         opts.width = w;
     if (auto h = args.value<unsigned>("height"); h != 0)
         opts.height = h;
-    opts.output_dir = args.value<std::string>("output");
-    opts.input_file = args.value<std::string>("input");
+    opts.output_dir = args.value<StringView>("output");
+    opts.input_file = args.value<StringView>("input");
     opts.input_dir = Path::split(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())
@@ -227,17 +227,17 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     return EX_USAGE;
 }
 
-[[nodiscard]] static bool check_atlas_name(const std::string& str) noexcept
+[[nodiscard]] static bool check_atlas_name(StringView str) noexcept
 {
     constexpr auto npos = std::string::npos;
 
-    if (str.empty())
+    if (str.isEmpty())
         return false;
     if (str[0] == '.' || str[0] == '\\' || str[0] == '/')
         return false;
-    if (str.find('"') != npos || str.find('\'') != npos)
+    if (str.find('"') || str.find('\''))
         return false;
-    if (str.find("/.") != npos || str.find("\\.") != npos)
+    if (str.find("/.") || str.find("\\."))
         return false; // NOLINT(readability-simplify-boolean-expr)
 
     return true;

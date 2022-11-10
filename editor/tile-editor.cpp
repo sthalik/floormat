@@ -6,7 +6,6 @@
 #include "random.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
-#include <Corrade/Containers/StringStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -27,26 +26,22 @@ void tile_editor::load_atlases()
         if (auto x = name.findLast('.'); x)
             name = name.prefix(x.data());
         auto& [_, vec] = _permutation;
-        vec.reserve((std::size_t)atlas->num_tiles());
-        _atlases[name] = std::move(atlas);
+        vec.reserve(atlas->num_tiles());
+        _atlases[name] = atlas;
     }
 }
 
 std::shared_ptr<tile_atlas> tile_editor::maybe_atlas(StringView str)
 {
-    auto it = std::find_if(_atlases.begin(), _atlases.end(), [&](const auto& tuple) -> bool {
-                               const auto& [x, _] = tuple;
-                               return StringView{x} == str;
-                           });
-    if (it == _atlases.end())
-        return nullptr;
-    else
+    if (auto it = _atlases.find(str); it != _atlases.end())
         return it->second;
+    else
+        return nullptr;
 }
 
 std::shared_ptr<tile_atlas> tile_editor::atlas(StringView str)
 {
-    if (auto ptr = maybe_atlas(str); ptr)
+    if (auto ptr = maybe_atlas(str))
         return ptr;
     else
         fm_abort("no such atlas: %s", str.cbegin());

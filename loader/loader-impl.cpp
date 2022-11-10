@@ -12,7 +12,6 @@
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/StringStlHash.h>
-#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Corrade/Utility/Resource.h>
 #include <Corrade/Utility/Path.h>
@@ -41,7 +40,7 @@ struct loader_impl final : loader_
     Containers::Pointer<Trade::AbstractImporter> tga_importer =
         importer_plugins.loadAndInstantiate("TgaImporter");
 
-    std::unordered_map<std::string, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
+    std::unordered_map<StringView, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
     std::unordered_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
 
@@ -79,7 +78,7 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
         return it->second;
     auto image = texture(FM_IMAGE_PATH, name);
     auto atlas = std::make_shared<struct tile_atlas>(name, image, size);
-    tile_atlas_map[name] = atlas;
+    tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
 
@@ -140,7 +139,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         auto anim_info = json_helper::from_json<Serialize::anim>(Path::splitExtension(path).first() + ".json");
         auto tex = texture("", path);
 
-        fm_assert(!anim_info.anim_name.empty() && !anim_info.object_name.empty());
+        fm_assert(!anim_info.anim_name.isEmpty() && !anim_info.object_name.isEmpty());
         fm_assert(anim_info.pixel_size.product() > 0);
         fm_assert(!anim_info.groups.empty());
         fm_assert(anim_info.nframes > 0);

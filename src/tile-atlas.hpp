@@ -1,10 +1,9 @@
 #pragma once
+#include <array>
+#include <memory>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/Texture.h>
-#include <array>
-#include <string>
-#include <memory>
 
 namespace floormat {
 
@@ -32,7 +31,7 @@ private:
 
     std::unique_ptr<const texcoords[]> texcoords_;
     GL::Texture2D tex_;
-    std::string name_;
+    String name_;
     Vector2ui size_;
     Vector2ub dims_;
 };

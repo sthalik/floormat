@@ -1,4 +1,5 @@
 #include "serialize/magnum-vector2i.hpp"
+#include "serialize/corrade-string.hpp"
 #include "serialize/anim.hpp"
 
 namespace floormat::Serialize {

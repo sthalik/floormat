@@ -4,10 +4,9 @@
 #include "src/tile-image.hpp"
 #include "global-coords.hpp"
 #include <vector>
-#include <string>
 #include <map>
 #include <memory>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
 
 namespace floormat {
 
@@ -25,7 +24,7 @@ private:
         std::vector<decltype(tile_image_proto::variant)> variant;
     };
 
-    std::string _name;
+    String _name;
     std::map<StringView, std::shared_ptr<tile_atlas>> _atlases;
     tile_image_proto _selected_tile;
     tuple _permutation;
