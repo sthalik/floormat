@@ -52,6 +52,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
     
     void drawEvent() override;
+    void do_update();
     void update_window_state();
 
     bool is_text_input_active() const noexcept override;

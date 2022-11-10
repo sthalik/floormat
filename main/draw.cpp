@@ -131,7 +131,7 @@ bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size
     return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
 }
 
-void main_impl::drawEvent()
+void main_impl::do_update()
 {
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
@@ -155,6 +155,12 @@ void main_impl::drawEvent()
     dt = std::clamp(dt, 1e-5f, std::fmaxf(1e-1f, dt_expected.value));
 
     app.update(dt);
+}
+
+void main_impl::drawEvent()
+{
+    do_update();
+
     _shader.set_tint({1, 1, 1, 1});
 
     {
@@ -196,6 +202,7 @@ void main_impl::drawEvent()
     }
     else
         dt_expected.jitter = 0;
+
     timeline.nextFrame();
 }
 
