@@ -2,7 +2,6 @@
 #include "compat/defs.hpp"
 #include "compat/enum-bitset.hpp"
 #include "editor.hpp"
-#include "src/global-coords.hpp"
 #include "draw/wireframe.hpp"
 #include "draw/quad-floor.hpp"
 #include "draw/quad-wall-n.hpp"

@@ -2,6 +2,8 @@
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include <Magnum/GL/Renderer.h>
+#include <Magnum/Math/Color.h>
 #include <algorithm>
 #include <thread>
 

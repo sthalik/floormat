@@ -6,6 +6,7 @@
 #include "random.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
+#include <Corrade/Containers/StringStl.h>
 
 namespace floormat {
 
@@ -49,6 +50,8 @@ std::shared_ptr<tile_atlas> tile_editor::atlas(StringView str)
     else
         fm_abort("no such atlas: %s", str.cbegin());
 }
+
+StringView tile_editor::name() const noexcept { return _name; }
 
 void tile_editor::clear_selection()
 {

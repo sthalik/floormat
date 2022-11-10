@@ -44,7 +44,7 @@ public:
     auto cend() const noexcept { return _atlases.cend(); }
     auto begin() const noexcept { return _atlases.cbegin(); }
     auto end() const noexcept { return _atlases.cend(); }
-    StringView name() const noexcept { return _name; }
+    StringView name() const noexcept;
     editor_mode mode() const noexcept { return _mode; }
     editor_wall_rotation rotation() const noexcept { return _rotation; }
 
