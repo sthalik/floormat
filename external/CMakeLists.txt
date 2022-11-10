@@ -61,6 +61,10 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_BUILD_TESTS                     OFF
          MAGNUM_BUILD_DEPRECATED                ON
 
+         MAGNUM_WITH_WINDOWLESSWGLAPPLICATION   OFF
+         MAGNUM_WITH_WINDOWLESSGLXAPPLICATION   OFF
+         MAGNUM_WITH_WINDOWLESSCGLAPPLICATION   OFF
+
          MAGNUM_WITH_ANYIMAGECONVERTER          ON
          MAGNUM_WITH_ANYIMAGEIMPORTER           ON
          MAGNUM_WITH_DISTANCEFIELDCONVERTER     ON
@@ -79,7 +83,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_TGAIMAGECONVERTER          ON
          MAGNUM_WITH_TGAIMPORTER                ON
          MAGNUM_WITH_WEBPIMPORTER               OFF
-         MAGNUM_WITH_WINDOWLESSWGLAPPLICATION   ON
 
          MAGNUM_WITH_DDSIMPORTER                ON
          MAGNUM_WITH_GLTFIMPORTER               ON
@@ -141,22 +144,52 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_WASAPI                             OFF
          SDL_XINPUT                             OFF
     )
-    if(NOT WIN32)
-        set(MAGNUM_WITH_WINDOWLESSWGLAPPLICATION OFF)
+    if(WIN32)
+        sets(BOOL MAGNUM_WITH_WINDOWLESSWGLAPPLICATION ON)
+    elseif(APPLE)
+        sets(BOOL MAGNUM_WITH_WINDOWLESSCGLAPPLICATION ON)
+    else()
+        sets(BOOL MAGNUM_WITH_WINDOWLESSGLXAPPLICATION ON)
     endif()
 endif()
 
 fm_run_hook(fm-userconfig-external-pre)
 
+set(fm-quiet-message 0)
+
+function(message)
+    if(fm-quiet-message)
+        list(GET ARGV 0 MessageType)
+        if(MessageType STREQUAL FATAL_ERROR OR
+           MessageType STREQUAL SEND_ERROR OR
+           MessageType STREQUAL WARNING OR
+           MessageType STREQUAL AUTHOR_WARNING)
+          list(REMOVE_AT ARGV 0)
+          _message(${MessageType} "${ARGV}")
+        endif()
+    else()
+        _message("${ARGV}")
+    endif()
+endfunction()
+
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
+
+    function(fm_add_sdl)
+        unset(CMAKE_C_VISIBILITY_PRESET)
+        unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
+        add_subdirectory(sdl2)
+    endfunction()
+
+    set(fm-quiet-message 1)
     add_subdirectory(json)
-    add_subdirectory(sdl2)
     add_subdirectory(corrade)
+    fm_add_sdl()
     add_subdirectory(magnum)
     add_subdirectory(magnum-plugins)
     add_subdirectory(magnum-integration)
     add_subdirectory(fmt)
+    set(fm-quiet-message 0)
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
@@ -167,6 +200,7 @@ endif()
 
 fm_run_hook(fm-userconfig-external)
 
+set(fm-quiet-message 1)
 find_package(SDL2 QUIET REQUIRED)
 find_package(Corrade QUIET REQUIRED)
 find_package(ImGui QUIET REQUIRED)
@@ -177,5 +211,10 @@ find_package(MagnumIntegration QUIET REQUIRED ImGui)
 if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)
 endif()
+set(fm-quiet-message 0)
+
+function(message)
+    _message("${ARGV}")
+endfunction()
 
 fm_run_hook(fm-userconfig-external-post)

@@ -2,8 +2,8 @@
 #include <fmt/core.h>
 #include <fmt/compile.h>
 
+#ifndef _MSC_VER
 namespace floormat::detail::fmt {
-
 template<std::size_t N>
 struct fmt_string final {
     static constexpr std::size_t size = N;
@@ -15,16 +15,20 @@ struct fmt_string final {
             data[i] = arr[i];
     }
 };
-
 } // namespace floormat::detail::fmt
+#endif
 
 namespace floormat {
 
-template<detail::fmt::fmt_string s>
+#ifndef _MSC_VER
+template<::floormat::detail::fmt::fmt_string s>
 consteval auto operator""_cf() noexcept
 {
     return FMT_COMPILE(s.data);
 }
+#else
+using namespace fmt::literals;
+#endif
 
 template<std::size_t N, typename Fmt, typename... Xs>
 std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)

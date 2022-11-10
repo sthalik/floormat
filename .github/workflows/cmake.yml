@@ -1,0 +1,53 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+    - '*'
+  pull_request:
+    branches: [ master ]
+
+env:
+  BUILD_TYPE: RELEASE
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-12]
+        include:
+        - os: ubuntu-22.04
+          cmake: /usr/bin/env CC=gcc-12 CXX=g++-12 cmake
+        - os: macos-12
+          cmake: /usr/bin/env CC="$(brew --prefix llvm@14)/bin/clang" CXX="$(brew --prefix llvm@14)/bin/clang++" cmake
+        - os: windows-latest
+          cmake: .\.github\workflows\build-windows.bat cmake
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - uses: abdes/gha-setup-ninja@master
+      with:
+        version: 1.11.1
+      if: matrix.os != 'ubuntu-22.04'
+
+    - name: Install Linux Dependencies
+      run: sudo /bin/sh -c 'set -e; apt update; apt install libopencv-dev libgl-dev g++-12 ninja-build'
+      if: matrix.os == 'ubuntu-22.04'
+
+    - name: Configure
+      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: ${{matrix.cmake}} --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install
+
+#    - name: Upload build
+#      uses: actions/upload-artifact@v2.2.4
+#      with:
+#        name: buildoutput
+#        path: ${{github.workspace}}/build/

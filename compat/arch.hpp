@@ -42,4 +42,3 @@
 #   define FLOORMAT_ARCH_FPU_MASK
 #   include <xmmintrin.h>
 #endif
-

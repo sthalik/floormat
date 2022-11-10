@@ -8,7 +8,7 @@ static T open_stream(StringView filename)
 {
     T s;
     s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
-    s.open(filename, mode);
+    s.open(filename.data(), mode);
     return s;
 }
 

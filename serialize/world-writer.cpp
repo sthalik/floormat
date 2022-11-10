@@ -12,8 +12,6 @@
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 
-namespace Path = Corrade::Utility::Path;
-
 namespace floormat::Serialize {
 
 struct interned_atlas final {
@@ -256,10 +254,11 @@ void world::serialize(StringView filename)
     collect(true);
     char errbuf[128];
     constexpr auto strerror = []<std::size_t N> (char (&buf)[N]) -> const char* {
+        buf[0] = '\0';
 #ifndef _WIN32
-        ::strerror_r(errno, buf, std::size(buf));
+        (void)::strerror_r(errno, buf, std::size(buf));
 #else
-        ::strerror_s(buf, std::size(buf), errno);
+        (void)::strerror_s(buf, std::size(buf), errno);
 #endif
         return buf;
     };

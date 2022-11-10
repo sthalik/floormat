@@ -69,7 +69,7 @@ function(fm_load_userconfig)
     else()
         set(_fm_username "$ENV{USER}")
     endif()
-    set(_fm_userconfig "userconfig-${_fm_username}@${CMAKE_CXX_COMPILER_ID}.cmake")
+    set(_fm_userconfig "userconfig-${_fm_username}@${CMAKE_SYSTEM_NAME}-${CMAKE_CXX_COMPILER_ID}.cmake")
     if(EXISTS "${CMAKE_SOURCE_DIR}/${_fm_userconfig}")
         message(STATUS "Loading user config '${_fm_userconfig}'")
         include("${CMAKE_SOURCE_DIR}/${_fm_userconfig}" NO_POLICY_SCOPE)
@@ -77,6 +77,11 @@ function(fm_load_userconfig)
         message(STATUS "Can't find user config '${_fm_userconfig}'")
     endif()
 endfunction()
+
+if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
+    fm_load_userconfig()
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+endif()
 
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
@@ -108,20 +113,14 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-cxa-atexit")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "13.3" OR
+   CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "13.0")
     add_compile_options(-Wno-reserved-macro-identifier)
 endif()
-
-cmake_policy(SET CMP0063 NEW)
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
 set_directory_properties(PROPERTIES CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
 set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
-
-if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
-    fm_load_userconfig()
-    string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
-endif()
 
 add_subdirectory(external)
 

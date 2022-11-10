@@ -1,5 +1,6 @@
 #pragma once
 #include "arch.hpp"
+#include <cfenv>
 
 #ifdef __MINGW32__
 extern "C" __declspec(dllimport) unsigned __cdecl _controlfp(unsigned, unsigned);
