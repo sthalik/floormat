@@ -34,7 +34,7 @@ static chunk make_test_chunk()
 
 bool floormat::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
-    constexpr StringView output_dir = "../test/.";
+    constexpr auto output_dir = "../test/."_s;
     {
         auto atlas = loader.tile_atlas("metal1", {2, 2});
         json_helper::to_json(atlas, Path::join(output_dir, "atlas.json"));
