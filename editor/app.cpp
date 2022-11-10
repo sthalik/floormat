@@ -62,7 +62,7 @@ int app::run_from_argv(const int argc, const char* const* const argv)
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
     opts.msaa  = parse_bool("msaa", args, opts.msaa);
-    if (auto str = args.value<StringView>("gpu-debug"); str == "no-error" || str == "NO-ERROR")
+    if (auto str = args.value<StringView>("gpu-debug"); str == "no-error" || str == "NO-ERROR" || str == "none")
         opts.gpu_debug = fm_gpu_debug::no_error;
     else if (str == "robust" || str == "ROBUST")
         opts.gpu_debug = fm_gpu_debug::robust;

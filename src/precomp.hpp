@@ -16,13 +16,13 @@
 #include <cmath>
 
 #include <concepts>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
 #include <algorithm>
 #include <utility>
-#include <iterator>
 #include <filesystem>
 
 #include <tuple>
@@ -30,12 +30,14 @@
 #include <optional>
 #include <vector>
 #include <unordered_map>
+#include <string>
 
 #include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/ArrayViewStl.h> // TODO maybe remove stl
-#include <Corrade/Containers/StringStlView.h> // TODO remove stl
-#include <Corrade/Containers/String.h>
+#include <Corrade/Containers/ArrayView.h>
+#include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
+#include <Corrade/Containers/ArrayViewStl.h> // TODO maybe remove stl
+#include <Corrade/Containers/StringStl.h> // TODO remove stl
 #include <Corrade/Utility/DebugStl.h>
 
 #include <Magnum/Magnum.h>
