@@ -19,3 +19,6 @@
 [submodule "sdl2"]
 	path = external/sdl2
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt.git

@@ -42,12 +42,14 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          NLOHMANN_JSON_CONFIG_INSTALL_DIR       "share/cmake/nlohmann_json"
     )
     sets(BOOL
-         JSON_Diagnostics        ON
-         JSON_Install            ON
-         JSON_MultipleHeaders    ON
-         JSON_SystemInclude      ON
-    )
-    sets(BOOL
+
+         FMT_SYSTEM_HEADERS                     ON
+
+         JSON_Diagnostics                       ON
+         JSON_Install                           ON
+         JSON_MultipleHeaders                   ON
+         JSON_SystemInclude                     ON
+
          CORRADE_BUILD_STATIC                   OFF
          CORRADE_BUILD_TESTS                    OFF
          CORRADE_BUILD_DEPRECATED               OFF
@@ -154,6 +156,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     add_subdirectory(magnum)
     add_subdirectory(magnum-plugins)
     add_subdirectory(magnum-integration)
+    add_subdirectory(fmt)
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
@@ -170,5 +173,9 @@ find_package(ImGui QUIET REQUIRED)
 find_package(Magnum QUIET REQUIRED)
 find_package(MagnumPlugins QUIET REQUIRED)
 find_package(MagnumIntegration QUIET REQUIRED ImGui)
+
+if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
+    find_package(fmt QUIET REQUIRED)
+endif()
 
 fm_run_hook(fm-userconfig-external-post)

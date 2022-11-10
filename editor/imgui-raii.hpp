@@ -2,9 +2,8 @@
 
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Color.h>
-#ifndef __CLION_IDE__zz
 #include <imgui.h>
-#endif
+#include <imgui_internal.h>
 
 namespace floormat::imgui {
 
@@ -80,6 +79,18 @@ struct raii_wrapper final
 {
     ImGui::PushStyleColor(var, {value[0], value[1], value[2], value[3]});
     return {[]{ ImGui::PopStyleColor(); }};
+}
+
+[[maybe_unused]] static inline void text(const char* str, std::size_t len, ImGuiTextFlags_ flags = ImGuiTextFlags_NoWidthForLargeClippedText)
+{
+    ImGui::TextEx(str, str + len, flags);
+}
+
+template<std::size_t N>
+[[maybe_unused]] static inline void text(const char (&buf)[N], ImGuiTextFlags_ flags = ImGuiTextFlags_NoWidthForLargeClippedText)
+{
+    static_assert(N > 0);
+    ImGui::TextEx(buf, buf + N - 1, flags);
 }
 
 } // namespace floormat::imgui

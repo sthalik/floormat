@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "src/tile-atlas.hpp"
+#include "compat/format.hpp"
 
 #include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
@@ -104,11 +105,11 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
         if (ed.is_atlas_selected(atlas))
         {
             ImGui::SameLine();
-            ImGui::Text(" (selected)");
+            text(" (selected)");
         }
-        std::snprintf(buf, sizeof(buf), "%zu", N);
+        const auto len = snformat(buf, FMT_COMPILE("{:d}"), N);
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
-        ImGui::Text("%s", buf);
+        text(buf, len);
     };
     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
         auto b = tree_node(name.data(), flags))
@@ -123,7 +124,6 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
         for (std::size_t i = 0; i < N; i++)
         {
             const bool selected = ed.is_tile_selected(atlas, i);
-
             if (i > 0 && i % per_row == 0)
                 ImGui::NewLine();
 
@@ -134,7 +134,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
                 perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
             };
 
-            std::snprintf(buf, sizeof(buf), "##item_%zu", i);
+            snformat(buf, FMT_COMPILE("##item_{}"), i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
             ImGui::ImageButton(buf, (void*)&atlas->texture(), size_2,
@@ -193,7 +193,7 @@ void app::draw_fps()
     const auto frame_time = M->smoothed_dt();
     char buf[16];
     const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
-    snprintf(buf, sizeof(buf), "%.1f FPS", hz);
+    snformat(buf, FMT_COMPILE("{:.1f} FPS"), hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText({M->window_size()[0] - size.x - 4, 3}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
@@ -208,7 +208,7 @@ void app::draw_tile_under_cursor()
     const auto coord = *cursor.tile;
     const auto chunk = coord.chunk();
     const auto local = coord.local();
-    snprintf(buf, sizeof(buf), "%hd:%hd - %hhu:%hhu", chunk.x, chunk.y, local.x, local.y);
+    snformat(buf, FMT_COMPILE("{}:{} - {}:{}"), chunk.x, chunk.y, local.x, local.y);
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 
