@@ -24,10 +24,6 @@
 #pragma GCC diagnostic ignored "-Walloca"
 #endif
 
-using StringView = Corrade::Containers::StringView;
-
-namespace Path = Corrade::Utility::Path;
-
 namespace floormat {
 
 struct loader_impl final : loader_

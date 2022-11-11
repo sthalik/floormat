@@ -52,6 +52,7 @@ void world::maybe_collect()
 
 void world::collect(bool force)
 {
+    const auto len0 = _chunks.size();
     for (auto it = _chunks.begin(); it != _chunks.end(); (void)0)
     {
         const auto& [_, c] = *it;
@@ -65,6 +66,9 @@ void world::collect(bool force)
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
+    const auto len = len0 - _chunks.size();
+    if (len)
+        fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
 } // namespace floormat
