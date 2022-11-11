@@ -14,7 +14,9 @@
 
 namespace floormat::loader_detail {
 
+#ifdef _WIN32
 namespace Unicode = Corrade::Utility::Unicode;
+#endif
 
 bool chdir(StringView pathname)
 {
