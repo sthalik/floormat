@@ -12,7 +12,6 @@ world::world(std::size_t capacity) : _chunks{capacity, hasher}
     _chunks.max_load_factor(max_load_factor);
 }
 
-fm_noinline
 chunk& world::operator[](chunk_coords coord) noexcept
 {
     maybe_collect();
