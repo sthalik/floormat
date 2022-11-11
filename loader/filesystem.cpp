@@ -1,5 +1,6 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include <cerrno>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/Implementation/ErrorString.h>

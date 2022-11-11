@@ -5,6 +5,7 @@
 #include "compat/alloca.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/emplacer.hpp"
+#include <cstring>
 #include <unordered_map>
 #include <utility>
 #include <memory>
