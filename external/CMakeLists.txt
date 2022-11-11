@@ -225,6 +225,8 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         unset(CMAKE_C_VISIBILITY_PRESET)
         unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
         add_subdirectory(sdl2)
+        add_definitions(-UWIN32_LEAN_AND_MEAN)
+        add_subdirectory(luajit)
     endfunction()
 
     fm_add_libs()
@@ -250,6 +252,5 @@ if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)
 endif()
 set(fm-quiet-message 0)
-
 
 fm_run_hook(fm-userconfig-external-post)

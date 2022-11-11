@@ -22,3 +22,6 @@
 [submodule "fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "luajit"]
+	path = external/luajit
+	url = https://github.com/WohlSoft/LuaJIT.git
