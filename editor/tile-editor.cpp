@@ -6,6 +6,7 @@
 #include "random.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"
+#include <Corrade/Containers/Pair.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -22,9 +23,7 @@ void tile_editor::load_atlases()
     const auto filename = _name + ".json";
     for (auto& atlas : json_helper::from_json<atlas_array>(Path::join(image_path, filename)))
     {
-        StringView name = atlas->name();
-        if (auto x = name.findLast('.'); x)
-            name = name.prefix(x.data());
+        const StringView name = Path::splitExtension(atlas->name()).first();
         auto& [_, vec] = _permutation;
         vec.reserve(atlas->num_tiles());
         _atlases[name] = atlas;
