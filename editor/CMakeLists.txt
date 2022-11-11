@@ -1,6 +1,6 @@
 set(self ${PROJECT_NAME}-editor)
 
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+file(GLOB sources "*.cpp" "../loader/*.cpp" CONFIGURE_ARGS)
 corrade_add_resource(res "../resources.conf")
 
 if(MSVC)
@@ -11,7 +11,7 @@ endif()
 
 link_libraries(MagnumIntegration::ImGui fmt::fmt)
 
-add_executable(${self} "${sources}" "${res}" "../loader/loader-impl.cpp")
+add_executable(${self} "${sources}" "${res}")
 target_link_libraries(${self} ${PROJECT_NAME}-main)
 
 if(FLOORMAT_PRECOMPILED-HEADERS)

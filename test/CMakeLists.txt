@@ -1,5 +1,5 @@
 set(self "${PROJECT_NAME}-test")
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+file(GLOB sources "*.cpp" "../loader/*.cpp" CONFIGURE_ARGS)
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
@@ -14,5 +14,5 @@ else()
     link_libraries(Magnum::WindowlessGlxApplication)
 endif()
 
-add_executable(${self} "${sources}" "../loader/loader-impl.cpp")
+add_executable(${self} "${sources}")
 install(TARGETS ${self} RUNTIME DESTINATION bin)

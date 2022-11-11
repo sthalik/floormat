@@ -1,12 +1,13 @@
+#include "impl.hpp"
 #include "src/loader.hpp"
 #include "src/tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include "compat/alloca.hpp"
 #include "src/anim-atlas.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/anim.hpp"
+#include "src/emplacer.hpp"
 #include <unordered_map>
 #include <utility>
+#include <memory>
 #include <optional>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -66,14 +67,8 @@ StringView loader_impl::shader(StringView filename)
 
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size)
 {
-    auto it = std::find_if(tile_atlas_map.cbegin(), tile_atlas_map.cend(), [&](const auto& x) {
-        const auto& [k, v] = x;
-        return StringView{k} == name;
-    });
-    if (it != tile_atlas_map.cend())
-        return it->second;
-    auto image = texture(FM_IMAGE_PATH, name);
-    auto atlas = std::make_shared<struct tile_atlas>(name, image, size);
+    const emplacer e{[&] { return std::make_shared<struct tile_atlas>(name, texture(FM_IMAGE_PATH, name), size); }};
+    auto atlas = tile_atlas_map.try_emplace(name, e).first->second;
     tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
@@ -131,8 +126,8 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         return it->second;
     else
     {
-        const auto path = Path::join(FM_ANIM_PATH, name);
-        auto anim_info = json_helper::from_json<Serialize::anim>(Path::splitExtension(path).first() + ".json");
+        const auto path = Path::join(FM_ANIM_PATH, Path::splitExtension(name).first());
+        auto anim_info = loader_detail::deserialize_anim(path + ".json");
         auto tex = texture("", path);
 
         fm_assert(!anim_info.anim_name.isEmpty() && !anim_info.object_name.isEmpty());
@@ -141,7 +136,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         fm_assert(anim_info.nframes > 0);
         fm_assert(anim_info.nframes == 1 || anim_info.fps > 0);
 
-        auto atlas = std::make_shared<struct anim_atlas>(Path::splitExtension(path).first(), tex, std::move(anim_info));
+        auto atlas = std::make_shared<struct anim_atlas>(path, tex, std::move(anim_info));
         return anim_atlas_map[atlas->name()] = atlas;
     }
 }
@@ -170,17 +165,18 @@ void loader_impl::set_application_working_directory()
     if (once)
         return;
     once = true;
-    const auto location = Path::executableLocation();
-    if (!location)
-        return;
-    std::filesystem::path path((std::string)*location);
-    path.replace_filename("..");
-    std::error_code error;
-    std::filesystem::current_path(path, error);
-    if (error.value()) {
-        fm_warn("failed to change working directory to '%s' (%s)",
-             path.string().data(), error.message().data());
+    if (const auto loc = Path::executableLocation())
+    {
+        auto path = *loc;
+        if (const auto pos = path.findLast('/'); pos)
+        {
+            const auto size = std::size_t(pos.data() - path.data());
+            path = path.prefix(size);
+            loader_detail::chdir(Path::join(path, ".."));
+            return;
+        }
     }
+    fm_warn("can't find install prefix!");
 }
 
 loader_impl::loader_impl()
