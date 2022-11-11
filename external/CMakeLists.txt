@@ -224,6 +224,8 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         add_definitions(-UWIN32_LEAN_AND_MEAN)
         set(CMAKE_C_STANDARD 11)
         set(CMAKE_C_EXTENSIONS 1)
+        unset(CMAKE_C_VISIBILITY_PRESET)
+        unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
         add_subdirectory(luajit)
     endfunction()
 
