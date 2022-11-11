@@ -139,6 +139,10 @@ add_definitions(
     -DIMGUI_DISABLE_OBSOLETE_KEYIO
 )
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+    add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+endif()
+
 fm_run_hook(fm-userconfig-src)
 
 include_directories(.)
