@@ -20,6 +20,7 @@ struct loader_
     virtual ArrayView<String> anim_atlas_list() = 0;
     virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) = 0;
     static void destroy();
+    static loader_& default_loader() noexcept;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

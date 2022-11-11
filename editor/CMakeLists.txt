@@ -9,6 +9,10 @@ else()
     set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w")
 endif()
 
+if(WIN32)
+    link_libraries(ntdll)
+endif()
+
 link_libraries(MagnumIntegration::ImGui fmt::fmt)
 
 add_executable(${self} "${sources}" "${res}")

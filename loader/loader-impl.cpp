@@ -181,18 +181,19 @@ void loader_impl::set_application_working_directory()
 
 loader_impl::loader_impl()
 {
+    loader_detail::system_init();
     set_application_working_directory();
 }
 
 loader_impl::~loader_impl() = default;
 
-static loader_& make_default_loader()
+loader_& loader_::default_loader() noexcept
 {
     static loader_impl loader_singleton{};
     return loader_singleton;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-loader_& loader = make_default_loader();
+loader_& loader = loader_::default_loader();
 
 } // namespace floormat
