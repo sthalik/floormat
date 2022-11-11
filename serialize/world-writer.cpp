@@ -6,6 +6,7 @@
 #include "src/global-coords.hpp"
 #include "src/chunk.hpp"
 #include "src/world.hpp"
+#include "src/emplacer.hpp"
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -67,10 +68,8 @@ atlasid writer_state::intern_atlas(const tile_image_proto& img)
 {
     const void* const ptr = img.atlas.get();
     fm_debug_assert(ptr != nullptr);
-    if (auto it = tile_images.find(ptr); it != tile_images.end())
-        return it->second.index;
-    else
-        return (tile_images[ptr] = { &*img.atlas, (atlasid)tile_images.size() }).index;
+    emplacer e{[&] -> interned_atlas { return { &*img.atlas, (atlasid)tile_images.size() }; }};
+    return tile_images.try_emplace(ptr, e).first->second.index;
 }
 
 atlasid writer_state::maybe_intern_atlas(const tile_image_proto& img)
