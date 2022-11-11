@@ -229,8 +229,6 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
 
 [[nodiscard]] static bool check_atlas_name(StringView str) noexcept
 {
-    constexpr auto npos = std::string::npos;
-
     if (str.isEmpty())
         return false;
     if (str[0] == '.' || str[0] == '\\' || str[0] == '/')

@@ -31,7 +31,7 @@ struct loader_impl final : loader_
     std::optional<Utility::Resource> shader_res;
     PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> image_importer =
-        importer_plugins.loadAndInstantiate("AnyImageImporter");
+        importer_plugins.loadAndInstantiate("StbImageImporter");
 
     Containers::Pointer<Trade::AbstractImporter> tga_importer =
         importer_plugins.loadAndInstantiate("TgaImporter");
