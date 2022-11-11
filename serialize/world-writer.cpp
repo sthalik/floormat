@@ -68,7 +68,7 @@ atlasid writer_state::intern_atlas(const tile_image_proto& img)
 {
     const void* const ptr = img.atlas.get();
     fm_debug_assert(ptr != nullptr);
-    emplacer e{[&] -> interned_atlas { return { &*img.atlas, (atlasid)tile_images.size() }; }};
+    emplacer e{[&]() -> interned_atlas { return { &*img.atlas, (atlasid)tile_images.size() }; }};
     return tile_images.try_emplace(ptr, e).first->second.index;
 }
 
