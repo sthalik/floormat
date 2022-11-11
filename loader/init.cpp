@@ -1,11 +1,16 @@
 #include "impl.hpp"
+
 #ifdef _WIN32
 #include <windows.h>
-extern "C" __declspec(dllimport) long WINAPI RtlGetVersion (PRTL_OSVERSIONINFOEXW);
+#if __has_include(<ntddk.h>)
+#include <ntddk.h>
+#else
+extern "C" __declspec(dllimport) long WINAPI RtlGetVersion(PRTL_OSVERSIONINFOEXW);
+#endif
 #ifdef _MSC_VER
 #pragma comment(lib, "ntdll.lib")
 #endif
-#endif
+#endif // _WIN32
 
 namespace floormat::loader_detail {
 
@@ -24,11 +29,9 @@ static bool check_windows_build_number(unsigned major, unsigned minor, unsigned 
 static void system_init_()
 {
 #ifdef _WIN32
+    (void)::SetConsoleOutputCP(CP_UTF8);
     if (check_windows_build_number(10, 0, 17035))
-    {
-        (void)::SetConsoleOutputCP(CP_UTF8);
         (void)::SetConsoleCP(CP_UTF8);
-    }
 #endif
 }
 
