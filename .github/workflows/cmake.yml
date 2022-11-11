@@ -41,7 +41,7 @@ jobs:
       if: matrix.os == 'ubuntu-22.04'
 
     - name: Configure
-      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFLOORMAT_PRECOMPILED-HEADERS:BOOL=OFF
 
     - name: Build
       run: ${{matrix.cmake}} --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install
