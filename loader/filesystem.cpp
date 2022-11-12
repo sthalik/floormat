@@ -24,7 +24,7 @@ bool chdir(StringView pathname)
 #ifdef _WIN32
     ret = _wchdir(Unicode::widen(pathname));
 #else
-    ret = chdir(pathname.data());
+    ret = ::chdir(pathname.data());
 #endif
     if (ret)
     {
