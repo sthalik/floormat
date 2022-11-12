@@ -64,7 +64,7 @@ private:
     std::array<variant_t, TILE_COUNT> _ground_variants = {};
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT*2> _wall_atlases;
     std::array<std::uint16_t, TILE_COUNT*2> wall_indexes = {};
-    std::array<variant_t, TILE_COUNT*2> _wall_variants;
+    std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
     std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
     std::bitset<TILE_COUNT*2> _passability = {};
