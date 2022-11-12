@@ -16,7 +16,7 @@ app::app(fm_settings&& opts) :
     _floor2{loader.tile_atlas("metal1", {2, 2})},
     _wall1{loader.tile_atlas("wood2", {2, 1})},
     _wall2{loader.tile_atlas("wood1", {2, 1})},
-    _door{loader.anim_atlas("door_close")}
+    _door{loader.anim_atlas("door-close")}
 {
     world& w = M->world();
     chunk_coords coord{0 ,0};
