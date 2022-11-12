@@ -4,7 +4,7 @@
 namespace floormat {
 
 floormat::floormat(const Arguments& arguments):
-      Platform::WindowlessWglApplication{
+      FM_APPLICATION {
           arguments,
           Configuration{}
       }
