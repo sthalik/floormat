@@ -195,25 +195,19 @@ endif()
 
 set(fm-quiet-message 0)
 
-function(message)
+function(message m)
+    list(REMOVE_AT ARGV 0)
     if(fm-quiet-message)
-        list(GET ARGV 0 m)
         if(m STREQUAL FATAL_ERROR OR m STREQUAL SEND_ERROR OR m STREQUAL WARNING OR m STREQUAL AUTHOR_WARNING)
-          list(REMOVE_AT ARGV 0)
-          _message(${m} "${ARGV}")
+            _message("${m}" "${ARGV}")
         endif()
     else()
-        _message("${ARGV}")
+        _message("${m}" "${ARGV}")
     endif()
 endfunction()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
-
-    if(MAGNUM_BUILD_PLUGINS_STATIC)
-        set(MAGNUM_WITH_SHADERTOOLS OFF)
-        set(MAGNUM_WITH_SHADERCONVERTER OFF)
-    endif()
 
     function(fm_add_sdl2)
         unset(CMAKE_C_VISIBILITY_PRESET)
@@ -242,7 +236,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     endfunction()
 
     fm_run_hook(fm-userconfig-external-pre)
-
+    if(MAGNUM_BUILD_PLUGINS_STATIC)
+        sets(BOOL
+             MAGNUM_WITH_SHADERTOOLS OFF
+             MAGNUM_WITH_SHADERCONVERTER OFF
+        )
+    endif()
     fm_add_libs()
 endif()
 
@@ -263,7 +262,7 @@ find_package(MagnumIntegration QUIET REQUIRED ImGui)
 
 if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)
-else()
-    fm_run_hook(fm-userconfig-external-post)
 endif()
+
+fm_run_hook(fm-userconfig-external-post)
 set(fm-quiet-message 0)
