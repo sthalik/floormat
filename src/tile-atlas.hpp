@@ -3,6 +3,7 @@
 #include <memory>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector2.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {

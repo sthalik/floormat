@@ -1,9 +1,11 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include <cerrno>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/String.h>
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/Implementation/ErrorString.h>
+#include <Corrade/Utility/Path.h>
 #ifdef _WIN32
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Utility/Unicode.h>
@@ -18,21 +20,51 @@ namespace floormat::loader_detail {
 namespace Unicode = Corrade::Utility::Unicode;
 #endif
 
-bool chdir(StringView pathname)
+bool loader_impl::chdir(StringView pathname)
 {
+    fm_assert(pathname.flags() & StringViewFlag::NullTerminated);
     int ret;
 #ifdef _WIN32
-    ret = _wchdir(Unicode::widen(pathname));
+    ret = ::_wchdir(Unicode::widen(pathname));
 #else
     ret = ::chdir(pathname.data());
 #endif
     if (ret)
     {
         Error err;
-        err << "chdir: can't change directory to" << pathname << Error::nospace << ':';
+        err << "chdir: can't change directory to" << pathname << Error::nospace << ": ";
         Corrade::Utility::Implementation::printErrnoErrorString(err, errno);
     }
     return !ret;
+}
+
+void loader_impl::set_application_working_directory()
+{
+    static bool once = false;
+    if (once)
+        return;
+    once = true;
+    if (const auto loc = Path::executableLocation())
+    {
+        String path;
+#ifdef _WIN32
+        path = "\\\\?\\"_s + *loc;
+#else
+        path = *loc;
+#endif
+        StringView p = path;
+        p = Path::split(p).first();
+        p = Path::split(p).first();
+        path = p;
+#ifdef _WIN32
+        for (char& c : path)
+            if (c == '/')
+                c = '\\';
+#endif
+        chdir(path);
+    }
+    else
+        fm_warn("can't find install prefix!");
 }
 
 } // namespace floormat::loader_detail

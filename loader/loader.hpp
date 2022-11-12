@@ -1,12 +1,10 @@
 #pragma once
-
 #include <memory>
-#include <Corrade/Containers/ArrayView.h>
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Trade/ImageData.h>
 
-#define FM_IMAGE_PATH "share/floormat/images/"
-#define FM_ANIM_PATH "share/floormat/anim/"
+namespace Corrade::Containers { template<typename T> class ArrayView; class String; }
+namespace Corrade::Containers { template<typename T> class BasicStringView; using StringView = BasicStringView<const char>; }
+namespace Magnum::Math { template<class T> class Vector2; }
+namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 
 namespace floormat {
 
@@ -26,6 +24,9 @@ struct loader_
     loader_& operator=(const loader_&) = delete;
 
     virtual ~loader_();
+
+    static const StringView IMAGE_PATH;
+    static const StringView ANIM_PATH;
 
 protected:
     loader_();

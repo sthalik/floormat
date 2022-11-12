@@ -18,10 +18,9 @@ tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mod
 
 void tile_editor::load_atlases()
 {
-    const StringView image_path = FM_IMAGE_PATH;
     using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     const auto filename = _name + ".json";
-    for (auto& atlas : json_helper::from_json<atlas_array>(Path::join(image_path, filename)))
+    for (auto& atlas : json_helper::from_json<atlas_array>(Path::join(loader_::IMAGE_PATH, filename)))
     {
         const StringView name = Path::splitExtension(atlas->name()).first();
         auto& [_, vec] = _permutation;

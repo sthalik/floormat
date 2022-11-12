@@ -10,6 +10,10 @@ extern "C" __declspec(dllimport) long WINAPI RtlGetVersion(PRTL_OSVERSIONINFOEXW
 #ifdef _MSC_VER
 #pragma comment(lib, "ntdll.lib")
 #endif
+#if defined __GNUG__ && !defined __clang__
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 #endif // _WIN32
 
 namespace floormat::loader_detail {
@@ -35,7 +39,7 @@ static void system_init_()
 #endif
 }
 
-void system_init()
+void loader_impl::system_init()
 {
     static bool once = false;
     if (once)

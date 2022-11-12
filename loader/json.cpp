@@ -4,7 +4,7 @@
 
 namespace floormat::loader_detail {
 
-anim_def deserialize_anim(StringView filename)
+anim_def loader_impl::deserialize_anim(StringView filename)
 {
     return json_helper::from_json<anim_def>(filename);
 }
