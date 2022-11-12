@@ -219,7 +219,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     endfunction()
 
     function(fm_add_luajit)
-        add_definitions(-UWIN32_LEAN_AND_MEAN)
         set(CMAKE_C_STANDARD 11)
         set(CMAKE_C_EXTENSIONS 1)
         unset(CMAKE_C_VISIBILITY_PRESET)
