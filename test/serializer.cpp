@@ -12,12 +12,11 @@ static chunk make_test_chunk()
 {
     auto metal1 = loader.tile_atlas("metal1", {2, 2}),
          metal2 = loader.tile_atlas("metal2", {2, 2}),
-         tiles = loader.tile_atlas("tiles", {8, 5});
+         tiles  = loader.tile_atlas("tiles", {8, 5});
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
-    for (auto [x, k, pt] : c) {
+    for (auto [x, k, pt] : c)
         x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
-    }
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north() = { metal1, 0 };
     c[{K,   K  }].wall_west()  = { metal2, 0 };
@@ -29,8 +28,11 @@ static chunk make_test_chunk()
 static bool chunks_equal(const chunk& a, const chunk& b)
 {
     for (std::size_t i = 0; i < TILE_COUNT; i++)
-        if (a[i] != b[i])
+    {
+        const auto &a1 = a[i], &b1 = b[i];
+        if (a1 != b1)
             return false;
+    }
     return true;
 }
 
@@ -44,7 +46,9 @@ static bool test_serializer1()
     w[coord] = make_test_chunk();
     w.serialize(filename);
     auto w2 = world::deserialize(filename);
-    return chunks_equal(w[coord], w2[coord]);
+    auto &c1 = w[coord], &c2 = w2[coord];
+    bool ret = chunks_equal(c1, c2);
+    return ret;
 }
 
 bool floormat::test_serializer()
