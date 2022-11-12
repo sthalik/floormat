@@ -2,7 +2,7 @@
 #include "compat/assert.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
-#include "src/loader.hpp"
+#include "loader/loader.hpp"
 #include "world.hpp"
 #include "src/anim-atlas.hpp"
 #include <algorithm>

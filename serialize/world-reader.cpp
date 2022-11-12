@@ -2,7 +2,7 @@
 #include "world-impl.hpp"
 #include "binary-reader.inl"
 #include "src/world.hpp"
-#include "src/loader.hpp"
+#include "loader/loader.hpp"
 #include "src/tile-atlas.hpp"
 #include <cstring>
 

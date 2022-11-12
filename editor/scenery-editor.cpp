@@ -1,6 +1,6 @@
 #include "scenery-editor.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/loader.hpp"
+#include "loader/loader.hpp"
 #include "compat/assert.hpp"
 
 namespace floormat {

@@ -1,11 +1,11 @@
 find_package(OpenCV QUIET)
 if(OpenCV_FOUND)
-    set(self "${PROJECT_NAME}-anim-crop-tool")
+    set(self "floormat-anim-crop-tool")
 
     include_directories(SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
     link_libraries(Corrade::Utility Magnum::Magnum)
     link_libraries(opencv_imgproc opencv_imgcodecs opencv_core)
-    link_libraries(${PROJECT_NAME})
+    link_libraries(floormat-serialize floormat)
 
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
     add_executable(${self} ${sources})

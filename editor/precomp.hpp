@@ -9,8 +9,6 @@
 #include <fmt/compile.h>
 
 #include <Corrade/Utility/Arguments.h>
-
-#include <Magnum/GL/Renderer.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 
 #if __has_include(<SDL.h>)

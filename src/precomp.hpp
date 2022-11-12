@@ -10,10 +10,12 @@
 #endif
 
 #include <bit>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
+#include <cstring>
 #include <cmath>
+#include <cstdio>
 
 #include <concepts>
 #include <iterator>
@@ -31,13 +33,16 @@
 #include <unordered_map>
 
 #include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/ArrayView.h>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/EnumSet.h>
 #include <Corrade/Containers/OptionalStl.h>
 #include <Corrade/Containers/Pointer.h>
-#include <Corrade/Containers/ArrayViewStl.h> // TODO maybe remove stl
+#include <Corrade/Containers/StringStl.h>
 #include <Corrade/Containers/StringStlHash.h>
+
 #include <Corrade/Utility/DebugStl.h>
+#include <Corrade/Utility/Resource.h>
+#include <Corrade/Utility/Path.h>
 
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
@@ -50,5 +55,3 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/Trade/ImageData.h>
-
-#include <nlohmann/json.hpp>

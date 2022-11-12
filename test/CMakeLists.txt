@@ -1,10 +1,10 @@
-set(self "${PROJECT_NAME}-test")
-file(GLOB sources "*.cpp" "../loader/*.cpp" CONFIGURE_ARGS)
+set(self floormat-test)
+file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
-link_libraries(${PROJECT_NAME})
-link_libraries(Magnum::Trade)
+link_libraries(Magnum::GL Magnum::Trade)
+link_libraries(floormat-loader floormat-serialize floormat)
 
 if(APPLE)
     link_libraries(Magnum::WindowlessCglApplication)
@@ -16,4 +16,7 @@ else()
 endif()
 
 add_executable(${self} "${sources}")
+if(FLOORMAT_PRECOMPILED-HEADERS)
+    target_precompile_headers(${self} PRIVATE precomp.hpp)
+endif()
 install(TARGETS ${self} RUNTIME DESTINATION bin)

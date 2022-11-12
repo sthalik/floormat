@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "src/world.hpp"
-#include "src/loader.hpp"
+#include "loader/loader.hpp"
 #include "src/tile-atlas.hpp"
 #include <Corrade/Utility/Path.h>
 

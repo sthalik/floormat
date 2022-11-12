@@ -172,12 +172,13 @@ include_directories(SYSTEM
 )
 
 add_subdirectory(src)
+add_subdirectory(serialize)
+add_subdirectory(loader)
+add_subdirectory(anim-crop-tool)
+add_subdirectory(draw)
 add_subdirectory(main)
 add_subdirectory(editor)
-add_subdirectory(anim-crop-tool)
-if(WIN32) # TODO
-    add_subdirectory(test)
-endif()
+add_subdirectory(test)
 
 install(DIRECTORY images anim DESTINATION "share/floormat")
 

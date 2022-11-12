@@ -1,5 +1,5 @@
 #include "shaders/tile.hpp"
-#include "loader.hpp"
+#include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "local-coords.hpp"
 #include <Corrade/Containers/Iterable.h>

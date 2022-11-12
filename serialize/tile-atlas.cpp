@@ -2,7 +2,7 @@
 #include "serialize/tile-atlas.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/magnum-vector2i.hpp"
-#include "loader.hpp"
+#include "loader/loader.hpp"
 #include <tuple>
 
 #include <nlohmann/json.hpp>

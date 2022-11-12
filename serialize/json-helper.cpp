@@ -11,7 +11,7 @@ static T open_stream(StringView filename)
 {
     T s;
     s.open(filename.data(), mode);
-    if (!s.good())
+    if (!s)
     {
         char errbuf[128];
         constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N])

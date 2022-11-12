@@ -2,7 +2,7 @@
 #include "tile-atlas.hpp"
 #include "world.hpp"
 #include "keys.hpp"
-#include "loader.hpp"
+#include "loader/loader.hpp"
 #include "random.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/tile-atlas.hpp"

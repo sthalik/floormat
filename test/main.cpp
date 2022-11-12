@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "loader.hpp"
+#include "loader/loader.hpp"
 
 namespace floormat {
 
@@ -33,4 +33,3 @@ int main(int argc, char** argv)
     floormat::floormat application{{argc, argv}};
     return application.exec();
 }
-

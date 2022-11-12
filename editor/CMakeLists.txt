@@ -1,6 +1,6 @@
-set(self ${PROJECT_NAME}-editor)
+set(self floormat-editor)
 
-file(GLOB sources "*.cpp" "../loader/*.cpp" CONFIGURE_ARGS)
+file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 corrade_add_resource(res "../resources.conf")
 
 if(MSVC)
@@ -9,14 +9,10 @@ else()
     set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w")
 endif()
 
-if(WIN32)
-    link_libraries(ntdll)
-endif()
-
 link_libraries(MagnumIntegration::ImGui fmt::fmt)
+link_libraries(floormat-main floormat-loader floormat-serialize)
 
 add_executable(${self} "${sources}" "${res}")
-target_link_libraries(${self} ${PROJECT_NAME}-main)
 
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
