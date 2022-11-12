@@ -171,9 +171,17 @@ void loader_impl::set_application_working_directory()
         StringView path = *loc;
         path = Path::split(path).first();
         path = Path::split(path).first();
+#ifdef _WIN32
+        String p = "\\\\?\\" + path;
+        for (char& c : p)
+            if (c == '/')
+                c = '\\';
+        path = p;
+#endif
         loader_detail::chdir(path);
     }
-    fm_warn("can't find install prefix!");
+    else
+        fm_warn("can't find install prefix!");
 }
 
 loader_impl::loader_impl()
