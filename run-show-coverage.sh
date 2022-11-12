@@ -40,7 +40,7 @@ if test -f CMakeLists.txt && test -f resources.conf; then
     cd ./"${build}"
 elif test -d bin; then
     cd ../../"${build}"
-elif test -x floormat || test -x floormat.exe; then
+elif test -x floormat-editor || test -x floormat-editor.exe; then
     cd ../../"${build}"
 elif test -d install/bin && test -d install/share/floormat; then
     cd ../"${build}"
@@ -57,7 +57,7 @@ if ! test -f "./CMakeCache.txt"; then
 fi
 
 exe=
-for i in ./install/bin/floormat.exe ./install/bin/floormat; do
+for i in ./install/bin/floormat-editor.exe ./install/bin/floormat-editor; do
     if test -x "$i"; then
         exe="$i"
         break
@@ -75,14 +75,14 @@ fi
 
 if test $run -gt 0; then
     if ! test -n "$exe"; then
-        echo "error: no 'floormat' executable" >&2
+        echo "error: no 'floormat-editor' executable" >&2
         exit 65
     fi
     case "$OS" in
         Windows_NT) profdir="$(cygpath -m -- "$PWD")" ;;
         *) profdir="$PWD" ;;
     esac
-    LLVM_PROFILE_FILE="$profdir/${prof}.profraw" "$exe" --magnum-gpu-validation on --vsync on
+    LLVM_PROFILE_FILE="$profdir/${prof}.profraw" "$exe" --gpu-debug full --vsync on
 fi
 
 if test $generate -gt 0; then
