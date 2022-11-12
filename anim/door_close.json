@@ -283,7 +283,11 @@
 			],
 			"ground": "959 x 540",
 			"name": "n",
-			"offset": "0 x -32"
+			"offset": [
+				0,
+				-32,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -565,7 +569,11 @@
 			],
 			"ground": "959 x 540",
 			"name": "e",
-			"offset": "32 x 0"
+			"offset": [
+				32,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -847,7 +855,11 @@
 			],
 			"ground": "959 x 540",
 			"name": "s",
-			"offset": "0 x 32"
+			"offset": [
+				0,
+				32,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -1129,7 +1141,11 @@
 			],
 			"ground": "959 x 540",
 			"name": "w",
-			"offset": "-32 x 0"
+			"offset": [
+				-32,
+				0,
+				0
+			]
 		}
 	],
 	"height": 0,

@@ -1,4 +1,5 @@
 #pragma once
+#include "magnum-vector2i.hpp"
 #include <Magnum/Math/Vector.h>
 #include <nlohmann/json.hpp>
 

@@ -5,6 +5,7 @@
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
@@ -25,7 +26,7 @@ struct anim_group final
     String name;
     std::vector<anim_frame> frames;
     Vector2ui ground;
-    Vector2b offset;
+    Vector3b offset;
 };
 
 struct anim_def final

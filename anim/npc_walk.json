@@ -248,7 +248,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "n",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -495,7 +499,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "ne",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -742,7 +750,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "e",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -989,7 +1001,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "se",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -1236,7 +1252,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "s",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -1483,7 +1503,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "sw",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -1730,7 +1754,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "w",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		},
 		{
 			"frames": [
@@ -1977,7 +2005,11 @@
 			],
 			"ground": "479 x 494",
 			"name": "nw",
-			"offset": "0 x 0"
+			"offset": [
+				0,
+				0,
+				0
+			]
 		}
 	],
 	"height": 0,

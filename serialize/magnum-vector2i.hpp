@@ -1,3 +1,4 @@
+#pragma once
 #include "compat/assert.hpp"
 #include <cstdio>
 #include <string>

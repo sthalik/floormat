@@ -7,14 +7,14 @@
     "pixel_size": "0 x 0",
 
     "groups": [
-        { "frames": [], "ground": "0 x 0", "name": "n",  "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "ne", "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "e",  "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "se", "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "s",  "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "sw", "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "w",  "offset": "0 x 0" },
-        { "frames": [], "ground": "0 x 0", "name": "nw", "offset": "0 x 0" }
+        { "frames": [], "ground": "0 x 0", "name": "n",  "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "ne", "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "e",  "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "se", "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "s",  "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "sw", "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "w",  "offset": [0, 0, 0] },
+        { "frames": [], "ground": "0 x 0", "name": "nw", "offset": [0, 0, 0] }
     ]
 }
 // vim: ft=javascript

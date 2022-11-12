@@ -82,21 +82,20 @@ auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad
 {
     enum : std::size_t { x, y, z };
-    const auto g = group(r);
     const auto f = frame(r, i);
-    const auto size = Vector2d(f.size);
     const auto gx = (float)f.ground[x]*.5f, gy = (float)f.ground[y]*.5f;
+    const auto size = Vector2d(f.size);
     const auto sx = (float)size[x]*.5f, sy = (float)size[y]*.5f;
     const auto bottom_right = tile_shader::unproject({  sx - gx,  sy - gy }),
                top_right    = tile_shader::unproject({  sx - gx,     - gy }),
                bottom_left  = tile_shader::unproject({     - gx,  sy - gy }),
                top_left     = tile_shader::unproject({     - gx,     - gy });
-    const auto cx = center[x] + g.offset[x], cy = center[y] + g.offset[y], cz = center[z];
+    const auto c = center + Vector3(group(r).offset);
     return {{
-        { cx + bottom_right[x], cy + bottom_right[y],   cz },
-        { cx + top_right[x],    cy + top_right[y],      cz },
-        { cx + bottom_left[x],  cy + bottom_left[y],    cz },
-        { cx + top_left[x],     cy + top_left[y],       cz },
+        { c[x] + bottom_right[x], c[y] + bottom_right[y],  c[z] },
+        { c[x] + top_right[x],    c[y] + top_right[y],     c[z] },
+        { c[x] + bottom_left[x],  c[y] + bottom_left[y],   c[z] },
+        { c[x] + top_left[x],     c[y] + top_left[y],      c[z] },
     }};
 }
 
