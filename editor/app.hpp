@@ -13,7 +13,7 @@
 #include <memory>
 
 #include <Corrade/Containers/Pointer.h>
-#include <Corrade/Containers/OptionalStl.h>
+#include "compat/optional.hpp"
 #include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
