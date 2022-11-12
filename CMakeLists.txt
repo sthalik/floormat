@@ -57,6 +57,8 @@ function(sets type)
     endwhile()
 endfunction()
 
+sets(STRING CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+
 function(fm_run_hook str)
     if(COMMAND "${str}")
         cmake_language(CALL "${str}")
