@@ -31,18 +31,15 @@ loader_impl::~loader_impl() = default;
 
 void loader_impl::ensure_plugins()
 {
-    if (!importer_plugins)
-        importer_plugins.emplace();
-    if (!image_importer)
-    {
-        image_importer = importer_plugins->loadAndInstantiate("StbImageImporter");
-        fm_assert(image_importer);
-    }
-    if (!tga_importer)
-    {
-        tga_importer = importer_plugins->loadAndInstantiate("TgaImporter");
-        fm_assert(tga_importer);
-    }
+    if (importer_plugins)
+        return;
+
+    importer_plugins.emplace();
+    image_importer = importer_plugins->loadAndInstantiate("StbImageImporter");
+    tga_importer = importer_plugins->loadAndInstantiate("TgaImporter");
+
+    fm_assert(image_importer);
+    fm_assert(tga_importer);
 }
 
 } // namespace floormat::loader_detail
