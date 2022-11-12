@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include <utility>
 #include <memory>
-#include <optional>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/Pair.h>
@@ -31,7 +30,7 @@ namespace floormat {
 
 struct loader_impl final : loader_
 {
-    std::optional<Utility::Resource> shader_res;
+    Optional<Utility::Resource> shader_res;
     PluginManager::Manager<Trade::AbstractImporter> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> image_importer =
         importer_plugins.loadAndInstantiate("StbImageImporter");
@@ -60,7 +59,7 @@ struct loader_impl final : loader_
 StringView loader_impl::shader(StringView filename)
 {
     if (!shader_res)
-        shader_res = std::make_optional<Utility::Resource>("floormat/shaders");
+        shader_res = Optional<Utility::Resource>(InPlaceInit, "floormat/shaders");
     auto ret = shader_res->getString(filename);
     if (ret.isEmpty())
         fm_abort("can't find shader resource '%s'", filename.cbegin());

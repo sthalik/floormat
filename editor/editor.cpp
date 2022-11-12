@@ -18,7 +18,7 @@ tile_editor* editor::current_tile_editor() noexcept
 
 void editor::on_release()
 {
-    _last_pos = std::nullopt;
+    _last_pos = NullOpt;
 }
 
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
@@ -72,7 +72,7 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
             }
             else
                 on_click_(world, draw_coord, last.btn);
-            _last_pos = { pos, draw_coord, snap, last.btn };
+            _last_pos = { InPlaceInit, pos, draw_coord, snap, last.btn };
         }
         pos = draw_coord;
     }
@@ -97,7 +97,7 @@ void editor::on_click(world& world, global_coords pos, int mods, button b)
 {
     if (auto* mode = current_tile_editor(); mode != nullptr)
     {
-        _last_pos = { pos, pos, mode->check_snap(mods), b };
+        _last_pos = { InPlaceInit, pos, pos, mode->check_snap(mods), b };
         on_click_(world, pos, b);
     }
 }

@@ -56,13 +56,13 @@ void app::reset_camera_offset()
     update_cursor_tile(cursor.pixel);
 }
 
-void app::update_cursor_tile(const std::optional<Vector2i>& pixel)
+void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 {
     cursor.pixel = pixel;
     if (pixel)
         cursor.tile = M->pixel_to_tile(Vector2d{*pixel});
     else
-        cursor.tile = std::nullopt;
+        cursor.tile = NullOpt;
 }
 
 } // namespace floormat

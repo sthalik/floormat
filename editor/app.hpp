@@ -11,10 +11,10 @@
 #include "keys.hpp"
 
 #include <memory>
-#include <optional>
 
-#include <Magnum/ImGuiIntegration/Context.h>
 #include <Corrade/Containers/Pointer.h>
+#include <Corrade/Containers/Optional.h>
+#include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
@@ -26,8 +26,8 @@ struct fm_settings;
 struct anim_atlas;
 
 struct cursor_state final {
-    std::optional<Vector2i> pixel;
-    std::optional<global_coords> tile;
+    Optional<Vector2i> pixel;
+    Optional<global_coords> tile;
     bool in_imgui = false;
 };
 
@@ -47,7 +47,7 @@ private:
     int exec();
 
     void update(float dt) override;
-    void update_cursor_tile(const std::optional<Vector2i>& pixel);
+    void update_cursor_tile(const Optional<Vector2i>& pixel);
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 

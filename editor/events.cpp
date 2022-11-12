@@ -175,13 +175,13 @@ void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
 
 void app::on_focus_out() noexcept
 {
-    update_cursor_tile(std::nullopt);
+    update_cursor_tile(NullOpt);
     clear_keys();
 }
 
 void app::on_mouse_leave() noexcept
 {
-    update_cursor_tile(std::nullopt);
+    update_cursor_tile(NullOpt);
 }
 
 void app::do_key(floormat::key k)

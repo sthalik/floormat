@@ -8,9 +8,9 @@
 #include "tile-editor.hpp"
 #include "scenery-editor.hpp"
 
-#include <optional>
 #include <map>
 #include <memory>
+#include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {
@@ -58,7 +58,7 @@ private:
         snap_mode snap = snap_mode::none;
         button btn;
     };
-    std::optional<drag_pos> _last_pos;
+    Optional<drag_pos> _last_pos;
     editor_mode _mode = editor_mode::floor;
     bool _dirty = false;
 };
