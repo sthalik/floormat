@@ -87,12 +87,6 @@ endif()
 
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
-    if(NOT MSVC)
-        add_link_options(-Wl,--nxcompat -Wl,--dynamicbase)
-        if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
-            add_link_options(-Wl,--high-entropy-va)
-        endif()
-    endif()
 endif()
 
 if(MSVC)
@@ -113,6 +107,14 @@ if(MSVC)
     endif()
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-cxa-atexit")
+    if(WIN32)
+        add_link_options(-Wl,--nxcompat -Wl,--dynamicbase)
+        if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
+            add_link_options(-Wl,--high-entropy-va)
+        else()
+            add_link_options(-Wl,--large-address-aware)
+        endif()
+    endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "13.3" OR
@@ -130,10 +132,6 @@ if(MSVC)
     add_definitions(/FI"compat/prelude.hpp")
 else()
     add_definitions(-include compat/prelude.hpp)
-    add_compile_options(-fno-rtti)
-    if(NOT APPLE AND NOT WIN32)
-        add_compile_options(-fno-plt)
-    endif()
 endif()
 
 add_definitions(
@@ -141,8 +139,20 @@ add_definitions(
     -DIMGUI_DISABLE_OBSOLETE_KEYIO
 )
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-    add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+if(CMAKE_COMPILER_IS_GNUCXX)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+        add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+    else()
+        add_compile_options(-Wno-subobject-linkage)
+    endif()
+endif()
+
+if(NOT MSVC)
+    add_compile_options(-fno-rtti)
+endif()
+
+if(NOT APPLE AND NOT WIN32)
+    add_compile_options(-fno-plt)
 endif()
 
 fm_run_hook(fm-userconfig-src)
