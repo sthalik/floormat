@@ -5,9 +5,9 @@
 #include <Magnum/Math/Vector2.h>
 #include <opencv2/core/mat.hpp>
 
-namespace floormat::Serialize {
+namespace floormat { struct anim_frame; }
 
-struct anim_frame;
+namespace floormat::Serialize {
 
 struct anim_atlas_entry
 {

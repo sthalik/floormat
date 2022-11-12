@@ -247,7 +247,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "n"
+			"name": "n",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -493,7 +494,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "ne"
+			"name": "ne",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -739,7 +741,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "e"
+			"name": "e",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -985,7 +988,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "se"
+			"name": "se",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -1231,7 +1235,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "s"
+			"name": "s",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -1477,7 +1482,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "sw"
+			"name": "sw",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -1723,7 +1729,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "w"
+			"name": "w",
+			"offset": "0 x 0"
 		},
 		{
 			"frames": [
@@ -1969,7 +1976,8 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "nw"
+			"name": "nw",
+			"offset": "0 x 0"
 		}
 	],
 	"height": 0,

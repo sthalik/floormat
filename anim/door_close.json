@@ -282,7 +282,8 @@
 				}
 			],
 			"ground": "959 x 540",
-			"name": "n"
+			"name": "n",
+			"offset": "0 x -32"
 		},
 		{
 			"frames": [
@@ -563,7 +564,8 @@
 				}
 			],
 			"ground": "959 x 540",
-			"name": "e"
+			"name": "e",
+			"offset": "32 x 0"
 		},
 		{
 			"frames": [
@@ -844,7 +846,8 @@
 				}
 			],
 			"ground": "959 x 540",
-			"name": "s"
+			"name": "s",
+			"offset": "0 x 32"
 		},
 		{
 			"frames": [
@@ -1125,7 +1128,8 @@
 				}
 			],
 			"ground": "959 x 540",
-			"name": "w"
+			"name": "w",
+			"offset": "-32 x 0"
 		}
 	],
 	"height": 0,

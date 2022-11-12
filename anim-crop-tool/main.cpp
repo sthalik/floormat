@@ -1,7 +1,7 @@
 #include "atlas.hpp"
-#include "serialize/anim.hpp"
 #include "serialize/magnum-vector2i.hpp"
 #include "serialize/json-helper.hpp"
+#include "serialize/anim.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
 
@@ -28,7 +28,6 @@
 #include "compat/assert.hpp"
 
 using namespace floormat;
-using namespace floormat::Serialize;
 
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
@@ -66,7 +65,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, StringView filename)
+static bool load_file(anim_group& group, options& opts, Serialize::anim_atlas& atlas, StringView filename)
 {
     auto mat = fm_begin(
         cv::Mat mat = cv::imread(filename, cv::IMREAD_UNCHANGED);
@@ -128,7 +127,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas& atlas, Strin
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, anim_atlas& atlas)
+static bool load_directory(anim_group& group, options& opts, Serialize::anim_atlas& atlas)
 {
     const auto input_dir = Path::join(opts.input_dir, group.name);
 
@@ -248,7 +247,7 @@ int main(int argc, char** argv)
     if (!opts_ok)
         return usage(args);
 
-    auto anim_info = json_helper::from_json<anim>(opts.input_file);
+    auto anim_info = json_helper::from_json<anim_def>(opts.input_file);
 
     if (!check_atlas_name(anim_info.object_name))
     {
@@ -274,7 +273,7 @@ int main(int argc, char** argv)
         return usage(args);
     }
 
-    anim_atlas atlas;
+    Serialize::anim_atlas atlas;
 
     for (anim_group& group : anim_info.groups)
         if (!load_directory(group, opts, atlas))
@@ -291,7 +290,7 @@ int main(int argc, char** argv)
         return EX_CANTCREAT;
     }
     anim_info.pixel_size = Vector2ui(atlas.size());
-    json_helper::to_json<anim>(anim_info, Path::join(opts.output_dir, (base_name + ".json")));
+    json_helper::to_json<anim_def>(anim_info, Path::join(opts.output_dir, (base_name + ".json")));
 
     return 0;
 }

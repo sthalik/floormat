@@ -1,15 +1,16 @@
 #include "atlas.hpp"
-#include "serialize/anim.hpp"
+#include "src/anim.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include "compat/assert.hpp" // must go below opencv headers
-using namespace floormat::Serialize;
+
+namespace floormat::Serialize {
 
 void anim_atlas_row::add_entry(const anim_atlas_entry& x)
 {
     auto& frame = *x.frame;
     const auto& mat = x.mat;
-    frame.offset = {xpos, ypos};
-    frame.size = {(unsigned)mat.cols, (unsigned)mat.rows};
+    frame.offset = { xpos, ypos };
+    frame.size = { (unsigned)mat.cols, (unsigned)mat.rows };
 
     fm_assert(mat.rows > 0 && mat.cols > 0);
     data.push_back(x);
@@ -26,13 +27,13 @@ void anim_atlas::advance_row()
     fm_assert(row.max_height > 0);
     ypos += row.max_height;
     maxx = std::max(row.xpos, maxx);
-    rows.push_back({{}, 0, 0, ypos});
+    rows.push_back({ {}, 0, 0, ypos });
 }
 
 Magnum::Vector2ui anim_atlas::offset() const noexcept
 {
     const auto& row = rows.back();
-    return {row.xpos, row.ypos};
+    return { row.xpos, row.ypos };
 }
 
 Magnum::Vector2ui anim_atlas::size() const noexcept
@@ -40,7 +41,7 @@ Magnum::Vector2ui anim_atlas::size() const noexcept
     const anim_atlas_row& row = rows.back();
     // prevent accidentally writing out of bounds by forgetting to call
     // anim_atlas::advance_row() one last time prior to anim_atlas::size()
-    return {std::max(maxx, row.xpos), ypos + row.max_height};
+    return { std::max(maxx, row.xpos), ypos + row.max_height };
 }
 
 bool anim_atlas::dump(StringView filename) const
@@ -54,9 +55,11 @@ bool anim_atlas::dump(StringView filename) const
         {
             auto offset = x.frame->offset;
             auto size = x.frame->size;
-            cv::Rect roi = {(int)offset[0], (int)offset[1], (int)size[0], (int)size[1]};
+            cv::Rect roi = { (int)offset[0], (int)offset[1], (int)size[0], (int)size[1] };
             x.mat.copyTo(mat(roi));
         }
 
     return cv::imwrite(filename.data(), mat);
 }
+
+} // namespace floormat::Serialize

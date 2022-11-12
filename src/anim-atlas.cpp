@@ -9,7 +9,7 @@ namespace floormat {
 
 static constexpr const char* name_array[] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
 
-std::uint8_t anim_atlas::rotation_to_index(const anim_info& info, rotation r) noexcept
+std::uint8_t anim_atlas::rotation_to_index(const anim_def& info, rotation r) noexcept
 {
     StringView str = name_array[std::size_t(r)];
     for (std::size_t sz = info.groups.size(), i = 0; i < sz; i++)
@@ -21,7 +21,7 @@ std::uint8_t anim_atlas::rotation_to_index(const anim_info& info, rotation r) no
     return 0xff;
 }
 
-decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_info& a) noexcept
+decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
 {
     std::array<std::uint8_t, (std::size_t)rotation::COUNT> array;
     for (std::size_t i = 0; i < array.size(); i++)
@@ -30,7 +30,7 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_i
 }
 
 anim_atlas::anim_atlas() noexcept = default;
-anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_info info) noexcept :
+anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info) noexcept :
     _name{name},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
@@ -49,7 +49,7 @@ anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
 GL::Texture2D& anim_atlas::texture() noexcept { return _tex; }
-const Serialize::anim& anim_atlas::info() const noexcept { return _info; }
+const anim_def& anim_atlas::info() const noexcept { return _info; }
 
 auto anim_atlas::group(rotation r) const noexcept -> const anim_group&
 {
@@ -81,20 +81,22 @@ auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -
 
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad
 {
+    enum : std::size_t { x, y, z };
+    const auto g = group(r);
     const auto f = frame(r, i);
     const auto size = Vector2d(f.size);
-    const auto gx = (float)f.ground[0]*.5f, gy = (float)f.ground[1]*.5f;
-    const auto sx = (float)size[0]*.5f, sy = (float)size[1]*.5f;
+    const auto gx = (float)f.ground[x]*.5f, gy = (float)f.ground[y]*.5f;
+    const auto sx = (float)size[x]*.5f, sy = (float)size[y]*.5f;
     const auto bottom_right = tile_shader::unproject({  sx - gx,  sy - gy }),
                top_right    = tile_shader::unproject({  sx - gx,     - gy }),
                bottom_left  = tile_shader::unproject({     - gx,  sy - gy }),
                top_left     = tile_shader::unproject({     - gx,     - gy });
-    const auto cx = center[0], cy = center[1], cz = center[2];
+    const auto cx = center[x] + g.offset[x], cy = center[y] + g.offset[y], cz = center[z];
     return {{
-        { cx + bottom_right[0], cy + bottom_right[1],   cz },
-        { cx + top_right[0],    cy + top_right[1],      cz },
-        { cx + bottom_left[0],  cy + bottom_left[1],    cz },
-        { cx + top_left[0],     cy + top_left[1],       cz },
+        { cx + bottom_right[x], cy + bottom_right[y],   cz },
+        { cx + top_right[x],    cy + top_right[y],      cz },
+        { cx + bottom_left[x],  cy + bottom_left[y],    cz },
+        { cx + top_left[x],     cy + top_left[y],       cz },
     }};
 }
 
