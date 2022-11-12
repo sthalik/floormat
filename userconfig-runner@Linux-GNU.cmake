@@ -16,6 +16,7 @@ function(fm-userconfig-src)
         #-Wno-shadow
         -Wno-ctad-maybe-unsupported
         -Wno-ignored-attributes
+        -Wno-array-bounds
     )
     add_compile_options(
         #-Werror
