@@ -1,4 +1,5 @@
 #include "json-helper.hpp"
+#include "compat/assert.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>
