@@ -117,32 +117,46 @@ namespace floormat {
 world world::deserialize(StringView filename)
 {
     char errbuf[128];
-    constexpr auto strerror = []<std::size_t N> (char (&buf)[N]) -> const char* {
+    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) {
         buf[0] = '\0';
 #ifndef _WIN32
         (void)::strerror_r(errno, buf, std::size(buf));
 #else
         (void)::strerror_s(buf, std::size(buf), errno);
 #endif
-        return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
-        fm_abort("fopen(\"%s\", \"r\"): %s", filename.data(), strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fopen(\"%s\", \"r\"): %s", filename.data(), errbuf);
+    }
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
-        fm_abort("fseek(SEEK_END): %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fseek(SEEK_END): %s", errbuf);
+    }
     std::size_t len;
     if (auto len_ = ::ftell(f); len_ >= 0)
         len = (std::size_t)len_;
     else
-        fm_abort("ftell: %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("ftell: %s", errbuf);
+    }
     if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
-        fm_abort("fseek(SEEK_SET): %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fseek(SEEK_SET): %s", errbuf);
+    }
     auto buf_ = std::make_unique<char[]>(len);
 
     if (auto ret = ::fread(&buf_[0], 1, len, f); ret != len)
-        fm_abort("fread short read: %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fread short read: %s", errbuf);
+    }
 
     world w;
     Serialize::reader_state s{w};

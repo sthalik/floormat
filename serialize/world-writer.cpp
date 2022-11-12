@@ -252,27 +252,35 @@ void world::serialize(StringView filename)
 {
     collect(true);
     char errbuf[128];
-    constexpr auto strerror = []<std::size_t N> (char (&buf)[N]) -> const char* {
+    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) {
         buf[0] = '\0';
 #ifndef _WIN32
         (void)::strerror_r(errno, buf, std::size(buf));
 #else
         (void)::strerror_s(buf, std::size(buf), errno);
 #endif
-        return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
     FILE_raii file = ::fopen(filename.data(), "wb");
     if (!file)
-        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), errbuf);
+    }
     Serialize::writer_state s{*this};
     const auto array = s.serialize_world();
     if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
-        fm_abort("fwrite: %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fwrite: %s", errbuf);
+    }
     if (int ret = ::fflush(file); ret != 0)
-        fm_abort("fflush: %s", strerror(errbuf));
+    {
+        get_error_string(errbuf);
+        fm_abort("fflush: %s", errbuf);
+    }
 }
 
 } // namespace floormat

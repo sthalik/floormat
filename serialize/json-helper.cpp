@@ -1,4 +1,6 @@
 #include "json-helper.hpp"
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 
 namespace floormat {
@@ -7,8 +9,23 @@ template<typename T, std::ios_base::openmode mode>
 static T open_stream(StringView filename)
 {
     T s;
-    s.exceptions(s.exceptions() | std::ios::failbit | std::ios::badbit);
     s.open(filename.data(), mode);
+    if (!s.good())
+    {
+        char errbuf[128];
+        constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N])
+        {
+            buf[0] = '\0';
+#ifndef _WIN32
+            (void)::strerror_r(errno, errbuf, std::size(errbuf));
+#else
+            (void)::strerror_s(buf, std::size(buf), errno);
+#endif
+        };
+        const char* mode_str = mode & std::ios_base::out ? "writing" : "reading";
+        (void)get_error_string(errbuf);
+        fm_error("can't open file '%s' for %s: %s", filename.data(), mode_str, errbuf);
+    }
     return s;
 }
 
