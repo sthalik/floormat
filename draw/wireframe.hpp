@@ -9,8 +9,7 @@ namespace floormat {
 
 struct tile_shader;
 
-namespace wireframe
-{
+namespace wireframe {
 
 template<typename T>
 concept traits = requires (const T& x) {
@@ -22,15 +21,16 @@ concept traits = requires (const T& x) {
     {x.on_draw()} -> std::same_as<void>;
 };
 
-struct mesh_base
-{
-    static GL::Texture2D make_constant_texture();
+GL::Texture2D make_constant_texture();
+
+struct mesh_base {
+protected:
     GL::Buffer _vertex_buffer{{}, GL::BufferUsage::DynamicDraw}, _constant_buffer, _index_buffer;
-    GL::Texture2D _texture = make_constant_texture();
+    GL::Texture2D* _texture;
     GL::Mesh _mesh;
 
     mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-              std::size_t num_vertices, std::size_t num_indexes);
+              std::size_t num_vertices, std::size_t num_indexes, GL::Texture2D* texture);
     void draw(tile_shader& shader);
     void set_subdata(ArrayView<const void> array);
 };
@@ -40,13 +40,13 @@ struct mesh_base
 template<wireframe::traits T>
 struct wireframe_mesh final : private wireframe::mesh_base
 {
-    wireframe_mesh();
+    wireframe_mesh(GL::Texture2D& constant_texture);
     void draw(tile_shader& shader, T traits);
 };
 
 template<wireframe::traits T>
-wireframe_mesh<T>::wireframe_mesh() :
-      wireframe::mesh_base{T::primitive, T::make_index_array(), T::num_vertices, T::num_indexes}
+wireframe_mesh<T>::wireframe_mesh(GL::Texture2D& constant_texture) :
+    wireframe::mesh_base{T::primitive, T::make_index_array(), T::num_vertices, T::num_indexes, &constant_texture}
 {
 }
 

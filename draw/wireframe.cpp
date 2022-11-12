@@ -13,7 +13,7 @@
 namespace floormat::wireframe
 {
 
-GL::Texture2D mesh_base::make_constant_texture()
+GL::Texture2D make_constant_texture()
 {
     const Vector4ub data[] = { {255, 255, 255, 255} };
     Trade::ImageData2D img{PixelFormat::RGBA8Unorm, {1, 1}, {},
@@ -33,10 +33,11 @@ struct constant_buf {
 };
 
 mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-                     std::size_t num_vertices, std::size_t num_indexes) :
+                     std::size_t num_vertices, std::size_t num_indexes, GL::Texture2D* texture) :
     _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
     _constant_buffer{Containers::Array<constant_buf>{ValueInit, num_vertices}},
-    _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}}
+    _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}},
+    _texture{texture}
 {
     _mesh.setCount((int)(num_indexes > 0 ? num_indexes : num_vertices))
         .setPrimitive(primitive)
@@ -48,7 +49,7 @@ mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_da
 
 void mesh_base::draw(tile_shader& shader)
 {
-    _texture.bind(0);
+    _texture->bind(0);
     shader.draw(_mesh);
 }
 

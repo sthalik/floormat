@@ -99,10 +99,11 @@ private:
     ImGuiIntegration::Context _imgui{NoCreate};
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
     std::shared_ptr<anim_atlas> _door;
-    wireframe_mesh<wireframe::quad_floor> _wireframe_quad;
-    wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n;
-    wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w;
-    wireframe_mesh<wireframe::box> _wireframe_box;
+    GL::Texture2D _wireframe_texture = wireframe::make_constant_texture();
+    wireframe_mesh<wireframe::quad_floor>  _wireframe_quad   {_wireframe_texture};
+    wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n {_wireframe_texture};
+    wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w {_wireframe_texture};
+    wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
     editor _editor;
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers;
