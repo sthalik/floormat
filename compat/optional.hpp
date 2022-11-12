@@ -6,7 +6,7 @@ namespace std {
 template<class T> struct tuple_size<Corrade::Containers::Optional<T>> : std::integral_constant<std::size_t, 2> {};
 template<class T> struct tuple_element<0, Corrade::Containers::Optional<T>> { using type = T; };
 template<class T> struct tuple_element<1, Corrade::Containers::Optional<T>> { using type = bool; };
-}
+} // namespace std
 
 namespace Corrade::Containers {
 
