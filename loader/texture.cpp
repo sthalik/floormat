@@ -1,5 +1,6 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include "compat/alloca.hpp"
 #include <cstring>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
