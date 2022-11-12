@@ -1,0 +1,2020 @@
+{
+	"actionframe": 0,
+	"anim_name": "walk",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "12 x 82",
+					"offset": "0 x 0",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "30 x 0",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "60 x 0",
+					"size": "31 x 87"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "91 x 0",
+					"size": "31 x 87"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "122 x 0",
+					"size": "31 x 87"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "153 x 0",
+					"size": "31 x 87"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "184 x 0",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "214 x 0",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "11 x 83",
+					"offset": "244 x 0",
+					"size": "29 x 87"
+				},
+				{
+					"ground": "11 x 83",
+					"offset": "273 x 0",
+					"size": "29 x 87"
+				},
+				{
+					"ground": "10 x 83",
+					"offset": "302 x 0",
+					"size": "28 x 87"
+				},
+				{
+					"ground": "10 x 83",
+					"offset": "330 x 0",
+					"size": "28 x 86"
+				},
+				{
+					"ground": "9 x 83",
+					"offset": "358 x 0",
+					"size": "27 x 86"
+				},
+				{
+					"ground": "9 x 83",
+					"offset": "385 x 0",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "9 x 83",
+					"offset": "411 x 0",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "8 x 83",
+					"offset": "436 x 0",
+					"size": "24 x 85"
+				},
+				{
+					"ground": "8 x 83",
+					"offset": "460 x 0",
+					"size": "23 x 84"
+				},
+				{
+					"ground": "8 x 83",
+					"offset": "483 x 0",
+					"size": "23 x 85"
+				},
+				{
+					"ground": "9 x 82",
+					"offset": "506 x 0",
+					"size": "24 x 85"
+				},
+				{
+					"ground": "10 x 82",
+					"offset": "530 x 0",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "555 x 0",
+					"size": "26 x 85"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "581 x 0",
+					"size": "27 x 85"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "608 x 0",
+					"size": "29 x 85"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "637 x 0",
+					"size": "31 x 85"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "668 x 0",
+					"size": "31 x 85"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "699 x 0",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "730 x 0",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "761 x 0",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "792 x 0",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "823 x 0",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "853 x 0",
+					"size": "29 x 84"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "882 x 0",
+					"size": "28 x 83"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "910 x 0",
+					"size": "27 x 83"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "937 x 0",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "963 x 0",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "987 x 0",
+					"size": "23 x 83"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "1010 x 0",
+					"size": "23 x 84"
+				},
+				{
+					"ground": "10 x 82",
+					"offset": "1033 x 0",
+					"size": "22 x 84"
+				},
+				{
+					"ground": "9 x 82",
+					"offset": "1055 x 0",
+					"size": "22 x 85"
+				},
+				{
+					"ground": "10 x 82",
+					"offset": "1077 x 0",
+					"size": "23 x 85"
+				},
+				{
+					"ground": "10 x 82",
+					"offset": "1100 x 0",
+					"size": "24 x 85"
+				},
+				{
+					"ground": "10 x 82",
+					"offset": "1124 x 0",
+					"size": "25 x 86"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "1149 x 0",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "1175 x 0",
+					"size": "27 x 86"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "1202 x 0",
+					"size": "27 x 87"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "1229 x 0",
+					"size": "28 x 87"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "1257 x 0",
+					"size": "29 x 88"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "1286 x 0",
+					"size": "29 x 88"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "16 x 79",
+					"offset": "0 x 88",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "38 x 88",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "76 x 88",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "114 x 88",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "16 x 80",
+					"offset": "152 x 88",
+					"size": "37 x 82"
+				},
+				{
+					"ground": "16 x 80",
+					"offset": "189 x 88",
+					"size": "36 x 82"
+				},
+				{
+					"ground": "16 x 80",
+					"offset": "225 x 88",
+					"size": "35 x 82"
+				},
+				{
+					"ground": "16 x 80",
+					"offset": "260 x 88",
+					"size": "33 x 82"
+				},
+				{
+					"ground": "15 x 80",
+					"offset": "293 x 88",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "15 x 80",
+					"offset": "324 x 88",
+					"size": "30 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "354 x 88",
+					"size": "28 x 83"
+				},
+				{
+					"ground": "13 x 80",
+					"offset": "382 x 88",
+					"size": "27 x 83"
+				},
+				{
+					"ground": "12 x 80",
+					"offset": "409 x 88",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "11 x 80",
+					"offset": "435 x 88",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "10 x 80",
+					"offset": "460 x 88",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "8 x 80",
+					"offset": "484 x 88",
+					"size": "22 x 83"
+				},
+				{
+					"ground": "7 x 80",
+					"offset": "506 x 88",
+					"size": "21 x 83"
+				},
+				{
+					"ground": "9 x 80",
+					"offset": "527 x 88",
+					"size": "22 x 83"
+				},
+				{
+					"ground": "10 x 80",
+					"offset": "549 x 88",
+					"size": "24 x 82"
+				},
+				{
+					"ground": "12 x 80",
+					"offset": "573 x 88",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "13 x 79",
+					"offset": "599 x 88",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "628 x 88",
+					"size": "32 x 82"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "660 x 88",
+					"size": "35 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "695 x 88",
+					"size": "37 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "732 x 88",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "770 x 88",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "17 x 79",
+					"offset": "808 x 88",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "846 x 88",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "884 x 88",
+					"size": "37 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "921 x 88",
+					"size": "36 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "957 x 88",
+					"size": "35 x 81"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "992 x 88",
+					"size": "33 x 81"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "1025 x 88",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "1056 x 88",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "1085 x 88",
+					"size": "28 x 82"
+				},
+				{
+					"ground": "13 x 79",
+					"offset": "1113 x 88",
+					"size": "27 x 82"
+				},
+				{
+					"ground": "12 x 79",
+					"offset": "1140 x 88",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "11 x 79",
+					"offset": "1166 x 88",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "10 x 79",
+					"offset": "1191 x 88",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "8 x 79",
+					"offset": "1215 x 88",
+					"size": "22 x 83"
+				},
+				{
+					"ground": "7 x 79",
+					"offset": "1237 x 88",
+					"size": "21 x 83"
+				},
+				{
+					"ground": "9 x 79",
+					"offset": "1258 x 88",
+					"size": "23 x 83"
+				},
+				{
+					"ground": "10 x 79",
+					"offset": "1281 x 88",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "12 x 79",
+					"offset": "1305 x 88",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "13 x 79",
+					"offset": "1331 x 88",
+					"size": "29 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "1360 x 88",
+					"size": "32 x 83"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "1392 x 88",
+					"size": "35 x 83"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "1427 x 88",
+					"size": "37 x 83"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "ne",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "13 x 77",
+					"offset": "0 x 171",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "31 x 171",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "62 x 171",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "93 x 171",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "124 x 171",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "155 x 171",
+					"size": "30 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "185 x 171",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "214 x 171",
+					"size": "28 x 81"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "242 x 171",
+					"size": "27 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "269 x 171",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "295 x 171",
+					"size": "24 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "319 x 171",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "11 x 77",
+					"offset": "342 x 171",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "10 x 77",
+					"offset": "365 x 171",
+					"size": "22 x 80"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "387 x 171",
+					"size": "21 x 79"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "408 x 171",
+					"size": "21 x 80"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "429 x 171",
+					"size": "22 x 80"
+				},
+				{
+					"ground": "10 x 77",
+					"offset": "451 x 171",
+					"size": "23 x 81"
+				},
+				{
+					"ground": "10 x 77",
+					"offset": "474 x 171",
+					"size": "24 x 82"
+				},
+				{
+					"ground": "11 x 77",
+					"offset": "498 x 171",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "11 x 77",
+					"offset": "523 x 171",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "549 x 171",
+					"size": "27 x 84"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "576 x 171",
+					"size": "28 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "604 x 171",
+					"size": "29 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "633 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "663 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "693 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "723 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "753 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "783 x 171",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "813 x 171",
+					"size": "30 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "843 x 171",
+					"size": "30 x 83"
+				},
+				{
+					"ground": "11 x 76",
+					"offset": "873 x 171",
+					"size": "29 x 83"
+				},
+				{
+					"ground": "11 x 76",
+					"offset": "902 x 171",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "10 x 76",
+					"offset": "931 x 171",
+					"size": "28 x 82"
+				},
+				{
+					"ground": "10 x 77",
+					"offset": "959 x 171",
+					"size": "28 x 82"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "987 x 171",
+					"size": "27 x 82"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "1014 x 171",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "1040 x 171",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "8 x 77",
+					"offset": "1065 x 171",
+					"size": "24 x 81"
+				},
+				{
+					"ground": "8 x 77",
+					"offset": "1089 x 171",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "8 x 77",
+					"offset": "1112 x 171",
+					"size": "22 x 80"
+				},
+				{
+					"ground": "9 x 77",
+					"offset": "1134 x 171",
+					"size": "24 x 79"
+				},
+				{
+					"ground": "10 x 77",
+					"offset": "1158 x 171",
+					"size": "25 x 80"
+				},
+				{
+					"ground": "11 x 77",
+					"offset": "1183 x 171",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "1209 x 171",
+					"size": "27 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "1236 x 171",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "1265 x 171",
+					"size": "31 x 82"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "e",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "12 x 75",
+					"offset": "0 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "25 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "50 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "75 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "100 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "125 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "150 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "175 x 255",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "200 x 255",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "225 x 255",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "250 x 255",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "275 x 255",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "300 x 255",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "325 x 255",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "350 x 255",
+					"size": "25 x 80"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "375 x 255",
+					"size": "26 x 80"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "401 x 255",
+					"size": "26 x 79"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "427 x 255",
+					"size": "26 x 79"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "453 x 255",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "479 x 255",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "505 x 255",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "14 x 76",
+					"offset": "531 x 255",
+					"size": "26 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "557 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "582 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 76",
+					"offset": "607 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "632 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "657 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "682 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "707 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "732 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "13 x 75",
+					"offset": "757 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 75",
+					"offset": "782 x 255",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "807 x 255",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "832 x 255",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "857 x 255",
+					"size": "25 x 82"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "882 x 255",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "908 x 255",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "934 x 255",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "960 x 255",
+					"size": "26 x 80"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "986 x 255",
+					"size": "26 x 80"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1012 x 255",
+					"size": "26 x 79"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1038 x 255",
+					"size": "26 x 79"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1064 x 255",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1090 x 255",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1116 x 255",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1142 x 255",
+					"size": "26 x 84"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1168 x 255",
+					"size": "25 x 84"
+				},
+				{
+					"ground": "12 x 76",
+					"offset": "1193 x 255",
+					"size": "25 x 84"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "se",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "17 x 76",
+					"offset": "0 x 339",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "17 x 76",
+					"offset": "30 x 339",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "17 x 76",
+					"offset": "60 x 339",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "91 x 339",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "122 x 339",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "153 x 339",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "184 x 339",
+					"size": "30 x 83"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "214 x 339",
+					"size": "30 x 83"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "244 x 339",
+					"size": "29 x 83"
+				},
+				{
+					"ground": "18 x 76",
+					"offset": "273 x 339",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "18 x 77",
+					"offset": "302 x 339",
+					"size": "28 x 82"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "330 x 339",
+					"size": "28 x 82"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "358 x 339",
+					"size": "27 x 82"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "385 x 339",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "411 x 339",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "436 x 339",
+					"size": "24 x 81"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "460 x 339",
+					"size": "23 x 81"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "483 x 339",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "506 x 339",
+					"size": "24 x 79"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "530 x 339",
+					"size": "25 x 80"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "555 x 339",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "581 x 339",
+					"size": "27 x 81"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "608 x 339",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "637 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "18 x 77",
+					"offset": "668 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "18 x 77",
+					"offset": "699 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "18 x 77",
+					"offset": "730 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "18 x 77",
+					"offset": "761 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "792 x 339",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "823 x 339",
+					"size": "30 x 82"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "853 x 339",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "882 x 339",
+					"size": "28 x 81"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "910 x 339",
+					"size": "27 x 81"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "937 x 339",
+					"size": "26 x 81"
+				},
+				{
+					"ground": "12 x 77",
+					"offset": "963 x 339",
+					"size": "24 x 81"
+				},
+				{
+					"ground": "11 x 77",
+					"offset": "987 x 339",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "11 x 78",
+					"offset": "1010 x 339",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "11 x 78",
+					"offset": "1033 x 339",
+					"size": "22 x 80"
+				},
+				{
+					"ground": "12 x 78",
+					"offset": "1055 x 339",
+					"size": "22 x 80"
+				},
+				{
+					"ground": "13 x 77",
+					"offset": "1077 x 339",
+					"size": "23 x 80"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "1100 x 339",
+					"size": "24 x 80"
+				},
+				{
+					"ground": "14 x 77",
+					"offset": "1124 x 339",
+					"size": "25 x 81"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "1149 x 339",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "15 x 77",
+					"offset": "1175 x 339",
+					"size": "27 x 82"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "1202 x 339",
+					"size": "27 x 83"
+				},
+				{
+					"ground": "16 x 77",
+					"offset": "1229 x 339",
+					"size": "28 x 84"
+				},
+				{
+					"ground": "17 x 77",
+					"offset": "1257 x 339",
+					"size": "29 x 84"
+				},
+				{
+					"ground": "17 x 76",
+					"offset": "1286 x 339",
+					"size": "29 x 84"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "s",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "21 x 79",
+					"offset": "0 x 423",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "38 x 423",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "76 x 423",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "114 x 423",
+					"size": "38 x 81"
+				},
+				{
+					"ground": "20 x 79",
+					"offset": "152 x 423",
+					"size": "37 x 81"
+				},
+				{
+					"ground": "19 x 79",
+					"offset": "189 x 423",
+					"size": "36 x 81"
+				},
+				{
+					"ground": "18 x 79",
+					"offset": "225 x 423",
+					"size": "35 x 82"
+				},
+				{
+					"ground": "17 x 79",
+					"offset": "260 x 423",
+					"size": "33 x 82"
+				},
+				{
+					"ground": "16 x 79",
+					"offset": "293 x 423",
+					"size": "31 x 82"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "324 x 423",
+					"size": "30 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "354 x 423",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "383 x 423",
+					"size": "27 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "410 x 423",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "436 x 423",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "461 x 423",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "485 x 423",
+					"size": "22 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "507 x 423",
+					"size": "21 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "528 x 423",
+					"size": "23 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "551 x 423",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "14 x 79",
+					"offset": "575 x 423",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "601 x 423",
+					"size": "29 x 83"
+				},
+				{
+					"ground": "18 x 79",
+					"offset": "630 x 423",
+					"size": "32 x 83"
+				},
+				{
+					"ground": "19 x 79",
+					"offset": "662 x 423",
+					"size": "35 x 83"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "697 x 423",
+					"size": "37 x 82"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "734 x 423",
+					"size": "38 x 83"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "772 x 423",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "810 x 423",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "21 x 80",
+					"offset": "848 x 423",
+					"size": "38 x 82"
+				},
+				{
+					"ground": "20 x 80",
+					"offset": "886 x 423",
+					"size": "37 x 82"
+				},
+				{
+					"ground": "19 x 80",
+					"offset": "923 x 423",
+					"size": "36 x 82"
+				},
+				{
+					"ground": "18 x 80",
+					"offset": "959 x 423",
+					"size": "35 x 83"
+				},
+				{
+					"ground": "17 x 80",
+					"offset": "994 x 423",
+					"size": "33 x 83"
+				},
+				{
+					"ground": "16 x 80",
+					"offset": "1027 x 423",
+					"size": "31 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1058 x 423",
+					"size": "29 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1087 x 423",
+					"size": "28 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1115 x 423",
+					"size": "27 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1142 x 423",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1168 x 423",
+					"size": "25 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1193 x 423",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1217 x 423",
+					"size": "22 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1239 x 423",
+					"size": "21 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1260 x 423",
+					"size": "23 x 83"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1283 x 423",
+					"size": "24 x 82"
+				},
+				{
+					"ground": "14 x 80",
+					"offset": "1307 x 423",
+					"size": "26 x 82"
+				},
+				{
+					"ground": "15 x 79",
+					"offset": "1333 x 423",
+					"size": "29 x 82"
+				},
+				{
+					"ground": "18 x 79",
+					"offset": "1362 x 423",
+					"size": "32 x 82"
+				},
+				{
+					"ground": "19 x 79",
+					"offset": "1394 x 423",
+					"size": "35 x 82"
+				},
+				{
+					"ground": "21 x 79",
+					"offset": "1429 x 423",
+					"size": "37 x 82"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "sw",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "18 x 82",
+					"offset": "0 x 506",
+					"size": "31 x 85"
+				},
+				{
+					"ground": "18 x 82",
+					"offset": "31 x 506",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 82",
+					"offset": "62 x 506",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "18 x 82",
+					"offset": "93 x 506",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "124 x 506",
+					"size": "31 x 84"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "155 x 506",
+					"size": "30 x 84"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "185 x 506",
+					"size": "29 x 84"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "214 x 506",
+					"size": "28 x 83"
+				},
+				{
+					"ground": "14 x 82",
+					"offset": "242 x 506",
+					"size": "27 x 83"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "269 x 506",
+					"size": "26 x 83"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "295 x 506",
+					"size": "24 x 83"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "319 x 506",
+					"size": "23 x 83"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "342 x 506",
+					"size": "23 x 84"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "365 x 506",
+					"size": "22 x 84"
+				},
+				{
+					"ground": "11 x 82",
+					"offset": "387 x 506",
+					"size": "21 x 85"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "408 x 506",
+					"size": "21 x 85"
+				},
+				{
+					"ground": "12 x 82",
+					"offset": "429 x 506",
+					"size": "22 x 85"
+				},
+				{
+					"ground": "13 x 82",
+					"offset": "451 x 506",
+					"size": "23 x 86"
+				},
+				{
+					"ground": "14 x 82",
+					"offset": "474 x 506",
+					"size": "24 x 86"
+				},
+				{
+					"ground": "14 x 82",
+					"offset": "498 x 506",
+					"size": "25 x 86"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "523 x 506",
+					"size": "26 x 87"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "549 x 506",
+					"size": "27 x 87"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "576 x 506",
+					"size": "28 x 87"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "604 x 506",
+					"size": "29 x 88"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "633 x 506",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "663 x 506",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "693 x 506",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "723 x 506",
+					"size": "30 x 88"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "753 x 506",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "783 x 506",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "18 x 83",
+					"offset": "813 x 506",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "18 x 83",
+					"offset": "843 x 506",
+					"size": "30 x 87"
+				},
+				{
+					"ground": "18 x 83",
+					"offset": "873 x 506",
+					"size": "29 x 87"
+				},
+				{
+					"ground": "18 x 83",
+					"offset": "902 x 506",
+					"size": "29 x 87"
+				},
+				{
+					"ground": "18 x 83",
+					"offset": "931 x 506",
+					"size": "28 x 87"
+				},
+				{
+					"ground": "17 x 83",
+					"offset": "959 x 506",
+					"size": "28 x 86"
+				},
+				{
+					"ground": "17 x 83",
+					"offset": "987 x 506",
+					"size": "27 x 86"
+				},
+				{
+					"ground": "16 x 83",
+					"offset": "1014 x 506",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "16 x 83",
+					"offset": "1040 x 506",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "15 x 83",
+					"offset": "1065 x 506",
+					"size": "24 x 85"
+				},
+				{
+					"ground": "14 x 83",
+					"offset": "1089 x 506",
+					"size": "23 x 85"
+				},
+				{
+					"ground": "14 x 83",
+					"offset": "1112 x 506",
+					"size": "22 x 85"
+				},
+				{
+					"ground": "14 x 82",
+					"offset": "1134 x 506",
+					"size": "24 x 85"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "1158 x 506",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "1183 x 506",
+					"size": "26 x 85"
+				},
+				{
+					"ground": "15 x 82",
+					"offset": "1209 x 506",
+					"size": "27 x 85"
+				},
+				{
+					"ground": "16 x 82",
+					"offset": "1236 x 506",
+					"size": "29 x 85"
+				},
+				{
+					"ground": "17 x 82",
+					"offset": "1265 x 506",
+					"size": "31 x 85"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "13 x 83",
+					"offset": "0 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "25 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "50 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "75 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "100 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "125 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "13 x 84",
+					"offset": "150 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "175 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "200 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "225 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "250 x 594",
+					"size": "25 x 86"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "275 x 594",
+					"size": "25 x 86"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "300 x 594",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "325 x 594",
+					"size": "25 x 85"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "350 x 594",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "376 x 594",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "402 x 594",
+					"size": "26 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "428 x 594",
+					"size": "26 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "454 x 594",
+					"size": "26 x 88"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "480 x 594",
+					"size": "26 x 88"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "506 x 594",
+					"size": "26 x 89"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "532 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "557 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "582 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "607 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "632 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "657 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "682 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "707 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 83",
+					"offset": "732 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "757 x 594",
+					"size": "25 x 88"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "782 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "807 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "12 x 84",
+					"offset": "832 x 594",
+					"size": "25 x 87"
+				},
+				{
+					"ground": "13 x 84",
+					"offset": "857 x 594",
+					"size": "25 x 86"
+				},
+				{
+					"ground": "13 x 84",
+					"offset": "882 x 594",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "13 x 84",
+					"offset": "908 x 594",
+					"size": "26 x 85"
+				},
+				{
+					"ground": "13 x 84",
+					"offset": "934 x 594",
+					"size": "26 x 85"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "960 x 594",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "986 x 594",
+					"size": "26 x 86"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "1012 x 594",
+					"size": "26 x 87"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "1038 x 594",
+					"size": "26 x 87"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "1064 x 594",
+					"size": "26 x 88"
+				},
+				{
+					"ground": "14 x 84",
+					"offset": "1090 x 594",
+					"size": "26 x 88"
+				},
+				{
+					"ground": "14 x 83",
+					"offset": "1116 x 594",
+					"size": "26 x 88"
+				},
+				{
+					"ground": "14 x 83",
+					"offset": "1142 x 594",
+					"size": "26 x 89"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "1168 x 594",
+					"size": "25 x 89"
+				},
+				{
+					"ground": "13 x 83",
+					"offset": "1193 x 594",
+					"size": "25 x 89"
+				}
+			],
+			"ground": "479 x 494",
+			"name": "nw",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 48,
+	"object_name": "npc",
+	"pixel_size": "1466 x 683",
+	"width": 30
+}

@@ -283,7 +283,7 @@ int main(int argc, char** argv)
     if (!Path::make(opts.output_dir))
         return EX_CANTCREAT;
 
-    const String base_name = anim_info.object_name + "_" + anim_info.anim_name;
+    const String base_name = anim_info.object_name + "-" + anim_info.anim_name;
 
     if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
         Error{} << "error: failed writing image to" << pathname << ":"
