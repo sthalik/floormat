@@ -59,8 +59,8 @@ void app::reset_camera_offset()
 void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 {
     cursor.pixel = pixel;
-    if (pixel)
-        cursor.tile = M->pixel_to_tile(Vector2d{*pixel});
+    if (const auto [p, b] = pixel; b)
+        cursor.tile = M->pixel_to_tile(Vector2d{p});
     else
         cursor.tile = NullOpt;
 }

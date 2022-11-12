@@ -32,6 +32,7 @@
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/OptionalStl.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/ArrayViewStl.h> // TODO maybe remove stl
 #include <Corrade/Containers/StringStlHash.h>

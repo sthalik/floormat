@@ -10,11 +10,9 @@ void app::draw_cursor()
 {
     constexpr float LINE_WIDTH = 2;
 
-    if (cursor.tile && !cursor.in_imgui)
+    if (const auto [pos, b] = cursor.tile; b && !cursor.in_imgui)
     {
-        const auto pos = *cursor.tile;
-
-        const auto draw = [&](auto& mesh, const auto& size) {
+        const auto draw = [&, pos = pos](auto& mesh, const auto& size) {
             const auto pt = pos.to_signed();
             const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
             auto& shader = M->shader();

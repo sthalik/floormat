@@ -10,7 +10,7 @@
 
 #include <map>
 #include <memory>
-#include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/OptionalStl.h>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {
