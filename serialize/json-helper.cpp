@@ -23,7 +23,7 @@ static T open_stream(StringView filename)
             (void)::strerror_s(buf, std::size(buf), errno);
 #endif
         };
-        const char* mode_str = mode & std::ios_base::out ? "writing" : "reading";
+        const char* mode_str = (mode & std::ios_base::out) == std::ios_base::out ? "writing" : "reading";
         (void)get_error_string(errbuf);
         fm_error("can't open file '%s' for %s: %s", filename.data(), mode_str, errbuf);
     }
