@@ -70,7 +70,6 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
 {
     const emplacer e{[&] { return std::make_shared<struct tile_atlas>(name, texture(FM_IMAGE_PATH, name), size); }};
     auto atlas = tile_atlas_map.try_emplace(name, e).first->second;
-    tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
 
