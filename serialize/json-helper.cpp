@@ -18,7 +18,7 @@ static T open_stream(StringView filename)
         {
             buf[0] = '\0';
 #ifndef _WIN32
-            (void)::strerror_r(errno, errbuf, std::size(errbuf));
+            (void)::strerror_r(errno, buf, std::size(buf));
 #else
             (void)::strerror_s(buf, std::size(buf), errno);
 #endif
