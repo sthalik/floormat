@@ -2,6 +2,8 @@
 #include "loader.hpp"
 #include "compat/assert.hpp"
 #include "local-coords.hpp"
+#include <Corrade/Containers/StringStl.h>
+#include <Corrade/Containers/Iterable.h>
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Shader.h>

@@ -10,8 +10,9 @@
 #include <utility>
 #include <memory>
 #include <optional>
-#include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/StringStlHash.h>
 #include <Corrade/PluginManager/PluginManager.h>
