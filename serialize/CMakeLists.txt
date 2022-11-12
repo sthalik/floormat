@@ -11,3 +11,7 @@ target_link_libraries(
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
 endif()
+
+if(MSVC)
+    add_compile_options(-EHsc)
+endif()
