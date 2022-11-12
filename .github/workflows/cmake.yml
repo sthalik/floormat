@@ -37,7 +37,10 @@ jobs:
       if: matrix.os != 'ubuntu-22.04'
 
     - name: Install Linux Dependencies
-      run: sudo /bin/sh -c 'set -e; apt update; apt install libopencv-dev libgl-dev g++-12 ninja-build'
+      run: |
+        set -e
+        apt update
+        apt install libopencv-dev libgl-dev g++-12 ninja-build
       if: matrix.os == 'ubuntu-22.04'
 
     - name: Configure

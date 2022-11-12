@@ -10,10 +10,3 @@ target_link_libraries(
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
 endif()
-
-if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
-    target_link_libraries(${self} PUBLIC
-        MagnumPlugins::StbImageImporter
-        Magnum::TgaImporter
-    )
-endif()

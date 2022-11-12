@@ -8,6 +8,12 @@ target_link_libraries(
     Magnum::Magnum
     Magnum::Trade
 )
+if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
+    target_link_libraries(${self} PUBLIC
+        MagnumPlugins::StbImageImporter
+        Magnum::TgaImporter
+    )
+endif()
 if(WIN32)
     target_link_libraries(${self} PUBLIC ntdll)
 endif()
