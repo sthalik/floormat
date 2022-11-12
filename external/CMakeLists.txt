@@ -220,7 +220,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         set(CMAKE_C_EXTENSIONS 1)
         unset(CMAKE_C_VISIBILITY_PRESET)
         unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
-        add_subdirectory(luajit)
+        if(CMAKE_COMPILER_IS_GNUCXX)
+            # HACK
+            add_compile_options(-fno-sanitize=all)
+            add_link_options(-fno-sanitize=all)
+            add_subdirectory(luajit)
+        endif()
     endfunction()
 
     function(fm_add_libs)
