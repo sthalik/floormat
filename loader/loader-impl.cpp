@@ -167,14 +167,10 @@ void loader_impl::set_application_working_directory()
     once = true;
     if (const auto loc = Path::executableLocation())
     {
-        auto path = *loc;
-        if (const auto pos = path.findLast('/'); pos)
-        {
-            const auto size = std::size_t(pos.data() - path.data());
-            path = path.prefix(size);
-            loader_detail::chdir(Path::join(path, ".."));
-            return;
-        }
+        StringView path = *loc;
+        path = Path::split(path).first();
+        path = Path::split(path).first();
+        loader_detail::chdir(path);
     }
     fm_warn("can't find install prefix!");
 }
