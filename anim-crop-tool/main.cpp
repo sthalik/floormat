@@ -31,6 +31,7 @@ using namespace floormat;
 
 using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
+using floormat::Serialize::anim_atlas_;
 
 struct options
 {
@@ -65,7 +66,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, Serialize::anim_atlas& atlas, StringView filename)
+static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView filename)
 {
     auto mat = fm_begin(
         cv::Mat mat = cv::imread(filename, cv::IMREAD_UNCHANGED);
@@ -127,7 +128,7 @@ static bool load_file(anim_group& group, options& opts, Serialize::anim_atlas& a
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, Serialize::anim_atlas& atlas)
+static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
 {
     const auto input_dir = Path::join(opts.input_dir, group.name);
 
@@ -273,7 +274,7 @@ int main(int argc, char** argv)
         return usage(args);
     }
 
-    Serialize::anim_atlas atlas;
+    anim_atlas_ atlas;
 
     for (anim_group& group : anim_info.groups)
         if (!load_directory(group, opts, atlas))

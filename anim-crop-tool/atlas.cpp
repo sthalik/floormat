@@ -18,7 +18,7 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     max_height = std::max((unsigned)mat.rows, max_height);
 }
 
-void anim_atlas::advance_row()
+void anim_atlas_::advance_row()
 {
     auto& row = rows.back();
     if (row.data.empty())
@@ -30,13 +30,13 @@ void anim_atlas::advance_row()
     rows.push_back({ {}, 0, 0, ypos });
 }
 
-Magnum::Vector2ui anim_atlas::offset() const noexcept
+Magnum::Vector2ui anim_atlas_::offset() const noexcept
 {
     const auto& row = rows.back();
     return { row.xpos, row.ypos };
 }
 
-Magnum::Vector2ui anim_atlas::size() const noexcept
+Magnum::Vector2ui anim_atlas_::size() const noexcept
 {
     const anim_atlas_row& row = rows.back();
     // prevent accidentally writing out of bounds by forgetting to call
@@ -44,7 +44,7 @@ Magnum::Vector2ui anim_atlas::size() const noexcept
     return { std::max(maxx, row.xpos), ypos + row.max_height };
 }
 
-bool anim_atlas::dump(StringView filename) const
+bool anim_atlas_::dump(StringView filename) const
 {
     auto sz = size();
     cv::Mat4b mat((int)sz[1], (int)sz[0]);

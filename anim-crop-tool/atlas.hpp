@@ -23,7 +23,7 @@ struct anim_atlas_row
     void add_entry(const anim_atlas_entry& x);
 };
 
-class anim_atlas
+class anim_atlas_
 {
     std::vector<anim_atlas_row> rows = {{}};
     unsigned ypos = 0, maxx = 0;
