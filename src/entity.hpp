@@ -1,8 +1,10 @@
 #pragma once
 #include "compat/integer-types.hpp"
-#include <type_traits>
 #include <concepts>
-#include <functional>
+#include <type_traits>
+#include <tuple>
+#include <utility>
+#include <algorithm>
 
 #include <Corrade/Containers/StringView.h>
 
@@ -10,9 +12,13 @@ namespace floormat {}
 
 namespace floormat::entities {
 
-template<typename T> using const_qualified = std::conditional_t<std::is_fundamental_v<T>, T, const T&>;
-template<typename T> using ref_qualified = std::conditional_t<std::is_fundamental_v<T>, T, T&>;
-template<typename T> using move_qualified = std::conditional_t<std::is_fundamental_v<T>, T, T&&>;
+template<typename T> struct pass_by_value : std::bool_constant<std::is_fundamental_v<T>> {};
+template<typename T> constexpr inline bool pass_by_value_v = pass_by_value<T>::value;
+template<> struct pass_by_value<StringView> : std::true_type {};
+
+template<typename T> using const_qualified = std::conditional_t<pass_by_value_v<T>, T, const T&>;
+template<typename T> using ref_qualified = std::conditional_t<pass_by_value_v<T>, T, T&>;
+template<typename T> using move_qualified = std::conditional_t<pass_by_value_v<T>, T, T&&>;
 
 template<typename F, typename T, typename FieldType>
 concept FieldReader_memfn = requires(const T x, F f) {
@@ -95,8 +101,8 @@ struct field {
     using Writer = W;
 
     StringView name;
-    Reader reader;
-    Writer writer;
+    [[no_unique_address]] Reader reader;
+    [[no_unique_address]] Writer writer;
 
     constexpr field(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
     decltype(auto) read(const Obj& x) const { return read_field<Obj, FieldType, R>::read(x, reader); }
@@ -104,16 +110,26 @@ struct field {
 };
 
 template<typename Obj>
-struct entity {
+struct entity final {
     template<typename FieldType>
     struct Field {
         template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
-        struct make final : field<Obj, FieldType, R, W> {
-            consteval make(StringView name_, R r, W w) noexcept : field<Obj, FieldType, R, W>{name_, r, w} {}
-        };
-        template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
-        make(StringView name, R r, W w) -> make<R, W>;
+        static consteval auto make(StringView name, R r, W w) noexcept {
+            return field<Obj, FieldType, R, W> { name, r, w };
+        }
     };
+};
+
+template<typename Key, typename KeyT, typename... Xs>
+struct assoc final {
+    template<typename T> using Types = std::tuple<Xs...>;
+    consteval assoc(Xs&&... xs) {
+
+    }
+
+private:
+    template<typename T> struct cell { Key key; T value; };
+    std::tuple<cell<Xs>...> _tuple;
 };
 
 } // namespace floormat::entities
