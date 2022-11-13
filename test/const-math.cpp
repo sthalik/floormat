@@ -61,7 +61,7 @@ static constexpr void* compile_tests()
 
 namespace floormat {
 
-bool floormat::test_const_math()
+bool test_app::test_const_math()
 {
     static_assert(compile_tests() == nullptr);
     return true;

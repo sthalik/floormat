@@ -51,7 +51,7 @@ static bool test_serializer1()
     return ret;
 }
 
-bool floormat::test_serializer()
+bool test_app::test_serializer()
 {
     bool ret = true;
     ret &= test_serializer1();

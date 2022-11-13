@@ -3,20 +3,20 @@
 
 namespace floormat {
 
-floormat::floormat(const Arguments& arguments):
-      FM_APPLICATION {
+test_app::test_app(const Arguments& arguments):
+      Application {
           arguments,
           Configuration{}
       }
 {
 }
 
-floormat::~floormat()
+test_app::~test_app()
 {
     loader_::destroy();
 }
 
-int floormat::exec()
+int test_app::exec()
 {
     bool ret = true;
     ret &= test_json();
@@ -30,6 +30,6 @@ int floormat::exec()
 
 int main(int argc, char** argv)
 {
-    floormat::floormat application{{argc, argv}};
+    floormat::test_app application{{argc, argv}};
     return application.exec();
 }

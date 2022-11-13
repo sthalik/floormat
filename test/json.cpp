@@ -32,7 +32,7 @@ static chunk make_test_chunk()
     return c;
 }
 
-bool floormat::test_json() // NOLINT(readability-convert-member-functions-to-static)
+bool test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     constexpr auto output_dir = "../test/."_s;
     {
