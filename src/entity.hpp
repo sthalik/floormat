@@ -74,17 +74,17 @@ struct read_field<Obj, Type, Type Obj::*> {
 };
 
 template<typename Obj, typename FieldType, typename Writer> struct write_field {
-    static FieldType write(const Obj& x, Writer w, move_qualified<FieldType> value) { return w(x, value); }
+    static void write(Obj& x, Writer w, move_qualified<FieldType> value) { w(x, value); }
 };
 
 template<typename Obj, typename Type>
-struct write_field<Obj, Type, void(Type::*)(move_qualified<Type>)> {
-    static Type write(const Obj& x, void(Type::*w)(Type&&), move_qualified<Type> value) { return (x.*w)(value); }
+struct write_field<Obj, Type, void(Obj::*)(move_qualified<Type>)> {
+    static void write(Obj& x, void(Obj::*w)(move_qualified<Type>), move_qualified<Type> value) { (x.*w)(value); }
 };
 
 template<typename Obj, typename Type>
 struct write_field<Obj, Type, Type Obj::*> {
-    static Type write(const Obj& x, Type Obj::* w, move_qualified<Type> value) { return x.*w = value; }
+    static void write(Obj& x, Type Obj::* w, move_qualified<Type> value) { x.*w = value; }
 };
 
 template<typename Obj, typename FieldType, FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
@@ -100,7 +100,7 @@ struct field {
 
     constexpr field(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
     decltype(auto) read(const Obj& x) const { return read_field<Obj, FieldType, R>::read(x, reader); }
-    void write(Obj& x, move_qualified<FieldType> v) const { return write_field<Obj, FieldType, R>::write(x, v); }
+    void write(Obj& x, move_qualified<FieldType> v) const { write_field<Obj, FieldType, W>::write(x, writer, v); }
 };
 
 template<typename Obj>

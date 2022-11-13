@@ -22,7 +22,8 @@ int test_app::exec()
     fm_assert(test_json());
     fm_assert(test_tile_iter());
     fm_assert(test_const_math());
-    fm_assert(test_serializer());
+    test_serializer();
+    test_entity();
     return 0;
 }
 

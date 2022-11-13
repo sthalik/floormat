@@ -22,7 +22,7 @@ struct test_app final : private FM_APPLICATION
     static bool test_json();
     static bool test_tile_iter();
     static bool test_const_math();
-    static bool test_serializer();
-    static bool test_entity();
+    static void test_serializer();
+    static void test_entity();
 };
 } // namespace floormat

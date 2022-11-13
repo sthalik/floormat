@@ -6,7 +6,7 @@ namespace floormat {
 
 using namespace floormat::entities;
 
-static void test()
+void test_app::test_entity()
 {
     struct Test {
         int foo = 111;
@@ -18,18 +18,20 @@ static void test()
     };
 
     using Entity = entity<Test>;
-    constexpr auto m_foo = Entity::Field<int>::make{ "foo"_s, &Test::foo, &Test::foo, };
-    constexpr auto m_bar = Entity::Field<int>::make{ "bar"_s, &Test::bar, &Test::set_bar, };
-    constexpr auto r_baz = [](const Test& x) { return x._baz; };
-    constexpr auto w_baz = [](Test& x, int v) { x._baz = v; };
-    constexpr auto m_baz = Entity::Field<int>::make{ "baz"_s, r_baz, w_baz };
+    constexpr const auto m_foo = Entity::Field<int>::make{ "foo"_s, &Test::foo, &Test::foo, };
+    constexpr const auto m_bar = Entity::Field<int>::make{ "bar"_s, &Test::bar, &Test::set_bar, };
+    constexpr const auto r_baz = [](const Test& x) { return x._baz; };
+    constexpr const auto w_baz = [](Test& x, int v) { x._baz = v; };
+    constexpr const auto m_baz = Entity::Field<int>::make{ "baz"_s, r_baz, w_baz };
 
     auto x = Test{};
     fm_assert(m_foo.read(x) == 111);
     fm_assert(m_bar.read(x) == 222);
     fm_assert(m_baz.read(x) == 333);
 
-    return true;
+    m_foo.write(x, 1111);
+    m_bar.write(x, 2222);
+    m_baz.write(x, 3333);
 }
 
 } // namespace floormat

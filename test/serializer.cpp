@@ -36,7 +36,7 @@ static bool chunks_equal(const chunk& a, const chunk& b)
     return true;
 }
 
-static bool test_serializer1()
+void test_app::test_serializer()
 {
     constexpr auto filename = "../test/test-serializer1.dat";
     if (Path::exists(filename))
@@ -47,15 +47,7 @@ static bool test_serializer1()
     w.serialize(filename);
     auto w2 = world::deserialize(filename);
     auto &c1 = w[coord], &c2 = w2[coord];
-    bool ret = chunks_equal(c1, c2);
-    return ret;
-}
-
-bool test_app::test_serializer()
-{
-    bool ret = true;
-    ret &= test_serializer1();
-    return ret;
+    fm_assert(chunks_equal(c1, c2));
 }
 
 } // namespace floormat
