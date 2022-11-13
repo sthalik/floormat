@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/assert.hpp"
 #include "loader/loader.hpp"
 
 namespace floormat {
@@ -18,12 +19,11 @@ test_app::~test_app()
 
 int test_app::exec()
 {
-    bool ret = true;
-    ret &= test_json();
-    ret &= test_tile_iter();
-    ret &= test_const_math();
-    ret &= test_serializer();
-    return !ret;
+    fm_assert(test_json());
+    fm_assert(test_tile_iter());
+    fm_assert(test_const_math());
+    fm_assert(test_serializer());
+    return 0;
 }
 
 } // namespace floormat
