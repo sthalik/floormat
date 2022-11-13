@@ -34,6 +34,7 @@ static chunk make_test_chunk()
 
 bool test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
+    fm_assert(Path::exists("../CMakeCache.txt"));
     constexpr auto output_dir = "../test/."_s;
     {
         auto atlas = loader.tile_atlas("metal1", {2, 2});
