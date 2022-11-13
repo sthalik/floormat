@@ -63,7 +63,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         {
             const local_coords pos{i};
             const auto quad = atlas->floor_quad(Vector3(pos.x, pos.y, 0) * TILE_SIZE, TILE_SIZE2);
-            const auto texcoords = atlas->texcoords_for_id(_ground_variants[i] % atlas->num_tiles());
+            const auto texcoords = atlas->texcoords_for_id(_ground_variants[i]);
             const float depth = tile_shader::depth_value(pos);
             auto& v = vertexes[k];
             for (std::size_t j = 0; j < 4; j++)
@@ -106,7 +106,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
             const auto center = Vector3(pos.x, pos.y, 0) * TILE_SIZE;
             const auto quad = i & 1 ? atlas->wall_quad_W(center, TILE_SIZE) : atlas->wall_quad_N(center, TILE_SIZE);
             const float depth = tile_shader::depth_value(pos);
-            const auto texcoords = atlas->texcoords_for_id(variant % atlas->num_tiles());
+            const auto texcoords = atlas->texcoords_for_id(variant);
             auto& v = vertexes[k];
             for (std::size_t j = 0; j < 4; j++)
                 v[j] = { quad[j], texcoords[j], depth, };
