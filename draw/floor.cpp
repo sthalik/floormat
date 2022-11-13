@@ -14,28 +14,24 @@ floor_mesh::floor_mesh() = default;
 void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr auto quad_index_count = 6;
-
     auto [mesh_, ids] = c.ensure_ground_mesh();
-
-    tile_atlas* last_atlas = nullptr;
-    std::size_t last_pos = 0;
+    struct { tile_atlas* atlas = nullptr; std::size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
 
     [[maybe_unused]] std::size_t draw_count = 0;
 
     const auto do_draw = [&](std::size_t i, tile_atlas* atlas) {
-        if (atlas == last_atlas)
+        if (atlas == last.atlas)
             return;
-        if (auto len = i - last_pos; last_atlas && len > 0)
+        if (auto len = i - last.pos; last.atlas && len > 0)
         {
-            last_atlas->texture().bind(0);
+            last.atlas->texture().bind(0);
             mesh.setCount((int)(quad_index_count * len));
-            mesh.setIndexRange((int)(last_pos*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
+            mesh.setIndexRange((int)(last.pos*quad_index_count), 0, quad_index_count*TILE_COUNT - 1);
             shader.draw(mesh);
             draw_count++;
         }
-        last_atlas = atlas;
-        last_pos = i;
+        last = { atlas, i };
     };
 
     for (std::size_t k = 0; k < TILE_COUNT; k++)
