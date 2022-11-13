@@ -13,7 +13,7 @@ sets(STRING
 add_compile_options(-fdiagnostics-color=always)
 
 # for building submodule dependencies
-function(fm-userconfig-external-pre)
+function(fm-userconfig-external)
     add_compile_options(
         -Wno-ignored-attributes
         -Wno-unused-function

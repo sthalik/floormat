@@ -36,7 +36,6 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "" FORCE)
 endif()
-string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 
 set(FLOORMAT_PRECOMPILED-HEADERS ON CACHE BOOL
     "Use precompiled headers while building the floormat.")
@@ -57,7 +56,8 @@ function(sets type)
     endwhile()
 endfunction()
 
-sets(STRING CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+string(TOUPPER "${CMAKE_BUILD_TYPE}" __fm_uppercase_CMAKE_BUILD_TYPE)
+sets(STRING CMAKE_BUILD_TYPE "${__fm_uppercase_CMAKE_BUILD_TYPE}")
 
 function(fm_run_hook str)
     if(COMMAND "${str}")

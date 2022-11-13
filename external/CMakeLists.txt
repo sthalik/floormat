@@ -228,6 +228,8 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         endif()
     endfunction()
 
+    fm_run_hook(fm-userconfig-external)
+
     function(fm_add_libs)
         if(fm-external-configured)
             set(fm-quiet-message 1)
@@ -245,7 +247,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         fm_add_luajit()
     endfunction()
 
-    fm_run_hook(fm-userconfig-external-pre)
     if(MAGNUM_BUILD_PLUGINS_STATIC)
         sets(BOOL
              MAGNUM_WITH_SHADERTOOLS OFF
@@ -259,7 +260,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
         target_compile_options(CorradeTestSuiteObjects PRIVATE -EHsc)
     endif()
-    fm_run_hook(fm-userconfig-external)
+    fm_run_hook(fm-userconfig-post)
 endif()
 
 if(fm-external-configured)
@@ -276,6 +277,5 @@ if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)
 endif()
 
-fm_run_hook(fm-userconfig-external-post)
 set(fm-quiet-message 0)
 sets(INTERNAL fm-external-configured 1)
