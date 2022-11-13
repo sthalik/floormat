@@ -39,8 +39,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
     };
 
     for (std::size_t k = 0; k < TILE_COUNT; k++)
-        if (auto* atlas = c.ground_atlas_at(ids[k]))
-            do_draw(k, atlas);
+        do_draw(k, c.ground_atlas_at(ids[k]));
     do_draw(TILE_COUNT, nullptr);
 
 #ifdef FM_DEBUG_DRAW_COUNT
