@@ -56,12 +56,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_BUILD_PLUGINS_STATIC                        OFF
 
          CORRADE_BUILD_STATIC_UNIQUE_GLOBALS                OFF
-         CORRADE_BUILD_TESTS                                OFF
+         CORRADE_BUILD_TESTS                                ON
          CORRADE_BUILD_DEPRECATED                           OFF
          CORRADE_MSVC_COMPATIBILITY                         OFF
          CORRADE_UTILITY_USE_ANSI_COLORS                    ON
          CORRADE_WITH_TESTSUITE                             ON
-         MAGNUM_BUILD_TESTS                                 OFF
+         MAGNUM_BUILD_TESTS                                 ON
          MAGNUM_BUILD_DEPRECATED                            OFF
 
          MAGNUM_WITH_SDL2APPLICATION                        ON
@@ -230,6 +230,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
 
     function(fm_add_libs)
         set(fm-quiet-message 1)
+        if(MAGNUM_BUILD_TESTS OR CORRADE_BUILD_TESTS AND NOT DEFINED CORRADE_TESTSUITE_TEST_TARGET)
+            sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
+        endif()
         add_subdirectory(fmt)
         add_subdirectory(json)
         add_subdirectory(corrade)
