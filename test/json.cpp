@@ -32,7 +32,7 @@ static chunk make_test_chunk()
     return c;
 }
 
-bool test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
+void test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     fm_assert(Path::exists("../CMakeCache.txt"));
     constexpr auto output_dir = "../test/."_s;
@@ -51,8 +51,6 @@ bool test_app::test_json() // NOLINT(readability-convert-member-functions-to-sta
         Magnum::Math::Vector3 vec{0.f/zero, -1.f/zero, 123.f};
         json_helper::to_json(vec, Path::join(output_dir, "vec3_inf.json"));
     }
-
-    return true;
 }
 
 } // namespace floormat

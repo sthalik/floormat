@@ -8,7 +8,7 @@ static inline bool always_false()
     return ret;
 }
 
-bool test_app::test_tile_iter() // NOLINT(readability-function-size)
+void test_app::test_tile_iter() // NOLINT(readability-function-size)
 {
     if (always_false())
     {
@@ -28,7 +28,6 @@ bool test_app::test_tile_iter() // NOLINT(readability-function-size)
         for ([[maybe_unused]] const auto [x, k, pt] : c)
             static_assert(std::is_same_v<decltype(x), const tile_ref>);
     }
-    return true;
 }
 
 } // namespace floormat

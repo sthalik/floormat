@@ -46,7 +46,7 @@ static constexpr void test_int()
     fm_assert(a.sum() == 8);
 }
 
-static constexpr void* compile_tests()
+static constexpr bool compile_tests()
 {
     test_float2<Vector<2, float>, float>();
     test_float2<Vector<2, double>, double>();
@@ -56,15 +56,14 @@ static constexpr void* compile_tests()
     test_int<Vector<2, unsigned>>();
     test_int<Vector<2, char>>();
 
-    return nullptr;
+    return true;
 }
 
 namespace floormat {
 
-bool test_app::test_const_math()
+void test_app::test_const_math()
 {
-    static_assert(compile_tests() == nullptr);
-    return true;
+    static_assert(compile_tests());
 }
 
 } // namespace floormat

@@ -2,7 +2,9 @@
 #include "compat/assert.hpp"
 #include "src/entity.hpp"
 
-struct Test {
+namespace {
+
+struct TestAccessors {
     int foo = 111;
     int bar() const { return _bar; }
     void set_bar(int value) { _bar = value; }
@@ -11,12 +13,15 @@ private:
     int _bar = 222;
 };
 
+} // namespace
+
 namespace floormat {
 
 using namespace floormat::entities;
 
 static void test_accessors()
 {
+    using Test = ::TestAccessors;
     using Entity = entity<Test>;
     constexpr auto m_foo = Entity::Field<int>::make("foo"_s, &Test::foo, &Test::foo);
     constexpr auto m_bar = Entity::Field<int>::make("bar"_s, &Test::bar, &Test::set_bar);
@@ -38,6 +43,11 @@ static void test_accessors()
         auto a = m_foo.read(x), b = m_bar.read(x), c = m_baz.read(x);
         fm_assert(a == 1111 && b == 2222 && c == 3333);
     }
+}
+
+static void test_()
+{
+
 }
 
 void test_app::test_entity()
