@@ -13,9 +13,8 @@ namespace floormat {
 
 tile_shader::tile_shader()
 {
-    using V = GL::Version;
-    constexpr V min_version = GL::Version::GL430;
-    const auto version = GL::Context::current().supportedVersion({ V::GL460, V::GL450, V::GL440, V::GL430, });
+    constexpr auto min_version = GL::Version::GL330;
+    const auto version = GL::Context::current().version();
 
     if (version < min_version)
         fm_abort("floormat requires OpenGL version %d, only %d is supported", (int)min_version, (int)version);
