@@ -1,22 +1,24 @@
 sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
+sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
+sets(STRING CMAKE_BUILD_TYPE DEBUG)
 
 # for floormat sources only
 function(fm-userconfig-src)
-    add_compile_options(
-        -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
-    )
+    add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded)
+    add_compile_options(-g -ggdb)
+
     add_compile_options(
         -Wall
         -Wextra
         -Wpedantic
         #-Weverything
-        -Wno-c++20-compat
+        #-Wno-c++20-compat
         -Wno-switch-enum
         #-Wno-old-style-cast
         #-Wno-shadow
         -Wno-ctad-maybe-unsupported
         -Wno-ignored-attributes
-        -Wno-array-bounds
+        #-Wno-array-bounds
         -Wno-subobject-linkage
     )
     add_compile_options(

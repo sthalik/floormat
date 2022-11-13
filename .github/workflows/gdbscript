@@ -1,0 +1,8 @@
+#!/usr/bin/env false
+
+run
+if $_isvoid ($_exitsignal)
+  quit $_exitcode
+end
+bt
+quit 1
