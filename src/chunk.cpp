@@ -14,7 +14,7 @@ bool chunk::empty(bool force) const noexcept
 
     for (std::size_t i = 0; i < TILE_COUNT; i++)
     {
-        if (_ground_atlases[i] || _wall_atlases[i*2 + 0] || _wall_atlases[i*2 + 1])
+        if (_ground_atlases[i] || _wall_atlases[i*2 + 0] || _wall_atlases[i*2 + 1] || _scenery_atlases[i])
         {
             _maybe_empty = false;
             return false;
