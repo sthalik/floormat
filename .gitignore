@@ -3,4 +3,4 @@
 /.clang-format
 /.idea/
 /images/
-/userconfig-*.cmake
+/userconfig*.cmake
