@@ -2,6 +2,7 @@ project(floormat-external)
 
 set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
     "Use dependencies included in the source directory (needs git submodule update --init).")
+set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL "SDL2 as submodule")
 
 foreach(_module corrade magnum magnum-integration magnum-plugins)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${_module}/modules")
@@ -210,9 +211,11 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
     function(fm_add_sdl2)
-        unset(CMAKE_C_VISIBILITY_PRESET)
-        unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
-        add_subdirectory(sdl2)
+        if(FLOORMAT_SUBMODULE-SDL2)
+            unset(CMAKE_C_VISIBILITY_PRESET)
+            unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
+            add_subdirectory(sdl2)
+        endif()
     endfunction()
 
     function(fm_add_luajit)
