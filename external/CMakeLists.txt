@@ -244,7 +244,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         add_subdirectory(magnum)
         add_subdirectory(magnum-plugins)
         add_subdirectory(magnum-integration)
-        fm_add_luajit()
+        #fm_add_luajit()
     endfunction()
 
     if(MAGNUM_BUILD_PLUGINS_STATIC)
