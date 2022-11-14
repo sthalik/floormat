@@ -7,8 +7,6 @@
 #include <algorithm>
 #include <thread>
 
-//#define FM_SKIP_MSAA
-
 namespace floormat {
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
@@ -25,16 +23,19 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     else
         _msaa_framebuffer = GL::Framebuffer{{{}, size}};
 
-    // --- color ---
-    _msaa_color = Magnum::GL::Renderbuffer{};
     const int samples = std::min(_msaa_color.maxSamples(), (int)s.msaa_samples);
-    _msaa_color.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
-    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_color);
-
-    // --- depth ---
-    _msaa_depth = Magnum::GL::Renderbuffer{};
-    _msaa_depth.setStorageMultisample(samples, GL::RenderbufferFormat::DepthStencil, size);
-    _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _msaa_depth);
+    if (samples != s.msaa_samples)
+        fm_warn_once("using only %d MSAA samples (instead of %hhu)", samples, s.msaa_samples);
+    if (s.msaa_samples > 0) {
+        // color
+        _msaa_color = Magnum::GL::Renderbuffer{};
+        _msaa_color.setStorageMultisample(samples, GL::RenderbufferFormat::RGBA8, size);
+        _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _msaa_color);
+        // depth
+        _msaa_depth = Magnum::GL::Renderbuffer{};
+        _msaa_depth.setStorageMultisample(samples, GL::RenderbufferFormat::DepthStencil, size);
+        _msaa_framebuffer.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _msaa_depth);
+    }
 
     // -- state ---
     using R = GL::Renderer;
@@ -98,11 +99,10 @@ void main_impl::draw_world() noexcept
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     constexpr float clear_depth = 0;
-#ifdef FM_SKIP_MSAA
-    GL::defaultFramebuffer.clearDepthStencil(clear_depth, 0);
-#else
-    _msaa_framebuffer.clearDepthStencil(clear_depth, 0);
-#endif
+    if (s.msaa_samples == 0)
+        GL::defaultFramebuffer.clearDepthStencil(clear_depth, 0);
+    else
+        _msaa_framebuffer.clearDepthStencil(clear_depth, 0);
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -165,20 +165,25 @@ void main_impl::drawEvent()
 
     {
         const auto clear_color = 0x222222ff_rgbaf;
-#ifdef FM_SKIP_MSAA
-        GL::defaultFramebuffer.clearColor(clear_color);
-#else
-        _msaa_framebuffer.clearColor(0, clear_color);
-        _msaa_framebuffer.bind();
-#endif
+
+        if (s.msaa_samples == 0)
+            GL::defaultFramebuffer.clearColor(clear_color);
+        else
+        {
+            _msaa_framebuffer.clearColor(0, clear_color);
+            _msaa_framebuffer.bind();
+        }
+
         draw_world();
         app.draw_msaa();
-#ifndef FM_SKIP_MSAA
-        GL::defaultFramebuffer.bind();
-        using Blit = GL::FramebufferBlit;
-        constexpr auto blit_mask = Blit::Color /* | Blit::Depth | Blit::Stencil */;
-        GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, blit_mask);
-#endif
+
+        if (s.msaa_samples > 0)
+        {
+            GL::defaultFramebuffer.bind();
+            using Blit = GL::FramebufferBlit;
+            constexpr auto blit_mask = Blit::Color /* | Blit::Depth | Blit::Stencil */;
+            GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, blit_mask);
+        }
     }
 
     app.draw();

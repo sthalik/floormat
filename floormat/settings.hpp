@@ -20,16 +20,15 @@ struct fm_settings
     Magnum::Math::Vector2<int> resolution{1024, 768};
     Corrade::Containers::String title{"Test"};
     Corrade::Containers::String disabled_extensions; // TODO
-    std::uint8_t msaa_samples = 16;
     bool vsync = true;
     fm_gpu_debug gpu_debug = fm_gpu_debug::on;
     fm_log_level log_level = fm_log_level::normal;
-    std::uint8_t resizable          : 1 = true,
-                 fullscreen         : 1 = false,
-                 fullscreen_desktop : 1 = false,
-                 borderless         : 1 = false,
-                 maximized          : 1 = false,
-                 msaa               : 1 = false;
+    unsigned resizable          : 1 = true,
+             fullscreen         : 1 = false,
+             fullscreen_desktop : 1 = false,
+             borderless         : 1 = false,
+             maximized          : 1 = false;
+    std::uint8_t msaa_samples = 16;
 };
 
 } // namespace floormat

@@ -52,16 +52,36 @@ static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args,
     return def;
 }
 
+static int atoi_(const char* str)
+{
+    bool negative = false;
+
+    switch (*str)
+    {
+    case '+': ++str; break;
+    case '-': ++str; negative = true; break;
+    }
+
+    int result = 0;
+    for (; *str >= '0' && *str <= '9'; ++str)
+    {
+        int digit = *str - '0';
+        result *= 10;
+        result -= digit; // calculate in negatives to support INT_MIN, LONG_MIN,..
+    }
+
+    return negative ? result : -result;
+}
+
 int app::run_from_argv(const int argc, const char* const* const argv)
 {
     fm_settings opts;
     Corrade::Utility::Arguments args{};
     args.addOption("vsync", "1")
         .addOption("gpu-debug", "1")
-        .addOption("msaa", "1")
+        .addOption("msaa", "")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
-    opts.msaa  = parse_bool("msaa", args, opts.msaa);
     if (auto str = args.value<StringView>("gpu-debug"); str == "no-error" || str == "none")
         opts.gpu_debug = fm_gpu_debug::no_error;
     else if (str == "robust" || str == "full")
@@ -71,12 +91,21 @@ int app::run_from_argv(const int argc, const char* const* const argv)
                          ? fm_gpu_debug::on
                          : fm_gpu_debug::off;
 
+    if (auto str = args.value<StringView>("msaa"); !str.isEmpty())
+    {
+        if (int n = atoi_(str.data()); (unsigned)n > 32 || (n & (n - 1)) != 0)
+            fm_warn("invalid '--msaa' argument '%s': must be a power of two between 0 and 128", str.data());
+        else
+            opts.msaa_samples = (std::uint8_t)n;
+    }
+
     int ret;
     Pointer<floormat_main> ptr;
     {
         app application{std::move(opts)};
         ret = application.exec();
         ptr = std::move(application.M);
+        (void)ptr;
     }
     loader_::destroy();
     return ret;
