@@ -106,7 +106,7 @@ private:
     wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
     editor _editor;
     key_set keys;
-    std::array<int, key_set::COUNT> key_modifiers;
+    std::array<int, key_set::COUNT> key_modifiers = {};
     cursor_state cursor;
 };
 
