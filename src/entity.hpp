@@ -1,20 +1,17 @@
 #pragma once
 #include "compat/integer-types.hpp"
-#include <concepts>
-#include <type_traits>
-#include <tuple>
-#include <utility>
-#include <algorithm>
-
 #include <Corrade/Containers/StringView.h>
+#include <concepts>
+#include <compare>
+#include <type_traits>
 
 namespace floormat {}
 
 namespace floormat::entities {
 
 template<typename T> struct pass_by_value : std::bool_constant<std::is_fundamental_v<T>> {};
-template<typename T> constexpr inline bool pass_by_value_v = pass_by_value<T>::value;
 template<> struct pass_by_value<StringView> : std::true_type {};
+template<typename T> constexpr inline bool pass_by_value_v = pass_by_value<T>::value;
 
 template<typename T> using const_qualified = std::conditional_t<pass_by_value_v<T>, T, const T&>;
 template<typename T> using ref_qualified = std::conditional_t<pass_by_value_v<T>, T, T&>;
@@ -64,37 +61,41 @@ concept FieldWriter = requires {
              FieldWriter_function<F, T, FieldType>;
 };
 
-template<typename Obj, typename Type, typename R>
+namespace detail {
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R>
 struct read_field {
-    static Type read(const Obj& x, R r) { return r(x); }
+    static constexpr Type read(const Obj& x, R r) { return r(x); }
 };
 
 template<typename Obj, typename Type>
 struct read_field<Obj, Type, Type (Obj::*)() const> {
-    static Type read(const Obj& x, Type (Obj::*r)() const) { return (x.*r)(); }
+    static constexpr Type read(const Obj& x, Type (Obj::*r)() const) { return (x.*r)(); }
 };
 
 template<typename Obj, typename Type>
 struct read_field<Obj, Type, Type Obj::*> {
-    static Type read(const Obj& x, Type Obj::*r) { return x.*r; }
+    static constexpr Type read(const Obj& x, Type Obj::*r) { return x.*r; }
 };
 
-template<typename Obj, typename FieldType, typename Writer> struct write_field {
-    static void write(Obj& x, Writer w, move_qualified<FieldType> value) { w(x, value); }
+template<typename Obj, typename FieldType, FieldWriter<Obj, FieldType> W> struct write_field {
+    static constexpr void write(Obj& x, W w, move_qualified<FieldType> value) { w(x, value); }
 };
 
-template<typename Obj, typename Type>
-struct write_field<Obj, Type, void(Obj::*)(move_qualified<Type>)> {
-    static void write(Obj& x, void(Obj::*w)(move_qualified<Type>), move_qualified<Type> value) { (x.*w)(value); }
+template<typename Obj, typename FieldType>
+struct write_field<Obj, FieldType, void(Obj::*)(move_qualified<FieldType>)> {
+    static constexpr void write(Obj& x, void(Obj::*w)(move_qualified<FieldType>), move_qualified<FieldType> value) { (x.*w)(value); }
 };
 
-template<typename Obj, typename Type>
-struct write_field<Obj, Type, Type Obj::*> {
-    static void write(Obj& x, Type Obj::* w, move_qualified<Type> value) { x.*w = value; }
+template<typename Obj, typename FieldType>
+struct write_field<Obj, FieldType, FieldType Obj::*> {
+    static constexpr void write(Obj& x, FieldType Obj::* w, move_qualified<FieldType> value) { x.*w = value; }
 };
 
-template<typename Obj, typename FieldType, FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
-struct field {
+} // namespace detail
+
+template<typename Obj, typename FieldType, typename R, typename W>
+struct field_ {
     using Object = Obj;
     using Type = FieldType;
     using Reader = R;
@@ -104,32 +105,54 @@ struct field {
     [[no_unique_address]] Reader reader;
     [[no_unique_address]] Writer writer;
 
-    constexpr field(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
-    decltype(auto) read(const Obj& x) const { return read_field<Obj, FieldType, R>::read(x, reader); }
-    void write(Obj& x, move_qualified<FieldType> v) const { write_field<Obj, FieldType, W>::write(x, writer, v); }
+    constexpr field_(const field_&) = default;
+    constexpr field_& operator=(const field_&) = default;
+    constexpr decltype(auto) read(const Obj& x) const { return detail::read_field<Obj, FieldType, R>::read(x, reader); }
+    constexpr void write(Obj& x, move_qualified<FieldType> v) const { detail::write_field<Obj, FieldType, W>::write(x, writer, v); }
+
+protected:
+    constexpr field_(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
 };
 
 template<typename Obj>
-struct entity final {
+requires std::is_same_v<Obj, std::decay_t<Obj>>
+struct Entity final {
     template<typename FieldType>
-    struct Field {
+    requires std::is_same_v<Obj, std::decay_t<Obj>>
+    struct type {
         template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
-        static consteval auto make(StringView name, R r, W w) noexcept {
-            return field<Obj, FieldType, R, W> { name, r, w };
-        }
+        struct field final : field_<Obj, FieldType, R, W> {
+            constexpr field(StringView field_name, R r, W w) : field_<Obj, FieldType, R, W>{field_name, r, w} {}
+        };
+
+        template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
+        field(StringView name, R r, W w) -> field<R, W>;
     };
 };
 
-template<typename Key, typename KeyT, typename... Xs>
-struct assoc final {
-    template<typename T> using Types = std::tuple<Xs...>;
-    consteval assoc(Xs&&... xs) {
-
-    }
-
-private:
-    template<typename T> struct cell { Key key; T value; };
-    std::tuple<cell<Xs>...> _tuple;
+enum class erased_field_type : std::uint32_t {
+    none,
+    string,
+    u8, u16, u32, u64, s8, s16, s32, s64,
+    user_type_start,
+    MAX = (std::uint32_t)-1,
 };
+
+template<erased_field_type> struct type_of_erased_field;
+template<typename T> struct erased_field_type_v_ : std::integral_constant<erased_field_type, erased_field_type::none> {};
+
+#define FM_ERASED_FIELD_TYPE(TYPE, ENUM)                                                                                    \
+    template<> struct erased_field_type_v_<TYPE> : std::integral_constant<erased_field_type, erased_field_type::ENUM> {};   \
+    template<> struct type_of_erased_field<erased_field_type::ENUM> { using type = TYPE; }
+FM_ERASED_FIELD_TYPE(std::uint8_t, u8);
+FM_ERASED_FIELD_TYPE(std::uint16_t, u16);
+FM_ERASED_FIELD_TYPE(std::uint32_t, u32);
+FM_ERASED_FIELD_TYPE(std::uint64_t, u64);
+FM_ERASED_FIELD_TYPE(std::int8_t, s8);
+FM_ERASED_FIELD_TYPE(std::int16_t, s16);
+FM_ERASED_FIELD_TYPE(std::int32_t, s32);
+FM_ERASED_FIELD_TYPE(std::int64_t, s64);
+FM_ERASED_FIELD_TYPE(StringView, string);
+#undef FM_ERASED_FIELD_TYPE
 
 } // namespace floormat::entities
