@@ -94,38 +94,34 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
 
 } // namespace detail
 
-template<typename Obj, typename FieldType, typename R, typename W>
-struct field_ {
-    using Object = Obj;
-    using Type = FieldType;
-    using Reader = R;
-    using Writer = W;
-
-    StringView name;
-    [[no_unique_address]] Reader reader;
-    [[no_unique_address]] Writer writer;
-
-    constexpr field_(const field_&) = default;
-    constexpr field_& operator=(const field_&) = default;
-    constexpr decltype(auto) read(const Obj& x) const { return detail::read_field<Obj, FieldType, R>::read(x, reader); }
-    constexpr void write(Obj& x, move_qualified<FieldType> v) const { detail::write_field<Obj, FieldType, W>::write(x, writer, v); }
-
-protected:
-    constexpr field_(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
-};
-
 template<typename Obj>
 requires std::is_same_v<Obj, std::decay_t<Obj>>
 struct Entity final {
-    template<typename FieldType>
-    requires std::is_same_v<Obj, std::decay_t<Obj>>
-    struct type {
-        template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
-        struct field final : field_<Obj, FieldType, R, W> {
-            constexpr field(StringView field_name, R r, W w) : field_<Obj, FieldType, R, W>{field_name, r, w} {}
+    template<typename Type>
+    requires std::is_same_v<Type, std::decay_t<Type>>
+    struct type final
+    {
+        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
+        struct field final
+        {
+            using ObjectType = Obj;
+            using FieldType = Type;
+            using Reader = R;
+            using Writer = W;
+
+            StringView name;
+            [[no_unique_address]] Reader reader;
+            [[no_unique_address]] Writer writer;
+
+            constexpr field(const field&) = default;
+            constexpr field& operator=(const field&) = default;
+            constexpr decltype(auto) read(const Obj& x) const { return detail::read_field<Obj, Type, R>::read(x, reader); }
+            constexpr void write(Obj& x, move_qualified<Type> v) const { detail::write_field<Obj, Type, W>::write(x, writer, v); }
+
+            constexpr field(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
         };
 
-        template<FieldReader<Obj, FieldType> R, FieldWriter<Obj, FieldType> W>
+        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
         field(StringView name, R r, W w) -> field<R, W>;
     };
 };
