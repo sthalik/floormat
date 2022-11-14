@@ -152,6 +152,8 @@ endif()
 
 if(NOT MSVC)
     add_compile_options(-fno-rtti)
+else()
+    add_compile_options(-GR-)
 endif()
 
 if(NOT APPLE AND NOT WIN32)
