@@ -4,15 +4,27 @@
 #include <type_traits>
 
 #ifdef __GNUG__
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wunused-macros"
-#define FM_KILL_WARN_double_promotion1()                                \
-    _Pragma( "GCC diagnostic push" )                                    \
-    _Pragma( "GCC diagnostic ignored \"-Wdouble-promotion\"" )
-#define FM_KILL_WARN_double_promotion2() _Pragma( "GCC diagnostic pop" )
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#ifdef __clang__
+#   define FM_KILL_PRINTF_WARN_1_2() \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wformat-nonliteral\"")
+#   define FM_KILL_PRINTF_WARN_2_2() _Pragma("clang diagnostic pop")
 #else
-#define FM_KILL_WARN_double_promotion1()
-#define FM_KILL_WARN_double_promotion2()
+#define FM_KILL_PRINTF_WARN_1_2()
+#define FM_KILL_PRINTF_WARN_2_2()
+#endif
+
+#define FM_KILL_PRINTF_WARN_1()                              \
+    _Pragma("GCC diagnostic push")                           \
+    _Pragma("GCC diagnostic ignored \"-Wdouble-promotion\"") \
+    FM_KILL_PRINTF_WARN_1_2()
+
+#define FM_KILL_PRINTF_WARN_2() _Pragma("GCC diagnostic pop") FM_KILL_PRINTF_WARN_2_2()
+#else
+#define FM_KILL_PRINTF_WARN_1()
+#define FM_KILL_PRINTF_WARN_2()
 #endif
 
 namespace floormat {
@@ -27,20 +39,24 @@ namespace floormat {
 
 #define fm_EMIT_DEBUG2(pfx, ...)                                        \
     do {                                                                \
-        if (!std::is_constant_evaluated()) {                            \
+        if (!std::is_constant_evaluated())                              \
+        {                                                               \
             if constexpr (sizeof(pfx) > 1)                              \
                 std::fputs((pfx), stderr);                              \
+            FM_KILL_PRINTF_WARN_1()                                     \
             std::fprintf(stderr, __VA_ARGS__);                          \
+            FM_KILL_PRINTF_WARN_2()                                     \
         }                                                               \
     } while (false)
 
 #define fm_EMIT_DEBUG(pfx, ...)                                         \
     do {                                                                \
-        FM_KILL_WARN_double_promotion1()                                \
-        fm_EMIT_DEBUG2(pfx, __VA_ARGS__);                               \
-        FM_KILL_WARN_double_promotion2()                                \
-        std::fputc('\n', stderr);                                       \
-        std::fflush(stderr);                                            \
+        if (!std::is_constant_evaluated())                              \
+        {                                                               \
+            fm_EMIT_DEBUG2(pfx, __VA_ARGS__);                           \
+            std::fputc('\n', stderr);                                   \
+            std::fflush(stderr);                                        \
+        }                                                               \
     } while (false)
 
 #define fm_abort(...)                                                   \
