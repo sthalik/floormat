@@ -95,12 +95,14 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
 } // namespace detail
 
 template<typename Obj>
-requires std::is_same_v<Obj, std::decay_t<Obj>>
 struct Entity final {
+    static_assert(std::is_same_v<Obj, std::decay_t<Obj>>);
+
     template<typename Type>
-    requires std::is_same_v<Type, std::decay_t<Type>>
     struct type final
     {
+        static_assert(std::is_same_v<Type, std::decay_t<Type>>);
+
         template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
         struct field final
         {
