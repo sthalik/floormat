@@ -164,7 +164,6 @@ void main_impl::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        using namespace Math::Literals;
         const auto clear_color = 0x222222ff_rgbaf;
 #ifdef FM_SKIP_MSAA
         GL::defaultFramebuffer.clearColor(clear_color);
