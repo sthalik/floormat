@@ -33,7 +33,8 @@ struct cursor_state final {
 
 struct app final : floormat_app
 {
-    static int run_from_argv(int argv, const char* const* argc);
+    static int run_from_argv(int argc, const char* const* argv);
+    static fm_settings parse_cmdline(int argc, const char* const* argv);
     ~app() override;
 
 private:

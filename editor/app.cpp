@@ -73,7 +73,7 @@ static int atoi_(const char* str)
     return negative ? result : -result;
 }
 
-int app::run_from_argv(const int argc, const char* const* const argv)
+fm_settings app::parse_cmdline(int argc, const char* const* argv)
 {
     fm_settings opts;
     Corrade::Utility::Arguments args{};
@@ -98,7 +98,12 @@ int app::run_from_argv(const int argc, const char* const* const argv)
         else
             opts.msaa_samples = (std::uint8_t)n;
     }
+    return opts;
+}
 
+int app::run_from_argv(const int argc, const char* const* const argv)
+{
+    auto opts = parse_cmdline(argc, argv);
     int ret;
     Pointer<floormat_main> ptr;
     {
