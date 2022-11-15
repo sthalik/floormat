@@ -64,10 +64,39 @@ static constexpr bool test_visitor()
     return true;
 }
 
+namespace test_sorting {
+
+template<std::size_t I>
+struct item {
+    static constexpr std::size_t size = I-1;
+    std::array<char, I> data;
+    consteval item(const char(&str)[I]) {
+        std::copy(str, str+I, data.data());
+    }
+    template<std::size_t J>
+    constexpr bool operator==(const item<J>& o) const { return data == o.data; }
+};
+
+static constexpr void test()
+{
+    using namespace floormat::entities::detail;
+    constexpr auto tuple = std::make_tuple(item{"bb"}, item{"aaa"}, item{"cccc"}, item{"d"});
+    constexpr auto size = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
+    constexpr auto key = [](const auto& x) constexpr { return StringView(x.data.data(), x.data.size()); };
+    constexpr auto comp = [](auto a, auto b) constexpr { return a < b; };
+    using Sort = sort_tuple_<std::decay_t<decltype(tuple)>, key, comp>;
+    constexpr auto indices = Sort::sort_indices(tuple, std::make_index_sequence<size>());
+    constexpr auto tuple2 = Sort::helper<indices>::do_sort(tuple, std::make_index_sequence<size>());
+    static_assert(tuple2 == std::make_tuple(item{"aaa"}, item{"bb"}, item{"cccc"}, item{"d"}));
+}
+
+} // namespace test_sorting
+
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
+    test_sorting::test();
 }
 
 namespace type_tests {

@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <tuple>
+#include <array>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {}
@@ -314,13 +315,27 @@ struct except_nth_<0, parameter_pack<As...>, X<T, Ts...>> {
 template<std::size_t N, typename T>
 using except_nth = typename except_nth_<N, parameter_pack<>, T>::type;
 
-template<typename F, typename KeyT, typename Tuple>
-struct sort_tuple_;
+template<typename Tuple, auto KeyFn, auto Comp>
+struct sort_tuple_ {
+    template<std::size_t... Is>
+    static consteval auto sort_indices(const Tuple& tuple, const std::index_sequence<Is...>&) {
+        std::array<std::size_t, sizeof...(Is)> indices = { Is..., };
+        using KeyT = decltype(KeyFn(std::get<0>(tuple)));
+        std::array<KeyT, sizeof...(Is)> keys = { KeyFn(std::get<Is>(tuple))..., };
+        std::sort(indices.begin(), indices.end(), [&](std::size_t a, std::size_t b) { return Comp(keys[a], keys[b]); });
+        return indices;
+    }
 
-template<typename F, typename KeyT, template<typename...> class Tuple, typename... Ts>
-struct sort_tuple_<F, KeyT, Tuple<Ts...>> {
-
+    template<auto Array>
+    struct helper {
+        template<std::size_t... Is>
+        static consteval auto do_sort(const Tuple& tuple, const std::index_sequence<Is...>&) {
+            return std::make_tuple(std::get<Array[Is]>(tuple)...);
+        }
+    };
 };
+
+
 
 } // namespace detail
 
