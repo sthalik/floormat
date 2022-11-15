@@ -1,9 +1,10 @@
 #pragma once
 #include "compat/integer-types.hpp"
-#include <Corrade/Containers/StringView.h>
 #include <concepts>
 #include <compare>
 #include <type_traits>
+#include <utility>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {}
 
@@ -127,6 +128,29 @@ struct Entity final {
         field(StringView name, R r, W w) -> field<R, W>;
     };
 };
+
+namespace detail {
+template<typename F, typename Tuple, std::size_t N>
+requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
+constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
+{
+    using Size = std::tuple_size<std::decay_t<Tuple>>;
+    static_assert(N < Size());
+
+    fun(std::get<N>(tuple));
+    if constexpr(N+1 < Size())
+        visit_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+}
+
+} // namespace detail
+
+template<typename F, typename Tuple>
+constexpr void visit_tuple(F&& fun, Tuple&& tuple)
+{
+    using Size = std::tuple_size<std::decay_t<Tuple>>;
+    if constexpr(Size() > 0)
+        detail::visit_tuple<F, Tuple, 0>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+}
 
 enum class erased_field_type : std::uint32_t {
     none,
