@@ -45,15 +45,20 @@ static constexpr bool test_accessors()
 static constexpr bool test_visitor()
 {
     {
+        constexpr auto tuple = std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4);
         long ret = 0;
-        visit_tuple([&](auto x) { ret += (long)x; },
-                    std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4));
+        visit_tuple([&](auto x) { ret += (long)x; }, tuple);
         fm_assert(ret == 1 + 2 + 3 + 4);
     }
     {
         int ret = 0;
         visit_tuple([&] { ret++; }, std::tuple<>{});
         fm_assert(ret == 0);
+    }
+    {
+        constexpr auto tuple = std::make_tuple((char)1, (short)2, (long)3);
+        static_assert(find_in_tuple([](auto x) { return x == 3; }, tuple));
+        static_assert(!find_in_tuple([](auto x) { return x == 5; }, tuple));
     }
 
     return true;
