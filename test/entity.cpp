@@ -64,62 +64,10 @@ static constexpr bool test_visitor()
     return true;
 }
 
-namespace test_sorting {
-
-template<std::size_t I>
-struct item {
-    static constexpr std::size_t size = I-1;
-    std::array<char, I> data;
-    consteval item(const char(&str)[I]) {
-        std::copy(str, str+I, data.data());
-    }
-    template<std::size_t J>
-    constexpr bool operator==(const item<J>& o) const { return data == o.data; }
-};
-
-static constexpr void test()
-{
-    using namespace floormat::entities::detail;
-    constexpr auto tuple = std::make_tuple(item{"bb"}, item{"aaa"}, item{"cccc"}, item{"d"});
-    constexpr auto size = std::tuple_size_v<std::decay_t<decltype(tuple)>>;
-    constexpr auto key = [](const auto& x) constexpr { return StringView(x.data.data(), x.data.size()); };
-    constexpr auto comp = [](auto a, auto b) constexpr { return a < b; };
-    using Sort = sort_tuple_<std::decay_t<decltype(tuple)>, key, comp>;
-    constexpr auto indices = Sort::sort_indices(tuple, std::make_index_sequence<size>());
-    constexpr auto tuple2 = Sort::helper<indices>::do_sort(tuple, std::make_index_sequence<size>());
-    static_assert(tuple2 == std::make_tuple(item{"aaa"}, item{"bb"}, item{"cccc"}, item{"d"}));
-}
-
-} // namespace test_sorting
-
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
-    test_sorting::test();
 }
-
-namespace type_tests {
-
-using namespace floormat::entities::detail;
-
-template<typename T, typename U> using common_type2 = std::common_type_t<T, U>;
-static_assert(std::is_same_v<long long, reduce<common_type2, parameter_pack<char, unsigned short, short, long long>>>);
-static_assert(std::is_same_v<parameter_pack<unsigned char, unsigned short, unsigned int>,
-                             map<std::make_unsigned_t, parameter_pack<char, short, int>>>);
-
-static_assert(std::is_same_v<parameter_pack<unsigned char, unsigned short, unsigned, unsigned long>,
-                             map<std::make_unsigned_t, parameter_pack<char, short, int, long>>>);
-static_assert(std::is_same_v<std::tuple<int, short, char>, lift<parameter_pack<short, char>, std::tuple, int>>);
-static_assert(std::is_same_v<parameter_pack<long, long long>,
-                             skip<3, std::tuple<char, short, int, long, long long>>>);
-static_assert(std::is_same_v<parameter_pack<char, short, int>,
-                             take<3, std::tuple<char, short, int, float, double, long double>>>);
-static_assert(std::is_same_v<int, nth<2, parameter_pack<char, short, int, long, long long>>>);
-
-static_assert(std::is_same_v<parameter_pack<char, short, long, float>,
-              except_nth<2, parameter_pack<char, short, int, long, float>>>);
-
-} // namespace type_tests
 
 } // namespace floormat
