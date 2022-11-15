@@ -36,13 +36,18 @@ jobs:
         version: 1.11.1
       if: matrix.os != 'ubuntu-22.04'
 
-    - name: Install Linux Dependencies
+    - name: Install Linux dependencies
       run: |
         sudo apt -q=2 update
         sudo apt install g++-12 gdb ninja-build
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
       if: matrix.os == 'ubuntu-22.04'
+
+    - name: Install OSX dependencies
+      run: |
+        brew install SDL2
+      if: matrix.os == 'macos-12'
 
     - name: Configure
       run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFLOORMAT_PRECOMPILED-HEADERS:BOOL=OFF

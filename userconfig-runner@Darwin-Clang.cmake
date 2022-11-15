@@ -1,4 +1,5 @@
 sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
+sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
 
 add_link_options(-framework IOKit)
 
