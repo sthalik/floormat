@@ -163,6 +163,8 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     return false;
 }
 
+template<typename... Ts> struct parameter_pack;
+
 template<template<typename...> class F, typename Acc, typename T, typename... Fs>
 struct reduce0_;
 
@@ -173,21 +175,19 @@ struct reduce0_<F, Acc, T<>, Fs...> {
 
 template<template<typename...> class F, typename Acc, template<typename...> class X, typename T, typename... Ts, typename... Fs>
 struct reduce0_<F, Acc, X<T, Ts...>, Fs...> {
-    using type = typename reduce0_< F, F<Acc, T>, X<Ts...>, Fs... >::type;
+    using type = typename reduce0_< F, F<Acc, T>, parameter_pack<Ts...>, Fs... >::type;
 };
 
-template<template<typename...> class F, typename XC, typename... Fs>
+template<template<typename...> class F, typename X, typename... Fs>
 struct reduce_;
 
 template<template<typename...> class F, template<typename...> class X, typename T1, typename... Ts, typename... Fs>
 struct reduce_<F, X<T1, Ts...>, Fs...> {
-    using type = typename reduce0_< F, T1, X<Ts...>, Fs... >::type;
+    using type = typename reduce0_< F, T1, parameter_pack<Ts...>, Fs... >::type;
 };
 
 template<template<typename...> class F, typename T, typename... Fs>
 using reduce = typename reduce_<F, T, Fs...>::type;
-
-template<typename... Ts> struct parameter_pack;
 
 template<typename T, template<typename...> typename C, typename... Args2>
 struct lift_;
