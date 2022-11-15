@@ -4,8 +4,8 @@ sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
 add_link_options(-framework IOKit)
 
 # for building submodule dependencies
-function(fm-userconfig-external-pre)
-    add_compile_options(-Wno-deprecated -Wno-unused-but-set-variable)
+function(fm-userconfig-external)
+    add_compile_options(-Wno-deprecated -Wno-unused-but-set-variable -Wno-poison-system-directories)
 endfunction()
 
 # for floormat sources only
