@@ -45,9 +45,9 @@ static constexpr bool test_accessors()
 static constexpr bool test_visitor()
 {
     {
-        int ret = 0;
-        visit_tuple([&](auto x) { ret += x; },
-                    std::tuple<int, short, char, long>{ 1, 2, 3, 4 });
+        long ret = 0;
+        visit_tuple([&](auto x) { ret += (long)x; },
+                    std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4));
         fm_assert(ret == 1 + 2 + 3 + 4);
     }
     {

@@ -4,6 +4,7 @@
 #include <compare>
 #include <type_traits>
 #include <utility>
+#include <tuple>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {}
