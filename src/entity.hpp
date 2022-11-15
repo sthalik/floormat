@@ -96,17 +96,22 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
 
 } // namespace detail
 
+struct EntityBase {};
+
 template<typename Obj>
-struct Entity final {
+struct Entity final : EntityBase {
     static_assert(std::is_same_v<Obj, std::decay_t<Obj>>);
 
+    struct type_base {};
+
     template<typename Type>
-    struct type final
+    struct type final : type_base
     {
         static_assert(std::is_same_v<Type, std::decay_t<Type>>);
+        struct field_base {};
 
         template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
-        struct field final
+        struct field final : field_base
         {
             using ObjectType = Obj;
             using FieldType = Type;
@@ -231,11 +236,12 @@ enum class erased_field_type : std::uint32_t {
     string,
     u8, u16, u32, u64, s8, s16, s32, s64,
     user_type_start,
-    MAX = (std::uint32_t)-1,
+    MAX = (1u << 31) - 1u,
+    DYNAMIC = (std::uint32_t)-1,
 };
 
 template<erased_field_type> struct type_of_erased_field;
-template<typename T> struct erased_field_type_v_ : std::integral_constant<erased_field_type, erased_field_type::none> {};
+template<typename T> struct erased_field_type_v_ : std::integral_constant<erased_field_type, erased_field_type::DYNAMIC> {};
 
 #define FM_ERASED_FIELD_TYPE(TYPE, ENUM)                                                                                    \
     template<> struct erased_field_type_v_<TYPE> : std::integral_constant<erased_field_type, erased_field_type::ENUM> {};   \
