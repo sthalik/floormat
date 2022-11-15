@@ -121,6 +121,32 @@ constexpr inline std::size_t strlen_(const char* s)
 #endif
 }
 
+template<typename F, typename Tuple, std::size_t N>
+requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
+constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
+{
+    using Size = std::tuple_size<std::remove_cvref_t<Tuple>>;
+    static_assert(N < Size());
+
+    fun(std::get<N>(tuple));
+    if constexpr(N+1 < Size())
+        visit_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+}
+
+template<typename F, typename Tuple, std::size_t N>
+requires std::is_invocable_r_v<bool, F, decltype(std::get<N>(std::declval<Tuple>()))>
+constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
+{
+    using Size = std::tuple_size<std::remove_cvref_t<Tuple>>;
+    static_assert(N < Size());
+
+    if (fun(std::get<N>(tuple)))
+        return true;
+    if constexpr(N+1 < Size())
+        return find_in_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+    return false;
+}
+
 } // namespace detail
 
 struct EntityBase {};
@@ -161,36 +187,6 @@ struct Entity final : EntityBase {
         field(StringView name, R r, W w) -> field<R, W>;
     };
 };
-
-namespace detail {
-
-template<typename F, typename Tuple, std::size_t N>
-requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
-constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
-{
-    using Size = std::tuple_size<std::remove_cvref_t<Tuple>>;
-    static_assert(N < Size());
-
-    fun(std::get<N>(tuple));
-    if constexpr(N+1 < Size())
-        visit_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
-}
-
-template<typename F, typename Tuple, std::size_t N>
-requires std::is_invocable_r_v<bool, F, decltype(std::get<N>(std::declval<Tuple>()))>
-constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
-{
-    using Size = std::tuple_size<std::remove_cvref_t<Tuple>>;
-    static_assert(N < Size());
-
-    if (fun(std::get<N>(tuple)))
-        return true;
-    if constexpr(N+1 < Size())
-        return find_in_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
-    return false;
-}
-
-} // namespace detail
 
 template<typename F, typename Tuple>
 constexpr void visit_tuple(F&& fun, Tuple&& tuple)
