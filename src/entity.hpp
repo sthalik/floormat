@@ -158,6 +158,54 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     return false;
 }
 
+template<template<typename...> class F, typename Acc, typename T, typename... Fs>
+struct reduce0_;
+
+template<template<typename...> class F, typename Acc, template<typename...> class T, typename... Fs>
+struct reduce0_<F, Acc, T<>, Fs...> {
+    using type = Acc;
+};
+
+template<template<typename...> class F, typename Acc, template<typename...> class X, typename T, typename... Ts, typename... Fs>
+struct reduce0_<F, Acc, X<T, Ts...>, Fs...> {
+    using type = typename reduce0_< F, F<Acc, T>, X<Ts...>, Fs... >::type;
+};
+
+template<template<typename...> class F, typename XC, typename... Fs>
+struct reduce_;
+
+template<template<typename...> class F, template<typename...> class X, typename T1, typename... Ts, typename... Fs>
+struct reduce_<F, X<T1, Ts...>, Fs...> {
+    using type = typename reduce0_< F, T1, X<Ts...>, Fs... >::type;
+};
+
+template<template<typename...> class F, typename T, typename... Fs>
+using reduce = typename reduce_<F, T, Fs...>::type;
+
+template<typename... Ts> struct parameter_pack;
+
+template<typename T, template<typename...> typename C, typename... Args2>
+struct lift_;
+
+template<template<typename...> class C, template<typename...> class T, typename... Args, typename... CArgs>
+struct lift_<T<Args...>, C, CArgs...> {
+    using type = C<CArgs..., Args...>;
+};
+
+template<typename T, template<typename...> class C, typename... CArgs>
+using lift = typename lift_<T, C, CArgs...>::type;
+
+template<template<typename...> class F, template<typename...> class C, typename T, typename... Us>
+struct map_;
+
+template<template<typename...> class F, template<typename...> class C, template<typename...> class X, typename... Ts, typename... Us>
+struct map_<F, C, X<Ts...>, Us...> {
+    using type = C<F<Us..., Ts>...>;
+};
+
+template<template<typename...> class F, typename X, typename... Us>
+using map = typename map_<F, detail::parameter_pack, X, Us...>::type;
+
 } // namespace detail
 
 template<typename F, typename Tuple>
