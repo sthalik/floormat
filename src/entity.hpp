@@ -4,6 +4,7 @@
 #include <compare>
 #include <type_traits>
 #include <utility>
+#include <algorithm>
 #include <tuple>
 #include <Corrade/Containers/StringView.h>
 
@@ -94,6 +95,33 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
     static constexpr void write(Obj& x, FieldType Obj::* w, move_qualified<FieldType> value) { x.*w = value; }
 };
 
+constexpr inline int memcmp_(const char* s1, const char* s2, std::size_t n)
+{
+#ifdef __GNUC__
+    return __builtin_memcmp(s1, s2, n);
+#else
+    if (n != 0) {
+        do {
+            if (*s1++ != *s2++)
+                return (static_cast<unsigned char>(*--s1) - static_cast<unsigned char>(*--s2));
+        } while (--n != 0);
+    }
+    return 0;
+#endif
+}
+
+constexpr inline std::size_t strlen_(const char* s)
+{
+#ifdef __GNUC__
+    return __builtin_strlen(s);
+#else
+    const char* end;
+    for (end = s; *end; end++)
+        ;
+    return std::size_t(end - s);
+#endif
+}
+
 } // namespace detail
 
 struct EntityBase {};
@@ -168,8 +196,8 @@ template<typename... Ts> struct parameter_pack;
 template<template<typename...> class F, typename Acc, typename T, typename... Fs>
 struct reduce0_;
 
-template<template<typename...> class F, typename Acc, template<typename...> class T, typename... Fs>
-struct reduce0_<F, Acc, T<>, Fs...> {
+template<template<typename...> class F, typename Acc, template<typename...> class X, typename... Fs>
+struct reduce0_<F, Acc, X<>, Fs...> {
     using type = Acc;
 };
 
@@ -177,6 +205,9 @@ template<template<typename...> class F, typename Acc, template<typename...> clas
 struct reduce0_<F, Acc, X<T, Ts...>, Fs...> {
     using type = typename reduce0_< F, F<Acc, T>, parameter_pack<Ts...>, Fs... >::type;
 };
+
+template<template<typename...> class F, typename Acc, typename X, typename... Fs>
+using reduce0 = typename reduce0_<F, Acc, X, Fs...>::type;
 
 template<template<typename...> class F, typename X, typename... Fs>
 struct reduce_;
@@ -210,6 +241,86 @@ struct map_<F, C, X<Ts...>, Us...> {
 
 template<template<typename...> class F, typename X, typename... Us>
 using map = typename map_<F, detail::parameter_pack, X, Us...>::type;
+
+template<std::size_t N, typename T>
+struct skip_;
+
+template<std::size_t N, template<typename...> class Tuple, typename T, typename... Ts>
+struct skip_<N, Tuple<T, Ts...>> {
+    using type = typename skip_<N-1, parameter_pack<Ts...>>::type;
+};
+
+template<template<typename...> class Tuple, typename... Ts>
+struct skip_<0, Tuple<Ts...>> { using type = parameter_pack<Ts...>; };
+
+template<template<typename...> class Tuple, typename T, typename... Ts>
+struct skip_<0, Tuple<T, Ts...>> {
+    using type = parameter_pack<T, Ts...>;
+};
+
+template<std::size_t N, typename T>
+using skip = typename skip_<N, T>::type;
+
+template<std::size_t N, typename Acc, typename T>
+struct take_;
+
+template<template<typename...> class Tuple, typename... Ts, typename... As>
+struct take_<0, parameter_pack<As...>, Tuple<Ts...>> {
+    using type = parameter_pack<As...>;
+};
+
+template<typename... As, template<typename...> class Tuple, typename T1, typename... Ts>
+struct take_<0, parameter_pack<As...>, Tuple<T1, Ts...>> {
+    using type = parameter_pack<As...>;
+};
+
+template<std::size_t N, typename... As, template<typename...> class Tuple, typename T1, typename... Ts>
+struct take_<N, parameter_pack<As...>, Tuple<T1, Ts...>> {
+    using type = typename take_<N-1, parameter_pack<As..., T1>, parameter_pack<Ts...>>::type;
+};
+
+template<std::size_t N, typename T>
+using take = typename take_<N, parameter_pack<>, T>::type;
+
+template<std::size_t N, typename T>
+struct nth_;
+
+template<std::size_t N, template<typename...> class X, typename T, typename... Ts>
+struct nth_<N, X<T, Ts...>> {
+    using type = typename nth_<N-1, parameter_pack<Ts...>>::type;
+};
+
+template<template<typename...> class X, typename T, typename... Ts>
+struct nth_<0, X<T, Ts...>> {
+    using type = T;
+};
+
+template<std::size_t N, typename T>
+using nth = typename nth_<N, T>::type;
+
+template<std::size_t N, typename Acc, typename T>
+struct except_nth_;
+
+template<std::size_t N, template<typename...> class X, typename... As, typename T, typename... Ts>
+struct except_nth_<N, parameter_pack<As...>, X<T, Ts...>> {
+    using type = typename except_nth_<N-1, parameter_pack<As..., T>, parameter_pack<Ts...>>::type;
+};
+
+template<typename... As, template<typename...> class X, typename T, typename... Ts>
+struct except_nth_<0, parameter_pack<As...>, X<T, Ts...>> {
+    using type = parameter_pack<As..., Ts...>;
+};
+
+template<std::size_t N, typename T>
+using except_nth = typename except_nth_<N, parameter_pack<>, T>::type;
+
+template<typename F, typename KeyT, typename Tuple>
+struct sort_tuple_;
+
+template<typename F, typename KeyT, template<typename...> class Tuple, typename... Ts>
+struct sort_tuple_<F, KeyT, Tuple<Ts...>> {
+
+};
 
 } // namespace detail
 

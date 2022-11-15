@@ -75,13 +75,22 @@ namespace type_tests {
 using namespace floormat::entities::detail;
 
 template<typename T, typename U> using common_type2 = std::common_type_t<T, U>;
-static_assert(std::is_same_v<long long, detail::reduce<common_type2, parameter_pack<char, unsigned short, short, long long>>>);
-static_assert(std::is_same_v<detail::parameter_pack<unsigned char, unsigned short, unsigned int>,
-                             detail::map<std::make_unsigned_t, detail::parameter_pack<char, short, int>>>);
+static_assert(std::is_same_v<long long, reduce<common_type2, parameter_pack<char, unsigned short, short, long long>>>);
+static_assert(std::is_same_v<parameter_pack<unsigned char, unsigned short, unsigned int>,
+                             map<std::make_unsigned_t, parameter_pack<char, short, int>>>);
 
-static_assert(std::is_same_v<detail::parameter_pack<unsigned char, unsigned short, unsigned, unsigned long>,
-                             detail::map<std::make_unsigned_t, detail::parameter_pack<char, short, int, long>>>);
-static_assert(std::is_same_v<std::tuple<int, short, char>, detail::lift<detail::parameter_pack<short, char>, std::tuple, int>>);
+static_assert(std::is_same_v<parameter_pack<unsigned char, unsigned short, unsigned, unsigned long>,
+                             map<std::make_unsigned_t, parameter_pack<char, short, int, long>>>);
+static_assert(std::is_same_v<std::tuple<int, short, char>, lift<parameter_pack<short, char>, std::tuple, int>>);
+static_assert(std::is_same_v<parameter_pack<long, long long>,
+                             skip<3, std::tuple<char, short, int, long, long long>>>);
+static_assert(std::is_same_v<parameter_pack<char, short, int>,
+                             take<3, std::tuple<char, short, int, float, double, long double>>>);
+static_assert(std::is_same_v<int, nth<2, parameter_pack<char, short, int, long, long long>>>);
+
+static_assert(std::is_same_v<parameter_pack<char, short, long, float>,
+              except_nth<2, parameter_pack<char, short, int, long, float>>>);
+
 } // namespace type_tests
 
 } // namespace floormat
