@@ -64,10 +64,24 @@ static constexpr bool test_visitor()
     return true;
 }
 
+static void test_fun2() {
+    auto x = TestAccessors{1, 2, 3};
+    static constexpr auto read_fn = [](const TestAccessors& x) { return x.bar(); };
+    static constexpr auto write_fn = [](TestAccessors& x, int value) { x.set_bar(value); };
+    static constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
+    static constexpr auto write_bar = fu2::function_view<void(TestAccessors&, int) const>{write_fn};
+    static constexpr auto m_bar2 = entity::type<int>::field{"bar"_s, read_bar, write_bar};
+
+    fm_assert(m_bar2.read(x) == 2);
+    m_bar2.write(x, 22);
+    fm_assert(m_bar2.read(x) == 22);
+}
+
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
+    test_fun2();
 }
 
 } // namespace floormat

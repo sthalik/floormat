@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <tuple>
+#include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {}
@@ -80,6 +81,13 @@ struct read_field<Obj, Type, Type Obj::*> {
     static constexpr Type read(const Obj& x, Type Obj::*r) { return x.*r; }
 };
 
+template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
+struct read_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(const Obj&, move_qualified<Type>) const>> {
+    template<typename F> static constexpr Type read(const Obj& x, F&& fun) {
+        return fun(x);
+    }
+};
+
 template<typename Obj, typename FieldType, FieldWriter<Obj, FieldType> W> struct write_field {
     static constexpr void write(Obj& x, W w, move_qualified<FieldType> value) { w(x, value); }
 };
@@ -92,6 +100,13 @@ struct write_field<Obj, FieldType, void(Obj::*)(move_qualified<FieldType>)> {
 template<typename Obj, typename FieldType>
 struct write_field<Obj, FieldType, FieldType Obj::*> {
     static constexpr void write(Obj& x, FieldType Obj::* w, move_qualified<FieldType> value) { x.*w = value; }
+};
+
+template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
+struct write_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(Obj&, move_qualified<Type>) const>> {
+    template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) {
+        fun(x, value);
+    }
 };
 
 constexpr inline int memcmp_(const char* s1, const char* s2, std::size_t n)
