@@ -7,9 +7,17 @@
 #ifndef FU2_INCLUDED_FUNCTION2_HPP_
 #define FU2_INCLUDED_FUNCTION2_HPP_
 
+#ifdef __GNUG__
+#pragma GCC system_header
+#elif defined _MSC_VER
+#pragma system_header
+#endif
+
+#define FU2_WITH_DISABLED_EXCEPTIONS
+#define FU2_WITH_NO_FUNCTIONAL_HEADER
 #include <cassert>
 #include <cstddef>
-#include <cstdlib>
+//#include <cstdlib>
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -207,7 +215,7 @@ struct property {
 #ifndef NDEBUG
 [[noreturn]] inline void unreachable_debug() {
   FU2_DETAIL_TRAP();
-  std::abort();
+  *(volatile int*)nullptr = 0;
 }
 #endif
 
@@ -338,13 +346,13 @@ namespace type_erasure {
 template <typename T, typename = void>
 struct address_taker {
   template <typename O>
-  static void* take(O&& obj) {
-    return std::addressof(obj);
+  static constexpr void* take(O&& obj) {
+      return (void*)std::addressof(obj);
   }
-  static T& restore(void* ptr) {
+  static constexpr T& restore(void* ptr) {
     return *static_cast<T*>(ptr);
   }
-  static T const& restore(void const* ptr) {
+  static constexpr T const& restore(void const* ptr) {
     return *static_cast<T const*>(ptr);
   }
   static T volatile& restore(void volatile* ptr) {
@@ -1074,7 +1082,9 @@ struct internal_capacity {
     /// Tag to access the structure in a type-safe way
     data_accessor accessor_;
     /// The internal capacity we use to allocate in-place
-    std::aligned_storage_t<Capacity::capacity, Capacity::alignment> capacity_;
+    struct {
+        alignas(Capacity::alignment) unsigned char data[Capacity::capacity];
+    } capacity_;
   } type;
 };
 template <typename Capacity>
@@ -1595,15 +1605,15 @@ public:
   FU2_DETAIL_CXX14_CONSTEXPR function(std::nullptr_t np) : erasure_(np) {
   }
 
-  function& operator=(function const& /*right*/) = default;
-  function& operator=(function&& /*right*/) = default;
+  constexpr function& operator=(function const& /*right*/) = default;
+  constexpr function& operator=(function&& /*right*/) = default;
 
   /// Copy assigning from another copyable function
   template <typename RightConfig,
             std::enable_if_t<RightConfig::is_copyable>* = nullptr,
             enable_if_copyable_correct_t<Config, RightConfig>* = nullptr,
             enable_if_owning_correct_t<Config, RightConfig>* = nullptr>
-  function& operator=(function<RightConfig, property_t> const& right) {
+  constexpr function& operator=(function<RightConfig, property_t> const& right) {
     erasure_ = right.erasure_;
     return *this;
   }
@@ -1612,7 +1622,7 @@ public:
   template <typename RightConfig,
             enable_if_copyable_correct_t<Config, RightConfig>* = nullptr,
             enable_if_owning_correct_t<Config, RightConfig>* = nullptr>
-  function& operator=(function<RightConfig, property_t>&& right) {
+  constexpr function& operator=(function<RightConfig, property_t>&& right) {
     erasure_ = std::move(right.erasure_);
     return *this;
   }
@@ -1623,13 +1633,13 @@ public:
             enable_if_can_accept_all_t<T>* = nullptr,
             assert_wrong_copy_assign_t<T>* = nullptr,
             assert_no_strong_except_guarantee_t<T>* = nullptr>
-  function& operator=(T&& callable) {
+  constexpr function& operator=(T&& callable) {
     erasure_.assign(use_bool_op<unrefcv_t<T>>{}, std::forward<T>(callable));
     return *this;
   }
 
   /// Clears the function
-  function& operator=(std::nullptr_t np) {
+  constexpr function& operator=(std::nullptr_t np) {
     erasure_ = np;
     return *this;
   }
