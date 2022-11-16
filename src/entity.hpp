@@ -110,33 +110,6 @@ struct write_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity,
     }
 };
 
-constexpr inline int memcmp_(const char* s1, const char* s2, std::size_t n)
-{
-#ifdef __GNUC__
-    return __builtin_memcmp(s1, s2, n);
-#else
-    if (n != 0) {
-        do {
-            if (*s1++ != *s2++)
-                return (static_cast<unsigned char>(*--s1) - static_cast<unsigned char>(*--s2));
-        } while (--n != 0);
-    }
-    return 0;
-#endif
-}
-
-constexpr inline std::size_t strlen_(const char* s)
-{
-#ifdef __GNUC__
-    return __builtin_strlen(s);
-#else
-    const char* end;
-    for (end = s; *end; end++)
-        ;
-    return std::size_t(end - s);
-#endif
-}
-
 template<typename F, typename Tuple, std::size_t N>
 requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
 constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
