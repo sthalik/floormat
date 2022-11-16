@@ -150,12 +150,6 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     endif()
 endif()
 
-if(NOT MSVC)
-    add_compile_options(-fno-rtti)
-else()
-    add_compile_options(-GR-)
-endif()
-
 if(NOT APPLE AND NOT WIN32)
     add_compile_options(-fno-plt)
 endif()
