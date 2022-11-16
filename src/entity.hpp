@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <tuple>
+#include <typeinfo>
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
@@ -138,6 +139,16 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
 
 } // namespace detail
 
+struct erased_accessors final {
+    struct erased_reader_t;
+    struct erased_writer_t;
+    const erased_reader_t* reader;
+    const erased_writer_t* writer;
+    const char *object_type, *field_type;
+    void(*read_fun)(const void*, const erased_reader_t*, void*);
+    void(*write_fun)(void*, const erased_writer_t*, void*);
+};
+
 struct EntityBase {};
 
 template<typename Obj>
@@ -161,15 +172,37 @@ struct Entity final : EntityBase {
             using Writer = W;
 
             StringView name;
-            [[no_unique_address]] Reader reader;
-            [[no_unique_address]] Writer writer;
+            [[no_unique_address]] R reader;
+            [[no_unique_address]] W writer;
 
             constexpr field(const field&) = default;
             constexpr field& operator=(const field&) = default;
-            constexpr decltype(auto) read(const Obj& x) const { return detail::read_field<Obj, Type, R>::read(x, reader); }
-            constexpr void write(Obj& x, move_qualified<Type> v) const { detail::write_field<Obj, Type, W>::write(x, writer, v); }
+            static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
+            static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v) { detail::write_field<Obj, Type, W>::write(x, writer, v); }
+            constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
+            constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
+            consteval field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
 
-            constexpr field(StringView name, Reader r, Writer w) noexcept : name{name}, reader{r}, writer{w} {}
+            erased_accessors accessors() const {
+                using reader_t = typename erased_accessors::erased_reader_t;
+                using writer_t = typename erased_accessors::erased_writer_t;
+                return erased_accessors {
+                    reinterpret_cast<const reader_t*>(&reader), reinterpret_cast<const writer_t*>(&writer),
+                    typeid(Obj).name(), typeid(Type).name(),
+                    [](const void* obj, const reader_t* reader, void* value) {
+                        const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
+                        const auto& reader_ = *reinterpret_cast<const R*>(reader);
+                        auto& value_ = *reinterpret_cast<Type*>(value);
+                        value_ = read(reader_, obj_);
+                    },
+                    [](void* obj, const writer_t* writer, void* value) {
+                        auto& obj_ = *reinterpret_cast<Obj*>(obj);
+                        const auto& writer_ = *reinterpret_cast<const W*>(writer);
+                        auto&& value_ = std::move(*reinterpret_cast<Type*>(value));
+                        write(writer_, obj_, value_);
+                    },
+                };
+            }
         };
 
         template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>

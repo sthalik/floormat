@@ -65,16 +65,32 @@ static constexpr bool test_visitor()
 }
 
 static void test_fun2() {
-    auto x = TestAccessors{1, 2, 3};
-    static constexpr auto read_fn = [](const TestAccessors& x) { return x.bar(); };
-    static constexpr auto write_fn = [](TestAccessors& x, int value) { x.set_bar(value); };
-    static constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
-    static constexpr auto write_bar = fu2::function_view<void(TestAccessors&, int) const>{write_fn};
-    static constexpr auto m_bar2 = entity::type<int>::field{"bar"_s, read_bar, write_bar};
+    static constexpr auto read_fn = [](const TestAccessors& x) constexpr { return x.bar(); };
+    static constexpr auto write_fn = [](TestAccessors& x, int value) constexpr { x.set_bar(value); };
+    constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
+    constexpr auto write_bar = fu2::function_view<void(TestAccessors&, int) const>{write_fn};
+    constexpr auto m_bar2 = entity::type<int>::field{"bar"_s, read_bar, write_bar};
 
+    auto x = TestAccessors{1, 2, 3};
     fm_assert(m_bar2.read(x) == 2);
     m_bar2.write(x, 22);
     fm_assert(m_bar2.read(x) == 22);
+}
+
+static void test_erasure() {
+    erased_accessors accessors[] = {
+        m_foo.accessors(),
+        m_bar.accessors(),
+        m_baz.accessors(),
+    };
+    auto obj = TestAccessors{1, 2, 3};
+    int value = 0;
+    accessors[1].read_fun(&obj, accessors[1].reader, &value);
+    fm_assert(value == 2);
+    int value2 = 22222, value2_ = 0;
+    accessors[1].write_fun(&obj, accessors[1].writer, &value2);
+    accessors[1].read_fun(&obj, accessors[1].reader, &value2_);
+    fm_assert(value2 == value2_);
 }
 
 void test_app::test_entity()
@@ -82,6 +98,7 @@ void test_app::test_entity()
     static_assert(test_accessors());
     static_assert(test_visitor());
     test_fun2();
+    test_erasure();
 }
 
 } // namespace floormat
