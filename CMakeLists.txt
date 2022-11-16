@@ -154,10 +154,12 @@ if(NOT APPLE AND NOT WIN32)
     add_compile_options(-fno-plt)
 endif()
 
+if(FALSE)
 if(MSVC)
     add_compile_options(-GR-)
 else()
     add_compile_options(-fno-rtti)
+endif()
 endif()
 
 fm_run_hook(fm-userconfig-src)
