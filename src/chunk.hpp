@@ -69,9 +69,9 @@ private:
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
     std::bitset<TILE_COUNT*2> _passability = {};
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
-    mutable std::uint8_t _maybe_empty     : 1 = true,
-                         _ground_modified : 1 = true,
-                         _walls_modified  : 1 = true;
+    mutable bool _maybe_empty     : 1 = true,
+                 _ground_modified : 1 = true,
+                 _walls_modified  : 1 = true;
 };
 
 } // namespace floormat

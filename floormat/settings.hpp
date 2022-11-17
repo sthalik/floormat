@@ -23,11 +23,11 @@ struct fm_settings
     bool vsync = true;
     fm_gpu_debug gpu_debug = fm_gpu_debug::on;
     fm_log_level log_level = fm_log_level::normal;
-    unsigned resizable          : 1 = true,
-             fullscreen         : 1 = false,
-             fullscreen_desktop : 1 = false,
-             borderless         : 1 = false,
-             maximized          : 1 = false;
+    bool resizable          : 1 = true,
+         fullscreen         : 1 = false,
+         fullscreen_desktop : 1 = false,
+         borderless         : 1 = false,
+         maximized          : 1 = false;
     std::uint8_t msaa_samples = 16;
 };
 
