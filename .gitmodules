@@ -25,3 +25,6 @@
 [submodule "luajit"]
 	path = external/luajit
 	url = https://github.com/WohlSoft/LuaJIT.git
+[submodule "demumble"]
+	path = demumble
+	url = https://github.com/sthalik/demumble

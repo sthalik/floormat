@@ -176,6 +176,7 @@ include_directories(SYSTEM
     "${_fm-json-include-dirs}"
 )
 
+add_subdirectory(demumble)
 add_subdirectory(src)
 add_subdirectory(serialize)
 add_subdirectory(loader)
