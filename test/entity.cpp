@@ -129,7 +129,6 @@ static void test_metadata()
 
 static void test_type_name()
 {
-    using namespace entities;
     struct foobar;
     constexpr StringView name = name_of<foobar>;
     fm_assert(name.contains("foobar"_s));

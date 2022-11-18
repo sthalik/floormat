@@ -126,22 +126,10 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     return false;
 }
 
-template<typename T> struct decay_tuple_;
-template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> {
-    using type = std::tuple<std::decay_t<Ts>...>;
-};
-
-template<typename T>
-using decay_tuple = typename decay_tuple_<T>::type;
-
-template<typename T>
-struct accessors_for_
-{
-    using type = decay_tuple<std::decay_t<decltype(T::accessors())>>;
-};
-
-template<typename T>
-using accessors_for = typename accessors_for_<T>::type;
+template<typename T> struct decay_tuple_; template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
+template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
+template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(T::accessors())>>; };
+template<typename T> using accessors_for = typename accessors_for_<T>::type;
 
 } // namespace detail
 
@@ -165,33 +153,36 @@ struct entity_field : entity_field_base<Obj, Type> {
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
     constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
     constexpr entity_field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
-
-    constexpr erased_accessor erased() const {
-        using reader_t = typename erased_accessor::erased_reader_t;
-        using writer_t = typename erased_accessor::erased_writer_t;
-        constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
-
-        constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value)
-        {
-            const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
-            const auto& reader_ = *reinterpret_cast<const R*>(reader);
-            auto& value_ = *reinterpret_cast<Type*>(value);
-            value_ = read(reader_, obj_);
-        };
-        constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value)
-        {
-            auto& obj_ = *reinterpret_cast<Obj*>(obj);
-            const auto& writer_ = *reinterpret_cast<const W*>(writer);
-            move_qualified<Type> value_ = std::move(*reinterpret_cast<Type*>(value));
-            write(writer_, obj_, value_);
-        };
-        return erased_accessor{
-            (void*)&reader, (void*)&writer,
-            obj_name, field_name,
-            reader_fn, writer_fn,
-        };
-    }
+    constexpr erased_accessor erased() const;
 };
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
+constexpr erased_accessor entity_field<Obj,  Type, R, W>::erased() const
+{
+    using reader_t = typename erased_accessor::erased_reader_t;
+    using writer_t = typename erased_accessor::erased_writer_t;
+    constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
+
+    constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value)
+    {
+        const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
+        const auto& reader_ = *reinterpret_cast<const R*>(reader);
+        auto& value_ = *reinterpret_cast<Type*>(value);
+        value_ = read(reader_, obj_);
+    };
+    constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value)
+    {
+        auto& obj_ = *reinterpret_cast<Obj*>(obj);
+        const auto& writer_ = *reinterpret_cast<const W*>(writer);
+        move_qualified<Type> value_ = std::move(*reinterpret_cast<Type*>(value));
+        write(writer_, obj_, value_);
+    };
+    return erased_accessor {
+        (void*)&reader, writer ? (void*)&writer : nullptr,
+        obj_name, field_name,
+        reader_fn, writer_fn,
+    };
+}
 
 template<typename Obj>
 struct Entity final {
@@ -239,7 +230,7 @@ template<typename T>
 requires std::is_same_v<T, std::decay_t<T>>
 class entity_metadata final {
     template<typename... Ts>
-    static constexpr auto erased_helper(const std::tuple<Ts...>& tuple)
+    static consteval auto erased_helper(const std::tuple<Ts...>& tuple)
     {
         std::array<entities::erased_accessor, sizeof...(Ts)> array { std::get<Ts>(tuple).erased()..., };
         return array;
