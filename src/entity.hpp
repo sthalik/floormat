@@ -6,10 +6,21 @@
 #include <utility>
 #include <tuple>
 #include <typeinfo>
+#include <array>
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
-namespace floormat {}
+#if defined _MSC_VER
+#define FM_PRETTY_FUNCTION __FUNCSIG__
+#else
+#define FM_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#endif
+
+namespace floormat::entities::detail { template<typename T> static constexpr StringView typename_of_(); }
+
+namespace floormat {
+template<typename T> constexpr inline StringView typename_of = entities::detail::typename_of_<T>();
+} // namespace floormat
 
 namespace floormat::entities {
 
@@ -67,6 +78,14 @@ concept FieldWriter = requires {
 };
 
 namespace detail {
+
+template<typename T>
+static constexpr StringView typename_of_() {
+    using namespace Corrade::Containers;
+    using SVF = StringViewFlag;
+    constexpr const char* str = FM_PRETTY_FUNCTION;
+    return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
+}
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R>
 struct read_field {
@@ -137,72 +156,109 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     return false;
 }
 
-} // namespace detail
-
-struct erased_accessors final {
-    struct erased_reader_t;
-    struct erased_writer_t;
-    const erased_reader_t* reader;
-    const erased_writer_t* writer;
-    const char *object_type, *field_type;
-    void(*read_fun)(const void*, const erased_reader_t*, void*);
-    void(*write_fun)(void*, const erased_writer_t*, void*);
+template<typename T> struct decay_tuple_;
+template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> {
+    using type = std::tuple<std::decay_t<Ts>...>;
 };
 
-struct EntityBase {};
+template<typename T>
+using decay_tuple = typename decay_tuple_<T>::type;
+
+template<typename T>
+struct accessors_for_
+{
+    using type = decay_tuple<std::decay_t<decltype(T::accessors())>>;
+};
+
+template<typename T>
+using accessors_for = typename accessors_for_<T>::type;
+
+} // namespace detail
+
+struct erased_accessor final {
+    using erased_reader_t = void;
+    using erased_writer_t = void;
+    using Object = void;
+    using Value = void;
+
+    const erased_reader_t* reader;
+    const erased_writer_t* writer;
+    StringView object_name, type_name;
+    void(*read_fun)(const Object*, const erased_reader_t*, Value*);
+    void(*write_fun)(Object*, const erased_writer_t*, Value*);
+
+    constexpr erased_accessor(const erased_accessor&) = default;
+    constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer,
+                               StringView object_name, StringView type_name,
+                               void(*read_fun)(const Object*, const erased_reader_t*, Value*),
+                               void(*write_fun)(Object*, const erased_writer_t*, Value*)) :
+        reader{reader}, writer{writer},
+        object_name{object_name}, type_name{type_name},
+        read_fun{read_fun}, write_fun{write_fun}
+    {}
+};
+
+template<typename Obj, typename Type> struct entity_field_base {};
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
+struct entity_field : entity_field_base<Obj, Type> {
+    using ObjectType = Obj;
+    using FieldType = Type;
+    using Reader = R;
+    using Writer = W;
+
+    StringView name;
+    [[no_unique_address]] R reader;
+    [[no_unique_address]] W writer;
+
+    constexpr entity_field(const entity_field&) = default;
+    constexpr entity_field& operator=(const entity_field&) = default;
+    static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
+    static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v) { detail::write_field<Obj, Type, W>::write(x, writer, v); }
+    constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
+    constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
+    constexpr entity_field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
+
+    constexpr erased_accessor erased() const {
+        using reader_t = typename erased_accessor::erased_reader_t;
+        using writer_t = typename erased_accessor::erased_writer_t;
+        constexpr auto obj_name = typename_of<Obj>, field_name = typename_of<Type>;
+
+        constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value)
+        {
+            const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
+            const auto& reader_ = *reinterpret_cast<const R*>(reader);
+            auto& value_ = *reinterpret_cast<Type*>(value);
+            value_ = read(reader_, obj_);
+        };
+        constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value)
+        {
+            auto& obj_ = *reinterpret_cast<Obj*>(obj);
+            const auto& writer_ = *reinterpret_cast<const W*>(writer);
+            move_qualified<Type> value_ = std::move(*reinterpret_cast<Type*>(value));
+            write(writer_, obj_, value_);
+        };
+        return erased_accessor{
+            (void*)&reader, (void*)&writer,
+            obj_name, field_name,
+            reader_fn, writer_fn,
+        };
+    }
+};
 
 template<typename Obj>
-struct Entity final : EntityBase {
+struct Entity final {
     static_assert(std::is_same_v<Obj, std::decay_t<Obj>>);
 
-    struct type_base {};
-
     template<typename Type>
-    struct type final : type_base
+    struct type final
     {
-        static_assert(std::is_same_v<Type, std::decay_t<Type>>);
-        struct field_base {};
-
         template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
-        struct field final : field_base
+        struct field final : entity_field<Obj, Type, R, W>
         {
-            using ObjectType = Obj;
-            using FieldType = Type;
-            using Reader = R;
-            using Writer = W;
-
-            StringView name;
-            [[no_unique_address]] R reader;
-            [[no_unique_address]] W writer;
-
-            constexpr field(const field&) = default;
-            constexpr field& operator=(const field&) = default;
-            static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
-            static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v) { detail::write_field<Obj, Type, W>::write(x, writer, v); }
-            constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
-            constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
-            consteval field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
-
-            erased_accessors accessors() const {
-                using reader_t = typename erased_accessors::erased_reader_t;
-                using writer_t = typename erased_accessors::erased_writer_t;
-                return erased_accessors {
-                    reinterpret_cast<const reader_t*>(&reader), reinterpret_cast<const writer_t*>(&writer),
-                    typeid(Obj).name(), typeid(Type).name(),
-                    [](const void* obj, const reader_t* reader, void* value) {
-                        const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
-                        const auto& reader_ = *reinterpret_cast<const R*>(reader);
-                        auto& value_ = *reinterpret_cast<Type*>(value);
-                        value_ = read(reader_, obj_);
-                    },
-                    [](void* obj, const writer_t* writer, void* value) {
-                        auto& obj_ = *reinterpret_cast<Obj*>(obj);
-                        const auto& writer_ = *reinterpret_cast<const W*>(writer);
-                        auto&& value_ = std::move(*reinterpret_cast<Type*>(value));
-                        write(writer_, obj_, value_);
-                    },
-                };
-            }
+            constexpr field(StringView field_name, R r, W w) noexcept :
+                entity_field<Obj, Type, R, W>{field_name, r, w}
+            {}
         };
 
         template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
@@ -255,3 +311,23 @@ FM_ERASED_FIELD_TYPE(StringView, string);
 #undef FM_ERASED_FIELD_TYPE
 
 } // namespace floormat::entities
+
+namespace floormat {
+
+template<typename T>
+requires std::is_same_v<T, std::decay_t<T>>
+class entity_metadata final {
+    template<typename... Ts>
+    static constexpr auto erased_helper(const std::tuple<Ts...>& tuple)
+    {
+        std::array<entities::erased_accessor, sizeof...(Ts)> array { std::get<Ts>(tuple).erased()..., };
+        return array;
+    }
+public:
+    static constexpr StringView class_name = typename_of<T>;
+    static constexpr std::size_t size = std::tuple_size_v<entities::detail::accessors_for<T>>;
+    static constexpr entities::detail::accessors_for<T> accessors = T::accessors();
+    static constexpr auto erased_accessors = erased_helper(accessors);
+};
+
+} // namespace floormat

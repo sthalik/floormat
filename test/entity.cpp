@@ -12,7 +12,23 @@ struct TestAccessors {
     int foo;
     int _bar;
     int _baz;
+
+    static constexpr auto accessors() noexcept;
 };
+
+constexpr auto TestAccessors::accessors() noexcept
+{
+    using entity = Entity<TestAccessors>;
+    constexpr auto r_baz = [](const TestAccessors& x) { return x._baz; };
+    constexpr auto w_baz = [](TestAccessors& x, int v) { x._baz = v; };
+
+    constexpr auto tuple = std::make_tuple(
+        entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo},
+        entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar},
+        entity::type<int>::field("baz"_s, r_baz, w_baz)
+    );
+    return tuple;
+}
 
 using entity = Entity<TestAccessors>;
 static constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
@@ -78,10 +94,10 @@ static void test_fun2() {
 }
 
 static void test_erasure() {
-    erased_accessors accessors[] = {
-        m_foo.accessors(),
-        m_bar.accessors(),
-        m_baz.accessors(),
+    erased_accessor accessors[] = {
+        m_foo.erased(),
+        m_bar.erased(),
+        m_baz.erased(),
     };
     auto obj = TestAccessors{1, 2, 3};
     int value = 0;
@@ -93,12 +109,37 @@ static void test_erasure() {
     fm_assert(value2 == value2_);
 }
 
+static void test_metadata()
+{
+    constexpr auto m = entity_metadata<TestAccessors>();
+    fm_assert(m.class_name == typename_of<TestAccessors>);
+    fm_assert(m.class_name.contains("TestAccessors"_s));
+    const auto [foo, bar, baz] = m.accessors;
+    const auto [foo2, bar2, baz2] = m.erased_accessors;
+    TestAccessors x{0, 0, 0};
+    foo.write(x, 1);
+    fm_assert(x.foo == 1);
+    int bar_ = 2;
+    bar2.write_fun(&x, bar2.writer, &bar_);
+    fm_assert(x.bar() == 2);
+}
+
+static void test_type_name()
+{
+    using namespace entities;
+    struct foobar;
+    constexpr StringView name = typename_of<foobar>;
+    fm_assert(name.contains("foobar"_s));
+}
+
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
     test_fun2();
     test_erasure();
+    test_type_name();
+    test_metadata();
 }
 
 } // namespace floormat
