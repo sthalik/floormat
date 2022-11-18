@@ -112,7 +112,7 @@ static void test_erasure() {
 static void test_metadata()
 {
     constexpr auto m = entity_metadata<TestAccessors>();
-    fm_assert(m.class_name == typename_of<TestAccessors>);
+    fm_assert(m.class_name == name_of<TestAccessors>);
     fm_assert(m.class_name.contains("TestAccessors"_s));
     const auto [foo, bar, baz] = m.accessors;
     const auto [foo2, bar2, baz2] = m.erased_accessors;
@@ -128,7 +128,7 @@ static void test_type_name()
 {
     using namespace entities;
     struct foobar;
-    constexpr StringView name = typename_of<foobar>;
+    constexpr StringView name = name_of<foobar>;
     fm_assert(name.contains("foobar"_s));
 }
 

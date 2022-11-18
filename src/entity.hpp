@@ -16,10 +16,13 @@
 #define FM_PRETTY_FUNCTION __PRETTY_FUNCTION__
 #endif
 
-namespace floormat::entities::detail { template<typename T> static constexpr StringView typename_of_(); }
+namespace floormat::entities::detail {
+template<typename T> static constexpr StringView type_name();
+template<typename T> struct type_name_helper;
+}
 
 namespace floormat {
-template<typename T> constexpr inline StringView typename_of = entities::detail::typename_of_<T>();
+template<typename T> constexpr inline StringView name_of = entities::detail::type_name_helper<T>::name;
 } // namespace floormat
 
 namespace floormat::entities {
@@ -80,12 +83,18 @@ concept FieldWriter = requires {
 namespace detail {
 
 template<typename T>
-static constexpr StringView typename_of_() {
+static constexpr StringView type_name() {
     using namespace Corrade::Containers;
     using SVF = StringViewFlag;
     constexpr const char* str = FM_PRETTY_FUNCTION;
     return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
 }
+
+template<typename T>
+struct type_name_helper final
+{
+    static constexpr const StringView name = type_name<T>();
+};
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R>
 struct read_field {
@@ -183,17 +192,17 @@ struct erased_accessor final {
 
     const erased_reader_t* reader;
     const erased_writer_t* writer;
-    StringView object_name, type_name;
+    StringView object_name, field_type_name;
     void(*read_fun)(const Object*, const erased_reader_t*, Value*);
     void(*write_fun)(Object*, const erased_writer_t*, Value*);
 
     constexpr erased_accessor(const erased_accessor&) = default;
     constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer,
-                               StringView object_name, StringView type_name,
+                               StringView object_name, StringView field_type_name,
                                void(*read_fun)(const Object*, const erased_reader_t*, Value*),
                                void(*write_fun)(Object*, const erased_writer_t*, Value*)) :
         reader{reader}, writer{writer},
-        object_name{object_name}, type_name{type_name},
+        object_name{object_name}, field_type_name{field_type_name},
         read_fun{read_fun}, write_fun{write_fun}
     {}
 };
@@ -222,7 +231,7 @@ struct entity_field : entity_field_base<Obj, Type> {
     constexpr erased_accessor erased() const {
         using reader_t = typename erased_accessor::erased_reader_t;
         using writer_t = typename erased_accessor::erased_writer_t;
-        constexpr auto obj_name = typename_of<Obj>, field_name = typename_of<Type>;
+        constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
 
         constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value)
         {
@@ -324,7 +333,7 @@ class entity_metadata final {
         return array;
     }
 public:
-    static constexpr StringView class_name = typename_of<T>;
+    static constexpr StringView class_name = name_of<T>;
     static constexpr std::size_t size = std::tuple_size_v<entities::detail::accessors_for<T>>;
     static constexpr entities::detail::accessors_for<T> accessors = T::accessors();
     static constexpr auto erased_accessors = erased_helper(accessors);
