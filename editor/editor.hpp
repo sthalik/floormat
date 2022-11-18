@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/integer-types.hpp"
 #include "global-coords.hpp"
 #include "tile-image.hpp"
 #include "scenery.hpp"
@@ -29,7 +28,7 @@ struct editor final
     tile_editor* current_tile_editor() noexcept;
     const tile_editor* current_tile_editor() const noexcept;
 
-    enum class button : std::uint8_t { none, place, remove, };
+    enum class button : unsigned char { none, place, remove, };
 
     void on_click(world& world, global_coords pos, int mods, button b);
     void on_click_(world& world, global_coords pos, button b);

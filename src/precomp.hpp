@@ -1,6 +1,5 @@
 #pragma once
 
-#include "compat/integer-types.hpp"
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
 #include "compat/alloca.hpp"

@@ -1,7 +1,7 @@
 #pragma once
-#include "compat/integer-types.hpp"
-#include "compat/defs.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <bit>
 #include <concepts>
 #include <type_traits>
@@ -17,7 +17,7 @@ namespace floormat::Serialize {
 
 static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little);
 
-enum class value_type : std::uint8_t {
+enum class value_type : unsigned char {
     none, uc, u8, u16, u32, u64,
     f32, f64,
     COUNT

@@ -1,5 +1,5 @@
 #pragma once
-#include "integer-types.hpp"
+#include <cstddef>
 
 namespace floormat {
 

@@ -3,7 +3,7 @@
 
 namespace floormat {
 
-enum mouse_button : std::uint8_t {
+enum mouse_button : unsigned char {
     mouse_button_none   = 0,
     mouse_button_left   = 1 << 0,
     mouse_button_middle = 1 << 1,

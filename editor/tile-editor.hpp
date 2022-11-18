@@ -15,7 +15,7 @@ struct world;
 struct tile_editor final
 {
 private:
-    enum selection_mode : std::uint8_t {
+    enum selection_mode : unsigned char {
         sel_none, sel_tile, sel_perm,
     };
 

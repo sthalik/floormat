@@ -1,5 +1,7 @@
 #pragma once
-#include "compat/integer-types.hpp"
+
+#include <cstddef>
+#include <cstdint>
 #include <concepts>
 #include <type_traits>
 

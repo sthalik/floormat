@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/integer-types.hpp"
 
 namespace floormat {
 
@@ -7,11 +6,11 @@ enum class editor_mode : unsigned char {
     none, floor, walls, scenery,
 };
 
-enum class editor_wall_rotation : std::uint8_t {
+enum class editor_wall_rotation : unsigned char {
     N, W,
 };
 
-enum class editor_snap_mode : std::uint8_t {
+enum class editor_snap_mode : unsigned char {
     none       = 0,
     horizontal = 1 << 0,
     vertical   = 1 << 1,

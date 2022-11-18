@@ -1,8 +1,9 @@
 #pragma once
 #include "compat/int-hash.hpp"
-#include "compat/integer-types.hpp"
+#include "compat/defs.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
+#include <cstddef>
 #include <unordered_map>
 #include <memory>
 

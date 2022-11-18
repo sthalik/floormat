@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compat/defs.hpp"
 #include "src/global-coords.hpp"
 #include <Magnum/Math/Vector2.h>
 

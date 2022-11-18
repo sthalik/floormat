@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/integer-types.hpp"
 
 namespace floormat {
 
@@ -12,7 +11,7 @@ enum kmod : int {
     kmod_mask  = kmod_shift | kmod_ctrl | kmod_alt | kmod_super,
 };
 
-enum key : std::uint32_t {
+enum key : unsigned {
     key_noop,
     key_camera_up, key_camera_left, key_camera_right, key_camera_down, key_camera_reset,
     key_rotate_tile,

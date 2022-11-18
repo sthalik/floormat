@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/defs.hpp"
 #include "tile-image.hpp"
 #include "scenery.hpp"
 
@@ -9,7 +8,7 @@ struct chunk;
 struct anim_atlas;
 
 // zero is the default, see bitset in chunk.hpp
-enum pass_mode : std::uint8_t { pass_shoot_through, pass_ok, pass_blocked, };
+enum pass_mode : unsigned char { pass_shoot_through, pass_ok, pass_blocked, };
 
 struct pass_mode_ref final
 {

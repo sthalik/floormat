@@ -9,7 +9,7 @@ using StringView = BasicStringView<const char>;
 
 namespace floormat::entities {
 
-enum class erased_field_type : std::uint32_t {
+enum class erased_field_type : unsigned {
     none,
     string,
     u8, u16, u32, u64, s8, s16, s32, s64,

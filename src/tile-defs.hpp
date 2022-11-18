@@ -1,10 +1,10 @@
 #pragma once
-#include "compat/integer-types.hpp"
+#include <cstddef>
 #include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
-constexpr inline std::uint8_t TILE_MAX_DIM = 16;
+constexpr inline unsigned char TILE_MAX_DIM = 16;
 constexpr inline std::size_t TILE_COUNT = TILE_MAX_DIM*TILE_MAX_DIM;
 
 constexpr inline auto TILE_MAX_DIM20d = Magnum::Math::Vector3<double> { TILE_MAX_DIM, TILE_MAX_DIM, 0 };

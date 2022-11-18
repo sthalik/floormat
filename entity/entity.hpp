@@ -1,8 +1,8 @@
 #pragma once
 #include "name-of.hpp"
-#include "compat/integer-types.hpp"
 #include "accessor.hpp"
 #include "util.hpp"
+#include <cstddef>
 #include <concepts>
 #include <compare>
 #include <type_traits>

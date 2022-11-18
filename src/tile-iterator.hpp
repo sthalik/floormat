@@ -1,8 +1,10 @@
 #pragma once
 
-#include "compat/integer-types.hpp"
 #include "local-coords.hpp"
 #include "tile.hpp"
+
+#include <cstddef>
+#include <iterator>
 
 namespace floormat {
 

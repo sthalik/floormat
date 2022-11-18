@@ -1,6 +1,5 @@
 #pragma once
 
-#include "compat/integer-types.hpp"
 #include <vector>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
