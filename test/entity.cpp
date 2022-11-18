@@ -119,6 +119,7 @@ void test_erasure() {
 void test_metadata()
 {
     constexpr auto m = entity_metadata<TestAccessors>();
+    static_assert(sizeof m == 1);
     fm_assert(m.class_name == name_of<TestAccessors>);
     fm_assert(m.class_name.contains("TestAccessors"_s));
     const auto [foo, bar, baz] = m.accessors;
@@ -156,11 +157,28 @@ constexpr bool test_null_writer()
 
 } // namespace
 
+static constexpr bool test_names()
+{
+    constexpr auto m = entity_metadata<TestAccessors>();
+    auto [foo1, bar1, baz1] = m.accessors;
+    auto [foo2, bar2, baz2] = m.erased_accessors;
+
+    fm_assert(foo1.name == "foo"_s);
+    fm_assert(bar1.name == "bar"_s);
+    fm_assert(baz1.name == "baz"_s);
+
+    fm_assert(foo2.field_name == "foo"_s);
+    fm_assert(bar2.field_name == "bar"_s);
+    fm_assert(baz2.field_name == "baz"_s);
+    return true;
+}
+
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
     static_assert(test_null_writer());
+    static_assert(test_names());
     test_fun2();
     test_erasure();
     test_type_name();

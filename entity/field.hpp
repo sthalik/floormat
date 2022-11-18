@@ -4,11 +4,9 @@
 #include "util.hpp"
 #include <cstddef>
 #include <concepts>
-#include <compare>
 #include <type_traits>
 #include <utility>
 #include <tuple>
-#include <typeinfo>
 #include <array>
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
@@ -178,24 +176,27 @@ constexpr erased_accessor entity_field<Obj,  Type, R, W>::erased() const
     using writer_t = typename erased_accessor::erased_writer_t;
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
 
-    constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value)
-    {
+    constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
         const auto& reader_ = *reinterpret_cast<const R*>(reader);
         auto& value_ = *reinterpret_cast<Type*>(value);
         value_ = read(reader_, obj_);
     };
-    constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value)
-    {
+    constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value) {
         auto& obj_ = *reinterpret_cast<Obj*>(obj);
         const auto& writer_ = *reinterpret_cast<const W*>(writer);
         move_qualified<Type> value_ = std::move(*reinterpret_cast<Type*>(value));
         write(writer_, obj_, value_);
     };
+    constexpr auto writer_stub_fn = [](void*, const writer_t*, void*) {
+        fm_abort("no writer for this accessor");
+    };
+
     return erased_accessor {
         (void*)&reader, writer ? (void*)&writer : nullptr,
+        name,
         obj_name, field_name,
-        reader_fn, writer_fn,
+        reader_fn, writer ? writer_fn : writer_stub_fn,
     };
 }
 

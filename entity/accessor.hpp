@@ -13,17 +13,16 @@ struct erased_accessor final {
 
     const erased_reader_t* reader;
     const erased_writer_t* writer;
-    StringView object_name, field_type_name;
+    StringView field_name, object_type, field_type;
     void(*read_fun)(const Object*, const erased_reader_t*, Value*);
     void(*write_fun)(Object*, const erased_writer_t*, Value*);
 
     constexpr erased_accessor(const erased_accessor&) = default;
-    constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer,
+    constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer, StringView field_name,
                                StringView object_name, StringView field_type_name,
                                void(*read_fun)(const Object*, const erased_reader_t*, Value*),
                                void(*write_fun)(Object*, const erased_writer_t*, Value*)) :
-        reader{reader}, writer{writer},
-        object_name{object_name}, field_type_name{field_type_name},
+        reader{reader}, writer{writer}, field_name{field_name}, object_type{object_name}, field_type{field_type_name},
         read_fun{read_fun}, write_fun{write_fun}
     {}
 
@@ -55,8 +54,8 @@ constexpr bool erased_accessor::check_name() const noexcept
 {
     static_assert(check_name_static<T, FieldType>());
     constexpr auto obj = name_of<T>, field = name_of<FieldType>;
-    return (obj.data() == object_name.data() && field.data() == field_type_name.data()) ||
-           obj == object_name && field == field_type_name;
+    return (obj.data() == object_type.data() && field.data() == field_type.data()) ||
+           obj == object_type && field == field_type;
 }
 
 template<typename Obj, typename FieldType>
