@@ -8,11 +8,11 @@
 #endif
 
 template<typename T>
-static constexpr auto _name_of() { // NOLINT(bugprone-reserved-identifier)
+static constexpr auto mangled_name() { // NOLINT(bugprone-reserved-identifier)
     using namespace Corrade::Containers;
     using SVF = StringViewFlag;
     constexpr const char* str = FM_PRETTY_FUNCTION;
     return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
 }
 
-template<typename T> constexpr inline auto name_of = _name_of<T>();
+template<typename T> constexpr inline auto name_of = mangled_name<T>();
