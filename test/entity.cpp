@@ -7,6 +7,8 @@
 using namespace floormat;
 using namespace floormat::entities;
 
+namespace {
+
 struct TestAccessors {
     constexpr int bar() const { return _bar; }
     constexpr void set_bar(int value) { _bar = value; }
@@ -32,15 +34,19 @@ constexpr auto TestAccessors::accessors() noexcept
 }
 
 using entity = Entity<TestAccessors>;
-static constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
-static constexpr auto m_bar = entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar};
-static constexpr auto r_baz = [](const TestAccessors& x) { return x._baz; };
-static constexpr auto w_baz = [](TestAccessors& x, int v) { x._baz = v; };
-static constexpr auto m_baz = entity::type<int>::field("baz"_s, r_baz, w_baz);
+constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
+constexpr auto m_bar = entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar};
+constexpr auto r_baz = [](const TestAccessors& x) { return x._baz; };
+constexpr auto w_baz = [](TestAccessors& x, int v) { x._baz = v; };
+constexpr auto m_baz = entity::type<int>::field("baz"_s, r_baz, w_baz);
+
+} // namespace
 
 namespace floormat {
 
-static constexpr bool test_accessors()
+namespace {
+
+constexpr bool test_accessors()
 {
     auto x = TestAccessors{111, 222, 333};
 
@@ -59,7 +65,7 @@ static constexpr bool test_accessors()
     return true;
 }
 
-static constexpr bool test_visitor()
+constexpr bool test_visitor()
 {
     {
         constexpr auto tuple = std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4);
@@ -81,7 +87,7 @@ static constexpr bool test_visitor()
     return true;
 }
 
-static void test_fun2() {
+void test_fun2() {
     static constexpr auto read_fn = [](const TestAccessors& x) constexpr { return x.bar(); };
     static constexpr auto write_fn = [](TestAccessors& x, int value) constexpr { x.set_bar(value); };
     constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
@@ -94,7 +100,7 @@ static void test_fun2() {
     fm_assert(m_bar2.read(x) == 22);
 }
 
-static void test_erasure() {
+void test_erasure() {
     erased_accessor accessors[] = {
         m_foo.erased(),
         m_bar.erased(),
@@ -110,7 +116,7 @@ static void test_erasure() {
     fm_assert(value2 == value2_);
 }
 
-static void test_metadata()
+void test_metadata()
 {
     constexpr auto m = entity_metadata<TestAccessors>();
     fm_assert(m.class_name == name_of<TestAccessors>);
@@ -127,7 +133,7 @@ static void test_metadata()
     fm_assert(baz2.read<TestAccessors, int>(x) == 3);
 }
 
-static void test_type_name()
+void test_type_name()
 {
     struct foobar;
     constexpr StringView name = name_of<foobar>;
@@ -137,10 +143,22 @@ static void test_type_name()
     static_assert(name_of<foobar*> != name_of<const foobar*>);
 }
 
+constexpr bool test_null_writer()
+{
+    constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
+    static_assert(m_foo.writer == nullptr);
+    static_assert(!m_foo.can_write);
+    static_assert(std::get<0>(TestAccessors::accessors()).can_write);
+    return true;
+}
+
+} // namespace
+
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
+    static_assert(test_null_writer());
     test_fun2();
     test_erasure();
     test_type_name();

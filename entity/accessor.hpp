@@ -40,6 +40,7 @@ struct erased_accessor final {
     template<typename Obj, typename FieldType> requires std::is_default_constructible_v<FieldType> FieldType read(const Obj& x) const noexcept;
     template<typename Obj, typename FieldType> void read(const Obj& x, FieldType& value) const noexcept;
     template<typename Obj, typename FieldType> void write(Obj& x, move_qualified<FieldType> value) const noexcept;
+    constexpr bool can_write() const noexcept { return writer != nullptr; }
 };
 
 template<typename T, typename FieldType>

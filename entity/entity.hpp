@@ -56,7 +56,8 @@ template<typename F, typename T, typename FieldType>
 concept FieldWriter = requires {
     requires FieldWriter_memfn<F, T, FieldType> ||
              FieldWriter_ptr<F, T, FieldType> ||
-             FieldWriter_function<F, T, FieldType>;
+             FieldWriter_function<F, T, FieldType> ||
+             std::same_as<F, std::nullptr_t>;
 };
 
 namespace detail {
@@ -98,6 +99,11 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
 template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
 struct write_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(Obj&, move_qualified<Type>) const>> {
     template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) { fun(x, value); }
+};
+
+template<typename Obj, typename FieldType>
+struct write_field<Obj, FieldType, std::nullptr_t> {
+    static constexpr void write(Obj&, std::nullptr_t, move_qualified<FieldType>) { fm_abort("no writing for this accessor"); }
 };
 
 template<typename F, typename Tuple, std::size_t N>
@@ -152,6 +158,7 @@ struct entity_field : entity_field_base<Obj, Type> {
     static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v) { detail::write_field<Obj, Type, W>::write(x, writer, v); }
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
     constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
+    static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W>::writer)>;
     constexpr entity_field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
     constexpr erased_accessor erased() const;
 };
