@@ -1,5 +1,8 @@
 #pragma once
+#include "name-of.hpp"
 #include "compat/integer-types.hpp"
+#include "accessor.hpp"
+#include "util.hpp"
 #include <concepts>
 #include <compare>
 #include <type_traits>
@@ -10,32 +13,7 @@
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
-#if defined _MSC_VER
-#define FM_PRETTY_FUNCTION __FUNCSIG__
-#else
-#define FM_PRETTY_FUNCTION __PRETTY_FUNCTION__
-#endif
-
-template<typename T>
-static constexpr auto _name_of() {
-    using namespace Corrade::Containers;
-    using SVF = StringViewFlag;
-    constexpr const char* str = FM_PRETTY_FUNCTION;
-    return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
-}
-
-template<typename T> constexpr inline Corrade::Containers::StringView name_of = _name_of<T>();
-
 namespace floormat::entities {
-
-template<typename T, typename = void> struct pass_by_value : std::bool_constant<std::is_fundamental_v<T>> {};
-template<> struct pass_by_value<StringView> : std::true_type {};
-template<typename T> struct pass_by_value<T, std::enable_if_t<std::is_trivially_copy_constructible_v<T> && sizeof(T) <= sizeof(void*)>> : std::true_type {};
-template<typename T> constexpr inline bool pass_by_value_v = pass_by_value<T>::value;
-
-template<typename T> using const_qualified = std::conditional_t<pass_by_value_v<T>, T, const T&>;
-template<typename T> using ref_qualified = std::conditional_t<pass_by_value_v<T>, T, T&>;
-template<typename T> using move_qualified = std::conditional_t<pass_by_value_v<T>, T, T&&>;
 
 template<typename F, typename T, typename FieldType>
 concept FieldReader_memfn = requires(const T x, F f) {
@@ -166,85 +144,6 @@ template<typename T>
 using accessors_for = typename accessors_for_<T>::type;
 
 } // namespace detail
-
-struct erased_accessor final {
-    using erased_reader_t = void;
-    using erased_writer_t = void;
-    using Object = void;
-    using Value = void;
-
-    const erased_reader_t* reader;
-    const erased_writer_t* writer;
-    StringView object_name, field_type_name;
-    void(*read_fun)(const Object*, const erased_reader_t*, Value*);
-    void(*write_fun)(Object*, const erased_writer_t*, Value*);
-
-    constexpr erased_accessor(const erased_accessor&) = default;
-    constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer,
-                               StringView object_name, StringView field_type_name,
-                               void(*read_fun)(const Object*, const erased_reader_t*, Value*),
-                               void(*write_fun)(Object*, const erased_writer_t*, Value*)) :
-        reader{reader}, writer{writer},
-        object_name{object_name}, field_type_name{field_type_name},
-        read_fun{read_fun}, write_fun{write_fun}
-    {}
-
-    template<typename T, typename FieldType>
-    static constexpr bool check_name_static()
-    {
-        return !std::is_pointer_v<T> && !std::is_reference_v<T> &&
-               !std::is_pointer_v<FieldType> && !std::is_reference_v<T>;
-    }
-
-    template<typename T, typename FieldType>
-    constexpr bool check_name() const noexcept
-    {
-        static_assert(check_name_static<T, FieldType>());
-        constexpr auto obj = name_of<T>, field = name_of<FieldType>;
-        return (obj.data() == object_name.data() && field.data() == field_type_name.data()) ||
-               obj == object_name && field == field_type_name;
-    }
-
-    template<typename Obj, typename FieldType>
-    constexpr void assert_name() const noexcept
-    {
-        fm_assert(check_name<Obj, FieldType>());
-    }
-
-    template<typename Obj, typename FieldType>
-    void read_unchecked(const Obj& x, FieldType& value) const noexcept
-    {
-        static_assert(check_name_static<Obj, FieldType>());
-        read_fun(&x, reader, &value);
-    }
-
-    template<typename Obj, typename FieldType>
-    requires std::is_default_constructible_v<FieldType>
-    FieldType read_unchecked(const Obj& x) const noexcept
-    {
-        static_assert(check_name_static<Obj, FieldType>());
-        FieldType value;
-        read_unchecked(x, value);
-        return value;
-    }
-
-    template<typename Obj, typename FieldType>
-    void write_unchecked(Obj& x, move_qualified<FieldType> value) const noexcept
-    {
-        static_assert(check_name_static<Obj, FieldType>());
-        write_fun(&x, writer, &value);
-    }
-
-    template<typename Obj, typename FieldType>
-    requires std::is_default_constructible_v<FieldType>
-    FieldType read(const Obj& x) const noexcept { assert_name<Obj, FieldType>(); return read_unchecked<Obj, FieldType>(x); }
-
-    template<typename Obj, typename FieldType>
-    void read(const Obj& x, FieldType& value) const noexcept { assert_name<Obj, FieldType>(); read_unchecked<Obj, FieldType>(x, value); }
-
-    template<typename Obj, typename FieldType>
-    void write(Obj& x, move_qualified<FieldType> value) const noexcept { assert_name<Obj, FieldType>(); write_unchecked<Obj, FieldType>(x, value); }
-};
 
 template<typename Obj, typename Type> struct entity_field_base {};
 
