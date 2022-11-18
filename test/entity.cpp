@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "entity/field.hpp"
+#include "entity/metadata.hpp"
 #include "entity/types.hpp"
 #include <tuple>
 
