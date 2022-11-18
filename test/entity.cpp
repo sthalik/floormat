@@ -141,6 +141,8 @@ void test_type_name()
     static_assert(name.data() == name_of<foobar>.data());
     static_assert(name_of<int> != name_of<unsigned>);
     static_assert(name_of<foobar*> != name_of<const foobar*>);
+    using foobar2 = foobar;
+    static_assert(name_of<foobar2>.data() == name_of<foobar>.data());
 }
 
 constexpr bool test_null_writer()
