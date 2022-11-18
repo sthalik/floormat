@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "entity/entity.hpp"
+#include "entity/types.hpp"
 #include <tuple>
 
 using namespace floormat;
