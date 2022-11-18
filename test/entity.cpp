@@ -122,6 +122,8 @@ static void test_metadata()
     int bar_ = 2;
     bar2.write_fun(&x, bar2.writer, &bar_);
     fm_assert(x.bar() == 2);
+    baz2.write<TestAccessors, int>(x, 3);
+    fm_assert(baz2.read<TestAccessors, int>(x) == 3);
 }
 
 static void test_type_name()
@@ -130,6 +132,9 @@ static void test_type_name()
     struct foobar;
     constexpr StringView name = name_of<foobar>;
     fm_assert(name.contains("foobar"_s));
+    static_assert(name.data() == name_of<foobar>.data());
+    static_assert(name_of<int> != name_of<unsigned>);
+    static_assert(name_of<foobar*> != name_of<const foobar*>);
 }
 
 void test_app::test_entity()

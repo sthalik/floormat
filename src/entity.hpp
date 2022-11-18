@@ -113,9 +113,7 @@ struct read_field<Obj, Type, Type Obj::*> {
 
 template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
 struct read_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(const Obj&, move_qualified<Type>) const>> {
-    template<typename F> static constexpr Type read(const Obj& x, F&& fun) {
-        return fun(x);
-    }
+    template<typename F> static constexpr Type read(const Obj& x, F&& fun) { return fun(x); }
 };
 
 template<typename Obj, typename FieldType, FieldWriter<Obj, FieldType> W> struct write_field {
@@ -134,9 +132,7 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
 
 template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
 struct write_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(Obj&, move_qualified<Type>) const>> {
-    template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) {
-        fun(x, value);
-    }
+    template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) { fun(x, value); }
 };
 
 template<typename F, typename Tuple, std::size_t N>
@@ -205,6 +201,62 @@ struct erased_accessor final {
         object_name{object_name}, field_type_name{field_type_name},
         read_fun{read_fun}, write_fun{write_fun}
     {}
+
+    template<typename T, typename FieldType>
+    static constexpr bool check_name_static()
+    {
+        return !std::is_pointer_v<T> && !std::is_reference_v<T> &&
+               !std::is_pointer_v<FieldType> && !std::is_reference_v<T>;
+    }
+
+    template<typename T, typename FieldType>
+    constexpr bool check_name() const noexcept
+    {
+        static_assert(check_name_static<T, FieldType>());
+        constexpr auto obj = name_of<T>, field = name_of<FieldType>;
+        return (obj.data() == object_name.data() && field.data() == field_type_name.data()) ||
+               obj == object_name && field == field_type_name;
+    }
+
+    template<typename Obj, typename FieldType>
+    constexpr void assert_name() const noexcept
+    {
+        fm_assert(check_name<Obj, FieldType>());
+    }
+
+    template<typename Obj, typename FieldType>
+    void read_unchecked(const Obj& x, FieldType& value) const noexcept
+    {
+        static_assert(check_name_static<Obj, FieldType>());
+        read_fun(&x, reader, &value);
+    }
+
+    template<typename Obj, typename FieldType>
+    requires std::is_default_constructible_v<FieldType>
+    FieldType read_unchecked(const Obj& x) const noexcept
+    {
+        static_assert(check_name_static<Obj, FieldType>());
+        FieldType value;
+        read_unchecked(x, value);
+        return value;
+    }
+
+    template<typename Obj, typename FieldType>
+    void write_unchecked(Obj& x, move_qualified<FieldType> value) const noexcept
+    {
+        static_assert(check_name_static<Obj, FieldType>());
+        write_fun(&x, writer, &value);
+    }
+
+    template<typename Obj, typename FieldType>
+    requires std::is_default_constructible_v<FieldType>
+    FieldType read(const Obj& x) const noexcept { assert_name<Obj, FieldType>(); return read_unchecked<Obj, FieldType>(x); }
+
+    template<typename Obj, typename FieldType>
+    void read(const Obj& x, FieldType& value) const noexcept { assert_name<Obj, FieldType>(); read_unchecked<Obj, FieldType>(x, value); }
+
+    template<typename Obj, typename FieldType>
+    void write(Obj& x, move_qualified<FieldType> value) const noexcept { assert_name<Obj, FieldType>(); write_unchecked<Obj, FieldType>(x, value); }
 };
 
 template<typename Obj, typename Type> struct entity_field_base {};
