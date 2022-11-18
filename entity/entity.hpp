@@ -77,8 +77,9 @@ struct read_field<Obj, Type, Type Obj::*> {
     static constexpr Type read(const Obj& x, Type Obj::*r) { return x.*r; }
 };
 
-template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
-struct read_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(const Obj&, move_qualified<Type>) const>> {
+template<typename Obj, typename Type, bool Owning, bool Copyable, typename Capacity, bool Throwing, bool ExcGuarantee>
+struct read_field<Obj, Type, fu2::function_base<Owning, Copyable, Capacity, Throwing, ExcGuarantee, void(const Obj&, move_qualified<Type>) const>>
+{
     template<typename F> static constexpr Type read(const Obj& x, F&& fun) { return fun(x); }
 };
 
@@ -96,8 +97,8 @@ struct write_field<Obj, FieldType, FieldType Obj::*> {
     static constexpr void write(Obj& x, FieldType Obj::* w, move_qualified<FieldType> value) { x.*w = value; }
 };
 
-template<typename Obj, typename Type, bool IsOwning, bool IsCopyable, typename Capacity, bool IsThrowing, bool HasStrongExceptionGuarantee>
-struct write_field<Obj, Type, fu2::function_base<IsOwning, IsCopyable, Capacity, IsThrowing, HasStrongExceptionGuarantee, void(Obj&, move_qualified<Type>) const>> {
+template<typename Obj, typename Type, bool Owning, bool Copyable, typename Capacity, bool Throwing, bool ExcGuarantee>
+struct write_field<Obj, Type, fu2::function_base<Owning, Copyable, Capacity, Throwing, ExcGuarantee, void(Obj&, move_qualified<Type>) const>> {
     template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) { fun(x, value); }
 };
 
@@ -132,7 +133,8 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     return false;
 }
 
-template<typename T> struct decay_tuple_; template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
+template<typename T> struct decay_tuple_;
+template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
 template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
 template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(T::accessors())>>; };
 template<typename T> using accessors_for = typename accessors_for_<T>::type;
@@ -155,13 +157,19 @@ struct entity_field : entity_field_base<Obj, Type> {
     constexpr entity_field(const entity_field&) = default;
     constexpr entity_field& operator=(const entity_field&) = default;
     static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
-    static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v) { detail::write_field<Obj, Type, W>::write(x, writer, v); }
+    static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v);
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
     constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
     static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W>::writer)>;
     constexpr entity_field(StringView name, R r, W w) noexcept : name{name}, reader{r}, writer{w} {}
     constexpr erased_accessor erased() const;
 };
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
+constexpr void entity_field<Obj, Type, R, W>::write(const W& writer, Obj& x, move_qualified<Type> v)
+{
+    static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, v);
+}
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W>
 constexpr erased_accessor entity_field<Obj,  Type, R, W>::erased() const
