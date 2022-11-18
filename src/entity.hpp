@@ -16,14 +16,15 @@
 #define FM_PRETTY_FUNCTION __PRETTY_FUNCTION__
 #endif
 
-namespace floormat::entities::detail {
-template<typename T> static constexpr StringView type_name();
-template<typename T> struct type_name_helper;
+template<typename T>
+static constexpr auto _name_of() {
+    using namespace Corrade::Containers;
+    using SVF = StringViewFlag;
+    constexpr const char* str = FM_PRETTY_FUNCTION;
+    return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
 }
 
-namespace floormat {
-template<typename T> constexpr inline StringView name_of = entities::detail::type_name_helper<T>::name;
-} // namespace floormat
+template<typename T> constexpr inline Corrade::Containers::StringView name_of = _name_of<T>();
 
 namespace floormat::entities {
 
@@ -81,20 +82,6 @@ concept FieldWriter = requires {
 };
 
 namespace detail {
-
-template<typename T>
-static constexpr StringView type_name() {
-    using namespace Corrade::Containers;
-    using SVF = StringViewFlag;
-    constexpr const char* str = FM_PRETTY_FUNCTION;
-    return StringView { str, Implementation::strlen_(str), SVF::Global|SVF::NullTerminated };
-}
-
-template<typename T>
-struct type_name_helper final
-{
-    static constexpr const StringView name = type_name<T>();
-};
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R>
 struct read_field {
