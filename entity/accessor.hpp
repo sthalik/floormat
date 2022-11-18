@@ -8,22 +8,27 @@ namespace floormat::entities {
 struct erased_accessor final {
     using erased_reader_t = void;
     using erased_writer_t = void;
+    using erased_predicate_t = void;
     using Object = void;
     using Value = void;
 
     const erased_reader_t* reader;
     const erased_writer_t* writer;
+    const erased_predicate_t* predicate;
     StringView field_name, object_type, field_type;
     void(*read_fun)(const Object*, const erased_reader_t*, Value*);
     void(*write_fun)(Object*, const erased_writer_t*, Value*);
+    bool(*predicate_fun)(const Object*, const erased_predicate_t*);
 
     constexpr erased_accessor(const erased_accessor&) = default;
-    constexpr erased_accessor(erased_reader_t* reader, erased_writer_t * writer, StringView field_name,
-                               StringView object_name, StringView field_type_name,
-                               void(*read_fun)(const Object*, const erased_reader_t*, Value*),
-                               void(*write_fun)(Object*, const erased_writer_t*, Value*)) :
-        reader{reader}, writer{writer}, field_name{field_name}, object_type{object_name}, field_type{field_type_name},
-        read_fun{read_fun}, write_fun{write_fun}
+    constexpr erased_accessor(const erased_reader_t* reader, const erased_writer_t* writer, const erased_predicate_t* predicate,
+                              StringView field_name, StringView object_name, StringView field_type_name,
+                              void(*read_fun)(const Object*, const erased_reader_t*, Value*),
+                              void(*write_fun)(Object*, const erased_writer_t*, Value*),
+                              bool(*predicate_fun)(const Object*, const erased_predicate_t*)) :
+        reader{reader}, writer{writer}, predicate{predicate},
+        field_name{field_name}, object_type{object_name}, field_type{field_type_name},
+        read_fun{read_fun}, write_fun{write_fun}, predicate_fun{predicate_fun}
     {}
 
     template<typename T, typename FieldType>
@@ -39,6 +44,7 @@ struct erased_accessor final {
     template<typename Obj, typename FieldType> requires std::is_default_constructible_v<FieldType> FieldType read(const Obj& x) const noexcept;
     template<typename Obj, typename FieldType> void read(const Obj& x, FieldType& value) const noexcept;
     template<typename Obj, typename FieldType> void write(Obj& x, move_qualified<FieldType> value) const noexcept;
+    template<typename Obj> bool is_enabled(const Obj& x) const noexcept;
     constexpr bool can_write() const noexcept { return writer != nullptr; }
 };
 
@@ -107,6 +113,15 @@ void erased_accessor::write(Obj& x, move_qualified<FieldType> value) const noexc
 {
     assert_name<Obj, FieldType>();
     write_unchecked<Obj, FieldType>(x, value);
+}
+
+template<typename Obj>
+bool erased_accessor::is_enabled(const Obj& x) const noexcept
+{
+    static_assert(!std::is_pointer_v<Obj> && !std::is_reference_v<Obj>);
+    constexpr auto obj = name_of<Obj>;
+    fm_assert(obj.data() == object_type.data() || obj == object_type);
+    return predicate_fun(&x, predicate);
 }
 
 } // namespace floormat::entities
