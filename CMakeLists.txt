@@ -146,7 +146,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
         add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
     else()
-        add_compile_options(-Wno-subobject-linkage)
+        add_compile_options(-Wno-subobject-linkage -Wno-parentheses)
     endif()
 endif()
 
