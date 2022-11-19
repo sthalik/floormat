@@ -68,7 +68,7 @@ constexpr bool test_accessors()
 constexpr bool test_visitor()
 {
     {
-        constexpr auto tuple = std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4);
+        auto tuple = std::make_tuple((unsigned char)1, (unsigned short)2, (int)3, (long)4);
         long ret = 0;
         visit_tuple([&](auto x) { ret += (long)x; }, tuple);
         fm_assert(ret == 1 + 2 + 3 + 4);
@@ -186,33 +186,47 @@ constexpr bool test_names()
     return true;
 }
 
-constexpr void test_range()
+constexpr void test_constraints()
 {
     constexpr auto x = TestAccessors{};
     constexpr auto foo = entity::type<int>::field{
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-        constantly<TestAccessors>(constraints::length{42}),
+        constantly<TestAccessors>(constraints::max_length{42}),
         constantly<TestAccessors>(constraints::range<int>{37, 42}),
         constantly<TestAccessors>(constraints::group{"foo"_s})
     };
 
-    using limits = std::numeric_limits<int>;
-
-    static_assert(foo.get_range(x) == std::pair<int, int>{37, 42});
+    static_assert(foo.get_range(x) == constraints::range<int>{37, 42});
     static_assert(foo.get_max_length(x) == 42);
     static_assert(foo.get_group(x) == "foo"_s);
 
-    static_assert(m_foo.get_range(x) == std::pair<int, int>{limits::min(), limits::max()});
+    static_assert(m_foo.get_range(x) == constraints::range<int>{});
     static_assert(m_foo.get_max_length(x) == (std::size_t)-1);
     static_assert(m_foo.get_group(x) == ""_s);
 
-    constexpr auto foo2 = entity::type<int>::field{
+    constexpr auto foo2 = entity::type<int>::field {
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-        constantly<TestAccessors>(constraints::length{123}),
+        constantly<TestAccessors>(constraints::max_length {123}),
     };
-    static_assert(foo2.get_range(x) == std::pair<int, int>{limits::min(), limits::max()});
+    static_assert(foo2.get_range(x) == constraints::range<int>{});
     static_assert(foo2.get_max_length(x) == 123);
     static_assert(foo2.get_group(x) == ""_s);
+}
+
+void test_erased_constraints()
+{
+    static constexpr auto foo = entity::type<int>::field{
+        "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+        constantly<TestAccessors>(constraints::max_length{42}),
+        constantly<TestAccessors>(constraints::range<int>{37, 42}),
+        constantly<TestAccessors>(constraints::group{"foo"_s})
+    };
+    const auto x = TestAccessors{};
+    const auto erased = foo.erased();
+
+    fm_assert(erased.get_range(x) == constraints::range<int>{37, 42});
+    fm_assert(erased.get_max_length(x) == 42);
+    fm_assert(erased.get_group(x) == "foo"_s);
 }
 
 } // namespace
@@ -228,7 +242,8 @@ void test_app::test_entity()
     test_erasure();
     test_type_name();
     test_metadata();
-    test_range();
+    test_constraints();
+    test_erased_constraints();
 }
 
 } // namespace floormat

@@ -50,9 +50,27 @@ template<typename T> constexpr std::pair<T, T> range::convert() const
     }
 }
 
-struct length final {
+constexpr bool operator==(const range& a, const range& b)
+{
+    if (a.type != b.type)
+        return false;
+
+    static constexpr float eps = 1e-6f;
+
+    switch (a.type)
+    {
+    default: return false;
+    case range::type_none:  return true;
+    case range::type_float: return std::fabs(a.min.f - b.min.f) < eps && std::fabs(a.max.f - b.max.f) < eps;
+    case range::type_uint:  return a.min.u == b.min.u && a.max.u == b.max.u;
+    case range::type_int:   return a.min.i == b.min.i && a.max.i == b.max.i;
+    }
+}
+
+struct max_length final {
     std::size_t value = std::numeric_limits<std::size_t>::max();
     constexpr operator std::size_t() const { return value; }
+    //constexpr bool operator==(const max_length&) const noexcept = default;
 };
 
 struct group final {
@@ -60,6 +78,7 @@ struct group final {
     constexpr operator StringView() const { return group_name; }
     constexpr group() = default;
     constexpr group(StringView name) : group_name{name} {}
+    //constexpr bool operator==(const group&) const noexcept = default;
 };
 
 } // namespace floormat::entities::erased_constraints

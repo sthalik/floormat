@@ -79,7 +79,7 @@ struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = constantly<Obj>(field_status::enabled);
     static constexpr auto default_c_range   = constantly<Obj>(constraints::range<Type>{});
-    static constexpr auto default_c_length  = constantly<Obj>(constraints::length{std::size_t(-1)});
+    static constexpr auto default_c_length  = constantly<Obj>(constraints::max_length{std::size_t(-1)});
     static constexpr auto default_c_group   = constantly<Obj>(StringView{});
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
@@ -87,7 +87,7 @@ private:
     using default_c_group_t   = std::decay_t<decltype(default_c_group)>;
     using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
     using c_range  = detail::find_reader<Obj, constraints::range<Type>, default_c_range_t, 0, Ts...>;
-    using c_length = detail::find_reader<Obj, constraints::length, default_c_length_t, 0, Ts...>;
+    using c_length = detail::find_reader<Obj, constraints::max_length, default_c_length_t, 0, Ts...>;
     using c_group  = detail::find_reader<Obj, constraints::group, default_c_group_t, 0, Ts...>;
     static constexpr std::size_t good_arguments =
         unsigned(c_predicate::index != sizeof...(Ts)) +
@@ -125,12 +125,12 @@ public:
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
     constexpr field_status is_enabled(const Obj& x) const { return is_enabled(predicate, x); }
 
-    static constexpr std::pair<Type, Type> get_range(const Range& r, const Obj& x);
-    constexpr std::pair<Type, Type> get_range(const Obj& x) const { return get_range(range, x); }
-    static constexpr std::size_t get_max_length(const Length& l, const Obj& x);
-    constexpr std::size_t get_max_length(const Obj& x) const { return get_max_length(length, x); }
-    static constexpr StringView get_group(const Group& g, const Obj& x);
-    constexpr StringView get_group(const Obj& x) const { return get_group(group, x); }
+    static constexpr constraints::range<Type> get_range(const Range& r, const Obj& x);
+    constexpr constraints::range<Type> get_range(const Obj& x) const { return get_range(range, x); }
+    static constexpr constraints::max_length get_max_length(const Length& l, const Obj& x);
+    constexpr constraints::max_length get_max_length(const Obj& x) const { return get_max_length(length, x); }
+    static constexpr constraints::group get_group(const Group& g, const Obj& x);
+    constexpr constraints::group get_group(const Obj& x) const { return get_group(group, x); }
 
     constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
         name{name}, reader{r}, writer{w},
@@ -151,11 +151,13 @@ constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj&
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
 {
-    using reader_t = typename erased_accessor::erased_reader_t;
-    using writer_t = typename erased_accessor::erased_writer_t;
-    using predicate_t = typename erased_accessor::erased_predicate_t ;
+    using reader_t    = typename erased_accessor::reader_t;
+    using writer_t    = typename erased_accessor::writer_t;
+    using predicate_t = typename erased_accessor::predicate_t;
+    using c_range_t   = typename erased_accessor::c_range_t;
+    using c_length_t  = typename erased_accessor::c_length_t;
+    using c_group_t   = typename erased_accessor::c_group_t;
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
-    using P = Predicate;
 
     constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
@@ -171,17 +173,32 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     };
     constexpr auto predicate_fn = [](const void* obj, const predicate_t* predicate) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
-        const auto& predicate_ = *reinterpret_cast<const P*>(predicate);
+        const auto& predicate_ = *reinterpret_cast<const Predicate*>(predicate);
         return is_enabled(predicate_, obj_);
     };
     constexpr auto writer_stub_fn = [](void*, const writer_t*, void*) {
         fm_abort("no writer for this accessor");
     };
+    constexpr bool has_writer = !std::is_same_v<std::decay_t<decltype(writer)>, std::nullptr_t>;
+
+    constexpr auto c_range_fn = [](const void* obj, const c_range_t* reader) -> erased_constraints::range {
+        return get_range(*reinterpret_cast<const Range*>(reader), *reinterpret_cast<const Obj*>(obj));
+    };
+    constexpr auto c_length_fn = [](const void* obj, const c_length_t* reader) -> erased_constraints::max_length {
+        return get_max_length(*reinterpret_cast<const Length*>(reader), *reinterpret_cast<const Obj*>(obj));
+    };
+    constexpr auto c_group_fn = [](const void* obj, const c_group_t* reader) -> erased_constraints::group {
+        return get_group(*reinterpret_cast<const Group*>(reader), *reinterpret_cast<const Obj*>(obj));
+    };
 
     return erased_accessor {
-        (void*)&reader, writer ? (void*)&writer : nullptr, (void*)&predicate,
+        (void*)&reader, has_writer ? (void*)&writer : nullptr,
+        (void*)&predicate,
+        (void*)&range, (void*)&length, (void*)&group,
         name, obj_name, field_name,
-        reader_fn, writer ? writer_fn : writer_stub_fn, predicate_fn,
+        reader_fn, has_writer ? writer_fn : writer_stub_fn,
+        predicate_fn,
+        c_range_fn, c_length_fn, c_group_fn,
     };
 }
 
@@ -190,15 +207,15 @@ constexpr field_status entity_field<Obj, Type, R, W, Ts...>::is_enabled(const Pr
 { return detail::read_field<Obj, field_status, Predicate>::read(x, p); }
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-constexpr std::pair<Type, Type> entity_field<Obj, Type, R, W, Ts...>::get_range(const Range& r, const Obj& x)
+constexpr constraints::range<Type> entity_field<Obj, Type, R, W, Ts...>::get_range(const Range& r, const Obj& x)
 { return detail::read_field<Obj, constraints::range<Type>, Range>::read(x, r); }
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-constexpr std::size_t entity_field<Obj, Type, R, W, Ts...>::get_max_length(const Length& l, const Obj& x)
-{ return detail::read_field<Obj, constraints::length, Length>::read(x, l); }
+constexpr constraints::max_length entity_field<Obj, Type, R, W, Ts...>::get_max_length(const Length& l, const Obj& x)
+{ return detail::read_field<Obj, constraints::max_length , Length>::read(x, l); }
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-constexpr StringView entity_field<Obj, Type, R, W, Ts...>::get_group(const Group& g, const Obj& x)
+constexpr constraints::group entity_field<Obj, Type, R, W, Ts...>::get_group(const Group& g, const Obj& x)
 { return detail::read_field<Obj, constraints::group, Group>::read(x, g); }
 
 template<typename Obj>
@@ -244,19 +261,22 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
 namespace floormat {
 
 template<typename T>
-requires std::is_same_v<T, std::decay_t<T>>
 class entity_metadata final {
-    template<typename... Ts>
-    static consteval auto erased_helper(const std::tuple<Ts...>& tuple)
-    {
-        std::array<entities::erased_accessor, sizeof...(Ts)> array { std::get<Ts>(tuple).erased()..., };
-        return array;
-    }
+    static_assert(std::is_same_v<T, std::decay_t<T>>);
+    template<typename... Ts> static consteval auto erased_helper(const std::tuple<Ts...>& tuple);
 public:
     static constexpr StringView class_name = name_of<T>;
     static constexpr std::size_t size = std::tuple_size_v<entities::detail::accessors_for<T>>;
     static constexpr entities::detail::accessors_for<T> accessors = T::accessors();
     static constexpr auto erased_accessors = erased_helper(accessors);
 };
+
+template<typename T>
+template<typename... Ts>
+consteval auto entity_metadata<T>::erased_helper(const std::tuple<Ts...>& tuple)
+{
+    std::array<entities::erased_accessor, sizeof...(Ts)> array { std::get<Ts>(tuple).erased()..., };
+    return array;
+}
 
 } // namespace floormat

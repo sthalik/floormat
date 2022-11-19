@@ -15,6 +15,7 @@ template<typename T> struct range
 
     constexpr operator erased_constraints::range() const noexcept;
     constexpr operator std::pair<T, T>() const noexcept;
+    constexpr bool operator==(const range&) const noexcept = default;
 };
 
 template<typename T>
@@ -32,7 +33,7 @@ constexpr range<T>::operator erased_constraints::range() const noexcept
 
 template<typename T> constexpr range<T>::operator std::pair<T, T>() const noexcept { return { min, max }; }
 
-using length = erased_constraints::length;
+using max_length = erased_constraints::max_length;
 using group = erased_constraints::group;
 
 } // namespace floormat::entities::constraints
