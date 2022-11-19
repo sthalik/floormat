@@ -50,7 +50,7 @@ template<typename T> constexpr std::pair<T, T> range::convert() const
 }
 
 struct length final {
-    std::size_t value = (std::size_t)-1;
+    std::size_t value = std::numeric_limits<std::size_t>::max();
 };
 
 struct group final {
