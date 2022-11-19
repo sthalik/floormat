@@ -189,10 +189,12 @@ constexpr bool test_names()
 constexpr void test_range()
 {
     constexpr auto x = TestAccessors{};
-    constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-                                                  constantly<TestAccessors, constraints::length{42}>,
-                                                  constantly<TestAccessors, constraints::range<int>{37, 42}>,
-                                                  [](const TestAccessors&) constexpr -> constraints::group { return "foo"_s; }};
+    constexpr auto foo = entity::type<int>::field{
+        "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+        constantly<TestAccessors>(constraints::length{42}),
+        constantly<TestAccessors>(constraints::range<int>{37, 42}),
+        constantly<TestAccessors>(constraints::group{"foo"_s})
+    };
 
     using limits = std::numeric_limits<int>;
 
