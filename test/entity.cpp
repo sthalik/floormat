@@ -205,6 +205,14 @@ constexpr void test_range()
     static_assert(m_foo.get_range(x) == std::pair<int, int>{limits::min(), limits::max()});
     static_assert(m_foo.get_max_length(x) == (std::size_t)-1);
     static_assert(m_foo.get_group(x) == ""_s);
+
+    constexpr auto foo2 = entity::type<int>::field{
+        "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+        constantly<TestAccessors>(constraints::length{123}),
+    };
+    static_assert(foo2.get_range(x) == std::pair<int, int>{limits::min(), limits::max()});
+    static_assert(foo2.get_max_length(x) == 123);
+    static_assert(foo2.get_group(x) == ""_s);
 }
 
 } // namespace
