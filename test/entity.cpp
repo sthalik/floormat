@@ -155,6 +155,22 @@ constexpr bool test_null_writer()
     return true;
 }
 
+void test_predicate()
+{
+    constexpr TestAccessors x{0, 0, 0};
+    constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+                                                    [](const TestAccessors&) { return false; }};
+    static_assert(!m_foo.is_enabled(m_foo.predicate, x));
+    fm_assert(!m_foo.erased().is_enabled(x));
+    constexpr auto m_foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+                                                     [](const TestAccessors&) { return true; }};
+    static_assert(m_foo2.is_enabled(m_foo2.predicate, x));
+    fm_assert(m_foo2.erased().is_enabled(x));
+    constexpr auto m_foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
+    static_assert(m_foo3.is_enabled(m_foo3.predicate, x));
+    fm_assert(m_foo3.erased().is_enabled(x));
+}
+
 } // namespace
 
 static constexpr bool test_names()
@@ -179,6 +195,7 @@ void test_app::test_entity()
     static_assert(test_visitor());
     static_assert(test_null_writer());
     static_assert(test_names());
+    test_predicate();
     test_fun2();
     test_erasure();
     test_type_name();

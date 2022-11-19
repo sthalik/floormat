@@ -211,10 +211,10 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, P>::erased() const
 
     return erased_accessor {
         (void*)&reader, writer ? (void*)&writer : nullptr,
-        std::is_same_v<P, std::nullptr_t> ? (const void*)&predicate : nullptr,
+        !std::is_same_v<P, std::nullptr_t> ? (const void*)&predicate : nullptr,
         name, obj_name, field_name,
         reader_fn, writer ? writer_fn : writer_stub_fn,
-        std::is_same_v<P, std::nullptr_t> ? predicate_fn : predicate_stub_fn,
+        !std::is_same_v<P, std::nullptr_t> ? predicate_fn : predicate_stub_fn,
     };
 }
 
