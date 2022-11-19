@@ -15,6 +15,12 @@
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
+namespace floormat::entities {
+
+template<typename T> struct entity_accessors;
+
+} // namespace floormat::entities
+
 namespace floormat::entities::detail {
 
 template<typename F, typename Tuple, std::size_t N>
@@ -46,7 +52,7 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
 template<typename T> struct decay_tuple_;
 template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
 template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
-template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(T::accessors())>>; };
+template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(entity_accessors<T>::accessors())>>; };
 template<typename T> using accessors_for = typename accessors_for_<T>::type;
 
 template<typename Obj, typename Type, typename Default, std::size_t I, typename... Fs> struct find_reader;
@@ -269,7 +275,7 @@ class entity_metadata final {
 public:
     static constexpr StringView class_name = name_of<T>;
     static constexpr std::size_t size = std::tuple_size_v<entities::detail::accessors_for<T>>;
-    static constexpr entities::detail::accessors_for<T> accessors = T::accessors();
+    static constexpr entities::detail::accessors_for<T> accessors = entities::entity_accessors<T>::accessors();
     static constexpr auto erased_accessors = erased_helper(accessors);
 };
 

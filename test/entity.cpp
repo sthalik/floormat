@@ -15,23 +15,31 @@ struct TestAccessors {
     int foo;
     int _bar;
     int _baz;
-
-    static constexpr auto accessors() noexcept;
 };
 
-constexpr auto TestAccessors::accessors() noexcept
-{
-    using entity = Entity<TestAccessors>;
-    constexpr auto r_baz = [](const TestAccessors& x) { return x._baz; };
-    constexpr auto w_baz = [](TestAccessors& x, int v) { x._baz = v; };
+} // namespace
 
-    constexpr auto tuple = std::make_tuple(
-        entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo},
-        entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar},
-        entity::type<int>::field("baz"_s, r_baz, w_baz)
-    );
-    return tuple;
-}
+namespace floormat::entities {
+
+template<> struct entity_accessors<TestAccessors> {
+    static constexpr auto accessors()
+    {
+        using entity = Entity<TestAccessors>;
+        constexpr auto r_baz = [](const TestAccessors& x) { return x._baz; };
+        constexpr auto w_baz = [](TestAccessors& x, int v) { x._baz = v; };
+
+        constexpr auto tuple = std::make_tuple(
+            entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo},
+            entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar},
+            entity::type<int>::field("baz"_s, r_baz, w_baz)
+        );
+        return tuple;
+    }
+};
+
+} // namespace floormat::entities
+
+namespace {
 
 using entity = Entity<TestAccessors>;
 constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
@@ -151,7 +159,7 @@ void test_type_name()
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
     static_assert(foo.writer == nullptr);
     static_assert(!foo.can_write);
-    static_assert(std::get<0>(TestAccessors::accessors()).can_write);
+    static_assert(std::get<0>(entity_accessors<TestAccessors>::accessors()).can_write);
 }
 
 void test_predicate()
@@ -189,7 +197,7 @@ constexpr bool test_names()
 constexpr void test_constraints()
 {
     constexpr auto x = TestAccessors{};
-    constexpr auto foo = entity::type<int>::field{
+    constexpr auto foo = entity::type<int>::field {
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
         constantly(constraints::max_length{42}),
         constantly(constraints::range<int>{37, 42}),
@@ -221,8 +229,8 @@ void test_erased_constraints()
         constantly(constraints::range<int>{37, 42}),
         constantly(constraints::group{"foo"_s})
     };
+    static constexpr auto erased = foo.erased();
     const auto x = TestAccessors{};
-    const auto erased = foo.erased();
 
     fm_assert(erased.get_range(x) == constraints::range<int>{37, 42});
     fm_assert(erased.get_max_length(x) == 42);
