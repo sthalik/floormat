@@ -68,19 +68,19 @@ struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static con
 template<typename Obj, typename Type, typename... Fs>
 using find_reader2 = find_reader<Obj, Type, Type, 0, Fs...>;
 
-template<typename Obj, auto constant>
-constexpr auto constantly = [](const Obj&) constexpr { return constant; };
-
 } // namespace floormat::entities::detail
 
 namespace floormat::entities {
+
+template<typename Obj, auto constant>
+constexpr auto constantly = [](const Obj&) constexpr { return constant; };
 
 template<typename Obj, typename Type> struct entity_field_base {};
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 struct entity_field : entity_field_base<Obj, Type> {
 private:
-    static constexpr auto default_predicate = detail::constantly<Obj, field_status::enabled>;
+    static constexpr auto default_predicate = constantly<Obj, field_status::enabled>;
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
     using c_range  = detail::find_reader2<Obj, constraints::range<Type>, Ts...>;
