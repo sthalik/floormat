@@ -1,8 +1,9 @@
 #pragma once
+#include <cstddef>
 #include <cmath>
 #include <type_traits>
+#include <limits>
 #include <utility>
-#include <algorithm>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat::entities::erased_constraints {
@@ -28,16 +29,23 @@ struct range final {
 
 template<typename T> constexpr std::pair<T, T> range::convert() const
 {
+    using std::size_t;
+    static_assert(sizeof(T) <= sizeof(size_t) || !std::is_integral_v<T>);
+
+    constexpr auto min_ = []<typename u>(U a, U b) { return a < b ? a : b; };
+    constexpr auto max_ = []<typename u>(U a, U b) { return a > b ? a : b; };
     using limits = std::numeric_limits<T>;
+    constexpr auto lmin = limits::min(), lmax = limits::max();
+
     switch (type) {
     case type_float:
         if constexpr (limits::is_integer())
             return { T(std::floor(min.f)), T(std::ceil(max.f)) };
         else
             return { min.f, max.f };
-    case type_uint:  return { std::max(T(min.u), limits::min()), std::min(T(max.u), limits::max()) };
-    case type_int:   return { std::max(T(min.i), limits::min()), std::min(T(max.i), limits::max()) };
-    default: case type_none:  return { limits::min(), limits::max() };
+    case type_uint:  return { max_(T(min.u), lmin), T(min_(size_t(max.u), size_t(lmax))) };
+    case type_int:   return { max_(T(min.i), lmin), T(min_(size_t(max.i), size_t(lmax))) };
+    default: case type_none:  return { lmin, lmax };
     }
 }
 
