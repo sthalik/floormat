@@ -1,10 +1,12 @@
 #pragma once
 #include "name-of.hpp"
 #include "accessor.hpp"
+#include "constraints.hpp"
 #include "util.hpp"
 #include <cstddef>
 #include <concepts>
 #include <type_traits>
+#include <limits>
 #include <utility>
 #include <tuple>
 #include <array>
@@ -56,11 +58,6 @@ concept FieldWriter = requires {
              FieldWriter_ptr<F, T, FieldType> ||
              FieldWriter_function<F, T, FieldType> ||
              std::same_as<F, std::nullptr_t>;
-};
-
-template<typename F, typename T>
-concept FieldPredicate = requires {
-    requires FieldReader<F, T, bool> || std::same_as<F, std::nullptr_t>;
 };
 
 namespace detail {
@@ -142,22 +139,53 @@ template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
 template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(T::accessors())>>; };
 template<typename T> using accessors_for = typename accessors_for_<T>::type;
 
+template<typename Obj, typename Type, typename Default, std::size_t I, typename... Fs> struct find_reader_;
+
+template<typename Obj, typename Type, typename Default, std::size_t I> struct find_reader_<Obj, Type, Default, I> {
+    using type = Default;
+    static constexpr std::size_t index = I;
+};
+
+template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
+struct find_reader_<Obj, Type, Default, I, F, Fs...> {
+    using type = typename find_reader_<Obj, Type, Default, I+1, Fs...>::type;
+    static constexpr std::size_t index = find_reader_<Obj, Type, Default, I+1, Fs...>::index;
+};
+
+template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
+requires FieldReader<F, Obj, Type>
+struct find_reader_<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr std::size_t index = I; };
+
+template<typename Obj, typename Type, typename Default, typename... Fs>
+using find_reader = typename find_reader_<Obj, Type, Default, 0, std::decay_t<Fs>...>::type;
+
+template<typename Obj, typename Type, typename Default, typename... Fs>
+constexpr std::size_t find_reader_index = find_reader_<Obj, Type, Default, 0, std::decay_t<Fs>...>::index;
+
+template<typename Obj, auto constant>
+constexpr auto constantly = [](const Obj&) constexpr { return constant; };
+
+
 } // namespace detail
 
 template<typename Obj, typename Type> struct entity_field_base {};
 
-template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P = std::nullptr_t>
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 struct entity_field : entity_field_base<Obj, Type> {
+private:
+    static constexpr auto default_predicate = detail::constantly<Obj, field_status::enabled>;
+    using default_predicate_t = std::decay_t<decltype(default_predicate)>;
+public:
     using ObjectType = Obj;
     using FieldType = Type;
     using Reader = R;
     using Writer = W;
-    using Predicate = P;
+    using Predicate = std::decay_t<detail::find_reader<Obj, field_status, default_predicate_t, Ts...>>;
 
     StringView name;
     [[no_unique_address]] R reader;
     [[no_unique_address]] W writer;
-    [[no_unique_address]] P predicate;
+    [[no_unique_address]] Predicate predicate;
 
     constexpr entity_field(const entity_field&) = default;
     constexpr entity_field& operator=(const entity_field&) = default;
@@ -165,25 +193,29 @@ struct entity_field : entity_field_base<Obj, Type> {
     static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v);
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
     constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
-    static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W, P>::writer)>;
-    static constexpr bool is_enabled(const P& p, const Obj& x);
-    constexpr entity_field(StringView name, R r, W w, P p = nullptr) noexcept : name{name}, reader{r}, writer{w}, predicate{p} {}
+    static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W, Ts...>::writer)>;
+    static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
+    constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
+        name{name}, reader{r}, writer{w},
+        predicate{std::get<detail::find_reader_index<Obj, field_status, default_predicate_t, Ts...>>(std::forward_as_tuple(ts..., default_predicate))}
+    {}
     constexpr erased_accessor erased() const;
 };
 
-template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P>
-constexpr void entity_field<Obj, Type, R, W, P>::write(const W& writer, Obj& x, move_qualified<Type> v)
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj& x, move_qualified<Type> v)
 {
     static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, v);
 }
 
-template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P>
-constexpr erased_accessor entity_field<Obj, Type, R, W, P>::erased() const
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
 {
     using reader_t = typename erased_accessor::erased_reader_t;
     using writer_t = typename erased_accessor::erased_writer_t;
     using predicate_t = typename erased_accessor::erased_predicate_t ;
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
+    using P = Predicate;
 
     constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
@@ -202,29 +234,21 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, P>::erased() const
         const auto& predicate_ = *reinterpret_cast<const P*>(predicate);
         return is_enabled(predicate_, obj_);
     };
-    constexpr auto predicate_stub_fn = [](const void*, const predicate_t*) {
-        return true;
-    };
     constexpr auto writer_stub_fn = [](void*, const writer_t*, void*) {
         fm_abort("no writer for this accessor");
     };
 
     return erased_accessor {
-        (void*)&reader, writer ? (void*)&writer : nullptr,
-        !std::is_same_v<P, std::nullptr_t> ? (const void*)&predicate : nullptr,
+        (void*)&reader, writer ? (void*)&writer : nullptr, (void*)&predicate,
         name, obj_name, field_name,
-        reader_fn, writer ? writer_fn : writer_stub_fn,
-        !std::is_same_v<P, std::nullptr_t> ? predicate_fn : predicate_stub_fn,
+        reader_fn, writer ? writer_fn : writer_stub_fn, predicate_fn,
     };
 }
 
-template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P>
-constexpr bool entity_field<Obj, Type, R, W, P>::is_enabled(const P& p, const Obj& x)
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr field_status entity_field<Obj, Type, R, W, Ts...>::is_enabled(const Predicate& p, const Obj& x)
 {
-    if constexpr(std::is_same_v<P, std::nullptr_t>)
-        return true;
-    else
-        return detail::read_field<Obj, Type, P>::read(x, p);
+    return detail::read_field<Obj, field_status, Predicate>::read(x, p);
 }
 
 template<typename Obj>
@@ -234,16 +258,16 @@ struct Entity final {
     template<typename Type>
     struct type final
     {
-        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P = std::nullptr_t>
-        struct field final : entity_field<Obj, Type, R, W, P>
+        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+        struct field final : entity_field<Obj, Type, R, W, Ts...>
         {
-            constexpr field(StringView field_name, R r, W w, P p = nullptr) noexcept :
-                entity_field<Obj, Type, R, W, P>{field_name, r, w, p}
+            constexpr field(StringView field_name, R r, W w, Ts&&... ts) noexcept :
+                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, std::forward<Ts>(ts)...}
             {}
         };
 
-        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, FieldPredicate<Obj> P = std::nullptr_t>
-        field(StringView name, R r, W w, P p = nullptr) -> field<R, W, P>;
+        template<FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+        field(StringView name, R r, W w, Ts&&... ts) -> field<R, W, Ts...>;
     };
 };
 

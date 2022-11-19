@@ -28,7 +28,7 @@ constexpr auto TestAccessors::accessors() noexcept
     constexpr auto tuple = std::make_tuple(
         entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo},
         entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar},
-        entity::type<int>::field("baz"_s, r_baz, w_baz)
+        entity::type<int>::field("baz"_s, r_baz, w_baz, std::tuple<>{})
     );
     return tuple;
 }
@@ -159,16 +159,16 @@ void test_predicate()
 {
     constexpr TestAccessors x{0, 0, 0};
     constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-                                                    [](const TestAccessors&) { return false; }};
-    static_assert(!m_foo.is_enabled(m_foo.predicate, x));
-    fm_assert(!m_foo.erased().is_enabled(x));
+                                                    [](const TestAccessors&) { return field_status::hidden; }};
+    static_assert(m_foo.is_enabled(m_foo.predicate, x) == field_status::hidden);
+    fm_assert(m_foo.erased().is_enabled(x) == field_status::hidden);
     constexpr auto m_foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-                                                     [](const TestAccessors&) { return true; }};
-    static_assert(m_foo2.is_enabled(m_foo2.predicate, x));
-    fm_assert(m_foo2.erased().is_enabled(x));
+                                                     [](const TestAccessors&) { return field_status::readonly; }};
+    static_assert(m_foo2.is_enabled(m_foo2.predicate, x) == field_status::readonly);
+    fm_assert(m_foo2.erased().is_enabled(x) == field_status::readonly);
     constexpr auto m_foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
-    static_assert(m_foo3.is_enabled(m_foo3.predicate, x));
-    fm_assert(m_foo3.erased().is_enabled(x));
+    static_assert(m_foo3.is_enabled(m_foo3.predicate, x) == field_status::enabled);
+    fm_assert(m_foo3.erased().is_enabled(x) == field_status::enabled);
 }
 
 constexpr bool test_names()
