@@ -11,7 +11,8 @@ namespace floormat::entities::erased_constraints {
 static_assert(sizeof(std::size_t) == sizeof(std::uintptr_t));
 static_assert(sizeof(std::size_t) == sizeof(std::ptrdiff_t));
 
-struct range final {
+struct range final
+{
     using U = std::size_t;
     using I = std::make_signed_t<U>;
     enum type_ : unsigned char { type_none, type_float, type_uint, type_int, };
@@ -61,14 +62,16 @@ struct group final {
 
 namespace floormat::entities::constraints {
 
-template<typename T> struct range {
+template<typename T> struct range
+{
     using limits = std::numeric_limits<T>;
     T min = limits::min(), max = limits::max();
 
     constexpr operator erased_constraints::range() const;
 };
 
-template<typename T> constexpr range<T>::operator erased_constraints::range() const
+template<typename T>
+constexpr range<T>::operator erased_constraints::range() const
 {
     using enum erased_constraints::range::type_;
     if constexpr (std::is_floating_point_v<T>)

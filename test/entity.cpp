@@ -163,7 +163,7 @@ void test_predicate()
     static_assert(foo.is_enabled(foo.predicate, x) == field_status::hidden);
     fm_assert(foo.erased().is_enabled(x) == field_status::hidden);
     constexpr auto foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-                                                     [](const TestAccessors&) { return field_status::readonly; }};
+                                                   [](const TestAccessors&) { return field_status::readonly; }};
     static_assert(foo2.is_enabled(foo2.predicate, x) == field_status::readonly);
     fm_assert(foo2.erased().is_enabled(x) == field_status::readonly);
     constexpr auto foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
