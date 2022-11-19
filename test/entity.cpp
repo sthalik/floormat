@@ -171,8 +171,6 @@ void test_predicate()
     fm_assert(m_foo3.erased().is_enabled(x));
 }
 
-} // namespace
-
 static constexpr bool test_names()
 {
     constexpr auto m = entity_metadata<TestAccessors>();
@@ -188,6 +186,8 @@ static constexpr bool test_names()
     fm_assert(baz2.field_name == "baz"_s);
     return true;
 }
+
+} // namespace
 
 void test_app::test_entity()
 {
