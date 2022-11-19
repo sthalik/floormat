@@ -48,28 +48,22 @@ template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
 template<typename T> struct accessors_for_ { using type = decay_tuple<std::decay_t<decltype(T::accessors())>>; };
 template<typename T> using accessors_for = typename accessors_for_<T>::type;
 
-template<typename Obj, typename Type, typename Default, std::size_t I, typename... Fs> struct find_reader_;
+template<typename Obj, typename Type, typename Default, std::size_t I, typename... Fs> struct find_reader;
 
-template<typename Obj, typename Type, typename Default, std::size_t I> struct find_reader_<Obj, Type, Default, I> {
+template<typename Obj, typename Type, typename Default, std::size_t I> struct find_reader<Obj, Type, Default, I> {
     using type = Default;
     static constexpr std::size_t index = I;
 };
 
 template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
-struct find_reader_<Obj, Type, Default, I, F, Fs...> {
-    using type = typename find_reader_<Obj, Type, Default, I+1, Fs...>::type;
-    static constexpr std::size_t index = find_reader_<Obj, Type, Default, I+1, Fs...>::index;
+struct find_reader<Obj, Type, Default, I, F, Fs...> {
+    using type = typename find_reader<Obj, Type, Default, I+1, Fs...>::type;
+    static constexpr std::size_t index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
 };
 
 template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
 requires FieldReader<F, Obj, Type>
-struct find_reader_<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr std::size_t index = I; };
-
-template<typename Obj, typename Type, typename Default, typename... Fs>
-using find_reader = typename find_reader_<Obj, Type, Default, 0, std::decay_t<Fs>...>::type;
-
-template<typename Obj, typename Type, typename Default, typename... Fs>
-constexpr std::size_t find_reader_index = find_reader_<Obj, Type, Default, 0, std::decay_t<Fs>...>::index;
+struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr std::size_t index = I; };
 
 template<typename Obj, auto constant>
 constexpr auto constantly = [](const Obj&) constexpr { return constant; };
@@ -85,12 +79,13 @@ struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = detail::constantly<Obj, field_status::enabled>;
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
+    using predicate_ = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
 public:
     using ObjectType = Obj;
     using FieldType = Type;
     using Reader = R;
     using Writer = W;
-    using Predicate = std::decay_t<detail::find_reader<Obj, field_status, default_predicate_t, Ts...>>;
+    using Predicate = typename predicate_::type;
 
     StringView name;
     [[no_unique_address]] R reader;
@@ -107,7 +102,7 @@ public:
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
     constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
         name{name}, reader{r}, writer{w},
-        predicate{std::get<detail::find_reader_index<Obj, field_status, default_predicate_t, Ts...>>(std::forward_as_tuple(ts..., default_predicate))}
+        predicate{std::get<predicate_::index>(std::forward_as_tuple(ts..., default_predicate))}
     {}
     constexpr erased_accessor erased() const;
 };
