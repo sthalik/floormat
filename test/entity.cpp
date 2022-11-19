@@ -148,9 +148,9 @@ void test_type_name()
 
 constexpr bool test_null_writer()
 {
-    constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
-    static_assert(m_foo.writer == nullptr);
-    static_assert(!m_foo.can_write);
+    constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
+    static_assert(foo.writer == nullptr);
+    static_assert(!foo.can_write);
     static_assert(std::get<0>(TestAccessors::accessors()).can_write);
     return true;
 }
@@ -158,17 +158,17 @@ constexpr bool test_null_writer()
 void test_predicate()
 {
     constexpr TestAccessors x{0, 0, 0};
-    constexpr auto m_foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-                                                    [](const TestAccessors&) { return field_status::hidden; }};
-    static_assert(m_foo.is_enabled(m_foo.predicate, x) == field_status::hidden);
-    fm_assert(m_foo.erased().is_enabled(x) == field_status::hidden);
-    constexpr auto m_foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+    constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+                                                  [](const TestAccessors&) { return field_status::hidden; }};
+    static_assert(foo.is_enabled(foo.predicate, x) == field_status::hidden);
+    fm_assert(foo.erased().is_enabled(x) == field_status::hidden);
+    constexpr auto foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                      [](const TestAccessors&) { return field_status::readonly; }};
-    static_assert(m_foo2.is_enabled(m_foo2.predicate, x) == field_status::readonly);
-    fm_assert(m_foo2.erased().is_enabled(x) == field_status::readonly);
-    constexpr auto m_foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
-    static_assert(m_foo3.is_enabled(m_foo3.predicate, x) == field_status::enabled);
-    fm_assert(m_foo3.erased().is_enabled(x) == field_status::enabled);
+    static_assert(foo2.is_enabled(foo2.predicate, x) == field_status::readonly);
+    fm_assert(foo2.erased().is_enabled(x) == field_status::readonly);
+    constexpr auto foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
+    static_assert(foo3.is_enabled(foo3.predicate, x) == field_status::enabled);
+    fm_assert(foo3.erased().is_enabled(x) == field_status::enabled);
 }
 
 constexpr bool test_names()

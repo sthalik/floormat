@@ -5,6 +5,7 @@
 #include "util.hpp"
 #include "concepts.hpp"
 #include <cstddef>
+#include <concepts>
 #include <type_traits>
 #include <limits>
 #include <utility>
@@ -13,9 +14,7 @@
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
 
-namespace floormat::entities {
-
-namespace detail {
+namespace floormat::entities::detail {
 
 template<typename F, typename Tuple, std::size_t N>
 requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
@@ -75,8 +74,9 @@ constexpr std::size_t find_reader_index = find_reader_<Obj, Type, Default, 0, st
 template<typename Obj, auto constant>
 constexpr auto constantly = [](const Obj&) constexpr { return constant; };
 
+} // namespace floormat::entities::detail
 
-} // namespace detail
+namespace floormat::entities {
 
 template<typename Obj, typename Type> struct entity_field_base {};
 
