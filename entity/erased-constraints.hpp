@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cmath>
 #include <limits>
 
 namespace floormat::entities::erased_constraints {

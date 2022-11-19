@@ -1,7 +1,6 @@
 #pragma once
 #include "erased-constraints.hpp"
 #include <cstddef>
-#include <cmath>
 #include <type_traits>
 #include <limits>
 #include <utility>
