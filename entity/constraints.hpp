@@ -13,11 +13,12 @@ template<typename T> struct range
     using limits = std::numeric_limits<T>;
     T min = limits::min(), max = limits::max();
 
-    constexpr operator erased_constraints::range() const;
+    constexpr operator erased_constraints::range() const noexcept;
+    constexpr operator std::pair<T, T>() const noexcept;
 };
 
 template<typename T>
-constexpr range<T>::operator erased_constraints::range() const
+constexpr range<T>::operator erased_constraints::range() const noexcept
 {
     using enum erased_constraints::range::type_;
     if constexpr (std::is_floating_point_v<T>)
@@ -28,6 +29,8 @@ constexpr range<T>::operator erased_constraints::range() const
         return { {.i = min}, {.i = max}, type_int };
     return { {}, {}, type_none };
 }
+
+template<typename T> constexpr range<T>::operator std::pair<T, T>() const noexcept { return { min, max }; }
 
 using length = erased_constraints::length;
 using group = erased_constraints::group;

@@ -146,13 +146,12 @@ void test_type_name()
     static_assert(name_of<foobar2>.data() == name_of<foobar>.data());
 }
 
-constexpr bool test_null_writer()
+[[maybe_unused]] constexpr void test_null_writer()
 {
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
     static_assert(foo.writer == nullptr);
     static_assert(!foo.can_write);
     static_assert(std::get<0>(TestAccessors::accessors()).can_write);
-    return true;
 }
 
 void test_predicate()
@@ -160,14 +159,14 @@ void test_predicate()
     constexpr TestAccessors x{0, 0, 0};
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                   [](const TestAccessors&) { return field_status::hidden; }};
-    static_assert(foo.is_enabled(foo.predicate, x) == field_status::hidden);
+    static_assert(foo.is_enabled(x) == field_status::hidden);
     fm_assert(foo.erased().is_enabled(x) == field_status::hidden);
     constexpr auto foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                    [](const TestAccessors&) { return field_status::readonly; }};
-    static_assert(foo2.is_enabled(foo2.predicate, x) == field_status::readonly);
+    static_assert(foo2.is_enabled(x) == field_status::readonly);
     fm_assert(foo2.erased().is_enabled(x) == field_status::readonly);
     constexpr auto foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
-    static_assert(foo3.is_enabled(foo3.predicate, x) == field_status::enabled);
+    static_assert(foo3.is_enabled(x) == field_status::enabled);
     fm_assert(foo3.erased().is_enabled(x) == field_status::enabled);
 }
 
@@ -187,19 +186,39 @@ constexpr bool test_names()
     return true;
 }
 
+constexpr void test_range()
+{
+    constexpr auto x = TestAccessors{};
+    constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
+                                                  constantly<TestAccessors, constraints::length{42}>,
+                                                  constantly<TestAccessors, constraints::range<int>{37, 42}>,
+                                                  [](const TestAccessors&) constexpr -> constraints::group { return "foo"_s; }};
+
+    using limits = std::numeric_limits<int>;
+
+    static_assert(foo.get_range(x) == std::pair<int, int>{37, 42});
+    static_assert(foo.get_max_length(x) == 42);
+    static_assert(foo.get_group(x) == "foo"_s);
+
+    static_assert(m_foo.get_range(x) == std::pair<int, int>{limits::min(), limits::max()});
+    static_assert(m_foo.get_max_length(x) == (std::size_t)-1);
+    static_assert(m_foo.get_group(x) == ""_s);
+}
+
 } // namespace
 
 void test_app::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());
-    static_assert(test_null_writer());
+    test_null_writer();
     static_assert(test_names());
     test_predicate();
     test_fun2();
     test_erasure();
     test_type_name();
     test_metadata();
+    test_range();
 }
 
 } // namespace floormat

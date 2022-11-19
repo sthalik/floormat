@@ -52,10 +52,14 @@ template<typename T> constexpr std::pair<T, T> range::convert() const
 
 struct length final {
     std::size_t value = std::numeric_limits<std::size_t>::max();
+    constexpr operator std::size_t() const { return value; }
 };
 
 struct group final {
     StringView group_name;
+    constexpr operator StringView() const { return group_name; }
+    constexpr group() = default;
+    constexpr group(StringView name) : group_name{name} {}
 };
 
 } // namespace floormat::entities::erased_constraints

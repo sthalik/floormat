@@ -4,6 +4,7 @@
 #include "constraints.hpp"
 #include "util.hpp"
 #include "concepts.hpp"
+#include "compat/defs.hpp"
 #include <cstddef>
 #include <concepts>
 #include <type_traits>
@@ -65,9 +66,6 @@ template<typename Obj, typename Type, typename Default, std::size_t I, typename 
 requires FieldReader<F, Obj, Type>
 struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr std::size_t index = I; };
 
-template<typename Obj, typename Type, typename... Fs>
-using find_reader2 = find_reader<Obj, Type, Type, 0, Fs...>;
-
 } // namespace floormat::entities::detail
 
 namespace floormat::entities {
@@ -81,11 +79,17 @@ template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj,
 struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = constantly<Obj, field_status::enabled>;
+    static constexpr auto default_c_range   = constantly<Obj, constraints::range<Type>{}>;
+    static constexpr auto default_c_length  = constantly<Obj, constraints::length{std::size_t(-1)}>;
+    static constexpr auto default_c_group   = [](const Obj&) constexpr { return StringView{}; };
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
+    using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
+    using default_c_length_t  = std::decay_t<decltype(default_c_length)>;
+    using default_c_group_t   = std::decay_t<decltype(default_c_group)>;
     using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
-    using c_range  = detail::find_reader2<Obj, constraints::range<Type>, Ts...>;
-    using c_length = detail::find_reader2<Obj, constraints::length, Ts...>;
-    using c_group  = detail::find_reader2<Obj, constraints::group, Ts...>;
+    using c_range  = detail::find_reader<Obj, constraints::range<Type>, default_c_range_t, 0, Ts...>;
+    using c_length = detail::find_reader<Obj, constraints::length, default_c_length_t, 0, Ts...>;
+    using c_group  = detail::find_reader<Obj, constraints::group, default_c_group_t, 0, Ts...>;
     static constexpr std::size_t good_arguments =
         unsigned(c_predicate::index != sizeof...(Ts)) +
         unsigned(c_range::index != sizeof...(Ts)) +
@@ -95,13 +99,13 @@ private:
 
 public:
     using ObjectType = Obj;
-    using FieldType = Type;
-    using Reader = R;
-    using Writer = W;
-    using Predicate = typename c_predicate::type;
-    using Range = typename c_range::type;
-    using Length = typename c_length::type;
-    using Group = typename c_group::type;
+    using FieldType  = Type;
+    using Reader     = R;
+    using Writer     = W;
+    using Predicate  = typename c_predicate::type;
+    using Range      = typename c_range::type;
+    using Length     = typename c_length::type;
+    using Group      = typename c_group::type;
 
     StringView name;
     [[no_unique_address]] R reader;
@@ -111,20 +115,30 @@ public:
     [[no_unique_address]] Length length;
     [[no_unique_address]] Group group;
 
-    constexpr entity_field(const entity_field&) = default;
-    constexpr entity_field& operator=(const entity_field&) = default;
+    fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(entity_field);
+
     static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
     static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v);
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
     constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
     static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W, Ts...>::writer)>;
+
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
+    constexpr field_status is_enabled(const Obj& x) const { return is_enabled(predicate, x); }
+
+    static constexpr std::pair<Type, Type> get_range(const Range& r, const Obj& x);
+    constexpr std::pair<Type, Type> get_range(const Obj& x) const { return get_range(range, x); }
+    static constexpr std::size_t get_max_length(const Length& l, const Obj& x);
+    constexpr std::size_t get_max_length(const Obj& x) const { return get_max_length(length, x); }
+    static constexpr StringView get_group(const Group& g, const Obj& x);
+    constexpr StringView get_group(const Obj& x) const { return get_group(group, x); }
+
     constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
         name{name}, reader{r}, writer{w},
-        predicate{std::get<c_predicate::index>(std::forward_as_tuple(ts..., default_predicate))},
-        range{std::get<c_range::index>(std::forward_as_tuple(ts..., constraints::range<Type>{}))},
-        length{std::get<c_length::index>(std::forward_as_tuple(ts..., constraints::length{}))},
-        group{std::get<c_length::index>(std::forward_as_tuple(ts..., constraints::group{}))}
+        predicate { std::get<c_predicate::index>(std::forward_as_tuple(ts..., default_predicate)) },
+        range     { std::get<c_range::index>    (std::forward_as_tuple(ts..., default_c_range))   },
+        length    { std::get<c_length::index>   (std::forward_as_tuple(ts..., default_c_length))  },
+        group     { std::get<c_group::index>    (std::forward_as_tuple(ts..., default_c_group))   }
     {}
     constexpr erased_accessor erased() const;
 };
@@ -174,9 +188,19 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 constexpr field_status entity_field<Obj, Type, R, W, Ts...>::is_enabled(const Predicate& p, const Obj& x)
-{
-    return detail::read_field<Obj, field_status, Predicate>::read(x, p);
-}
+{ return detail::read_field<Obj, field_status, Predicate>::read(x, p); }
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr std::pair<Type, Type> entity_field<Obj, Type, R, W, Ts...>::get_range(const Range& r, const Obj& x)
+{ return detail::read_field<Obj, constraints::range<Type>, Range>::read(x, r); }
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr std::size_t entity_field<Obj, Type, R, W, Ts...>::get_max_length(const Length& l, const Obj& x)
+{ return detail::read_field<Obj, constraints::length, Length>::read(x, l); }
+
+template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
+constexpr StringView entity_field<Obj, Type, R, W, Ts...>::get_group(const Group& g, const Obj& x)
+{ return detail::read_field<Obj, constraints::group, Group>::read(x, g); }
 
 template<typename Obj>
 struct Entity final {
