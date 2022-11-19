@@ -70,17 +70,19 @@ struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static con
 
 namespace floormat::entities {
 
-template<typename... Ts> constexpr auto constantly(const auto& x) noexcept { return [x](const Ts&...) constexpr { return x; }; }
+constexpr auto constantly(const auto& x) noexcept {
+    return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
+}
 
 template<typename Obj, typename Type> struct entity_field_base {};
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 struct entity_field : entity_field_base<Obj, Type> {
 private:
-    static constexpr auto default_predicate = constantly<Obj>(field_status::enabled);
-    static constexpr auto default_c_range   = constantly<Obj>(constraints::range<Type>{});
-    static constexpr auto default_c_length  = constantly<Obj>(constraints::max_length{std::size_t(-1)});
-    static constexpr auto default_c_group   = constantly<Obj>(StringView{});
+    static constexpr auto default_predicate = constantly(field_status::enabled);
+    static constexpr auto default_c_range   = constantly(constraints::range<Type>{});
+    static constexpr auto default_c_length  = constantly(constraints::max_length{std::size_t(-1)});
+    static constexpr auto default_c_group   = constantly(StringView{});
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
     using default_c_length_t  = std::decay_t<decltype(default_c_length)>;

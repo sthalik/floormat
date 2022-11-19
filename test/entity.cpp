@@ -191,9 +191,9 @@ constexpr void test_constraints()
     constexpr auto x = TestAccessors{};
     constexpr auto foo = entity::type<int>::field{
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-        constantly<TestAccessors>(constraints::max_length{42}),
-        constantly<TestAccessors>(constraints::range<int>{37, 42}),
-        constantly<TestAccessors>(constraints::group{"foo"_s})
+        constantly(constraints::max_length{42}),
+        constantly(constraints::range<int>{37, 42}),
+        constantly(constraints::group{"foo"_s})
     };
 
     static_assert(foo.get_range(x) == constraints::range<int>{37, 42});
@@ -206,7 +206,7 @@ constexpr void test_constraints()
 
     constexpr auto foo2 = entity::type<int>::field {
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-        constantly<TestAccessors>(constraints::max_length {123}),
+        constantly(constraints::max_length {123}),
     };
     static_assert(foo2.get_range(x) == constraints::range<int>{});
     static_assert(foo2.get_max_length(x) == 123);
@@ -217,9 +217,9 @@ void test_erased_constraints()
 {
     static constexpr auto foo = entity::type<int>::field{
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
-        constantly<TestAccessors>(constraints::max_length{42}),
-        constantly<TestAccessors>(constraints::range<int>{37, 42}),
-        constantly<TestAccessors>(constraints::group{"foo"_s})
+        constantly(constraints::max_length{42}),
+        constantly(constraints::range<int>{37, 42}),
+        constantly(constraints::group{"foo"_s})
     };
     const auto x = TestAccessors{};
     const auto erased = foo.erased();
