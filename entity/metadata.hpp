@@ -79,18 +79,31 @@ struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = detail::constantly<Obj, field_status::enabled>;
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
-    using predicate_ = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
+    using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
+    using c_range  = detail::find_reader<Obj, constraints::range<Type>, constraints::range<Type>, 0, Ts...>;
+    using c_length = detail::find_reader<Obj, constraints::length, constraints::length, 0, Ts...>;
+    using c_group  = detail::find_reader<Obj, constraints::group, constraints::group, 0, Ts...>;
+    static constexpr std::size_t good_arguments =
+        unsigned(c_predicate::index != sizeof...(Ts)) +
+        unsigned(c_range::index != sizeof...(Ts)) +
+        unsigned(c_length::index != sizeof...(Ts)) +
+        unsigned(c_group::index != sizeof...(Ts));
+    static_assert(sizeof...(Ts) == good_arguments, "ignored arguments");
+
 public:
     using ObjectType = Obj;
     using FieldType = Type;
     using Reader = R;
     using Writer = W;
-    using Predicate = typename predicate_::type;
+    using Predicate = typename c_predicate::type;
 
     StringView name;
     [[no_unique_address]] R reader;
     [[no_unique_address]] W writer;
     [[no_unique_address]] Predicate predicate;
+    [[no_unique_address]] c_range range;
+    [[no_unique_address]] c_length length;
+    [[no_unique_address]] c_group group;
 
     constexpr entity_field(const entity_field&) = default;
     constexpr entity_field& operator=(const entity_field&) = default;
@@ -102,7 +115,7 @@ public:
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
     constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
         name{name}, reader{r}, writer{w},
-        predicate{std::get<predicate_::index>(std::forward_as_tuple(ts..., default_predicate))}
+        predicate{std::get<c_predicate::index>(std::forward_as_tuple(ts..., default_predicate))}
     {}
     constexpr erased_accessor erased() const;
 };

@@ -28,7 +28,7 @@ constexpr auto TestAccessors::accessors() noexcept
     constexpr auto tuple = std::make_tuple(
         entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo},
         entity::type<int>::field{"bar"_s, &TestAccessors::bar, &TestAccessors::set_bar},
-        entity::type<int>::field("baz"_s, r_baz, w_baz, std::tuple<>{})
+        entity::type<int>::field("baz"_s, r_baz, w_baz)
     );
     return tuple;
 }
