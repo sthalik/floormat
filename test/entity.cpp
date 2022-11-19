@@ -171,7 +171,7 @@ void test_predicate()
     fm_assert(m_foo3.erased().is_enabled(x));
 }
 
-static constexpr bool test_names()
+constexpr bool test_names()
 {
     constexpr auto m = entity_metadata<TestAccessors>();
     auto [foo1, bar1, baz1] = m.accessors;
