@@ -40,8 +40,8 @@ void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[may
 
 void app::do_mouse_move(int mods)
 {
-    if (auto [tile, b] = cursor.tile; b && !cursor.in_imgui)
-        _editor.on_mouse_move(M->world(), tile, mods);
+    if (cursor.tile && !cursor.in_imgui)
+        _editor.on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
 void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
