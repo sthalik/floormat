@@ -85,6 +85,7 @@ private:
 
     void recalc_viewport(Vector2i size) noexcept;
     void draw_world() noexcept;
+    void draw_anim() noexcept;
 
     draw_bounds get_draw_bounds() const noexcept;
     [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;

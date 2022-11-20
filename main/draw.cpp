@@ -83,7 +83,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 
 void main_impl::draw_world() noexcept
 {
-    auto [minx, maxx, miny, maxy] = get_draw_bounds();
+    const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = windowSize();
 
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -110,13 +110,31 @@ void main_impl::draw_world() noexcept
             auto& c = _world[pos];
             const with_shifted_camera_offset o{_shader, pos};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-            {
                 _wall_mesh.draw(_shader, c);
-                _anim_mesh.draw(_shader, c);
-            }
         }
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
+
+void main_impl::draw_anim() noexcept
+{
+    const auto sz = windowSize();
+    const auto [minx, maxx, miny, maxy] = get_draw_bounds();
+
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+
+    for (std::int16_t y = miny; y <= maxy; y++)
+        for (std::int16_t x = minx; x <= maxx; x++)
+        {
+            const chunk_coords pos{x, y};
+            auto& c = _world[pos];
+            const with_shifted_camera_offset o{_shader, pos};
+            if (check_chunk_visible(_shader.camera_offset(), sz))
+                _anim_mesh.draw(_shader, c);
+        }
+
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+}
+
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
@@ -181,9 +199,11 @@ void main_impl::drawEvent()
         {
             GL::defaultFramebuffer.bind();
             using Blit = GL::FramebufferBlit;
-            constexpr auto blit_mask = Blit::Color /* | Blit::Depth | Blit::Stencil */;
+            constexpr auto blit_mask = Blit::Color | Blit::Depth | Blit::Stencil;
             GL::Framebuffer::blit(_msaa_framebuffer, GL::defaultFramebuffer, {{}, windowSize()}, blit_mask);
         }
+        _shader.set_tint({1, 1, 1, 1});
+        draw_anim();
     }
 
     app.draw();
