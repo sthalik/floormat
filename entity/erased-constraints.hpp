@@ -55,7 +55,7 @@ constexpr bool operator==(const range& a, const range& b)
     if (a.type != b.type)
         return false;
 
-    static constexpr float eps = 1e-6f;
+    constexpr float eps = 1e-6f;
 
     switch (a.type)
     {
