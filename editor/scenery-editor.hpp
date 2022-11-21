@@ -14,7 +14,7 @@ struct scenery_editor final
 
     struct pair final {
         std::shared_ptr<anim_atlas> atlas;
-        enum rotation r = rotation::COUNT;
+        enum rotation r = rotation_COUNT;
         frame_t frame = scenery::NO_FRAME;
         operator bool() const;
     };

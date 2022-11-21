@@ -23,7 +23,7 @@ std::uint8_t anim_atlas::rotation_to_index(const anim_def& info, rotation r) noe
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
 {
-    std::array<std::uint8_t, (std::size_t)rotation::COUNT> array;
+    std::array<std::uint8_t, (std::size_t)rotation_COUNT> array;
     for (std::size_t i = 0; i < array.size(); i++)
         array[i] = rotation_to_index(a, rotation(i));
     return array;

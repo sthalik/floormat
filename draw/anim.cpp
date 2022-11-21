@@ -28,18 +28,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     {
         const local_coords pos{i};
         if (auto [atlas, s] = c[pos].scenery(); atlas)
-        {
             draw(shader, *atlas, s.r, s.frame, pos);
-#if 1
-            // todo debugging
-            static std::size_t N = 0;
-            N++;
-            auto nframes = atlas->info().nframes;
-            if (N > nframes*3)
-                N = 0;
-            s.frame = (scenery::frame_t)std::min(N, nframes-1);
-#endif
-        }
     }
 }
 

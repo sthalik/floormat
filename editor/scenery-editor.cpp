@@ -29,7 +29,7 @@ void scenery_editor::next_rotation()
 {
     auto r_1 = (rotation_t)_selected.r + 1;
     auto rot = (rotation_)r_1;
-    if (rot >= rotation_::COUNT)
+    if (rot >= rotation_COUNT)
         rot = (rotation_)0;
     _selected.r = rot;
 }
@@ -37,7 +37,7 @@ void scenery_editor::next_rotation()
 void scenery_editor::prev_rotation()
 {
     if (_selected.r == (rotation_)0)
-        _selected.r = (rotation_)((rotation_t)rotation_::COUNT - 1);
+        _selected.r = (rotation_)((rotation_t)rotation_COUNT - 1);
     else
         _selected.r = (rotation_)((rotation_t)_selected.r - 1);
 }
@@ -52,7 +52,7 @@ void scenery_editor::select_tile(const std::shared_ptr<anim_atlas>& atlas, rotat
 
 void scenery_editor::clear_selection()
 {
-    _selected = { nullptr, rotation_::COUNT, scenery::NO_FRAME };
+    _selected = { nullptr, rotation_COUNT, scenery::NO_FRAME };
 }
 
 auto scenery_editor::get_selected() -> pair

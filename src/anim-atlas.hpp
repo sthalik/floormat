@@ -37,7 +37,7 @@ private:
     GL::Texture2D _tex;
     String _name;
     anim_def _info;
-    std::array<std::uint8_t, (std::size_t)rotation::COUNT> _group_indices = {
+    std::array<std::uint8_t, (std::size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
 
