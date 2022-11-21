@@ -88,12 +88,22 @@ void scenery::update(float dt, const anim_atlas& anim)
 
 bool scenery::activate(const anim_atlas& atlas)
 {
-    if (!active) {
-        fm_assert(frame == 0 || frame == atlas.info().nframes-1);
-        active = true;
-        return true;
-    } else
-        return false;
+    switch (type)
+    {
+    default:
+    case scenery_type::none:
+    case scenery_type::generic:
+        break;
+    case scenery_type::door:
+        if (!active)
+        {
+            fm_assert(frame == 0 || frame == atlas.info().nframes-1);
+            active = true;
+            return true;
+        }
+        break;
+    }
+    return false;
 }
 
 } // namespace floormat
