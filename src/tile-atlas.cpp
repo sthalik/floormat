@@ -42,7 +42,7 @@ auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, std:
         { (x0+x1) / pixel_size[0], 1 - (y0+y1) / pixel_size[1]  }, // bottom right
         { (x0+x1) / pixel_size[0], 1 -      y0 / pixel_size[1]  }, // top right
         {      x0 / pixel_size[0], 1 - (y0+y1) / pixel_size[1]  }, // bottom left
-        {      x0 / pixel_size[0], 1 -     y0  / pixel_size[1]  }, // top left
+        {      x0 / pixel_size[0], 1 -      y0 / pixel_size[1]  }, // top left
     }};
 }
 
