@@ -6,7 +6,7 @@
 namespace floormat {
 
 struct local_coords final {
-    std::uint8_t x = 0, y = 0;
+    std::uint8_t x : 4 = 0, y : 4 = 0;
     explicit constexpr local_coords(std::size_t idx) noexcept;
     constexpr local_coords() noexcept = default;
     template<std::integral T> requires (sizeof(T) <= sizeof(std::size_t))
