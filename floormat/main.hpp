@@ -5,6 +5,7 @@
 #include <Magnum/Math/Vector2.h>
 
 struct SDL_Window;
+namespace Corrade::Containers { template<typename T> class ArrayView; }
 
 namespace floormat {
 
@@ -12,6 +13,9 @@ struct fm_settings;
 struct floormat_app;
 struct tile_shader;
 struct world;
+struct scenery;
+struct anim_atlas;
+template<typename Atlas, typename T> struct clickable;
 
 struct floormat_main
 {
@@ -34,6 +38,11 @@ struct floormat_main
     virtual bool is_text_input_active() const noexcept = 0;
     virtual void start_text_input() noexcept = 0;
     virtual void stop_text_input() noexcept = 0;
+
+    virtual ArrayView<const clickable<anim_atlas, scenery>> clickable_scenery() const noexcept = 0;
+    virtual ArrayView<clickable<anim_atlas, scenery>> clickable_scenery() noexcept = 0;
+    virtual void set_cursor(std::uint32_t cursor) noexcept = 0;
+    virtual std::uint32_t cursor() const noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
 

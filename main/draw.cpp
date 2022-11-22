@@ -2,6 +2,8 @@
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
+#include "main/clickable.hpp"
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
@@ -111,17 +113,19 @@ void main_impl::draw_anim() noexcept
                     const local_coords xy{i};
                     if (auto [atlas, s] = c[xy].scenery(); atlas)
                     {
+                        _anim_mesh.draw(_shader, *atlas, s.r, s.frame, xy);
                         const auto& g = atlas->group(s.r);
                         const auto& f = atlas->frame(s.r, s.frame);
-                        const auto& mask = atlas->bitmask();
-                        Vector2 offset;
                         constexpr Vector2 pixel88 = tile_shader::project(TILE_MAX_DIM*TILE_SIZE20*.5f);
                         const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset);
-                        offset += (Vector2(_shader.camera_offset()) + Vector2(sz))*.5f;
-                        //offset += _shader.project(world_pos);
-                        //offset -= Vector2(f.ground);
-                        Debug{} << "offset" << offset.x() << offset.y();
-                        _anim_mesh.draw(_shader, *atlas, s.r, s.frame, xy);
+                        const Vector2ui offset((Vector2(_shader.camera_offset()) + Vector2(sz) - pixel88)*.5f
+                                               + _shader.project(world_pos) - Vector2(f.ground));
+                        clickable<anim_atlas, scenery> item = {
+                            *atlas, s,
+                            { f.offset, f.offset + f.size }, { offset, offset + f.size },
+                            atlas->bitmask(), tile_shader::depth_value(xy, 0.25f), pos, xy
+                        };
+                        _clickable_scenery.push_back(item);
                     }
                 }
         }
@@ -215,6 +219,16 @@ void main_impl::drawEvent()
         dt_expected.jitter = 0;
 
     timeline.nextFrame();
+}
+
+ArrayView<const clickable<anim_atlas, scenery>> main_impl::clickable_scenery() const noexcept
+{
+    return { _clickable_scenery.data(), _clickable_scenery.size() };
+}
+
+ArrayView<clickable<anim_atlas, scenery>> main_impl::clickable_scenery() noexcept
+{
+    return { _clickable_scenery.data(), _clickable_scenery.size() };
 }
 
 } // namespace floormat

@@ -6,6 +6,7 @@
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
 #include "shaders/tile.hpp"
+#include "main/clickable.hpp"
 #include <vector>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Timeline.h>
@@ -19,13 +20,9 @@
 namespace floormat {
 
 struct floormat_app;
-
-struct clickable final {
-
-    float depth = 0;
-    chunk_coords chunk;
-    local_coords pos;
-};
+struct scenery;
+struct anim_atlas;
+template<typename Atlas, typename T> struct clickable;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
@@ -46,6 +43,9 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     const fm_settings& settings() const noexcept override;
 
     global_coords pixel_to_tile(Vector2d position) const noexcept override;
+
+    ArrayView<const clickable<anim_atlas, scenery>> clickable_scenery() const noexcept override;
+    ArrayView<clickable<anim_atlas, scenery>> clickable_scenery() noexcept override;
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
     [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;
@@ -68,12 +68,15 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, const std::string& str) const;
 
+    void set_cursor(std::uint32_t cursor) noexcept override;
+    std::uint32_t cursor() const noexcept override;
+
 private:
     fm_settings s;
     [[maybe_unused]] char _dummy = maybe_register_debug_callback(s.gpu_debug);
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
-    std::vector<clickable> _clickable_scenery;
+    std::vector<clickable<anim_atlas, scenery>> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;
     floor_mesh _floor_mesh;

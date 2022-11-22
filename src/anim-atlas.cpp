@@ -3,6 +3,7 @@
 #include "shaders/tile.hpp"
 #include "tile-defs.hpp"
 #include <Corrade/Containers/BitArrayView.h>
+#include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -35,9 +36,12 @@ anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info)
     _name{name}, _bitmask{make_bit_array(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
+    const Size<3>& size = image.pixels().size();
+    fm_assert(size[0]*size[1] == _info.pixel_size.product());
+    fm_assert(size[2] >= 3 && size[2] <= 4);
     _tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
-        .setMinificationFilter(GL::SamplerFilter::Linear)
+        .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMaxAnisotropy(1)
         .setBorderColor(Color4{1, 0, 0, 1})
         .setStorage(1, GL::textureFormat(image.format()), image.size())
@@ -102,12 +106,21 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
 
 BitArray anim_atlas::make_bit_array(const ImageView2D& tex)
 {
+    const auto pixels = tex.pixels();
+    const auto size   = pixels.size();
+    const auto width  = size[1], height = size[0];
+
+    if (tex.pixelSize() == 3)
+        return BitArray{DirectInit, width*height, true};
+
     fm_assert(tex.pixelSize() == 4);
-    const auto size = (std::size_t)tex.size().product();
-    BitArray array{NoInit, size};
-    const char* __restrict data = tex.data().data();
-    for (std::size_t i = 0; i < size; i++)
-        array.set(i, data[i * 4 + 3] != 0);
+    const auto stride   = (std::size_t)pixels.stride()[0];
+    const auto channels = (std::size_t)pixels.stride()[1];
+    BitArray array{NoInit, width*height};
+    const char* __restrict const data = (const char*)tex.pixels().data();
+    for (std::size_t y = 0; y < height; y++)
+        for (std::size_t x = 0; x < width; x++)
+            array.set(y*width + x, data[(height-y-1)*stride + x*channels + 3] != 0);
     return array;
 }
 

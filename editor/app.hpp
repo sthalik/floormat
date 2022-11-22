@@ -31,6 +31,15 @@ struct cursor_state final {
     bool in_imgui = false;
 };
 
+template<typename Atlas, typename T> struct clickable;
+using clickable_scenery = clickable<anim_atlas, scenery>;
+
+enum class Cursor: std::uint32_t {
+    Arrow, TextInput, Wait, Crosshair, WaitArrow,
+    ResizeNWSE, ResizeNESW, ResizeWE, ResizeNS, ResizeAll,
+    No, Hand, Hidden, HiddenLocked,
+};
+
 struct app final : floormat_app
 {
     static int run_from_argv(int argc, const char* const* argv);
@@ -76,6 +85,7 @@ private:
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
+    clickable_scenery* find_clickable_scenery();
 
     void do_quicksave();
     void do_quickload();

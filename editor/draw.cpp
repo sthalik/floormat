@@ -2,6 +2,8 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "shaders/tile.hpp"
+#include "main/clickable.hpp"
+#include "src/anim-atlas.hpp"
 #include <Magnum/Math/Vector3.h>
 
 namespace floormat {
@@ -36,6 +38,34 @@ void app::draw()
     draw_cursor();
     draw_ui();
     render_menu();
+}
+
+clickable_scenery* app::find_clickable_scenery()
+{
+    if (cursor.tile)
+    {
+        float depth = -2;
+        clickable_scenery* item = nullptr;
+        auto array = M->clickable_scenery();
+        const auto pixel = Vector2ui(*cursor.pixel);
+        for (clickable_scenery& c : array)
+        {
+            if (c.depth > depth && c.dest.contains(pixel))
+            {
+                const auto pos = pixel - c.dest.min() + c.src.min();
+                const auto stride = c.atlas.info().pixel_size[0];
+                std::size_t idx = pos.y() * stride + pos.x();
+                fm_debug_assert(idx < c.bitmask.size());
+                if (c.bitmask[idx])
+                {
+                    depth = c.depth;
+                    item = &c;
+                }
+            }
+        }
+        return item;
+    }
+    return nullptr;
 }
 
 } // namespace floormat

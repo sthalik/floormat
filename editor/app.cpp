@@ -52,6 +52,7 @@ static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args,
     return def;
 }
 
+[[maybe_unused]]
 static int atoi_(const char* str)
 {
     bool negative = false;

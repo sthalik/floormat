@@ -29,7 +29,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
     c[{K,   K  }].wall_west()  = { _wall2, 0 };
     c[{K,   K+1}].wall_north() = { _wall1, 0 };
     c[{K+1, K  }].wall_west()  = { _wall2, 0 };
-    c[{K+1, K+1}].scenery()    = { scenery::door, rotation::N, _door, false };
+    c[{K+3, K+1}].scenery()    = { scenery::door, rotation::N, _door, false };
     c.mark_modified();
 }
 
@@ -98,10 +98,18 @@ void app::apply_commands(const key_set& keys)
             do_key(k, key_modifiers[i]);
 }
 
+using clickable_scenery = clickable<anim_atlas, scenery>;
+
+
+
 void app::update(float dt)
 {
     apply_commands(keys);
     do_camera(dt, keys, get_key_modifiers());
+    if (auto* s = find_clickable_scenery())
+        M->set_cursor(std::uint32_t(Cursor::Hand));
+    else
+        M->set_cursor(std::uint32_t(Cursor::Arrow));
     clear_non_repeated_keys();
 }
 

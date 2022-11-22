@@ -1,5 +1,6 @@
 #include "main-impl.hpp"
 #include "compat/assert.hpp"
+#include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
 
@@ -31,6 +32,17 @@ floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
     auto* ret = new main_impl(app, std::move(options), fake_argc);
     fm_assert(ret);
     return ret;
+}
+
+void main_impl::set_cursor(std::uint32_t cursor) noexcept
+{
+    setCursor(Cursor(cursor));
+}
+
+std::uint32_t main_impl::cursor() const noexcept
+{
+    using App = Platform::Sdl2Application;
+    return (std::uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
 }
 
 } // namespace floormat

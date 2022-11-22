@@ -5,6 +5,7 @@
 #include "src/anim-atlas.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/StridedArrayView.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
@@ -40,6 +41,10 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         fm_assert(!anim_info.groups.empty());
         fm_assert(anim_info.nframes > 0);
         fm_assert(anim_info.nframes == 1 || anim_info.fps > 0);
+        const auto size = tex.pixels().size();
+        const auto width = size[1], height = size[0];
+        using Vector2uz = Math::Vector2<std::size_t>;
+        fm_assert(Vector2uz{anim_info.pixel_size} == Vector2uz(width, height));
 
         auto atlas = std::make_shared<struct anim_atlas>(path, tex, std::move(anim_info));
         return anim_atlas_map[atlas->name()] = atlas;
