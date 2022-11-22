@@ -79,7 +79,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* argv)
     Corrade::Utility::Arguments args{};
     args.addOption("vsync", "1")
         .addOption("gpu-debug", "1")
-        .addOption("msaa", "")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
     if (auto str = args.value<StringView>("gpu-debug"); str == "no-error" || str == "none")
@@ -90,14 +89,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* argv)
         opts.gpu_debug = parse_bool("gpu-debug", args, opts.gpu_debug > fm_gpu_debug::off)
                          ? fm_gpu_debug::on
                          : fm_gpu_debug::off;
-
-    if (auto str = args.value<StringView>("msaa"); !str.isEmpty())
-    {
-        if (int n = atoi_(str.data()); (unsigned)n > 32 || (n & (n - 1)) != 0)
-            fm_warn("invalid '--msaa' argument '%s': must be a power of two between 0 and 128", str.data());
-        else
-            opts.msaa_samples = (std::uint8_t)n;
-    }
     return opts;
 }
 

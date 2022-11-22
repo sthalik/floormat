@@ -55,7 +55,6 @@ private:
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
-    void draw_msaa() override;
     void draw() override;
 
     void on_mouse_move(const mouse_move_event& event) noexcept override;

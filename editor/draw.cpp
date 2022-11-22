@@ -31,13 +31,9 @@ void app::draw_cursor()
     }
 }
 
-void app::draw_msaa()
-{
-    draw_cursor();
-}
-
 void app::draw()
 {
+    draw_cursor();
     draw_ui();
     render_menu();
 }

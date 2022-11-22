@@ -27,7 +27,6 @@ struct floormat_app
 
     virtual void update(float dt) = 0;
     virtual void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) = 0;
-    virtual void draw_msaa();
     virtual void draw() = 0;
 
     virtual void on_mouse_move(const mouse_move_event& event) noexcept = 0;
@@ -43,7 +42,5 @@ struct floormat_app
     virtual void on_mouse_leave() noexcept = 0;
     virtual void on_mouse_enter() noexcept = 0;
 };
-
-inline void floormat_app::draw_msaa() {}
 
 } // namespace floormat

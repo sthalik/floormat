@@ -28,7 +28,6 @@ struct fm_settings
          fullscreen_desktop : 1 = false,
          borderless         : 1 = false,
          maximized          : 1 = false;
-    std::uint8_t msaa_samples = 16;
 };
 
 } // namespace floormat
