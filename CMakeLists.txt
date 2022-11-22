@@ -2,7 +2,7 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-project(floormat)
+project(floormat C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_DEFAULT 23)
@@ -83,6 +83,13 @@ function(fm_load_userconfig)
     endif()
 endfunction()
 
+if(WIN32)
+    if(MSVC)
+        set(CMAKE_RC_FLAGS "/nologo /DWIN32")
+    endif()
+    enable_language(RC)
+endif()
+
 if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
     fm_load_userconfig()
     string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
@@ -132,9 +139,9 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_S
 add_subdirectory(external)
 
 if(MSVC)
-    add_definitions(/FI"compat/prelude.hpp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FIcompat/prelude.hpp")
 else()
-    add_definitions(-include compat/prelude.hpp)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include compat/prelude.hpp")
 endif()
 
 add_definitions(

@@ -13,6 +13,9 @@ link_libraries(MagnumIntegration::ImGui fmt::fmt)
 link_libraries(floormat-main floormat-loader floormat-serialize)
 
 add_executable(${self} "${sources}" "${res}")
+if(WIN32)
+    target_sources(${self} PRIVATE "../main/floormat.rc")
+endif()
 
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
