@@ -34,7 +34,8 @@ struct scenery final
     rotation     r        : 3 = rotation::N;
     std::uint8_t passable : 1 = false;
     std::uint8_t active   : 1 = false;
-    scenery_type type     : 3 = scenery_type::none;
+    std::uint8_t closing  : 1 = true;
+    scenery_type type     : 2 = scenery_type::none;
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;

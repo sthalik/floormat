@@ -86,7 +86,6 @@ void app::draw_ui()
     const float main_menu_height = draw_main_menu();
     if (auto* ed = _editor.current_tile_editor(); ed != nullptr)
         draw_editor_pane(*ed, main_menu_height);
-    draw_cursor();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     draw_fps();
     draw_tile_under_cursor();

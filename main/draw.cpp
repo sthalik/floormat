@@ -118,7 +118,7 @@ void main_impl::draw_anim() noexcept
                         const auto& f = atlas->frame(s.r, s.frame);
                         constexpr Vector2 pixel88 = tile_shader::project(TILE_MAX_DIM*TILE_SIZE20*.5f);
                         const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset);
-                        const Vector2ui offset((Vector2(_shader.camera_offset()) + Vector2(sz) - pixel88)*.5f
+                        const Vector2ui offset((Vector2(_shader.camera_offset()) + Vector2(sz)*.5f)
                                                + _shader.project(world_pos) - Vector2(f.ground));
                         clickable<anim_atlas, scenery> item = {
                             *atlas, s,

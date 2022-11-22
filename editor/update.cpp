@@ -1,6 +1,7 @@
 #include "app.hpp"
-#include "src/chunk.hpp"
+#include "src/world.hpp"
 #include "src/tile-atlas.hpp"
+#include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 
@@ -46,7 +47,14 @@ void app::do_mouse_move(int mods)
 
 void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
 {
-    if (cursor.tile && !cursor.in_imgui && is_down)
+    update_cursor_tile(cursor.pixel);
+    if (!_editor.current_tile_editor())
+    {
+        if (cursor.tile)
+            if (auto* s = find_clickable_scenery(*cursor.pixel))
+                s->item.activate(s->atlas);
+    }
+    else if (cursor.tile && !cursor.in_imgui && is_down)
     {
         auto& w = M->world();
         auto pos = *cursor.tile;
@@ -60,7 +68,6 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
         }
     }
     _editor.on_release();
-    update_cursor_tile(cursor.pixel);
 }
 
 void app::do_key(key k, int mods)
@@ -98,19 +105,29 @@ void app::apply_commands(const key_set& keys)
             do_key(k, key_modifiers[i]);
 }
 
-using clickable_scenery = clickable<anim_atlas, scenery>;
-
-
+void app::update_world(float dt)
+{
+    auto& world = M->world();
+    auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
+    minx--; miny--; maxx++; maxy++;
+    for (std::int16_t y = miny; y <= maxy; y++)
+        for (std::int16_t x = minx; x <= maxx; x++)
+            for (chunk_coords c{x, y}; auto [x, k, pt] : world[c])
+                if (auto [atlas, scenery] = x.scenery(); atlas != nullptr)
+                    scenery.update(dt, *atlas);
+}
 
 void app::update(float dt)
 {
+    update_world(dt);
     apply_commands(keys);
     do_camera(dt, keys, get_key_modifiers());
-    if (auto* s = find_clickable_scenery())
+    clear_non_repeated_keys();
+
+    if (!_editor.current_tile_editor() && cursor.tile && find_clickable_scenery(*cursor.pixel))
         M->set_cursor(std::uint32_t(Cursor::Hand));
     else
         M->set_cursor(std::uint32_t(Cursor::Arrow));
-    clear_non_repeated_keys();
 }
 
 } // namespace floormat

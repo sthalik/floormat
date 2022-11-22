@@ -56,6 +56,9 @@ scenery::scenery(float dt, frame_t frame, rotation r, bool passable, scenery_typ
 
 void scenery::update(float dt, const anim_atlas& anim)
 {
+    if (!active)
+        return;
+
     switch (type)
     {
     default:
@@ -63,31 +66,31 @@ void scenery::update(float dt, const anim_atlas& anim)
     case scenery_type::generic:
         break;
     case scenery_type::door:
-        if (active)
-        {
-            const auto hz = std::uint8_t(anim.info().fps);
-            const auto nframes = (int)anim.info().nframes;
-            fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
+        const auto hz = std::uint8_t(anim.info().fps);
+        const auto nframes = (int)anim.info().nframes;
+        fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
 
-            delta += dt;
-            const float frame_time = 1000.f/hz;
-            const auto n = int(delta / frame_time);
-            delta -= frame_time * n;
-            fm_debug_assert(delta >= 0);
-            const std::int8_t dir = passable ? 1 : -1;
-            const int fr = frame + dir*n;
-            active = fr > 0 && fr < nframes-1;
-            passable = fr <= 0;
-            frame = (frame_t)std::clamp(fr, 0, nframes-1);
-            if (!active)
-                delta = 0;
-        }
+        delta += dt;
+        const float frame_time = 1.f/hz;
+        const auto n = int(delta / frame_time);
+        delta -= frame_time * n;
+        fm_debug_assert(delta >= 0);
+        const std::int8_t dir = closing ? 1 : -1;
+        const int fr = frame + dir*n;
+        active = fr > 0 && fr < nframes-1;
+        passable = fr <= 0;
+        frame = (frame_t)std::clamp(fr, 0, nframes-1);
+        if (!active)
+            delta = 0;
         break;
     }
 }
 
 bool scenery::activate(const anim_atlas& atlas)
 {
+    if (active)
+        return false;
+
     switch (type)
     {
     default:
@@ -95,13 +98,11 @@ bool scenery::activate(const anim_atlas& atlas)
     case scenery_type::generic:
         break;
     case scenery_type::door:
-        if (!active)
-        {
-            fm_assert(frame == 0 || frame == atlas.info().nframes-1);
-            active = true;
-            return true;
-        }
-        break;
+        fm_assert(frame == 0 || frame == atlas.info().nframes-1);
+        closing = frame == 0;
+        frame += closing ? 1 : -1;
+        active = true;
+        return true;
     }
     return false;
 }

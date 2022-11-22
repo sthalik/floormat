@@ -58,7 +58,7 @@ private:
         button btn;
     };
     Optional<drag_pos> _last_pos;
-    editor_mode _mode = editor_mode::floor;
+    editor_mode _mode = editor_mode::none;
     bool _dirty = false;
 };
 

@@ -19,6 +19,8 @@ template<typename Atlas, typename T> struct clickable;
 
 struct floormat_main
 {
+    struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
+
     floormat_main() noexcept;
     virtual ~floormat_main() noexcept;
 
@@ -45,6 +47,7 @@ struct floormat_main
     virtual std::uint32_t cursor() const noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
+    virtual draw_bounds get_draw_bounds() const noexcept = 0;
 
     virtual struct world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;

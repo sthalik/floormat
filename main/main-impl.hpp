@@ -88,13 +88,11 @@ private:
         bool do_sleep = false;
     } dt_expected;
 
-    struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
-
     void recalc_viewport(Vector2i size) noexcept;
     void draw_world() noexcept;
     void draw_anim() noexcept;
 
-    draw_bounds get_draw_bounds() const noexcept;
+    draw_bounds get_draw_bounds() const noexcept override;
     [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
 
     char maybe_register_debug_callback(fm_gpu_debug flag);

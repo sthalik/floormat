@@ -35,21 +35,21 @@ void app::draw_cursor()
 
 void app::draw()
 {
-    draw_cursor();
+    if (_editor.current_tile_editor())
+        draw_cursor();
     draw_ui();
     render_menu();
 }
 
-clickable_scenery* app::find_clickable_scenery()
+clickable_scenery* app::find_clickable_scenery(Vector2i pixel_)
 {
+    clickable_scenery* item = nullptr;
     if (cursor.tile)
     {
-        float depth = -2;
-        clickable_scenery* item = nullptr;
+        float depth = -1;
         auto array = M->clickable_scenery();
-        const auto pixel = Vector2ui(*cursor.pixel);
+        const auto pixel = Vector2ui(pixel_);
         for (clickable_scenery& c : array)
-        {
             if (c.depth > depth && c.dest.contains(pixel))
             {
                 const auto pos = pixel - c.dest.min() + c.src.min();
@@ -62,10 +62,8 @@ clickable_scenery* app::find_clickable_scenery()
                     item = &c;
                 }
             }
-        }
-        return item;
     }
-    return nullptr;
+    return item;
 }
 
 } // namespace floormat

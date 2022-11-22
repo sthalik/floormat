@@ -28,6 +28,7 @@ struct anim_atlas;
 struct cursor_state final {
     Optional<Vector2i> pixel;
     Optional<global_coords> tile;
+
     bool in_imgui = false;
 };
 
@@ -60,6 +61,7 @@ private:
     int exec();
 
     void update(float dt) override;
+    void update_world(float dt);
     void update_cursor_tile(const Optional<Vector2i>& pixel);
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
@@ -85,7 +87,7 @@ private:
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
-    clickable_scenery* find_clickable_scenery();
+    clickable_scenery* find_clickable_scenery(Vector2i pixel);
 
     void do_quicksave();
     void do_quickload();

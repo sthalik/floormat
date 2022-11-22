@@ -172,7 +172,9 @@ void tile_editor::place_tile(world& world, global_coords pos, const tile_image_p
 
 void tile_editor::toggle_rotation()
 {
-    if (_rotation == editor_wall_rotation::W)
+    if (_mode != editor_mode::walls)
+        _rotation = editor_wall_rotation::N;
+    else if (_rotation == editor_wall_rotation::W)
         _rotation = editor_wall_rotation::N;
     else
         _rotation = editor_wall_rotation::W;
@@ -187,7 +189,10 @@ void tile_editor::set_rotation(editor_wall_rotation r)
         return;
     case editor_wall_rotation::W:
     case editor_wall_rotation::N:
-        _rotation = r;
+        if (_mode == editor_mode::walls)
+            _rotation = r;
+        else
+            _rotation = editor_wall_rotation::N;
         break;
     }
 }
