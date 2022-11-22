@@ -22,16 +22,6 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::draw(tile_shader& shader, chunk& c)
-{
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
-    {
-        const local_coords pos{i};
-        if (auto [atlas, s] = c[pos].scenery(); atlas)
-            draw(shader, *atlas, s.r, s.frame, pos);
-    }
-}
-
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
 {
     const auto center = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;

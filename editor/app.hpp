@@ -36,6 +36,9 @@ struct app final : floormat_app
     static int run_from_argv(int argc, const char* const* argv);
     static fm_settings parse_cmdline(int argc, const char* const* argv);
     ~app() override;
+#ifdef _WIN32
+    static void set_dpi_aware();
+#endif
 
 private:
     using key_set = enum_bitset<key, key_COUNT>;

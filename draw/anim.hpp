@@ -22,7 +22,6 @@ struct chunk;
 struct anim_mesh final
 {
     anim_mesh();
-    void draw(tile_shader& shader, chunk& c);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
 
 private:

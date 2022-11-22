@@ -33,8 +33,7 @@ struct tile_shader : GL::AbstractShaderProgram
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
 
     template<typename T, typename... Xs>
-    auto draw(T&& mesh, Xs&&... xs) ->
-        decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...));
+    decltype(auto) draw(T&& mesh, Xs&&... xs);
 
 private:
     void _draw();
@@ -48,8 +47,7 @@ private:
 };
 
 template<typename T, typename... Xs>
-auto tile_shader::draw(T&& mesh, Xs&&... xs) ->
-    decltype(GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...))
+decltype(auto) tile_shader::draw(T&& mesh, Xs&&... xs)
 {
     _draw();
     return GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);

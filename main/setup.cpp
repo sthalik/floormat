@@ -21,6 +21,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcep
         (void)setSwapInterval(0);
     set_fp_mask();
     fm_assert(framebufferSize() == windowSize());
+    _clickable_scenery.reserve(128);
     timeline.start();
 }
 
@@ -57,7 +58,7 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
     }
     return Configuration{}
         .setTitle(s.title)
-        .setSize(s.resolution)
+        .setSize(s.resolution, Vector2(1, 1))
         .setWindowFlags(make_window_flags(s));
 }
 

@@ -3,6 +3,8 @@
 #include "scenery.hpp"
 #include "anim.hpp"
 #include <array>
+#include <Corrade/Containers/BitArray.h>
+#include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/ImageView.h>
@@ -31,11 +33,14 @@ struct anim_atlas final
     texcoords texcoords_for_frame(rotation r, std::size_t frame) const noexcept;
     quad frame_quad(const Vector3& center, rotation r, std::size_t frame) const noexcept;
 
+    BitArrayView bitmask() const;
+
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
 private:
     GL::Texture2D _tex;
     String _name;
+    BitArray _bitmask;
     anim_def _info;
     std::array<std::uint8_t, (std::size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -43,6 +48,7 @@ private:
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
     static std::uint8_t rotation_to_index(const anim_def& a, rotation r) noexcept;
+    static BitArray make_bit_array(const ImageView2D& tex);
 };
 
 } // namespace floormat

@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "shaders/tile.hpp"
 #include "tile-defs.hpp"
+#include <Corrade/Containers/BitArrayView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -31,7 +32,7 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
 
 anim_atlas::anim_atlas() noexcept = default;
 anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info) noexcept :
-    _name{name},
+    _name{name}, _bitmask{make_bit_array(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
     _tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
@@ -97,6 +98,22 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
         { c[x] + bottom_left[x],  c[y] + bottom_left[y],   c[z] },
         { c[x] + top_left[x],     c[y] + top_left[y],      c[z] },
     }};
+}
+
+BitArray anim_atlas::make_bit_array(const ImageView2D& tex)
+{
+    fm_assert(tex.pixelSize() == 4);
+    const auto size = (std::size_t)tex.size().product();
+    BitArray array{NoInit, size};
+    const char* __restrict data = tex.data().data();
+    for (std::size_t i = 0; i < size; i++)
+        array.set(i, data[i * 4 + 3] != 0);
+    return array;
+}
+
+BitArrayView anim_atlas::bitmask() const
+{
+    return _bitmask;
 }
 
 } // namespace floormat

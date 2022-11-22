@@ -17,7 +17,7 @@ struct fm_settings
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(fm_settings);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(fm_settings);
 
-    Magnum::Math::Vector2<int> resolution{1024, 768};
+    Magnum::Math::Vector2<int> resolution{1536, 1152};
     Corrade::Containers::String title{"Test"};
     Corrade::Containers::String disabled_extensions; // TODO
     bool vsync = true;

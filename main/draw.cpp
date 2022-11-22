@@ -1,6 +1,7 @@
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
+#include "src/anim-atlas.hpp"
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
@@ -56,8 +57,8 @@ global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
     constexpr Vector2d pixel_size(TILE_SIZE2);
     constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset()*.5;
-    const Vector2d vec = tile_shader::unproject(px) / pixel_size + half;
+    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset();
+    const Vector2d vec = tile_shader::unproject(px*.5) / pixel_size + half;
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
 }
@@ -119,6 +120,7 @@ void main_impl::draw_anim() noexcept
 {
     const auto sz = windowSize();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
+    _clickable_scenery.clear();
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
@@ -129,7 +131,24 @@ void main_impl::draw_anim() noexcept
             auto& c = _world[pos];
             const with_shifted_camera_offset o{_shader, pos};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-                _anim_mesh.draw(_shader, c);
+                for (std::size_t i = 0; i < TILE_COUNT; i++)
+                {
+                    const local_coords xy{i};
+                    if (auto [atlas, s] = c[xy].scenery(); atlas)
+                    {
+                        const auto& g = atlas->group(s.r);
+                        const auto& f = atlas->frame(s.r, s.frame);
+                        const auto& mask = atlas->bitmask();
+                        Vector2 offset;
+                        constexpr Vector2 pixel88 = tile_shader::project(TILE_MAX_DIM*TILE_SIZE20*.5f);
+                        const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset);
+                        offset += (Vector2(_shader.camera_offset()) + Vector2(sz))*.5f;
+                        //offset += _shader.project(world_pos);
+                        //offset -= Vector2(f.ground);
+                        Debug{} << "offset" << offset.x() << offset.y();
+                        _anim_mesh.draw(_shader, *atlas, s.r, s.frame, xy);
+                    }
+                }
         }
 
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);

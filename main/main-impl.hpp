@@ -6,10 +6,10 @@
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
 #include "shaders/tile.hpp"
-
+#include <vector>
 #include <Corrade/Containers/String.h>
-
 #include <Magnum/Timeline.h>
+#include <Magnum/Math/Range.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/GL/Framebuffer.h>
 #include <Magnum/GL/Renderbuffer.h>
@@ -19,6 +19,13 @@
 namespace floormat {
 
 struct floormat_app;
+
+struct clickable final {
+
+    float depth = 0;
+    chunk_coords chunk;
+    local_coords pos;
+};
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
@@ -66,11 +73,12 @@ private:
     [[maybe_unused]] char _dummy = maybe_register_debug_callback(s.gpu_debug);
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
+    std::vector<clickable> _clickable_scenery;
     struct world _world{};
+    Magnum::Timeline timeline;
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
-    Magnum::Timeline timeline;
     struct {
         float value = 0;
         float jitter = 0;
