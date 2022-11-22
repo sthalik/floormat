@@ -28,6 +28,7 @@ float app::draw_main_menu()
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
+        ImGui::SetWindowFontScale(M->dpi_scale());
         if (auto b = begin_menu("File"))
         {
 #if 0
@@ -71,25 +72,34 @@ float app::draw_main_menu()
 
 void app::draw_ui()
 {
+    const auto dpi = M->dpi_scale();
+    [[maybe_unused]] const auto style_ = style_saver{};
+    auto& style = ImGui::GetStyle();
+    auto& ctx = *ImGui::GetCurrentContext();
+
+    ImGui::StyleColorsDark(&style);
+    style.ScaleAllSizes(dpi);
+
     ImGui::GetIO().IniFilename = nullptr;
     _imgui.newFrame();
-    ImGui::StyleColorsDark(&ImGui::GetStyle());
 
     const float main_menu_height = draw_main_menu();
     if (auto* ed = _editor.current_tile_editor(); ed != nullptr)
         draw_editor_pane(*ed, main_menu_height);
-    draw_fps();
     draw_cursor();
+    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
+    draw_fps();
     draw_tile_under_cursor();
     ImGui::EndFrame();
 }
 
-static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
+void app::draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
 {
+    const auto dpi = M->dpi_scale();
     constexpr Color4 color_perm_selected{1, 1, 1, .7f},
                      color_selected{1, 0.843f, 0, .8f},
                      color_hover{0, .8f, 1, .7f};
-    const float window_width = ImGui::GetWindowWidth() - 32;
+    const float window_width = ImGui::GetWindowWidth() - 32 * dpi;
     char buf[128];
     const auto& style = ImGui::GetStyle();
     const auto N = atlas->num_tiles();
@@ -108,7 +118,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
             text(" (selected)");
         }
         const auto len = snformat(buf, "{:d}"_cf, N);
-        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4);
+        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi);
         text(buf, len);
     };
     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
@@ -116,7 +126,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
     {
         do_caption();
         [[maybe_unused]] const raii_wrapper vars[] = {
-            push_style_var(ImGuiStyleVar_FramePadding, {2, 2}),
+            push_style_var(ImGuiStyleVar_FramePadding, {2*dpi, 2*dpi}),
             push_style_color(ImGuiCol_ButtonHovered, color_hover),
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
@@ -137,7 +147,7 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
             snformat(buf, "##item_{}"_cf, i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, (void*)&atlas->texture(), size_2,
+            ImGui::ImageButton(buf, (void*)&atlas->texture(), ImVec2(size_2.x * dpi, size_2.y * dpi),
                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
@@ -154,15 +164,16 @@ static void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::
 void app::draw_editor_pane(tile_editor& ed, float main_menu_height)
 {
     const auto window_size = M->window_size();
+    const auto dpi = M->dpi_scale();
 
     if (const bool active = M->is_text_input_active();
         ImGui::GetIO().WantTextInput != active)
         active ? M->start_text_input() : M->stop_text_input();
 
     [[maybe_unused]] const raii_wrapper vars[] = {
-        push_style_var(ImGuiStyleVar_WindowPadding, {8, 8}),
+        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi, 8*dpi}),
         push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
-        push_style_var(ImGuiStyleVar_FramePadding, {4, 4}),
+        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi, 4*dpi}),
         push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
         push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
     };
@@ -173,30 +184,29 @@ void app::draw_editor_pane(tile_editor& ed, float main_menu_height)
     {
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({420, window_size[1] - main_menu_height - style.WindowPadding.y});
+        ImGui::SetNextWindowSize({425 * dpi, window_size[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
+            ImGui::SetWindowFontScale(dpi);
             if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
-            {
                 for (const auto& [k, v] : ed)
-                {
                     draw_editor_pane_atlas(ed, k, v);
-                }
-            }
         }
     }
 }
 
 void app::draw_fps()
 {
+    const auto dpi = M->dpi_scale();
     const auto frame_time = M->smoothed_dt();
     char buf[16];
     const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
     snformat(buf, "{:.1f} FPS"_cf, hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
-    draw.AddText({M->window_size()[0] - size.x - 4, 3}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
+    draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
+                 {M->window_size()[0] - size.x - 3.5f*dpi, 3*dpi}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 }
 
 void app::draw_tile_under_cursor()
@@ -204,6 +214,7 @@ void app::draw_tile_under_cursor()
     if (!cursor.tile)
         return;
 
+    const auto dpi = M->dpi_scale();
     char buf[64];
     const auto coord = *cursor.tile;
     const auto chunk = coord.chunk();
@@ -213,7 +224,8 @@ void app::draw_tile_under_cursor()
     const auto window_size = M->window_size();
 
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
-    draw.AddText({window_size[0]*.5f - size.x/2, 3}, (unsigned)-1, buf);
+    draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
+                 {window_size[0]*.5f - size.x/2, 3*dpi}, (unsigned)-1, buf);
 }
 
 } // namespace floormat

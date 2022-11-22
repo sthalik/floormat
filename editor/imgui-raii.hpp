@@ -93,4 +93,36 @@ template<std::size_t N>
     ImGui::TextEx(buf, buf + N - 1, flags);
 }
 
+struct style_saver final
+{
+    style_saver() : style{ImGui::GetStyle()} {}
+    ~style_saver() { ImGui::GetStyle() = style; }
+private:
+    ImGuiStyle style;
+};
+
+struct font_saver final
+{
+    font_saver(float size) : font_saver{*ImGui::GetCurrentContext(), size} {}
+    ~font_saver();
+private:
+    font_saver(ImGuiContext& ctx, float size);
+
+    float font_size, font_base_size;
+};
+
+font_saver::~font_saver()
+{
+    auto& ctx = *ImGui::GetCurrentContext();
+    ctx.FontSize = font_size;
+    ctx.FontBaseSize = font_base_size;
+}
+
+font_saver::font_saver(ImGuiContext& ctx, float size) :
+      font_size{ctx.FontSize}, font_base_size{ctx.FontBaseSize}
+{
+    ctx.FontSize = size;
+    ctx.FontBaseSize = size;
+}
+
 } // namespace floormat::imgui

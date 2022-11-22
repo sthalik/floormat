@@ -82,6 +82,7 @@ private:
     void do_quickload();
 
     void draw_editor_pane(tile_editor& type, float main_menu_height);
+    void draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_cursor();
     void init_imgui(Vector2i size);
     void draw_ui();

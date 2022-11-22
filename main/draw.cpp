@@ -198,6 +198,11 @@ void main_impl::do_update()
 
 void main_impl::drawEvent()
 {
+    _dpi_scale = 1;
+    if (int index = SDL_GetWindowDisplayIndex(window()); index >= 0)
+        if (float dpi = 96; !SDL_GetDisplayDPI(index, &dpi, nullptr, nullptr))
+            _dpi_scale = dpi / 96;
+
     _shader.set_tint({1, 1, 1, 1});
 
     {
