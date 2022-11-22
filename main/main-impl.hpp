@@ -12,9 +12,6 @@
 #include <Magnum/Timeline.h>
 #include <Magnum/Math/Range.h>
 #include <Magnum/GL/DebugOutput.h>
-#include <Magnum/GL/Framebuffer.h>
-#include <Magnum/GL/Renderbuffer.h>
-#include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {

@@ -5,10 +5,10 @@
 
 namespace floormat {
 
-main_impl::main_impl(floormat_app& app, fm_settings&& s, int& fake_argc) noexcept :
+main_impl::main_impl(floormat_app& app, fm_settings&& se, int& fake_argc) noexcept :
     Platform::Sdl2Application{Arguments{fake_argc, nullptr},
-                              make_conf(s), make_gl_conf(s)},
-    s{std::move(s)}, app{app}
+                              make_conf(se), make_gl_conf(se)},
+    s{std::move(se)}, app{app}
 {
     if (s.vsync)
     {
