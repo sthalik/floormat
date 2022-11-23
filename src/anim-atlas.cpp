@@ -114,13 +114,13 @@ BitArray anim_atlas::make_bit_array(const ImageView2D& tex)
         return BitArray{DirectInit, width*height, true};
 
     fm_assert(tex.pixelSize() == 4);
-    const auto stride   = (std::size_t)pixels.stride()[0];
-    const auto channels = (std::size_t)pixels.stride()[1];
+    fm_assert(pixels.stride()[1] == 4);
+    const auto stride = (std::size_t)pixels.stride()[0];
     BitArray array{NoInit, width*height};
-    const char* __restrict const data = (const char*)tex.pixels().data();
+    const char* __restrict const data = (const char*)pixels.data();
     for (std::size_t y = 0; y < height; y++)
         for (std::size_t x = 0; x < width; x++)
-            array.set(y*width + x, data[(height-y-1)*stride + x*channels + 3] != 0);
+            array.set(y*width + x, data[(height-y-1)*stride + x*4 + 3] != 0);
     return array;
 }
 
