@@ -132,7 +132,6 @@ void main_impl::draw_anim() noexcept
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
-
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
     constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;

@@ -42,7 +42,7 @@ float app::draw_main_menu()
             ImGui::Separator();
 #endif
             bool do_quit = false;
-            ImGui::MenuItem("menu_quit", "Ctrl+Q", &do_quit);
+            ImGui::MenuItem("Quit", "Ctrl+Q", &do_quit);
             if (do_quit)
                 do_key(key_quit, kmod_none);
         }
