@@ -48,7 +48,7 @@ private:
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
     static std::uint8_t rotation_to_index(const anim_def& a, rotation r) noexcept;
-    static BitArray make_bit_array(const ImageView2D& tex);
+    static BitArray make_bitmask(const ImageView2D& tex);
 };
 
 } // namespace floormat

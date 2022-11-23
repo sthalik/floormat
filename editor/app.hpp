@@ -114,7 +114,7 @@ private:
     Containers::Pointer<floormat_main> M;
     ImGuiIntegration::Context _imgui{NoCreate};
     std::shared_ptr<tile_atlas> _floor1, _floor2, _wall1, _wall2;
-    std::shared_ptr<anim_atlas> _door;
+    std::shared_ptr<anim_atlas> _door, _table;
     GL::Texture2D _wireframe_texture = wireframe::make_constant_texture();
     wireframe_mesh<wireframe::quad_floor>  _wireframe_quad   {_wireframe_texture};
     wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n {_wireframe_texture};

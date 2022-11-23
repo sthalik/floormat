@@ -11,8 +11,8 @@ scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const sce
     atlas{atlas}, frame{frame}
 {}
 
-scenery_proto::scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, scenery::frame_t frame) :
-    atlas{atlas}, frame{scenery::generic, r, *atlas, frame}
+scenery_proto::scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool passable, scenery::frame_t frame) :
+    atlas{atlas}, frame{scenery::generic, r, *atlas, passable, frame}
 {}
 
 scenery_proto::scenery_proto(scenery::door_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool is_open) :
@@ -39,8 +39,8 @@ scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 
 scenery::scenery() noexcept : scenery{none_tag_t{}} {}
 scenery::scenery(none_tag_t) noexcept : passable{true} {}
-scenery::scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame) :
-    frame{frame}, r{r}, type{scenery_type::generic}
+scenery::scenery(generic_tag_t, rotation r, const anim_atlas& atlas, bool passable, frame_t frame) :
+    frame{frame}, r{r}, passable{passable}, type{scenery_type::generic}
 {
     fm_assert(frame < atlas.group(r).frames.size());
 }

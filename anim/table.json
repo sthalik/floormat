@@ -1,0 +1,44 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "90 x 88",
+					"offset": "0 x 0",
+					"size": "180 x 164"
+				}
+			],
+			"ground": "959 x 712",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "90 x 88",
+					"offset": "0 x 164",
+					"size": "180 x 164"
+				}
+			],
+			"ground": "959 x 712",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "table",
+	"pixel_size": "180 x 328",
+	"width": 180
+}

@@ -256,7 +256,7 @@ int main(int argc, char** argv)
         return EX_DATAERR;
     }
 
-    if (!check_atlas_name(anim_info.anim_name))
+    if (!anim_info.anim_name.isEmpty() && !check_atlas_name(anim_info.anim_name))
     {
         Error{} << "error: atlas animation name" << anim_info.object_name << "is invalid";
         return EX_DATAERR;
@@ -283,7 +283,9 @@ int main(int argc, char** argv)
     if (!Path::make(opts.output_dir))
         return EX_CANTCREAT;
 
-    const String base_name = anim_info.object_name + "-" + anim_info.anim_name;
+    const String base_name = !anim_info.anim_name.isEmpty()
+                             ? anim_info.object_name + "-" + anim_info.anim_name
+                             : anim_info.object_name;
 
     if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
         Error{} << "error: failed writing image to" << pathname << ":"

@@ -36,7 +36,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         auto anim_info = deserialize_anim(path + ".json");
         auto tex = texture("", path);
 
-        fm_assert(!anim_info.anim_name.isEmpty() && !anim_info.object_name.isEmpty());
+        fm_assert(!anim_info.object_name.isEmpty());
         fm_assert(anim_info.pixel_size.product() > 0);
         fm_assert(!anim_info.groups.empty());
         fm_assert(anim_info.nframes > 0);

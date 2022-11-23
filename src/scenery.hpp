@@ -39,7 +39,7 @@ struct scenery final
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame = 0);
+    scenery(generic_tag_t, rotation r, const anim_atlas& atlas, bool passable = false, frame_t frame = 0);
     scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open = false);
     scenery(float dt, frame_t frame, rotation r, bool passable, scenery_type type);
 
@@ -54,7 +54,7 @@ struct scenery_proto final {
     scenery_proto() noexcept;
     explicit scenery_proto(scenery::none_tag_t) noexcept;
     scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame);
-    scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, scenery::frame_t frame = 0);
+    scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool passable = false, scenery::frame_t frame = 0);
     scenery_proto(scenery::door_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool is_open = false);
     scenery_proto& operator=(const scenery_proto&) noexcept;
 

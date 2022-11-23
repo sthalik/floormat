@@ -33,7 +33,7 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
 
 anim_atlas::anim_atlas() noexcept = default;
 anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info) noexcept :
-    _name{name}, _bitmask{make_bit_array(image)},
+    _name{name}, _bitmask{ make_bitmask(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
     const Size<3>& size = image.pixels().size();
@@ -104,7 +104,7 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
     }};
 }
 
-BitArray anim_atlas::make_bit_array(const ImageView2D& tex)
+BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
 {
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
