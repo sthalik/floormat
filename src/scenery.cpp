@@ -54,6 +54,19 @@ scenery::scenery(float dt, frame_t frame, rotation r, bool passable, scenery_typ
     delta{dt}, frame{frame}, r{r}, passable{passable}, type{type}
 {}
 
+bool scenery::can_activate() const noexcept
+{
+    switch (type)
+    {
+    default:
+        return false;
+    case scenery_type::door:
+        return !active;
+    case scenery_type::object:
+        return true;
+    }
+}
+
 void scenery::update(float dt, const anim_atlas& anim)
 {
     if (!active)

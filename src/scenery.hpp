@@ -13,7 +13,7 @@ enum class rotation : std::uint8_t {
 constexpr inline rotation rotation_COUNT = rotation{8};
 
 enum class scenery_type : std::uint8_t {
-    none, generic, door,
+    none, generic, door, object,
 };
 
 struct scenery final
@@ -43,6 +43,7 @@ struct scenery final
     scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open = false);
     scenery(float dt, frame_t frame, rotation r, bool passable, scenery_type type);
 
+    bool can_activate() const noexcept;
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);
 };
