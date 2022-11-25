@@ -15,6 +15,7 @@ struct clickable final {
     float depth = 0;
     chunk_coords chunk;
     local_coords pos;
+    bool mirrored = false;
 };
 
 } // namespace floormat

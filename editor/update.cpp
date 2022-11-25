@@ -31,7 +31,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
     c[{K,   K+1}].wall_north() = { _wall1, 0 };
     c[{K+1, K  }].wall_west()  = { _wall2, 0 };
     c[{K+3, K+1}].scenery()    = { scenery::door, rotation::N, _door, false };
-    c[{ 3,   4 }].scenery()    = { scenery::generic, rotation::N, _table };
+    c[{ 3,   4 }].scenery()    = { scenery::generic, rotation::W, _table };
     c[{K,   K+1}].scenery()    = { scenery::generic, rotation::N, _control_panel, true };
     c.mark_modified();
 }

@@ -52,7 +52,11 @@ clickable_scenery* app::find_clickable_scenery(Vector2i pixel_)
         for (clickable_scenery& c : array)
             if (c.depth > depth && c.dest.contains(pixel))
             {
-                const auto pos = pixel - c.dest.min() + c.src.min();
+
+                const auto pos_ = pixel - c.dest.min() + c.src.min();
+                const auto pos = c.atlas.group(c.item.r).mirror_from.isEmpty()
+                                 ? pos_
+                                 : Vector2ui(c.src.sizeX() - pos_[0], pos_[1]);
                 const auto stride = c.atlas.info().pixel_size[0];
                 std::size_t idx = pos.y() * stride + pos.x();
                 fm_debug_assert(idx < c.bitmask.size());

@@ -70,18 +70,26 @@ auto anim_atlas::frame(rotation r, std::size_t frame) const noexcept -> const an
     return g.frames[frame];
 }
 
-auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i) const noexcept -> texcoords
+auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i, bool mirror) const noexcept -> texcoords
 {
     const auto f = frame(r, i);
     const Vector2 p0(f.offset), p1(f.size);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     const auto size = _info.pixel_size;
-    return {{
-        { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
-        { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top right
-        {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
-        {      x0 / size[0], 1 -      y0 / size[1]  }, // top left
-    }};
+    if (!mirror)
+        return {{
+            { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
+            { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top right
+            {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
+            {      x0 / size[0], 1 -      y0 / size[1]  }, // top left
+        }};
+    else
+        return {{
+            {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
+            {      x0 / size[0], 1 -      y0 / size[1]  }, // top right
+            { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
+            { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top left
+        }};
 }
 
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad

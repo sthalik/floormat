@@ -122,7 +122,8 @@ void main_impl::draw_anim() noexcept
                         clickable<anim_atlas, scenery> item = {
                             *atlas, s,
                             { f.offset, f.offset + f.size }, { offset, offset + f.size },
-                            atlas->bitmask(), tile_shader::depth_value(xy, 0.25f), pos, xy
+                            atlas->bitmask(), tile_shader::depth_value(xy, 0.25f), pos, xy,
+                            !g.mirror_from.isEmpty(),
                         };
                         _clickable_scenery.push_back(item);
                     }

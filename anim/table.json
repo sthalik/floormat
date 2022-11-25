@@ -20,14 +20,7 @@
 			]
 		},
 		{
-			"frames": [
-				{
-					"ground": "90 x 88",
-					"offset": "0 x 164",
-					"size": "180 x 164"
-				}
-			],
-			"ground": "959 x 712",
+			"mirror-from": "n",
 			"name": "w",
 			"offset": [
 				0,
@@ -39,6 +32,6 @@
 	"height": 0,
 	"nframes": 1,
 	"object_name": "table",
-	"pixel_size": "180 x 328",
+	"pixel_size": "180 x 164",
 	"width": 180
 }

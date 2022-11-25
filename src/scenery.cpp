@@ -56,6 +56,9 @@ scenery::scenery(float dt, frame_t frame, rotation r, bool passable, scenery_typ
 
 bool scenery::can_activate() const noexcept
 {
+#if 0
+    return true;
+#else
     switch (type)
     {
     default:
@@ -65,6 +68,7 @@ bool scenery::can_activate() const noexcept
     case scenery_type::object:
         return true;
     }
+#endif
 }
 
 void scenery::update(float dt, const anim_atlas& anim)

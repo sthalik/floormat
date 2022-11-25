@@ -130,6 +130,9 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
 [[nodiscard]]
 static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
 {
+    if (!group.mirror_from.isEmpty())
+        return true;
+
     const auto input_dir = Path::join(opts.input_dir, group.name);
 
     if (!Path::exists(Path::join(input_dir, ".")))

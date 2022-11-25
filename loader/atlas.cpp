@@ -3,6 +3,7 @@
 #include "src/emplacer.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
+#include <algorithm>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -34,6 +35,21 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
     {
         const auto path = Path::join(ANIM_PATH, Path::splitExtension(name).first());
         auto anim_info = deserialize_anim(path + ".json");
+
+        for (anim_group& group : anim_info.groups)
+        {
+            if (!group.mirror_from.isEmpty())
+            {
+                auto it = std::find_if(anim_info.groups.cbegin(), anim_info.groups.cend(),
+                                       [&](const anim_group& x) { return x.name == group.mirror_from; });
+                if (it == anim_info.groups.cend())
+                    fm_abort("can't find group '%s' to mirror from '%s'", group.mirror_from.data(), group.name.data());
+                group.frames = it->frames;
+                for (anim_frame& f : group.frames)
+                    f.ground = Vector2i((Int)f.size[0] - f.ground[0], f.ground[1]);
+            }
+        }
+
         auto tex = texture("", path);
 
         fm_assert(!anim_info.object_name.isEmpty());

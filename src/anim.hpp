@@ -22,7 +22,7 @@ enum class anim_direction : unsigned char
 
 struct anim_group final
 {
-    String name;
+    String name, mirror_from;
     std::vector<anim_frame> frames;
     Vector2ui ground;
     Vector3b offset;
