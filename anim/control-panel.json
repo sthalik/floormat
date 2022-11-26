@@ -20,14 +20,7 @@
 			]
 		},
 		{
-			"frames": [
-				{
-					"ground": "23 x 66",
-					"offset": "0 x 78",
-					"size": "41 x 78"
-				}
-			],
-			"ground": "23 x 66",
+			"mirror-from": "n",
 			"name": "w",
 			"offset": [
 				-32,
@@ -39,6 +32,6 @@
 	"height": 0,
 	"nframes": 1,
 	"object_name": "control-panel",
-	"pixel_size": "41 x 156",
+	"pixel_size": "41 x 78",
 	"width": 41
 }
