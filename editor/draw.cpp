@@ -44,15 +44,15 @@ void app::draw()
 clickable_scenery* app::find_clickable_scenery(Vector2i pixel_)
 {
     clickable_scenery* item = nullptr;
+    float depth = -1;
+
     if (cursor.tile)
     {
-        float depth = -1;
-        auto array = M->clickable_scenery();
+        const auto array = M->clickable_scenery();
         const auto pixel = Vector2ui(pixel_);
         for (clickable_scenery& c : array)
             if (c.depth > depth && c.dest.contains(pixel))
             {
-
                 const auto pos_ = pixel - c.dest.min() + c.src.min();
                 const auto pos = c.atlas.group(c.item.r).mirror_from.isEmpty()
                                  ? pos_
