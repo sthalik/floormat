@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <vector>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat::Serialize { struct serialized_scenery; }
