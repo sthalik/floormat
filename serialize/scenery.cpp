@@ -3,6 +3,7 @@
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "serialize/corrade-string.hpp"
+#include "serialize/json-helper.hpp"
 #include <array>
 #include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
@@ -10,6 +11,7 @@
 namespace {
 
 using namespace floormat;
+using namespace floormat::Serialize;
 
 constexpr struct {
     scenery_type value = scenery_type::none;
@@ -54,10 +56,6 @@ StringView foo_to_string(auto type, const T(&map)[N], const char* desc)
 }
 
 } // namespace
-
-namespace floormat {
-
-} // namespace floormat
 
 namespace nlohmann {
 
@@ -131,6 +129,22 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     }
 }
 
+void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scenery& val)
+{
+    fm_assert(val.proto.atlas);
+    j = val.proto;
+    const auto name = !val.name.isEmpty() ? StringView{val.name} : val.proto.atlas->name();
+    j["name"] = name;
+    j["description"] = val.descr;
+}
 
+void adl_serializer<serialized_scenery>::from_json(const json& j, serialized_scenery& val)
+{
+    val = {};
+    val.proto = j;
+    val.name = j["name"];
+    if (j.contains("description"))
+        val.descr = j["description"];
+}
 
 } // namespace nlohmann

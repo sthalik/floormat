@@ -1,16 +1,15 @@
 #pragma once
 #include "src/scenery.hpp"
 #include <vector>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat::Serialize {
 
-struct serialized_scenery final {
-    StringView name, descr;
+struct serialized_scenery final
+{
+    String name, descr;
     scenery_proto proto;
-
-    static std::vector<serialized_scenery> deserialize(StringView filename);
 };
 
 } // namespace floormat::Serialize

@@ -137,4 +137,30 @@ BitArrayView anim_atlas::bitmask() const
     return _bitmask;
 }
 
+rotation anim_atlas::next_rotation_from(rotation r) const noexcept
+{
+    constexpr auto count = std::size_t(rotation_COUNT);
+    fm_assert(r < rotation_COUNT);
+    for (auto i = std::size_t(r)+1; i < count; i++)
+        if (_group_indices[i] != 0xff)
+            return rotation(i);
+    for (std::size_t i = 0; i < count; i++)
+        if (_group_indices[i] != 0xff)
+            return rotation(i);
+    fm_abort("where did the rotations go?!");
+}
+
+rotation anim_atlas::prev_rotation_from(rotation r) const noexcept
+{
+    using ssize = std::make_signed_t<std::size_t>;
+    constexpr auto count = ssize(rotation_COUNT);
+    for (auto i = ssize(r)-1; i >= 0; i--)
+        if (_group_indices[std::size_t(i)] != 0xff)
+            return rotation(i);
+    for (auto i = count-1; i >= 0; i--)
+        if (_group_indices[std::size_t(i)] != 0xff)
+            return rotation(i);
+    fm_abort("where did the rotations go?!");
+}
+
 } // namespace floormat

@@ -234,12 +234,10 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
 {
     if (str.isEmpty())
         return false;
-    if (str[0] == '.' || str[0] == '\\' || str[0] == '/')
+    if (str.findAny("\\<>&;:'\" ") || str.find("/."))
         return false;
-    if (str.find('"') || str.find('\''))
+    if (str[0] == '.' || str[0] == '/')
         return false;
-    if (str.find("/.") || str.find("\\."))
-        return false; // NOLINT(readability-simplify-boolean-expr)
 
     return true;
 }

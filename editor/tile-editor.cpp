@@ -4,23 +4,20 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "random.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/tile-atlas.hpp"
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
-tile_editor::tile_editor(editor_mode mode, StringView name) : _name{ name}, _mode{ mode}
+tile_editor::tile_editor(editor_mode mode, StringView name) : _name{name}, _mode{ mode}
 {
     load_atlases();
 }
 
 void tile_editor::load_atlases()
 {
-    using atlas_array = std::vector<std::shared_ptr<tile_atlas>>;
     const auto filename = _name + ".json";
-    for (auto& atlas : json_helper::from_json<atlas_array>(Path::join(loader_::IMAGE_PATH, filename)))
+    for (const auto& atlas : loader.tile_atlases(filename))
     {
         const auto [name, _ext] = Path::splitExtension(atlas->name());
         auto& [_, vec] = _permutation;

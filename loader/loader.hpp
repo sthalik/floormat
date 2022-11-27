@@ -2,11 +2,13 @@
 #include <memory>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
+namespace floormat::Serialize { struct serialized_scenery; }
 
 namespace floormat {
 
 struct tile_atlas;
 struct anim_atlas;
+struct scenery_proto;
 
 struct loader_
 {
@@ -16,6 +18,8 @@ struct loader_
     virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
+    static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename);
+    static std::vector<Serialize::serialized_scenery> sceneries();
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

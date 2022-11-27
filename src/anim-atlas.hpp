@@ -35,6 +35,9 @@ struct anim_atlas final
 
     BitArrayView bitmask() const;
 
+    [[nodiscard]] rotation next_rotation_from(rotation r) const noexcept;
+    [[nodiscard]] rotation prev_rotation_from(rotation r) const noexcept;
+
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
 private:

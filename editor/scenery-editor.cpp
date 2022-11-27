@@ -15,37 +15,33 @@ scenery_editor::scenery_editor() noexcept
 
 void scenery_editor::set_rotation(rotation_ r)
 {
-    _selected.frame.r = r;
+    if (_selected.proto.atlas)
+    {
+        (void)_selected.proto.atlas->group(r);
+        _selected.proto.frame.r = r;
+    }
 }
 
 rotation_ scenery_editor::rotation() const
 {
-    return _selected.frame.r;
+    return _selected.proto.frame.r;
 }
 
 void scenery_editor::next_rotation()
 {
-    // todo
-    auto r_1 = (rotation_t)_selected.frame.r + 1;
-    auto rot = (rotation_)r_1;
-    if (rot >= rotation_COUNT)
-        rot = (rotation_)0;
-    _selected.frame.r = rot;
+    if (auto& proto = _selected.proto; proto.atlas)
+        proto.frame.r = proto.atlas->next_rotation_from(proto.frame.r);
 }
 
 void scenery_editor::prev_rotation()
 {
-    if (_selected.frame.r == (rotation_)0)
-        _selected.frame.r = (rotation_)((rotation_t)rotation_COUNT - 1);
-    else
-        _selected.frame.r = (rotation_)((rotation_t)_selected.frame.r - 1);
+    if (auto& proto = _selected.proto; proto.atlas)
+        proto.frame.r = proto.atlas->prev_rotation_from(proto.frame.r);
 }
 
-//return atlas == _selected.atlas && r == _selected.s.r && frame == _selected.s.frame;
-
-void scenery_editor::select_tile(const scenery_proto& proto)
+void scenery_editor::select_tile(const scenery_& s)
 {
-    _selected = proto;
+    _selected = s;
 }
 
 void scenery_editor::clear_selection()
@@ -53,26 +49,19 @@ void scenery_editor::clear_selection()
     _selected = {};
 }
 
-const scenery_proto& scenery_editor::get_selected()
+auto scenery_editor::get_selected() -> const scenery_&
 {
     return _selected;
 }
 
 bool scenery_editor::is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const
 {
-    return _selected.atlas == atlas;
+    return atlas == _selected.proto.atlas;
 }
 
-bool scenery_editor::is_item_selected(const scenery_proto& proto) const
+bool scenery_editor::is_item_selected(const scenery_& s) const
 {
-    return _selected == proto;
-}
-
-void scenery_editor::load_atlases()
-{
-    _atlases.clear();
-    for (StringView str : loader.anim_atlas_list())
-        _atlases[str] = loader.anim_atlas(str);
+    return s.name == _selected.name && s.proto.atlas == _selected.proto.atlas;
 }
 
 } // namespace floormat
