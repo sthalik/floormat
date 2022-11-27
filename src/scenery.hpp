@@ -31,17 +31,18 @@ struct scenery final
 
     float delta = 0;
     frame_t frame = NO_FRAME;
-    rotation     r        : 3 = rotation::N;
-    std::uint8_t passable : 1 = false;
-    std::uint8_t active   : 1 = false;
-    std::uint8_t closing  : 1 = true;
-    scenery_type type     : 2 = scenery_type::none;
+    rotation     r           : 3 = rotation::N;
+    std::uint8_t passable    : 1 = false;
+    std::uint8_t blocks_view : 1 = false; // todo
+    std::uint8_t active      : 1 = false;
+    std::uint8_t closing     : 1 = false;
+    std::uint8_t animated    : 1 = false; // todo
+    scenery_type type        : 3 = scenery_type::none;
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, rotation r, const anim_atlas& atlas, bool passable = false, frame_t frame = 0);
+    scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame = 0, bool passable = false, bool blocks_view = false, bool animated = false, bool active = false);
     scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open = false);
-    scenery(float dt, frame_t frame, rotation r, bool passable, scenery_type type);
 
     bool can_activate() const noexcept;
     bool activate(const anim_atlas& atlas);

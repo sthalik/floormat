@@ -13,6 +13,7 @@ struct adl_serializer<Corrade::Containers::String> {
 template<>
 struct adl_serializer<Corrade::Containers::StringView> {
     static void to_json(json& j, Corrade::Containers::StringView val);
+    static void from_json(const json& j, Corrade::Containers::StringView& val);
 };
 
 } // namespace nlohmann

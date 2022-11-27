@@ -12,7 +12,7 @@ scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const sce
 {}
 
 scenery_proto::scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool passable, scenery::frame_t frame) :
-    atlas{atlas}, frame{scenery::generic, r, *atlas, passable, frame}
+    atlas{atlas}, frame{scenery::generic, r, *atlas, frame, passable}
 {}
 
 scenery_proto::scenery_proto(scenery::door_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool is_open) :
@@ -39,19 +39,19 @@ scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 
 scenery::scenery() noexcept : scenery{none_tag_t{}} {}
 scenery::scenery(none_tag_t) noexcept : passable{true} {}
-scenery::scenery(generic_tag_t, rotation r, const anim_atlas& atlas, bool passable, frame_t frame) :
-    frame{frame}, r{r}, passable{passable}, type{scenery_type::generic}
+scenery::scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame,
+                 bool passable, bool blocks_view, bool animated, bool active) :
+    frame{frame}, r{r}, passable{passable},
+    blocks_view{blocks_view}, active{active}, animated{animated},
+    type{scenery_type::generic}
 {
     fm_assert(frame < atlas.group(r).frames.size());
 }
 
 scenery::scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open) :
     frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
-    r{r}, passable{is_open}, type{scenery_type::door}
-{}
-
-scenery::scenery(float dt, frame_t frame, rotation r, bool passable, scenery_type type) :
-    delta{dt}, frame{frame}, r{r}, passable{passable}, type{type}
+    r{r},
+    passable{is_open}, blocks_view{!is_open}, type{scenery_type::door}
 {}
 
 bool scenery::can_activate() const noexcept
@@ -63,10 +63,10 @@ bool scenery::can_activate() const noexcept
     {
     default:
         return false;
-    case scenery_type::door:
-        return !active;
     case scenery_type::object:
         return true;
+    case scenery_type::door:
+        return !active;
     }
 #endif
 }
@@ -96,6 +96,7 @@ void scenery::update(float dt, const anim_atlas& anim)
         const int fr = frame + dir*n;
         active = fr > 0 && fr < nframes-1;
         passable = fr <= 0;
+        blocks_view = !passable;
         frame = (frame_t)std::clamp(fr, 0, nframes-1);
         if (!active)
             delta = 0;

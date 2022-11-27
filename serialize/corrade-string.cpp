@@ -28,4 +28,12 @@ void adl_serializer<StringView>::to_json(json& j, StringView val)
     to_json(j, s);
 }
 
+void adl_serializer<StringView>::from_json(const json& j, StringView& val)
+{
+    using nlohmann::from_json;
+    std::string_view s;
+    from_json(j, s);
+    val = StringView{s.data(), s.size()};
+}
+
 } // namespace nlohmann
