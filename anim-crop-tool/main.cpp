@@ -234,7 +234,7 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
 {
     if (str.isEmpty())
         return false;
-    if (str.findAny("\\<>&;:'\" ") || str.find("/."))
+    if (str.findAny("\\<>&;:^'\" ") || str.find("/."))
         return false;
     if (str[0] == '.' || str[0] == '/')
         return false;
