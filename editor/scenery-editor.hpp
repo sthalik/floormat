@@ -12,13 +12,6 @@ struct scenery_editor final
 {
     using frame_t = scenery::frame_t;
 
-    struct pair final {
-        std::shared_ptr<anim_atlas> atlas;
-        enum rotation r = rotation_COUNT;
-        frame_t frame = scenery::NO_FRAME;
-        operator bool() const;
-    };
-
     scenery_editor() noexcept;
 
     void set_rotation(enum rotation r);
@@ -26,17 +19,17 @@ struct scenery_editor final
     void next_rotation();
     void prev_rotation();
 
-    void select_tile(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, frame_t frame);
+    void select_tile(const scenery_proto& proto);
     void clear_selection();
-    pair get_selected();
+    const scenery_proto& get_selected();
     bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
-    bool is_item_selected(const std::shared_ptr<anim_atlas>& atlas, enum rotation r, frame_t frame) const;
+    bool is_item_selected(const scenery_proto& proto) const;
 
 private:
     void load_atlases();
 
     std::map<StringView, std::shared_ptr<anim_atlas>> _atlases;
-    pair _selected;
+    scenery_proto _selected;
 };
 
 } // namespace floormat

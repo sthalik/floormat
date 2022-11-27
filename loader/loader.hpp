@@ -1,9 +1,6 @@
 #pragma once
 #include <memory>
 
-namespace Corrade::Containers { template<typename T> class ArrayView; class String; }
-namespace Corrade::Containers { template<typename T> class BasicStringView; using StringView = BasicStringView<const char>; }
-namespace Magnum::Math { template<class T> class Vector2; }
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 
 namespace floormat {

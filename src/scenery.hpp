@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 
 namespace floormat {
 
@@ -13,7 +14,7 @@ enum class rotation : std::uint8_t {
 constexpr inline rotation rotation_COUNT = rotation{8};
 
 enum class scenery_type : std::uint8_t {
-    none, generic, door, object,
+    none, generic, door,
 };
 
 struct scenery final
@@ -22,7 +23,6 @@ struct scenery final
     struct generic_tag_t final {};
     struct door_tag_t final {};
 
-    static constexpr auto NO_FRAME = (std::uint16_t)-1;
     static constexpr inline auto none    = none_tag_t{};
     static constexpr inline auto generic = generic_tag_t{};
     static constexpr inline auto door    = door_tag_t{};
@@ -30,19 +30,20 @@ struct scenery final
     using frame_t = std::uint16_t;
 
     float delta = 0;
-    frame_t frame = NO_FRAME;
+    frame_t frame = 0;
     rotation     r           : 3 = rotation::N;
+    scenery_type type        : 3 = scenery_type::none;
     std::uint8_t passable    : 1 = false;
     std::uint8_t blocks_view : 1 = false; // todo
     std::uint8_t active      : 1 = false;
     std::uint8_t closing     : 1 = false;
     std::uint8_t animated    : 1 = false; // todo
-    scenery_type type        : 3 = scenery_type::none;
+    std::uint8_t interactive : 1 = false;
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame = 0, bool passable = false, bool blocks_view = false, bool animated = false, bool active = false);
-    scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open = false);
+    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0, bool passable = false, bool blocks_view = false, bool animated = false, bool active = false, bool interactive = false);
+    scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
 
     bool can_activate() const noexcept;
     bool activate(const anim_atlas& atlas);
@@ -54,11 +55,19 @@ struct scenery_proto final {
     scenery frame;
 
     scenery_proto() noexcept;
-    explicit scenery_proto(scenery::none_tag_t) noexcept;
-    scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame);
-    scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool passable = false, scenery::frame_t frame = 0);
-    scenery_proto(scenery::door_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool is_open = false);
+    scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) noexcept;
     scenery_proto& operator=(const scenery_proto&) noexcept;
+    scenery_proto(const scenery_proto&) noexcept;
+
+    template<typename... Ts>
+    scenery_proto(scenery::generic_tag_t, const std::shared_ptr<anim_atlas>& atlas, Ts&&... args) :
+        atlas{atlas}, frame{scenery::generic, *atlas, std::forward<Ts>(args)...}
+    {}
+
+    template<typename... Ts>
+    scenery_proto(scenery::door_tag_t, const std::shared_ptr<anim_atlas>& atlas, Ts&&... args) :
+        atlas{atlas}, frame{scenery::door, *atlas, std::forward<Ts>(args)...}
+    {}
 
     operator bool() const noexcept;
 };

@@ -10,8 +10,17 @@ typedef unsigned int       size_t;
 typedef __SIZE_TYPE__      size_t;
 #endif
 
+namespace Corrade::Containers {
+
+class String;
+template<typename T> class BasicStringView;
+using StringView = BasicStringView<const char>;
+
+template<typename T> class ArrayView;
+
+} // namespace Corrade::Containers
+
 namespace Corrade::Containers::Literals {}
-namespace Corrade::Containers {}
 namespace Corrade::Utility::Path {}
 namespace Corrade::Utility { class Debug; class Error; }
 namespace Magnum::Math::Literals {}

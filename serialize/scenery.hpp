@@ -1,8 +1,19 @@
 #pragma once
 #include "src/scenery.hpp"
-#include <Corrade/Containers/StringView.h>
 #include <vector>
+#include <Corrade/Containers/StringView.h>
 #include <nlohmann/json_fwd.hpp>
+
+namespace floormat::Serialize {
+
+struct serialized_scenery final {
+    StringView name, descr;
+    scenery_proto proto;
+
+    static std::vector<serialized_scenery> deserialize(StringView filename);
+};
+
+} // namespace floormat::Serialize
 
 namespace nlohmann {
 
@@ -19,13 +30,11 @@ template<> struct adl_serializer<floormat::rotation> {
 template<> struct adl_serializer<floormat::scenery_proto> {
     static void to_json(json& j, const floormat::scenery_proto& val);
     static void from_json(const json& j, floormat::scenery_proto& val);
+};
 
-    struct item {
-        Corrade::Containers::StringView name, description;
-        floormat::scenery_proto proto;
-    };
-
-    static std::vector<item> deserialize_list(Corrade::Containers::StringView file);
+template<> struct adl_serializer<floormat::Serialize::serialized_scenery> {
+    static void to_json(json& j, const floormat::Serialize::serialized_scenery& val);
+    static void from_json(const json& j, floormat::Serialize::serialized_scenery& val);
 };
 
 } // namespace nlohmann

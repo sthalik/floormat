@@ -5,22 +5,13 @@
 
 namespace floormat {
 
-scenery_proto::scenery_proto() noexcept : scenery_proto{scenery::none} {}
-scenery_proto::scenery_proto(scenery::none_tag_t) noexcept : frame{scenery::none} {}
-scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) :
+scenery_proto::scenery_proto() noexcept = default;
+scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) noexcept :
     atlas{atlas}, frame{frame}
 {}
 
-scenery_proto::scenery_proto(scenery::generic_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool passable, scenery::frame_t frame) :
-    atlas{atlas}, frame{scenery::generic, r, *atlas, frame, passable}
-{}
-
-scenery_proto::scenery_proto(scenery::door_tag_t, rotation r, const std::shared_ptr<anim_atlas>& atlas, bool is_open) :
-    atlas{atlas}, frame{scenery::door, r, *atlas, is_open}
-{}
-
 scenery_proto& scenery_proto::operator=(const scenery_proto&) noexcept = default;
-
+scenery_proto::scenery_proto(const scenery_proto&) noexcept = default;
 scenery_proto::operator bool() const noexcept { return atlas != nullptr; }
 
 scenery_ref::scenery_ref(std::shared_ptr<anim_atlas>& atlas, scenery& frame) noexcept : atlas{atlas}, frame{frame} {}
@@ -39,36 +30,27 @@ scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 
 scenery::scenery() noexcept : scenery{none_tag_t{}} {}
 scenery::scenery(none_tag_t) noexcept : passable{true} {}
-scenery::scenery(generic_tag_t, rotation r, const anim_atlas& atlas, frame_t frame,
-                 bool passable, bool blocks_view, bool animated, bool active) :
-    frame{frame}, r{r}, passable{passable},
-    blocks_view{blocks_view}, active{active}, animated{animated},
-    type{scenery_type::generic}
+scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
+                 bool passable, bool blocks_view, bool animated, bool active, bool interactive) :
+    frame{frame}, r{r}, type{scenery_type::generic},
+    passable{passable}, blocks_view{blocks_view}, active{active}, animated{animated},
+    interactive{interactive}
 {
+    fm_assert(r < rotation_COUNT);
     fm_assert(frame < atlas.group(r).frames.size());
 }
 
-scenery::scenery(door_tag_t, rotation r, const anim_atlas& atlas, bool is_open) :
+scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open) :
     frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
-    r{r},
-    passable{is_open}, blocks_view{!is_open}, type{scenery_type::door}
-{}
+    r{r}, type{scenery_type::door},
+    passable{is_open}, blocks_view{!is_open}, interactive{true}
+{
+    fm_assert(r < rotation_COUNT);
+}
 
 bool scenery::can_activate() const noexcept
 {
-#if 0
-    return true;
-#else
-    switch (type)
-    {
-    default:
-        return false;
-    case scenery_type::object:
-        return true;
-    case scenery_type::door:
-        return !active;
-    }
-#endif
+    return interactive;
 }
 
 void scenery::update(float dt, const anim_atlas& anim)

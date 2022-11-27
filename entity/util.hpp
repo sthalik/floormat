@@ -1,11 +1,6 @@
 #pragma once
 #include <type_traits>
 
-namespace Corrade::Containers {
-template<typename T> class BasicStringView;
-using StringView = BasicStringView<const char>;
-} // namespace Corrade::Containers
-
 namespace floormat::entities {
 
 template<typename T, typename = void> struct pass_by_value : std::bool_constant<std::is_fundamental_v<T>> {};

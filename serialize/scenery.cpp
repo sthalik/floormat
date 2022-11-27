@@ -18,7 +18,7 @@ constexpr struct {
     { scenery_type::none,    "none"_s    },
     { scenery_type::generic, "generic"_s },
     { scenery_type::door,    "door"_s    },
-    { scenery_type::object,  "object"_s  },
+    //{ scenery_type::object,  "object"_s  },
 };
 
 constexpr struct {
@@ -87,34 +87,50 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
     j["type"] = f.type;
     fm_assert(val.atlas);
     j["atlas-name"] = val.atlas->name();
-    fm_assert(f.frame != scenery::NO_FRAME);
     j["frame"] = f.frame;
     j["rotation"] = f.r;
     j["passable"] = f.passable;
     j["blocks-view"] = f.blocks_view;
     j["active"] = f.active;
+    j["animated"] = f.animated;
+    j["interactive"] = f.interactive;
 }
 
 void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 {
-    auto& f = val.frame;
-    f.type = j["type"];
+    const auto get = [&](const StringView& name, auto& value)
+    {
+        auto s = std::string_view{name.data(), name.size()};
+        if (j.contains(s))
+            value = j[s];
+    };
+
     StringView atlas_name = j["atlas-name"];
-    val.atlas = loader.anim_atlas(atlas_name);
+    fm_assert(!atlas_name.isEmpty());
+    auto atlas = loader.anim_atlas(atlas_name);
+    auto& f = val.frame;
     f = {};
-    if (j.contains("frame"))
-        f.frame = j["frame"];
-    if (j.contains("animated"))
-        f.animated = j["animated"];
-    fm_assert(f.animated == (f.frame == scenery::NO_FRAME));
-    if (j.contains("rotation"))
-        f.r = j["rotation"];
-    if (j.contains("passable"))
-        f.passable = j["passable"];
-    if (j.contains("blocks-view"))
-        f.blocks_view = j["blocks-view"];
-    if (j.contains("active"))
-        f.active = j["active"];
+
+    auto type = scenery_type::generic; get("type", type);
+    auto frame       = f.frame;       get("frame", frame);
+    auto r           = f.r;           get("rotation", r);
+    bool passable    = f.passable;    get("passable", passable);
+    bool blocks_view = f.blocks_view; get("blocks-view", blocks_view);
+    bool active      = f.active;      get("active", active);
+    bool animated    = f.animated;    get("animated", animated);
+
+    switch (f.type)
+    {
+    default:
+        fm_abort("unhandled scenery type '%hhu'", f.type);
+    case scenery_type::generic:
+        f = { scenery::generic, *atlas, r, frame, passable, blocks_view, animated, active };
+        break;
+    case scenery_type::door:
+        f = { scenery::door, *atlas, r, false };
+    }
 }
+
+
 
 } // namespace nlohmann

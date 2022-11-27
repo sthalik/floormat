@@ -6,13 +6,6 @@
 #include <concepts>
 #include <type_traits>
 
-namespace Corrade::Containers {
-
-template<typename T> class BasicStringView;
-using StringView = BasicStringView<const char>;
-
-} // namespace Corrade::Containers
-
 namespace floormat::Serialize {
 
 static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little);
