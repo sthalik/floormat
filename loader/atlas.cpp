@@ -15,6 +15,8 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size)
 {
+    fm_assert(check_atlas_name(name));
+
     const emplacer e{[&] { return std::make_shared<struct tile_atlas>(name, texture(IMAGE_PATH, name), size); }};
     auto atlas = tile_atlas_map.try_emplace(name, e).first->second;
     return atlas;
@@ -29,6 +31,8 @@ ArrayView<String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
 {
+    fm_assert(check_atlas_name(name));
+
     if (auto it = anim_atlas_map.find(name); it != anim_atlas_map.end())
         return it->second;
     else
@@ -76,6 +80,18 @@ void loader_impl::get_anim_atlas_list()
         for (StringView str : *list)
             if (str.hasSuffix(".json"))
                 anim_atlases.emplace_back(str.exceptSuffix(std::size(".json")-1));
+}
+
+bool loader_impl::check_atlas_name(StringView str)
+{
+    if (str.isEmpty())
+        return false;
+    if (str.findAny("\\<>&;:'\" ") || str.find("/."))
+        return false;
+    if (str[0] == '.' || str[0] == '/')
+        return false;
+
+    return true;
 }
 
 } // namespace floormat::loader_detail

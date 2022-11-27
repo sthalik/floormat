@@ -37,6 +37,7 @@ struct loader_impl final : loader_
     static anim_def deserialize_anim(StringView filename);
     static void system_init();
     static bool chdir(StringView pathname);
+    [[nodiscard]] static bool check_atlas_name(StringView name);
     void ensure_plugins();
 
     explicit loader_impl();
