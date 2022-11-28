@@ -64,4 +64,9 @@ bool scenery_editor::is_item_selected(const scenery_& s) const
     return s.name == _selected.name && s.proto.atlas == _selected.proto.atlas;
 }
 
+bool scenery_editor::is_anything_selected() const
+{
+    return _selected.proto.atlas != nullptr;
+}
+
 } // namespace floormat

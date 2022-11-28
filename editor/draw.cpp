@@ -22,13 +22,18 @@ void app::draw_cursor()
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
-        if (const auto* ed = _editor.current_tile_editor(); ed && ed->mode() == editor_mode::walls)
-            switch (ed->rotation())
-            {
-            case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
-            case editor_wall_rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
-            }
-        else
+        if (const auto* ed = _editor.current_tile_editor(); ed && ed->is_anything_selected())
+        {
+            if (ed->mode() == editor_mode::walls)
+                switch (ed->rotation())
+                {
+                case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
+                case editor_wall_rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
+                }
+            else if (ed->mode() == editor_mode::floor)
+                draw(_wireframe_quad, TILE_SIZE2);
+        }
+        else if (const auto* ed = _editor.current_scenery_editor(); ed && ed->is_anything_selected())
             draw(_wireframe_quad, TILE_SIZE2);
     }
 }

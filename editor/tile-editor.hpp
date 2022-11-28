@@ -53,6 +53,7 @@ public:
     bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
     bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
+    bool is_anything_selected() const;
     tile_image_proto get_selected();
     void place_tile(world& world, global_coords pos, const tile_image_proto& img);
     void toggle_rotation();

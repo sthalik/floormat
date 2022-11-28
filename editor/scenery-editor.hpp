@@ -27,6 +27,7 @@ struct scenery_editor final
     const scenery_& get_selected();
     bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
     bool is_item_selected(const scenery_& s) const;
+    bool is_anything_selected() const;
 
 private:
     void load_atlases();

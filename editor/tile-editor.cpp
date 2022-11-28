@@ -93,6 +93,11 @@ bool tile_editor::is_atlas_selected(const std::shared_ptr<const tile_atlas>& atl
     }
 }
 
+bool tile_editor::is_anything_selected() const
+{
+    return _selection_mode != sel_none;
+}
+
 template<std::random_access_iterator T>
 void fisher_yates(T begin, T end)
 {
