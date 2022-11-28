@@ -1,6 +1,6 @@
 [
   {
-    "name": "Door (generic)",
+    "name": "door1",
     "type": "door",
     "atlas-name": "door-close"
   },
