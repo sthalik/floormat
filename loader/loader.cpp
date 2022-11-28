@@ -24,5 +24,6 @@ loader_::~loader_() = default;
 
 const StringView loader_::IMAGE_PATH = "share/floormat/images/"_s;
 const StringView loader_::ANIM_PATH = "share/floormat/anim/"_s;
+const StringView loader_::SCENERY_PATH = "share/floormat/scenery/"_s;
 
 } // namespace floormat

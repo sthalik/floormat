@@ -23,7 +23,7 @@ std::vector<std::shared_ptr<struct tile_atlas>> loader_::tile_atlases(StringView
 
 std::vector<Serialize::serialized_scenery> loader_::sceneries()
 {
-    return json_helper::from_json<std::vector<Serialize::serialized_scenery>>(Path::join(ANIM_PATH, "scenery.json"));
+    return json_helper::from_json<std::vector<Serialize::serialized_scenery>>(Path::join(SCENERY_PATH, "scenery.json"));
 }
 
 } // namespace floormat

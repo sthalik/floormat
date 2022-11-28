@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <Corrade/Containers/StringView.h>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat::Serialize { struct serialized_scenery; }
@@ -16,7 +17,7 @@ struct loader_
     virtual StringView shader(StringView filename) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) = 0;
     virtual ArrayView<String> anim_atlas_list() = 0;
-    virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) = 0;
+    virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
     static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename);
@@ -29,6 +30,7 @@ struct loader_
 
     static const StringView IMAGE_PATH;
     static const StringView ANIM_PATH;
+    static const StringView SCENERY_PATH;
 
 protected:
     loader_();

@@ -29,7 +29,7 @@ ArrayView<String> loader_impl::anim_atlas_list()
     return anim_atlases;
 }
 
-std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
+std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir)
 {
     fm_assert(check_atlas_name(name));
 
@@ -37,7 +37,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name)
         return it->second;
     else
     {
-        const auto path = Path::join(ANIM_PATH, Path::splitExtension(name).first());
+        const auto path = Path::join(dir, Path::splitExtension(name).first());
         auto anim_info = deserialize_anim(path + ".json");
 
         for (anim_group& group : anim_info.groups)

@@ -193,7 +193,7 @@ add_subdirectory(main)
 add_subdirectory(editor)
 add_subdirectory(test)
 
-install(DIRECTORY images anim DESTINATION "share/floormat")
+install(DIRECTORY images anim scenery DESTINATION "share/floormat")
 
 fm_run_hook(fm-userconfig-post)
 get_cmake_property(_variableNames VARIABLES)

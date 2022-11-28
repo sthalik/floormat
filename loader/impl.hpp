@@ -29,7 +29,7 @@ struct loader_impl final : loader_
     Trade::ImageData2D texture(StringView prefix, StringView filename);
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
     ArrayView<String> anim_atlas_list() override;
-    std::shared_ptr<struct anim_atlas> anim_atlas(StringView name) override;
+    std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir) override;
 
     void get_anim_atlas_list();
 
