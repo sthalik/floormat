@@ -1,10 +1,8 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
-#include "src/tile-atlas.hpp"
 #include "compat/format.hpp"
-
-#include <Magnum/GL/Renderer.h>
 #include "imgui-raii.hpp"
+#include <Magnum/Math/Color.h>
 
 namespace floormat {
 
@@ -49,10 +47,11 @@ float app::draw_main_menu()
         if (auto b = begin_menu("Mode"))
         {
             const bool can_rotate = _editor.current_tile_editor() ? _editor.current_tile_editor()->can_rotate() : false;
-            bool b_none = false, b_floor = false, b_walls = false, b_rotate = false;
-            ImGui::MenuItem("Select", "1", &b_none);
-            ImGui::MenuItem("Floor",  "2", &b_floor);
-            ImGui::MenuItem("Walls",  "3", &b_walls);
+            bool b_none = false, b_floor = false, b_walls = false, b_rotate = false, b_scenery = false;
+            ImGui::MenuItem("Select",  "1", &b_none);
+            ImGui::MenuItem("Floor",   "2", &b_floor);
+            ImGui::MenuItem("Walls",   "3", &b_walls);
+            ImGui::MenuItem("Scenery", "4", &b_scenery);
             ImGui::Separator();
             ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate);
             if (b_none)
@@ -61,6 +60,8 @@ float app::draw_main_menu()
                 do_key(key_mode_floor);
             else if (b_walls)
                 do_key(key_mode_walls);
+            else if (b_scenery)
+                do_key(key_mode_scenery);
             if (b_rotate)
                 do_key(key_rotate_tile);
         }
@@ -84,115 +85,12 @@ void app::draw_ui()
     _imgui.newFrame();
 
     const float main_menu_height = draw_main_menu();
-    if (auto* ed = _editor.current_tile_editor(); ed != nullptr)
-        draw_editor_pane(*ed, main_menu_height);
+    if (_editor.mode() != editor_mode::none)
+        draw_editor_pane(main_menu_height);
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     draw_fps();
     draw_tile_under_cursor();
     ImGui::EndFrame();
-}
-
-void app::draw_editor_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
-{
-    const auto dpi = M->dpi_scale();
-    constexpr Color4 color_perm_selected{1, 1, 1, .7f},
-                     color_selected{1, 0.843f, 0, .8f},
-                     color_hover{0, .8f, 1, .7f};
-    const float window_width = ImGui::GetWindowWidth() - 32 * dpi;
-    char buf[128];
-    const auto& style = ImGui::GetStyle();
-    const auto N = atlas->num_tiles();
-
-    const auto click_event = [&] {
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-            ed.select_tile_permutation(atlas);
-        else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
-            ed.clear_selection();
-    };
-    const auto do_caption = [&] {
-        click_event();
-        if (ed.is_atlas_selected(atlas))
-        {
-            ImGui::SameLine();
-            text(" (selected)");
-        }
-        const auto len = snformat(buf, "{:d}"_cf, N);
-        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi);
-        text(buf, len);
-    };
-    if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
-        auto b = tree_node(name.data(), flags))
-    {
-        do_caption();
-        [[maybe_unused]] const raii_wrapper vars[] = {
-            push_style_var(ImGuiStyleVar_FramePadding, {2*dpi, 2*dpi}),
-            push_style_color(ImGuiCol_ButtonHovered, color_hover),
-        };
-        const bool perm_selected = ed.is_permutation_selected(atlas);
-        constexpr std::size_t per_row = 8;
-        for (std::size_t i = 0; i < N; i++)
-        {
-            const bool selected = ed.is_tile_selected(atlas, i);
-            if (i > 0 && i % per_row == 0)
-                ImGui::NewLine();
-
-            [[maybe_unused]] const raii_wrapper vars[] = {
-                selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
-                selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
-                perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
-                perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
-            };
-
-            snformat(buf, "##item_{}"_cf, i);
-            const auto uv = atlas->texcoords_for_id(i);
-            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, (void*)&atlas->texture(), ImVec2(size_2.x * dpi, size_2.y * dpi),
-                               { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                ed.select_tile(atlas, i);
-            else
-                click_event();
-            ImGui::SameLine();
-        }
-        ImGui::NewLine();
-    }
-    else
-        do_caption();
-}
-
-void app::draw_editor_pane(tile_editor& ed, float main_menu_height)
-{
-    const auto window_size = M->window_size();
-    const auto dpi = M->dpi_scale();
-
-    if (const bool active = M->is_text_input_active();
-        ImGui::GetIO().WantTextInput != active)
-        active ? M->start_text_input() : M->stop_text_input();
-
-    [[maybe_unused]] const raii_wrapper vars[] = {
-        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi, 8*dpi}),
-        push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
-        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi, 4*dpi}),
-        push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
-        push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
-    };
-
-    const auto& style = ImGui::GetStyle();
-
-    if (main_menu_height > 0)
-    {
-        ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
-        ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({425 * dpi, window_size[1] - main_menu_height - style.WindowPadding.y});
-        if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
-            auto b = begin_window({}, flags))
-        {
-            ImGui::SetWindowFontScale(dpi);
-            if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
-                for (const auto& [k, v] : ed)
-                    draw_editor_pane_atlas(ed, k, v);
-        }
-    }
 }
 
 void app::draw_fps()
@@ -225,6 +123,50 @@ void app::draw_tile_under_cursor()
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {window_size[0]*.5f - size.x/2, 3*dpi}, (unsigned)-1, buf);
+}
+
+void app::draw_editor_pane(float main_menu_height)
+{
+    auto* ed = _editor.current_tile_editor();
+    auto* sc = _editor.current_scenery_editor();
+    fm_assert(!ed || !sc);
+
+    const auto window_size = M->window_size();
+    const auto dpi = M->dpi_scale();
+
+    if (const bool active = M->is_text_input_active();
+        ImGui::GetIO().WantTextInput != active)
+        active ? M->start_text_input() : M->stop_text_input();
+
+    [[maybe_unused]] const raii_wrapper vars[] = {
+        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi, 8*dpi}),
+        push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
+        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi, 4*dpi}),
+        push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
+        push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
+    };
+
+    const auto& style = ImGui::GetStyle();
+
+    if (main_menu_height > 0)
+    {
+        ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
+        ImGui::SetNextFrameWantCaptureKeyboard(false);
+        ImGui::SetNextWindowSize({425 * dpi, window_size[1] - main_menu_height - style.WindowPadding.y});
+        if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+            auto b = begin_window({}, flags))
+        {
+            ImGui::SetWindowFontScale(dpi);
+                if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
+                {
+                    if (ed)
+                        for (const auto& [k, v] : *ed)
+                            draw_editor_tile_pane_atlas(*ed, k, v);
+                    else if (sc)
+                        draw_editor_scenery_pane(*sc);
+                }
+        }
+    }
 }
 
 } // namespace floormat

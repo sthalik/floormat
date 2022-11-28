@@ -35,7 +35,7 @@ void app::draw_cursor()
 
 void app::draw()
 {
-    if (_editor.current_tile_editor())
+    if (_editor.current_tile_editor() || _editor.current_scenery_editor())
         draw_cursor();
     draw_ui();
     render_menu();

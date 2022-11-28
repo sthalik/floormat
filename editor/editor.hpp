@@ -27,6 +27,8 @@ struct editor final
 
     tile_editor* current_tile_editor() noexcept;
     const tile_editor* current_tile_editor() const noexcept;
+    scenery_editor* current_scenery_editor() noexcept;
+    const scenery_editor* current_scenery_editor() const noexcept;
 
     enum class button : unsigned char { none, place, remove, };
 

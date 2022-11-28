@@ -90,6 +90,8 @@ void app::do_key(key k, int mods)
         return _editor.set_mode(editor_mode::floor);
     case key_mode_walls:
         return _editor.set_mode(editor_mode::walls);
+    case key_mode_scenery:
+        return _editor.set_mode(editor_mode::scenery);
     case key_quicksave:
         return do_quicksave();
     case key_quickload:

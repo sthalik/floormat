@@ -6,6 +6,7 @@
 #include "serialize/json-helper.hpp"
 #include <array>
 #include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Utility/Path.h>
 #include <nlohmann/json.hpp>
 
 namespace {
@@ -105,7 +106,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 
     StringView atlas_name = j["atlas-name"];
     fm_assert(!atlas_name.isEmpty());
-    auto atlas = loader.anim_atlas(atlas_name);
+    auto atlas = loader.anim_atlas(Path::join("scenery", atlas_name));
     auto& f = val.frame;
     f = {};
 
