@@ -1,2 +1,107 @@
 [
+  {
+    "name": "Door (generic)",
+    "type": "door",
+    "atlas-name": "door-close"
+  },
+  {
+    "name": "bench1",
+    "type": "generic",
+    "atlas-name": "furniture/bench1"
+  },
+  {
+    "name": "bench6",
+    "type": "generic",
+    "atlas-name": "furniture/bench6"
+  },
+  {
+    "name": "cabinet1",
+    "type": "generic",
+    "atlas-name": "furniture/cabinet1"
+  },
+  {
+    "name": "cabinet4",
+    "type": "generic",
+    "atlas-name": "furniture/cabinet4"
+  },
+  {
+    "name": "cabinet5",
+    "type": "generic",
+    "atlas-name": "furniture/cabinet5"
+  },
+  {
+    "name": "cabinet6",
+    "type": "generic",
+    "atlas-name": "furniture/cabinet6"
+  },
+  {
+    "name": "chair1",
+    "type": "generic",
+    "atlas-name": "furniture/chair1"
+  },
+  {
+    "name": "chair4",
+    "type": "generic",
+    "atlas-name": "furniture/chair4"
+  },
+  {
+    "name": "drawers1",
+    "type": "generic",
+    "atlas-name": "furniture/drawers1"
+  },
+  {
+    "name": "drawers2",
+    "type": "generic",
+    "atlas-name": "furniture/drawers2"
+  },
+  {
+    "name": "shelf1",
+    "type": "generic",
+    "atlas-name": "furniture/shelf1"
+  },
+  {
+    "name": "shelf2",
+    "type": "generic",
+    "atlas-name": "furniture/shelf2"
+  },
+  {
+    "name": "shelf3",
+    "type": "generic",
+    "atlas-name": "furniture/shelf3"
+  },
+  {
+    "name": "shelf4",
+    "type": "generic",
+    "atlas-name": "furniture/shelf4"
+  },
+  {
+    "name": "stool1",
+    "type": "generic",
+    "atlas-name": "furniture/stool1"
+  },
+  {
+    "name": "stool2",
+    "type": "generic",
+    "atlas-name": "furniture/stool2"
+  },
+  {
+    "name": "table1",
+    "type": "generic",
+    "atlas-name": "furniture/table1"
+  },
+  {
+    "name": "table4",
+    "type": "generic",
+    "atlas-name": "furniture/table4"
+  },
+  {
+    "name": "table5",
+    "type": "generic",
+    "atlas-name": "furniture/table5"
+  },
+  {
+    "name": "table7",
+    "type": "generic",
+    "atlas-name": "furniture/table7"
+  }
 ]

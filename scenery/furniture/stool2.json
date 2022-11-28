@@ -1,0 +1,37 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "20 x 39",
+					"offset": "0 x 0",
+					"size": "40 x 51"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "n",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "stool2",
+	"pixel_size": "40 x 51",
+	"width": 40
+}

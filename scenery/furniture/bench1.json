@@ -1,0 +1,62 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "121 x 134",
+					"offset": "0 x 0",
+					"size": "240 x 258"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "n",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "119 x 99",
+					"offset": "0 x 258",
+					"size": "240 x 215"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "s",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "s",
+			"name": "e",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "bench1",
+	"pixel_size": "240 x 473",
+	"width": 240
+}

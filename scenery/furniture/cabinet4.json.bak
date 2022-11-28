@@ -1,0 +1,34 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [],
+			"ground": "960 x 540",
+            "offset": [0, 0, 0],
+			"name": "n"
+		},
+		{
+            "offset": [0, 0, 0],
+			"name": "w",
+            "mirror-from": "n"
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+            "offset": [0, 0, 0],
+			"name": "s"
+		},
+		{
+            "offset": [0, 0, 0],
+			"name": "e",
+            "mirror-from": "s"
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "cabinet4",
+	"pixel_size": "0 x 0",
+	"width": 240
+}

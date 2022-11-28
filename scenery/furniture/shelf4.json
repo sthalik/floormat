@@ -1,0 +1,37 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "25 x 61",
+					"offset": "0 x 0",
+					"size": "50 x 76"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "n",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "shelf4",
+	"pixel_size": "50 x 76",
+	"width": 50
+}

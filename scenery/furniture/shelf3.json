@@ -1,0 +1,62 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "24 x 60",
+					"offset": "0 x 0",
+					"size": "50 x 72"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "n",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "26 x 60",
+					"offset": "0 x 72",
+					"size": "50 x 73"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "s",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "s",
+			"name": "e",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "shelf3",
+	"pixel_size": "50 x 145",
+	"width": 50
+}
