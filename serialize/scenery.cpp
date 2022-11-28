@@ -118,10 +118,10 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     bool active      = f.active;      get("active", active);
     bool animated    = f.animated;    get("animated", animated);
 
-    switch (f.type)
+    switch (type)
     {
     default:
-        fm_abort("unhandled scenery type '%hhu'", f.type);
+        fm_abort("unhandled scenery type '%hhu'", type);
     case scenery_type::generic:
         f = { scenery::generic, *atlas, r, frame, passable, blocks_view, animated, active };
         break;
