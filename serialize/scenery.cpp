@@ -50,7 +50,7 @@ StringView foo_to_string(auto type, const T(&map)[N], const char* desc)
     for (const auto& [type2, str] : map)
         if (type2 == type)
             return str;
-    fm_abort("wrong %s enum '%hhu'", desc, type);
+    fm_abort("wrong %s enum '%zu'", desc, (std::size_t)type);
 }
 
 } // namespace
