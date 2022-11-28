@@ -118,7 +118,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     switch (type)
     {
     default:
-        fm_abort("unhandled scenery type '%hhu'", type);
+        fm_abort("unhandled scenery type '%u'", (unsigned)type);
     case scenery_type::generic:
         f = { scenery::generic, *atlas, r, frame, passable, blocks_view, animated, active };
         break;
