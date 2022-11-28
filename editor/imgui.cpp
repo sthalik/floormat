@@ -46,7 +46,11 @@ float app::draw_main_menu()
         }
         if (auto b = begin_menu("Mode"))
         {
-            const bool can_rotate = _editor.current_tile_editor() ? _editor.current_tile_editor()->can_rotate() : false;
+            bool can_rotate = false;
+            if (auto* ed = _editor.current_tile_editor())
+                can_rotate = ed->is_anything_selected();
+            else if (auto* ed = _editor.current_scenery_editor())
+                can_rotate = ed->is_anything_selected();
             bool b_none = false, b_floor = false, b_walls = false, b_rotate = false, b_scenery = false;
             ImGui::MenuItem("Select",  "1", &b_none);
             ImGui::MenuItem("Floor",   "2", &b_floor);
