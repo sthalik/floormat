@@ -14,7 +14,6 @@ struct with_shifted_camera_offset final
 private:
     tile_shader& _shader; // NOLINT
     Vector2d _camera;
-    float _depth;
 };
 
 } // namespace floormat
