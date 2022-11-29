@@ -154,13 +154,16 @@ void app::draw_editor_pane(float main_menu_height)
 
     if (main_menu_height > 0)
     {
+        const auto b = push_id("editor");
+
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
         ImGui::SetNextWindowSize({425 * dpi, window_size[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
-            if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
+            const auto b2 = push_id("editor-pane");
+            if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 if (ed)
                     for (const auto& [k, v] : *ed)

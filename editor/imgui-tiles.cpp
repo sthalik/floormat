@@ -11,6 +11,8 @@ using namespace floormat::imgui;
 
 void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
 {
+    const auto b = push_id("tile-pane");
+
     const auto dpi = M->dpi_scale();
     constexpr Color4 color_perm_selected{1, 1, 1, .7f},
                      color_selected{1, 0.843f, 0, .8f},

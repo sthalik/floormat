@@ -33,6 +33,7 @@ private:
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value);
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, float value);
 [[nodiscard]] raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value);
+[[nodiscard]] raii_wrapper push_id(StringView str);
 
 void text(StringView str, ImGuiTextFlags flags = ImGuiTextFlags_NoWidthForLargeClippedText);
 

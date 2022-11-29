@@ -36,6 +36,12 @@ raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
     return {[]{ ImGui::PopStyleColor(); }};
 }
 
+raii_wrapper push_id(StringView str)
+{
+    ImGui::PushID(str.data(), str.data() + str.size());
+    return {[]{ ImGui::PopID(); }};
+}
+
 raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
 {
     ImGui::PushStyleVar(var, value);

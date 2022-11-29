@@ -11,12 +11,14 @@ using namespace floormat::imgui;
 
 void app::draw_editor_scenery_pane(scenery_editor& ed)
 {
+    const auto b1 = push_id("scenery-pane");
+
     const auto& style = ImGui::GetStyle();
     const auto dpi = M->dpi_scale();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr int ncolumns = 4;
     const auto size = ImGui::GetWindowSize();
-    auto b = imgui::begin_table("scenery-table", ncolumns, flags, size);
+    auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 5*dpi;
     constexpr auto thumbnail_width = 50;
     const auto colwidth_type = ImGui::CalcTextSize("generic").x;
