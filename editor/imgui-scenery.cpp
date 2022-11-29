@@ -14,7 +14,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
 {
     const auto& style = ImGui::GetStyle();
     const auto dpi = M->dpi_scale();
-    constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersV | ImGuiTableFlags_ScrollY;
+    constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr int ncolumns = 4;
     const auto size = ImGui::GetWindowSize();
     auto b = imgui::begin_table("scenery-table", ncolumns, flags, size);
