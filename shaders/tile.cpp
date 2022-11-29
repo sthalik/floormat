@@ -57,7 +57,7 @@ tile_shader& tile_shader::set_tint(const Vector4& tint)
 
 void tile_shader::_draw()
 {
-    fm_assert(_camera_offset[0] < 1 << 24 && _camera_offset[1] < 1 << 24);
+    fm_assert(std::fabs(_camera_offset[0]) < 1 << 24 && std::fabs(_camera_offset[1]) < 1 << 24);
 
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
