@@ -140,7 +140,6 @@ BitArrayView anim_atlas::bitmask() const
 rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 {
     constexpr auto count = std::size_t(rotation_COUNT);
-    fm_assert(r < rotation_COUNT);
     for (auto i = std::size_t(r)+1; i < count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
