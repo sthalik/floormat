@@ -19,7 +19,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
     constexpr int ncolumns = 4;
     const auto size = ImGui::GetWindowSize();
     auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
-    const auto row_height = ImGui::GetCurrentContext()->FontSize + 5*dpi;
+    const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi;
     constexpr auto thumbnail_width = 50;
     const auto colwidth_type = ImGui::CalcTextSize("generic").x;
     const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
@@ -40,7 +40,6 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
 
     for (const auto& [name, scenery] : ed)
     {
-        bool selected = ed.is_item_selected(scenery);
         fm_debug_assert(scenery.proto.atlas != nullptr);
         ImGui::TableNextRow(ImGuiTableRowFlags_None, row_height);
 
@@ -52,27 +51,23 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
             const auto size = Vector2(frame.size);
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
             const auto texcoords = atlas.texcoords_for_frame(r, 0, !atlas.group(r).mirror_from.isEmpty());
-            const ImVec2 img_size = {size[0]*c, size[1]*c};
+            const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
             const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + style.FramePadding.y + .5f*dpi + std::max(0.f, row_height - img_size.y));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*std::max(0.f, row_height - img_size.y));
             ImGui::Image((void*)&atlas.texture(), img_size, uv0, uv1);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(1))
         {
-            ImGui::AlignTextToFramePadding();
-            if (constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
-                ImGui::Selectable(name.data(), &selected, flags, ImVec2{0, row_height}))
-            {
-                if (selected)
-                    ed.select_tile(scenery);
-            }
+            constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
+            bool selected = ed.is_item_selected(scenery);
+            if (ImGui::Selectable(name.data(), &selected, flags, {0, row_height}) && selected)
+                ed.select_tile(scenery);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(2))
         {
-            ImGui::AlignTextToFramePadding();
             switch (scenery.proto.frame.type)
             {
             case scenery_type::none: text("none"); break;
@@ -91,7 +86,6 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
                 name = name.prefix(last.data());
             else
                 name = {};
-            ImGui::AlignTextToFramePadding();
             text(name);
             click_event();
         }
