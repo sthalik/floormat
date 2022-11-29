@@ -24,11 +24,11 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     _screen.fb = GL::Framebuffer{{{}, size}};
     _screen.color = GL::Renderbuffer{};
     _screen.color.setStorage(GL::RenderbufferFormat::RGBA8, size);
-    _screen.depth = GL::Renderbuffer{};
-    _screen.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
+    _screen.depthstencil = GL::Renderbuffer{};
+    _screen.depthstencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, size);
 
     _screen.fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _screen.color);
-    _screen.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, _screen.depth);
+    _screen.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _screen.depthstencil);
 
     update_window_state();
     _shader.set_scale(Vector2{size});
@@ -92,20 +92,24 @@ void main_impl::draw_world() noexcept
             const chunk_coords pos{x, y};
             if (!_world.contains(pos))
                 app.maybe_initialize_chunk(pos, _world[pos]);
-            const with_shifted_camera_offset o{_shader, pos};
+            auto& c = _world[pos];
+            if (c.empty())
+                continue;
+            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-                _floor_mesh.draw(_shader, _world[pos]);
+                _floor_mesh.draw(_shader, c);
         }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    constexpr float clear_depth = -1 << 24;
-    _screen.fb.clearDepth(clear_depth);
+    _screen.fb.clearDepth(0);
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
             auto& c = _world[pos];
-            const with_shifted_camera_offset o{_shader, pos};
+            if (c.empty())
+                continue;
+            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _wall_mesh.draw(_shader, c);
         }
@@ -122,7 +126,9 @@ void main_impl::draw_anim() noexcept
         {
             const chunk_coords pos{x, y};
             auto& c = _world[pos];
-            const with_shifted_camera_offset o{_shader, pos};
+            if (c.empty())
+                continue;
+            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 for (std::size_t i = 0; i < TILE_COUNT; i++)
                 {

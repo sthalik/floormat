@@ -9,12 +9,12 @@ struct tile_shader;
 
 struct with_shifted_camera_offset final
 {
-    explicit with_shifted_camera_offset(tile_shader& shader, short x, short y);
-    explicit with_shifted_camera_offset(tile_shader& shader, chunk_coords c) : with_shifted_camera_offset(shader, c.x, c.y) {}
+    explicit with_shifted_camera_offset(tile_shader& shader, chunk_coords c, chunk_coords first, chunk_coords last);
     ~with_shifted_camera_offset();
 private:
     tile_shader& _shader; // NOLINT
-    Vector2d _offset;
+    Vector2d _camera;
+    float _depth;
 };
 
 } // namespace floormat

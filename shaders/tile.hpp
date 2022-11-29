@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "tile-defs.hpp"
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -24,9 +25,10 @@ struct tile_shader : GL::AbstractShaderProgram
     Vector2 scale() const { return _scale; }
     tile_shader& set_scale(const Vector2& scale);
     Vector2d camera_offset() const { return _camera_offset; }
-    tile_shader& set_camera_offset(Vector2d camera_offset);
+    tile_shader& set_camera_offset(const Vector2d& camera_offset, float depth_offset);
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
+    float depth_offset() const { return _depth_offset; }
     static float depth_value(const local_coords& xy, float offset = 0) noexcept;
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
@@ -35,13 +37,16 @@ struct tile_shader : GL::AbstractShaderProgram
     template<typename T, typename... Xs>
     decltype(auto) draw(T&& mesh, Xs&&... xs);
 
+    static constexpr float depth_tile_size = 1.f/(256 * TILE_COUNT);
+
 private:
     void _draw();
 
     Vector2d _camera_offset;
     Vector4 _tint, _real_tint;
     Vector2 _scale;
-    Vector2 _real_camera_offset;
+    Vector3 _real_camera_offset;
+    float _depth_offset = 0;
 
     enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
 };

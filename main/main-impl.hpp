@@ -81,7 +81,7 @@ private:
 
     struct {
         GL::Framebuffer fb{NoCreate};
-        GL::Renderbuffer color{NoCreate}, depth{NoCreate};
+        GL::Renderbuffer color{NoCreate}, depthstencil{NoCreate};
     } _screen;
     Magnum::Timeline timeline;
     floor_mesh _floor_mesh;

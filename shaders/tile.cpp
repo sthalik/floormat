@@ -31,7 +31,7 @@ tile_shader::tile_shader()
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
-    setUniform(OffsetUniform, Vector2{});
+    setUniform(OffsetUniform, Vector3{});
 }
 
 tile_shader::~tile_shader() = default;
@@ -43,9 +43,10 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
     return *this;
 }
 
-tile_shader& tile_shader::set_camera_offset(Vector2d camera_offset)
+tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset, float depth_offset)
 {
     _camera_offset = camera_offset;
+    _depth_offset = depth_offset;
     return *this;
 }
 
@@ -58,11 +59,12 @@ tile_shader& tile_shader::set_tint(const Vector4& tint)
 void tile_shader::_draw()
 {
     fm_assert(std::fabs(_camera_offset[0]) < 1 << 24 && std::fabs(_camera_offset[1]) < 1 << 24);
+    fm_assert(std::fabs(_depth_offset) < 1 << 24);
 
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    if (const auto offset = Vector2{(float)_camera_offset[0], (float)_camera_offset[1]};
+    if (const auto offset = Vector3((float)_camera_offset[0], (float)_camera_offset[1], _depth_offset);
         offset != _real_camera_offset)
     {
         _real_camera_offset = offset;
@@ -72,11 +74,7 @@ void tile_shader::_draw()
 
 float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
 {
-    constexpr float max = (TILE_MAX_DIM+1)*(TILE_MAX_DIM+1) * .5f;
-    constexpr float min = -1 + 1.f/256;
-    float value = min + (xy.to_index() + offset)/max;
-    fm_assert(value > -1 && value < 1);
-    return value;
+    return (xy.to_index() + offset)*depth_tile_size;
 }
 
 } // namespace floormat
