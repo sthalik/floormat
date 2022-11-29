@@ -6,6 +6,7 @@
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Math/Color.h>
 #include <algorithm>
 #include <thread>
@@ -14,6 +15,21 @@ namespace floormat {
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
 {
+    if (_screen.fb.id())
+    {
+        _screen.fb.detach(GL::Framebuffer::ColorAttachment{0});
+        _screen.fb.detach(GL::Framebuffer::BufferAttachment::Depth);
+    }
+
+    _screen.fb = GL::Framebuffer{{{}, size}};
+    _screen.color = GL::Renderbuffer{};
+    _screen.color.setStorage(GL::RenderbufferFormat::RGBA8, size);
+    _screen.depth = GL::Renderbuffer{};
+    _screen.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
+
+    _screen.fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _screen.color);
+    _screen.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, _screen.depth);
+
     update_window_state();
     _shader.set_scale(Vector2{size});
     GL::defaultFramebuffer.setViewport({{}, size });
@@ -26,8 +42,11 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     GL::Renderer::disable(R::Feature::DepthTest);
     GL::Renderer::enable(R::Feature::Blending);
     GL::Renderer::enable(R::Feature::ScissorTest);
+    GL::Renderer::enable(R::Feature::DepthClamp);
     GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
     GL::Renderer::setScissor({{}, size});
+
+    _screen.fb.bind();
 
     // -- user--
     app.on_viewport_event(size);
@@ -79,8 +98,8 @@ void main_impl::draw_world() noexcept
         }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    constexpr float clear_depth = 0;
-    GL::defaultFramebuffer.clearDepthStencil(clear_depth, 0);
+    constexpr float clear_depth = -1 << 24;
+    _screen.fb.clearDepth(clear_depth);
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -90,7 +109,6 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _wall_mesh.draw(_shader, c);
         }
-    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
 void main_impl::draw_anim() noexcept
@@ -98,8 +116,6 @@ void main_impl::draw_anim() noexcept
     const auto sz = windowSize();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     _clickable_scenery.clear();
-
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
@@ -129,8 +145,6 @@ void main_impl::draw_anim() noexcept
                     }
                 }
         }
-
-    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
@@ -184,16 +198,16 @@ void main_impl::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        const auto clear_color = 0x222222ff_rgbaf;
-
-        GL::defaultFramebuffer.clearColor(clear_color);
-
-        draw_world();
         _shader.set_tint({1, 1, 1, 1});
+        const auto clear_color = 0x222222ff_rgbaf;
+        _screen.fb.clearColor(0, clear_color);
+        draw_world();
         draw_anim();
+        GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
     }
 
     app.draw();
+    GL::Framebuffer::blit(_screen.fb, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
     GL::Renderer::flush();
 
     do_update();
