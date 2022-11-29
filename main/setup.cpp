@@ -66,6 +66,7 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     using f = GLConfiguration::Flag;
+    flags |= f::ForwardCompatible;
     if (s.gpu_debug >= fm_gpu_debug::on)
         flags |= f::Debug | f::GpuValidation;
     if (s.gpu_debug >= fm_gpu_debug::robust)
