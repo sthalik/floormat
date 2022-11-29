@@ -41,7 +41,11 @@ void scenery_editor::prev_rotation()
 
 void scenery_editor::select_tile(const scenery_& s)
 {
+    const auto rot = is_anything_selected() && s.proto.atlas->check_rotation(_selected.proto.frame.r)
+                     ? _selected.proto.frame.r
+                     : s.proto.frame.r;
     _selected = s;
+    _selected.proto.frame.r = rot;
 }
 
 void scenery_editor::clear_selection()

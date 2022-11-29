@@ -163,13 +163,19 @@ rotation anim_atlas::prev_rotation_from(rotation r) const noexcept
 {
     using ssize = std::make_signed_t<std::size_t>;
     constexpr auto count = ssize(rotation_COUNT);
-    for (auto i = ssize(r)-1; i >= 0; i--)
-        if (_group_indices[std::size_t(i)] != 0xff)
-            return rotation(i);
+    if (r < rotation_COUNT)
+        for (auto i = ssize(r)-1; i >= 0; i--)
+            if (_group_indices[std::size_t(i)] != 0xff)
+                return rotation(i);
     for (auto i = count-1; i >= 0; i--)
         if (_group_indices[std::size_t(i)] != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
+}
+
+bool anim_atlas::check_rotation(rotation r) const noexcept
+{
+    return r < rotation_COUNT && _group_indices[std::size_t(r)] < 0xff;
 }
 
 } // namespace floormat
