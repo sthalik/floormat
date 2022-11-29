@@ -6,7 +6,6 @@
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/Math/Color.h>
 #include <algorithm>
 #include <thread>
@@ -15,21 +14,6 @@ namespace floormat {
 
 void main_impl::recalc_viewport(Vector2i size) noexcept
 {
-    if (_screen.fb.id())
-    {
-        _screen.fb.detach(GL::Framebuffer::ColorAttachment{0});
-        _screen.fb.detach(GL::Framebuffer::BufferAttachment::Depth);
-    }
-
-    _screen.fb = GL::Framebuffer{{{}, size}};
-    _screen.color = GL::Renderbuffer{};
-    _screen.color.setStorage(GL::RenderbufferFormat::RGBA8, size);
-    _screen.depthstencil = GL::Renderbuffer{};
-    _screen.depthstencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, size);
-
-    _screen.fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _screen.color);
-    _screen.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, _screen.depthstencil);
-
     update_window_state();
     _shader.set_scale(Vector2{size});
     GL::defaultFramebuffer.setViewport({{}, size });
@@ -45,8 +29,6 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     GL::Renderer::enable(R::Feature::DepthClamp);
     GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
     GL::Renderer::setScissor({{}, size});
-
-    _screen.fb.bind();
 
     // -- user--
     app.on_viewport_event(size);
@@ -101,7 +83,7 @@ void main_impl::draw_world() noexcept
         }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    _screen.fb.clearDepth(0);
+    GL::defaultFramebuffer.clearDepthStencil(0, 0);
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -206,14 +188,13 @@ void main_impl::drawEvent()
     {
         _shader.set_tint({1, 1, 1, 1});
         const auto clear_color = 0x222222ff_rgbaf;
-        _screen.fb.clearColor(0, clear_color);
+        GL::defaultFramebuffer.clearColor(clear_color);
         draw_world();
         draw_anim();
         GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
     }
 
     app.draw();
-    GL::Framebuffer::blit(_screen.fb, GL::defaultFramebuffer, {{}, windowSize()}, GL::FramebufferBlit::Color);
     GL::Renderer::flush();
 
     do_update();

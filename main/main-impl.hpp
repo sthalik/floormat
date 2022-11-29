@@ -12,8 +12,6 @@
 #include <Magnum/Timeline.h>
 #include <Magnum/Math/Range.h>
 #include <Magnum/GL/DebugOutput.h>
-#include <Magnum/GL/Framebuffer.h>
-#include <Magnum/GL/Renderbuffer.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
@@ -78,11 +76,6 @@ private:
     tile_shader _shader;
     std::vector<clickable<anim_atlas, scenery>> _clickable_scenery;
     struct world _world{};
-
-    struct {
-        GL::Framebuffer fb{NoCreate};
-        GL::Renderbuffer color{NoCreate}, depthstencil{NoCreate};
-    } _screen;
     Magnum::Timeline timeline;
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
