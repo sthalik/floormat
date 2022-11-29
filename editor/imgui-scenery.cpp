@@ -17,7 +17,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
     constexpr int ncolumns = 4;
     const auto size = ImGui::GetWindowSize();
     auto b = imgui::begin_table("scenery-table", ncolumns, flags, size);
-    const auto row_height = ImGui::GetCurrentContext()->FontSize;
+    const auto row_height = ImGui::GetCurrentContext()->FontSize + 5*dpi;
     constexpr auto thumbnail_width = 50;
     const auto colwidth_type = ImGui::CalcTextSize("generic").x;
     const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
