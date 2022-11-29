@@ -11,7 +11,6 @@
 namespace floormat::Serialize {
 
 using tilemeta  = std::uint8_t;
-using varid     = decltype(tile_image_proto::variant);
 using atlasid   = std::uint16_t;
 using chunksiz  = std::uint16_t;
 using proto_t = std::uint16_t;
@@ -38,7 +37,6 @@ enum : tilemeta {
     meta_wall_n         = 1 << (pass_bits + 1),
     meta_wall_w         = 1 << (pass_bits + 2),
     meta_short_atlasid  = 1 << (pass_bits + 3),
-    meta_short_variant  = 1 << (pass_bits + 4),
 };
 
 } // namespace floormat::Serialize

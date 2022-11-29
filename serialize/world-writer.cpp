@@ -38,7 +38,7 @@ private:
     std::unordered_map<const void*, interned_atlas> tile_images;
 };
 
-constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(varid)) * 3;
+constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3;
 
 constexpr auto chunkbuf_size =
         sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
@@ -107,14 +107,9 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         constexpr auto ashortp = [](atlasid id) {
             return id == null_atlas || id == (uchar)id;
         };
-        constexpr auto vshortp = [](const tile_image_proto& img) {
-            return !img.atlas || img.variant == (uchar)img.variant;
-        };
 
         if (flags != 0 && ashortp(img_g) && ashortp(img_n) && ashortp(img_w))
             flags |= meta_short_atlasid;
-        if (flags != 0 && vshortp(ground) && vshortp(wall_north) && vshortp(wall_west))
-            flags |= meta_short_variant;
 
         fm_debug_assert((x.pass_mode & pass_mask) == x.pass_mode);
         flags |= x.pass_mode;
@@ -131,9 +126,9 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         check_atlas(wall_west);
 #endif
 
-        const auto write = [&](atlasid x, varid v) {
+        const auto write = [&](atlasid x, variant_t v) {
             flags & meta_short_atlasid ? s << (uchar) x : s << x;
-            flags & meta_short_variant ? s << (uchar) v : s << v;
+            s << v;
         };
 
         if (img_g != null_atlas)

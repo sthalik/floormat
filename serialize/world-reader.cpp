@@ -67,8 +67,8 @@ void reader_state::read_chunks(reader_t& s)
             tile_ref t = chunk[i];
             using uchar = std::uint8_t;
             const auto make_atlas = [&]() -> tile_image_proto {
-                auto id = flags & meta_short_atlasid ? (atlasid)(s.read<uchar>()) : s.read<atlasid>();
-                auto v  = flags & meta_short_variant ? (varid)  (s.read<uchar>()) : s.read<varid>();
+                auto id = flags & meta_short_atlasid ? atlasid{s.read<uchar>()} : s.read<atlasid>();
+                auto v  = s.read<variant_t>();
                 auto atlas = lookup_atlas(id);
                 fm_assert(v < atlas->num_tiles());
                 return { atlas, v };
