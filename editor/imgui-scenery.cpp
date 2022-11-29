@@ -3,7 +3,6 @@
 #include "imgui-raii.hpp"
 #include "anim-atlas.hpp"
 #include "loader/loader.hpp"
-#include "compat/format.hpp"
 #include "floormat/main.hpp"
 
 namespace floormat {
