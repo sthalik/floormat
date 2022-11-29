@@ -5,6 +5,8 @@
 #include "main/clickable.hpp"
 #include "src/anim-atlas.hpp"
 #include "draw/anim.hpp"
+#include "src/camera-offset.hpp"
+#include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 
 namespace floormat {
@@ -14,6 +16,7 @@ void app::draw_cursor()
     constexpr float LINE_WIDTH = 2;
     auto& shader = M->shader();
     shader.set_tint({1, 0, 0, 1});
+    const auto inactive_color = 0xff00ffff_rgbaf;
 
     if (const auto [pos, b] = cursor.tile; b && !cursor.in_imgui)
     {
@@ -23,8 +26,10 @@ void app::draw_cursor()
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
-        if (const auto* ed = _editor.current_tile_editor(); ed && ed->is_anything_selected())
+        if (const auto* ed = _editor.current_tile_editor(); ed)
         {
+            if (!ed->is_anything_selected())
+                shader.set_tint(inactive_color);
             if (ed->mode() == editor_mode::walls)
                 switch (ed->rotation())
                 {
@@ -34,13 +39,19 @@ void app::draw_cursor()
             else if (ed->mode() == editor_mode::floor)
                 draw(_wireframe_quad, TILE_SIZE2);
         }
-        else if (const auto* ed = _editor.current_scenery_editor(); ed && ed->is_anything_selected())
+        else if (const auto* ed = _editor.current_scenery_editor(); ed)
         {
+            if (!ed->is_anything_selected())
+                shader.set_tint(inactive_color);
             const auto& sel = ed->get_selected().proto;
             draw(_wireframe_quad, TILE_SIZE2);
-            shader.set_tint({1, 1, 1, 0.75f});
-            auto [_f, _w, anim_mesh] = M->meshes();
-            anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, cursor.tile->local());
+            if (ed->is_anything_selected())
+            {
+                shader.set_tint({1, 1, 1, 0.75f});
+                auto [_f, _w, anim_mesh] = M->meshes();
+                const auto pos = Vector3i(cursor.tile->to_signed(), 0)*iTILE_SIZE;
+                anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, Vector3(pos), 1);
+            }
         }
     }
 }

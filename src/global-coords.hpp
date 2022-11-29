@@ -10,7 +10,13 @@ struct chunk_coords final {
     std::int16_t x = 0, y = 0;
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
+    constexpr Vector2i operator-(chunk_coords other) const noexcept;
 };
+
+constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
+{
+    return { Int{x} - other.x, Int{y} - other.y };
+}
 
 struct global_coords final {
     static constexpr std::uint32_t _0u = 1 << 15;
