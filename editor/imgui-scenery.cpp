@@ -48,7 +48,6 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
             auto& atlas = *scenery.proto.atlas;
             const auto r = atlas.next_rotation_from(rotation_COUNT);
             const auto& frame = atlas.frame(r, 0);
-            fm_debug_assert(frame.size.product() != 0);
             const auto size = Vector2(frame.size);
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
             const auto texcoords = atlas.texcoords_for_frame(r, 0, !atlas.group(r).mirror_from.isEmpty());
