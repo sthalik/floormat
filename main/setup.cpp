@@ -111,4 +111,9 @@ void main_impl::update_window_state()
     }
 }
 
+auto main_impl::meshes() noexcept -> struct meshes
+{
+    return { _floor_mesh, _wall_mesh, _anim_mesh, };
+};
+
 } // namespace floormat

@@ -50,23 +50,33 @@ void app::do_mouse_move(int mods)
 void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
 {
     update_cursor_tile(cursor.pixel);
-    if (!_editor.current_tile_editor())
+
+    if (is_down && cursor.tile && !cursor.in_imgui)
     {
-        if (cursor.tile)
-            if (auto* s = find_clickable_scenery(*cursor.pixel))
-                s->item.activate(s->atlas);
-    }
-    else if (cursor.tile && !cursor.in_imgui && is_down)
-    {
-        auto& w = M->world();
-        auto pos = *cursor.tile;
-        switch (button)
+        switch (_editor.mode())
         {
-        case mouse_button_left:
-            return _editor.on_click(w, pos, mods, editor::button::place);
-        case mouse_button_middle:
-            return _editor.on_click(w, pos, mods, editor::button::remove);
-        default: break;
+        default:
+        case editor_mode::none:
+            if (button == mouse_button_left)
+                if (auto* s = find_clickable_scenery(*cursor.pixel))
+                    return (void)s->item.activate(s->atlas);
+            break;
+        case editor_mode::floor:
+        case editor_mode::walls:
+        case editor_mode::scenery:
+            auto& w = M->world();
+            auto pos = *cursor.tile;
+            switch (button)
+            {
+            case mouse_button_left:
+                return _editor.on_click(w, pos, mods, editor::button::place);
+            case mouse_button_middle:
+                return _editor.on_click(w, pos, mods, editor::button::remove);
+            case mouse_button_right:
+                return _editor.clear_selection();
+            default: break;
+            }
+            break;
         }
     }
     _editor.on_release();
@@ -81,8 +91,10 @@ void app::do_key(key k, int mods)
         fm_warn("unhandled key: '%zu'", std::size_t(k));
         return;
     case key_rotate_tile:
-        if (auto* ed = _editor.current_tile_editor(); ed)
+        if (auto* ed = _editor.current_tile_editor())
             ed->toggle_rotation();
+        else if (auto* ed = _editor.current_scenery_editor())
+            ed->next_rotation();
         return;
     case key_mode_none:
         return _editor.set_mode(editor_mode::none);

@@ -58,6 +58,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void drawEvent() override;
     void do_update();
     void update_window_state();
+    struct meshes meshes() noexcept override;
 
     bool is_text_input_active() const noexcept override;
     void start_text_input() noexcept override;

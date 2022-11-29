@@ -147,11 +147,13 @@ chunk& chunk::operator=(chunk&&) noexcept = default;
 
 void chunk::mark_ground_modified() noexcept { _ground_modified = true; }
 void chunk::mark_walls_modified() noexcept { _walls_modified = true; }
+void chunk::mark_scenery_modified() noexcept { _scenery_modified = true; }
 
 void chunk::mark_modified() noexcept
 {
     mark_ground_modified();
     mark_walls_modified();
+    mark_scenery_modified();
 }
 
 } // namespace floormat

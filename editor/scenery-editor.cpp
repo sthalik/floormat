@@ -2,11 +2,17 @@
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
+#include "src/world.hpp"
 
 namespace floormat {
 
 using rotation_ = rotation;
 using rotation_t = std::underlying_type_t<rotation_>;
+
+scenery_editor::scenery_::operator bool() const noexcept
+{
+    return proto;
+}
 
 scenery_editor::scenery_editor() noexcept
 {
@@ -29,19 +35,19 @@ rotation_ scenery_editor::rotation() const
 
 void scenery_editor::next_rotation()
 {
-    if (auto& proto = _selected.proto; proto.atlas)
-        proto.frame.r = proto.atlas->next_rotation_from(proto.frame.r);
+    if (_selected)
+        set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
 }
 
 void scenery_editor::prev_rotation()
 {
-    if (auto& proto = _selected.proto; proto.atlas)
-        proto.frame.r = proto.atlas->prev_rotation_from(proto.frame.r);
+    if (_selected)
+        set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
 }
 
 void scenery_editor::select_tile(const scenery_& s)
 {
-    const auto rot = is_anything_selected() && s.proto.atlas->check_rotation(_selected.proto.frame.r)
+    const auto rot = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.frame.r)
                      ? _selected.proto.frame.r
                      : s.proto.frame.r;
     _selected = s;
@@ -53,7 +59,7 @@ void scenery_editor::clear_selection()
     _selected = {};
 }
 
-auto scenery_editor::get_selected() -> const scenery_&
+auto scenery_editor::get_selected() const -> const scenery_&
 {
     return _selected;
 }
@@ -71,6 +77,13 @@ bool scenery_editor::is_item_selected(const scenery_& s) const
 bool scenery_editor::is_anything_selected() const
 {
     return _selected.proto.atlas != nullptr;
+}
+
+void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
+{
+    auto [c, t] = w[pos];
+    t.scenery() = s.proto;
+    c.mark_scenery_modified();
 }
 
 } // namespace floormat

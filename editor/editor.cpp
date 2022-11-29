@@ -16,6 +16,14 @@ void editor::on_release()
     _last_pos = NullOpt;
 }
 
+void editor::clear_selection()
+{
+    if (auto* ed = current_tile_editor())
+        ed->clear_selection();
+    else if (auto* ed = current_scenery_editor())
+        ed->clear_selection();
+}
+
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 {
 
@@ -81,6 +89,7 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 void editor::on_click_(world& world, global_coords pos, button b)
 {
     if (auto* mode = current_tile_editor(); mode != nullptr)
+    {
         if (auto opt = mode->get_selected(); opt || b == button::remove)
         {
             switch (b)
@@ -90,14 +99,37 @@ void editor::on_click_(world& world, global_coords pos, button b)
             default: break;
             }
         }
+    }
+    else if (auto* mode = current_scenery_editor())
+    {
+        if (const auto& opt = mode->get_selected(); opt || b == button::remove)
+        {
+            switch (b)
+            {
+            default: break;
+            case button::place:
+                if (const auto& sel = mode->get_selected())
+                    mode->place_tile(world, pos, sel);
+                break;
+            case button::remove:
+                mode->place_tile(world, pos, {});
+                break;
+            }
+        }
+    }
     on_release();
 }
 
 void editor::on_click(world& world, global_coords pos, int mods, button b)
 {
-    if (auto* mode = current_tile_editor(); mode != nullptr)
+    if (auto* mode = current_tile_editor())
     {
         _last_pos = { InPlaceInit, pos, pos, mode->check_snap(mods), b };
+        on_click_(world, pos, b);
+    }
+    else if (current_scenery_editor())
+    {
+        _last_pos = {};
         on_click_(world, pos, b);
     }
 }
@@ -117,7 +149,7 @@ const tile_editor* editor::current_tile_editor() const noexcept
     case editor_mode::floor:
         return &_floor;
     case editor_mode::walls:
-        return &_wall; // todo
+        return &_wall;
     default:
         return nullptr;
     }

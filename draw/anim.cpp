@@ -22,19 +22,22 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, const Vector3& center, float depth)
 {
-    const auto center = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
     const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
-    const float depth = tile_shader::depth_value(xy, .25f);
     quad_data array;
     for (std::size_t i = 0; i < 4; i++)
         array[i] = { pos[i], texcoords[i], depth };
     _vertex_buffer.setSubData(0, array);
     atlas.texture().bind(0);
     shader.draw(_mesh);
+}
+
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
+{
+    draw(shader, atlas, r, frame, Vector3(xy.x, xy.y, 0.f) * TILE_SIZE, tile_shader::depth_value(xy, .25f));
 }
 
 } // namespace floormat

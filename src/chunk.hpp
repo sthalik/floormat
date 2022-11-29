@@ -41,6 +41,7 @@ struct chunk final
 
     void mark_ground_modified() noexcept;
     void mark_walls_modified() noexcept;
+    void mark_scenery_modified() noexcept;
     void mark_modified() noexcept;
 
     struct ground_mesh_tuple final {
@@ -69,9 +70,10 @@ private:
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
     std::bitset<TILE_COUNT*2> _passability = {};
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
-    mutable bool _maybe_empty     : 1 = true,
-                 _ground_modified : 1 = true,
-                 _walls_modified  : 1 = true;
+    mutable bool _maybe_empty      : 1 = true,
+                 _ground_modified  : 1 = true,
+                 _walls_modified   : 1 = true,
+                 _scenery_modified : 1 = true;
 };
 
 } // namespace floormat

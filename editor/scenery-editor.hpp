@@ -1,5 +1,5 @@
 #pragma once
-#include "src/scenery.hpp"
+#include "scenery.hpp"
 #include <map>
 #include <memory>
 #include <Corrade/Containers/String.h>
@@ -7,12 +7,15 @@
 namespace floormat {
 
 struct anim_atlas;
+struct global_coords;
+struct world;
 
 struct scenery_editor final
 {
     struct scenery_ final {
         String name, descr;
         scenery_proto proto;
+        operator bool() const noexcept;
     };
 
     scenery_editor() noexcept;
@@ -24,10 +27,11 @@ struct scenery_editor final
 
     void select_tile(const scenery_& s);
     void clear_selection();
-    const scenery_& get_selected();
+    const scenery_& get_selected() const;
     bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
     bool is_item_selected(const scenery_& s) const;
     bool is_anything_selected() const;
+    void place_tile(world& w, global_coords pos, const scenery_& s);
 
     auto cbegin() const noexcept { return _atlases.cbegin(); }
     auto cend() const noexcept { return _atlases.cend(); }

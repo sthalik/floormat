@@ -4,6 +4,7 @@
 #include "shaders/tile.hpp"
 #include "main/clickable.hpp"
 #include "src/anim-atlas.hpp"
+#include "draw/anim.hpp"
 #include <Magnum/Math/Vector3.h>
 
 namespace floormat {
@@ -11,14 +12,14 @@ namespace floormat {
 void app::draw_cursor()
 {
     constexpr float LINE_WIDTH = 2;
+    auto& shader = M->shader();
+    shader.set_tint({1, 0, 0, 1});
 
     if (const auto [pos, b] = cursor.tile; b && !cursor.in_imgui)
     {
         const auto draw = [&, pos = pos](auto& mesh, const auto& size) {
             const auto pt = pos.to_signed();
             const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
-            auto& shader = M->shader();
-            shader.set_tint({1, 0, 0, 1});
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
@@ -34,7 +35,13 @@ void app::draw_cursor()
                 draw(_wireframe_quad, TILE_SIZE2);
         }
         else if (const auto* ed = _editor.current_scenery_editor(); ed && ed->is_anything_selected())
+        {
+            const auto& sel = ed->get_selected().proto;
             draw(_wireframe_quad, TILE_SIZE2);
+            shader.set_tint({1, 1, 1, 0.75f});
+            auto [_f, _w, anim_mesh] = M->meshes();
+            anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, cursor.tile->local());
+        }
     }
 }
 

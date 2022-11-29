@@ -36,6 +36,7 @@ struct editor final
     void on_click_(world& world, global_coords pos, button b);
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
+    void clear_selection();
 
     editor();
     editor(editor&&) noexcept = default;

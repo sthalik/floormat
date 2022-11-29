@@ -23,6 +23,7 @@ struct anim_mesh final
 {
     anim_mesh();
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
+    void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, const Vector3& pos, float depth);
 
 private:
     struct vertex_data final {
