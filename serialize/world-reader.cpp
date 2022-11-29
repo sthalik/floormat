@@ -100,11 +100,11 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
     auto s = binary_reader{buf};
     if (!!::memcmp(s.read<std::size(file_magic)-1>().data(), file_magic, std::size(file_magic)-1))
         fm_abort("bad magic");
-    std::decay_t<decltype(proto_version)> proto;
+    proto_t proto;
     s >> proto;
-    if (proto != proto_version)
-        fm_abort("bad proto version '%zu' (should be '%zu')",
-                 (std::size_t)proto, (std::size_t)proto_version);
+    if (!(proto >= min_proto_version && proto <= proto_version))
+        fm_abort("bad proto version '%zu' (should be between '%zu' and '%zu')",
+                 (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     read_atlases(s);
     read_chunks(s);
     s.assert_end();
