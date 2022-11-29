@@ -45,7 +45,7 @@ public:
     void collect(bool force = false);
     std::size_t size() const noexcept { return _chunks.size(); }
 
-    [[deprecated]] const auto& chunks() const noexcept {  return _chunks; } // only for serialization
+    [[deprecated]] const auto& chunks() const noexcept { return _chunks; } // only for serialization
 
     void serialize(StringView filename);
     static world deserialize(StringView filename);

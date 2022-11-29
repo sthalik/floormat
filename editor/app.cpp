@@ -26,8 +26,9 @@ app::app(fm_settings&& opts) :
     reset_camera_offset();
 }
 
-app::~app() // NOLINT(modernize-use-equals-default)
+app::~app()
 {
+    void();
 }
 
 int app::exec()

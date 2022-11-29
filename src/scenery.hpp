@@ -42,7 +42,9 @@ struct scenery final
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0, bool passable = false, bool blocks_view = false, bool animated = false, bool active = false, bool interactive = false);
+    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0,
+            bool passable = false, bool blocks_view = false, bool animated = false,
+            bool active = false, bool interactive = false);
     scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
 
     bool can_activate() const noexcept;
