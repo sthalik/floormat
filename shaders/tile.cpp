@@ -30,8 +30,8 @@ tile_shader::tile_shader()
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
     set_scale({640, 480});
-    setUniform(OffsetUniform, Vector2{});
     set_tint({1, 1, 1, 1});
+    setUniform(OffsetUniform, Vector2{});
 }
 
 tile_shader::~tile_shader() = default;
@@ -51,17 +51,20 @@ tile_shader& tile_shader::set_camera_offset(Vector2d camera_offset)
 
 tile_shader& tile_shader::set_tint(const Vector4& tint)
 {
-    if (tint != _tint)
-        setUniform(TintUniform, _tint = tint);
+    _tint = tint;
     return *this;
 }
 
 void tile_shader::_draw()
 {
+    fm_assert(_camera_offset[0] < 1 << 24 && _camera_offset[1] < 1 << 24);
+
+    if (_tint != _real_tint)
+        setUniform(TintUniform, _real_tint = _tint);
+
     if (const auto offset = Vector2{(float)_camera_offset[0], (float)_camera_offset[1]};
         offset != _real_camera_offset)
     {
-        fm_assert(offset[0] < 1 << 24 && offset[1] < 1 << 24);
         _real_camera_offset = offset;
         setUniform(OffsetUniform, offset);
     }

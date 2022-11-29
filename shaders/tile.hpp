@@ -39,7 +39,7 @@ private:
     void _draw();
 
     Vector2d _camera_offset;
-    Vector4 _tint;
+    Vector4 _tint, _real_tint;
     Vector2 _scale;
     Vector2 _real_camera_offset;
 
