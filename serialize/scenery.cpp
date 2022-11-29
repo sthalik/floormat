@@ -103,7 +103,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 
     StringView atlas_name = j["atlas-name"];
     fm_assert(!atlas_name.isEmpty());
-    auto atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
+    val.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
     auto& f = val.frame;
     f = {};
 
@@ -120,10 +120,10 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     default:
         fm_abort("unhandled scenery type '%u'", (unsigned)type);
     case scenery_type::generic:
-        f = { scenery::generic, *atlas, r, frame, passable, blocks_view, animated, active };
+        f = { scenery::generic, *val.atlas, r, frame, passable, blocks_view, animated, active };
         break;
     case scenery_type::door:
-        f = { scenery::door, *atlas, r, false };
+        f = { scenery::door, *val.atlas, r, false };
     }
 }
 
