@@ -129,7 +129,7 @@ void app::update(float dt)
     clear_non_repeated_keys();
 
     if (clickable_scenery* s;
-        !_editor.current_tile_editor() && cursor.tile && (s = find_clickable_scenery(*cursor.pixel)) && s->item.can_activate())
+        _editor.mode() == editor_mode::none && cursor.tile && (s = find_clickable_scenery(*cursor.pixel)) && s->item.can_activate())
         M->set_cursor(std::uint32_t(Cursor::Hand));
     else
         M->set_cursor(std::uint32_t(Cursor::Arrow));
