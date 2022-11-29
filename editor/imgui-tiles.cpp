@@ -35,7 +35,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
         }
         const auto len = snformat(buf, "{:d}"_cf, N);
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi);
-        text(buf, len);
+        text({buf, len});
     };
     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
         auto b = tree_node(name.data(), flags))

@@ -29,6 +29,11 @@ struct scenery_editor final
     bool is_item_selected(const scenery_& s) const;
     bool is_anything_selected() const;
 
+    auto cbegin() const noexcept { return _atlases.cbegin(); }
+    auto cend() const noexcept { return _atlases.cend(); }
+    auto begin() const noexcept { return _atlases.cbegin(); }
+    auto end() const noexcept { return _atlases.cend(); }
+
 private:
     void load_atlases();
 

@@ -89,9 +89,9 @@ void app::draw_ui()
     _imgui.newFrame();
 
     const float main_menu_height = draw_main_menu();
+    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     if (_editor.mode() != editor_mode::none)
         draw_editor_pane(main_menu_height);
-    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     draw_fps();
     draw_tile_under_cursor();
     ImGui::EndFrame();

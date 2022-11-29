@@ -23,7 +23,7 @@ font_saver::font_saver(float size) : font_saver{*ImGui::GetCurrentContext(), siz
 style_saver::style_saver() : style{ImGui::GetStyle()} {}
 style_saver::~style_saver() { ImGui::GetStyle() = style; }
 
-void text(const char* str, std::size_t len, ImGuiTextFlags_ flags) { ImGui::TextEx(str, str + len, flags); }
+void text(StringView str, ImGuiTextFlags flags) { ImGui::TextEx(str.data(), str.data() + str.size(), flags); }
 
 raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn} {}
 raii_wrapper::~raii_wrapper() { if (dtor) dtor(); }
@@ -48,7 +48,7 @@ raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
     return {[]{ ImGui::PopStyleVar(); }};
 }
 
-raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags_ flags)
+raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags flags)
 {
     if (ImGui::TreeNodeEx(name.data(), flags))
         return {&ImGui::TreePop};
@@ -60,6 +60,14 @@ raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
 {
     if (ImGui::BeginListBox(name.data(), size))
         return {&ImGui::EndListBox};
+    else
+        return {};
+}
+
+raii_wrapper begin_table(const char* id, int ncols, ImGuiTableFlags flags, const ImVec2& outer_size, float inner_width)
+{
+    if (ImGui::BeginTable(id, ncols, flags, outer_size, inner_width))
+        return {&ImGui::EndTable};
     else
         return {};
 }
@@ -80,7 +88,7 @@ raii_wrapper begin_main_menu()
         return {};
 }
 
-raii_wrapper begin_window(Containers::StringView name, ImGuiWindowFlags_ flags)
+raii_wrapper begin_window(Containers::StringView name, ImGuiWindowFlags flags)
 {
     if (name.isEmpty())
         name = "floormat editor";
