@@ -10,7 +10,7 @@ struct anim_atlas;
 
 struct scenery_editor final
 {
-    struct scenery_ {
+    struct scenery_ final {
         String name, descr;
         scenery_proto proto;
     };

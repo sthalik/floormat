@@ -50,7 +50,8 @@ struct scenery final
     void update(float dt, const anim_atlas& anim);
 };
 
-struct scenery_proto final {
+struct scenery_proto final
+{
     std::shared_ptr<anim_atlas> atlas;
     scenery frame;
 
