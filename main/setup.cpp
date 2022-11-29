@@ -69,7 +69,7 @@ auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
     if (s.gpu_debug >= fm_gpu_debug::on)
         flags |= f::Debug | f::GpuValidation;
     if (s.gpu_debug >= fm_gpu_debug::robust)
-        flags |= f::RobustAccess;
+        flags |= f::RobustAccess | f::ResetIsolation;
     else if (s.gpu_debug <= fm_gpu_debug::no_error)
         flags |= f::NoError;
     return GLConfiguration{}.setFlags(flags);
