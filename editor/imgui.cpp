@@ -160,15 +160,14 @@ void app::draw_editor_pane(float main_menu_height)
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
-            ImGui::SetWindowFontScale(dpi);
-                if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
-                {
-                    if (ed)
-                        for (const auto& [k, v] : *ed)
-                            draw_editor_tile_pane_atlas(*ed, k, v);
-                    else if (sc)
-                        draw_editor_scenery_pane(*sc);
-                }
+            if (auto b = begin_list_box("##atlases", {-FLT_MIN, -1}))
+            {
+                if (ed)
+                    for (const auto& [k, v] : *ed)
+                        draw_editor_tile_pane_atlas(*ed, k, v);
+                else if (sc)
+                    draw_editor_scenery_pane(*sc);
+            }
         }
     }
 }
