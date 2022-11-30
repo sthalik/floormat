@@ -38,6 +38,7 @@ struct anim_atlas final
     [[nodiscard]] rotation next_rotation_from(rotation r) const noexcept;
     [[nodiscard]] rotation prev_rotation_from(rotation r) const noexcept;
     [[nodiscard]] bool check_rotation(rotation r) const noexcept;
+    rotation first_rotation() const noexcept;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
@@ -51,7 +52,7 @@ private:
     };
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
-    static std::uint8_t rotation_to_index(const anim_def& a, rotation r) noexcept;
+    static std::uint8_t rotation_to_index(StringView name) noexcept;
     static BitArray make_bitmask(const ImageView2D& tex);
 };
 

@@ -9,25 +9,28 @@
 
 namespace floormat {
 
-static constexpr const char* name_array[] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
+static constexpr const char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
+static constexpr inline auto rot_count = std::size_t(rotation_COUNT);
 
-std::uint8_t anim_atlas::rotation_to_index(const anim_def& info, rotation r) noexcept
+static_assert(std::size(name_array) == rot_count);
+static_assert(rot_count == 8);
+
+std::uint8_t anim_atlas::rotation_to_index(StringView name) noexcept
 {
-    StringView str = name_array[std::size_t(r)];
-    for (std::size_t sz = info.groups.size(), i = 0; i < sz; i++)
-    {
-        const anim_group& g = info.groups[i];
-        if (g.name == str)
-            return std::uint8_t(i);
-    }
-    return 0xff;
+    for (std::uint8_t i = 0; i < rot_count; i++)
+        if (name == StringView{name_array[i]})
+            return i;
+    fm_abort("can't parse rotation name '%s'", name.data());
 }
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
 {
-    std::array<std::uint8_t, (std::size_t)rotation_COUNT> array;
-    for (std::size_t i = 0; i < array.size(); i++)
-        array[i] = rotation_to_index(a, rotation(i));
+    std::array<std::uint8_t, rot_count> array = {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    };
+    const auto ngroups = a.groups.size();
+    for (std::size_t i = 0; i < ngroups; i++)
+        array[rotation_to_index(a.groups[i].name)] = std::uint8_t(i);
     return array;
 }
 
@@ -36,6 +39,8 @@ anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info)
     _name{name}, _bitmask{make_bitmask(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
+    fm_assert(!_info.groups.empty());
+
     const Size<3>& size = image.pixels().size();
     fm_assert(size[0]*size[1] == _info.pixel_size.product());
     fm_assert(size[2] >= 3 && size[2] <= 4);
@@ -176,6 +181,14 @@ rotation anim_atlas::prev_rotation_from(rotation r) const noexcept
 bool anim_atlas::check_rotation(rotation r) const noexcept
 {
     return r < rotation_COUNT && _group_indices[std::size_t(r)] < 0xff;
+}
+
+rotation anim_atlas::first_rotation() const noexcept
+{
+    for (std::size_t i = 0; i < rot_count; i++)
+        if (_group_indices[i] == 0)
+            return rotation(i);
+    fm_abort("unreachable! can't find first rotation");
 }
 
 } // namespace floormat
