@@ -45,6 +45,8 @@ struct scenery final
             bool passable = false, bool blocks_view = false, bool active = false, bool interactive = false);
     scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
 
+    bool operator==(const scenery&) const noexcept;
+
     bool can_activate() const noexcept;
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);

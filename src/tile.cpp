@@ -80,10 +80,11 @@ bool operator==(const tile_ref& a, const tile_ref& b) noexcept
     if (a._chunk == b._chunk && a.i == b.i)
         return true;
     else
-        return a.ground()      == b.ground() &&
-               a.wall_north()  == b.wall_north() &&
-               a.wall_west()   == b.wall_west() &&
-               a.pass_mode()   == b.pass_mode();
+        return a.ground()     == b.ground() &&
+               a.wall_north() == b.wall_north() &&
+               a.wall_west()  == b.wall_west() &&
+               a.scenery()    == b.scenery() &&
+               a.pass_mode()  == b.pass_mode();
 }
 
 } // namespace floormat

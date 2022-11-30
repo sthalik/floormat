@@ -108,4 +108,13 @@ bool scenery::activate(const anim_atlas& atlas)
     return false;
 }
 
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+bool scenery::operator==(const scenery&) const noexcept = default;
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
+
 } // namespace floormat
