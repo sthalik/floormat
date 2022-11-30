@@ -31,9 +31,9 @@ scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 scenery::scenery() noexcept : scenery{none_tag_t{}} {}
 scenery::scenery(none_tag_t) noexcept : passable{true} {}
 scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
-                 bool passable, bool blocks_view, bool animated, bool active, bool interactive) :
+                 bool passable, bool blocks_view, bool active, bool interactive) :
     frame{frame}, r{r}, type{scenery_type::generic},
-    passable{passable}, blocks_view{blocks_view}, active{active}, animated{animated},
+    passable{passable}, blocks_view{blocks_view}, active{active},
     interactive{interactive}
 {
     fm_assert(r < rotation_COUNT);

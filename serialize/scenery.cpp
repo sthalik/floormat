@@ -88,7 +88,6 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
     j["passable"] = f.passable;
     j["blocks-view"] = f.blocks_view;
     j["active"] = f.active;
-    j["animated"] = f.animated;
     j["interactive"] = f.interactive;
 }
 
@@ -113,14 +112,13 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     bool passable    = f.passable;    get("passable", passable);
     bool blocks_view = f.blocks_view; get("blocks-view", blocks_view);
     bool active      = f.active;      get("active", active);
-    bool animated    = f.animated;    get("animated", animated);
 
     switch (type)
     {
     default:
         fm_abort("unhandled scenery type '%u'", (unsigned)type);
     case scenery_type::generic:
-        f = { scenery::generic, *val.atlas, r, frame, passable, blocks_view, animated, active };
+        f = { scenery::generic, *val.atlas, r, frame, passable, blocks_view, active };
         break;
     case scenery_type::door:
         f = { scenery::door, *val.atlas, r, false };

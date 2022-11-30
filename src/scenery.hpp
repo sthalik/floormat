@@ -37,14 +37,12 @@ struct scenery final
     std::uint8_t blocks_view : 1 = false; // todo
     std::uint8_t active      : 1 = false;
     std::uint8_t closing     : 1 = false;
-    std::uint8_t animated    : 1 = false; // todo
     std::uint8_t interactive : 1 = false;
 
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
     scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0,
-            bool passable = false, bool blocks_view = false, bool animated = false,
-            bool active = false, bool interactive = false);
+            bool passable = false, bool blocks_view = false, bool active = false, bool interactive = false);
     scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
 
     bool can_activate() const noexcept;
