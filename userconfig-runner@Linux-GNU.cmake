@@ -4,7 +4,8 @@ set(CMAKE_BUILD_TYPE DEBUG PARENT_SCOPE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 add_compile_options(-fsanitize=address,undefined)
-add_compile_options(-fsanitize=address,undefined)
+add_link_options(-fsanitize=address,undefined)
+sets(BOOL CORRADE_CPU_USE_IFUNC OFF)
 
 # for floormat sources only
 function(fm-userconfig-src)
