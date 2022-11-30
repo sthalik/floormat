@@ -46,6 +46,7 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open) 
     passable{is_open}, blocks_view{!is_open}, interactive{true}
 {
     fm_assert(r < rotation_COUNT);
+    fm_assert(atlas.group(r).frames.size() >= 2);
 }
 
 bool scenery::can_activate() const noexcept
