@@ -82,7 +82,7 @@ void scenery::update(float dt, const anim_atlas& anim)
         blocks_view = !passable;
         frame = (frame_t)std::clamp(fr, 0, nframes-1);
         if (!active)
-            delta = 0;
+            delta = closing = 0;
         break;
     }
 }
