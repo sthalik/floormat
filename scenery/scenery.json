@@ -5,6 +5,11 @@
     "atlas-name": "door-close"
   },
   {
+    "name": "control panel (wall) 1",
+    "type": "generic",
+    "atlas-name": "control-panel"
+  },
+  {
     "name": "bench1",
     "type": "generic",
     "atlas-name": "furniture/bench1"
