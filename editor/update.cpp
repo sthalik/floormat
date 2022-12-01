@@ -138,6 +138,7 @@ void app::update(float dt)
     update_world(dt);
     apply_commands(keys);
     do_camera(dt, keys, get_key_modifiers());
+    update_cursor_tile(cursor.pixel);
     clear_non_repeated_keys();
 
     if (clickable_scenery* s; _editor.mode() == editor_mode::none && cursor.tile &&
