@@ -49,8 +49,8 @@ void reader_state::read_atlases(reader_t& s)
     for (atlasid i = 0; i < N; i++)
     {
         Vector2ub size;
-        s >> size[0];
-        s >> size[1];
+        size[0] << s;
+        size[1] << s;
         const auto& [buf, len] = s.read_asciiz_string<atlas_name_max>();
         atlases[i] = loader.tile_atlas({buf, len}, size);
     }
@@ -59,7 +59,7 @@ void reader_state::read_atlases(reader_t& s)
 template<typename T>
 bool read_scenery_flags(binary_reader<T>& s, scenery& sc)
 {
-    std::uint8_t flags; s >> flags;
+    std::uint8_t flags; flags << s;
     sc.passable    = !!(flags & 1 << 0);
     sc.blocks_view = !!(flags & 1 << 1);
     sc.active      = !!(flags & 1 << 2);
@@ -70,17 +70,17 @@ bool read_scenery_flags(binary_reader<T>& s, scenery& sc)
 
 void reader_state::read_sceneries(reader_t& s)
 {
-    std::uint16_t magic; s >> magic;
+    std::uint16_t magic; magic << s;
     if (magic != scenery_magic)
         fm_abort("bad scenery magic");
-    atlasid sz; s >> sz;
+    atlasid sz; sz << s;
     fm_assert(sz < scenery_id_max);
     sceneries.resize(sz);
 
     std::size_t i = 0;
     while (i < sz)
     {
-        std::uint8_t num; s >> num;
+        std::uint8_t num; num << s;
         fm_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
         auto it = default_sceneries.find(StringView{str.buf, str.len});
@@ -88,7 +88,7 @@ void reader_state::read_sceneries(reader_t& s)
             fm_abort("can't find scenery '%s'", str.buf);
         for (std::size_t n = 0; n < num; n++)
         {
-            atlasid id; s >> id;
+            atlasid id; id << s;
             fm_assert(id < sz);
             scenery_proto sc = it->second->proto;
             bool short_frame = read_scenery_flags(s, sc.frame);
@@ -96,7 +96,7 @@ void reader_state::read_sceneries(reader_t& s)
             if (short_frame)
                 sc.frame.frame = s.read<std::uint8_t>();
             else
-                s >> sc.frame.frame;
+                sc.frame.frame << s;
             fm_assert(sc.frame.frame < sc.atlas->info().nframes);
             sceneries[id] = sc;
         }
@@ -122,12 +122,12 @@ void reader_state::read_chunks(reader_t& s)
     for (std::size_t k = 0; k < N; k++)
     {
         std::decay_t<decltype(chunk_magic)> magic;
-        s >> magic;
+        magic << s;
         if (magic != chunk_magic)
             fm_abort("bad chunk magic");
         chunk_coords coord;
-        s >> coord.x;
-        s >> coord.y;
+        coord.x << s;
+        coord.y << s;
         auto& chunk = (*_world)[coord];
         for (std::size_t i = 0; i < TILE_COUNT; i++)
         {
@@ -138,7 +138,7 @@ void reader_state::read_chunks(reader_t& s)
                 auto id = flags & meta_short_atlasid ? atlasid{s.read<uchar>()} : s.read<atlasid>();
                 variant_t v;
                 if (PROTO >= 2) [[likely]]
-                    s >> v;
+                    v << s;
                 else
                     v = flags & meta_short_variant_
                         ? s.read<std::uint8_t>()
@@ -158,7 +158,7 @@ void reader_state::read_chunks(reader_t& s)
             if (PROTO >= 3) [[likely]]
                 if (flags & meta_scenery)
                 {
-                    atlasid id; s >> id;
+                    atlasid id; id << s;
                     const bool exact = id & meta_long_scenery_bit;
                     const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                     id &= ~scenery_id_flag_mask;
@@ -171,9 +171,9 @@ void reader_state::read_chunks(reader_t& s)
                         if (read_scenery_flags(s, sc.frame))
                             sc.frame.frame = s.read<std::uint8_t>();
                         else
-                            s >> sc.frame.frame;
+                            sc.frame.frame << s;
                         if (sc.frame.active)
-                            s >> sc.frame.delta;
+                            sc.frame.delta << s;
                     }
                     t.scenery() = sc;
                 }
@@ -198,7 +198,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
     if (!!::memcmp(s.read<std::size(file_magic)-1>().data(), file_magic, std::size(file_magic)-1))
         fm_abort("bad magic");
     proto_t proto;
-    s >> proto;
+    proto << s;
     if (!(proto >= min_proto_version && proto <= proto_version))
         fm_abort("bad proto version '%zu' (should be between '%zu' and '%zu')",
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);

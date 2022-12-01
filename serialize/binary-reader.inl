@@ -55,6 +55,12 @@ binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept
     return reader;
 }
 
+template<string_input_iterator It, serializable T>
+void operator<<(T& x, binary_reader<It>& reader) noexcept
+{
+    x = reader.template read<T>();
+}
+
 template<string_input_iterator It>
 template<std::size_t MAX>
 constexpr auto binary_reader<It>::read_asciiz_string() noexcept
