@@ -136,7 +136,13 @@ void reader_state::read_chunks(reader_t& s)
             using uchar = std::uint8_t;
             const auto make_atlas = [&]() -> tile_image_proto {
                 auto id = flags & meta_short_atlasid ? atlasid{s.read<uchar>()} : s.read<atlasid>();
-                auto v  = s.read<variant_t>();
+                variant_t v;
+                if (PROTO >= 2) [[likely]]
+                    s >> v;
+                else
+                    v = flags & meta_short_variant_
+                        ? s.read<std::uint8_t>()
+                        : std::uint8_t(s.read<std::uint16_t>());
                 auto atlas = lookup_atlas(id);
                 fm_assert(v < atlas->num_tiles());
                 return { atlas, v };

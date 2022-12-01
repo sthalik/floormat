@@ -57,7 +57,8 @@ enum : tilemeta {
     meta_wall_n         = 1 << (pass_bits + 1),
     meta_wall_w         = 1 << (pass_bits + 2),
     meta_short_atlasid  = 1 << (pass_bits + 3),
-    meta_scenery        = 1 << (pass_bits + 4),
+    meta_short_variant_ = 1 << (pass_bits + 4),
+    meta_scenery        = 1 << (pass_bits + 5),
 };
 
 } // namespace floormat::Serialize
