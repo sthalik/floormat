@@ -86,7 +86,7 @@ private:
         bool do_sleep = false;
     } dt_expected;
 
-    void recalc_viewport(Vector2i size) noexcept;
+    void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
     void draw_anim() noexcept;
 

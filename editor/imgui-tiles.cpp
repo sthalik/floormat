@@ -17,7 +17,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
     constexpr Color4 color_perm_selected{1, 1, 1, .7f},
                      color_selected{1, 0.843f, 0, .8f},
                      color_hover{0, .8f, 1, .7f};
-    const float window_width = ImGui::GetWindowWidth() - 32 * dpi;
+    const float window_width = ImGui::GetWindowWidth() - 32 * dpi[0];
     char buf[128];
     const auto& style = ImGui::GetStyle();
     const auto N = atlas->num_tiles();
@@ -36,7 +36,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
             text(" (selected)");
         }
         const auto len = snformat(buf, "{:d}"_cf, N);
-        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi);
+        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi[0]);
         text({buf, len});
     };
     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
@@ -44,7 +44,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
     {
         do_caption();
         [[maybe_unused]] const raii_wrapper vars[] = {
-            push_style_var(ImGuiStyleVar_FramePadding, {2*dpi, 2*dpi}),
+            push_style_var(ImGuiStyleVar_FramePadding, {2*dpi[0], 2*dpi[1]}),
             push_style_color(ImGuiCol_ButtonHovered, color_hover),
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
@@ -65,7 +65,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
             snformat(buf, "##item_{}"_cf, i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, (void*)&atlas->texture(), ImVec2(size_2.x * dpi, size_2.y * dpi),
+            ImGui::ImageButton(buf, (void*)&atlas->texture(), ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);

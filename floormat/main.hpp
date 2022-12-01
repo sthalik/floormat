@@ -60,12 +60,13 @@ struct floormat_main
 
     virtual struct world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
-    float dpi_scale() const noexcept { return _dpi_scale; }
+    Vector2 dpi_scale() const noexcept { return _dpi_scale; }
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
 
 protected:
-    float _frame_time1 = 0, _frame_time2 = 0, _dpi_scale = 1;
+    float _frame_time1 = 0, _frame_time2 = 0;
+    Vector2 _dpi_scale{1, 1}, _virtual_scale{1, 1};
 };
 
 } // namespace floormat

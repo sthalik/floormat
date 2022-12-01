@@ -13,7 +13,7 @@ struct world& main_impl::world() noexcept { return _world; }
 SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
 fm_settings& main_impl::settings() noexcept { return s; }
 const fm_settings& main_impl::settings() const noexcept { return s; }
-Vector2i main_impl::window_size() const noexcept { return windowSize(); }
+Vector2i main_impl::window_size() const noexcept { return framebufferSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 const tile_shader& main_impl::shader() const noexcept { return _shader; }
 bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
@@ -22,7 +22,7 @@ void main_impl::stop_text_input() noexcept { stopTextInput(); }
 
 int main_impl::exec()
 {
-    recalc_viewport(windowSize());
+    recalc_viewport(framebufferSize(), windowSize());
     return Sdl2Application::exec();
 }
 

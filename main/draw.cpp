@@ -12,11 +12,13 @@
 
 namespace floormat {
 
-void main_impl::recalc_viewport(Vector2i size) noexcept
+void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 {
+    _dpi_scale = dpiScaling();
+    _virtual_scale = Vector2(fb_size) / Vector2(win_size);
     update_window_state();
-    _shader.set_scale(Vector2{size});
-    GL::defaultFramebuffer.setViewport({{}, size });
+    _shader.set_scale(Vector2{fb_size});
+    GL::defaultFramebuffer.setViewport({{}, fb_size });
 
     // -- state ---
     using R = GL::Renderer;
@@ -28,17 +30,17 @@ void main_impl::recalc_viewport(Vector2i size) noexcept
     GL::Renderer::enable(R::Feature::ScissorTest);
     GL::Renderer::enable(R::Feature::DepthClamp);
     GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
-    GL::Renderer::setScissor({{}, size});
+    GL::Renderer::setScissor({{}, fb_size});
 
     // -- user--
-    app.on_viewport_event(size);
+    app.on_viewport_event(fb_size);
 }
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
     constexpr Vector2d pixel_size(TILE_SIZE2);
     constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{windowSize()}*.5 - _shader.camera_offset();
+    const Vector2d px = position - Vector2d{framebufferSize()}*.5 - _shader.camera_offset();
     const Vector2d vec = tile_shader::unproject(px*.5) / pixel_size + half;
     const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
     return { x, y };
@@ -49,7 +51,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
-    for (const auto win = Vector2d(windowSize());
+    for (const auto win = Vector2d(framebufferSize());
         auto p : {pixel_to_tile(Vector2d{0, 0}).chunk(),
                   pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
                   pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
@@ -66,7 +68,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 void main_impl::draw_world() noexcept
 {
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    const auto sz = windowSize();
+    const auto sz = framebufferSize();
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
@@ -99,7 +101,7 @@ void main_impl::draw_world() noexcept
 
 void main_impl::draw_anim() noexcept
 {
-    const auto sz = windowSize();
+    const auto sz = framebufferSize();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     _clickable_scenery.clear();
 
@@ -178,10 +180,11 @@ void main_impl::do_update()
 
 void main_impl::drawEvent()
 {
-    _dpi_scale = 1;
+#ifndef __linux__
     if (int index = SDL_GetWindowDisplayIndex(window()); index >= 0)
-        if (float dpi = 96; !SDL_GetDisplayDPI(index, &dpi, nullptr, nullptr))
-            _dpi_scale = dpi / 96;
+        if (float hdpi = 96, vdpi = 96; !SDL_GetDisplayDPI(index, nullptr, &hdpi, &vdpi))
+            _dpi_scale = { hdpi / 96, vdpi / 96 };
+#endif
 
     _shader.set_tint({1, 1, 1, 1});
 

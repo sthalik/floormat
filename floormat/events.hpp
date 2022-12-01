@@ -20,7 +20,7 @@ struct mouse_button_event final {
 };
 
 struct mouse_move_event final {
-    Vector2i position, relative_position;
+    Vector2i position;
     mouse_button buttons = mouse_button_none;
     int mods = 0;
 };

@@ -9,14 +9,13 @@ namespace floormat {
 
 void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
-    fm_assert(event.framebufferSize() == event.windowSize());
-    recalc_viewport(event.windowSize());
-    app.on_viewport_event(event.windowSize());
+    recalc_viewport(event.framebufferSize(), event.windowSize());
+    app.on_viewport_event(event.framebufferSize());
 }
 
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    app.on_mouse_up_down({event.position(),
+    app.on_mouse_up_down({event.position() * _virtual_scale,
                           (SDL_Keymod)(std::uint16_t)event.modifiers(),
                           mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
                           std::uint8_t(std::min(255, event.clickCount()))},
@@ -25,7 +24,7 @@ void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
-    app.on_mouse_up_down({event.position(),
+    app.on_mouse_up_down({event.position() * _virtual_scale,
                           (SDL_Keymod)(std::uint16_t)event.modifiers(),
                           mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
                           std::uint8_t(std::min(255, event.clickCount()))},
@@ -34,14 +33,14 @@ void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 
 void main_impl::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
-    app.on_mouse_move({event.position(), event.relativePosition(),
-                       (mouse_button)(std::uint8_t)(std::uint32_t)event.buttons(),
+    app.on_mouse_move({event.position() * _virtual_scale,
+                       (mouse_button)(std::uint8_t)std::uint32_t{event.buttons()},
                        (SDL_Keymod)(std::uint16_t)event.modifiers()});
 }
 
 void main_impl::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 {
-    app.on_mouse_scroll({event.offset(), event.position(),
+    app.on_mouse_scroll({event.offset(), event.position() * _virtual_scale,
                          (SDL_Keymod)(std::uint16_t)event.modifiers()});
 }
 

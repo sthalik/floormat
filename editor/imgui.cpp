@@ -26,7 +26,7 @@ float app::draw_main_menu()
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
-        ImGui::SetWindowFontScale(M->dpi_scale());
+        ImGui::SetWindowFontScale(M->dpi_scale().min());
         if (auto b = begin_menu("File"))
         {
 #if 0
@@ -77,7 +77,7 @@ float app::draw_main_menu()
 
 void app::draw_ui()
 {
-    const auto dpi = M->dpi_scale();
+    const auto dpi = M->dpi_scale().min();
     [[maybe_unused]] const auto style_ = style_saver{};
     auto& style = ImGui::GetStyle();
     auto& ctx = *ImGui::GetCurrentContext();
@@ -107,7 +107,7 @@ void app::draw_fps()
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
-                 {M->window_size()[0] - size.x - 3.5f*dpi, 3*dpi}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
+                 {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 }
 
 void app::draw_tile_under_cursor()
@@ -126,7 +126,7 @@ void app::draw_tile_under_cursor()
 
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
-                 {window_size[0]*.5f - size.x/2, 3*dpi}, (unsigned)-1, buf);
+                 {window_size[0]*.5f - size.x/2, 3*dpi[1]}, (unsigned)-1, buf);
 }
 
 void app::draw_editor_pane(float main_menu_height)
@@ -143,9 +143,9 @@ void app::draw_editor_pane(float main_menu_height)
         active ? M->start_text_input() : M->stop_text_input();
 
     [[maybe_unused]] const raii_wrapper vars[] = {
-        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi, 8*dpi}),
+        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi[0], 8*dpi[1]}),
         push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
-        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi, 4*dpi}),
+        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi[0], 4*dpi[1]}),
         push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
         push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
     };
@@ -158,7 +158,7 @@ void app::draw_editor_pane(float main_menu_height)
 
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({425 * dpi, window_size[1] - main_menu_height - style.WindowPadding.y});
+        ImGui::SetNextWindowSize({425 * dpi[0], window_size[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
             auto b = begin_window({}, flags))
         {
