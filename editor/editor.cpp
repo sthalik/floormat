@@ -53,7 +53,7 @@ global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mod
 
 void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 {
-    if (auto* mode = current_tile_editor())
+    if ([[maybe_unused]] auto* mode = current_tile_editor())
     {
         if (_last_pos && _last_pos->btn != button::none)
         {
