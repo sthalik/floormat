@@ -41,7 +41,7 @@ anim_atlas::anim_atlas(StringView name, const ImageView2D& image, anim_def info)
 {
     fm_assert(!_info.groups.empty());
 
-    const Size<3>& size = image.pixels().size();
+    const Size<3> size = image.pixels().size();
     fm_assert(size[0]*size[1] == _info.pixel_size.product());
     fm_assert(size[2] >= 3 && size[2] <= 4);
 
