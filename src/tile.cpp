@@ -30,16 +30,16 @@ pass_mode_ref::operator pass_mode() const noexcept
 }
 
 bool operator==(const tile_proto& a, const tile_proto& b) noexcept {
-    return a.ground_image()     == b.ground_image() &&
-           a.wall_north_image() == b.wall_north_image() &&
-           a.wall_west_image()  == b.wall_west_image() &&
-           a.scenery_image()    == b.scenery_image();
+    return a.ground()     == b.ground() &&
+           a.wall_north() == b.wall_north() &&
+           a.wall_west()  == b.wall_west() &&
+           a.scenery()    == b.scenery();
 };
 
-tile_image_proto tile_proto::ground_image() const noexcept     { return { ground_atlas, ground_variant         }; }
-tile_image_proto tile_proto::wall_north_image() const noexcept { return { wall_north_atlas, wall_north_variant }; }
-tile_image_proto tile_proto::wall_west_image() const noexcept  { return { wall_west_atlas, wall_west_variant   }; }
-scenery_proto tile_proto::scenery_image() const noexcept       { return { scenery_atlas, scenery_frame         }; }
+tile_image_proto tile_proto::ground() const noexcept     { return { ground_atlas, ground_variant         }; }
+tile_image_proto tile_proto::wall_north() const noexcept { return { wall_north_atlas, wall_north_variant }; }
+tile_image_proto tile_proto::wall_west() const noexcept  { return { wall_west_atlas, wall_west_variant   }; }
+scenery_proto tile_proto::scenery() const noexcept       { return { scenery_atlas, scenery_frame         }; }
 
 tile_ref::tile_ref(struct chunk& c, std::uint8_t i) noexcept : _chunk{&c}, i{i} {}
 

@@ -285,7 +285,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     for (std::size_t i = 0; i < TILE_COUNT; i++)
     {
         const tile_proto x = c[i];
-        const auto ground = x.ground_image(), wall_north = x.wall_north_image(), wall_west = x.wall_west_image();
+        const auto ground = x.ground(), wall_north = x.wall_north(), wall_west = x.wall_west();
         const auto scenery = x.scenery_frame;
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
@@ -293,7 +293,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         auto img_g = maybe_intern_atlas(ground);
         auto img_n = maybe_intern_atlas(wall_north);
         auto img_w = maybe_intern_atlas(wall_west);
-        auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery_image(), true);
+        auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
 
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
@@ -378,7 +378,7 @@ ArrayView<const char> writer_state::serialize_world()
 
     for (const auto& [_, c] : _world->chunks())
         for (auto [x, _k, _pt] : c)
-            maybe_intern_scenery(x.scenery_image(), false);
+            maybe_intern_scenery(x.scenery(), false);
 
     for (const auto& [pos, c] : _world->chunks())
     {

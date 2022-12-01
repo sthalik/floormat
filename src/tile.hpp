@@ -30,10 +30,10 @@ struct tile_proto final
     scenery scenery_frame;
     enum pass_mode pass_mode = pass_mode::pass_shoot_through;
 
-    tile_image_proto ground_image() const noexcept;
-    tile_image_proto wall_north_image() const noexcept;
-    tile_image_proto wall_west_image() const noexcept;
-    scenery_proto scenery_image() const noexcept;
+    tile_image_proto ground() const noexcept;
+    tile_image_proto wall_north() const noexcept;
+    tile_image_proto wall_west() const noexcept;
+    scenery_proto scenery() const noexcept;
 
     friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
 };
