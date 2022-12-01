@@ -5,5 +5,5 @@ run
 if $_isvoid ($_exitsignal)
   quit $_exitcode
 end
-bt
+bt -entry-values if-needed -full -frame-arguments all
 quit 1

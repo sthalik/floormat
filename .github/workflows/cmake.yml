@@ -58,7 +58,7 @@ jobs:
     - name: Test
       run: |
         cd ${{github.workspace}}/build/install
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS=detect_leaks=0
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         xvfb-run gdb -batch -x ../../.github/workflows/gdbscript bin/floormat-test </dev/null
       if: matrix.os == 'ubuntu-22.04'
 
