@@ -70,6 +70,7 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept
     struct fixed_string final {
         char buf[MAX];
         std::size_t len;
+        operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
     };
 
     fixed_string ret;

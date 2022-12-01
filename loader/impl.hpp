@@ -37,6 +37,7 @@ struct loader_impl final : loader_
     const scenery_proto& scenery(StringView name) override;
 
     void get_anim_atlas_list();
+    void get_scenery_list();
 
     static void set_application_working_directory();
     static anim_def deserialize_anim(StringView filename);

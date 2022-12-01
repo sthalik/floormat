@@ -7,7 +7,6 @@
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include <cstring>
-#include <Corrade/Containers/StringStlHash.h>
 
 namespace {
 
@@ -21,38 +20,31 @@ struct reader_state final {
 private:
     using reader_t = binary_reader<decltype(ArrayView<const char>{}.cbegin())>;
 
-    void load_sceneries();
-    std::shared_ptr<tile_atlas> lookup_atlas(atlasid id);
+    const std::shared_ptr<tile_atlas>& lookup_atlas(atlasid id);
+    const scenery_proto& lookup_scenery(atlasid id);
     void read_atlases(reader_t& reader);
     void read_sceneries(reader_t& reader);
     void read_chunks(reader_t& reader);
 
-    std::unordered_map<atlasid, std::shared_ptr<tile_atlas>> atlases;
-    std::unordered_map<StringView, const serialized_scenery*> default_sceneries;
     std::vector<scenery_proto> sceneries;
+    std::vector<std::shared_ptr<tile_atlas>> atlases;
     world* _world;
     std::uint16_t PROTO = (std::uint16_t)-1;
 };
 
 reader_state::reader_state(world& world) noexcept : _world{&world} {}
 
-void reader_state::load_sceneries()
-{
-    for (const serialized_scenery& s : loader.sceneries())
-        default_sceneries[s.name] = &s;
-}
-
 void reader_state::read_atlases(reader_t& s)
 {
     const auto N = s.read<atlasid>();
-    atlases.reserve(N * 2);
+    atlases.reserve(N);
     for (atlasid i = 0; i < N; i++)
     {
         Vector2ub size;
         size[0] << s;
         size[1] << s;
         const auto& [buf, len] = s.read_asciiz_string<atlas_name_max>();
-        atlases[i] = loader.tile_atlas({buf, len}, size);
+        atlases.push_back(loader.tile_atlas({buf, len}, size));
     }
 }
 
@@ -70,6 +62,8 @@ bool read_scenery_flags(binary_reader<T>& s, scenery& sc)
 
 void reader_state::read_sceneries(reader_t& s)
 {
+    (void)loader.sceneries();
+
     std::uint16_t magic; magic << s;
     if (magic != scenery_magic)
         fm_abort("bad scenery magic");
@@ -83,14 +77,13 @@ void reader_state::read_sceneries(reader_t& s)
         std::uint8_t num; num << s;
         fm_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
-        auto it = default_sceneries.find(StringView{str.buf, str.len});
-        if (it == default_sceneries.end())
-            fm_abort("can't find scenery '%s'", str.buf);
+        const auto sc_ = loader.scenery(str);
         for (std::size_t n = 0; n < num; n++)
         {
             atlasid id; id << s;
             fm_assert(id < sz);
-            scenery_proto sc = it->second->proto;
+            fm_assert(!sceneries[id]);
+            scenery_proto sc = sc_;
             bool short_frame = read_scenery_flags(s, sc.frame);
             fm_debug_assert(sc.atlas != nullptr);
             if (short_frame)
@@ -103,16 +96,24 @@ void reader_state::read_sceneries(reader_t& s)
         i += num;
     }
     fm_assert(i == sz);
-    for (const scenery_proto& x : sceneries)
-        fm_assert(x.atlas != nullptr);
+    for (const scenery_proto& sc : sceneries)
+        fm_assert(sc);
 }
 
-std::shared_ptr<tile_atlas> reader_state::lookup_atlas(atlasid id)
+const std::shared_ptr<tile_atlas>& reader_state::lookup_atlas(atlasid id)
 {
-    if (auto it = atlases.find(id); it != atlases.end())
-        return it->second;
+    if (id < atlases.size())
+        return atlases[id];
     else
-        fm_abort("not such atlas: '%zu'", (std::size_t)id);
+        fm_abort("no such atlas: '%zu'", (std::size_t)id);
+}
+
+const scenery_proto& reader_state::lookup_scenery(atlasid id)
+{
+    if (id < sceneries.size())
+        return sceneries[id];
+    else
+        fm_abort("no such scenery: '%zu'", (std::size_t)id);
 }
 
 void reader_state::read_chunks(reader_t& s)
@@ -162,8 +163,7 @@ void reader_state::read_chunks(reader_t& s)
                     const bool exact = id & meta_long_scenery_bit;
                     const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                     id &= ~scenery_id_flag_mask;
-                    fm_assert(id < sceneries.size());
-                    auto sc = sceneries[id];
+                    auto sc = lookup_scenery(id);
                     (void)sc.atlas->group(r);
                     sc.frame.r = r;
                     if (!exact)
@@ -203,7 +203,6 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         fm_abort("bad proto version '%zu' (should be between '%zu' and '%zu')",
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
-    load_sceneries();
     read_atlases(s);
     if (PROTO >= 3)
         read_sceneries(s);

@@ -14,12 +14,11 @@ anim_def loader_impl::deserialize_anim(StringView filename)
     return json_helper::from_json<anim_def>(filename);
 }
 
-const std::vector<serialized_scenery>& loader_impl::sceneries()
+void loader_impl::get_scenery_list()
 {
-    if (!sceneries_array.empty())
-        return sceneries_array;
-
+    sceneries_array.clear();
     sceneries_array = json_helper::from_json<std::vector<serialized_scenery>>(Path::join(SCENERY_PATH, "scenery.json"));
+    sceneries_map.clear();
     sceneries_map.reserve(sceneries_array.size() * 2);
     for (const serialized_scenery& s : sceneries_array)
     {
@@ -27,13 +26,19 @@ const std::vector<serialized_scenery>& loader_impl::sceneries()
             fm_abort("duplicate scenery name '%s'", s.name.data());
         sceneries_map[s.name] = &s;
     }
+}
+
+const std::vector<serialized_scenery>& loader_impl::sceneries()
+{
+    if (sceneries_array.empty())
+        get_scenery_list();
     return sceneries_array;
 }
 
 const scenery_proto& loader_impl::scenery(StringView name)
 {
     if (sceneries_array.empty())
-        (void)sceneries();
+        get_scenery_list();
     auto it = sceneries_map.find(name);
     if (it == sceneries_map.end())
         fm_abort("no such scenery: '%s'", name.data());
