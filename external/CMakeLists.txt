@@ -160,7 +160,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_HIDAPI                                         OFF
          SDL_HIDAPI_JOYSTICK                                OFF
          SDL_JOYSTICK                                       OFF
-         SDL_LIBC                                           ON
+         SDL_LIBC                                           OFF
          SDL_LOADSO                                         ON
          SDL_LOCALE                                         OFF
          SDL_MISC                                           OFF
