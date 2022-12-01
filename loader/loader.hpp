@@ -4,7 +4,7 @@
 #include <Corrade/Containers/StringView.h>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
-namespace floormat::Serialize { struct serialized_scenery; }
+namespace floormat { struct serialized_scenery; }
 
 namespace floormat {
 
@@ -21,7 +21,8 @@ struct loader_
     static void destroy();
     static loader_& default_loader() noexcept;
     static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename);
-    static std::vector<Serialize::serialized_scenery> sceneries();
+    virtual const std::vector<serialized_scenery>& sceneries() = 0;
+    virtual const scenery_proto& scenery(StringView name) = 0;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

@@ -33,6 +33,11 @@ struct binary_reader final {
     constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
     template<std::size_t Max> constexpr auto read_asciiz_string() noexcept;
 
+    binary_reader(binary_reader&&) noexcept = default;
+    binary_reader& operator=(binary_reader&&) noexcept = default;
+    binary_reader(const binary_reader&) = delete;
+    binary_reader& operator=(const binary_reader&) = delete;
+
 private:
     std::size_t num_bytes_read = 0;
     It it, end;

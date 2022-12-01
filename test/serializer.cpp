@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
 #include <Corrade/Utility/Path.h>
 
@@ -17,11 +18,19 @@ static chunk make_test_chunk()
     chunk c;
     for (auto [x, k, pt] : c)
         x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
+    auto door = loader.scenery("door1"),
+         table = loader.scenery("table1"),
+         control_panel = loader.scenery("control panel (wall) 1");
+    control_panel.frame.r = rotation::W;
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north() = { metal1, 0 };
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal1, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
+    c[{K+3, K+1}].scenery() = door;
+    c[{ 3,   4 }].scenery() = table;
+    c[{K,   K+1}].scenery() = control_panel;
+    c.mark_modified();
     return c;
 }
 

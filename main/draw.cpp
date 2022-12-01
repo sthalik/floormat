@@ -171,7 +171,7 @@ void main_impl::do_update()
         timeline.nextFrame();
     }
 
-    dt = std::clamp(dt, 1e-5f, std::fmaxf(1e-1f, dt_expected.value));
+    dt = std::clamp(dt, 1e-5f, std::fmaxf(5e-2f, dt_expected.value));
 
     app.update(dt);
 }

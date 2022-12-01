@@ -25,11 +25,16 @@ struct loader_impl final : loader_
     std::unordered_map<String, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
 
+    std::vector<serialized_scenery> sceneries_array;
+    std::unordered_map<StringView, const serialized_scenery*> sceneries_map;
+
     StringView shader(StringView filename) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename);
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
     ArrayView<String> anim_atlas_list() override;
     std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir) override;
+    const std::vector<serialized_scenery>& sceneries() override;
+    const scenery_proto& scenery(StringView name) override;
 
     void get_anim_atlas_list();
 

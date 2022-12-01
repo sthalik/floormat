@@ -3,13 +3,13 @@
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "serialize/corrade-string.hpp"
+#include "loader/scenery.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
 
 namespace {
 
 using namespace floormat;
-using namespace floormat::Serialize;
 
 constexpr struct {
     scenery_type value = scenery_type::none;
@@ -107,8 +107,8 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     f = {};
 
     auto type = scenery_type::generic; get("type", type);
+    auto r = val.atlas->first_rotation(); get("rotation", r);
     auto frame       = f.frame;       get("frame", frame);
-    auto r           = f.r;           get("rotation", r);
     bool passable    = f.passable;    get("passable", passable);
     bool blocks_view = f.blocks_view; get("blocks-view", blocks_view);
     bool active      = f.active;      get("active", active);

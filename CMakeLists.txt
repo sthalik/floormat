@@ -107,6 +107,7 @@ if(MSVC)
         -wd4456  # warning C4456: declaration of 'x' hides previous local declaration
         -wd4458  # warning C4458: declaration of 'keys' hides class member
         -wd4127  # warning C4127: conditional expression is constant
+        -wd4554  # warning C4554: '<<': check operator precedence for possible error; use parentheses to clarify precedence
     )
     add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
@@ -146,14 +147,6 @@ add_definitions(
     -DIMGUI_DISABLE_OBSOLETE_KEYIO
 )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-        add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
-    else()
-        add_compile_options(-Wno-subobject-linkage -Wno-parentheses)
-    endif()
-endif()
-
 if(NOT APPLE AND NOT WIN32)
     add_compile_options(-fno-plt)
 endif()
@@ -165,6 +158,13 @@ else()
 endif()
 
 fm_run_hook(fm-userconfig-src)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+    add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+    add_compile_options(-Wno-shift-op-parentheses)
+elseif(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wno-subobject-linkage -Wno-parentheses)
+endif()
 
 include_directories(.)
 include_directories(src)

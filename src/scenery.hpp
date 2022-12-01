@@ -11,7 +11,9 @@ enum class rotation : std::uint8_t {
     N, NE, E, SE, S, SW, W, NW,
 };
 
-constexpr inline rotation rotation_COUNT = rotation{8};
+constexpr inline std::size_t rotation_BITS = 3;
+constexpr inline std::size_t rotation_MASK = (1 << rotation_BITS)-1;
+constexpr inline rotation rotation_COUNT = rotation{1 << rotation_BITS};
 
 enum class scenery_type : std::uint8_t {
     none, generic, door,
