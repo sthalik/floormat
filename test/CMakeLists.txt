@@ -3,19 +3,21 @@ file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
-link_libraries(Magnum::GL Magnum::Trade)
-link_libraries(floormat-loader floormat-serialize floormat)
+add_library(${self}_o STATIC ${sources})
+target_link_libraries(${self}_o PUBLIC Magnum::GL Magnum::Trade nlohmann_json::nlohmann_json)
 
 if(APPLE)
-    link_libraries(Magnum::WindowlessCglApplication)
+    target_link_libraries(${self}_o PUBLIC Magnum::WindowlessCglApplication)
 elseif(WIN32)
-    link_libraries(Magnum::WindowlessWglApplication)
-    link_libraries(ntdll)
+    target_link_libraries(${self}_o PUBLIC Magnum::WindowlessWglApplication)
+    target_link_libraries(${self}_o PUBLIC ntdll)
 else()
-    link_libraries(Magnum::WindowlessGlxApplication)
+    target_link_libraries(${self}_o PUBLIC Magnum::WindowlessGlxApplication)
 endif()
 
-add_executable(${self} "${sources}")
+add_executable(${self} dummy.cc)
+target_link_libraries(${self} PUBLIC ${self}_o floormat-loader floormat-serialize floormat)
+
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
 endif()
