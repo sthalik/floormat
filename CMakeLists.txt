@@ -36,8 +36,10 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR CMAKE_INSTALL_PREFIX STREQUAL 
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 endif()
 
+if(NOT GENERATOR_IS_MULTI_CONFIG)
 if(CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "" FORCE)
+endif()
 endif()
 
 set(FLOORMAT_PRECOMPILED-HEADERS ON CACHE BOOL
@@ -59,8 +61,10 @@ function(sets type)
     endwhile()
 endfunction()
 
+if(NOT GENERATOR_IS_MULTI_CONFIG)
 string(TOUPPER "${CMAKE_BUILD_TYPE}" __fm_uppercase_CMAKE_BUILD_TYPE)
 sets(STRING CMAKE_BUILD_TYPE "${__fm_uppercase_CMAKE_BUILD_TYPE}")
+endif()
 
 macro(fm_run_hook str)
     if(COMMAND "${str}")
@@ -92,7 +96,9 @@ endif()
 
 if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
     fm_load_userconfig()
-    string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+    if(NOT GENERATOR_IS_MULTI_CONFIG)
+        string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+    endif()
 endif()
 
 if(WIN32)
@@ -117,7 +123,7 @@ if(MSVC)
         add_link_options(-HIGHENTROPYVA)
     endif()
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-cxa-atexit")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fuse-cxa-atexit>)
     if(WIN32)
         add_link_options(-Wl,--nxcompat -Wl,--dynamicbase)
         if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
@@ -140,9 +146,9 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_S
 add_subdirectory(external)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /FIcompat/prelude.hpp")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/FIcompat/prelude.hpp>)
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include compat/prelude.hpp")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-includecompat/prelude.hpp>)
 endif()
 
 add_definitions(
