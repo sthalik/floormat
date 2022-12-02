@@ -180,8 +180,7 @@ template<typename T>
 void write_scenery_flags(binary_writer<T>& s, const scenery& proto)
 {
     std::uint8_t flags = 0;
-    flags |= (1 << 0) * proto.passable;
-    flags |= (1 << 1) * proto.blocks_view;
+    flags |= pass_mode_(proto.passability) & pass_mask;
     flags |= (1 << 2) * proto.active;
     flags |= (1 << 3) * proto.closing;
     flags |= (1 << 4) * proto.interactive;
@@ -320,8 +319,8 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         if (flags != 0 && ashortp(img_g) && ashortp(img_n) && ashortp(img_w))
             flags |= meta_short_atlasid;
 
-        fm_debug_assert((x.pass_mode & pass_mask) == x.pass_mode);
-        flags |= x.pass_mode;
+        fm_debug_assert((pass_mode_(x.passability) & pass_mask) == pass_mode_(x.passability));
+        flags |= pass_mode_(x.passability);
 
         s << flags;
 

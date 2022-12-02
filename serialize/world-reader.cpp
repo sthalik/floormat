@@ -53,8 +53,7 @@ template<typename T>
 bool read_scenery_flags(binary_reader<T>& s, scenery& sc)
 {
     std::uint8_t flags; flags << s;
-    sc.passable    = !!(flags & 1 << 0);
-    sc.blocks_view = !!(flags & 1 << 1);
+    sc.passability = pass_mode(flags & pass_mask);
     sc.active      = !!(flags & 1 << 2);
     sc.closing     = !!(flags & 1 << 3);
     sc.interactive = !!(flags & 1 << 4);
@@ -148,7 +147,7 @@ void reader_state::read_chunks(reader_t& s)
                 return { atlas, v };
             };
 
-            t.pass_mode() = pass_mode(flags & pass_mask);
+            t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
                 t.ground() = make_atlas();
             if (flags & meta_wall_n)
@@ -179,13 +178,13 @@ void reader_state::read_chunks(reader_t& s)
 
             switch (auto x = pass_mode(flags & pass_mask))
             {
-            case pass_shoot_through:
-            case pass_blocked:
-            case pass_ok:
-                t.pass_mode() = x;
+            case pass_mode::shoot_through:
+            case pass_mode::blocked:
+            case pass_mode::pass:
+                t.passability() = x;
                 break;
             default: [[unlikely]]
-                fm_throw("bad pass mode '{}' for tile {}"_cf, i, x);
+                fm_throw("bad pass mode '{}' for tile {}"_cf, i, pass_mode_(x));
             }
         }
     }

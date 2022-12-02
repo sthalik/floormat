@@ -4,6 +4,7 @@
 #include "loader/loader.hpp"
 #include "serialize/corrade-string.hpp"
 #include "loader/scenery.hpp"
+#include "serialize/pass-mode.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
 
@@ -85,8 +86,7 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
     j["atlas-name"] = val.atlas->name();
     j["frame"] = f.frame;
     j["rotation"] = f.r;
-    j["passable"] = f.passable;
-    j["blocks-view"] = f.blocks_view;
+    j["pass-mode"] = f.passability;
     j["active"] = f.active;
     j["interactive"] = f.interactive;
 }
@@ -108,17 +108,16 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 
     auto type = scenery_type::generic; get("type", type);
     auto r = val.atlas->first_rotation(); get("rotation", r);
-    auto frame       = f.frame;       get("frame", frame);
-    bool passable    = f.passable;    get("passable", passable);
-    bool blocks_view = f.blocks_view; get("blocks-view", blocks_view);
-    bool active      = f.active;      get("active", active);
+    auto frame     = f.frame;       get("frame", frame);
+    pass_mode pass = f.passability; get("pass-mode", pass);
+    bool active    = f.active;      get("active", active);
 
     switch (type)
     {
     default:
         fm_abort("unhandled scenery type '%u'", (unsigned)type);
     case scenery_type::generic:
-        f = { scenery::generic, *val.atlas, r, frame, passable, blocks_view, active };
+        f = { scenery::generic, *val.atlas, r, frame, pass, active };
         break;
     case scenery_type::door:
         f = { scenery::door, *val.atlas, r, false };

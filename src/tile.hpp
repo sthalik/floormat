@@ -1,14 +1,12 @@
 #pragma once
 #include "tile-image.hpp"
 #include "scenery.hpp"
+#include "pass-mode.hpp"
 
 namespace floormat {
 
 struct chunk;
 struct anim_atlas;
-
-// zero is the default, see bitset in chunk.hpp
-enum pass_mode : unsigned char { pass_shoot_through, pass_ok, pass_blocked, };
 
 struct pass_mode_ref final
 {
@@ -28,7 +26,7 @@ struct tile_proto final
     std::shared_ptr<anim_atlas> scenery_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
     struct scenery scenery_frame;
-    enum pass_mode pass_mode = pass_mode::pass_shoot_through;
+    pass_mode passability = pass_mode{0};
 
     tile_image_proto ground() const noexcept;
     tile_image_proto wall_north() const noexcept;
@@ -62,8 +60,8 @@ struct tile_ref final
     std::shared_ptr<const tile_atlas> wall_west_atlas() const noexcept;
     std::shared_ptr<const anim_atlas> scenery_atlas() const noexcept;
 
-    pass_mode_ref pass_mode() noexcept;
-    enum pass_mode pass_mode() const noexcept;
+    pass_mode_ref passability() noexcept;
+    pass_mode passability() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 

@@ -7,7 +7,8 @@
   {
     "name": "control panel (wall) 1",
     "type": "generic",
-    "atlas-name": "control-panel"
+    "atlas-name": "control-panel",
+    "pass-mode": "pass"
   },
   {
     "name": "bench1",

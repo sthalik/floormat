@@ -7,8 +7,9 @@ pass_mode_ref::pass_mode_ref(chunk& c, std::uint8_t i) noexcept : _chunk{&c}, i{
 {
 }
 
-pass_mode_ref& pass_mode_ref::operator=(pass_mode x) noexcept
+pass_mode_ref& pass_mode_ref::operator=(pass_mode val) noexcept
 {
+    auto x = std::underlying_type_t<pass_mode>(val) & pass_mode_COUNT;
     auto& bitset = _chunk->_passability;
     bitset[i*2 + 0] = x & 1;
     bitset[i*2 + 1] = x >> 1 & 1;
@@ -63,15 +64,15 @@ tile_image_proto tile_ref::wall_north() const noexcept { return { _chunk->_wall_
 tile_image_proto tile_ref::wall_west() const noexcept  { return { _chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
 scenery_proto tile_ref::scenery() const noexcept       { return { _chunk->_scenery_atlases[i],    _chunk->_scenery_variants[i] }; }
 
-pass_mode_ref tile_ref::pass_mode() noexcept { return { *_chunk, i }; }
-pass_mode tile_ref::pass_mode() const noexcept { return pass_mode_ref { *const_cast<struct chunk*>(_chunk), i }; }
+pass_mode_ref tile_ref::passability() noexcept { return { *_chunk, i }; }
+pass_mode tile_ref::passability() const noexcept { return pass_mode_ref { *const_cast<struct chunk*>(_chunk), i }; }
 
 tile_ref::operator tile_proto() const noexcept
 {
     return {
         _chunk->_ground_atlases[i],  _chunk->_wall_atlases[i*2+0],  _chunk->_wall_atlases[i*2+1], _chunk->_scenery_atlases[i],
         _chunk->_ground_variants[i], _chunk->_wall_variants[i*2+0], _chunk->_wall_variants[i*2+1], _chunk->_scenery_variants[i],
-        pass_mode(),
+        passability(),
     };
 }
 
@@ -84,7 +85,7 @@ bool operator==(const tile_ref& a, const tile_ref& b) noexcept
                a.wall_north() == b.wall_north() &&
                a.wall_west()  == b.wall_west() &&
                a.scenery()    == b.scenery() &&
-               a.pass_mode()  == b.pass_mode();
+               a.passability()  == b.passability();
 }
 
 } // namespace floormat

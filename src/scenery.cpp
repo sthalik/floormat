@@ -29,11 +29,11 @@ scenery_ref::operator scenery_proto() const noexcept { return { atlas, frame }; 
 scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 
 scenery::scenery() noexcept : scenery{none_tag_t{}} {}
-scenery::scenery(none_tag_t) noexcept : passable{true} {}
+scenery::scenery(none_tag_t) noexcept {}
 scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
-                 bool passable, bool blocks_view, bool active, bool interactive) :
+                 pass_mode pass, bool active, bool interactive) :
     frame{frame}, r{r}, type{scenery_type::generic},
-    passable{passable}, blocks_view{blocks_view}, active{active},
+    passability{pass}, active{active},
     interactive{interactive}
 {
     fm_assert(r < rotation_COUNT);
@@ -43,7 +43,8 @@ scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t fra
 scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open) :
     frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
     r{r}, type{scenery_type::door},
-    passable{is_open}, blocks_view{!is_open}, interactive{true}
+    passability{is_open ? pass_mode::pass : pass_mode::blocked},
+    interactive{true}
 {
     fm_assert(r < rotation_COUNT);
     fm_assert(atlas.group(r).frames.size() >= 2);
@@ -78,8 +79,12 @@ void scenery::update(float dt, const anim_atlas& anim)
         const std::int8_t dir = closing ? 1 : -1;
         const int fr = frame + dir*n;
         active = fr > 0 && fr < nframes-1;
-        passable = fr <= 0;
-        blocks_view = !passable;
+        if (fr <= 0)
+            passability = pass_mode::pass;
+        else if (fr >= nframes-1)
+            passability = pass_mode::blocked;
+        else
+            passability = pass_mode::see_through;
         frame = (frame_t)std::clamp(fr, 0, nframes-1);
         if (!active)
             delta = closing = 0;

@@ -38,7 +38,8 @@ constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (std::uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (std::uint16_t)~0xb00b;
 
-constexpr inline std::underlying_type_t<pass_mode> pass_mask = pass_blocked | pass_shoot_through | pass_ok;
+using pass_mode_ = std::underlying_type_t<pass_mode>;
+constexpr inline pass_mode_ pass_mask = pass_mode_COUNT - 1;
 constexpr inline auto pass_bits = std::bit_width(pass_mask);
 
 template<typename T> constexpr inline auto highbit = T(1) << sizeof(T)*8-1;

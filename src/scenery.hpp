@@ -1,4 +1,5 @@
 #pragma once
+#include "pass-mode.hpp"
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -35,8 +36,7 @@ struct scenery final
     frame_t frame = 0;
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
-    std::uint8_t passable    : 1 = false;
-    std::uint8_t blocks_view : 1 = false; // todo
+    pass_mode    passability : 2 = pass_mode{0};
     std::uint8_t active      : 1 = false;
     std::uint8_t closing     : 1 = false;
     std::uint8_t interactive : 1 = false;
@@ -44,7 +44,7 @@ struct scenery final
     scenery() noexcept;
     scenery(none_tag_t) noexcept;
     scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0,
-            bool passable = false, bool blocks_view = false, bool active = false, bool interactive = false);
+            pass_mode passability = pass_mode::shoot_through, bool active = false, bool interactive = false);
     scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
 
     bool operator==(const scenery&) const noexcept;
