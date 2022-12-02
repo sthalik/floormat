@@ -148,7 +148,7 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
             else
                 ret = &x;
         }
-        else if (x.index != null_atlas)
+        if (x.index != null_atlas)
             ret2 = &x;
     }
 
@@ -163,7 +163,7 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
             return { ret2->s, ret2->index, false };
         else
         {
-            fm_assert(!vec[0].s->proto);
+            fm_assert(vec[0].index == null_atlas);
             return { vec[0].s, vec[0].index = scenery_map_size++, false };
         }
     }
