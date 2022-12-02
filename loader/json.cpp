@@ -39,6 +39,7 @@ const std::vector<serialized_scenery>& loader_impl::sceneries()
 
 const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
 {
+    fm_soft_assert(check_atlas_name(name));
     if (sceneries_array.empty())
         get_scenery_list();
     auto it = sceneries_map.find(name);

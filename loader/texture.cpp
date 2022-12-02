@@ -18,9 +18,8 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     const auto N = prefix.size();
     if (N > 0)
         fm_assert(prefix[N-1] == '/');
-    fm_soft_assert(filename_.size() < 4096);
-    fm_soft_assert(filename_.find('\\') == filename_.end());
-    fm_soft_assert(filename_.find('\0') == filename_.end());
+    fm_soft_assert(filename_.size() < 512);
+    fm_soft_assert(check_atlas_name(filename_));
     fm_soft_assert(tga_importer);
     constexpr std::size_t max_extension_length = 16;
 
