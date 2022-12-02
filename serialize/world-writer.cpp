@@ -213,8 +213,8 @@ void writer_state::serialize_atlases()
     {
         const auto name = atlas->name();
         const auto namesiz = name.size();
-        fm_debug_assert(s.bytes_written() + namesiz + 1 <= atlasbuf_size);
-        fm_assert(namesiz <= atlas_name_max - 1); // null terminated
+        fm_debug_assert(s.bytes_written() + namesiz < atlasbuf_size);
+        fm_assert(namesiz < atlas_name_max);
         fm_debug_assert(name.find('\0') == name.cend());
         const auto sz2 = atlas->num_tiles2();
         s << sz2[0]; s << sz2[1];
