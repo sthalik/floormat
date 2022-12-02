@@ -183,10 +183,9 @@ include_directories(SYSTEM
     "${_fm-json-include-dirs}"
 )
 
-add_subdirectory(demangle)
+#add_subdirectory(demangle)
 add_subdirectory(src)
 add_subdirectory(serialize)
-add_subdirectory(loader)
 add_subdirectory(anim-crop-tool)
 add_subdirectory(draw)
 add_subdirectory(main)

@@ -2,7 +2,7 @@
 #include <fmt/core.h>
 #include <fmt/compile.h>
 
-#ifndef _MSC_VER
+#if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 namespace floormat::detail::fmt {
 template<std::size_t N>
 struct fmt_string final {
@@ -20,7 +20,7 @@ struct fmt_string final {
 
 namespace floormat {
 
-#ifndef _MSC_VER
+#if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 template<::floormat::detail::fmt::fmt_string s>
 consteval auto operator""_cf() noexcept
 {

@@ -1,6 +1,6 @@
 set(self floormat)
 file(GLOB sources "*.cpp" "../shaders/*.cpp" CONFIGURE_ARGS)
-add_library(${self} STATIC "${sources}")
+add_library(${self} OBJECT "${sources}")
 target_link_libraries(
     ${self} PUBLIC
     Magnum::GL
