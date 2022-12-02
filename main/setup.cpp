@@ -46,7 +46,7 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
     return Configuration{}
         .setTitle(s.title)
-        .setSize(s.resolution, Configuration::DpiScalingPolicy::Virtual)
+        .setSize(s.resolution)
         .setWindowFlags(make_window_flags(s));
 }
 
