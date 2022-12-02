@@ -28,13 +28,13 @@ struct loader_impl final : loader_
     std::vector<serialized_scenery> sceneries_array;
     std::unordered_map<StringView, const serialized_scenery*> sceneries_map;
 
-    StringView shader(StringView filename) override;
-    Trade::ImageData2D texture(StringView prefix, StringView filename);
-    std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) override;
+    StringView shader(StringView filename) noexcept override;
+    Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false);
+    std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) noexcept(false) override;
     ArrayView<String> anim_atlas_list() override;
-    std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir) override;
+    std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir) noexcept(false) override;
     const std::vector<serialized_scenery>& sceneries() override;
-    const scenery_proto& scenery(StringView name) override;
+    const scenery_proto& scenery(StringView name) noexcept(false) override;
 
     void get_anim_atlas_list();
     void get_scenery_list();

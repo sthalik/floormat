@@ -12,7 +12,7 @@
 
 namespace floormat::loader_detail {
 
-StringView loader_impl::shader(StringView filename)
+StringView loader_impl::shader(StringView filename) noexcept
 {
     if (!shader_res)
         shader_res = Optional<Utility::Resource>(InPlaceInit, "floormat/shaders");

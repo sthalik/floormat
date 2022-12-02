@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include <cstdio>
 #include <string>
 #include <Magnum/Math/Vector2.h>
@@ -21,6 +21,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
     }
     static void from_json(const json& j, Magnum::Math::Vector2<t>& val)
     {
+        using namespace floormat;
         std::string str = j;
         using type = std::conditional_t<std::is_signed_v<t>, std::intmax_t, std::uintmax_t>;
         constexpr auto format_string = std::is_signed_v<t> ? "%jd x %jd%n" : "%ju x %ju%n";
@@ -28,7 +29,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
         int n = 0;
         int ret = std::sscanf(str.data(), format_string, &x, &y, &n);
         if (ret != 2 || (std::size_t)n != str.size() || x != (t)x || y != (t)y)
-            fm_abort("failed to parse Vector2 '%s'", str.data());
+            fm_throw("failed to parse Vector2 '{}'"_cf, str);
         val = { (t)x, (t)y };
     }
 };

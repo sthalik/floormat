@@ -1,4 +1,5 @@
 #include "scenery.hpp"
+#include "compat/exception.hpp"
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
@@ -42,7 +43,7 @@ auto foo_from_string(StringView str, const T(&map)[N], const char* desc)
     for (const auto& [value, str2] : map)
         if (str2 == str)
             return value;
-    fm_abort("wrong %s string '%s'", desc, str.data());
+    fm_throw("wrong {} string '{}'"_cf, desc, str);
 }
 
 template<std::size_t N, typename T>
@@ -51,7 +52,7 @@ StringView foo_to_string(auto type, const T(&map)[N], const char* desc)
     for (const auto& [type2, str] : map)
         if (type2 == type)
             return str;
-    fm_abort("wrong %s enum '%zu'", desc, (std::size_t)type);
+    fm_throw("wrong {} enum '{}'"_cf, desc, (std::size_t)type);
 }
 
 } // namespace
@@ -101,7 +102,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     };
 
     StringView atlas_name = j["atlas-name"];
-    fm_assert(!atlas_name.isEmpty());
+    fm_soft_assert(!atlas_name.isEmpty());
     val.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
     auto& f = val.frame;
     f = {};
@@ -115,7 +116,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     switch (type)
     {
     default:
-        fm_abort("unhandled scenery type '%u'", (unsigned)type);
+        fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
     case scenery_type::generic:
         f = { scenery::generic, *val.atlas, r, frame, pass, active };
         break;
@@ -126,7 +127,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 
 void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scenery& val)
 {
-    fm_assert(val.proto.atlas);
+    fm_soft_assert(val.proto.atlas);
     j = val.proto;
     const auto name = !val.name.isEmpty() ? StringView{val.name} : val.proto.atlas->name();
     j["name"] = name;

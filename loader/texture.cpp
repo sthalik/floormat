@@ -1,25 +1,27 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "compat/defs.hpp"
 #include "compat/alloca.hpp"
 #include <cstring>
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 
 namespace floormat::loader_detail {
 
 fm_noinline
-Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
+Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_) noexcept(false)
 {
     ensure_plugins();
 
     const auto N = prefix.size();
     if (N > 0)
         fm_assert(prefix[N-1] == '/');
-    fm_assert(filename_.size() < 4096);
-    fm_assert(filename_.find('\\') == filename_.end());
-    fm_assert(filename_.find('\0') == filename_.end());
-    fm_assert(tga_importer);
+    fm_soft_assert(filename_.size() < 4096);
+    fm_soft_assert(filename_.find('\\') == filename_.end());
+    fm_soft_assert(filename_.find('\0') == filename_.end());
+    fm_soft_assert(tga_importer);
     constexpr std::size_t max_extension_length = 16;
 
     char* const filename = (char*)alloca(filename_.size() + N + 1 + max_extension_length);
@@ -44,7 +46,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     }
     const auto path = Path::currentDirectory();
     filename[len] = '\0';
-    fm_abort("can't open image '%s' (cwd '%s')", filename, path ? path->data() : "(null)");
+    fm_throw("can't open image '{}' (cwd '{}')"_cf, filename, path ? StringView{*path} : "(null)"_s);
 }
 
 } // namespace floormat::loader_detail

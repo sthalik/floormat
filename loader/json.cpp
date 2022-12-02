@@ -1,10 +1,12 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat::loader_detail {
@@ -35,13 +37,13 @@ const std::vector<serialized_scenery>& loader_impl::sceneries()
     return sceneries_array;
 }
 
-const scenery_proto& loader_impl::scenery(StringView name)
+const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
 {
     if (sceneries_array.empty())
         get_scenery_list();
     auto it = sceneries_map.find(name);
     if (it == sceneries_map.end())
-        fm_abort("no such scenery: '%s'", name.data());
+        fm_throw("no such scenery: '{}'"_cf, name);
     return it->second->proto;
 }
 

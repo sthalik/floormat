@@ -14,15 +14,15 @@ struct scenery_proto;
 
 struct loader_
 {
-    virtual StringView shader(StringView filename) = 0;
-    virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) = 0;
+    virtual StringView shader(StringView filename) noexcept = 0;
+    virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size) noexcept(false) = 0;
     virtual ArrayView<String> anim_atlas_list() = 0;
-    virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) = 0;
+    virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
     static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename);
     virtual const std::vector<serialized_scenery>& sceneries() = 0;
-    virtual const scenery_proto& scenery(StringView name) = 0;
+    virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;
