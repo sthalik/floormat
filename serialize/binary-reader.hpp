@@ -26,12 +26,12 @@ template<string_input_iterator It>
 struct binary_reader final {
     template<char_sequence Seq> explicit constexpr binary_reader(const Seq& seq) noexcept;
     constexpr binary_reader(It begin, It end) noexcept;
-    constexpr void assert_end() noexcept;
+    constexpr void assert_end() noexcept(false);
 
-    template<serializable T> constexpr T read() noexcept;
-    template<std::size_t N> constexpr std::array<char, N> read() noexcept;
     constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
-    template<std::size_t Max> constexpr auto read_asciiz_string() noexcept;
+    template<serializable T> constexpr T read() noexcept(false);
+    template<std::size_t N> constexpr std::array<char, N> read() noexcept(false);
+    template<std::size_t Max> constexpr auto read_asciiz_string() noexcept(false);
 
     binary_reader(binary_reader&&) noexcept = default;
     binary_reader& operator=(binary_reader&&) noexcept = default;
@@ -44,14 +44,14 @@ private:
 };
 
 template<string_input_iterator It, serializable T>
-void operator<<(T& x, binary_reader<It>& reader) noexcept;
+void operator<<(T& x, binary_reader<It>& reader) noexcept(false);
 
 template<string_input_iterator It, serializable T>
-binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept;
+binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false);
 
 template<string_input_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
 
 template<typename Array>
-binary_reader(Array&& array) -> binary_reader<std::decay_t<decltype(std::begin(array))>>;
+binary_reader(const Array& array) -> binary_reader<std::decay_t<decltype(std::begin(array))>>;
 
 } // namespace floormat::Serialize

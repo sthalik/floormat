@@ -10,12 +10,6 @@ namespace floormat::Serialize {
 
 static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little);
 
-enum class value_type : unsigned char {
-    none, uc, u8, u16, u32, u64,
-    f32, f64,
-    COUNT
-};
-
 template<std::size_t N> struct make_integer;
 template<std::size_t N> using make_integer_t = typename make_integer<N>::type;
 
@@ -39,13 +33,13 @@ concept serializable = requires(T x) {
 };
 
 template<typename T>
-constexpr inline T maybe_byteswap(T x)
+constexpr inline T maybe_byteswap(T x) noexcept
 {
     return x;
 }
 
 template<integer T>
-constexpr inline T maybe_byteswap(T x)
+constexpr inline T maybe_byteswap(T x) noexcept
 {
     if constexpr(std::endian::native == std::endian::big)
         return std::byteswap(x);

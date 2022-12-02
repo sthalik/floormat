@@ -1,26 +1,26 @@
 #pragma once
 #include "binary-reader.hpp"
-#include "compat/assert.hpp"
+#include "compat/exception.hpp"
 
 namespace floormat::Serialize {
 
 template<string_input_iterator It>
 template<char_sequence Seq>
 constexpr binary_reader<It>::binary_reader(const Seq& seq) noexcept
-        : it{std::begin(seq)}, end{std::end(seq)}
+    : it{std::cbegin(seq)}, end{std::cend(seq)}
 {}
 
 template<string_input_iterator It>
 constexpr binary_reader<It>::binary_reader(It begin, It end) noexcept :
-        it{begin}, end{end}
+    it{std::move(begin)}, end{std::move(end)}
 {}
 
 template<string_input_iterator It>
 template<serializable T>
-constexpr T binary_reader<It>::read() noexcept
+constexpr T binary_reader<It>::read() noexcept(false)
 {
     constexpr std::size_t N = sizeof(T);
-    fm_assert((std::ptrdiff_t)N <= std::distance(it, end));
+    fm_soft_assert((std::ptrdiff_t)N <= std::distance(it, end));
     num_bytes_read += N;
     char buf[N];
     for (std::size_t i = 0; i < N; i++)
@@ -30,12 +30,12 @@ constexpr T binary_reader<It>::read() noexcept
 
 template<string_input_iterator It>
 template<std::size_t N>
-constexpr std::array<char, N> binary_reader<It>::read() noexcept
+constexpr std::array<char, N> binary_reader<It>::read() noexcept(false)
 {
     std::array<char, N> array;
     if (std::is_constant_evaluated())
         array = {};
-    fm_assert(N <= (std::size_t)std::distance(it, end));
+    fm_soft_assert(N <= (std::size_t)std::distance(it, end));
     num_bytes_read += N;
     for (std::size_t i = 0; i < N; i++)
         array[i] = *it++;
@@ -43,27 +43,27 @@ constexpr std::array<char, N> binary_reader<It>::read() noexcept
 }
 
 template<string_input_iterator It>
-constexpr void binary_reader<It>::assert_end() noexcept
+constexpr void binary_reader<It>::assert_end() noexcept(false)
 {
-    fm_assert(it == end);
+    fm_soft_assert(it == end);
 }
 
 template<string_input_iterator It, serializable T>
-binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept
+binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false)
 {
     x = reader.template read<T>();
     return reader;
 }
 
 template<string_input_iterator It, serializable T>
-void operator<<(T& x, binary_reader<It>& reader) noexcept
+void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
 {
     x = reader.template read<T>();
 }
 
 template<string_input_iterator It>
 template<std::size_t MAX>
-constexpr auto binary_reader<It>::read_asciiz_string() noexcept
+constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
 {
     static_assert(MAX > 0);
 
@@ -84,7 +84,7 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept
             return ret;
         }
     }
-    fm_abort("can't find string terminator");
+    fm_throw("can't find string terminator"_cf);
 }
 
 } // namespace floormat::Serialize

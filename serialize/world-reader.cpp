@@ -6,6 +6,7 @@
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
+
 #include <cstring>
 
 namespace {
@@ -66,23 +67,23 @@ void reader_state::read_sceneries(reader_t& s)
 
     std::uint16_t magic; magic << s;
     if (magic != scenery_magic)
-        fm_abort("bad scenery magic");
+        fm_throw("bad scenery magic"_cf);
     atlasid sz; sz << s;
-    fm_assert(sz < scenery_id_max);
+    fm_soft_assert(sz < scenery_id_max);
     sceneries.resize(sz);
 
     std::size_t i = 0;
     while (i < sz)
     {
         std::uint8_t num; num << s;
-        fm_assert(num > 0);
+        fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
         const auto sc_ = loader.scenery(str);
         for (std::size_t n = 0; n < num; n++)
         {
             atlasid id; id << s;
-            fm_assert(id < sz);
-            fm_assert(!sceneries[id]);
+            fm_soft_assert(id < sz);
+            fm_soft_assert(!sceneries[id]);
             scenery_proto sc = sc_;
             bool short_frame = read_scenery_flags(s, sc.frame);
             fm_debug_assert(sc.atlas != nullptr);
@@ -90,14 +91,12 @@ void reader_state::read_sceneries(reader_t& s)
                 sc.frame.frame = s.read<std::uint8_t>();
             else
                 sc.frame.frame << s;
-            fm_assert(sc.frame.frame < sc.atlas->info().nframes);
+            fm_soft_assert(sc.frame.frame < sc.atlas->info().nframes);
             sceneries[id] = sc;
         }
         i += num;
     }
-    fm_assert(i == sz);
-    for (const scenery_proto& sc : sceneries)
-        fm_assert(sc);
+    fm_soft_assert(i == sz);
 }
 
 const std::shared_ptr<tile_atlas>& reader_state::lookup_atlas(atlasid id)
@@ -105,7 +104,7 @@ const std::shared_ptr<tile_atlas>& reader_state::lookup_atlas(atlasid id)
     if (id < atlases.size())
         return atlases[id];
     else
-        fm_abort("no such atlas: '%zu'", (std::size_t)id);
+        fm_throw("no such atlas: '{}'"_cf, id);
 }
 
 const scenery_proto& reader_state::lookup_scenery(atlasid id)
@@ -113,7 +112,7 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
     if (id < sceneries.size())
         return sceneries[id];
     else
-        fm_abort("no such scenery: '%zu'", (std::size_t)id);
+        fm_throw("no such scenery: '{}'"_cf, id);
 }
 
 void reader_state::read_chunks(reader_t& s)
@@ -125,7 +124,7 @@ void reader_state::read_chunks(reader_t& s)
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
         if (magic != chunk_magic)
-            fm_abort("bad chunk magic");
+            fm_throw("bad chunk magic"_cf);
         chunk_coords coord;
         coord.x << s;
         coord.y << s;
@@ -145,7 +144,7 @@ void reader_state::read_chunks(reader_t& s)
                         ? s.read<std::uint8_t>()
                         : std::uint8_t(s.read<std::uint16_t>());
                 auto atlas = lookup_atlas(id);
-                fm_assert(v < atlas->num_tiles());
+                fm_soft_assert(v < atlas->num_tiles());
                 return { atlas, v };
             };
 
@@ -186,7 +185,7 @@ void reader_state::read_chunks(reader_t& s)
                 t.pass_mode() = x;
                 break;
             default: [[unlikely]]
-                fm_abort("bad pass mode '%zu' for tile %zu", i, (std::size_t)x);
+                fm_throw("bad pass mode '{}' for tile {}"_cf, i, x);
             }
         }
     }
@@ -196,11 +195,11 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
 {
     auto s = binary_reader{buf};
     if (!!::memcmp(s.read<std::size(file_magic)-1>().data(), file_magic, std::size(file_magic)-1))
-        fm_abort("bad magic");
+        fm_throw("bad magic"_cf);
     proto_t proto;
     proto << s;
     if (!(proto >= min_proto_version && proto <= proto_version))
-        fm_abort("bad proto version '%zu' (should be between '%zu' and '%zu')",
+        fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
     read_atlases(s);
@@ -225,17 +224,17 @@ world world::deserialize(StringView filename)
         (void)::strerror_s(buf, std::size(buf), errno);
 #endif
     };
-    fm_assert(filename.flags() & StringViewFlag::NullTerminated);
+    fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
     {
         get_error_string(errbuf);
-        fm_abort("fopen(\"%s\", \"r\"): %s", filename.data(), errbuf);
+        fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename.data(), errbuf);
     }
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
     {
         get_error_string(errbuf);
-        fm_abort("fseek(SEEK_END): %s", errbuf);
+        fm_throw("fseek(SEEK_END): {}"_cf, errbuf);
     }
     std::size_t len;
     if (auto len_ = ::ftell(f); len_ >= 0)
@@ -243,19 +242,19 @@ world world::deserialize(StringView filename)
     else
     {
         get_error_string(errbuf);
-        fm_abort("ftell: %s", errbuf);
+        fm_throw("ftell: {}"_cf, errbuf);
     }
     if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
     {
         get_error_string(errbuf);
-        fm_abort("fseek(SEEK_SET): %s", errbuf);
+        fm_throw("fseek(SEEK_SET): {}"_cf, errbuf);
     }
     auto buf_ = std::make_unique<char[]>(len);
 
     if (auto ret = ::fread(&buf_[0], 1, len, f); ret != len)
     {
         get_error_string(errbuf);
-        fm_abort("fread short read: %s", errbuf);
+        fm_throw("fread short read: {}"_cf, errbuf);
     }
 
     world w;
