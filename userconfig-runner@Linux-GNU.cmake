@@ -1,7 +1,10 @@
 sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
 sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
-set(CMAKE_BUILD_TYPE DEBUG PARENT_SCOPE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
+sets(STRING
+     CMAKE_BUILD_TYPE RELEASE
+     CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG -s"
+     CMAKE_CXX_FLAGS_RELEASE "-O0 -DNDEBUG -s")
 
 add_compile_options(-fsanitize=address,undefined)
 add_link_options(-fsanitize=address,undefined)
