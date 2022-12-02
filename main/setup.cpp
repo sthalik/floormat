@@ -2,11 +2,12 @@
 #include "compat/fpu.hpp"
 #include <algorithm>
 #include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/StringIterable.h>
 
 namespace floormat {
 
-main_impl::main_impl(floormat_app& app, fm_settings&& se, int& fake_argc) noexcept :
-    Platform::Sdl2Application{Arguments{fake_argc, nullptr},
+main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv) noexcept :
+    Platform::Sdl2Application{Arguments{argc, argv},
                               make_conf(se), make_gl_conf(se)},
     s{std::move(se)}, app{app}
 {
@@ -43,18 +44,6 @@ auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::Window
 
 auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
-    switch (s.log_level)
-    {
-    default:
-        SDL_setenv("MAGNUM_LOG_LEVEL", "normal", 1);
-        break;
-    case fm_log_level::quiet:
-        SDL_setenv("MAGNUM_LOG_LEVEL", "quiet", 1);
-        break;
-    case fm_log_level::verbose:
-        SDL_setenv("MAGNUM_LOG_LEVEL", "verbose", 1);
-        break;
-    }
     return Configuration{}
         .setTitle(s.title)
         .setSize(s.resolution, Configuration::DpiScalingPolicy::Virtual)

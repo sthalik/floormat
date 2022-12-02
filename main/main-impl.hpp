@@ -23,7 +23,7 @@ template<typename Atlas, typename T> struct clickable;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
-    explicit main_impl(floormat_app& app, fm_settings&& opts, int& fake_argc) noexcept;
+    explicit main_impl(floormat_app& app, fm_settings&& opts, int& argc, char** argv) noexcept;
     ~main_impl() noexcept override;
 
     int exec() override;

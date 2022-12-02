@@ -7,8 +7,6 @@
 namespace floormat {
 
 enum class fm_gpu_debug : char { no_error = 1, off, on, robust, };
-enum class fm_tristate : char { maybe = -1, on, off };
-enum class fm_log_level : unsigned char { quiet, normal, verbose, };
 
 struct fm_settings
 {
@@ -17,12 +15,11 @@ struct fm_settings
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(fm_settings);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(fm_settings);
 
+    String title = "Test"_s;
+    const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
-    Corrade::Containers::String title{"Test"};
-    Corrade::Containers::String disabled_extensions; // TODO
-    bool vsync = true;
     fm_gpu_debug gpu_debug = fm_gpu_debug::on;
-    fm_log_level log_level = fm_log_level::normal;
+    bool vsync = true;
     bool resizable          : 1 = true,
          fullscreen         : 1 = false,
          fullscreen_desktop : 1 = false,

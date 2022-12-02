@@ -1,5 +1,7 @@
 #include "main-impl.hpp"
 #include "compat/assert.hpp"
+#include <cstdlib>
+#include <cstdio>
 #include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
@@ -28,8 +30,7 @@ int main_impl::exec()
 
 floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
 {
-    int fake_argc = 0;
-    auto* ret = new main_impl(app, std::move(options), fake_argc);
+    auto* ret = new main_impl(app, std::move(options), options.argc, const_cast<char**>(options.argv));
     fm_assert(ret);
     return ret;
 }

@@ -77,22 +77,25 @@ static int atoi_(const char* str)
     return negative ? result : -result;
 }
 
-fm_settings app::parse_cmdline(int argc, const char* const* argv)
+fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 {
     fm_settings opts;
     Corrade::Utility::Arguments args{};
-    args.addOption("vsync", "1")
-        .addOption("gpu-debug", "1")
+    args.addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "", "true|false")
+        .addOption("gpu-debug", "1").setFromEnvironment("gpu-debug", "FLOORMAT_GPU_DEBUG").setHelp("gpu-debug", "", "robust|on|off|no-error")
+        .addSkippedPrefix("magnum")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
-    if (auto str = args.value<StringView>("gpu-debug"); str == "no-error" || str == "none")
+    if (auto str = args.value<StringView>("gpu-debug"); str == "no-error"_s)
         opts.gpu_debug = fm_gpu_debug::no_error;
-    else if (str == "robust" || str == "full")
+    else if (str == "robust"_s || str == "full"_s)
         opts.gpu_debug = fm_gpu_debug::robust;
     else
         opts.gpu_debug = parse_bool("gpu-debug", args, opts.gpu_debug > fm_gpu_debug::off)
                          ? fm_gpu_debug::on
                          : fm_gpu_debug::off;
+    opts.argc = argc;
+    opts.argv = argv;
     return opts;
 }
 
