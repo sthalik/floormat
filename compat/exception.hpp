@@ -28,22 +28,22 @@ exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 
 } // namespace floormat
 
-#define fm_soft_assert(...)                                             \
-    do {                                                                \
-        if (!(__VA_ARGS__))                                             \
-        {                                                               \
-            if (std::is_constant_evaluated())                           \
-                throw base_exception{};                                 \
-            else                                                        \
-                throw exception{"assertion failed: {} in {}:{}"_cf,     \
-                                #__VA_ARGS__, __FILE__, __LINE__};      \
-        }                                                               \
+#define fm_soft_assert(...)                                                         \
+    do {                                                                            \
+        if (!(__VA_ARGS__))                                                         \
+        {                                                                           \
+            if (std::is_constant_evaluated())                                       \
+                throw ::floormat::base_exception{};                                 \
+            else                                                                    \
+                throw ::floormat::exception{"assertion failed: {} in {}:{}"_cf,     \
+                                #__VA_ARGS__, __FILE__, __LINE__};                  \
+        }                                                                           \
     } while (false)
 
-#define fm_throw(fmt, ...)                          \
-    do {                                            \
-        if (std::is_constant_evaluated())           \
-            throw base_exception{};                 \
-        else                                        \
-            throw exception{fmt, __VA_ARGS__};      \
+#define fm_throw(fmt, ...)                                                          \
+    do {                                                                            \
+        if (std::is_constant_evaluated())                                           \
+            throw ::floormat::base_exception{};                                     \
+        else                                                                        \
+            throw ::floormat::exception{fmt, __VA_ARGS__};                          \
     } while (false)
