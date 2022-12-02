@@ -136,7 +136,7 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
     auto it = scenery_map.find(ptr);
     fm_assert(it != scenery_map.end() && !it->second.empty());
     auto& vec = it->second;
-    interned_scenery* ret = nullptr;
+    interned_scenery *ret = nullptr, *ret2 = nullptr;
     for (interned_scenery& x : vec)
     {
         fm_debug_assert(s.frame.type == x.s->proto.frame.type);
@@ -148,6 +148,8 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
             else
                 ret = &x;
         }
+        else if (x.index != null_atlas)
+            ret2 = &x;
     }
 
     if (ret)
@@ -156,7 +158,15 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
         return { ret->s, ret->index, true };
     }
     else if (create)
-        return { vec[0].s, vec[0].index = scenery_map_size++, false };
+    {
+        if (ret2)
+            return { ret2->s, ret2->index, false };
+        else
+        {
+            fm_assert(!vec[0].s->proto);
+            return { vec[0].s, vec[0].index = scenery_map_size++, false };
+        }
+    }
     else
         return {};
 }
