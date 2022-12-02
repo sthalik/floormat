@@ -16,10 +16,10 @@
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 
-namespace {
-
 using namespace floormat;
 using namespace floormat::Serialize;
+
+namespace {
 
 struct interned_atlas final {
     const tile_atlas* img;
@@ -70,7 +70,7 @@ private:
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3 + sizeof(scenery);
 
 constexpr auto chunkbuf_size =
-        sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
+    sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
