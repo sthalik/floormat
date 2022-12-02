@@ -67,7 +67,7 @@ private:
     atlasid scenery_map_size = 0;
 };
 
-constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3;
+constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3 + sizeof(scenery);
 
 constexpr auto chunkbuf_size =
         sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
