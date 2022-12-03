@@ -64,33 +64,36 @@ void app::draw()
     render_menu();
 }
 
-clickable_scenery* app::find_clickable_scenery(Vector2i pixel_)
+clickable_scenery* app::find_clickable_scenery(const Optional<Vector2i>& pixel_)
 {
+    if (!pixel_ || _editor.mode() != editor_mode::none)
+        return nullptr;
+
+    const auto pixel = Vector2ui(*pixel_);
     clickable_scenery* item = nullptr;
     float depth = -1;
 
-    if (cursor.tile)
-    {
-        const auto array = M->clickable_scenery();
-        const auto pixel = Vector2ui(pixel_);
-        for (clickable_scenery& c : array)
-            if (c.depth > depth && c.dest.contains(pixel))
+    const auto array = M->clickable_scenery();
+    for (clickable_scenery& c : array)
+        if (c.depth > depth && c.dest.contains(pixel))
+        {
+            const auto pos_ = pixel - c.dest.min() + c.src.min();
+            const auto pos = c.atlas.group(c.item.r).mirror_from.isEmpty()
+                             ? pos_
+                             : Vector2ui(c.src.sizeX() - 1 - pos_[0], pos_[1]);
+            const auto stride = c.atlas.info().pixel_size[0];
+            std::size_t idx = pos.y() * stride + pos.x();
+            fm_debug_assert(idx < c.bitmask.size());
+            if (c.bitmask[idx])
             {
-                const auto pos_ = pixel - c.dest.min() + c.src.min();
-                const auto pos = c.atlas.group(c.item.r).mirror_from.isEmpty()
-                                 ? pos_
-                                 : Vector2ui(c.src.sizeX() - 1 - pos_[0], pos_[1]);
-                const auto stride = c.atlas.info().pixel_size[0];
-                std::size_t idx = pos.y() * stride + pos.x();
-                fm_debug_assert(idx < c.bitmask.size());
-                if (c.bitmask[idx])
-                {
-                    depth = c.depth;
-                    item = &c;
-                }
+                depth = c.depth;
+                item = &c;
             }
-    }
-    return item;
+        }
+    if (item && item->item.can_activate(item->atlas))
+        return item;
+    else
+        return nullptr;
 }
 
 } // namespace floormat

@@ -87,7 +87,7 @@ private:
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
-    clickable_scenery* find_clickable_scenery(Vector2i pixel);
+    clickable_scenery* find_clickable_scenery(const Optional<Vector2i>& pixel);
 
     void do_quicksave();
     void do_quickload();

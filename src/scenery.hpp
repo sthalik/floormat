@@ -49,7 +49,7 @@ struct scenery final
 
     bool operator==(const scenery&) const noexcept;
 
-    bool can_activate() const noexcept;
+    bool can_activate(const anim_atlas& anim) const noexcept;
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);
 };
