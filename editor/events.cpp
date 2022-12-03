@@ -135,6 +135,9 @@ auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
     return { key_COUNT, k & kmod_mask };
 }
 
+void app::clear_non_global_keys() { clear_keys(key_MIN, key_GLOBAL); }
+void app::clear_non_repeated_keys() { clear_keys(key_NO_REPEAT, key_COUNT); }
+
 void app::on_key_up_down(const key_event& event, bool is_down) noexcept
 {
     using KeyEvent = Platform::Sdl2Application::KeyEvent;
@@ -147,14 +150,16 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     } e = {Ev::Key(event.key), Ev::Modifier(event.mods)};
 
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
+    static_assert(key_GLOBAL >= key_NO_REPEAT);
 
     if (x == key_COUNT)
         void();
+    else if (x < key_GLOBAL && is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e))
+        clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
         is_down && !event.is_repeated ? do_key(x, mods) : void();
-    else if (is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e))
-        clear_non_global_keys();
-    else {
+    else
+    {
         keys[x] = is_down;
         key_modifiers[std::size_t(x)] = mods;
     }

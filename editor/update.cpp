@@ -135,8 +135,8 @@ void app::update_world(float dt)
 
 void app::update(float dt)
 {
-    update_world(dt);
     apply_commands(keys);
+    update_world(dt);
     do_camera(dt, keys, get_key_modifiers());
     update_cursor_tile(cursor.pixel);
     clear_non_repeated_keys();

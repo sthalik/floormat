@@ -109,8 +109,8 @@ private:
     static int get_key_modifiers();
     void clear_keys(key min_inclusive, key max_exclusive);
     void clear_keys();
-    void clear_non_global_keys() { clear_keys(key_noop, key_GLOBAL); }
-    void clear_non_repeated_keys() { clear_keys(key_NO_REPEAT, key_COUNT); }
+    void clear_non_global_keys();
+    void clear_non_repeated_keys();
 
     Containers::Pointer<floormat_main> M;
     ImGuiIntegration::Context _imgui{NoCreate};
