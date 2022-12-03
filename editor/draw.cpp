@@ -18,9 +18,9 @@ void app::draw_cursor()
     shader.set_tint({1, 0, 0, 1});
     const auto inactive_color = 0xff00ffff_rgbaf;
 
-    if (const auto [pos, b] = cursor.tile; b && !cursor.in_imgui)
+    if (cursor.tile && !cursor.in_imgui)
     {
-        const auto draw = [&, pos = pos](auto& mesh, const auto& size) {
+        const auto draw = [&, pos = *cursor.tile](auto& mesh, const auto& size) {
             const auto pt = pos.to_signed();
             const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
             mesh.draw(shader, {center, size, LINE_WIDTH});

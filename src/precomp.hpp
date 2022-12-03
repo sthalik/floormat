@@ -34,7 +34,6 @@
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/EnumSet.h>
-#include "compat/optional.hpp"
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/StringStl.h>
 #include <Corrade/Containers/StringStlHash.h>
