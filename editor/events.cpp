@@ -129,6 +129,7 @@ auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
             case SDLK_F5:       return { key_quicksave,    mods };
             case SDLK_F9:       return { key_quickload,    mods };
             case SDLK_q | CTRL: return { key_quit,         mods };
+            case SDLK_n | CTRL: return { key_new_file,     mods };
             }
         }
     }

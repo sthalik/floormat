@@ -15,16 +15,14 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
-#if defined FM_NO_BINDINGS
-        const auto& atlas = floor1;
+#if 1
+        const auto& atlas = _floor1;
 #else
         const auto& atlas = pt.x == N/2 || pt.y == N/2 ? _floor2 : _floor1;
 #endif
         x.ground() = { atlas, variant_t(k % atlas->num_tiles()) };
     }
-#ifdef FM_NO_BINDINGS
-    const auto& wall1 = floor1, wall2 = floor1;
-#endif
+#if 0
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north() = { _wall1, 0 };
     c[{K,   K  }].wall_west()  = { _wall2, 0 };
@@ -33,6 +31,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
     c[{K+3, K+1}].scenery()    = { scenery::door, _door, rotation::N, };
     c[{ 3,   4 }].scenery()    = { scenery::generic, _table, rotation::W, };
     c[{K,   K+1}].scenery()    = { scenery::generic, _control_panel, rotation::N, scenery::frame_t{0}, pass_mode::pass };
+#endif
     c.mark_modified();
 }
 
@@ -88,7 +87,8 @@ void app::do_key(key k, int mods)
     switch (k)
     {
     default:
-        fm_warn("unhandled key: '%zu'", std::size_t(k));
+        if (k >= key_NO_REPEAT)
+            fm_warn("unhandled key: '%zu'", std::size_t(k));
         return;
     case key_rotate_tile:
         if (auto* ed = _editor.current_tile_editor())
@@ -108,6 +108,8 @@ void app::do_key(key k, int mods)
         return do_quicksave();
     case key_quickload:
         return do_quickload();
+    case key_new_file:
+        return do_new_file();
     case key_quit:
         return M->quit(0);
     }
@@ -116,7 +118,7 @@ void app::do_key(key k, int mods)
 void app::apply_commands(const key_set& keys)
 {
     using value_type = key_set::value_type;
-    for (value_type i = key_NO_REPEAT; i < key_COUNT; i++)
+    for (value_type i = key_MIN; i < key_NO_REPEAT; i++)
         if (const auto k = key(i); keys[k])
             do_key(k, key_modifiers[i]);
 }
@@ -138,7 +140,6 @@ void app::update(float dt)
     apply_commands(keys);
     update_world(dt);
     do_camera(dt, keys, get_key_modifiers());
-    update_cursor_tile(cursor.pixel);
     clear_non_repeated_keys();
 
     if (clickable_scenery* s = find_clickable_scenery(cursor.pixel))

@@ -39,9 +39,17 @@ float app::draw_main_menu()
             ImGui::MenuItem("Close");
             ImGui::Separator();
 #endif
-            bool do_quit = false;
+            bool do_new = false, do_quickload = false, do_quit = false;
+            ImGui::MenuItem("New", nullptr, &do_new);
+            ImGui::Separator();
+            ImGui::MenuItem("Load quicksave", nullptr, &do_quickload);
+            ImGui::Separator();
             ImGui::MenuItem("Quit", "Ctrl+Q", &do_quit);
-            if (do_quit)
+            if (do_new)
+                do_key(key_new_file, kmod_none);
+            else if (do_quickload)
+                do_key(key_quickload, kmod_none);
+            else if (do_quit)
                 do_key(key_quit, kmod_none);
         }
         if (auto b = begin_menu("Mode"))

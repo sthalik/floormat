@@ -48,4 +48,11 @@ void app::do_quickload()
     fputs("done\n", stderr); fflush(stderr);
 }
 
+void app::do_new_file()
+{
+    auto& w = M->world();
+    w = world{};
+    maybe_initialize_chunk_(chunk_coords{}, w[chunk_coords{}]);
+}
+
 } // namespace floormat

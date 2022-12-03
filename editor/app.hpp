@@ -91,6 +91,7 @@ private:
 
     void do_quicksave();
     void do_quickload();
+    void do_new_file();
 
     void draw_editor_pane(float main_menu_height);
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
