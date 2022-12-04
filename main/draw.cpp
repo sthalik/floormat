@@ -29,6 +29,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     GL::Renderer::enable(R::Feature::Blending);
     GL::Renderer::enable(R::Feature::ScissorTest);
     GL::Renderer::enable(R::Feature::DepthClamp);
+    glEnable(GL_LINE_SMOOTH);
     GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
     GL::Renderer::setScissor({{}, fb_size});
 
