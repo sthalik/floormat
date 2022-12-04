@@ -13,7 +13,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
 {
     (void)pos; (void)c;
 
-    constexpr auto N = TILE_MAX_DIM;
+    [[maybe_unused]] constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
 #if 1
         const auto& atlas = _floor1;
