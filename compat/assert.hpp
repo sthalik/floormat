@@ -67,7 +67,7 @@ namespace floormat {
 
 #define fm_assert(...)                                                  \
     do {                                                                \
-        if (!(__VA_ARGS__)) {                                           \
+        if (!(__VA_ARGS__)) [[unlikely]] {                              \
             fm_EMIT_DEBUG("", "assertion failed: %s in %s:%d",          \
                           #__VA_ARGS__, __FILE__, __LINE__);            \
             ::floormat::_fm_abort();                                    \
@@ -80,13 +80,6 @@ namespace floormat {
 #define fm_debug_assert(...) void()
 #endif
 
-#define ASSERT_EXPR(var, expr, cond)                                    \
-    ([&] {                                                              \
-        decltype(auto) var = (expr);                                    \
-            fm_assert(cond);                                            \
-        return (var);                                                   \
-    })()
-
 #define fm_warn(...)  fm_EMIT_DEBUG("warning: ", __VA_ARGS__)
 #define fm_error(...) fm_EMIT_DEBUG("error: ", __VA_ARGS__)
 #define fm_log(...)   fm_EMIT_DEBUG("", __VA_ARGS__)
@@ -94,7 +87,7 @@ namespace floormat {
 
 #define fm_warn_once(...) do {                                          \
         static bool _fm_once_flag = false;                              \
-        if (!_fm_once_flag) {                                           \
+        if (!_fm_once_flag) [[unlikely]] {                              \
             _fm_once_flag = true;                                       \
             fm_warn(__VA_ARGS__);                                       \
         }                                                               \
