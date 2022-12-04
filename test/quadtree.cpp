@@ -656,7 +656,7 @@ void StressTest() {
                 BoundingBox<NumberT>* obj = query.GetCurrent();
                 ASSERT(query_region.Intersects(*obj));
                 std::size_t id = (std::size_t)(obj - &objects[0]);
-                ASSERT(id >= 0 && id < objects_generated);
+                ASSERT(id < objects_generated);
                 flags[id] = true;
                 query.Next();
             }
@@ -670,7 +670,7 @@ void StressTest() {
                 BoundingBox<NumberT>* obj = query.GetCurrent();
                 ASSERT(query_region.Contains(*obj));
                 std::size_t id = (std::size_t)(obj - &objects[0]);
-                ASSERT(id >= 0 && id < objects_generated);
+                ASSERT(id < objects_generated);
                 flags[id] = true;
                 query.Next();
             }
@@ -684,7 +684,7 @@ void StressTest() {
                 BoundingBox<NumberT>* obj = query.GetCurrent();
                 ASSERT(obj->Contains(query_region));
                 std::size_t id = (std::size_t)(obj - &objects[0]);
-                ASSERT(id >= 0 && id < objects_generated);
+                ASSERT(id < objects_generated);
                 flags[id] = true;
                 query.Next();
             }
