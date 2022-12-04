@@ -123,6 +123,7 @@ if(MSVC)
         -wd4458  # warning C4458: declaration of 'keys' hides class member
         -wd4127  # warning C4127: conditional expression is constant
         -wd4554  # warning C4554: '<<': check operator precedence for possible error; use parentheses to clarify precedence
+        -wd4146  # warning C4146: unary minus operator applied to unsigned type, result still unsigned
     )
     add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)

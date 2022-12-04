@@ -1,20 +1,24 @@
-#include "LooseQuadtree.h"
+#if defined __GNUG__ || defined __CLION_IDE__
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+#ifdef _MSC_VER
+#pragma warning(disable : 4244)
+#endif
+#define ASSERT fm_assert
+
+#include "compat/LooseQuadtree.h"
+#include "compat/LooseQuadtree-impl.h"
+#include "compat/assert.hpp"
+#include "test/app.hpp"
 
 #include <chrono>
-#include <cstdlib>
 #include <cstdio>
 #include <random>
 #include <vector>
 
 using namespace loose_quadtree;
 
-
-
-#define ASSERT(CONDITION) if (!(CONDITION)) {\
-	printf("Assertion failure %s:%d ASSERT(%s)\n", __FILE__, __LINE__, #CONDITION);\
-	abort();\
-	}
-
+namespace {
 
 template <typename NumberT>
 class TrivialBBExtractor {
@@ -696,7 +700,8 @@ void StressTest() {
 
 template <typename NumberT>
 void RunTests(const char* type_str) {
-	printf("***** Running tests for %s (%lu-bit)... ", type_str, sizeof(NumberT) * 8);
+	printf("quadtree test %s (%zu-bit)... ", type_str, sizeof(NumberT) * 8);
+	fflush(stdout);
 	auto start = std::chrono::high_resolution_clock::now();
 	TestBoundingBox<NumberT>();
 	TestTraversals<NumberT>();
@@ -706,13 +711,17 @@ void RunTests(const char* type_str) {
 	auto end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> time = end - start;
 	printf("took %f seconds\n", time.count());
+	fflush(stdout);
 }
 
+} // namespace
 
+namespace floormat {
 
-int main(int, char*[]) {
+void test_app::test_quadtree()
+{
 	puts("***** Testing is about to start *****");
-	printf("***** This system is %lu-bit\n", sizeof(void*) * 8);
+	printf("***** This system is %zu-bit\n", sizeof(void*) * 8);
 	RunTests<float>("float");
 	RunTests<double>("double");
 	RunTests<long double>("long double");
@@ -724,6 +733,6 @@ int main(int, char*[]) {
 	RunTests<unsigned short>("unsigned short");
 	RunTests<long long>("long long");
 	puts("***** Testing is successfully finished *****");
-	return 0;
 }
 
+} // namespace floormat

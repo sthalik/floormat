@@ -24,6 +24,7 @@ int test_app::exec()
     test_const_math();
     test_serializer();
     test_entity();
+    test_quadtree();
     return 0;
 }
 

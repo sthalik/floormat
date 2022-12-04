@@ -71,8 +71,8 @@ public:
 		Query() = delete;
 		Query(const Query&) = delete;
 		Query& operator=(const Query&) = delete;
-		Query(Query&&);
-		Query& operator=(Query&&);
+		Query(Query&&) noexcept;
+		Query& operator=(Query&&) noexcept;
 
 		bool EndOfQuery() const;
 		Object* GetCurrent() const;
@@ -85,8 +85,8 @@ public:
 		Impl* pimpl_;
 	};
 
-	LooseQuadtree() {}
-	~LooseQuadtree() {}
+	LooseQuadtree() = default;
+	~LooseQuadtree() = default;
 	LooseQuadtree(const LooseQuadtree&) = delete;
 	LooseQuadtree& operator=(const LooseQuadtree&) = delete;
 
@@ -112,7 +112,5 @@ private:
 
 
 } //loose_quadtree
-
-#include "LooseQuadtree-impl.h"
 
 #endif //LOOSEQUADTREE_LOOSEQUADTREE_H

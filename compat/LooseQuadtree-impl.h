@@ -2,9 +2,11 @@
 #define LOOSEQUADTREE_LOOSEQUADTREE_IMPL_H
 
 #include "LooseQuadtree.h"
+#include "compat/assert.hpp"
+#undef assert
+#define assert fm_assert
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <deque>
 #include <forward_list>
@@ -14,6 +16,15 @@
 #include <unordered_map>
 #include <type_traits>
 #include <vector>
+
+#if defined __clang__ || defined __CLION_IDE__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
+#endif
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
 
 namespace loose_quadtree {
 namespace detail {
@@ -25,9 +36,9 @@ namespace detail {
 
 class BlocksAllocator {
 public:
-	const static std::size_t kBlockAlign = alignof(long double);
-	const static std::size_t kBlockSize = 16384;
-	const static std::size_t kMaxAllowedAlloc = sizeof(void*) * 8;
+	static constexpr std::size_t kBlockAlign = alignof(long double);
+	static constexpr std::size_t kBlockSize = 16384;
+	static constexpr std::size_t kMaxAllowedAlloc = sizeof(void*) * 8;
 
 	BlocksAllocator();
 	~BlocksAllocator();
@@ -1480,14 +1491,14 @@ template <typename NumberT, typename ObjectT, typename BoundingBoxExtractorT>
 
 template <typename NumberT, typename ObjectT, typename BoundingBoxExtractorT>
 	LooseQuadtree<NumberT, ObjectT, BoundingBoxExtractorT>::Query::
-Query(Query&& other) : pimpl_(other.pimpl_) {
+Query(Query&& other) noexcept : pimpl_(other.pimpl_) {
 	other.pimpl_ = nullptr;
 }
 
 template <typename NumberT, typename ObjectT, typename BoundingBoxExtractorT>
 auto
 	LooseQuadtree<NumberT, ObjectT, BoundingBoxExtractorT>::Query::
-operator=(Query&& other) -> Query& {
+operator=(Query&& other) noexcept -> Query& {
 	this->~Query();
 	pimpl_ = other.pimpl_;
 	other.pimpl_ = nullptr;
@@ -1519,5 +1530,14 @@ Next() {
 
 
 } //loose_quadtree
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
+#if defined __clang__ || defined __CLION_IDE__
+#pragma clang diagnostic pop
+#endif
+
+#undef assert
 
 #endif //LOOSEQUADTREE_LOOSEQUADTREE_IMPL_H
