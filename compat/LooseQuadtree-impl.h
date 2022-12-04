@@ -54,7 +54,9 @@ public:
 	void Delete(T* p);
 
 private:
-	using Block = std::aligned_storage<kBlockSize, kBlockAlign>::type;
+	struct Block {
+		alignas(kBlockAlign) unsigned char data[kBlockSize];
+	};
 
 	//template <std::size_t kSizeT>
 	//union Slot {
