@@ -12,6 +12,7 @@
 #include "test/app.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <random>
 #include <vector>
@@ -700,7 +701,7 @@ void StressTest() {
 
 template <typename NumberT>
 void RunTests(const char* type_str) {
-	printf("quadtree test %s (%zu-bit)... ", type_str, sizeof(NumberT) * 8);
+	printf("quadtree test %13s", type_str);
 	fflush(stdout);
 	auto start = std::chrono::high_resolution_clock::now();
 	TestBoundingBox<NumberT>();
@@ -709,8 +710,8 @@ void RunTests(const char* type_str) {
 	TestQueries<NumberT>();
 	StressTest<NumberT>();
 	auto end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> time = end - start;
-	printf("took %f seconds\n", time.count());
+	std::chrono::duration<double, std::milli> time = end - start;
+	printf(": %.1f ms\n", time.count());
 	fflush(stdout);
 }
 
@@ -718,21 +719,19 @@ void RunTests(const char* type_str) {
 
 namespace floormat {
 
+#define RUN_TEST(x) RunTests<x>(#x)
+
 void test_app::test_quadtree()
 {
-	puts("***** Testing is about to start *****");
-	printf("***** This system is %zu-bit\n", sizeof(void*) * 8);
-	RunTests<float>("float");
-	RunTests<double>("double");
-	RunTests<long double>("long double");
-	RunTests<int>("int");
-	RunTests<long>("long");
-	RunTests<short>("short");
-	RunTests<unsigned int>("unsigned int");
-	RunTests<unsigned long>("unsigned long");
-	RunTests<unsigned short>("unsigned short");
-	RunTests<long long>("long long");
-	puts("***** Testing is successfully finished *****");
+	RUN_TEST(float);
+	RUN_TEST(double);
+	RUN_TEST(long double);
+	RUN_TEST(std::int16_t);
+	RUN_TEST(std::int32_t);
+	RUN_TEST(std::int64_t);
+	RUN_TEST(std::uint16_t);
+	RUN_TEST(std::uint32_t);
+	RUN_TEST(std::uint64_t);
 }
 
 } // namespace floormat
