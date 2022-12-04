@@ -17,10 +17,6 @@
 #include <type_traits>
 #include <vector>
 
-#if defined __clang__ || defined __CLION_IDE__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundefined-reinterpret-cast"
-#endif
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -230,10 +226,10 @@ void BlocksAllocator::ReleaseFreeBlocks() {
             assert(address_empties_it->second > 0 &&
                     address_empties_it->second <= blocks_head.slots_in_a_block_);
             if (address_empties_it->second >= blocks_head.slots_in_a_block_) {
-                *current = **reinterpret_cast<void***>(current);
+                *current = **(void***)current;
             }
             else {
-                current = *reinterpret_cast<void***>(current);
+                current = *(void***)current;
             }
         }
         auto address_empties_it = blocks_head.address_to_empty_slot_number.begin();
@@ -1410,9 +1406,6 @@ void LooseQuadtree<NumberT, ObjectT, BoundingBoxExtractorT>::Query::Next() {
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
-#endif
-#if defined __clang__ || defined __CLION_IDE__
-#pragma clang diagnostic pop
 #endif
 
 #undef assert
