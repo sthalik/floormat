@@ -38,18 +38,18 @@ namespace loose_quadtree {
 
 template <typename NumberT>
 struct BoundingBox {
-	using Number = NumberT;
+    using Number = NumberT;
 
-	BoundingBox(Number _left, Number _top, Number _width, Number _height) :
-		left(_left), top(_top), width(_width), height(_height) {}
-	bool Intersects(const BoundingBox<Number>& other) const ;
-	bool Contains(const BoundingBox<Number>& other) const;
-	bool Contains(Number x, Number y) const;
+    BoundingBox(Number _left, Number _top, Number _width, Number _height) :
+        left(_left), top(_top), width(_width), height(_height) {}
+    bool Intersects(const BoundingBox<Number>& other) const ;
+    bool Contains(const BoundingBox<Number>& other) const;
+    bool Contains(Number x, Number y) const;
 
-	Number left;
-	Number top;
-	Number width;
-	Number height;
+    Number left;
+    Number top;
+    Number width;
+    Number height;
 };
 
 
@@ -57,56 +57,56 @@ struct BoundingBox {
 template <typename NumberT, typename ObjectT, typename BoundingBoxExtractorT>
 class LooseQuadtree {
 public:
-	using Number = NumberT;
-	using Object = ObjectT;
-	using BoundingBoxExtractor = BoundingBoxExtractorT;
+    using Number = NumberT;
+    using Object = ObjectT;
+    using BoundingBoxExtractor = BoundingBoxExtractorT;
 
 private:
-	class Impl;
+    class Impl;
 
 public:
-	class Query {
-	public:
-		~Query();
-		Query() = delete;
-		Query(const Query&) = delete;
-		Query& operator=(const Query&) = delete;
-		Query(Query&&) noexcept;
-		Query& operator=(Query&&) noexcept;
+    class Query {
+    public:
+        ~Query();
+        Query() = delete;
+        Query(const Query&) = delete;
+        Query& operator=(const Query&) = delete;
+        Query(Query&&) noexcept;
+        Query& operator=(Query&&) noexcept;
 
-		bool EndOfQuery() const;
-		Object* GetCurrent() const;
-		void Next();
+        bool EndOfQuery() const;
+        Object* GetCurrent() const;
+        void Next();
 
-	private:
-		friend class LooseQuadtree<Number, Object, BoundingBoxExtractor>::Impl;
-		class Impl;
-		Query(Impl* pimpl);
-		Impl* pimpl_;
-	};
+    private:
+        friend class LooseQuadtree<Number, Object, BoundingBoxExtractor>::Impl;
+        class Impl;
+        Query(Impl* pimpl);
+        Impl* pimpl_;
+    };
 
-	LooseQuadtree() = default;
-	~LooseQuadtree() = default;
-	LooseQuadtree(const LooseQuadtree&) = delete;
-	LooseQuadtree& operator=(const LooseQuadtree&) = delete;
+    LooseQuadtree() = default;
+    ~LooseQuadtree() = default;
+    LooseQuadtree(const LooseQuadtree&) = delete;
+    LooseQuadtree& operator=(const LooseQuadtree&) = delete;
 
-	bool Insert(Object* object); ///< true if it was inserted (else updated)
-	bool Update(Object* object); ///< true if it was updated (else inserted)
-	bool Remove(Object* object); ///< true if it was removed
-	bool Contains(Object* object) const; ///< true if object is in tree
-	Query QueryIntersectsRegion(const BoundingBox<Number>& region);
-	Query QueryInsideRegion(const BoundingBox<Number>& region);
-	Query QueryContainsRegion(const BoundingBox<Number>& region);
-	const BoundingBox<Number>& GetLooseBoundingBox() const;
-	///< double its size to get a bounding box including everything contained for sure
-	int GetSize() const;
-	bool IsEmpty() const;
-	void Clear();
-	void ForceCleanup(); ///< does a full data structure and memory cleanup
-	///< cleanup is semi-automatic during queries so you needn't call this normally
+    bool Insert(Object* object); ///< true if it was inserted (else updated)
+    bool Update(Object* object); ///< true if it was updated (else inserted)
+    bool Remove(Object* object); ///< true if it was removed
+    bool Contains(Object* object) const; ///< true if object is in tree
+    Query QueryIntersectsRegion(const BoundingBox<Number>& region);
+    Query QueryInsideRegion(const BoundingBox<Number>& region);
+    Query QueryContainsRegion(const BoundingBox<Number>& region);
+    const BoundingBox<Number>& GetLooseBoundingBox() const;
+    ///< double its size to get a bounding box including everything contained for sure
+    int GetSize() const;
+    bool IsEmpty() const;
+    void Clear();
+    void ForceCleanup(); ///< does a full data structure and memory cleanup
+    ///< cleanup is semi-automatic during queries so you needn't call this normally
 
 private:
-	Impl impl_;
+    Impl impl_;
 };
 
 
