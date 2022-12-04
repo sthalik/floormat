@@ -1,6 +1,4 @@
-#ifndef LOOSEQUADTREE_LOOSEQUADTREE_H
-#define LOOSEQUADTREE_LOOSEQUADTREE_H
-
+#pragma once
 /**
  * LooseQuadtree written by Zozo
  * use freely under MIT license
@@ -112,5 +110,3 @@ private:
 
 
 } //loose_quadtree
-
-#endif //LOOSEQUADTREE_LOOSEQUADTREE_H

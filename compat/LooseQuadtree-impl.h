@@ -1,5 +1,4 @@
-#ifndef LOOSEQUADTREE_LOOSEQUADTREE_IMPL_H
-#define LOOSEQUADTREE_LOOSEQUADTREE_IMPL_H
+#pragma once
 
 #include "LooseQuadtree.h"
 #include "compat/assert.hpp"
@@ -1409,5 +1408,3 @@ void LooseQuadtree<NumberT, ObjectT, BoundingBoxExtractorT>::Query::Next() {
 #endif
 
 #undef assert
-
-#endif //LOOSEQUADTREE_LOOSEQUADTREE_IMPL_H
