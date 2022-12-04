@@ -1,13 +1,14 @@
+#include "compat/defs.hpp"
 #include "wireframe.hpp"
 #include "shaders/tile.hpp"
-//#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
-#include <Magnum/GL/TextureFormat.h>
-//#include <Magnum/ImageFlags.h>
+#include <Magnum/Math/Range.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/PixelFormat.h>
-//#include <Magnum/PixelStorage.h>
+#include <Magnum/GL/Context.h>
+#include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Trade/ImageData.h>
 
 namespace floormat::wireframe
@@ -56,6 +57,16 @@ void mesh_base::draw(tile_shader& shader)
 void mesh_base::set_subdata(ArrayView<const void> array)
 {
     _vertex_buffer.setSubData(0, array);
+}
+
+void mesh_base::set_line_width(float width)
+{
+    if (GL::Context::current().detectedDriver() == GL::Context::DetectedDriver::Svga3D)
+        return;
+
+    auto range = GL::Renderer::lineWidthRange();
+    if (range.contains(width))
+        GL::Renderer::setLineWidth(width);
 }
 
 } // namespace floormat::wireframe

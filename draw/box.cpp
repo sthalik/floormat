@@ -1,6 +1,5 @@
 #include "box.hpp"
-#include <array>
-#include <Magnum/Math/Vector3.h>
+#include "wireframe.hpp"
 #include <Magnum/GL/Renderer.h>
 
 namespace floormat::wireframe {
@@ -29,7 +28,7 @@ box::vertex_array box::make_vertex_array() const
 
 void box::on_draw() const
 {
-    GL::Renderer::setLineWidth(line_width);
+    mesh_base::set_line_width(line_width);
 }
 
 box::index_array box::make_index_array()

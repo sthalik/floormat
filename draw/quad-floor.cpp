@@ -1,4 +1,5 @@
 #include "quad-floor.hpp"
+#include "wireframe.hpp"
 #include <array>
 #include <Magnum/GL/Renderer.h>
 
@@ -22,7 +23,7 @@ quad_floor::quad_floor(Vector3 center, Vector2 size, float line_width) :
 
 void quad_floor::on_draw() const
 {
-    GL::Renderer::setLineWidth(line_width);
+    mesh_base::set_line_width(line_width);
 }
 
 } // namespace floormat::wireframe

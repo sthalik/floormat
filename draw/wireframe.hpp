@@ -24,6 +24,8 @@ concept traits = requires (const T& x) {
 GL::Texture2D make_constant_texture();
 
 struct mesh_base {
+    static void set_line_width(float width);
+
 protected:
     GL::Buffer _vertex_buffer{{}, GL::BufferUsage::DynamicDraw}, _constant_buffer, _index_buffer;
     GL::Texture2D* _texture;

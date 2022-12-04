@@ -1,5 +1,5 @@
 #include "quad-wall-n.hpp"
-#include <array>
+#include "wireframe.hpp"
 #include <Magnum/GL/Renderer.h>
 
 namespace floormat::wireframe {
@@ -22,7 +22,7 @@ quad_wall_n::quad_wall_n(Vector3 center, Vector3 size, float line_width) :
 
 void quad_wall_n::on_draw() const
 {
-    GL::Renderer::setLineWidth(line_width);
+    mesh_base::set_line_width(line_width);
 }
 
 } // namespace floormat::wireframe
