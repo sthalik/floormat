@@ -142,7 +142,7 @@ void app::update(float dt)
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
 
-    if (clickable_scenery* s = find_clickable_scenery(cursor.pixel))
+    if ([[maybe_unused]] clickable_scenery* s = find_clickable_scenery(cursor.pixel))
         M->set_cursor(std::uint32_t(Cursor::Hand));
     else
         M->set_cursor(std::uint32_t(Cursor::Arrow));
