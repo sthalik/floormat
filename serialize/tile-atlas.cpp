@@ -3,11 +3,24 @@
 #include "serialize/corrade-string.hpp"
 #include "serialize/magnum-vector2i.hpp"
 #include "loader/loader.hpp"
-#include <tuple>
-
+#include "serialize/pass-mode.hpp"
+#include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
 
 using namespace floormat;
+
+namespace {
+
+struct proxy {
+    String name;
+    Vector2ub size;
+    Optional<pass_mode> passability;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(proxy, name, size)
+
+} // namespace
 
 namespace nlohmann {
 
@@ -17,18 +30,26 @@ void adl_serializer<std::shared_ptr<tile_atlas>>::to_json(json& j, const std::sh
     if (!x)
         j = nullptr;
     else
-        to_json(j, std::tuple<StringView, Vector2ub>{x->name(), x->num_tiles2()});
+    {
+        to_json(j, proxy{x->name(), x->num_tiles2(), NullOpt});
+        if (auto p = x->pass_mode())
+            j["pass-mode"] = *p;
+    }
 }
 
-void adl_serializer<std::shared_ptr<tile_atlas>>::from_json(const json& j, std::shared_ptr<tile_atlas>& x)
+void adl_serializer<std::shared_ptr<tile_atlas>>::from_json(const json& j, std::shared_ptr<tile_atlas>& val)
 {
     if (j.is_null())
-        x = nullptr;
+        val = nullptr;
     else
     {
-        std::tuple<String, Vector2ub> proxy = j;
-        const auto& [name, num_tiles] = proxy;
-        x = loader.tile_atlas(name, num_tiles);
+        using nlohmann::from_json;
+        proxy x;
+        from_json(j, x);
+        Optional<pass_mode> p;
+        if (j.contains("pass-mode"))
+            p = {InPlaceInit, j["pass-mode"]};
+        val = loader.tile_atlas(x.name, x.size, p);
     }
 }
 

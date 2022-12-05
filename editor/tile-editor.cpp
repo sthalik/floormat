@@ -16,8 +16,16 @@ tile_editor::tile_editor(editor_mode mode, StringView name) : _name{name}, _mode
 
 void tile_editor::load_atlases()
 {
+    pass_mode default_pass_mode;
+    switch (_mode)
+    {
+    case editor_mode::floor: default_pass_mode = pass_mode::pass; break;
+    case editor_mode::walls: default_pass_mode = pass_mode::blocked; break;
+    default: default_pass_mode = pass_mode::see_through; break;
+    }
+
     const auto filename = _name + ".json";
-    for (const auto& atlas : loader.tile_atlases(filename))
+    for (const auto& atlas : loader.tile_atlases(filename, default_pass_mode))
     {
         const auto [name, _ext] = Path::splitExtension(atlas->name());
         auto& [_, vec] = _permutation;

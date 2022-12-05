@@ -1,8 +1,26 @@
 [
-    ["wood2",       "2 x 2"],
-    ["wood1",       "2 x 2"],
-    ["teak1",       "2 x 2"],
-    ["metal2",      "2 x 2"],
-    ["concrete7",   "4 x 4"],
-    ["concrete6",   "4 x 4"]
+    {
+        "name": "wood2",
+        "size": "2 x 2"
+    },
+    {
+        "name": "wood1",
+        "size": "2 x 2"
+    },
+    {
+        "name": "teak1",
+        "size": "2 x 2"
+    },
+    {
+        "name": "metal2",
+        "size": "2 x 2"
+    },
+    {
+        "name": "concrete7",
+        "size": "4 x 4"
+    },
+    {
+        "name": "concrete6",
+        "size": "4 x 4"
+    }
 ]

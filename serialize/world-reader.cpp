@@ -45,7 +45,9 @@ void reader_state::read_atlases(reader_t& s)
         size[0] << s;
         size[1] << s;
         const auto& [buf, len] = s.read_asciiz_string<atlas_name_max>();
-        atlases.push_back(loader.tile_atlas({buf, len}, size));
+        auto atlas = loader.tile_atlas({buf, len});
+        fm_soft_assert(size == atlas->num_tiles2());
+        atlases.push_back(std::move(atlas));
     }
 }
 

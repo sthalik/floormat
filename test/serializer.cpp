@@ -11,9 +11,9 @@ namespace Path = Corrade::Utility::Path;
 
 static chunk make_test_chunk()
 {
-    auto metal1 = loader.tile_atlas("metal1", {2, 2}),
-         metal2 = loader.tile_atlas("metal2", {2, 2}),
-         tiles  = loader.tile_atlas("tiles", {8, 5});
+    auto metal1 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass),
+         metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
+         tiles  = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
     chunk c;
     for (auto [x, k, pt] : c)

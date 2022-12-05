@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "src/tile-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "serialize/tile-atlas.hpp"
@@ -52,9 +53,14 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
 
 namespace floormat {
 
-std::vector<std::shared_ptr<struct tile_atlas>> loader_::tile_atlases(StringView filename)
+std::vector<std::shared_ptr<struct tile_atlas>> loader_::tile_atlases(StringView filename, pass_mode p)
 {
-    return json_helper::from_json<std::vector<std::shared_ptr<struct tile_atlas>>>(Path::join(loader_::IMAGE_PATH, filename));
+    auto vec = json_helper::from_json<std::vector<std::shared_ptr<struct tile_atlas>>>(
+        Path::join(loader_::IMAGE_PATH, filename));
+    for (auto& x : vec)
+        if (!x->pass_mode())
+            x->set_pass_mode(p);
+    return vec;
 }
 
 } // namespace floormat

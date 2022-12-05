@@ -1,6 +1,8 @@
 #pragma once
+#include "src/pass-mode.hpp"
 #include <array>
 #include <memory>
+#include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
@@ -13,7 +15,7 @@ struct tile_atlas final
     using quad = std::array<Vector3, 4>;
     using texcoords = std::array<Vector2, 4>;
 
-    tile_atlas(StringView name, const ImageView2D& img, Vector2ub tile_count);
+    tile_atlas(StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
     texcoords texcoords_for_id(std::size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
@@ -21,10 +23,12 @@ struct tile_atlas final
     static constexpr quad wall_quad_W(Vector3 center, Vector3 size);
     static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
     [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
-    std::size_t num_tiles() const { return Vector2ui{dims_}.product(); }
+    std::size_t num_tiles() const;
     Vector2ub num_tiles2() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
     StringView name() const { return name_; }
+    Optional<enum pass_mode> pass_mode() const;
+    void set_pass_mode(enum pass_mode p);
 
 private:
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
@@ -35,6 +39,7 @@ private:
     String name_;
     Vector2ui size_;
     Vector2ub dims_;
+    Optional<enum pass_mode> passability;
 };
 
 constexpr std::array<UnsignedShort, 6> tile_atlas::indices(std::size_t N)

@@ -1,8 +1,26 @@
 [
-    ["floor-tiles", "44 x 4"],
-    ["metal1",      "2 x 2"],
-    ["tiles",       "8 x 5"],
-    ["wood2",       "1 x 1"],
-    ["concrete6",   "4 x 4"],
-    ["texel",       "2 x 2"]
+    {
+        "name": "floor-tiles",
+        "size": "44 x 4"
+    },
+    {
+        "name": "tiles",
+        "size": "8 x 5"
+    },
+    {
+        "name": "wood2",
+        "size": "1 x 1"
+    },
+    {
+        "name": "concrete6",
+        "size": "4 x 4"
+    },
+    {
+        "name": "texel",
+        "size": "2 x 2"
+    },
+    {
+        "name": "metal1",
+        "size": "2 x 2"
+    }
 ]
