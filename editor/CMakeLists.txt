@@ -9,8 +9,8 @@ else()
     set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w")
 endif()
 
-add_executable(${self} "${res}" "${sources}")
-target_link_libraries(${self} PRIVATE MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json)
+add_library(${self}_o OBJECT "${res}" "${sources}")
+target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json)
 
 if(NOT SDL2_INCLUDE_DIRS)
     if(NOT TARGET SDL2::SDL2)
@@ -19,16 +19,17 @@ if(NOT SDL2_INCLUDE_DIRS)
         get_target_property(SDL2_INCLUDE_DIRS SDL2::SDL2 INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 endif()
-target_include_directories(${self} SYSTEM PRIVATE "${SDL2_INCLUDE_DIRS}")
-
-target_link_libraries(${self} PRIVATE floormat-main floormat-serialize floormat-draw floormat)
+target_include_directories(${self}_o SYSTEM PRIVATE "${SDL2_INCLUDE_DIRS}")
 
 if(WIN32)
-    target_sources(${self} PRIVATE "../main/floormat.rc")
+    target_sources(${self}_o PRIVATE "../main/floormat.rc")
 endif()
 
+add_executable(${self} dummy.cc)
+target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize floormat-draw floormat)
+
 if(FLOORMAT_PRECOMPILED-HEADERS)
-    target_precompile_headers(${self} PRIVATE precomp.hpp)
+    target_precompile_headers(${self}_o PRIVATE precomp.hpp)
 endif()
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)

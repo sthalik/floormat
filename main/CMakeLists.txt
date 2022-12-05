@@ -10,8 +10,6 @@ target_link_libraries(${self} PUBLIC
     fmt::fmt
 )
 
-target_link_libraries(${self} PUBLIC floormat-draw floormat)
-
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
 endif()

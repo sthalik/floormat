@@ -13,8 +13,6 @@ if(MSVC)
     add_compile_options(-EHsc)
 endif()
 
-target_link_libraries(${self} PUBLIC floormat)
-
 if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
     target_link_libraries(${self} PUBLIC
         MagnumPlugins::StbImageImporter

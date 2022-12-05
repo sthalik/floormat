@@ -1,7 +1,7 @@
 set(self floormat-draw)
 file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 add_library(${self} OBJECT "${sources}")
-target_link_libraries(${self} PUBLIC Magnum::GL floormat)
+target_link_libraries(${self} PUBLIC Magnum::GL)
 if(FLOORMAT_PRECOMPILED-HEADERS)
     target_precompile_headers(${self} PRIVATE precomp.hpp)
 endif()
