@@ -13,12 +13,16 @@
 #endif
 
 namespace floormat {
+
+struct chunk;
+
 struct test_app final : private FM_APPLICATION
 {
     using Application = FM_APPLICATION;
     explicit test_app(const Arguments& arguments);
     ~test_app();
     int exec() override;
+    static chunk make_test_chunk();
     static void test_json();
     static void test_tile_iter();
     static void test_const_math();
@@ -26,5 +30,6 @@ struct test_app final : private FM_APPLICATION
     static void test_entity();
     static void test_quadtree();
     static void test_loader();
+    static void test_bbox();
 };
 } // namespace floormat

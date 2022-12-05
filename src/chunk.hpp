@@ -4,8 +4,12 @@
 #include "scenery.hpp"
 #include <type_traits>
 #include <array>
-#include <bitset>
+#include <vector>
+#include <memory>
 #include <Magnum/GL/Mesh.h>
+#include "compat/LooseQuadtree.h"
+
+namespace loose_quadtree { template<typename NumberT, typename ObjectT, typename BoundingBoxExtractorT> class LooseQuadtree; }
 
 namespace floormat {
 
@@ -14,7 +18,6 @@ struct anim_atlas;
 struct chunk final
 {
     friend struct tile_ref;
-    friend struct pass_mode_ref;
 
     tile_ref operator[](std::size_t idx) noexcept;
     tile_proto operator[](std::size_t idx) const noexcept;
@@ -34,6 +37,7 @@ struct chunk final
     bool empty(bool force = false) const noexcept;
 
     chunk() noexcept;
+    ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
     chunk(chunk&&) noexcept;
@@ -59,6 +63,12 @@ struct chunk final
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
 
+    struct bbox final { std::int16_t left, top; std::uint16_t width, height; enum pass_mode pass_mode; };
+    using BB = loose_quadtree::BoundingBox<std::int16_t>;
+    struct bb_extractor { static void ExtractBoundingBox(const bbox* object, BB* bbox); };
+    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, bbox, bb_extractor>;
+    lqt& ensure_passability() noexcept;
+
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
     std::array<std::uint8_t, TILE_COUNT> ground_indexes = {};
@@ -68,12 +78,16 @@ private:
     std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
     std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
-    std::bitset<TILE_COUNT*2> _passability = {};
+
+    std::unique_ptr<lqt> _static_lqt;
+    std::vector<bbox> _lqt_bboxes;
+
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,
                  _walls_modified   : 1 = true,
-                 _scenery_modified : 1 = true;
+                 _scenery_modified : 1 = true,
+                 _pass_modified    : 1 = true;
 };
 
 } // namespace floormat

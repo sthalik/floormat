@@ -1,5 +1,5 @@
 set(self floormat)
-file(GLOB sources "*.cpp" "../shaders/*.cpp" CONFIGURE_ARGS)
+file(GLOB sources *.cpp ../shaders/*.cpp ../compat/*.cpp CONFIGURE_ARGS)
 add_library(${self} OBJECT "${sources}")
 target_link_libraries(
     ${self} PUBLIC

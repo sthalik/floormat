@@ -36,7 +36,7 @@ struct scenery final
     frame_t frame = 0;
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
-    pass_mode    passability : 2 = pass_mode{0};
+    pass_mode    passability : 2 = pass_mode::pass;
     std::uint8_t active      : 1 = false;
     std::uint8_t closing     : 1 = false;
     std::uint8_t interactive : 1 = false;

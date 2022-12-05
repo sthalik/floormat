@@ -28,6 +28,7 @@ struct tile_atlas final
     GL::Texture2D& texture() { return tex_; }
     StringView name() const { return name_; }
     Optional<enum pass_mode> pass_mode() const;
+    enum pass_mode pass_mode(enum pass_mode p) const;
     void set_pass_mode(enum pass_mode p);
 
 private:

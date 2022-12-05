@@ -149,7 +149,7 @@ void reader_state::read_chunks(reader_t& s)
                 return { atlas, v };
             };
 
-            t.passability() = pass_mode(flags & pass_mask);
+            //t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
                 t.ground() = make_atlas();
             if (flags & meta_wall_n)
@@ -178,6 +178,7 @@ void reader_state::read_chunks(reader_t& s)
                     t.scenery() = sc;
                 }
 
+#if 0
             switch (auto x = pass_mode(flags & pass_mask))
             {
             case pass_mode::shoot_through:
@@ -188,6 +189,7 @@ void reader_state::read_chunks(reader_t& s)
             default: [[unlikely]]
                 fm_throw("bad pass mode '{}' for tile {}"_cf, i, pass_mode_(x));
             }
+#endif
         }
     }
 }

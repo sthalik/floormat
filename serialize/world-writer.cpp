@@ -319,8 +319,8 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         if (flags != 0 && ashortp(img_g) && ashortp(img_n) && ashortp(img_w))
             flags |= meta_short_atlasid;
 
-        fm_debug_assert((pass_mode_(x.passability) & pass_mask) == pass_mode_(x.passability));
-        flags |= pass_mode_(x.passability);
+        //fm_debug_assert((pass_mode_(x.passability) & pass_mask) == pass_mode_(x.passability));
+        //flags |= pass_mode_(x.passability);
 
         s << flags;
 

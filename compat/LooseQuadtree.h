@@ -38,11 +38,13 @@ template <typename NumberT>
 struct BoundingBox {
     using Number = NumberT;
 
-    BoundingBox(Number _left, Number _top, Number _width, Number _height) :
+    constexpr BoundingBox(Number _left, Number _top, Number _width, Number _height) :
         left(_left), top(_top), width(_width), height(_height) {}
     bool Intersects(const BoundingBox<Number>& other) const ;
     bool Contains(const BoundingBox<Number>& other) const;
     bool Contains(Number x, Number y) const;
+    BoundingBox& operator=(const BoundingBox&) noexcept = default;
+    BoundingBox(const BoundingBox&) noexcept = default;
 
     Number left;
     Number top;
@@ -106,7 +108,5 @@ public:
 private:
     Impl impl_;
 };
-
-
 
 } //loose_quadtree

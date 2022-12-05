@@ -9,7 +9,7 @@ namespace floormat {
 
 namespace Path = Corrade::Utility::Path;
 
-static chunk make_test_chunk()
+chunk test_app::make_test_chunk()
 {
     auto metal1 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass),
          metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
