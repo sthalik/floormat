@@ -84,13 +84,15 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
 void loader_impl::get_anim_atlas_list()
 {
     anim_atlases.clear();
-    anim_atlases.reserve(64);
     using f = Path::ListFlag;
     constexpr auto flags = f::SkipDirectories | f::SkipDotAndDotDot | f::SkipSpecial | f::SortAscending;
     if (const auto list = Path::list(ANIM_PATH, flags); list)
+    {
+        anim_atlases.reserve(list->size()*2);
         for (StringView str : *list)
             if (str.hasSuffix(".json"))
                 anim_atlases.emplace_back(str.exceptSuffix(std::size(".json")-1));
+    }
 }
 
 bool loader_impl::check_atlas_name(StringView str)
