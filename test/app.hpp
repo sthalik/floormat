@@ -25,5 +25,6 @@ struct test_app final : private FM_APPLICATION
     static void test_serializer();
     static void test_entity();
     static void test_quadtree();
+    static void test_loader();
 };
 } // namespace floormat

@@ -17,7 +17,8 @@
     },
     {
         "name": "texel",
-        "size": "2 x 2"
+        "size": "2 x 2",
+        "pass-mode": "blocked"
     },
     {
         "name": "metal1",
