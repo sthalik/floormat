@@ -107,7 +107,7 @@ private:
     void do_key(key k, int mods);
     void do_key(key k);
     void apply_commands(const key_set& k);
-    static int get_key_modifiers();
+    int get_key_modifiers();
     void clear_keys(key min_inclusive, key max_exclusive);
     void clear_keys();
     void clear_non_global_keys();

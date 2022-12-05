@@ -13,6 +13,4 @@
 
 #if __has_include(<SDL.h>)
 #include <Magnum/Platform/Sdl2Application.h>
-#include <SDL_keycode.h>
-#include <SDL_events.h>
 #endif

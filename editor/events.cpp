@@ -10,9 +10,6 @@
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 
-#include <SDL_keycode.h>
-#include <SDL_events.h>
-
 namespace floormat {
 
 void app::on_focus_in() noexcept {}
@@ -198,7 +195,7 @@ void app::do_key(floormat::key k)
 
 int app::get_key_modifiers()
 {
-    return fixup_mods(SDL_GetModState());
+    return fixup_mods(M->get_mods());
 }
 
 } // namespace floormat

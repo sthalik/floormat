@@ -61,6 +61,7 @@ struct floormat_main
     virtual struct world& world() noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
     Vector2 dpi_scale() const noexcept { return _dpi_scale; }
+    static int get_mods() noexcept;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
 

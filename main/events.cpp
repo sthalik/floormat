@@ -3,7 +3,7 @@
 #include "floormat/events.hpp"
 #include <cstring>
 #include <SDL_events.h>
-//#include <SDL_video.h>
+#include <SDL_keyboard.h>
 
 namespace floormat {
 
@@ -102,6 +102,11 @@ void main_impl::anyEvent(SDL_Event& event)
     }
     else
         return app.on_any_event(make_any_event(event));
+}
+
+int floormat_main::get_mods() noexcept
+{
+    return (int)SDL_GetModState();
 }
 
 } // namespace floormat
