@@ -7,13 +7,19 @@
 #include <vector>
 #include <memory>
 #include <Magnum/GL/Mesh.h>
-#include "compat/LooseQuadtree.h"
 
-namespace loose_quadtree { template<typename NumberT, typename ObjectT, typename BoundingBoxExtractorT> class LooseQuadtree; }
+namespace loose_quadtree {
+template<typename Number, typename Object, typename BBExtractor> class LooseQuadtree;
+template<typename Number, typename Object, typename BBExtractor> struct Query;
+} // namespace loose_quadtree
 
 namespace floormat {
 
 struct anim_atlas;
+struct collision_iterator;
+struct collision_bbox;
+struct collision_bb_extractor;
+struct collision_query;
 
 struct chunk final
 {
@@ -63,11 +69,12 @@ struct chunk final
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
 
-    struct bbox final { std::int16_t left, top; std::uint16_t width, height; enum pass_mode pass_mode; };
-    using BB = loose_quadtree::BoundingBox<std::int16_t>;
-    struct bb_extractor { static void ExtractBoundingBox(const bbox* object, BB* bbox); };
-    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, bbox, bb_extractor>;
+    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, collision_bbox, collision_bb_extractor>;
     lqt& ensure_passability() noexcept;
+
+    collision_query query_collisions(Vector2s position, Vector2us size) const;
+    collision_query query_collisions(local_coords p, Vector2us size, Vector2s offset = {}) const;
+    collision_query query_collisions(Vector4s vec) const;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
@@ -80,7 +87,7 @@ private:
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
     std::unique_ptr<lqt> _static_lqt;
-    std::vector<bbox> _lqt_bboxes;
+    std::vector<collision_bbox> _lqt_bboxes;
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,

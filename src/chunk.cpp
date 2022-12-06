@@ -1,6 +1,8 @@
 #include "chunk.hpp"
 #include "compat/LooseQuadtree-impl.h"
+#include "src/collision.hpp"
 #include "src/tile-atlas.hpp"
+#include <Magnum/Math/Vector4.h>
 
 namespace floormat {
 
@@ -8,16 +10,9 @@ bool chunk::empty(bool force) const noexcept
 {
     if (!force && !_maybe_empty)
         return false;
-
     for (std::size_t i = 0; i < TILE_COUNT; i++)
-    {
         if (_ground_atlases[i] || _wall_atlases[i*2 + 0] || _wall_atlases[i*2 + 1] || _scenery_atlases[i])
-        {
-            _maybe_empty = false;
-            return false;
-        }
-    }
-
+            return _maybe_empty = false;
     return true;
 }
 
@@ -69,17 +64,17 @@ auto chunk::ensure_passability() noexcept -> lqt&
     _lqt_bboxes.clear();
     _lqt_bboxes.reserve(32);
 
-    constexpr auto whole_tile = [](std::size_t k, pass_mode p) constexpr -> bbox {
+    constexpr auto whole_tile = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k);
         return { start[0], start[1], tile_size2us[0], tile_size2us[1], p };
     };
 
-    constexpr auto wall_north = [](std::size_t k, pass_mode p) constexpr -> bbox {
+    constexpr auto wall_north = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k) - Vector2s(0, 1);
         return { start[0], start[1], tile_size2us[0], 2, p };
     };
 
-    constexpr auto wall_west = [](std::size_t k, pass_mode p) constexpr -> bbox {
+    constexpr auto wall_west = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k) - Vector2s(1, 0);
         return { start[0], start[1], 2, tile_size2us[1], p };
     };
@@ -107,9 +102,30 @@ auto chunk::ensure_passability() noexcept -> lqt&
     return qt;
 }
 
-void chunk::bb_extractor::ExtractBoundingBox(const chunk::bbox* x, BB* bbox)
+using namespace loose_quadtree;
+
+collision_query chunk::query_collisions(Vector4s vec) const
 {
-    *bbox = { x->left, x->top, std::int16_t(x->width), std::int16_t(x->height) };
+    const_cast<chunk&>(*this).ensure_passability();
+    BoundingBox<std::int16_t> bbox { vec[0], vec[1], vec[2], vec[3] };
+    return { _static_lqt->QueryIntersectsRegion(bbox) };
+}
+
+collision_query chunk::query_collisions(Vector2s position, Vector2us size) const
+{
+    const_cast<chunk&>(*this).ensure_passability();
+    constexpr auto half = sTILE_SIZE2/2;
+    const auto start = position - half;
+    return query_collisions(Vector4s{start[0], start[1], (Short)size[0], (Short)size[1] });
+}
+
+collision_query chunk::query_collisions(local_coords p, Vector2us size, Vector2s offset) const
+{
+    const_cast<chunk&>(*this).ensure_passability();
+    const auto pos = Vector2s(p.x, p.y) * sTILE_SIZE2 + offset;
+    const auto start = pos - Vector2s(size/2);
+    BoundingBox<std::int16_t> bbox { start[0], start[1], (Short)size[0], (Short)size[1] };
+    return { _static_lqt->QueryIntersectsRegion(bbox) };
 }
 
 chunk::chunk() noexcept : _static_lqt { std::make_unique<lqt>() } {}
