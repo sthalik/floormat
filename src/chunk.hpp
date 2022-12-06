@@ -99,10 +99,10 @@ private:
     std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
-    template<bool> struct insert_into_lqt;
+    template<bool> struct lqt_ops;
 
     std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
-    std::vector<std::conditional_t<lqt_compact_bb, void**, loose_quadtree::BoundingBox<std::int16_t>>> _bboxes;
+    std::conditional_t<lqt_compact_bb, unsigned char, std::vector<loose_quadtree::BoundingBox<std::int16_t>>> _bboxes;
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
