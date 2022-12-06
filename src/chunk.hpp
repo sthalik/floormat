@@ -11,15 +11,22 @@
 namespace loose_quadtree {
 template<typename Number, typename Object, typename BBExtractor> class LooseQuadtree;
 template<typename Number, typename Object, typename BBExtractor> struct Query;
+template<typename Number> struct BoundingBox;
+template<typename Number> struct TrivialBBExtractor;
 } // namespace loose_quadtree
 
 namespace floormat {
 
 struct anim_atlas;
-struct collision_iterator;
+template<typename Num, typename BB, typename BBE> struct collision_iterator;
+template<typename Num, typename BB, typename BBE> struct collision_query;
 struct collision_bbox;
-struct collision_bb_extractor;
-struct collision_query;
+struct compact_bb;
+struct compact_bb_extractor;
+
+enum class collision : std::uint8_t {
+    view, shoot, move,
+};
 
 struct chunk final
 {
@@ -69,12 +76,18 @@ struct chunk final
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
 
-    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, collision_bbox, collision_bb_extractor>;
-    lqt& ensure_passability() noexcept;
+    void ensure_passability() noexcept;
 
-    collision_query query_collisions(Vector2s position, Vector2us size) const;
-    collision_query query_collisions(local_coords p, Vector2us size, Vector2s offset = {}) const;
-    collision_query query_collisions(Vector4s vec) const;
+    static constexpr inline bool lqt_compact_bb = sizeof(void*) >= 8;
+    //static constexpr inline bool lqt_compact_bb = false;
+    using BB  = std::conditional_t<lqt_compact_bb, compact_bb, loose_quadtree::BoundingBox<std::int16_t>>;
+    using BBE = std::conditional_t<lqt_compact_bb, compact_bb_extractor, loose_quadtree::TrivialBBExtractor<std::int16_t>>;
+    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, BB, BBE>;
+    using Query = collision_query<std::int16_t, BB, BBE>;
+
+    Query query_collisions(Vector2s position, Vector2us size, collision type) const;
+    Query query_collisions(local_coords p, Vector2us size, Vector2s offset, collision type) const;
+    Query query_collisions(Vector4s vec, collision type) const;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
@@ -86,8 +99,10 @@ private:
     std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
-    std::unique_ptr<lqt> _static_lqt;
-    std::vector<collision_bbox> _lqt_bboxes;
+    template<bool> struct insert_into_lqt;
+
+    std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
+    std::vector<std::conditional_t<lqt_compact_bb, void**, loose_quadtree::BoundingBox<std::int16_t>>> _bboxes;
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
@@ -95,6 +110,10 @@ private:
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true;
+
+    lqt& lqt_from_collision_type(collision type) const noexcept;
+    static std::unique_ptr<lqt> make_lqt();
+    void cleanup_lqt();
 };
 
 } // namespace floormat

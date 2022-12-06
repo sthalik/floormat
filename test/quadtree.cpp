@@ -9,6 +9,7 @@
 #include "compat/LooseQuadtree.h"
 #include "compat/LooseQuadtree-impl.h"
 #include "compat/assert.hpp"
+#include "src/collision.hpp"
 #include "test/app.hpp"
 
 #include <chrono>
@@ -20,19 +21,6 @@
 using namespace loose_quadtree;
 
 namespace {
-
-template <typename NumberT>
-class TrivialBBExtractor {
-public:
-    static void ExtractBoundingBox(const BoundingBox<NumberT> *object, BoundingBox<NumberT> *bbox) {
-        bbox->left = object->left;
-        bbox->top = object->top;
-        bbox->width = object->width;
-        bbox->height = object->height;
-    }
-};
-
-
 
 template <typename NumberT>
 void TestBoundingBox() {
@@ -592,13 +580,11 @@ void TestQueries() {
     TestQueryContains<NumberT>(objects, lqt);
 }
 
-
-
 template <typename NumberT>
-void StressTest() {
-#ifndef NDEBUG
-    const int objects_generated = 10000;
-    const int object_fluctuation = 1000;
+[[maybe_unused]] void StressTest() {
+#if 0
+    const int objects_generated = 100;
+    const int object_fluctuation = 10;
 #else
     const int objects_generated = 200000;
     const int object_fluctuation = 20000;
@@ -697,22 +683,28 @@ void StressTest() {
     lqt.ForceCleanup();
 }
 
-
+#define FM_NO_QUADTREE_BENCHMARK
 
 template <typename NumberT>
-void RunTests(const char* type_str) {
+void RunTests(const char* type_str)
+{
+    (void)type_str;
+#ifndef FM_NO_QUADTREE_BENCHMARK
     printf("quadtree test %13s", type_str);
     fflush(stdout);
     auto start = std::chrono::high_resolution_clock::now();
+#endif
     TestBoundingBox<NumberT>();
     TestTraversals<NumberT>();
     TestContainer<NumberT>();
     TestQueries<NumberT>();
+#ifndef FM_NO_QUADTREE_BENCHMARK
     StressTest<NumberT>();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> time = end - start;
     printf(": %.1f ms\n", time.count());
     fflush(stdout);
+#endif
 }
 
 } // namespace
