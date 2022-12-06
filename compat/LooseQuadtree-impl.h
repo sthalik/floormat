@@ -3,7 +3,7 @@
 #include "LooseQuadtree.h"
 #include "compat/assert.hpp"
 #undef assert
-#define assert fm_assert
+#define assert(...) fm_debug_assert(__VA_ARGS__)
 
 #include <array>
 #include <cstddef>
