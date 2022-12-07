@@ -63,11 +63,13 @@ struct chunk final
 
     struct ground_mesh_tuple final {
         GL::Mesh& mesh;                                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-        const std::array<std::uint8_t, TILE_COUNT>& ids;    // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        const ArrayView<const std::uint8_t> ids;            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        const std::size_t size;
     };
     struct wall_mesh_tuple final {
         GL::Mesh& mesh;                                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-        const std::array<std::uint16_t, TILE_COUNT*2>& ids; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        const ArrayView<const std::uint16_t> ids;           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        const std::size_t size;
     };
 
     ground_mesh_tuple ensure_ground_mesh() noexcept;
