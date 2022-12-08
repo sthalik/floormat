@@ -110,6 +110,13 @@ endif()
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
 endif()
+if(NOT APPLE AND NOT WIN32)
+    add_compile_options(-fno-plt)
+endif()
+add_definitions(
+    -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
+    -DIMGUI_DISABLE_OBSOLETE_KEYIO
+)
 
 if(MSVC)
     add_definitions(-D_USE_MATH_DEFINES=1)
@@ -156,15 +163,6 @@ if(MSVC)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/FIcompat/prelude.hpp>)
 else()
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-includecompat/prelude.hpp>)
-endif()
-
-add_definitions(
-    -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
-    -DIMGUI_DISABLE_OBSOLETE_KEYIO
-)
-
-if(NOT APPLE AND NOT WIN32)
-    add_compile_options(-fno-plt)
 endif()
 
 if(MSVC)
