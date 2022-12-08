@@ -66,13 +66,19 @@ struct chunk final
     void mark_modified() noexcept;
 
     struct ground_mesh_tuple final {
-        GL::Mesh& mesh;                                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-        const ArrayView<const std::uint8_t> ids;            // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        GL::Mesh& mesh;
+        const ArrayView<const std::uint8_t> ids;
         const std::size_t size;
     };
     struct wall_mesh_tuple final {
-        GL::Mesh& mesh;                                     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-        const ArrayView<const std::uint16_t> ids;           // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        GL::Mesh& mesh;
+        const ArrayView<const std::uint16_t> ids;
+        const std::size_t size;
+    };
+
+    struct scenery_mesh_tuple final {
+        GL::Mesh& mesh;
+        const ArrayView<const std::uint8_t> ids;
         const std::size_t size;
     };
 
@@ -81,6 +87,9 @@ struct chunk final
 
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
+
+    scenery_mesh_tuple ensure_scenery_mesh() noexcept;
+    anim_atlas* scenery_atlas_at(std::size_t i) const noexcept;
 
     void ensure_passability() noexcept;
 
@@ -106,6 +115,7 @@ private:
     std::array<std::uint16_t, TILE_COUNT*2> wall_indexes = {};
     std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
     std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
+    std::array<std::uint8_t, TILE_COUNT> scenery_indexes = {};
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
     template<bool> struct lqt_ops;
@@ -113,7 +123,7 @@ private:
     std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
     std::vector<loose_quadtree::BoundingBox<std::int16_t>> _bboxes;
 
-    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
+    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,
                  _walls_modified   : 1 = true,

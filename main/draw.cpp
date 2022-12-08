@@ -85,6 +85,8 @@ void main_impl::draw_world() noexcept
                 _floor_mesh.draw(_shader, c);
         }
 
+    _clickable_scenery.clear();
+    const auto window_size = framebufferSize();
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::defaultFramebuffer.clearDepthStencil(0, 0);
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -98,14 +100,8 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _wall_mesh.draw(_shader, c);
         }
-}
 
-void main_impl::draw_anim() noexcept
-{
-    const auto sz = framebufferSize();
-    const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    _clickable_scenery.clear();
-
+    GL::Renderer::setDepthMask(false);
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -115,27 +111,20 @@ void main_impl::draw_anim() noexcept
                 continue;
             const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
+            {
+                _anim_mesh.draw(_shader, c);
                 for (std::size_t i = 0; i < TILE_COUNT; i++)
                 {
                     const local_coords xy{i};
                     if (auto [atlas, s] = c[xy].scenery(); atlas)
-                    {
-                        _anim_mesh.draw(_shader, *atlas, s.r, s.frame, xy);
-                        const auto& g = atlas->group(s.r);
-                        const auto& f = atlas->frame(s.r, s.frame);
-                        const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset);
-                        const Vector2ui offset((Vector2(_shader.camera_offset()) + Vector2(sz)*.5f)
-                                               + _shader.project(world_pos) - Vector2(f.ground));
-                        clickable<anim_atlas, scenery> item = {
-                            *atlas, s,
-                            { f.offset, f.offset + f.size }, { offset, offset + f.size },
-                            atlas->bitmask(), tile_shader::depth_value(xy, 0.25f), pos, xy,
-                            !g.mirror_from.isEmpty(),
-                        };
-                        _clickable_scenery.push_back(item);
-                    }
+                        if (s.can_activate(*atlas))
+                            _anim_mesh.add_clickable(_shader, window_size, pos, std::uint8_t(i), atlas, s, _clickable_scenery);
                 }
+            }
         }
+    GL::Renderer::setDepthMask(true);
+
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
 bool main_impl::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
@@ -194,7 +183,6 @@ void main_impl::drawEvent()
         const auto clear_color = 0x222222ff_rgbaf;
         GL::defaultFramebuffer.clearColor(clear_color);
         draw_world();
-        draw_anim();
         GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
     }
 

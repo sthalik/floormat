@@ -9,11 +9,11 @@
 namespace floormat {
 
 template<std::size_t N = 1>
-static auto make_index_array(std::size_t offset, std::size_t max)
+static auto make_index_array(std::size_t max)
 {
     std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (std::size_t i = 0; i < max; i++)
-        array[i] = tile_atlas::indices(i + offset);
+        array[i] = tile_atlas::indices(i);
     return array;
 }
 
@@ -53,7 +53,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
             v[j] = { quad[j], texcoords[j], depth };
     }
 
-    const auto indexes = make_index_array(0, count);
+    const auto indexes = make_index_array(count);
     const auto vertex_view = ArrayView{vertexes.data(), count};
     const auto vert_index_view = ArrayView{indexes.data(), count};
 
@@ -97,7 +97,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
             v[j] = { quad[j], texcoords[j], depth, };
     }
 
-    auto indexes = make_index_array<2>(0, count);
+    auto indexes = make_index_array<2>(count);
     const auto vertex_view = ArrayView{vertexes.data(), count};
     const auto vert_index_view = ArrayView{indexes.data(), count};
 
@@ -107,6 +107,51 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
         .setCount(std::int32_t(6 * count));
     wall_mesh = Utility::move(mesh);
     return { wall_mesh, wall_indexes, count };
+}
+
+auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
+{
+    if (!_scenery_modified)
+        return { scenery_mesh, scenery_indexes, std::size_t(scenery_mesh.count()/6) };
+    _scenery_modified = false;
+
+    std::size_t count = 0;
+    for (std::size_t i = 0; i < TILE_COUNT; i++)
+        if (const auto& atlas = _scenery_atlases[i]; atlas && atlas->info().fps == 0)
+            scenery_indexes[count++] = std::uint8_t(i);
+
+#if 0
+    std::sort(scenery_indexes.begin(), scenery_indexes.begin() + count,
+              [this](std::uint8_t a, std::uint8_t b) {
+                  return _scenery_atlases[a] < _scenery_atlases[b];
+              });
+#endif
+    std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
+    for (std::size_t k = 0; k < count; k++)
+    {
+        const std::uint8_t i = scenery_indexes[k];
+        const local_coords pos{i};
+        const auto& atlas = _scenery_atlases[i];
+        const auto& fr = _scenery_variants[i];
+        const auto quad = atlas->frame_quad(Vector3(pos.x, pos.y, 0) * TILE_SIZE, fr.r, fr.frame);
+        const auto& group = atlas->group(fr.r);
+        const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
+        const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
+        auto& v = vertexes[k];
+        for (std::size_t j = 0; j < 4; j++)
+            v[j] = { quad[j], texcoords[j], depth };
+    }
+
+    const auto indexes = make_index_array(count);
+    const auto vertex_view = ArrayView{vertexes.data(), count};
+    const auto vert_index_view = ArrayView{indexes.data(), count};
+
+    GL::Mesh mesh{GL::MeshPrimitive::Triangles};
+    mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+        .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
+        .setCount(std::int32_t(6 * count));
+    scenery_mesh = Utility::move(mesh);
+    return { scenery_mesh, scenery_indexes, count };
 }
 
 } // namespace floormat
