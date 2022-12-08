@@ -9,8 +9,6 @@
 
 namespace floormat {
 
-//#define FM_DEBUG_DRAW_COUNT
-
 constexpr auto quad_index_count = 6;
 
 wall_mesh::wall_mesh() = default;
@@ -43,6 +41,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         do_draw(k, c.wall_atlas_at(ids[k]), max_index);
     do_draw(size, nullptr, max_index);
 
+//#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
     if (draw_count)
         fm_debug("wall draws: %zu", draw_count);
