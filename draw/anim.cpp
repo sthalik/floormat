@@ -3,10 +3,9 @@
 #include "chunk.hpp"
 #include "shaders/tile.hpp"
 #include "main/clickable.hpp"
+#include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Texture.h>
-
-//#define FM_DEBUG_DRAW_COUNT
 
 namespace floormat {
 
@@ -49,57 +48,66 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr auto quad_index_count = 6;
     auto [mesh_, ids, size] = c.ensure_scenery_mesh();
-    struct { anim_atlas* atlas = nullptr; std::size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
     anim_atlas* bound = nullptr;
 
     [[maybe_unused]] std::size_t draw_count = 0;
     fm_debug_assert(std::size_t(mesh_.count()) == size*quad_index_count);
 
-    const auto do_draw = [&](std::size_t i, anim_atlas* atlas, std::uint32_t max_index, bool force) {
-        if (!force && atlas == last.atlas)
-            return;
-        if (auto len = i - last.pos; last.atlas && len > 0)
-        {
-            if (last.atlas != bound)
-                last.atlas->texture().bind(0);
-            bound = last.atlas;
-            mesh.setCount((int)(quad_index_count * len));
-            mesh.setIndexRange((int)(last.pos*quad_index_count), 0, max_index);
-            shader.draw(mesh);
-            draw_count++;
-        }
-        last = { atlas, i };
+    const auto do_draw = [&](std::size_t from, std::size_t to, anim_atlas* atlas, std::uint32_t max_index) {
+        if (atlas != bound)
+            atlas->texture().bind(0);
+        bound = atlas;
+        mesh.setCount((int)(quad_index_count * (to-from)));
+        mesh.setIndexRange((int)(from*quad_index_count), 0, max_index);
+        shader.draw(mesh);
+        draw_count++;
     };
 
-    constexpr auto next_is_dynamic = [](chunk& c, std::size_t i) {
-        for (; i < TILE_COUNT; i++)
-            if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps == 0)
-                return false;
-        return true;
-    };
-
-    const auto draw_dynamic = [&](std::size_t last_id, std::size_t id) {
-        for (std::size_t i = last_id+1; i < id; i++)
-            if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps > 0)
-            {
-                draw(shader, *atlas, s.r, s.frame, local_coords{i});
-                bound = nullptr;
-            }
-    };
-
+    struct last_ { anim_atlas* atlas = nullptr; std::size_t run_from = 0; };
+    Optional<last_> last;
     const auto max_index = std::uint32_t(size*quad_index_count - 1);
-    std::size_t k, last_id = 0;
-    for (k = 0; k < size; k++)
-    {
-        const auto id = ids[k];
-        draw_dynamic(last_id, id);
-        do_draw(k, c.scenery_atlas_at(id), max_index, next_is_dynamic(c, id+1));
-        last_id = id;
-    }
-    draw_dynamic(size == 0 ? 0 : ids.back(), TILE_COUNT);
-    do_draw(size, nullptr, max_index, true);
 
+    std::size_t last_id = 0;
+    for (std::size_t k = 0; k < size; k++)
+    {
+        auto id = ids[k];
+        auto [atlas, s] = c[id].scenery();
+        for (std::size_t i = last_id+1; i < id; i++)
+            if (auto [atlas, s] = c[i].scenery();
+                atlas && atlas->info().fps > 0)
+            {
+                if (last)
+                {
+                    do_draw(last->run_from, k, last->atlas, max_index);
+                    last = NullOpt;
+                }
+                bound = nullptr;
+                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+            }
+        last_id = id;
+        if (last && atlas && &*atlas != last->atlas)
+        {
+            do_draw(last->run_from, k, last->atlas, max_index);
+            last = NullOpt;
+        }
+        if (!last)
+            last = { InPlaceInit, &*atlas, k };
+    }
+    if (size > 0)
+    {
+        if (last)
+            do_draw(last->run_from, size, last->atlas, max_index);
+        for (std::size_t i = ids[size-1]+1; i < TILE_COUNT; i++)
+            if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps > 0)
+                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+    }
+    else
+        for (std::size_t i = 0; i < TILE_COUNT; i++)
+            if (auto [atlas, s] = c[i].scenery(); atlas)
+                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+
+//#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
     if (draw_count)
         fm_debug("anim draws: %zu", draw_count);
