@@ -7,41 +7,6 @@
 
 namespace floormat {
 
-template<>
-struct chunk::lqt_ops<false>
-{
-    using BB = loose_quadtree::BoundingBox<std::int16_t>;
-    using TBBE = loose_quadtree::TrivialBBExtractor<std::int16_t>;
-    static BB* insert(const BB& bbox, std::vector<BB>& vec)
-    {
-        vec.push_back(bbox);
-        return &vec.back();
-    }
-    static void clear_vec(std::vector<BB>& vec)
-    {
-        vec.clear();
-    }
-    static void reserve_vec(std::vector<BB>& vec, std::size_t size)
-    {
-        vec.reserve(size);
-    }
-};
-
-template<>
-struct chunk::lqt_ops<true>
-{
-    using BB = loose_quadtree::BoundingBox<std::int16_t>;
-    static compact_bb* insert(const BB& bbox, unsigned char&)
-    {
-        if constexpr(sizeof(void*) >= sizeof(BB))
-            return std::bit_cast<compact_bb*>(bbox);
-        else
-            return {};
-    }
-    static void clear_vec(unsigned char&) {}
-    static void reserve_vec(unsigned char&, std::size_t) {}
-};
-
 struct collision_bbox final
 {
     using BB = loose_quadtree::BoundingBox<std::int16_t>;
@@ -77,16 +42,15 @@ void chunk::ensure_passability() noexcept
     if (!_lqt_view)
         _lqt_view = make_lqt();
 
-    using ops = lqt_ops<lqt_compact_bb>;
-
     _lqt_move->Clear();
     _lqt_shoot->Clear();
     _lqt_view->Clear();
-    ops::clear_vec(_bboxes);
 
     std::vector<collision_bbox> bboxes;
-    if constexpr(!lqt_compact_bb)
-        bboxes.reserve(TILE_COUNT*4);
+#ifndef FLOORMAT_64
+    _bboxes.clear();
+    bboxes.reserve(TILE_COUNT*4);
+#endif
 
     constexpr auto whole_tile = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k);
@@ -120,11 +84,18 @@ void chunk::ensure_passability() noexcept
                 bboxes.push_back(wall_west(i, p));
     }
 
-    ops::reserve_vec(_bboxes, bboxes.size());
+#ifndef FLOORMAT_64
+    _bboxes.reserve(bboxes.size());
+#endif
 
     for (const collision_bbox& bbox : bboxes)
     {
-        auto* ptr = ops::insert(bbox, _bboxes);
+#ifdef FLOORMAT_64
+        auto* ptr = std::bit_cast<compact_bb*>(collision_bbox::BB(bbox));
+#else
+        _bboxes.push_back(bbox);
+        auto* ptr = &_bboxes.back();
+#endif
 
         switch (bbox.pass_mode)
         {

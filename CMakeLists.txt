@@ -159,6 +159,10 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_S
 
 add_subdirectory(external)
 
+if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
+    add_definitions(-DFLOORMAT_64)
+endif()
+
 if(MSVC)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/FIcompat/prelude.hpp>)
 else()

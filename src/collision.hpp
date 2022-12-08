@@ -5,6 +5,7 @@
 
 namespace floormat {
 
+#ifdef FLOORMAT_64
 struct compact_bb;
 
 struct compact_bb_extractor final
@@ -12,6 +13,7 @@ struct compact_bb_extractor final
     using BB = loose_quadtree::BoundingBox<std::int16_t>;
     [[maybe_unused]] static void ExtractBoundingBox(compact_bb* object, BB* bbox);
 };
+#endif
 
 template<typename Num, typename BB, typename BBE>
 struct collision_iterator final

@@ -18,11 +18,15 @@ template<typename Number> struct TrivialBBExtractor;
 namespace floormat {
 
 struct anim_atlas;
+
 template<typename Num, typename BB, typename BBE> struct collision_iterator;
 template<typename Num, typename BB, typename BBE> struct collision_query;
 struct collision_bbox;
+
+#ifdef FLOORMAT_64
 struct compact_bb;
 struct compact_bb_extractor;
+#endif
 
 enum class collision : std::uint8_t {
     view, shoot, move,
@@ -80,10 +84,13 @@ struct chunk final
 
     void ensure_passability() noexcept;
 
-    static constexpr inline bool lqt_compact_bb = sizeof(void*) >= 8;
-    //static constexpr inline bool lqt_compact_bb = false;
-    using BB  = std::conditional_t<lqt_compact_bb, compact_bb, loose_quadtree::BoundingBox<std::int16_t>>;
-    using BBE = std::conditional_t<lqt_compact_bb, compact_bb_extractor, loose_quadtree::TrivialBBExtractor<std::int16_t>>;
+#ifdef FLOORMAT_64
+    using BB = compact_bb;
+    using BBE = compact_bb_extractor;
+#else
+    using BB = loose_quadtree::BoundingBox<std::int16_t>;
+    using BBE = loose_quadtree::TrivialBBExtractor<std::int16_t>;
+#endif
     using lqt = loose_quadtree::LooseQuadtree<std::int16_t, BB, BBE>;
     using Query = collision_query<std::int16_t, BB, BBE>;
 
@@ -104,7 +111,7 @@ private:
     template<bool> struct lqt_ops;
 
     std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
-    std::conditional_t<lqt_compact_bb, unsigned char, std::vector<loose_quadtree::BoundingBox<std::int16_t>>> _bboxes;
+    std::vector<loose_quadtree::BoundingBox<std::int16_t>> _bboxes;
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
