@@ -56,6 +56,7 @@ struct floormat_main
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
     virtual draw_bounds get_draw_bounds() const noexcept = 0;
+    [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
     virtual struct meshes meshes() noexcept = 0;
 
     virtual struct world& world() noexcept = 0;

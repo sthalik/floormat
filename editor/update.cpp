@@ -104,6 +104,8 @@ void app::do_key(key k, int mods)
         return _editor.set_mode(editor_mode::walls);
     case key_mode_scenery:
         return _editor.set_mode(editor_mode::scenery);
+    case key_collision_boxes:
+        return void(_draw_collision_boxes = !_draw_collision_boxes);
     case key_quicksave:
         return do_quicksave();
     case key_quickload:
@@ -130,9 +132,14 @@ void app::update_world(float dt)
     minx--; miny--; maxx++; maxy++;
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
-            for (chunk_coords c{x, y}; auto [x, k, pt] : world[c])
+            for (auto& c = world[chunk_coords{x, y}]; auto [x, k, pt] : c)
                 if (auto [atlas, scenery] = x.scenery(); atlas != nullptr)
+                {
+                    auto pass0 = scenery.passability;
                     scenery.update(dt, *atlas);
+                    if (pass0 != scenery.passability)
+                        c.mark_scenery_modified();
+                }
 }
 
 void app::update(float dt)

@@ -77,6 +77,13 @@ float app::draw_main_menu()
             if (b_rotate)
                 do_key(key_rotate_tile);
         }
+        if (auto b = begin_menu("View"))
+        {
+            bool show_collisions = _draw_collision_boxes;
+            ImGui::MenuItem("Collision boxes", "Alt+B", &show_collisions);
+            if (show_collisions)
+                do_key(key_collision_boxes);
+        }
 
         main_menu_height = ImGui::GetContentRegionMax().y;
     }

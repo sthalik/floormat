@@ -107,6 +107,8 @@ struct chunk final
     Query query_collisions(local_coords p, Vector2us size, Vector2s offset, collision type) const;
     Query query_collisions(Vector4s vec, collision type) const;
 
+    lqt* lqt_from_collision_type(collision type) const noexcept;
+
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
     std::array<std::uint8_t, TILE_COUNT> ground_indexes = {};
@@ -129,8 +131,6 @@ private:
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true;
-
-    lqt& lqt_from_collision_type(collision type) const noexcept;
     static std::unique_ptr<lqt> make_lqt();
     void cleanup_lqt();
 };

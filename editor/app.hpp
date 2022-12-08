@@ -6,12 +6,11 @@
 #include "draw/quad-floor.hpp"
 #include "draw/quad-wall-n.hpp"
 #include "draw/quad-wall-w.hpp"
+#include "draw/quad.hpp"
 #include "draw/box.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
-
 #include <memory>
-
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/ImGuiIntegration/Context.h>
@@ -93,6 +92,7 @@ private:
     void do_quickload();
     void do_new_file();
 
+    void draw_collision_boxes();
     void draw_editor_pane(float main_menu_height);
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
@@ -122,10 +122,12 @@ private:
     wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n {_wireframe_texture};
     wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w {_wireframe_texture};
     wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
+    wireframe_mesh<wireframe::quad>        _wireframe_rect   {_wireframe_texture};
     editor _editor;
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     cursor_state cursor;
+    bool _draw_collision_boxes : 1 = false;
 };
 
 } // namespace floormat

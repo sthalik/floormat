@@ -113,20 +113,21 @@ auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
             switch (int mods = k2 & kmod_mask; k2)
             {
             default: continue;
-            case SDLK_w:        return { key_camera_up,    mods };
-            case SDLK_a:        return { key_camera_left,  mods };
-            case SDLK_s:        return { key_camera_down,  mods };
-            case SDLK_d:        return { key_camera_right, mods };
-            case SDLK_HOME:     return { key_camera_reset, mods };
-            case SDLK_r:        return { key_rotate_tile,  mods };
-            case SDLK_1:        return { key_mode_none,    mods };
-            case SDLK_2:        return { key_mode_floor,   mods };
-            case SDLK_3:        return { key_mode_walls,   mods };
-            case SDLK_4:        return { key_mode_scenery, mods };
-            case SDLK_F5:       return { key_quicksave,    mods };
-            case SDLK_F9:       return { key_quickload,    mods };
-            case SDLK_q | CTRL: return { key_quit,         mods };
-            case SDLK_n | CTRL: return { key_new_file,     mods };
+            case SDLK_w:        return { key_camera_up,        mods };
+            case SDLK_a:        return { key_camera_left,      mods };
+            case SDLK_s:        return { key_camera_down,      mods };
+            case SDLK_d:        return { key_camera_right,     mods };
+            case SDLK_HOME:     return { key_camera_reset,     mods };
+            case SDLK_r:        return { key_rotate_tile,      mods };
+            case SDLK_1:        return { key_mode_none,        mods };
+            case SDLK_2:        return { key_mode_floor,       mods };
+            case SDLK_3:        return { key_mode_walls,       mods };
+            case SDLK_4:        return { key_mode_scenery,     mods };
+            case SDLK_F5:       return { key_quicksave,        mods };
+            case SDLK_F9:       return { key_quickload,        mods };
+            case SDLK_q | CTRL: return { key_quit,             mods };
+            case SDLK_n | CTRL: return { key_new_file,         mods };
+            case SDLK_b | ALT:  return { key_collision_boxes,  mods };
             }
         }
     }

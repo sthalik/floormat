@@ -6,6 +6,8 @@
 #include "src/anim-atlas.hpp"
 #include "draw/anim.hpp"
 #include "src/camera-offset.hpp"
+#include "src/world.hpp"
+#include "src/collision.hpp"
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 
@@ -54,10 +56,53 @@ void app::draw_cursor()
             }
         }
     }
+    shader.set_tint({1, 1, 1, 1});
+}
+
+void app::draw_collision_boxes()
+{
+    const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
+    const auto sz = M->window_size();
+    auto& world = M->world();
+    auto& shader = M->shader();
+
+    shader.set_tint({0, .5f, 1, 1});
+
+    for (std::int16_t y = miny; y <= maxy; y++)
+        for (std::int16_t x = minx; x <= maxx; x++)
+        {
+            const chunk_coords pos{x, y};
+            auto& c = world[pos];
+            if (c.empty())
+                continue;
+            c.ensure_passability();
+            auto* lqt = c.lqt_from_collision_type(collision::move);
+            if (!lqt)
+                continue;
+            const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
+            if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+            {
+                auto bb = lqt->GetLooseBoundingBox();
+                bb.left -= bb.width; bb.top -= bb.height;
+                bb.width *= 2; bb.height *= 2;
+                auto q = lqt->QueryInsideRegion(bb);
+                using extractor = std::decay_t<decltype(*lqt)>::BoundingBoxExtractor;
+                while (!q.EndOfQuery())
+                {
+                    loose_quadtree::BoundingBox<std::int16_t> bb{0, 0, 0, 0};
+                    extractor::ExtractBoundingBox(q.GetCurrent(), &bb);
+                    _wireframe_rect.draw(shader, { Vector3(bb.left+bb.width/2.f, bb.top+bb.height/2.f, 0), Vector2(bb.width, bb.height), 3 });
+                    q.Next();
+                }
+            }
+        }
+    shader.set_tint({1, 1, 1, 1});
 }
 
 void app::draw()
 {
+    if (_draw_collision_boxes)
+        draw_collision_boxes();
     if (_editor.current_tile_editor() || _editor.current_scenery_editor())
         draw_cursor();
     draw_ui();

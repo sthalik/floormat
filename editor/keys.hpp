@@ -17,6 +17,7 @@ enum key : unsigned {
     key_NO_REPEAT,
     key_rotate_tile,
     key_mode_none, key_mode_floor, key_mode_walls, key_mode_scenery,
+    key_collision_boxes,
     key_GLOBAL,
     key_new_file,
     key_quit,
