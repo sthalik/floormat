@@ -21,6 +21,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
     struct { tile_atlas* atlas = nullptr; std::size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] std::size_t draw_count = 0;
+    fm_debug_assert(std::size_t(mesh_.count()) == size*quad_index_count);
 
     const auto do_draw = [&](std::size_t i, tile_atlas* atlas, std::uint32_t max_index) {
         if (atlas == last.atlas)
