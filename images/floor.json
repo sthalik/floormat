@@ -8,14 +8,6 @@
         "size": "8 x 5"
     },
     {
-        "name": "wood2",
-        "size": "1 x 1"
-    },
-    {
-        "name": "concrete6",
-        "size": "4 x 4"
-    },
-    {
         "name": "texel",
         "size": "2 x 2",
         "pass-mode": "blocked"
@@ -23,5 +15,9 @@
     {
         "name": "metal1",
         "size": "2 x 2"
+    },
+    {
+        "name": "concrete6",
+        "size": "4 x 4"
     }
 ]
