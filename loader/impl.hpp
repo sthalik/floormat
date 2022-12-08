@@ -21,8 +21,8 @@ struct loader_impl final : loader_
     Containers::Pointer<Trade::AbstractImporter> image_importer;
     Containers::Pointer<Trade::AbstractImporter> tga_importer;
 
-    std::unordered_map<String, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
-    std::unordered_map<String, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
+    std::unordered_map<StringView, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
+    std::unordered_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
 
     std::vector<serialized_scenery> sceneries_array;

@@ -16,11 +16,12 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size, Optional<pass_mode> pass) noexcept(false)
 {
-    fm_soft_assert(check_atlas_name(name));
+    if (auto it = tile_atlas_map.find(name); it != tile_atlas_map.end())
+        return it->second;
 
-    const emplacer e{[&] { return std::make_shared<struct tile_atlas>(name, texture(IMAGE_PATH, name), size, pass); }};
-    auto atlas = tile_atlas_map.try_emplace(name, e).first->second;
-    fm_soft_assert(!pass || pass == atlas->pass_mode());
+    fm_soft_assert(check_atlas_name(name));
+    auto atlas = std::make_shared<struct tile_atlas>(name, texture(IMAGE_PATH, name), size, pass);
+    tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
 
@@ -42,12 +43,11 @@ ArrayView<String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
-    fm_soft_assert(check_atlas_name(name));
-
     if (auto it = anim_atlas_map.find(name); it != anim_atlas_map.end())
         return it->second;
     else
     {
+        fm_soft_assert(check_atlas_name(name));
         const auto path = Path::join(dir, Path::splitExtension(name).first());
         auto anim_info = deserialize_anim(path + ".json");
 
