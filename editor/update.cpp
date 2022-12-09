@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "src/tile-atlas.hpp"
+#include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
@@ -94,7 +95,21 @@ void app::do_key(key k, int mods)
         if (auto* ed = _editor.current_tile_editor())
             ed->toggle_rotation();
         else if (auto* ed = _editor.current_scenery_editor())
-            ed->next_rotation();
+        {
+            if (ed->is_anything_selected())
+                ed->next_rotation();
+            else if (cursor.tile)
+            {
+                auto [c, t] = M->world()[*cursor.tile];
+                if (auto [atlas, s] = t.scenery(); atlas)
+                {
+                    auto old_r = s.r;
+                    s.r = atlas->next_rotation_from(s.r);
+                    if (s.r != old_r)
+                        c.mark_scenery_modified();
+                }
+            }
+        }
         return;
     case key_mode_none:
         return _editor.set_mode(editor_mode::none);
