@@ -6,6 +6,7 @@
 
 struct SDL_Window;
 namespace Corrade::Containers { template<typename T> class ArrayView; }
+namespace Magnum::Platform { class Sdl2Application; }
 
 namespace floormat {
 
@@ -34,6 +35,9 @@ struct floormat_main
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_main);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_main);
+
+    virtual Platform::Sdl2Application& application() noexcept = 0;
+    virtual const Platform::Sdl2Application& application() const noexcept = 0;
 
     virtual int exec() = 0;
     virtual void quit(int status) = 0;

@@ -21,6 +21,8 @@ const tile_shader& main_impl::shader() const noexcept { return _shader; }
 bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
 void main_impl::start_text_input() noexcept { startTextInput(); }
 void main_impl::stop_text_input() noexcept { stopTextInput(); }
+Platform::Sdl2Application& main_impl::application() noexcept { return *this; }
+const Platform::Sdl2Application& main_impl::application() const noexcept { return *this; }
 
 int main_impl::exec()
 {

@@ -199,4 +199,9 @@ int app::get_key_modifiers()
     return fixup_mods(M->get_mods());
 }
 
+void app::set_cursor_from_imgui()
+{
+    _imgui.updateApplicationCursor(M->application());
+}
+
 } // namespace floormat

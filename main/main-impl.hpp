@@ -44,6 +44,9 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     ArrayView<const clickable<anim_atlas, scenery>> clickable_scenery() const noexcept override;
     ArrayView<clickable<anim_atlas, scenery>> clickable_scenery() noexcept override;
 
+    Platform::Sdl2Application& application() noexcept override;
+    const Platform::Sdl2Application& application() const noexcept override;
+
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
     [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;
     [[maybe_unused]] void mouseReleaseEvent(MouseEvent& event) override;

@@ -167,7 +167,7 @@ void app::update(float dt)
     if ([[maybe_unused]] clickable_scenery* s = find_clickable_scenery(cursor.pixel))
         M->set_cursor(std::uint32_t(Cursor::Hand));
     else
-        M->set_cursor(std::uint32_t(Cursor::Arrow));
+        set_cursor_from_imgui();
 }
 
 } // namespace floormat
