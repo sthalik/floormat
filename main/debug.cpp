@@ -6,7 +6,7 @@ namespace floormat {
 using Severity = GL::DebugOutput::Severity;
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, const std::string& str) const
+void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
 {
     static thread_local auto clock = std::chrono::steady_clock{};
     static const auto t0 = clock.now();
@@ -20,9 +20,9 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
 #endif
     (void)src; (void)type;
 
-    const char* p = str.c_str();
-    if (str.starts_with("Buffer detailed info: "))
-        p = str.data() + sizeof("Buffer detailed info: ") - 1;
+    const char* p = str.data();
+    if (str.hasPrefix("Buffer detailed info: "_s))
+        p += sizeof("Buffer detailed info: ") - 1;
 
     using seconds = std::chrono::duration<double>;
     const auto t = std::chrono::duration_cast<seconds>(clock.now() - t0).count();
@@ -52,10 +52,11 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                            GL::DebugOutput::Severity severity, const std::string& str, const void* self)
+                            GL::DebugOutput::Severity severity, StringView str, const void* self)
 {
     static_cast<const main_impl*>(self)->debug_callback((unsigned)src, (unsigned)type, (unsigned)id, (unsigned)severity, str);
 }
+
 
 void main_impl::register_debug_callback()
 {

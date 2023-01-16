@@ -67,7 +67,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void start_text_input() noexcept override;
     void stop_text_input() noexcept override;
 
-    void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, const std::string& str) const;
+    void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const;
 
     void set_cursor(std::uint32_t cursor) noexcept override;
     std::uint32_t cursor() const noexcept override;
