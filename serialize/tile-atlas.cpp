@@ -4,7 +4,6 @@
 #include "serialize/magnum-vector2i.hpp"
 #include "loader/loader.hpp"
 #include "serialize/pass-mode.hpp"
-#include <string_view>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
@@ -55,7 +54,7 @@ void adl_serializer<std::shared_ptr<tile_atlas>>::from_json(const json& j, std::
         {
             int m = p2 ? int(*p2) : -1;
             const auto name = val->name();
-            fm_throw("atlas {} wrong pass mode {} should be {}"_cf, std::string_view{name.data(), name.size()}, m, std::uint8_t(*p));
+            fm_throw("atlas {} wrong pass mode {} should be {}"_cf, StringView{name.data(), name.size()}, m, std::uint8_t(*p));
         }
     }
 }

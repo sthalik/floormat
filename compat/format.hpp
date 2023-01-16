@@ -1,6 +1,22 @@
 #pragma once
 #include <fmt/core.h>
 #include <fmt/compile.h>
+#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
+
+namespace fmt {
+
+template<> struct formatter<Corrade::Containers::StringView> {
+  template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+  template<typename FormatContext> auto format(Corrade::Containers::StringView const& s, FormatContext& ctx);
+};
+
+template<> struct formatter<Corrade::Containers::String> {
+  template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+  template<typename FormatContext> auto format(Corrade::Containers::String const& s, FormatContext& ctx);
+};
+
+} // namespace fmt
 
 #if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 namespace floormat::detail::fmt {
@@ -18,8 +34,6 @@ struct fmt_string final {
 } // namespace floormat::detail::fmt
 #endif
 
-namespace floormat {
-
 #if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 template<::floormat::detail::fmt::fmt_string s>
 consteval auto operator""_cf() noexcept
@@ -29,6 +43,8 @@ consteval auto operator""_cf() noexcept
 #else
 using namespace fmt::literals;
 #endif
+
+namespace floormat {
 
 template<std::size_t N, typename Fmt, typename... Xs>
 std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
@@ -42,3 +58,13 @@ std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 }
 
 } // namespace floormat
+
+template<typename FormatContext>
+auto fmt::formatter<Corrade::Containers::StringView>::format(Corrade::Containers::StringView const& s, FormatContext& ctx) {
+  return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
+}
+
+template<typename FormatContext>
+auto fmt::formatter<Corrade::Containers::String>::format(Corrade::Containers::String const& s, FormatContext& ctx) {
+  return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
+}

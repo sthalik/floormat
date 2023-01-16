@@ -30,7 +30,7 @@ std::shared_ptr<struct tile_atlas> loader_impl::tile_atlas(StringView filename) 
     fm_assert(!tile_atlas_map.empty());
     auto it = tile_atlas_map.find(filename);
     if (it == tile_atlas_map.end())
-        fm_throw("no such tile atlas '{}'"_cf, filename.data());
+        fm_throw("no such tile atlas '{}'"_cf, filename);
     return it->second;
 }
 
@@ -58,7 +58,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
                 auto it = std::find_if(anim_info.groups.cbegin(), anim_info.groups.cend(),
                                        [&](const anim_group& x) { return x.name == group.mirror_from; });
                 if (it == anim_info.groups.cend())
-                    fm_throw("can't find group '{}' to mirror from '{}'"_cf, group.mirror_from.data(), group.name.data());
+                    fm_throw("can't find group '{}' to mirror from '{}'"_cf, group.mirror_from, group.name);
                 group.frames = it->frames;
                 for (anim_frame& f : group.frames)
                     f.ground = Vector2i((Int)f.size[0] - f.ground[0], f.ground[1]);
