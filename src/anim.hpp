@@ -28,6 +28,22 @@ struct anim_group final
     Vector3b offset;
 };
 
+enum class anim_scale_type : std::uint8_t { invalid, ratio, fixed, };
+
+struct anim_scale final
+{
+    struct ratio { float f; };
+    struct fixed { bool is_width; unsigned width_or_height; };
+    struct empty {};
+    union {
+        struct ratio r;
+        struct fixed f;
+        struct empty e = {};
+    };
+    anim_scale_type type = anim_scale_type::invalid;
+    Vector2ui scale_to(Vector2ui image_size) const;
+};
+
 struct anim_def final
 {
     static constexpr int default_fps = 24;
@@ -35,7 +51,8 @@ struct anim_def final
     String object_name, anim_name;
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
-    std::size_t nframes = 0, width = 0, height = 0, fps = default_fps, actionframe = 0;
+    anim_scale scale;
+    std::size_t nframes = 0, fps = default_fps, actionframe = 0;
 };
 
 } // namespace floormat

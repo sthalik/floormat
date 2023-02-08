@@ -35,9 +35,9 @@ using floormat::Serialize::anim_atlas_;
 
 struct options
 {
-    double scale = 0;
     String input_dir, input_file, output_dir;
-    std::size_t width = 0, height = 0, nframes = 0;
+    std::size_t nframes = 0;
+    anim_scale scale;
 };
 
 [[nodiscard]]
@@ -91,20 +91,11 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
 
     cv::Size size{end - start};
 
-    if (opts.scale == 0.0)
-    {
-        fm_assert(opts.width || opts.height);
-        if (opts.width)
-            opts.scale = (double)opts.width / size.width;
-        else
-            opts.scale = (double)opts.height / size.height;
-        fm_assert(opts.scale > 1e-6);
-    }
-
-    const cv::Size dest_size = {
-        (int)std::round(opts.scale * size.width),
-        (int)std::round(opts.scale * size.height)
-    };
+    const auto dest_size = fm_begin(
+        auto xy = opts.scale.scale_to({(unsigned)size.width, (unsigned)size.height});
+        return cv::Size{(int)xy[0], (int)xy[1]};
+    );
+    const auto factor = (float)dest_size.width / (float)size.width;
 
     if (size.width < dest_size.width || size.height < dest_size.height)
     {
@@ -116,8 +107,8 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
 
     const Vector2i ground = {
-        (int)std::round(((int)group.ground[0] - start[0]) * opts.scale),
-        (int)std::round(((int)group.ground[1] - start[1]) * opts.scale),
+        (int)std::round(((int)group.ground[0] - start[0]) * factor),
+        (int)std::round(((int)group.ground[1] - start[1]) * factor),
     };
 
     const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
@@ -207,13 +198,19 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     args.addOption('o', "output")
         .addArgument("input")
         .addOption('W', "width", "")
-        .addOption('H', "height", "");
+        .addOption('H', "height", "")
+        .addOption('F', "scale", "");
+
     args.parse(argc, argv);
     options opts;
-    if (auto w = args.value<unsigned>("width"); w != 0)
-        opts.width = w;
-    if (auto h = args.value<unsigned>("height"); h != 0)
-        opts.height = h;
+
+    if (!args.value<StringView>("width").isEmpty())
+        opts.scale = { { .f = {true, args.value<unsigned>("width")} }, anim_scale_type::fixed };
+    else if (!args.value<StringView>("height").isEmpty())
+        opts.scale = { { .f = {false, args.value<unsigned>("height")} }, anim_scale_type::fixed };
+    else if (!args.value<StringView>("scale").isEmpty())
+        opts.scale = { { .r = {args.value<float>("scale")} } , anim_scale_type::ratio };
+
     opts.output_dir = args.value<StringView>("output");
     opts.input_file = args.value<StringView>("input");
     opts.input_dir = Path::split(opts.input_file).first();
@@ -263,18 +260,9 @@ int main(int argc, char** argv)
         return EX_DATAERR;
     }
 
-    if (!opts.width)
-        opts.width = anim_info.width;
-    if (!opts.height)
-        opts.height = anim_info.height;
     opts.nframes = anim_info.nframes;
-
-    if (!(opts.width ^ opts.height))
-    {
-        Error{} << "error: exactly one of --width, --height must be specified";
-        return usage(args);
-    }
-
+    if (opts.scale.type == anim_scale_type::invalid)
+        opts.scale = anim_info.scale;
     anim_atlas_ atlas;
 
     for (anim_group& group : anim_info.groups)

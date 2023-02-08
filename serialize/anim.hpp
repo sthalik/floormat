@@ -18,6 +18,12 @@ struct adl_serializer<floormat::anim_group> {
 };
 
 template<>
+struct adl_serializer<floormat::anim_scale> {
+    static void to_json(json& j, floormat::anim_scale val);
+    static void from_json(const json& j, floormat::anim_scale& val);
+};
+
+template<>
 struct adl_serializer<floormat::anim_def> {
     static void to_json(json& j, const floormat::anim_def& val);
     static void from_json(const json& j, floormat::anim_def& val);
