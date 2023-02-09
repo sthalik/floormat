@@ -1,7 +1,7 @@
 #!/usr/bin/env false
 
 set disable-randomization off
-break abort
+catch throw
 run
 if $_isvoid ($_exitsignal)
   quit $_exitcode
