@@ -91,6 +91,11 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
     }
 
     cv::Size size{end - start};
+    if (opts.scale.type != anim_scale_type::ratio)
+    {
+        float new_width = opts.scale.scale_to_({(unsigned)size.width, (unsigned)size.height})[0];
+        opts.scale = {{.r = {new_width / (float)size.width}}, anim_scale_type::ratio};
+    }
 
     const auto dest_size = fm_begin(
         auto xy = opts.scale.scale_to({(unsigned)size.width, (unsigned)size.height});
