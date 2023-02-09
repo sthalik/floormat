@@ -13,8 +13,11 @@ extern "C" __declspec(dllimport) long WINAPI RtlGetVersion(PRTL_OSVERSIONINFOEXW
 #if defined __GNUG__ && !defined __clang__
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
-
 #endif // _WIN32
+
+#ifdef __GLIBCXX__
+#include <exception>
+#endif
 
 namespace floormat::loader_detail {
 
@@ -36,6 +39,9 @@ static void system_init_()
     (void)::SetConsoleOutputCP(CP_UTF8);
     if (check_windows_build_number(10, 0, 17035))
         (void)::SetConsoleCP(CP_UTF8);
+#endif
+#ifdef __GLIBCXX__
+    std::set_terminate(__gnu_cxx::__verbose_terminate_handler);
 #endif
 }
 
