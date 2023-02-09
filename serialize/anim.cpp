@@ -37,7 +37,7 @@ void adl_serializer<floormat::anim_scale>::from_json(const json& j, floormat::an
 {
     fm_soft_assert(j.is_array());
     fm_soft_assert(j.size() == 2);
-    String type = j[0];
+    StringView type = j[0];
     if (type == "factor"_s)
     {
         auto factor = (float)j[1];

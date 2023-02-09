@@ -16,29 +16,9 @@
     "atlas-name": "furniture/bench1"
   },
   {
-    "name": "bench6",
+    "name": "bench4",
     "type": "generic",
-    "atlas-name": "furniture/bench6"
-  },
-  {
-    "name": "cabinet1",
-    "type": "generic",
-    "atlas-name": "furniture/cabinet1"
-  },
-  {
-    "name": "cabinet4",
-    "type": "generic",
-    "atlas-name": "furniture/cabinet4"
-  },
-  {
-    "name": "cabinet5",
-    "type": "generic",
-    "atlas-name": "furniture/cabinet5"
-  },
-  {
-    "name": "cabinet6",
-    "type": "generic",
-    "atlas-name": "furniture/cabinet6"
+    "atlas-name": "furniture/bench4"
   },
   {
     "name": "chair1",
@@ -56,19 +36,9 @@
     "atlas-name": "furniture/drawers1"
   },
   {
-    "name": "drawers2",
-    "type": "generic",
-    "atlas-name": "furniture/drawers2"
-  },
-  {
     "name": "shelf1",
     "type": "generic",
     "atlas-name": "furniture/shelf1"
-  },
-  {
-    "name": "shelf2",
-    "type": "generic",
-    "atlas-name": "furniture/shelf2"
   },
   {
     "name": "shelf3",
@@ -76,9 +46,9 @@
     "atlas-name": "furniture/shelf3"
   },
   {
-    "name": "shelf4",
+    "name": "shelf6",
     "type": "generic",
-    "atlas-name": "furniture/shelf4"
+    "atlas-name": "furniture/shelf6"
   },
   {
     "name": "stool1",

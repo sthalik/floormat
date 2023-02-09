@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "31 x 78",
+					"ground": "47 x 110",
 					"offset": "0 x 0",
-					"size": "60 x 97"
+					"size": "85 x 135"
 				}
 			],
 			"ground": "960 x 540",
@@ -20,33 +20,15 @@
 			]
 		},
 		{
-			"mirror-from": "n",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
-		},
-		{
 			"frames": [
 				{
-					"ground": "29 x 94",
-					"offset": "0 x 97",
-					"size": "60 x 110"
+					"ground": "38 x 110",
+					"offset": "0 x 135",
+					"size": "85 x 135"
 				}
 			],
 			"ground": "960 x 540",
-			"name": "s",
-			"offset": [
-				0,
-				0,
-				0
-			]
-		},
-		{
-			"mirror-from": "s",
-			"name": "e",
+			"name": "w",
 			"offset": [
 				0,
 				0,
@@ -55,8 +37,8 @@
 		}
 	],
 	"nframes": 1,
-	"object_name": "chair4",
-	"pixel_size": "60 x 207",
+	"object_name": "shelf6",
+	"pixel_size": "85 x 270",
 	"scale": [
 		"factor",
 		0.3799999952316284

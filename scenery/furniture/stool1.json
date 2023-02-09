@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "20 x 39",
+					"ground": "28 x 54",
 					"offset": "0 x 0",
-					"size": "40 x 51"
+					"size": "55 x 69"
 				}
 			],
 			"ground": "960 x 540",
@@ -29,9 +29,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "stool1",
-	"pixel_size": "40 x 51",
-	"width": 40
+	"pixel_size": "55 x 69",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

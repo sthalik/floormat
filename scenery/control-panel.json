@@ -29,9 +29,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "control-panel",
 	"pixel_size": "41 x 78",
-	"width": 41
+	"scale": [
+		"width",
+		41
+	]
 }

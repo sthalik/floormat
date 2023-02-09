@@ -4,10 +4,10 @@
 
 namespace floormat {
 
-Vector2ui anim_scale::scale_to(Vector2ui image_size) const
+Vector2 anim_scale::scale_to_(Vector2ui image_size) const
 {
     fm_soft_assert(image_size.product() > 0);
-    Vector2ui ret;
+    Vector2 ret;
     switch (type)
     {
     default:
@@ -16,18 +16,24 @@ Vector2ui anim_scale::scale_to(Vector2ui image_size) const
         fm_throw("anim_scale is invalid"_cf);
     case anim_scale_type::fixed:
         fm_soft_assert(f.width_or_height > 0);
-        if (f.is_width)
-            ret = { f.width_or_height, (unsigned)std::round((float)f.width_or_height * (float)image_size.y()/(float)image_size.x()) };
+        if (auto x = (float)image_size.x(), y = (float)image_size.y(), wh = (float)f.width_or_height; f.is_width)
+            ret = { wh, wh * y/x };
         else
-            ret = { (unsigned)std::round((float)f.width_or_height * (float)image_size.x()/(float)image_size.y()), f.width_or_height };
+            ret = { wh * x/y, wh };
         break;
     case anim_scale_type::ratio:
         fm_soft_assert(r.f > 0 && r.f <= 1);
-        ret = { (unsigned)std::round(image_size.x() * r.f), (unsigned)std::round(image_size.y() * r.f) };
+        ret = { image_size.x() * r.f, image_size.y() * r.f };
         break;
     }
     fm_soft_assert(ret.product() > 0);
     return ret;
+}
+
+Vector2ui anim_scale::scale_to(Vector2ui image_size) const
+{
+    Vector2 value = scale_to_(image_size);
+    return { (unsigned)std::round(value[0]), (unsigned)std::round(value[1]) };
 }
 
 } // namespace floormat

@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "90 x 129",
+					"ground": "74 x 105",
 					"offset": "0 x 0",
-					"size": "180 x 156"
+					"size": "147 x 127"
 				}
 			],
 			"ground": "960 x 540",
@@ -29,9 +29,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "table5",
-	"pixel_size": "180 x 156",
-	"width": 180
+	"pixel_size": "147 x 127",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

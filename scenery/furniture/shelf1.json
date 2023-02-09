@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "42 x 113",
+					"ground": "60 x 162",
 					"offset": "0 x 0",
-					"size": "80 x 137"
+					"size": "115 x 198"
 				}
 			],
 			"ground": "960 x 540",
@@ -20,7 +20,14 @@
 			]
 		},
 		{
-			"mirror-from": "n",
+			"frames": [
+				{
+					"ground": "55 x 162",
+					"offset": "0 x 198",
+					"size": "115 x 198"
+				}
+			],
+			"ground": "960 x 540",
 			"name": "w",
 			"offset": [
 				0,
@@ -29,9 +36,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "shelf1",
-	"pixel_size": "80 x 137",
-	"width": 80
+	"pixel_size": "115 x 396",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

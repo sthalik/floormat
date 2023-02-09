@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "26 x 53",
+					"ground": "36 x 73",
 					"offset": "0 x 0",
-					"size": "50 x 69"
+					"size": "68 x 95"
 				}
 			],
 			"ground": "960 x 540",
@@ -20,7 +20,14 @@
 			]
 		},
 		{
-			"mirror-from": "n",
+			"frames": [
+				{
+					"ground": "32 x 73",
+					"offset": "0 x 95",
+					"size": "68 x 95"
+				}
+			],
+			"ground": "960 x 540",
 			"name": "w",
 			"offset": [
 				0,
@@ -29,9 +36,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "drawers1",
-	"pixel_size": "50 x 69",
-	"width": 50
+	"pixel_size": "68 x 190",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

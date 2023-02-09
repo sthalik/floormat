@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "90 x 117",
+					"ground": "82 x 105",
 					"offset": "0 x 0",
-					"size": "180 x 166"
+					"size": "163 x 150"
 				}
 			],
 			"ground": "960 x 540",
@@ -27,11 +27,38 @@
 				0,
 				0
 			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "82 x 105",
+					"offset": "0 x 150",
+					"size": "163 x 150"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "s",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"mirror-from": "s",
+			"name": "e",
+			"offset": [
+				0,
+				0,
+				0
+			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "table1",
-	"pixel_size": "180 x 166",
-	"width": 180
+	"pixel_size": "163 x 300",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

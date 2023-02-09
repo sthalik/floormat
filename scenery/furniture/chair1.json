@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "25 x 68",
+					"ground": "30 x 81",
 					"offset": "0 x 0",
-					"size": "55 x 82"
+					"size": "55 x 98"
 				}
 			],
 			"ground": "960 x 540",
@@ -31,9 +31,9 @@
 		{
 			"frames": [
 				{
-					"ground": "30 x 81",
-					"offset": "0 x 82",
-					"size": "55 x 98"
+					"ground": "25 x 68",
+					"offset": "0 x 98",
+					"size": "55 x 82"
 				}
 			],
 			"ground": "960 x 540",
@@ -54,9 +54,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "chair1",
 	"pixel_size": "55 x 180",
-	"width": 55
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

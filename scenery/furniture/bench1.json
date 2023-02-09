@@ -6,9 +6,9 @@
 		{
 			"frames": [
 				{
-					"ground": "121 x 134",
+					"ground": "78 x 87",
 					"offset": "0 x 0",
-					"size": "240 x 258"
+					"size": "155 x 167"
 				}
 			],
 			"ground": "960 x 540",
@@ -31,9 +31,9 @@
 		{
 			"frames": [
 				{
-					"ground": "119 x 99",
-					"offset": "0 x 258",
-					"size": "240 x 215"
+					"ground": "77 x 64",
+					"offset": "0 x 167",
+					"size": "155 x 139"
 				}
 			],
 			"ground": "960 x 540",
@@ -54,9 +54,11 @@
 			]
 		}
 	],
-	"height": 0,
 	"nframes": 1,
 	"object_name": "bench1",
-	"pixel_size": "240 x 473",
-	"width": 240
+	"pixel_size": "155 x 306",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
 }

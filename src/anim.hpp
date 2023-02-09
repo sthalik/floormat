@@ -42,6 +42,7 @@ struct anim_scale final
     };
     anim_scale_type type = anim_scale_type::invalid;
     Vector2ui scale_to(Vector2ui image_size) const;
+    Vector2 scale_to_(Vector2ui image_size) const;
 };
 
 struct anim_def final
