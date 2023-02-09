@@ -25,6 +25,7 @@ struct loader_
     static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename, pass_mode p);
     virtual const std::vector<serialized_scenery>& sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
+    virtual StringView startup_directory() noexcept = 0;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

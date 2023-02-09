@@ -28,6 +28,8 @@ struct loader_impl final : loader_
     std::vector<serialized_scenery> sceneries_array;
     std::unordered_map<StringView, const serialized_scenery*> sceneries_map;
 
+    String original_working_directory;
+
     StringView shader(StringView filename) noexcept override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false);
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) override;
@@ -39,9 +41,10 @@ struct loader_impl final : loader_
 
     void get_anim_atlas_list();
     void get_scenery_list();
-
-    static void set_application_working_directory();
     static anim_def deserialize_anim(StringView filename);
+
+    void set_application_working_directory();
+    StringView startup_directory() noexcept override;
     static void system_init();
     static bool chdir(StringView pathname);
     [[nodiscard]] static bool check_atlas_name(StringView name);

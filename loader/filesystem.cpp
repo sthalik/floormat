@@ -38,12 +38,26 @@ bool loader_impl::chdir(StringView pathname)
     return !ret;
 }
 
+StringView loader_impl::startup_directory() noexcept
+{
+    fm_debug_assert(!original_working_directory.isEmpty());
+    return original_working_directory;
+}
+
 void loader_impl::set_application_working_directory()
 {
     static bool once = false;
     if (once)
         return;
     once = true;
+    if (auto loc = Path::currentDirectory(); loc)
+        original_working_directory = std::move(*loc);
+    else
+    {
+        Error err; err << "can't get original working directory:";
+        Corrade::Utility::Implementation::printErrnoErrorString(err, errno);
+        original_working_directory = "."_s;
+    }
     if (const auto loc = Path::executableLocation())
     {
         String path;

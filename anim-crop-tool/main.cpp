@@ -4,6 +4,7 @@
 #include "serialize/anim.hpp"
 #include "compat/defs.hpp"
 #include "compat/sysexits.hpp"
+#include "loader/loader.hpp"
 
 #include <cerrno>
 #include <cmath>
@@ -211,8 +212,8 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     else if (!args.value<StringView>("scale").isEmpty())
         opts.scale = { { .r = {args.value<float>("scale")} } , anim_scale_type::ratio };
 
-    opts.output_dir = args.value<StringView>("output");
-    opts.input_file = args.value<StringView>("input");
+    opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
+    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input"));
     opts.input_dir = Path::split(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())
