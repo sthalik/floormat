@@ -120,8 +120,6 @@ private:
     std::array<std::uint8_t, TILE_COUNT> scenery_indexes = {};
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
-    template<bool> struct lqt_ops;
-
     std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
     std::vector<loose_quadtree::BoundingBox<std::int16_t>> _bboxes;
 
