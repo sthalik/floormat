@@ -1,0 +1,46 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 0,
+	"groups": [
+		{
+			"frames": [
+				{
+					"ground": "77 x 187",
+					"offset": "0 x 0",
+					"size": "154 x 232"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		},
+		{
+			"frames": [
+				{
+					"ground": "77 x 187",
+					"offset": "0 x 232",
+					"size": "154 x 232"
+				}
+			],
+			"ground": "960 x 540",
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				0
+			]
+		}
+	],
+	"nframes": 1,
+	"object_name": "shelf4",
+	"pixel_size": "154 x 464",
+	"scale": [
+		"factor",
+		0.3799999952316284
+	]
+}

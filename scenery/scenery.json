@@ -46,6 +46,11 @@
     "atlas-name": "furniture/shelf3"
   },
   {
+    "name": "shelf4",
+    "type": "generic",
+    "atlas-name": "furniture/shelf4"
+  },
+  {
     "name": "shelf6",
     "type": "generic",
     "atlas-name": "furniture/shelf6"
