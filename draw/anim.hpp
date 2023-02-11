@@ -28,7 +28,7 @@ struct anim_mesh final
 
     void draw(tile_shader& shader, chunk& c);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, const Vector3& pos, float depth);
-    void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy);
+    void draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset);
     static void add_clickable(tile_shader& shader, const Vector2i& win_size,
                                   chunk_coords c, std::uint8_t i, const std::shared_ptr<anim_atlas>& atlas, scenery& s,
                                   std::vector<clickable_scenery>& clickable);

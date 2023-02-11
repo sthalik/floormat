@@ -32,7 +32,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
     const local_coords xy{i};
     const auto& g = atlas->group(s.r);
     const auto& f = atlas->frame(s.r, s.frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset);
+    const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset) + Vector3(s.offset[0], s.offset[1], 0);
     const Vector2ui offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                            + shader.project(world_pos) - Vector2(f.ground));
     clickable_scenery item = {
@@ -83,7 +83,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
                     last = NullOpt;
                 }
                 bound = nullptr;
-                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
             }
         last_id = id;
         if (last && atlas && &*atlas != last->atlas)
@@ -100,12 +100,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
             do_draw(last->run_from, size, last->atlas, max_index);
         for (std::size_t i = ids[size-1]+1; i < TILE_COUNT; i++)
             if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps > 0)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
     }
     else
         for (std::size_t i = 0; i < TILE_COUNT; i++)
             if (auto [atlas, s] = c[i].scenery(); atlas)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i});
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
@@ -127,9 +127,9 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::si
     shader.draw(_mesh);
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset)
 {
-    const auto pos = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE;
+    const auto pos = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE + Vector3(offset[0], offset[1], 0);
     const float depth = tile_shader::depth_value(xy, tile_shader::scenery_depth_offset);
     draw(shader, atlas, r, frame, pos, depth);
 }

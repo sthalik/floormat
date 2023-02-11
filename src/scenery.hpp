@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <memory>
 #include <type_traits>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Magnum.h>
 
 namespace floormat {
 
@@ -34,6 +36,7 @@ struct scenery final
 
     std::uint16_t delta = 0;
     frame_t frame = 0;
+    Vector2b offset;
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
     pass_mode    passability : 2 = pass_mode::shoot_through;
