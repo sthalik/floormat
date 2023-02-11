@@ -182,19 +182,6 @@ void reader_state::read_chunks(reader_t& s)
                     }
                     t.scenery() = sc;
                 }
-
-#if 0
-            switch (auto x = pass_mode(flags & pass_mask))
-            {
-            case pass_mode::shoot_through:
-            case pass_mode::blocked:
-            case pass_mode::pass:
-                t.passability() = x;
-                break;
-            default: [[unlikely]]
-                fm_throw("bad pass mode '{}' for tile {}"_cf, i, pass_mode_(x));
-            }
-#endif
         }
     }
 }
