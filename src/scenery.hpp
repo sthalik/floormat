@@ -26,9 +26,9 @@ struct scenery final
     struct generic_tag_t final {};
     struct door_tag_t final {};
 
-    static constexpr inline auto none    = none_tag_t{};
-    static constexpr inline auto generic = generic_tag_t{};
-    static constexpr inline auto door    = door_tag_t{};
+    static constexpr auto none    = none_tag_t{};
+    static constexpr auto generic = generic_tag_t{};
+    static constexpr auto door    = door_tag_t{};
 
     using frame_t = std::uint16_t;
 
