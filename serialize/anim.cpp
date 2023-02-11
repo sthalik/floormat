@@ -6,9 +6,86 @@
 
 namespace floormat {
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground, offset)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_def, object_name, anim_name, pixel_size, nframes, actionframe, fps, groups, scale)
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground, offset)
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_def, object_name, anim_name, pixel_size, nframes, actionframe, fps, groups, scale)
+
+static void to_json(nlohmann::json& j, const anim_frame& val)
+{
+    if (!val.ground.isZero())
+        j["ground"] = val.ground;
+    if (!val.offset.isZero())
+        j["offset"] = val.offset;
+    if (!val.size.isZero())
+        j["size"] = val.size;
+}
+
+static void from_json(const nlohmann::json& j, anim_frame& val)
+{
+    val = {};
+    if (j.contains("ground"))
+        val.ground = j["ground"];
+    if (j.contains("offset"))
+        val.offset = j["offset"];
+    if (j.contains("size"))
+        val.size = j["size"];
+}
+
+static void to_json(nlohmann::json& j, const anim_group& val)
+{
+    j["name"] = val.name;
+    j["frames"] = val.frames;
+    if (!val.ground.isZero())
+        j["ground"] = val.ground;
+    if (!val.offset.isZero())
+        j["offset"] = val.offset;
+}
+
+static void from_json(const nlohmann::json& j, anim_group& val)
+{
+    val = {};
+    val.name = j["name"];
+    val.frames = j["frames"];
+    if (j.contains("ground"))
+        val.ground = j["ground"];
+    if (j.contains("offset"))
+        val.offset = j["offset"];
+}
+
+static void to_json(nlohmann::json& j, const anim_def& val)
+{
+    j["object_name"] = val.object_name;
+    if (!val.anim_name.isEmpty())
+        j["anim_name"] = val.anim_name;
+    if (!val.pixel_size.isZero())
+        j["pixel_size"] = val.pixel_size;
+    if (val.nframes > 0)
+        j["nframes"] = val.nframes;
+    if (val.actionframe > 0)
+        j["actionframe"] = val.actionframe;
+    if (val.fps > 0)
+        j["fps"] = val.fps;
+    j["groups"] = val.groups;
+    j["scale"] = val.scale;
+}
+
+static void from_json(const nlohmann::json& j, anim_def& val)
+{
+    val = {};
+    val.object_name = j["object_name"];
+    if (j.contains("anim_name"))
+        val.anim_name = j["anim_name"];
+    if (j.contains("pixel_size"))
+        val.pixel_size = j["pixel_size"];
+    if (j.contains("nframes"))
+        val.nframes = j["nframes"];
+    if (j.contains("actionframe"))
+        val.actionframe = j["actionframe"];
+    if (j.contains("fps"))
+        val.fps = j["fps"];
+    val.groups = j["groups"];
+    val.scale = j["scale"];
+}
 
 } // namespace floormat
 

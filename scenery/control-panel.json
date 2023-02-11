@@ -1,13 +1,9 @@
 {
-	"actionframe": 0,
-	"anim_name": "",
-	"fps": 0,
 	"groups": [
 		{
 			"frames": [
 				{
 					"ground": "17 x 66",
-					"offset": "0 x 0",
 					"size": "41 x 78"
 				}
 			],

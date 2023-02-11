@@ -47,13 +47,11 @@ struct anim_scale final
 
 struct anim_def final
 {
-    static constexpr int default_fps = 24;
-
     String object_name, anim_name;
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
     anim_scale scale;
-    std::size_t nframes = 0, fps = default_fps, actionframe = 0;
+    std::size_t nframes = 0, fps = 0, actionframe = 0;
 };
 
 } // namespace floormat
