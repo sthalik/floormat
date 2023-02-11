@@ -1,23 +1,14 @@
 {
-	"actionframe": 0,
-	"anim_name": "",
-	"fps": 0,
 	"groups": [
 		{
 			"frames": [
 				{
 					"ground": "60 x 162",
-					"offset": "0 x 0",
 					"size": "115 x 198"
 				}
 			],
 			"ground": "960 x 540",
-			"name": "n",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "n"
 		},
 		{
 			"frames": [
@@ -28,12 +19,7 @@
 				}
 			],
 			"ground": "960 x 540",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "w"
 		}
 	],
 	"nframes": 1,

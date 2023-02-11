@@ -1,5 +1,4 @@
 {
-	"actionframe": 0,
 	"anim_name": "close",
 	"fps": 24,
 	"groups": [
@@ -7,7 +6,6 @@
 			"frames": [
 				{
 					"ground": "126 x 121",
-					"offset": "0 x 0",
 					"size": "86 x 106"
 				},
 				{

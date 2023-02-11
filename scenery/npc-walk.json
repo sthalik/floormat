@@ -1,5 +1,4 @@
 {
-	"actionframe": 0,
 	"anim_name": "walk",
 	"fps": 24,
 	"groups": [
@@ -7,7 +6,6 @@
 			"frames": [
 				{
 					"ground": "18 x 120",
-					"offset": "0 x 0",
 					"size": "44 x 130"
 				},
 				{
@@ -247,12 +245,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "n",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "n"
 		},
 		{
 			"frames": [
@@ -498,12 +491,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "ne",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "ne"
 		},
 		{
 			"frames": [
@@ -749,12 +737,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "e",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "e"
 		},
 		{
 			"frames": [
@@ -1000,12 +983,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "se",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "se"
 		},
 		{
 			"frames": [
@@ -1251,12 +1229,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "s",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "s"
 		},
 		{
 			"frames": [
@@ -1502,12 +1475,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "sw",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "sw"
 		},
 		{
 			"frames": [
@@ -1753,12 +1721,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "w"
 		},
 		{
 			"frames": [
@@ -2004,12 +1967,7 @@
 				}
 			],
 			"ground": "479 x 494",
-			"name": "nw",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "nw"
 		}
 	],
 	"nframes": 48,

@@ -1,23 +1,14 @@
 {
-	"actionframe": 0,
-	"anim_name": "",
-	"fps": 0,
 	"groups": [
 		{
 			"frames": [
 				{
 					"ground": "74 x 105",
-					"offset": "0 x 0",
 					"size": "147 x 127"
 				}
 			],
 			"ground": "960 x 540",
-			"name": "n",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "n"
 		},
 		{
 			"mirror-from": "n",
