@@ -173,7 +173,12 @@ void reader_state::read_chunks(reader_t& s)
                         else
                             sc.frame.frame << s;
                         if (sc.frame.active)
-                            sc.frame.delta << s;
+                        {
+                            if (PROTO >= 4) [[likely]]
+                                sc.frame.delta << s;
+                            else
+                                sc.frame.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+                        }
                     }
                     t.scenery() = sc;
                 }

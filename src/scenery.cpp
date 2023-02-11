@@ -71,10 +71,11 @@ void scenery::update(float dt, const anim_atlas& anim)
         const auto nframes = (int)anim.info().nframes;
         fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
 
-        delta += dt;
-        const float frame_time = 1.f/hz;
-        const auto n = int(delta / frame_time);
-        delta -= frame_time * n;
+        auto delta_ = int(delta) + int(65535u * dt);
+        delta_ = std::min(65535, delta_);
+        const auto frame_time = int(1.f/hz * 65535);
+        const auto n = (std::uint8_t)std::clamp(delta_ / frame_time, 0, 255);
+        delta = (std::uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
         fm_debug_assert(delta >= 0);
         const std::int8_t dir = closing ? 1 : -1;
         const int fr = frame + dir*n;

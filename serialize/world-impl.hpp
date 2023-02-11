@@ -33,7 +33,7 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 constexpr inline std::size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
-constexpr inline proto_t proto_version = 3;
+constexpr inline proto_t proto_version = 4;
 constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (std::uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (std::uint16_t)~0xb00b;

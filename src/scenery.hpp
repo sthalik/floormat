@@ -32,7 +32,7 @@ struct scenery final
 
     using frame_t = std::uint16_t;
 
-    float delta = 0;
+    std::uint16_t delta = 0;
     frame_t frame = 0;
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
