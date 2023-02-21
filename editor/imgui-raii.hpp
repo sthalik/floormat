@@ -15,7 +15,7 @@ struct raii_wrapper final
     ~raii_wrapper();
     raii_wrapper(const raii_wrapper&) = delete;
     raii_wrapper& operator=(const raii_wrapper&) = delete;
-    raii_wrapper& operator=(raii_wrapper&&) = delete;
+    raii_wrapper& operator=(raii_wrapper&&) noexcept;
     raii_wrapper(raii_wrapper&& other) noexcept;
     operator bool() const noexcept;
 
@@ -29,6 +29,7 @@ private:
 [[nodiscard]] raii_wrapper begin_list_box(StringView name, ImVec2 size = {});
 [[nodiscard]] raii_wrapper begin_table(const char* id, int ncols, ImGuiTableFlags flags = 0, const ImVec2& outer_size = {}, float inner_width = 0);
 [[nodiscard]] raii_wrapper tree_node(StringView name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
+[[nodiscard]] raii_wrapper begin_disabled(bool is_disabled = true);
 
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value);
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, float value);

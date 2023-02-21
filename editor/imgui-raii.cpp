@@ -28,6 +28,11 @@ void text(StringView str, ImGuiTextFlags flags) { ImGui::TextEx(str.data(), str.
 raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn} {}
 raii_wrapper::~raii_wrapper() { if (dtor) dtor(); }
 raii_wrapper::raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor} { other.dtor = nullptr; }
+raii_wrapper& raii_wrapper::operator=(raii_wrapper&& other) noexcept
+{
+    dtor = std::exchange(other.dtor, nullptr);
+    return *this;
+}
 raii_wrapper::operator bool() const noexcept { return dtor != nullptr; }
 
 raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
@@ -60,6 +65,12 @@ raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags flags)
         return {&ImGui::TreePop};
     else
         return {};
+}
+
+raii_wrapper begin_disabled(bool is_disabled)
+{
+    ImGui::BeginDisabled(is_disabled);
+    return {&ImGui::EndDisabled};
 }
 
 raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
