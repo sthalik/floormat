@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cmath>
 #include <limits>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat::entities::erased_constraints {
 
@@ -40,7 +41,7 @@ template<typename T> constexpr std::pair<T, T> range::convert() const
 
     switch (type) {
     case type_float:
-        if constexpr (limits::is_integer())
+        if constexpr (limits::is_integer)
             return { T(std::floor(min.f)), T(std::ceil(max.f)) };
         else
             return { T(min.f), T(max.f) };

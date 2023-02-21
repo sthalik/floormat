@@ -1,6 +1,7 @@
 #pragma once
 #include "util.hpp"
 #include "erased-constraints.hpp"
+#include "name-of.hpp"
 #include <type_traits>
 #include <utility>
 #include <Corrade/Containers/StringView.h>
@@ -27,21 +28,22 @@ struct erased_accessor final {
     using Object = void;
     using Value = void;
 
-    const reader_t* reader;
-    const writer_t* writer;
-    const predicate_t* predicate;
-    const c_range_t* range;
-    const c_length_t* length;
-    const c_group_t* group;
+    const reader_t* reader = nullptr;
+    const writer_t* writer = nullptr;
+    const predicate_t* predicate = nullptr;
+    const c_range_t* range = nullptr;
+    const c_length_t* length = nullptr;
+    const c_group_t* group = nullptr;
 
     StringView field_name, object_type, field_type;
-    void(*read_fun)(const Object*, const reader_t*, Value*);
-    void(*write_fun)(Object*, const writer_t*, Value*);
-    field_status(*predicate_fun)(const Object*, const predicate_t*);
-    erased_constraints::range(*range_fun)(const Object*, const c_range_t*);
-    erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*);
-    erased_constraints::group(*group_fun)(const Object*, const c_group_t*);
+    void(*read_fun)(const Object*, const reader_t*, Value*) = nullptr;
+    void(*write_fun)(Object*, const writer_t*, Value*) = nullptr;
+    field_status(*predicate_fun)(const Object*, const predicate_t*) = nullptr;
+    erased_constraints::range(*range_fun)(const Object*, const c_range_t*) = nullptr;
+    erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*) = nullptr;
+    erased_constraints::group(*group_fun)(const Object*, const c_group_t*) = nullptr;
 
+    explicit constexpr erased_accessor() noexcept = default;
     constexpr erased_accessor(const erased_accessor&) = default;
     constexpr erased_accessor(const reader_t* reader, const writer_t* writer, const predicate_t* predicate,
                               const c_range_t* range, const c_length_t* length, const c_group_t* group,
@@ -76,11 +78,11 @@ struct erased_accessor final {
     template<typename Obj, typename FieldType> void read(const Obj& x, FieldType& value) const noexcept;
     template<typename Obj, typename FieldType> void write(Obj& x, move_qualified<FieldType> value) const noexcept;
 
-    template<typename Obj> field_status is_enabled(const Obj& x) const noexcept;
+    field_status is_enabled(const void* x) const noexcept;
     constexpr bool can_write() const noexcept { return writer != nullptr; }
-    template<typename Obj> erased_constraints::range get_range(const Obj& x) const noexcept;
-    template<typename Obj> erased_constraints::max_length get_max_length(const Obj& x) const noexcept;
-    template<typename Obj> erased_constraints::group get_group(const Obj& x) const noexcept;
+    inline erased_constraints::range get_range(const void* x) const noexcept;
+    inline erased_constraints::max_length get_max_length(const void* x) const noexcept;
+    inline erased_constraints::group get_group(const void* x) const noexcept;
 };
 
 template<typename T, typename FieldType>
@@ -158,15 +160,13 @@ void erased_accessor::write(Obj& x, move_qualified<FieldType> value) const noexc
     write_unchecked<Obj, FieldType>(x, value);
 }
 
-template<typename Obj>
-field_status erased_accessor::is_enabled(const Obj& x) const noexcept
+field_status erased_accessor::is_enabled(const void* x) const noexcept
 {
-    do_asserts<Obj>();
     return predicate_fun(&x, predicate);
 }
 
-template<typename T> erased_constraints::range erased_accessor::get_range(const T& x) const noexcept { do_asserts<T>();return range_fun(&x,range); }
-template<typename T> erased_constraints::max_length erased_accessor::get_max_length(const T& x) const noexcept { do_asserts<T>();return length_fun(&x,length); }
-template<typename T> erased_constraints::group erased_accessor::get_group(const T& x) const noexcept { do_asserts<T>();return group_fun(&x, group); }
+erased_constraints::range erased_accessor::get_range(const void* x) const noexcept { return range_fun(x,range); }
+erased_constraints::max_length erased_accessor::get_max_length(const void* x) const noexcept { return length_fun(x,length); }
+erased_constraints::group erased_accessor::get_group(const void* x) const noexcept { return group_fun(x, group); }
 
 } // namespace floormat::entities

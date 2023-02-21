@@ -168,14 +168,17 @@ void test_predicate()
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                   [](const TestAccessors&) { return field_status::hidden; }};
     static_assert(foo.is_enabled(x) == field_status::hidden);
-    fm_assert(foo.erased().is_enabled(x) == field_status::hidden);
+    fm_assert(foo.erased().is_enabled(&x) == field_status::hidden);
+
+    foo.erased().do_asserts<TestAccessors>();
+
     constexpr auto foo2 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                    [](const TestAccessors&) { return field_status::readonly; }};
     static_assert(foo2.is_enabled(x) == field_status::readonly);
-    fm_assert(foo2.erased().is_enabled(x) == field_status::readonly);
+    fm_assert(foo2.erased().is_enabled(&x) == field_status::readonly);
     constexpr auto foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
     static_assert(foo3.is_enabled(x) == field_status::enabled);
-    fm_assert(foo3.erased().is_enabled(x) == field_status::enabled);
+    fm_assert(foo3.erased().is_enabled(&x) == field_status::enabled);
 }
 
 constexpr bool test_names()
@@ -232,9 +235,10 @@ void test_erased_constraints()
     static constexpr auto erased = foo.erased();
     const auto x = TestAccessors{};
 
-    fm_assert(erased.get_range(x) == constraints::range<int>{37, 42});
-    fm_assert(erased.get_max_length(x) == 42);
-    fm_assert(erased.get_group(x) == "foo"_s);
+    erased.do_asserts<TestAccessors>();
+    fm_assert(erased.get_range(&x) == constraints::range<int>{37, 42});
+    fm_assert(erased.get_max_length(&x) == 42);
+    fm_assert(erased.get_group(&x) == "foo"_s);
 }
 
 } // namespace
