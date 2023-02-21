@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cmath>
 #include <limits>
+#include <cstdint>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat::entities::erased_constraints {
