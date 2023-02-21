@@ -12,11 +12,13 @@ namespace floormat {
 
 static void to_json(nlohmann::json& j, const anim_frame& val)
 {
-    if (!val.ground.isZero())
+    constexpr anim_frame def;
+
+    if (val.ground != def.ground)
         j["ground"] = val.ground;
-    if (!val.offset.isZero())
+    if (val.offset != def.offset)
         j["offset"] = val.offset;
-    if (!val.size.isZero())
+    if (val.size != def.size)
         j["size"] = val.size;
 }
 
@@ -33,11 +35,13 @@ static void from_json(const nlohmann::json& j, anim_frame& val)
 
 static void to_json(nlohmann::json& j, const anim_group& val)
 {
+    const anim_group def{};
+
     j["name"] = val.name;
     j["frames"] = val.frames;
-    if (!val.ground.isZero())
+    if (val.ground != def.ground)
         j["ground"] = val.ground;
-    if (!val.offset.isZero())
+    if (val.offset != def.offset)
         j["offset"] = val.offset;
 }
 
@@ -45,6 +49,7 @@ static void from_json(const nlohmann::json& j, anim_group& val)
 {
     val = {};
     val.name = j["name"];
+    fm_soft_assert(!val.name.isEmpty());
     val.frames = j["frames"];
     if (j.contains("ground"))
         val.ground = j["ground"];
@@ -54,16 +59,18 @@ static void from_json(const nlohmann::json& j, anim_group& val)
 
 static void to_json(nlohmann::json& j, const anim_def& val)
 {
+    const anim_def def{};
+
     j["object_name"] = val.object_name;
-    if (!val.anim_name.isEmpty())
+    if (val.anim_name != def.anim_name)
         j["anim_name"] = val.anim_name;
-    if (!val.pixel_size.isZero())
+    if (val.pixel_size != def.pixel_size)
         j["pixel_size"] = val.pixel_size;
-    if (val.nframes > 0)
+    if (val.nframes != def.nframes)
         j["nframes"] = val.nframes;
-    if (val.actionframe > 0)
+    if (val.actionframe != def.actionframe)
         j["actionframe"] = val.actionframe;
-    if (val.fps > 0)
+    if (val.fps != def.fps)
         j["fps"] = val.fps;
     j["groups"] = val.groups;
     j["scale"] = val.scale;
@@ -73,6 +80,7 @@ static void from_json(const nlohmann::json& j, anim_def& val)
 {
     val = {};
     val.object_name = j["object_name"];
+    fm_soft_assert(!val.object_name.isEmpty());
     if (j.contains("anim_name"))
         val.anim_name = j["anim_name"];
     if (j.contains("pixel_size"))
@@ -84,7 +92,9 @@ static void from_json(const nlohmann::json& j, anim_def& val)
     if (j.contains("fps"))
         val.fps = j["fps"];
     val.groups = j["groups"];
+    fm_soft_assert(!val.groups.empty());
     val.scale = j["scale"];
+    fm_soft_assert(val.scale.type != anim_scale_type::invalid);
 }
 
 } // namespace floormat
