@@ -62,10 +62,13 @@ struct erased_accessor final {
     {}
 
     template<typename T, typename FieldType>
-    static constexpr bool check_name_static();
+    [[nodiscard]] static constexpr bool check_name_static();
 
     template<typename T, typename FieldType>
-    constexpr bool check_name() const noexcept;
+    [[nodiscard]] constexpr bool check_name() const noexcept;
+
+    template<typename FieldType>
+    [[nodiscard]] constexpr bool check_field_name() const noexcept;
 
     template<typename Obj>
     constexpr void do_asserts() const;
@@ -107,6 +110,13 @@ constexpr bool erased_accessor::check_name() const noexcept
     constexpr auto obj = name_of<T>, field = name_of<FieldType>;
     return (obj.data() == object_type.data() && field.data() == field_type.data()) ||
            obj == object_type && field == field_type;
+}
+
+template<typename FieldType>
+constexpr bool erased_accessor::check_field_name() const noexcept
+{
+    constexpr auto name = name_of<FieldType>;
+    return field_name == name;
 }
 
 template<typename Obj, typename FieldType>
