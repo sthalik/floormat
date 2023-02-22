@@ -29,26 +29,28 @@ struct range final
 
 template<typename T> constexpr std::pair<T, T> range::convert() const
 {
-    if constexpr (!std::is_floating_point_v<T> && !std::is_integral_v<T>)
-        return {{}, {}};
-
-    using std::size_t;
-    static_assert(sizeof(T) <= sizeof(size_t) || !std::is_integral_v<T>);
-
-    constexpr auto min_ = []<typename V>(V a, V b) { return a < b ? a : b; };
-    constexpr auto max_ = []<typename V>(V a, V b) { return a > b ? a : b; };
+    static_assert(sizeof(T) <= sizeof(std::size_t));
     using limits = std::numeric_limits<T>;
-    constexpr auto lmin = limits::min(), lmax = limits::max();
 
-    switch (type) {
-    case type_float:
-        if constexpr (limits::is_integer)
-            return { T(std::floor(min.f)), T(std::ceil(max.f)) };
+    if (type == type_none)
+        return { limits::min(), limits::max() };
+    else
+    {
+        if constexpr (std::is_integral_v<T> && std::is_signed_v<T>)
+        {
+            fm_assert(type == type_int);
+            return { T(min.i), T(max.i) };
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>)
+        {
+            fm_assert(type == type_uint);
+            return { T(min.u), T(max.u) };
+        }
         else
-            return { T(min.f), T(max.f) };
-    case type_uint:  return { max_(T(min.u), lmin), T(min_(size_t(max.u), size_t(lmax))) };
-    case type_int:   return { max_(T(min.i), lmin), T(min_(size_t(max.i), size_t(lmax))) };
-    default: case type_none:  return { lmin, lmax };
+        {
+            fm_assert(type == type_float);
+            return { T(min.i), T(max.i) };
+        }
     }
 }
 
