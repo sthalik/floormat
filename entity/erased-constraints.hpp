@@ -4,6 +4,13 @@
 
 namespace floormat::entities::erased_constraints {
 
+template<typename T> struct is_magnum_vector_ final : std::false_type {};
+template<std::size_t N, typename T> struct is_magnum_vector_<Math::Vector<N, T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector2<T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector3<T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector4<T>> : std::true_type {};
+template<typename T> constexpr inline bool is_magnum_vector = is_magnum_vector_<T>::value;
+
 struct range final
 {
     using U = std::size_t;

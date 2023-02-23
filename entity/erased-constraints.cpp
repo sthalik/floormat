@@ -13,22 +13,12 @@ static_assert(sizeof(std::size_t) == sizeof(std::ptrdiff_t));
 
 namespace floormat::entities::erased_constraints {
 
-namespace {
-template<typename T> struct is_magnum_vector_ final : std::false_type {};
-template<std::size_t N, typename T> struct is_magnum_vector_<Math::Vector<N, T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector2<T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector3<T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector4<T>> : std::true_type {};
-template<typename T> constexpr bool is_magnum_vector = is_magnum_vector_<T>::value;
-} // namespace
-
 template<typename T> std::pair<T, T> range::convert() const
 {
-    static_assert(sizeof(T)*2 <= sizeof(*this));
-    using limits = std::numeric_limits<T>;
+    static_assert(sizeof(T) <= sizeof(min));
 
     if (type == type_none)
-        return { limits::min(), limits::max() };
+        return { std::numeric_limits<T>::min(), std::numeric_limits<T>::max() };
     else
     {
         if constexpr (std::is_integral_v<T>)

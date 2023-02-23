@@ -15,6 +15,8 @@ namespace floormat {
 
 namespace {
 
+using entities::erased_constraints::is_magnum_vector;
+
 String label_left(StringView label)
 {
     float width = ImGui::CalcItemWidth(), x = ImGui::GetCursorPosX();
@@ -24,13 +26,6 @@ String label_left(StringView label)
     ImGui::SetNextItemWidth(-1);
     return ""_s.join(StringIterable({ "##"_s, label }));
 }
-
-template<typename T> struct is_magnum_vector_ final : std::false_type {};
-template<std::size_t N, typename T> struct is_magnum_vector_<Math::Vector<N, T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector2<T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector3<T>> : std::true_type {};
-template<typename T> struct is_magnum_vector_<Math::Vector4<T>> : std::true_type {};
-template<typename T> constexpr bool is_magnum_vector = is_magnum_vector_<T>::value;
 
 template<typename T> struct IGDT_;
 template<> struct IGDT_<std::uint8_t> : std::integral_constant<int, ImGuiDataType_U8> {};
@@ -44,6 +39,10 @@ template<typename T> constexpr auto IGDT = IGDT_<T>::value;
 
 using namespace imgui;
 using namespace entities;
+
+template<typename T> requires std::is_integral_v<T> constexpr bool eqv(T a, T b) { return a == b; }
+constexpr bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
+template<typename T, std::size_t N> constexpr bool eqv(const Math::Vector<N, T>& a, const Math::Vector<N, T>& b) { return a == b; }
 
 template<typename T> void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr)
 {
@@ -99,7 +98,7 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
 
     ImGui::NewLine();
 
-    if (ret && !should_disable && value != orig)
+    if (ret && !should_disable && !eqv(value, orig))
         if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
             accessor.write_fun(datum, accessor.writer, &value);
 }
@@ -111,21 +110,21 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
         do_inspect_field<type>(datum, accessor, (repr));                                                                \
     }
 
-#define MAKE_SPEC_REPR(type, repr)                                                                                      \
+#define MAKE_SPEC2(type, repr)                                                                                          \
     template<> void inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor) {  \
         do_inspect_field<type>(datum, accessor, (repr));                                                                \
     }
 
-#define MAKE_SPEC_REPRS(type)                   \
-    MAKE_SPEC_REPR(type, field_repr::input)     \
-    MAKE_SPEC_REPR(type, field_repr::slider)    \
-    MAKE_SPEC_REPR(type, field_repr::drag)      \
+#define MAKE_SPEC_REPRS(type)                                                                                           \
+    MAKE_SPEC2(type, field_repr::input)                                                                                 \
+    MAKE_SPEC2(type, field_repr::slider)                                                                                \
+    MAKE_SPEC2(type, field_repr::drag)                                                                                  \
     MAKE_SPEC(type, field_repr::input)
 
-#define MAKE_SPEC_REPRS2(type)              \
-    MAKE_SPEC_REPRS(Math::Vector2<type>)    \
-    MAKE_SPEC_REPRS(Math::Vector3<type>)    \
-    MAKE_SPEC_REPRS(Math::Vector4<type>)    \
+#define MAKE_SPEC_REPRS2(type)                                                                                          \
+    MAKE_SPEC_REPRS(Math::Vector2<type>)                                                                                \
+    MAKE_SPEC_REPRS(Math::Vector3<type>)                                                                                \
+    MAKE_SPEC_REPRS(Math::Vector4<type>)                                                                                \
     MAKE_SPEC_REPRS(type)
 
 MAKE_SPEC_REPRS2(std::uint8_t)
@@ -134,5 +133,6 @@ MAKE_SPEC_REPRS2(std::uint16_t)
 MAKE_SPEC_REPRS2(std::int16_t)
 MAKE_SPEC_REPRS2(std::uint32_t)
 MAKE_SPEC_REPRS2(std::int32_t)
+MAKE_SPEC_REPRS2(float)
 
 } // namespace floormat
