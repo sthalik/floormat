@@ -1,6 +1,7 @@
 #pragma once
 #include "util.hpp"
 #include "compat/function2.hpp"
+#include "compat/assert.hpp"
 #include <concepts>
 #include <type_traits>
 

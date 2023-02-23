@@ -27,8 +27,16 @@ template<typename T> std::pair<T, T> range::convert() const
             }
             else
             {
-                fm_assert(type == type_uint);
-                return { T(min.u), T(max.u) };
+                if (type == type_int)
+                {
+                    fm_assert(min.i >= 0 && max.i >= 0);
+                    return { T(min.i), T(max.i) };
+                }
+                else
+                {
+                    fm_assert(type == type_uint);
+                    return { T(min.u), T(max.u) };
+                }
             }
         }
         else

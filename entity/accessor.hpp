@@ -4,6 +4,7 @@
 #include "name-of.hpp"
 #include <type_traits>
 #include <utility>
+#include <vector>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat::erased_constraints {
@@ -81,8 +82,8 @@ struct erased_accessor final {
     template<typename Obj, typename FieldType> void read(const Obj& x, FieldType& value) const noexcept;
     template<typename Obj, typename FieldType> void write(Obj& x, move_qualified<FieldType> value) const noexcept;
 
-    field_status is_enabled(const void* x) const noexcept;
-    constexpr bool can_write() const noexcept { return writer != nullptr; }
+    inline field_status is_enabled(const void* x) const noexcept;
+    inline bool can_write() const noexcept { return writer != nullptr; }
     inline erased_constraints::range get_range(const void* x) const noexcept;
     inline erased_constraints::max_length get_max_length(const void* x) const noexcept;
     inline erased_constraints::group get_group(const void* x) const noexcept;
@@ -174,5 +175,7 @@ field_status erased_accessor::is_enabled(const void* x) const noexcept { return 
 erased_constraints::range erased_accessor::get_range(const void* x) const noexcept { return range_fun(x,range); }
 erased_constraints::max_length erased_accessor::get_max_length(const void* x) const noexcept { return length_fun(x,length); }
 erased_constraints::group erased_accessor::get_group(const void* x) const noexcept { return group_fun(x, group); }
+
+template<typename T> void get_erased_accessors(std::vector<erased_accessor>& ret);
 
 } // namespace floormat::entities
