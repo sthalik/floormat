@@ -41,7 +41,7 @@ using namespace imgui;
 using namespace entities;
 
 template<typename T> requires std::is_integral_v<T> constexpr bool eqv(T a, T b) { return a == b; }
-constexpr bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
+inline bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
 template<typename T, std::size_t N> constexpr bool eqv(const Math::Vector<N, T>& a, const Math::Vector<N, T>& b) { return a == b; }
 
 template<typename T> void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr)
