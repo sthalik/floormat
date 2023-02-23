@@ -156,7 +156,8 @@ void app::draw_inspector()
         auto [c, t] = w[*cursor.tile];
         if (auto s = t.scenery())
         {
-            ImGui::SetNextWindowSize({400, 0});
+            auto dpi = M->dpi_scale();
+            ImGui::SetNextWindowSize({300*dpi[0], 0});
             auto b = begin_window("inspector"_s);
             entities::inspect_type(s);
         }

@@ -71,9 +71,10 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;
+        T step = 1, *step_ = !std::is_floating_point_v<T> ? &step : nullptr;
         switch (repr)
         {
-        case field_repr::input:  ret = ImGui::InputScalar(label.data(), igdt, &value); break;
+        case field_repr::input:  ret = ImGui::InputScalar(label.data(), igdt, &value, &step_); break;
         case field_repr::slider: ret = ImGui::SliderScalar(label.data(), igdt, &value, &min, &max); break;
         case field_repr::drag:   ret = ImGui::DragScalar(label.data(), igdt, &value, 1, &min, &max); break;
         }
@@ -81,12 +82,14 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
     }
     else
     {
+        using U = typename T::Type;
         auto [min, max] = accessor.get_range(datum).convert<T>();
-        constexpr auto igdt = IGDT<typename T::Type>;
+        constexpr auto igdt = IGDT<U>;
+        T step = T(U(1)), *step_ = !std::is_floating_point_v<U> ? &step : nullptr;
         switch (repr)
         {
         case field_repr::input:
-            ret = ImGui::InputScalarN(label.data(), igdt, &value, T::Size);
+            ret = ImGui::InputScalarN(label.data(), igdt, &value, T::Size, &step_);
             break;
         case field_repr::drag:
             fm_warn_once("can't use imgui input drag mode for vector type");
