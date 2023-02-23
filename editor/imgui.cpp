@@ -2,6 +2,9 @@
 #include "floormat/main.hpp"
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
+#include "world.hpp"
+#include "scenery.hpp"
+#include "inspect.hpp"
 #include <Magnum/Math/Color.h>
 
 namespace floormat {
@@ -109,6 +112,7 @@ void app::draw_ui()
         draw_editor_pane(main_menu_height);
     draw_fps();
     draw_tile_under_cursor();
+    draw_inspector();
     ImGui::EndFrame();
 }
 
@@ -142,6 +146,21 @@ void app::draw_tile_under_cursor()
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {window_size[0]*.5f - size.x/2, 3*dpi[1]}, (unsigned)-1, buf);
+}
+
+void app::draw_inspector()
+{
+    auto& w = M->world();
+    if (cursor.tile)
+    {
+        auto [c, t] = w[*cursor.tile];
+        if (auto s = t.scenery())
+        {
+            ImGui::SetNextWindowSize({400, 0});
+            auto b = begin_window("inspector"_s);
+            entities::inspect_type(s);
+        }
+    }
 }
 
 void app::draw_editor_pane(float main_menu_height)

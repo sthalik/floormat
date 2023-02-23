@@ -11,11 +11,11 @@
 #include <Magnum/Math/Vector4.h>
 #include <algorithm>
 
-namespace floormat {
+namespace floormat::entities {
 
 namespace {
 
-using entities::erased_constraints::is_magnum_vector;
+using erased_constraints::is_magnum_vector;
 
 String label_left(StringView label)
 {
@@ -46,7 +46,8 @@ template<typename T, std::size_t N> constexpr bool eqv(const Math::Vector<N, T>&
 
 template<typename T> void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr)
 {
-    fm_assert(accessor.check_field_name<T>());
+    fm_assert(accessor.check_field_type<T>());
+
     bool should_disable;
 
     switch (accessor.is_enabled(datum))
@@ -64,7 +65,9 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;
 
-    if constexpr (!is_magnum_vector<T>)
+    if constexpr(std::is_same_v<T, bool>)
+        ret = ImGui::Checkbox(label.data(), &value);
+    else if constexpr (!is_magnum_vector<T>)
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;
@@ -105,13 +108,15 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
 
 } // namespace
 
-#define MAKE_SPEC(type, repr) \
-    template<> void inspect_field<type>(void* datum, const erased_accessor& accessor) {                                 \
+#define MAKE_SPEC(type, repr)                                                                                           \
+    template<>                                                                                                          \
+    void inspect_field<type>(void* datum, const erased_accessor& accessor) {                                  \
         do_inspect_field<type>(datum, accessor, (repr));                                                                \
     }
 
 #define MAKE_SPEC2(type, repr)                                                                                          \
-    template<> void inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor) {  \
+    template<>                                                                                                          \
+    void inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor) {   \
         do_inspect_field<type>(datum, accessor, (repr));                                                                \
     }
 
@@ -134,5 +139,6 @@ MAKE_SPEC_REPRS2(std::int16_t)
 MAKE_SPEC_REPRS2(std::uint32_t)
 MAKE_SPEC_REPRS2(std::int32_t)
 MAKE_SPEC_REPRS2(float)
+MAKE_SPEC(bool, field_repr::input)
 
-} // namespace floormat
+} // namespace floormat::entities

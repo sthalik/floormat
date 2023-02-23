@@ -1,8 +1,7 @@
 #pragma once
-//#include "entity/accessor.hpp"
-namespace floormat::entities { struct erased_accessor; }
+namespace floormat::entities {
 
-namespace floormat {
+struct erased_accessor;
 
 template<typename T, typename Enum, Enum As>
 struct field_repr_ final {
@@ -26,5 +25,6 @@ template<typename T> using field_repr_slider = field_repr_<T, field_repr, field_
 template<typename T> using field_repr_drag = field_repr_<T, field_repr, field_repr::drag>;
 
 template<typename T> void inspect_field(void* datum, const entities::erased_accessor& accessor);
+template<typename T> void inspect_type(T& x);
 
-} // namespace floormat
+} // namespace floormat::entities

@@ -94,6 +94,7 @@ private:
 
     void draw_collision_boxes();
     void draw_editor_pane(float main_menu_height);
+    void draw_inspector();
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
     void set_cursor_from_imgui();

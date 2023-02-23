@@ -3,6 +3,8 @@
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
+#include "entity/types.hpp"
+#include "inspect.hpp"
 
 namespace floormat::entities {
 
@@ -31,5 +33,14 @@ template<> struct entity_accessors<scenery_ref> {
         return tuple;
     }
 };
+
+template<>
+void inspect_type<scenery_ref>(scenery_ref& x)
+{
+    visit_tuple([&](const auto& field) {
+        using type = typename std::decay_t<decltype(field)>::FieldType;
+        inspect_field<type>(&x, field.erased());
+    }, entity_metadata<scenery_ref>::accessors);
+}
 
 } // namespace floormat::entities

@@ -38,6 +38,7 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 #add_definitions(-D_ITERATOR_DEBUG_LEVEL=0)
 #add_compile_options(-Qvec-report:2)
 #add_compile_options(-d2cgsummary -Bt)
+add_compile_options(-QIntel-jcc-erratum)
 add_definitions(-D_HAS_EXCEPTIONS=0)
 
 if(DEFINED CMAKE_TOOLCHAIN_FILE)
