@@ -80,7 +80,7 @@ template<typename T> std::pair<T, T> range::convert() const
                     {
                         fm_assert(type == type_uint4);
                         for (std::size_t i = 0; i < Size; i++)
-                            a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
+                            a[i] = U(min.u4[i]), b[i] = U(max.u4[i]);
                     }
                 }
             }
