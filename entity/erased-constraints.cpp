@@ -3,15 +3,28 @@
 #include <cstdint>
 #include <cmath>
 #include <limits>
+#include <Magnum/Magnum.h>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
+#include <Magnum/Math/Vector4.h>
 
 static_assert(sizeof(std::size_t) == sizeof(std::uintptr_t));
 static_assert(sizeof(std::size_t) == sizeof(std::ptrdiff_t));
 
 namespace floormat::entities::erased_constraints {
 
+namespace {
+template<typename T> struct is_magnum_vector_ final : std::false_type {};
+template<std::size_t N, typename T> struct is_magnum_vector_<Math::Vector<N, T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector2<T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector3<T>> : std::true_type {};
+template<typename T> struct is_magnum_vector_<Math::Vector4<T>> : std::true_type {};
+template<typename T> constexpr bool is_magnum_vector = is_magnum_vector_<T>::value;
+} // namespace
+
 template<typename T> std::pair<T, T> range::convert() const
 {
-    static_assert(sizeof(T) <= sizeof(std::size_t));
+    static_assert(sizeof(T)*2 <= sizeof(*this));
     using limits = std::numeric_limits<T>;
 
     if (type == type_none)
@@ -39,6 +52,47 @@ template<typename T> std::pair<T, T> range::convert() const
                 }
             }
         }
+        else if constexpr(is_magnum_vector<T>)
+        {
+            using U = typename T::Type;
+            constexpr auto Size = T::Size;
+            static_assert(Size >= 2 && Size <= 4);
+            T a, b;
+            if constexpr(std::is_integral_v<U>)
+            {
+                if constexpr(std::is_signed_v<U>)
+                {
+                    fm_assert(type == type_int4);
+                    for (std::size_t i = 0; i < Size; i++)
+                        a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
+                }
+                else
+                {
+                    if (type == type_int4)
+                    {
+                        for (std::size_t i = 0; i < Size; i++)
+                        {
+                            fm_assert(min.i4[i] >= 0 && max.i4[i] >= 0);
+                            a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
+                        }
+                    }
+                    else
+                    {
+                        fm_assert(type == type_uint4);
+                        for (std::size_t i = 0; i < Size; i++)
+                            a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
+                    }
+                }
+            }
+            else
+            {
+                static_assert(std::is_floating_point_v<U>);
+                fm_assert(type == type_float4);
+                for (std::size_t i = 0; i < Size; i++)
+                    a[i] = U(min.f4[i]), b[i] = U(max.f4[i]);
+            }
+            return { a, b };
+        }
         else
         {
             static_assert(std::is_floating_point_v<T>);
@@ -48,16 +102,37 @@ template<typename T> std::pair<T, T> range::convert() const
     }
 }
 
-template std::pair<std::uint8_t, std::uint8_t> range::convert() const;
-template std::pair<std::uint16_t, std::uint16_t> range::convert() const;
-template std::pair<std::uint32_t, std::uint32_t> range::convert() const;
-template std::pair<std::uint64_t, std::uint64_t> range::convert() const;
-template std::pair<std::int8_t, std::int8_t> range::convert() const;
-template std::pair<std::int16_t, std::int16_t> range::convert() const;
-template std::pair<std::int32_t, std::int32_t> range::convert() const;
-template std::pair<std::int64_t, std::int64_t> range::convert() const;
-template std::pair<float, float> range::convert() const;
-template std::pair<double, double> range::convert() const;
+template<typename T> using pair2 = std::pair<T, T>;
+
+template pair2<std::uint8_t> range::convert() const;
+template pair2<std::uint16_t> range::convert() const;
+template pair2<std::uint32_t> range::convert() const;
+template pair2<std::uint64_t> range::convert() const;
+template pair2<std::int8_t> range::convert() const;
+template pair2<std::int16_t> range::convert() const;
+template pair2<std::int32_t> range::convert() const;
+template pair2<float> range::convert() const;
+template pair2<Vector2ub> range::convert() const;
+template pair2<Vector2us> range::convert() const;
+template pair2<Vector2ui> range::convert() const;
+template pair2<Vector2b> range::convert() const;
+template pair2<Vector2s> range::convert() const;
+template pair2<Vector2i> range::convert() const;
+template pair2<Vector2> range::convert() const;
+template pair2<Vector3ub> range::convert() const;
+template pair2<Vector3us> range::convert() const;
+template pair2<Vector3ui> range::convert() const;
+template pair2<Vector3b> range::convert() const;
+template pair2<Vector3s> range::convert() const;
+template pair2<Vector3i> range::convert() const;
+template pair2<Vector3> range::convert() const;
+template pair2<Vector4ub> range::convert() const;
+template pair2<Vector4us> range::convert() const;
+template pair2<Vector4ui> range::convert() const;
+template pair2<Vector4b> range::convert() const;
+template pair2<Vector4s> range::convert() const;
+template pair2<Vector4i> range::convert() const;
+template pair2<Vector4> range::convert() const;
 
 bool operator==(const range& a, const range& b)
 {

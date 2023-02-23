@@ -18,6 +18,8 @@ template<typename T> struct range
     constexpr bool operator==(const range&) const noexcept = default;
 };
 
+template<typename T> range(T min, T max) -> range<T>;
+
 template<typename T>
 constexpr range<T>::operator erased_constraints::range() const noexcept
 {

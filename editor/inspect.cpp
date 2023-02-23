@@ -79,8 +79,7 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
     }
     else
     {
-        auto [min_, max_] = accessor.get_range(datum).convert<typename T::Type>();
-        Math::Vector<T::Size, typename T::Type> min(min_), max(max_);
+        auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<typename T::Type>;
         switch (repr)
         {
@@ -94,6 +93,8 @@ template<typename T> void do_inspect_field(void* datum, const erased_accessor& a
             ret = ImGui::SliderScalarN(label.data(), igdt, &value, T::Size, &min, &max);
             break;
         }
+        for (std::size_t i = 0; i < T::Size; i++)
+            value[i] = std::clamp(value[i], min[i], max[i]);
     }
 
     ImGui::NewLine();

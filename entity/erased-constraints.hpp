@@ -1,5 +1,6 @@
 #pragma once
 #include <Corrade/Containers/StringView.h>
+#include <Magnum/Math/Vector4.h>
 
 namespace floormat::entities::erased_constraints {
 
@@ -7,11 +8,18 @@ struct range final
 {
     using U = std::size_t;
     using I = std::make_signed_t<U>;
-    enum type_ : unsigned char { type_none, type_float, type_uint, type_int, };
+    enum type_ : unsigned char {
+        type_none,
+        type_float, type_uint, type_int,
+        type_float4, type_uint4, type_int4,
+    };
     union element {
         float f;
         U u;
         I i;
+        Math::Vector4<float> f4;
+        Math::Vector4<U> u4;
+        Math::Vector4<I> i4;
     };
 
     element min {.i = 0}, max {.i = 0};
