@@ -164,10 +164,15 @@ void app::update(float dt)
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
 
-    if (auto* s = find_clickable_scenery(cursor.pixel); s && s->item.can_activate(s->atlas))
-        M->set_cursor(std::uint32_t(Cursor::Hand));
-    else
-        set_cursor_from_imgui();
+    if (!cursor.in_imgui)
+    {
+        auto* s = find_clickable_scenery(cursor.pixel);
+
+        if (s && s->item.can_activate(s->atlas))
+            M->set_cursor(std::uint32_t(Cursor::Hand));
+        else
+            set_cursor_from_imgui();
+    }
 }
 
 } // namespace floormat
