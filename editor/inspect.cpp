@@ -103,7 +103,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         switch (repr)
         {
         default: fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr); break;
-        case field_repr::input:  ret = ImGui::InputScalar(label.data(), igdt, &value, &step_); break;
+        case field_repr::input:  ret = ImGui::InputScalar(label.data(), igdt, &value, step_); break;
         case field_repr::slider: ret = ImGui::SliderScalar(label.data(), igdt, &value, &min, &max); break;
         case field_repr::drag:   ret = ImGui::DragScalar(label.data(), igdt, &value, 1, &min, &max); break;
         case field_repr::cbx: {
@@ -117,15 +117,15 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
                         preview = str.data();
                         break;
                     }
-                for (auto b = begin_combo(label.data(), preview);
-                     const auto& [str, x] : list)
-                {
-                    const bool is_selected = x == (std::size_t)old_value;
-                    if (ImGui::Selectable(str.data(), is_selected))
-                        value = T(x);
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
+                if (auto b = begin_combo(label.data(), preview))
+                    for (const auto& [str, x] : list)
+                    {
+                        const bool is_selected = x == (std::size_t)old_value;
+                        if (ImGui::Selectable(str.data(), is_selected))
+                            value = T(x);
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
                 break;
             }
         }
@@ -144,7 +144,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr);
             break;
         case field_repr::input:
-            ret = ImGui::InputScalarN(label.data(), igdt, &value, T::Size, &step_);
+            ret = ImGui::InputScalarN(label.data(), igdt, &value, T::Size, step_);
             break;
         case field_repr::drag:
             fm_warn_once("can't use imgui input drag mode for vector type");

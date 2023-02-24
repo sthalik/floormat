@@ -22,8 +22,8 @@ template<> struct entity_accessors<scenery_ref> {
             },
             entity::type<Vector2b>::field{"offset"_s,
                 [](const scenery_ref& x) { return x.frame.offset; },
-                [](scenery_ref& x, Vector2b value) { x.frame.offset = value; }
-                //constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
+                [](scenery_ref& x, Vector2b value) { x.frame.offset = value; },
+                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
             },
             entity::type<pass_mode>::field{"pass-mode"_s,
                 [](const scenery_ref& x) { return x.frame.passability; },
