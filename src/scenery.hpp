@@ -37,7 +37,8 @@ struct scenery final
 
     std::uint16_t delta = 0;
     frame_t frame = 0;
-    Vector2b offset, bbox_size{iTILE_SIZE2/2}, bbox_offset;
+    Vector2b offset, bbox_offset;
+    Vector2ub bbox_size{usTILE_SIZE2/2};
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
     pass_mode    passability : 2 = pass_mode::shoot_through;

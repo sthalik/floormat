@@ -50,6 +50,14 @@ void chunk::ensure_passability() noexcept
     _bboxes.clear();
     bboxes.reserve(TILE_COUNT*4);
 
+    constexpr auto scenery_tile = [](std::size_t k, pass_mode p, const scenery& sc) constexpr -> collision_bbox {
+      constexpr auto half = sTILE_SIZE2/2;
+      auto center = tile_start(k) + Vector2s(sc.bbox_offset) + half;
+      auto size = Vector2us(sc.bbox_size)*2;
+      auto start = center - Vector2s(sc.bbox_size);
+      return { start[0], start[1], size[0], size[1], p };
+    };
+
     constexpr auto whole_tile = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k);
         return { start[0], start[1], usTILE_SIZE2[0], usTILE_SIZE2[1], p };
@@ -68,9 +76,9 @@ void chunk::ensure_passability() noexcept
     for (std::size_t i = 0; i < TILE_COUNT; i++)
     {
         const auto tile = const_cast<chunk&>(*this)[i];
-        if (auto s = tile.scenery())
-            if (auto p = s.frame.passability; p != pass_mode::pass)
-                bboxes.push_back(whole_tile(i, p));
+        if (auto s = tile.scenery(); s && s.frame.passability != pass_mode::pass)
+            if (auto bb = scenery_tile(i, s.frame.passability, s.frame); bb.width && bb.height)
+                bboxes.push_back(bb);
         if (auto atlas = tile.ground_atlas())
             if (auto p = atlas->pass_mode(pass_mode::pass); p != pass_mode::pass)
                 bboxes.push_back(whole_tile(i, p));
