@@ -18,7 +18,19 @@ template<typename T> std::pair<T, T> range::convert() const
     static_assert(sizeof(T) <= sizeof(min));
 
     if (type == type_none)
-        return { std::numeric_limits<T>::min(), std::numeric_limits<T>::max() };
+    {
+        if constexpr (is_magnum_vector<T>)
+        {
+            using U = typename T::Type;
+            constexpr auto Size = T::Size;
+            T a, b;
+            for (std::size_t i = 0; i < Size; i++)
+                a[i] = std::numeric_limits<U>::min(), b[i] = std::numeric_limits<U>::max();
+            return {a, b};
+        }
+        else
+            return { std::numeric_limits<T>::min(), std::numeric_limits<T>::max() };
+    }
     else
     {
         if constexpr (std::is_integral_v<T>)
