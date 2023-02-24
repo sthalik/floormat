@@ -112,7 +112,8 @@ void app::draw_ui()
         draw_editor_pane(main_menu_height);
     draw_fps();
     draw_tile_under_cursor();
-    draw_inspector();
+    if (_editor.mode() == editor_mode::none)
+        draw_inspector();
     ImGui::EndFrame();
 }
 

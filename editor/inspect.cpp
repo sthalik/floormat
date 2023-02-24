@@ -97,11 +97,12 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;
-        T step(1), *step_ = !std::is_floating_point_v<T> ? &step : nullptr;
+        constexpr T step(!std::is_floating_point_v<T> ? T(1) : T(1e-6f)),
+                    step2(!std::is_floating_point_v<T> ? T(10) : T(1e-3f));
         switch (repr)
         {
         default: fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr); break;
-        case field_repr::input:  ret = ImGui::InputScalar(label, igdt, &value, step_); break;
+        case field_repr::input:  ret = ImGui::InputScalar(label, igdt, &value, &step, &step2); break;
         case field_repr::slider: ret = ImGui::SliderScalar(label, igdt, &value, &min, &max); break;
         case field_repr::drag:   ret = ImGui::DragScalar(label, igdt, &value, 1, &min, &max); break;
         case field_repr::cbx: {
@@ -135,14 +136,15 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         using U = typename T::Type;
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<U>;
-        T step = T(U(1)), *step_ = !std::is_floating_point_v<U> ? &step : nullptr;
+        constexpr T step(!std::is_floating_point_v<U> ? U(1) : U(1e-6f)),
+                    step2(!std::is_floating_point_v<U> ? U(10) : U(1e-3f));
         switch (repr)
         {
         default:
             fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr);
             break;
         case field_repr::input:
-            ret = ImGui::InputScalarN(label, igdt, &value, T::Size, step_);
+            ret = ImGui::InputScalarN(label, igdt, &value, T::Size, &step, &step2);
             break;
         case field_repr::drag:
             fm_warn_once("can't use imgui input drag mode for vector type");

@@ -21,7 +21,7 @@ template<> struct entity_accessors<scenery_ref> {
     {
         using entity = Entity<scenery_ref>;
         using frame_t = scenery::frame_t;
-        constexpr auto tuple = std::make_tuple(
+        return std::tuple{
             entity::type<scenery::frame_t>::field{"frame"_s,
                 [](const scenery_ref& x) { return x.frame.frame; },
                 [](scenery_ref& x, frame_t value) { x.frame.frame = value; },
@@ -39,15 +39,14 @@ template<> struct entity_accessors<scenery_ref> {
             entity::type<bool>::field{"interactive"_s,
                 [](const scenery_ref& x) { return x.frame.interactive; },
                 [](scenery_ref& x, bool value) { x.frame.interactive = value; }
-            }
+            },
 #ifdef TEST_STR
-            , entity::type<String>::field{"string"_s,
+            entity::type<String>::field{"string"_s,
                 [](const scenery_ref&) { return my_str; },
                 [](scenery_ref&, String value) { my_str = std::move(value); }
-            }
+            },
 #endif
-        );
-        return tuple;
+        };
     }
 };
 
