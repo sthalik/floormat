@@ -22,16 +22,16 @@ struct global_coords final {
     static constexpr std::uint32_t _0u = 1 << 15;
     static constexpr auto _0s = std::int32_t(_0u);
 
-    std::uint32_t x = _0u, y = _0u;
+    std::uint32_t x = _0u<<4, y = _0u<<4;
 
     constexpr global_coords() noexcept = default;
     constexpr global_coords(chunk_coords c, local_coords xy) :
-        x{ std::uint32_t(c.x + _0s) << 4 | (xy.x & 0x0f) },
-        y{ std::uint32_t(c.y + _0s) << 4 | (xy.y & 0x0f) }
+        x{ std::uint32_t((c.x + _0s) << 4) | (xy.x & 0x0f) },
+        y{ std::uint32_t((c.y + _0s) << 4) | (xy.y & 0x0f) }
     {}
     constexpr global_coords(std::uint32_t x, std::uint32_t y) noexcept : x{x}, y{y} {}
     constexpr global_coords(std::int32_t x, std::int32_t y) noexcept :
-          x{std::uint32_t(x + _0s)}, y{std::uint32_t(y + _0s)}
+          x{std::uint32_t(x + (_0s<<4))}, y{std::uint32_t(y + (_0s<<4))}
     {}
 
     constexpr local_coords local() const noexcept;
@@ -54,12 +54,12 @@ constexpr local_coords global_coords::local() const noexcept
 
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
-    return { std::int16_t((x - _0u) >> 4), std::int16_t((y - _0u) >> 4), };
+    return { std::int16_t(std::int32_t((x>>4) - _0u)), std::int16_t(std::int32_t((y>>4) - _0u)), };
 }
 
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
-    return { std::int32_t(x - _0s), std::int32_t(y - _0s), };
+    return { std::int32_t(x - (_0s<<4)), std::int32_t(y - (_0s<<4)), };
 }
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept

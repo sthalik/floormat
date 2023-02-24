@@ -52,11 +52,16 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
-    for (const auto win = Vector2d(framebufferSize());
-        auto p : {pixel_to_tile(Vector2d{0, 0}).chunk(),
-                  pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
-                  pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
-                  pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk()})
+    const auto win = Vector2d(framebufferSize());
+
+    chunk_coords list[] = {
+        pixel_to_tile(Vector2d{0, 0}).chunk(),
+        pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
+        pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
+        pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk(),
+    };
+
+    for (auto p : list)
     {
         x0 = std::min(x0, p.x);
         x1 = std::max(x1, p.x);

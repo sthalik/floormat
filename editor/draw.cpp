@@ -135,7 +135,7 @@ clickable_scenery* app::find_clickable_scenery(const Optional<Vector2i>& pixel_)
                 item = &c;
             }
         }
-    if (item && item->item.can_activate(item->atlas))
+    if (item)
         return item;
     else
         return nullptr;

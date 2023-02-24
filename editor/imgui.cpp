@@ -5,6 +5,7 @@
 #include "world.hpp"
 #include "scenery.hpp"
 #include "inspect.hpp"
+#include "main/clickable.hpp"
 #include <Magnum/Math/Color.h>
 
 namespace floormat {
@@ -155,12 +156,9 @@ void app::draw_inspector()
 
     auto b = push_id("inspector");
     auto& w = M->world();
-    if (cursor.tile)
-    {
-        auto [c, t] = w[*cursor.tile];
-        if (auto s = t.scenery())
-            tile = *cursor.tile;
-    }
+    if (cursor.pixel)
+        if (const auto* sc = find_clickable_scenery(cursor.pixel))
+            tile = {InPlaceInit, sc->chunk, sc->pos};
     if (tile)
     {
         auto [c, t] = w[*tile];

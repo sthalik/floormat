@@ -58,7 +58,7 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
         default:
         case editor_mode::none:
             if (button == mouse_button_left)
-                if (auto* s = find_clickable_scenery(*cursor.pixel))
+                if (auto* s = find_clickable_scenery(*cursor.pixel); s && s->item.can_activate(s->atlas))
                     return (void)s->item.activate(s->atlas);
             break;
         case editor_mode::floor:
@@ -164,7 +164,7 @@ void app::update(float dt)
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
 
-    if ([[maybe_unused]] clickable_scenery* s = find_clickable_scenery(cursor.pixel))
+    if (auto* s = find_clickable_scenery(cursor.pixel); s && s->item.can_activate(s->atlas))
         M->set_cursor(std::uint32_t(Cursor::Hand));
     else
         set_cursor_from_imgui();
