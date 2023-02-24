@@ -122,7 +122,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
                     {
                         const bool is_selected = x == (std::size_t)old_value;
                         if (ImGui::Selectable(str.data(), is_selected))
-                            value = T(x);
+                            value = T(x), ret = true;
                         if (is_selected)
                             ImGui::SetItemDefaultFocus();
                     }
@@ -156,8 +156,6 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         for (std::size_t i = 0; i < T::Size; i++)
             value[i] = std::clamp(value[i], min[i], max[i]);
     }
-
-    ImGui::NewLine();
 
     if (ret && !should_disable && !eqv(value, orig))
         if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
