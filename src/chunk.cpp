@@ -1,6 +1,5 @@
 #include "chunk.hpp"
 #include "src/tile-atlas.hpp"
-#include "compat/LooseQuadtree-impl.h"
 
 namespace floormat {
 
@@ -42,11 +41,7 @@ void chunk::mark_modified() noexcept
 }
 
 chunk::chunk() noexcept = default;
-
-chunk::~chunk() noexcept
-{
-    cleanup_lqt();
-}
+chunk::~chunk() noexcept = default;
 
 chunk::chunk(chunk&&) noexcept = default;
 chunk& chunk::operator=(chunk&&) noexcept = default;

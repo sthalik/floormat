@@ -8,20 +8,9 @@
 #include <memory>
 #include <Magnum/GL/Mesh.h>
 
-namespace loose_quadtree {
-template<typename Number, typename Object, typename BBExtractor> class LooseQuadtree;
-template<typename Number, typename Object, typename BBExtractor> struct Query;
-template<typename Number> struct BoundingBox;
-template<typename Number> struct TrivialBBExtractor;
-} // namespace loose_quadtree
-
 namespace floormat {
 
 struct anim_atlas;
-
-template<typename Num, typename BB, typename BBE> struct collision_iterator;
-template<typename Num, typename BB, typename BBE> struct collision_query;
-struct collision_bbox;
 
 enum class collision : std::uint8_t {
     view, shoot, move,
@@ -88,17 +77,6 @@ struct chunk final
 
     void ensure_passability() noexcept;
 
-    using BB = loose_quadtree::BoundingBox<std::int16_t>;
-    using BBE = loose_quadtree::TrivialBBExtractor<std::int16_t>;
-    using lqt = loose_quadtree::LooseQuadtree<float, BB, BBE>;
-    using Query = collision_query<float, BB, BBE>;
-
-    Query query_collisions(Vector2s position, Vector2us size, collision type) const;
-    Query query_collisions(local_coords p, Vector2us size, Vector2s offset, collision type) const;
-    Query query_collisions(Vector4s vec, collision type) const;
-
-    lqt* lqt_from_collision_type(collision type) const noexcept;
-
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
     std::array<std::uint8_t, TILE_COUNT> ground_indexes = {};
@@ -110,17 +88,12 @@ private:
     std::array<std::uint8_t, TILE_COUNT> scenery_indexes = {};
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
-    std::unique_ptr<lqt> _lqt_move, _lqt_shoot, _lqt_view;
-    std::vector<loose_quadtree::BoundingBox<std::int16_t>> _bboxes;
-
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true;
-    static std::unique_ptr<lqt> make_lqt();
-    void cleanup_lqt();
 };
 
 } // namespace floormat

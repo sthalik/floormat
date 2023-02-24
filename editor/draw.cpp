@@ -7,7 +7,6 @@
 #include "draw/anim.hpp"
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
-#include "src/collision.hpp"
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 
@@ -61,6 +60,7 @@ void app::draw_cursor()
 
 void app::draw_collision_boxes()
 {
+#if 0
     const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     const auto sz = M->window_size();
     auto& world = M->world();
@@ -97,6 +97,7 @@ void app::draw_collision_boxes()
             }
         }
     shader.set_tint({1, 1, 1, 1});
+#endif
 }
 
 void app::draw()
