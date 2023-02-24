@@ -172,6 +172,11 @@ void reader_state::read_chunks(reader_t& s)
                             sc.frame.frame = s.read<std::uint8_t>();
                         else
                             sc.frame.frame << s;
+                        if (PROTO >= 5) [[likely]]
+                        {
+                            sc.frame.offset[0] << s;
+                            sc.frame.offset[1] << s;
+                        }
                         if (sc.frame.active)
                         {
                             if (PROTO >= 4) [[likely]]

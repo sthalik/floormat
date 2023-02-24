@@ -359,6 +359,9 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
                     s << (std::uint8_t)scenery.frame;
                 else
                     s << scenery.frame;
+                s << scenery.offset[0];
+                s << scenery.offset[1];
+
                 if (scenery.active)
                     s << scenery.delta;
             }
