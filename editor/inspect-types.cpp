@@ -7,17 +7,18 @@
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/String.h>
 
 //#define TEST_STR
 
-namespace floormat::entities {
-
 #ifdef TEST_STR
-static String my_str;
+#include <Corrade/Containers/String.h>
+static Corrade::Containers::String my_str;
 #endif
 
-template<> struct entity_accessors<scenery_ref> {
+namespace floormat::entities {
+
+template<>
+struct entity_accessors<scenery_ref> {
     static constexpr auto accessors()
     {
         using entity = Entity<scenery_ref>;
