@@ -171,7 +171,7 @@ void erased_accessor::write(Obj& x, move_qualified<FieldType> value) const noexc
     write_unchecked<Obj, FieldType>(x, value);
 }
 
-field_status erased_accessor::is_enabled(const void* x) const noexcept { return predicate_fun(&x, predicate); }
+field_status erased_accessor::is_enabled(const void* x) const noexcept { return predicate_fun(x, predicate); }
 erased_constraints::range erased_accessor::get_range(const void* x) const noexcept { return range_fun(x,range); }
 erased_constraints::max_length erased_accessor::get_max_length(const void* x) const noexcept { return length_fun(x,length); }
 erased_constraints::group erased_accessor::get_group(const void* x) const noexcept { return group_fun(x, group); }
