@@ -150,15 +150,26 @@ void app::draw_tile_under_cursor()
 
 void app::draw_inspector()
 {
+    static Optional<global_coords> tile;
+
+    auto b = push_id("inspector");
     auto& w = M->world();
     if (cursor.tile)
     {
         auto [c, t] = w[*cursor.tile];
         if (auto s = t.scenery())
+            tile = *cursor.tile;
+    }
+    if (tile)
+    {
+        auto [c, t] = w[*tile];
+        if (auto s = t.scenery())
         {
+            char buf[32]; std::snprintf(buf, sizeof buf, "i_0x%p", (void*)&s);
+            auto b = push_id(buf);
             auto dpi = M->dpi_scale();
             ImGui::SetNextWindowSize({300*dpi[0], 0});
-            auto b = begin_window("inspector"_s);
+            auto b2 = begin_window("inspector"_s);
             entities::inspect_type(s);
         }
     }

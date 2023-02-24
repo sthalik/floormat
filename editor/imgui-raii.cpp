@@ -73,6 +73,14 @@ raii_wrapper begin_disabled(bool is_disabled)
     return {&ImGui::EndDisabled};
 }
 
+raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags flags)
+{
+    if (ImGui::BeginCombo(name.data(), preview.data(), flags))
+        return {&ImGui::EndCombo};
+    else
+        return {};
+}
+
 raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
 {
     if (ImGui::BeginListBox(name.data(), size))

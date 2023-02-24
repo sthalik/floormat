@@ -30,6 +30,7 @@ private:
 [[nodiscard]] raii_wrapper begin_table(const char* id, int ncols, ImGuiTableFlags flags = 0, const ImVec2& outer_size = {}, float inner_width = 0);
 [[nodiscard]] raii_wrapper tree_node(StringView name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
 [[nodiscard]] raii_wrapper begin_disabled(bool is_disabled = true);
+[[nodiscard]] raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags flags = 0);
 
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value);
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, float value);
