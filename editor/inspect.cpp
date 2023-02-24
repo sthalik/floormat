@@ -18,14 +18,15 @@ namespace {
 
 using erased_constraints::is_magnum_vector;
 
-String label_left(StringView label)
+const char* label_left(StringView label, char* buf, std::size_t len)
 {
+    std::snprintf(buf, len, "##%s", label.data());
     float width = ImGui::CalcItemWidth(), x = ImGui::GetCursorPosX();
     ImGui::Text("%s", label.data());
     ImGui::SameLine();
     ImGui::SetCursorPosX(x + width*.5f + ImGui::GetStyle().ItemInnerSpacing.x);
     ImGui::SetNextItemWidth(-1);
-    return ""_s.join(StringIterable({ "##"_s, label }));
+    return buf;
 }
 
 template<typename T> struct IGDT_;
@@ -71,6 +72,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     fm_assert(!list.isEmpty() == (repr == field_repr::cbx));
 
     bool should_disable;
+    char buf[128];
 
     switch (accessor.is_enabled(datum))
     {
@@ -82,19 +84,19 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
     bool ret = false;
-    const auto label = label_left(accessor.field_name);
+    const char* const label = label_left(accessor.field_name, buf, sizeof buf);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;
 
     if constexpr(std::is_same_v<T, String>)
     {
-        ret = ImGui::InputText(label.data(), value.begin(), value.size(), ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
+        ret = ImGui::InputText(label, value.begin(), value.size(), ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
         if (auto max_len = accessor.get_max_length(datum); value.size() > max_len)
             value = value.prefix(max_len);
     }
     else if constexpr(std::is_same_v<T, bool>)
-        ret = ImGui::Checkbox(label.data(), &value);
+        ret = ImGui::Checkbox(label, &value);
     else if constexpr (!is_magnum_vector<T>)
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
@@ -103,9 +105,9 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         switch (repr)
         {
         default: fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr); break;
-        case field_repr::input:  ret = ImGui::InputScalar(label.data(), igdt, &value, step_); break;
-        case field_repr::slider: ret = ImGui::SliderScalar(label.data(), igdt, &value, &min, &max); break;
-        case field_repr::drag:   ret = ImGui::DragScalar(label.data(), igdt, &value, 1, &min, &max); break;
+        case field_repr::input:  ret = ImGui::InputScalar(label, igdt, &value, step_); break;
+        case field_repr::slider: ret = ImGui::SliderScalar(label, igdt, &value, &min, &max); break;
+        case field_repr::drag:   ret = ImGui::DragScalar(label, igdt, &value, 1, &min, &max); break;
         case field_repr::cbx: {
             if constexpr(std::is_integral_v<T>)
             {
@@ -117,7 +119,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
                         preview = str.data();
                         break;
                     }
-                if (auto b = begin_combo(label.data(), preview))
+                if (auto b = begin_combo(label, preview))
                     for (const auto& [str, x] : list)
                     {
                         const bool is_selected = x == (std::size_t)old_value;
@@ -144,13 +146,13 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr);
             break;
         case field_repr::input:
-            ret = ImGui::InputScalarN(label.data(), igdt, &value, T::Size, step_);
+            ret = ImGui::InputScalarN(label, igdt, &value, T::Size, step_);
             break;
         case field_repr::drag:
             fm_warn_once("can't use imgui input drag mode for vector type");
             [[fallthrough]];
         case field_repr::slider:
-            ret = ImGui::SliderScalarN(label.data(), igdt, &value, T::Size, &min, &max);
+            ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
         for (std::size_t i = 0; i < T::Size; i++)
