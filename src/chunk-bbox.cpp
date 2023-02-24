@@ -117,7 +117,7 @@ void chunk::ensure_passability() noexcept
 auto chunk::query_collisions(Vector4s vec, collision type) const -> Query
 {
     const_cast<chunk&>(*this).ensure_passability();
-    loose_quadtree::BoundingBox<std::int16_t> bbox { vec[0], vec[1], vec[2], vec[3] };
+    loose_quadtree::BoundingBox<float> bbox ( vec[0], vec[1], vec[2], vec[3] );
     return { lqt_from_collision_type(type)->QueryIntersectsRegion(bbox) };
 }
 
@@ -126,7 +126,7 @@ auto chunk::query_collisions(Vector2s position, Vector2us size, collision type) 
     const_cast<chunk&>(*this).ensure_passability();
     constexpr auto half = sTILE_SIZE2/2;
     const auto start = position - half;
-    loose_quadtree::BoundingBox<std::int16_t> bbox {start[0], start[1], (Short)size[0], (Short)size[1] };
+    loose_quadtree::BoundingBox<float> bbox ( start[0], start[1], (Short)size[0], (Short)size[1] );
     return { lqt_from_collision_type(type)->QueryIntersectsRegion(bbox) };
 }
 
@@ -135,7 +135,7 @@ auto chunk::query_collisions(local_coords p, Vector2us size, Vector2s offset, co
     const_cast<chunk&>(*this).ensure_passability();
     const auto pos = Vector2s(p.x, p.y) * sTILE_SIZE2 + offset;
     const auto start = pos - Vector2s(size/2);
-    loose_quadtree::BoundingBox<std::int16_t> bbox { start[0], start[1], (Short)size[0], (Short)size[1] };
+    loose_quadtree::BoundingBox<float> bbox ( start[0], start[1], (Short)size[0], (Short)size[1] );
     return { lqt_from_collision_type(type)->QueryIntersectsRegion(bbox) };
 }
 

@@ -1,14 +1,13 @@
 #pragma once
 #include "compat/LooseQuadtree-impl.h"
 #include "src/pass-mode.hpp"
-#include <cinttypes>
 
 namespace floormat {
 
 template<typename Num, typename BB, typename BBE>
 struct collision_iterator final
 {
-    using Query = typename loose_quadtree::LooseQuadtree<std::int16_t, BB, BBE>::Query;
+    using Query = typename loose_quadtree::LooseQuadtree<Num, BB, BBE>::Query;
 
     explicit collision_iterator() noexcept : q{nullptr} {}
     explicit collision_iterator(Query* q) noexcept : q{q} {}

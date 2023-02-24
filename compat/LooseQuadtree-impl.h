@@ -1265,9 +1265,10 @@ void LooseQuadtree<NumberT, ObjectT, BoundingBoxExtractorT>::Query::Next() {
 }
 
 
-template <typename NumberT>
+template <typename Src>
 struct TrivialBBExtractor {
-    static void ExtractBoundingBox(const BoundingBox<NumberT> *object, BoundingBox<NumberT> *bbox)
+    template<typename Dst = Src>
+    static void ExtractBoundingBox(const BoundingBox<Src> *object, BoundingBox<Dst> *bbox)
     {
         bbox->left = object->left;
         bbox->top = object->top;

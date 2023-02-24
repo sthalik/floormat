@@ -699,7 +699,7 @@ void RunTests(const char* type_str)
     TestContainer<NumberT>();
     TestQueries<NumberT>();
 #ifndef FM_NO_QUADTREE_BENCHMARK
-    StressTest<NumberT>();
+    StressTest<Src>();
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> time = end - start;
     printf(": %.1f ms\n", time.count());

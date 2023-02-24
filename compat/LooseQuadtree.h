@@ -22,7 +22,7 @@
  * - This library is not thread-safe but multiple queries can be run at once
  *
  * Generic parameters are:
- * - NumberT generic number type allows its floating- and fixed-point usage
+ * - Src generic number type allows its floating- and fixed-point usage
  * - ObjectT* only pointer is stored, no object copying is done, not an inclusive container
  * - BoundingBoxExtractorT allows using your own bounding box type/source, needs
  *     BoundingBoxExtractor::ExtractBoundingBox(ObjectT* in, BoundingBox<Number>* out) implemented

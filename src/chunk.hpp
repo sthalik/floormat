@@ -90,8 +90,8 @@ struct chunk final
 
     using BB = loose_quadtree::BoundingBox<std::int16_t>;
     using BBE = loose_quadtree::TrivialBBExtractor<std::int16_t>;
-    using lqt = loose_quadtree::LooseQuadtree<std::int16_t, BB, BBE>;
-    using Query = collision_query<std::int16_t, BB, BBE>;
+    using lqt = loose_quadtree::LooseQuadtree<float, BB, BBE>;
+    using Query = collision_query<float, BB, BBE>;
 
     Query query_collisions(Vector2s position, Vector2us size, collision type) const;
     Query query_collisions(local_coords p, Vector2us size, Vector2s offset, collision type) const;
