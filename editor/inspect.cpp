@@ -99,7 +99,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;
-        T step = 1, *step_ = !std::is_floating_point_v<T> ? &step : nullptr;
+        T step(1), *step_ = !std::is_floating_point_v<T> ? &step : nullptr;
         switch (repr)
         {
         default: fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr); break;

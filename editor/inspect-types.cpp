@@ -18,7 +18,7 @@ template<> struct entity_accessors<scenery_ref> {
             entity::type<scenery::frame_t>::field{"frame"_s,
                 [](const scenery_ref& x) { return x.frame.frame; },
                 [](scenery_ref& x, frame_t value) { x.frame.frame = value; },
-                [](const scenery_ref& x) { return constraints::range<frame_t>{0, !x.atlas ? frame_t(0) : frame_t(x.atlas->info().nframes)}; }
+                [](const scenery_ref& x) { return constraints::range<frame_t>{0, !x.atlas ? frame_t(0) : frame_t(x.atlas->info().nframes-1)}; }
             },
             entity::type<Vector2b>::field{"offset"_s,
                 [](const scenery_ref& x) { return x.frame.offset; },
