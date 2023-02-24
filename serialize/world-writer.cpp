@@ -348,10 +348,11 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         if (img_s != null_atlas)
         {
             atlasid id = img_s;
+            fm_assert(!(id & ~((1 << 16-3-1)-1)));
             id |= meta_long_scenery_bit * sc_exact;
             id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
             s << id;
-            if (!sc_exact)
+            if (!sc_exact || !scenery.offset.isZero())
             {
                 fm_assert(scenery.active || scenery.delta == 0.0f);
                 write_scenery_flags(s, scenery);
