@@ -27,14 +27,14 @@ template<typename T> using field_repr_slider = field_repr_<T, field_repr, field_
 template<typename T> using field_repr_drag = field_repr_<T, field_repr, field_repr::drag>;
 template<typename T> using field_repr_cbx = field_repr_<T, field_repr, field_repr::cbx>;
 
-template<typename T> void inspect_field(void* datum, const entities::erased_accessor& accessor,
+template<typename T> bool inspect_field(void* datum, const entities::erased_accessor& accessor,
                                         const ArrayView<const std::pair<StringView, std::size_t>>& list);
-template<typename T> void inspect_type(T& x);
+template<typename T> bool inspect_type(T& x);
 
-template<typename T> requires std::is_enum_v<T> void inspect_field(void* datum, const entities::erased_accessor& accessor,
+template<typename T> requires std::is_enum_v<T> bool inspect_field(void* datum, const entities::erased_accessor& accessor,
                                                                    const ArrayView<const std::pair<StringView, std::size_t>>& list)
 {
-    inspect_field<field_repr_cbx<std::underlying_type_t<T>>>(datum, accessor, list);
+    return inspect_field<field_repr_cbx<std::underlying_type_t<T>>>(datum, accessor, list);
 }
 
 } // namespace floormat::entities

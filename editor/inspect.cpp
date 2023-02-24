@@ -60,7 +60,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
 }
 
 template<typename T>
-void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr,
+bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr,
                       const ArrayView<const std::pair<StringView, std::size_t>>& list)
 {
     if (list.isEmpty())
@@ -73,7 +73,7 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     switch (accessor.is_enabled(datum))
     {
     using enum field_status;
-    case hidden: return;
+    case hidden: return false;
     case readonly: should_disable = true; break;
     case enabled: should_disable = false; break;
     }
@@ -161,25 +161,29 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
 
     if (ret && !should_disable && !eqv(value, orig))
         if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
+        {
             accessor.write_fun(datum, accessor.writer, &value);
+            return true;
+        }
+    return false;
 }
 
 } // namespace
 
 #define MAKE_SPEC(type, repr)                                                                                                   \
     template<>                                                                                                                  \
-    void inspect_field<type>(void* datum, const erased_accessor& accessor,                                                      \
+    bool inspect_field<type>(void* datum, const erased_accessor& accessor,                                                      \
                              const ArrayView<const std::pair<StringView, std::size_t>>& list)                                   \
     {                                                                                                                           \
-        do_inspect_field<type>(datum, accessor, (repr), list);                                                                  \
+        return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
     }
 
 #define MAKE_SPEC2(type, repr)                                                                                                  \
     template<>                                                                                                                  \
-    void inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor,                       \
+    bool inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor,                       \
                                                             const ArrayView<const std::pair<StringView, std::size_t>>& list)    \
     {                                                                                                                           \
-        do_inspect_field<type>(datum, accessor, (repr), list);                                                                  \
+        return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
     }
 
 #define MAKE_SPEC_REPRS(type)                                                                                                   \

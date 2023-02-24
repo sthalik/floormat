@@ -133,7 +133,8 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
         const local_coords pos{i};
         const auto& atlas = _scenery_atlases[i];
         const auto& fr = _scenery_variants[i];
-        const auto quad = atlas->frame_quad(Vector3(pos.x, pos.y, 0) * TILE_SIZE, fr.r, fr.frame);
+        const auto coord = Vector3(pos.x, pos.y, 0) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
+        const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
         const auto& group = atlas->group(fr.r);
         const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
         const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);

@@ -66,7 +66,8 @@ using enum_pair = std::pair<StringView, std::size_t>;
 template<typename T> constexpr auto enum_values();
 template<typename T> requires (!std::is_enum_v<T>) constexpr std::array<enum_pair, 0> enum_values(){ return {}; }
 
-template<> constexpr auto enum_values<pass_mode>()
+template<>
+constexpr auto enum_values<pass_mode>()
 {
     return std::to_array<enum_pair>({
         { "blocked"_s, (std::size_t)pass_mode::blocked, },
@@ -77,14 +78,15 @@ template<> constexpr auto enum_values<pass_mode>()
 }
 
 template<>
-void inspect_type<scenery_ref>(scenery_ref& x)
+bool inspect_type<scenery_ref>(scenery_ref& x)
 {
+    bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
         constexpr auto list = enum_values<type>();
-        auto view = ArrayView<const enum_pair>{list.data(), list.size()};
-        inspect_field<type>(&x, field.erased(), view);
+        ret |= inspect_field<type>(&x, field.erased(), list);
     }, entity_metadata<scenery_ref>::accessors);
+    return ret;
 }
 
 } // namespace floormat::entities

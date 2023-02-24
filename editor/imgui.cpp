@@ -167,7 +167,8 @@ void app::draw_inspector()
             auto dpi = M->dpi_scale();
             ImGui::SetNextWindowSize({300*dpi[0], 0});
             auto b2 = begin_window("inspector"_s);
-            entities::inspect_type(s);
+            if (entities::inspect_type(s))
+                c.mark_scenery_modified();
         }
     }
 }
