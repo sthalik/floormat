@@ -122,8 +122,7 @@ void main_impl::draw_world() noexcept
                 {
                     const local_coords xy{i};
                     if (auto [atlas, s] = c[xy].scenery(); atlas)
-                        if (s.can_activate(*atlas))
-                            _anim_mesh.add_clickable(_shader, window_size, pos, std::uint8_t(i), atlas, s, _clickable_scenery);
+                        _anim_mesh.add_clickable(_shader, window_size, pos, std::uint8_t(i), atlas, s, _clickable_scenery);
                 }
             }
         }
