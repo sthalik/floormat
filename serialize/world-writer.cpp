@@ -114,7 +114,7 @@ void writer_state::load_scenery_1(const serialized_scenery& s)
         scenery_map[ptr] = { { &s, null_atlas } };
     else
     {
-        fm_assert(s.proto.frame.delta == 0.f);
+        fm_assert(s.proto.frame.delta == 0);
         auto& vec = scenery_map[ptr];
         for (const auto& x : vec)
             if (s.proto.frame == x.s->proto.frame)
@@ -354,7 +354,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             s << id;
             if (!sc_exact || !scenery.offset.isZero())
             {
-                fm_assert(scenery.active || scenery.delta == 0.0f);
+                fm_assert(scenery.active || scenery.delta == 0);
                 write_scenery_flags(s, scenery);
                 if (scenery.frame <= 0xff)
                     s << (std::uint8_t)scenery.frame;
