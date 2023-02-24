@@ -152,7 +152,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
     if (x == key_COUNT)
-        void();
+        is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e);
     else if (x < key_GLOBAL && is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)

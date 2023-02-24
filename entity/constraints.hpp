@@ -35,6 +35,11 @@ constexpr range<T>::operator erased_constraints::range() const noexcept
 
 template<typename T> constexpr range<T>::operator std::pair<T, T>() const noexcept { return { min, max }; }
 
+template<> struct range<String>
+{
+    constexpr operator erased_constraints::range() const noexcept { return {}; }
+};
+
 using max_length = erased_constraints::max_length;
 using group = erased_constraints::group;
 

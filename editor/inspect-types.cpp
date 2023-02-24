@@ -6,8 +6,15 @@
 #include "entity/types.hpp"
 #include "inspect.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/String.h>
+
+//#define TEST_STR
 
 namespace floormat::entities {
+
+#ifdef TEST_STR
+static String my_str;
+#endif
 
 template<> struct entity_accessors<scenery_ref> {
     static constexpr auto accessors()
@@ -29,11 +36,16 @@ template<> struct entity_accessors<scenery_ref> {
                 [](const scenery_ref& x) { return x.frame.passability; },
                 [](scenery_ref& x, pass_mode value) { x.frame.passability = value; }
             },
-            // todo pass_mode enum
             entity::type<bool>::field{"interactive"_s,
                 [](const scenery_ref& x) { return x.frame.interactive; },
                 [](scenery_ref& x, bool value) { x.frame.interactive = value; }
             }
+#ifdef TEST_STR
+            , entity::type<String>::field{"string"_s,
+                [](const scenery_ref&) { return my_str; },
+                [](scenery_ref&, String value) { my_str = std::move(value); }
+            }
+#endif
         );
         return tuple;
     }

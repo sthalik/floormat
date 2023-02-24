@@ -123,9 +123,9 @@ public:
     fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(entity_field);
 
     static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
-    static constexpr void write(const W& writer, Obj& x, move_qualified<Type> v);
+    static constexpr void write(const W& writer, Obj& x, Type v);
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
-    constexpr void write(Obj& x, move_qualified<Type> value) const { write(writer, x, value); }
+    constexpr void write(Obj& x, Type value) const { write(writer, x, std::move(value)); }
     static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W, Ts...>::writer)>;
 
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
@@ -149,9 +149,9 @@ public:
 };
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj& x, move_qualified<Type> v)
+constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj& x, Type v)
 {
-    static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, v);
+    static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, std::move(v));
 }
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
@@ -174,8 +174,8 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value) {
         auto& obj_ = *reinterpret_cast<Obj*>(obj);
         const auto& writer_ = *reinterpret_cast<const W*>(writer);
-        move_qualified<Type> value_ = std::move(*reinterpret_cast<Type*>(value));
-        write(writer_, obj_, value_);
+        Type value_ = std::move(*reinterpret_cast<Type*>(value));
+        write(writer_, obj_, std::move(value_));
     };
     constexpr auto predicate_fn = [](const void* obj, const predicate_t* predicate) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);

@@ -53,11 +53,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
     {
         auto* my_str = reinterpret_cast<String*>(data->UserData);
         fm_assert(my_str->begin() == data->Buf);
-        String tmp = std::move(*my_str);
         *my_str = String{ValueInit, (std::size_t)data->BufSize};
-        auto len = std::min(tmp.size(), my_str->size());
-        for (std::size_t i = 0; i < len; i++)
-            (*my_str)[i] = tmp[i];
         data->Buf = my_str->begin();
     }
     return 0;
