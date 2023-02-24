@@ -129,6 +129,7 @@ private:
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     cursor_state cursor;
+    Optional<global_coords> inspected_scenery;
     bool _draw_collision_boxes : 1 = false;
 };
 

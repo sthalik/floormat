@@ -152,16 +152,14 @@ void app::draw_tile_under_cursor()
 
 void app::draw_inspector()
 {
-    static Optional<global_coords> tile;
-
     auto b = push_id("inspector");
     auto& w = M->world();
     if (cursor.pixel)
         if (const auto* sc = find_clickable_scenery(cursor.pixel))
-            tile = {InPlaceInit, sc->chunk, sc->pos};
-    if (tile)
+            inspected_scenery = {InPlaceInit, sc->chunk, sc->pos};
+    if (inspected_scenery)
     {
-        auto [c, t] = w[*tile];
+        auto [c, t] = w[*inspected_scenery];
         if (auto s = t.scenery())
         {
             char buf[32]; std::snprintf(buf, sizeof buf, "i_0x%p", (void*)&s);

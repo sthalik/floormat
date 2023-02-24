@@ -85,7 +85,9 @@ void do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;
 
-    if constexpr(std::is_same_v<T, String>)
+    if constexpr(std::is_same_v<T, StringView>)
+        ret = ImGui::InputText(label, const_cast<char*>(value.data()), value.size(), ImGuiInputTextFlags_ReadOnly);
+    else if constexpr(std::is_same_v<T, String>)
     {
         ret = ImGui::InputText(label, value.begin(), value.size(), ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
         if (auto max_len = accessor.get_max_length(datum); value.size() > max_len)
@@ -202,5 +204,6 @@ MAKE_SPEC_REPRS2(std::int32_t)
 MAKE_SPEC_REPRS2(float)
 MAKE_SPEC(bool, field_repr::input)
 MAKE_SPEC(String, field_repr::input)
+MAKE_SPEC(StringView, field_repr::input)
 
 } // namespace floormat::entities

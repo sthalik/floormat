@@ -5,6 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "entity/types.hpp"
 #include "inspect.hpp"
+#include "loader/loader.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/String.h>
 
@@ -22,6 +23,16 @@ template<> struct entity_accessors<scenery_ref> {
         using entity = Entity<scenery_ref>;
         using frame_t = scenery::frame_t;
         return std::tuple{
+            entity::type<StringView>::field{"name"_s,
+                [](const scenery_ref& x) {
+                    StringView name = x.atlas->name();
+                    if (name.hasPrefix(loader.SCENERY_PATH))
+                        name = name.exceptPrefix(loader.SCENERY_PATH.size());
+                    return name;
+                },
+                [](scenery_ref&, StringView) {},
+                constantly(field_status::readonly),
+            },
             entity::type<scenery::frame_t>::field{"frame"_s,
                 [](const scenery_ref& x) { return x.frame.frame; },
                 [](scenery_ref& x, frame_t value) { x.frame.frame = value; },
