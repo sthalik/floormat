@@ -28,8 +28,6 @@ scenery_ref& scenery_ref::operator=(const scenery_proto& proto) noexcept
 scenery_ref::operator scenery_proto() const noexcept { return { atlas, frame }; }
 scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
 
-scenery::scenery() noexcept : scenery{none_tag_t{}} {}
-scenery::scenery(none_tag_t) noexcept {}
 scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
                  pass_mode pass, bool active, bool interactive) :
     frame{frame}, r{r}, type{scenery_type::generic},

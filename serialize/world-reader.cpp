@@ -177,6 +177,16 @@ void reader_state::read_chunks(reader_t& s)
                             sc.frame.offset[0] << s;
                             sc.frame.offset[1] << s;
                         }
+                        if (PROTO >= 6) [[likely]]
+                        {
+                            sc.frame.bbox_size[0] << s;
+                            sc.frame.bbox_size[1] << s;
+                        }
+                        if (PROTO >= 7) [[likely]]
+                        {
+                            sc.frame.bbox_offset[0] << s;
+                            sc.frame.bbox_offset[1] << s;
+                        }
                         if (sc.frame.active)
                         {
                             if (PROTO >= 4) [[likely]]

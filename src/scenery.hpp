@@ -1,5 +1,6 @@
 #pragma once
 #include "pass-mode.hpp"
+#include "tile-defs.hpp"
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -36,7 +37,7 @@ struct scenery final
 
     std::uint16_t delta = 0;
     frame_t frame = 0;
-    Vector2b offset;
+    Vector2b offset, bbox_size{iTILE_SIZE2/2}, bbox_offset;
     rotation     r           : 3 = rotation::N;
     scenery_type type        : 3 = scenery_type::none;
     pass_mode    passability : 2 = pass_mode::shoot_through;
@@ -44,8 +45,8 @@ struct scenery final
     std::uint8_t closing     : 1 = false;
     std::uint8_t interactive : 1 = false;
 
-    scenery() noexcept;
-    scenery(none_tag_t) noexcept;
+    constexpr scenery() noexcept;
+    constexpr scenery(none_tag_t) noexcept;
     scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0,
             pass_mode passability = pass_mode::shoot_through, bool active = false, bool interactive = false);
     scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
@@ -56,6 +57,9 @@ struct scenery final
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);
 };
+
+constexpr scenery::scenery() noexcept : scenery{scenery::none_tag_t{}} {}
+constexpr scenery::scenery(none_tag_t) noexcept {}
 
 struct scenery_proto final
 {

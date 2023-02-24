@@ -47,10 +47,8 @@ void chunk::ensure_passability() noexcept
     _lqt_view->Clear();
 
     std::vector<collision_bbox> bboxes;
-#ifndef FLOORMAT_64
     _bboxes.clear();
     bboxes.reserve(TILE_COUNT*4);
-#endif
 
     constexpr auto whole_tile = [](std::size_t k, pass_mode p) constexpr -> collision_bbox {
         auto start = tile_start(k);
@@ -84,18 +82,12 @@ void chunk::ensure_passability() noexcept
                 bboxes.push_back(wall_west(i, p));
     }
 
-#ifndef FLOORMAT_64
     _bboxes.reserve(bboxes.size());
-#endif
 
     for (const collision_bbox& bbox : bboxes)
     {
-#ifdef FLOORMAT_64
-        auto* ptr = std::bit_cast<compact_bb*>(collision_bbox::BB(bbox));
-#else
         _bboxes.push_back(bbox);
         auto* ptr = &_bboxes.back();
-#endif
 
         switch (bbox.pass_mode)
         {

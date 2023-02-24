@@ -48,6 +48,16 @@ struct entity_accessors<scenery_ref> {
                 [](const scenery_ref& x) { return x.frame.passability; },
                 [](scenery_ref& x, pass_mode value) { x.frame.passability = value; }
             },
+            entity::type<Vector2b>::field{"bbox-offset"_s,
+                [](const scenery_ref& x) { return x.frame.bbox_offset; },
+                [](scenery_ref& x, Vector2b value) { x.frame.bbox_offset = value; },
+                [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+            },
+            entity::type<Vector2b>::field{"bbox-size"_s,
+                [](const scenery_ref& x) { return x.frame.bbox_size; },
+                [](scenery_ref& x, Vector2b value) { x.frame.bbox_size = value; },
+                [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+            },
             entity::type<bool>::field{"interactive"_s,
                 [](const scenery_ref& x) { return x.frame.interactive; },
                 [](scenery_ref& x, bool value) { x.frame.interactive = value; }

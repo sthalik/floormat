@@ -352,7 +352,11 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             id |= meta_long_scenery_bit * sc_exact;
             id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
             s << id;
-            if (!sc_exact || !scenery.offset.isZero())
+            if (constexpr struct scenery default_scenery;
+                !sc_exact ||
+                scenery.offset != default_scenery.offset ||
+                scenery.bbox_size != default_scenery.bbox_size ||
+                scenery.bbox_offset != default_scenery.bbox_offset)
             {
                 fm_assert(scenery.active || scenery.delta == 0);
                 write_scenery_flags(s, scenery);
@@ -362,6 +366,12 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
                     s << scenery.frame;
                 s << scenery.offset[0];
                 s << scenery.offset[1];
+
+                s << scenery.bbox_size[0];
+                s << scenery.bbox_size[1];
+
+                s << scenery.bbox_offset[0];
+                s << scenery.bbox_offset[1];
 
                 if (scenery.active)
                     s << scenery.delta;
