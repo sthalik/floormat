@@ -4,16 +4,23 @@
 // NOTE This file compiles under MSVC 6 SP5 and MSVC .Net 2003 it may not work on other compilers without modification.
 
 // NOTE These next few lines may be win32 specific, you may need to modify them to compile on other platform
+
+//#define RTREE_STDIO
+
+#include "compat/assert.hpp"
+#ifdef RTREE_STDIO
 #include <stdio.h>
+#endif
 #include <math.h>
 #include <assert.h>
 #include <stdlib.h>
 
 #include <algorithm>
-#include <functional>
 #include <vector>
 
-#define ASSERT assert // RTree uses ASSERT( condition )
+//#define ASSERT assert // RTree uses ASSERT( condition )
+#undef ASSERT
+#define ASSERT fm_assert
 #ifndef Min
   #define Min std::min
 #endif //Min
@@ -31,8 +38,10 @@
 #define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
 #define RTREE_USE_SPHERICAL_VOLUME // Better split classification, may be slower on some systems
 
+#ifdef RTREE_STDIO
 // Fwd decl
 class RTFileStream;  // File I/O helper class, look below for implementation and notes.
+#endif
 
 
 /// \class RTree
@@ -96,7 +105,7 @@ public:
   /// \param a_resultCallback Callback function to return result.  Callback should return 'true' to continue searching
   /// \param a_context User context to pass as parameter to a_resultCallback
   /// \return Returns the number of entries found
-  int Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], std::function<bool (const DATATYPE&)> callback) const;
+  template<typename F> int Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const;
 
   /// Remove all entries from tree
   void RemoveAll();
@@ -104,6 +113,7 @@ public:
   /// Count the data elements in this container.  This is slow as no internal counter is maintained.
   int Count();
 
+#ifdef RTREE_STDIO
   /// Load tree contents from file
   bool Load(const char* a_fileName);
   /// Load tree contents from stream
@@ -114,6 +124,7 @@ public:
   bool Save(const char* a_fileName);
   /// Save tree contents to stream
   bool Save(RTFileStream& a_stream);
+#endif
 
   /// Iterator is not remove safe.
   class Iterator
@@ -358,13 +369,15 @@ protected:
   void FreeListNode(ListNode* a_listNode);
   bool Overlap(Rect* a_rectA, Rect* a_rectB) const;
   void ReInsert(Node* a_node, ListNode** a_listNode);
-  bool Search(Node* a_node, Rect* a_rect, int& a_foundCount, std::function<bool (const DATATYPE&)> callback) const;
+  template<typename F> bool Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const;
   void RemoveAllRec(Node* a_node);
   void Reset();
   void CountRec(Node* a_node, int& a_count);
 
+#ifdef RTREE_STDIO
   bool SaveRec(Node* a_node, RTFileStream& a_stream);
   bool LoadRec(Node* a_node, RTFileStream& a_stream);
+#endif
   void CopyRec(Node* current, Node* other);
 
   Node* m_root;                                    ///< Root of tree
@@ -376,6 +389,7 @@ public:
 };
 
 
+#ifdef RTREE_STDIO
 // Because there is not stream support, this is a quick and dirty file I/O helper.
 // Users will likely replace its usage with a Stream implementation from their favorite API.
 class RTFileStream
@@ -387,7 +401,7 @@ public:
 
   RTFileStream()
   {
-    m_file = NULL;
+    m_file = nullptr;
   }
 
   ~RTFileStream()
@@ -420,7 +434,7 @@ public:
     if(m_file)
     {
       fclose(m_file);
-      m_file = NULL;
+      m_file = nullptr;
     }
   }
 
@@ -435,7 +449,7 @@ public:
   size_t WriteArray(const TYPE* a_array, int a_count)
   {
     ASSERT(m_file);
-    return fwrite((void*)a_array, sizeof(TYPE) * a_count, 1, m_file);
+    return fwrite(const_cast<void*>((const void*)a_array), sizeof(TYPE) * a_count, 1, m_file);
   }
 
   template< typename TYPE >
@@ -452,6 +466,7 @@ public:
     return fread((void*)a_array, sizeof(TYPE) * a_count, 1, m_file);
   }
 };
+#endif
 
 
 RTREE_TEMPLATE
@@ -538,7 +553,8 @@ void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
 
 
 RTREE_TEMPLATE
-int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], std::function<bool (const DATATYPE&)> callback) const
+template<typename F>
+int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const
 {
 #ifdef _DEBUG
   for(int index=0; index<NUMDIMS; ++index)
@@ -592,6 +608,7 @@ void RTREE_QUAL::CountRec(Node* a_node, int& a_count)
 }
 
 
+#ifdef RTREE_STDIO
 RTREE_TEMPLATE
 bool RTREE_QUAL::Load(const char* a_fileName)
 {
@@ -695,6 +712,7 @@ bool RTREE_QUAL::LoadRec(Node* a_node, RTFileStream& a_stream)
   return true; // Should do more error checking on I/O operations
 }
 
+#endif
 
 RTREE_TEMPLATE
 void RTREE_QUAL::CopyRec(Node* current, Node* other)
@@ -741,7 +759,7 @@ void RTREE_QUAL::CopyRec(Node* current, Node* other)
   }
 }
 
-
+#ifdef RTREE_STDIO
 RTREE_TEMPLATE
 bool RTREE_QUAL::Save(const char* a_fileName)
 {
@@ -819,6 +837,7 @@ bool RTREE_QUAL::SaveRec(Node* a_node, RTFileStream& a_stream)
 
   return true; // Should do more error checking on I/O operations
 }
+#endif
 
 
 RTREE_TEMPLATE
@@ -1609,7 +1628,8 @@ void RTREE_QUAL::ReInsert(Node* a_node, ListNode** a_listNode)
 
 // Search in an index tree or subtree for all data retangles that overlap the argument rectangle.
 RTREE_TEMPLATE
-bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, std::function<bool (const DATATYPE&)> callback) const
+template<typename F>
+bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const
 {
   ASSERT(a_node);
   ASSERT(a_node->m_level >= 0);
@@ -1693,4 +1713,3 @@ std::vector<typename RTREE_QUAL::Rect> RTREE_QUAL::ListTree() const
 #undef RTREE_QUAL
 
 #endif //RTREE_H
-
