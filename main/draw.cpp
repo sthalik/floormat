@@ -39,12 +39,17 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
+    auto vec = pixel_to_tile_(position);
+    const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
+    return { x, y };
+}
+
+Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
+{
     constexpr Vector2d pixel_size(TILE_SIZE2);
     constexpr Vector2d half{.5, .5};
     const Vector2d px = position - Vector2d{framebufferSize()}*.5 - _shader.camera_offset();
-    const Vector2d vec = tile_shader::unproject(px*.5) / pixel_size + half;
-    const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
-    return { x, y };
+    return tile_shader::unproject(px*.5) / pixel_size + half;
 }
 
 auto main_impl::get_draw_bounds() const noexcept -> draw_bounds

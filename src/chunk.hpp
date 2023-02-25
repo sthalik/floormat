@@ -86,8 +86,10 @@ struct chunk final
 
     void ensure_passability() noexcept;
 
-    const RTree<std::uint64_t, float, 2, float>* rtree() const noexcept;
-    RTree<std::uint64_t, float, 2, float>* rtree() noexcept;
+    using RTree = ::RTree<std::uint64_t, float, 2, float>;
+
+    const RTree* rtree() const noexcept;
+    RTree* rtree() noexcept;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
@@ -102,7 +104,7 @@ private:
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
 
-    RTree<std::uint64_t, float, 2, float> _rtree;
+    RTree _rtree;
 
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,

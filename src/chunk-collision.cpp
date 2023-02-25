@@ -6,8 +6,8 @@
 
 namespace floormat {
 
-const RTree<std::uint64_t, float, 2, float>* chunk::rtree() const noexcept { return &_rtree; }
-RTree<std::uint64_t, float, 2, float>* chunk::rtree() noexcept { return &_rtree; }
+const chunk::RTree* chunk::rtree() const noexcept { return &_rtree; }
+chunk::RTree* chunk::rtree() noexcept { return &_rtree; }
 
 namespace {
 
