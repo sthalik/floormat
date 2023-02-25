@@ -14,16 +14,6 @@
 
 #include <vector>
 
-//#define ASSERT assert // RTree uses ASSERT( condition )
-#undef ASSERT
-#define ASSERT fm_assert
-#ifndef Min
-  #define Min std::min
-#endif //Min
-#ifndef Max
-  #define Max std::max
-#endif //Max
-
 //
 // RTree.h
 //
@@ -60,7 +50,6 @@ template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
          class ELEMTYPEREAL = ELEMTYPE, int TMAXNODES = 8, int TMINNODES = TMAXNODES / 2>
 class RTree
 {
-  static_assert(std::numeric_limits<ELEMTYPEREAL>::is_iec559, "'ELEMTYPEREAL' accepts floating-point types only");
 
 protected:
 
@@ -107,7 +96,7 @@ public:
   void RemoveAll();
 
   /// Count the data elements in this container.  This is slow as no internal counter is maintained.
-  int Count();
+  int Count() const;
 
 #ifdef RTREE_STDIO
   /// Load tree contents from file
@@ -276,7 +265,7 @@ protected:
   template<typename F> bool Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const;
   void RemoveAllRec(Node* a_node);
   void Reset();
-  void CountRec(Node* a_node, int& a_count);
+  void CountRec(Node* a_node, int& a_count) const;
 
 #ifdef RTREE_STDIO
   bool SaveRec(Node* a_node, RTFileStream& a_stream);
@@ -289,10 +278,10 @@ protected:
 
 public:
   // return all the AABBs that form the RTree
-  std::vector<Rect> ListTree() const;
+  void ListTree(std::vector<Rect>& vec, std::vector<Node*>& temp) const;
 };
 
-extern template class RTree<void*, std::uint32_t, 2, float>;
+extern template class RTree<void*, unsigned, 2, float>;
 
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL

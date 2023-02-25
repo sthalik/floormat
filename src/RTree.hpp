@@ -1,9 +1,28 @@
 #pragma once
-#include "Rtree.h"
+
+#include "RTree.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <cassert>
+#include <limits>
 #include <algorithm>
+
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
+
+//#define ASSERT assert // RTree uses ASSERT( condition )
+#undef ASSERT
+#define ASSERT fm_assert
+#ifndef Min
+  #define Min std::min
+#endif //Min
+#ifndef Max
+  #define Max std::max
+#endif //Max
 
 #ifdef RTREE_STDIO
 // Because there is not stream support, this is a quick and dirty file I/O helper.
@@ -17,7 +36,7 @@ public:
 
   RTFileStream()
   {
-    m_file = nullptr;
+    m_file = NULL;
   }
 
   ~RTFileStream()
@@ -31,7 +50,7 @@ public:
     return fopen_s(&m_file, a_fileName, mode) == 0;
 #else
     m_file = fopen(a_fileName, mode);
-    return m_file != nullptr;
+    return m_file != NULL;
 #endif
   }
 
@@ -50,7 +69,7 @@ public:
     if(m_file)
     {
       fclose(m_file);
-      m_file = nullptr;
+      m_file = NULL;
     }
   }
 
@@ -88,6 +107,7 @@ public:
 RTREE_TEMPLATE
 RTREE_QUAL::RTree()
 {
+  static_assert(std::numeric_limits<ELEMTYPEREAL>::is_iec559, "'ELEMTYPEREAL' accepts floating-point types only");
   ASSERT(MAXNODES > MINNODES);
   ASSERT(MINNODES > 0);
 
@@ -134,7 +154,7 @@ void RTREE_QUAL::Insert(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
 
   Branch branch;
   branch.m_data = a_dataId;
-  branch.m_child = nullptr;
+  branch.m_child = NULL;
 
   for(int axis=0; axis<NUMDIMS; ++axis)
   {
@@ -197,7 +217,7 @@ int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDI
 
 
 RTREE_TEMPLATE
-int RTREE_QUAL::Count()
+int RTREE_QUAL::Count() const
 {
   int count = 0;
   CountRec(m_root, count);
@@ -208,7 +228,7 @@ int RTREE_QUAL::Count()
 
 
 RTREE_TEMPLATE
-void RTREE_QUAL::CountRec(Node* a_node, int& a_count)
+void RTREE_QUAL::CountRec(Node* a_node, int& a_count) const
 {
   if(a_node->IsInternalNode())  // not a leaf node
   {
@@ -660,12 +680,12 @@ bool RTREE_QUAL::InsertRect(const Branch& a_branch, Node** a_root, int a_level)
     // add old root node as a child of the new root
     branch.m_rect = NodeCover(*a_root);
     branch.m_child = *a_root;
-    AddBranch(&branch, newRoot, nullptr);
+    AddBranch(&branch, newRoot, NULL);
 
     // add the split node as a child of the new root
     branch.m_rect = NodeCover(newNode);
     branch.m_child = newNode;
-    AddBranch(&branch, newRoot, nullptr);
+    AddBranch(&branch, newRoot, NULL);
 
     // set the new root as the root node
     *a_root = newRoot;
@@ -749,7 +769,7 @@ int RTREE_QUAL::PickBranch(const Rect* a_rect, Node* a_node)
   ELEMTYPEREAL increase;
   ELEMTYPEREAL bestIncr = (ELEMTYPEREAL)-1;
   ELEMTYPEREAL area;
-  ELEMTYPEREAL bestArea;
+  ELEMTYPEREAL bestArea = 0;
   int best = 0;
   Rect tempRect;
 
@@ -875,7 +895,7 @@ ELEMTYPEREAL RTREE_QUAL::RectSphericalVolume(Rect* a_rect)
   }
   else
   {
-    return (ELEMTYPEREAL)(pow(radius, NUMDIMS) * m_unitSphereVolume);
+    return (ELEMTYPEREAL)(pow(radius, (ELEMTYPEREAL)NUMDIMS) * m_unitSphereVolume);
   }
 }
 
@@ -1024,7 +1044,7 @@ void RTREE_QUAL::LoadNodes(Node* a_nodeA, Node* a_nodeB, PartitionVars* a_parVar
     Node* targetNodes[] = {a_nodeA, a_nodeB};
 
     // It is assured that AddBranch here will not cause a node split.
-    bool nodeWasSplit = AddBranch(&a_parVars->m_branchBuf[index], targetNodes[targetNodeIndex], nullptr);
+    bool nodeWasSplit = AddBranch(&a_parVars->m_branchBuf[index], targetNodes[targetNodeIndex], NULL);
     ASSERT(!nodeWasSplit);
   }
 }
@@ -1116,7 +1136,7 @@ bool RTREE_QUAL::RemoveRect(Rect* a_rect, const DATATYPE& a_id, Node** a_root)
   ASSERT(a_rect && a_root);
   ASSERT(*a_root);
 
-  ListNode* reInsertList = nullptr;
+  ListNode* reInsertList = NULL;
 
   if(!RemoveRectRec(a_rect, a_id, *a_root, &reInsertList))
   {
@@ -1289,14 +1309,17 @@ bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callb
 
 
 RTREE_TEMPLATE
-std::vector<typename RTREE_QUAL::Rect> RTREE_QUAL::ListTree() const
+void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVisit) const
 {
   ASSERT(m_root);
   ASSERT(m_root->m_level >= 0);
 
-  std::vector<Rect> treeList;
+  std::size_t count = (std::size_t)Count();
+  treeList.clear();
+  treeList.reserve(count);
+  toVisit.clear();
+  toVisit.reserve(count);
 
-  std::vector<Node*> toVisit;
   toVisit.push_back(m_root);
 
   while (!toVisit.empty()) {
@@ -1320,8 +1343,6 @@ std::vector<typename RTREE_QUAL::Rect> RTREE_QUAL::ListTree() const
       }
     }
   }
-
-  return treeList;
 }
 
 RTREE_TEMPLATE
@@ -1348,7 +1369,7 @@ void RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>::Get
 }
 
 RTREE_TEMPLATE
-RTREE_QUAL::Iterator::StackElement& RTREE_QUAL::Iterator::Pop()
+typename RTREE_QUAL::Iterator::StackElement& RTREE_QUAL::Iterator::Pop()
 {
     ASSERT(m_tos > 0);
     --m_tos;
@@ -1365,7 +1386,7 @@ void RTREE_QUAL::Iterator::Push(RTree::Node* a_node, int a_branchIndex)
 }
 
 RTREE_TEMPLATE
-void RTREE_QUAL::Iterator::GetBounds(ELEMTYPE* a_min, ELEMTYPE* a_max)
+void RTREE_QUAL::Iterator::GetBounds(ELEMTYPE a_min[NUMDIMS], ELEMTYPE a_max[NUMDIMS])
 {
     ASSERT(IsNotNull());
     StackElement& curTos = m_stack[m_tos - 1];
@@ -1382,7 +1403,7 @@ RTREE_TEMPLATE
 const DATATYPE& RTREE_QUAL::Iterator::operator*() const
 {
     ASSERT(IsNotNull());
-    StackElement& curTos = m_stack[m_tos - 1];
+    const StackElement& curTos = m_stack[m_tos - 1];
     return curTos.m_node->m_branch[curTos.m_branchIndex].m_data;
 }
 
@@ -1436,3 +1457,7 @@ bool RTREE_QUAL::Iterator::FindNextData()
         }
     }
 }
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
