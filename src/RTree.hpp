@@ -1343,6 +1343,8 @@ void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVis
       }
     }
   }
+
+  toVisit.clear();
 }
 
 RTREE_TEMPLATE
