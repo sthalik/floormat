@@ -24,7 +24,7 @@ void app::draw_cursor()
     {
         const auto draw = [&, pos = *cursor.tile](auto& mesh, const auto& size) {
             const auto pt = pos.to_signed();
-            const Vector3 center{Vector3i(pt[0], pt[1], 0) * iTILE_SIZE};
+            const auto center = Vector3(Vector3i(pt, 0) * iTILE_SIZE);
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
@@ -99,11 +99,10 @@ void app::draw_collision_boxes()
 
     if (cursor.tile)
     {
-        const auto tile_ = M->pixel_to_tile_(Vector2d(*cursor.pixel));
-        const auto subpixel = Vector2(Vector2ub(Vector2d(std::fmod(tile_[0], 1.), std::fmod(tile_[1], 1.)) * dTILE_SIZE2));
+        const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*cursor.pixel)));
+        const auto subpixel = Vector2(Vector2ub(Vector2d(std::fmod(tile_[0], 1.), std::fmod(tile_[1], 1.))*dTILE_SIZE2));
         const auto tile = *cursor.tile;
-        const auto curchunk = tile.chunk();
-        const auto curtile = tile.local();
+        const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
 
         for (std::int16_t y = miny; y <= maxy; y++)
             for (std::int16_t x = minx; x <= maxx; x++)
@@ -117,8 +116,8 @@ void app::draw_collision_boxes()
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
                     constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM, half_tile = TILE_SIZE2/2;
-                    auto chunk_dist = (Vector2(pos.x, pos.y) - Vector2(curchunk.x, curchunk.y))*chunk_size;
-                    auto t0 = chunk_dist + Vector2(curtile.x, curtile.y)*TILE_SIZE2 + subpixel - half_tile;
+                    auto chunk_dist = (Vector2(pos) - curchunk)*chunk_size;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](std::uint64_t data, const rect_type& rect) {

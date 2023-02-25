@@ -11,6 +11,10 @@ struct chunk_coords final {
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
     constexpr Vector2i operator-(chunk_coords other) const noexcept;
+
+    template<typename T>
+    requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
+    explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
 };
 
 constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept

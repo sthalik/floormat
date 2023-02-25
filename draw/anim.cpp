@@ -32,7 +32,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
     const local_coords xy{i};
     const auto& g = atlas->group(s.r);
     const auto& f = atlas->frame(s.r, s.frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(xy.x, xy.y, 0) + Vector3(g.offset) + Vector3(s.offset[0], s.offset[1], 0);
+    const auto world_pos = TILE_SIZE20 * Vector3(Vector2(xy), 0) + Vector3(g.offset) + Vector3(Vector2(s.offset), 0);
     const Vector2ui offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                            + shader.project(world_pos) - Vector2(f.ground));
     clickable_scenery item = {
@@ -129,7 +129,7 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::si
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset)
 {
-    const auto pos = Vector3(xy.x, xy.y, 0.f) * TILE_SIZE + Vector3(offset[0], offset[1], 0);
+    const auto pos = Vector3(Vector2(xy), 0) * TILE_SIZE + Vector3(Vector2(offset), 0);
     const float depth = tile_shader::depth_value(xy, tile_shader::scenery_depth_offset);
     draw(shader, atlas, r, frame, pos, depth);
 }

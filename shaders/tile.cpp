@@ -64,7 +64,7 @@ void tile_shader::_draw()
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    if (const auto offset = Vector3((float)_camera_offset[0], (float)_camera_offset[1], _depth_offset);
+    if (const auto offset = Vector3(Vector2(_camera_offset), _depth_offset);
         offset != _real_camera_offset)
     {
         _real_camera_offset = offset;

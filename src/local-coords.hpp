@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "tile-defs.hpp"
 #include <concepts>
+#include <Magnum/Math/Vector2.h>
 
 namespace floormat {
 
@@ -9,10 +10,12 @@ struct local_coords final {
     std::uint8_t x : 4 = 0, y : 4 = 0;
     explicit constexpr local_coords(std::size_t idx) noexcept;
     constexpr local_coords() noexcept = default;
-    template<std::integral T> requires (sizeof(T) <= sizeof(std::size_t))
+    template<typename T> requires (std::is_integral_v<T> && sizeof(T) <= sizeof(std::size_t))
     constexpr local_coords(T x, T y) noexcept;
     constexpr local_coords(std::uint8_t x, std::uint8_t y) noexcept : x{x}, y{y} {}
     constexpr std::uint8_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
+
+    template<typename T> explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
 };
 
 constexpr local_coords::local_coords(std::size_t index) noexcept :
@@ -22,8 +25,8 @@ constexpr local_coords::local_coords(std::size_t index) noexcept :
     fm_assert(index < TILE_COUNT);
 }
 
-template<std::integral T>
-requires (sizeof(T) <= sizeof(std::size_t))
+template<typename T>
+requires (std::is_integral_v<T> && sizeof(T) <= sizeof(std::size_t))
 constexpr local_coords::local_coords(T x, T y) noexcept
     : x{(std::uint8_t)x}, y{(std::uint8_t)y}
 {
