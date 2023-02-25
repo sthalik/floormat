@@ -13,15 +13,15 @@ namespace {
 
 constexpr Vector2 tile_start(std::size_t k)
 {
-    const auto i = std::uint8_t(k);
-    const local_coords coord{i};
-    return TILE_SIZE2 * Vector2(coord.x, coord.y) - TILE_SIZE2*.5f;
+    constexpr auto half_tile = Vector2(TILE_SIZE2)/2;
+    const local_coords coord{k};
+    return TILE_SIZE2 * Vector2(coord.x, coord.y) - half_tile;
 }
 
 constexpr Pair<Vector2, Vector2> scenery_tile(std::size_t k, const scenery& sc)
 {
-    constexpr auto half = Vector2(TILE_SIZE2)/2;
-    auto center = tile_start(k) + Vector2(sc.bbox_offset) + half;
+    const local_coords coord{k};
+    auto center = TILE_SIZE2 * Vector2(coord.x, coord.y) + Vector2(sc.offset) + Vector2(sc.bbox_offset);
     auto start = center - Vector2(sc.bbox_size);
     auto size = Vector2(sc.bbox_size)*2;
     return { start, start + size, };

@@ -152,10 +152,12 @@ void app::update_world(float dt)
                 if (auto [atlas, scenery] = x.scenery(); atlas != nullptr)
                 {
                     auto pass0 = scenery.passability;
-                    auto offset0 = scenery.bbox_offset;
-                    auto size0 = scenery.bbox_size;
+                    auto offset0 = scenery.offset;
+                    auto bb_offset0 = scenery.bbox_offset;
+                    auto bb_size0 = scenery.bbox_size;
                     scenery.update(dt, *atlas);
-                    if (pass0 != scenery.passability || offset0 != scenery.offset || size0 != scenery.bbox_size)
+                    if (pass0 != scenery.passability || offset0 != scenery.offset ||
+                        bb_offset0 != scenery.bbox_offset || bb_size0 != scenery.bbox_size)
                         c.mark_scenery_modified();
                 }
 }
