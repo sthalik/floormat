@@ -6,6 +6,9 @@
 
 namespace floormat {
 
+const RTree<std::uint64_t, float, 2, float>* chunk::rtree() const noexcept { return &_rtree; }
+RTree<std::uint64_t, float, 2, float>* chunk::rtree() noexcept { return &_rtree; }
+
 namespace {
 
 constexpr Vector2 tile_start(std::size_t k)

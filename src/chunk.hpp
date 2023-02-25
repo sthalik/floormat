@@ -86,7 +86,8 @@ struct chunk final
 
     void ensure_passability() noexcept;
 
-    RTree<std::uint64_t, float, 2, float>* rtree() const noexcept { return &const_cast<chunk*>(this)->_rtree; }
+    const RTree<std::uint64_t, float, 2, float>* rtree() const noexcept;
+    RTree<std::uint64_t, float, 2, float>* rtree() noexcept;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
