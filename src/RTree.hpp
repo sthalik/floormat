@@ -1,7 +1,6 @@
 #pragma once
 
 #include "RTree.h"
-
 #include <math.h>
 #include <stdlib.h>
 #include <cassert>
@@ -14,6 +13,14 @@
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
+#define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
+#define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
+#undef _DEBUG
+#ifndef FM_NO_DEBUG
+#define _DEBUG
+#endif
+
+#include "compat/assert.hpp"
 //#define ASSERT assert // RTree uses ASSERT( condition )
 #undef ASSERT
 #define ASSERT fm_assert
@@ -134,9 +141,19 @@ RTREE_QUAL::RTree(const RTree& other) : RTree()
   CopyRec(m_root, other.m_root);
 }
 
+RTREE_TEMPLATE
+RTREE_QUAL& RTREE_QUAL::operator=(const RTree& other)
+{
+  if (&other != this)
+  {
+    RemoveAll();
+    CopyRec(m_root, other.m_root);
+  }
+  return *this;
+}
 
 RTREE_TEMPLATE
-RTREE_QUAL::~RTree()
+RTREE_QUAL::~RTree() noexcept
 {
   Reset(); // Free, or reset node memory
 }
@@ -1293,13 +1310,10 @@ bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callb
     {
       if(Overlap(a_rect, &a_node->m_branch[index].m_rect))
       {
-        DATATYPE& id = a_node->m_branch[index].m_data;
         ++a_foundCount;
-
-          if(callback && !callback(id))
-          {
-            return false; // Don't continue searching
-          }
+        const Rect& r = a_node->m_branch[index].m_rect;
+        if(!callback(a_node->m_branch[index].m_data, r))
+          return false; // Don't continue searching
       }
     }
   }
@@ -1459,6 +1473,12 @@ bool RTREE_QUAL::Iterator::FindNextData()
         }
     }
 }
+
+#undef _DEBUG
+#undef ASSERT
+
+#undef RTREE_QUAL
+#undef RTREE_TEMPLATE
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop

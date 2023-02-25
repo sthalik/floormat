@@ -59,11 +59,15 @@ float app::draw_main_menu()
                 can_rotate = ed->is_anything_selected();
             else if (auto* ed = _editor.current_scenery_editor())
                 can_rotate = ed->is_anything_selected();
-            bool b_none = false, b_floor = false, b_walls = false, b_rotate = false, b_scenery = false;
+            auto mode = _editor.mode();
+            using m = editor_mode;
+            bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
+                 b_rotate = false, b_scenery = mode == m::scenery, b_collisions = _enable_render_bboxes;
             ImGui::MenuItem("Select",  "1", &b_none);
             ImGui::MenuItem("Floor",   "2", &b_floor);
             ImGui::MenuItem("Walls",   "3", &b_walls);
             ImGui::MenuItem("Scenery", "4", &b_scenery);
+            ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions);
             ImGui::Separator();
             ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate);
             if (b_none)
@@ -74,15 +78,10 @@ float app::draw_main_menu()
                 do_key(key_mode_walls);
             else if (b_scenery)
                 do_key(key_mode_scenery);
+            else if (b_collisions)
+                do_key(key_mode_collisions);
             if (b_rotate)
                 do_key(key_rotate_tile);
-        }
-        if (auto b = begin_menu("View"))
-        {
-            bool show_collisions = _draw_collision_boxes;
-            ImGui::MenuItem("Collision boxes", "Alt+B", &show_collisions);
-            if (show_collisions)
-                do_key(key_collision_boxes);
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;
@@ -105,7 +104,7 @@ void app::draw_ui()
 
     const float main_menu_height = draw_main_menu();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
-    if (_editor.mode() != editor_mode::none)
+    if (_editor.current_tile_editor() || _editor.current_scenery_editor())
         draw_editor_pane(main_menu_height);
     draw_fps();
     draw_tile_under_cursor();

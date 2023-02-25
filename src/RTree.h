@@ -7,7 +7,6 @@
 
 //#define RTREE_STDIO
 
-#include "compat/assert.hpp"
 #ifdef RTREE_STDIO
 #include <stdio.h>
 #endif
@@ -17,9 +16,6 @@
 //
 // RTree.h
 //
-
-#define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
-#define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
 
 #define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
 #define RTREE_USE_SPHERICAL_VOLUME // Better split classification, may be slower on some systems
@@ -69,7 +65,8 @@ public:
 
   RTree();
   RTree(const RTree& other);
-  virtual ~RTree();
+  virtual ~RTree() noexcept;
+  RTree& operator=(const RTree&);
 
   /// Insert entry
   /// \param a_min Min of bounding rect
@@ -180,14 +177,14 @@ public:
   /// Get object at iterator position
   DATATYPE& GetAt(Iterator& a_it)                 { return *a_it; }
 
-protected:
-
   /// Minimal bounding rectangle (n-dimensional)
   struct Rect
   {
     ELEMTYPE m_min[NUMDIMS];                      ///< Min dimensions of bounding box
     ELEMTYPE m_max[NUMDIMS];                      ///< Max dimensions of bounding box
   };
+
+protected:
 
   /// May be data or may be another subtree
   /// The parents level determines this.
@@ -281,7 +278,7 @@ public:
   void ListTree(std::vector<Rect>& vec, std::vector<Node*>& temp) const;
 };
 
-extern template class RTree<void*, unsigned, 2, float>;
+extern template class RTree<std::uint64_t, float, 2, float>;
 
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL

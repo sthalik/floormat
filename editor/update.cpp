@@ -56,6 +56,7 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
         switch (_editor.mode())
         {
         default:
+            break;
         case editor_mode::none:
             if (button == mouse_button_left)
                 if (auto* s = find_clickable_scenery(*cursor.pixel); s && s->item.can_activate(s->atlas))
@@ -119,8 +120,8 @@ void app::do_key(key k, int mods)
         return _editor.set_mode(editor_mode::walls);
     case key_mode_scenery:
         return _editor.set_mode(editor_mode::scenery);
-    case key_collision_boxes:
-        return void(_draw_collision_boxes = !_draw_collision_boxes);
+    case key_mode_collisions:
+        return void(_enable_render_bboxes = !_enable_render_bboxes);
     case key_quicksave:
         return do_quicksave();
     case key_quickload:
@@ -151,8 +152,10 @@ void app::update_world(float dt)
                 if (auto [atlas, scenery] = x.scenery(); atlas != nullptr)
                 {
                     auto pass0 = scenery.passability;
+                    auto offset0 = scenery.bbox_offset;
+                    auto size0 = scenery.bbox_size;
                     scenery.update(dt, *atlas);
-                    if (pass0 != scenery.passability)
+                    if (pass0 != scenery.passability || offset0 != scenery.offset || size0 != scenery.bbox_size)
                         c.mark_scenery_modified();
                 }
 }

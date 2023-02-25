@@ -123,11 +123,11 @@ auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
             case SDLK_2:        return { key_mode_floor,       mods };
             case SDLK_3:        return { key_mode_walls,       mods };
             case SDLK_4:        return { key_mode_scenery,     mods };
+            case SDLK_c | ALT:  return { key_mode_collisions,  mods };
             case SDLK_F5:       return { key_quicksave,        mods };
             case SDLK_F9:       return { key_quickload,        mods };
             case SDLK_q | CTRL: return { key_quit,             mods };
             case SDLK_n | CTRL: return { key_new_file,         mods };
-            case SDLK_b | ALT:  return { key_collision_boxes,  mods };
             }
         }
     }

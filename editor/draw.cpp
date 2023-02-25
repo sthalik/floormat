@@ -9,6 +9,7 @@
 #include "src/world.hpp"
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
+#include "src/RTree.hpp"
 
 namespace floormat {
 
@@ -60,7 +61,6 @@ void app::draw_cursor()
 
 void app::draw_collision_boxes()
 {
-#if 0
     const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     const auto sz = M->window_size();
     auto& world = M->world();
@@ -76,33 +76,30 @@ void app::draw_collision_boxes()
             if (c.empty())
                 continue;
             c.ensure_passability();
-            auto* lqt = c.lqt_from_collision_type(collision::move);
-            if (!lqt)
-                continue;
             const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
             if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
             {
-                auto bb = lqt->GetLooseBoundingBox();
-                bb.left -= bb.width; bb.top -= bb.height;
-                bb.width *= 2; bb.height *= 2;
-                auto q = lqt->QueryInsideRegion(bb);
-                using extractor = std::decay_t<decltype(*lqt)>::BoundingBoxExtractor;
-                while (!q.EndOfQuery())
-                {
-                    loose_quadtree::BoundingBox<std::int16_t> bb{0, 0, 0, 0};
-                    extractor::ExtractBoundingBox(q.GetCurrent(), &bb);
-                    _wireframe_rect.draw(shader, { Vector3(bb.left+bb.width/2.f, bb.top+bb.height/2.f, 0), Vector2(bb.width, bb.height), 3 });
-                    q.Next();
-                }
+                constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
+                auto* rtree = c.rtree();
+                using rtree_type = std::decay_t<decltype(*rtree)>;
+                using rect_type = typename rtree_type::Rect;
+                rtree->Search(min2f, max2f, [&](std::uint64_t data, const rect_type& rect) {
+                    [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                    Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                    auto size = (end - start);
+                    auto center = Vector3(start + size*.5f, 0.f);
+                    _wireframe_rect.draw(shader, { center, size, 3 });
+                    return true;
+                });
             }
         }
+
     shader.set_tint({1, 1, 1, 1});
-#endif
 }
 
 void app::draw()
 {
-    if (_draw_collision_boxes)
+    if (_enable_render_bboxes)
         draw_collision_boxes();
     if (_editor.current_tile_editor() || _editor.current_scenery_editor())
         draw_cursor();

@@ -1,3 +1,3 @@
 #include "RTree.hpp"
 
-template class RTree<void*, unsigned, 2, float>;
+template class RTree<std::uint64_t, float, 2, float>;

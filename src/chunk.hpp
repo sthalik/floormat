@@ -4,9 +4,9 @@
 #include "scenery.hpp"
 #include <type_traits>
 #include <array>
-#include <vector>
 #include <memory>
 #include <Magnum/GL/Mesh.h>
+#include "RTree.h"
 
 namespace floormat {
 
@@ -14,6 +14,15 @@ struct anim_atlas;
 
 enum class collision : std::uint8_t {
     view, shoot, move,
+};
+
+enum class collision_type : std::uint8_t {
+    none, entity, scenery, geometry,
+};
+
+struct collision_data final {
+    std::uint64_t tag       : 2;
+    std::uint64_t data      : 62;
 };
 
 struct chunk final
@@ -77,6 +86,8 @@ struct chunk final
 
     void ensure_passability() noexcept;
 
+    RTree<std::uint64_t, float, 2, float>* rtree() const noexcept { return &const_cast<chunk*>(this)->_rtree; }
+
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
     std::array<std::uint8_t, TILE_COUNT> ground_indexes = {};
@@ -89,6 +100,9 @@ private:
     std::array<scenery, TILE_COUNT> _scenery_variants = {};
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
+
+    RTree<std::uint64_t, float, 2, float> _rtree;
+
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,
                  _walls_modified   : 1 = true,
