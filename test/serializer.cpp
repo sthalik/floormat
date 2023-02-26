@@ -30,6 +30,7 @@ chunk test_app::make_test_chunk()
     c[{K+3, K+1}].scenery() = door;
     c[{ 3,   4 }].scenery() = table;
     c[{K,   K+1}].scenery() = control_panel;
+    c[{K,   K+1}].scenery().frame.bbox_size = {99, 88};
     c.mark_modified();
     return c;
 }

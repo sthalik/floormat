@@ -10,6 +10,7 @@
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
 #include "loader/scenery.hpp"
+#include "src/anim-atlas.hpp"
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -304,11 +305,12 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         auto img_w = maybe_intern_atlas(wall_west);
         auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
 
-        constexpr struct scenery default_scenery;
-
-        sc_exact &= scenery.offset == default_scenery.offset;
-        sc_exact &= scenery.bbox_size == default_scenery.bbox_size;
-        sc_exact &= scenery.bbox_offset == default_scenery.bbox_offset;
+        if (sc_exact && sc)
+        {
+            sc_exact = scenery.offset == sc->proto.frame.offset &&
+                       scenery.bbox_size == sc->proto.frame.bbox_size &&
+                       scenery.bbox_offset == sc->proto.frame.bbox_offset;
+        }
 
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
