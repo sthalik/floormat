@@ -9,11 +9,6 @@ namespace floormat {
 
 namespace {
 
-struct rotation_symmetry final {
-    rotation r = rotation::N;
-    Triple<Vector2b, Vector2ub, Vector2ub> value;
-};
-
 constexpr Pair<rotation, Triple<Vector2b, Vector2ub, Vector2ub>> rotation_symmetries[] = {
     { rotation::N, { { 1,  1}, {0, 1}, {0, 1} } },
     { rotation::E, { {-1,  1}, {1, 0}, {1, 0} } },
@@ -23,47 +18,25 @@ constexpr Pair<rotation, Triple<Vector2b, Vector2ub, Vector2ub>> rotation_symmet
 
 constexpr Triple<Vector2b, Vector2ub, Vector2ub> symmetry_for_rot(rotation r)
 {
-    fm_assert(r < rotation_COUNT && (std::size_t)r % 2 == 0);
+    fm_assert(r < rotation_COUNT);
     auto idx = (std::size_t)r / 2;
     const auto& [r1, sym] = rotation_symmetries[idx];
-    fm_debug_assert(r1 == r);
     return sym;
-}
-
-constexpr Pair<Vector2b, Vector2ub> rotate_bbox_to(Vector2b offset0, Vector2ub size0, rotation r_old, rotation r_new)
-{
-    fm_assert(r_old < rotation_COUNT && (std::size_t)r_old % 2 == 0);
-    fm_assert(r_new < rotation_COUNT && (std::size_t)r_new % 2 == 0);
-    auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
-    auto offset0_ = offset0 * m_offset0;
-    auto offset_n = Vector2b(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
-    fm_debug_assert(r_old != rotation::N || offset_n == offset0);
-    auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
-    fm_debug_assert(r_old != rotation::N || size_n == size0);
-    auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
-    return {
-        Vector2b{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*m_offset1,
-        Vector2ub{size_n[i_size1[0]], size_n[i_size1[1]]},
-    };
 }
 
 constexpr Vector2b rotate_bbox_offset(Vector2b offset0, rotation r_old, rotation r_new)
 {
-    fm_assert(r_old < rotation_COUNT && (std::size_t)r_old % 2 == 0);
-    fm_assert(r_new < rotation_COUNT && (std::size_t)r_new % 2 == 0);
+    fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
     auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
     auto offset0_ = offset0 * m_offset0;
     auto offset_n = Vector2b(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
-    //auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
-    //fm_debug_assert(r_old != rotation::N || offset_n == offset0 && size_n == size0);
     auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
     return Vector2b{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*m_offset1;
 }
 
 constexpr Vector2ub rotate_bbox_size(Vector2ub size0, rotation r_old, rotation r_new)
 {
-    fm_assert(r_old < rotation_COUNT && (std::size_t)r_old % 2 == 0);
-    fm_assert(r_new < rotation_COUNT && (std::size_t)r_new % 2 == 0);
+    fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
     auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
     auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
     //fm_debug_assert(r_old != rotation::N || offset_n == offset0 && size_n == size0);
@@ -71,24 +44,19 @@ constexpr Vector2ub rotate_bbox_size(Vector2ub size0, rotation r_old, rotation r
     return Vector2ub{size_n[i_size1[0]], size_n[i_size1[1]]};
 }
 
-constexpr Pair<Vector2b, Vector2ub> rot_for_door(rotation r)
+constexpr Pair<Vector2b, Vector2ub> rotate_bbox_to(Vector2b offset0, Vector2ub size0, rotation r_old, rotation r_new)
 {
-    constexpr Pair<Vector2b, Vector2ub> door_north = {
-        { 0, -32 }, { 32, 16 },
+    return {
+        rotate_bbox_offset(offset0, r_old, r_new),
+        rotate_bbox_size(size0, r_old, r_new),
     };
-    auto [offset, size] = door_north;
-    return rotate_bbox_to(offset, size, rotation::N, r);
-};
+}
 
 /* N   0   -32    32  16
  * E   32   0     16  32
  * S   0    32    32  16
  * W  -32   0     16  32
  */
-static_assert(rot_for_door(rotation::N) == Pair<Vector2b, Vector2ub>{{ 0, -32}, {32, 16}});
-static_assert(rot_for_door(rotation::E) == Pair<Vector2b, Vector2ub>{{32,  0 }, {16, 32}});
-static_assert(rot_for_door(rotation::S) == Pair<Vector2b, Vector2ub>{{ 0,  32}, {32, 16}});
-static_assert(rot_for_door(rotation::W) == Pair<Vector2b, Vector2ub>{{-32, 0 }, {16, 32}});
 
 /* N   16  -32    32  16
  * E   32   16    16  32
