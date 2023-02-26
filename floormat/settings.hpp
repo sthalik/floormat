@@ -15,7 +15,7 @@ struct fm_settings
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(fm_settings);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(fm_settings);
 
-    String title = "Test"_s;
+    String title = "floormat editor"_s;
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     fm_gpu_debug gpu_debug = fm_gpu_debug::on;
