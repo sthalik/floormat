@@ -304,6 +304,12 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         auto img_w = maybe_intern_atlas(wall_west);
         auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
 
+        constexpr struct scenery default_scenery;
+
+        sc_exact &= scenery.offset == default_scenery.offset;
+        sc_exact &= scenery.bbox_size == default_scenery.bbox_size;
+        sc_exact &= scenery.bbox_offset == default_scenery.bbox_offset;
+
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
         flags |= meta_wall_n  * (img_n != null_atlas);
@@ -352,11 +358,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             id |= meta_long_scenery_bit * sc_exact;
             id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
             s << id;
-            if (constexpr struct scenery default_scenery;
-                !sc_exact ||
-                scenery.offset != default_scenery.offset ||
-                scenery.bbox_size != default_scenery.bbox_size ||
-                scenery.bbox_offset != default_scenery.bbox_offset)
+            if (!sc_exact)
             {
                 fm_assert(scenery.active || scenery.delta == 0);
                 write_scenery_flags(s, scenery);
