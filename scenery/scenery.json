@@ -2,7 +2,9 @@
   {
     "name": "door1",
     "type": "door",
-    "atlas-name": "door-close"
+    "atlas-name": "door-close",
+    "bbox-offset": "0 x -32",
+    "bbox-size": "32 x 16"
   },
   {
     "name": "control panel (wall) 1",

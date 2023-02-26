@@ -108,6 +108,7 @@ private:
 
     void do_key(key k, int mods);
     void do_key(key k);
+    void do_rotate(bool backward);
     void apply_commands(const key_set& k);
     int get_key_modifiers();
     void clear_keys(key min_inclusive, key max_exclusive);

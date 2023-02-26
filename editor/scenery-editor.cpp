@@ -21,11 +21,7 @@ scenery_editor::scenery_editor() noexcept
 
 void scenery_editor::set_rotation(rotation_ r)
 {
-    if (_selected.proto.atlas)
-    {
-        (void)_selected.proto.atlas->group(r);
-        _selected.proto.frame.r = r;
-    }
+    _selected.proto.frame.rotate(r);
 }
 
 rotation_ scenery_editor::rotation() const
@@ -35,23 +31,21 @@ rotation_ scenery_editor::rotation() const
 
 void scenery_editor::next_rotation()
 {
-    if (_selected)
-        set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
+    set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
 }
 
 void scenery_editor::prev_rotation()
 {
-    if (_selected)
-        set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
+    set_rotation(_selected.proto.atlas->prev_rotation_from(_selected.proto.frame.r));
 }
 
 void scenery_editor::select_tile(const scenery_& s)
 {
-    const auto rot = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.frame.r)
-                     ? _selected.proto.frame.r
-                     : s.proto.frame.r;
+    const auto r = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.frame.r)
+                   ? _selected.proto.frame.r
+                   : s.proto.frame.r;
     _selected = s;
-    _selected.proto.frame.r = rot;
+    set_rotation(r);
 }
 
 void scenery_editor::clear_selection()

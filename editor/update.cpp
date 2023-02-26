@@ -83,6 +83,30 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
     _editor.on_release();
 }
 
+void app::do_rotate(bool backward)
+{
+    if (auto* ed = _editor.current_tile_editor())
+        ed->toggle_rotation();
+    else if (auto* ed = _editor.current_scenery_editor())
+    {
+        if (ed->is_anything_selected())
+            backward ? ed->prev_rotation() : ed->next_rotation();
+        else if (cursor.tile)
+        {
+            auto [c, t] = M->world()[*cursor.tile];
+            if (auto [atlas, s] = t.scenery(); atlas)
+            {
+                auto r = backward ? atlas->prev_rotation_from(s.r) : atlas->next_rotation_from(s.r);
+                if (r != s.r)
+                {
+                    s.rotate(r);
+                    c.mark_scenery_modified();
+                }
+            }
+        }
+    }
+}
+
 void app::do_key(key k, int mods)
 {
     (void)mods;
@@ -93,25 +117,7 @@ void app::do_key(key k, int mods)
             fm_warn("unhandled key: '%zu'", std::size_t(k));
         return;
     case key_rotate_tile:
-        if (auto* ed = _editor.current_tile_editor())
-            ed->toggle_rotation();
-        else if (auto* ed = _editor.current_scenery_editor())
-        {
-            if (ed->is_anything_selected())
-                ed->next_rotation();
-            else if (cursor.tile)
-            {
-                auto [c, t] = M->world()[*cursor.tile];
-                if (auto [atlas, s] = t.scenery(); atlas)
-                {
-                    auto old_r = s.r;
-                    s.r = atlas->next_rotation_from(s.r);
-                    if (s.r != old_r)
-                        c.mark_scenery_modified();
-                }
-            }
-        }
-        return;
+        return do_rotate(false);
     case key_mode_none:
         return _editor.set_mode(editor_mode::none);
     case key_mode_floor:

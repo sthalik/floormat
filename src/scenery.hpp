@@ -59,6 +59,10 @@ struct scenery final
     bool can_activate(const anim_atlas& anim) const noexcept;
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);
+    void rotate(rotation r);
+
+    static Vector2b rotate_bbox_offset(Vector2b offset, rotation old_r, rotation r);
+    static Vector2ub rotate_bbox_size(Vector2ub size, rotation old_r, rotation r);
 };
 
 constexpr scenery::scenery() noexcept : scenery{scenery::none_tag_t{}} {}

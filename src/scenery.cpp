@@ -47,6 +47,30 @@ constexpr Pair<Vector2b, Vector2ub> rotate_bbox_to(Vector2b offset0, Vector2ub s
     };
 }
 
+constexpr Vector2b rotate_bbox_offset(Vector2b offset0, rotation r_old, rotation r_new)
+{
+    fm_assert(r_old < rotation_COUNT && (std::size_t)r_old % 2 == 0);
+    fm_assert(r_new < rotation_COUNT && (std::size_t)r_new % 2 == 0);
+    auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
+    auto offset0_ = offset0 * m_offset0;
+    auto offset_n = Vector2b(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
+    //auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
+    //fm_debug_assert(r_old != rotation::N || offset_n == offset0 && size_n == size0);
+    auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
+    return Vector2b{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*m_offset1;
+}
+
+constexpr Vector2ub rotate_bbox_size(Vector2ub size0, rotation r_old, rotation r_new)
+{
+    fm_assert(r_old < rotation_COUNT && (std::size_t)r_old % 2 == 0);
+    fm_assert(r_new < rotation_COUNT && (std::size_t)r_new % 2 == 0);
+    auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
+    auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
+    //fm_debug_assert(r_old != rotation::N || offset_n == offset0 && size_n == size0);
+    auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
+    return Vector2ub{size_n[i_size1[0]], size_n[i_size1[1]]};
+}
+
 constexpr Pair<Vector2b, Vector2ub> rot_for_door(rotation r)
 {
     constexpr Pair<Vector2b, Vector2ub> door_north = {
@@ -79,6 +103,9 @@ static_assert(rotate_bbox_to({ 32,  16}, {16, 32}, rotation::E, rotation::S) == 
 static_assert(rotate_bbox_to({ 32,  16}, {16, 32}, rotation::E, rotation::N) == Pair<Vector2b, Vector2ub>{{ 16, -32}, {32, 16}});
 static_assert(rotate_bbox_to({-32, -16}, {16, 32}, rotation::W, rotation::S) == Pair<Vector2b, Vector2ub>{{-16,  32}, {32, 16}});
 
+static_assert(rotate_bbox_to({1, 2}, {3, 4}, rotation::E, rotation::E) == Pair<Vector2b, Vector2ub>{{1, 2}, {3, 4}});
+static_assert(rotate_bbox_to({1, 2}, {3, 4}, rotation::N, rotation::N) == Pair<Vector2b, Vector2ub>{{1, 2}, {3, 4}});
+
 } // namespace
 
 scenery_proto::scenery_proto() noexcept = default;
@@ -108,7 +135,9 @@ scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t fra
                  pass_mode passability, bool active, bool interactive,
                  Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
     frame{frame},
-    offset{offset}, bbox_offset{bbox_offset}, bbox_size{bbox_size},
+    offset{offset},
+    bbox_offset{rotate_bbox_offset(bbox_offset, atlas.first_rotation(), r)},
+    bbox_size{rotate_bbox_size(bbox_size, atlas.first_rotation(), r)},
     r{r}, type{scenery_type::generic},
     passability{passability},
     active{active}, interactive{interactive}
@@ -120,13 +149,25 @@ scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t fra
 scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
                  Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
     frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
-    offset{offset}, bbox_offset{bbox_offset}, bbox_size{bbox_size},
+    offset{offset},
+    bbox_offset{rotate_bbox_offset(bbox_offset, atlas.first_rotation(), r)},
+    bbox_size{rotate_bbox_size(bbox_size, atlas.first_rotation(), r)},
     r{r}, type{scenery_type::door},
     passability{is_open ? pass_mode::pass : pass_mode::blocked},
     interactive{true}
 {
     fm_assert(r < rotation_COUNT);
     fm_assert(atlas.group(r).frames.size() >= 2);
+}
+
+Vector2b scenery::rotate_bbox_offset(Vector2b offset, rotation old_r, rotation r) { return floormat::rotate_bbox_offset(offset, old_r, r); }
+Vector2ub scenery::rotate_bbox_size(Vector2ub size, rotation old_r, rotation r) { return floormat::rotate_bbox_size(size, old_r, r); }
+
+void scenery::rotate(rotation new_r)
+{
+    bbox_offset = scenery::rotate_bbox_offset(bbox_offset, r, new_r);
+    bbox_size = scenery::rotate_bbox_size(bbox_size, r, new_r);
+    r = new_r;
 }
 
 bool scenery::can_activate(const anim_atlas&) const noexcept
