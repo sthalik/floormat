@@ -18,8 +18,6 @@ private:
         chunk_coords pos = invalid_coords;
     } _last_chunk;
 
-    void maybe_collect();
-
     static constexpr std::size_t initial_capacity = 64, collect_every = 64;
     static constexpr float max_load_factor = .5;
     static constexpr auto hasher = [](chunk_coords c) constexpr -> std::size_t {
@@ -43,6 +41,7 @@ public:
     bool contains(chunk_coords c) const noexcept;
     void clear();
     void collect(bool force = false);
+    void maybe_collect();
     std::size_t size() const noexcept { return _chunks.size(); }
 
     [[deprecated]] const auto& chunks() const noexcept { return _chunks; } // only for serialization

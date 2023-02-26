@@ -14,7 +14,6 @@ world::world(std::size_t capacity) : _chunks{capacity, hasher}
 
 chunk& world::operator[](chunk_coords coord) noexcept
 {
-    maybe_collect();
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
         c = &_chunks.try_emplace(coord).first->second;

@@ -184,6 +184,8 @@ void app::update(float dt)
         else
             set_cursor_from_imgui();
     }
+
+    M->world().maybe_collect();
 }
 
 } // namespace floormat
