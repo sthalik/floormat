@@ -29,7 +29,6 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     int exec() override;
     void quit(int status) override;
 
-    Magnum::Math::Vector2<int> window_size() const noexcept override;
     tile_shader& shader() noexcept override;
     const tile_shader& shader() const noexcept override;
 

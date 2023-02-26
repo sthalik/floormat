@@ -15,7 +15,6 @@ struct world& main_impl::world() noexcept { return _world; }
 SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
 fm_settings& main_impl::settings() noexcept { return s; }
 const fm_settings& main_impl::settings() const noexcept { return s; }
-Vector2i main_impl::window_size() const noexcept { return framebufferSize(); }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 const tile_shader& main_impl::shader() const noexcept { return _shader; }
 bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
@@ -26,7 +25,8 @@ const Platform::Sdl2Application& main_impl::application() const noexcept { retur
 
 int main_impl::exec()
 {
-    recalc_viewport(framebufferSize(), windowSize());
+    _framebuffer_size = framebufferSize();
+    recalc_viewport(_framebuffer_size, windowSize());
     return Sdl2Application::exec();
 }
 
@@ -35,6 +35,11 @@ floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
     auto* ret = new main_impl(app, std::move(options), options.argc, const_cast<char**>(options.argv));
     fm_assert(ret);
     return ret;
+}
+
+Vector2i floormat_main::window_size() const noexcept
+{
+    return _framebuffer_size;
 }
 
 void main_impl::set_cursor(std::uint32_t cursor) noexcept

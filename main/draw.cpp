@@ -48,7 +48,7 @@ Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
 {
     constexpr Vector2d pixel_size(TILE_SIZE2);
     constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{framebufferSize()}*.5 - _shader.camera_offset();
+    const Vector2d px = position - Vector2d{window_size()}*.5 - _shader.camera_offset();
     return tile_shader::unproject(px*.5) / pixel_size + half;
 }
 
@@ -57,7 +57,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     using limits = std::numeric_limits<std::int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
-    const auto win = Vector2d(framebufferSize());
+    const auto win = Vector2d(window_size());
 
     chunk_coords list[] = {
         pixel_to_tile(Vector2d{0, 0}).chunk(),
@@ -79,7 +79,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 void main_impl::draw_world() noexcept
 {
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    const auto sz = framebufferSize();
+    const auto sz = window_size();
 
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
@@ -96,7 +96,6 @@ void main_impl::draw_world() noexcept
         }
 
     _clickable_scenery.clear();
-    const auto window_size = framebufferSize();
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::defaultFramebuffer.clearDepthStencil(0, 0);
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -127,7 +126,7 @@ void main_impl::draw_world() noexcept
                 {
                     const local_coords xy{i};
                     if (auto [atlas, s] = c[xy].scenery(); atlas)
-                        _anim_mesh.add_clickable(_shader, window_size, pos, std::uint8_t(i), atlas, s, _clickable_scenery);
+                        _anim_mesh.add_clickable(_shader, window_size(), pos, std::uint8_t(i), atlas, s, _clickable_scenery);
                 }
             }
         }

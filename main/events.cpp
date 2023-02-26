@@ -9,6 +9,7 @@ namespace floormat {
 
 void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 {
+    _framebuffer_size = event.framebufferSize();
     recalc_viewport(event.framebufferSize(), event.windowSize());
     app.on_viewport_event(event.framebufferSize());
 }
