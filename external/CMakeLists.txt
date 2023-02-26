@@ -27,6 +27,7 @@ else()
     add_compile_options(
         -Wno-error
         -Wno-undef
+        -Wno-cast-function-type
     )
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-old-style-cast")
 endif()
