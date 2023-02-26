@@ -48,9 +48,11 @@ struct scenery final
 
     constexpr scenery() noexcept;
     constexpr scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame = 0,
-            pass_mode passability = pass_mode::shoot_through, bool active = false, bool interactive = false);
-    scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open = false);
+    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
+            pass_mode passability, bool active, bool interactive,
+            Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
+    scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
+            Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
 
     bool operator==(const scenery&) const noexcept;
 

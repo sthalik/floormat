@@ -144,7 +144,8 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
               Vector2b(offset), Vector2b(bbox_offset), Vector2ub(bbox_size) };
         break;
     case scenery_type::door:
-        f = { scenery::door, *val.atlas, r, false, Vector2b(offset) };
+        f = { scenery::door, *val.atlas, r, false,
+              Vector2b(offset), Vector2b(bbox_offset), Vector2ub(bbox_size), };
     }
 }
 
