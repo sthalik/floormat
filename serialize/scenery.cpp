@@ -6,6 +6,7 @@
 #include "serialize/corrade-string.hpp"
 #include "loader/scenery.hpp"
 #include "serialize/pass-mode.hpp"
+#include "serialize/magnum-vector2i.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
 
@@ -81,15 +82,28 @@ void adl_serializer<rotation>::from_json(const json& j, rotation& val)
 
 void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
 {
-    const scenery& f = val.frame;
-    j["type"] = f.type;
     fm_assert(val.atlas);
+    constexpr scenery default_scenery;
+    const scenery& f = val.frame;
+    if (f.type != default_scenery.type)
+        j["type"] = f.type;
     j["atlas-name"] = val.atlas->name();
-    j["frame"] = f.frame;
-    j["rotation"] = f.r;
-    j["pass-mode"] = f.passability;
-    j["active"] = f.active;
-    j["interactive"] = f.interactive;
+    if (f.frame != default_scenery.frame)
+        j["frame"] = f.frame;
+    if (f.r != default_scenery.r)
+        j["rotation"] = f.r;
+    if (f.passability != default_scenery.passability)
+        j["pass-mode"] = f.passability;
+    if (f.active != default_scenery.active)
+        j["active"] = f.active;
+    if (f.interactive != default_scenery.interactive)
+        j["interactive"] = f.interactive;
+    if (f.offset != default_scenery.offset)
+        j["offset"] = Vector2i(f.offset);
+    if (f.bbox_offset != default_scenery.bbox_offset)
+        j["bbox-offset"] = Vector2i(f.bbox_offset);
+    if (f.bbox_size != default_scenery.bbox_size)
+        j["bbox-size"] = Vector2ui(f.bbox_size);
 }
 
 void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
@@ -107,21 +121,30 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     auto& f = val.frame;
     f = {};
 
-    auto type = scenery_type::generic; get("type", type);
-    auto r = val.atlas->first_rotation(); get("rotation", r);
-    auto frame     = f.frame;       get("frame", frame);
-    pass_mode pass = f.passability; get("pass-mode", pass);
-    bool active    = f.active;      get("active", active);
+    auto type = scenery_type::generic;              get("type", type);
+    auto frame       = f.frame;                     get("frame", frame);
+    auto r           = val.atlas->first_rotation(); get("rotation", r);
+    pass_mode pass   = f.passability;               get("pass-mode", pass);
+    bool active      = f.active;                    get("active", active);
+    bool interactive = f.interactive;               get("interactive", interactive);
+    auto offset      = Vector2i(f.offset);          get("offset", offset);
+    auto bbox_offset = Vector2i(f.bbox_offset);     get("bbox-offset", bbox_offset);
+    auto bbox_size   = Vector2ui(f.bbox_size);      get("bbox-size", bbox_size);
+    fm_soft_assert(offset == Vector2i(Vector2b(offset)));
+    fm_soft_assert(bbox_offset == Vector2i(Vector2b(bbox_offset)));
+    fm_soft_assert(bbox_size == Vector2ui(Vector2ub(bbox_size)));
 
     switch (type)
     {
     default:
         fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
     case scenery_type::generic:
-        f = { scenery::generic, *val.atlas, r, frame, pass, active };
+        f = { scenery::generic, *val.atlas, r, frame, pass,
+              active, interactive,
+              Vector2b(offset), Vector2b(bbox_offset), Vector2ub(bbox_size) };
         break;
     case scenery_type::door:
-        f = { scenery::door, *val.atlas, r, false };
+        f = { scenery::door, *val.atlas, r, false, Vector2b(offset) };
     }
 }
 
