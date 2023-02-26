@@ -6,7 +6,7 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 
-#if defined CORRADE_CONSTEVAL || defined MAGNUM_CONSTEXPR14
+#if defined CORRADE_CONSTEXPR14_
 
 #ifdef __GNUG__
 #   pragma GCC diagnostic push
@@ -72,5 +72,5 @@ void test_app::test_const_math()
 #   pragma GCC diagnostic pop
 #endif
 #else
-namespace floormat { bool floormat::test_const_math() { return true; } }
+void floormat::test_app::test_const_math() {}
 #endif
