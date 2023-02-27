@@ -131,19 +131,40 @@ BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
 {
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
-    const auto width  = size[1], height = size[0];
-
-    if (tex.pixelSize() == 3)
-        return BitArray{DirectInit, width*height, true};
+    const auto width = size[1], height = size[0], dest_len = width*height,
+               stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
+    const auto* const data = (const unsigned char*)pixels.data();
+    auto* const dest = new unsigned char[(dest_len+7)>>3];
+    auto array = BitArray{dest, 0, dest_len, {}};
 
     fm_assert(tex.pixelSize() == 4);
     fm_assert(pixels.stride()[1] == 4);
-    const auto stride = (std::size_t)pixels.stride()[0];
-    BitArray array{NoInit, width*height};
-    const char* __restrict const data = (const char*)pixels.data();
-    for (std::size_t y = 0; y < height; y++)
-        for (std::size_t x = 0; x < width; x++)
-            array.set(y*width + x, data[(height-y-1)*stride + x*4 + 3] != 0);
+
+    for (std::size_t j = 0; j < height; j++)
+    {
+        constexpr unsigned char amin = 32;
+        std::size_t i = 0;
+        for (; i < width0; i += 8)
+        {
+            const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width + i>>3;
+            const unsigned char* buf = data + src_idx;
+            auto value = (unsigned char)(
+                (unsigned char)(buf[0*4] >= amin) << 0 |
+                (unsigned char)(buf[1*4] >= amin) << 1 |
+                (unsigned char)(buf[2*4] >= amin) << 2 |
+                (unsigned char)(buf[3*4] >= amin) << 3 |
+                (unsigned char)(buf[4*4] >= amin) << 4 |
+                (unsigned char)(buf[5*4] >= amin) << 5 |
+                (unsigned char)(buf[6*4] >= amin) << 6 |
+                (unsigned char)(buf[7*4] >= amin) << 7);
+            dest[dst_idx] = value;
+        }
+        for (; i < width; i++)
+        {
+            unsigned char alpha = data[(j*stride + i*4)+3];
+            array.set((height-j-1)*width + i, alpha >= amin);
+        }
+    }
     return array;
 }
 
