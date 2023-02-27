@@ -47,3 +47,5 @@ namespace floormat {
     using Error [[maybe_unused]] = ::Corrade::Utility::Error;
     namespace Path = Corrade::Utility::Path; // NOLINT(misc-unused-alias-decls)
 } // namespace floormat
+
+consteval auto operator""_uz(unsigned long long int x) { return ::floormat::types::size_t(x); }

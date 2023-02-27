@@ -60,7 +60,7 @@ void chunk::ensure_passability() noexcept
 
     _rtree.RemoveAll();
 
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         auto tile = operator[](i);
         if (auto s = tile.scenery())
@@ -71,7 +71,7 @@ void chunk::ensure_passability() noexcept
                 _rtree.Insert(start.data(), end.data(), id);
             }
     }
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         if (const auto* atlas = ground_atlas_at(i))
             if (atlas->pass_mode(pass_mode::pass) != pass_mode::pass)
@@ -81,7 +81,7 @@ void chunk::ensure_passability() noexcept
                 _rtree.Insert(start.data(), end.data(), id);
             }
     }
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         auto tile = operator[](i);
         if (const auto* atlas = tile.wall_north_atlas().get())

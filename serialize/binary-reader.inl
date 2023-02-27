@@ -23,7 +23,7 @@ constexpr T binary_reader<It>::read() noexcept(false)
     fm_soft_assert((std::ptrdiff_t)N <= std::distance(it, end));
     num_bytes_read += N;
     char buf[N];
-    for (std::size_t i = 0; i < N; i++)
+    for (auto i = 0_uz; i < N; i++)
         buf[i] = *it++;
     return maybe_byteswap(std::bit_cast<T, decltype(buf)>(buf));
 }
@@ -37,7 +37,7 @@ constexpr std::array<char, N> binary_reader<It>::read() noexcept(false)
         array = {};
     fm_soft_assert(N <= (std::size_t)std::distance(it, end));
     num_bytes_read += N;
-    for (std::size_t i = 0; i < N; i++)
+    for (auto i = 0_uz; i < N; i++)
         array[i] = *it++;
     return array;
 }
@@ -74,7 +74,7 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
     };
 
     fixed_string ret;
-    for (std::size_t i = 0; i < MAX && it != end; i++)
+    for (auto i = 0_uz; i < MAX && it != end; i++)
     {
         const char c = *it++;
         ret.buf[i] = c;

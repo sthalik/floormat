@@ -17,13 +17,13 @@ std::size_t random_engine_impl::operator()()
 {
     if constexpr(sizeof(std::size_t) > sizeof(std::uint32_t))
     {
-        constexpr std::size_t N = (sizeof(std::size_t) + sizeof(std::uint32_t)-1) / sizeof(std::uint32_t);
+        constexpr auto N = (sizeof(std::size_t) + sizeof(std::uint32_t)-1) / sizeof(std::uint32_t);
         static_assert(N >= 1);
         union {
             std::size_t x;
             std::uint32_t a[N];
         } ret;
-        for (std::size_t i = 0; i < N; i++)
+        for (auto i = 0_uz; i < N; i++)
             ret.a[i] = g();
         return ret.x;
     }

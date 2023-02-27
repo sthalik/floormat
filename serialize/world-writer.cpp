@@ -256,7 +256,7 @@ void writer_state::serialize_scenery()
     s << (atlasid)sz;
 
     StringView last;
-    for (std::size_t i = 0; i < sz; i++)
+    for (auto i = 0_uz; i < sz; i++)
     {
         fm_debug_assert(s.bytes_written() + atlasbuf_size1 < atlasbuf_size);
         const auto& [sc, idx] = vec[i];
@@ -264,8 +264,8 @@ void writer_state::serialize_scenery()
         {
             fm_assert(sc->name.size() < atlas_name_max);
             last = sc->name;
-            std::size_t num = 1;
-            for (std::size_t j = i+1; j < sz && vec[j].s->name == sc->name; j++)
+            auto num = 1_uz;
+            for (auto j = i+1; j < sz && vec[j].s->name == sc->name; j++)
                 num++;
             fm_assert(num < int_max<std::uint8_t>);
             s << (std::uint8_t)num;
@@ -292,7 +292,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
     s << chunk_magic << coord.x << coord.y;
 
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         const tile_proto x = c[i];
         const auto ground = x.ground(), wall_north = x.wall_north(), wall_west = x.wall_west();

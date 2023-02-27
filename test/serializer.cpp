@@ -37,7 +37,7 @@ chunk test_app::make_test_chunk()
 
 static bool chunks_equal(const chunk& a, const chunk& b)
 {
-    for (std::size_t i = 0; i < TILE_COUNT; i++)
+    for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         const auto &a1 = a[i], &b1 = b[i];
         if (a1 != b1)

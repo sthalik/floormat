@@ -49,7 +49,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
         constexpr std::size_t per_row = 8;
-        for (std::size_t i = 0; i < N; i++)
+        for (auto i = 0_uz; i < N; i++)
         {
             const bool selected = ed.is_tile_selected(atlas, i);
             if (i > 0 && i % per_row == 0)

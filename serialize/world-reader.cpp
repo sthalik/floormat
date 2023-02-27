@@ -73,14 +73,14 @@ void reader_state::read_sceneries(reader_t& s)
     fm_soft_assert(sz < scenery_id_max);
     sceneries.resize(sz);
 
-    std::size_t i = 0;
+    auto i = 0_uz;
     while (i < sz)
     {
         std::uint8_t num; num << s;
         fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
         const auto sc_ = loader.scenery(str);
-        for (std::size_t n = 0; n < num; n++)
+        for (auto n = 0_uz; n < num; n++)
         {
             atlasid id; id << s;
             fm_soft_assert(id < sz);
@@ -120,7 +120,7 @@ void reader_state::read_chunks(reader_t& s)
 {
     const auto N = s.read<chunksiz>();
 
-    for (std::size_t k = 0; k < N; k++)
+    for (auto k = 0_uz; k < N; k++)
     {
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
@@ -130,7 +130,7 @@ void reader_state::read_chunks(reader_t& s)
         coord.x << s;
         coord.y << s;
         auto& chunk = (*_world)[coord];
-        for (std::size_t i = 0; i < TILE_COUNT; i++)
+        for (auto i = 0_uz; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
             tile_ref t = chunk[i];

@@ -122,7 +122,7 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
             {
                 _anim_mesh.draw(_shader, c);
-                for (std::size_t i = 0; i < TILE_COUNT; i++)
+                for (auto i = 0_uz; i < TILE_COUNT; i++)
                 {
                     const local_coords xy{i};
                     if (auto [atlas, s] = c[xy].scenery(); atlas)

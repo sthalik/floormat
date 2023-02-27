@@ -50,7 +50,7 @@ auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count
 {
     const std::size_t N = Vector2ui{tile_count}.product();
     auto ptr = std::make_unique<std::array<Vector2, 4>[]>(N);
-    for (std::size_t i = 0; i < N; i++)
+    for (auto i = 0_uz; i < N; i++)
         ptr[i] = make_texcoords(pixel_size, tile_count, i);
     return ptr;
 }

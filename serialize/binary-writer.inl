@@ -17,7 +17,7 @@ constexpr void binary_writer<It>::write(T x) noexcept
     _bytes_written += sizeof(T);
     constexpr std::size_t N = sizeof(T);
     const auto buf = std::bit_cast<std::array<char, N>, T>(maybe_byteswap(x));
-    for (std::size_t i = 0; i < N; i++)
+    for (auto i = 0_uz; i < N; i++)
         *it++ = buf[i];
 }
 
@@ -34,7 +34,7 @@ constexpr void binary_writer<It>::write_asciiz_string(StringView str) noexcept
     fm_debug_assert(str.flags() & StringViewFlag::NullTerminated);
     const auto sz = str.size();
     _bytes_written += sz + 1;
-    for (std::size_t i = 0; i < sz; i++)
+    for (auto i = 0_uz; i < sz; i++)
         *it++ = str[i];
     *it++ = '\0';
 }

@@ -68,12 +68,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     Optional<last_> last;
     const auto max_index = std::uint32_t(size*quad_index_count - 1);
 
-    std::size_t last_id = 0;
-    for (std::size_t k = 0; k < size; k++)
+    auto last_id = 0_uz;
+    for (auto k = 0_uz; k < size; k++)
     {
         auto id = ids[k];
         auto [atlas, s] = c[id].scenery();
-        for (std::size_t i = last_id+1; i < id; i++)
+        for (auto i = last_id+1; i < id; i++)
             if (auto [atlas, s] = c[i].scenery();
                 atlas && atlas->info().fps > 0)
             {
@@ -103,7 +103,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
                 draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
     }
     else
-        for (std::size_t i = 0; i < TILE_COUNT; i++)
+        for (auto i = 0_uz; i < TILE_COUNT; i++)
             if (auto [atlas, s] = c[i].scenery(); atlas)
                 draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
 
@@ -120,7 +120,7 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::si
     const auto& g = atlas.group(r);
     const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
     quad_data array;
-    for (std::size_t i = 0; i < 4; i++)
+    for (auto i = 0_uz; i < 4; i++)
         array[i] = { pos[i], texcoords[i], depth };
     _vertex_buffer.setSubData(0, array);
     atlas.texture().bind(0);
