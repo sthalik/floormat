@@ -63,24 +63,18 @@ float app::draw_main_menu()
             using m = editor_mode;
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
                  b_rotate = false, b_scenery = mode == m::scenery, b_collisions = _enable_render_bboxes;
-            ImGui::MenuItem("Select",  "1", &b_none);
-            ImGui::MenuItem("Floor",   "2", &b_floor);
-            ImGui::MenuItem("Walls",   "3", &b_walls);
-            ImGui::MenuItem("Scenery", "4", &b_scenery);
-            ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions);
-            ImGui::Separator();
-            ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate);
-            if (b_none)
+            if (ImGui::MenuItem("Select",  "1", &b_none))
                 do_key(key_mode_none);
-            else if (b_floor)
+            if (ImGui::MenuItem("Floor",   "2", &b_floor))
                 do_key(key_mode_floor);
-            else if (b_walls)
+            if (ImGui::MenuItem("Walls",   "3", &b_walls))
                 do_key(key_mode_walls);
-            else if (b_scenery)
+            if (ImGui::MenuItem("Scenery", "4", &b_scenery))
                 do_key(key_mode_scenery);
-            else if (b_collisions)
+            if (ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions))
                 do_key(key_mode_collisions);
-            if (b_rotate)
+            ImGui::Separator();
+            if (ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate))
                 do_key(key_rotate_tile);
         }
 
