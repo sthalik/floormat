@@ -1,13 +1,15 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "src/anim-atlas.hpp"
+#include "loader/loader.hpp"
+#include <iterator>
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector4.h>
+#include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
-#include <Magnum/Image.h>
-#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/PixelFormat.h>
-#include <iterator>
+#include <chrono>
 
 namespace floormat {
 
@@ -38,9 +40,26 @@ constexpr bool result[] = {
 
 };
 
-} // namespace
+[[maybe_unused]] void bitmask_benchmark()
+{
+    std::chrono::high_resolution_clock clock;
+    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
+    auto bitmask = anim_atlas::make_bitmask(img);
+    constexpr int runs = 10, warmup = 100, cycles = 1000;
+    for (int i = 0; i < runs; i++)
+    {
+        for (int i = 0; i < warmup; i++)
+            anim_atlas::make_bitmask_(img, bitmask);
+        auto time0 = clock.now();
+        for (int i = 0; i < cycles; i++)
+            (void)anim_atlas::make_bitmask_(img, bitmask);
+        std::chrono::duration<double, std::milli> time = clock.now() - time0;
 
-void test_app::test_bitmask()
+        fm_log("[BENCH] bitmask %d/%d took %.1f ms", i, runs, time.count());
+    }
+}
+
+void bitmask_test()
 {
     constexpr auto size = std::size(img_data), width = 4_uz, height = size/4;
     static_assert(size % 4 == 0);
@@ -51,6 +70,14 @@ void test_app::test_bitmask()
     for (auto i = 0_uz; i < size; i++)
         if (bitmask[i] != result[i])
             fm_abort("wrong value at bit %zu, should be %s", i, result[i] ? "true" : "false");
+}
+
+} // namespace
+
+void test_app::test_bitmask()
+{
+    bitmask_test();
+    //bitmask_benchmark();
 }
 
 } // namespace floormat

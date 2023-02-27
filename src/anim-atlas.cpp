@@ -127,15 +127,14 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
     }};
 }
 
-BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
+void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 {
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
-    const auto width = size[1], height = size[0], dest_len = width*height,
+    const auto width = size[1], height = size[0],
                stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
     const auto* const data = (const unsigned char*)pixels.data();
-    auto* const dest = new unsigned char[(dest_len+7)>>3];
-    auto array = BitArray{dest, 0, dest_len, {}};
+    auto* const dest = (unsigned char*)array.data();
 
     fm_assert(tex.pixelSize() == 4);
     fm_assert(pixels.stride()[1] == 4);
@@ -165,6 +164,13 @@ BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
             array.set((height-j-1)*width + i, alpha >= amin);
         }
     }
+}
+
+BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
+{
+    const auto size = tex.pixels().size();
+    auto array = BitArray{NoInit, size[0]*size[1]};
+    make_bitmask_(tex, array);
     return array;
 }
 

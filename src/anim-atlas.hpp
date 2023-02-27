@@ -48,6 +48,7 @@ struct anim_atlas final
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
+    static void make_bitmask_(const ImageView2D& tex, BitArray& array);
     static BitArray make_bitmask(const ImageView2D& tex);
 
 private:
