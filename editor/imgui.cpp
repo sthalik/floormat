@@ -185,4 +185,13 @@ void app::draw_editor_pane(float main_menu_height)
     }
 }
 
+void app::do_escape()
+{
+    if (auto* ed = _editor.current_scenery_editor())
+        ed->clear_selection();
+    if (auto* ed = _editor.current_tile_editor())
+        ed->clear_selection();
+    ImGui::FocusWindow(nullptr);
+}
+
 } // namespace floormat

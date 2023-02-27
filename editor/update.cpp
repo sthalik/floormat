@@ -134,6 +134,8 @@ void app::do_key(key k, int mods)
         return do_quickload();
     case key_new_file:
         return do_new_file();
+    case key_escape:
+        return do_escape();
     case key_quit:
         return M->quit(0);
     }

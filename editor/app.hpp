@@ -91,6 +91,7 @@ private:
     void do_quicksave();
     void do_quickload();
     void do_new_file();
+    void do_escape();
 
     void draw_collision_boxes();
     void draw_editor_pane(float main_menu_height);

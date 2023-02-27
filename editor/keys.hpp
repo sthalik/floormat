@@ -21,6 +21,7 @@ enum key : unsigned {
     key_new_file,
     key_quit,
     key_quicksave, key_quickload,
+    key_escape,
     key_COUNT, key_MIN = key_noop,
 };
 
