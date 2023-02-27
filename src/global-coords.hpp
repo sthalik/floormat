@@ -3,6 +3,7 @@
 #include "compat/assert.hpp"
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
@@ -15,6 +16,10 @@ struct chunk_coords final {
     template<typename T>
     requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
     explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
+
+    template<typename T>
+    requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
+    explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }
 };
 
 constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
@@ -41,6 +46,7 @@ struct global_coords final {
     constexpr chunk_coords chunk() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
+    constexpr Vector3i to_signed3() const noexcept;
     constexpr bool operator==(const global_coords& other) const noexcept = default;
 
     constexpr global_coords operator+(Vector2i vec) const noexcept;
@@ -63,6 +69,11 @@ constexpr chunk_coords global_coords::chunk() const noexcept
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
     return { std::int32_t(x - (s0::value<<4)), std::int32_t(y - (s0::value<<4)), };
+}
+
+constexpr Vector3i global_coords::to_signed3() const noexcept
+{
+    return Vector3i(to_signed(), 0);
 }
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept

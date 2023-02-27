@@ -3,6 +3,7 @@
 #include "tile-defs.hpp"
 #include <concepts>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Vector3.h>
 
 namespace floormat {
 
@@ -16,6 +17,7 @@ struct local_coords final {
     constexpr std::uint8_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
 
     template<typename T> explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
+    template<typename T> explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }
 };
 
 constexpr local_coords::local_coords(std::size_t index) noexcept :

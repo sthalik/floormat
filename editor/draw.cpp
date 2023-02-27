@@ -23,8 +23,7 @@ void app::draw_cursor()
     if (cursor.tile && !cursor.in_imgui)
     {
         const auto draw = [&, pos = *cursor.tile](auto& mesh, const auto& size) {
-            const auto pt = pos.to_signed();
-            const auto center = Vector3(Vector3i(pt, 0) * iTILE_SIZE);
+            const auto center = Vector3(pos.to_signed3() * iTILE_SIZE);
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
@@ -51,7 +50,7 @@ void app::draw_cursor()
             {
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
-                const auto pos = Vector3i(cursor.tile->to_signed(), 0)*iTILE_SIZE;
+                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE;
                 anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, Vector3(pos), 1);
             }
         }
