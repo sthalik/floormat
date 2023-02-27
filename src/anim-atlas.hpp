@@ -48,6 +48,8 @@ struct anim_atlas final
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
 
+    static BitArray make_bitmask(const ImageView2D& tex);
+
 private:
     GL::Texture2D _tex;
     String _name;
@@ -59,7 +61,6 @@ private:
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
     static std::uint8_t rotation_to_index(StringView name) noexcept;
-    static BitArray make_bitmask(const ImageView2D& tex);
 };
 
 } // namespace floormat
