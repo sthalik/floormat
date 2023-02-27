@@ -31,7 +31,7 @@ struct loader_impl final : loader_
     String original_working_directory;
 
     StringView shader(StringView filename) noexcept override;
-    Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false);
+    Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) override;
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) override;
     ArrayView<String> anim_atlas_list() override;

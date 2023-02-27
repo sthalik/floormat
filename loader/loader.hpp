@@ -6,6 +6,10 @@
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat { struct serialized_scenery; }
+namespace Magnum::Trade {
+template<std::uint32_t> class ImageData;
+using ImageData2D = ImageData<2>;
+} // namespace Magnum::Trade
 
 namespace floormat {
 
@@ -16,6 +20,7 @@ struct scenery_proto;
 struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
+    virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
     virtual ArrayView<String> anim_atlas_list() = 0;
