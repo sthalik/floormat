@@ -4,11 +4,17 @@
 #include "anim.hpp"
 #include <array>
 #include <Corrade/Containers/BitArray.h>
-#include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/Texture.h>
+
+namespace Corrade::Containers {
+class BitArray;
+template<class> class BasicBitArrayView;
+typedef BasicBitArrayView<const char> BitArrayView;
+typedef BasicBitArrayView<char> MutableBitArrayView;
+} // namespace Corrade::Containers
 
 namespace floormat {
 
