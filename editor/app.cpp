@@ -83,6 +83,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     Corrade::Utility::Arguments args{};
     args.addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "", "true|false")
         .addOption("gpu-debug", "1").setFromEnvironment("gpu-debug", "FLOORMAT_GPU_DEBUG").setHelp("gpu-debug", "", "robust|on|off|no-error")
+        .addOption("geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addSkippedPrefix("magnum")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args, opts.vsync);
@@ -94,6 +95,15 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         opts.gpu_debug = parse_bool("gpu-debug", args, opts.gpu_debug > fm_gpu_debug::off)
                          ? fm_gpu_debug::on
                          : fm_gpu_debug::off;
+    if (auto str = args.value<StringView>("geometry"); !str.isEmpty())
+    {
+        Vector2us size;
+        int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
+        if (ret != 2 || (std::size_t)n != str.size() || Vector2ui(size).product() == 0)
+            fm_warn("invalid --geom argument '%s'", str.data());
+        else
+            opts.resolution = Vector2i(size);
+    }
     opts.argc = argc;
     opts.argv = argv;
     return opts;
