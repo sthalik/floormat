@@ -178,12 +178,6 @@ void main_impl::do_update()
 
 void main_impl::drawEvent()
 {
-#ifndef __linux__
-    if (int index = SDL_GetWindowDisplayIndex(window()); index >= 0)
-        if (float hdpi = 96, vdpi = 96; !SDL_GetDisplayDPI(index, nullptr, &hdpi, &vdpi))
-            _dpi_scale = { hdpi / 96, vdpi / 96 };
-#endif
-
     _shader.set_tint({1, 1, 1, 1});
 
     {
