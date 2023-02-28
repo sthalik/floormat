@@ -185,7 +185,7 @@ void RTREE_QUAL::Insert(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
 
 
 RTREE_TEMPLATE
-void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId)
+bool RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId)
 {
 #ifdef _DEBUG
   for(int index=0; index<NUMDIMS; ++index)
@@ -202,7 +202,7 @@ void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
     rect.m_max[axis] = a_max[axis];
   }
 
-  RemoveRect(&rect, a_dataId, &m_root);
+  return !RemoveRect(&rect, a_dataId, &m_root);
 }
 
 

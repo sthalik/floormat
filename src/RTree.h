@@ -78,7 +78,7 @@ public:
   /// \param a_min Min of bounding rect
   /// \param a_max Max of bounding rect
   /// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
-  void Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId);
+  bool Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId);
 
   /// Find all within search rectangle
   /// \param a_min Min of search bounding rect
