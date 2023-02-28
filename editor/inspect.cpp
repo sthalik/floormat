@@ -16,8 +16,6 @@ namespace floormat::entities {
 
 namespace {
 
-using erased_constraints::is_magnum_vector;
-
 const char* label_left(StringView label, char* buf, std::size_t len)
 {
     std::snprintf(buf, len, "##%s", label.data());
@@ -95,7 +93,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     }
     else if constexpr(std::is_same_v<T, bool>)
         ret = ImGui::Checkbox(label, &value);
-    else if constexpr (!is_magnum_vector<T>)
+    else if constexpr (!Math::IsVector<T>())
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;

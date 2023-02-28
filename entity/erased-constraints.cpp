@@ -19,7 +19,7 @@ template<typename T> std::pair<T, T> range::convert() const
 
     if (type == type_none)
     {
-        if constexpr (is_magnum_vector<T>)
+        if constexpr (Math::IsVector<T>())
         {
             using U = typename T::Type;
             constexpr auto Size = T::Size;
@@ -54,7 +54,7 @@ template<typename T> std::pair<T, T> range::convert() const
                 }
             }
         }
-        else if constexpr(is_magnum_vector<T>)
+        else if constexpr(Math::IsVector<T>())
         {
             using U = typename T::Type;
             constexpr auto Size = T::Size;
