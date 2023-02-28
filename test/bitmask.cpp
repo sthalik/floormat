@@ -45,11 +45,11 @@ constexpr bool result[] = {
     std::chrono::high_resolution_clock clock;
     auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
-    constexpr int runs = 10, warmup = 100, cycles = 1000;
+    constexpr int runs = 10, warmup = 500, cycles = 1000;
+    for (int i = 0; i < warmup; i++)
+        anim_atlas::make_bitmask_(img, bitmask);
     for (int i = 0; i < runs; i++)
     {
-        for (int i = 0; i < warmup; i++)
-            anim_atlas::make_bitmask_(img, bitmask);
         auto time0 = clock.now();
         for (int i = 0; i < cycles; i++)
             (void)anim_atlas::make_bitmask_(img, bitmask);
