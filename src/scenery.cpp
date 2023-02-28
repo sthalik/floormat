@@ -1,80 +1,10 @@
 #include "scenery.hpp"
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
+#include "rotation.inl"
 #include <algorithm>
-#include <Corrade/Containers/PairStl.h>
-#include <Corrade/Containers/TripleStl.h>
 
 namespace floormat {
-
-namespace {
-
-constexpr Pair<rotation, Triple<Vector2b, Vector2ub, Vector2ub>> rotation_symmetries[] = {
-    { rotation::N, { { 1,  1}, {0, 1}, {0, 1} } },
-    { rotation::E, { {-1,  1}, {1, 0}, {1, 0} } },
-    { rotation::S, { {-1, -1}, {0, 1}, {0, 1} } },
-    { rotation::W, { { 1, -1}, {1, 0}, {1, 0} } },
-};
-
-constexpr Triple<Vector2b, Vector2ub, Vector2ub> symmetry_for_rot(rotation r)
-{
-    fm_assert(r < rotation_COUNT);
-    auto idx = (std::size_t)r / 2;
-    const auto& [r1, sym] = rotation_symmetries[idx];
-    return sym;
-}
-
-constexpr Vector2b rotate_bbox_offset(Vector2b offset0, rotation r_old, rotation r_new)
-{
-    fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
-    auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
-    auto offset0_ = offset0 * m_offset0;
-    auto offset_n = Vector2b(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
-    auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
-    return Vector2b{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*m_offset1;
-}
-
-constexpr Vector2ub rotate_bbox_size(Vector2ub size0, rotation r_old, rotation r_new)
-{
-    fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
-    auto [m_offset0, i_offset0, i_size0] = symmetry_for_rot(r_old);
-    auto size_n = Vector2ub(size0[i_size0[0]], size0[i_size0[1]]);
-    //fm_debug_assert(r_old != rotation::N || offset_n == offset0 && size_n == size0);
-    auto [m_offset1, i_offset1, i_size1] = symmetry_for_rot(r_new);
-    return Vector2ub{size_n[i_size1[0]], size_n[i_size1[1]]};
-}
-
-constexpr Pair<Vector2b, Vector2ub> rotate_bbox_to(Vector2b offset0, Vector2ub size0, rotation r_old, rotation r_new)
-{
-    return {
-        rotate_bbox_offset(offset0, r_old, r_new),
-        rotate_bbox_size(size0, r_old, r_new),
-    };
-}
-
-/* N   0   -32    32  16
- * E   32   0     16  32
- * S   0    32    32  16
- * W  -32   0     16  32
- */
-
-/* N   16  -32    32  16
- * E   32   16    16  32
- * S  -16   32    32  16
- * W  -32  -16    16  32
- */
-static_assert(rotate_bbox_to({ 16, -32}, {32, 16}, rotation::N, rotation::E) == Pair<Vector2b, Vector2ub>{{ 32,  16}, {16, 32}});
-static_assert(rotate_bbox_to({ 16, -32}, {32, 16}, rotation::N, rotation::S) == Pair<Vector2b, Vector2ub>{{-16,  32}, {32, 16}});
-static_assert(rotate_bbox_to({ 16, -32}, {32, 16}, rotation::N, rotation::W) == Pair<Vector2b, Vector2ub>{{-32, -16}, {16, 32}});
-
-static_assert(rotate_bbox_to({ 32,  16}, {16, 32}, rotation::E, rotation::S) == Pair<Vector2b, Vector2ub>{{-16,  32}, {32, 16}});
-static_assert(rotate_bbox_to({ 32,  16}, {16, 32}, rotation::E, rotation::N) == Pair<Vector2b, Vector2ub>{{ 16, -32}, {32, 16}});
-static_assert(rotate_bbox_to({-32, -16}, {16, 32}, rotation::W, rotation::S) == Pair<Vector2b, Vector2ub>{{-16,  32}, {32, 16}});
-
-static_assert(rotate_bbox_to({1, 2}, {3, 4}, rotation::E, rotation::E) == Pair<Vector2b, Vector2ub>{{1, 2}, {3, 4}});
-static_assert(rotate_bbox_to({1, 2}, {3, 4}, rotation::N, rotation::N) == Pair<Vector2b, Vector2ub>{{1, 2}, {3, 4}});
-
-} // namespace
 
 scenery_proto::scenery_proto() noexcept = default;
 scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) noexcept :
@@ -104,8 +34,8 @@ scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t fra
                  Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
     frame{frame},
     offset{offset},
-    bbox_offset{rotate_bbox_offset(bbox_offset, atlas.first_rotation(), r)},
-    bbox_size{rotate_bbox_size(bbox_size, atlas.first_rotation(), r)},
+    bbox_offset{rotate_point(bbox_offset, atlas.first_rotation(), r)},
+    bbox_size{rotate_size(bbox_size, atlas.first_rotation(), r)},
     r{r}, type{scenery_type::generic},
     passability{passability},
     active{active}, interactive{interactive}
@@ -118,8 +48,8 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
                  Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
     frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
     offset{offset},
-    bbox_offset{rotate_bbox_offset(bbox_offset, atlas.first_rotation(), r)},
-    bbox_size{rotate_bbox_size(bbox_size, atlas.first_rotation(), r)},
+    bbox_offset{rotate_point(bbox_offset, atlas.first_rotation(), r)},
+    bbox_size{rotate_size(bbox_size, atlas.first_rotation(), r)},
     r{r}, type{scenery_type::door},
     passability{is_open ? pass_mode::pass : pass_mode::blocked},
     interactive{true}
@@ -128,13 +58,10 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
     fm_assert(atlas.group(r).frames.size() >= 2);
 }
 
-Vector2b scenery::rotate_bbox_offset(Vector2b offset, rotation old_r, rotation r) { return floormat::rotate_bbox_offset(offset, old_r, r); }
-Vector2ub scenery::rotate_bbox_size(Vector2ub size, rotation old_r, rotation r) { return floormat::rotate_bbox_size(size, old_r, r); }
-
 void scenery::rotate(rotation new_r)
 {
-    bbox_offset = scenery::rotate_bbox_offset(bbox_offset, r, new_r);
-    bbox_size = scenery::rotate_bbox_size(bbox_size, r, new_r);
+    bbox_offset = rotate_point(bbox_offset, r, new_r);
+    bbox_size = rotate_size(bbox_size, r, new_r);
     r = new_r;
 }
 

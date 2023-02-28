@@ -1,6 +1,7 @@
 #pragma once
 #include "pass-mode.hpp"
 #include "tile-defs.hpp"
+#include "rotation.hpp"
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -10,14 +11,6 @@
 namespace floormat {
 
 struct anim_atlas;
-
-enum class rotation : std::uint8_t {
-    N, NE, E, SE, S, SW, W, NW,
-};
-
-constexpr inline std::size_t rotation_BITS = 3;
-constexpr inline std::size_t rotation_MASK = (1 << rotation_BITS)-1;
-constexpr inline rotation rotation_COUNT = rotation{1 << rotation_BITS};
 
 enum class scenery_type : std::uint8_t {
     none, generic, door,
@@ -60,9 +53,6 @@ struct scenery final
     bool activate(const anim_atlas& atlas);
     void update(float dt, const anim_atlas& anim);
     void rotate(rotation r);
-
-    static Vector2b rotate_bbox_offset(Vector2b offset, rotation old_r, rotation r);
-    static Vector2ub rotate_bbox_size(Vector2ub size, rotation old_r, rotation r);
 };
 
 constexpr scenery::scenery() noexcept : scenery{scenery::none_tag_t{}} {}
