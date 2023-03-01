@@ -144,25 +144,22 @@ void app::draw()
     render_menu();
 }
 
-clickable_scenery* app::find_clickable_scenery(const Optional<Vector2i>& pixel_)
+clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel_)
 {
     if (!pixel_ || _editor.mode() != editor_mode::none)
         return nullptr;
 
     const auto pixel = Vector2ui(*pixel_);
-    clickable_scenery* item = nullptr;
+    clickable* item = nullptr;
     float depth = -1;
 
     const auto array = M->clickable_scenery();
-    for (clickable_scenery& c : array)
+    for (clickable& c : array)
         if (c.depth > depth && c.dest.contains(pixel))
         {
             const auto pos_ = pixel - c.dest.min() + c.src.min();
-            const auto pos = c.atlas.group(c.item.r).mirror_from.isEmpty()
-                             ? pos_
-                             : Vector2ui(c.src.sizeX() - 1 - pos_[0], pos_[1]);
-            const auto stride = c.atlas.info().pixel_size[0];
-            std::size_t idx = pos.y() * stride + pos.x();
+            const auto pos = !c.mirrored ? pos_ : Vector2ui(c.src.sizeX() - 1 - pos_[0], pos_[1]);
+            std::size_t idx = pos.y() * c.stride + pos.x();
             fm_debug_assert(idx < c.bitmask.size());
             if (c.bitmask[idx])
             {

@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "src/world.hpp"
+#include "rotation.inl"
 
 namespace floormat {
 
@@ -21,7 +22,10 @@ scenery_editor::scenery_editor() noexcept
 
 void scenery_editor::set_rotation(rotation_ r)
 {
-    _selected.proto.frame.rotate(r);
+    auto& s = _selected.proto.frame;
+    s.bbox_offset = rotate_point(s.bbox_offset, s.r, r);
+    s.bbox_size = rotate_size(s.bbox_size, s.r, r);
+    s.r = r;
 }
 
 rotation_ scenery_editor::rotation() const

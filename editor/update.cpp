@@ -49,6 +49,7 @@ void app::do_mouse_move(int mods)
 
 void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
 {
+    auto& w = M->world();
     update_cursor_tile(cursor.pixel);
 
     if (is_down && cursor.tile && !cursor.in_imgui)
@@ -59,13 +60,18 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
             break;
         case editor_mode::none:
             if (button == mouse_button_left)
-                if (auto* s = find_clickable_scenery(*cursor.pixel); s && s->item.can_activate(s->atlas))
-                    return (void)s->item.activate(s->atlas);
+            {
+                if (auto* cl = find_clickable_scenery(*cursor.pixel))
+                {
+                    auto [c, t] = w[{cl->chunk, cl->pos}];
+                    if (auto s = t.scenery())
+                        return (void)s.activate();
+                }
+            }
             break;
         case editor_mode::floor:
         case editor_mode::walls:
         case editor_mode::scenery:
-            auto& w = M->world();
             auto pos = *cursor.tile;
             switch (button)
             {
@@ -94,12 +100,13 @@ void app::do_rotate(bool backward)
         else if (cursor.tile)
         {
             auto [c, t] = M->world()[*cursor.tile];
-            if (auto [atlas, s] = t.scenery(); atlas)
+            if (auto sc = t.scenery())
             {
+                auto [atlas, s] = sc;
                 auto r = backward ? atlas->prev_rotation_from(s.r) : atlas->next_rotation_from(s.r);
                 if (r != s.r)
                 {
-                    s.rotate(r);
+                    sc.rotate(r);
                     c.mark_scenery_modified();
                 }
             }
@@ -157,15 +164,16 @@ void app::update_world(float dt)
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
             for (auto& c = world[chunk_coords{x, y}]; auto [x, k, pt] : c)
-                if (auto [atlas, scenery] = x.scenery(); atlas != nullptr)
+                if (auto sc = x.scenery())
                 {
-                    auto pass0 = scenery.passability;
-                    auto offset0 = scenery.offset;
-                    auto bb_offset0 = scenery.bbox_offset;
-                    auto bb_size0 = scenery.bbox_size;
-                    scenery.update(dt, *atlas);
-                    if (pass0 != scenery.passability || offset0 != scenery.offset ||
-                        bb_offset0 != scenery.bbox_offset || bb_size0 != scenery.bbox_size)
+                    auto [atlas, s] = x.scenery();
+                    auto pass0 = s.passability;
+                    auto offset0 = s.offset;
+                    auto bb_offset0 = s.bbox_offset;
+                    auto bb_size0 = s.bbox_size;
+                    sc.update(dt);
+                    if (pass0 != s.passability || offset0 != s.offset ||
+                        bb_offset0 != s.bbox_offset || bb_size0 != s.bbox_size)
                         c.mark_scenery_modified();
                 }
 }
@@ -179,12 +187,19 @@ void app::update(float dt)
 
     if (!cursor.in_imgui)
     {
-        auto* s = find_clickable_scenery(cursor.pixel);
-
-        if (s && s->item.can_activate(s->atlas))
-            M->set_cursor(std::uint32_t(Cursor::Hand));
-        else
-            set_cursor_from_imgui();
+        if (auto* cl = find_clickable_scenery(cursor.pixel))
+        {
+            auto& w = M->world();
+            auto [c, t] = w[{cl->chunk, cl->pos}];
+            if (auto sc = t.scenery())
+            {
+                auto [atlas, s] = sc;
+                if (sc && sc.can_activate())
+                    M->set_cursor(std::uint32_t(Cursor::Hand));
+                else
+                    set_cursor_from_imgui();
+            }
+        }
     }
 
     M->world().maybe_collect();

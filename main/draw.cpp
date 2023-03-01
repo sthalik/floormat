@@ -215,12 +215,12 @@ void main_impl::drawEvent()
     timeline.nextFrame();
 }
 
-ArrayView<const clickable<anim_atlas, scenery>> main_impl::clickable_scenery() const noexcept
+ArrayView<const clickable> main_impl::clickable_scenery() const noexcept
 {
     return { _clickable_scenery.data(), _clickable_scenery.size() };
 }
 
-ArrayView<clickable<anim_atlas, scenery>> main_impl::clickable_scenery() noexcept
+ArrayView<clickable> main_impl::clickable_scenery() noexcept
 {
     return { _clickable_scenery.data(), _clickable_scenery.size() };
 }

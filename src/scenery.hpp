@@ -49,11 +49,6 @@ struct scenery final
             Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
 
     bool operator==(const scenery&) const noexcept;
-
-    bool can_activate(const anim_atlas& anim) const noexcept;
-    bool activate(const anim_atlas& atlas);
-    void update(float dt, const anim_atlas& anim);
-    void rotate(rotation r);
 };
 
 constexpr scenery::scenery() noexcept : scenery{scenery::none_tag_t{}} {}
@@ -99,6 +94,11 @@ struct scenery_ref final {
 
     std::shared_ptr<anim_atlas>& atlas;
     scenery& frame;
+
+    bool can_activate() noexcept;
+    bool activate();
+    void update(float dt);
+    void rotate(rotation r);
 
 private:
     struct chunk* c;

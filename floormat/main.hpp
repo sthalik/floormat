@@ -16,7 +16,7 @@ struct tile_shader;
 struct world;
 struct scenery;
 struct anim_atlas;
-template<typename Atlas, typename T> struct clickable;
+struct clickable;
 struct floor_mesh;
 struct wall_mesh;
 struct anim_mesh;
@@ -53,8 +53,8 @@ struct floormat_main
     virtual void start_text_input() noexcept = 0;
     virtual void stop_text_input() noexcept = 0;
 
-    virtual ArrayView<const clickable<anim_atlas, scenery>> clickable_scenery() const noexcept = 0;
-    virtual ArrayView<clickable<anim_atlas, scenery>> clickable_scenery() noexcept = 0;
+    virtual ArrayView<const clickable> clickable_scenery() const noexcept = 0;
+    virtual ArrayView<clickable> clickable_scenery() noexcept = 0;
     virtual void set_cursor(std::uint32_t cursor) noexcept = 0;
     virtual std::uint32_t cursor() const noexcept = 0;
 

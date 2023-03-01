@@ -19,7 +19,7 @@ namespace floormat {
 struct floormat_app;
 struct scenery;
 struct anim_atlas;
-template<typename Atlas, typename T> struct clickable;
+struct clickable;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
@@ -41,8 +41,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     global_coords pixel_to_tile(Vector2d position) const noexcept override;
     Vector2d pixel_to_tile_(Vector2d position) const noexcept override;
 
-    ArrayView<const clickable<anim_atlas, scenery>> clickable_scenery() const noexcept override;
-    ArrayView<clickable<anim_atlas, scenery>> clickable_scenery() noexcept override;
+    ArrayView<const clickable> clickable_scenery() const noexcept override;
+    ArrayView<clickable> clickable_scenery() noexcept override;
 
     Platform::Sdl2Application& application() noexcept override;
     const Platform::Sdl2Application& application() const noexcept override;
@@ -77,7 +77,7 @@ private:
     [[maybe_unused]] char _dummy = maybe_register_debug_callback(s.gpu_debug);
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
-    std::vector<clickable<anim_atlas, scenery>> _clickable_scenery;
+    std::vector<clickable> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;
     floor_mesh _floor_mesh;

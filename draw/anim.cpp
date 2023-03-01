@@ -27,21 +27,23 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
 
 void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
                               chunk_coords c, std::uint8_t i, const std::shared_ptr<anim_atlas>& atlas, scenery& s,
-                              std::vector<clickable_scenery>& clickable)
+                              std::vector<clickable>& list)
 {
     const local_coords xy{i};
-    const auto& g = atlas->group(s.r);
-    const auto& f = atlas->frame(s.r, s.frame);
+    const auto& a = *atlas;
+    const auto& g = a.group(s.r);
+    const auto& f = a.frame(s.r, s.frame);
     const auto world_pos = TILE_SIZE20 * Vector3(xy) + Vector3(g.offset) + Vector3(Vector2(s.offset), 0);
     const Vector2ui offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                            + shader.project(world_pos) - Vector2(f.ground));
-    clickable_scenery item = {
-        *atlas, s,
+    clickable item = {
         { f.offset, f.offset + f.size }, { offset, offset + f.size },
-        atlas->bitmask(), tile_shader::depth_value(xy, tile_shader::scenery_depth_offset), c, xy,
+        a.bitmask(), tile_shader::depth_value(xy, tile_shader::scenery_depth_offset),
+        a.info().pixel_size[0],
+        c, xy,
         !g.mirror_from.isEmpty(),
     };
-    clickable.push_back(item);
+    list.push_back(item);
 }
 
 void anim_mesh::draw(tile_shader& shader, chunk& c)

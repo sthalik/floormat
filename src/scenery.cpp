@@ -64,72 +64,77 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
     fm_assert(atlas.group(r).frames.size() >= 2);
 }
 
-void scenery::rotate(rotation new_r)
+void scenery_ref::rotate(rotation new_r)
 {
-    bbox_offset = rotate_point(bbox_offset, r, new_r);
-    bbox_size = rotate_size(bbox_size, r, new_r);
-    r = new_r;
+    auto& s = frame;
+    s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
+    s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
+    s.r = new_r;
 }
 
-bool scenery::can_activate(const anim_atlas&) const noexcept
+bool scenery_ref::can_activate() noexcept
 {
-    return interactive;
+    return frame.interactive;
 }
 
-void scenery::update(float dt, const anim_atlas& anim)
+void scenery_ref::update(float dt)
 {
-    if (!active)
+    auto& s = frame;
+    if (!s.active)
         return;
 
-    switch (type)
+    switch (s.type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
         break;
     case scenery_type::door:
-        const auto hz = std::uint8_t(anim.info().fps);
+        fm_assert(atlas);
+        auto& anim = *atlas;
+        const auto hz = std::uint8_t(atlas->info().fps);
         const auto nframes = (int)anim.info().nframes;
         fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
 
-        auto delta_ = int(delta) + int(65535u * dt);
+        auto delta_ = int(s.delta) + int(65535u * dt);
         delta_ = std::min(65535, delta_);
         const auto frame_time = int(1.f/hz * 65535);
         const auto n = (std::uint8_t)std::clamp(delta_ / frame_time, 0, 255);
-        delta = (std::uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
-        fm_debug_assert(delta >= 0);
-        const std::int8_t dir = closing ? 1 : -1;
-        const int fr = frame + dir*n;
-        active = fr > 0 && fr < nframes-1;
+        s.delta = (std::uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
+        fm_debug_assert(s.delta >= 0);
+        const std::int8_t dir = s.closing ? 1 : -1;
+        const int fr = s.frame + dir*n;
+        s.active = fr > 0 && fr < nframes-1;
         if (fr <= 0)
-            passability = pass_mode::pass;
+            s.passability = pass_mode::pass;
         else if (fr >= nframes-1)
-            passability = pass_mode::blocked;
+            s.passability = pass_mode::blocked;
         else
-            passability = pass_mode::see_through;
-        frame = (frame_t)std::clamp(fr, 0, nframes-1);
-        if (!active)
-            delta = closing = 0;
+            s.passability = pass_mode::see_through;
+        s.frame = (scenery::frame_t)std::clamp(fr, 0, nframes-1);
+        if (!s.active)
+            s.delta = s.closing = 0;
         break;
     }
 }
 
-bool scenery::activate(const anim_atlas& atlas)
+bool scenery_ref::activate()
 {
-    if (active)
+    auto& s = frame;
+    if (!*this || s.active)
         return false;
 
-    switch (type)
+    switch (s.type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
         break;
     case scenery_type::door:
-        fm_assert(frame == 0 || frame == atlas.info().nframes-1);
-        closing = frame == 0;
-        frame += closing ? 1 : -1;
-        active = true;
+        fm_assert(s.frame == 0 || s.frame == atlas->info().nframes-1);
+        s.closing = s.frame == 0;
+        s.frame += s.closing ? 1 : -1;
+        s.active = true;
         return true;
     }
     return false;

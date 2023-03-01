@@ -31,8 +31,7 @@ struct cursor_state final {
     bool in_imgui = false;
 };
 
-template<typename Atlas, typename T> struct clickable;
-using clickable_scenery = clickable<anim_atlas, scenery>;
+struct clickable;
 
 enum class Cursor: std::uint32_t {
     Arrow, TextInput, Wait, Crosshair, WaitArrow,
@@ -86,7 +85,7 @@ private:
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
-    clickable_scenery* find_clickable_scenery(const Optional<Vector2i>& pixel);
+    clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
 
     void do_quicksave();
     void do_quickload();

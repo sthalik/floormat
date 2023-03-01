@@ -5,17 +5,14 @@
 
 namespace floormat {
 
-template<typename Atlas, typename T>
 struct clickable final {
-
-    Atlas& atlas;
-    T& item;
     Math::Range2D<UnsignedInt> src, dest;
     BitArrayView bitmask;
     float depth = 0;
+    std::uint32_t stride;
     chunk_coords chunk;
     local_coords pos;
-    bool mirrored = false;
+    bool mirrored;
 };
 
 } // namespace floormat
