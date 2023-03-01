@@ -30,7 +30,7 @@ std::shared_ptr<const anim_atlas> tile_ref::scenery_atlas()     const noexcept {
 tile_image_ref tile_ref::ground() noexcept     { return {_chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
 tile_image_ref tile_ref::wall_north() noexcept { return {_chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }
 tile_image_ref tile_ref::wall_west() noexcept  { return {_chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
-scenery_ref tile_ref::scenery() noexcept       { return {_chunk->_scenery_atlases[i],    _chunk->_scenery_variants[i] }; }
+scenery_ref tile_ref::scenery() noexcept       { return { *_chunk, i }; }
 
 tile_image_proto tile_ref::ground() const noexcept     { return { _chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
 tile_image_proto tile_ref::wall_north() const noexcept { return { _chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }

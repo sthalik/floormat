@@ -15,7 +15,9 @@ bool chunk::empty(bool force) const noexcept
 
 tile_atlas* chunk::ground_atlas_at(std::size_t i) const noexcept { return _ground_atlases[i].get(); }
 tile_atlas* chunk::wall_atlas_at(std::size_t i) const noexcept { return _wall_atlases[i].get(); }
-anim_atlas* chunk::scenery_atlas_at(std::size_t i) const noexcept { return _scenery_atlases[i].get(); }
+
+std::shared_ptr<anim_atlas>& chunk::scenery_atlas_at(std::size_t i) noexcept { return _scenery_atlases[i]; }
+scenery& chunk::scenery_at(std::size_t i) noexcept { return _scenery_variants[i]; }
 
 tile_ref chunk::operator[](std::size_t idx) noexcept { return { *this, std::uint8_t(idx) }; }
 tile_proto chunk::operator[](std::size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), std::uint8_t(idx) }); }

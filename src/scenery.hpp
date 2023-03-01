@@ -10,6 +10,7 @@
 
 namespace floormat {
 
+struct chunk;
 struct anim_atlas;
 
 enum class scenery_type : std::uint8_t {
@@ -82,15 +83,30 @@ struct scenery_proto final
 };
 
 struct scenery_ref final {
-    std::shared_ptr<anim_atlas>& atlas;
-    scenery& frame;
-
-    scenery_ref(std::shared_ptr<anim_atlas>& atlas, scenery& frame) noexcept;
+    scenery_ref(struct chunk& c, std::size_t i) noexcept;
     scenery_ref(const scenery_ref&) noexcept;
     scenery_ref(scenery_ref&&) noexcept;
     scenery_ref& operator=(const scenery_proto& proto) noexcept;
+
     operator scenery_proto() const noexcept;
     operator bool() const noexcept;
+
+    struct chunk& chunk() noexcept;
+    std::uint8_t index() const noexcept;
+
+    template<std::size_t N> std::tuple_element_t<N, scenery_ref>& get() & { if constexpr(N == 0) return atlas; else return frame; }
+    template<std::size_t N> std::tuple_element_t<N, scenery_ref>& get() && { if constexpr(N == 0) return atlas; else return frame; }
+
+    std::shared_ptr<anim_atlas>& atlas;
+    scenery& frame;
+
+private:
+    struct chunk* c;
+    std::uint8_t idx;
 };
 
 } // namespace floormat
+
+template<> struct std::tuple_size<floormat::scenery_ref> final : std::integral_constant<std::size_t, 2> {};
+template<> struct std::tuple_element<0, floormat::scenery_ref> final { using type = std::shared_ptr<floormat::anim_atlas>; };
+template<> struct std::tuple_element<1, floormat::scenery_ref> final { using type = floormat::scenery; };

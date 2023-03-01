@@ -1,5 +1,6 @@
 #include "scenery.hpp"
 #include "anim-atlas.hpp"
+#include "chunk.hpp"
 #include "compat/assert.hpp"
 #include "rotation.inl"
 #include <algorithm>
@@ -15,9 +16,14 @@ scenery_proto& scenery_proto::operator=(const scenery_proto&) noexcept = default
 scenery_proto::scenery_proto(const scenery_proto&) noexcept = default;
 scenery_proto::operator bool() const noexcept { return atlas != nullptr; }
 
-scenery_ref::scenery_ref(std::shared_ptr<anim_atlas>& atlas, scenery& frame) noexcept : atlas{atlas}, frame{frame} {}
+scenery_ref::scenery_ref(struct chunk& c, std::size_t i) noexcept :
+      atlas{c.scenery_atlas_at(i)}, frame{c.scenery_at(i)},
+      c{&c}, idx{std::uint8_t(i)}
+{}
 scenery_ref::scenery_ref(const scenery_ref&) noexcept = default;
 scenery_ref::scenery_ref(scenery_ref&&) noexcept = default;
+struct chunk& scenery_ref::chunk() noexcept { return *c; }
+std::uint8_t scenery_ref::index() const noexcept { return idx; }
 
 scenery_ref& scenery_ref::operator=(const scenery_proto& proto) noexcept
 {

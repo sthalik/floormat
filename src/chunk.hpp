@@ -82,7 +82,8 @@ struct chunk final
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
 
     scenery_mesh_tuple ensure_scenery_mesh() noexcept;
-    anim_atlas* scenery_atlas_at(std::size_t i) const noexcept;
+    std::shared_ptr<anim_atlas>& scenery_atlas_at(std::size_t i) noexcept;
+    scenery& scenery_at(std::size_t i) noexcept;
 
     void ensure_passability() noexcept;
 
