@@ -4,6 +4,7 @@
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "imgui-raii.hpp"
+#include "chunk.inl"
 
 namespace floormat {
 

@@ -2,7 +2,6 @@
 #include "tile.hpp"
 #include "tile-iterator.hpp"
 #include "scenery.hpp"
-#include <concepts>
 #include <type_traits>
 #include <array>
 #include <memory>
@@ -95,8 +94,7 @@ struct chunk final
     const RTree* rtree() const noexcept;
     RTree* rtree() noexcept;
 
-    template<std::invocable<tile_ref&> F> void with_scenery_bbox_update(tile_ref t, F&& fun);
-    template<std::invocable<> F> void with_scenery_bbox_update(std::size_t i, F&& fun);
+    template<typename F> void with_scenery_bbox_update(std::size_t idx, F&& fun);
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
@@ -131,34 +129,5 @@ private:
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
 };
-
-template<std::invocable<tile_ref&> F>
-void chunk::with_scenery_bbox_update(tile_ref t, F&& fun)
-{
-    if (is_passability_modified())
-        return fun(t);
-    else
-    {
-        bbox x0, x;
-        std::size_t i = t.index();
-        bool b0 = _bbox_for_scenery(i, x0);
-        fun(t);
-        _replace_bbox(x0, x, b0, _bbox_for_scenery(i, x));
-    }
-}
-
-template<std::invocable<> F>
-void chunk::with_scenery_bbox_update(std::size_t i, F&& fun)
-{
-    if (is_passability_modified())
-        return fun();
-    else
-    {
-        bbox x0, x;
-        bool b0 = _bbox_for_scenery(i, x0);
-        fun();
-        _replace_bbox(x0, x, b0, _bbox_for_scenery(i, x));
-    }
-}
 
 } // namespace floormat

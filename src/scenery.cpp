@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "compat/assert.hpp"
 #include "rotation.inl"
+#include "chunk.inl"
 #include <algorithm>
 
 namespace floormat {
@@ -66,7 +67,7 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
 
 void scenery_ref::rotate(rotation new_r)
 {
-    c->with_scenery_bbox_update(idx, [&] {
+    c->with_scenery_bbox_update(idx, [&]() {
         auto& s = frame;
         s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
         s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
@@ -79,18 +80,18 @@ bool scenery_ref::can_activate() const noexcept
     return frame.interactive;
 }
 
-void scenery_ref::update(float dt)
+bool scenery_ref::update(float dt)
 {
     auto& s = frame;
     if (!s.active)
-        return;
+        return false;
 
     switch (s.type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
-        break;
+        return false;
     case scenery_type::door:
         fm_assert(atlas);
         auto& anim = *atlas;
@@ -116,7 +117,7 @@ void scenery_ref::update(float dt)
         s.frame = (scenery::frame_t)std::clamp(fr, 0, nframes-1);
         if (!s.active)
             s.delta = s.closing = 0;
-        break;
+        return true;
     }
 }
 

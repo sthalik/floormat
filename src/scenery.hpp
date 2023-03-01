@@ -98,7 +98,7 @@ struct scenery_ref final {
 
     bool can_activate() const noexcept;
     bool activate();
-    void update(float dt);
+    bool update(float dt);
     void rotate(rotation r);
 
 private:

@@ -7,6 +7,7 @@
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include "chunk.hpp"
+#include "chunk.inl"
 #include <Corrade/Containers/ArrayViewStl.h>
 
 //#define TEST_STR
