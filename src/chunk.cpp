@@ -34,6 +34,7 @@ auto chunk::end() const noexcept -> const_iterator { return cend(); }
 void chunk::mark_ground_modified() noexcept { _ground_modified = true; _pass_modified = true; }
 void chunk::mark_walls_modified() noexcept { _walls_modified = true; _pass_modified = true; }
 void chunk::mark_scenery_modified() noexcept { _scenery_modified = true; _pass_modified = true; }
+bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
 
 void chunk::mark_modified() noexcept
 {
@@ -47,5 +48,7 @@ chunk::~chunk() noexcept = default;
 
 chunk::chunk(chunk&&) noexcept = default;
 chunk& chunk::operator=(chunk&&) noexcept = default;
+
+bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
 
 } // namespace floormat

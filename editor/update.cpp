@@ -165,17 +165,7 @@ void app::update_world(float dt)
         for (std::int16_t x = minx; x <= maxx; x++)
             for (auto& c = world[chunk_coords{x, y}]; auto [x, k, pt] : c)
                 if (auto sc = x.scenery())
-                {
-                    auto [atlas, s] = x.scenery();
-                    auto pass0 = s.passability;
-                    auto offset0 = s.offset;
-                    auto bb_offset0 = s.bbox_offset;
-                    auto bb_size0 = s.bbox_size;
-                    sc.update(dt);
-                    if (pass0 != s.passability || offset0 != s.offset ||
-                        bb_offset0 != s.bbox_offset || bb_size0 != s.bbox_size)
-                        c.mark_scenery_modified();
-                }
+                    c.with_scenery_bbox_update(sc.index(), [&] { sc.update(dt); });
 }
 
 void app::set_cursor()

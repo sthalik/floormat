@@ -66,13 +66,15 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
 
 void scenery_ref::rotate(rotation new_r)
 {
-    auto& s = frame;
-    s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
-    s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
-    s.r = new_r;
+    c->with_scenery_bbox_update(idx, [&] {
+        auto& s = frame;
+        s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
+        s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
+        s.r = new_r;
+    });
 }
 
-bool scenery_ref::can_activate() noexcept
+bool scenery_ref::can_activate() const noexcept
 {
     return frame.interactive;
 }

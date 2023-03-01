@@ -81,6 +81,7 @@ struct scenery_ref final {
     scenery_ref(struct chunk& c, std::size_t i) noexcept;
     scenery_ref(const scenery_ref&) noexcept;
     scenery_ref(scenery_ref&&) noexcept;
+    scenery_ref& operator=(const scenery_ref&) = delete;
     scenery_ref& operator=(const scenery_proto& proto) noexcept;
 
     operator scenery_proto() const noexcept;
@@ -95,7 +96,7 @@ struct scenery_ref final {
     std::shared_ptr<anim_atlas>& atlas;
     scenery& frame;
 
-    bool can_activate() noexcept;
+    bool can_activate() const noexcept;
     bool activate();
     void update(float dt);
     void rotate(rotation r);

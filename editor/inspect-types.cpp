@@ -6,6 +6,7 @@
 #include "entity/types.hpp"
 #include "inspect.hpp"
 #include "loader/loader.hpp"
+#include "chunk.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 
 //#define TEST_STR
@@ -46,16 +47,32 @@ struct entity_accessors<scenery_ref> {
             },
             entity::type<pass_mode>::field{"pass-mode"_s,
                 [](const scenery_ref& x) { return x.frame.passability; },
-                [](scenery_ref& x, pass_mode value) { x.frame.passability = value; }
+                [](scenery_ref& x, pass_mode value) {
+                    x.chunk().with_scenery_bbox_update(x.index(), [&] {
+                      x.frame.passability = value;
+                    });
+                },
             },
             entity::type<Vector2b>::field{"bbox-offset"_s,
                 [](const scenery_ref& x) { return x.frame.bbox_offset; },
-                [](scenery_ref& x, Vector2b value) { x.frame.bbox_offset = value; },
-                [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+                [](scenery_ref& x, Vector2b value)  {
+                    x.chunk().with_scenery_bbox_update(x.index(), [&] {
+                        x.frame.bbox_offset = value;
+                    });
+                },
+                [](const scenery_ref& x) {
+                    return x.frame.passability == pass_mode::pass
+                           ? field_status::readonly
+                           : field_status::enabled;
+                },
             },
             entity::type<Vector2ub>::field{"bbox-size"_s,
                 [](const scenery_ref& x) { return x.frame.bbox_size; },
-                [](scenery_ref& x, Vector2ub value) { x.frame.bbox_size = value; },
+                [](scenery_ref& x, Vector2ub value) {
+                    x.chunk().with_scenery_bbox_update(x.index(), [&] {
+                        x.frame.bbox_size = value;
+                    });
+                },
                 [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
             },
             entity::type<bool>::field{"interactive"_s,
