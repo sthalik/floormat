@@ -178,29 +178,33 @@ void app::update_world(float dt)
                 }
 }
 
-void app::update(float dt)
+void app::set_cursor()
 {
-    apply_commands(keys);
-    update_world(dt);
-    do_camera(dt, keys, get_key_modifiers());
-    clear_non_repeated_keys();
-
     if (!cursor.in_imgui)
     {
         if (auto* cl = find_clickable_scenery(cursor.pixel))
         {
             auto& w = M->world();
             auto [c, t] = w[{cl->chunk, cl->pos}];
-            if (auto sc = t.scenery())
+            if (auto sc = t.scenery(); sc && sc.can_activate())
             {
-                auto [atlas, s] = sc;
-                if (sc && sc.can_activate())
-                    M->set_cursor(std::uint32_t(Cursor::Hand));
-                else
-                    set_cursor_from_imgui();
+                M->set_cursor(std::uint32_t(Cursor::Hand));
+                return;
             }
         }
+        M->set_cursor(std::uint32_t(Cursor::Arrow));
     }
+    else
+        set_cursor_from_imgui();
+}
+
+void app::update(float dt)
+{
+    apply_commands(keys);
+    update_world(dt);
+    do_camera(dt, keys, get_key_modifiers());
+    clear_non_repeated_keys();
+    set_cursor();
 
     M->world().maybe_collect();
 }

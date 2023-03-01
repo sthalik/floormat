@@ -34,16 +34,19 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
     const auto& g = a.group(s.r);
     const auto& f = a.frame(s.r, s.frame);
     const auto world_pos = TILE_SIZE20 * Vector3(xy) + Vector3(g.offset) + Vector3(Vector2(s.offset), 0);
-    const Vector2ui offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
-                           + shader.project(world_pos) - Vector2(f.ground));
-    clickable item = {
-        { f.offset, f.offset + f.size }, { offset, offset + f.size },
-        a.bitmask(), tile_shader::depth_value(xy, tile_shader::scenery_depth_offset),
-        a.info().pixel_size[0],
-        c, xy,
-        !g.mirror_from.isEmpty(),
-    };
-    list.push_back(item);
+    const Vector2i offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
+                          + shader.project(world_pos) - Vector2(f.ground));
+    if (offset < win_size && offset + Vector2i(f.size) >= Vector2i())
+    {
+        clickable item = {
+            { f.offset, f.offset + f.size }, { offset, offset + Vector2i(f.size) },
+            a.bitmask(), tile_shader::depth_value(xy, tile_shader::scenery_depth_offset),
+            a.info().pixel_size[0],
+            c, xy,
+            !g.mirror_from.isEmpty(),
+        };
+        list.push_back(item);
+    }
 }
 
 void anim_mesh::draw(tile_shader& shader, chunk& c)

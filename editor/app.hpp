@@ -61,6 +61,7 @@ private:
     void update(float dt) override;
     void update_world(float dt);
     void update_cursor_tile(const Optional<Vector2i>& pixel);
+    void set_cursor();
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
 
