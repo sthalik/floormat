@@ -112,7 +112,7 @@ bool chunk::_bbox_for_scenery(std::size_t i, bbox& value) noexcept
 void chunk::_remove_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
-    fm_assert(_rtree.Remove(start.data(), end.data(), x.id));
+    _rtree.Remove(start.data(), end.data(), x.id);
 }
 
 void chunk::_add_bbox(const bbox& x)
