@@ -131,10 +131,10 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 {
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
-    const auto width = size[1], height = size[0],
-               stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
+    const std::size_t width = size[1], height = size[0],
+               stride = (std::size_t)pixels.stride()[0], width8 = width >> 3;
     const auto* const data = (const unsigned char*)pixels.data();
-    auto* const dest = (unsigned char*)array.data();
+    auto* const array_ = (unsigned char*)array.data();
 
     fm_assert(tex.pixelSize() == 4);
     fm_assert(pixels.stride()[1] == 4);
@@ -142,11 +142,11 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
     for (auto j = 0_uz; j < height; j++)
     {
         constexpr unsigned char amin = 32;
-        auto i = 0_uz;
-        for (; i < width0; i += 8)
+        const unsigned char* buf = &data[j*stride+3];
+        auto* dest = &array_[j*width >> 3];
+
+        for (auto i = 0_uz; i < width8; i++)
         {
-            const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width+i >> 3;
-            const unsigned char* buf = data + src_idx;
             auto value = (unsigned char)(
                 (unsigned char)(buf[0*4] >= amin) << 0 |
                 (unsigned char)(buf[1*4] >= amin) << 1 |
@@ -156,16 +156,13 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
                 (unsigned char)(buf[5*4] >= amin) << 5 |
                 (unsigned char)(buf[6*4] >= amin) << 6 |
                 (unsigned char)(buf[7*4] >= amin) << 7);
-            dest[dst_idx] = value;
+            *dest++ = value;
+            buf += 8*4;
         }
-        if (i < width)
-        {
-            dest[(height-j-1)*width+i >> 3] = 0;
-            do {
-                unsigned char alpha = data[(j*stride + i*4)+3];
-                array.set((height-j-1)*width + i, alpha >= amin);
-            } while (++i < width);
-        }
+        if (auto i = width8 << 3; i < width)
+            do
+                array.set(j*width + i, data[(j*stride + i*4)+3] >= amin);
+            while (++i < width);
     }
 }
 
