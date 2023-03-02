@@ -158,11 +158,13 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
                 (unsigned char)(buf[7*4] >= amin) << 7);
             dest[dst_idx] = value;
         }
-        dest[(height-j-1)*width+i >> 3] = 0;
-        for (; i < width; i++)
+        if (i < width)
         {
-            unsigned char alpha = data[(j*stride + i*4)+3];
-            array.set((height-j-1)*width + i, alpha >= amin);
+            dest[(height-j-1)*width+i >> 3] = 0;
+            do {
+                unsigned char alpha = data[(j*stride + i*4)+3];
+                array.set((height-j-1)*width + i, alpha >= amin);
+            } while (++i < width);
         }
     }
 }
