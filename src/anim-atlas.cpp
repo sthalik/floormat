@@ -145,7 +145,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
         auto i = 0_uz;
         for (; i < width0; i += 8)
         {
-            const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width + i>>3;
+            const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width+i >> 3;
             const unsigned char* buf = data + src_idx;
             auto value = (unsigned char)(
                 (unsigned char)(buf[0*4] >= amin) << 0 |
