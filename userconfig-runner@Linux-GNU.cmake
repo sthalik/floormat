@@ -6,8 +6,8 @@ sets(STRING
      CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG -s"
      CMAKE_CXX_FLAGS_RELEASE "-O0 -DNDEBUG -s")
 
-add_compile_options(-fsanitize=address,undefined)
-add_link_options(-fsanitize=address,undefined)
+add_compile_options(-fsanitize=address,undefined,memory)
+add_link_options(-fsanitize=address,undefined,memory)
 sets(BOOL CORRADE_CPU_USE_IFUNC OFF)
 
 # for floormat sources only
