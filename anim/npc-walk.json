@@ -2016,5 +2016,5 @@
 	"nframes": 48,
 	"object_name": "npc",
 	"pixel_size": "1466 x 683",
-	"width": 30
+	"scale": ["width", 30]
 }
