@@ -212,4 +212,6 @@ add_subdirectory(anim-crop-tool)
 install(DIRECTORY images anim scenery DESTINATION "share/floormat")
 
 fm_run_hook(fm-userconfig-post)
-get_cmake_property(_variableNames VARIABLES)
+
+add_test(floormat-testsuite "${CMAKE_INSTALL_PREFIX}/bin/floormat-test")
+enable_testing()
