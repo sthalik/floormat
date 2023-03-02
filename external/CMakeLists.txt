@@ -1,8 +1,15 @@
 project(floormat-external)
 
+if(NOT DEFINED FLOORMAT_SUBMODULE-SDL2)
+    find_package(SDL2 QUIET)
+    if(SDL2_FOUND)
+        set(FLOORMAT_SUBMODULE-SDL2 OFF CACHE BOOL "SDL2 as submodule")
+    endif()
+endif()
+
+set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL "SDL2 as submodule")
 set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
     "Use dependencies included in the source directory (needs git submodule update --init).")
-set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL "SDL2 as submodule")
 
 foreach(_module corrade magnum magnum-integration magnum-plugins)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${_module}/modules")
@@ -141,6 +148,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_GLM                                    OFF
          MAGNUM_WITH_IMGUI                                  ON
     )
+    if(WIN32)
     sets(BOOL
          SDL2_DISABLE_INSTALL                               OFF
          SDL2_DISABLE_SDL2MAIN                              ON
@@ -186,6 +194,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_WASAPI                                         OFF
          SDL_XINPUT                                         OFF
     )
+    endif(WIN32)
     if(WIN32)
         sets(BOOL MAGNUM_WITH_WINDOWLESSWGLAPPLICATION ON)
     elseif(APPLE)
