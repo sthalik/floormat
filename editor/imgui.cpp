@@ -118,6 +118,15 @@ void app::draw_fps()
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
+#if 0
+    static auto timer = fm_begin( Timeline t; t.start(); return t; );
+    if (timer.currentFrameDuration() >= 2)
+    {
+        timer.start();
+        std::printf("FPS %f\n", (double)(frame_time > 1e-6f ? 1/frame_time : 0));
+        std::fflush(stdout);
+    }
+#endif
 }
 
 void app::draw_tile_under_cursor()
