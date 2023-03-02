@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
+#include <stdlib.h>
+#include <cstdlib>
 
 namespace floormat {
 
@@ -34,6 +36,13 @@ int test_app::exec()
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    if (const auto* s = std::getenv("MAGNUM_LOG"); !s || !*s)
+        _putenv("MAGNUM_LOG=quiet");
+#else
+        setenv("MAGNUM_LOG", "quiet", 0);
+#endif
     floormat::test_app application{{argc, argv}};
     return application.exec();
 }
