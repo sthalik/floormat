@@ -1,0 +1,12 @@
+{
+    "groups": [
+        { "frames": [ {"size": "8 x 8"} ],
+          "ground": "4 x 4",
+          "name": "n"
+        }
+    ],
+    "nframes": 1,
+    "object_name": "test-8x8",
+    "pixel_size": "8 x 8",
+    "scale": [ "factor", 1 ]
+}
