@@ -44,7 +44,7 @@ void world::clear()
 
 void world::maybe_collect()
 {
-    if (_chunks.size() > _last_collection + collect_every)
+    if (_chunks.size() > _last_collection + _collect_every)
         collect();
 }
 

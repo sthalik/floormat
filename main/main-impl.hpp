@@ -91,6 +91,7 @@ private:
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
+    void update_collect_threshold();
 
     draw_bounds get_draw_bounds() const noexcept override;
 
