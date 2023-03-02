@@ -129,18 +129,19 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) co
 
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 {
-    constexpr unsigned char amin = 32;
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
-    const auto width = size[1], height = size[0];
-    const auto stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
-    fm_assert(tex.pixelSize() == 4 && pixels.stride()[1] == 4);
+    const auto width = size[1], height = size[0],
+               stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
     const auto* const data = (const unsigned char*)pixels.data();
-#if 0
     auto* const dest = (unsigned char*)array.data();
+
+    fm_assert(tex.pixelSize() == 4);
+    fm_assert(pixels.stride()[1] == 4);
 
     for (auto j = 0_uz; j < height; j++)
     {
+        constexpr unsigned char amin = 32;
         auto i = 0_uz;
         for (; i < width0; i += 8)
         {
@@ -164,11 +165,6 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
             array.set((height-j-1)*width + i, alpha >= amin);
         }
     }
-#else
-    for (std::size_t y = 0; y < height; y++)
-        for (std::size_t x = 0; x < width; x++)
-            array.set(y*width + x, data[(height-y-1)*stride + x*4 + 3] >= amin);
-#endif
 }
 
 BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
