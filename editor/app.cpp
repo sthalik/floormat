@@ -100,7 +100,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
         if (ret != 2 || (std::size_t)n != str.size() || Vector2ui(size).product() == 0)
-            fm_warn("invalid --geom argument '%s'", str.data());
+            fm_warn("invalid --geometry argument '%s'", str.data());
         else
             opts.resolution = Vector2i(size);
     }
