@@ -8,6 +8,7 @@
 #include "main/clickable.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Color.h>
+#include <imgui.h>
 
 namespace floormat {
 
@@ -59,18 +60,14 @@ float app::draw_main_menu()
             else if (do_quit)
                 do_key(key_quit, kmod_none);
         }
-        if (auto b = begin_menu("Mode"))
+        if (auto b = begin_menu("Edit"))
         {
-            bool can_rotate = false;
-            if (auto* ed = _editor.current_tile_editor())
-                can_rotate = ed->is_anything_selected();
-            else if (auto* ed = _editor.current_scenery_editor())
-                can_rotate = ed->is_anything_selected();
             auto mode = _editor.mode();
             using m = editor_mode;
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
-                 b_rotate = false, b_scenery = mode == m::scenery,
-                 b_collisions = _render_bboxes, b_clickables = _render_clickables;
+                 b_scenery = mode == m::scenery, b_collisions = _render_bboxes,
+                 b_clickables = _render_clickables;
+            ImGui::SeparatorText("Mode");
             if (ImGui::MenuItem("Select",  "1", &b_none))
                 do_key(key_mode_none);
             if (ImGui::MenuItem("Floor",   "2", &b_floor))
@@ -79,13 +76,11 @@ float app::draw_main_menu()
                 do_key(key_mode_walls);
             if (ImGui::MenuItem("Scenery", "4", &b_scenery))
                 do_key(key_mode_scenery);
+            ImGui::SeparatorText("View");
             if (ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions))
                 do_key(key_render_collision_boxes);
             if (ImGui::MenuItem("Show clickables", "Alt+L", &b_clickables))
                 do_key(key_render_clickables);
-            ImGui::Separator();
-            if (ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate))
-                do_key(key_rotate_tile);
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;
