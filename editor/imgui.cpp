@@ -46,7 +46,7 @@ float app::draw_main_menu()
             else if (do_quit)
                 do_key(key_quit, kmod_none);
         }
-        if (auto b = begin_menu("Edit"))
+        if (auto b = begin_menu("Editor"))
         {
             auto mode = _editor.mode();
             using m = editor_mode;
