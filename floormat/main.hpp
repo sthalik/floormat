@@ -70,6 +70,7 @@ struct floormat_main
     static int get_mods() noexcept;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
+    [[maybe_unused]] static void debug_break();
 
 protected:
     float _frame_time1 = 0, _frame_time2 = 0;
