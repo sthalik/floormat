@@ -1,6 +1,6 @@
 #pragma once
 
-namespace floormat::types {
+namespace floormat {
 #ifdef _MSC_VER
 #if defined _WIN64
 typedef unsigned __int64   size_t;
@@ -10,7 +10,7 @@ typedef unsigned int       size_t;
 #else
 typedef __SIZE_TYPE__      size_t;
 #endif
-} // namespace floormat::types
+} // namespace floormat
 
 namespace Corrade::Containers {
 
@@ -32,9 +32,9 @@ template<typename T> class Vector3;
 template<typename T> class Vector4;
 } // namespace Magnum::Math
 namespace Magnum {
-using Vector2uz = Math::Vector2<floormat::types::size_t>;
-using Vector3uz = Math::Vector3<floormat::types::size_t>;
-using Vector4uz = Math::Vector4<floormat::types::size_t>;
+using Vector2uz = Math::Vector2<floormat::size_t>;
+using Vector3uz = Math::Vector3<floormat::size_t>;
+using Vector4uz = Math::Vector4<floormat::size_t>;
 } // namespace Magnum
 
 namespace floormat {
@@ -42,10 +42,9 @@ namespace floormat {
     using namespace ::Corrade::Containers;
     using namespace ::Corrade::Containers::Literals;
     using namespace ::Magnum::Math::Literals;
-    using namespace ::floormat::types;
     using Debug [[maybe_unused]] = ::Corrade::Utility::Debug;
     using Error [[maybe_unused]] = ::Corrade::Utility::Error;
     namespace Path = Corrade::Utility::Path; // NOLINT(misc-unused-alias-decls)
+    consteval auto operator""_uz(unsigned long long int x) { return ::floormat::size_t(x); }
 } // namespace floormat
-
-consteval auto operator""_uz(unsigned long long int x) { return ::floormat::types::size_t(x); }
+namespace nlohmann { using ::floormat::operator""_uz; }
