@@ -31,10 +31,55 @@ auto chunk::cend() const noexcept -> const_iterator { return const_iterator { *t
 auto chunk::begin() const noexcept -> const_iterator { return cbegin(); }
 auto chunk::end() const noexcept -> const_iterator { return cend(); }
 
-void chunk::mark_ground_modified() noexcept { _ground_modified = true; _pass_modified = true; }
-void chunk::mark_walls_modified() noexcept { _walls_modified = true; _pass_modified = true; }
-void chunk::mark_scenery_modified() noexcept { _scenery_modified = true; _pass_modified = true; }
+//#define FM_DEBUG_RELOAD
+
+#ifdef FM_DEBUG_RELOAD
+static std::size_t _reloadno_ = 0;
+#endif
+
+void chunk::mark_ground_modified() noexcept
+{
+#ifdef FM_DEBUG_RELOAD
+    if (!_ground_modified)
+        fm_debug("ground reload %zu", ++_reloadno_);
+#endif
+    _ground_modified = true;
+    mark_passability_modified();
+}
+
+// todo this can use _replace_bbox too
+void chunk::mark_walls_modified() noexcept
+{
+#ifdef FM_DEBUG_RELOAD
+    if (!_walls_modified)
+        fm_debug("wall reload %zu", ++_reloadno_);
+#endif
+    _walls_modified = true;
+    mark_passability_modified();
+}
+
+void chunk::mark_scenery_modified(bool collision_too) noexcept // todo remove bool
+{
+#ifdef FM_DEBUG_RELOAD
+    if (!_scenery_modified)
+        fm_debug("scenery reload %zu", ++_reloadno_);
+#endif
+    _scenery_modified = true;
+    if (collision_too)
+        mark_passability_modified();
+}
+
+void chunk::mark_passability_modified() noexcept
+{
+#ifdef FM_DEBUG_RELOAD
+    if (!_pass_modified)
+        fm_debug("pass reload %zu", ++_reloadno_);
+#endif
+    _pass_modified = true;
+}
+
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
+bool chunk::is_scenery_modified() const noexcept { return _scenery_modified; }
 
 void chunk::mark_modified() noexcept
 {

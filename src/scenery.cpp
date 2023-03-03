@@ -67,7 +67,7 @@ scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
 
 void scenery_ref::rotate(rotation new_r)
 {
-    c->with_scenery_bbox_update(idx, [&]() {
+    c->with_scenery_update(idx, [&]() {
         auto& s = frame;
         s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
         s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
@@ -141,6 +141,24 @@ bool scenery_ref::activate()
         return true;
     }
     return false;
+}
+
+bool scenery::is_mesh_modified(const scenery& s0, const scenery& s)
+{
+    if (s.interactive != s0.interactive || s.type != s0.type)
+        return true;
+    if (!s.interactive)
+        return s.r != s0.r || s.offset != s0.offset || s0.frame != s.frame || s.type != s0.type;
+    return false;
+}
+
+bool scenery::is_collision_modified(const scenery& s0, const scenery& s)
+{
+    // passability value is stored as object's id
+    // so don't optimize into (s.pass == pass) != (s0.pass == pass)
+    return s.r != s0.r || s.passability != s0.passability ||
+           s.offset != s0.offset ||
+           s.bbox_offset != s0.bbox_offset || s.bbox_size != s0.bbox_size;
 }
 
 #ifdef __GNUG__

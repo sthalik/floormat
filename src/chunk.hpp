@@ -56,9 +56,12 @@ struct chunk final
 
     void mark_ground_modified() noexcept;
     void mark_walls_modified() noexcept;
-    void mark_scenery_modified() noexcept;
-    bool is_passability_modified() const noexcept;
+    void mark_scenery_modified(bool collision_too = true) noexcept;
+    void mark_passability_modified() noexcept;
     void mark_modified() noexcept;
+
+    bool is_passability_modified() const noexcept;
+    bool is_scenery_modified() const noexcept;
 
     struct ground_mesh_tuple final {
         GL::Mesh& mesh;
@@ -94,7 +97,9 @@ struct chunk final
     const RTree* rtree() const noexcept;
     RTree* rtree() noexcept;
 
-    template<typename F> void with_scenery_bbox_update(std::size_t idx, F&& fun);
+    template<typename F>
+    requires requires(F fun) { fun(); }
+    void with_scenery_update(std::size_t idx, F&& fun);
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;

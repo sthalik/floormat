@@ -48,7 +48,7 @@ void app::draw_inspector()
         snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
-            c.with_scenery_bbox_update(s.index(), [&] { return entities::inspect_type(s); });
+            c.with_scenery_update(s.index(), [&] { return entities::inspect_type(s); });
         if (!is_open)
             inspectors.erase(inspectors.begin() + (int)i);
     }

@@ -205,7 +205,7 @@ void app::update_world(float dt)
         for (std::int16_t x = minx; x <= maxx; x++)
             for (auto& c = world[chunk_coords{x, y}]; auto [x, k, pt] : c)
                 if (auto sc = x.scenery(); sc && sc.can_activate())
-                    c.with_scenery_bbox_update(sc.index(), [&] { return sc.update(dt); });
+                    c.with_scenery_update(sc.index(), [&] { return sc.update(dt); });
 }
 
 void app::set_cursor()
