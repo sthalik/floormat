@@ -171,8 +171,10 @@ void app::do_key(key k, int mods)
         return do_set_mode(editor_mode::walls);
     case key_mode_scenery:
         return do_set_mode(editor_mode::scenery);
-    case key_mode_collisions:
-        return void(_enable_render_bboxes = !_enable_render_bboxes);
+    case key_render_collision_boxes:
+        return void(_render_bboxes = !_render_bboxes);
+    case key_render_clickables:
+        return void(_render_clickables = !_render_clickables);
     case key_quicksave:
         return do_quicksave();
     case key_quickload:
@@ -214,7 +216,7 @@ void app::set_cursor()
         {
             auto& w = M->world();
             auto [c, t] = w[{cl->chunk, cl->pos}];
-            if (auto sc = t.scenery(); sc && sc.can_activate())
+            if (auto sc = t.scenery())
             {
                 M->set_cursor(std::uint32_t(Cursor::Hand));
                 return;

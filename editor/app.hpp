@@ -104,6 +104,7 @@ private:
     void do_escape();
 
     void draw_collision_boxes();
+    void draw_clickables();
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
     bool check_inspector_exists(popup_target p);
@@ -148,8 +149,10 @@ private:
     std::vector<popup_target> inspectors;
     cursor_state cursor;
     popup_target _popup_target;
-    bool _enable_render_bboxes : 1 = false;
-    bool _pending_popup        : 1 = false;
+
+    bool _pending_popup            : 1 = false;
+    bool _render_bboxes     : 1 = false;
+    bool _render_clickables : 1 = false;
 
     static const StringView SCENERY_POPUP_NAME;
 };

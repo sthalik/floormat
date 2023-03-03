@@ -4,6 +4,8 @@
 #include "imgui-raii.hpp"
 #include "src/world.hpp"
 #include "src/anim-atlas.hpp"
+#include "floormat/main.hpp"
+#include "main/clickable.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Color.h>
 
@@ -67,7 +69,8 @@ float app::draw_main_menu()
             auto mode = _editor.mode();
             using m = editor_mode;
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
-                 b_rotate = false, b_scenery = mode == m::scenery, b_collisions = _enable_render_bboxes;
+                 b_rotate = false, b_scenery = mode == m::scenery,
+                 b_collisions = _render_bboxes, b_clickables = _render_clickables;
             if (ImGui::MenuItem("Select",  "1", &b_none))
                 do_key(key_mode_none);
             if (ImGui::MenuItem("Floor",   "2", &b_floor))
@@ -77,7 +80,9 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Scenery", "4", &b_scenery))
                 do_key(key_mode_scenery);
             if (ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions))
-                do_key(key_mode_collisions);
+                do_key(key_render_collision_boxes);
+            if (ImGui::MenuItem("Show clickables", "Alt+L", &b_clickables))
+                do_key(key_render_clickables);
             ImGui::Separator();
             if (ImGui::MenuItem("Rotate", "R", &b_rotate, can_rotate))
                 do_key(key_rotate_tile);
@@ -100,6 +105,9 @@ void app::draw_ui()
 
     ImGui::GetIO().IniFilename = nullptr;
     _imgui.newFrame();
+
+    if (_render_clickables)
+        draw_clickables();
 
     const float main_menu_height = draw_main_menu();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
@@ -153,6 +161,20 @@ void app::draw_tile_under_cursor()
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {window_size[0]*.5f - size.x/2, 3*dpi[1]}, (unsigned)-1, buf);
+}
+
+void app::draw_clickables()
+{
+    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    const auto color = ImGui::ColorConvertFloat4ToU32({0, .8f, .8f, .95f});
+
+    for (const auto& x : M->clickable_scenery())
+    {
+        auto dest = Math::Range2D<float>(x.dest);
+        auto min = dest.min(), max = dest.max();
+        draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
+                     color, 0, ImDrawFlags_None, 2.5f);
+    }
 }
 
 void app::draw_editor_pane(float main_menu_height)

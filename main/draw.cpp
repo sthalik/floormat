@@ -107,7 +107,6 @@ void main_impl::draw_world() noexcept
                 _floor_mesh.draw(_shader, c);
         }
 
-    _clickable_scenery.clear();
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::defaultFramebuffer.clearDepthStencil(0, 0);
     for (std::int16_t y = miny; y <= maxy; y++)
@@ -122,7 +121,10 @@ void main_impl::draw_world() noexcept
                 _wall_mesh.draw(_shader, c);
         }
 
+    _clickable_scenery.clear();
+
     GL::Renderer::setDepthMask(false);
+
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
         {
@@ -142,6 +144,7 @@ void main_impl::draw_world() noexcept
                 }
             }
         }
+
     GL::Renderer::setDepthMask(true);
 
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
