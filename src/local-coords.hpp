@@ -15,6 +15,7 @@ struct local_coords final {
     constexpr local_coords(T x, T y) noexcept;
     constexpr local_coords(std::uint8_t x, std::uint8_t y) noexcept : x{x}, y{y} {}
     constexpr std::uint8_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
+    constexpr bool operator==(const local_coords&) const noexcept = default;
 
     template<typename T> explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
     template<typename T> explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }

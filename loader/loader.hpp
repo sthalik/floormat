@@ -31,6 +31,7 @@ struct loader_
     virtual const std::vector<serialized_scenery>& sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
+    static StringView strip_prefix(StringView name);
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

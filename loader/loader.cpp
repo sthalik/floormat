@@ -22,6 +22,17 @@ loader_& loader = loader_::default_loader();
 loader_::loader_() = default;
 loader_::~loader_() = default;
 
+StringView loader_::strip_prefix(StringView name)
+{
+    if (name.hasPrefix(IMAGE_PATH))
+        return name.exceptPrefix(IMAGE_PATH.size());
+    if (name.hasPrefix(ANIM_PATH))
+        return name.exceptPrefix(ANIM_PATH.size());
+    if (name.hasPrefix(SCENERY_PATH))
+        return name.exceptPrefix(SCENERY_PATH.size());
+    return name;
+}
+
 const StringView loader_::IMAGE_PATH = "share/floormat/images/"_s;
 const StringView loader_::ANIM_PATH = "share/floormat/anim/"_s;
 const StringView loader_::SCENERY_PATH = "share/floormat/scenery/"_s;

@@ -36,6 +36,7 @@ void app::do_quicksave()
 
 void app::do_quickload()
 {
+    kill_popups(true);
     if (!ensure_save_directory())
         return;
     if (!Path::exists(quicksave_file))

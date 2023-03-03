@@ -1,10 +1,13 @@
 #include "app.hpp"
+#include "compat/format.hpp"
 #include "inspect.hpp"
 #include "main/clickable.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
+#include "src/anim-atlas.hpp"
 #include "imgui-raii.hpp"
 #include "chunk.inl"
+#include "loader/loader.hpp"
 
 namespace floormat {
 
@@ -14,21 +17,40 @@ void app::draw_inspector()
 {
     auto b = push_id("inspector");
     auto& w = M->world();
-    if (cursor.pixel)
-        if (const auto* sc = find_clickable_scenery(cursor.pixel))
-            inspected_scenery = {InPlaceInit, sc->chunk, sc->pos};
-    if (inspected_scenery)
+
+    constexpr auto max_inspectors = 4; // todo change later to 32
+    if (auto size = inspectors.size(); size > max_inspectors)
     {
-        auto [c, t] = w[*inspected_scenery];
-        if (auto s = t.scenery())
+        auto end = inspectors.begin() + (std::ptrdiff_t)size - max_inspectors;
+        inspectors.erase(inspectors.begin(), end);
+    }
+
+    const auto dpi = M->dpi_scale();
+
+    for (auto i = inspectors.size()-1; i != -1_uz; i--)
+    {
+        auto [ch, pos, target] = inspectors[i];
+        auto [c, t] = w[{ch, pos}];
+        auto s = t.scenery();
+
+        if (!s)
         {
-            char buf[32]; std::snprintf(buf, sizeof buf, "i_0x%p", (void*)&s);
-            auto b = push_id(buf);
-            auto dpi = M->dpi_scale();
-            ImGui::SetNextWindowSize({300*dpi[0], 0});
-            auto b2 = begin_window("inspector"_s);
-            c.with_scenery_bbox_update(s.index(), [&] { entities::inspect_type(s); });
+            inspectors.erase(inspectors.begin() + (int)i);
+            continue;
         }
+
+        char buf[128];
+        snformat(buf, "i-{}-{}x{}-{}x{}"_cf, (int)target, ch.x, ch.y, (int)pos.x, (int)pos.y);
+
+        auto b1 = push_id(buf);
+        ImGui::SetNextWindowSize({300*dpi[0], 0});
+        auto name = loader.strip_prefix(s.atlas->name());
+        snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
+        bool is_open = true;
+        if (auto b2 = begin_window(buf, &is_open))
+            c.with_scenery_bbox_update(s.index(), [&] { return entities::inspect_type(s); });
+        else if (!is_open)
+            inspectors.erase(inspectors.begin() + (int)i);
     }
 }
 

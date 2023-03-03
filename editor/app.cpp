@@ -24,6 +24,7 @@ app::app(fm_settings&& opts) :
     chunk_coords coord{0 ,0};
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
+    inspectors.reserve(16);
 }
 
 app::~app()

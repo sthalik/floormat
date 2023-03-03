@@ -81,6 +81,14 @@ raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags fl
         return {};
 }
 
+raii_wrapper begin_popup(StringView name, ImGuiWindowFlags flags)
+{
+    if (ImGui::BeginPopup(name.data(), flags))
+        return {&ImGui::EndPopup};
+    else
+        return {};
+}
+
 raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
 {
     if (ImGui::BeginListBox(name.data(), size))
@@ -113,11 +121,11 @@ raii_wrapper begin_main_menu()
         return {};
 }
 
-raii_wrapper begin_window(Containers::StringView name, ImGuiWindowFlags flags)
+raii_wrapper begin_window(Containers::StringView name, bool* p_open, ImGuiWindowFlags flags)
 {
     if (name.isEmpty())
         name = "floormat editor";
-    if (ImGui::Begin(name.data(), nullptr, flags))
+    if (ImGui::Begin(name.data(), p_open, flags))
         return {&ImGui::End};
     else
         return {};

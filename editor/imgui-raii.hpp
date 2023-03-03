@@ -23,7 +23,7 @@ private:
     F dtor = nullptr;
 };
 
-[[nodiscard]] raii_wrapper begin_window(StringView name = {}, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
+[[nodiscard]] raii_wrapper begin_window(StringView name = {}, bool* p_open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
 [[nodiscard]] raii_wrapper begin_main_menu();
 [[nodiscard]] raii_wrapper begin_menu(StringView name, bool enabled = true);
 [[nodiscard]] raii_wrapper begin_list_box(StringView name, ImVec2 size = {});
@@ -31,6 +31,7 @@ private:
 [[nodiscard]] raii_wrapper tree_node(StringView name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
 [[nodiscard]] raii_wrapper begin_disabled(bool is_disabled = true);
 [[nodiscard]] raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags flags = 0);
+[[nodiscard]] raii_wrapper begin_popup(StringView name, ImGuiWindowFlags flags = 0);
 
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value);
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, float value);

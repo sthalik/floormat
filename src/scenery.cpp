@@ -77,7 +77,7 @@ void scenery_ref::rotate(rotation new_r)
 
 bool scenery_ref::can_activate() const noexcept
 {
-    return frame.interactive;
+    return atlas && frame.interactive;
 }
 
 bool scenery_ref::update(float dt)

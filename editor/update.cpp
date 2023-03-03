@@ -53,6 +53,11 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
     auto& w = M->world();
     update_cursor_tile(cursor.pixel);
 
+    if (is_down && !cursor.in_imgui)
+    {
+        _popup_target = {};
+    }
+
     if (is_down && cursor.tile && !cursor.in_imgui)
     {
         switch (_editor.mode())
@@ -67,6 +72,22 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
                     auto [c, t] = w[{cl->chunk, cl->pos}];
                     if (auto s = t.scenery())
                         return (void)s.activate();
+                }
+            }
+            // TODO it should open on mouseup if still on the same item as on mousedown
+            else if (button == mouse_button_right)
+            {
+                if (auto* cl = find_clickable_scenery(*cursor.pixel))
+                {
+                    auto [c, t] = w[{cl->chunk, cl->pos}];
+                    if (auto s = t.scenery())
+                    {
+                        _popup_target = {
+                            .c = cl->chunk, .pos = cl->pos,
+                            .target = popup_target_type::scenery,
+                        };
+                        do_open_popup();
+                    }
                 }
             }
             break;
@@ -115,6 +136,22 @@ void app::do_rotate(bool backward)
     }
 }
 
+void app::do_set_mode(editor_mode mode)
+{
+    if (mode != _editor.mode())
+        kill_popups(true);
+    _editor.set_mode(mode);
+}
+
+void app::do_escape()
+{
+    if (auto* ed = _editor.current_scenery_editor())
+        ed->clear_selection();
+    if (auto* ed = _editor.current_tile_editor())
+        ed->clear_selection();
+    kill_popups(false);
+}
+
 void app::do_key(key k, int mods)
 {
     (void)mods;
@@ -127,13 +164,13 @@ void app::do_key(key k, int mods)
     case key_rotate_tile:
         return do_rotate(false);
     case key_mode_none:
-        return _editor.set_mode(editor_mode::none);
+        return do_set_mode(editor_mode::none);
     case key_mode_floor:
-        return _editor.set_mode(editor_mode::floor);
+        return do_set_mode(editor_mode::floor);
     case key_mode_walls:
-        return _editor.set_mode(editor_mode::walls);
+        return do_set_mode(editor_mode::walls);
     case key_mode_scenery:
-        return _editor.set_mode(editor_mode::scenery);
+        return do_set_mode(editor_mode::scenery);
     case key_mode_collisions:
         return void(_enable_render_bboxes = !_enable_render_bboxes);
     case key_quicksave:

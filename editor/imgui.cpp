@@ -2,11 +2,15 @@
 #include "floormat/main.hpp"
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
+#include "src/world.hpp"
+#include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Color.h>
 
 namespace floormat {
 
 using namespace floormat::imgui;
+
+bool popup_target::operator==(const popup_target&) const = default;
 
 void app::init_imgui(Vector2i size)
 {
@@ -104,6 +108,8 @@ void app::draw_ui()
     draw_tile_under_cursor();
     if (_editor.mode() == editor_mode::none)
         draw_inspector();
+    if (_popup_target.target != popup_target_type::none)
+        do_popup_menu();
     ImGui::EndFrame();
 }
 
@@ -179,7 +185,7 @@ void app::draw_editor_pane(float main_menu_height)
         ImGui::SetNextFrameWantCaptureKeyboard(false);
         ImGui::SetNextWindowSize({425 * dpi[0], window_size[1] - main_menu_height - style.WindowPadding.y});
         if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
-            auto b = begin_window({}, flags))
+            auto b = begin_window({}, nullptr, flags))
         {
             const auto b2 = push_id("editor-pane");
             if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
@@ -194,12 +200,59 @@ void app::draw_editor_pane(float main_menu_height)
     }
 }
 
-void app::do_escape()
+const StringView app::SCENERY_POPUP_NAME = "##scenery-popup"_s;
+
+void app::do_open_popup()
 {
-    if (auto* ed = _editor.current_scenery_editor())
-        ed->clear_selection();
-    if (auto* ed = _editor.current_tile_editor())
-        ed->clear_selection();
+    fm_assert(_popup_target.target != popup_target_type::none);
+    _pending_popup = true;
+}
+
+bool app::check_inspector_exists(popup_target p)
+{
+    for (const auto& p2 : inspectors)
+        if (p2 == p)
+            return true;
+    return false;
+}
+
+void app::do_popup_menu()
+{
+    fm_assert(_popup_target.target != popup_target_type::none);
+    auto& w = M->world();
+
+    auto b0 = push_id(SCENERY_POPUP_NAME);
+
+    if (_pending_popup)
+    {
+        _pending_popup = false;
+        fm_assert(_popup_target.target != popup_target_type::none);
+        ImGui::OpenPopup(SCENERY_POPUP_NAME.data(), ImGuiPopupFlags_NoOpenOverItems);
+    }
+
+    if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
+    {
+        auto [ch, pos, target] = _popup_target;
+        //if (_popup_target.target != popup_target_type::scenery) {...}
+        auto [c, t] = w[{ch, pos}];
+        auto sc = t.scenery();
+        const bool b_act = sc.can_activate(), b_ins = sc && !check_inspector_exists(_popup_target);
+        if (ImGui::MenuItem("Activate", nullptr, false, b_act))
+            sc.activate();
+        if (ImGui::MenuItem("Inspect", nullptr, false, b_ins))
+            inspectors.push_back(std::exchange(_popup_target, {}));
+    }
+}
+
+void app::kill_popups(bool hard)
+{
+    _popup_target = { .target = popup_target_type::none };
+
+    if (hard)
+    {
+        inspectors.clear();
+    }
+
     ImGui::FocusWindow(nullptr);
 }
 

@@ -27,12 +27,7 @@ struct entity_accessors<scenery_ref> {
         using frame_t = scenery::frame_t;
         return std::tuple{
             entity::type<StringView>::field{"name"_s,
-                [](const scenery_ref& x) {
-                    StringView name = x.atlas->name();
-                    if (name.hasPrefix(loader.SCENERY_PATH))
-                        name = name.exceptPrefix(loader.SCENERY_PATH.size());
-                    return name;
-                },
+                [](const scenery_ref& x) { return loader.strip_prefix(x.atlas->name()); },
                 [](scenery_ref&, StringView) {},
                 constantly(field_status::readonly),
             },

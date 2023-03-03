@@ -79,9 +79,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
         }
         if (ImGui::TableSetColumnIndex(3))
         {
-            StringView name = scenery.proto.atlas->name();
-            if (name.hasPrefix(loader.SCENERY_PATH))
-                name = name.exceptPrefix(loader.SCENERY_PATH.size());
+            StringView name = loader.strip_prefix(scenery.proto.atlas->name());
             if (auto last = name.findLast('/'))
                 name = name.prefix(last.data());
             else

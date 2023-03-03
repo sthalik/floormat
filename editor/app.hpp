@@ -27,7 +27,6 @@ struct anim_atlas;
 struct cursor_state final {
     Optional<Vector2i> pixel;
     Optional<global_coords> tile;
-
     bool in_imgui = false;
 };
 
@@ -37,6 +36,17 @@ enum class Cursor: std::uint32_t {
     Arrow, TextInput, Wait, Crosshair, WaitArrow,
     ResizeNWSE, ResizeNESW, ResizeWE, ResizeNS, ResizeAll,
     No, Hand, Hidden, HiddenLocked,
+};
+
+enum class popup_target_type : unsigned char {
+    none, scenery,
+};
+
+struct popup_target final {
+    chunk_coords c;
+    local_coords pos;
+    popup_target_type target = popup_target_type::none;
+    bool operator==(const popup_target&) const;
 };
 
 struct app final : floormat_app
@@ -96,6 +106,7 @@ private:
     void draw_collision_boxes();
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
+    bool check_inspector_exists(popup_target p);
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
     void set_cursor_from_imgui();
@@ -105,10 +116,14 @@ private:
     float draw_main_menu();
     void draw_fps();
     void draw_tile_under_cursor();
+    void do_popup_menu();
+    void do_open_popup();
+    void kill_popups(bool hard);
     void render_menu();
 
     void do_key(key k, int mods);
     void do_key(key k);
+    void do_set_mode(editor_mode mode);
     void do_rotate(bool backward);
     void apply_commands(const key_set& k);
     int get_key_modifiers();
@@ -130,9 +145,13 @@ private:
     editor _editor;
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
+    std::vector<popup_target> inspectors;
     cursor_state cursor;
-    Optional<global_coords> inspected_scenery;
+    popup_target _popup_target;
     bool _enable_render_bboxes : 1 = false;
+    bool _pending_popup        : 1 = false;
+
+    static const StringView SCENERY_POPUP_NAME;
 };
 
 } // namespace floormat
