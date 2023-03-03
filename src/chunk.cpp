@@ -1,7 +1,21 @@
 #include "chunk.hpp"
 #include "src/tile-atlas.hpp"
+#include <Magnum/GL/Context.h>
 
 namespace floormat {
+
+namespace {
+
+std::size_t _reload_no_ = 0;
+
+bool is_log_quiet()
+{
+    using GLCCF = GL::Implementation::ContextConfigurationFlag;
+    auto flags = GL::Context::current().configurationFlags();
+    return !!(flags & GLCCF::QuietLog);
+}
+
+} // namespace
 
 bool chunk::empty(bool force) const noexcept
 {
@@ -31,18 +45,10 @@ auto chunk::cend() const noexcept -> const_iterator { return const_iterator { *t
 auto chunk::begin() const noexcept -> const_iterator { return cbegin(); }
 auto chunk::end() const noexcept -> const_iterator { return cend(); }
 
-//#define FM_DEBUG_RELOAD
-
-#ifdef FM_DEBUG_RELOAD
-static std::size_t _reloadno_ = 0;
-#endif
-
 void chunk::mark_ground_modified() noexcept
 {
-#ifdef FM_DEBUG_RELOAD
-    if (!_ground_modified)
-        fm_debug("ground reload %zu", ++_reloadno_);
-#endif
+    if (!_ground_modified && !is_log_quiet())
+        fm_debug("ground reload %zu", ++_reload_no_);
     _ground_modified = true;
     mark_passability_modified();
 }
@@ -50,20 +56,16 @@ void chunk::mark_ground_modified() noexcept
 // todo this can use _replace_bbox too
 void chunk::mark_walls_modified() noexcept
 {
-#ifdef FM_DEBUG_RELOAD
-    if (!_walls_modified)
-        fm_debug("wall reload %zu", ++_reloadno_);
-#endif
+    if (!_walls_modified && !is_log_quiet())
+        fm_debug("wall reload %zu", ++_reload_no_);
     _walls_modified = true;
     mark_passability_modified();
 }
 
 void chunk::mark_scenery_modified(bool collision_too) noexcept // todo remove bool
 {
-#ifdef FM_DEBUG_RELOAD
-    if (!_scenery_modified)
-        fm_debug("scenery reload %zu", ++_reloadno_);
-#endif
+    if (!_scenery_modified && !is_log_quiet())
+        fm_debug("scenery reload %zu", ++_reload_no_);
     _scenery_modified = true;
     if (collision_too)
         mark_passability_modified();
@@ -71,10 +73,8 @@ void chunk::mark_scenery_modified(bool collision_too) noexcept // todo remove bo
 
 void chunk::mark_passability_modified() noexcept
 {
-#ifdef FM_DEBUG_RELOAD
-    if (!_pass_modified)
-        fm_debug("pass reload %zu", ++_reloadno_);
-#endif
+    if (!_pass_modified && !is_log_quiet())
+        fm_debug("pass reload %zu", ++_reload_no_);
     _pass_modified = true;
 }
 
