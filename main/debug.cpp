@@ -48,8 +48,8 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
         std::abort();
 #endif
 
-    debug_break();
-    //std::fputs("", stdout); // put breakpoint here
+    //debug_break();
+    std::fputs("", stdout); // put breakpoint here
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,

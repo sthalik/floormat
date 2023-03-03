@@ -259,7 +259,7 @@ void app::do_popup_menu()
         fm_assert(type != popup_target_type::none);
         //if (type != popup_target_type::scenery) {...}
         if (sc)
-            ImGui::OpenPopup(SCENERY_POPUP_NAME.data(), ImGuiPopupFlags_NoOpenOverItems);
+            ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
     }
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))

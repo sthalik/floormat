@@ -152,11 +152,12 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
         return nullptr;
 
     clickable* item = nullptr;
-    float depth = -1;
+    float depth = -(1 << 24);
 
     const auto array = M->clickable_scenery();
+    const auto p = *pixel;
     for (clickable& c : array)
-        if (c.depth > depth && c.dest.contains(*pixel))
+        if (c.depth > depth && c.dest.contains(p))
         {
             const auto pos_ = *pixel - c.dest.min() + Vector2i(c.src.min());
             const auto pos = !c.mirrored ? pos_ : Vector2i(int(c.src.sizeX()) - 1 - pos_[0], pos_[1]);
