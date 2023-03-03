@@ -211,6 +211,8 @@ void app::do_open_popup()
 
 bool app::check_inspector_exists(popup_target p)
 {
+    if (p.target == popup_target_type::none) [[unlikely]]
+        return true;
     for (const auto& p2 : inspectors)
         if (p2 == p)
             return true;
@@ -224,20 +226,22 @@ void app::do_popup_menu()
 
     auto b0 = push_id(SCENERY_POPUP_NAME);
 
+    const auto [ch, pos, type] = _popup_target;
+    auto [c, t] = w[{ch, pos}];
+    //if (_popup_target.target != popup_target_type::scenery) {...}
+    auto sc = t.scenery();
+
     if (_pending_popup)
     {
         _pending_popup = false;
-        fm_assert(_popup_target.target != popup_target_type::none);
-        ImGui::OpenPopup(SCENERY_POPUP_NAME.data(), ImGuiPopupFlags_NoOpenOverItems);
+        fm_assert(type != popup_target_type::none);
+        //if (type != popup_target_type::scenery) {...}
+        if (sc)
+            ImGui::OpenPopup(SCENERY_POPUP_NAME.data(), ImGuiPopupFlags_NoOpenOverItems);
     }
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
-        auto [ch, pos, target] = _popup_target;
-        //if (_popup_target.target != popup_target_type::scenery) {...}
-        auto [c, t] = w[{ch, pos}];
-        auto sc = t.scenery();
-
         if (ImGui::MenuItem("Activate", nullptr, false, sc.can_activate()))
             sc.activate();
         if (auto next_rot = sc.atlas->next_rotation_from(sc.frame.r);
@@ -255,6 +259,7 @@ void app::do_popup_menu()
 void app::kill_popups(bool hard)
 {
     _popup_target = { .target = popup_target_type::none };
+    ImGui::CloseCurrentPopup();
 
     if (hard)
     {

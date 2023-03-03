@@ -17,7 +17,6 @@ void app::draw_cursor()
 {
     constexpr float LINE_WIDTH = 2;
     auto& shader = M->shader();
-    shader.set_tint({1, 0, 0, 1});
     const auto inactive_color = 0xff00ffff_rgbaf;
 
     if (cursor.tile && !cursor.in_imgui)
@@ -27,7 +26,9 @@ void app::draw_cursor()
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
-        if (const auto* ed = _editor.current_tile_editor(); ed)
+        shader.set_tint({1, 0, 0, 1});
+
+        if (const auto* ed = _editor.current_tile_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
@@ -40,7 +41,7 @@ void app::draw_cursor()
             else if (ed->mode() == editor_mode::floor)
                 draw(_wireframe_quad, TILE_SIZE2);
         }
-        else if (const auto* ed = _editor.current_scenery_editor(); ed)
+        else if (const auto* ed = _editor.current_scenery_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
@@ -54,8 +55,9 @@ void app::draw_cursor()
                 anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, Vector3(pos), 1);
             }
         }
+
+        shader.set_tint({1, 1, 1, 1});
     }
-    shader.set_tint({1, 1, 1, 1});
 }
 
 void app::draw_collision_boxes()
