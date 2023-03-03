@@ -3,6 +3,7 @@
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include "src/world.hpp"
+#include "src/anim-atlas.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Color.h>
 
@@ -236,10 +237,17 @@ void app::do_popup_menu()
         //if (_popup_target.target != popup_target_type::scenery) {...}
         auto [c, t] = w[{ch, pos}];
         auto sc = t.scenery();
-        const bool b_act = sc.can_activate(), b_ins = sc && !check_inspector_exists(_popup_target);
-        if (ImGui::MenuItem("Activate", nullptr, false, b_act))
+
+        if (ImGui::MenuItem("Activate", nullptr, false, sc.can_activate()))
             sc.activate();
-        if (ImGui::MenuItem("Inspect", nullptr, false, b_ins))
+        if (auto next_rot = sc.atlas->next_rotation_from(sc.frame.r);
+            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc.frame.r))
+            sc.rotate(next_rot);
+
+        ImGui::Separator();
+
+        if (bool b_ins = sc && !check_inspector_exists(_popup_target);
+            ImGui::MenuItem("Inspect", nullptr, false, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
     }
 }
