@@ -49,7 +49,7 @@ void app::draw_inspector()
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
             c.with_scenery_bbox_update(s.index(), [&] { return entities::inspect_type(s); });
-        else if (!is_open)
+        if (!is_open)
             inspectors.erase(inspectors.begin() + (int)i);
     }
 }
