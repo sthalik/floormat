@@ -174,7 +174,7 @@ void app::do_popup_menu()
 
 void app::kill_popups(bool hard)
 {
-    _popup_target = { .target = popup_target_type::none };
+    _popup_target = {};
     ImGui::CloseCurrentPopup();
 
     if (hard)
