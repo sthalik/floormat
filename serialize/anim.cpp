@@ -148,9 +148,12 @@ void adl_serializer<anim_group>::to_json(json& j, const anim_group& val)
     using nlohmann::to_json;
     if (!val.mirror_from.isEmpty())
     {
+        const anim_group def{};
+
         j["name"] = val.name;
         j["mirror-from"] = val.mirror_from;
-        j["offset"] = val.offset;
+        if (val.offset != def.offset)
+            j["offset"] = val.offset;
     }
     else
         to_json(j, val);
@@ -161,9 +164,12 @@ void adl_serializer<anim_group>::from_json(const json& j, anim_group& val)
     using nlohmann::from_json;
     if (j.contains("mirror-from"))
     {
+        const anim_group def{};
+
         val.name = j["name"];
         val.mirror_from = j["mirror-from"];
-        val.offset = j["offset"];
+        if (val.offset != def.offset)
+            val.offset = j["offset"];
     }
     else
         from_json(j, val);
