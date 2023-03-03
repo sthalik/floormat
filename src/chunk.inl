@@ -21,8 +21,7 @@ void chunk::with_scenery_update(std::size_t idx, F&& fun)
         return;
 
     if (bbox bb; !is_passability_modified())
-        if (bool b = _bbox_for_scenery(idx, bb);
-            b != b0 || scenery::is_collision_modified(s0, s))
+        if (bool b = _bbox_for_scenery(idx, bb); b != b0 || bb != bb0)
             _replace_bbox(bb0, bb, b0, b);
     if (!is_scenery_modified() && scenery::is_mesh_modified(s0, s))
         mark_scenery_modified(false);

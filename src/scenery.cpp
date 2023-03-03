@@ -152,15 +152,6 @@ bool scenery::is_mesh_modified(const scenery& s0, const scenery& s)
     return false;
 }
 
-bool scenery::is_collision_modified(const scenery& s0, const scenery& s)
-{
-    // passability value is stored as object's id
-    // so don't optimize into (s.pass == pass) != (s0.pass == pass)
-    return s.r != s0.r || s.passability != s0.passability ||
-           s.offset != s0.offset ||
-           s.bbox_offset != s0.bbox_offset || s.bbox_size != s0.bbox_size;
-}
-
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"

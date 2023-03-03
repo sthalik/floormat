@@ -49,7 +49,6 @@ struct scenery final
             Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
 
     static bool is_mesh_modified(const scenery& s1, const scenery& s2);
-    static bool is_collision_modified(const scenery& s1, const scenery& s2);
 
     bool operator==(const scenery&) const noexcept;
 };
