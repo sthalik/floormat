@@ -4,6 +4,7 @@
 #include "anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
+#include <Magnum/Math/Color.h>
 
 namespace floormat {
 
@@ -86,6 +87,52 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
                 name = {};
             text(name);
             click_event();
+        }
+    }
+}
+
+void app::draw_editor_pane(float main_menu_height)
+{
+    auto* ed = _editor.current_tile_editor();
+    auto* sc = _editor.current_scenery_editor();
+    fm_assert(!ed || !sc);
+
+    const auto window_size = M->window_size();
+    const auto dpi = M->dpi_scale();
+
+    if (const bool active = M->is_text_input_active();
+        ImGui::GetIO().WantTextInput != active)
+        active ? M->start_text_input() : M->stop_text_input();
+
+    [[maybe_unused]] const raii_wrapper vars[] = {
+        push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi[0], 8*dpi[1]}),
+        push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
+        push_style_var(ImGuiStyleVar_FramePadding, {4*dpi[0], 4*dpi[1]}),
+        push_style_color(ImGuiCol_WindowBg, {0, 0, 0, .5}),
+        push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
+    };
+
+    const auto& style = ImGui::GetStyle();
+
+    if (main_menu_height > 0)
+    {
+        const auto b = push_id("editor");
+
+        ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
+        ImGui::SetNextFrameWantCaptureKeyboard(false);
+        ImGui::SetNextWindowSize({425 * dpi[0], window_size[1] - main_menu_height - style.WindowPadding.y});
+        if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+            auto b = begin_window({}, nullptr, flags))
+        {
+            const auto b2 = push_id("editor-pane");
+            if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
+            {
+                if (ed)
+                    for (const auto& [k, v] : *ed)
+                        draw_editor_tile_pane_atlas(*ed, k, v);
+                else if (sc)
+                    draw_editor_scenery_pane(*sc);
+            }
         }
     }
 }
