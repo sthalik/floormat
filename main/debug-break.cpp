@@ -11,7 +11,7 @@ void floormat::floormat_main::debug_break()
 #ifdef _WIN32
     if (IsDebuggerPresent()) [[unlikely]]
         DebugBreak();
-#else
+#elif !defined __APPLE__
     if (ptrace(PTRACE_TRACEME, 0, 1, 0) == -1)
         ::raise(SIGUSR1);
 #endif
