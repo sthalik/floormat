@@ -31,6 +31,10 @@ struct entity_accessors<scenery_ref> {
                 [](scenery_ref&, StringView) {},
                 constantly(field_status::readonly),
             },
+            entity::type<rotation>::field{"rotation"_s,
+                [](const scenery_ref& x) { return x.frame.r; },
+                [](scenery_ref& x, rotation r) { x.frame.r = r; },
+            },
             entity::type<scenery::frame_t>::field{"frame"_s,
                 [](const scenery_ref& x) { return x.frame.frame; },
                 [](scenery_ref& x, frame_t value) { x.frame.frame = value; },
@@ -69,28 +73,73 @@ struct entity_accessors<scenery_ref> {
 #ifdef TEST_STR
             entity::type<String>::field{"string"_s,
                 [](const scenery_ref&) { return my_str; },
-                [](scenery_ref&, String value) { my_str = std::move(value); }
+                [](scenery_ref&, String value) { my_str = std::move(value); },
+                constantly(constraints::max_length{8}),
             },
 #endif
         };
     }
 };
 
+template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
+template<> struct has_anim_atlas<scenery_ref> : std::true_type {
+    static const anim_atlas& get_atlas(const scenery_ref& x) {
+        fm_assert(x.atlas);
+        return *x.atlas;
+    }
+};
+
 using enum_pair = std::pair<StringView, std::size_t>;
+template<typename T, typename U> struct enum_values;
 
-template<typename T> constexpr auto enum_values();
-template<typename T> requires (!std::is_enum_v<T>) constexpr std::array<enum_pair, 0> enum_values(){ return {}; }
+template<std::size_t N>
+struct enum_pair_array {
+    std::array<enum_pair, N> array;
+    std::size_t size;
+    operator ArrayView<const enum_pair>() const noexcept { return {array.data(), size};  }
+};
 
-template<>
-constexpr auto enum_values<pass_mode>()
-{
-    return std::to_array<enum_pair>({
+template<std::size_t N> enum_pair_array(std::array<enum_pair, N> array, std::size_t) -> enum_pair_array<N>;
+
+template<typename T, typename U>
+requires (!std::is_enum_v<T>)
+struct enum_values<T, U> : std::true_type {
+    static constexpr std::array<enum_pair, 0> get() { return {}; }
+};
+
+template<typename U> struct enum_values<pass_mode, U> : std::true_type {
+    static constexpr auto ret = std::to_array<enum_pair>({
         { "blocked"_s, (std::size_t)pass_mode::blocked, },
         { "see-through"_s, (std::size_t)pass_mode::see_through, },
         { "shoot-through"_s, (std::size_t)pass_mode::shoot_through, },
         { "pass"_s, (std::size_t)pass_mode::pass },
     });
-}
+    static constexpr const auto& get() { return ret; }
+};
+
+template<typename U>
+requires has_anim_atlas<U>::value
+struct enum_values<rotation, U> : std::false_type {
+    static auto get(const U& x) {
+        const anim_atlas& atlas = has_anim_atlas<U>::get_atlas(x);
+        std::array<enum_pair, (std::size_t)rotation_COUNT> array;
+        constexpr std::pair<StringView, rotation> values[] = {
+            { "North"_s,     rotation::N  },
+            { "Northeast"_s, rotation::NE },
+            { "East"_s,      rotation::E  },
+            { "Southeast"_s, rotation::SE },
+            { "South"_s,     rotation::S  },
+            { "Southwest"_s, rotation::SW },
+            { "West"_s,      rotation::W  },
+            { "Northwest"_s, rotation::NW },
+        };
+        std::size_t i = 0;
+        for (auto [str, val] : values)
+            if (atlas.check_rotation(val))
+                array[i++] = enum_pair{str, (std::size_t)val};
+        return enum_pair_array{array, i};
+    }
+};
 
 template<>
 bool inspect_type<scenery_ref>(scenery_ref& x)
@@ -98,8 +147,17 @@ bool inspect_type<scenery_ref>(scenery_ref& x)
     bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
-        constexpr auto list = enum_values<type>();
-        ret |= inspect_field<type>(&x, field.erased(), list);
+        using enum_type = enum_values<type, scenery_ref>;
+        if constexpr(enum_type::value)
+        {
+            constexpr auto list = enum_type::get();
+            ret |= inspect_field<type>(&x, field.erased(), list);
+        }
+        else
+        {
+            const auto& list = enum_type::get(x);
+            ret |= inspect_field<type>(&x, field.erased(), list);
+        }
     }, entity_metadata<scenery_ref>::accessors);
     return ret;
 }
