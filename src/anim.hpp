@@ -41,6 +41,11 @@ struct anim_scale final
         struct empty e = {};
     };
     anim_scale_type type = anim_scale_type::invalid;
+    constexpr anim_scale() = default;
+    constexpr anim_scale(const anim_scale&) = default;
+    constexpr anim_scale& operator=(const anim_scale&) = default;
+    constexpr anim_scale(float ratio) : r{ratio}, type{anim_scale_type::ratio} {}
+    constexpr anim_scale(unsigned width_or_height, bool is_width) : f{is_width, width_or_height}, type{anim_scale_type::ratio} {}
     Vector2ui scale_to(Vector2ui image_size) const;
     Vector2 scale_to_(Vector2ui image_size) const;
 };
@@ -50,7 +55,7 @@ struct anim_def final
     String object_name, anim_name;
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
-    anim_scale scale;
+    anim_scale scale = anim_scale{1};
     std::size_t nframes = 0, fps = 0, actionframe = 0;
 };
 

@@ -94,7 +94,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
     if (opts.scale.type != anim_scale_type::ratio)
     {
         float new_width = opts.scale.scale_to_({(unsigned)size.width, (unsigned)size.height})[0];
-        opts.scale = {{.r = {new_width / (float)size.width}}, anim_scale_type::ratio};
+        opts.scale = {new_width / (float)size.width};
     }
 
     const auto dest_size = fm_begin(
@@ -211,11 +211,11 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     options opts;
 
     if (!args.value<StringView>("width").isEmpty())
-        opts.scale = { { .f = {true, args.value<unsigned>("width")} }, anim_scale_type::fixed };
+        opts.scale = {args.value<unsigned>("width"), true};
     else if (!args.value<StringView>("height").isEmpty())
-        opts.scale = { { .f = {false, args.value<unsigned>("height")} }, anim_scale_type::fixed };
+        opts.scale = {args.value<unsigned>("height"), false};
     else if (!args.value<StringView>("scale").isEmpty())
-        opts.scale = { { .r = {args.value<float>("scale")} } , anim_scale_type::ratio };
+        opts.scale = {args.value<float>("scale")};
 
     opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
     opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input"));
