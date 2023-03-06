@@ -120,6 +120,7 @@ void app::draw_collision_boxes()
                     auto chunk_dist = (curchunk - Vector2(c_pos))*chunk_size;
                     auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
                     auto t1 = t0+Vector2(1e-4f);
+                    //Debug{} << Vector2(c_pos) << t0 << subpixel;
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](std::uint64_t data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
@@ -131,6 +132,7 @@ void app::draw_collision_boxes()
                     });
                 }
             }
+        //Debug{} << "--";
     }
 
     shader.set_tint({1, 1, 1, 1});
