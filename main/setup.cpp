@@ -45,22 +45,16 @@ auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::Window
 auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
     return Configuration{}
-        .setTitle(s.title)
+        .setTitle(s.title ? (StringView)s.title : "floormat editor"_s)
         .setSize(s.resolution)
         .setWindowFlags(make_window_flags(s));
 }
 
-auto main_impl::make_gl_conf(const fm_settings& s) -> GLConfiguration
+auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     using f = GLConfiguration::Flag;
     flags |= f::ForwardCompatible;
-    if (s.gpu_debug >= fm_gpu_debug::on)
-        flags |= f::Debug | f::GpuValidation;
-    if (s.gpu_debug >= fm_gpu_debug::robust)
-        flags |= f::RobustAccess | f::ResetIsolation;
-    else if (s.gpu_debug <= fm_gpu_debug::no_error)
-        flags |= f::NoError;
     return GLConfiguration{}.setFlags(flags);
 }
 

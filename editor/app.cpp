@@ -1,11 +1,18 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
+#include "compat/setenv.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
 #include "world.hpp"
 #include "src/anim-atlas.hpp"
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <array>
+#include <utility>
 #include <algorithm>
+#include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Arguments.h>
 
 namespace floormat {
@@ -45,15 +52,15 @@ static inline bool find_arg(const T& list, const U& value) {
     return std::find_if(std::cbegin(list), std::cend(list), [&](const auto& x) { return x == value; }) != std::cend(list);
 }
 
-static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args, bool def)
+static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args, bool fallback)
 {
     StringView str = args.value<StringView>(name);
     if (find_arg(true_values, str))
         return true;
     else if (find_arg(false_values, str))
         return false;
-    fm_warn("invalid '--%s' argument '%s': should be true or false", name.data(), str.data());
-    return def;
+    Warning{Warning::Flag::NoSpace} << "invalid '--" << name << "' argument '" << str << "': should be 'true' or 'false'";
+    return fallback;
 }
 
 [[maybe_unused]]
@@ -82,38 +89,49 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 {
     fm_settings opts;
     Corrade::Utility::Arguments args{};
-    args.addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "", "true|false")
-        .addOption("gpu-debug", "1").setFromEnvironment("gpu-debug", "FLOORMAT_GPU_DEBUG").setHelp("gpu-debug", "", "robust|on|off|no-error")
-        .addOption("geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
-        .addSkippedPrefix("magnum")
+    args.addSkippedPrefix("magnum")
+        .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "", "true|false")
+        .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .parse(argc, argv);
-    opts.vsync = parse_bool("vsync", args, opts.vsync);
-    if (auto str = args.value<StringView>("gpu-debug"); str == "no-error"_s)
-        opts.gpu_debug = fm_gpu_debug::no_error;
-    else if (str == "robust"_s || str == "full"_s)
-        opts.gpu_debug = fm_gpu_debug::robust;
-    else
-        opts.gpu_debug = parse_bool("gpu-debug", args, opts.gpu_debug > fm_gpu_debug::off)
-                         ? fm_gpu_debug::on
-                         : fm_gpu_debug::off;
-    if (auto str = args.value<StringView>("geometry"); !str.isEmpty())
+    opts.vsync = parse_bool("vsync", args, true);
+    if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
         if (ret != 2 || (std::size_t)n != str.size() || Vector2ui(size).product() == 0)
-            fm_warn("invalid --geometry argument '%s'", str.data());
+            Warning{} << "invalid --geometry argument '%s'" << str;
         else
             opts.resolution = Vector2i(size);
     }
-    opts.argc = argc;
-    opts.argv = argv;
     return opts;
 }
+
+#if 0
+static auto make_argv_for_magnum(const fm_settings& opts, const char* const argv0)
+{
+    const char* argv[] = {
+        argv0,
+        "--magnum-dpi-scaling", opts.dpi_scaling.data(),
+        "--magnum-disable-workarounds", opts.disabled_workarounds.data(),
+        "--magnum-disable-extensions", opts.disabled_extensions.data(),
+        "--magnum-log", opts.log.data(),
+    };
+    constexpr auto size = sizeof(argv)/sizeof(*argv);
+    std::pair<std::array<const char*, size>, int> ret = {{}, (int)size};
+    for (std::size_t i = 0; i < size; i++)
+        ret.first[i] = argv[i];
+    return ret;
+}
+#endif
 
 int app::run_from_argv(const int argc, const char* const* const argv)
 {
     auto opts = parse_cmdline(argc, argv);
     int ret;
+    //auto [argv2, argc2] = make_argv_for_magnum(opts, argv ? argv[0] : "floormat");
+    opts.argv = argv;
+    opts.argc = argc;
+
     Pointer<floormat_main> ptr;
     {
         app application{std::move(opts)};

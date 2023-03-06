@@ -18,7 +18,6 @@ struct fm_settings
     String title = "floormat editor"_s;
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
-    fm_gpu_debug gpu_debug = fm_gpu_debug::on;
     bool vsync = true;
     bool resizable          : 1 = true,
          fullscreen         : 1 = false,

@@ -65,19 +65,4 @@ void main_impl::register_debug_callback()
     GL::DebugOutput::setCallback(_debug_callback, this);
 }
 
-char main_impl::maybe_register_debug_callback(fm_gpu_debug flag)
-{
-    using enum fm_gpu_debug;
-    switch (flag)
-    {
-    default:
-        register_debug_callback();
-    break;
-    case off:
-    case no_error:
-        break;
-    }
-    return '\0';
-}
-
 } // namespace floormat

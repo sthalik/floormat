@@ -74,7 +74,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
 private:
     fm_settings s;
-    [[maybe_unused]] char _dummy = maybe_register_debug_callback(s.gpu_debug);
+    [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
     std::vector<clickable> _clickable_scenery;
@@ -95,7 +95,6 @@ private:
 
     draw_bounds get_draw_bounds() const noexcept override;
 
-    char maybe_register_debug_callback(fm_gpu_debug flag);
     void register_debug_callback();
 
     static Configuration make_conf(const fm_settings& s);
