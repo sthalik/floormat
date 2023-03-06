@@ -9,5 +9,5 @@ int unsetenv(const char* name);
 } // namespace floormat
 #else
 #include <cstdlib>
-namespace floormat { using std::getenv; using std::setenv; using std::unsetenv; }
+namespace floormat { using std::getenv; using ::setenv; using ::unsetenv; }
 #endif
