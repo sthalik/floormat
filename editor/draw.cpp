@@ -101,24 +101,24 @@ void app::draw_collision_boxes()
     if (cursor.tile)
     {
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*cursor.pixel)));
-        const auto subpixel = Vector2(Vector2ub(Vector2d(std::fmod(tile_[0], 1.), std::fmod(tile_[1], 1.))*dTILE_SIZE2));
+        const auto subpixel = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f))*TILE_SIZE2;
         const auto tile = *cursor.tile;
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
 
         for (std::int16_t y = miny; y <= maxy; y++)
             for (std::int16_t x = minx; x <= maxx; x++)
             {
-                const chunk_coords pos{x, y};
-                auto& c = world[pos];
+                const chunk_coords c_pos{x, y};
+                auto& c = world[c_pos];
                 if (c.empty())
                     continue;
                 c.ensure_passability();
-                const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
+                const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
-                    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM, half_tile = TILE_SIZE2/2;
-                    auto chunk_dist = (Vector2(pos) - curchunk)*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
+                    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
+                    auto chunk_dist = (curchunk - Vector2(c_pos))*chunk_size;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](std::uint64_t data, const rect_type& rect) {
