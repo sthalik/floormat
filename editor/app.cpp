@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "compat/setenv.hpp"
+#include "compat/sysexits.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
@@ -52,37 +52,15 @@ static inline bool find_arg(const T& list, const U& value) {
     return std::find_if(std::cbegin(list), std::cend(list), [&](const auto& x) { return x == value; }) != std::cend(list);
 }
 
-static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args, bool fallback)
+static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
 {
     StringView str = args.value<StringView>(name);
     if (find_arg(true_values, str))
         return true;
     else if (find_arg(false_values, str))
         return false;
-    Warning{Warning::Flag::NoSpace} << "invalid '--" << name << "' argument '" << str << "': should be 'true' or 'false'";
-    return fallback;
-}
-
-[[maybe_unused]]
-static int atoi_(const char* str)
-{
-    bool negative = false;
-
-    switch (*str)
-    {
-    case '+': ++str; break;
-    case '-': ++str; negative = true; break;
-    }
-
-    int result = 0;
-    for (; *str >= '0' && *str <= '9'; ++str)
-    {
-        int digit = *str - '0';
-        result *= 10;
-        result -= digit; // calculate in negatives to support INT_MIN, LONG_MIN,..
-    }
-
-    return negative ? result : -result;
+    Error{Error::Flag::NoSpace} << "invalid --" << name << " argument '" << str << "': should be 'true' or 'false'";
+    std::exit(EX_USAGE);
 }
 
 fm_settings app::parse_cmdline(int argc, const char* const* const argv)
@@ -90,39 +68,41 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     fm_settings opts;
     Corrade::Utility::Arguments args{};
     args.addSkippedPrefix("magnum")
-        .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "", "true|false")
+        .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
+        .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
         .parse(argc, argv);
-    opts.vsync = parse_bool("vsync", args, true);
+    opts.vsync = parse_bool("vsync", args);
     if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
         if (ret != 2 || (std::size_t)n != str.size() || Vector2ui(size).product() == 0)
-            Warning{} << "invalid --geometry argument '%s'" << str;
+        {
+            Error{} << "invalid --geometry argument '%s'" << str;
+            std::exit(EX_USAGE);
+        }
         else
             opts.resolution = Vector2i(size);
     }
+    if (auto str = args.value<StringView>("window");
+        str == "fullscreen")
+        opts.fullscreen = true, opts.resizable = false;
+    else if (str == "borderless")
+        opts.borderless = true, opts.resizable = false;
+    else if (str == "fullscreen-desktop")
+        opts.fullscreen_desktop = true, opts.resizable = false;
+    else if (str == "maximize" || str == "maximized")
+        opts.maximized = true;
+    else if (str == "windowed")
+        (void)0;
+    else
+    {
+        Error{Error::Flag::NoSpace} << "invalid display mode '" << str << "'";
+        std::exit(EX_USAGE);
+    }
     return opts;
 }
-
-#if 0
-static auto make_argv_for_magnum(const fm_settings& opts, const char* const argv0)
-{
-    const char* argv[] = {
-        argv0,
-        "--magnum-dpi-scaling", opts.dpi_scaling.data(),
-        "--magnum-disable-workarounds", opts.disabled_workarounds.data(),
-        "--magnum-disable-extensions", opts.disabled_extensions.data(),
-        "--magnum-log", opts.log.data(),
-    };
-    constexpr auto size = sizeof(argv)/sizeof(*argv);
-    std::pair<std::array<const char*, size>, int> ret = {{}, (int)size};
-    for (std::size_t i = 0; i < size; i++)
-        ret.first[i] = argv[i];
-    return ret;
-}
-#endif
 
 int app::run_from_argv(const int argc, const char* const* const argv)
 {
