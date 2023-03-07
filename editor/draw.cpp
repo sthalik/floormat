@@ -100,11 +100,14 @@ void app::draw_collision_boxes()
 
     if (cursor.tile)
     {
+        constexpr auto eps = 1e-6f;
+        constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*cursor.pixel)));
-        const auto subpixel = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f))*TILE_SIZE2;
         const auto tile = *cursor.tile;
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-
+        const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
+        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
+                                          curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
         for (std::int16_t y = miny; y <= maxy; y++)
             for (std::int16_t x = minx; x <= maxx; x++)
             {
@@ -116,11 +119,11 @@ void app::draw_collision_boxes()
                 const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
+                    constexpr auto half_tile = TILE_SIZE2/2;
                     constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
                     auto chunk_dist = (curchunk - Vector2(c_pos))*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
                     auto t1 = t0+Vector2(1e-4f);
-                    //Debug{} << Vector2(c_pos) << t0 << subpixel;
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](std::uint64_t data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
@@ -132,7 +135,6 @@ void app::draw_collision_boxes()
                     });
                 }
             }
-        //Debug{} << "--";
     }
 
     shader.set_tint({1, 1, 1, 1});
