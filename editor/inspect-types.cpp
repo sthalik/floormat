@@ -33,7 +33,7 @@ struct entity_accessors<scenery_ref> {
             },
             entity::type<rotation>::field{"rotation"_s,
                 [](const scenery_ref& x) { return x.frame.r; },
-                [](scenery_ref& x, rotation r) { x.frame.r = r; },
+                [](scenery_ref& x, rotation r) { x.rotate(r); },
             },
             entity::type<scenery::frame_t>::field{"frame"_s,
                 [](const scenery_ref& x) { return x.frame.frame; },
