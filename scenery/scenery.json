@@ -15,7 +15,9 @@
   {
     "name": "bench1",
     "type": "generic",
-    "atlas-name": "furniture/bench1"
+    "atlas-name": "furniture/bench1",
+    "bbox-offset": "0 x 7",
+    "bbox-size": "64 x 32"
   },
   {
     "name": "bench4",

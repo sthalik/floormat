@@ -3,7 +3,7 @@
 		{
 			"frames": [
 				{
-					"ground": "78 x 87",
+					"ground": "78 x 123",
 					"size": "155 x 167"
 				}
 			],
@@ -12,17 +12,12 @@
 		},
 		{
 			"mirror-from": "n",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "w"
 		},
 		{
 			"frames": [
 				{
-					"ground": "77 x 64",
+					"ground": "77 x 100",
 					"offset": "0 x 167",
 					"size": "155 x 139"
 				}
@@ -32,12 +27,7 @@
 		},
 		{
 			"mirror-from": "s",
-			"name": "e",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "e"
 		}
 	],
 	"nframes": 1,
