@@ -9,4 +9,6 @@ out vec4 color;
 
 void main() {
     color = texture(sampler, frag_texcoords) * tint;
+    if (color.a == 0)
+        discard;
 }
