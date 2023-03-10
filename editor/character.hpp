@@ -16,9 +16,8 @@ struct character_wip final
 
     std::shared_ptr<anim_atlas> walk_anim;
     global_coords pos;
-    std::size_t frame = 0;
-    float delta = 0;
     Vector2 offset;
+    std::uint16_t delta = 0, frame = 0;
     rotation r = rotation::NE;
 
 private:

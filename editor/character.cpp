@@ -62,10 +62,11 @@ character_wip::~character_wip() = default;
 
 int character_wip::allocate_frame_time(float dt)
 {
-    delta += dt;
-    auto ret = (int)(delta*framerate);
-    delta -= ret;
-    delta = std::fmax(0.f, delta);
+    int d = int(delta) + int(65535u * dt);
+    constexpr int framerate_ = 65535/framerate;
+    static_assert(framerate_ > 0);
+    auto ret = d / framerate_;
+    delta = (std::uint16_t)std::clamp(d - ret*65535, 0, 65535);
     return ret;
 }
 
