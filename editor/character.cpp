@@ -101,12 +101,23 @@ void character_wip::tick(world& w, float dt, bool L, bool R, bool U, bool D)
         auto pos_1 = Vector2i(offset_ * inv_tile_size);
         pos_ += pos_1;
         offset_ = Vector2(std::fmod(offset_[0], TILE_SIZE2[0]), std::fmod(offset_[1], TILE_SIZE2[1]));
+        constexpr auto half_tile = TILE_SIZE2/2;
+        if (auto off = offset_[0]; std::fabs(off) > half_tile[0])
+        {
+            pos_ += Vector2i(offset_[0] < 0 ? -1 : 1, 0);
+            offset_[0] = std::copysign(TILE_SIZE[0] - std::fabs(offset_[0]), -off);
+        }
+        if (auto off = offset_[1]; std::fabs(off) > half_tile[1])
+        {
+            pos_ += Vector2i(0, offset_[1] < 0 ? -1 : 1);
+            offset_[1] = std::copysign(TILE_SIZE[1] - std::fabs(offset_[1]), -off);
+        }
         auto [c, t] = w[pos_];
         const auto& r = c.rtree();
         auto center = Vector2(pos_.local()) * TILE_SIZE2 + offset_;
-        auto half = Vector2(bbox_size)*.5f;
-        auto min = center - half;
-        auto max = center + half;
+        auto half_bbox = Vector2(bbox_size)*.5f;
+        auto min = center - half_bbox;
+        auto max = center + half_bbox;
         bool is_blocked = false;
         r->Search(min.data(), max.data(), [&](const std::uint64_t data, const auto&) {
             auto cdata = std::bit_cast<collision_data>(data);
@@ -119,6 +130,7 @@ void character_wip::tick(world& w, float dt, bool L, bool R, bool U, bool D)
         offset = offset_;
         ++frame %= walk_anim->info().nframes;
     }
+    //Debug{} << "pos" << Vector2i(pos.local());
 }
 
 } // namespace floormat
