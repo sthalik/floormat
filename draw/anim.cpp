@@ -88,7 +88,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
                     last = NullOpt;
                 }
                 bound = nullptr;
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
             }
         last_id = id;
         if (last && atlas && &*atlas != last->atlas)
@@ -105,12 +105,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
             do_draw(last->run_from, size, last->atlas, max_index);
         for (std::size_t i = ids[size-1]+1; i < TILE_COUNT; i++)
             if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps > 0)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
     }
     else
         for (auto i = 0_uz; i < TILE_COUNT; i++)
             if (auto [atlas, s] = c[i].scenery(); atlas)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset);
+                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
@@ -132,10 +132,10 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::si
     shader.draw(_mesh);
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset, float depth_offset)
 {
     const auto pos = Vector3(xy) * TILE_SIZE + Vector3(Vector2(offset), 0);
-    const float depth = tile_shader::depth_value(xy, tile_shader::scenery_depth_offset);
+    const float depth = tile_shader::depth_value(xy, depth_offset);
     draw(shader, atlas, r, frame, pos, depth);
 }
 

@@ -23,6 +23,7 @@ struct tile_atlas;
 struct tile_editor;
 struct fm_settings;
 struct anim_atlas;
+struct character_wip;
 
 struct cursor_state final {
     Optional<Vector2i> pixel;
@@ -74,8 +75,10 @@ private:
     void set_cursor();
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
+    void update_character(float dt);
 
     void draw() override;
+    void draw_character();
 
     void on_mouse_move(const mouse_move_event& event) noexcept override;
     void on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
@@ -147,6 +150,7 @@ private:
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
+    std::unique_ptr<character_wip> _character;
     cursor_state cursor;
     popup_target _popup_target;
 

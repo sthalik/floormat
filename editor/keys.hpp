@@ -14,6 +14,7 @@ enum kmod : int {
 enum key : unsigned {
     key_noop,
     key_camera_up, key_camera_left, key_camera_right, key_camera_down, key_camera_reset,
+    key_left, key_right, key_up, key_down,
     key_NO_REPEAT,
     key_rotate_tile,
     key_mode_none, key_mode_floor, key_mode_walls, key_mode_scenery,

@@ -13,9 +13,43 @@ template <typename T>
 constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
 
 constexpr int tile_size_1 = iTILE_SIZE2.sum()/2,
-              framerate = 24, move_speed = tile_size_1 * 2/3;
+              framerate = 96, move_speed = tile_size_1 * 2;
 constexpr float frame_time = 1.f/framerate;
 constexpr auto inv_tile_size = 1 / TILE_SIZE2;
+constexpr Vector2b bbox_size(12);
+
+constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
+{
+    if (L == R)
+        L = R = false;
+    if (U == D)
+        U = D = false;
+
+    using enum rotation;
+    struct {
+        int lr = 0, ud = 0;
+        rotation r = N;
+    } dir;
+
+    if (L && U)
+        dir = { -1,  0,  W };
+    else if (L && D)
+        dir = {  0,  1,  S };
+    else if (R && U)
+        dir = {  0, -1,  N };
+    else if (R && D)
+        dir = {  1,  0,  E };
+    else if (L)
+        dir = { -1,  1, SW };
+    else if (D)
+        dir = {  1,  1, SE };
+    else if (R)
+        dir = {  1, -1, NE };
+    else if (U)
+        dir = { -1, -1, NW };
+
+    return dir;
+}
 
 } // namespace
 
@@ -41,16 +75,23 @@ Vector2 character_wip::move_vec(int left_right, int top_bottom)
     return c * Vector2(sgn(left_right), sgn(top_bottom)).normalized();
 }
 
-void character_wip::tick(world& w, float dt, int left_right, int top_bottom)
+void character_wip::tick(world& w, float dt, bool L, bool R, bool U, bool D)
 {
-    if (!left_right && !top_bottom)
+    auto [lr, ud, rot] = arrows_to_dir(L, R, U, D);
+
+    if (!lr & !ud)
     {
         delta = 0;
         return;
     }
 
     int nframes = allocate_frame_time(dt);
-    const auto vec = move_vec(left_right, top_bottom);
+
+    if (!nframes)
+        return;
+
+    const auto vec = move_vec(lr, ud);
+    r = rot;
 
     for (int i = 0; i < nframes; i++)
     {
@@ -62,7 +103,7 @@ void character_wip::tick(world& w, float dt, int left_right, int top_bottom)
         offset_ = Vector2(std::fmod(offset_[0], TILE_SIZE2[0]), std::fmod(offset_[1], TILE_SIZE2[1]));
         auto [c, t] = w[pos_];
         const auto& r = c.rtree();
-        auto center = Vector2(pos_.local()) * TILE_SIZE2 + offset;
+        auto center = Vector2(pos_.local()) * TILE_SIZE2 + offset_;
         auto half = Vector2(bbox_size)*.5f;
         auto min = center - half;
         auto max = center + half;

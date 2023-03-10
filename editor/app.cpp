@@ -6,6 +6,7 @@
 #include "loader/loader.hpp"
 #include "world.hpp"
 #include "src/anim-atlas.hpp"
+#include "character.hpp"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -32,6 +33,7 @@ app::app(fm_settings&& opts) :
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     inspectors.reserve(16);
+    _character = std::make_unique<character_wip>();
 }
 
 app::~app()

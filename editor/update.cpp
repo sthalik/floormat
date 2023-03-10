@@ -5,6 +5,7 @@
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
+#include "character.hpp"
 #include "chunk.inl"
 
 namespace floormat {
@@ -208,6 +209,13 @@ void app::update_world(float dt)
                     c.with_scenery_update(sc.index(), [&] { return sc.update(dt); });
 }
 
+
+
+void app::update_character(float dt)
+{
+    _character->tick(M->world(), dt, keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+}
+
 void app::set_cursor()
 {
     if (!cursor.in_imgui)
@@ -234,6 +242,7 @@ void app::update(float dt)
     update_world(dt);
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
+    update_character(dt);
     set_cursor();
 
     M->world().maybe_collect();

@@ -139,6 +139,10 @@ auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
             case SDLK_q | CTRL: return { key_quit,                      mods };
             case SDLK_n | CTRL: return { key_new_file,                  mods };
             case SDLK_ESCAPE:   return { key_escape,                    mods };
+            case SDLK_LEFT:     return { key_left,                      mods };
+            case SDLK_RIGHT:    return { key_right,                     mods };
+            case SDLK_UP:       return { key_up,                        mods };
+            case SDLK_DOWN:     return { key_down,                      mods };
             }
         }
     }
