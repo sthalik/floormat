@@ -31,6 +31,7 @@ struct chunk final
 {
     friend struct tile_ref;
     friend struct entity;
+    friend struct world;
 
     tile_ref operator[](std::size_t idx) noexcept;
     tile_proto operator[](std::size_t idx) const noexcept;

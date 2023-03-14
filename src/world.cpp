@@ -11,6 +11,13 @@ world::world() : world{initial_capacity}
 world::~world() noexcept
 {
     _teardown = true;
+    for (auto& [k, v] : _chunks)
+    {
+        v._teardown = true;
+        v.mark_scenery_modified(true);
+        _last_chunk = {};
+        v._entities.clear();
+    }
     _last_chunk = {};
     _chunks.clear();
     _entities.clear();
