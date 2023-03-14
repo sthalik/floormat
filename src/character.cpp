@@ -10,8 +10,7 @@ namespace floormat {
 
 namespace {
 
-template <typename T>
-constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
+template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
 
 constexpr int tile_size_1 = iTILE_SIZE2.sum()/2,
               framerate = 96, move_speed = tile_size_1 * 2;

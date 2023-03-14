@@ -91,12 +91,26 @@ void entity::rotate(It, struct chunk&, rotation new_r)
     });
 }
 
+template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
+
 Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
 {
-    auto tmp = Vector2i(cur_offset) + new_offset;
-    auto new_off = tmp % iTILE_SIZE2;
-    auto tile = tmp / iTILE_SIZE2;
-    return { coord + tile, Vector2b(new_off) };
+    auto off_tmp = Vector2i(cur_offset) + new_offset;
+    auto off_new = off_tmp % iTILE_SIZE2;
+    constexpr auto half_tile = iTILE_SIZE2/2;
+    for (auto i = 0_uz; i < 2; i++)
+    {
+        auto sign = sgn(off_new[i]);
+        auto absval = std::abs(off_new[i]);
+        if (absval > half_tile[i])
+        {
+            Vector2i v(0);
+            v[i] = sign;
+            coord += v;
+            off_new[i] = (iTILE_SIZE[i] - absval)*-sign;
+        }
+    }
+    return { coord, Vector2b(off_new) };
 }
 
 bool entity::can_move_to(Vector2i delta, struct chunk& c)
@@ -126,7 +140,6 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
     auto& w = e.w;
     auto& coord = e.coord;
     auto& offset = e.offset;
-
     auto& es = c._entities;
     auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
@@ -135,9 +148,6 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
 
     if (e.atlas->info().fps == 0)
         c.mark_scenery_modified(false);
-
-    if (coord_ != coord)
-        Debug{} << "coord" << Vector2i(coord_.chunk()) << Vector2i(coord_.local());
 
     bool same_chunk = coord_.chunk() == coord.chunk();
     chunk::bbox bb0, bb1;
@@ -153,12 +163,7 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
         {
             auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
             if (pos1 > pos0)
-            {
-                Debug{} << "decr";
                 pos1--;
-            }
-            else
-                Debug{} << "no decr";
             es.erase(it);
             [[maybe_unused]] auto size = es.size();
             es.insert(es.cbegin() + pos1, std::move(e_));
