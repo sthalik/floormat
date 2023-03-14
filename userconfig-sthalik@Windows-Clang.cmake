@@ -89,6 +89,7 @@ function(fm-userconfig-src)
         -Wno-exit-time-destructors
         -Wno-implicit-int-float-conversion
         -Wno-shadow-field-in-constructor
+        -Wno-shadow-field
         -Wno-shadow
         -Wno-ctad-maybe-unsupported
         -Wno-documentation-unknown-command

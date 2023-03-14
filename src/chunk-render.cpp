@@ -1,7 +1,8 @@
 #include "chunk.hpp"
 #include "tile-atlas.hpp"
-#include "anim-atlas.hpp"
 #include "shaders/tile.hpp"
+#include "entity.hpp"
+#include "anim-atlas.hpp"
 #include <algorithm>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>
@@ -16,12 +17,6 @@ static auto make_index_array(std::size_t max)
         array[i] = tile_atlas::indices(i);
     return array;
 }
-
-struct vertex {
-    Vector3 position;
-    Vector2 texcoords;
-    float depth = -1;
-};
 
 auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
 {
@@ -111,48 +106,47 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
 
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
-    if (!_scenery_modified)
-        return { scenery_mesh, scenery_indexes, std::size_t(scenery_mesh.count()/6) };
-    _scenery_modified = false;
-
-    std::size_t count = 0;
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
-        if (const auto& atlas = _scenery_atlases[i]; atlas && atlas->info().fps == 0)
-            scenery_indexes[count++] = std::uint8_t(i);
-
-#if 0
-    std::sort(scenery_indexes.begin(), scenery_indexes.begin() + count,
-              [this](std::uint8_t a, std::uint8_t b) {
-                  return _scenery_atlases[a] < _scenery_atlases[b];
-              });
-#endif
-    std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
-    for (auto k = 0_uz; k < count; k++)
+    if (_scenery_modified)
     {
-        const std::uint8_t i = scenery_indexes[k];
-        const local_coords pos{i};
-        const auto& atlas = _scenery_atlases[i];
-        const auto& fr = _scenery_variants[i];
-        const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
-        const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
-        const auto& group = atlas->group(fr.r);
-        const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
-        const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
-        auto& v = vertexes[k];
-        for (auto j = 0_uz; j < 4; j++)
-            v[j] = { quad[j], texcoords[j], depth };
+        _scenery_modified = false;
+        const auto count = fm_begin(
+            std::size_t ret = 0;
+            for (const auto& e : _entities)
+                ret += e->atlas->info().fps == 0;
+            return ret;
+        );
+
+        scenery_indexes.clear();
+        scenery_indexes.reserve(count);
+        scenery_vertexes.clear();
+        scenery_vertexes.reserve(count);
+
+        for (const auto& e : _entities)
+        {
+            const auto i = scenery_indexes.size();
+            scenery_indexes.emplace_back();
+            scenery_indexes.back() = tile_atlas::indices(i);
+            const auto& atlas = e->atlas;
+            const auto& fr = *e;
+            const auto pos = e->coord.local();
+            const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
+            const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
+            const auto& group = atlas->group(fr.r);
+            const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
+            const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
+            scenery_vertexes.emplace_back();
+            auto& v = scenery_vertexes.back();
+            for (auto j = 0_uz; j < 4; j++)
+                v[j] = { quad[j], texcoords[j], depth };
+        }
+
+        GL::Mesh mesh{GL::MeshPrimitive::Triangles};
+        mesh.addVertexBuffer(GL::Buffer{scenery_vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+            .setIndexBuffer(GL::Buffer{scenery_indexes}, 0, GL::MeshIndexType::UnsignedShort)
+            .setCount(std::int32_t(6 * count));
+        scenery_mesh = Utility::move(mesh);
     }
-
-    const auto indexes = make_index_array(count);
-    const auto vertex_view = ArrayView{vertexes.data(), count};
-    const auto vert_index_view = ArrayView{indexes.data(), count};
-
-    GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-        .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(std::int32_t(6 * count));
-    scenery_mesh = Utility::move(mesh);
-    return { scenery_mesh, scenery_indexes, count };
+    return { scenery_mesh, };
 }
 
 } // namespace floormat

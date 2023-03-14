@@ -11,6 +11,7 @@
 namespace floormat {
 
 struct anim_atlas;
+struct entity;
 
 enum class collision : std::uint8_t {
     view, shoot, move,
@@ -29,6 +30,7 @@ struct collision_data final {
 struct chunk final
 {
     friend struct tile_ref;
+    friend struct entity;
 
     tile_ref operator[](std::size_t idx) noexcept;
     tile_proto operator[](std::size_t idx) const noexcept;
@@ -76,8 +78,12 @@ struct chunk final
 
     struct scenery_mesh_tuple final {
         GL::Mesh& mesh;
-        const ArrayView<const std::uint8_t> ids;
-        const std::size_t size;
+    };
+
+    struct vertex {
+        Vector3 position;
+        Vector2 texcoords;
+        float depth = -1;
     };
 
     ground_mesh_tuple ensure_ground_mesh() noexcept;
@@ -87,8 +93,6 @@ struct chunk final
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
 
     scenery_mesh_tuple ensure_scenery_mesh() noexcept;
-    std::shared_ptr<anim_atlas>& scenery_atlas_at(std::size_t i) noexcept;
-    scenery& scenery_at(std::size_t i) noexcept;
 
     void ensure_passability() noexcept;
 
@@ -99,7 +103,18 @@ struct chunk final
 
     template<typename F>
     requires requires(F fun) { fun(); }
-    void with_scenery_update(std::size_t idx, F&& fun);
+    void with_scenery_update(entity& e, F&& fun);
+
+    using entity_vector = std::vector<std::shared_ptr<entity>>;
+    using entity_const_iterator = typename entity_vector::const_iterator;
+
+    [[nodiscard]] bool can_place_entity(const entity_proto& proto, local_coords pos);
+
+    void add_entity(const std::shared_ptr<entity>& e);
+    void add_entity_unsorted(const std::shared_ptr<entity>& e);
+    void sort_entities();
+    void remove_entity(entity_const_iterator it);
+    const std::vector<std::shared_ptr<entity>>& entities() const;
 
 private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
@@ -108,9 +123,10 @@ private:
     std::array<std::shared_ptr<tile_atlas>, TILE_COUNT*2> _wall_atlases;
     std::array<std::uint16_t, TILE_COUNT*2> wall_indexes = {};
     std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
-    std::array<std::shared_ptr<anim_atlas>, TILE_COUNT> _scenery_atlases;
-    std::array<std::uint8_t, TILE_COUNT> scenery_indexes = {};
-    std::array<scenery, TILE_COUNT> _scenery_variants = {};
+    std::vector<std::shared_ptr<entity>> _entities;
+
+    std::vector<std::array<UnsignedShort, 6>> scenery_indexes;
+    std::vector<std::array<vertex, 4>> scenery_vertexes;
 
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
 
@@ -120,7 +136,8 @@ private:
                  _ground_modified  : 1 = true,
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
-                 _pass_modified    : 1 = true;
+                 _pass_modified    : 1 = true,
+                 _teardown         : 1 = false;
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
@@ -129,7 +146,7 @@ private:
 
         bool operator==(const bbox& other) const noexcept;
     };
-    bool _bbox_for_scenery(std::size_t i, bbox& value) noexcept;
+    bool _bbox_for_scenery(const entity& s, bbox& value) noexcept;
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);

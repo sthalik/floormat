@@ -2,91 +2,30 @@
 #include "anim-atlas.hpp"
 #include "chunk.hpp"
 #include "compat/assert.hpp"
-#include "rotation.inl"
-#include "chunk.inl"
+#include "world.hpp"
 #include <algorithm>
 
 namespace floormat {
 
-scenery_proto::scenery_proto() noexcept = default;
-scenery_proto::scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) noexcept :
-    atlas{atlas}, frame{frame}
-{}
+scenery_proto::scenery_proto() = default;
 
-scenery_proto& scenery_proto::operator=(const scenery_proto&) noexcept = default;
-scenery_proto::scenery_proto(const scenery_proto&) noexcept = default;
-scenery_proto::operator bool() const noexcept { return atlas != nullptr; }
+scenery_proto& scenery_proto::operator=(const scenery_proto&) = default;
+scenery_proto::scenery_proto(const scenery_proto&) = default;
+scenery_proto::~scenery_proto() noexcept = default;
+scenery_proto::operator bool() const { return atlas != nullptr; }
 
-scenery_ref::scenery_ref(struct chunk& c, std::size_t i) noexcept :
-      atlas{c.scenery_atlas_at(i)}, frame{c.scenery_at(i)},
-      c{&c}, idx{std::uint8_t(i)}
-{}
-scenery_ref::scenery_ref(const scenery_ref&) noexcept = default;
-scenery_ref::scenery_ref(scenery_ref&&) noexcept = default;
-struct chunk& scenery_ref::chunk() noexcept { return *c; }
-std::uint8_t scenery_ref::index() const noexcept { return idx; }
-
-scenery_ref& scenery_ref::operator=(const scenery_proto& proto) noexcept
+bool scenery::can_activate(It, struct chunk&) const
 {
-    atlas = proto.atlas;
-    frame = proto.frame;
-    return *this;
+    return atlas && interactive;
 }
 
-scenery_ref::operator scenery_proto() const noexcept { return { atlas, frame }; }
-scenery_ref::operator bool() const noexcept { return atlas != nullptr; }
-
-scenery::scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
-                 pass_mode passability, bool active, bool interactive,
-                 Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
-    frame{frame},
-    offset{offset},
-    bbox_offset{rotate_point(bbox_offset, atlas.first_rotation(), r)},
-    bbox_size{rotate_size(bbox_size, atlas.first_rotation(), r)},
-    r{r}, type{scenery_type::generic},
-    passability{passability},
-    active{active}, interactive{interactive}
+bool scenery::update(It, struct chunk&, float dt)
 {
-    fm_assert(r < rotation_COUNT);
-    fm_assert(frame < atlas.group(r).frames.size());
-}
-
-scenery::scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
-                 Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) :
-    frame{frame_t(is_open ? 0 : atlas.group(r).frames.size()-1)},
-    offset{offset},
-    bbox_offset{rotate_point(bbox_offset, atlas.first_rotation(), r)},
-    bbox_size{rotate_size(bbox_size, atlas.first_rotation(), r)},
-    r{r}, type{scenery_type::door},
-    passability{is_open ? pass_mode::pass : pass_mode::blocked},
-    interactive{true}
-{
-    fm_assert(r < rotation_COUNT);
-    fm_assert(atlas.group(r).frames.size() >= 2);
-}
-
-void scenery_ref::rotate(rotation new_r)
-{
-    c->with_scenery_update(idx, [&]() {
-        auto& s = frame;
-        s.bbox_offset = rotate_point(s.bbox_offset, s.r, new_r);
-        s.bbox_size = rotate_size(s.bbox_size, s.r, new_r);
-        s.r = new_r;
-    });
-}
-
-bool scenery_ref::can_activate() const noexcept
-{
-    return atlas && frame.interactive;
-}
-
-bool scenery_ref::update(float dt)
-{
-    auto& s = frame;
+    auto& s = *this;
     if (!s.active)
         return false;
 
-    switch (s.type)
+    switch (s.sc_type)
     {
     default:
     case scenery_type::none:
@@ -109,25 +48,25 @@ bool scenery_ref::update(float dt)
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
         if (fr <= 0)
-            s.passability = pass_mode::pass;
+            s.pass = pass_mode::pass;
         else if (fr >= nframes-1)
-            s.passability = pass_mode::blocked;
+            s.pass = pass_mode::blocked;
         else
-            s.passability = pass_mode::see_through;
-        s.frame = (scenery::frame_t)std::clamp(fr, 0, nframes-1);
+            s.pass = pass_mode::see_through;
+        s.frame = (std::uint16_t)std::clamp(fr, 0, nframes-1);
         if (!s.active)
             s.delta = s.closing = 0;
         return true;
     }
 }
 
-bool scenery_ref::activate()
+bool scenery::activate(It, struct chunk&)
 {
-    auto& s = frame;
-    if (!*this || s.active)
+    auto& s = *this;
+    if (s.active)
         return false;
 
-    switch (s.type)
+    switch (s.sc_type)
     {
     default:
     case scenery_type::none:
@@ -143,22 +82,29 @@ bool scenery_ref::activate()
     return false;
 }
 
-bool scenery::is_mesh_modified(const scenery& s0, const scenery& s)
+bool scenery::operator==(const entity_proto& e0) const
 {
-    if (s.interactive != s0.interactive || s.type != s0.type)
-        return true;
-    if (!s.interactive)
-        return s.r != s0.r || s.offset != s0.offset || s0.frame != s.frame || s.type != s0.type;
-    return false;
+    if (!entity::operator==(e0))
+        return false;
+
+    const auto& s0 = static_cast<const scenery_proto&>(e0);
+    return sc_type == s0.sc_type && active == s0.active &&
+           closing == s0.closing && interactive == s0.interactive;
 }
 
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-bool scenery::operator==(const scenery&) const noexcept = default;
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
-#endif
+scenery::scenery(std::uint64_t id, struct world& w, entity_type type, const scenery_proto& proto) :
+    entity{id, w, type}, sc_type{proto.sc_type}, active{proto.active},
+    closing{proto.closing}, interactive{proto.interactive}
+{
+    fm_assert(type == proto.type);
+    atlas = proto.atlas;
+    offset = proto.offset;
+    bbox_offset = proto.bbox_offset;
+    bbox_size = proto.bbox_size;
+    delta = proto.delta;
+    frame = proto.frame;
+    r = proto.r;
+    pass = proto.pass;
+}
 
 } // namespace floormat

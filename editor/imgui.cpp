@@ -138,19 +138,14 @@ bool app::check_inspector_exists(popup_target p)
 void app::do_popup_menu()
 {
     fm_assert(_popup_target.target != popup_target_type::none);
-    auto& w = M->world();
-
     auto b0 = push_id(SCENERY_POPUP_NAME);
-
-    const auto [ch, pos, type] = _popup_target;
-    auto [c, t] = w[{ch, pos}];
+    const auto [sc, target] = _popup_target;
     //if (_popup_target.target != popup_target_type::scenery) {...}
-    auto sc = t.scenery();
 
     if (_pending_popup)
     {
         _pending_popup = false;
-        fm_assert(type != popup_target_type::none);
+        fm_assert(target != popup_target_type::none);
         //if (type != popup_target_type::scenery) {...}
         if (sc)
             ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
@@ -158,11 +153,13 @@ void app::do_popup_menu()
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
-        if (ImGui::MenuItem("Activate", nullptr, false, sc.can_activate()))
-            sc.activate();
-        if (auto next_rot = sc.atlas->next_rotation_from(sc.frame.r);
-            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc.frame.r))
-            sc.rotate(next_rot);
+        auto iter = sc->iter();
+        auto& c = sc->chunk();
+        if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(iter, c)))
+            sc->activate(iter, c);
+        if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
+            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
+            sc->rotate(iter, c, next_rot);
 
         ImGui::Separator();
 

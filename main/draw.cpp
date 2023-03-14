@@ -136,12 +136,8 @@ void main_impl::draw_world() noexcept
             if (check_chunk_visible(_shader.camera_offset(), sz))
             {
                 _anim_mesh.draw(_shader, c);
-                for (auto i = 0_uz; i < TILE_COUNT; i++)
-                {
-                    const local_coords xy{i};
-                    if (auto [atlas, s] = c[xy].scenery(); atlas)
-                        _anim_mesh.add_clickable(_shader, window_size(), pos, std::uint8_t(i), atlas, s, _clickable_scenery);
-                }
+                for (const auto& e : c.entities())
+                    _anim_mesh.add_clickable(_shader, window_size(), e, _clickable_scenery);
             }
         }
 

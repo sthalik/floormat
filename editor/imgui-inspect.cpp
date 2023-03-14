@@ -29,15 +29,11 @@ void app::draw_inspector()
 
     for (auto i = inspectors.size()-1; i != -1_uz; i--)
     {
-        auto [ch, pos, target] = inspectors[i];
-        auto [c, t] = w[{ch, pos}];
-        auto s = t.scenery();
-
-        if (!s)
-        {
-            inspectors.erase(inspectors.begin() + (int)i);
-            continue;
-        }
+        auto [e, target] = inspectors[i];
+        auto& s = *e;
+        chunk_coords ch = e->coord.chunk();
+        local_coords pos = e->coord.local();
+        auto& c = w[ch];
 
         char buf[128];
         snformat(buf, "i-{}-{}x{}-{}x{}"_cf, (int)target, ch.x, ch.y, (int)pos.x, (int)pos.y);
@@ -48,7 +44,13 @@ void app::draw_inspector()
         snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
-            c.with_scenery_update(s.index(), [&] { return entities::inspect_type(s); });
+        {
+            if (s.type == entity_type::scenery)
+            {
+                auto& s2 = static_cast<scenery&>(s);
+                c.with_scenery_update(s, [&] { return entities::inspect_type(s2); });
+            }
+        }
         if (!is_open)
             inspectors.erase(inspectors.begin() + (int)i);
     }

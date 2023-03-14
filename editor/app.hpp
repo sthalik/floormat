@@ -23,7 +23,7 @@ struct tile_atlas;
 struct tile_editor;
 struct fm_settings;
 struct anim_atlas;
-struct character_wip;
+struct character;
 
 struct cursor_state final {
     Optional<Vector2i> pixel;
@@ -44,8 +44,7 @@ enum class popup_target_type : unsigned char {
 };
 
 struct popup_target final {
-    chunk_coords c;
-    local_coords pos;
+    std::shared_ptr<entity> e;
     popup_target_type target = popup_target_type::none;
     bool operator==(const popup_target&) const;
 };
@@ -150,7 +149,7 @@ private:
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
-    std::unique_ptr<character_wip> _character;
+    std::shared_ptr<character> _character;
     cursor_state cursor;
     popup_target _popup_target;
 

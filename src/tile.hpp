@@ -1,6 +1,5 @@
 #pragma once
 #include "tile-image.hpp"
-#include "scenery.hpp"
 
 namespace floormat {
 
@@ -10,14 +9,11 @@ struct anim_atlas;
 struct tile_proto final
 {
     std::shared_ptr<tile_atlas> ground_atlas, wall_north_atlas, wall_west_atlas;
-    std::shared_ptr<anim_atlas> scenery_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
-    struct scenery scenery_frame;
 
     tile_image_proto ground() const noexcept;
     tile_image_proto wall_north() const noexcept;
     tile_image_proto wall_west() const noexcept;
-    scenery_proto scenery() const noexcept;
 
     friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
 };
@@ -29,22 +25,18 @@ struct tile_ref final
     tile_image_ref ground() noexcept;
     tile_image_ref wall_north() noexcept;
     tile_image_ref wall_west() noexcept;
-    scenery_ref scenery() noexcept;
 
     tile_image_proto ground() const noexcept;
     tile_image_proto wall_north() const noexcept;
     tile_image_proto wall_west() const noexcept;
-    scenery_proto scenery() const noexcept;
 
     std::shared_ptr<tile_atlas> ground_atlas() noexcept;
     std::shared_ptr<tile_atlas> wall_north_atlas() noexcept;
     std::shared_ptr<tile_atlas> wall_west_atlas() noexcept;
-    std::shared_ptr<anim_atlas> scenery_atlas() noexcept;
 
     std::shared_ptr<const tile_atlas> ground_atlas() const noexcept;
     std::shared_ptr<const tile_atlas> wall_north_atlas() const noexcept;
     std::shared_ptr<const tile_atlas> wall_west_atlas() const noexcept;
-    std::shared_ptr<const anim_atlas> scenery_atlas() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 

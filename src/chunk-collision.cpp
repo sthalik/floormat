@@ -18,10 +18,9 @@ constexpr Vector2 tile_start(std::size_t k)
     return TILE_SIZE2 * Vector2(coord) - half_tile;
 }
 
-constexpr Pair<Vector2i, Vector2i> scenery_tile(std::size_t k, const scenery& sc)
+Pair<Vector2i, Vector2i> scenery_tile(const entity& sc)
 {
-    const local_coords coord{k};
-    auto center = iTILE_SIZE2 * Vector2i(coord) + Vector2i(sc.offset) + Vector2i(sc.bbox_offset);
+    auto center = iTILE_SIZE2 * Vector2i(sc.coord.local()) + Vector2i(sc.offset) + Vector2i(sc.bbox_offset);
     auto start = center - Vector2i(sc.bbox_size);
     auto size = Vector2i(sc.bbox_size)*2;
     return { start, start + size, };
@@ -60,15 +59,13 @@ void chunk::ensure_passability() noexcept
 
     _rtree.RemoveAll();
 
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (const std::shared_ptr<entity>& s : entities())
     {
-        if (auto s = operator[](i).scenery())
-        {
-            bbox box;
-            if (_bbox_for_scenery(i, box))
-                _add_bbox(box);
-        }
+        bbox box;
+        if (_bbox_for_scenery(*s, box))
+            _add_bbox(box);
     }
+
     for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         if (const auto* atlas = ground_atlas_at(i))
@@ -99,24 +96,26 @@ void chunk::ensure_passability() noexcept
     }
 }
 
-bool chunk::_bbox_for_scenery(std::size_t i, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const entity& s, bbox& value) noexcept
 {
-    fm_debug_assert(i < TILE_COUNT);
-    auto [atlas, s] = operator[](i).scenery();
-    auto [start, end] = scenery_tile(i, s);
-    auto id = make_id(collision_type::scenery, s.passability, i);
+    auto [start, end] = scenery_tile(s);
+    auto id = make_id(collision_type::scenery, s.pass, s.id);
     value = { .id = id, .start = start, .end = end };
-    return atlas && s.passability != pass_mode::pass && Vector2i(s.bbox_size).product() > 0;
+    return s.atlas && s.pass != pass_mode::pass;
 }
 
 void chunk::_remove_bbox(const bbox& x)
 {
+    if (_scenery_modified)
+        return;
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree.Remove(start.data(), end.data(), x.id);
 }
 
 void chunk::_add_bbox(const bbox& x)
 {
+    if (_scenery_modified)
+        return;
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree.Insert(start.data(), end.data(), x.id);
 }
@@ -143,6 +142,18 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
         return;
     }
     CORRADE_ASSUME(false);
+}
+
+bool chunk::can_place_entity(const entity_proto& proto, local_coords pos)
+{
+    (void)ensure_scenery_mesh();
+
+    const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
+               half_bbox = Vector2(proto.bbox_size)*.5f,
+               min = center - half_bbox, max = center + half_bbox;
+    bool ret = true;
+    _rtree.Search(min.data(), max.data(), [&](auto, const auto&) { return ret = false; });
+    return ret;
 }
 
 } // namespace floormat

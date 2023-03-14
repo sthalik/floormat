@@ -69,7 +69,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
         }
         if (ImGui::TableSetColumnIndex(2))
         {
-            switch (scenery.proto.frame.type)
+            switch (scenery.proto.sc_type)
             {
             case scenery_type::none: text("none"); break;
             case scenery_type::generic: text("generic"); break;

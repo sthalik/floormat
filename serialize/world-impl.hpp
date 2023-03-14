@@ -4,6 +4,8 @@
 
 #pragma once
 #include "src/tile.hpp"
+#include "src/pass-mode.hpp"
+#include "src/rotation.hpp"
 #include <bit>
 #include <cstddef>
 #include <cstdint>

@@ -115,7 +115,6 @@ void writer_state::load_scenery_1(const serialized_scenery& s)
         scenery_map[ptr] = { { &s, null_atlas } };
     else
     {
-        fm_assert(s.proto.frame.delta == 0);
         auto& vec = scenery_map[ptr];
         for (const auto& x : vec)
             if (s.proto.frame == x.s->proto.frame)
@@ -140,8 +139,8 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
     interned_scenery *ret = nullptr, *ret2 = nullptr;
     for (interned_scenery& x : vec)
     {
-        fm_debug_assert(s.frame.type == x.s->proto.frame.type);
-        s.frame.r = x.s->proto.frame.r;
+        fm_debug_assert(s.type == x.s->proto.type);
+        s.r = x.s->proto.r;
         if (x.s->proto.frame == s.frame)
         {
             if (x.index != null_atlas)
@@ -178,10 +177,10 @@ scenery_pair writer_state::maybe_intern_scenery(const scenery_proto& s, bool cre
 }
 
 template<typename T>
-void write_scenery_flags(binary_writer<T>& s, const scenery& proto)
+void write_scenery_flags(binary_writer<T>& s, const scenery_proto& proto)
 {
     std::uint8_t flags = 0;
-    flags |= pass_mode_(proto.passability) & pass_mask;
+    flags |= pass_mode_(proto.pass) & pass_mask;
     flags |= (1 << 2) * proto.active;
     flags |= (1 << 3) * proto.closing;
     flags |= (1 << 4) * proto.interactive;
@@ -272,12 +271,11 @@ void writer_state::serialize_scenery()
             s.write_asciiz_string(sc->name);
         }
         s << idx;
-        const auto& fr = sc->proto.frame;
-        write_scenery_flags(s, sc->proto.frame);
-        if (sc->proto.frame.frame <= 0xff)
-            s << (std::uint8_t)fr.frame;
+        write_scenery_flags(s, sc->proto);
+        if (sc->proto.frame <= 0xff)
+            s << (std::uint8_t)sc->proto.frame;
         else
-            s << fr.frame;
+            s << sc->proto.frame;
     }
 
     scenery_buf.resize(s.bytes_written());
@@ -296,27 +294,29 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     {
         const tile_proto x = c[i];
         const auto ground = x.ground(), wall_north = x.wall_north(), wall_west = x.wall_west();
-        const auto scenery = x.scenery_frame;
+        //const auto scenery = x.scenery_frame;
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
         auto img_g = maybe_intern_atlas(ground);
         auto img_n = maybe_intern_atlas(wall_north);
         auto img_w = maybe_intern_atlas(wall_west);
-        auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
+        //auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
 
+#if 0
         if (sc_exact && sc)
         {
             sc_exact = scenery.offset == sc->proto.frame.offset &&
                        scenery.bbox_size == sc->proto.frame.bbox_size &&
                        scenery.bbox_offset == sc->proto.frame.bbox_offset;
         }
+#endif
 
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
         flags |= meta_wall_n  * (img_n != null_atlas);
         flags |= meta_wall_w  * (img_w != null_atlas);
-        flags |= meta_scenery * (img_s != null_atlas);
+        //flags |= meta_scenery * (img_s != null_atlas);
 
         using uchar = std::uint8_t;
 
@@ -353,6 +353,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             write(img_n, wall_north.variant);
         if (img_w != null_atlas)
             write(img_w, wall_west.variant);
+#if 0
         if (img_s != null_atlas)
         {
             atlasid id = img_s;
@@ -381,6 +382,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
                     s << scenery.delta;
             }
         }
+#endif
     }
 
     const auto nbytes = s.bytes_written();
@@ -403,9 +405,11 @@ ArrayView<const char> writer_state::serialize_world()
 {
     load_scenery();
 
+#if 0
     for (const auto& [_, c] : _world->chunks())
         for (auto [x, _k, _pt] : c)
             maybe_intern_scenery(x.scenery(), false);
+#endif
 
     for (const auto& [pos, c] : _world->chunks())
     {

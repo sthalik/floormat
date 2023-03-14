@@ -20,53 +20,52 @@ static Corrade::Containers::String my_str;
 namespace floormat::entities {
 
 template<>
-struct entity_accessors<scenery_ref> {
+struct entity_accessors<scenery> {
     static constexpr auto accessors()
     {
-        using entity = Entity<scenery_ref>;
-        using frame_t = scenery::frame_t;
+        using entity = Entity<scenery>;
         return std::tuple{
             entity::type<StringView>::field{"name"_s,
-                [](const scenery_ref& x) { return loader.strip_prefix(x.atlas->name()); },
-                [](scenery_ref&, StringView) {},
+                [](const scenery& x) { return loader.strip_prefix(x.atlas->name()); },
+                [](scenery&, StringView) {},
                 constantly(field_status::readonly),
             },
             entity::type<rotation>::field{"rotation"_s,
-                [](const scenery_ref& x) { return x.frame.r; },
-                [](scenery_ref& x, rotation r) { x.rotate(r); },
+                [](const scenery& x) { return x.r; },
+                [](scenery& x, rotation r) { x.rotate(x.iter(), x.chunk(), r); },
             },
-            entity::type<scenery::frame_t>::field{"frame"_s,
-                [](const scenery_ref& x) { return x.frame.frame; },
-                [](scenery_ref& x, frame_t value) { x.frame.frame = value; },
-                [](const scenery_ref& x) { return constraints::range<frame_t>{0, !x.atlas ? frame_t(0) : frame_t(x.atlas->info().nframes-1)}; }
+            entity::type<std::uint16_t>::field{"frame"_s,
+                [](const scenery& x) { return x.frame; },
+                [](scenery& x, std::uint16_t value) { x.frame = value; },
+                [](const scenery& x) { return constraints::range<std::uint16_t>{0, !x.atlas ? std::uint16_t(0) : std::uint16_t(x.atlas->info().nframes-1)}; }
             },
             entity::type<Vector2b>::field{"offset"_s,
-                [](const scenery_ref& x) { return x.frame.offset; },
-                [](scenery_ref& x, Vector2b value) { x.frame.offset = value; },
+                [](const scenery& x) { return x.offset; },
+                [](scenery& x, Vector2b value) { x.offset = value; },
                 constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
             },
             entity::type<pass_mode>::field{"pass-mode"_s,
-                [](const scenery_ref& x) { return x.frame.passability; },
-                [](scenery_ref& x, pass_mode value) { x.chunk().with_scenery_update(x.index(), [&] { x.frame.passability = value; }); },
+                [](const scenery& x) { return x.pass; },
+                [](scenery& x, pass_mode value) { x.chunk().with_scenery_update(x, [&] { x.pass = value; }); },
             },
             entity::type<Vector2b>::field{"bbox-offset"_s,
-                [](const scenery_ref& x) { return x.frame.bbox_offset; },
-                [](scenery_ref& x, Vector2b value)  { x.chunk().with_scenery_update(x.index(), [&] { x.frame.bbox_offset = value; }); },
-                [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+                [](const scenery& x) { return x.bbox_offset; },
+                [](scenery& x, Vector2b value)  { x.chunk().with_scenery_update(x, [&] { x.bbox_offset = value; }); },
+                [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
             },
             entity::type<Vector2ub>::field{"bbox-size"_s,
-                [](const scenery_ref& x) { return x.frame.bbox_size; },
-                [](scenery_ref& x, Vector2ub value) { x.chunk().with_scenery_update(x.index(), [&] { x.frame.bbox_size = value; }); },
-                [](const scenery_ref& x) { return x.frame.passability == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+                [](const scenery& x) { return x.bbox_size; },
+                [](scenery& x, Vector2ub value) { x.chunk().with_scenery_update(x, [&] { x.bbox_size = value; }); },
+                [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
             },
             entity::type<bool>::field{"interactive"_s,
-                [](const scenery_ref& x) { return x.frame.interactive; },
-                [](scenery_ref& x, bool value) { x.frame.interactive = value; }
+                [](const scenery& x) { return x.interactive; },
+                [](scenery& x, bool value) { x.interactive = value; }
             },
 #ifdef TEST_STR
             entity::type<String>::field{"string"_s,
-                [](const scenery_ref&) { return my_str; },
-                [](scenery_ref&, String value) { my_str = std::move(value); },
+                [](const scenery&) { return my_str; },
+                [](scenery&, String value) { my_str = std::move(value); },
                 constantly(constraints::max_length{8}),
             },
 #endif
@@ -75,8 +74,8 @@ struct entity_accessors<scenery_ref> {
 };
 
 template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
-template<> struct has_anim_atlas<scenery_ref> : std::true_type {
-    static const anim_atlas& get_atlas(const scenery_ref& x) {
+template<> struct has_anim_atlas<scenery> : std::true_type {
+    static const anim_atlas& get_atlas(const scenery& x) {
         fm_assert(x.atlas);
         return *x.atlas;
     }
@@ -135,12 +134,12 @@ struct enum_values<rotation, U> : std::false_type {
 };
 
 template<>
-bool inspect_type<scenery_ref>(scenery_ref& x)
+bool inspect_type<scenery>(scenery& x)
 {
     bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
-        using enum_type = enum_values<type, scenery_ref>;
+        using enum_type = enum_values<type, scenery>;
         if constexpr(enum_type::value)
         {
             constexpr auto list = enum_type::get();
@@ -151,7 +150,7 @@ bool inspect_type<scenery_ref>(scenery_ref& x)
             const auto& list = enum_type::get(x);
             ret |= inspect_field<type>(&x, field.erased(), list);
         }
-    }, entity_metadata<scenery_ref>::accessors);
+    }, entity_metadata<scenery>::accessors);
     return ret;
 }
 

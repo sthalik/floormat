@@ -69,28 +69,12 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
             if (button == mouse_button_left)
             {
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                {
-                    auto [c, t] = w[{cl->chunk, cl->pos}];
-                    if (auto s = t.scenery())
-                        return (void)s.activate();
-                }
+                    return (void)cl->e->activate(cl->e->iter(), cl->e->chunk());
             }
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
-            {
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                {
-                    auto [c, t] = w[{cl->chunk, cl->pos}];
-                    if (auto s = t.scenery())
-                    {
-                        _popup_target = {
-                            .c = cl->chunk, .pos = cl->pos,
-                            .target = popup_target_type::scenery,
-                        };
-                        do_open_popup();
-                    }
-                }
-            }
+                    _popup_target = { .e = cl->e, .target = popup_target_type::scenery, };
             break;
         case editor_mode::floor:
         case editor_mode::walls:
@@ -120,18 +104,14 @@ void app::do_rotate(bool backward)
     {
         if (ed->is_anything_selected())
             backward ? ed->prev_rotation() : ed->next_rotation();
-        else if (cursor.tile)
+        else if (auto* cl = find_clickable_scenery(*cursor.pixel))
         {
-            auto [c, t] = M->world()[*cursor.tile];
-            if (auto sc = t.scenery())
+            auto& e = *cl->e;
+            auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
+            if (r != e.r)
             {
-                auto [atlas, s] = sc;
-                auto r = backward ? atlas->prev_rotation_from(s.r) : atlas->next_rotation_from(s.r);
-                if (r != s.r)
-                {
-                    sc.rotate(r);
-                    c.mark_scenery_modified();
-                }
+                e.rotate(e.iter(), e.chunk(), r);
+                e.chunk().mark_scenery_modified();
             }
         }
     }
@@ -204,16 +184,24 @@ void app::update_world(float dt)
     minx--; miny--; maxx++; maxy++;
     for (std::int16_t y = miny; y <= maxy; y++)
         for (std::int16_t x = minx; x <= maxx; x++)
-            for (auto& c = world[chunk_coords{x, y}]; auto [x, k, pt] : c)
-                if (auto sc = x.scenery(); sc && sc.can_activate())
-                    c.with_scenery_update(sc.index(), [&] { return sc.update(dt); });
+        {
+            auto& c = world[chunk_coords{x, y}];
+            const auto& es = c.entities();
+            const auto size = es.size();
+            for (auto i = size-1; i != (std::size_t)-1; i--)
+            {
+                auto iter = es.cbegin() + std::ptrdiff_t(i);
+                auto& e = *es[i];
+                c.with_scenery_update(e, [&] { return e.update(iter, c, dt); });
+            }
+        }
 }
 
 
 
-void app::update_character(float dt)
+void app::update_character([[maybe_unused]] float dt)
 {
-    _character->tick(M->world(), dt, keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+    _character->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
 }
 
 void app::set_cursor()
@@ -221,16 +209,9 @@ void app::set_cursor()
     if (!cursor.in_imgui)
     {
         if (auto* cl = find_clickable_scenery(cursor.pixel))
-        {
-            auto& w = M->world();
-            auto [c, t] = w[{cl->chunk, cl->pos}];
-            if (auto sc = t.scenery())
-            {
-                M->set_cursor(std::uint32_t(Cursor::Hand));
-                return;
-            }
-        }
-        M->set_cursor(std::uint32_t(Cursor::Arrow));
+            M->set_cursor(std::uint32_t(Cursor::Hand));
+        else
+            M->set_cursor(std::uint32_t(Cursor::Arrow));
     }
     else
         set_cursor_from_imgui();

@@ -80,20 +80,19 @@ void adl_serializer<rotation>::from_json(const json& j, rotation& val)
     val = foo_from_string(j, rotation_map, "rotation");
 }
 
-void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
+void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
 {
-    fm_assert(val.atlas);
-    constexpr scenery default_scenery;
-    const scenery& f = val.frame;
+    fm_assert(f.atlas);
+    const scenery_proto default_scenery;
     if (f.type != default_scenery.type)
         j["type"] = f.type;
-    j["atlas-name"] = val.atlas->name();
+    j["atlas-name"] = f.atlas->name();
     if (f.frame != default_scenery.frame)
         j["frame"] = f.frame;
     if (f.r != default_scenery.r)
         j["rotation"] = f.r;
-    if (f.passability != default_scenery.passability)
-        j["pass-mode"] = f.passability;
+    if (f.pass != default_scenery.pass)
+        j["pass-mode"] = f.pass;
     if (f.active != default_scenery.active)
         j["active"] = f.active;
     if (f.interactive != default_scenery.interactive)
@@ -106,7 +105,7 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& val)
         j["bbox-size"] = Vector2ui(f.bbox_size);
 }
 
-void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
+void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
 {
     const auto get = [&](const StringView& name, auto& value)
     {
@@ -117,14 +116,13 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
 
     StringView atlas_name = j["atlas-name"];
     fm_soft_assert(!atlas_name.isEmpty());
-    val.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
-    auto& f = val.frame;
     f = {};
+    f.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
 
     auto type = scenery_type::generic;              get("type", type);
     auto frame       = f.frame;                     get("frame", frame);
-    auto r           = val.atlas->first_rotation(); get("rotation", r);
-    pass_mode pass   = f.passability;               get("pass-mode", pass);
+    auto r           = f.atlas->first_rotation();   get("rotation", r);
+    pass_mode pass   = f.pass;                      get("pass-mode", pass);
     bool active      = f.active;                    get("active", active);
     bool interactive = f.interactive;               get("interactive", interactive);
     auto offset      = Vector2i(f.offset);          get("offset", offset);
@@ -139,13 +137,30 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& val)
     default:
         fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
     case scenery_type::generic:
-        f = { scenery::generic, *val.atlas, r, frame, pass,
-              active, interactive,
-              Vector2b(offset), Vector2b(bbox_offset), Vector2ub(bbox_size) };
+        f.type = entity_type::scenery;
+        f.sc_type = scenery_type::generic;
+        f.r = r;
+        f.frame = frame;
+        f.pass = pass;
+        f.active = active;
+        f.interactive = interactive;
+        f.offset = Vector2b(offset);
+        f.bbox_offset = Vector2b(bbox_offset);
+        f.bbox_size = Vector2ub(bbox_size);
         break;
     case scenery_type::door:
-        f = { scenery::door, *val.atlas, r, false,
-              Vector2b(offset), Vector2b(bbox_offset), Vector2ub(bbox_size), };
+        fm_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
+        f.type = entity_type::scenery;
+        f.sc_type = scenery_type::door;
+        f.r = r;
+        f.frame = std::uint16_t(f.atlas->group(r).frames.size()-1);
+        f.pass = pass_mode::blocked;
+        f.interactive = true;
+        f.closing = false;
+        f.offset = Vector2b(offset);
+        f.bbox_offset = Vector2b(bbox_offset);
+        f.bbox_size = Vector2ub(bbox_size);
+        break;
     }
 }
 

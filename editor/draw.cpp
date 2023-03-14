@@ -54,7 +54,7 @@ void app::draw_cursor()
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
                 const auto pos = cursor.tile->to_signed3()*iTILE_SIZE;
-                anim_mesh.draw(shader, *sel.atlas, sel.frame.r, sel.frame.frame, Vector3(pos), 1);
+                anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }
 
@@ -153,9 +153,9 @@ void app::draw_character()
     auto& c = *_character;
     const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
 
-    const with_shifted_camera_offset o{shader, c.pos.chunk(), {minx, miny}, {maxx, maxy}};
+    const with_shifted_camera_offset o{shader, c.coord.chunk(), {minx, miny}, {maxx, maxy}};
     if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-        mesh.draw(shader, *c.walk_anim, c.r, c.frame, c.pos.local(), Vector2b(c.offset), tile_shader::character_depth_offset);
+        mesh.draw(shader, *c.atlas, c.r, c.frame, c.coord.local(), Vector2b(c.offset), tile_shader::character_depth_offset);
 
     GL::Renderer::setDepthMask(true);
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
@@ -163,7 +163,7 @@ void app::draw_character()
 
 void app::draw()
 {
-    draw_character();
+    //draw_character();
     if (_render_bboxes)
         draw_collision_boxes();
     if (_editor.current_tile_editor() || _editor.current_scenery_editor())

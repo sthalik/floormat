@@ -22,7 +22,7 @@ scenery_editor::scenery_editor() noexcept
 
 void scenery_editor::set_rotation(rotation_ r)
 {
-    auto& s = _selected.proto.frame;
+    auto& s = _selected.proto;
     s.bbox_offset = rotate_point(s.bbox_offset, s.r, r);
     s.bbox_size = rotate_size(s.bbox_size, s.r, r);
     s.r = r;
@@ -30,24 +30,24 @@ void scenery_editor::set_rotation(rotation_ r)
 
 rotation_ scenery_editor::rotation() const
 {
-    return _selected.proto.frame.r;
+    return _selected.proto.r;
 }
 
 void scenery_editor::next_rotation()
 {
-    set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.frame.r));
+    set_rotation(_selected.proto.atlas->next_rotation_from(_selected.proto.r));
 }
 
 void scenery_editor::prev_rotation()
 {
-    set_rotation(_selected.proto.atlas->prev_rotation_from(_selected.proto.frame.r));
+    set_rotation(_selected.proto.atlas->prev_rotation_from(_selected.proto.r));
 }
 
 void scenery_editor::select_tile(const scenery_& s)
 {
-    const auto r = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.frame.r)
-                   ? _selected.proto.frame.r
-                   : s.proto.frame.r;
+    const auto r = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.r)
+                   ? _selected.proto.r
+                   : s.proto.r;
     _selected = s;
     set_rotation(r);
 }
@@ -80,7 +80,8 @@ bool scenery_editor::is_anything_selected() const
 void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
 {
     auto [c, t] = w[pos];
-    t.scenery() = s.proto;
+    // todo check collision at pos
+    auto sc = w.make_entity<scenery>(pos, s.proto);
     c.mark_scenery_modified();
 }
 

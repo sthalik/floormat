@@ -1,0 +1,199 @@
+#include "entity.hpp"
+#include "world.hpp"
+#include "rotation.inl"
+#include "chunk.inl"
+#include "RTree.hpp"
+#include <algorithm>
+
+namespace floormat {
+
+bool entity_proto::operator==(const entity_proto&) const = default;
+entity_proto& entity_proto::operator=(const entity_proto&) = default;
+entity_proto::~entity_proto() noexcept = default;
+entity_proto::entity_proto() = default;
+entity_proto::entity_proto(const entity_proto&) = default;
+
+entity::entity(std::uint64_t id, struct world& w, entity_type type) noexcept :
+    id{id}, w{w}, type{type}
+{
+}
+
+entity::entity(std::uint64_t id, struct world& w, entity_type type, const entity_proto& proto) noexcept :
+    id{id}, w{w}, atlas{proto.atlas},
+    offset{proto.offset}, bbox_offset{proto.bbox_offset},
+    bbox_size{proto.bbox_size}, delta{proto.delta},
+    frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
+{
+    fm_assert(type == proto.type);
+}
+
+entity::~entity() noexcept
+{
+    fm_debug_assert(id);
+    if (w.is_teardown()) [[unlikely]]
+        return;
+    auto& c = chunk();
+    if (!c._teardown) [[likely]]
+    {
+        if (chunk::bbox bb; c._bbox_for_scenery(*this, bb))
+            c._remove_bbox(bb);
+        auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
+        fm_debug_assert(it != c._entities.cend());
+        c._entities.erase(it);
+    }
+    w.do_kill_entity(id);
+}
+
+std::uint32_t entity_proto::ordinal(local_coords local) const
+{
+    return entity::ordinal(local, offset);
+}
+
+std::uint32_t entity::ordinal() const
+{
+    return ordinal(coord.local(), offset);
+}
+
+std::uint32_t entity::ordinal(local_coords xy, Vector2b offset)
+{
+    constexpr auto x_size = (std::uint32_t)TILE_MAX_DIM * (std::uint32_t)iTILE_SIZE[0];
+    auto vec = Vector2ui(xy) * Vector2ui(iTILE_SIZE2) + Vector2ui(offset);
+    return vec[1] * x_size + vec[0];
+}
+
+struct chunk& entity::chunk() const
+{
+    return w[coord.chunk()];
+}
+
+auto entity::iter() const -> It
+{
+    auto& c = chunk();
+    auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
+    fm_assert(it != c._entities.cend());
+    return it;
+}
+
+bool entity::operator==(const entity_proto& o) const
+{
+    return atlas.get() == o.atlas.get() &&
+           type == o.type && frame == o.frame && r == o.r && pass == o.pass &&
+           offset == o.offset && bbox_offset == o.bbox_offset &&
+           bbox_size == o.bbox_size && delta == o.delta;
+}
+
+void entity::rotate(It, struct chunk&, rotation new_r)
+{
+    w[coord.chunk()].with_scenery_update(*this, [&]() {
+        bbox_offset = rotate_point(bbox_offset, r, new_r);
+        bbox_size = rotate_size(bbox_size, r, new_r);
+        r = new_r;
+    });
+}
+
+Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
+{
+    auto tmp = Vector2i(cur_offset) + new_offset;
+    auto new_off = tmp % iTILE_SIZE2;
+    auto tile = tmp / iTILE_SIZE2;
+    return { coord + tile, Vector2b(new_off) };
+}
+
+bool entity::can_move_to(Vector2i delta, struct chunk& c)
+{
+    auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    auto& c_ = coord.chunk() == coord_.chunk() ? c : w[coord_.chunk()];
+
+    const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
+               half_bbox = Vector2(bbox_size)*.5f,
+               min = center - half_bbox, max = center + half_bbox;
+
+    bool ret = true;
+    c_.rtree()->Search(min.data(), max.data(), [&](std::uint64_t data, const auto&) {
+        auto id2 = std::bit_cast<collision_data>(data).data;
+        if (id2 != id)
+            return ret = false;
+        else
+            return true;
+    });
+    return ret;
+}
+
+void entity::move(It it, Vector2i delta, struct chunk& c)
+{
+    auto e_ = *it;
+    auto& e = *e_;
+    auto& w = e.w;
+    auto& coord = e.coord;
+    auto& offset = e.offset;
+
+    auto& es = c._entities;
+    auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+
+    if (coord_ == coord && offset_ == offset)
+        return;
+
+    if (e.atlas->info().fps == 0)
+        c.mark_scenery_modified(false);
+
+    if (coord_ != coord)
+        Debug{} << "coord" << Vector2i(coord_.chunk()) << Vector2i(coord_.local());
+
+    bool same_chunk = coord_.chunk() == coord.chunk();
+    chunk::bbox bb0, bb1;
+    bool b0 = c._bbox_for_scenery(e, bb0);
+    coord = coord_; offset = offset_;
+    bool b1 = c._bbox_for_scenery(e, bb1);
+
+    if (same_chunk)
+    {
+        c._replace_bbox(bb0, bb1, b0, b1);
+        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [ord = e.ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
+        if (it_ != it)
+        {
+            auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
+            if (pos1 > pos0)
+            {
+                Debug{} << "decr";
+                pos1--;
+            }
+            else
+                Debug{} << "no decr";
+            es.erase(it);
+            [[maybe_unused]] auto size = es.size();
+            es.insert(es.cbegin() + pos1, std::move(e_));
+        }
+    }
+    else
+    {
+        auto& c2 = w[coord.chunk()];
+        if (e.atlas->info().fps == 0)
+            c2.mark_scenery_modified(false);
+        c._remove_bbox(bb0);
+        c2._add_bbox(bb1);
+        c.remove_entity(it);
+        auto it_ = std::lower_bound(c2._entities.cbegin(), c2._entities.cend(), e_,
+                                    [ord = e.ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
+        c2._entities.insert(it_, std::move(e_));
+    }
+}
+
+entity::operator entity_proto() const
+{
+    entity_proto x;
+    x.atlas = atlas;
+    x.offset = offset;
+    x.bbox_offset = bbox_offset;
+    x.bbox_size = bbox_size;
+    x.delta = delta;
+    x.frame = frame;
+    x.type = type;
+    x.r = r;
+    x.pass = pass;
+    return x;
+}
+
+bool entity::can_activate(It, struct chunk&) const { return false; }
+bool entity::activate(It, struct chunk&) { return false; }
+
+} // namespace floormat

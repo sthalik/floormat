@@ -96,6 +96,7 @@ constexpr bool test_visitor()
 }
 
 void test_fun2() {
+    using entity = Entity<TestAccessors>;
     static constexpr auto read_fn = [](const TestAccessors& x) constexpr { return x.bar(); };
     static constexpr auto write_fn = [](TestAccessors& x, int value) constexpr { x.set_bar(value); };
     constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
@@ -156,6 +157,7 @@ void test_type_name()
 
 [[maybe_unused]] constexpr void test_null_writer()
 {
+    using entity = Entity<TestAccessors>;
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
     static_assert(foo.writer == nullptr);
     static_assert(!foo.can_write);
@@ -164,6 +166,7 @@ void test_type_name()
 
 void test_predicate()
 {
+    using entity = Entity<TestAccessors>;
     constexpr TestAccessors x{0, 0, 0};
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo,
                                                   [](const TestAccessors&) { return field_status::hidden; }};
@@ -199,6 +202,7 @@ constexpr bool test_names()
 
 constexpr void test_constraints()
 {
+    using entity = Entity<TestAccessors>;
     constexpr auto x = TestAccessors{};
     constexpr auto foo = entity::type<int>::field {
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
@@ -226,6 +230,7 @@ constexpr void test_constraints()
 
 void test_erased_constraints()
 {
+    using entity = Entity<TestAccessors>;
     static constexpr auto foo = entity::type<int>::field{
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,
         constantly(constraints::max_length{42}),

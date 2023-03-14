@@ -9,6 +9,9 @@
 
 namespace floormat {
 
+struct entity;
+template<typename T> struct entity_type_;
+
 struct world final
 {
 private:
@@ -24,13 +27,24 @@ private:
         return int_hash((std::size_t)c.y << 16 | (std::size_t)c.x);
     };
     std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks;
+    std::unordered_map<std::uint64_t, std::weak_ptr<entity>> _entities;
     std::size_t _last_collection = 0;
     std::size_t _collect_every = 64;
 
+    bool _teardown : 1 = false;
+
+    static std::uint64_t entity_counter;
+
     explicit world(std::size_t capacity);
+
+    void do_make_entity(const std::shared_ptr<entity>& e, global_coords pos);
+    void do_kill_entity(std::uint64_t id);
+
+    friend struct entity;
 
 public:
     explicit world();
+    ~world() noexcept;
 
     struct pair final { chunk& c; tile_ref t; }; // NOLINT
 
@@ -51,6 +65,18 @@ public:
     static world deserialize(StringView filename);
     void set_collect_threshold(std::size_t value) { _collect_every = value; }
     std::size_t collect_threshold() const noexcept { return _collect_every; }
+
+    template<typename T, typename... Xs>
+    requires requires { T{std::uint64_t(), std::declval<world&>(), entity_type(), std::declval<Xs>()...}; }
+    std::shared_ptr<T> make_entity(global_coords pos, Xs&&... xs)
+    {
+        static_assert(std::is_base_of_v<entity, T>);
+        auto ret = std::shared_ptr<T>(new T{++entity_counter, *this, entity_type_<T>::value, std::forward<Xs>(xs)...});
+        do_make_entity(std::static_pointer_cast<entity>(ret), pos);
+        return ret;
+    }
+
+    bool is_teardown() const { return _teardown; }
 
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(world);

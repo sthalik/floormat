@@ -24,10 +24,10 @@ int test_app::exec()
     test_json();
     test_tile_iter();
     test_const_math();
-    test_serializer();
     test_entity();
     test_loader();
     test_bitmask();
+    test_serializer();
 
     return 0;
 }

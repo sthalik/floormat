@@ -2,6 +2,7 @@
 #include "world-impl.hpp"
 #include "binary-reader.inl"
 #include "src/world.hpp"
+#include "src/scenery.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
@@ -52,10 +53,10 @@ void reader_state::read_atlases(reader_t& s)
 }
 
 template<typename T>
-bool read_scenery_flags(binary_reader<T>& s, scenery& sc)
+bool read_scenery_flags(binary_reader<T>& s, scenery_proto& sc)
 {
     std::uint8_t flags; flags << s;
-    sc.passability = pass_mode(flags & pass_mask);
+    sc.pass = pass_mode(flags & pass_mask);
     sc.active      = !!(flags & 1 << 2);
     sc.closing     = !!(flags & 1 << 3);
     sc.interactive = !!(flags & 1 << 4);
@@ -79,20 +80,19 @@ void reader_state::read_sceneries(reader_t& s)
         std::uint8_t num; num << s;
         fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
-        const auto sc_ = loader.scenery(str);
+        auto sc = loader.scenery(str);
         for (auto n = 0_uz; n < num; n++)
         {
             atlasid id; id << s;
             fm_soft_assert(id < sz);
             fm_soft_assert(!sceneries[id]);
-            scenery_proto sc = sc_;
-            bool short_frame = read_scenery_flags(s, sc.frame);
+            bool short_frame = read_scenery_flags(s, sc);
             fm_debug_assert(sc.atlas != nullptr);
             if (short_frame)
-                sc.frame.frame = s.read<std::uint8_t>();
+                sc.frame = s.read<std::uint8_t>();
             else
-                sc.frame.frame << s;
-            fm_soft_assert(sc.frame.frame < sc.atlas->info().nframes);
+                sc.frame << s;
+            fm_soft_assert(sc.frame < sc.atlas->info().nframes);
             sceneries[id] = sc;
         }
         i += num;
@@ -165,39 +165,42 @@ void reader_state::read_chunks(reader_t& s)
                     id &= ~scenery_id_flag_mask;
                     auto sc = lookup_scenery(id);
                     (void)sc.atlas->group(r);
-                    sc.frame.r = r;
+                    sc.r = r;
                     if (!exact)
                     {
-                        if (read_scenery_flags(s, sc.frame))
-                            sc.frame.frame = s.read<std::uint8_t>();
+                        if (read_scenery_flags(s, sc))
+                            sc.frame = s.read<std::uint8_t>();
                         else
-                            sc.frame.frame << s;
+                            sc.frame << s;
                         if (PROTO >= 5) [[likely]]
                         {
-                            sc.frame.offset[0] << s;
-                            sc.frame.offset[1] << s;
+                            sc.offset[0] << s;
+                            sc.offset[1] << s;
                         }
                         if (PROTO >= 6) [[likely]]
                         {
-                            sc.frame.bbox_size[0] << s;
-                            sc.frame.bbox_size[1] << s;
+                            sc.bbox_size[0] << s;
+                            sc.bbox_size[1] << s;
                         }
                         if (PROTO >= 7) [[likely]]
                         {
-                            sc.frame.bbox_offset[0] << s;
-                            sc.frame.bbox_offset[1] << s;
+                            sc.bbox_offset[0] << s;
+                            sc.bbox_offset[1] << s;
                         }
-                        if (sc.frame.active)
+                        if (sc.active)
                         {
                             if (PROTO >= 4) [[likely]]
-                                sc.frame.delta << s;
+                                sc.delta << s;
                             else
-                                sc.frame.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+                                sc.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
                         }
                     }
-                    t.scenery() = sc;
+
+                    auto e = _world->make_entity<scenery>({ coord, local_coords{i} }, sc);
+                    chunk.add_entity_unsorted(e);
                 }
         }
+        chunk.sort_entities();
     }
 }
 

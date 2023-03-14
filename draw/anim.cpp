@@ -25,24 +25,20 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
-                              chunk_coords c, std::uint8_t i, const std::shared_ptr<anim_atlas>& atlas, scenery& s,
-                              std::vector<clickable>& list)
+void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size, const std::shared_ptr<entity>& s, std::vector<clickable>& list)
 {
-    const local_coords xy{i};
-    const auto& a = *atlas;
-    const auto& g = a.group(s.r);
-    const auto& f = a.frame(s.r, s.frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(xy) + Vector3(g.offset) + Vector3(Vector2(s.offset), 0);
+    const auto& a = *s->atlas;
+    const auto& g = a.group(s->r);
+    const auto& f = a.frame(s->r, s->frame);
+    const auto world_pos = TILE_SIZE20 * Vector3(s->coord.local()) + Vector3(g.offset) + Vector3(Vector2(s->offset), 0);
     const Vector2i offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                           + shader.project(world_pos) - Vector2(f.ground));
     if (offset < win_size && offset + Vector2i(f.size) >= Vector2i())
     {
         clickable item = {
             { f.offset, f.offset + f.size }, { offset, offset + Vector2i(f.size) },
-            a.bitmask(), tile_shader::depth_value(xy, tile_shader::scenery_depth_offset),
+            a.bitmask(), s, s->ordinal(),
             a.info().pixel_size[0],
-            c, xy,
             !g.mirror_from.isEmpty(),
         };
         list.push_back(item);
@@ -52,12 +48,14 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
 void anim_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr auto quad_index_count = 6;
-    auto [mesh_, ids, size] = c.ensure_scenery_mesh();
+    auto [mesh_] = c.ensure_scenery_mesh();
+    const auto& es = c.entities();
     GL::MeshView mesh{mesh_};
+    [[maybe_unused]] std::size_t draw_count = 0;
     anim_atlas* bound = nullptr;
 
-    [[maybe_unused]] std::size_t draw_count = 0;
-    fm_debug_assert(std::size_t(mesh_.count()) == size*quad_index_count);
+    const auto size = es.size();
+    const auto max_index = std::uint32_t(size*quad_index_count - 1);
 
     const auto do_draw = [&](std::size_t from, std::size_t to, anim_atlas* atlas, std::uint32_t max_index) {
         if (atlas != bound)
@@ -69,48 +67,40 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
         draw_count++;
     };
 
-    struct last_ { anim_atlas* atlas = nullptr; std::size_t run_from = 0; };
-    Optional<last_> last;
-    const auto max_index = std::uint32_t(size*quad_index_count - 1);
+    fm_debug_assert(std::size_t(mesh_.count()) <= size*quad_index_count);
 
-    auto last_id = 0_uz;
+    struct last_ {
+        anim_atlas* atlas = nullptr; std::size_t run_from = 0;
+        operator bool() const { return atlas; }
+        last_& operator=(std::nullptr_t) { atlas = nullptr; return *this; }
+    } last;
+    std::size_t i = 0;
+
     for (auto k = 0_uz; k < size; k++)
     {
-        auto id = ids[k];
-        auto [atlas, s] = c[id].scenery();
-        for (auto i = last_id+1; i < id; i++)
-            if (auto [atlas, s] = c[i].scenery();
-                atlas && atlas->info().fps > 0)
-            {
-                if (last)
-                {
-                    do_draw(last->run_from, k, last->atlas, max_index);
-                    last = NullOpt;
-                }
-                bound = nullptr;
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
-            }
-        last_id = id;
-        if (last && atlas && &*atlas != last->atlas)
+        const auto& e = *es[k];
+        auto& atlas = *e.atlas;
+        if (atlas.info().fps > 0)
         {
-            do_draw(last->run_from, k, last->atlas, max_index);
-            last = NullOpt;
+            if (last)
+                do_draw(last.run_from, i, last.atlas, max_index);
+            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, tile_shader::scenery_depth_offset);
+            last = nullptr;
         }
-        if (!last)
-            last = { InPlaceInit, &*atlas, k };
+        else
+        {
+            if (last && &atlas != last.atlas)
+            {
+                do_draw(last.run_from, i, last.atlas, max_index);
+                last = nullptr;
+            }
+            if (!last)
+                last = { &atlas, i };
+            i++;
+        }
     }
-    if (size > 0)
-    {
-        if (last)
-            do_draw(last->run_from, size, last->atlas, max_index);
-        for (std::size_t i = ids[size-1]+1; i < TILE_COUNT; i++)
-            if (auto [atlas, s] = c[i].scenery(); atlas && atlas->info().fps > 0)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
-    }
-    else
-        for (auto i = 0_uz; i < TILE_COUNT; i++)
-            if (auto [atlas, s] = c[i].scenery(); atlas)
-                draw(shader, *atlas, s.r, s.frame, local_coords{i}, s.offset, tile_shader::scenery_depth_offset);
+    if (last)
+        do_draw(last.run_from, size, last.atlas, max_index);
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT

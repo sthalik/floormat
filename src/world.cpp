@@ -1,10 +1,19 @@
 #include "world.hpp"
 #include "chunk.hpp"
+#include "entity.hpp"
 
 namespace floormat {
 
 world::world() : world{initial_capacity}
 {
+}
+
+world::~world() noexcept
+{
+    _teardown = true;
+    _last_chunk = {};
+    _chunks.clear();
+    _entities.clear();
 }
 
 world::world(std::size_t capacity) : _chunks{capacity, hasher}
@@ -67,6 +76,26 @@ void world::collect(bool force)
     const auto len = len0 - _chunks.size();
     if (len)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
+}
+
+static constexpr std::uint64_t min_id = 1u << 16;
+std::uint64_t world::entity_counter = min_id;
+
+void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
+{
+    fm_debug_assert(e->id > min_id && &e->w == this);
+    fm_assert(Vector2ui(e->bbox_size).product() > 0);
+    fm_assert(e->type != entity_type::none);
+    e->coord = pos;
+    _entities[e->id] = e;
+    operator[](pos.chunk()).add_entity(e);
+}
+
+void world::do_kill_entity(std::uint64_t id)
+{
+    fm_debug_assert(id > min_id);
+    auto cnt = _entities.erase(id);
+    fm_debug_assert(cnt > 0);
 }
 
 } // namespace floormat

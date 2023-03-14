@@ -2,6 +2,7 @@
 #include "pass-mode.hpp"
 #include "tile-defs.hpp"
 #include "rotation.hpp"
+#include "entity.hpp"
 #include <cstdint>
 #include <memory>
 #include <type_traits>
@@ -12,104 +13,43 @@ namespace floormat {
 
 struct chunk;
 struct anim_atlas;
+struct world;
 
 enum class scenery_type : std::uint8_t {
     none, generic, door,
 };
 
-struct scenery final
+struct scenery_proto : entity_proto
 {
-    struct none_tag_t final {};
-    struct generic_tag_t final {};
-    struct door_tag_t final {};
-
-    static constexpr auto none    = none_tag_t{};
-    static constexpr auto generic = generic_tag_t{};
-    static constexpr auto door    = door_tag_t{};
-
-    using frame_t = std::uint16_t;
-
-    std::uint16_t delta = 0;
-    frame_t frame = 0;
-    Vector2b offset, bbox_offset;
-    Vector2ub bbox_size{usTILE_SIZE2/2};
-    rotation     r           : 3 = rotation::N;
-    scenery_type type        : 3 = scenery_type::none;
-    pass_mode    passability : 2 = pass_mode::shoot_through;
+    scenery_type sc_type     : 3 = scenery_type::none;
     std::uint8_t active      : 1 = false;
     std::uint8_t closing     : 1 = false;
     std::uint8_t interactive : 1 = false;
 
-    constexpr scenery() noexcept;
-    constexpr scenery(none_tag_t) noexcept;
-    scenery(generic_tag_t, const anim_atlas& atlas, rotation r, frame_t frame,
-            pass_mode passability, bool active, bool interactive,
-            Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
-    scenery(door_tag_t, const anim_atlas& atlas, rotation r, bool is_open,
-            Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
-
-    static bool is_mesh_modified(const scenery& s1, const scenery& s2);
-
-    bool operator==(const scenery&) const noexcept;
+    scenery_proto();
+    scenery_proto(const scenery_proto&);
+    ~scenery_proto() noexcept override;
+    scenery_proto& operator=(const scenery_proto&);
+    operator bool() const;
 };
 
-constexpr scenery::scenery() noexcept : scenery{scenery::none_tag_t{}} {}
-constexpr scenery::scenery(none_tag_t) noexcept {}
-
-struct scenery_proto final
+struct scenery final : entity
 {
-    std::shared_ptr<anim_atlas> atlas;
-    scenery frame;
+    scenery_type sc_type     : 3 = scenery_type::none;
+    std::uint8_t active      : 1 = false;
+    std::uint8_t closing     : 1 = false;
+    std::uint8_t interactive : 1 = false;
 
-    scenery_proto() noexcept;
-    scenery_proto(const std::shared_ptr<anim_atlas>& atlas, const scenery& frame) noexcept;
-    scenery_proto& operator=(const scenery_proto&) noexcept;
-    scenery_proto(const scenery_proto&) noexcept;
-
-    template<typename... Ts>
-    scenery_proto(scenery::generic_tag_t, const std::shared_ptr<anim_atlas>& atlas, Ts&&... args) :
-        atlas{atlas}, frame{scenery::generic, *atlas, std::forward<Ts>(args)...}
-    {}
-
-    template<typename... Ts>
-    scenery_proto(scenery::door_tag_t, const std::shared_ptr<anim_atlas>& atlas, Ts&&... args) :
-        atlas{atlas}, frame{scenery::door, *atlas, std::forward<Ts>(args)...}
-    {}
-
-    operator bool() const noexcept;
-};
-
-struct scenery_ref final {
-    scenery_ref(struct chunk& c, std::size_t i) noexcept;
-    scenery_ref(const scenery_ref&) noexcept;
-    scenery_ref(scenery_ref&&) noexcept;
-    scenery_ref& operator=(const scenery_ref&) = delete;
-    scenery_ref& operator=(const scenery_proto& proto) noexcept;
-
-    operator scenery_proto() const noexcept;
-    operator bool() const noexcept;
-
-    struct chunk& chunk() noexcept;
-    std::uint8_t index() const noexcept;
-
-    template<std::size_t N> std::tuple_element_t<N, scenery_ref>& get() & { if constexpr(N == 0) return atlas; else return frame; }
-    template<std::size_t N> std::tuple_element_t<N, scenery_ref>& get() && { if constexpr(N == 0) return atlas; else return frame; }
-
-    std::shared_ptr<anim_atlas>& atlas;
-    scenery& frame;
-
-    bool can_activate() const noexcept;
-    bool activate();
-    bool update(float dt);
-    void rotate(rotation r);
+    bool can_activate(It it, struct chunk& c) const override;
+    bool activate(It it, struct chunk& c) override;
+    bool update(It it, struct chunk& c, float dt) override;
+    bool operator==(const entity_proto& p) const override;
 
 private:
-    struct chunk* c;
-    std::uint8_t idx;
+    friend struct world;
+    scenery(std::uint64_t id, struct world& w, entity_type type, const scenery_proto& proto);
 };
 
-} // namespace floormat
+template<> struct entity_type_<scenery> : std::integral_constant<entity_type, entity_type::scenery> {};
 
-template<> struct std::tuple_size<floormat::scenery_ref> final : std::integral_constant<std::size_t, 2> {};
-template<> struct std::tuple_element<0, floormat::scenery_ref> final { using type = std::shared_ptr<floormat::anim_atlas>; };
-template<> struct std::tuple_element<1, floormat::scenery_ref> final { using type = floormat::scenery; };
+} // namespace floormat

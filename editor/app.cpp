@@ -33,7 +33,7 @@ app::app(fm_settings&& opts) :
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     inspectors.reserve(16);
-    _character = std::make_unique<character_wip>();
+    _character = w.make_entity<character>(global_coords{});
 }
 
 app::~app()
