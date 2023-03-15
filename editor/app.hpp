@@ -75,6 +75,8 @@ private:
     void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords& pos, chunk& c);
     void update_character(float dt);
+    void reset_world();
+    void reset_world(struct world&& w);
 
     void draw() override;
 

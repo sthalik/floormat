@@ -31,6 +31,7 @@ private:
     std::unordered_map<std::uint64_t, std::weak_ptr<entity>> _entities;
     std::size_t _last_collection = 0;
     std::size_t _collect_every = 64;
+    std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
 
     bool _teardown : 1 = false;
 
@@ -38,8 +39,9 @@ private:
 
     explicit world(std::size_t capacity);
 
-    void do_make_entity(const std::shared_ptr<entity>& e, chunk& c, global_coords pos);
+    void do_make_entity(const std::shared_ptr<entity>& e, global_coords pos);
     void do_kill_entity(std::uint64_t id);
+    std::shared_ptr<entity> find_entity_(std::uint64_t id);
 
     friend struct entity;
 
@@ -73,15 +75,17 @@ public:
     {
         static_assert(std::is_base_of_v<entity, T>);
         auto ret = std::shared_ptr<T>(new T{++entity_counter, operator[](pos.chunk()), entity_type_<T>::value, std::forward<Xs>(xs)...});
-        do_make_entity(std::static_pointer_cast<entity>(ret), ret->c, pos);
+        do_make_entity(std::static_pointer_cast<entity>(ret), pos);
         return ret;
     }
 
-    std::shared_ptr<entity> find_entity(std::uint64_t id);
+    template<typename T = entity, typename U = entity>  std::shared_ptr<T> find_entity(std::uint64_t id);
     bool is_teardown() const { return _teardown; }
 
+    world& operator=(world&& w) noexcept;
+    world(world&& w) noexcept;
+
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(world);
 };
 
 template<typename Hash, typename Alloc, typename Pred>
@@ -90,6 +94,17 @@ world::world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks
 {
     for (auto&& [coord, c] : chunks)
         operator[](coord) = std::move(c);
+}
+
+template<typename T, typename U>
+std::shared_ptr<T> world::find_entity(std::uint64_t id)
+{
+    static_assert(std::is_base_of_v<entity, T>);
+    std::shared_ptr<U> ptr = find_entity_(id);
+    if (!ptr)
+        return nullptr;
+    fm_assert(ptr->type == entity_type_<T>::value);
+    return std::static_pointer_cast<T>(ptr);
 }
 
 } // namespace floormat

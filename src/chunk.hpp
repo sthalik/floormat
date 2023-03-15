@@ -50,7 +50,7 @@ struct chunk final
 
     bool empty(bool force = false) const noexcept;
 
-    chunk(struct world& w) noexcept;
+    explicit chunk(struct world& w) noexcept;
     ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;

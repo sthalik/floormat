@@ -28,22 +28,34 @@ app::app(fm_settings&& opts) :
     _table{loader.anim_atlas("table", loader.SCENERY_PATH)},
     _control_panel(loader.anim_atlas("control-panel", loader.SCENERY_PATH))
 {
-    world& w = M->world();
-    chunk_coords coord{0 ,0};
+    reset_world();
+    auto& w = M->world();
+    constexpr chunk_coords coord{0, 0};
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     inspectors.reserve(16);
-    _character_id = w.make_entity<character>(global_coords{})->id;
 }
 
 app::~app() = default;
 
+void app::reset_world()
+{
+    reset_world(floormat::world{});
+}
+
+void app::reset_world(struct world&& w)
+{
+    _character_id = 0;
+    if (!M)
+        return;
+    auto& w2 = M->reset_world(std::move(w));
+    w2.collect(true);
+    _character_id = w2.make_entity<character>(global_coords{})->id;
+}
+
 int app::exec()
 {
-    int ret = M->exec();
-    if (M)
-        M->reset_world();
-    return ret;
+    return M->exec();
 }
 
 static const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };

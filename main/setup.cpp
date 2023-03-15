@@ -103,7 +103,7 @@ struct world& main_impl::reset_world() noexcept
     return reset_world(floormat::world{});
 }
 
-struct world& main_impl::reset_world(struct world w) noexcept
+struct world& main_impl::reset_world(struct world&& w) noexcept
 {
     _clickable_scenery.clear();
     _world = std::move(w);

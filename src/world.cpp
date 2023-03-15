@@ -4,6 +4,27 @@
 
 namespace floormat {
 
+world::world(world&& w) noexcept = default;
+
+world& world::operator=(world&& w) noexcept
+{
+    fm_assert(!w._teardown);
+    if (&w != this) [[likely]]
+    {
+        _last_collection = w._last_collection;
+        _collect_every = w._collect_every;
+        _unique_id = std::move(w._unique_id);
+        w._unique_id = std::make_shared<char>('D');
+        _last_chunk = {};
+        _chunks = std::move(w._chunks);
+        _entities = std::move(w._entities);
+
+        for (auto& [id, c] : _chunks)
+            c._world = this;
+    }
+    return *this;
+}
+
 world::world() : world{initial_capacity}
 {
 }
@@ -88,14 +109,15 @@ void world::collect(bool force)
 static constexpr std::uint64_t min_id = 1u << 16;
 std::uint64_t world::entity_counter = min_id;
 
-void world::do_make_entity(const std::shared_ptr<entity>& e, chunk& c, global_coords pos)
+void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
 {
-    fm_debug_assert(e->id > min_id && &c.world() == this);
+    fm_debug_assert(e->id > min_id);
+    fm_debug_assert(e->c.world()._unique_id == _unique_id);
     fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type != entity_type::none);
     e->coord = pos;
     _entities[e->id] = e;
-    c.add_entity(e);
+    e->c.add_entity(e);
 }
 
 void world::do_kill_entity(std::uint64_t id)
@@ -105,7 +127,7 @@ void world::do_kill_entity(std::uint64_t id)
     fm_debug_assert(cnt > 0);
 }
 
-std::shared_ptr<entity> world::find_entity(std::uint64_t id)
+std::shared_ptr<entity> world::find_entity_(std::uint64_t id)
 {
     auto it = _entities.find(id);
     return it == _entities.end() ? nullptr : it->second.lock();
