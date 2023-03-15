@@ -20,7 +20,8 @@ static chunk make_test_chunk()
          metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
          tiles = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
-    chunk c;
+    world w;
+    chunk c{w};
     for (auto [x, k, pt] : c) {
         x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
     }

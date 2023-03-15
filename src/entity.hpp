@@ -11,6 +11,7 @@ namespace floormat {
 template<typename T> struct entity_type_;
 struct anim_atlas;
 struct world;
+struct chunk;
 
 enum class entity_type : std::uint8_t {
     none, character, scenery,
@@ -41,7 +42,7 @@ struct entity
     using It = typename std::vector<std::shared_ptr<entity>>::const_iterator;
 
     const std::uint64_t id = 0;
-    world& w;
+    struct chunk& c;
     std::shared_ptr<anim_atlas> atlas;
     global_coords coord;
     Vector2b offset, bbox_offset;
@@ -73,8 +74,8 @@ struct entity
     friend struct world;
 
 protected:
-    entity(std::uint64_t id, struct world& w, entity_type type) noexcept;
-    entity(std::uint64_t id, struct world& w, entity_type type, const entity_proto& proto) noexcept;
+    entity(std::uint64_t id, struct chunk& c, entity_type type) noexcept;
+    entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept;
 };
 
 } // namespace floormat

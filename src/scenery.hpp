@@ -47,7 +47,7 @@ struct scenery final : entity
 
 private:
     friend struct world;
-    scenery(std::uint64_t id, struct world& w, entity_type type, const scenery_proto& proto);
+    scenery(std::uint64_t id, struct chunk& c, entity_type type, const scenery_proto& proto);
 };
 
 template<> struct entity_type_<scenery> : std::integral_constant<entity_type, entity_type::scenery> {};

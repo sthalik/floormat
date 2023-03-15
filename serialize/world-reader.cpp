@@ -125,15 +125,15 @@ void reader_state::read_chunks(reader_t& s)
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
         if (magic != chunk_magic)
-            fm_throw("bad chunk magic"_cf);
-        chunk_coords coord;
-        coord.x << s;
-        coord.y << s;
-        auto& chunk = (*_world)[coord];
+            fm_throw("bad c magic"_cf);
+        chunk_coords ch;
+        ch.x << s;
+        ch.y << s;
+        auto& c = (*_world)[ch];
         for (auto i = 0_uz; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
-            tile_ref t = chunk[i];
+            tile_ref t = c[i];
             using uchar = std::uint8_t;
             const auto make_atlas = [&]() -> tile_image_proto {
                 auto id = flags & meta_short_atlasid ? atlasid{s.read<uchar>()} : s.read<atlasid>();
@@ -195,12 +195,12 @@ void reader_state::read_chunks(reader_t& s)
                                 sc.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
                         }
                     }
-
-                    auto e = _world->make_entity<scenery>({ coord, local_coords{i} }, sc);
-                    chunk.add_entity_unsorted(e);
+                    global_coords coord{ch, local_coords{i}};
+                    auto e = _world->make_entity<scenery>(coord, sc);
+                    c.add_entity_unsorted(e);
                 }
         }
-        chunk.sort_entities();
+        c.sort_entities();
     }
 }
 

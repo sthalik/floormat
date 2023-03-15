@@ -18,12 +18,11 @@ struct character final : entity
 private:
     int allocate_frame_time(float dt);
     static Vector2 move_vec(int left_right, int top_bottom);
-    character(std::uint64_t id, struct world& w, entity_type type);
 
     friend struct world;
+    character(std::uint64_t id, struct chunk& c, entity_type type);
 
     Vector2s offset_frac;
-
     bool b_L : 1 = false, b_R : 1 = false, b_U : 1 = false, b_D : 1 = false;
 };
 

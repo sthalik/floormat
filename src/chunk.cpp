@@ -89,7 +89,10 @@ void chunk::mark_modified() noexcept
     mark_scenery_modified();
 }
 
-chunk::chunk() noexcept = default;
+chunk::chunk(struct world& w) noexcept : _world{&w}
+{
+}
+
 chunk::~chunk() noexcept
 {
     _teardown = true;

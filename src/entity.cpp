@@ -13,13 +13,13 @@ entity_proto::~entity_proto() noexcept = default;
 entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
 
-entity::entity(std::uint64_t id, struct world& w, entity_type type) noexcept :
-    id{id}, w{w}, type{type}
+entity::entity(std::uint64_t id, struct chunk& c, entity_type type) noexcept :
+    id{id}, c{c}, type{type}
 {
 }
 
-entity::entity(std::uint64_t id, struct world& w, entity_type type, const entity_proto& proto) noexcept :
-    id{id}, w{w}, atlas{proto.atlas},
+entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
+    id{id}, c{c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
     frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
@@ -30,17 +30,14 @@ entity::entity(std::uint64_t id, struct world& w, entity_type type, const entity
 entity::~entity() noexcept
 {
     fm_debug_assert(id);
-    if (w.is_teardown()) [[unlikely]]
+    if (c._teardown || c._world->_teardown) [[unlikely]]
         return;
-    auto& c = chunk();
-    if (!c._teardown) [[likely]]
-    {
-        if (chunk::bbox bb; c._bbox_for_scenery(*this, bb))
-            c._remove_bbox(bb);
-        auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
-        fm_debug_assert(it != c._entities.cend());
-        c._entities.erase(it);
-    }
+    auto& w = *c._world;
+    if (chunk::bbox bb; c._bbox_for_scenery(*this, bb))
+        c._remove_bbox(bb);
+    auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
+    fm_debug_assert(it != c._entities.cend());
+    c._entities.erase(it);
     w.do_kill_entity(id);
 }
 
@@ -63,7 +60,7 @@ std::uint32_t entity::ordinal(local_coords xy, Vector2b offset)
 
 struct chunk& entity::chunk() const
 {
-    return w[coord.chunk()];
+    return c;
 }
 
 auto entity::iter() const -> It
@@ -84,6 +81,7 @@ bool entity::operator==(const entity_proto& o) const
 
 void entity::rotate(It, struct chunk&, rotation new_r)
 {
+    auto& w = *c._world;
     w[coord.chunk()].with_scenery_update(*this, [&]() {
         bbox_offset = rotate_point(bbox_offset, r, new_r);
         bbox_size = rotate_size(bbox_size, r, new_r);
@@ -116,6 +114,7 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
 bool entity::can_move_to(Vector2i delta, struct chunk& c)
 {
     auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    auto& w = *c._world;
     auto& c_ = coord.chunk() == coord_.chunk() ? c : w[coord_.chunk()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
@@ -137,7 +136,7 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
 {
     auto e_ = *it;
     auto& e = *e_;
-    auto& w = e.w;
+    auto& w = *c._world;
     auto& coord = e.coord;
     auto& offset = e.offset;
     auto& es = c._entities;

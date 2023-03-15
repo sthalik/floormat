@@ -50,7 +50,7 @@ struct chunk final
 
     bool empty(bool force = false) const noexcept;
 
-    chunk() noexcept;
+    chunk(struct world& w) noexcept;
     ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
@@ -102,6 +102,8 @@ struct chunk final
     const RTree* rtree() const noexcept;
     RTree* rtree() noexcept;
 
+    struct world& world() noexcept { return *_world; }
+
     template<typename F>
     requires requires(F fun) { fun(); }
     void with_scenery_update(entity& e, F&& fun);
@@ -129,6 +131,7 @@ private:
     std::vector<std::array<UnsignedShort, 6>> scenery_indexes;
     std::vector<std::array<vertex, 4>> scenery_vertexes;
 
+    struct world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
 
     RTree _rtree;

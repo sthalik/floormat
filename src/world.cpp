@@ -32,7 +32,7 @@ chunk& world::operator[](chunk_coords coord) noexcept
 {
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
-        c = &_chunks.try_emplace(coord).first->second;
+        c = &_chunks.try_emplace(coord, *this).first->second;
     coord2 = coord;
     return *c;
 }
@@ -88,14 +88,14 @@ void world::collect(bool force)
 static constexpr std::uint64_t min_id = 1u << 16;
 std::uint64_t world::entity_counter = min_id;
 
-void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
+void world::do_make_entity(const std::shared_ptr<entity>& e, chunk& c, global_coords pos)
 {
-    fm_debug_assert(e->id > min_id && &e->w == this);
+    fm_debug_assert(e->id > min_id && &c.world() == this);
     fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type != entity_type::none);
     e->coord = pos;
     _entities[e->id] = e;
-    operator[](pos.chunk()).add_entity(e);
+    c.add_entity(e);
 }
 
 void world::do_kill_entity(std::uint64_t id)

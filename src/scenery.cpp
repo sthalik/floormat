@@ -92,8 +92,8 @@ bool scenery::operator==(const entity_proto& e0) const
            closing == s0.closing && interactive == s0.interactive;
 }
 
-scenery::scenery(std::uint64_t id, struct world& w, entity_type type, const scenery_proto& proto) :
-    entity{id, w, type}, sc_type{proto.sc_type}, active{proto.active},
+scenery::scenery(std::uint64_t id, struct chunk& c, entity_type type, const scenery_proto& proto) :
+    entity{id, c, type}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {
     fm_assert(type == proto.type);
