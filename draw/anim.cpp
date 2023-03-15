@@ -52,15 +52,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     const auto& es = c.entities();
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] std::size_t draw_count = 0;
-    anim_atlas* bound = nullptr;
 
     const auto size = es.size();
     const auto max_index = std::uint32_t(size*quad_index_count - 1);
 
-    const auto do_draw = [&](std::size_t from, std::size_t to, anim_atlas* atlas, std::uint32_t max_index) {
-        if (atlas != bound)
-            atlas->texture().bind(0);
-        bound = atlas;
+    const auto do_draw = [&](std::size_t from, std::size_t to, anim_atlas* atlas) {
+        atlas->texture().bind(0);
         mesh.setCount((int)(quad_index_count * (to-from)));
         mesh.setIndexRange((int)(from*quad_index_count), 0, max_index);
         shader.draw(mesh);
@@ -80,27 +77,25 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     {
         const auto& e = *es[k];
         auto& atlas = *e.atlas;
-        if (atlas.info().fps > 0)
+        if (last && &atlas != last.atlas)
         {
-            if (last)
-                do_draw(last.run_from, i, last.atlas, max_index);
+            do_draw(last.run_from, i, last.atlas);
+            last = nullptr;
+        }
+        if (e.is_dynamic())
+        {
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, tile_shader::scenery_depth_offset);
             last = nullptr;
         }
         else
         {
-            if (last && &atlas != last.atlas)
-            {
-                do_draw(last.run_from, i, last.atlas, max_index);
-                last = nullptr;
-            }
             if (!last)
                 last = { &atlas, i };
             i++;
         }
     }
     if (last)
-        do_draw(last.run_from, size, last.atlas, max_index);
+        do_draw(last.run_from, i, last.atlas);
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
