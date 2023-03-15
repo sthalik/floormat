@@ -33,17 +33,17 @@ app::app(fm_settings&& opts) :
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     inspectors.reserve(16);
-    _character = w.make_entity<character>(global_coords{});
+    _character_id = w.make_entity<character>(global_coords{})->id;
 }
 
-app::~app()
-{
-    void();
-}
+app::~app() = default;
 
 int app::exec()
 {
-    return M->exec();
+    int ret = M->exec();
+    if (M)
+        M->reset_world();
+    return ret;
 }
 
 static const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };

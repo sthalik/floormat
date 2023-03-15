@@ -98,4 +98,16 @@ auto main_impl::meshes() noexcept -> struct meshes
     return { _floor_mesh, _wall_mesh, _anim_mesh, };
 };
 
+struct world& main_impl::reset_world() noexcept
+{
+    return reset_world(floormat::world{});
+}
+
+struct world& main_impl::reset_world(struct world w) noexcept
+{
+    _clickable_scenery.clear();
+    _world = std::move(w);
+    return _world;
+}
+
 } // namespace floormat

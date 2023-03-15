@@ -77,6 +77,7 @@ public:
         return ret;
     }
 
+    std::shared_ptr<entity> find_entity(std::uint64_t id);
     bool is_teardown() const { return _teardown; }
 
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);

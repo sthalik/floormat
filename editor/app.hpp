@@ -77,7 +77,6 @@ private:
     void update_character(float dt);
 
     void draw() override;
-    void draw_character();
 
     void on_mouse_move(const mouse_move_event& event) noexcept override;
     void on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
@@ -149,7 +148,7 @@ private:
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
-    std::shared_ptr<character> _character;
+    std::uint64_t _character_id = 0;
     cursor_state cursor;
     popup_target _popup_target;
 

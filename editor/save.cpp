@@ -45,14 +45,13 @@ void app::do_quickload()
         return;
     }
     fputs("quickload... ", stderr); fflush(stderr);
-    M->world() = world::deserialize(quicksave_file);
+    M->reset_world(world::deserialize(quicksave_file));
     fputs("done\n", stderr); fflush(stderr);
 }
 
 void app::do_new_file()
 {
-    auto& w = M->world();
-    w = world{};
+    auto& w = M->reset_world();
     maybe_initialize_chunk_(chunk_coords{}, w[chunk_coords{}]);
 }
 

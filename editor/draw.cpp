@@ -142,25 +142,6 @@ void app::draw_collision_boxes()
     shader.set_tint({1, 1, 1, 1});
 }
 
-void app::draw_character()
-{
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::Renderer::setDepthMask(false);
-
-    auto& shader = M->shader();
-    auto& mesh = M->meshes().anim;
-    const auto sz = M->window_size();
-    auto& c = *_character;
-    const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
-
-    const with_shifted_camera_offset o{shader, c.coord.chunk(), {minx, miny}, {maxx, maxy}};
-    if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-        mesh.draw(shader, *c.atlas, c.r, c.frame, c.coord.local(), Vector2b(c.offset), tile_shader::character_depth_offset);
-
-    GL::Renderer::setDepthMask(true);
-    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
-}
-
 void app::draw()
 {
     //draw_character();

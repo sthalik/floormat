@@ -105,4 +105,10 @@ void world::do_kill_entity(std::uint64_t id)
     fm_debug_assert(cnt > 0);
 }
 
+std::shared_ptr<entity> world::find_entity(std::uint64_t id)
+{
+    auto it = _entities.find(id);
+    return it == _entities.end() ? nullptr : it->second.lock();
+}
+
 } // namespace floormat

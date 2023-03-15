@@ -33,6 +33,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     const tile_shader& shader() const noexcept override;
 
     struct world& world() noexcept override;
+    struct world& reset_world() noexcept override;
+    struct world& reset_world(struct world) noexcept override;
     SDL_Window* window() noexcept override;
 
     fm_settings& settings() noexcept override;

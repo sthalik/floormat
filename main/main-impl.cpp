@@ -8,7 +8,11 @@ namespace floormat {
 
 floormat_main::floormat_main() noexcept = default;
 floormat_main::~floormat_main() noexcept = default;
-main_impl::~main_impl() noexcept = default;
+
+main_impl::~main_impl() noexcept
+{
+    reset_world();
+}
 
 void main_impl::quit(int status) { Platform::Sdl2Application::exit(status); }
 struct world& main_impl::world() noexcept { return _world; }

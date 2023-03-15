@@ -201,7 +201,13 @@ void app::update_world(float dt)
 
 void app::update_character([[maybe_unused]] float dt)
 {
-    _character->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+    auto& w = M->world();
+    auto cptr = w.find_entity(_character_id);
+    if (cptr)
+    {
+        fm_debug_assert(cptr->type == entity_type::character);
+        static_cast<character&>(*cptr).set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+    }
 }
 
 void app::set_cursor()
