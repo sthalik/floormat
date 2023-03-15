@@ -7,8 +7,7 @@
 
 namespace floormat {
 
-using rotation_ = rotation;
-using rotation_t = std::underlying_type_t<rotation_>;
+using rotation_t = std::underlying_type_t<enum rotation>;
 
 scenery_editor::scenery_::operator bool() const noexcept
 {
@@ -20,7 +19,7 @@ scenery_editor::scenery_editor() noexcept
     load_atlases();
 }
 
-void scenery_editor::set_rotation(rotation_ r)
+void scenery_editor::set_rotation(enum rotation r)
 {
     auto& s = _selected.proto;
     s.bbox_offset = rotate_point(s.bbox_offset, s.r, r);
@@ -28,7 +27,7 @@ void scenery_editor::set_rotation(rotation_ r)
     s.r = r;
 }
 
-rotation_ scenery_editor::rotation() const
+enum rotation scenery_editor::rotation() const
 {
     return _selected.proto.r;
 }
