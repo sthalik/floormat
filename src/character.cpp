@@ -83,7 +83,7 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
-bool character::update(It it, struct chunk& c, float dt)
+bool character::update(It it, float dt)
 {
     auto [lr, ud, rot] = arrows_to_dir(b_L, b_R, b_U, b_D);
 
@@ -109,8 +109,8 @@ bool character::update(It it, struct chunk& c, float dt)
         auto offset_ = vec + Vector2(offset_frac) * inv_frac;
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
-        if (can_move_to(off_i, c))
-            entity::move(it, off_i, c);
+        if (can_move_to(off_i))
+            entity::move(it, off_i);
         ++frame %= atlas->info().nframes;
     }
     //Debug{} << "pos" << Vector2i(pos.local());

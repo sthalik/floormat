@@ -1,6 +1,6 @@
 #pragma once
 #include "chunk.hpp"
-#include "anim-atlas.hpp"
+#include "scenery.hpp"
 
 namespace floormat {
 
@@ -30,7 +30,7 @@ void chunk::with_scenery_update(entity& s, F&& fun)
     if (bbox bb; !is_passability_modified())
         if (bool b = _bbox_for_scenery(s, bb); b != b0 || bb != bb0)
             _replace_bbox(bb0, bb, b0, b);
-    if (!is_scenery_modified() && s.atlas->info().fps == 0 && s != s0)
+    if (!is_scenery_modified() && !s.is_dynamic() && s != s0)
         mark_scenery_modified(false);
 }
 

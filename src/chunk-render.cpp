@@ -112,7 +112,7 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
         const auto count = fm_begin(
             std::size_t ret = 0;
             for (const auto& e : _entities)
-                ret += e->atlas->info().fps == 0;
+                ret += !e->is_dynamic();
             return ret;
         );
 

@@ -14,12 +14,12 @@ scenery_proto::scenery_proto(const scenery_proto&) = default;
 scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 
-bool scenery::can_activate(It, struct chunk&) const
+bool scenery::can_activate(It) const
 {
     return atlas && interactive;
 }
 
-bool scenery::update(It, struct chunk&, float dt)
+bool scenery::update(It, float dt)
 {
     auto& s = *this;
     if (!s.active)
@@ -60,7 +60,7 @@ bool scenery::update(It, struct chunk&, float dt)
     }
 }
 
-bool scenery::activate(It, struct chunk&)
+bool scenery::activate(It)
 {
     auto& s = *this;
     if (s.active)

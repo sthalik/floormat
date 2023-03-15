@@ -2,6 +2,7 @@
 #include "world.hpp"
 #include "rotation.inl"
 #include "chunk.inl"
+#include "anim-atlas.hpp"
 #include "RTree.hpp"
 #include <algorithm>
 
@@ -35,9 +36,10 @@ entity::~entity() noexcept
     auto& w = *c._world;
     if (chunk::bbox bb; c._bbox_for_scenery(*this, bb))
         c._remove_bbox(bb);
-    auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
-    fm_debug_assert(it != c._entities.cend());
-    c._entities.erase(it);
+    auto& es =  c._entities;
+    auto it = std::find_if(es.cbegin(), es.cend(), [id = id](const auto& x) { return x->id == id; });
+    fm_debug_assert(it != es.cend());
+    es.erase(it);
     w.do_kill_entity(id);
 }
 
@@ -66,8 +68,11 @@ struct chunk& entity::chunk() const
 auto entity::iter() const -> It
 {
     auto& c = chunk();
-    auto it = std::find_if(c._entities.cbegin(), c._entities.cend(), [id = id](const auto& x) { return x->id == id; });
-    fm_assert(it != c._entities.cend());
+    auto& es = c._entities;
+    auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, [ord = ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
+    fm_assert(it != es.cend());
+    it = std::find_if(it, es.cend(), [id = id](const auto& x) { return x->id == id; });
+    fm_assert(it != es.cend());
     return it;
 }
 
@@ -79,7 +84,7 @@ bool entity::operator==(const entity_proto& o) const
            bbox_size == o.bbox_size && delta == o.delta;
 }
 
-void entity::rotate(It, struct chunk&, rotation new_r)
+void entity::rotate(It, rotation new_r)
 {
     auto& w = *c._world;
     w[coord.chunk()].with_scenery_update(*this, [&]() {
@@ -111,7 +116,7 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
     return { coord, Vector2b(off_new) };
 }
 
-bool entity::can_move_to(Vector2i delta, struct chunk& c)
+bool entity::can_move_to(Vector2i delta)
 {
     auto [coord_, offset_] = normalize_coords(coord, offset, delta);
     auto& w = *c._world;
@@ -132,10 +137,11 @@ bool entity::can_move_to(Vector2i delta, struct chunk& c)
     return ret;
 }
 
-void entity::move(It it, Vector2i delta, struct chunk& c)
+void entity::move(It it, Vector2i delta)
 {
     auto e_ = *it;
     auto& e = *e_;
+    auto& c = e.c;
     auto& w = *c._world;
     auto& coord = e.coord;
     auto& offset = e.offset;
@@ -145,7 +151,7 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
     if (coord_ == coord && offset_ == offset)
         return;
 
-    if (e.atlas->info().fps == 0)
+    if (!e.is_dynamic())
         c.mark_scenery_modified(false);
 
     bool same_chunk = coord_.chunk() == coord.chunk();
@@ -171,7 +177,7 @@ void entity::move(It it, Vector2i delta, struct chunk& c)
     else
     {
         auto& c2 = w[coord.chunk()];
-        if (e.atlas->info().fps == 0)
+        if (!e.is_dynamic())
             c2.mark_scenery_modified(false);
         c._remove_bbox(bb0);
         c2._add_bbox(bb1);
@@ -197,7 +203,12 @@ entity::operator entity_proto() const
     return x;
 }
 
-bool entity::can_activate(It, struct chunk&) const { return false; }
-bool entity::activate(It, struct chunk&) { return false; }
+bool entity::can_activate(It) const { return false; }
+bool entity::activate(It) { return false; }
+
+bool entity::is_dynamic() const
+{
+    return atlas->info().fps > 0;
+}
 
 } // namespace floormat

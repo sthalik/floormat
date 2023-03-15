@@ -40,9 +40,9 @@ struct scenery final : entity
     std::uint8_t closing     : 1 = false;
     std::uint8_t interactive : 1 = false;
 
-    bool can_activate(It it, struct chunk& c) const override;
-    bool activate(It it, struct chunk& c) override;
-    bool update(It it, struct chunk& c, float dt) override;
+    bool can_activate(It it) const override;
+    bool activate(It it) override;
+    bool update(It it, float dt) override;
     bool operator==(const entity_proto& p) const override;
 
 private:

@@ -1,7 +1,6 @@
 #pragma once
 #include "tile.hpp"
 #include "tile-iterator.hpp"
-#include "scenery.hpp"
 #include <type_traits>
 #include <array>
 #include <memory>
@@ -12,6 +11,7 @@ namespace floormat {
 
 struct anim_atlas;
 struct entity;
+struct entity_proto;
 
 enum class collision : std::uint8_t {
     view, shoot, move,

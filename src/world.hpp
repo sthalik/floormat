@@ -3,6 +3,7 @@
 #include "compat/defs.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
+#include "entity-type.hpp"
 #include <cstddef>
 #include <unordered_map>
 #include <memory>

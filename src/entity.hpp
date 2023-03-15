@@ -3,6 +3,7 @@
 #include "src/global-coords.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
+#include "src/entity-type.hpp"
 #include <memory>
 #include <vector>
 
@@ -12,10 +13,6 @@ template<typename T> struct entity_type_;
 struct anim_atlas;
 struct world;
 struct chunk;
-
-enum class entity_type : std::uint8_t {
-    none, character, scenery,
-};
 
 struct entity_proto
 {
@@ -62,14 +59,16 @@ struct entity
     virtual bool operator==(const entity_proto& e0) const;
     operator entity_proto() const;
 
-    virtual bool can_activate(It it, struct chunk& c) const;
-    virtual bool activate(It it, struct chunk& c);
-    virtual bool update(It it, struct chunk& c, float dt) = 0;
-    virtual void rotate(It it, struct chunk& c, rotation r);
+    virtual bool can_activate(It it) const;
+    virtual bool activate(It it);
+    virtual bool update(It it, float dt) = 0;
+    virtual void rotate(It it, rotation r);
 
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
-    [[nodiscard]] virtual bool can_move_to(Vector2i delta, struct chunk& c);
-    static void move(It it, Vector2i delta, struct chunk& c);
+    [[nodiscard]] virtual bool can_move_to(Vector2i delta);
+    static void move(It it, Vector2i delta);
+    void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size); // todo
+    bool is_dynamic() const;
 
     friend struct world;
 

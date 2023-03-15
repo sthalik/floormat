@@ -107,7 +107,7 @@ bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
 
 void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
 {
-    if (e->atlas->info().fps == 0)
+    if (!e->is_dynamic())
         mark_scenery_modified(false);
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
@@ -140,7 +140,7 @@ void chunk::add_entity(const std::shared_ptr<entity>& e)
 void chunk::remove_entity(entity_const_iterator it)
 {
     const auto& e = *it;
-    if (e->atlas->info().fps == 0)
+    if (!e->is_dynamic())
         mark_scenery_modified(false);
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);

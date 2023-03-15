@@ -1,6 +1,7 @@
 #include "chunk.hpp"
 #include "RTree.hpp"
 #include "tile-atlas.hpp"
+#include "entity.hpp"
 #include <bit>
 #include <Corrade/Containers/PairStl.h>
 

@@ -13,7 +13,7 @@ struct character final : entity
 {
     ~character() override;
     void set_keys(bool L, bool R, bool U, bool D);
-    bool update(It it, struct chunk& c, float dt) override;
+    bool update(It it, float dt) override;
 
 private:
     int allocate_frame_time(float dt);
