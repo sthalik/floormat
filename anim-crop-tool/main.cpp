@@ -201,7 +201,7 @@ using Corrade::Utility::Arguments;
 static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
-    args.addOption('o', "output")
+    args.addOption('o', "output").setHelp("output", "", "DIR")
         .addArgument("input")
         .addOption('W', "width", "")
         .addOption('H', "height", "")
