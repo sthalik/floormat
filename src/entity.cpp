@@ -123,8 +123,8 @@ bool entity::can_move_to(Vector2i delta)
     auto& c_ = coord.chunk() == coord_.chunk() ? c : w[coord_.chunk()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
-               half_bbox = Vector2(bbox_size)*.5f,
-               min = center - half_bbox, max = center + half_bbox;
+               half_bbox = Vector2(bbox_size/2),
+               min = center - half_bbox, max = min + Vector2(bbox_size);
 
     bool ret = true;
     c_.rtree()->Search(min.data(), max.data(), [&](std::uint64_t data, const auto&) {

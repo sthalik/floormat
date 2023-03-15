@@ -22,27 +22,27 @@ constexpr Vector2 tile_start(std::size_t k)
 Pair<Vector2i, Vector2i> scenery_tile(const entity& sc)
 {
     auto center = iTILE_SIZE2 * Vector2i(sc.coord.local()) + Vector2i(sc.offset) + Vector2i(sc.bbox_offset);
-    auto start = center - Vector2i(sc.bbox_size);
-    auto size = Vector2i(sc.bbox_size)*2;
-    return { start, start + size, };
+    auto min = center - Vector2i(sc.bbox_size/2);
+    auto size = Vector2i(sc.bbox_size);
+    return { min, min + size, };
 }
 
 constexpr Pair<Vector2, Vector2> whole_tile(std::size_t k)
 {
-    auto start = tile_start(k);
-    return { start, start + TILE_SIZE2, };
+    auto min = tile_start(k);
+    return { min, min + TILE_SIZE2, };
 }
 
 constexpr Pair<Vector2, Vector2> wall_north(std::size_t k)
 {
-    auto start = tile_start(k) - Vector2(0, 1);
-    return { start, start + Vector2(TILE_SIZE2[0], 2), };
+    auto min = tile_start(k) - Vector2(0, 1);
+    return { min, min + Vector2(TILE_SIZE2[0], 2), };
 }
 
 constexpr Pair<Vector2, Vector2> wall_west(std::size_t k)
 {
-    auto start = tile_start(k) - Vector2(1, 0);
-    return { start, start + Vector2(2, TILE_SIZE2[1]), };
+    auto min = tile_start(k) - Vector2(1, 0);
+    return { min, min + Vector2(2, TILE_SIZE2[1]), };
 }
 
 constexpr std::uint64_t make_id(collision_type type, pass_mode p, std::uint64_t id)
@@ -72,9 +72,9 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = ground_atlas_at(i))
             if (auto p = atlas->pass_mode(pass_mode::pass); p != pass_mode::pass)
             {
-                auto [start, end] = whole_tile(i);
+                auto [min, max] = whole_tile(i);
                 auto id = make_id(collision_type::geometry, p, i);
-                _rtree.Insert(start.data(), end.data(), id);
+                _rtree.Insert(min.data(), max.data(), id);
             }
     }
     for (auto i = 0_uz; i < TILE_COUNT; i++)
@@ -83,16 +83,16 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = tile.wall_north_atlas().get())
             if (auto p = atlas->pass_mode(pass_mode::blocked); p != pass_mode::pass)
             {
-                auto [start, end] = wall_north(i);
+                auto [min, max] = wall_north(i);
                 auto id = make_id(collision_type::geometry, p, i);
-                _rtree.Insert(start.data(), end.data(), id);
+                _rtree.Insert(min.data(), max.data(), id);
             }
         if (const auto* atlas = tile.wall_west_atlas().get())
             if (auto p = atlas->pass_mode(pass_mode::blocked); p != pass_mode::pass)
             {
-                auto [start, end] = wall_west(i);
+                auto [min, max] = wall_west(i);
                 auto id = make_id(collision_type::geometry, p, i);
-                _rtree.Insert(start.data(), end.data(), id);
+                _rtree.Insert(min.data(), max.data(), id);
             }
     }
 }
@@ -150,8 +150,7 @@ bool chunk::can_place_entity(const entity_proto& proto, local_coords pos)
     (void)ensure_scenery_mesh();
 
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
-               half_bbox = Vector2(proto.bbox_size)*.5f,
-               min = center - half_bbox, max = center + half_bbox;
+               min = center - Vector2(proto.bbox_size/2), max = min + Vector2(proto.bbox_size);
     bool ret = true;
     _rtree.Search(min.data(), max.data(), [&](auto, const auto&) { return ret = false; });
     return ret;
