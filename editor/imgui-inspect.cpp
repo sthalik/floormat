@@ -35,8 +35,8 @@ void app::draw_inspector()
         local_coords pos = e->coord.local();
         auto& c = w[ch];
 
-        char buf[128];
-        snformat(buf, "i-{}-{}x{}-{}x{}"_cf, (int)target, ch.x, ch.y, (int)pos.x, (int)pos.y);
+        char buf[32];
+        snformat(buf, "inspector-{:08x}"_cf, s.id);
 
         auto b1 = push_id(buf);
         ImGui::SetNextWindowSize({300*dpi[0], 0});
