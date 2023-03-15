@@ -18,7 +18,7 @@ struct entity_proto
 {
     std::shared_ptr<anim_atlas> atlas;
     Vector2b offset, bbox_offset;
-    Vector2ub bbox_size = Vector2ub(iTILE_SIZE2);
+    Vector2ub bbox_size = Vector2ub(iTILE_SIZE2/2);
     std::uint16_t delta = 0, frame = 0;
     entity_type type = entity_type::none;
     rotation r     : rotation_BITS  = rotation::N;
