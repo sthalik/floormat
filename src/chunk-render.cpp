@@ -123,6 +123,9 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 
         for (const auto& e : _entities)
         {
+            if (e->atlas->info().fps > 0)
+                continue;
+
             const auto i = scenery_indexes.size();
             scenery_indexes.emplace_back();
             scenery_indexes.back() = tile_atlas::indices(i);
