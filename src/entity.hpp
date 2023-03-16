@@ -51,8 +51,9 @@ struct entity
 
     virtual ~entity() noexcept;
 
+    static Vector2b ordinal_offset_for_type(entity_type type, Vector2b offset);
     std::int32_t ordinal() const;
-    static std::int32_t ordinal(local_coords xy, Vector2b offset);
+    static std::int32_t ordinal(local_coords xy, Vector2b offset, entity_type type);
     struct chunk& chunk() const;
     It iter() const;
 

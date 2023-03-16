@@ -43,20 +43,35 @@ entity::~entity() noexcept
     w.do_kill_entity(id);
 }
 
+Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
+{
+    switch (type)
+    {
+    case entity_type::scenery:
+        return offset;
+    default:
+        fm_warn_once("unknown entity type '%zu'", std::size_t(type));
+        [[fallthrough]];
+    case entity_type::character:
+        return {};
+    }
+}
+
 std::int32_t entity_proto::ordinal(local_coords local) const
 {
-    return entity::ordinal(local, offset);
+    return entity::ordinal(local, offset, type);
 }
 
 std::int32_t entity::ordinal() const
 {
-    return ordinal(coord.local(), offset);
+    return ordinal(coord.local(), offset, type);
 }
 
-std::int32_t entity::ordinal(local_coords xy, Vector2b offset)
+std::int32_t entity::ordinal(local_coords xy, Vector2b offset, entity_type type)
 {
+    offset = ordinal_offset_for_type(type, offset);
     constexpr auto x_size = (std::int32_t)TILE_MAX_DIM * (std::int32_t)iTILE_SIZE[0];
-    auto vec = Vector2i(xy) * Vector2i(iTILE_SIZE2) + Vector2i(offset);
+    auto vec = Vector2i(xy) * Vector2i(iTILE_SIZE2);
     return vec[1] * x_size + vec[0];
 }
 
@@ -157,7 +172,7 @@ void entity::move(It it, Vector2i delta)
     chunk::bbox bb0, bb1;
     bool b0 = c._bbox_for_scenery(e, bb0),
          b1 = c._bbox_for_scenery(e, coord_.local(), offset_, bb1);
-    const auto ord = e.ordinal(coord_.local(), offset_);
+    const auto ord = e.ordinal(coord_.local(), offset_, e.type);
 
     if (coord_.chunk() == coord.chunk())
     {
