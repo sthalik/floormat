@@ -51,9 +51,9 @@ Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
         return offset;
     default:
         fm_warn_once("unknown entity type '%zu'", std::size_t(type));
-        [[fallthrough]];
-    case entity_type::character:
         return {};
+    case entity_type::character:
+        return { 0, -iTILE_SIZE[1]/4 };
     }
 }
 
@@ -177,7 +177,7 @@ void entity::move(It it, Vector2i delta)
     if (coord_.chunk() == coord.chunk())
     {
         c._replace_bbox(bb0, bb1, b0, b1);
-        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [ord](const auto& a, const auto&) { return a->ordinal() < ord; });
+        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         e_->coord = coord_;
         e_->offset = offset_;
         auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
@@ -192,14 +192,15 @@ void entity::move(It it, Vector2i delta)
     }
     else
     {
-        auto& c2 = w[coord.chunk()];
+        auto& c2 = w[coord_.chunk()];
         if (!e.is_dynamic())
             c2.mark_scenery_modified(false);
-        c._remove_bbox(bb0);
         c2._add_bbox(bb1);
         c.remove_entity(it);
-        auto it_ = std::lower_bound(c2._entities.cbegin(), c2._entities.cend(), e_,
-                                    [ord](const auto& a, const auto&) { return a->ordinal() < ord; });
+        const auto& es = c2._entities;
+        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
+        e_->coord = coord_;
+        e_->offset = offset_;
         c2._entities.insert(it_, std::move(e_));
     }
 }
