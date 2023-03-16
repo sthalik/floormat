@@ -98,8 +98,7 @@ void app::draw_ui()
     draw_tile_under_cursor();
     if (_editor.mode() == editor_mode::none)
         draw_inspector();
-    if (_popup_target.target != popup_target_type::none)
-        do_popup_menu();
+    do_popup_menu();
     ImGui::EndFrame();
 }
 
@@ -119,13 +118,7 @@ void app::draw_clickables()
 
 const StringView app::SCENERY_POPUP_NAME = "##scenery-popup"_s;
 
-void app::do_open_popup()
-{
-    fm_assert(_popup_target.target != popup_target_type::none);
-    _pending_popup = true;
-}
-
-bool app::check_inspector_exists(popup_target p)
+bool app::check_inspector_exists(const popup_target& p)
 {
     if (p.target == popup_target_type::none) [[unlikely]]
         return true;
@@ -137,7 +130,6 @@ bool app::check_inspector_exists(popup_target p)
 
 void app::do_popup_menu()
 {
-    fm_assert(_popup_target.target != popup_target_type::none);
     auto b0 = push_id(SCENERY_POPUP_NAME);
     const auto [sc, target] = _popup_target;
     //if (_popup_target.target != popup_target_type::scenery) {...}
@@ -145,19 +137,20 @@ void app::do_popup_menu()
     if (_pending_popup)
     {
         _pending_popup = false;
-        fm_assert(target != popup_target_type::none);
+        fm_assert(target != popup_target_type::none && sc != nullptr);
         //if (type != popup_target_type::scenery) {...}
-        if (sc)
-            ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
+        ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
     }
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
+        fm_assert(target != popup_target_type::none && sc != nullptr);
+
         const auto i = sc->index();
         if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))
             sc->activate(i);
         if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
-            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
+            next_rot != sc->r && ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
             sc->rotate(i, next_rot);
 
         ImGui::Separator();

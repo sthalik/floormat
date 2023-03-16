@@ -45,6 +45,7 @@ void app::reset_world()
 
 void app::reset_world(struct world&& w)
 {
+    _popup_target = {};
     _character_id = 0;
     if (!M)
         return;

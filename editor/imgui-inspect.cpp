@@ -30,6 +30,7 @@ void app::draw_inspector()
     for (auto i = inspectors.size()-1; i != -1_uz; i--)
     {
         auto [e, target] = inspectors[i];
+        fm_debug_assert(e);
         auto& s = *e;
         chunk_coords ch = e->coord.chunk();
         local_coords pos = e->coord.local();

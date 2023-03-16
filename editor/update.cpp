@@ -55,9 +55,7 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
     update_cursor_tile(cursor.pixel);
 
     if (is_down && !cursor.in_imgui)
-    {
         _popup_target = {};
-    }
 
     if (is_down && cursor.tile && !cursor.in_imgui)
     {
@@ -74,7 +72,10 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
+                {
+                    _pending_popup = true;
                     _popup_target = { .e = cl->e, .target = popup_target_type::scenery, };
+                }
             break;
         case editor_mode::floor:
         case editor_mode::walls:

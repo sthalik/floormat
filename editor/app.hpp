@@ -110,7 +110,7 @@ private:
     void draw_clickables();
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
-    bool check_inspector_exists(popup_target p);
+    bool check_inspector_exists(const popup_target& p);
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
     void set_cursor_from_imgui();
@@ -121,7 +121,6 @@ private:
     void draw_fps();
     void draw_tile_under_cursor();
     void do_popup_menu();
-    void do_open_popup();
     void kill_popups(bool hard);
     void render_menu();
 
@@ -154,7 +153,7 @@ private:
     cursor_state cursor;
     popup_target _popup_target;
 
-    bool _pending_popup            : 1 = false;
+    bool _pending_popup     : 1 = false;
     bool _render_bboxes     : 1 = false;
     bool _render_clickables : 1 = false;
 
