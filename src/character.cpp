@@ -100,7 +100,7 @@ bool character::update(It it, float dt)
 
     const auto vec = move_vec(lr, ud);
     r = rot;
-    c.ensure_passability();
+    c->ensure_passability();
 
     for (int i = 0; i < nframes; i++)
     {

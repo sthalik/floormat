@@ -112,12 +112,12 @@ std::uint64_t world::entity_counter = min_id;
 void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
 {
     fm_debug_assert(e->id > min_id);
-    fm_debug_assert(e->c.world()._unique_id == _unique_id);
+    fm_debug_assert(e->c->world()._unique_id == _unique_id);
     fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type != entity_type::none);
     e->coord = pos;
     _entities[e->id] = e;
-    e->c.add_entity(e);
+    e->c->add_entity(e);
 }
 
 void world::do_kill_entity(std::uint64_t id)
@@ -131,7 +131,7 @@ std::shared_ptr<entity> world::find_entity_(std::uint64_t id)
 {
     auto it = _entities.find(id);
     auto ret = it == _entities.end() ? nullptr : it->second.lock();
-    fm_debug_assert(&ret->c.world() == this);
+    fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }
 

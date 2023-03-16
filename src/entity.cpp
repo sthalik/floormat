@@ -15,12 +15,12 @@ entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
 
 entity::entity(std::uint64_t id, struct chunk& c, entity_type type) noexcept :
-    id{id}, c{c}, type{type}
+    id{id}, c{&c}, type{type}
 {
 }
 
 entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
-    id{id}, c{c}, atlas{proto.atlas},
+    id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
     frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
@@ -31,12 +31,12 @@ entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity
 entity::~entity() noexcept
 {
     fm_debug_assert(id);
-    if (c._teardown || c._world->_teardown) [[unlikely]]
+    if (c->_teardown || c->_world->_teardown) [[unlikely]]
         return;
-    auto& w = *c._world;
-    if (chunk::bbox bb; c._bbox_for_scenery(*this, bb))
-        c._remove_bbox(bb);
-    auto& es =  c._entities;
+    auto& w = *c->_world;
+    if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
+        c->_remove_bbox(bb);
+    auto& es =  c->_entities;
     auto it = std::find_if(es.cbegin(), es.cend(), [id = id](const auto& x) { return x->id == id; });
     fm_debug_assert(it != es.cend());
     es.erase(it);
@@ -45,39 +45,46 @@ entity::~entity() noexcept
 
 Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
 {
+#if 0
     switch (type)
     {
-    case entity_type::scenery:
-        return offset;
     default:
         fm_warn_once("unknown entity type '%zu'", std::size_t(type));
-        return {};
+        [[fallthrough]];
+    case entity_type::scenery:
+        return offset;
     case entity_type::character:
-        return { 0, -iTILE_SIZE[1]/4 };
+        return {};
     }
+#else
+    (void)type;
+    (void)offset;
+    return {};
+#endif
 }
 
-std::int32_t entity_proto::ordinal(local_coords local) const
+float entity_proto::ordinal(local_coords local) const
 {
     return entity::ordinal(local, offset, type);
 }
 
-std::int32_t entity::ordinal() const
+float entity::ordinal() const
 {
     return ordinal(coord.local(), offset, type);
 }
 
-std::int32_t entity::ordinal(local_coords xy, Vector2b offset, entity_type type)
+float entity::ordinal(local_coords xy, Vector2b offset, entity_type type)
 {
+    constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
+    constexpr float width = TILE_MAX_DIM+1;
     offset = ordinal_offset_for_type(type, offset);
-    constexpr auto x_size = (std::int32_t)TILE_MAX_DIM * (std::int32_t)iTILE_SIZE[0];
-    auto vec = Vector2i(xy) * Vector2i(iTILE_SIZE2);
-    return vec[1] * x_size + vec[0];
+    auto vec = Vector2(xy) + Vector2(offset)*inv_tile_size;
+    return vec[1]*width + vec[0];
 }
 
 struct chunk& entity::chunk() const
 {
-    return c;
+    return *c;
 }
 
 auto entity::iter() const -> It
@@ -101,7 +108,7 @@ bool entity::operator==(const entity_proto& o) const
 
 void entity::rotate(It, rotation new_r)
 {
-    auto& w = *c._world;
+    auto& w = *c->_world;
     w[coord.chunk()].with_scenery_update(*this, [&]() {
         bbox_offset = rotate_point(bbox_offset, r, new_r);
         bbox_size = rotate_size(bbox_size, r, new_r);
@@ -134,8 +141,8 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
 bool entity::can_move_to(Vector2i delta)
 {
     auto [coord_, offset_] = normalize_coords(coord, offset, delta);
-    auto& w = *c._world;
-    auto& c_ = coord.chunk() == coord_.chunk() ? c : w[coord_.chunk()];
+    auto& w = *c->_world;
+    auto& c_ = coord.chunk() == coord_.chunk() ? *c : w[coord_.chunk()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size/2),
@@ -156,7 +163,7 @@ void entity::move(It it, Vector2i delta)
 {
     auto e_ = *it;
     const auto& e = *e_;
-    auto& c = e.c;
+    auto& c = *e.c;
     auto& w = *c._world;
     const auto coord = e.coord;
     const auto offset = e.offset;
@@ -183,25 +190,28 @@ void entity::move(It it, Vector2i delta)
         auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
         if (pos1 > pos0)
             pos1--;
+        //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
         if (pos1 != pos0)
         {
+            //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
             es.erase(it);
-            //fm_debug("insert %td -> %zu", pos1, es.size());
             es.insert(es.cbegin() + pos1, std::move(e_));
         }
     }
     else
     {
+        //fm_debug("change-chunk (%hd;%hd|%hhd;%hhd)", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y);
         auto& c2 = w[coord_.chunk()];
         if (!e.is_dynamic())
             c2.mark_scenery_modified(false);
         c2._add_bbox(bb1);
         c.remove_entity(it);
-        const auto& es = c2._entities;
+        auto& es = c2._entities;
         auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         e_->coord = coord_;
         e_->offset = offset_;
-        c2._entities.insert(it_, std::move(e_));
+        e_->c = &c2;
+        es.insert(it_, std::move(e_));
     }
 }
 

@@ -24,7 +24,7 @@ struct entity_proto
     rotation r     : rotation_BITS  = rotation::N;
     pass_mode pass : pass_mode_BITS = pass_mode::see_through;
 
-    std::int32_t ordinal(local_coords coord) const;
+    float ordinal(local_coords coord) const;
     entity_proto& operator=(const entity_proto&);
     entity_proto();
     entity_proto(const entity_proto&);
@@ -39,7 +39,7 @@ struct entity
     using It = typename std::vector<std::shared_ptr<entity>>::const_iterator;
 
     const std::uint64_t id = 0;
-    struct chunk& c;
+    struct chunk* c;
     std::shared_ptr<anim_atlas> atlas;
     global_coords coord;
     Vector2b offset, bbox_offset;
@@ -52,8 +52,8 @@ struct entity
     virtual ~entity() noexcept;
 
     static Vector2b ordinal_offset_for_type(entity_type type, Vector2b offset);
-    std::int32_t ordinal() const;
-    static std::int32_t ordinal(local_coords xy, Vector2b offset, entity_type type);
+    float ordinal() const;
+    static float ordinal(local_coords xy, Vector2b offset, entity_type type);
     struct chunk& chunk() const;
     It iter() const;
 

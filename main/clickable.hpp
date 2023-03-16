@@ -13,7 +13,7 @@ struct clickable final {
     Math::Range2D<int> dest;
     BitArrayView bitmask;
     std::shared_ptr<entity> e;
-    std::int32_t depth;
+    float depth;
     std::uint32_t stride;
     bool mirrored;
 };
