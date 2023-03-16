@@ -4,8 +4,6 @@
 
 namespace floormat {
 
-static_assert(sizeof(short) == 2);
-
 with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords c, chunk_coords first, chunk_coords last) :
     _shader{shader},
     _camera{shader.camera_offset()}

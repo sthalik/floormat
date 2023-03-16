@@ -41,7 +41,6 @@ entity::~entity() noexcept
 
 Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
 {
-#if 0
     switch (type)
     {
     default:
@@ -52,11 +51,6 @@ Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
     case entity_type::character:
         return {};
     }
-#else
-    (void)type;
-    (void)offset;
-    return {};
-#endif
 }
 
 float entity_proto::ordinal(local_coords local) const
