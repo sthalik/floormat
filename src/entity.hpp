@@ -24,7 +24,7 @@ struct entity_proto
     rotation r     : rotation_BITS  = rotation::N;
     pass_mode pass : pass_mode_BITS = pass_mode::see_through;
 
-    std::uint32_t ordinal(local_coords coord) const;
+    std::int32_t ordinal(local_coords coord) const;
     entity_proto& operator=(const entity_proto&);
     entity_proto();
     entity_proto(const entity_proto&);
@@ -51,8 +51,8 @@ struct entity
 
     virtual ~entity() noexcept;
 
-    std::uint32_t ordinal() const;
-    static std::uint32_t ordinal(local_coords xy, Vector2b offset);
+    std::int32_t ordinal() const;
+    static std::int32_t ordinal(local_coords xy, Vector2b offset);
     struct chunk& chunk() const;
     It iter() const;
 

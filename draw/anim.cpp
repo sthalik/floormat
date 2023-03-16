@@ -79,11 +79,13 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
         auto& atlas = *e.atlas;
         if (last && &atlas != last.atlas)
         {
+            //Debug{} << "draw-static" << last.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
             do_draw(last.run_from, i, last.atlas);
             last = nullptr;
         }
         if (e.is_dynamic())
         {
+            //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, tile_shader::scenery_depth_offset);
             last = nullptr;
         }
@@ -95,7 +97,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
         }
     }
     if (last)
+    {
+        //Debug{} << "draw-last" << last.atlas->name() << es[es.size()-1]->ordinal() << Vector2i(es[es.size()-1]->coord.local());
         do_draw(last.run_from, i, last.atlas);
+    }
+
+    //Debug{} << "--" << i << "--";
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT

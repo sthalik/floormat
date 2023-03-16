@@ -43,20 +43,20 @@ entity::~entity() noexcept
     w.do_kill_entity(id);
 }
 
-std::uint32_t entity_proto::ordinal(local_coords local) const
+std::int32_t entity_proto::ordinal(local_coords local) const
 {
     return entity::ordinal(local, offset);
 }
 
-std::uint32_t entity::ordinal() const
+std::int32_t entity::ordinal() const
 {
     return ordinal(coord.local(), offset);
 }
 
-std::uint32_t entity::ordinal(local_coords xy, Vector2b offset)
+std::int32_t entity::ordinal(local_coords xy, Vector2b offset)
 {
-    constexpr auto x_size = (std::uint32_t)TILE_MAX_DIM * (std::uint32_t)iTILE_SIZE[0];
-    auto vec = Vector2ui(xy) * Vector2ui(iTILE_SIZE2) + Vector2ui(offset);
+    constexpr auto x_size = (std::int32_t)TILE_MAX_DIM * (std::int32_t)iTILE_SIZE[0];
+    auto vec = Vector2i(xy) * Vector2i(iTILE_SIZE2) + Vector2i(offset);
     return vec[1] * x_size + vec[0];
 }
 
@@ -140,13 +140,13 @@ bool entity::can_move_to(Vector2i delta)
 void entity::move(It it, Vector2i delta)
 {
     auto e_ = *it;
-    auto& e = *e_;
+    const auto& e = *e_;
     auto& c = e.c;
     auto& w = *c._world;
-    auto& coord = e.coord;
-    auto& offset = e.offset;
+    const auto coord = e.coord;
+    const auto offset = e.offset;
     auto& es = c._entities;
-    auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
     if (coord_ == coord && offset_ == offset)
         return;
@@ -154,23 +154,24 @@ void entity::move(It it, Vector2i delta)
     if (!e.is_dynamic())
         c.mark_scenery_modified(false);
 
-    bool same_chunk = coord_.chunk() == coord.chunk();
     chunk::bbox bb0, bb1;
-    bool b0 = c._bbox_for_scenery(e, bb0);
-    coord = coord_; offset = offset_;
-    bool b1 = c._bbox_for_scenery(e, bb1);
+    bool b0 = c._bbox_for_scenery(e, bb0),
+         b1 = c._bbox_for_scenery(e, coord_.local(), offset_, bb1);
+    const auto ord = e.ordinal(coord_.local(), offset_);
 
-    if (same_chunk)
+    if (coord_.chunk() == coord.chunk())
     {
         c._replace_bbox(bb0, bb1, b0, b1);
-        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [ord = e.ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
-        if (it_ != it)
+        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [ord](const auto& a, const auto&) { return a->ordinal() < ord; });
+        e_->coord = coord_;
+        e_->offset = offset_;
+        auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
+        if (pos1 > pos0)
+            pos1--;
+        if (pos1 != pos0)
         {
-            auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
-            if (pos1 > pos0)
-                pos1--;
             es.erase(it);
-            [[maybe_unused]] auto size = es.size();
+            //fm_debug("insert %td -> %zu", pos1, es.size());
             es.insert(es.cbegin() + pos1, std::move(e_));
         }
     }
@@ -183,7 +184,7 @@ void entity::move(It it, Vector2i delta)
         c2._add_bbox(bb1);
         c.remove_entity(it);
         auto it_ = std::lower_bound(c2._entities.cbegin(), c2._entities.cend(), e_,
-                                    [ord = e.ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
+                                    [ord](const auto& a, const auto&) { return a->ordinal() < ord; });
         c2._entities.insert(it_, std::move(e_));
     }
 }

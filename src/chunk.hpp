@@ -150,7 +150,8 @@ private:
 
         bool operator==(const bbox& other) const noexcept;
     };
-    bool _bbox_for_scenery(const entity& s, bbox& value) noexcept;
+    static bool _bbox_for_scenery(const entity& s, bbox& value) noexcept;
+    static bool _bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, bbox& value) noexcept;
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);

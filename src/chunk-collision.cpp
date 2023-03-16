@@ -19,11 +19,11 @@ constexpr Vector2 tile_start(std::size_t k)
     return TILE_SIZE2 * Vector2(coord) - half_tile;
 }
 
-Pair<Vector2i, Vector2i> scenery_tile(const entity& sc)
+Pair<Vector2i, Vector2i> scenery_tile(local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    auto center = iTILE_SIZE2 * Vector2i(sc.coord.local()) + Vector2i(sc.offset) + Vector2i(sc.bbox_offset);
-    auto min = center - Vector2i(sc.bbox_size/2);
-    auto size = Vector2i(sc.bbox_size);
+    auto center = iTILE_SIZE2 * Vector2i(local) + Vector2i(offset) + Vector2i(bbox_offset);
+    auto min = center - Vector2i(bbox_size/2);
+    auto size = Vector2i(bbox_size);
     return { min, min + size, };
 }
 
@@ -97,12 +97,17 @@ void chunk::ensure_passability() noexcept
     }
 }
 
-bool chunk::_bbox_for_scenery(const entity& s, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, bbox& value) noexcept
 {
-    auto [start, end] = scenery_tile(s);
+    auto [start, end] = scenery_tile(local, offset, s.bbox_offset, s.bbox_size);
     auto id = make_id(collision_type::scenery, s.pass, s.id);
     value = { .id = id, .start = start, .end = end };
     return s.atlas && s.pass != pass_mode::pass;
+}
+
+bool chunk::_bbox_for_scenery(const entity& s, bbox& value) noexcept
+{
+    return _bbox_for_scenery(s, s.coord.local(), s.offset, value);
 }
 
 void chunk::_remove_bbox(const bbox& x)
