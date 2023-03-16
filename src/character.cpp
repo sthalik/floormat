@@ -72,7 +72,7 @@ int character::allocate_frame_time(float dt)
 Vector2 character::move_vec(int left_right, int top_bottom)
 {
     constexpr auto c = move_speed * frame_time;
-    return c * Vector2(sgn(left_right), sgn(top_bottom)).normalized();
+    return c * Vector2((float)sgn(left_right), (float)sgn(top_bottom)).normalized();
 }
 
 void character::set_keys(bool L, bool R, bool U, bool D)
