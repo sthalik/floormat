@@ -69,7 +69,7 @@ void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
             if (button == mouse_button_left)
             {
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                    return (void)cl->e->activate(cl->e->iter());
+                    return (void)cl->e->activate(cl->e->index());
             }
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
@@ -110,7 +110,7 @@ void app::do_rotate(bool backward)
             auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
             if (r != e.r)
             {
-                e.rotate(e.iter(), r);
+                e.rotate(e.index(), r);
                 e.chunk().mark_scenery_modified();
             }
         }
@@ -190,9 +190,8 @@ void app::update_world(float dt)
             const auto size = es.size();
             for (auto i = size-1; i != (std::size_t)-1; i--)
             {
-                auto iter = es.cbegin() + std::ptrdiff_t(i);
                 auto& e = *es[i];
-                c.with_scenery_update(e, [&] { return e.update(iter, dt); });
+                c.with_scenery_update(e, [&] { return e.update(i, dt); });
             }
         }
 }

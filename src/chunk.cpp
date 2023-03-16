@@ -137,15 +137,16 @@ void chunk::add_entity(const std::shared_ptr<entity>& e)
     _entities.insert(it, e);
 }
 
-void chunk::remove_entity(entity_const_iterator it)
+void chunk::remove_entity(std::size_t i)
 {
-    const auto& e = *it;
+    fm_debug_assert(i < _entities.size());
+    const auto& e = _entities[i];
     if (!e->is_dynamic())
         mark_scenery_modified(false);
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);
 
-    _entities.erase(it);
+    _entities.erase(_entities.cbegin() + std::ptrdiff_t(i));
 }
 
 const std::vector<std::shared_ptr<entity>>& chunk::entities() const

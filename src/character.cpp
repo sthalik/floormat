@@ -83,7 +83,7 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
-bool character::update(It it, float dt)
+bool character::update(std::size_t i, float dt)
 {
     auto [lr, ud, rot] = arrows_to_dir(b_L, b_R, b_U, b_D);
 
@@ -102,7 +102,7 @@ bool character::update(It it, float dt)
     r = rot;
     c->ensure_passability();
 
-    for (int i = 0; i < nframes; i++)
+    for (int k = 0; k < nframes; k++)
     {
         constexpr auto frac = Vector2(32767);
         constexpr auto inv_frac = Vector2(1.f/32767);
@@ -110,7 +110,7 @@ bool character::update(It it, float dt)
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
         if (can_move_to(off_i))
-            entity::move(it, off_i);
+            i = move(i, off_i);
         ++frame %= atlas->info().nframes;
     }
     //Debug{} << "pos" << Vector2i(pos.local());

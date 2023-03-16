@@ -79,8 +79,27 @@ bool scenery_editor::is_anything_selected() const
 void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
 {
     auto [c, t] = w[pos];
-    // todo check collision at pos
-    auto sc = w.make_entity<scenery>(pos, s.proto);
+    if (!s)
+    {
+        // don't regen colliders
+        const auto px = Vector2(pos.local()) * TILE_SIZE2;
+        const auto es = c.entities();
+        for (auto i = es.size()-1; i != (std::size_t)-1; i--)
+        {
+            const auto& e = *es[i];
+            if (e.type != entity_type::scenery)
+                continue;
+            auto center = Vector2(e.coord.local())*TILE_SIZE2 + Vector2(e.offset) + Vector2(e.bbox_offset),
+                 min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);
+            if (px >= min && px <= max)
+                c.remove_entity(i);
+        }
+    }
+    else
+    {
+        // todo check collision at pos
+        w.make_entity<scenery>(pos, s.proto);
+    }
     c.mark_scenery_modified();
 }
 

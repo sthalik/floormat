@@ -7,19 +7,22 @@
 
 namespace floormat {
 
-scenery_proto::scenery_proto() = default;
+scenery_proto::scenery_proto()
+{
+    type = entity_type::scenery;
+}
 
 scenery_proto& scenery_proto::operator=(const scenery_proto&) = default;
 scenery_proto::scenery_proto(const scenery_proto&) = default;
 scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 
-bool scenery::can_activate(It) const
+bool scenery::can_activate(std::size_t) const
 {
     return atlas && interactive;
 }
 
-bool scenery::update(It, float dt)
+bool scenery::update(std::size_t, float dt)
 {
     auto& s = *this;
     if (!s.active)
@@ -60,7 +63,7 @@ bool scenery::update(It, float dt)
     }
 }
 
-bool scenery::activate(It)
+bool scenery::activate(std::size_t)
 {
     auto& s = *this;
     if (s.active)

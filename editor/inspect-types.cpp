@@ -32,7 +32,7 @@ struct entity_accessors<scenery> {
             },
             entity::type<rotation>::field{"rotation"_s,
                 [](const scenery& x) { return x.r; },
-                [](scenery& x, rotation r) { x.rotate(x.iter(), r); },
+                [](scenery& x, rotation r) { x.rotate(x.index(), r); },
             },
             entity::type<std::uint16_t>::field{"frame"_s,
                 [](const scenery& x) { return x.frame; },

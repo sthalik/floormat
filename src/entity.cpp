@@ -33,14 +33,10 @@ entity::~entity() noexcept
     fm_debug_assert(id);
     if (c->_teardown || c->_world->_teardown) [[unlikely]]
         return;
-    auto& w = *c->_world;
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);
-    auto& es =  c->_entities;
-    auto it = std::find_if(es.cbegin(), es.cend(), [id = id](const auto& x) { return x->id == id; });
-    fm_debug_assert(it != es.cend());
-    es.erase(it);
-    w.do_kill_entity(id);
+    c->_world->do_kill_entity(id);
+    const_cast<std::uint64_t&>(id) = 0;
 }
 
 Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
@@ -87,7 +83,7 @@ struct chunk& entity::chunk() const
     return *c;
 }
 
-auto entity::iter() const -> It
+std::size_t entity::index() const
 {
     auto& c = chunk();
     auto& es = c._entities;
@@ -95,7 +91,7 @@ auto entity::iter() const -> It
     fm_assert(it != es.cend());
     it = std::find_if(it, es.cend(), [id = id](const auto& x) { return x->id == id; });
     fm_assert(it != es.cend());
-    return it;
+    return (std::size_t)std::distance(es.cbegin(), it);
 }
 
 bool entity::operator==(const entity_proto& o) const
@@ -106,7 +102,7 @@ bool entity::operator==(const entity_proto& o) const
            bbox_size == o.bbox_size && delta == o.delta;
 }
 
-void entity::rotate(It, rotation new_r)
+void entity::rotate(std::size_t, rotation new_r)
 {
     auto& w = *c->_world;
     w[coord.chunk()].with_scenery_update(*this, [&]() {
@@ -159,44 +155,45 @@ bool entity::can_move_to(Vector2i delta)
     return ret;
 }
 
-void entity::move(It it, Vector2i delta)
+std::size_t entity::move(std::size_t i, Vector2i delta)
 {
-    auto e_ = *it;
+    auto& es = c->_entities;
+    fm_debug_assert(i < es.size());
+    auto e_ = es[i];
     const auto& e = *e_;
-    auto& c = *e.c;
-    auto& w = *c._world;
+    auto& w = *c->_world;
     const auto coord = e.coord;
     const auto offset = e.offset;
-    auto& es = c._entities;
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
     if (coord_ == coord && offset_ == offset)
-        return;
+        return i;
 
     if (!e.is_dynamic())
-        c.mark_scenery_modified(false);
+        c->mark_scenery_modified(false);
 
     chunk::bbox bb0, bb1;
-    bool b0 = c._bbox_for_scenery(e, bb0),
-         b1 = c._bbox_for_scenery(e, coord_.local(), offset_, bb1);
+    bool b0 = c->_bbox_for_scenery(e, bb0),
+         b1 = c->_bbox_for_scenery(e, coord_.local(), offset_, bb1);
     const auto ord = e.ordinal(coord_.local(), offset_, e.type);
 
     if (coord_.chunk() == coord.chunk())
     {
-        c._replace_bbox(bb0, bb1, b0, b1);
+        c->_replace_bbox(bb0, bb1, b0, b1);
         auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         e_->coord = coord_;
         e_->offset = offset_;
-        auto pos0 = std::distance(es.cbegin(), it), pos1 = std::distance(es.cbegin(), it_);
-        if (pos1 > pos0)
+        auto pos1 = std::distance(es.cbegin(), it_);
+        if ((std::size_t)pos1 > i)
             pos1--;
         //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
-        if (pos1 != pos0)
+        if ((std::size_t)pos1 != i)
         {
             //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
-            es.erase(it);
+            es.erase(es.cbegin() + (std::ptrdiff_t)i);
             es.insert(es.cbegin() + pos1, std::move(e_));
         }
+        return std::size_t(pos1);
     }
     else
     {
@@ -205,13 +202,15 @@ void entity::move(It it, Vector2i delta)
         if (!e.is_dynamic())
             c2.mark_scenery_modified(false);
         c2._add_bbox(bb1);
-        c.remove_entity(it);
+        c->remove_entity(i);
         auto& es = c2._entities;
-        auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
+        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
+        auto ret = (std::size_t)std::distance(es.cbegin(), it);
         e_->coord = coord_;
         e_->offset = offset_;
-        e_->c = &c2;
-        es.insert(it_, std::move(e_));
+        const_cast<struct chunk*&>(e_->c) = &c2;
+        es.insert(it, std::move(e_));
+        return ret;
     }
 }
 
@@ -230,8 +229,8 @@ entity::operator entity_proto() const
     return x;
 }
 
-bool entity::can_activate(It) const { return false; }
-bool entity::activate(It) { return false; }
+bool entity::can_activate(std::size_t) const { return false; }
+bool entity::activate(std::size_t) { return false; }
 
 bool entity::is_dynamic() const
 {

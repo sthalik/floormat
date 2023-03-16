@@ -36,10 +36,9 @@ struct entity_proto
 struct entity
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(entity);
-    using It = typename std::vector<std::shared_ptr<entity>>::const_iterator;
 
     const std::uint64_t id = 0;
-    struct chunk* c;
+    struct chunk* const c;
     std::shared_ptr<anim_atlas> atlas;
     global_coords coord;
     Vector2b offset, bbox_offset;
@@ -55,19 +54,19 @@ struct entity
     float ordinal() const;
     static float ordinal(local_coords xy, Vector2b offset, entity_type type);
     struct chunk& chunk() const;
-    It iter() const;
+    std::size_t index() const;
 
     virtual bool operator==(const entity_proto& e0) const;
     operator entity_proto() const;
 
-    virtual bool can_activate(It it) const;
-    virtual bool activate(It it);
-    virtual bool update(It it, float dt) = 0;
-    virtual void rotate(It it, rotation r);
+    virtual bool can_activate(std::size_t i) const;
+    virtual bool activate(std::size_t i);
+    virtual bool update(std::size_t i, float dt) = 0;
+    virtual void rotate(std::size_t i, rotation r);
 
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     [[nodiscard]] virtual bool can_move_to(Vector2i delta);
-    static void move(It it, Vector2i delta);
+    std::size_t move(std::size_t i, Vector2i delta);
     void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size); // todo
     bool is_dynamic() const;
 

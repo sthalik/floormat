@@ -153,12 +153,12 @@ void app::do_popup_menu()
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
-        auto iter = sc->iter();
-        if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(iter)))
-            sc->activate(iter);
+        const auto i = sc->index();
+        if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))
+            sc->activate(i);
         if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
-            sc->rotate(iter, next_rot);
+            sc->rotate(i, next_rot);
 
         ImGui::Separator();
 

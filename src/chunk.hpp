@@ -108,15 +108,12 @@ struct chunk final
     requires requires(F fun) { fun(); }
     void with_scenery_update(entity& e, F&& fun);
 
-    using entity_vector = std::vector<std::shared_ptr<entity>>;
-    using entity_const_iterator = typename entity_vector::const_iterator;
-
     [[nodiscard]] bool can_place_entity(const entity_proto& proto, local_coords pos);
 
     void add_entity(const std::shared_ptr<entity>& e);
     void add_entity_unsorted(const std::shared_ptr<entity>& e);
     void sort_entities();
-    void remove_entity(entity_const_iterator it);
+    void remove_entity(std::size_t i);
     const std::vector<std::shared_ptr<entity>>& entities() const;
 
 private:
