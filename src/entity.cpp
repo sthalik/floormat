@@ -212,7 +212,7 @@ entity::operator entity_proto() const
     ret.bbox_size = bbox_size;
     ret.delta = delta;
     ret.frame = frame;
-    ret.type = entity_type::character;
+    ret.type = type;
     ret.r = r;
     ret.pass = pass;
     return ret;
