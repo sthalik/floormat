@@ -85,14 +85,36 @@ bool scenery::activate(std::size_t)
     return false;
 }
 
-bool scenery::operator==(const entity_proto& e0) const
+bool scenery_proto::operator==(const entity_proto& e0) const
 {
-    if (!entity::operator==(e0))
+    if (type != e0.type)
+        return false;
+
+    if (!entity_proto::operator==(e0))
         return false;
 
     const auto& s0 = static_cast<const scenery_proto&>(e0);
     return sc_type == s0.sc_type && active == s0.active &&
            closing == s0.closing && interactive == s0.interactive;
+}
+
+scenery::operator scenery_proto() const
+{
+    scenery_proto ret;
+    ret.sc_type = sc_type;
+    ret.active = active;
+    ret.closing = closing;
+    ret.interactive = interactive;
+    ret.atlas = atlas;
+    ret.offset = offset;
+    ret.bbox_offset = bbox_offset;
+    ret.bbox_size = bbox_size;
+    ret.delta = delta;
+    ret.frame = frame;
+    ret.type = entity_type::character;
+    ret.r = r;
+    ret.pass = pass;
+    return ret;
 }
 
 scenery::scenery(std::uint64_t id, struct chunk& c, entity_type type, const scenery_proto& proto) :

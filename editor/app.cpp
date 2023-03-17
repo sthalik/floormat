@@ -51,7 +51,7 @@ void app::reset_world(struct world&& w)
         return;
     auto& w2 = M->reset_world(std::move(w));
     w2.collect(true);
-    _character_id = w2.make_entity<character>(global_coords{})->id;
+    _character_id = w2.make_entity<character>(global_coords{}, true)->id;
 }
 
 int app::exec()

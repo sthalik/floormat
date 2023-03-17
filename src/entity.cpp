@@ -88,14 +88,6 @@ std::size_t entity::index() const
     return (std::size_t)std::distance(es.cbegin(), it);
 }
 
-bool entity::operator==(const entity_proto& o) const
-{
-    return atlas.get() == o.atlas.get() &&
-           type == o.type && frame == o.frame && r == o.r && pass == o.pass &&
-           offset == o.offset && bbox_offset == o.bbox_offset &&
-           bbox_size == o.bbox_size && delta == o.delta;
-}
-
 void entity::rotate(std::size_t, rotation new_r)
 {
     auto& w = *c->_world;

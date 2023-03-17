@@ -7,7 +7,6 @@
 
 namespace floormat {
 
-const chunk::RTree* chunk::rtree() const noexcept { return &_rtree; }
 chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &_rtree; }
 
 namespace {

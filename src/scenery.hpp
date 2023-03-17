@@ -30,6 +30,7 @@ struct scenery_proto : entity_proto
     scenery_proto(const scenery_proto&);
     ~scenery_proto() noexcept override;
     scenery_proto& operator=(const scenery_proto&);
+    bool operator==(const entity_proto& proto) const override;
     operator bool() const;
 };
 
@@ -43,7 +44,7 @@ struct scenery final : entity
     bool can_activate(std::size_t i) const override;
     bool activate(std::size_t i) override;
     bool update(std::size_t i, float dt) override;
-    bool operator==(const entity_proto& p) const override;
+    explicit operator scenery_proto() const;
 
 private:
     friend struct world;

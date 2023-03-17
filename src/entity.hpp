@@ -29,7 +29,7 @@ struct entity_proto
     entity_proto();
     entity_proto(const entity_proto&);
 
-    bool operator==(const entity_proto&) const;
+    virtual bool operator==(const entity_proto&) const;
     virtual ~entity_proto() noexcept;
 };
 
@@ -56,8 +56,7 @@ struct entity
     struct chunk& chunk() const;
     std::size_t index() const;
 
-    virtual bool operator==(const entity_proto& e0) const;
-    operator entity_proto() const;
+    explicit operator entity_proto() const;
 
     virtual bool can_activate(std::size_t i) const;
     virtual bool activate(std::size_t i);

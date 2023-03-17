@@ -99,7 +99,6 @@ struct chunk final
 
     using RTree = ::RTree<std::uint64_t, float, 2, float>;
 
-    const RTree* rtree() const noexcept;
     RTree* rtree() noexcept;
 
     struct world& world() noexcept { return *_world; }

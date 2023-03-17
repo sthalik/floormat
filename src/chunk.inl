@@ -13,7 +13,7 @@ void chunk::with_scenery_update(entity& s, F&& fun)
     // todo handle coord & offset fields
 
     auto ch = s.coord.chunk();
-    entity_proto s0 = s;
+    entity_proto s0(s);
     bbox bb0; bool b0 = _bbox_for_scenery(s, bb0);
 
     bool modified = true;
