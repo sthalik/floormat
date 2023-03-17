@@ -4,8 +4,10 @@
 
 namespace floormat::Serialize {
 
+namespace {
+
 [[maybe_unused]]
-static constexpr bool test1()
+constexpr bool test1()
 {
     constexpr std::array<char, 4> bytes = { 1, 2, 3, 4 };
     auto x = binary_reader(bytes.cbegin(), bytes.cend());
@@ -14,7 +16,7 @@ static constexpr bool test1()
 static_assert(test1());
 
 [[maybe_unused]]
-static constexpr bool test2()
+constexpr bool test2()
 {
     constexpr std::array<char, 4> bytes = { 4, 3, 2, 1 };
     auto r = binary_reader(bytes.cbegin(), bytes.cend());
@@ -31,7 +33,7 @@ using test4 = binary_writer<std::array<char, sizeof(int)>::iterator>;
 static_assert(std::is_same_v<test4&, decltype( std::declval<test4&>() << int() )>);
 
 [[maybe_unused]]
-static constexpr bool test5()
+constexpr bool test5()
 {
     std::array<char, 4> bytes = {};
     auto w = binary_writer(bytes.begin());
@@ -42,5 +44,23 @@ static constexpr bool test5()
     return bytes[0] == 0 && bytes[1] == 1 && bytes[2] == 2 && bytes[3] == 3;
 }
 static_assert(test5());
+
+[[maybe_unused]]
+constexpr bool test6()
+{
+    std::array<char, 5> bytes = {
+        'f', 'o', 'o', '\0', 42,
+    };
+    auto r = binary_reader(bytes.cbegin(), bytes.cend());
+    fm_assert(r.read_asciiz_string<4>() == "foo"_s);
+    unsigned char b = 0;
+    b << r;
+    fm_assert(b == 42);
+    r.assert_end();
+    return true;
+}
+static_assert(test6());
+
+} // namespace
 
 } // namespace floormat::Serialize
