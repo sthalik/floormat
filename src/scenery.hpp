@@ -15,16 +15,16 @@ struct chunk;
 struct anim_atlas;
 struct world;
 
-enum class scenery_type : std::uint8_t {
+enum class scenery_type : unsigned char {
     none, generic, door,
 };
 
 struct scenery_proto : entity_proto
 {
     scenery_type sc_type     : 3 = scenery_type::none;
-    std::uint8_t active      : 1 = false;
-    std::uint8_t closing     : 1 = false;
-    std::uint8_t interactive : 1 = false;
+    unsigned char active      : 1 = false;
+    unsigned char closing     : 1 = false;
+    unsigned char interactive : 1 = false;
 
     scenery_proto();
     scenery_proto(const scenery_proto&);
@@ -37,9 +37,9 @@ struct scenery_proto : entity_proto
 struct scenery final : entity
 {
     scenery_type sc_type     : 3 = scenery_type::none;
-    std::uint8_t active      : 1 = false;
-    std::uint8_t closing     : 1 = false;
-    std::uint8_t interactive : 1 = false;
+    unsigned char active      : 1 = false;
+    unsigned char closing     : 1 = false;
+    unsigned char interactive : 1 = false;
 
     bool can_activate(std::size_t i) const override;
     bool activate(std::size_t i) override;

@@ -13,11 +13,11 @@ struct anim_atlas;
 struct entity;
 struct entity_proto;
 
-enum class collision : std::uint8_t {
+enum class collision : unsigned char {
     view, shoot, move,
 };
 
-enum class collision_type : std::uint8_t {
+enum class collision_type : unsigned char {
     none, entity, scenery, geometry,
 };
 

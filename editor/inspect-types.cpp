@@ -3,7 +3,6 @@
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
-#include "entity/types.hpp"
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include "chunk.hpp"

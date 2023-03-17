@@ -20,9 +20,9 @@ struct entity_proto
     Vector2b offset, bbox_offset;
     Vector2ub bbox_size = Vector2ub(iTILE_SIZE2);
     std::uint16_t delta = 0, frame = 0;
-    entity_type type = entity_type::none;
-    rotation r     : rotation_BITS  = rotation::N;
-    pass_mode pass : pass_mode_BITS = pass_mode::see_through;
+    entity_type type : 3              = entity_type::none;
+    rotation r       : rotation_BITS  = rotation::N;
+    pass_mode pass   : pass_mode_BITS = pass_mode::see_through;
 
     float ordinal(local_coords coord) const;
     entity_proto& operator=(const entity_proto&);

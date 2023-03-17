@@ -28,7 +28,7 @@ struct anim_group final
     Vector3b offset;
 };
 
-enum class anim_scale_type : std::uint8_t { invalid, ratio, fixed, };
+enum class anim_scale_type : unsigned char { invalid, ratio, fixed, };
 
 struct anim_scale final
 {

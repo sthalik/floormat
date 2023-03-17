@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/defs.hpp"
-#include <cstdint>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 

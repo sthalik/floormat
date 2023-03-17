@@ -1,9 +1,8 @@
 #pragma once
-#include <cstdint>
 
 namespace floormat {
 
-enum class entity_type : std::uint8_t {
+enum class entity_type : unsigned char {
     none, character, scenery,
 };
 
