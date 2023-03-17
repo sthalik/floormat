@@ -87,4 +87,11 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
     fm_throw("can't find string terminator"_cf);
 }
 
+template<string_input_iterator It>
+constexpr char binary_reader<It>::peek() const
+{
+    fm_soft_assert(it != end);
+    return *it;
+}
+
 } // namespace floormat::Serialize

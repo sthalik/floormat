@@ -38,6 +38,8 @@ struct binary_reader final {
     binary_reader(const binary_reader&) = delete;
     binary_reader& operator=(const binary_reader&) = delete;
 
+    constexpr char peek() const;
+
 private:
     std::size_t num_bytes_read = 0;
     It it, end;
