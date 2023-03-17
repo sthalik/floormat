@@ -103,19 +103,11 @@ bool scenery_proto::operator==(const entity_proto& e0) const
 scenery::operator scenery_proto() const
 {
     scenery_proto ret;
+    static_cast<entity_proto&>(ret) = entity::operator entity_proto();
     ret.sc_type = sc_type;
     ret.active = active;
     ret.closing = closing;
     ret.interactive = interactive;
-    ret.atlas = atlas;
-    ret.offset = offset;
-    ret.bbox_offset = bbox_offset;
-    ret.bbox_size = bbox_size;
-    ret.delta = delta;
-    ret.frame = frame;
-    ret.type = entity_type::character;
-    ret.r = r;
-    ret.pass = pass;
     return ret;
 }
 

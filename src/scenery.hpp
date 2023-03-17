@@ -37,7 +37,7 @@ struct scenery_proto : entity_proto
 
 struct scenery final : entity
 {
-    scenery_type sc_type     : 3 = scenery_type::none;
+    scenery_type sc_type      : 3 = scenery_type::none;
     unsigned char active      : 1 = false;
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;

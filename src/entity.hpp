@@ -73,7 +73,6 @@ struct entity
 
 protected:
     entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept;
-
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 };
 

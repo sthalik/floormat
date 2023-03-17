@@ -19,7 +19,6 @@ struct character_proto : entity_proto
     ~character_proto() noexcept override;
     character_proto& operator=(const character_proto&);
     bool operator==(const entity_proto& proto) const override;
-    operator bool() const;
 };
 
 struct character final : entity

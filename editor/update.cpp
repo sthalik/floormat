@@ -196,8 +196,6 @@ void app::update_world(float dt)
         }
 }
 
-
-
 void app::update_character([[maybe_unused]] float dt)
 {
     auto& w = M->world();

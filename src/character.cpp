@@ -51,17 +51,23 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 
 } // namespace
 
-character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
-    entity{id, c, type, proto},
-    name{proto.name},
-    playable{proto.playable}
-{
-    if (!atlas)
-        atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
-    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
-}
-
+character_proto::character_proto(const character_proto&) = default;
+character_proto::character_proto() = default;
+character_proto::~character_proto() noexcept = default;
+character_proto& character_proto::operator=(const character_proto&) = default;
 character::~character() = default;
+
+bool character_proto::operator==(const entity_proto& e0) const
+{
+    if (type != e0.type)
+        return false;
+
+    if (!entity_proto::operator==(e0))
+        return false;
+
+    const auto& s0 = static_cast<const character_proto&>(e0);
+    return name == s0.name && playable == s0.playable;
+}
 
 int character::allocate_frame_time(float dt)
 {
@@ -118,6 +124,27 @@ bool character::update(std::size_t i, float dt)
     }
     //Debug{} << "pos" << Vector2i(pos.local());
     return true;
+}
+
+character::operator character_proto() const
+{
+    character_proto ret;
+    static_cast<entity_proto&>(ret) = entity::operator entity_proto();
+    ret.name = name;
+    ret.playable = playable;
+    return ret;
+}
+
+character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
+    entity{id, c, type, proto},
+    name{proto.name},
+    playable{proto.playable}
+{
+    if (!name)
+        name = "(Unnamed)"_s;
+    if (!atlas)
+        atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
 } // namespace floormat

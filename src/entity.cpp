@@ -203,6 +203,21 @@ void entity::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_s
     const_cast<pass_mode&>(pass) = pass_;
 }
 
+entity::operator entity_proto() const
+{
+    entity_proto ret;
+    ret.atlas = atlas;
+    ret.offset = offset;
+    ret.bbox_offset = bbox_offset;
+    ret.bbox_size = bbox_size;
+    ret.delta = delta;
+    ret.frame = frame;
+    ret.type = entity_type::character;
+    ret.r = r;
+    ret.pass = pass;
+    return ret;
+}
+
 void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
 {
     chunk::bbox bb0, bb;
@@ -210,21 +225,6 @@ void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_si
     set_bbox_(offset_, bbox_offset_, bbox_size_, pass);
     const bool b = c->_bbox_for_scenery(*this, bb);
     c->_replace_bbox(bb0, bb, b0, b);
-}
-
-entity::operator entity_proto() const
-{
-    entity_proto x;
-    x.atlas = atlas;
-    x.offset = offset;
-    x.bbox_offset = bbox_offset;
-    x.bbox_size = bbox_size;
-    x.delta = delta;
-    x.frame = frame;
-    x.type = type;
-    x.r = r;
-    x.pass = pass;
-    return x;
 }
 
 bool entity::can_activate(std::size_t) const { return false; }
