@@ -49,14 +49,14 @@ constexpr void binary_reader<It>::assert_end() noexcept(false)
 }
 
 template<string_input_iterator It, serializable T>
-binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false)
+constexpr binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false)
 {
     x = reader.template read<T>();
     return reader;
 }
 
 template<string_input_iterator It, serializable T>
-void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
+constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
 {
     x = reader.template read<T>();
 }
@@ -70,7 +70,7 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
     struct fixed_string final {
         char buf[MAX];
         std::size_t len;
-        operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
+        constexpr operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
     };
 
     fixed_string ret;

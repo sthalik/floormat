@@ -44,10 +44,10 @@ private:
 };
 
 template<string_input_iterator It, serializable T>
-void operator<<(T& x, binary_reader<It>& reader) noexcept(false);
+constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false);
 
 template<string_input_iterator It, serializable T>
-binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false);
+constexpr binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false);
 
 template<string_input_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
 
