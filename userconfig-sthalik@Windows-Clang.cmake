@@ -111,5 +111,6 @@ function(fm-userconfig-src)
         -Wno-error=unused-macros
         -Wno-error=alloca
         -Wno-error=double-promotion
+        -Wno-error=ambiguous-reversed-operator
     )
 endfunction()
