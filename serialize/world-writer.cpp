@@ -68,9 +68,8 @@ private:
 };
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3 + sizeof(scenery);
-
-constexpr auto chunkbuf_size =
-    sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
+constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
+constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery));
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -145,10 +144,10 @@ scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
         fm_assert(s.sc_type == proto.sc_type);
         s.r = proto.r;
         s.interactive = proto.interactive;
-        s.active = proto.active;
+        s.active  = proto.active;
         s.closing = proto.closing;
         s.pass = proto.pass;
-        if (x.s->proto.frame == s.frame)
+        if (s == proto)
         {
             if (x.index != null_atlas)
                 return { x.s, x.index, true };
@@ -186,7 +185,6 @@ void write_entity_flags(binary_writer<T>& s, const U& e)
     fm_assert((pass & pass_mask) == pass);
     flags |= pass;
     constexpr auto tag = entity_type_<U>::value;
-    static_assert(tag != entity_type::none);
     if (e.type != tag)
         fm_abort("invalid entity type '%d'", (int)e.type);
     if constexpr(tag == entity_type::scenery)
@@ -298,10 +296,12 @@ void writer_state::serialize_scenery()
     scenery_buf.resize(s.bytes_written());
 }
 
+const auto def_char_bbox_size = character_proto{}.bbox_size;
+const auto def_char_pass = character_proto{}.pass;
+
 void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
-    constexpr std::size_t entity_size = std::max(sizeof(character), sizeof(scenery));
     chunk_buf.resize(chunkbuf_size + sizeof(std::uint32_t) + entity_size*c.entities().size());
 
     auto s = binary_writer{chunk_buf.begin()};
@@ -319,27 +319,19 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         auto img_g = maybe_intern_atlas(ground);
         auto img_n = maybe_intern_atlas(wall_north);
         auto img_w = maybe_intern_atlas(wall_west);
-        //auto [sc, img_s, sc_exact] = maybe_intern_scenery(scenery, true);
 
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
         flags |= meta_wall_n  * (img_n != null_atlas);
         flags |= meta_wall_w  * (img_w != null_atlas);
-        //flags |= meta_scenery * (img_s != null_atlas);
-
-        //flags |= pass_mode_(x.passability);
-
         s << flags;
 
-#ifndef FM_NO_DEBUG
         constexpr auto check_atlas = [](const tile_image_proto& x) {
-            if (x.atlas)
-                fm_assert(x.variant < x.atlas->num_tiles());
+            fm_assert(!x.atlas || x.variant < x.atlas->num_tiles());
         };
         check_atlas(ground);
         check_atlas(wall_north);
         check_atlas(wall_west);
-#endif
 
         if (img_g != null_atlas)
             s << img_g, s << ground.variant;
@@ -361,20 +353,28 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         oid |= (std::uint64_t)e.type << 64 - entity_type_BITS;
         s << oid;
         const auto local = e.coord.local();
-        s << local.x;
-        s << local.y;
-        s << e.offset[0];
-        s << e.offset[1];
-        s << e.bbox_size[0];
-        s << e.bbox_size[1];
-        s << e.bbox_offset[0];
-        s << e.bbox_offset[1];
+        s << local.to_index();
+        constexpr auto write_offsets = [](auto& s, const auto& e) {
+            s << e.offset[0];
+            s << e.offset[1];
+            s << e.bbox_offset[0];
+            s << e.bbox_offset[1];
+            s << e.bbox_size[0];
+            s << e.bbox_size[1];
+        };
         switch (e.type)
         {
         default:
             fm_abort("invalid entity type '%d'", (int)e.type);
         case entity_type::character: {
             const auto& C = static_cast<const character&>(e);
+            std::uint8_t id = 0;
+            const auto sc_exact =
+                C.offset.isZero() && C.bbox_offset.isZero() &&
+                C.bbox_size == def_char_bbox_size;
+            id |= meta_long_scenery_bit * sc_exact;
+            id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
+            s << id;
             write_entity_flags(s, C);
             if (C.frame <= 0xff)
                 s << (std::uint8_t)C.frame;
@@ -384,26 +384,32 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             s << C.offset_frac[1];
             fm_assert(C.name.size() < character_name_max);
             s.write_asciiz_string(C.name);
+            if (!sc_exact)
+                write_offsets(s, C);
             break;
         }
         case entity_type::scenery: {
             const auto& sc = static_cast<const scenery&>(e);
             auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
+            sc_exact = sc_exact &&
+                       e.offset.isZero() && e.bbox_offset.isZero() && e.bbox_size.isZero() &&
+                       !sc.active && !sc.closing && !sc.interactive;
             fm_assert(img_s != null_atlas);
             atlasid id = img_s;
             static_assert(rotation_BITS == 3);
             fm_assert((id & (1 << 16-3-1)-1) == id);
             id |= meta_long_scenery_bit * sc_exact;
-            id |= atlasid(sc.r) << sizeof(atlasid)*8-1-rotation_BITS;
+            id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
             if (!sc_exact)
             {
-                fm_assert(sc.active || sc.delta == 0);
                 write_entity_flags(s, sc);
+                fm_assert(sc.active || sc.delta == 0);
                 if (sc.frame <= 0xff)
                     s << (std::uint8_t)sc.frame;
                 else
                     s << sc.frame;
+                write_offsets(s, sc);
                 if (sc.active)
                     s << sc.delta;
             }
@@ -411,37 +417,6 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         }
         }
     }
-
-#if 0
-    if (img_s != null_atlas)
-    {
-        atlasid id = img_s;
-        fm_assert(!(id & ~((1 << 16-3-1)-1)));
-        id |= meta_long_scenery_bit * sc_exact;
-        id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
-        s << id;
-        if (!sc_exact)
-        {
-            fm_assert(scenery.active || scenery.delta == 0);
-            write_entity_flags(s, scenery);
-            if (scenery.frame <= 0xff)
-                s << (std::uint8_t)scenery.frame;
-            else
-                s << scenery.frame;
-            s << scenery.offset[0];
-            s << scenery.offset[1];
-
-            s << scenery.bbox_size[0];
-            s << scenery.bbox_size[1];
-
-            s << scenery.bbox_offset[0];
-            s << scenery.bbox_offset[1];
-
-            if (scenery.active)
-                s << scenery.delta;
-        }
-    }
-#endif
 
     const auto nbytes = s.bytes_written();
     fm_assert(nbytes <= chunkbuf_size);
@@ -461,6 +436,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
 ArrayView<const char> writer_state::serialize_world()
 {
+    fm_assert(_world != nullptr);
     load_scenery();
 
     for (const auto& [_, c] : _world->chunks())
@@ -523,6 +499,7 @@ ArrayView<const char> writer_state::serialize_world()
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);
+    _world = nullptr;
     return {file_buf.data(), file_buf.size()};
 }
 

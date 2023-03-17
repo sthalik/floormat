@@ -53,6 +53,7 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 
 character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
     entity{id, c, type},
+    name{proto.name},
     playable{proto.playable}
 {
     atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);

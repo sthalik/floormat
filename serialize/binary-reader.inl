@@ -49,10 +49,9 @@ constexpr void binary_reader<It>::assert_end() noexcept(false)
 }
 
 template<string_input_iterator It, serializable T>
-constexpr binary_reader<It>& operator>>(binary_reader<It>& reader, T& x) noexcept(false)
+constexpr void operator>>(binary_reader<It>& reader, T& x) noexcept(false)
 {
     x = reader.template read<T>();
-    return reader;
 }
 
 template<string_input_iterator It, serializable T>

@@ -86,7 +86,8 @@ void chunk::mark_modified() noexcept
 {
     mark_ground_modified();
     mark_walls_modified();
-    mark_scenery_modified();
+    mark_scenery_modified(false);
+    mark_passability_modified();
 }
 
 chunk::chunk(struct world& w) noexcept : _world{&w}

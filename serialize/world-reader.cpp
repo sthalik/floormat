@@ -54,10 +54,9 @@ void reader_state::read_atlases(reader_t& s)
 }
 
 template<typename T, entity_subtype U>
-bool read_scenery_flags(binary_reader<T>& s, U& e)
+bool read_entity_flags(binary_reader<T>& s, U& e)
 {
     constexpr auto tag = entity_type_<U>::value;
-    static_assert(tag != entity_type::none);
     std::uint8_t flags; flags << s;
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
@@ -100,7 +99,7 @@ void reader_state::read_sceneries(reader_t& s)
             atlasid id; id << s;
             fm_soft_assert(id < sz);
             fm_soft_assert(!sceneries[id]);
-            bool short_frame = read_scenery_flags(s, sc);
+            bool short_frame = read_entity_flags(s, sc);
             fm_debug_assert(sc.atlas != nullptr);
             if (short_frame)
                 sc.frame = s.read<std::uint8_t>();
@@ -187,7 +186,7 @@ void reader_state::read_chunks(reader_t& s)
                     sc.r = r;
                     if (!exact)
                     {
-                        if (read_scenery_flags(s, sc))
+                        if (read_entity_flags(s, sc))
                             sc.frame = s.read<std::uint8_t>();
                         else
                             sc.frame << s;
@@ -219,12 +218,82 @@ void reader_state::read_chunks(reader_t& s)
                     c.add_entity_unsorted(e);
                 }
         }
+        if (PROTO < 8) [[unlikely]]
+            c.sort_entities();
+
+        std::uint32_t entity_count; entity_count << s;
+        for (auto i = 0_uz; i < entity_count; i++)
+        {
+            std::uint64_t _id; _id << s;
+            const auto oid = _id & (1ULL << 60)-1;
+            fm_soft_assert(oid != 0);
+            static_assert(entity_type_BITS == 3);
+            const auto type = entity_type(_id >> 61);
+            const auto local = local_coords{s.read<std::uint8_t>()};
+            constexpr auto read_offsets = [](auto& s, auto& e) {
+                s >> e.offset[0];
+                s >> e.offset[1];
+                s >> e.bbox_offset[0];
+                s >> e.bbox_offset[1];
+                s >> e.bbox_size[0];
+                s >> e.bbox_size[1];
+            };
+            switch (type)
+            {
+            case entity_type::character: {
+                character_proto proto;
+                std::uint8_t id; id << s;
+                proto.frame = read_entity_flags(s, proto) ? s.read<std::uint8_t>() : s.read<std::uint16_t>();
+                proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+                Vector2s offset_frac;
+                offset_frac[0] << s;
+                offset_frac[1] << s;
+                const auto name = s.read_asciiz_string<character_name_max>();
+                proto.name = StringView{name.buf, name.len, StringViewFlag::Global|StringViewFlag::NullTerminated};
+                if (id & meta_long_scenery_bit)
+                    read_offsets(s, proto);
+                auto C = _world->make_entity<character>(oid, {ch, local}, proto);
+                c.add_entity_unsorted(C);
+                break;
+            }
+            case entity_type::scenery: {
+                atlasid id; id << s;
+                const bool exact = id & meta_long_scenery_bit;
+                const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+                id &= ~scenery_id_flag_mask;
+                auto sc = lookup_scenery(id);
+                (void)sc.atlas->group(r);
+                sc.r = r;
+                if (!exact)
+                {
+                    if (read_entity_flags(s, sc))
+                        sc.frame = s.read<std::uint8_t>();
+                    else
+                        sc.frame << s;
+                    read_offsets(s, sc);
+                    if (sc.active)
+                        sc.delta << s;
+                }
+                global_coords coord{ch, local_coords{i}};
+                auto e = _world->make_entity<scenery>(oid, coord, sc);
+                c.add_entity_unsorted(e);
+                break;
+            }
+            default:
+                fm_throw("invalid_entity_type '{}'"_cf, (int)type);
+            }
+        }
+
         c.sort_entities();
+
+        fm_assert(c.is_scenery_modified());
+        fm_assert(c.is_passability_modified());
     }
 }
 
 void reader_state::deserialize_world(ArrayView<const char> buf)
 {
+    fm_assert(_world != nullptr);
     auto s = binary_reader{buf};
     if (!!::memcmp(s.read<std::size(file_magic)-1>().data(), file_magic, std::size(file_magic)-1))
         fm_throw("bad magic"_cf);
@@ -234,13 +303,17 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
-    if (PROTO >= 8)
-        _world->set_entity_counter(s.read<std::uint64_t>());
     read_atlases(s);
     if (PROTO >= 3)
         read_sceneries(s);
     read_chunks(s);
+    if (PROTO >= 8)
+    {
+        fm_assert(_world->entity_counter() == 0);
+        _world->set_entity_counter(s.read<std::uint64_t>());
+    }
     s.assert_end();
+    _world = nullptr;
 }
 
 } // namespace
