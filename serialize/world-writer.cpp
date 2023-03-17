@@ -9,11 +9,13 @@
 #include "src/emplacer.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
+#include "src/character.hpp"
 #include "loader/scenery.hpp"
 #include "src/anim-atlas.hpp"
+#include <concepts>
+#include <cstring>
 #include <vector>
 #include <algorithm>
-#include <cstring>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 
@@ -46,12 +48,9 @@ struct writer_state final {
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(writer_state);
 
 private:
-    static constexpr inline scenery_pair null_scenery = { nullptr, null_atlas, true };
-
     atlasid intern_atlas(const tile_image_proto& img);
     atlasid maybe_intern_atlas(const tile_image_proto& img);
-    scenery_pair intern_scenery(scenery_proto s, bool create);
-    scenery_pair maybe_intern_scenery(const scenery_proto& s, bool create);
+    scenery_pair intern_scenery(const scenery& sc, bool create);
 
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
@@ -86,6 +85,7 @@ writer_state::writer_state(const world& world) : _world{&world}
     chunk_buf.reserve(chunkbuf_size);
     chunk_bufs.reserve(world.chunks().size());
     atlas_buf.reserve(atlas_name_max * 64);
+    scenery_map.reserve(64);
 }
 
 #ifdef __GNUG__
@@ -129,8 +129,9 @@ void writer_state::load_scenery()
         load_scenery_1(s);
 }
 
-scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
+scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
 {
+    auto s = scenery_proto(sc);
     const void* const ptr = s.atlas.get();
     fm_debug_assert(ptr != nullptr);
     auto it = scenery_map.find(ptr);
@@ -139,8 +140,14 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
     interned_scenery *ret = nullptr, *ret2 = nullptr;
     for (interned_scenery& x : vec)
     {
-        fm_debug_assert(s.type == x.s->proto.type);
-        s.r = x.s->proto.r;
+        const auto& proto = x.s->proto;
+        fm_assert(s.type == proto.type);
+        fm_assert(s.sc_type == proto.sc_type);
+        s.r = proto.r;
+        s.interactive = proto.interactive;
+        s.active = proto.active;
+        s.closing = proto.closing;
+        s.pass = proto.pass;
         if (x.s->proto.frame == s.frame)
         {
             if (x.index != null_atlas)
@@ -171,20 +178,30 @@ scenery_pair writer_state::intern_scenery(scenery_proto s, bool create)
         return {};
 }
 
-scenery_pair writer_state::maybe_intern_scenery(const scenery_proto& s, bool create)
-{
-    return s ? intern_scenery(s, create) : null_scenery;
-}
-
-template<typename T>
-void write_scenery_flags(binary_writer<T>& s, const scenery_proto& proto)
+template<typename T, entity_subtype U>
+void write_entity_flags(binary_writer<T>& s, const U& e)
 {
     std::uint8_t flags = 0;
-    flags |= pass_mode_(proto.pass) & pass_mask;
-    flags |= (1 << 2) * proto.active;
-    flags |= (1 << 3) * proto.closing;
-    flags |= (1 << 4) * proto.interactive;
-    flags |= (1 << 7) * (proto.frame <= 0xff);
+    auto pass = (pass_mode_i)e.pass;
+    fm_assert((pass & pass_mask) == pass);
+    flags |= pass;
+    constexpr auto tag = entity_type_<U>::value;
+    static_assert(tag != entity_type::none);
+    if (e.type != tag)
+        fm_abort("invalid entity type '%d'", (int)e.type);
+    if constexpr(tag == entity_type::scenery)
+    {
+        flags |= (1 << 2) * e.active;
+        flags |= (1 << 3) * e.closing;
+        flags |= (1 << 4) * e.interactive;
+    }
+    else if constexpr(tag == entity_type::character)
+    {
+        flags |= (1 << 2) * e.playable;
+    }
+    else
+        static_assert(tag == entity_type::none);
+    flags |= (1 << 7) * (e.frame <= 0xff);
     s << flags;
 }
 
@@ -271,7 +288,7 @@ void writer_state::serialize_scenery()
             s.write_asciiz_string(sc->name);
         }
         s << idx;
-        write_scenery_flags(s, sc->proto);
+        write_entity_flags(s, sc->proto);
         if (sc->proto.frame <= 0xff)
             s << (std::uint8_t)sc->proto.frame;
         else
@@ -284,7 +301,8 @@ void writer_state::serialize_scenery()
 void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
-    chunk_buf.resize(chunkbuf_size);
+    constexpr std::size_t entity_size = std::max(sizeof(character), sizeof(scenery));
+    chunk_buf.resize(chunkbuf_size + sizeof(std::uint32_t) + entity_size*c.entities().size());
 
     auto s = binary_writer{chunk_buf.begin()};
 
@@ -301,16 +319,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         auto img_g = maybe_intern_atlas(ground);
         auto img_n = maybe_intern_atlas(wall_north);
         auto img_w = maybe_intern_atlas(wall_west);
-        //auto [sc, img_s, sc_exact] = maybe_intern_scenery(x.scenery(), true);
-
-#if 0
-        if (sc_exact && sc)
-        {
-            sc_exact = scenery.offset == sc->proto.frame.offset &&
-                       scenery.bbox_size == sc->proto.frame.bbox_size &&
-                       scenery.bbox_offset == sc->proto.frame.bbox_offset;
-        }
-#endif
+        //auto [sc, img_s, sc_exact] = maybe_intern_scenery(scenery, true);
 
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
@@ -318,16 +327,6 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         flags |= meta_wall_w  * (img_w != null_atlas);
         //flags |= meta_scenery * (img_s != null_atlas);
 
-        using uchar = std::uint8_t;
-
-        constexpr auto ashortp = [](atlasid id) {
-            return id == null_atlas || id == (uchar)id;
-        };
-
-        if (flags != 0 && ashortp(img_g) && ashortp(img_n) && ashortp(img_w))
-            flags |= meta_short_atlasid;
-
-        //fm_debug_assert((pass_mode_(x.passability) & pass_mask) == pass_mode_(x.passability));
         //flags |= pass_mode_(x.passability);
 
         s << flags;
@@ -342,48 +341,107 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         check_atlas(wall_west);
 #endif
 
-        const auto write = [&](atlasid x, variant_t v) {
-            flags & meta_short_atlasid ? s << (uchar) x : s << x;
-            s << v;
-        };
-
         if (img_g != null_atlas)
-            write(img_g, ground.variant);
+            s << img_g, s << ground.variant;
         if (img_n != null_atlas)
-            write(img_n, wall_north.variant);
+            s << img_n, s << wall_north.variant;
         if (img_w != null_atlas)
-            write(img_w, wall_west.variant);
-#if 0
-        if (img_s != null_atlas)
+            s << img_w, s << wall_west.variant;
+    }
+
+    s << (std::uint32_t)c.entities().size();
+    fm_assert((std::uint32_t)c.entities().size() == c.entities().size());
+    for (const auto& e_ : c.entities())
+    {
+        const auto& e = *e_;
+        std::uint64_t oid = e.id;
+        fm_assert((oid & (1ULL << 60)-1) == oid);
+        static_assert(entity_type_BITS == 3);
+        fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
+        oid |= (std::uint64_t)e.type << 64 - entity_type_BITS;
+        s << oid;
+        const auto local = e.coord.local();
+        s << local.x;
+        s << local.y;
+        s << e.offset[0];
+        s << e.offset[1];
+        s << e.bbox_size[0];
+        s << e.bbox_size[1];
+        s << e.bbox_offset[0];
+        s << e.bbox_offset[1];
+        switch (e.type)
         {
+        default:
+            fm_abort("invalid entity type '%d'", (int)e.type);
+        case entity_type::character: {
+            const auto& C = static_cast<const character&>(e);
+            write_entity_flags(s, C);
+            if (C.frame <= 0xff)
+                s << (std::uint8_t)C.frame;
+            else
+                s << C.frame;
+            s << C.offset_frac[0];
+            s << C.offset_frac[1];
+            fm_assert(C.name.size() < character_name_max);
+            s.write_asciiz_string(C.name);
+            break;
+        }
+        case entity_type::scenery: {
+            const auto& sc = static_cast<const scenery&>(e);
+            auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
+            fm_assert(img_s != null_atlas);
             atlasid id = img_s;
-            fm_assert(!(id & ~((1 << 16-3-1)-1)));
+            static_assert(rotation_BITS == 3);
+            fm_assert((id & (1 << 16-3-1)-1) == id);
             id |= meta_long_scenery_bit * sc_exact;
-            id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
+            id |= atlasid(sc.r) << sizeof(atlasid)*8-1-rotation_BITS;
             s << id;
             if (!sc_exact)
             {
-                fm_assert(scenery.active || scenery.delta == 0);
-                write_scenery_flags(s, scenery);
-                if (scenery.frame <= 0xff)
-                    s << (std::uint8_t)scenery.frame;
+                fm_assert(sc.active || sc.delta == 0);
+                write_entity_flags(s, sc);
+                if (sc.frame <= 0xff)
+                    s << (std::uint8_t)sc.frame;
                 else
-                    s << scenery.frame;
-                s << scenery.offset[0];
-                s << scenery.offset[1];
-
-                s << scenery.bbox_size[0];
-                s << scenery.bbox_size[1];
-
-                s << scenery.bbox_offset[0];
-                s << scenery.bbox_offset[1];
-
-                if (scenery.active)
-                    s << scenery.delta;
+                    s << sc.frame;
+                if (sc.active)
+                    s << sc.delta;
             }
+            break;
         }
-#endif
+        }
     }
+
+#if 0
+    if (img_s != null_atlas)
+    {
+        atlasid id = img_s;
+        fm_assert(!(id & ~((1 << 16-3-1)-1)));
+        id |= meta_long_scenery_bit * sc_exact;
+        id |= atlasid(scenery.r) << sizeof(atlasid)*8-1-rotation_BITS;
+        s << id;
+        if (!sc_exact)
+        {
+            fm_assert(scenery.active || scenery.delta == 0);
+            write_entity_flags(s, scenery);
+            if (scenery.frame <= 0xff)
+                s << (std::uint8_t)scenery.frame;
+            else
+                s << scenery.frame;
+            s << scenery.offset[0];
+            s << scenery.offset[1];
+
+            s << scenery.bbox_size[0];
+            s << scenery.bbox_size[1];
+
+            s << scenery.bbox_offset[0];
+            s << scenery.bbox_offset[1];
+
+            if (scenery.active)
+                s << scenery.delta;
+        }
+    }
+#endif
 
     const auto nbytes = s.bytes_written();
     fm_assert(nbytes <= chunkbuf_size);
@@ -405,12 +463,23 @@ ArrayView<const char> writer_state::serialize_world()
 {
     load_scenery();
 
-#if 0
     for (const auto& [_, c] : _world->chunks())
-        for (auto [x, _k, _pt] : c)
-            maybe_intern_scenery(x.scenery(), false);
-#endif
-
+    {
+        for (const auto& e_ : c.entities())
+        {
+            const auto& e = *e_;
+            switch (e.type)
+            {
+            case entity_type::scenery:
+                intern_scenery(static_cast<const scenery&>(e), false);
+                break;
+            case entity_type::character:
+                break;
+            default:
+                fm_abort("invalid scenery type '%d'", (int)e.type);
+            }
+        }
+    }
     for (const auto& [pos, c] : _world->chunks())
     {
 #ifndef FM_NO_DEBUG
@@ -423,14 +492,13 @@ ArrayView<const char> writer_state::serialize_world()
     serialize_scenery();
 
     using proto_t = std::decay_t<decltype(proto_version)>;
-    union { chunksiz x; char bytes[sizeof x]; } c = {.x = maybe_byteswap((chunksiz)_world->size())};
-    union { proto_t x;  char bytes[sizeof x]; } p = {.x = maybe_byteswap(proto_version)};
     fm_assert(_world->size() <= int_max<chunksiz>);
 
     std::size_t len = 0;
     len += std::size(file_magic)-1;
-    len += sizeof(p.x);
-    len += sizeof(c.x);
+    len += sizeof(proto_t);
+    len += sizeof(std::uint64_t);
+    len += sizeof(chunksiz);
     for (const auto& buf : chunk_bufs)
         len += buf.size();
     len += atlas_buf.size();
@@ -443,11 +511,16 @@ ArrayView<const char> writer_state::serialize_world()
         fm_assert(len1 <= len2);
         it = std::copy(std::cbegin(in), std::cend(in), it);
     };
+    const auto copy_int = [&]<typename T>(const T& value) {
+        union { T x; char bytes[sizeof x]; } c = {.x = maybe_byteswap(value)};
+        copy(c.bytes);
+    };
     copy(Containers::StringView{file_magic, std::size(file_magic)-1});
-    copy(p.bytes);
+    copy_int((proto_t)proto_version);
+    copy_int((std::uint64_t)_world->entity_counter());
     copy(atlas_buf);
     copy(scenery_buf);
-    copy(c.bytes);
+    copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);
     return {file_buf.data(), file_buf.size()};
@@ -467,35 +540,27 @@ void world::serialize(StringView filename)
 {
     collect(true);
     char errbuf[128];
-    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) {
+    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) -> const char* {
         buf[0] = '\0';
 #ifndef _WIN32
         (void)::strerror_r(errno, buf, std::size(buf));
 #else
         (void)::strerror_s(buf, std::size(buf), errno);
 #endif
+        return buf;
     };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
     FILE_raii file = ::fopen(filename.data(), "wb");
     if (!file)
-    {
-        get_error_string(errbuf);
-        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), errbuf);
-    }
+        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf));
     writer_state s{*this};
     const auto array = s.serialize_world();
     if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
-    {
-        get_error_string(errbuf);
-        fm_abort("fwrite: %s", errbuf);
-    }
+        fm_abort("fwrite: %s", get_error_string(errbuf));
     if (int ret = ::fflush(file); ret != 0)
-    {
-        get_error_string(errbuf);
-        fm_abort("fflush: %s", errbuf);
-    }
+        fm_abort("fflush: %s", get_error_string(errbuf));
 }
 
 } // namespace floormat

@@ -6,6 +6,7 @@
 #include "src/tile.hpp"
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
+#include "src/entity-type.hpp"
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -21,7 +22,13 @@
  *  5) Serialize scenery pixel offset.
  *  6) Serialize scenery bboxes.
  *  7) Serialize scenery bbox_size offset.
+ *  8) Scenery replaced with entities.
  */
+
+namespace floormat {
+struct entity;
+struct entity_proto;
+} // namespace floormat
 
 namespace floormat::Serialize {
 
@@ -39,14 +46,17 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 constexpr inline std::size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
-constexpr inline proto_t proto_version = 7;
+constexpr inline std::size_t character_name_max = 128;
+
+constexpr inline proto_t proto_version = 8;
 constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (std::uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (std::uint16_t)~0xb00b;
 
-using pass_mode_ = std::underlying_type_t<pass_mode>;
-constexpr inline pass_mode_ pass_mask = pass_mode_COUNT - 1;
+using pass_mode_i = std::underlying_type_t<pass_mode>;
+constexpr inline pass_mode_i pass_mask = pass_mode_COUNT - 1;
 constexpr inline auto pass_bits = std::bit_width(pass_mask);
+using entity_type_i = std::underlying_type_t<entity_type>;
 
 template<typename T> constexpr inline auto highbit = T(1) << sizeof(T)*8-1;
 template<typename T, std::size_t N, std::size_t off>
@@ -59,13 +69,15 @@ constexpr inline atlasid scenery_id_max = int_max<atlasid> & ~scenery_id_flag_ma
 
 } // namespace
 
+template<typename T> concept entity_subtype = std::is_base_of_v<entity, T> || std::is_base_of_v<entity_proto, T>;
+
 enum : tilemeta {
     meta_ground         = 1 << 2,
     meta_wall_n         = 1 << 3,
     meta_wall_w         = 1 << 4,
-    meta_short_atlasid  = 1 << 5,
+    meta_short_atlasid_ = 1 << 5,
     meta_short_variant_ = 1 << 6,
-    meta_scenery        = 1 << 7,
+    meta_scenery_       = 1 << 7,
 };
 
 } // namespace floormat::Serialize

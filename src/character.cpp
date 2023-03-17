@@ -51,7 +51,9 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 
 } // namespace
 
-character::character(std::uint64_t id, struct chunk& c, entity_type type, bool playable) : entity{id, c, type}, playable{playable}
+character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
+    entity{id, c, type},
+    playable{proto.playable}
 {
     atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
     bbox_size = Vector2ub(iTILE_SIZE2/2);

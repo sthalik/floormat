@@ -66,7 +66,7 @@ struct entity
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     [[nodiscard]] virtual bool can_move_to(Vector2i delta);
     std::size_t move(std::size_t i, Vector2i delta);
-    void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size); // todo
+    virtual void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size) = 0;
     bool is_dynamic() const;
 
     friend struct world;

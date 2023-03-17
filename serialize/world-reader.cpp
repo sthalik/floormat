@@ -3,6 +3,7 @@
 #include "binary-reader.inl"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
+#include "src/character.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
@@ -52,14 +53,27 @@ void reader_state::read_atlases(reader_t& s)
     }
 }
 
-template<typename T>
-bool read_scenery_flags(binary_reader<T>& s, scenery_proto& sc)
+template<typename T, entity_subtype U>
+bool read_scenery_flags(binary_reader<T>& s, U& e)
 {
+    constexpr auto tag = entity_type_<U>::value;
+    static_assert(tag != entity_type::none);
     std::uint8_t flags; flags << s;
-    sc.pass = pass_mode(flags & pass_mask);
-    sc.active      = !!(flags & 1 << 2);
-    sc.closing     = !!(flags & 1 << 3);
-    sc.interactive = !!(flags & 1 << 4);
+    e.pass = pass_mode(flags & pass_mask);
+    if (e.type != tag)
+         fm_abort("invalid entity type '%d'", (int)e.type);
+    if constexpr(tag == entity_type::scenery)
+    {
+        e.active      = !!(flags & 1 << 2);
+        e.closing     = !!(flags & 1 << 3);
+        e.interactive = !!(flags & 1 << 4);
+    }
+    else if constexpr(tag == entity_type::character)
+    {
+        e.playable    = !!(flags & 1 << 2);
+    }
+    else
+        static_assert(tag == entity_type::none);
     return flags & 1 << 7;
 }
 
@@ -130,13 +144,18 @@ void reader_state::read_chunks(reader_t& s)
         ch.x << s;
         ch.y << s;
         auto& c = (*_world)[ch];
+        c.mark_modified();
         for (auto i = 0_uz; i < TILE_COUNT; i++)
         {
             const tilemeta flags = s.read<tilemeta>();
             tile_ref t = c[i];
             using uchar = std::uint8_t;
             const auto make_atlas = [&]() -> tile_image_proto {
-                auto id = flags & meta_short_atlasid ? atlasid{s.read<uchar>()} : s.read<atlasid>();
+                atlasid id;
+                if (PROTO < 8) [[unlikely]]
+                    id = flags & meta_short_atlasid_ ? atlasid{s.read<uchar>()} : s.read<atlasid>();
+                else
+                    id << s;
                 variant_t v;
                 if (PROTO >= 2) [[likely]]
                     v << s;
@@ -156,8 +175,8 @@ void reader_state::read_chunks(reader_t& s)
                 t.wall_north() = make_atlas();
             if (flags & meta_wall_w)
                 t.wall_west() = make_atlas();
-            if (PROTO >= 3) [[likely]]
-                if (flags & meta_scenery)
+            if (PROTO >= 3 && PROTO < 8) [[unlikely]]
+                if (flags & meta_scenery_)
                 {
                     atlasid id; id << s;
                     const bool exact = id & meta_long_scenery_bit;
@@ -215,6 +234,8 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
+    if (PROTO >= 8)
+        _world->set_entity_counter(s.read<std::uint64_t>());
     read_atlases(s);
     if (PROTO >= 3)
         read_sceneries(s);
@@ -229,46 +250,34 @@ namespace floormat {
 world world::deserialize(StringView filename)
 {
     char errbuf[128];
-    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) {
+    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) -> const char* {
         buf[0] = '\0';
 #ifndef _WIN32
         (void)::strerror_r(errno, buf, std::size(buf));
 #else
         (void)::strerror_s(buf, std::size(buf), errno);
 #endif
+        return buf;
     };
     fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
     {
-        get_error_string(errbuf);
-        fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename.data(), errbuf);
+        fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename.data(), get_error_string(errbuf));
     }
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
-    {
-        get_error_string(errbuf);
-        fm_throw("fseek(SEEK_END): {}"_cf, errbuf);
-    }
+        fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
     std::size_t len;
     if (auto len_ = ::ftell(f); len_ >= 0)
         len = (std::size_t)len_;
     else
-    {
-        get_error_string(errbuf);
-        fm_throw("ftell: {}"_cf, errbuf);
-    }
+        fm_throw("ftell: {}"_cf, get_error_string(errbuf));
     if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
-    {
-        get_error_string(errbuf);
-        fm_throw("fseek(SEEK_SET): {}"_cf, errbuf);
-    }
+        fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
     auto buf_ = std::make_unique<char[]>(len);
 
     if (auto ret = ::fread(&buf_[0], 1, len, f); ret != len)
-    {
-        get_error_string(errbuf);
-        fm_throw("fread short read: {}"_cf, errbuf);
-    }
+        fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
 
     world w;
     reader_state s{w};

@@ -18,10 +18,11 @@ struct world;
 enum class scenery_type : unsigned char {
     none, generic, door,
 };
+constexpr inline std::size_t scenery_type_BITS = 3;
 
 struct scenery_proto : entity_proto
 {
-    scenery_type sc_type     : 3 = scenery_type::none;
+    scenery_type sc_type : scenery_type_BITS = scenery_type::none;
     unsigned char active      : 1 = false;
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;
@@ -44,6 +45,7 @@ struct scenery final : entity
     bool can_activate(std::size_t i) const override;
     bool activate(std::size_t i) override;
     bool update(std::size_t i, float dt) override;
+    void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size) override;
     explicit operator scenery_proto() const;
 
 private:
@@ -52,5 +54,6 @@ private:
 };
 
 template<> struct entity_type_<scenery> : std::integral_constant<entity_type, entity_type::scenery> {};
+template<> struct entity_type_<scenery_proto> : std::integral_constant<entity_type, entity_type::scenery> {};
 
 } // namespace floormat

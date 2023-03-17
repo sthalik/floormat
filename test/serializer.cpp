@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
+#include "src/anim-atlas.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -28,9 +29,16 @@ chunk& test_app::make_test_chunk(chunk_coords ch)
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal1, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
-    w.make_entity<scenery>({ch, {K+3, K+1}}, door);
     w.make_entity<scenery>({ch, {3, 4}}, table);
     w.make_entity<scenery>({ch, {K, K+1}}, control_panel);
+    {
+        auto& e = *w.make_entity<scenery>({ch, {K+3, K+1}}, door);
+        auto i = e.index();
+        e.activate(i);
+        e.update(i, 1.f/60);
+        fm_assert(e.active);
+        fm_assert(e.frame != 0 && e.frame != e.atlas->info().nframes - 1);
+    }
     return c;
 }
 

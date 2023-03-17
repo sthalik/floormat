@@ -106,12 +106,9 @@ void world::collect(bool force)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
-static constexpr std::uint64_t min_id = 1u << 16;
-std::uint64_t world::entity_counter = min_id;
-
 void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
 {
-    fm_debug_assert(e->id > min_id);
+    fm_debug_assert(e->id > 0);
     fm_debug_assert(e->c->world()._unique_id == _unique_id);
     fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type != entity_type::none);
@@ -122,7 +119,7 @@ void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos)
 
 void world::do_kill_entity(std::uint64_t id)
 {
-    fm_debug_assert(id > min_id);
+    fm_debug_assert(id > 0);
     auto cnt = _entities.erase(id);
     fm_debug_assert(cnt > 0);
 }
@@ -133,6 +130,12 @@ std::shared_ptr<entity> world::find_entity_(std::uint64_t id)
     auto ret = it == _entities.end() ? nullptr : it->second.lock();
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
+}
+
+void world::set_entity_counter(std::uint64_t value)
+{
+    fm_assert(value >= _entity_counter);
+    _entity_counter = value;
 }
 
 } // namespace floormat
