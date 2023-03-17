@@ -69,7 +69,7 @@ private:
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3 + sizeof(scenery);
 constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
-constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery));
+constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery)) + character_name_max;
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -302,7 +302,8 @@ const auto def_char_pass = character_proto{}.pass;
 void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
-    chunk_buf.resize(chunkbuf_size + sizeof(std::uint32_t) + entity_size*c.entities().size());
+    const auto es_size = sizeof(std::uint32_t) + entity_size*c.entities().size();
+    chunk_buf.resize(chunkbuf_size + es_size);
 
     auto s = binary_writer{chunk_buf.begin()};
 
@@ -347,7 +348,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     {
         const auto& e = *e_;
         std::uint64_t oid = e.id;
-        fm_assert((oid & (1ULL << 60)-1) == oid);
+        fm_assert((oid & ((std::uint64_t)1 << 60)-1) == oid);
         static_assert(entity_type_BITS == 3);
         fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
         oid |= (std::uint64_t)e.type << 64 - entity_type_BITS;

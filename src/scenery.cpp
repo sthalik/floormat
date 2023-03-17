@@ -50,12 +50,14 @@ bool scenery::update(std::size_t, float dt)
         const std::int8_t dir = s.closing ? 1 : -1;
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
+        pass_mode p;
         if (fr <= 0)
-            s.pass = pass_mode::pass;
+            p = pass_mode::pass;
         else if (fr >= nframes-1)
-            s.pass = pass_mode::blocked;
+            p = pass_mode::blocked;
         else
-            s.pass = pass_mode::see_through;
+            p = pass_mode::see_through;
+        set_bbox(offset, bbox_offset, bbox_size, p);
         s.frame = (std::uint16_t)std::clamp(fr, 0, nframes-1);
         if (!s.active)
             s.delta = s.closing = 0;
@@ -117,19 +119,11 @@ scenery::operator scenery_proto() const
     return ret;
 }
 
-scenery::scenery(std::uint64_t id, struct chunk& c, entity_type type, const scenery_proto& proto) :
-    entity{id, c, type}, sc_type{proto.sc_type}, active{proto.active},
+scenery::scenery(std::uint64_t id, struct chunk& c, entity_type type_, const scenery_proto& proto) :
+    entity{id, c, type_, proto}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {
     fm_assert(type == proto.type);
-    atlas = proto.atlas;
-    offset = proto.offset;
-    bbox_offset = proto.bbox_offset;
-    bbox_size = proto.bbox_size;
-    delta = proto.delta;
-    frame = proto.frame;
-    r = proto.r;
-    pass = proto.pass;
 }
 
 } // namespace floormat

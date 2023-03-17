@@ -87,25 +87,17 @@ struct chunk final
         float depth = -1;
     };
 
+    using RTree = ::RTree<std::uint64_t, float, 2, float>;
+
     ground_mesh_tuple ensure_ground_mesh() noexcept;
     tile_atlas* ground_atlas_at(std::size_t i) const noexcept;
-
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(std::size_t i) const noexcept;
-
     scenery_mesh_tuple ensure_scenery_mesh() noexcept;
 
     void ensure_passability() noexcept;
-
-    using RTree = ::RTree<std::uint64_t, float, 2, float>;
-
     RTree* rtree() noexcept;
-
     struct world& world() noexcept { return *_world; }
-
-    template<typename F>
-    requires requires(F fun) { fun(); }
-    void with_scenery_update(entity& e, F&& fun);
 
     [[nodiscard]] bool can_place_entity(const entity_proto& proto, local_coords pos);
 
@@ -147,7 +139,7 @@ private:
         bool operator==(const bbox& other) const noexcept;
     };
     static bool _bbox_for_scenery(const entity& s, bbox& value) noexcept;
-    static bool _bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, bbox& value) noexcept;
+    static bool _bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);

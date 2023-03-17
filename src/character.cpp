@@ -52,12 +52,13 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 } // namespace
 
 character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
-    entity{id, c, type},
+    entity{id, c, type, proto},
     name{proto.name},
     playable{proto.playable}
 {
-    atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
-    bbox_size = Vector2ub(iTILE_SIZE2/2);
+    if (!atlas)
+        atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
 character::~character() = default;
@@ -88,7 +89,7 @@ void character::set_keys(bool L, bool R, bool U, bool D)
 
 bool character::update(std::size_t i, float dt)
 {
-    auto [lr, ud, rot] = arrows_to_dir(b_L, b_R, b_U, b_D);
+    auto [lr, ud, new_r] = arrows_to_dir(b_L, b_R, b_U, b_D);
 
     if (!lr & !ud)
     {
@@ -102,18 +103,17 @@ bool character::update(std::size_t i, float dt)
         return false;
 
     const auto vec = move_vec(lr, ud);
-    r = rot;
     c->ensure_passability();
 
     for (int k = 0; k < nframes; k++)
     {
         constexpr auto frac = Vector2(32767);
-        constexpr auto inv_frac = Vector2(1.f/32767);
+        constexpr auto inv_frac = 1.f / frac;
         auto offset_ = vec + Vector2(offset_frac) * inv_frac;
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
         if (can_move_to(off_i))
-            i = move(i, off_i);
+            i = move(i, off_i, new_r);
         ++frame %= atlas->info().nframes;
     }
     //Debug{} << "pos" << Vector2i(pos.local());

@@ -274,8 +274,7 @@ void reader_state::read_chunks(reader_t& s)
                     if (sc.active)
                         sc.delta << s;
                 }
-                global_coords coord{ch, local_coords{i}};
-                auto e = _world->make_entity<scenery>(oid, coord, sc);
+                auto e = _world->make_entity<scenery>(oid, {ch, local}, sc);
                 c.add_entity_unsorted(e);
                 break;
             }

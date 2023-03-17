@@ -6,7 +6,6 @@
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "character.hpp"
-#include "chunk.inl"
 
 namespace floormat {
 
@@ -192,7 +191,7 @@ void app::update_world(float dt)
             for (auto i = size-1; i != (std::size_t)-1; i--)
             {
                 auto& e = *es[i];
-                c.with_scenery_update(e, [&] { return e.update(i, dt); });
+                e.update(i, dt);
             }
         }
 }

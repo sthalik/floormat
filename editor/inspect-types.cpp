@@ -6,7 +6,6 @@
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include "chunk.hpp"
-#include "chunk.inl"
 #include <Corrade/Containers/ArrayViewStl.h>
 
 //#define TEST_STR
@@ -40,21 +39,21 @@ struct entity_accessors<scenery> {
             },
             entity::type<Vector2b>::field{"offset"_s,
                 [](const scenery& x) { return x.offset; },
-                [](scenery& x, Vector2b value) { x.offset = value; },
+                [](scenery& x, Vector2b value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
                 constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
             },
             entity::type<pass_mode>::field{"pass-mode"_s,
                 [](const scenery& x) { return x.pass; },
-                [](scenery& x, pass_mode value) { x.chunk().with_scenery_update(x, [&] { x.pass = value; }); },
+                [](scenery& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); }
             },
             entity::type<Vector2b>::field{"bbox-offset"_s,
                 [](const scenery& x) { return x.bbox_offset; },
-                [](scenery& x, Vector2b value)  { x.chunk().with_scenery_update(x, [&] { x.bbox_offset = value; }); },
+                [](scenery& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
                 [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
             },
             entity::type<Vector2ub>::field{"bbox-size"_s,
                 [](const scenery& x) { return x.bbox_size; },
-                [](scenery& x, Vector2ub value) { x.chunk().with_scenery_update(x, [&] { x.bbox_size = value; }); },
+                [](scenery& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
                 [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
             },
             entity::type<bool>::field{"interactive"_s,

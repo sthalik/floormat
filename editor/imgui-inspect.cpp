@@ -6,7 +6,6 @@
 #include "src/world.hpp"
 #include "src/anim-atlas.hpp"
 #include "imgui-raii.hpp"
-#include "chunk.inl"
 #include "loader/loader.hpp"
 
 namespace floormat {
@@ -49,7 +48,7 @@ void app::draw_inspector()
             if (s.type == entity_type::scenery)
             {
                 auto& s2 = static_cast<scenery&>(s);
-                c.with_scenery_update(s, [&] { return entities::inspect_type(s2); });
+                entities::inspect_type(s2);
             }
         }
         if (!is_open)

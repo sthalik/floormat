@@ -1,7 +1,6 @@
 #include "entity.hpp"
 #include "world.hpp"
 #include "rotation.inl"
-#include "chunk.inl"
 #include "anim-atlas.hpp"
 #include "RTree.hpp"
 #include <algorithm>
@@ -14,11 +13,6 @@ entity_proto::~entity_proto() noexcept = default;
 entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
 
-entity::entity(std::uint64_t id, struct chunk& c, entity_type type) noexcept :
-    id{id}, c{&c}, type{type}
-{
-}
-
 entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
@@ -26,6 +20,8 @@ entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity
     frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
 {
     fm_assert(type == proto.type);
+    fm_assert(atlas->check_rotation(r));
+    fm_assert(frame < atlas->info().nframes);
 }
 
 entity::~entity() noexcept
@@ -90,12 +86,9 @@ std::size_t entity::index() const
 
 void entity::rotate(std::size_t, rotation new_r)
 {
-    auto& w = *c->_world;
-    w[coord.chunk()].with_scenery_update(*this, [&]() {
-        bbox_offset = rotate_point(bbox_offset, r, new_r);
-        bbox_size = rotate_size(bbox_size, r, new_r);
-        r = new_r;
-    });
+    fm_assert(atlas->check_rotation(new_r));
+    set_bbox(offset, rotate_point(bbox_offset, r, new_r), rotate_size(bbox_size, r, new_r), pass);
+    const_cast<rotation&>(r) = new_r;
 }
 
 template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
@@ -141,7 +134,7 @@ bool entity::can_move_to(Vector2i delta)
     return ret;
 }
 
-std::size_t entity::move(std::size_t i, Vector2i delta)
+std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
 {
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
@@ -159,8 +152,10 @@ std::size_t entity::move(std::size_t i, Vector2i delta)
         c->mark_scenery_modified(false);
 
     chunk::bbox bb0, bb1;
+    const auto bb_offset = rotate_point(bbox_offset, r, new_r);
+    const auto bb_size   = rotate_size(bbox_size, r, new_r);
     bool b0 = c->_bbox_for_scenery(e, bb0),
-         b1 = c->_bbox_for_scenery(e, coord_.local(), offset_, bb1);
+         b1 = c->_bbox_for_scenery(e, coord_.local(), offset_, bb_offset, bb_size, bb1);
     const auto ord = e.ordinal(coord_.local(), offset_, e.type);
 
     if (coord_.chunk() == coord.chunk())
@@ -168,7 +163,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta)
         c->_replace_bbox(bb0, bb1, b0, b1);
         auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         e_->coord = coord_;
-        e_->offset = offset_;
+        set_bbox_(offset_, bb_offset, bb_size, pass);
         auto pos1 = std::distance(es.cbegin(), it_);
         if ((std::size_t)pos1 > i)
             pos1--;
@@ -193,11 +188,28 @@ std::size_t entity::move(std::size_t i, Vector2i delta)
         auto it = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         auto ret = (std::size_t)std::distance(es.cbegin(), it);
         e_->coord = coord_;
-        e_->offset = offset_;
+        set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<struct chunk*&>(e_->c) = &c2;
         es.insert(it, std::move(e_));
         return ret;
     }
+}
+
+void entity::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)
+{
+    const_cast<Vector2b&>(offset) = offset_;
+    const_cast<Vector2b&>(bbox_offset) = bbox_offset_;
+    const_cast<Vector2ub&>(bbox_size) = bbox_size_;
+    const_cast<pass_mode&>(pass) = pass_;
+}
+
+void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
+{
+    chunk::bbox bb0, bb;
+    const bool b0 = c->_bbox_for_scenery(*this, bb0);
+    set_bbox_(offset_, bbox_offset_, bbox_size_, pass);
+    const bool b = c->_bbox_for_scenery(*this, bb);
+    c->_replace_bbox(bb0, bb, b0, b);
 }
 
 entity::operator entity_proto() const

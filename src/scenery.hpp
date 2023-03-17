@@ -45,7 +45,6 @@ struct scenery final : entity
     bool can_activate(std::size_t i) const override;
     bool activate(std::size_t i) override;
     bool update(std::size_t i, float dt) override;
-    void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size) override;
     explicit operator scenery_proto() const;
 
 private:

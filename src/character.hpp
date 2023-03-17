@@ -29,7 +29,6 @@ struct character final : entity
 
     void set_keys(bool L, bool R, bool U, bool D);
     bool update(std::size_t i, float dt) override;
-    void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size) override;
 
     String name;
     Vector2s offset_frac;

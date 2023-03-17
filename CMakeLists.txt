@@ -153,6 +153,7 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "13.3" OR
    CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL "13.0")
     add_compile_options(-Wno-reserved-macro-identifier)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-ambiguous-reversed-operator>)
 endif()
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)

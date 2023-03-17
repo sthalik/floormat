@@ -96,9 +96,9 @@ void chunk::ensure_passability() noexcept
     }
 }
 
-bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
 {
-    auto [start, end] = scenery_tile(local, offset, s.bbox_offset, s.bbox_size);
+    auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id(collision_type::scenery, s.pass, s.id);
     value = { .id = id, .start = start, .end = end };
     return s.atlas && s.pass != pass_mode::pass;
@@ -106,27 +106,26 @@ bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offs
 
 bool chunk::_bbox_for_scenery(const entity& s, bbox& value) noexcept
 {
-    return _bbox_for_scenery(s, s.coord.local(), s.offset, value);
+    return _bbox_for_scenery(s, s.coord.local(), s.offset, s.bbox_offset, s.bbox_size, value);
 }
 
 void chunk::_remove_bbox(const bbox& x)
 {
-    if (_scenery_modified)
-        return;
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree.Remove(start.data(), end.data(), x.id);
 }
 
 void chunk::_add_bbox(const bbox& x)
 {
-    if (_scenery_modified)
-        return;
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree.Insert(start.data(), end.data(), x.id);
 }
 
 void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
 {
+    if (_pass_modified)
+        return;
+
     unsigned i = (unsigned)b1 << 1 | (unsigned)(b0 ? 1 : 0) << 0;
     CORRADE_ASSUME(i < 4u);
 

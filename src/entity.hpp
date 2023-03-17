@@ -41,12 +41,12 @@ struct entity
     struct chunk* const c;
     std::shared_ptr<anim_atlas> atlas;
     global_coords coord;
-    Vector2b offset, bbox_offset;
-    Vector2ub bbox_size;
+    const Vector2b offset, bbox_offset;
+    const Vector2ub bbox_size;
     std::uint16_t delta = 0, frame = 0;
     const entity_type type;
-    rotation r     : rotation_BITS  = rotation::N;
-    pass_mode pass : pass_mode_BITS = pass_mode::see_through;
+    const rotation r = rotation::N;
+    const pass_mode pass = pass_mode::see_through;
 
     virtual ~entity() noexcept;
 
@@ -65,15 +65,16 @@ struct entity
 
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     [[nodiscard]] virtual bool can_move_to(Vector2i delta);
-    std::size_t move(std::size_t i, Vector2i delta);
-    virtual void update_bbox(Vector2b bbox_offset, Vector2ub bbox_size) = 0;
+    std::size_t move(std::size_t i, Vector2i delta, rotation new_r);
+    virtual void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
     bool is_dynamic() const;
 
     friend struct world;
 
 protected:
-    entity(std::uint64_t id, struct chunk& c, entity_type type) noexcept;
     entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept;
+
+    void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 };
 
 } // namespace floormat
