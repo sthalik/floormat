@@ -302,16 +302,16 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
+    std::uint64_t entity_counter = 0;
+    if (PROTO >= 8) [[likely]]
+        entity_counter << s;
     read_atlases(s);
-    if (PROTO >= 3)
+    if (PROTO >= 3) [[likely]]
         read_sceneries(s);
     read_chunks(s);
-    if (PROTO >= 8)
-    {
-        fm_assert(_world->entity_counter() == 0);
-        _world->set_entity_counter(s.read<std::uint64_t>());
-    }
     s.assert_end();
+    fm_assert(_world->entity_counter() == 0);
+    _world->set_entity_counter(entity_counter);
     _world = nullptr;
 }
 
