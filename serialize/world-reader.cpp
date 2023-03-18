@@ -133,9 +133,12 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
 void reader_state::read_chunks(reader_t& s)
 {
     const auto N = s.read<chunksiz>();
+    [[maybe_unused]] std::size_t chunk_size = 0;
 
     for (auto k = 0_uz; k < N; k++)
     {
+        const auto nbytes_start = s.bytes_read();
+
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
         if (magic != chunk_magic)
@@ -182,6 +185,8 @@ void reader_state::read_chunks(reader_t& s)
         std::uint32_t entity_count = 0;
         if (PROTO >= 8) [[likely]]
                 entity_count << s;
+
+        chunk_size = s.bytes_read() - nbytes_start;
 
         for (auto i = 0_uz; i < entity_count; i++)
         {
@@ -248,9 +253,12 @@ void reader_state::read_chunks(reader_t& s)
         }
 
         c.sort_entities();
+        c.ensure_ground_mesh();
+        c.ensure_wall_mesh();
+        c.ensure_scenery_mesh();
+        c.ensure_passability();
 
-        const auto nbytes = s.bytes_read();
-        (void)nbytes;
+        chunk_size = s.bytes_read() - nbytes_start;
         fm_assert(c.is_scenery_modified());
         fm_assert(c.is_passability_modified());
     }
