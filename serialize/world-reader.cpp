@@ -219,7 +219,7 @@ void reader_state::read_chunks(reader_t& s)
                 offset_frac[1] << s;
                 const auto name = s.read_asciiz_string<character_name_max>();
                 proto.name = StringView{name.buf, name.len, StringViewFlag::Global|StringViewFlag::NullTerminated};
-                if (id & meta_long_scenery_bit)
+                if (!(id & meta_short_scenery_bit))
                     read_offsets(s, proto);
                 auto e = _world->make_entity<character>(oid, {ch, local}, proto);
                 (void)e;
@@ -227,7 +227,7 @@ void reader_state::read_chunks(reader_t& s)
             }
             case entity_type::scenery: {
                 atlasid id; id << s;
-                const bool exact = id & meta_long_scenery_bit;
+                const bool exact = id & meta_short_scenery_bit;
                 const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                 id &= ~scenery_id_flag_mask;
                 auto sc = lookup_scenery(id);

@@ -383,7 +383,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             const auto sc_exact =
                 C.offset.isZero() && C.bbox_offset.isZero() &&
                 C.bbox_size == def_char_bbox_size;
-            id |= meta_long_scenery_bit * sc_exact;
+            id |= meta_short_scenery_bit * sc_exact;
             id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
             write_entity_flags(s, C);
@@ -409,7 +409,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             atlasid id = img_s;
             static_assert(rotation_BITS == 3);
             fm_assert((id & (1 << 16-3-1)-1) == id);
-            id |= meta_long_scenery_bit * sc_exact;
+            id |= meta_short_scenery_bit * sc_exact;
             id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
             if (!sc_exact)

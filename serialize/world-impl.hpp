@@ -62,9 +62,9 @@ template<typename T> constexpr inline auto highbit = T(1) << sizeof(T)*8-1;
 template<typename T, std::size_t N, std::size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
-constexpr inline atlasid meta_long_scenery_bit = highbit<atlasid>;
+constexpr inline atlasid meta_short_scenery_bit = highbit<atlasid>;
 constexpr inline atlasid meta_rotation_bits = highbits<atlasid, rotation_BITS, 1>;
-constexpr inline atlasid scenery_id_flag_mask = meta_long_scenery_bit | meta_rotation_bits;
+constexpr inline atlasid scenery_id_flag_mask = meta_short_scenery_bit | meta_rotation_bits;
 constexpr inline atlasid scenery_id_max = int_max<atlasid> & ~scenery_id_flag_mask;
 
 } // namespace
