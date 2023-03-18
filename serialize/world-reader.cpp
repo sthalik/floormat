@@ -130,10 +130,18 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
         fm_throw("no such scenery: '{}'"_cf, id);
 }
 
+#ifndef FM_NO_DEBUG
+#   define SET_CHUNK_SIZE() do { nbytes_read = s.bytes_read() - nbytes_start; } while (false)
+#else
+#   define SET_CHUNK_SIZE() void()
+#endif
+
 void reader_state::read_chunks(reader_t& s)
 {
     const auto N = s.read<chunksiz>();
-    [[maybe_unused]] std::size_t chunk_size = 0;
+#ifndef FM_NO_DEBUG
+    [[maybe_unused]] std::size_t nbytes_read = 0;
+#endif
 
     for (auto k = 0_uz; k < N; k++)
     {
@@ -150,6 +158,7 @@ void reader_state::read_chunks(reader_t& s)
         c.mark_modified();
         for (auto i = 0_uz; i < TILE_COUNT; i++)
         {
+            SET_CHUNK_SIZE();
             const tilemeta flags = s.read<tilemeta>();
             tile_ref t = c[i];
             using uchar = std::uint8_t;
@@ -170,7 +179,7 @@ void reader_state::read_chunks(reader_t& s)
                 fm_soft_assert(v < atlas->num_tiles());
                 return { atlas, v };
             };
-
+            SET_CHUNK_SIZE();
             //t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
                 t.ground() = make_atlas();
@@ -181,12 +190,13 @@ void reader_state::read_chunks(reader_t& s)
             if (PROTO >= 3 && PROTO < 8) [[unlikely]]
                 if (flags & meta_scenery_)
                     read_old_scenery(s, ch, i);
+            SET_CHUNK_SIZE();
         }
         std::uint32_t entity_count = 0;
         if (PROTO >= 8) [[likely]]
                 entity_count << s;
 
-        chunk_size = s.bytes_read() - nbytes_start;
+        SET_CHUNK_SIZE();
 
         for (auto i = 0_uz; i < entity_count; i++)
         {
@@ -204,6 +214,7 @@ void reader_state::read_chunks(reader_t& s)
                 s >> e.bbox_size[0];
                 s >> e.bbox_size[1];
             };
+            SET_CHUNK_SIZE();
             switch (type)
             {
             case entity_type::character: {
@@ -217,10 +228,12 @@ void reader_state::read_chunks(reader_t& s)
                 Vector2s offset_frac;
                 offset_frac[0] << s;
                 offset_frac[1] << s;
+                SET_CHUNK_SIZE();
                 const auto name = s.read_asciiz_string<character_name_max>();
                 proto.name = StringView{name.buf, name.len, StringViewFlag::Global|StringViewFlag::NullTerminated};
                 if (!(id & meta_short_scenery_bit))
                     read_offsets(s, proto);
+                SET_CHUNK_SIZE();
                 auto e = _world->make_entity<character>(oid, {ch, local}, proto);
                 (void)e;
                 break;
@@ -252,22 +265,21 @@ void reader_state::read_chunks(reader_t& s)
             }
         }
 
+        SET_CHUNK_SIZE();
+        fm_assert(c.is_scenery_modified());
+        fm_assert(c.is_passability_modified());
         c.sort_entities();
         c.ensure_ground_mesh();
         c.ensure_wall_mesh();
         c.ensure_scenery_mesh();
         c.ensure_passability();
-
-        chunk_size = s.bytes_read() - nbytes_start;
-        fm_assert(c.is_scenery_modified());
-        fm_assert(c.is_passability_modified());
     }
 }
 
 void reader_state::read_old_scenery(reader_t& s, chunk_coords ch, std::size_t i)
 {
     atlasid id; id << s;
-    const bool exact = id & meta_long_scenery_bit;
+    const bool exact = id & meta_short_scenery_bit;
     const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
     id &= ~scenery_id_flag_mask;
     auto sc = lookup_scenery(id);
