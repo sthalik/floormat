@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "chunk.hpp"
+#include "world.hpp"
 namespace floormat {
 
 static inline bool always_false()

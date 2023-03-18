@@ -1,5 +1,4 @@
 #pragma once
-#include "src/world.hpp"
 #include <Magnum/Magnum.h>
 
 #ifdef __APPLE__
@@ -15,7 +14,9 @@
 
 namespace floormat {
 
+struct chunk_coords;
 struct chunk;
+struct world;
 
 struct test_app final : private FM_APPLICATION
 {
@@ -23,15 +24,13 @@ struct test_app final : private FM_APPLICATION
     explicit test_app(const Arguments& arguments);
     ~test_app();
     int exec() override;
-    chunk& make_test_chunk(chunk_coords ch);
     static void test_json();
     static void test_tile_iter();
     static void test_const_math();
-    void test_serializer();
+    static void test_serializer_1();
+    static void test_serializer_2();
     static void test_entity();
     static void test_loader();
     static void test_bitmask();
-
-    world w;
 };
 } // namespace floormat

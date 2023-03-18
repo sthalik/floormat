@@ -27,7 +27,8 @@ int test_app::exec()
     test_entity();
     test_loader();
     test_bitmask();
-    test_serializer();
+    test_serializer_1();
+    test_serializer_2();
 
     return 0;
 }

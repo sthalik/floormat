@@ -11,7 +11,9 @@ namespace floormat {
 
 namespace Path = Corrade::Utility::Path;
 
-chunk& test_app::make_test_chunk(chunk_coords ch)
+namespace {
+
+chunk& make_test_chunk(world& w, chunk_coords ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
@@ -43,7 +45,7 @@ chunk& test_app::make_test_chunk(chunk_coords ch)
     return c;
 }
 
-static void assert_chunks_equal(const chunk& a, const chunk& b)
+void assert_chunks_equal(const chunk& a, const chunk& b)
 {
     fm_assert(a.entities().size() == b.entities().size());
 
@@ -80,17 +82,47 @@ static void assert_chunks_equal(const chunk& a, const chunk& b)
     }
 }
 
-void test_app::test_serializer()
+void test_serializer(StringView input, StringView tmp)
 {
-    constexpr auto filename = "../test/test-serializer1.dat";
-    if (Path::exists(filename))
-        Path::remove(filename);
-    const chunk_coords coord{1, 1};
-    auto& c = make_test_chunk(coord);
-    w.serialize(filename);
-    auto w2 = world::deserialize(filename);
+    if (Path::exists(tmp))
+        Path::remove(tmp);
+    chunk_coords coord{};
+    world w;
+    if (input)
+        w = world::deserialize(input);
+    else
+    {
+        coord = {1, 1};
+        w = world();
+        make_test_chunk(w, coord);
+    }
+    w.serialize(tmp);
+    auto w2 = world::deserialize(tmp);
     auto& c2 = w2[coord];
-    assert_chunks_equal(c, c2);
+    assert_chunks_equal(w[coord], c2);
+}
+
+} // namespace
+
+void test_app::test_serializer_1()
+{
+    constexpr auto tmp_filename = "../test/test-serializer1.dat"_s;
+    test_serializer({}, tmp_filename);
+}
+
+void test_app::test_serializer_2()
+{
+    constexpr auto tmp_filename = "../test/test-serializer2.dat"_s;
+    constexpr auto dir = "../test/save/"_s;
+    using LF = Path::ListFlag;
+    auto files = Path::list(dir, LF::SkipDirectories|LF::SkipSpecial|LF::SkipDotAndDotDot);
+    fm_assert(files);
+    for (const StringView file : *files)
+    {
+        fm_assert(file.hasSuffix(".dat"_s));
+        auto path = Path::join(dir, file);
+        test_serializer(path, tmp_filename);
+    }
 }
 
 } // namespace floormat

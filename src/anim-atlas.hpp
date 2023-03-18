@@ -24,7 +24,7 @@ struct anim_atlas final
     using quad = std::array<Vector3, 4>;
 
     anim_atlas() noexcept;
-    anim_atlas(StringView name, const ImageView2D& tex, anim_def info) noexcept;
+    anim_atlas(String name, const ImageView2D& tex, anim_def info) noexcept;
     ~anim_atlas() noexcept;
 
     anim_atlas(anim_atlas&&) noexcept;
