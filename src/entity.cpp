@@ -20,8 +20,11 @@ entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity
     frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
 {
     fm_assert(type == proto.type);
-    fm_assert(atlas->check_rotation(r));
-    fm_assert(frame < atlas->info().nframes);
+    if (atlas)
+    {
+        fm_assert(atlas->check_rotation(r));
+        fm_assert(frame < atlas->info().nframes);
+    }
 }
 
 entity::~entity() noexcept
@@ -164,6 +167,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         e_->coord = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
+        const_cast<rotation&>(r) = new_r;
         auto pos1 = std::distance(es.cbegin(), it_);
         if ((std::size_t)pos1 > i)
             pos1--;
@@ -189,6 +193,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         auto ret = (std::size_t)std::distance(es.cbegin(), it);
         e_->coord = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
+        const_cast<rotation&>(r) = new_r;
         const_cast<struct chunk*&>(e_->c) = &c2;
         es.insert(it, std::move(e_));
         return ret;

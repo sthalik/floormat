@@ -314,7 +314,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         read_sceneries(s);
     read_chunks(s);
     s.assert_end();
-    if (proto >= 8) [[likely]]
+    if (PROTO >= 8) [[likely]]
     {
         fm_assert(_world->entity_counter() == 0);
         _world->set_entity_counter(entity_counter);

@@ -52,10 +52,14 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 } // namespace
 
 character_proto::character_proto(const character_proto&) = default;
-character_proto::character_proto() = default;
 character_proto::~character_proto() noexcept = default;
 character_proto& character_proto::operator=(const character_proto&) = default;
 character::~character() = default;
+
+character_proto::character_proto()
+{
+    type = entity_type::character;
+}
 
 bool character_proto::operator==(const entity_proto& e0) const
 {
@@ -144,6 +148,7 @@ character::character(std::uint64_t id, struct chunk& c, entity_type type, const 
         name = "(Unnamed)"_s;
     if (!atlas)
         atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+    fm_assert(atlas->check_rotation(r));
     entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
