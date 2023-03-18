@@ -28,6 +28,7 @@ private:
     void read_atlases(reader_t& reader);
     void read_sceneries(reader_t& reader);
     void read_chunks(reader_t& reader);
+    void read_old_scenery(reader_t& s, chunk_coords ch, std::size_t i);
 
     std::vector<scenery_proto> sceneries;
     std::vector<std::shared_ptr<tile_atlas>> atlases;
@@ -138,7 +139,7 @@ void reader_state::read_chunks(reader_t& s)
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
         if (magic != chunk_magic)
-            fm_throw("bad c magic"_cf);
+            fm_throw("bad chunk magic"_cf);
         chunk_coords ch;
         ch.x << s;
         ch.y << s;
@@ -176,46 +177,7 @@ void reader_state::read_chunks(reader_t& s)
                 t.wall_west() = make_atlas();
             if (PROTO >= 3 && PROTO < 8) [[unlikely]]
                 if (flags & meta_scenery_)
-                {
-                    atlasid id; id << s;
-                    const bool exact = id & meta_long_scenery_bit;
-                    const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
-                    id &= ~scenery_id_flag_mask;
-                    auto sc = lookup_scenery(id);
-                    (void)sc.atlas->group(r);
-                    sc.r = r;
-                    if (!exact)
-                    {
-                        if (read_entity_flags(s, sc))
-                            sc.frame = s.read<std::uint8_t>();
-                        else
-                            sc.frame << s;
-                        if (PROTO >= 5) [[likely]]
-                        {
-                            sc.offset[0] << s;
-                            sc.offset[1] << s;
-                        }
-                        if (PROTO >= 6) [[likely]]
-                        {
-                            sc.bbox_size[0] << s;
-                            sc.bbox_size[1] << s;
-                        }
-                        if (PROTO >= 7) [[likely]]
-                        {
-                            sc.bbox_offset[0] << s;
-                            sc.bbox_offset[1] << s;
-                        }
-                        if (sc.active)
-                        {
-                            if (PROTO >= 4) [[likely]]
-                                sc.delta << s;
-                            else
-                                sc.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
-                        }
-                    }
-                    global_coords coord{ch, local_coords{i}};
-                    auto e = _world->make_entity<scenery, false>(_world->make_id(), coord, sc);
-                }
+                    read_old_scenery(s, ch, i);
         }
         std::uint32_t entity_count = 0;
         if (PROTO >= 8) [[likely]]
@@ -289,6 +251,49 @@ void reader_state::read_chunks(reader_t& s)
     }
 }
 
+void reader_state::read_old_scenery(reader_t& s, chunk_coords ch, std::size_t i)
+{
+    atlasid id; id << s;
+    const bool exact = id & meta_long_scenery_bit;
+    const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+    id &= ~scenery_id_flag_mask;
+    auto sc = lookup_scenery(id);
+    (void)sc.atlas->group(r);
+    sc.r = r;
+    if (!exact)
+    {
+        if (read_entity_flags(s, sc))
+            sc.frame = s.read<std::uint8_t>();
+        else
+            sc.frame << s;
+        if (PROTO >= 5) [[likely]]
+        {
+            sc.offset[0] << s;
+            sc.offset[1] << s;
+        }
+        if (PROTO >= 6) [[likely]]
+        {
+            sc.bbox_size[0] << s;
+            sc.bbox_size[1] << s;
+        }
+        if (PROTO >= 7) [[likely]]
+        {
+            sc.bbox_offset[0] << s;
+            sc.bbox_offset[1] << s;
+        }
+        if (sc.active)
+        {
+            if (PROTO >= 4) [[likely]]
+                sc.delta << s;
+            else
+                sc.delta = (std::uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+        }
+    }
+    global_coords coord{ch, local_coords{i}};
+    auto e = _world->make_entity<scenery, false>(_world->make_id(), coord, sc);
+    (void)e;
+}
+
 void reader_state::deserialize_world(ArrayView<const char> buf)
 {
     fm_assert(_world != nullptr);
@@ -309,8 +314,11 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         read_sceneries(s);
     read_chunks(s);
     s.assert_end();
-    fm_assert(_world->entity_counter() == 0);
-    _world->set_entity_counter(entity_counter);
+    if (proto >= 8) [[likely]]
+    {
+        fm_assert(_world->entity_counter() == 0);
+        _world->set_entity_counter(entity_counter);
+    }
     _world = nullptr;
 }
 
