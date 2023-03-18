@@ -80,6 +80,7 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
         if (c == '\0')
         {
             ret.len = i;
+            num_bytes_read += i+1;
             return ret;
         }
     }
