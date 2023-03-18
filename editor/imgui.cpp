@@ -146,18 +146,19 @@ void app::do_popup_menu()
     {
         fm_assert(target != popup_target_type::none && sc != nullptr);
 
+        ImGui::SeparatorText("Setup");
         const auto i = sc->index();
         if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))
             sc->activate(i);
-        if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
-            next_rot != sc->r && ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
-            sc->rotate(i, next_rot);
-
-        ImGui::Separator();
-
         if (bool b_ins = sc && !check_inspector_exists(_popup_target);
             ImGui::MenuItem("Inspect", nullptr, false, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
+        ImGui::SeparatorText("Modify");
+        if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
+            next_rot != sc->r && ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
+            sc->rotate(i, next_rot);
+        if (ImGui::MenuItem("Delete", nullptr, false))
+            sc->chunk().remove_entity(sc->index());
     }
 }
 
