@@ -307,11 +307,11 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
     std::uint64_t entity_counter = 0;
-    if (PROTO >= 8) [[likely]]
-        entity_counter << s;
     read_atlases(s);
     if (PROTO >= 3) [[likely]]
         read_sceneries(s);
+    if (PROTO >= 8) [[likely]]
+        entity_counter << s;
     read_chunks(s);
     s.assert_end();
     if (PROTO >= 8) [[likely]]

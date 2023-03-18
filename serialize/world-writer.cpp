@@ -503,9 +503,9 @@ ArrayView<const char> writer_state::serialize_world()
     };
     copy(Containers::StringView{file_magic, std::size(file_magic)-1});
     copy_int((proto_t)proto_version);
-    copy_int((std::uint64_t)_world->entity_counter());
     copy(atlas_buf);
     copy(scenery_buf);
+    copy_int((std::uint64_t)_world->entity_counter());
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);
