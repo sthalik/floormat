@@ -1,12 +1,11 @@
 #pragma once
-#include <cstdint>
 #include <memory>
 
 namespace floormat {
 
 struct tile_atlas;
 
-using variant_t = std::uint8_t;
+using variant_t = uint8_t;
 
 struct tile_image_proto final
 {

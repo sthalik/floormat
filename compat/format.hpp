@@ -20,12 +20,12 @@ template<> struct formatter<Corrade::Containers::String> {
 
 #if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 namespace floormat::detail::fmt {
-template<std::size_t N>
+template<size_t N>
 struct fmt_string final {
-    static constexpr std::size_t size = N;
+    static constexpr size_t size = N;
     char data[N];
 
-    template <std::size_t... Is>
+    template <size_t... Is>
     consteval fmt_string(const char (&arr)[N]) noexcept {
         for (auto i = 0_uz; i < N; i++)
             data[i] = arr[i];
@@ -46,10 +46,10 @@ using namespace fmt::literals;
 
 namespace floormat {
 
-template<std::size_t N, typename Fmt, typename... Xs>
-std::size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
+template<size_t N, typename Fmt, typename... Xs>
+size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 {
-    constexpr std::size_t n = N > 0 ? N - 1 : 0;
+    constexpr size_t n = N > 0 ? N - 1 : 0;
     auto result = fmt::format_to_n(buf, n, std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
     const auto len = std::min(n, result.size);
     if constexpr(N > 0)

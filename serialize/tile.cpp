@@ -12,7 +12,7 @@ inline void to_json(nlohmann::json& j, const tile_image_ref& val) { j = tile_ima
 inline void from_json(const nlohmann::json& j, tile_image_ref& val) { val = tile_image_proto(j); }
 
 struct local_coords_ final {
-    std::uint8_t x, y;
+    uint8_t x, y;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords_, x, y)

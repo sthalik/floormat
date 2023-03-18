@@ -59,7 +59,7 @@ void tile_editor::clear_selection()
     _selection_mode = sel_none;
 }
 
-void tile_editor::select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant)
+void tile_editor::select_tile(const std::shared_ptr<tile_atlas>& atlas, size_t variant)
 {
     fm_assert(atlas);
     clear_selection();
@@ -75,7 +75,7 @@ void tile_editor::select_tile_permutation(const std::shared_ptr<tile_atlas>& atl
     _permutation = { atlas, {} };
 }
 
-bool tile_editor::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const
+bool tile_editor::is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, size_t variant) const
 {
     return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;

@@ -18,7 +18,7 @@ constexpr Triple<Vector2b, Vector2ub, Vector2ub> rotation_symmetry(rotation r)
     };
 
     fm_assert(r < rotation_COUNT);
-    auto idx = (std::size_t)r / 2;
+    auto idx = (size_t)r / 2;
     const auto& [r1, sym] = rotation_symmetries[idx];
     return sym;
 }

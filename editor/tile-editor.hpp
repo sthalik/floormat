@@ -48,9 +48,9 @@ public:
     editor_wall_rotation rotation() const noexcept { return _rotation; }
 
     void clear_selection();
-    void select_tile(const std::shared_ptr<tile_atlas>& atlas, std::size_t variant);
+    void select_tile(const std::shared_ptr<tile_atlas>& atlas, size_t variant);
     void select_tile_permutation(const std::shared_ptr<tile_atlas>& atlas);
-    bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, std::size_t variant) const;
+    bool is_tile_selected(const std::shared_ptr<const tile_atlas>& atlas, size_t variant) const;
     bool is_permutation_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     bool is_atlas_selected(const std::shared_ptr<const tile_atlas>& atlas) const;
     bool is_anything_selected() const;

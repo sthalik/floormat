@@ -10,14 +10,14 @@
 namespace floormat {
 
 static constexpr const char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
-static constexpr inline auto rot_count = std::size_t(rotation_COUNT);
+static constexpr inline auto rot_count = size_t(rotation_COUNT);
 
 static_assert(std::size(name_array) == rot_count);
 static_assert(rot_count == 8);
 
-std::uint8_t anim_atlas::rotation_to_index(StringView name) noexcept
+uint8_t anim_atlas::rotation_to_index(StringView name) noexcept
 {
-    for (std::uint8_t i = 0; i < rot_count; i++)
+    for (uint8_t i = 0; i < rot_count; i++)
         if (name == StringView{name_array[i]})
             return i;
     fm_abort("can't parse rotation name '%s'", name.data());
@@ -25,12 +25,12 @@ std::uint8_t anim_atlas::rotation_to_index(StringView name) noexcept
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
 {
-    std::array<std::uint8_t, rot_count> array = {
+    std::array<uint8_t, rot_count> array = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     const auto ngroups = a.groups.size();
     for (auto i = 0_uz; i < ngroups; i++)
-        array[rotation_to_index(a.groups[i].name)] = std::uint8_t(i);
+        array[rotation_to_index(a.groups[i].name)] = uint8_t(i);
     return array;
 }
 
@@ -73,19 +73,19 @@ const anim_def& anim_atlas::info() const noexcept { return _info; }
 
 auto anim_atlas::group(rotation r) const noexcept -> const anim_group&
 {
-    const auto group_idx = _group_indices[std::size_t(r)];
+    const auto group_idx = _group_indices[size_t(r)];
     fm_assert(group_idx != 0xff);
     return _info.groups[group_idx];
 }
 
-auto anim_atlas::frame(rotation r, std::size_t frame) const noexcept -> const anim_frame&
+auto anim_atlas::frame(rotation r, size_t frame) const noexcept -> const anim_frame&
 {
     const anim_group& g = group(r);
     fm_assert(frame < g.frames.size());
     return g.frames[frame];
 }
 
-auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i, bool mirror) const noexcept -> texcoords
+auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const noexcept -> texcoords
 {
     const auto f = frame(r, i);
     const Vector2 p0(f.offset), p1(f.size);
@@ -107,9 +107,9 @@ auto anim_atlas::texcoords_for_frame(rotation r, std::size_t i, bool mirror) con
         }};
 }
 
-auto anim_atlas::frame_quad(const Vector3& center, rotation r, std::size_t i) const noexcept -> quad
+auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const noexcept -> quad
 {
-    enum : std::size_t { x, y, z };
+    enum : size_t { x, y, z };
     const auto f = frame(r, i);
     const auto gx = (float)f.ground[x]*.5f, gy = (float)f.ground[y]*.5f;
     const auto size = Vector2d(f.size);
@@ -132,7 +132,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
     const auto width = size[1], height = size[0],
-               stride = (std::size_t)pixels.stride()[0], width0 = width & ~7u;
+               stride = (size_t)pixels.stride()[0], width0 = width & ~7u;
     const auto* const data = (const unsigned char*)pixels.data();
     auto* const dest = (unsigned char*)array.data();
 
@@ -184,8 +184,8 @@ BitArrayView anim_atlas::bitmask() const
 
 rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 {
-    constexpr auto count = std::size_t(rotation_COUNT);
-    for (auto i = std::size_t(r)+1; i < count; i++)
+    constexpr auto count = size_t(rotation_COUNT);
+    for (auto i = size_t(r)+1; i < count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
     for (auto i = 0_uz; i < count; i++)
@@ -196,21 +196,21 @@ rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 
 rotation anim_atlas::prev_rotation_from(rotation r) const noexcept
 {
-    using ssize = std::make_signed_t<std::size_t>;
+    using ssize = std::make_signed_t<size_t>;
     constexpr auto count = ssize(rotation_COUNT);
     if (r < rotation_COUNT)
         for (auto i = ssize(r)-1; i >= 0; i--)
-            if (_group_indices[std::size_t(i)] != 0xff)
+            if (_group_indices[size_t(i)] != 0xff)
                 return rotation(i);
     for (auto i = count-1; i >= 0; i--)
-        if (_group_indices[std::size_t(i)] != 0xff)
+        if (_group_indices[size_t(i)] != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
 }
 
 bool anim_atlas::check_rotation(rotation r) const noexcept
 {
-    return r < rotation_COUNT && _group_indices[std::size_t(r)] < 0xff;
+    return r < rotation_COUNT && _group_indices[size_t(r)] < 0xff;
 }
 
 rotation anim_atlas::first_rotation() const noexcept

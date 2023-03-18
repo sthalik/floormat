@@ -16,7 +16,7 @@ struct mouse_button_event final {
     Vector2i position;
     int mods = 0;
     mouse_button button = mouse_button_none;
-    std::uint8_t click_count = 0;
+    uint8_t click_count = 0;
 };
 
 struct mouse_move_event final {
@@ -37,13 +37,13 @@ struct text_input_event final {
 
 struct text_editing_event final {
     Containers::StringView text;
-    std::int32_t start = 0, length = 0;
+    int32_t start = 0, length = 0;
 };
 
 struct key_event final {
     int key  = 0;
     int mods = 0;
-    std::uint8_t is_repeated = false;
+    uint8_t is_repeated = false;
 };
 
 union alignas(alignof(void*)) any_event {

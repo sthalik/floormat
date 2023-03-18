@@ -56,7 +56,7 @@ struct anim_def final
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
     anim_scale scale = anim_scale{1};
-    std::size_t nframes = 0, fps = 0, actionframe = 0;
+    size_t nframes = 0, fps = 0, actionframe = 0;
 };
 
 } // namespace floormat

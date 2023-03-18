@@ -6,7 +6,7 @@ namespace floormat::entities::erased_constraints {
 
 struct range final
 {
-    using U = std::size_t;
+    using U = size_t;
     using I = std::make_signed_t<U>;
     enum type_ : unsigned char {
         type_none,
@@ -30,8 +30,8 @@ struct range final
 };
 
 struct max_length final {
-    std::size_t value = std::size_t(-1);
-    constexpr operator std::size_t() const { return value; }
+    size_t value = size_t(-1);
+    constexpr operator size_t() const { return value; }
 };
 
 struct group final {

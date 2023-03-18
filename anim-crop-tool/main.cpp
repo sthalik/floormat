@@ -37,7 +37,7 @@ using floormat::Serialize::anim_atlas_;
 struct options
 {
     String input_dir, input_file, output_dir;
-    std::size_t nframes = 0;
+    size_t nframes = 0;
     anim_scale scale;
 };
 
@@ -165,7 +165,7 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
     group.frames.clear();
     // atlas stores its entries through a pointer.
     // vector::reserve() is necessary to avoid use-after-free.
-    group.frames.reserve((std::size_t)max-1);
+    group.frames.reserve((size_t)max-1);
 
     for (unsigned i = 1; i < max; i++)
     {

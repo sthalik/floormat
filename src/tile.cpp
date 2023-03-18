@@ -13,7 +13,7 @@ tile_image_proto tile_proto::ground() const noexcept     { return { ground_atlas
 tile_image_proto tile_proto::wall_north() const noexcept { return { wall_north_atlas, wall_north_variant }; }
 tile_image_proto tile_proto::wall_west() const noexcept  { return { wall_west_atlas, wall_west_variant   }; }
 
-tile_ref::tile_ref(struct chunk& c, std::uint8_t i) noexcept : _chunk{&c}, i{i} {}
+tile_ref::tile_ref(struct chunk& c, uint8_t i) noexcept : _chunk{&c}, i{i} {}
 
 std::shared_ptr<tile_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground_atlases[i]; }
 std::shared_ptr<tile_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_wall_atlases[i*2+0]; }

@@ -8,8 +8,6 @@
 #include "src/rotation.hpp"
 #include "src/entity-type.hpp"
 #include <bit>
-#include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <limits>
 
@@ -32,10 +30,10 @@ struct entity_proto;
 
 namespace floormat::Serialize {
 
-using tilemeta = std::uint8_t;
-using atlasid  = std::uint16_t;
-using chunksiz = std::uint16_t;
-using proto_t  = std::uint16_t;
+using tilemeta = uint8_t;
+using atlasid  = uint16_t;
+using chunksiz = uint16_t;
+using proto_t  = uint16_t;
 
 namespace {
 
@@ -43,15 +41,15 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 
 #define file_magic ".floormat.save"
 
-constexpr inline std::size_t atlas_name_max = 128;
+constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
-constexpr inline std::size_t character_name_max = 128;
+constexpr inline size_t character_name_max = 128;
 
 constexpr inline proto_t proto_version = 8;
 constexpr inline proto_t min_proto_version = 1;
-constexpr inline auto chunk_magic = (std::uint16_t)~0xc0d3;
-constexpr inline auto scenery_magic = (std::uint16_t)~0xb00b;
+constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
+constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
 
 using pass_mode_i = std::underlying_type_t<pass_mode>;
 constexpr inline pass_mode_i pass_mask = pass_mode_COUNT - 1;
@@ -59,7 +57,7 @@ constexpr inline auto pass_bits = std::bit_width(pass_mask);
 using entity_type_i = std::underlying_type_t<entity_type>;
 
 template<typename T> constexpr inline auto highbit = T(1) << sizeof(T)*8-1;
-template<typename T, std::size_t N, std::size_t off>
+template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
 constexpr inline atlasid meta_short_scenery_bit = highbit<atlasid>;

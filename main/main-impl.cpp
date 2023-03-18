@@ -46,15 +46,15 @@ Vector2i floormat_main::window_size() const noexcept
     return _framebuffer_size;
 }
 
-void main_impl::set_cursor(std::uint32_t cursor) noexcept
+void main_impl::set_cursor(uint32_t cursor) noexcept
 {
     setCursor(Cursor(cursor));
 }
 
-std::uint32_t main_impl::cursor() const noexcept
+uint32_t main_impl::cursor() const noexcept
 {
     using App = Platform::Sdl2Application;
-    return (std::uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
+    return (uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
 }
 
 } // namespace floormat

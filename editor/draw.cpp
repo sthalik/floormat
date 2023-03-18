@@ -74,8 +74,8 @@ void app::draw_collision_boxes()
     using rtree_type = std::decay_t<decltype(*world[chunk_coords{}].rtree())>;
     using rect_type = typename rtree_type::Rect;
 
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
+    for (int16_t y = miny; y <= maxy; y++)
+        for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
             auto& c = world[pos];
@@ -87,7 +87,7 @@ void app::draw_collision_boxes()
             {
                 constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
                 const auto* rtree = c.rtree();
-                rtree->Search(min2f, max2f, [&](std::uint64_t data, const rect_type& rect) {
+                rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
                     [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
                     Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                     auto size = (end - start);
@@ -110,8 +110,8 @@ void app::draw_collision_boxes()
         const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
         const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
                                           curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
-        for (std::int16_t y = miny; y <= maxy; y++)
-            for (std::int16_t x = minx; x <= maxx; x++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
             {
                 const chunk_coords c_pos{x, y};
                 auto& c = world[c_pos];
@@ -127,7 +127,7 @@ void app::draw_collision_boxes()
                     auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
-                    rtree->Search(t0.data(), t1.data(), [&](std::uint64_t data, const rect_type& rect) {
+                    rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = end - start;
@@ -168,7 +168,7 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
         {
             const auto pos_ = *pixel - c.dest.min() + Vector2i(c.src.min());
             const auto pos = !c.mirrored ? pos_ : Vector2i(int(c.src.sizeX()) - 1 - pos_[0], pos_[1]);
-            std::size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
+            size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
             fm_assert(idx < c.bitmask.size());
             if (c.bitmask[idx])
             {

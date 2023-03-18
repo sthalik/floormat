@@ -16,7 +16,7 @@ static T open_stream(StringView filename)
     if (!s)
     {
         char errbuf[128];
-        constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N])
+        constexpr auto get_error_string = []<size_t N> (char (&buf)[N])
         {
             buf[0] = '\0';
 #ifndef _WIN32

@@ -10,7 +10,7 @@ struct box final
 {
     box(Vector3 center, Vector3 size, float line_width);
 
-    static constexpr std::size_t num_vertices = 8, num_indexes = 12*2;
+    static constexpr size_t num_vertices = 8, num_indexes = 12*2;
     static constexpr GL::MeshPrimitive primitive = GL::MeshPrimitive::Lines;
 
     using vertex_array = std::array<Vector3, num_vertices>;

@@ -1,4 +1,5 @@
 #pragma once
+#include "integer-types.hpp"
 
 namespace floormat {
 #ifdef _MSC_VER
@@ -31,11 +32,6 @@ template<typename T> class Vector2;
 template<typename T> class Vector3;
 template<typename T> class Vector4;
 } // namespace Magnum::Math
-namespace Magnum {
-using Vector2uz = Math::Vector2<floormat::size_t>;
-using Vector3uz = Math::Vector3<floormat::size_t>;
-using Vector4uz = Math::Vector4<floormat::size_t>;
-} // namespace Magnum
 
 namespace floormat {
     using namespace ::Magnum;
@@ -45,6 +41,6 @@ namespace floormat {
     using Debug [[maybe_unused]] = ::Corrade::Utility::Debug;
     using Error [[maybe_unused]] = ::Corrade::Utility::Error;
     namespace Path = Corrade::Utility::Path; // NOLINT(misc-unused-alias-decls)
-    consteval auto operator""_uz(unsigned long long int x) { return ::floormat::size_t(x); }
+    consteval auto operator""_uz(unsigned long long int x) { return size_t(x); }
 } // namespace floormat
 namespace nlohmann { using ::floormat::operator""_uz; }

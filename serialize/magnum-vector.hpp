@@ -5,14 +5,14 @@
 
 namespace nlohmann {
 
-template<std::size_t N, typename T>
+template<size_t N, typename T>
 struct adl_serializer<Magnum::Math::Vector<N, T>> {
     using vec = Magnum::Math::Vector<N, T>;
     static void to_json(json& j, const vec& val);
     static void from_json(const json& j, vec& val);
 };
 
-template <std::size_t N, typename T>
+template <size_t N, typename T>
 void adl_serializer<Magnum::Math::Vector<N, T>>::to_json(json& j, const vec& val)
 {
     std::array<T, N> array{};
@@ -22,7 +22,7 @@ void adl_serializer<Magnum::Math::Vector<N, T>>::to_json(json& j, const vec& val
     to_json(j, array);
 }
 
-template <std::size_t N, typename T>
+template <size_t N, typename T>
 void adl_serializer<Magnum::Math::Vector<N, T>>::from_json(const json& j, vec& val)
 {
     std::array<T, N> array{};

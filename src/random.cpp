@@ -4,31 +4,31 @@
 
 namespace floormat {
 
-static thread_local auto g = std::independent_bits_engine<decltype(std::ranlux48{}), 32, std::uint32_t>{std::ranlux48{}};
+static thread_local auto g = std::independent_bits_engine<decltype(std::ranlux48{}), 32, uint32_t>{std::ranlux48{}};
 
 random_engine::~random_engine() = default;
 
 struct random_engine_impl final : random_engine {
-    std::size_t operator()() override;
+    size_t operator()() override;
     float operator()(float min, float max) override;
 };
 
-std::size_t random_engine_impl::operator()()
+size_t random_engine_impl::operator()()
 {
-    if constexpr(sizeof(std::size_t) > sizeof(std::uint32_t))
+    if constexpr(sizeof(size_t) > sizeof(uint32_t))
     {
-        constexpr auto N = (sizeof(std::size_t) + sizeof(std::uint32_t)-1) / sizeof(std::uint32_t);
+        constexpr auto N = (sizeof(size_t) + sizeof(uint32_t)-1) / sizeof(uint32_t);
         static_assert(N >= 1);
         union {
-            std::size_t x;
-            std::uint32_t a[N];
+            size_t x;
+            uint32_t a[N];
         } ret;
         for (auto i = 0_uz; i < N; i++)
             ret.a[i] = g();
         return ret.x;
     }
     else
-        return (std::size_t)g();
+        return (size_t)g();
 }
 
 float random_engine_impl::operator()(float min, float max)

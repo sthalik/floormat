@@ -16,12 +16,12 @@ wall_mesh::wall_mesh() = default;
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
     const auto [mesh_, ids, size] = c.ensure_wall_mesh();
-    struct { tile_atlas* atlas = nullptr; std::size_t pos = 0; } last;
+    struct { tile_atlas* atlas = nullptr; size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
-    [[maybe_unused]] std::size_t draw_count = 0;
-    fm_debug_assert(std::size_t(mesh_.count()) == size*quad_index_count);
+    [[maybe_unused]] size_t draw_count = 0;
+    fm_debug_assert(size_t(mesh_.count()) == size*quad_index_count);
 
-    const auto do_draw = [&](std::size_t i, tile_atlas* atlas, std::uint32_t max_index) {
+    const auto do_draw = [&](size_t i, tile_atlas* atlas, uint32_t max_index) {
         if (atlas == last.atlas)
             return;
         if (auto len = i - last.pos; last.atlas && len > 0)
@@ -35,8 +35,8 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         last = { atlas, i };
     };
 
-    const auto max_index = std::uint32_t(size*quad_index_count - 1);
-    std::size_t k;
+    const auto max_index = uint32_t(size*quad_index_count - 1);
+    size_t k;
     for (k = 0; k < size; k++)
         do_draw(k, c.wall_atlas_at(ids[k]), max_index);
     do_draw(size, nullptr, max_index);

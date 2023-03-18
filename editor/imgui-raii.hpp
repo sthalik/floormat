@@ -40,7 +40,7 @@ private:
 
 void text(StringView str, ImGuiTextFlags flags = ImGuiTextFlags_NoWidthForLargeClippedText);
 
-template<std::size_t N>
+template<size_t N>
 void text(const char (&buf)[N], ImGuiTextFlags_ flags = ImGuiTextFlags_NoWidthForLargeClippedText)
 {
     ImGui::TextEx(buf, buf + N - 1, flags);

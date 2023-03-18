@@ -15,7 +15,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
 {
     ensure_plugins();
 
-    constexpr std::size_t max_extension_length = 16;
+    constexpr size_t max_extension_length = 16;
     const auto N = prefix.size();
     if (N > 0)
         fm_assert(prefix[N-1] == '/');
@@ -27,7 +27,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     if (N > 0)
         std::memcpy(filename, prefix.data(), N);
     std::memcpy(filename + N, filename_.data(), filename_.size());
-    std::size_t len =  filename_.size() + N;
+    size_t len =  filename_.size() + N;
 
     for (const auto& extension : std::initializer_list<StringView>{ ".tga", ".png", ".webp", })
     {

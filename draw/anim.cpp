@@ -51,12 +51,12 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     auto [mesh_] = c.ensure_scenery_mesh();
     const auto& es = c.entities();
     GL::MeshView mesh{mesh_};
-    [[maybe_unused]] std::size_t draw_count = 0;
+    [[maybe_unused]] size_t draw_count = 0;
 
     const auto size = es.size();
-    const auto max_index = std::uint32_t(size*quad_index_count - 1);
+    const auto max_index = uint32_t(size*quad_index_count - 1);
 
-    const auto do_draw = [&](std::size_t from, std::size_t to, anim_atlas* atlas) {
+    const auto do_draw = [&](size_t from, size_t to, anim_atlas* atlas) {
         atlas->texture().bind(0);
         mesh.setCount((int)(quad_index_count * (to-from)));
         mesh.setIndexRange((int)(from*quad_index_count), 0, max_index);
@@ -64,14 +64,14 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
         draw_count++;
     };
 
-    fm_debug_assert(std::size_t(mesh_.count()) <= size*quad_index_count);
+    fm_debug_assert(size_t(mesh_.count()) <= size*quad_index_count);
 
     struct last_ {
-        anim_atlas* atlas = nullptr; std::size_t run_from = 0;
+        anim_atlas* atlas = nullptr; size_t run_from = 0;
         operator bool() const { return atlas; }
         last_& operator=(std::nullptr_t) { atlas = nullptr; return *this; }
     } last;
-    std::size_t i = 0;
+    size_t i = 0;
 
     for (auto k = 0_uz; k < size; k++)
     {
@@ -111,7 +111,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
 #endif
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, const Vector3& center, float depth)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, float depth)
 {
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
@@ -124,7 +124,7 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::si
     shader.draw(_mesh);
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, std::size_t frame, local_coords xy, Vector2b offset, float depth_offset)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float depth_offset)
 {
     const auto pos = Vector3(xy) * TILE_SIZE + Vector3(Vector2(offset), 0);
     const float depth = tile_shader::depth_value(xy, depth_offset);

@@ -16,7 +16,7 @@ namespace floormat {
 
 namespace {
 
-constexpr std::size_t data_nbytes = 128;
+constexpr size_t data_nbytes = 128;
 const unsigned char data_door_close[] = {
 #include "bitmask.embed.inc"
 };
@@ -45,7 +45,7 @@ void bitmask_test()
 {
     auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
-    fm_assert(img.pixelSize() == 4 && (std::size_t)img.size().product() >= data_nbytes);
+    fm_assert(img.pixelSize() == 4 && (size_t)img.size().product() >= data_nbytes);
 #ifdef DO_GENERATE
     for (auto i = 0_uz; i < data_nbytes; i++)
     {
@@ -58,7 +58,7 @@ void bitmask_test()
     printf("\n");
     fflush(stdout);
 #endif
-    const auto len = std::min(data_nbytes, (std::size_t)bitmask.size()+7 >> 3);
+    const auto len = std::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
     for (auto i = 0_uz; i < len; i++)
         if ((unsigned char)bitmask.data()[i] != data_door_close[i])
             fm_abort("wrong value at bit %zu, should be' 0x%02hhx'", i, data_door_close[i]);

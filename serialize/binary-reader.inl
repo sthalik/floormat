@@ -19,8 +19,8 @@ template<string_input_iterator It>
 template<serializable T>
 constexpr T binary_reader<It>::read() noexcept(false)
 {
-    constexpr std::size_t N = sizeof(T);
-    fm_soft_assert((std::ptrdiff_t)N <= std::distance(it, end));
+    constexpr size_t N = sizeof(T);
+    fm_soft_assert((ptrdiff_t)N <= std::distance(it, end));
     num_bytes_read += N;
     char buf[N];
     for (auto i = 0_uz; i < N; i++)
@@ -29,13 +29,13 @@ constexpr T binary_reader<It>::read() noexcept(false)
 }
 
 template<string_input_iterator It>
-template<std::size_t N>
+template<size_t N>
 constexpr std::array<char, N> binary_reader<It>::read() noexcept(false)
 {
     std::array<char, N> array;
     if (std::is_constant_evaluated())
         array = {};
-    fm_soft_assert(N <= (std::size_t)std::distance(it, end));
+    fm_soft_assert(N <= (size_t)std::distance(it, end));
     num_bytes_read += N;
     for (auto i = 0_uz; i < N; i++)
         array[i] = *it++;
@@ -61,14 +61,14 @@ constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
 }
 
 template<string_input_iterator It>
-template<std::size_t MAX>
+template<size_t MAX>
 constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
 {
     static_assert(MAX > 0);
 
     struct fixed_string final {
         char buf[MAX];
-        std::size_t len;
+        size_t len;
         constexpr operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
     };
 

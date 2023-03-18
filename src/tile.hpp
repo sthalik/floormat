@@ -20,7 +20,7 @@ struct tile_proto final
 
 struct tile_ref final
 {
-    tile_ref(struct chunk& c, std::uint8_t i) noexcept;
+    tile_ref(struct chunk& c, uint8_t i) noexcept;
 
     tile_image_ref ground() noexcept;
     tile_image_ref wall_north() noexcept;
@@ -42,13 +42,13 @@ struct tile_ref final
 
     struct chunk& chunk() noexcept { return *_chunk; }
     const struct chunk& chunk() const noexcept { return *_chunk; }
-    std::size_t index() const noexcept { return i; }
+    size_t index() const noexcept { return i; }
 
     friend bool operator==(const tile_ref& a, const tile_ref& b) noexcept;
 
 private:
     struct chunk* _chunk;
-    std::uint8_t i;
+    uint8_t i;
 };
 
 } //namespace floormat

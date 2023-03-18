@@ -48,7 +48,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
             push_style_color(ImGuiCol_ButtonHovered, color_hover),
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
-        constexpr std::size_t per_row = 8;
+        constexpr size_t per_row = 8;
         for (auto i = 0_uz; i < N; i++)
         {
             const bool selected = ed.is_tile_selected(atlas, i);

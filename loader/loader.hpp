@@ -7,7 +7,7 @@
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat { struct serialized_scenery; }
 namespace Magnum::Trade {
-template<std::uint32_t> class ImageData;
+template<uint32_t> class ImageData;
 using ImageData2D = ImageData<2>;
 } // namespace Magnum::Trade
 

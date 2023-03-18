@@ -17,13 +17,13 @@ struct tile_atlas final
 
     tile_atlas(StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
-    texcoords texcoords_for_id(std::size_t id) const;
+    texcoords texcoords_for_id(size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
     static constexpr quad wall_quad_N(Vector3 center, Vector3 size);
     static constexpr quad wall_quad_W(Vector3 center, Vector3 size);
-    static constexpr std::array<UnsignedShort, 6> indices(std::size_t N);
+    static constexpr std::array<UnsignedShort, 6> indices(size_t N);
     [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
-    std::size_t num_tiles() const;
+    size_t num_tiles() const;
     Vector2ub num_tiles2() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
     StringView name() const { return name_; }
@@ -33,7 +33,7 @@ struct tile_atlas final
 
 private:
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
-    static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, std::size_t i);
+    static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i);
 
     std::unique_ptr<const texcoords[]> texcoords_;
     GL::Texture2D tex_;
@@ -43,7 +43,7 @@ private:
     Optional<enum pass_mode> passability;
 };
 
-constexpr std::array<UnsignedShort, 6> tile_atlas::indices(std::size_t N)
+constexpr std::array<UnsignedShort, 6> tile_atlas::indices(size_t N)
 {
     using u16 = UnsignedShort;
     return {                                        /* 3--1  1 */

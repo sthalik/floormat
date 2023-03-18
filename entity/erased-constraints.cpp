@@ -1,6 +1,5 @@
 #include "erased-constraints.hpp"
 #include "compat/assert.hpp"
-#include <cstdint>
 #include <cmath>
 #include <limits>
 #include <Magnum/Magnum.h>
@@ -8,10 +7,10 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 
-static_assert(sizeof(std::size_t) == sizeof(std::uintptr_t));
-static_assert(sizeof(std::size_t) == sizeof(std::ptrdiff_t));
-
 namespace floormat::entities::erased_constraints {
+
+static_assert(sizeof(size_t) == sizeof(uintptr_t));
+static_assert(sizeof(size_t) == sizeof(ptrdiff_t));
 
 template<typename T> std::pair<T, T> range::convert() const
 {
@@ -106,13 +105,13 @@ template<typename T> std::pair<T, T> range::convert() const
 
 template<typename T> using pair2 = std::pair<T, T>;
 
-template pair2<std::uint8_t> range::convert() const;
-template pair2<std::uint16_t> range::convert() const;
-template pair2<std::uint32_t> range::convert() const;
-template pair2<std::uint64_t> range::convert() const;
-template pair2<std::int8_t> range::convert() const;
-template pair2<std::int16_t> range::convert() const;
-template pair2<std::int32_t> range::convert() const;
+template pair2<uint8_t> range::convert() const;
+template pair2<uint16_t> range::convert() const;
+template pair2<uint32_t> range::convert() const;
+template pair2<uint64_t> range::convert() const;
+template pair2<int8_t> range::convert() const;
+template pair2<int16_t> range::convert() const;
+template pair2<int32_t> range::convert() const;
 template pair2<float> range::convert() const;
 template pair2<Vector2ub> range::convert() const;
 template pair2<Vector2us> range::convert() const;

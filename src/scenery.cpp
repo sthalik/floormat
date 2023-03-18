@@ -17,12 +17,12 @@ scenery_proto::scenery_proto(const scenery_proto&) = default;
 scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 
-bool scenery::can_activate(std::size_t) const
+bool scenery::can_activate(size_t) const
 {
     return atlas && interactive;
 }
 
-bool scenery::update(std::size_t, float dt)
+bool scenery::update(size_t, float dt)
 {
     auto& s = *this;
     if (!s.active)
@@ -37,17 +37,17 @@ bool scenery::update(std::size_t, float dt)
     case scenery_type::door:
         fm_assert(atlas);
         auto& anim = *atlas;
-        const auto hz = std::uint8_t(atlas->info().fps);
+        const auto hz = uint8_t(atlas->info().fps);
         const auto nframes = (int)anim.info().nframes;
         fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
 
         auto delta_ = int(s.delta) + int(65535u * dt);
         delta_ = std::min(65535, delta_);
         const auto frame_time = int(1.f/hz * 65535);
-        const auto n = (std::uint8_t)std::clamp(delta_ / frame_time, 0, 255);
-        s.delta = (std::uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
+        const auto n = (uint8_t)std::clamp(delta_ / frame_time, 0, 255);
+        s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
         fm_debug_assert(s.delta >= 0);
-        const std::int8_t dir = s.closing ? 1 : -1;
+        const int8_t dir = s.closing ? 1 : -1;
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
         pass_mode p;
@@ -58,14 +58,14 @@ bool scenery::update(std::size_t, float dt)
         else
             p = pass_mode::see_through;
         set_bbox(offset, bbox_offset, bbox_size, p);
-        s.frame = (std::uint16_t)std::clamp(fr, 0, nframes-1);
+        s.frame = (uint16_t)std::clamp(fr, 0, nframes-1);
         if (!s.active)
             s.delta = s.closing = 0;
         return true;
     }
 }
 
-bool scenery::activate(std::size_t)
+bool scenery::activate(size_t)
 {
     auto& s = *this;
     if (s.active)
@@ -111,7 +111,7 @@ scenery::operator scenery_proto() const
     return ret;
 }
 
-scenery::scenery(std::uint64_t id, struct chunk& c, entity_type type_, const scenery_proto& proto) :
+scenery::scenery(object_id id, struct chunk& c, entity_type type_, const scenery_proto& proto) :
     entity{id, c, type_, proto}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {

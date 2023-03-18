@@ -35,9 +35,9 @@ struct anim_atlas final
     const anim_def& info() const noexcept;
 
     const anim_group& group(rotation r) const noexcept;
-    const anim_frame& frame(rotation r, std::size_t frame) const noexcept;
-    texcoords texcoords_for_frame(rotation r, std::size_t frame, bool mirror) const noexcept;
-    quad frame_quad(const Vector3& center, rotation r, std::size_t frame) const noexcept;
+    const anim_frame& frame(rotation r, size_t frame) const noexcept;
+    texcoords texcoords_for_frame(rotation r, size_t frame, bool mirror) const noexcept;
+    quad frame_quad(const Vector3& center, rotation r, size_t frame) const noexcept;
 
     BitArrayView bitmask() const;
 
@@ -55,13 +55,13 @@ private:
     String _name;
     BitArray _bitmask;
     anim_def _info;
-    std::array<std::uint8_t, (std::size_t)rotation_COUNT> _group_indices = {
+    std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     GL::Texture2D _tex;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
-    static std::uint8_t rotation_to_index(StringView name) noexcept;
+    static uint8_t rotation_to_index(StringView name) noexcept;
 };
 
 } // namespace floormat

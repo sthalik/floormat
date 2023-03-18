@@ -8,7 +8,7 @@
 namespace floormat {
 
 struct chunk_coords final {
-    std::int16_t x = 0, y = 0;
+    int16_t x = 0, y = 0;
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
     constexpr Vector2i operator-(chunk_coords other) const noexcept;
@@ -28,18 +28,18 @@ constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
 }
 
 struct global_coords final {
-    using u0 = std::integral_constant<std::uint32_t, (1<<15)>;
-    using s0 = std::integral_constant<std::int32_t, std::int32_t(u0::value)>;
-    std::uint32_t x = u0::value<<4, y = u0::value<<4;
+    using u0 = std::integral_constant<uint32_t, (1<<15)>;
+    using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
+    uint32_t x = u0::value<<4, y = u0::value<<4;
 
     constexpr global_coords() noexcept = default;
     constexpr global_coords(chunk_coords c, local_coords xy) :
-        x{ std::uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) },
-        y{ std::uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
+        x{ uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) },
+        y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {}
-    constexpr global_coords(std::uint32_t x, std::uint32_t y) noexcept : x{x}, y{y} {}
-    constexpr global_coords(std::int32_t x, std::int32_t y) noexcept :
-          x{std::uint32_t(x + (s0::value<<4))}, y{std::uint32_t(y + (s0::value<<4))}
+    constexpr global_coords(uint32_t x, uint32_t y) noexcept : x{x}, y{y} {}
+    constexpr global_coords(int32_t x, int32_t y) noexcept :
+          x{uint32_t(x + (s0::value<<4))}, y{uint32_t(y + (s0::value<<4))}
     {}
 
     constexpr local_coords local() const noexcept;
@@ -58,17 +58,17 @@ struct global_coords final {
 
 constexpr local_coords global_coords::local() const noexcept
 {
-    return { std::uint8_t(x & 0x0f), std::uint8_t(y & 0x0f), };
+    return { uint8_t(x & 0x0f), uint8_t(y & 0x0f), };
 }
 
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
-    return { std::int16_t(std::int32_t((x>>4) - u0::value)), std::int16_t(std::int32_t((y>>4) - u0::value)), };
+    return { int16_t(int32_t((x>>4) - u0::value)), int16_t(int32_t((y>>4) - u0::value)), };
 }
 
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
-    return { std::int32_t(x - (s0::value<<4)), std::int32_t(y - (s0::value<<4)), };
+    return { int32_t(x - (s0::value<<4)), int32_t(y - (s0::value<<4)), };
 }
 
 constexpr Vector3i global_coords::to_signed3() const noexcept
@@ -78,25 +78,25 @@ constexpr Vector3i global_coords::to_signed3() const noexcept
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
 {
-    return { std::uint32_t((std::int64_t)x+vec[0]), std::uint32_t((std::int64_t)y+vec[1]) };
+    return { uint32_t((int64_t)x+vec[0]), uint32_t((int64_t)y+vec[1]) };
 }
 
 constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
 {
-    x = std::uint32_t((std::int64_t)x+vec[0]);
-    y = std::uint32_t((std::int64_t)y+vec[1]);
+    x = uint32_t((int64_t)x+vec[0]);
+    y = uint32_t((int64_t)y+vec[1]);
     return *this;
 }
 
 constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
 {
-    return { std::uint32_t((std::int64_t)x-vec[0]), std::uint32_t((std::int64_t)y-vec[1]) };
+    return { uint32_t((int64_t)x-vec[0]), uint32_t((int64_t)y-vec[1]) };
 }
 
 constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
 {
-    x = std::uint32_t((std::int64_t)x-vec[0]);
-    y = std::uint32_t((std::int64_t)y-vec[1]);
+    x = uint32_t((int64_t)x-vec[0]);
+    y = uint32_t((int64_t)y-vec[1]);
     return *this;
 }
 

@@ -215,7 +215,7 @@ constexpr void test_constraints()
     static_assert(foo.get_group(x) == "foo"_s);
 
     static_assert(m_foo.get_range(x) == constraints::range<int>{});
-    static_assert(m_foo.get_max_length(x) == (std::size_t)-1);
+    static_assert(m_foo.get_max_length(x) == (size_t)-1);
     static_assert(m_foo.get_group(x) == ""_s);
 
     constexpr auto foo2 = entity::type<int>::field {

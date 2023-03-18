@@ -79,7 +79,7 @@ int character::allocate_frame_time(float dt)
     constexpr int framerate_ = 65535/framerate;
     static_assert(framerate_ > 0);
     auto ret = d / framerate_;
-    delta = (std::uint16_t)std::clamp(d - ret*65535, 0, 65535);
+    delta = (uint16_t)std::clamp(d - ret*65535, 0, 65535);
     return ret;
 }
 
@@ -97,7 +97,7 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
-bool character::update(std::size_t i, float dt)
+bool character::update(size_t i, float dt)
 {
     auto [lr, ud, new_r] = arrows_to_dir(b_L, b_R, b_U, b_D);
 
@@ -141,7 +141,7 @@ character::operator character_proto() const
     return ret;
 }
 
-character::character(std::uint64_t id, struct chunk& c, entity_type type, const character_proto& proto) :
+character::character(object_id id, struct chunk& c, entity_type type, const character_proto& proto) :
     entity{id, c, type, proto},
     name{proto.name},
     playable{proto.playable}

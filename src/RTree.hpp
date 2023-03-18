@@ -1329,7 +1329,7 @@ void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVis
   ASSERT(m_root);
   ASSERT(m_root->m_level >= 0);
 
-  std::size_t count = (std::size_t)Count();
+  size_t count = (size_t)Count();
   treeList.clear();
   treeList.reserve(count);
   toVisit.clear();

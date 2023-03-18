@@ -17,32 +17,32 @@ void main_impl::viewportEvent(Platform::Sdl2Application::ViewportEvent& event)
 void main_impl::mousePressEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     app.on_mouse_up_down({event.position() * _virtual_scale,
-                          (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                          mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
-                          std::uint8_t(std::min(255, event.clickCount()))},
+                          (SDL_Keymod)(uint16_t)event.modifiers(),
+                          mouse_button(SDL_BUTTON((uint8_t)event.button())),
+                          uint8_t(std::min(255, event.clickCount()))},
                          true);
 }
 
 void main_impl::mouseReleaseEvent(Platform::Sdl2Application::MouseEvent& event)
 {
     app.on_mouse_up_down({event.position() * _virtual_scale,
-                          (SDL_Keymod)(std::uint16_t)event.modifiers(),
-                          mouse_button(SDL_BUTTON((std::uint8_t)event.button())),
-                          std::uint8_t(std::min(255, event.clickCount()))},
+                          (SDL_Keymod)(uint16_t)event.modifiers(),
+                          mouse_button(SDL_BUTTON((uint8_t)event.button())),
+                          uint8_t(std::min(255, event.clickCount()))},
                          false);
 }
 
 void main_impl::mouseMoveEvent(Platform::Sdl2Application::MouseMoveEvent& event)
 {
     app.on_mouse_move({event.position() * _virtual_scale,
-                       (mouse_button)(std::uint8_t)std::uint32_t{event.buttons()},
-                       (SDL_Keymod)(std::uint16_t)event.modifiers()});
+                       (mouse_button)(uint8_t)uint32_t{event.buttons()},
+                       (SDL_Keymod)(uint16_t)event.modifiers()});
 }
 
 void main_impl::mouseScrollEvent(Platform::Sdl2Application::MouseScrollEvent& event)
 {
     app.on_mouse_scroll({event.offset(), event.position() * _virtual_scale,
-                         (SDL_Keymod)(std::uint16_t)event.modifiers()});
+                         (SDL_Keymod)(uint16_t)event.modifiers()});
 }
 
 void main_impl::textInputEvent(Platform::Sdl2Application::TextInputEvent& event)
@@ -59,16 +59,16 @@ void main_impl::textEditingEvent(Platform::Sdl2Application::TextEditingEvent& ev
 
 void main_impl::keyPressEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
-                        (SDL_Keymod)(std::uint16_t)event.modifiers(),
+    app.on_key_up_down({(SDL_Keycode)(uint32_t)event.key(),
+                        (SDL_Keymod)(uint16_t)event.modifiers(),
                         event.isRepeated()},
                        true);
 }
 
 void main_impl::keyReleaseEvent(Platform::Sdl2Application::KeyEvent& event)
 {
-    app.on_key_up_down({(SDL_Keycode)(std::uint32_t)event.key(),
-                        (SDL_Keymod)(std::uint16_t)event.modifiers(),
+    app.on_key_up_down({(SDL_Keycode)(uint32_t)event.key(),
+                        (SDL_Keymod)(uint16_t)event.modifiers(),
                         event.isRepeated()},
                        false);
 }

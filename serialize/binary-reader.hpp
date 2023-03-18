@@ -28,10 +28,10 @@ struct binary_reader final {
     constexpr binary_reader(It begin, It end) noexcept;
     constexpr void assert_end() noexcept(false);
 
-    constexpr std::size_t bytes_read() const noexcept { return num_bytes_read; }
+    constexpr size_t bytes_read() const noexcept { return num_bytes_read; }
     template<serializable T> constexpr T read() noexcept(false);
-    template<std::size_t N> constexpr std::array<char, N> read() noexcept(false);
-    template<std::size_t Max> constexpr auto read_asciiz_string() noexcept(false);
+    template<size_t N> constexpr std::array<char, N> read() noexcept(false);
+    template<size_t Max> constexpr auto read_asciiz_string() noexcept(false);
 
     binary_reader(binary_reader&&) noexcept = default;
     binary_reader& operator=(binary_reader&&) noexcept = default;
@@ -41,7 +41,7 @@ struct binary_reader final {
     constexpr char peek() const;
 
 private:
-    std::size_t num_bytes_read = 0;
+    size_t num_bytes_read = 0;
     It it, end;
 };
 

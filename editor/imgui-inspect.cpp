@@ -19,7 +19,7 @@ void app::draw_inspector()
     constexpr auto max_inspectors = 4; // todo change later to 32
     if (auto size = inspectors.size(); size > max_inspectors)
     {
-        auto end = inspectors.begin() + (std::ptrdiff_t)size - max_inspectors;
+        auto end = inspectors.begin() + (ptrdiff_t)size - max_inspectors;
         inspectors.erase(inspectors.begin(), end);
     }
 

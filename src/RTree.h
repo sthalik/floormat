@@ -278,8 +278,7 @@ public:
   void ListTree(std::vector<Rect>& vec, std::vector<Node*>& temp) const;
 };
 
-#include <cinttypes>
-extern template class RTree<std::uint64_t, float, 2, float>;
+extern template class RTree<floormat::uint64_t, float, 2, float>;
 
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL

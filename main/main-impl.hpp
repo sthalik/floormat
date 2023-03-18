@@ -71,8 +71,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const;
 
-    void set_cursor(std::uint32_t cursor) noexcept override;
-    std::uint32_t cursor() const noexcept override;
+    void set_cursor(uint32_t cursor) noexcept override;
+    uint32_t cursor() const noexcept override;
 
 private:
     fm_settings s;

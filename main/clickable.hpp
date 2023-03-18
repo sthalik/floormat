@@ -14,7 +14,7 @@ struct clickable final {
     BitArrayView bitmask;
     std::shared_ptr<entity> e;
     float depth;
-    std::uint32_t stride;
+    uint32_t stride;
     bool mirrored;
 };
 

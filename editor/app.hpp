@@ -10,6 +10,7 @@
 #include "draw/box.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
+#include "object-id.hpp"
 #include <memory>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
@@ -33,7 +34,7 @@ struct cursor_state final {
 
 struct clickable;
 
-enum class Cursor: std::uint32_t {
+enum class Cursor: uint32_t {
     Arrow, TextInput, Wait, Crosshair, WaitArrow,
     ResizeNWSE, ResizeNESW, ResizeWE, ResizeNS, ResizeAll,
     No, Hand, Hidden, HiddenLocked,
@@ -96,7 +97,7 @@ private:
     void on_mouse_enter() noexcept override;
 
     void do_mouse_move(int modifiers);
-    void do_mouse_up_down(std::uint8_t button, bool is_down, int modifiers);
+    void do_mouse_up_down(uint8_t button, bool is_down, int modifiers);
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
@@ -150,7 +151,7 @@ private:
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
-    std::uint64_t _character_id = 0;
+    object_id _character_id = 0;
     cursor_state cursor;
     popup_target _popup_target;
 

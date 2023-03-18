@@ -5,7 +5,6 @@
 #include "util.hpp"
 #include "concepts.hpp"
 #include "compat/defs.hpp"
-#include <cstddef>
 #include <concepts>
 #include <type_traits>
 #include <limits>
@@ -23,7 +22,7 @@ template<typename T> struct entity_accessors;
 
 namespace floormat::entities::detail {
 
-template<typename F, typename Tuple, std::size_t N>
+template<typename F, typename Tuple, size_t N>
 requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
 constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
 {
@@ -35,7 +34,7 @@ constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
         visit_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
 }
 
-template<typename F, typename Tuple, std::size_t N>
+template<typename F, typename Tuple, size_t N>
 requires std::is_invocable_r_v<bool, F, decltype(std::get<N>(std::declval<Tuple>()))>
 constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
 {
@@ -53,22 +52,22 @@ template<typename T> struct decay_tuple_;
 template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
 template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
 
-template<typename Obj, typename Type, typename Default, std::size_t I, typename... Fs> struct find_reader;
+template<typename Obj, typename Type, typename Default, size_t I, typename... Fs> struct find_reader;
 
-template<typename Obj, typename Type, typename Default, std::size_t I> struct find_reader<Obj, Type, Default, I> {
+template<typename Obj, typename Type, typename Default, size_t I> struct find_reader<Obj, Type, Default, I> {
     using type = Default;
-    static constexpr std::size_t index = I;
+    static constexpr size_t index = I;
 };
 
-template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
+template<typename Obj, typename Type, typename Default, size_t I, typename F, typename... Fs>
 struct find_reader<Obj, Type, Default, I, F, Fs...> {
     using type = typename find_reader<Obj, Type, Default, I+1, Fs...>::type;
-    static constexpr std::size_t index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
+    static constexpr size_t index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
 };
 
-template<typename Obj, typename Type, typename Default, std::size_t I, typename F, typename... Fs>
+template<typename Obj, typename Type, typename Default, size_t I, typename F, typename... Fs>
 requires FieldReader<F, Obj, Type>
-struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr std::size_t index = I; };
+struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr size_t index = I; };
 
 } // namespace floormat::entities::detail
 
@@ -85,7 +84,7 @@ struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = constantly(field_status::enabled);
     static constexpr auto default_c_range   = constantly(constraints::range<Type>{});
-    static constexpr auto default_c_length  = constantly(constraints::max_length{std::size_t(-1)});
+    static constexpr auto default_c_length  = constantly(constraints::max_length{size_t(-1)});
     static constexpr auto default_c_group   = constantly(StringView{});
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
@@ -95,7 +94,7 @@ private:
     using c_range  = detail::find_reader<Obj, constraints::range<Type>, default_c_range_t, 0, Ts...>;
     using c_length = detail::find_reader<Obj, constraints::max_length, default_c_length_t, 0, Ts...>;
     using c_group  = detail::find_reader<Obj, constraints::group, default_c_group_t, 0, Ts...>;
-    static constexpr std::size_t good_arguments =
+    static constexpr size_t good_arguments =
         unsigned(c_predicate::index != sizeof...(Ts)) +
         unsigned(c_range::index != sizeof...(Ts)) +
         unsigned(c_length::index != sizeof...(Ts)) +
@@ -273,7 +272,7 @@ class entity_metadata final {
 public:
     static constexpr StringView class_name = name_of<T>;
     static constexpr auto accessors = entities::entity_accessors<T>::accessors();
-    static constexpr std::size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
+    static constexpr size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
     static constexpr auto erased_accessors = erased_helper(accessors);
 };
 

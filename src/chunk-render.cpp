@@ -9,8 +9,8 @@
 
 namespace floormat {
 
-template<std::size_t N = 1>
-static auto make_index_array(std::size_t max)
+template<size_t N = 1>
+static auto make_index_array(size_t max)
 {
     std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (auto i = 0_uz; i < max; i++)
@@ -21,23 +21,23 @@ static auto make_index_array(std::size_t max)
 auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
 {
     if (!_ground_modified)
-        return { ground_mesh, ground_indexes, std::size_t(ground_mesh.count()/6) };
+        return { ground_mesh, ground_indexes, size_t(ground_mesh.count()/6) };
     _ground_modified = false;
 
-    std::size_t count = 0;
+    size_t count = 0;
     for (auto i = 0_uz; i < TILE_COUNT; i++)
         if (_ground_atlases[i])
-            ground_indexes[count++] = std::uint8_t(i);
+            ground_indexes[count++] = uint8_t(i);
 
     std::sort(ground_indexes.begin(), ground_indexes.begin() + count,
-              [this](std::uint8_t a, std::uint8_t b) {
+              [this](uint8_t a, uint8_t b) {
                   return _ground_atlases[a] < _ground_atlases[b];
               });
 
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (auto k = 0_uz; k < count; k++)
     {
-        const std::uint8_t i = ground_indexes[k];
+        const uint8_t i = ground_indexes[k];
         const auto& atlas = _ground_atlases[i];
         const local_coords pos{i};
         const auto quad = atlas->floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
@@ -55,7 +55,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(std::int32_t(6 * count));
+        .setCount(int32_t(6 * count));
     ground_mesh = Utility::move(mesh);
     return { ground_mesh, ground_indexes, count };
 }
@@ -63,23 +63,23 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
 auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
 {
     if (!_walls_modified)
-        return { wall_mesh, wall_indexes, std::size_t(wall_mesh.count()/6) };
+        return { wall_mesh, wall_indexes, size_t(wall_mesh.count()/6) };
     _walls_modified = false;
 
-    std::size_t count = 0;
+    size_t count = 0;
     for (auto i = 0_uz; i < TILE_COUNT*2; i++)
         if (_wall_atlases[i])
-            wall_indexes[count++] = std::uint16_t(i);
+            wall_indexes[count++] = uint16_t(i);
 
     std::sort(wall_indexes.begin(), wall_indexes.begin() + count,
-              [this](std::uint16_t a, std::uint16_t b) {
+              [this](uint16_t a, uint16_t b) {
                   return _wall_atlases[a] < _wall_atlases[b];
               });
 
     std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
     for (auto k = 0_uz; k < count; k++)
     {
-        const std::uint16_t i = wall_indexes[k];
+        const uint16_t i = wall_indexes[k];
         const auto& atlas = _wall_atlases[i];
         const auto& variant = _wall_variants[i];
         const local_coords pos{i / 2u};
@@ -99,7 +99,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(std::int32_t(6 * count));
+        .setCount(int32_t(6 * count));
     wall_mesh = Utility::move(mesh);
     return { wall_mesh, wall_indexes, count };
 }
@@ -113,7 +113,7 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
         _scenery_modified = false;
 
         const auto count = fm_begin(
-            std::size_t ret = 0;
+            size_t ret = 0;
             for (const auto& e : _entities)
                 ret += !e->is_dynamic();
             return ret;
@@ -149,7 +149,7 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
         GL::Mesh mesh{GL::MeshPrimitive::Triangles};
         mesh.addVertexBuffer(GL::Buffer{scenery_vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
             .setIndexBuffer(GL::Buffer{scenery_indexes}, 0, GL::MeshIndexType::UnsignedShort)
-            .setCount(std::int32_t(6 * count));
+            .setCount(int32_t(6 * count));
         scenery_mesh = Utility::move(mesh);
     }
     return { scenery_mesh, };

@@ -3,7 +3,6 @@
 #include "tile-defs.hpp"
 #include "rotation.hpp"
 #include "entity.hpp"
-#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <Magnum/Math/Vector2.h>
@@ -18,7 +17,7 @@ struct world;
 enum class scenery_type : unsigned char {
     none, generic, door,
 };
-constexpr inline std::size_t scenery_type_BITS = 3;
+constexpr inline size_t scenery_type_BITS = 3;
 
 struct scenery_proto : entity_proto
 {
@@ -42,14 +41,14 @@ struct scenery final : entity
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;
 
-    bool can_activate(std::size_t i) const override;
-    bool activate(std::size_t i) override;
-    bool update(std::size_t i, float dt) override;
+    bool can_activate(size_t i) const override;
+    bool activate(size_t i) override;
+    bool update(size_t i, float dt) override;
     explicit operator scenery_proto() const;
 
 private:
     friend struct world;
-    scenery(std::uint64_t id, struct chunk& c, entity_type type, const scenery_proto& proto);
+    scenery(object_id id, struct chunk& c, entity_type type, const scenery_proto& proto);
 };
 
 template<> struct entity_type_<scenery> : std::integral_constant<entity_type, entity_type::scenery> {};

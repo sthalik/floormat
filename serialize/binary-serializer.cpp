@@ -11,7 +11,7 @@ constexpr bool test1()
 {
     constexpr std::array<char, 4> bytes = { 1, 2, 3, 4 };
     auto x = binary_reader(bytes.cbegin(), bytes.cend());
-    return x.read<std::uint32_t>() == 67305985;
+    return x.read<uint32_t>() == 67305985;
 }
 static_assert(test1());
 
@@ -20,7 +20,7 @@ constexpr bool test2()
 {
     constexpr std::array<char, 4> bytes = { 4, 3, 2, 1 };
     auto r = binary_reader(bytes.cbegin(), bytes.cend());
-    const auto x = r.read<std::uint32_t>();
+    const auto x = r.read<uint32_t>();
     r.assert_end();
     return x == 16909060;
 }

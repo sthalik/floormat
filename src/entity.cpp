@@ -13,7 +13,7 @@ entity_proto::~entity_proto() noexcept = default;
 entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
 
-entity::entity(std::uint64_t id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
+entity::entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
@@ -35,7 +35,7 @@ entity::~entity() noexcept
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);
     c->_world->do_kill_entity(id);
-    const_cast<std::uint64_t&>(id) = 0;
+    const_cast<object_id&>(id) = 0;
 }
 
 Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
@@ -43,7 +43,7 @@ Vector2b entity::ordinal_offset_for_type(entity_type type, Vector2b offset)
     switch (type)
     {
     default:
-        fm_warn_once("unknown entity type '%zu'", std::size_t(type));
+        fm_warn_once("unknown entity type '%zu'", size_t(type));
         [[fallthrough]];
     case entity_type::scenery:
         return offset;
@@ -76,7 +76,7 @@ struct chunk& entity::chunk() const
     return *c;
 }
 
-std::size_t entity::index() const
+size_t entity::index() const
 {
     auto& c = chunk();
     auto& es = c._entities;
@@ -84,10 +84,10 @@ std::size_t entity::index() const
     fm_assert(it != es.cend());
     it = std::find_if(it, es.cend(), [id = id](const auto& x) { return x->id == id; });
     fm_assert(it != es.cend());
-    return (std::size_t)std::distance(es.cbegin(), it);
+    return (size_t)std::distance(es.cbegin(), it);
 }
 
-void entity::rotate(std::size_t, rotation new_r)
+void entity::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
     set_bbox(offset, rotate_point(bbox_offset, r, new_r), rotate_size(bbox_size, r, new_r), pass);
@@ -129,7 +129,7 @@ bool entity::can_move_to(Vector2i delta)
                min = center - half_bbox, max = min + Vector2(bbox_size);
 
     bool ret = true;
-    c_.rtree()->Search(min.data(), max.data(), [&](std::uint64_t data, const auto&) {
+    c_.rtree()->Search(min.data(), max.data(), [&](object_id data, const auto&) {
         auto id2 = std::bit_cast<collision_data>(data).data;
         if (id2 != id)
             return ret = false;
@@ -139,7 +139,7 @@ bool entity::can_move_to(Vector2i delta)
     return ret;
 }
 
-std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
+size_t entity::move(size_t i, Vector2i delta, rotation new_r)
 {
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
@@ -171,16 +171,16 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
         auto pos1 = std::distance(es.cbegin(), it_);
-        if ((std::size_t)pos1 > i)
+        if ((size_t)pos1 > i)
             pos1--;
         //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
-        if ((std::size_t)pos1 != i)
+        if ((size_t)pos1 != i)
         {
             //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
-            es.erase(es.cbegin() + (std::ptrdiff_t)i);
+            es.erase(es.cbegin() + (ptrdiff_t)i);
             es.insert(es.cbegin() + pos1, std::move(e_));
         }
-        return std::size_t(pos1);
+        return size_t(pos1);
     }
     else
     {
@@ -192,7 +192,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         c->remove_entity(i);
         auto& es = c2._entities;
         auto it = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
-        auto ret = (std::size_t)std::distance(es.cbegin(), it);
+        auto ret = (size_t)std::distance(es.cbegin(), it);
         e_->coord = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
@@ -237,8 +237,8 @@ void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_si
     c->_replace_bbox(bb0, bb, b0, b);
 }
 
-bool entity::can_activate(std::size_t) const { return false; }
-bool entity::activate(std::size_t) { return false; }
+bool entity::can_activate(size_t) const { return false; }
+bool entity::activate(size_t) { return false; }
 
 bool entity::is_dynamic() const
 {

@@ -460,13 +460,13 @@ union data_accessor {
   /// The pointer we use if the object is on the heap
   void* ptr_;
   /// The first field of the inplace storage
-  std::size_t inplace_storage_;
+  size_t inplace_storage_;
 };
 
 /// See opcode::op_fetch_empty
 static FU2_DETAIL_CXX14_CONSTEXPR void write_empty(data_accessor* accessor,
                                                    bool empty) noexcept {
-  accessor->inplace_storage_ = std::size_t(empty);
+  accessor->inplace_storage_ = size_t(empty);
 }
 
 template <typename From, typename To>
@@ -482,7 +482,7 @@ using transfer_volatile_t =
 template <typename T, typename Accessor>
 FU2_DETAIL_CXX14_CONSTEXPR auto retrieve(std::true_type /*is_inplace*/,
                                          Accessor from,
-                                         std::size_t from_capacity) {
+                                         size_t from_capacity) {
   using type = transfer_const_t<Accessor, transfer_volatile_t<Accessor, void>>*;
 
   /// Process the command by using the data inside the internal capacity
@@ -495,7 +495,7 @@ FU2_DETAIL_CXX14_CONSTEXPR auto retrieve(std::true_type /*is_inplace*/,
 /// through the allocator
 template <typename T, typename Accessor>
 constexpr auto retrieve(std::false_type /*is_inplace*/, Accessor from,
-                        std::size_t /*from_capacity*/) {
+                        size_t /*from_capacity*/) {
 
   return from->ptr_;
 }
@@ -591,11 +591,11 @@ using is_noexcept_noexcept = std::true_type;
   template <typename Ret, typename... Args>                                    \
   struct function_trait<Ret(Args...) CONST VOLATILE OVL_REF NOEXCEPT> {        \
     using pointer_type = Ret (*)(data_accessor CONST VOLATILE*,                \
-                                 std::size_t capacity, Args...);               \
+                                 size_t capacity, Args...);               \
     template <typename T, bool IsInplace>                                      \
     struct internal_invoker {                                                  \
       static Ret invoke(data_accessor CONST VOLATILE* data,                    \
-                        std::size_t capacity, Args... args) NOEXCEPT {         \
+                        size_t capacity, Args... args) NOEXCEPT {         \
         auto obj = retrieve<T>(std::integral_constant<bool, IsInplace>{},      \
                                data, capacity);                                \
         auto box = static_cast<T CONST VOLATILE*>(obj);                        \
@@ -608,7 +608,7 @@ using is_noexcept_noexcept = std::true_type;
                                                                                \
     template <typename T>                                                      \
     struct view_invoker {                                                      \
-      static Ret invoke(data_accessor CONST VOLATILE* data, std::size_t,       \
+      static Ret invoke(data_accessor CONST VOLATILE* data, size_t,       \
                         Args... args) NOEXCEPT {                               \
                                                                                \
         auto ptr = static_cast<void CONST VOLATILE*>(data->ptr_);              \
@@ -627,7 +627,7 @@ using is_noexcept_noexcept = std::true_type;
     template <bool Throws>                                                     \
     struct empty_invoker {                                                     \
       static Ret invoke(data_accessor CONST VOLATILE* /*data*/,                \
-                        std::size_t /*capacity*/, Args... /*args*/) NOEXCEPT { \
+                        size_t /*capacity*/, Args... /*args*/) NOEXCEPT { \
         throw_or_abort##NOEXCEPT(std::integral_constant<bool, Throws>{});      \
       }                                                                        \
     };                                                                         \
@@ -649,7 +649,7 @@ struct invoke_table<First> {
   using type = function_pointer_of<First>;
 
   /// Return the function pointer itself
-  template <std::size_t Index>
+  template <size_t Index>
   static constexpr auto fetch(type pointer) noexcept {
     static_assert(Index == 0U, "The index should be 0 here!");
     return pointer;
@@ -680,7 +680,7 @@ struct invoke_table<First, Second, Args...> {
                  function_pointer_of<Args>...> const*;
 
   /// Return the function pointer at the particular index
-  template <std::size_t Index>
+  template <size_t Index>
   static constexpr auto fetch(type table) noexcept {
     return std::get<Index>(*table);
   }
@@ -756,18 +756,18 @@ struct invoke_table<First, Second, Args...> {
   }
 };
 
-template <std::size_t Index, typename Function, typename... Signatures>
+template <size_t Index, typename Function, typename... Signatures>
 class operator_impl;
 
 #define FU2_DEFINE_FUNCTION_TRAIT(CONST, VOLATILE, NOEXCEPT, OVL_REF, REF)     \
-  template <std::size_t Index, typename Function, typename Ret,                \
+  template <size_t Index, typename Function, typename Ret,                \
             typename... Args, typename Next, typename... Signatures>           \
   class operator_impl<Index, Function,                                         \
                       Ret(Args...) CONST VOLATILE OVL_REF NOEXCEPT, Next,      \
                       Signatures...>                                           \
       : operator_impl<Index + 1, Function, Next, Signatures...> {              \
                                                                                \
-    template <std::size_t, typename, typename...>                              \
+    template <size_t, typename, typename...>                              \
     friend class operator_impl;                                                \
                                                                                \
   protected:                                                                   \
@@ -791,13 +791,13 @@ class operator_impl;
           std::forward<Args>(args)...);                                        \
     }                                                                          \
   };                                                                           \
-  template <std::size_t Index, typename Config, typename Property,             \
+  template <size_t Index, typename Config, typename Property,             \
             typename Ret, typename... Args>                                    \
   class operator_impl<Index, function<Config, Property>,                       \
                       Ret(Args...) CONST VOLATILE OVL_REF NOEXCEPT>            \
       : copyable<!Config::is_owning || Config::is_copyable> {                  \
                                                                                \
-    template <std::size_t, typename, typename...>                              \
+    template <size_t, typename, typename...>                              \
     friend class operator_impl;                                                \
                                                                                \
   protected:                                                                   \
@@ -847,9 +847,9 @@ template <bool IsThrowing, bool HasStrongExceptGuarantee,
 class vtable<property<IsThrowing, HasStrongExceptGuarantee, FormalArgs...>> {
   using command_function_t = void (*)(vtable* /*this*/, opcode /*op*/,
                                       data_accessor* /*from*/,
-                                      std::size_t /*from_capacity*/,
+                                      size_t /*from_capacity*/,
                                       data_accessor* /*to*/,
-                                      std::size_t /*to_capacity*/);
+                                      size_t /*to_capacity*/);
 
   using invoke_table_t = invocation_table::invoke_table<FormalArgs...>;
 
@@ -864,8 +864,8 @@ class vtable<property<IsThrowing, HasStrongExceptGuarantee, FormalArgs...>> {
     /// The command table
     template <bool IsInplace>
     static void process_cmd(vtable* to_table, opcode op, data_accessor* from,
-                            std::size_t from_capacity, data_accessor* to,
-                            std::size_t to_capacity) {
+                            size_t from_capacity, data_accessor* to,
+                            size_t to_capacity) {
 
       switch (op) {
         case opcode::op_move: {
@@ -940,7 +940,7 @@ class vtable<property<IsThrowing, HasStrongExceptGuarantee, FormalArgs...>> {
     static void
     construct(std::true_type /*apply*/, Box&& box, vtable* to_table,
               data_accessor* to,
-              std::size_t to_capacity) noexcept(HasStrongExceptGuarantee) {
+              size_t to_capacity) noexcept(HasStrongExceptGuarantee) {
       // Try to allocate the object inplace
       void* storage = retrieve<T>(std::true_type{}, to, to_capacity);
       if (storage) {
@@ -958,14 +958,14 @@ class vtable<property<IsThrowing, HasStrongExceptGuarantee, FormalArgs...>> {
     static void
     construct(std::false_type /*apply*/, Box&& /*box*/, vtable* /*to_table*/,
               data_accessor* /*to*/,
-              std::size_t /*to_capacity*/) noexcept(HasStrongExceptGuarantee) {
+              size_t /*to_capacity*/) noexcept(HasStrongExceptGuarantee) {
     }
   };
 
   /// The command table
   static void empty_cmd(vtable* to_table, opcode op, data_accessor* /*from*/,
-                        std::size_t /*from_capacity*/, data_accessor* to,
-                        std::size_t /*to_capacity*/) {
+                        size_t /*from_capacity*/, data_accessor* to,
+                        size_t /*to_capacity*/) {
 
     switch (op) {
       case opcode::op_move:
@@ -994,31 +994,31 @@ public:
   /// Initialize an object at the given position
   template <typename T>
   static void init(vtable& table, T&& object, data_accessor* to,
-                   std::size_t to_capacity) {
+                   size_t to_capacity) {
 
     trait<std::decay_t<T>>::construct(std::true_type{}, std::forward<T>(object),
                                       &table, to, to_capacity);
   }
 
   /// Moves the object at the given position
-  void move(vtable& to_table, data_accessor* from, std::size_t from_capacity,
+  void move(vtable& to_table, data_accessor* from, size_t from_capacity,
             data_accessor* to,
-            std::size_t to_capacity) noexcept(HasStrongExceptGuarantee) {
+            size_t to_capacity) noexcept(HasStrongExceptGuarantee) {
     cmd_(&to_table, opcode::op_move, from, from_capacity, to, to_capacity);
     set_empty();
   }
 
   /// Destroys the object at the given position
   void copy(vtable& to_table, data_accessor const* from,
-            std::size_t from_capacity, data_accessor* to,
-            std::size_t to_capacity) const {
+            size_t from_capacity, data_accessor* to,
+            size_t to_capacity) const {
     cmd_(&to_table, opcode::op_copy, const_cast<data_accessor*>(from),
          from_capacity, to, to_capacity);
   }
 
   /// Destroys the object at the given position
   void destroy(data_accessor* from,
-               std::size_t from_capacity) noexcept(HasStrongExceptGuarantee) {
+               size_t from_capacity) noexcept(HasStrongExceptGuarantee) {
     cmd_(this, opcode::op_destroy, from, from_capacity, nullptr, 0U);
   }
 
@@ -1026,7 +1026,7 @@ public:
   /// vtable
   void
   weak_destroy(data_accessor* from,
-               std::size_t from_capacity) noexcept(HasStrongExceptGuarantee) {
+               size_t from_capacity) noexcept(HasStrongExceptGuarantee) {
     cmd_(this, opcode::op_weak_destroy, from, from_capacity, nullptr, 0U);
   }
 
@@ -1038,13 +1038,13 @@ public:
   }
 
   /// Invoke the function at the given index
-  template <std::size_t Index, typename... Args>
+  template <size_t Index, typename... Args>
   constexpr decltype(auto) invoke(Args&&... args) const {
     auto thunk = invoke_table_t::template fetch<Index>(vtable_);
     return thunk(std::forward<Args>(args)...);
   }
   /// Invoke the function at the given index
-  template <std::size_t Index, typename... Args>
+  template <size_t Index, typename... Args>
   constexpr decltype(auto) invoke(Args&&... args) const volatile {
     auto thunk = invoke_table_t::template fetch<Index>(vtable_);
     return thunk(std::forward<Args>(args)...);
@@ -1118,7 +1118,7 @@ public:
     return &storage_.accessor_;
   }
 
-  static constexpr std::size_t capacity() noexcept {
+  static constexpr size_t capacity() noexcept {
     return sizeof(storage_);
   }
 };
@@ -1128,7 +1128,7 @@ template <bool IsOwning /* = true*/, typename Config, typename Property>
 class erasure : internal_capacity_holder<typename Config::capacity> {
   template <bool, typename, typename>
   friend class erasure;
-  template <std::size_t, typename, typename...>
+  template <size_t, typename, typename...>
   friend class operator_impl;
 
   using vtable_t = tables::vtable<Property>;
@@ -1137,7 +1137,7 @@ class erasure : internal_capacity_holder<typename Config::capacity> {
 
 public:
   /// Returns the capacity of this erasure
-  static constexpr std::size_t capacity() noexcept {
+  static constexpr size_t capacity() noexcept {
     return internal_capacity_holder<typename Config::capacity>::capacity();
   }
 
@@ -1262,7 +1262,7 @@ public:
   ///
   /// We define this out of class to be able to forward the qualified
   /// erasure correctly.
-  template <std::size_t Index, typename Erasure, typename... Args>
+  template <size_t Index, typename Erasure, typename... Args>
   static constexpr decltype(auto) invoke(Erasure&& erasure, Args&&... args) {
     auto const capacity = erasure.capacity();
     return erasure.vtable_.template invoke<Index>(
@@ -1278,7 +1278,7 @@ class erasure<false, Config,
               property<IsThrowing, HasStrongExceptGuarantee, Args...>> {
   template <bool, typename, typename>
   friend class erasure;
-  template <std::size_t, typename, typename...>
+  template <size_t, typename, typename...>
   friend class operator_impl;
 
   using property_t = property<IsThrowing, HasStrongExceptGuarantee, Args...>;
@@ -1378,7 +1378,7 @@ public:
     return view_.ptr_ == nullptr;
   }
 
-  template <std::size_t Index, typename Erasure, typename... T>
+  template <size_t Index, typename Erasure, typename... T>
   static constexpr decltype(auto) invoke(Erasure&& erasure, T&&... args) {
     auto thunk = invoke_table_t::template fetch<Index>(erasure.invoke_table_);
     return thunk(&(erasure.view_), 0UL, std::forward<T>(args)...);
@@ -1515,7 +1515,7 @@ class function<Config, property<IsThrowing, HasStrongExceptGuarantee, Args...>>
   template <typename, typename>
   friend class function;
 
-  template <std::size_t, typename, typename...>
+  template <size_t, typename, typename...>
   friend class type_erasure::invocation_table::operator_impl;
 
   using property_t = property<IsThrowing, HasStrongExceptGuarantee, Args...>;
@@ -1708,18 +1708,18 @@ bool operator!=(std::nullptr_t, function<Config, Property> const& f) {
 }
 
 // Default intended object size of the function
-using object_size = std::integral_constant<std::size_t, 32U>;
+using object_size = std::integral_constant<size_t, 32U>;
 } // namespace detail
 } // namespace abi_400
 
 /// Can be passed to function_base as template argument which causes
 /// the internal small buffer to be sized according to the given size,
 /// and aligned with the given alignment.
-template <std::size_t Capacity,
-          std::size_t Alignment = alignof(std::max_align_t)>
+template <size_t Capacity,
+          size_t Alignment = alignof(std::max_align_t)>
 struct capacity_fixed {
-  static constexpr std::size_t capacity = Capacity;
-  static constexpr std::size_t alignment = Alignment;
+  static constexpr size_t capacity = Capacity;
+  static constexpr size_t alignment = Alignment;
 };
 
 /// Default capacity for small functor optimization
@@ -1737,8 +1737,8 @@ struct capacity_none : capacity_fixed<0UL> {};
 /// the given object without allocating memory for an applied type erasure.
 template <typename T>
 struct capacity_can_hold {
-  static constexpr std::size_t capacity = sizeof(T);
-  static constexpr std::size_t alignment = alignof(T);
+  static constexpr size_t capacity = sizeof(T);
+  static constexpr size_t alignment = alignof(T);
 };
 
 /// An adaptable function wrapper base for arbitrary functional types.
@@ -1758,8 +1758,8 @@ struct capacity_can_hold {
 ///                  looks like the following example:
 /// ```cpp
 /// struct my_capacity {
-///   static constexpr std::size_t capacity = sizeof(my_type);
-///   static constexpr std::size_t alignment = alignof(my_type);
+///   static constexpr size_t capacity = sizeof(my_type);
+///   static constexpr size_t alignment = alignof(my_type);
 /// };
 /// ```
 ///

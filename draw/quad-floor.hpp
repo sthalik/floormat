@@ -12,7 +12,7 @@ struct quad_floor final
 {
     quad_floor(Vector3 center, Vector2 size, float line_width);
 
-    static constexpr std::size_t num_vertices = 4, num_indexes = 0;
+    static constexpr size_t num_vertices = 4, num_indexes = 0;
     static constexpr auto primitive = GL::MeshPrimitive::LineLoop;
 
     using vertex_array = std::array<Vector3, num_vertices>;

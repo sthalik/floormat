@@ -16,7 +16,7 @@ namespace floormat::entities {
 
 namespace {
 
-const char* label_left(StringView label, char* buf, std::size_t len)
+const char* label_left(StringView label, char* buf, size_t len)
 {
     std::snprintf(buf, len, "##%s", label.data());
     float width = ImGui::CalcItemWidth(), x = ImGui::GetCursorPosX();
@@ -28,12 +28,12 @@ const char* label_left(StringView label, char* buf, std::size_t len)
 }
 
 template<typename T> struct IGDT_;
-template<> struct IGDT_<std::uint8_t> : std::integral_constant<int, ImGuiDataType_U8> {};
-template<> struct IGDT_<std::int8_t> : std::integral_constant<int, ImGuiDataType_S8> {};
-template<> struct IGDT_<std::uint16_t> : std::integral_constant<int, ImGuiDataType_U16> {};
-template<> struct IGDT_<std::int16_t> : std::integral_constant<int, ImGuiDataType_S16> {};
-template<> struct IGDT_<std::uint32_t> : std::integral_constant<int, ImGuiDataType_U32> {};
-template<> struct IGDT_<std::int32_t> : std::integral_constant<int, ImGuiDataType_S32> {};
+template<> struct IGDT_<uint8_t> : std::integral_constant<int, ImGuiDataType_U8> {};
+template<> struct IGDT_<int8_t> : std::integral_constant<int, ImGuiDataType_S8> {};
+template<> struct IGDT_<uint16_t> : std::integral_constant<int, ImGuiDataType_U16> {};
+template<> struct IGDT_<int16_t> : std::integral_constant<int, ImGuiDataType_S16> {};
+template<> struct IGDT_<uint32_t> : std::integral_constant<int, ImGuiDataType_U32> {};
+template<> struct IGDT_<int32_t> : std::integral_constant<int, ImGuiDataType_S32> {};
 template<> struct IGDT_<float> : std::integral_constant<int, ImGuiDataType_Float> {};
 template<typename T> constexpr auto IGDT = IGDT_<T>::value;
 
@@ -43,7 +43,7 @@ using namespace entities;
 template<typename T> requires std::is_integral_v<T> constexpr bool eqv(T a, T b) { return a == b; }
 inline bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
 inline bool eqv(const String& a, const String& b) { return a == b; }
-template<typename T, std::size_t N> constexpr bool eqv(const Math::Vector<N, T>& a, const Math::Vector<N, T>& b) { return a == b; }
+template<typename T, size_t N> constexpr bool eqv(const Math::Vector<N, T>& a, const Math::Vector<N, T>& b) { return a == b; }
 
 int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
 {
@@ -51,7 +51,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
     {
         auto* my_str = reinterpret_cast<String*>(data->UserData);
         fm_assert(my_str->begin() == data->Buf);
-        *my_str = String{ValueInit, (std::size_t)data->BufSize};
+        *my_str = String{ValueInit, (size_t)data->BufSize};
         data->Buf = my_str->begin();
     }
     return 0;
@@ -59,7 +59,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
 
 template<typename T>
 bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr,
-                      const ArrayView<const std::pair<StringView, std::size_t>>& list)
+                      const ArrayView<const std::pair<StringView, size_t>>& list)
 {
     if (list.isEmpty())
         fm_assert(accessor.check_field_type<T>());
@@ -101,7 +101,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
                     step2(!std::is_floating_point_v<T> ? T(10) : T(1e-3f));
         switch (repr)
         {
-        default: fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr); break;
+        default: fm_warn_once("invalid repr enum value '%zu'", (size_t)repr); break;
         case field_repr::input:  ret = ImGui::InputScalar(label, igdt, &value, &step, &step2); break;
         case field_repr::slider: ret = ImGui::SliderScalar(label, igdt, &value, &min, &max); break;
         case field_repr::drag:   ret = ImGui::DragScalar(label, igdt, &value, 1, &min, &max); break;
@@ -109,7 +109,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             if constexpr(std::is_integral_v<T>)
             {
                 const char* preview = "<invalid>";
-                const auto old_value = (std::size_t)static_cast<std::make_unsigned_t<T>>(value);
+                const auto old_value = (size_t)static_cast<std::make_unsigned_t<T>>(value);
                 for (const auto& [str, x] : list)
                     if (x == old_value)
                     {
@@ -119,7 +119,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
                 if (auto b = begin_combo(label, preview))
                     for (const auto& [str, x] : list)
                     {
-                        const bool is_selected = x == (std::size_t)old_value;
+                        const bool is_selected = x == (size_t)old_value;
                         if (ImGui::Selectable(str.data(), is_selected))
                             value = T(x), ret = true;
                         if (is_selected)
@@ -141,7 +141,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         switch (repr)
         {
         default:
-            fm_warn_once("invalid repr enum value '%zu'", (std::size_t)repr);
+            fm_warn_once("invalid repr enum value '%zu'", (size_t)repr);
             break;
         case field_repr::input:
             ret = ImGui::InputScalarN(label, igdt, &value, T::Size, &step, &step2);
@@ -171,7 +171,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
 #define MAKE_SPEC(type, repr)                                                                                                   \
     template<>                                                                                                                  \
     bool inspect_field<type>(void* datum, const erased_accessor& accessor,                                                      \
-                             const ArrayView<const std::pair<StringView, std::size_t>>& list)                                   \
+                             const ArrayView<const std::pair<StringView, size_t>>& list)                                   \
     {                                                                                                                           \
         return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
     }
@@ -179,7 +179,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
 #define MAKE_SPEC2(type, repr)                                                                                                  \
     template<>                                                                                                                  \
     bool inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor,                       \
-                                                            const ArrayView<const std::pair<StringView, std::size_t>>& list)    \
+                                                            const ArrayView<const std::pair<StringView, size_t>>& list)    \
     {                                                                                                                           \
         return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
     }
@@ -197,12 +197,12 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     MAKE_SPEC_REPRS(type)                                                                                                       \
     MAKE_SPEC2(type, field_repr::cbx)
 
-MAKE_SPEC_REPRS2(std::uint8_t)
-MAKE_SPEC_REPRS2(std::int8_t)
-MAKE_SPEC_REPRS2(std::uint16_t)
-MAKE_SPEC_REPRS2(std::int16_t)
-MAKE_SPEC_REPRS2(std::uint32_t)
-MAKE_SPEC_REPRS2(std::int32_t)
+MAKE_SPEC_REPRS2(uint8_t)
+MAKE_SPEC_REPRS2(int8_t)
+MAKE_SPEC_REPRS2(uint16_t)
+MAKE_SPEC_REPRS2(int16_t)
+MAKE_SPEC_REPRS2(uint32_t)
+MAKE_SPEC_REPRS2(int32_t)
 MAKE_SPEC_REPRS2(float)
 MAKE_SPEC(bool, field_repr::input)
 MAKE_SPEC(String, field_repr::input)

@@ -23,7 +23,7 @@ struct anim_mesh;
 
 struct floormat_main
 {
-    struct draw_bounds final { std::int16_t minx, maxx, miny, maxy; };
+    struct draw_bounds final { int16_t minx, maxx, miny, maxy; };
     struct meshes final {
         floor_mesh& floor;
         wall_mesh& wall;
@@ -55,8 +55,8 @@ struct floormat_main
 
     virtual ArrayView<const clickable> clickable_scenery() const noexcept = 0;
     virtual ArrayView<clickable> clickable_scenery() noexcept = 0;
-    virtual void set_cursor(std::uint32_t cursor) noexcept = 0;
-    virtual std::uint32_t cursor() const noexcept = 0;
+    virtual void set_cursor(uint32_t cursor) noexcept = 0;
+    virtual uint32_t cursor() const noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
     virtual Vector2d pixel_to_tile_(Vector2d position) const noexcept = 0;

@@ -48,7 +48,7 @@ void app::do_mouse_move(int mods)
         _editor.on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
-void app::do_mouse_up_down(std::uint8_t button, bool is_down, int mods)
+void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
 {
     auto& w = M->world();
     update_cursor_tile(cursor.pixel);
@@ -136,7 +136,7 @@ void app::do_key(key k, int mods)
     {
     default:
         if (k >= key_NO_REPEAT)
-            fm_warn("unhandled key: '%zu'", std::size_t(k));
+            fm_warn("unhandled key: '%zu'", size_t(k));
         return;
     case key_rotate_tile:
         return do_rotate(false);
@@ -178,13 +178,13 @@ void app::update_world(float dt)
     auto& world = M->world();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
+    for (int16_t y = miny; y <= maxy; y++)
+        for (int16_t x = minx; x <= maxx; x++)
         {
             auto& c = world[chunk_coords{x, y}];
             const auto& es = c.entities();
             const auto size = es.size();
-            for (auto i = size-1; i != (std::size_t)-1; i--)
+            for (auto i = size-1; i != (size_t)-1; i--)
             {
                 auto& e = *es[i];
                 e.update(i, dt);
@@ -208,9 +208,9 @@ void app::set_cursor()
     if (!cursor.in_imgui)
     {
         if ([[maybe_unused]] auto* cl = find_clickable_scenery(cursor.pixel))
-            M->set_cursor(std::uint32_t(Cursor::Hand));
+            M->set_cursor(uint32_t(Cursor::Hand));
         else
-            M->set_cursor(std::uint32_t(Cursor::Arrow));
+            M->set_cursor(uint32_t(Cursor::Arrow));
     }
     else
         set_cursor_from_imgui();

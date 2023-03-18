@@ -84,7 +84,7 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
         // don't regen colliders
         const auto px = Vector2(pos.local()) * TILE_SIZE2;
         const auto es = c.entities();
-        for (auto i = es.size()-1; i != (std::size_t)-1; i--)
+        for (auto i = es.size()-1; i != (size_t)-1; i--)
         {
             const auto& e = *es[i];
             if (e.type != entity_type::scenery)

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
 #include <concepts>
 #include <type_traits>
 
@@ -10,16 +8,16 @@ namespace floormat {
 struct random_engine
 {
     virtual ~random_engine();
-    virtual std::common_type_t<std::size_t, std::uintptr_t, std::ptrdiff_t> operator()() = 0;
+    virtual std::common_type_t<size_t, uintptr_t, ptrdiff_t> operator()() = 0;
 
     template<std::integral T>
-    requires (sizeof(T) <= sizeof(std::size_t))
+    requires (sizeof(T) <= sizeof(size_t))
     T operator()(T max) {
-        return static_cast<T>(operator()() % static_cast<std::size_t>(max));
+        return static_cast<T>(operator()() % static_cast<size_t>(max));
     }
 
     template<std::integral T>
-    requires (sizeof(T) <= sizeof(std::size_t))
+    requires (sizeof(T) <= sizeof(size_t))
     T operator()(T min, T max) {
         return min + operator()(max-min);
     }

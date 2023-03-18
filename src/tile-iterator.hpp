@@ -3,7 +3,6 @@
 #include "local-coords.hpp"
 #include "tile.hpp"
 
-#include <cstddef>
 #include <iterator>
 
 namespace floormat {
@@ -13,7 +12,7 @@ struct tile_iterator_tuple final { // NOLINT(cppcoreguidelines-pro-type-member-i
     tile_iterator_tuple* operator->() noexcept { return this; }
 
     tile_ref x;
-    std::size_t k;
+    size_t k;
     local_coords pt;
 };
 
@@ -22,18 +21,18 @@ struct tile_const_iterator_tuple final { // NOLINT(cppcoreguidelines-pro-type-me
     tile_const_iterator_tuple* operator->() noexcept { return this; }
 
     tile_proto x;
-    std::size_t k;
+    size_t k;
     local_coords pt;
 };
 
 class tile_iterator final {
     chunk* c;
-    std::size_t pos;
+    size_t pos;
 
     friend bool operator==(const tile_iterator&, const tile_iterator&) noexcept;
 
 public:
-    explicit tile_iterator(chunk& c, std::size_t pos) noexcept;
+    explicit tile_iterator(chunk& c, size_t pos) noexcept;
     tile_iterator(const tile_iterator&) noexcept;
     tile_iterator& operator=(const tile_iterator&) noexcept;
 
@@ -44,7 +43,7 @@ public:
     tile_iterator_tuple operator->() noexcept;
     tile_iterator_tuple operator*() noexcept;
 
-    using difference_type = std::ptrdiff_t;
+    using difference_type = ptrdiff_t;
     using value_type = tile_iterator_tuple;
     using pointer = value_type;
     using reference = value_type;
@@ -53,12 +52,12 @@ public:
 
 class tile_const_iterator final {
     const chunk* c;
-    std::size_t pos;
+    size_t pos;
 
     friend bool operator==(const tile_const_iterator&, const tile_const_iterator&) noexcept;
 
 public:
-    explicit tile_const_iterator(const chunk& c, std::size_t pos) noexcept;
+    explicit tile_const_iterator(const chunk& c, size_t pos) noexcept;
     tile_const_iterator(const tile_const_iterator&) noexcept;
     tile_const_iterator& operator=(const tile_const_iterator&) noexcept;
 
@@ -69,7 +68,7 @@ public:
     tile_const_iterator_tuple operator->() noexcept;
     tile_const_iterator_tuple operator*() noexcept;
 
-    using difference_type = std::ptrdiff_t;
+    using difference_type = ptrdiff_t;
     using value_type = tile_const_iterator_tuple;
     using pointer = value_type;
     using reference = value_type;

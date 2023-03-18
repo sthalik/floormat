@@ -50,7 +50,7 @@ void app::ensure_player_character(world& w)
             return;
     _character_id = 0;
 
-    auto id = (std::uint64_t)-1;
+    auto id = (object_id)-1;
 
     for (const auto& [coord, c] : w.chunks())
     {
@@ -66,7 +66,7 @@ void app::ensure_player_character(world& w)
         }
     }
 
-    if (id != (std::uint64_t)-1)
+    if (id != (object_id)-1)
         _character_id = id;
     else
     {
@@ -135,7 +135,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     {
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
-        if (ret != 2 || (std::size_t)n != str.size() || Vector2ui(size).product() == 0)
+        if (ret != 2 || (size_t)n != str.size() || Vector2ui(size).product() == 0)
         {
             Error{} << "invalid --geometry argument '%s'" << str;
             std::exit(EX_USAGE);

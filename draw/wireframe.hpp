@@ -13,8 +13,8 @@ namespace wireframe {
 
 template<typename T>
 concept traits = requires (const T& x) {
-    {T::num_vertices} -> std::convertible_to<std::size_t>;
-    {T::num_indexes} -> std::convertible_to<std::size_t>;
+    {T::num_vertices} -> std::convertible_to<size_t>;
+    {T::num_indexes} -> std::convertible_to<size_t>;
     {x.primitive} -> std::convertible_to<GL::MeshPrimitive>;
     {x.make_vertex_array() } -> std::convertible_to<ArrayView<const void>>;
     {T::make_index_array() } -> std::convertible_to<ArrayView<const void>>;
@@ -32,7 +32,7 @@ protected:
     GL::Mesh _mesh;
 
     mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-              std::size_t num_vertices, std::size_t num_indexes, GL::Texture2D* texture);
+              size_t num_vertices, size_t num_indexes, GL::Texture2D* texture);
     void draw(tile_shader& shader);
     void set_subdata(ArrayView<const void> array);
 };

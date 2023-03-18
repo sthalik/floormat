@@ -26,16 +26,16 @@ tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile
         .setSubImage(0, {}, image);
 }
 
-std::array<Vector2, 4> tile_atlas::texcoords_for_id(std::size_t i) const
+std::array<Vector2, 4> tile_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
     return texcoords_[i];
 }
 
-auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, std::size_t i) -> texcoords
+auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
 {
     const auto sz = pixel_size/Vector2ui{tile_count};
-    const Vector2ui id = { std::uint32_t(i % tile_count[0]), std::uint32_t(i / tile_count[0]) };
+    const Vector2ui id = { uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
     const Vector2 p0(id * sz), p1(sz);
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     return {{
@@ -48,14 +48,14 @@ auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, std:
 
 auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> std::unique_ptr<const texcoords[]>
 {
-    const std::size_t N = Vector2ui{tile_count}.product();
+    const size_t N = Vector2ui{tile_count}.product();
     auto ptr = std::make_unique<std::array<Vector2, 4>[]>(N);
     for (auto i = 0_uz; i < N; i++)
         ptr[i] = make_texcoords(pixel_size, tile_count, i);
     return ptr;
 }
 
-std::size_t tile_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
+size_t tile_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
 Optional<enum pass_mode> tile_atlas::pass_mode() const { return passability; }
 enum pass_mode tile_atlas::pass_mode(enum pass_mode p) const { return passability ? *passability : p; }
 

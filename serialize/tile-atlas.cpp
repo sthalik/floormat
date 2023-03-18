@@ -54,7 +54,7 @@ void adl_serializer<std::shared_ptr<tile_atlas>>::from_json(const json& j, std::
         {
             int m = p2 ? int(*p2) : -1;
             const auto name = val->name();
-            fm_throw("atlas {} wrong pass mode {} should be {}"_cf, StringView{name.data(), name.size()}, m, std::uint8_t(*p));
+            fm_throw("atlas {} wrong pass mode {} should be {}"_cf, StringView{name.data(), name.size()}, m, uint8_t(*p));
         }
     }
 }

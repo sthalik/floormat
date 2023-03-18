@@ -166,7 +166,7 @@ scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
 template<typename T, entity_subtype U>
 void write_entity_flags(binary_writer<T>& s, const U& e)
 {
-    std::uint8_t flags = 0;
+    uint8_t flags = 0;
     auto pass = (pass_mode_i)e.pass;
     fm_assert((pass & pass_mask) == pass);
     flags |= pass;
@@ -225,12 +225,12 @@ void writer_state::serialize_atlases()
 }
 
 constexpr auto atlasbuf_size0 = sizeof(atlasid) + sizeof(scenery);
-constexpr auto atlasbuf_size1 = sizeof(std::uint8_t) + atlasbuf_size0*int_max<std::uint8_t> + atlas_name_max;
+constexpr auto atlasbuf_size1 = sizeof(uint8_t) + atlasbuf_size0*int_max<uint8_t> + atlas_name_max;
 
 void writer_state::serialize_scenery()
 {
     fm_assert(scenery_map_size < scenery_id_max);
-    const std::size_t sz = scenery_map_size;
+    const size_t sz = scenery_map_size;
     std::vector<interned_scenery> vec; vec.reserve(scenery_map_size);
     for (const auto& x : scenery_map)
         for (const auto& s : x.second)
@@ -246,12 +246,12 @@ void writer_state::serialize_scenery()
           return cmp == std::strong_ordering::less;
     });
 
-    const auto atlasbuf_size = sizeof(std::uint16_t) + sizeof(sz) + atlasbuf_size1*sz;
+    const auto atlasbuf_size = sizeof(uint16_t) + sizeof(sz) + atlasbuf_size1*sz;
     scenery_buf.resize(atlasbuf_size);
 
     auto s = binary_writer{scenery_buf.begin()};
 
-    s << std::uint16_t{scenery_magic};
+    s << uint16_t{scenery_magic};
     fm_assert(sz < scenery_id_max);
     s << (atlasid)sz;
 
@@ -267,14 +267,14 @@ void writer_state::serialize_scenery()
             auto num = 1_uz;
             for (auto j = i+1; j < sz && vec[j].s->name == sc->name; j++)
                 num++;
-            fm_assert(num < int_max<std::uint8_t>);
-            s << (std::uint8_t)num;
+            fm_assert(num < int_max<uint8_t>);
+            s << (uint8_t)num;
             s.write_asciiz_string(sc->name);
         }
         s << idx;
         write_entity_flags(s, sc->proto);
         if (sc->proto.frame <= 0xff)
-            s << (std::uint8_t)sc->proto.frame;
+            s << (uint8_t)sc->proto.frame;
         else
             s << sc->proto.frame;
     }
@@ -288,7 +288,7 @@ const auto def_char_pass = character_proto{}.pass;
 void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
-    const auto es_size = sizeof(std::uint32_t) + entity_size*c.entities().size();
+    const auto es_size = sizeof(uint32_t) + entity_size*c.entities().size();
     chunk_buf.resize(chunkbuf_size + es_size);
 
     auto s = binary_writer{chunk_buf.begin()};
@@ -337,17 +337,17 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         }
     }
 
-    const auto entity_count = (std::uint32_t)c.entities().size();
+    const auto entity_count = (uint32_t)c.entities().size();
     s << entity_count;
     fm_assert(entity_count == c.entities().size());
     for (const auto& e_ : c.entities())
     {
         const auto& e = *e_;
-        std::uint64_t oid = e.id;
-        fm_assert((oid & ((std::uint64_t)1 << 60)-1) == oid);
+        object_id oid = e.id;
+        fm_assert((oid & ((object_id)1 << 60)-1) == oid);
         static_assert(entity_type_BITS == 3);
         fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
-        oid |= (std::uint64_t)e.type << 64 - entity_type_BITS;
+        oid |= (object_id)e.type << 64 - entity_type_BITS;
         s << oid;
         const auto local = e.coord.local();
         s << local.to_index();
@@ -365,7 +365,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             fm_abort("invalid entity type '%d'", (int)e.type);
         case entity_type::character: {
             const auto& C = static_cast<const character&>(e);
-            std::uint8_t id = 0;
+            uint8_t id = 0;
             const auto sc_exact =
                 C.offset.isZero() && C.bbox_offset.isZero() &&
                 C.bbox_size == def_char_bbox_size;
@@ -374,7 +374,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
             s << id;
             write_entity_flags(s, C);
             if (C.frame <= 0xff)
-                s << (std::uint8_t)C.frame;
+                s << (uint8_t)C.frame;
             else
                 s << C.frame;
             s << C.offset_frac[0];
@@ -403,7 +403,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
                 write_entity_flags(s, sc);
                 fm_assert(sc.active || sc.delta == 0);
                 if (sc.frame <= 0xff)
-                    s << (std::uint8_t)sc.frame;
+                    s << (uint8_t)sc.frame;
                 else
                     s << sc.frame;
                 write_offsets(s, sc);
@@ -473,7 +473,7 @@ ArrayView<const char> writer_state::serialize_world()
         len += sizeof(proto_t);
         len += atlas_buf.size();
         len += scenery_buf.size();
-        len += sizeof(std::uint64_t);
+        len += sizeof(object_id);
         len += sizeof(chunksiz);
         for (const auto& buf : chunk_bufs)
             len += buf.size();
@@ -487,7 +487,7 @@ ArrayView<const char> writer_state::serialize_world()
              len2 = std::distance(it, file_buf.end());
         fm_assert(len1 <= len2);
         it = std::copy(std::cbegin(in), std::cend(in), it);
-        bytes_written += (std::size_t)len1;
+        bytes_written += (size_t)len1;
     };
     const auto copy_int = [&]<typename T>(const T& value) {
         union { T x; char bytes[sizeof x]; } c = {.x = maybe_byteswap(value)};
@@ -497,7 +497,7 @@ ArrayView<const char> writer_state::serialize_world()
     copy_int((proto_t)proto_version);
     copy(atlas_buf);
     copy(scenery_buf);
-    copy_int((std::uint64_t)_world->entity_counter());
+    copy_int((object_id)_world->entity_counter());
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);
@@ -521,7 +521,7 @@ void world::serialize(StringView filename)
 {
     collect(true);
     char errbuf[128];
-    constexpr auto get_error_string = []<std::size_t N> (char (&buf)[N]) -> const char* {
+    constexpr auto get_error_string = []<size_t N> (char (&buf)[N]) -> const char* {
         buf[0] = '\0';
 #ifndef _WIN32
         (void)::strerror_r(errno, buf, std::size(buf));

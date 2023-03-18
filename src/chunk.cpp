@@ -8,7 +8,7 @@ namespace floormat {
 
 namespace {
 
-std::size_t _reload_no_ = 0;
+size_t _reload_no_ = 0;
 
 bool is_log_quiet()
 {
@@ -31,11 +31,11 @@ bool chunk::empty(bool force) const noexcept
     return true;
 }
 
-tile_atlas* chunk::ground_atlas_at(std::size_t i) const noexcept { return _ground_atlases[i].get(); }
-tile_atlas* chunk::wall_atlas_at(std::size_t i) const noexcept { return _wall_atlases[i].get(); }
+tile_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground_atlases[i].get(); }
+tile_atlas* chunk::wall_atlas_at(size_t i) const noexcept { return _wall_atlases[i].get(); }
 
-tile_ref chunk::operator[](std::size_t idx) noexcept { return { *this, std::uint8_t(idx) }; }
-tile_proto chunk::operator[](std::size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), std::uint8_t(idx) }); }
+tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
+tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), uint8_t(idx) }); }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
 tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
@@ -142,7 +142,7 @@ void chunk::add_entity(const std::shared_ptr<entity>& e)
     _entities.insert(it, e);
 }
 
-void chunk::remove_entity(std::size_t i)
+void chunk::remove_entity(size_t i)
 {
     fm_assert(_entities_sorted);
     fm_debug_assert(i < _entities.size());
@@ -152,7 +152,7 @@ void chunk::remove_entity(std::size_t i)
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);
 
-    _entities.erase(_entities.cbegin() + std::ptrdiff_t(i));
+    _entities.erase(_entities.cbegin() + ptrdiff_t(i));
 }
 
 const std::vector<std::shared_ptr<entity>>& chunk::entities() const

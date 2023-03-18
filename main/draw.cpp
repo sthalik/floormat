@@ -43,7 +43,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
     auto vec = pixel_to_tile_(position);
-    const auto x = (std::int32_t)std::floor(vec[0]), y = (std::int32_t)std::floor(vec[1]);
+    const auto x = (int32_t)std::floor(vec[0]), y = (int32_t)std::floor(vec[1]);
     return { x, y };
 }
 
@@ -57,7 +57,7 @@ Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
 
 auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 {
-    using limits = std::numeric_limits<std::int16_t>;
+    using limits = std::numeric_limits<int16_t>;
     auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
 
     const auto win = Vector2d(window_size());
@@ -82,7 +82,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 void main_impl::update_collect_threshold()
 {
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    const auto value = std::max(64_uz, (std::size_t)(maxx-minx+4)*(std::size_t)(maxy-minx+4));
+    const auto value = std::max(64_uz, (size_t)(maxx-minx+4)*(size_t)(maxy-minx+4));
     if (!(GL::Context::current().configurationFlags() & GL::Implementation::ContextConfigurationFlag::QuietLog))
         fm_debug("collect threshold is now %zu", value);
     _world.set_collect_threshold(value);
@@ -93,8 +93,8 @@ void main_impl::draw_world() noexcept
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = window_size();
 
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
+    for (int16_t y = miny; y <= maxy; y++)
+        for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
             if (!_world.contains(pos))
@@ -109,8 +109,8 @@ void main_impl::draw_world() noexcept
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::defaultFramebuffer.clearDepthStencil(0, 0);
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
+    for (int16_t y = miny; y <= maxy; y++)
+        for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
             auto& c = _world[pos];
@@ -125,8 +125,8 @@ void main_impl::draw_world() noexcept
 
     GL::Renderer::setDepthMask(false);
 
-    for (std::int16_t y = miny; y <= maxy; y++)
-        for (std::int16_t x = minx; x <= maxx; x++)
+    for (int16_t y = miny; y <= maxy; y++)
+        for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
             auto& c = _world[pos];
@@ -149,7 +149,7 @@ void main_impl::draw_world() noexcept
 bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
     constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
-    enum : std::size_t { x, y, };
+    enum : size_t { x, y, };
     constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
                        p01 = tile_shader::project(Vector3d(0, len[y], 0)),

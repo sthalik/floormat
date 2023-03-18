@@ -26,7 +26,7 @@ void adl_serializer<pass_mode>::to_json(json& j, pass_mode val)
             j = str;
             return;
         }
-    fm_throw("invalid pass mode '{}'"_cf, std::size_t(val));
+    fm_throw("invalid pass mode '{}'"_cf, size_t(val));
 }
 
 void adl_serializer<pass_mode>::from_json(const json& j, pass_mode& val)

@@ -76,7 +76,7 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         Middle = mouse_button_middle,
     };
 
-    const auto button = std::uint8_t(1 << (event.button-1));
+    const auto button = uint8_t(1 << (event.button-1));
 
     struct ev {
         using Button = Button_;
@@ -175,7 +175,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     else
     {
         keys[x] = is_down;
-        key_modifiers[std::size_t(x)] = mods;
+        key_modifiers[size_t(x)] = mods;
     }
 }
 

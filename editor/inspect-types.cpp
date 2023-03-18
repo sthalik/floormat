@@ -32,10 +32,10 @@ struct entity_accessors<scenery> {
                 [](const scenery& x) { return x.r; },
                 [](scenery& x, rotation r) { x.rotate(x.index(), r); },
             },
-            entity::type<std::uint16_t>::field{"frame"_s,
+            entity::type<uint16_t>::field{"frame"_s,
                 [](const scenery& x) { return x.frame; },
-                [](scenery& x, std::uint16_t value) { x.frame = value; },
-                [](const scenery& x) { return constraints::range<std::uint16_t>{0, !x.atlas ? std::uint16_t(0) : std::uint16_t(x.atlas->info().nframes-1)}; }
+                [](scenery& x, uint16_t value) { x.frame = value; },
+                [](const scenery& x) { return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)}; }
             },
             entity::type<Vector2b>::field{"offset"_s,
                 [](const scenery& x) { return x.offset; },
@@ -79,17 +79,17 @@ template<> struct has_anim_atlas<scenery> : std::true_type {
     }
 };
 
-using enum_pair = std::pair<StringView, std::size_t>;
+using enum_pair = std::pair<StringView, size_t>;
 template<typename T, typename U> struct enum_values;
 
-template<std::size_t N>
+template<size_t N>
 struct enum_pair_array {
     std::array<enum_pair, N> array;
-    std::size_t size;
+    size_t size;
     operator ArrayView<const enum_pair>() const noexcept { return {array.data(), size};  }
 };
 
-template<std::size_t N> enum_pair_array(std::array<enum_pair, N> array, std::size_t) -> enum_pair_array<N>;
+template<size_t N> enum_pair_array(std::array<enum_pair, N> array, size_t) -> enum_pair_array<N>;
 
 template<typename T, typename U>
 requires (!std::is_enum_v<T>)
@@ -99,10 +99,10 @@ struct enum_values<T, U> : std::true_type {
 
 template<typename U> struct enum_values<pass_mode, U> : std::true_type {
     static constexpr auto ret = std::to_array<enum_pair>({
-        { "blocked"_s, (std::size_t)pass_mode::blocked, },
-        { "see-through"_s, (std::size_t)pass_mode::see_through, },
-        { "shoot-through"_s, (std::size_t)pass_mode::shoot_through, },
-        { "pass"_s, (std::size_t)pass_mode::pass },
+        { "blocked"_s, (size_t)pass_mode::blocked, },
+        { "see-through"_s, (size_t)pass_mode::see_through, },
+        { "shoot-through"_s, (size_t)pass_mode::shoot_through, },
+        { "pass"_s, (size_t)pass_mode::pass },
     });
     static constexpr const auto& get() { return ret; }
 };
@@ -112,7 +112,7 @@ requires has_anim_atlas<U>::value
 struct enum_values<rotation, U> : std::false_type {
     static auto get(const U& x) {
         const anim_atlas& atlas = has_anim_atlas<U>::get_atlas(x);
-        std::array<enum_pair, (std::size_t)rotation_COUNT> array;
+        std::array<enum_pair, (size_t)rotation_COUNT> array;
         constexpr std::pair<StringView, rotation> values[] = {
             { "North"_s,     rotation::N  },
             { "Northeast"_s, rotation::NE },
@@ -123,10 +123,10 @@ struct enum_values<rotation, U> : std::false_type {
             { "West"_s,      rotation::W  },
             { "Northwest"_s, rotation::NW },
         };
-        std::size_t i = 0;
+        size_t i = 0;
         for (auto [str, val] : values)
             if (atlas.check_rotation(val))
-                array[i++] = enum_pair{str, (std::size_t)val};
+                array[i++] = enum_pair{str, (size_t)val};
         return enum_pair_array{array, i};
     }
 };

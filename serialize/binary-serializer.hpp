@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
 #include <bit>
 #include <concepts>
 #include <type_traits>
@@ -10,14 +8,14 @@ namespace floormat::Serialize {
 
 static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little);
 
-template<std::size_t N> struct make_integer;
-template<std::size_t N> using make_integer_t = typename make_integer<N>::type;
+template<size_t N> struct make_integer;
+template<size_t N> using make_integer_t = typename make_integer<N>::type;
 
 #define FM_SERIALIZE_MAKE_INTEGER(T) template<> struct make_integer<sizeof(T)> { using type = T; }
-FM_SERIALIZE_MAKE_INTEGER(std::uint8_t);
-FM_SERIALIZE_MAKE_INTEGER(std::uint16_t);
-FM_SERIALIZE_MAKE_INTEGER(std::uint32_t);
-FM_SERIALIZE_MAKE_INTEGER(std::uint64_t);
+FM_SERIALIZE_MAKE_INTEGER(uint8_t);
+FM_SERIALIZE_MAKE_INTEGER(uint16_t);
+FM_SERIALIZE_MAKE_INTEGER(uint32_t);
+FM_SERIALIZE_MAKE_INTEGER(uint64_t);
 #undef FN_SERIALIZE_MAKE_INTEGER
 
 template<typename T>

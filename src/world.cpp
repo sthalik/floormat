@@ -49,7 +49,7 @@ world::~world() noexcept
     _entities.clear();
 }
 
-world::world(std::size_t capacity) : _chunks{capacity, hasher}
+world::world(size_t capacity) : _chunks{capacity, hasher}
 {
     _chunks.max_load_factor(max_load_factor);
 }
@@ -126,14 +126,14 @@ void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, 
         e->c->add_entity_unsorted(e);
 }
 
-void world::do_kill_entity(std::uint64_t id)
+void world::do_kill_entity(object_id id)
 {
     fm_debug_assert(id > 0);
     auto cnt = _entities.erase(id);
     fm_debug_assert(cnt > 0);
 }
 
-std::shared_ptr<entity> world::find_entity_(std::uint64_t id)
+std::shared_ptr<entity> world::find_entity_(object_id id)
 {
     auto it = _entities.find(id);
     auto ret = it == _entities.end() ? nullptr : it->second.lock();
@@ -141,7 +141,7 @@ std::shared_ptr<entity> world::find_entity_(std::uint64_t id)
     return ret;
 }
 
-void world::set_entity_counter(std::uint64_t value)
+void world::set_entity_counter(object_id value)
 {
     fm_assert(value >= _entity_counter);
     _entity_counter = value;

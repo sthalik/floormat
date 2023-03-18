@@ -15,7 +15,7 @@ template<serializable T>
 constexpr void binary_writer<It>::write(T x) noexcept
 {
     _bytes_written += sizeof(T);
-    constexpr std::size_t N = sizeof(T);
+    constexpr size_t N = sizeof(T);
     const auto buf = std::bit_cast<std::array<char, N>, T>(maybe_byteswap(x));
     for (auto i = 0_uz; i < N; i++)
         *it++ = buf[i];
