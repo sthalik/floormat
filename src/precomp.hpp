@@ -2,7 +2,6 @@
 
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
-#include "compat/alloca.hpp"
 
 #ifdef __GNUG__
 #pragma GCC system_header

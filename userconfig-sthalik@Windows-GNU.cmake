@@ -73,7 +73,6 @@ function(fm-userconfig-src)
         -Wno-error=unused-variable
         -Wno-error=unused-function
         -Wno-error=unused-macros
-        #-Wno-error=alloca
         -Wno-error=double-promotion
         -Wno-error=restrict
         -Wno-error=unused-but-set-variable

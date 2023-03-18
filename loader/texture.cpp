@@ -2,8 +2,8 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/defs.hpp"
-#include "compat/alloca.hpp"
 #include <cstring>
+#include <cstdio>
 #include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
@@ -15,18 +15,18 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
 {
     ensure_plugins();
 
+    constexpr std::size_t max_extension_length = 16;
     const auto N = prefix.size();
     if (N > 0)
         fm_assert(prefix[N-1] == '/');
-    fm_soft_assert(filename_.size() < 512);
+    fm_soft_assert(filename_.size() + prefix.size() + max_extension_length + 1 < FILENAME_MAX);
     fm_soft_assert(check_atlas_name(filename_));
     fm_soft_assert(tga_importer);
-    constexpr std::size_t max_extension_length = 16;
 
-    char* const filename = (char*)alloca(filename_.size() + N + 1 + max_extension_length);
+    char filename[FILENAME_MAX];
     if (N > 0)
         std::memcpy(filename, prefix.data(), N);
-    std::memcpy(filename + N, filename_.cbegin(), filename_.size());
+    std::memcpy(filename + N, filename_.data(), filename_.size());
     std::size_t len =  filename_.size() + N;
 
     for (const auto& extension : std::initializer_list<StringView>{ ".tga", ".png", ".webp", })

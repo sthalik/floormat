@@ -4,6 +4,7 @@
 #include "src/emplacer.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
+#include <cstdio>
 #include <algorithm>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
@@ -43,10 +44,10 @@ ArrayView<String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
-    constexpr std::size_t bufsiz = PATH_MAX;
-    char path_buf[PATH_MAX];
+    fm_assert(dir && dir[dir.size()-1] == '/');
+    char path_buf[FILENAME_MAX];
     name = Path::splitExtension(name).first();
-    fm_assert(dir.size() + name.size() + 1 < bufsiz);
+    fm_assert(dir.size() + name.size() + 1 + 1 < FILENAME_MAX);
     std::memcpy(path_buf, dir.data(), dir.size());
     path_buf[dir.size()] = '/';
     std::memcpy(&path_buf[dir.size() + 1], name.data(), name.size());
