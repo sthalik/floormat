@@ -129,7 +129,8 @@ private:
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true,
-                 _teardown         : 1 = false;
+                 _teardown         : 1 = false,
+                 _entities_sorted  : 1 = true;
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {

@@ -214,14 +214,13 @@ void reader_state::read_chunks(reader_t& s)
                         }
                     }
                     global_coords coord{ch, local_coords{i}};
-                    auto e = _world->make_entity<scenery>(coord, sc);
-                    c.add_entity_unsorted(e);
+                    auto e = _world->make_entity<scenery, false>(_world->make_id(), coord, sc);
                 }
         }
-        if (PROTO < 8) [[unlikely]]
-            c.sort_entities();
+        std::uint32_t entity_count = 0;
+        if (PROTO >= 8) [[likely]]
+                entity_count << s;
 
-        std::uint32_t entity_count; entity_count << s;
         for (auto i = 0_uz; i < entity_count; i++)
         {
             std::uint64_t _id; _id << s;
@@ -252,8 +251,8 @@ void reader_state::read_chunks(reader_t& s)
                 proto.name = StringView{name.buf, name.len, StringViewFlag::Global|StringViewFlag::NullTerminated};
                 if (id & meta_long_scenery_bit)
                     read_offsets(s, proto);
-                auto C = _world->make_entity<character>(oid, {ch, local}, proto);
-                c.add_entity_unsorted(C);
+                auto e = _world->make_entity<character>(oid, {ch, local}, proto);
+                (void)e;
                 break;
             }
             case entity_type::scenery: {
@@ -274,8 +273,8 @@ void reader_state::read_chunks(reader_t& s)
                     if (sc.active)
                         sc.delta << s;
                 }
-                auto e = _world->make_entity<scenery>(oid, {ch, local}, sc);
-                c.add_entity_unsorted(e);
+                auto e = _world->make_entity<scenery, false>(oid, {ch, local}, sc);
+                (void)e;
                 break;
             }
             default:

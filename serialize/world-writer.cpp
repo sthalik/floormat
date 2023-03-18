@@ -335,11 +335,20 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         check_atlas(wall_west);
 
         if (img_g != null_atlas)
-            s << img_g, s << ground.variant;
+        {
+            s << img_g;
+            s << ground.variant;
+        }
         if (img_n != null_atlas)
-            s << img_n, s << wall_north.variant;
+        {
+            s << img_n;
+            s << wall_north.variant;
+        }
         if (img_w != null_atlas)
-            s << img_w, s << wall_west.variant;
+        {
+            s << img_w;
+            s << wall_west.variant;
+        }
     }
 
     s << (std::uint32_t)c.entities().size();

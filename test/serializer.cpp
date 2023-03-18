@@ -30,10 +30,10 @@ chunk& test_app::make_test_chunk(chunk_coords ch)
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal1, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
-    w.make_entity<scenery>({ch, {3, 4}}, table);
-    w.make_entity<scenery>({ch, {K, K+1}}, control_panel);
+    w.make_entity<scenery>(w.make_id(), {ch, {3, 4}}, table);
+    w.make_entity<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
     {
-        auto& e = *w.make_entity<scenery>({ch, {K+3, K+1}}, door);
+        auto& e = *w.make_entity<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         auto i = e.index();
         e.activate(i);
         e.update(i, 1.f/60);
@@ -43,48 +43,41 @@ chunk& test_app::make_test_chunk(chunk_coords ch)
     return c;
 }
 
-static bool chunks_equal(const chunk& a, const chunk& b)
+static void assert_chunks_equal(const chunk& a, const chunk& b)
 {
-    if (a.entities().size() != b.entities().size())
-        return false;
+    fm_assert(a.entities().size() == b.entities().size());
 
     for (auto i = 0_uz; i < TILE_COUNT; i++)
     {
         const auto &a1 = a[i], &b1 = b[i];
-        if (a1 != b1)
-            return false;
+        fm_assert(a1 == b1);
     }
 
     for (auto i = 0_uz; i < a.entities().size(); i++)
     {
         const auto& ae = *a.entities()[i];
         const auto& be = *b.entities()[i];
-        if (ae.type != be.type)
-            return false;
+        fm_assert(ae.type == be.type);
         switch (ae.type)
         {
         case entity_type::character: {
             const auto& e1 = static_cast<const character&>(ae);
             const auto& e2 = static_cast<const character&>(be);
             const auto p1 = character_proto(e1), p2 = character_proto(e2);
-            if (p1 != p2)
-                return false;
+            fm_assert(p1 == p2);
             break;
         }
         case entity_type::scenery: {
             const auto& e1 = static_cast<const scenery&>(ae);
             const auto& e2 = static_cast<const scenery&>(be);
             const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
-            if (p1 != p2)
-                return false;
+            fm_assert(p1 == p2);
             break;
         }
         default:
             fm_abort("invalid entity type '%d'", (int)ae.type);
         }
     }
-
-    return true;
 }
 
 void test_app::test_serializer()
@@ -97,7 +90,7 @@ void test_app::test_serializer()
     w.serialize(filename);
     auto w2 = world::deserialize(filename);
     auto& c2 = w2[coord];
-    fm_assert(chunks_equal(c, c2));
+    assert_chunks_equal(c, c2);
 }
 
 } // namespace floormat

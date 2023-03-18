@@ -55,7 +55,7 @@ void app::reset_world(struct world&& w)
         character_proto cproto;
         cproto.name = "Player"_s;
         cproto.playable = true;
-        _character_id = w2.make_entity<character>(global_coords{}, cproto)->id;
+        _character_id = w2.make_entity<character>(w2.make_id(), global_coords{}, cproto)->id;
     }
 }
 

@@ -108,6 +108,7 @@ bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
 
 void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
 {
+    _entities_sorted = false;
     if (!e->is_dynamic())
         mark_scenery_modified(false);
     if (bbox bb; _bbox_for_scenery(*e, bb))
@@ -117,6 +118,7 @@ void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
 
 void chunk::sort_entities()
 {
+    _entities_sorted = true;
     mark_scenery_modified(false);
 
     std::sort(_entities.begin(), _entities.end(), [](const auto& a, const auto& b) {
@@ -126,6 +128,7 @@ void chunk::sort_entities()
 
 void chunk::add_entity(const std::shared_ptr<entity>& e)
 {
+    fm_assert(_entities_sorted);
     if (e->atlas->info().fps == 0)
         mark_scenery_modified(false);
     if (bbox bb; _bbox_for_scenery(*e, bb))
@@ -140,6 +143,7 @@ void chunk::add_entity(const std::shared_ptr<entity>& e)
 
 void chunk::remove_entity(std::size_t i)
 {
+    fm_assert(_entities_sorted);
     fm_debug_assert(i < _entities.size());
     const auto& e = _entities[i];
     if (!e->is_dynamic())
@@ -152,6 +156,7 @@ void chunk::remove_entity(std::size_t i)
 
 const std::vector<std::shared_ptr<entity>>& chunk::entities() const
 {
+    fm_assert(_entities_sorted);
     return _entities;
 }
 

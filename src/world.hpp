@@ -37,7 +37,7 @@ private:
 
     explicit world(std::size_t capacity);
 
-    void do_make_entity(const std::shared_ptr<entity>& e, global_coords pos);
+    void do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, bool sorted);
     void do_kill_entity(std::uint64_t id);
     std::shared_ptr<entity> find_entity_(std::uint64_t id);
 
@@ -67,27 +67,21 @@ public:
     void set_collect_threshold(std::size_t value) { _collect_every = value; }
     std::size_t collect_threshold() const noexcept { return _collect_every; }
 
-    template<typename T, typename... Xs>
+    template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c) { T{std::uint64_t(), c, entity_type(), std::declval<Xs>()...}; }
     std::shared_ptr<T> make_entity(std::uint64_t id, global_coords pos, Xs&&... xs)
     {
         static_assert(std::is_base_of_v<entity, T>);
         auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk()), entity_type_<T>::value, std::forward<Xs>(xs)...});
-        do_make_entity(std::static_pointer_cast<entity>(ret), pos);
+        do_make_entity(std::static_pointer_cast<entity>(ret), pos, sorted);
         return ret;
-    }
-
-    template<typename T, typename... Xs>
-    requires requires(chunk& c) { T{std::uint64_t(), c, entity_type(), std::declval<Xs>()...}; }
-    inline std::shared_ptr<T> make_entity(global_coords pos, Xs&&... xs)
-    {
-        return make_entity<T, Xs...>(++_entity_counter, pos, std::forward<Xs>(xs)...);
     }
 
     template<typename T = entity, typename U = entity>  std::shared_ptr<T> find_entity(std::uint64_t id);
 
     bool is_teardown() const { return _teardown; }
     std::uint64_t entity_counter() const { return _entity_counter; }
+    [[nodiscard]] std::uint64_t make_id() { return ++_entity_counter; }
     void set_entity_counter(std::uint64_t value);
 
     world& operator=(world&& w) noexcept;
