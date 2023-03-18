@@ -1,7 +1,8 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
-#include "loader/scenery.hpp"
+#include "src/scenery.hpp"
+#include "src/character.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include <Corrade/Utility/Path.h>
@@ -56,9 +57,31 @@ static bool chunks_equal(const chunk& a, const chunk& b)
 
     for (auto i = 0_uz; i < a.entities().size(); i++)
     {
-        auto &ae = *a.entities()[i], &be = *b.entities()[i];
-        if (entity_proto(ae) != entity_proto(be))
+        const auto& ae = *a.entities()[i];
+        const auto& be = *b.entities()[i];
+        if (ae.type != be.type)
             return false;
+        switch (ae.type)
+        {
+        case entity_type::character: {
+            const auto& e1 = static_cast<const character&>(ae);
+            const auto& e2 = static_cast<const character&>(be);
+            const auto p1 = character_proto(e1), p2 = character_proto(e2);
+            if (p1 != p2)
+                return false;
+            break;
+        }
+        case entity_type::scenery: {
+            const auto& e1 = static_cast<const scenery&>(ae);
+            const auto& e2 = static_cast<const scenery&>(be);
+            const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
+            if (p1 != p2)
+                return false;
+            break;
+        }
+        default:
+            fm_abort("invalid entity type '%d'", (int)ae.type);
+        }
     }
 
     return true;
