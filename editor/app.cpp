@@ -6,7 +6,7 @@
 #include "loader/loader.hpp"
 #include "world.hpp"
 #include "src/anim-atlas.hpp"
-#include "character.hpp"
+#include "src/character.hpp"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -43,6 +43,40 @@ void app::reset_world()
     reset_world(floormat::world{});
 }
 
+void app::ensure_player_character(world& w)
+{
+    if (_character_id)
+        if (auto C = w.find_entity(_character_id); C && C->type == entity_type::character)
+            return;
+    _character_id = 0;
+
+    auto id = (std::uint64_t)-1;
+
+    for (const auto& [coord, c] : w.chunks())
+    {
+        for (const auto& e_ : c.entities())
+        {
+            const auto& e = *e_;
+            if (e.type == entity_type::character)
+            {
+                const auto& C = static_cast<const character&>(e);
+                if (C.playable)
+                    id = std::min(id, C.id);
+            }
+        }
+    }
+
+    if (id != (std::uint64_t)-1)
+        _character_id = id;
+    else
+    {
+        character_proto cproto;
+        cproto.name = "Player"_s;
+        cproto.playable = true;
+        _character_id = w.make_entity<character>(w.make_id(), global_coords{}, cproto)->id;
+    }
+}
+
 void app::reset_world(struct world&& w)
 {
     _popup_target = {};
@@ -51,12 +85,7 @@ void app::reset_world(struct world&& w)
         return;
     auto& w2 = M->reset_world(std::move(w));
     w2.collect(true);
-    {
-        character_proto cproto;
-        cproto.name = "Player"_s;
-        cproto.playable = true;
-        _character_id = w2.make_entity<character>(w2.make_id(), global_coords{}, cproto)->id;
-    }
+    ensure_player_character(w2);
 }
 
 int app::exec()

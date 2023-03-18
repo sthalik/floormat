@@ -77,6 +77,7 @@ private:
     void update_character(float dt);
     void reset_world();
     void reset_world(struct world&& w);
+    void ensure_player_character(world& w);
 
     void draw() override;
 

@@ -198,10 +198,13 @@ void app::update_world(float dt)
 
 void app::update_character([[maybe_unused]] float dt)
 {
-    auto& w = M->world();
-    auto c = w.find_entity<character>(_character_id);
-    if (c)
-        c->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+    if (_character_id)
+    {
+        auto& w = M->world();
+        auto c = w.find_entity<character>(_character_id);
+        if (c)
+            c->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
+    }
 }
 
 void app::set_cursor()

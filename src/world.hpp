@@ -77,7 +77,7 @@ public:
         return ret;
     }
 
-    template<typename T = entity, typename U = entity>  std::shared_ptr<T> find_entity(std::uint64_t id);
+    template<typename T = entity>  std::shared_ptr<T> find_entity(std::uint64_t id);
 
     bool is_teardown() const { return _teardown; }
     std::uint64_t entity_counter() const { return _entity_counter; }
@@ -98,15 +98,21 @@ world::world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks
         operator[](coord) = std::move(c);
 }
 
-template<typename T, typename U>
+template<typename T>
 std::shared_ptr<T> world::find_entity(std::uint64_t id)
 {
     static_assert(std::is_base_of_v<entity, T>);
-    std::shared_ptr<U> ptr = find_entity_(id);
-    if (!ptr)
-        return nullptr;
-    fm_assert(ptr->type == entity_type_<T>::value);
-    return std::static_pointer_cast<T>(ptr);
+    // make it a dependent name so that including "src/entity.hpp" isn't needed
+    using U = std::conditional_t<std::is_same_v<T, entity>, T, entity>;
+    if (std::shared_ptr<U> ptr = find_entity_(id); !ptr)
+        return {};
+    else if constexpr(std::is_same_v<T, entity>)
+        return ptr;
+    else
+    {
+        fm_assert(ptr->type == entity_type_<T>::value);
+        return std::static_pointer_cast<T>(std::move(ptr));
+    }
 }
 
 } // namespace floormat
