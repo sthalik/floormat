@@ -60,7 +60,7 @@ public:
     void maybe_collect();
     std::size_t size() const noexcept { return _chunks.size(); }
 
-    [[deprecated]] const auto& chunks() const noexcept { return _chunks; } // only for serialization
+    const auto& chunks() const noexcept { return _chunks; }
 
     void serialize(StringView filename);
     static world deserialize(StringView filename);

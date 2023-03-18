@@ -71,14 +71,6 @@ constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_
 constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
 constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery)) + character_name_max;
 
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
-
 writer_state::writer_state(const world& world) : _world{&world}
 {
     chunk_buf.reserve(chunkbuf_size);
@@ -86,12 +78,6 @@ writer_state::writer_state(const world& world) : _world{&world}
     atlas_buf.reserve(atlas_name_max * 64);
     scenery_map.reserve(64);
 }
-
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
-#elif defined _MSC_VER
-#pragma warning(pop)
-#endif
 
 atlasid writer_state::intern_atlas(const tile_image_proto& img)
 {
