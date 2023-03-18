@@ -43,12 +43,21 @@ ArrayView<String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
-    if (auto it = anim_atlas_map.find(name); it != anim_atlas_map.end())
+    constexpr std::size_t bufsiz = PATH_MAX;
+    char path_buf[PATH_MAX];
+    name = Path::splitExtension(name).first();
+    fm_assert(dir.size() + name.size() + 1 < bufsiz);
+    std::memcpy(path_buf, dir.data(), dir.size());
+    path_buf[dir.size()] = '/';
+    std::memcpy(&path_buf[dir.size() + 1], name.data(), name.size());
+    path_buf[dir.size() + 1 + name.size()] = '\0';
+    const StringView path = path_buf;
+
+    if (auto it = anim_atlas_map.find(path); it != anim_atlas_map.end())
         return it->second;
     else
     {
         fm_soft_assert(check_atlas_name(name));
-        const auto path = Path::join(dir, Path::splitExtension(name).first());
         auto anim_info = deserialize_anim(path + ".json");
 
         for (anim_group& group : anim_info.groups)
@@ -65,7 +74,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
             }
         }
 
-        auto tex = texture("", path);
+        auto tex = texture(""_s, path);
 
         fm_soft_assert(!anim_info.object_name.isEmpty());
         fm_soft_assert(anim_info.pixel_size.product() > 0);
