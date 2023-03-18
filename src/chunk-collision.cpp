@@ -53,6 +53,8 @@ constexpr std::uint64_t make_id(collision_type type, pass_mode p, std::uint64_t 
 
 void chunk::ensure_passability() noexcept
 {
+    fm_assert(_entities_sorted); // not strictly necessary
+
     if (!_pass_modified)
         return;
     _pass_modified = false;

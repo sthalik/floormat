@@ -106,10 +106,11 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
 
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
+    fm_assert(_entities_sorted);
+
     if (_scenery_modified)
     {
         _scenery_modified = false;
-        fm_assert(_entities_sorted);
 
         const auto count = fm_begin(
             std::size_t ret = 0;
