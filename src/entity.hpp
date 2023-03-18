@@ -73,7 +73,7 @@ struct entity
     friend struct world;
 
 protected:
-    entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept;
+    entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 };
 

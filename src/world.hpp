@@ -4,6 +4,7 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "entity-type.hpp"
+#include "compat/exception.hpp"
 #include <unordered_map>
 #include <memory>
 
@@ -109,7 +110,7 @@ std::shared_ptr<T> world::find_entity(object_id id)
         return ptr;
     else
     {
-        fm_assert(ptr->type == entity_type_<T>::value);
+        fm_soft_assert(ptr->type == entity_type_<T>::value);
         return std::static_pointer_cast<T>(std::move(ptr));
     }
 }

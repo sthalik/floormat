@@ -8,15 +8,15 @@ world::world(world&& w) noexcept = default;
 
 world& world::operator=(world&& w) noexcept
 {
-    fm_assert(!w._teardown);
-    fm_assert(!_teardown);
     if (&w != this) [[likely]]
     {
+        fm_assert(!w._teardown);
+        fm_assert(!_teardown);
         _last_collection = w._last_collection;
         _collect_every = w._collect_every;
         _unique_id = std::move(w._unique_id);
         fm_assert(_unique_id);
-        fm_assert(w._unique_id == nullptr);
+        fm_debug_assert(w._unique_id == nullptr);
         _last_chunk = {};
         _chunks = std::move(w._chunks);
         _entities = std::move(w._entities);

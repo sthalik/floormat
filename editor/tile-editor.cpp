@@ -4,6 +4,7 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "random.hpp"
+#include "compat/exception.hpp"
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
@@ -47,7 +48,7 @@ std::shared_ptr<tile_atlas> tile_editor::atlas(StringView str)
     if (auto ptr = maybe_atlas(str))
         return ptr;
     else
-        fm_abort("no such atlas: %s", str.cbegin());
+        fm_throw("no such atlas: {}"_cf, str);
 }
 
 StringView tile_editor::name() const noexcept { return _name; }

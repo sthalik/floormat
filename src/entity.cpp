@@ -3,6 +3,7 @@
 #include "rotation.inl"
 #include "anim-atlas.hpp"
 #include "RTree.hpp"
+#include "compat/exception.hpp"
 #include <algorithm>
 
 namespace floormat {
@@ -13,7 +14,7 @@ entity_proto::~entity_proto() noexcept = default;
 entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
 
-entity::entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto) noexcept :
+entity::entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
@@ -22,8 +23,8 @@ entity::entity(object_id id, struct chunk& c, entity_type type, const entity_pro
     fm_assert(type == proto.type);
     if (atlas)
     {
-        fm_assert(atlas->check_rotation(r));
-        fm_assert(frame < atlas->info().nframes);
+        fm_soft_assert(atlas->check_rotation(r));
+        fm_soft_assert(frame < atlas->info().nframes);
     }
 }
 

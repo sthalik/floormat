@@ -61,7 +61,7 @@ bool read_entity_flags(binary_reader<T>& s, U& e)
     uint8_t flags; flags << s;
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
-         fm_abort("invalid entity type '%d'", (int)e.type);
+         fm_throw("invalid entity type '{}'"_cf, (int)e.type);
     if constexpr(tag == entity_type::scenery)
     {
         e.active      = !!(flags & 1 << 2);
@@ -368,7 +368,7 @@ world world::deserialize(StringView filename)
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
     {
-        fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename.data(), get_error_string(errbuf));
+        fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
     }
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
         fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));

@@ -106,12 +106,14 @@ void test_serializer(StringView input, StringView tmp)
 
 void test_app::test_serializer_1()
 {
+    fm_assert(Path::exists("../CMakeCache.txt"));
     constexpr auto tmp_filename = "../test/test-serializer1.dat"_s;
     test_serializer({}, tmp_filename);
 }
 
 void test_app::test_serializer_2()
 {
+    fm_assert(Path::exists("../CMakeCache.txt"));
     constexpr auto tmp_filename = "../test/test-serializer2.dat"_s;
     constexpr auto dir = "../test/save/"_s;
     using LF = Path::ListFlag;

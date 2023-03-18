@@ -24,7 +24,7 @@ struct anim_atlas final
     using quad = std::array<Vector3, 4>;
 
     anim_atlas() noexcept;
-    anim_atlas(String name, const ImageView2D& tex, anim_def info) noexcept;
+    anim_atlas(String name, const ImageView2D& tex, anim_def info);
     ~anim_atlas() noexcept;
 
     anim_atlas(anim_atlas&&) noexcept;
@@ -34,8 +34,8 @@ struct anim_atlas final
     GL::Texture2D& texture() noexcept;
     const anim_def& info() const noexcept;
 
-    const anim_group& group(rotation r) const noexcept;
-    const anim_frame& frame(rotation r, size_t frame) const noexcept;
+    const anim_group& group(rotation r) const;
+    const anim_frame& frame(rotation r, size_t frame) const;
     texcoords texcoords_for_frame(rotation r, size_t frame, bool mirror) const noexcept;
     quad frame_quad(const Vector3& center, rotation r, size_t frame) const noexcept;
 
@@ -61,7 +61,7 @@ private:
     GL::Texture2D _tex;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
-    static uint8_t rotation_to_index(StringView name) noexcept;
+    static uint8_t rotation_to_index(StringView name);
 };
 
 } // namespace floormat

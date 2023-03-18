@@ -44,10 +44,10 @@ ArrayView<String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
-    fm_assert(dir && dir[dir.size()-1] == '/');
+    fm_soft_assert(dir && dir[dir.size()-1] == '/');
     char path_buf[FILENAME_MAX];
     name = Path::splitExtension(name).first();
-    fm_assert(dir.size() + name.size() + 1 + 1 < FILENAME_MAX);
+    fm_soft_assert(dir.size() + name.size() + 1 + 1 < FILENAME_MAX);
     std::memcpy(path_buf, dir.data(), dir.size());
     path_buf[dir.size()] = '/';
     std::memcpy(&path_buf[dir.size() + 1], name.data(), name.size());

@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "shaders/tile.hpp"
 #include "tile-defs.hpp"
+#include "compat/exception.hpp"
 #include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/Math/Color.h>
@@ -15,12 +16,12 @@ static constexpr inline auto rot_count = size_t(rotation_COUNT);
 static_assert(std::size(name_array) == rot_count);
 static_assert(rot_count == 8);
 
-uint8_t anim_atlas::rotation_to_index(StringView name) noexcept
+uint8_t anim_atlas::rotation_to_index(StringView name)
 {
     for (uint8_t i = 0; i < rot_count; i++)
         if (name == StringView{name_array[i]})
             return i;
-    fm_abort("can't parse rotation name '%s'", name.data());
+    fm_throw("can't parse rotation name '{}'"_cf, name);
 }
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
@@ -35,23 +36,23 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
 }
 
 anim_atlas::anim_atlas() noexcept = default;
-anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) noexcept :
+anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
     _name{std::move(name)}, _bitmask{make_bitmask(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
-    fm_assert(!_info.groups.empty());
+    fm_soft_assert(!_info.groups.empty());
 
     const Size<3> size = image.pixels().size();
-    fm_assert(size[0]*size[1] == _info.pixel_size.product());
-    fm_assert(size[2] >= 3 && size[2] <= 4);
+    fm_soft_assert(size[0]*size[1] == _info.pixel_size.product());
+    fm_soft_assert(size[2] >= 3 && size[2] <= 4);
 
     for (const auto pixel_size = _info.pixel_size;
          const auto& group : _info.groups)
         for (const auto& fr : group.frames)
         {
-            fm_assert(fr.size.product() != 0);
-            fm_assert(fr.offset < pixel_size);
-            fm_assert(fr.offset + fr.size <= pixel_size);
+            fm_soft_assert(fr.size.product() != 0);
+            fm_soft_assert(fr.offset < pixel_size);
+            fm_soft_assert(fr.offset + fr.size <= pixel_size);
         }
 
     _tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
@@ -71,17 +72,17 @@ StringView anim_atlas::name() const noexcept { return _name; }
 GL::Texture2D& anim_atlas::texture() noexcept { return _tex; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
 
-auto anim_atlas::group(rotation r) const noexcept -> const anim_group&
+auto anim_atlas::group(rotation r) const -> const anim_group&
 {
     const auto group_idx = _group_indices[size_t(r)];
-    fm_assert(group_idx != 0xff);
+    fm_soft_assert(group_idx != 0xff);
     return _info.groups[group_idx];
 }
 
-auto anim_atlas::frame(rotation r, size_t frame) const noexcept -> const anim_frame&
+auto anim_atlas::frame(rotation r, size_t frame) const -> const anim_frame&
 {
     const anim_group& g = group(r);
-    fm_assert(frame < g.frames.size());
+    fm_soft_assert(frame < g.frames.size());
     return g.frames[frame];
 }
 
@@ -136,8 +137,8 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
     const auto* const data = (const unsigned char*)pixels.data();
     auto* const dest = (unsigned char*)array.data();
 
-    fm_assert(tex.pixelSize() == 4);
-    fm_assert(pixels.stride()[1] == 4);
+    fm_soft_assert(tex.pixelSize() == 4);
+    fm_soft_assert(pixels.stride()[1] == 4);
 
     for (auto j = 0_uz; j < height; j++)
     {

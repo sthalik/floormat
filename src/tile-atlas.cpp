@@ -2,6 +2,7 @@
 #include "tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include "tile-image.hpp"
+#include "compat/exception.hpp"
 #include <limits>
 #include <Magnum/Math/Color.h>
 #include <Magnum/ImageView.h>
@@ -14,9 +15,9 @@ tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile
     name_{name}, size_{image.size()}, dims_{tile_count}, passability{std::move(p)}
 {
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
-    fm_assert(num_tiles() <= variant_max);
-    fm_assert(dims_[0] > 0 && dims_[1] > 0);
-    fm_assert(size_ % Vector2ui{tile_count} == Vector2ui());
+    fm_soft_assert(num_tiles() <= variant_max);
+    fm_soft_assert(dims_[0] > 0 && dims_[1] > 0);
+    fm_soft_assert(size_ % Vector2ui{tile_count} == Vector2ui());
     tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
