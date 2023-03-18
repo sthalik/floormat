@@ -109,6 +109,8 @@ bool character::update(std::size_t i, float dt)
 
     int nframes = allocate_frame_time(dt);
 
+    rotate(i, new_r);
+
     if (!nframes)
         return false;
 
