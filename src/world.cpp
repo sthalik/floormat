@@ -9,15 +9,19 @@ world::world(world&& w) noexcept = default;
 world& world::operator=(world&& w) noexcept
 {
     fm_assert(!w._teardown);
+    fm_assert(!_teardown);
     if (&w != this) [[likely]]
     {
         _last_collection = w._last_collection;
         _collect_every = w._collect_every;
         _unique_id = std::move(w._unique_id);
-        w._unique_id = std::make_shared<char>('D');
+        fm_assert(_unique_id);
+        fm_assert(w._unique_id == nullptr);
         _last_chunk = {};
         _chunks = std::move(w._chunks);
         _entities = std::move(w._entities);
+        _entity_counter = w._entity_counter;
+        w._entity_counter = 0;
 
         for (auto& [id, c] : _chunks)
             c._world = this;
@@ -109,7 +113,7 @@ void world::collect(bool force)
 void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, bool sorted)
 {
     fm_assert(e->id > 0);
-    fm_debug_assert(e->c->world()._unique_id == _unique_id);
+    fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
     fm_assert(!_entities.contains(e->id));
     fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type != entity_type::none);

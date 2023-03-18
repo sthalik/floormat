@@ -15,7 +15,6 @@ using namespace floormat::imgui;
 void app::draw_inspector()
 {
     auto b = push_id("inspector");
-    auto& w = M->world();
 
     constexpr auto max_inspectors = 4; // todo change later to 32
     if (auto size = inspectors.size(); size > max_inspectors)
@@ -33,7 +32,6 @@ void app::draw_inspector()
         auto& s = *e;
         chunk_coords ch = e->coord.chunk();
         local_coords pos = e->coord.local();
-        auto& c = w[ch];
 
         char buf[32];
         snformat(buf, "inspector-{:08x}"_cf, s.id);
@@ -42,15 +40,16 @@ void app::draw_inspector()
         ImGui::SetNextWindowSize({300*dpi[0], 0});
         auto name = loader.strip_prefix(s.atlas->name());
         snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
+
         bool is_open = true;
-        if (auto b2 = begin_window(buf, &is_open))
+        if (s.type == entity_type::scenery)
         {
-            if (s.type == entity_type::scenery)
-            {
-                auto& s2 = static_cast<scenery&>(s);
+            auto& s2 = static_cast<scenery&>(s);
+            if (auto b2 = begin_window(buf, &is_open))
                 entities::inspect_type(s2);
-            }
         }
+        else
+            is_open = false;
         if (!is_open)
             inspectors.erase(inspectors.begin() + (int)i);
     }

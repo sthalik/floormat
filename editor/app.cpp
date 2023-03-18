@@ -77,15 +77,24 @@ void app::ensure_player_character(world& w)
     }
 }
 
-void app::reset_world(struct world&& w)
+void app::reset_world(struct world&& w_)
 {
-    _popup_target = {};
-    _character_id = 0;
     if (!M)
         return;
-    auto& w2 = M->reset_world(std::move(w));
-    w2.collect(true);
-    ensure_player_character(w2);
+
+    _editor.on_release();
+    _editor.clear_selection();
+    inspectors.clear();
+    _pending_popup = false;
+    _popup_target = {};
+
+    clear_keys();
+    cursor = {};
+    _character_id = 0;
+
+    auto& w = M->reset_world(std::move(w_));
+    w.collect(true);
+    ensure_player_character(w);
 }
 
 int app::exec()
