@@ -52,13 +52,13 @@ struct anim_atlas final
     static BitArray make_bitmask(const ImageView2D& tex);
 
 private:
-    GL::Texture2D _tex;
     String _name;
     BitArray _bitmask;
     anim_def _info;
     std::array<std::uint8_t, (std::size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
+    GL::Texture2D _tex;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
     static std::uint8_t rotation_to_index(StringView name) noexcept;
