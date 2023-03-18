@@ -33,7 +33,7 @@ private:
     std::vector<scenery_proto> sceneries;
     std::vector<std::shared_ptr<tile_atlas>> atlases;
     world* _world;
-    std::uint16_t PROTO = (std::uint16_t)-1;
+    std::uint16_t PROTO = 0;
 };
 
 reader_state::reader_state(world& world) noexcept : _world{&world} {}
@@ -204,8 +204,11 @@ void reader_state::read_chunks(reader_t& s)
             case entity_type::character: {
                 character_proto proto;
                 std::uint8_t id; id << s;
-                proto.frame = read_entity_flags(s, proto) ? s.read<std::uint8_t>() : s.read<std::uint16_t>();
                 proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+                if (read_entity_flags(s, proto))
+                    proto.frame = s.read<std::uint8_t>();
+                else
+                    proto.frame << s;
                 Vector2s offset_frac;
                 offset_frac[0] << s;
                 offset_frac[1] << s;
@@ -246,6 +249,8 @@ void reader_state::read_chunks(reader_t& s)
 
         c.sort_entities();
 
+        const auto nbytes = s.bytes_read();
+        (void)nbytes;
         fm_assert(c.is_scenery_modified());
         fm_assert(c.is_passability_modified());
     }
@@ -306,6 +311,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
                  (std::size_t)proto, (std::size_t)min_proto_version, (std::size_t)proto_version);
     PROTO = proto;
+    fm_assert(PROTO > 0);
     std::uint64_t entity_counter = 0;
     read_atlases(s);
     if (PROTO >= 3) [[likely]]

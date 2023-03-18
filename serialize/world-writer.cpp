@@ -351,8 +351,9 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         }
     }
 
-    s << (std::uint32_t)c.entities().size();
-    fm_assert((std::uint32_t)c.entities().size() == c.entities().size());
+    const auto entity_count = (std::uint32_t)c.entities().size();
+    s << entity_count;
+    fm_assert(entity_count == c.entities().size());
     for (const auto& e_ : c.entities())
     {
         const auto& e = *e_;
@@ -480,22 +481,27 @@ ArrayView<const char> writer_state::serialize_world()
     using proto_t = std::decay_t<decltype(proto_version)>;
     fm_assert(_world->size() <= int_max<chunksiz>);
 
-    std::size_t len = 0;
-    len += std::size(file_magic)-1;
-    len += sizeof(proto_t);
-    len += sizeof(std::uint64_t);
-    len += sizeof(chunksiz);
-    for (const auto& buf : chunk_bufs)
-        len += buf.size();
-    len += atlas_buf.size();
-    len += scenery_buf.size();
+    const auto len = fm_begin(
+        auto len = 0_uz;
+        len += std::size(file_magic)-1;
+        len += sizeof(proto_t);
+        len += atlas_buf.size();
+        len += scenery_buf.size();
+        len += sizeof(std::uint64_t);
+        len += sizeof(chunksiz);
+        for (const auto& buf : chunk_bufs)
+            len += buf.size();
+        return len;
+    );
     file_buf.resize(len);
+    auto bytes_written = 0_uz;
     auto it = file_buf.begin();
     const auto copy = [&](const auto& in) {
         auto len1 = std::distance(std::cbegin(in), std::cend(in)),
              len2 = std::distance(it, file_buf.end());
         fm_assert(len1 <= len2);
         it = std::copy(std::cbegin(in), std::cend(in), it);
+        bytes_written += (std::size_t)len1;
     };
     const auto copy_int = [&]<typename T>(const T& value) {
         union { T x; char bytes[sizeof x]; } c = {.x = maybe_byteswap(value)};
@@ -509,6 +515,8 @@ ArrayView<const char> writer_state::serialize_world()
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);
+    fm_assert(file_buf.size() == bytes_written);
+    fm_assert(len == bytes_written);
     _world = nullptr;
     return {file_buf.data(), file_buf.size()};
 }
