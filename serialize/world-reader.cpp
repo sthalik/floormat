@@ -234,7 +234,7 @@ void reader_state::read_chunks(reader_t& s)
                 if (!(id & meta_short_scenery_bit))
                     read_offsets(s, proto);
                 SET_CHUNK_SIZE();
-                auto e = _world->make_entity<character>(oid, {ch, local}, proto);
+                auto e = _world->make_entity<character, false>(oid, {ch, local}, proto);
                 (void)e;
                 break;
             }

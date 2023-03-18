@@ -63,13 +63,11 @@ void chunk::mark_walls_modified() noexcept
     mark_passability_modified();
 }
 
-void chunk::mark_scenery_modified(bool collision_too) noexcept // todo remove bool
+void chunk::mark_scenery_modified() noexcept
 {
     if (!_scenery_modified && !is_log_quiet())
         fm_debug("scenery reload %zu", ++_reload_no_);
     _scenery_modified = true;
-    if (collision_too)
-        mark_passability_modified();
 }
 
 void chunk::mark_passability_modified() noexcept
@@ -86,7 +84,7 @@ void chunk::mark_modified() noexcept
 {
     mark_ground_modified();
     mark_walls_modified();
-    mark_scenery_modified(false);
+    mark_scenery_modified();
     mark_passability_modified();
 }
 
@@ -110,7 +108,7 @@ void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
 {
     _entities_sorted = false;
     if (!e->is_dynamic())
-        mark_scenery_modified(false);
+        mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
     _entities.push_back(e);
@@ -118,8 +116,11 @@ void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
 
 void chunk::sort_entities()
 {
+    if (_entities_sorted)
+        return;
+
     _entities_sorted = true;
-    mark_scenery_modified(false);
+    mark_scenery_modified();
 
     std::sort(_entities.begin(), _entities.end(), [](const auto& a, const auto& b) {
         return a->ordinal() < b->ordinal();
@@ -129,8 +130,8 @@ void chunk::sort_entities()
 void chunk::add_entity(const std::shared_ptr<entity>& e)
 {
     fm_assert(_entities_sorted);
-    if (e->atlas->info().fps == 0)
-        mark_scenery_modified(false);
+    if (!e->is_dynamic())
+        mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
 
@@ -147,7 +148,7 @@ void chunk::remove_entity(std::size_t i)
     fm_debug_assert(i < _entities.size());
     const auto& e = _entities[i];
     if (!e->is_dynamic())
-        mark_scenery_modified(false);
+        mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);
 

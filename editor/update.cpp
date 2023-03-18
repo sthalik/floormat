@@ -108,11 +108,7 @@ void app::do_rotate(bool backward)
         {
             auto& e = *cl->e;
             auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
-            if (r != e.r)
-            {
-                e.rotate(e.index(), r);
-                e.chunk().mark_scenery_modified();
-            }
+            e.rotate(e.index(), r);
         }
     }
 }
@@ -211,7 +207,7 @@ void app::set_cursor()
 {
     if (!cursor.in_imgui)
     {
-        if (auto* cl = find_clickable_scenery(cursor.pixel))
+        if ([[maybe_unused]] auto* cl = find_clickable_scenery(cursor.pixel))
             M->set_cursor(std::uint32_t(Cursor::Hand));
         else
             M->set_cursor(std::uint32_t(Cursor::Arrow));

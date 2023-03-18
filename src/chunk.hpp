@@ -59,7 +59,7 @@ struct chunk final
 
     void mark_ground_modified() noexcept;
     void mark_walls_modified() noexcept;
-    void mark_scenery_modified(bool collision_too = true) noexcept;
+    void mark_scenery_modified() noexcept;
     void mark_passability_modified() noexcept;
     void mark_modified() noexcept;
 

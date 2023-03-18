@@ -96,11 +96,8 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
         }
     }
     else
-    {
         // todo check collision at pos
         w.make_entity<scenery>(w.make_id(), pos, s.proto);
-    }
-    c.mark_scenery_modified();
 }
 
 } // namespace floormat

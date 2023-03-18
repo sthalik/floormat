@@ -39,7 +39,8 @@ world::~world() noexcept
     for (auto& [k, v] : _chunks)
     {
         v._teardown = true;
-        v.mark_scenery_modified(true);
+        v.mark_scenery_modified();
+        v.mark_passability_modified();
         _last_chunk = {};
         v._entities.clear();
     }

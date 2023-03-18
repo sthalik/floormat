@@ -91,6 +91,8 @@ void entity::rotate(std::size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
     set_bbox(offset, rotate_point(bbox_offset, r, new_r), rotate_size(bbox_size, r, new_r), pass);
+    if (r != new_r && !is_dynamic())
+        c->mark_scenery_modified();
     const_cast<rotation&>(r) = new_r;
 }
 
@@ -152,7 +154,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         return i;
 
     if (!e.is_dynamic())
-        c->mark_scenery_modified(false);
+        c->mark_scenery_modified();
 
     chunk::bbox bb0, bb1;
     const auto bb_offset = rotate_point(bbox_offset, r, new_r);
@@ -185,7 +187,7 @@ std::size_t entity::move(std::size_t i, Vector2i delta, rotation new_r)
         //fm_debug("change-chunk (%hd;%hd|%hhd;%hhd)", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y);
         auto& c2 = w[coord_.chunk()];
         if (!e.is_dynamic())
-            c2.mark_scenery_modified(false);
+            c2.mark_scenery_modified();
         c2._add_bbox(bb1);
         c->remove_entity(i);
         auto& es = c2._entities;
@@ -225,6 +227,9 @@ entity::operator entity_proto() const
 
 void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
 {
+    if (offset != offset_ && !is_dynamic())
+        c->mark_scenery_modified();
+
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
     set_bbox_(offset_, bbox_offset_, bbox_size_, pass);
