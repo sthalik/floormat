@@ -90,11 +90,10 @@ size_t entity::index() const
 
 bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
+    if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
+        return true;
     const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
-    if (bbox_offset_.isZero() && bbox_size_[0] == bbox_size_[1] ||
-        bbox_offset_ == bbox_offset && bbox_size_ == bbox_size)
-        return true;
     return can_move_to({}, coord, offset, bbox_offset_, bbox_size_);
 }
 
