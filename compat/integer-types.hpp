@@ -43,9 +43,9 @@ typedef __UINTMAX_TYPE__  uintmax_t;
 #include <cstddef>
 #include <cstdint>
 using ::std::size_t;
-using ::std::std::ptrdiff_t;
-using ::std::std::intptr_t;
-using ::std::std::uintptr_t;
+using ::std::ptrdiff_t;
+using ::std::intptr_t;
+using ::std::uintptr_t;
 using ::std::int8_t;
 using ::std::int16_t;
 using ::std::int32_t;
