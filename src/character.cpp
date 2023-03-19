@@ -54,7 +54,6 @@ constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
 character_proto::character_proto(const character_proto&) = default;
 character_proto::~character_proto() noexcept = default;
 character_proto& character_proto::operator=(const character_proto&) = default;
-character::~character() = default;
 
 character_proto::character_proto()
 {
@@ -132,6 +131,8 @@ bool character::update(size_t i, float dt)
     return true;
 }
 
+entity_type character::type() const noexcept { return entity_type::character; }
+
 character::operator character_proto() const
 {
     character_proto ret;
@@ -141,8 +142,8 @@ character::operator character_proto() const
     return ret;
 }
 
-character::character(object_id id, struct chunk& c, entity_type type, const character_proto& proto) :
-    entity{id, c, type, proto},
+character::character(object_id id, struct chunk& c, const character_proto& proto) :
+    entity{id, c, proto},
     name{proto.name},
     playable{proto.playable}
 {

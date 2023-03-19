@@ -23,7 +23,7 @@ struct character_proto : entity_proto
 
 struct character final : entity
 {
-    ~character() override;
+    entity_type type() const noexcept override;
     explicit operator character_proto() const;
 
     void set_keys(bool L, bool R, bool U, bool D);
@@ -39,7 +39,7 @@ private:
     static Vector2 move_vec(int left_right, int top_bottom);
 
     friend struct world;
-    character(object_id id, struct chunk& c, entity_type type, const character_proto& proto);
+    character(object_id id, struct chunk& c, const character_proto& proto);
 };
 
 template<> struct entity_type_<struct character> : std::integral_constant<entity_type, entity_type::character> {};

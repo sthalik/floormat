@@ -13,14 +13,14 @@ entity_proto& entity_proto::operator=(const entity_proto&) = default;
 entity_proto::~entity_proto() noexcept = default;
 entity_proto::entity_proto() = default;
 entity_proto::entity_proto(const entity_proto&) = default;
+entity_type entity_proto::type_of() const noexcept { return type; }
 
-entity::entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto) :
+entity::entity(object_id id, struct chunk& c, const entity_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
-    frame{proto.frame}, type{type}, r{proto.r}, pass{proto.pass}
+    frame{proto.frame}, r{proto.r}, pass{proto.pass}
 {
-    fm_assert(type == proto.type);
     if (atlas)
     {
         fm_soft_assert(atlas->check_rotation(r));
@@ -60,7 +60,7 @@ float entity_proto::ordinal(local_coords local) const
 
 float entity::ordinal() const
 {
-    return ordinal(coord.local(), offset, type);
+    return ordinal(coord.local(), offset, type());
 }
 
 float entity::ordinal(local_coords xy, Vector2b offset, entity_type type)
@@ -181,7 +181,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
     const auto bb_size   = rotate_size(bbox_size, r, new_r);
     bool b0 = c->_bbox_for_scenery(*this, bb0),
          b1 = c->_bbox_for_scenery(*this, coord_.local(), offset_, bb_offset, bb_size, bb1);
-    const auto ord = ordinal(coord_.local(), offset_, type);
+    const auto ord = ordinal(coord_.local(), offset_, type());
 
     if (coord_.chunk() == coord.chunk())
     {
@@ -239,7 +239,7 @@ entity::operator entity_proto() const
     ret.bbox_size = bbox_size;
     ret.delta = delta;
     ret.frame = frame;
-    ret.type = type;
+    ret.type = type();
     ret.r = r;
     ret.pass = pass;
     return ret;
@@ -263,6 +263,11 @@ bool entity::activate(size_t) { return false; }
 bool entity::is_dynamic() const
 {
     return atlas->info().fps > 0;
+}
+
+entity_type entity::type_of() const noexcept
+{
+    return type();
 }
 
 } // namespace floormat

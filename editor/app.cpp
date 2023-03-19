@@ -46,7 +46,7 @@ void app::reset_world()
 void app::ensure_player_character(world& w)
 {
     if (_character_id)
-        if (auto C = w.find_entity(_character_id); C && C->type == entity_type::character)
+        if (auto C = w.find_entity(_character_id); C && C->type() == entity_type::character)
             return;
     _character_id = 0;
 
@@ -57,7 +57,7 @@ void app::ensure_player_character(world& w)
         for (const auto& e_ : c.entities())
         {
             const auto& e = *e_;
-            if (e.type == entity_type::character)
+            if (e.type() == entity_type::character)
             {
                 const auto& C = static_cast<const character&>(e);
                 if (C.playable)

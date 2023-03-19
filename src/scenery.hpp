@@ -41,14 +41,16 @@ struct scenery final : entity
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;
 
+    bool update(size_t i, float dt) override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
-    bool update(size_t i, float dt) override;
+
+    entity_type type() const noexcept override;
     explicit operator scenery_proto() const;
 
 private:
     friend struct world;
-    scenery(object_id id, struct chunk& c, entity_type type, const scenery_proto& proto);
+    scenery(object_id id, struct chunk& c, const scenery_proto& proto);
 };
 
 template<> struct entity_type_<scenery> : std::integral_constant<entity_type, entity_type::scenery> {};

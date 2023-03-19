@@ -32,6 +32,8 @@ struct entity_proto
 
     virtual bool operator==(const entity_proto&) const;
     virtual ~entity_proto() noexcept;
+
+    entity_type type_of() const noexcept;
 };
 
 struct entity
@@ -45,7 +47,6 @@ struct entity
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
-    const entity_type type;
     const rotation r = rotation::N;
     const pass_mode pass = pass_mode::see_through;
 
@@ -59,6 +60,7 @@ struct entity
 
     explicit operator entity_proto() const;
 
+    virtual entity_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
     virtual bool update(size_t i, float dt) = 0;
@@ -67,18 +69,18 @@ struct entity
     virtual bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
     virtual void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
+    entity_type type_of() const noexcept;
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
 
+    bool is_dynamic() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
     size_t move_to(size_t i, Vector2i delta, rotation new_r);
 
-    bool is_dynamic() const;
-
     friend struct world;
 
 protected:
-    entity(object_id id, struct chunk& c, entity_type type, const entity_proto& proto);
+    entity(object_id id, struct chunk& c, const entity_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 };
 

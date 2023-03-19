@@ -100,6 +100,8 @@ bool scenery_proto::operator==(const entity_proto& e0) const
            closing == s0.closing && interactive == s0.interactive;
 }
 
+entity_type scenery::type() const noexcept { return entity_type::scenery; }
+
 scenery::operator scenery_proto() const
 {
     scenery_proto ret;
@@ -111,11 +113,10 @@ scenery::operator scenery_proto() const
     return ret;
 }
 
-scenery::scenery(object_id id, struct chunk& c, entity_type type_, const scenery_proto& proto) :
-    entity{id, c, type_, proto}, sc_type{proto.sc_type}, active{proto.active},
+scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :
+    entity{id, c, proto}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {
-    fm_assert(type == proto.type);
 }
 
 } // namespace floormat

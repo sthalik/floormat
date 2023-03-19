@@ -42,7 +42,7 @@ void app::draw_inspector()
         snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
 
         bool is_open = true;
-        if (s.type == entity_type::scenery)
+        if (s.type() == entity_type::scenery)
         {
             auto& s2 = static_cast<scenery&>(s);
             if (auto b2 = begin_window(buf, &is_open))

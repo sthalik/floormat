@@ -184,8 +184,8 @@ void write_entity_flags(binary_writer<T>& s, const U& e)
     fm_assert((pass & pass_mask) == pass);
     flags |= pass;
     constexpr auto tag = entity_type_<U>::value;
-    if (e.type != tag)
-        fm_abort("invalid entity type '%d'", (int)e.type);
+    if (e.type_of() != tag)
+        fm_abort("invalid entity type '%d'", (int)e.type_of());
     if constexpr(tag == entity_type::scenery)
     {
         flags |= (1 << 2) * e.active;
@@ -327,8 +327,9 @@ void writer_state::serialize_new_scenery(const chunk& c, writer_t& s)
         object_id oid = e.id;
         fm_assert((oid & ((object_id)1 << 60)-1) == oid);
         static_assert(entity_type_BITS == 3);
-        fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
-        oid |= (object_id)e.type << 64 - entity_type_BITS;
+        const auto type = e.type();
+        fm_assert(((entity_type_i)type & (1 << entity_type_BITS)-1) == (entity_type_i)type);
+        oid |= (object_id)type << 64 - entity_type_BITS;
         s << oid;
         const auto local = e.coord.local();
         s << local.to_index();
@@ -340,10 +341,10 @@ void writer_state::serialize_new_scenery(const chunk& c, writer_t& s)
             s << e.bbox_size[0];
             s << e.bbox_size[1];
         };
-        switch (e.type)
+        switch (type)
         {
         default:
-            fm_abort("invalid entity type '%d'", (int)e.type);
+            fm_abort("invalid entity type '%d'", (int)type);
         case entity_type::character: {
             const auto& C = static_cast<const character&>(e);
             uint8_t id = 0;
@@ -477,7 +478,7 @@ ArrayView<const char> writer_state::serialize_world()
         for (const auto& e_ : c.entities())
         {
             const auto& e = *e_;
-            switch (e.type)
+            switch (e.type())
             {
             case entity_type::scenery:
                 intern_scenery(static_cast<const scenery&>(e), false);
@@ -485,7 +486,7 @@ ArrayView<const char> writer_state::serialize_world()
             case entity_type::character:
                 break;
             default:
-                fm_abort("invalid scenery type '%d'", (int)e.type);
+                fm_abort("invalid scenery type '%d'", (int)e.type());
             }
         }
     }

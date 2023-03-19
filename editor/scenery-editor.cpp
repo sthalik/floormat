@@ -87,7 +87,7 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
         for (auto i = es.size()-1; i != (size_t)-1; i--)
         {
             const auto& e = *es[i];
-            if (e.type != entity_type::scenery)
+            if (e.type() != entity_type::scenery)
                 continue;
             auto center = Vector2(e.coord.local())*TILE_SIZE2 + Vector2(e.offset) + Vector2(e.bbox_offset),
                  min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);

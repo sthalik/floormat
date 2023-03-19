@@ -68,11 +68,13 @@ public:
     size_t collect_threshold() const noexcept { return _collect_every; }
 
     template<typename T, bool sorted = true, typename... Xs>
-    requires requires(chunk& c) { T{object_id(), c, entity_type(), std::declval<Xs>()...}; }
+    requires requires(chunk& c) {
+        T{object_id(), c, std::declval<Xs>()...};
+        std::is_base_of_v<entity, T>;
+    }
     std::shared_ptr<T> make_entity(object_id id, global_coords pos, Xs&&... xs)
     {
-        static_assert(std::is_base_of_v<entity, T>);
-        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk()), entity_type_<T>::value, std::forward<Xs>(xs)...});
+        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk()), std::forward<Xs>(xs)...});
         do_make_entity(std::static_pointer_cast<entity>(ret), pos, sorted);
         return ret;
     }
@@ -110,7 +112,7 @@ std::shared_ptr<T> world::find_entity(object_id id)
         return ptr;
     else
     {
-        fm_soft_assert(ptr->type == entity_type_<T>::value);
+        fm_soft_assert(ptr->type() == entity_type_<T>::value);
         return std::static_pointer_cast<T>(std::move(ptr));
     }
 }

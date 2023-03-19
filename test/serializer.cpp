@@ -59,8 +59,8 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
     {
         const auto& ae = *a.entities()[i];
         const auto& be = *b.entities()[i];
-        fm_assert(ae.type == be.type);
-        switch (ae.type)
+        fm_assert(ae.type() == be.type());
+        switch (ae.type())
         {
         case entity_type::character: {
             const auto& e1 = static_cast<const character&>(ae);
@@ -77,7 +77,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             break;
         }
         default:
-            fm_abort("invalid entity type '%d'", (int)ae.type);
+            fm_abort("invalid entity type '%d'", (int)ae.type());
         }
     }
 }
