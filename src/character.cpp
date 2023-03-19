@@ -78,7 +78,7 @@ int character::allocate_frame_time(float dt)
     constexpr int framerate_ = 65535/framerate;
     static_assert(framerate_ > 0);
     auto ret = d / framerate_;
-    delta = (uint16_t)std::clamp(d - ret*65535, 0, 65535);
+    delta = (uint16_t)std::clamp(d - ret*65535LL, 0LL, 65535LL);
     return ret;
 }
 
