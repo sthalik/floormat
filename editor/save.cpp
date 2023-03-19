@@ -41,7 +41,6 @@ void app::do_quicksave()
 void app::do_quickload()
 {
     auto file = Path::join(loader.TEMP_PATH, quicksave_file);
-    kill_popups(true);
     if (!ensure_save_directory())
         return;
     if (!Path::exists(file))
