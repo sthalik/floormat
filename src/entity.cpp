@@ -90,9 +90,17 @@ size_t entity::index() const
 
 bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    bbox_offset = rotate_point(bbox_offset, old_r, new_r);
-    bbox_size = rotate_size(bbox_size, old_r, new_r);
-    return can_move_to({}, coord, offset, bbox_offset, bbox_size);
+    const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
+    const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
+    if (bbox_offset_.isZero() && bbox_size_[0] == bbox_size_[1] ||
+        bbox_offset_ == bbox_offset && bbox_size_ == bbox_size)
+        return true;
+    return can_move_to({}, coord, offset, bbox_offset_, bbox_size_);
+}
+
+bool entity::can_rotate(rotation new_r)
+{
+    return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
 }
 
 void entity::rotate(size_t, rotation new_r)
@@ -152,16 +160,16 @@ bool entity::can_move_to(Vector2i delta)
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-size_t entity::move(size_t i, Vector2i delta, rotation new_r)
+size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
 {
+    if (!can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size))
+        return i;
+
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
     auto e_ = es[i];
     auto& w = *c->_world;
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
-
-    if (!can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size))
-        return i;
 
     if (coord_ == coord && offset_ == offset)
         return i;

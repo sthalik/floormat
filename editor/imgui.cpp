@@ -155,7 +155,7 @@ void app::do_popup_menu()
             inspectors.push_back(std::exchange(_popup_target, {}));
         ImGui::SeparatorText("Modify");
         if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
-            next_rot != sc->r && ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r))
+            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r && sc->can_rotate(next_rot)))
             sc->rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
             sc->chunk().remove_entity(sc->index());

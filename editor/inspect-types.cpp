@@ -63,7 +63,7 @@ struct entity_accessors<scenery> {
 #ifdef TEST_STR
             entity::type<String>::field{"string"_s,
                 [](const scenery&) { return my_str; },
-                [](scenery&, String value) { my_str = std::move(value); },
+                [](scenery&, String value) { my_str = std::move_to(value); },
                 constantly(constraints::max_length{8}),
             },
 #endif

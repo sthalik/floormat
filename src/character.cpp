@@ -125,7 +125,7 @@ bool character::update(size_t i, float dt)
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
         if (can_move_to(off_i))
-            i = move(i, off_i, new_r);
+            i = move_to(i, off_i, new_r);
         ++frame %= atlas->info().nframes;
     }
     //Debug{} << "pos" << Vector2i(pos.local());
