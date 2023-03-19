@@ -84,9 +84,7 @@ void app::reset_world(struct world&& w_)
 
     _editor.on_release();
     _editor.clear_selection();
-    inspectors.clear();
-    _pending_popup = false;
-    _popup_target = {};
+    kill_popups(true);
 
     clear_keys();
     cursor = {};

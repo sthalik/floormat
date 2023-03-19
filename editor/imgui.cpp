@@ -168,9 +168,7 @@ void app::kill_popups(bool hard)
     ImGui::CloseCurrentPopup();
 
     if (hard)
-    {
         inspectors.clear();
-    }
 
     ImGui::FocusWindow(nullptr);
 }
