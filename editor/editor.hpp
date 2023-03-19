@@ -51,8 +51,8 @@ private:
     snap_mode get_snap_value(snap_mode snap, int mods) const;
     static global_coords apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept;
 
-    tile_editor _floor{ editor_mode::floor, "floor" };
-    tile_editor _wall { editor_mode::walls, "wall"  };
+    tile_editor _floor{ editor_mode::floor, "floor"_s };
+    tile_editor _wall { editor_mode::walls, "wall"_s  };
     scenery_editor _scenery;
 
     struct drag_pos final {
