@@ -22,6 +22,7 @@ else()
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
     sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
+
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 if(FLOORMAT_ASAN)
@@ -38,7 +39,6 @@ sets(STRING
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
      CMAKE_SHARED_LINKER_FLAGS_DEBUG ""
 )
-
 sets(STRING
      CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}"
      CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}"
@@ -55,18 +55,29 @@ function(fm-userconfig-external)
         -Wno-unused-but-set-variable
         -Wno-error=return-type
     )
-    sets(BOOL
-         CORRADE_BUILD_TESTS                                    ON
-         MAGNUM_BUILD_TESTS                                     ON
-    )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR FLOORMAT_ASAN)
         sets(BOOL
-             SDL_STATIC                                         ON
+             FLOORMAT_SUBMODULE-SDL2                            ON
              SDL_SHARED                                         OFF
+             SDL_STATIC                                         ON
              CORRADE_BUILD_STATIC                               ON
+             CORRADE_BUILD_TESTS                                OFF
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
-             MAGNUM_BUILD_STATIC                                ON
              MAGNUM_BUILD_PLUGINS_STATIC                        ON
+             MAGNUM_BUILD_STATIC                                ON
+             MAGNUM_BUILD_TESTS                                 OFF
+        )
+    else()
+        sets(BOOL
+             FLOORMAT_SUBMODULE-SDL2                            OFF
+             SDL_SHARED                                         ON
+             SDL_STATIC                                         OFF
+             CORRADE_BUILD_STATIC                               OFF
+             CORRADE_BUILD_TESTS                                OFF
+             CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
+             MAGNUM_BUILD_PLUGINS_STATIC                        OFF
+             MAGNUM_BUILD_STATIC                                OFF
+             MAGNUM_BUILD_TESTS                                 OFF
         )
     endif()
 endfunction()

@@ -9,20 +9,27 @@ list(APPEND CMAKE_IGNORE_PATH "c:/msys64")
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64")
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
-function(fm-userconfig-external)
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-        sets(BOOL
-             SDL_STATIC                                         ON
-             SDL_SHARED                                         OFF
-             CORRADE_BUILD_STATIC                               ON
-             CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
-             MAGNUM_BUILD_STATIC                                ON
-             MAGNUM_BUILD_PLUGINS_STATIC                        ON
-        )
-    endif()
-endfunction()
-
-sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    sets(BOOL
+         FLOORMAT_PRECOMPILED-HEADERS                       OFF
+         SDL_STATIC                                         OFF
+         SDL_SHARED                                         ON
+         CORRADE_BUILD_STATIC                               OFF
+         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
+         MAGNUM_BUILD_STATIC                                OFF
+         MAGNUM_BUILD_PLUGINS_STATIC                        OFF
+    )
+else()
+    sets(BOOL
+         FLOORMAT_PRECOMPILED-HEADERS                       OFF
+         SDL_STATIC                                         ON
+         SDL_SHARED                                         OFF
+         CORRADE_BUILD_STATIC                               ON
+         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
+         MAGNUM_BUILD_STATIC                                ON
+         MAGNUM_BUILD_PLUGINS_STATIC                        ON
+    )
+endif()
 
 function(fm-userconfig-src)
     add_compile_options(-W4 -Qvec-report:1)

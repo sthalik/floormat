@@ -11,39 +11,43 @@ sets(STRING
      CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
 )
 
+list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
+list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
+
 add_compile_options(-fdiagnostics-color=always)
 set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
 
-sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
-
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
-    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS                          OFF)
+    sets(BOOL
+         FLOORMAT_PRECOMPILED-HEADERS                           OFF
+         CORRADE_BUILD_TESTS                                    ON
+         MAGNUM_BUILD_TESTS                                     ON
+         SDL_STATIC                                             OFF
+         SDL_SHARED                                             ON
+         CORRADE_BUILD_STATIC                                   OFF
+         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        OFF
+         MAGNUM_BUILD_STATIC                                    OFF
+         MAGNUM_BUILD_PLUGINS_STATIC                            OFF
+         MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     ON
+    )
+else()
+    sets(BOOL
+         FLOORMAT_PRECOMPILED-HEADERS                           ON
+         CORRADE_BUILD_TESTS                                    OFF
+         MAGNUM_BUILD_TESTS                                     OFF
+         SDL_STATIC                                             ON
+         SDL_SHARED                                             OFF
+         CORRADE_BUILD_STATIC                                   ON
+         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        ON
+         MAGNUM_BUILD_STATIC                                    ON
+         MAGNUM_BUILD_PLUGINS_STATIC                            ON
+         MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
+    )
 endif()
 
 # for building submodule dependencies
 function(fm-userconfig-external)
-    sets(BOOL
-         CORRADE_BUILD_TESTS                                        OFF
-         MAGNUM_BUILD_TESTS                                         OFF
-    )
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-        sets(BOOL
-             CORRADE_BUILD_TESTS                                    ON
-             MAGNUM_BUILD_TESTS                                     ON
-        )
-    else()
-        sets(BOOL
-             FLOORMAT_PRECOMPILED-HEADERS                           ON
-             SDL_STATIC                                             ON
-             SDL_SHARED                                             OFF
-             CORRADE_BUILD_STATIC                                   ON
-             CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        ON
-             MAGNUM_BUILD_STATIC                                    ON
-             MAGNUM_BUILD_PLUGINS_STATIC                            ON
-             MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
-        )
-    endif()
     add_compile_options(
         -Wno-ignored-attributes
         -Wno-unused-function
