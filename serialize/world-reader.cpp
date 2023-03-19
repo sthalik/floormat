@@ -25,11 +25,14 @@ private:
 
     const std::shared_ptr<tile_atlas>& lookup_atlas(atlasid id);
     const scenery_proto& lookup_scenery(atlasid id);
+    StringView lookup_string(uint32_t idx);
     void read_atlases(reader_t& reader);
     void read_sceneries(reader_t& reader);
+    void read_strings(reader_t& reader);
     void read_chunks(reader_t& reader);
     void read_old_scenery(reader_t& s, chunk_coords ch, size_t i);
 
+    std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
     std::vector<std::shared_ptr<tile_atlas>> atlases;
     world* _world;
@@ -114,6 +117,17 @@ void reader_state::read_sceneries(reader_t& s)
     fm_soft_assert(i == sz);
 }
 
+void reader_state::read_strings(reader_t& s)
+{
+    uint32_t size; size << s;
+    strings.reserve(size);
+    for (auto i = 0_uz; i < size; i++)
+    {
+        auto str = s.read_asciiz_string<string_max>();
+        strings.emplace_back(StringView{str});
+    }
+}
+
 const std::shared_ptr<tile_atlas>& reader_state::lookup_atlas(atlasid id)
 {
     if (id < atlases.size())
@@ -128,6 +142,12 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
         return sceneries[id];
     else
         fm_throw("no such scenery: '{}'"_cf, id);
+}
+
+StringView reader_state::lookup_string(uint32_t idx)
+{
+    fm_soft_assert(idx < strings.size());
+    return strings[idx];
 }
 
 #ifndef FM_NO_DEBUG
@@ -229,8 +249,21 @@ void reader_state::read_chunks(reader_t& s)
                 offset_frac[0] << s;
                 offset_frac[1] << s;
                 SET_CHUNK_SIZE();
-                const auto name = s.read_asciiz_string<character_name_max>();
-                proto.name = StringView{name.buf, name.len, StringViewFlag::Global|StringViewFlag::NullTerminated};
+
+                if (PROTO >= 9) [[likely]]
+                {
+                    uint32_t id; id << s;
+                    auto name = lookup_string(id);
+                    fm_soft_assert(name.size() < character_name_max);
+                    proto.name = name;
+                }
+                else
+                {
+                    auto [buf, len] = s.read_asciiz_string<character_name_max>();
+                    auto name = StringView{buf, len};
+                    proto.name = name;
+                }
+
                 if (!(id & meta_short_scenery_bit))
                     read_offsets(s, proto);
                 SET_CHUNK_SIZE();
@@ -336,6 +369,8 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
     read_atlases(s);
     if (PROTO >= 3) [[likely]]
         read_sceneries(s);
+    if (PROTO >= 9) [[likely]]
+        read_strings(s);
     if (PROTO >= 8) [[likely]]
         entity_counter << s;
     read_chunks(s);

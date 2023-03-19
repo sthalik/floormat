@@ -16,7 +16,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/StringStlHash.h>
 #include <Corrade/Utility/Path.h>
 
 using namespace floormat;
@@ -53,20 +53,23 @@ private:
     atlasid intern_atlas(const tile_image_proto& img);
     atlasid maybe_intern_atlas(const tile_image_proto& img);
     scenery_pair intern_scenery(const scenery& sc, bool create);
+    uint32_t intern_string(StringView name);
 
     void serialize_new_scenery(const chunk& c, writer_t& s);
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
     void serialize_scenery();
+    void serialize_strings();
 
     void load_scenery_1(const serialized_scenery& s);
     void load_scenery();
 
     const world* _world;
-    std::vector<char> atlas_buf, scenery_buf, chunk_buf, file_buf;
+    std::vector<char> atlas_buf, scenery_buf, chunk_buf, file_buf, string_buf;
     std::vector<std::vector<char>> chunk_bufs;
     std::unordered_map<const void*, interned_atlas> tile_images;
     std::unordered_map<const void*, std::vector<interned_scenery>> scenery_map;
+    std::unordered_map<StringView, uint32_t> string_map;
     atlasid scenery_map_size = 0;
 };
 
@@ -80,6 +83,13 @@ writer_state::writer_state(const world& world) : _world{&world}
     chunk_bufs.reserve(world.chunks().size());
     atlas_buf.reserve(atlas_name_max * 64);
     scenery_map.reserve(64);
+    string_map.reserve(64);
+}
+
+uint32_t writer_state::intern_string(StringView name)
+{
+    auto [kv, fresh] = string_map.try_emplace(name, string_map.size());
+    return kv->second;
 }
 
 atlasid writer_state::intern_atlas(const tile_image_proto& img)
@@ -285,6 +295,24 @@ void writer_state::serialize_scenery()
     scenery_buf.resize(s.bytes_written());
 }
 
+void writer_state::serialize_strings()
+{
+    static_assert(character_name_max <= string_max);
+    auto len = 0_uz;
+    for (const auto& [k, v] : string_map)
+    {
+        fm_assert(k.size()+1 < string_max);
+        len += k.size()+1;
+    }
+    string_buf.resize(sizeof(uint32_t) + len);
+    auto s = binary_writer{string_buf.begin()};
+    s << (uint32_t)string_map.size();
+    for (const auto& [k, v] : string_map)
+        s.write_asciiz_string(k);
+    fm_assert(s.bytes_written() == sizeof(uint32_t) + len);
+    fm_assert(s.bytes_written() == string_buf.size());
+}
+
 const auto def_char_bbox_size = character_proto{}.bbox_size;
 const auto def_char_pass = character_proto{}.pass;
 
@@ -471,6 +499,7 @@ ArrayView<const char> writer_state::serialize_world()
     }
     serialize_atlases();
     serialize_scenery();
+    serialize_strings();
 
     using proto_t = std::decay_t<decltype(proto_version)>;
     fm_assert(_world->size() <= int_max<chunksiz>);
@@ -481,6 +510,7 @@ ArrayView<const char> writer_state::serialize_world()
         len += sizeof(proto_t);
         len += atlas_buf.size();
         len += scenery_buf.size();
+        len += string_buf.size();
         len += sizeof(object_id);
         len += sizeof(chunksiz);
         for (const auto& buf : chunk_bufs)
@@ -505,6 +535,7 @@ ArrayView<const char> writer_state::serialize_world()
     copy_int((proto_t)proto_version);
     copy(atlas_buf);
     copy(scenery_buf);
+    copy(string_buf);
     copy_int((object_id)_world->entity_counter());
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)

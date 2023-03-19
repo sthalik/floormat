@@ -20,7 +20,8 @@
  *  5) Serialize scenery pixel offset.
  *  6) Serialize scenery bboxes.
  *  7) Serialize scenery bbox_size offset.
- *  8) Scenery replaced with entities.
+ *  8) Entity subtypes.
+ *  9) Interned strings.
  */
 
 namespace floormat {
@@ -45,8 +46,9 @@ constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
 constexpr inline size_t character_name_max = 128;
+constexpr inline size_t string_max = 512;
 
-constexpr inline proto_t proto_version = 8;
+constexpr inline proto_t proto_version = 9;
 constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
