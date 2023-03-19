@@ -48,10 +48,13 @@ struct writer_state final {
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(writer_state);
 
 private:
+    using writer_t = binary_writer<decltype(std::vector<char>{}.begin())>;
+
     atlasid intern_atlas(const tile_image_proto& img);
     atlasid maybe_intern_atlas(const tile_image_proto& img);
     scenery_pair intern_scenery(const scenery& sc, bool create);
 
+    void serialize_new_scenery(const chunk& c, writer_t& s);
     void serialize_chunk(const chunk& c, chunk_coords coord);
     void serialize_atlases();
     void serialize_scenery();
@@ -285,6 +288,87 @@ void writer_state::serialize_scenery()
 const auto def_char_bbox_size = character_proto{}.bbox_size;
 const auto def_char_pass = character_proto{}.pass;
 
+void writer_state::serialize_new_scenery(const chunk& c, writer_t& s)
+{
+    const auto entity_count = (uint32_t)c.entities().size();
+    s << entity_count;
+    fm_assert(entity_count == c.entities().size());
+    for (const auto& e_ : c.entities())
+    {
+        const auto& e = *e_;
+        object_id oid = e.id;
+        fm_assert((oid & ((object_id)1 << 60)-1) == oid);
+        static_assert(entity_type_BITS == 3);
+        fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
+        oid |= (object_id)e.type << 64 - entity_type_BITS;
+        s << oid;
+        const auto local = e.coord.local();
+        s << local.to_index();
+        constexpr auto write_offsets = [](auto& s, const auto& e) {
+            s << e.offset[0];
+            s << e.offset[1];
+            s << e.bbox_offset[0];
+            s << e.bbox_offset[1];
+            s << e.bbox_size[0];
+            s << e.bbox_size[1];
+        };
+        switch (e.type)
+        {
+        default:
+            fm_abort("invalid entity type '%d'", (int)e.type);
+        case entity_type::character: {
+            const auto& C = static_cast<const character&>(e);
+            uint8_t id = 0;
+            const auto sc_exact =
+                C.offset.isZero() && C.bbox_offset.isZero() &&
+                C.bbox_size == def_char_bbox_size;
+            id |= meta_short_scenery_bit * sc_exact;
+            id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
+            s << id;
+            write_entity_flags(s, C);
+            if (C.frame <= 0xff)
+                s << (uint8_t)C.frame;
+            else
+                s << C.frame;
+            s << C.offset_frac[0];
+            s << C.offset_frac[1];
+            fm_assert(C.name.size() < character_name_max);
+            s << intern_string(C.name);
+            if (!sc_exact)
+                write_offsets(s, C);
+            break;
+        }
+        case entity_type::scenery: {
+            const auto& sc = static_cast<const scenery&>(e);
+            auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
+            sc_exact = sc_exact &&
+                       e.offset.isZero() && e.bbox_offset.isZero() && e.bbox_size.isZero() &&
+                       !sc.active && !sc.closing && !sc.interactive;
+            fm_assert(img_s != null_atlas);
+            atlasid id = img_s;
+            static_assert(rotation_BITS == 3);
+            fm_assert((id & (1 << 16-3-1)-1) == id);
+            id |= meta_short_scenery_bit * sc_exact;
+            id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
+            s << id;
+            if (!sc_exact)
+            {
+                write_entity_flags(s, sc);
+                fm_assert(sc.active || sc.delta == 0);
+                if (sc.frame <= 0xff)
+                    s << (uint8_t)sc.frame;
+                else
+                    s << sc.frame;
+                write_offsets(s, sc);
+                if (sc.active)
+                    s << sc.delta;
+            }
+            break;
+        }
+        }
+    }
+}
+
 void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 {
     fm_assert(chunk_buf.empty());
@@ -337,83 +421,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
         }
     }
 
-    const auto entity_count = (uint32_t)c.entities().size();
-    s << entity_count;
-    fm_assert(entity_count == c.entities().size());
-    for (const auto& e_ : c.entities())
-    {
-        const auto& e = *e_;
-        object_id oid = e.id;
-        fm_assert((oid & ((object_id)1 << 60)-1) == oid);
-        static_assert(entity_type_BITS == 3);
-        fm_assert(((entity_type_i)e.type & (1 << entity_type_BITS)-1) == (entity_type_i)e.type);
-        oid |= (object_id)e.type << 64 - entity_type_BITS;
-        s << oid;
-        const auto local = e.coord.local();
-        s << local.to_index();
-        constexpr auto write_offsets = [](auto& s, const auto& e) {
-            s << e.offset[0];
-            s << e.offset[1];
-            s << e.bbox_offset[0];
-            s << e.bbox_offset[1];
-            s << e.bbox_size[0];
-            s << e.bbox_size[1];
-        };
-        switch (e.type)
-        {
-        default:
-            fm_abort("invalid entity type '%d'", (int)e.type);
-        case entity_type::character: {
-            const auto& C = static_cast<const character&>(e);
-            uint8_t id = 0;
-            const auto sc_exact =
-                C.offset.isZero() && C.bbox_offset.isZero() &&
-                C.bbox_size == def_char_bbox_size;
-            id |= meta_short_scenery_bit * sc_exact;
-            id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
-            s << id;
-            write_entity_flags(s, C);
-            if (C.frame <= 0xff)
-                s << (uint8_t)C.frame;
-            else
-                s << C.frame;
-            s << C.offset_frac[0];
-            s << C.offset_frac[1];
-            fm_assert(C.name.size() < character_name_max);
-            s.write_asciiz_string(C.name);
-            if (!sc_exact)
-                write_offsets(s, C);
-            break;
-        }
-        case entity_type::scenery: {
-            const auto& sc = static_cast<const scenery&>(e);
-            auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
-            sc_exact = sc_exact &&
-                       e.offset.isZero() && e.bbox_offset.isZero() && e.bbox_size.isZero() &&
-                       !sc.active && !sc.closing && !sc.interactive;
-            fm_assert(img_s != null_atlas);
-            atlasid id = img_s;
-            static_assert(rotation_BITS == 3);
-            fm_assert((id & (1 << 16-3-1)-1) == id);
-            id |= meta_short_scenery_bit * sc_exact;
-            id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
-            s << id;
-            if (!sc_exact)
-            {
-                write_entity_flags(s, sc);
-                fm_assert(sc.active || sc.delta == 0);
-                if (sc.frame <= 0xff)
-                    s << (uint8_t)sc.frame;
-                else
-                    s << sc.frame;
-                write_offsets(s, sc);
-                if (sc.active)
-                    s << sc.delta;
-            }
-            break;
-        }
-        }
-    }
+    serialize_new_scenery(c, s);
 
     const auto nbytes = s.bytes_written();
     fm_assert(nbytes <= chunkbuf_size);
