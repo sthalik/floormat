@@ -21,6 +21,7 @@ void app::draw_inspector()
     {
         auto end = inspectors.begin() + (ptrdiff_t)size - max_inspectors;
         inspectors.erase(inspectors.begin(), end);
+        fm_assert(inspectors.size() <= max_inspectors);
     }
 
     const auto dpi = M->dpi_scale();
@@ -46,7 +47,12 @@ void app::draw_inspector()
         {
             auto& s2 = static_cast<scenery&>(s);
             if (auto b2 = begin_window(buf, &is_open))
-                entities::inspect_type(s2);
+            {
+                auto idx = s.index();
+                bool ret = entities::inspect_type(s2);
+                if (ret)
+                    e->reposition(idx);
+            }
         }
         else
             is_open = false;

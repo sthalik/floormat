@@ -39,6 +39,7 @@ chunk& make_test_chunk(world& w, chunk_coords ch)
         auto i = e.index();
         e.activate(i);
         e.update(i, 1.f/60);
+        e.reposition(i);
         fm_assert(e.active);
         fm_assert(e.frame != 0 && e.frame != e.atlas->info().nframes - 1);
     }

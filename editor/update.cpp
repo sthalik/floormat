@@ -6,6 +6,7 @@
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "character.hpp"
+#include <cmath>
 
 namespace floormat {
 
@@ -107,8 +108,10 @@ void app::do_rotate(bool backward)
         else if (auto* cl = find_clickable_scenery(*cursor.pixel))
         {
             auto& e = *cl->e;
+            auto i = e.index();
             auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
-            e.rotate(e.index(), r);
+            e.rotate(i, r);
+            e.reposition(i);
         }
     }
 }
@@ -176,6 +179,7 @@ void app::apply_commands(const key_set& keys)
 void app::update_world(float dt)
 {
     auto& world = M->world();
+    const auto curframe = world.increment_frame_no();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
     for (int16_t y = miny; y <= maxy; y++)
@@ -184,10 +188,27 @@ void app::update_world(float dt)
             auto& c = world[chunk_coords{x, y}];
             const auto& es = c.entities();
             const auto size = es.size();
-            for (auto i = size-1; i != (size_t)-1; i--)
+
+start:      for (auto i = size-1; i != (size_t)-1; i--)
             {
                 auto& e = *es[i];
-                e.update(i, dt);
+                fm_debug_assert(!(e.last_update > curframe));
+                if (curframe > e.last_update) [[likely]]
+                {
+                    auto off = e.ordinal_offset({});
+                    e.last_update = curframe;
+                    auto status = e.update(i, dt);
+                    if (status == entity_update_status::updated_repositioning)
+                    {
+                        //Debug{} << "reposition after update" << e.ordinal_offset({}) << off;
+                        e.reposition(i);
+                    }
+                    if (status >= entity_update_status::updated_repositioned)
+                    {
+                        //Debug{} << "goto start";
+                        goto start;
+                    }
+                }
             }
         }
 }

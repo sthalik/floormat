@@ -33,6 +33,7 @@ private:
     size_t _collect_every = 64;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
     object_id _entity_counter = 0;
+    uint64_t _current_frame = 1; // zero is special for struct entity
     bool _teardown : 1 = false;
 
     explicit world(size_t capacity);
@@ -66,6 +67,8 @@ public:
     static world deserialize(StringView filename);
     void set_collect_threshold(size_t value) { _collect_every = value; }
     size_t collect_threshold() const noexcept { return _collect_every; }
+    auto frame_no() const { return _current_frame; }
+    auto increment_frame_no() { return _current_frame++; }
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c) {

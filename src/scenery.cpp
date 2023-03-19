@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "compat/assert.hpp"
 #include "world.hpp"
+#include "src/rotation.inl"
 #include <algorithm>
 
 namespace floormat {
@@ -22,19 +23,19 @@ bool scenery::can_activate(size_t) const
     return atlas && interactive;
 }
 
-bool scenery::update(size_t, float dt)
+entity_update_status scenery::update(size_t, float dt)
 {
     auto& s = *this;
     if (!s.active)
-        return false;
+        return entity_update_status::not_updated;
 
     switch (s.sc_type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
-        return false;
-    case scenery_type::door:
+        return entity_update_status::not_updated;
+    case scenery_type::door: {
         fm_assert(atlas);
         auto& anim = *atlas;
         const auto hz = uint8_t(atlas->info().fps);
@@ -47,10 +48,12 @@ bool scenery::update(size_t, float dt)
         const auto n = (uint8_t)std::clamp(delta_ / frame_time, 0, 255);
         s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
         fm_debug_assert(s.delta >= 0);
+        if (n == 0)
+            return entity_update_status::not_updated;
         const int8_t dir = s.closing ? 1 : -1;
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
-        pass_mode p;
+        pass_mode old_pass = pass, p;
         if (fr <= 0)
             p = pass_mode::pass;
         else if (fr >= nframes-1)
@@ -58,11 +61,32 @@ bool scenery::update(size_t, float dt)
         else
             p = pass_mode::see_through;
         set_bbox(offset, bbox_offset, bbox_size, p);
-        s.frame = (uint16_t)std::clamp(fr, 0, nframes-1);
+        const auto new_frame = (uint16_t)std::clamp(fr, 0, nframes-1);
+        //Debug{} << "frame" << new_frame << nframes-1;
+        s.frame = new_frame;
         if (!s.active)
             s.delta = s.closing = 0;
-        return true;
+        //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (s.frame == 0 ? "-1" : "1");
+        return (p == pass_mode::pass) != (old_pass == pass_mode::pass)
+               ? entity_update_status::updated_repositioning
+               : entity_update_status::updated;
     }
+    }
+}
+
+Vector2 scenery::ordinal_offset(Vector2b offset) const
+{
+    if (sc_type == scenery_type::door)
+    {
+        constexpr auto vec0 = Vector2b(-iTILE_SIZE2[0], -iTILE_SIZE[1]/2+1);
+        constexpr auto vec1 = Vector2b(0, -iTILE_SIZE[1]/2+1);
+        const auto vec0_ = rotate_point(vec0, rotation::N, r);
+        const auto vec1_ = rotate_point(vec1, rotation::N, r);
+        const auto vec = frame == 0 ? vec0_ : vec1_;
+        return Vector2(offset) + Vector2(vec);
+    }
+    else
+        return Vector2(offset);
 }
 
 bool scenery::activate(size_t)

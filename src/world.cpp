@@ -21,6 +21,7 @@ world& world::operator=(world&& w) noexcept
         _chunks = std::move(w._chunks);
         _entities = std::move(w._entities);
         _entity_counter = w._entity_counter;
+        _current_frame = w._current_frame;
         w._entity_counter = 0;
 
         for (auto& [id, c] : _chunks)

@@ -4,13 +4,14 @@
     "type": "door",
     "atlas-name": "door-close",
     "bbox-offset": "0 x -32",
-    "bbox-size": "32 x 16"
+    "bbox-size": "64 x 16"
   },
   {
     "name": "control panel (wall) 1",
     "type": "generic",
     "atlas-name": "control-panel",
-    "pass-mode": "pass"
+    "pass-mode": "pass",
+    "offset": "0 x -32"
   },
   {
     "name": "bench1",

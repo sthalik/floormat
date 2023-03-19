@@ -3,22 +3,28 @@
 		{
 			"frames": [
 				{
-					"ground": "11 x 46",
-					"size": "21 x 54"
+					"ground": "11 x 45",
+					"size": "21 x 52"
 				}
 			],
 			"ground": "11 x 46",
 			"name": "n",
-			"offset": [ 0, -32, 22 ]
+			"offset": [
+				0,
+				0,
+				22
+			]
 		},
 		{
 			"mirror-from": "n",
-			"name": "w",
-			"offset": [ -32, 0, 22 ]
+			"name": "w"
 		}
 	],
 	"nframes": 1,
 	"object_name": "control-panel",
-	"pixel_size": "21 x 54",
-	"scale": [ "height", 54 ]
+	"pixel_size": "21 x 52",
+	"scale": [
+		"factor",
+		1.0
+	]
 }

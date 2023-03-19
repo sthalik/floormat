@@ -26,8 +26,9 @@ struct character final : entity
     entity_type type() const noexcept override;
     explicit operator character_proto() const;
 
+    entity_update_status update(size_t i, float dt) override;
     void set_keys(bool L, bool R, bool U, bool D);
-    bool update(size_t i, float dt) override;
+    Vector2 ordinal_offset(Vector2b offset) const override;
 
     String name;
     Vector2s offset_frac;

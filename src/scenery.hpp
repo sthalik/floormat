@@ -41,7 +41,8 @@ struct scenery final : entity
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;
 
-    bool update(size_t i, float dt) override;
+    entity_update_status update(size_t i, float dt) override;
+    Vector2 ordinal_offset(Vector2b offset) const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
 

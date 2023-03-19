@@ -164,13 +164,17 @@ void app::do_popup_menu()
 
 void app::kill_popups(bool hard)
 {
+    const bool imgui = _imgui.context() != nullptr;
+
     _popup_target = {};
-    ImGui::CloseCurrentPopup();
+    if (imgui)
+        ImGui::CloseCurrentPopup();
 
     if (hard)
         inspectors.clear();
 
-    ImGui::FocusWindow(nullptr);
+    if (imgui)
+        ImGui::FocusWindow(nullptr);
 }
 
 } // namespace floormat

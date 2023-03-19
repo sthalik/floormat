@@ -25,7 +25,6 @@ struct entity_proto
     rotation r       : rotation_BITS  = rotation::N;
     pass_mode pass   : pass_mode_BITS = pass_mode::see_through;
 
-    float ordinal(local_coords coord) const;
     entity_proto& operator=(const entity_proto&);
     entity_proto();
     entity_proto(const entity_proto&);
@@ -36,11 +35,16 @@ struct entity_proto
     entity_type type_of() const noexcept;
 };
 
+enum class entity_update_status : unsigned char {
+    not_updated, updated, updated_repositioned, updated_repositioning,
+};
+
 struct entity
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(entity);
 
     const object_id id = 0;
+    uint64_t last_update = 0;
     struct chunk* const c;
     std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
@@ -52,9 +56,9 @@ struct entity
 
     virtual ~entity() noexcept;
 
-    static Vector2b ordinal_offset_for_type(entity_type type, Vector2b offset);
+    virtual Vector2 ordinal_offset(Vector2b offset) const = 0;
     float ordinal() const;
-    static float ordinal(local_coords xy, Vector2b offset, entity_type type);
+    float ordinal(local_coords xy, Vector2b offset) const;
     struct chunk& chunk() const;
     size_t index() const;
 
@@ -63,7 +67,7 @@ struct entity
     virtual entity_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual bool update(size_t i, float dt) = 0;
+    virtual entity_update_status update(size_t i, float dt) = 0;
     virtual void rotate(size_t i, rotation r);
     virtual bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     virtual bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
@@ -73,6 +77,7 @@ struct entity
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
 
     bool is_dynamic() const;
+    size_t reposition(size_t i);
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
     size_t move_to(size_t i, Vector2i delta, rotation new_r);
