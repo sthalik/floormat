@@ -91,14 +91,15 @@ void main_impl::anyEvent(SDL_Event& event)
         case SDL_WINDOWEVENT_FOCUS_LOST:
             return app.on_focus_out();
         case SDL_WINDOWEVENT_FOCUS_GAINED:
+            _mouse_cursor = (uint32_t)-1;
             return app.on_focus_in();
         case SDL_WINDOWEVENT_LEAVE:
             return app.on_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
+            _mouse_cursor = (uint32_t)-1;
             return app.on_mouse_enter();
-        default: {
+        default:
             return app.on_any_event(make_any_event(event));
-        }
         }
     }
     else

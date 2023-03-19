@@ -48,7 +48,11 @@ Vector2i floormat_main::window_size() const noexcept
 
 void main_impl::set_cursor(uint32_t cursor) noexcept
 {
-    setCursor(Cursor(cursor));
+    if (cursor != _mouse_cursor || _mouse_cursor == (uint32_t)-1)
+    {
+        _mouse_cursor = cursor;
+        setCursor(Cursor(cursor));
+    }
 }
 
 uint32_t main_impl::cursor() const noexcept

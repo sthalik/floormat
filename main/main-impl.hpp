@@ -82,6 +82,7 @@ private:
     std::vector<clickable> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;
+    uint32_t _mouse_cursor = (uint32_t)-1;
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
