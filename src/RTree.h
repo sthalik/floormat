@@ -17,14 +17,15 @@
 // RTree.h
 //
 
-#define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
+//#define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
 #define RTREE_USE_SPHERICAL_VOLUME // Better split classification, may be slower on some systems
+
+namespace floormat::detail { template<typename T> struct rtree_pool; }
 
 #ifdef RTREE_STDIO
 // Fwd decl
 class RTFileStream;  // File I/O helper class, look below for implementation and notes.
 #endif
-
 
 /// \class RTree
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
@@ -47,11 +48,10 @@ template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
 class RTree
 {
 
-protected:
+public:
 
   struct Node;  // Fwd decl.  Used by other internal structs and iterator
-
-public:
+  struct ListNode;
 
   // These constant must be declared after Branch and before Node struct
   // Stuck up here for MSVC 6 compiler.  NSVC .NET 2003 is much happier.
@@ -184,8 +184,6 @@ public:
     ELEMTYPE m_max[NUMDIMS];                      ///< Max dimensions of bounding box
   };
 
-protected:
-
   /// May be data or may be another subtree
   /// The parents level determines this.
   /// If the parents level is 0, then this is data
@@ -214,6 +212,7 @@ protected:
     Node* m_node;                                 ///< Node
   };
 
+protected:
   /// Variables for finding a split partition
   struct PartitionVars
   {
