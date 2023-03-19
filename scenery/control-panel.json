@@ -17,7 +17,12 @@
 		},
 		{
 			"mirror-from": "n",
-			"name": "w"
+			"name": "w",
+			"offset": [
+				0,
+				0,
+				22
+			]
 		}
 	],
 	"nframes": 1,

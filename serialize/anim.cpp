@@ -38,7 +38,10 @@ static void to_json(nlohmann::json& j, const anim_group& val)
     const anim_group def{};
 
     j["name"] = val.name;
-    j["frames"] = val.frames;
+    if (val.mirror_from)
+        j["mirror-from"] = val.mirror_from;
+    else
+        j["frames"] = val.frames;
     if (val.ground != def.ground)
         j["ground"] = val.ground;
     if (val.offset != def.offset)
@@ -50,7 +53,10 @@ static void from_json(const nlohmann::json& j, anim_group& val)
     val = {};
     val.name = j["name"];
     fm_soft_assert(!val.name.isEmpty());
-    val.frames = j["frames"];
+    if (j.contains("mirror-from"))
+        val.mirror_from = j["mirror-from"];
+    else
+        val.frames = j["frames"];
     if (j.contains("ground"))
         val.ground = j["ground"];
     if (j.contains("offset"))
@@ -159,22 +165,7 @@ void adl_serializer<anim_group>::to_json(json& j, const anim_group& val)
         to_json(j, val);
 }
 
-void adl_serializer<anim_group>::from_json(const json& j, anim_group& val)
-{
-    using nlohmann::from_json;
-    if (j.contains("mirror-from"))
-    {
-        const anim_group def{};
-
-        val.name = j["name"];
-        val.mirror_from = j["mirror-from"];
-        if (val.offset != def.offset)
-            val.offset = j["offset"];
-    }
-    else
-        from_json(j, val);
-}
-
+void adl_serializer<anim_group>::from_json(const json& j, anim_group& val) { using nlohmann::from_json; from_json(j, val); }
 void adl_serializer<anim_def>::to_json(json& j, const anim_def& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<anim_def>::from_json(const json& j, anim_def& val) { using nlohmann::from_json; from_json(j, val); }
 

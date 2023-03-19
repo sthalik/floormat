@@ -81,9 +81,10 @@ bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vec
 {
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
+    const auto offset_ = rotate_point(offset, old_r, new_r);
     const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
-    return can_move_to({}, coord, offset, bbox_offset_, bbox_size_);
+    return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
 }
 
 bool entity::can_rotate(rotation new_r)
@@ -94,7 +95,10 @@ bool entity::can_rotate(rotation new_r)
 void entity::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
-    set_bbox(offset, rotate_point(bbox_offset, r, new_r), rotate_size(bbox_size, r, new_r), pass);
+    auto offset_ = is_dynamic() ? rotate_point(offset, r, new_r) : offset; // todo add boolean for this condition
+    auto bbox_offset_ = rotate_point(bbox_offset, r, new_r);
+    auto bbox_size_ = rotate_size(bbox_size, r, new_r);
+    set_bbox(offset_, bbox_offset_, bbox_size_, pass);
     if (r != new_r && !is_dynamic())
         c->mark_scenery_modified();
     const_cast<rotation&>(r) = new_r;
