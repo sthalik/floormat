@@ -198,7 +198,7 @@ void app::update_character([[maybe_unused]] float dt)
     {
         auto& w = M->world();
         auto c = w.find_entity<character>(_character_id);
-        if (c)
+        if (c && c->playable)
             c->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
     }
 }
@@ -219,10 +219,10 @@ void app::set_cursor()
 void app::update(float dt)
 {
     apply_commands(keys);
+    update_character(dt);
     update_world(dt);
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
-    update_character(dt);
     set_cursor();
 
     M->world().maybe_collect();
