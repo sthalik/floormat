@@ -20,9 +20,8 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
 #endif
     (void)src; (void)type;
 
-    const char* p = str.data();
-    if (str.hasPrefix("Buffer detailed info: "_s))
-        p += sizeof("Buffer detailed info: ") - 1;
+    if (auto pfx = "Buffer detailed info: "_s; str.hasPrefix(pfx))
+        str = str.exceptPrefix(pfx.size());
 
     using seconds = std::chrono::duration<double>;
     const auto t = std::chrono::duration_cast<seconds>(clock.now() - t0).count();
@@ -39,7 +38,8 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
     }
     printf("%6u ", id);
 
-    std::puts(p);
+    std::fwrite(str.data(), str.size(), 1, stdout);
+    std::fputc('\n', stdout);
     std::fflush(stdout);
     std::fputs("", stdout); // put breakpoint here
 

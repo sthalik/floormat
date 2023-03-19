@@ -1,4 +1,5 @@
 #include "imgui-raii.hpp"
+#include "compat/assert.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Color.h>
@@ -23,7 +24,10 @@ font_saver::font_saver(float size) : font_saver{*ImGui::GetCurrentContext(), siz
 style_saver::style_saver() : style{ImGui::GetStyle()} {}
 style_saver::~style_saver() { ImGui::GetStyle() = style; }
 
-void text(StringView str, ImGuiTextFlags flags) { ImGui::TextEx(str.data(), str.data() + str.size(), flags); }
+void text(StringView str, ImGuiTextFlags flags)
+{
+    ImGui::TextEx(str.data(), str.data() + str.size(), flags);
+}
 
 raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn} {}
 raii_wrapper::~raii_wrapper() { if (dtor) dtor(); }
@@ -61,6 +65,7 @@ raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
 
 raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags flags)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::TreeNodeEx(name.data(), flags))
         return {&ImGui::TreePop};
     else
@@ -75,6 +80,8 @@ raii_wrapper begin_disabled(bool is_disabled)
 
 raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags flags)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
+    fm_assert(preview.flags() & StringViewFlag::NullTerminated);
     if (ImGui::BeginCombo(name.data(), preview.data(), flags))
         return {&ImGui::EndCombo};
     else
@@ -83,6 +90,7 @@ raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags fl
 
 raii_wrapper begin_popup(StringView name, ImGuiWindowFlags flags)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::BeginPopup(name.data(), flags))
         return {&ImGui::EndPopup};
     else
@@ -91,15 +99,17 @@ raii_wrapper begin_popup(StringView name, ImGuiWindowFlags flags)
 
 raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::BeginListBox(name.data(), size))
         return {&ImGui::EndListBox};
     else
         return {};
 }
 
-raii_wrapper begin_table(const char* id, int ncols, ImGuiTableFlags flags, const ImVec2& outer_size, float inner_width)
+raii_wrapper begin_table(StringView id, int ncols, ImGuiTableFlags flags, const ImVec2& outer_size, float inner_width)
 {
-    if (ImGui::BeginTable(id, ncols, flags, outer_size, inner_width))
+    fm_assert(id.flags() & StringViewFlag::NullTerminated);
+    if (ImGui::BeginTable(id.data(), ncols, flags, outer_size, inner_width))
         return {&ImGui::EndTable};
     else
         return {};

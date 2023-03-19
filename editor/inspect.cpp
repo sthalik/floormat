@@ -108,12 +108,12 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         case field_repr::cbx: {
             if constexpr(std::is_integral_v<T>)
             {
-                const char* preview = "<invalid>";
+                StringView preview = "<invalid>"_s;
                 const auto old_value = (size_t)static_cast<std::make_unsigned_t<T>>(value);
                 for (const auto& [str, x] : list)
                     if (x == old_value)
                     {
-                        preview = str.data();
+                        preview = str;
                         break;
                     }
                 if (auto b = begin_combo(label, preview))

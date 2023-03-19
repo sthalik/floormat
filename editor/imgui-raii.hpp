@@ -27,7 +27,7 @@ private:
 [[nodiscard]] raii_wrapper begin_main_menu();
 [[nodiscard]] raii_wrapper begin_menu(StringView name, bool enabled = true);
 [[nodiscard]] raii_wrapper begin_list_box(StringView name, ImVec2 size = {});
-[[nodiscard]] raii_wrapper begin_table(const char* id, int ncols, ImGuiTableFlags flags = 0, const ImVec2& outer_size = {}, float inner_width = 0);
+[[nodiscard]] raii_wrapper begin_table(StringView id, int ncols, ImGuiTableFlags flags = 0, const ImVec2& outer_size = {}, float inner_width = 0);
 [[nodiscard]] raii_wrapper tree_node(StringView name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
 [[nodiscard]] raii_wrapper begin_disabled(bool is_disabled = true);
 [[nodiscard]] raii_wrapper begin_combo(StringView name, StringView preview, ImGuiComboFlags flags = 0);
