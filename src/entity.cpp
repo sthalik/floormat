@@ -161,7 +161,7 @@ bool entity::can_move_to(Vector2i delta)
 
 size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
 {
-    if (!can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size))
+    if (!can_rotate(new_r))
         return i;
 
     auto& es = c->_entities;
