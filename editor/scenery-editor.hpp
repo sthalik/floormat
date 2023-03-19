@@ -41,7 +41,7 @@ struct scenery_editor final
 private:
     void load_atlases();
 
-    std::map<String, scenery_> _atlases;
+    std::map<StringView, scenery_> _atlases;
     scenery_ _selected;
 };
 
