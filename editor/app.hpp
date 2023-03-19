@@ -158,8 +158,6 @@ private:
     bool _pending_popup     : 1 = false;
     bool _render_bboxes     : 1 = false;
     bool _render_clickables : 1 = false;
-
-    static const StringView SCENERY_POPUP_NAME;
 };
 
 } // namespace floormat

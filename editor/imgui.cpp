@@ -116,7 +116,7 @@ void app::draw_clickables()
     }
 }
 
-const StringView app::SCENERY_POPUP_NAME = "##scenery-popup"_s;
+static constexpr auto SCENERY_POPUP_NAME = "##scenery-popup"_s;
 
 bool app::check_inspector_exists(const popup_target& p)
 {
