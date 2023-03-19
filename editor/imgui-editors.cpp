@@ -47,7 +47,7 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
         if (ImGui::TableSetColumnIndex(0))
         {
             auto& atlas = *scenery.proto.atlas;
-            const auto r = atlas.next_rotation_from(rotation_COUNT);
+            const auto r = atlas.first_rotation();
             const auto& frame = atlas.frame(r, 0);
             const auto size = Vector2(frame.size);
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
