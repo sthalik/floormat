@@ -24,15 +24,17 @@ static bool ensure_save_directory()
 
 void app::do_quicksave()
 {
+    auto file = Path::join(loader.TEMP_PATH, quicksave_file);
+    auto tmp = Path::join(loader.TEMP_PATH, quicksave_tmp);
     if (!ensure_save_directory())
         return;
     auto& world = M->world();
     world.collect(true);
-    if (Path::exists(quicksave_tmp))
-        Path::remove(quicksave_tmp);
+    if (Path::exists(tmp))
+        Path::remove(tmp);
     fputs("quicksave... ", stderr); fflush(stderr);
-    world.serialize(quicksave_tmp);
-    Path::move(quicksave_tmp, quicksave_file);
+    world.serialize(tmp);
+    Path::move(tmp, file);
     fputs("done\n", stderr); fflush(stderr);
 }
 
