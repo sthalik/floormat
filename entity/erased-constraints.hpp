@@ -16,13 +16,13 @@ struct range final
     union element {
         float f;
         U u;
-        I i;
+        I i = 0;
         Math::Vector4<float> f4;
         Math::Vector4<U> u4;
         Math::Vector4<I> i4;
     };
 
-    element min {.i = 0}, max {.i = 0};
+    element min, max;
     type_ type = type_none;
 
     template<typename T> std::pair<T, T> convert() const;
@@ -32,13 +32,6 @@ struct range final
 struct max_length final {
     size_t value = size_t(-1);
     constexpr operator size_t() const { return value; }
-};
-
-struct group final {
-    StringView group_name;
-    constexpr operator StringView() const { return group_name; }
-    constexpr group() = default;
-    constexpr group(StringView name) : group_name{name} {}
 };
 
 } // namespace floormat::entities::erased_constraints

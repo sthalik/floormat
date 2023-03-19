@@ -25,7 +25,6 @@ struct erased_accessor final {
     using predicate_t = void;
     using c_range_t = void;
     using c_length_t = void;
-    using c_group_t = void;
     using Object = void;
     using Value = void;
 
@@ -34,7 +33,6 @@ struct erased_accessor final {
     const predicate_t* predicate = nullptr;
     const c_range_t* range = nullptr;
     const c_length_t* length = nullptr;
-    const c_group_t* group = nullptr;
 
     StringView field_name, object_type, field_type;
     void(*read_fun)(const Object*, const reader_t*, Value*) = nullptr;
@@ -42,24 +40,22 @@ struct erased_accessor final {
     field_status(*predicate_fun)(const Object*, const predicate_t*) = nullptr;
     erased_constraints::range(*range_fun)(const Object*, const c_range_t*) = nullptr;
     erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*) = nullptr;
-    erased_constraints::group(*group_fun)(const Object*, const c_group_t*) = nullptr;
 
     explicit constexpr erased_accessor() noexcept = default;
     constexpr erased_accessor(const erased_accessor&) = default;
     constexpr erased_accessor(const reader_t* reader, const writer_t* writer, const predicate_t* predicate,
-                              const c_range_t* range, const c_length_t* length, const c_group_t* group,
+                              const c_range_t* range, const c_length_t* length,
                               StringView field_name, StringView object_name, StringView field_type_name,
                               void(*read_fun)(const Object*, const reader_t*, Value*),
                               void(*write_fun)(Object*, const writer_t*, Value*),
                               field_status(*predicate_fun)(const Object*, const predicate_t*),
                               erased_constraints::range(*range_fun)(const Object*, const c_range_t*),
-                              erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*),
-                              erased_constraints::group(*group_fun)(const Object*, const c_group_t*)) :
+                              erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*)) :
         reader{reader}, writer{writer}, predicate{predicate},
-        range{range}, length{length}, group{group},
+        range{range}, length{length},
         field_name{field_name}, object_type{object_name}, field_type{field_type_name},
         read_fun{read_fun}, write_fun{write_fun}, predicate_fun{predicate_fun},
-        range_fun{range_fun}, length_fun{length_fun}, group_fun{group_fun}
+        range_fun{range_fun}, length_fun{length_fun}
     {}
 
     template<typename T, typename FieldType>
@@ -86,7 +82,6 @@ struct erased_accessor final {
     inline bool can_write() const noexcept { return writer != nullptr; }
     inline erased_constraints::range get_range(const void* x) const noexcept;
     inline erased_constraints::max_length get_max_length(const void* x) const noexcept;
-    inline erased_constraints::group get_group(const void* x) const noexcept;
 };
 
 template<typename T, typename FieldType>
@@ -174,7 +169,6 @@ void erased_accessor::write(Obj& x, move_qualified<FieldType> value) const noexc
 field_status erased_accessor::is_enabled(const void* x) const noexcept { return predicate_fun(x, predicate); }
 erased_constraints::range erased_accessor::get_range(const void* x) const noexcept { return range_fun(x,range); }
 erased_constraints::max_length erased_accessor::get_max_length(const void* x) const noexcept { return length_fun(x,length); }
-erased_constraints::group erased_accessor::get_group(const void* x) const noexcept { return group_fun(x, group); }
 
 template<typename T> void get_erased_accessors(std::vector<erased_accessor>& ret);
 

@@ -40,6 +40,5 @@ template<> struct range<String>
 };
 
 using max_length = erased_constraints::max_length;
-using group = erased_constraints::group;
 
 } // namespace floormat::entities::constraints

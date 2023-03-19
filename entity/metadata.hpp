@@ -85,20 +85,16 @@ private:
     static constexpr auto default_predicate = constantly(field_status::enabled);
     static constexpr auto default_c_range   = constantly(constraints::range<Type>{});
     static constexpr auto default_c_length  = constantly(constraints::max_length{size_t(-1)});
-    static constexpr auto default_c_group   = constantly(StringView{});
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
     using default_c_length_t  = std::decay_t<decltype(default_c_length)>;
-    using default_c_group_t   = std::decay_t<decltype(default_c_group)>;
     using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
     using c_range  = detail::find_reader<Obj, constraints::range<Type>, default_c_range_t, 0, Ts...>;
     using c_length = detail::find_reader<Obj, constraints::max_length, default_c_length_t, 0, Ts...>;
-    using c_group  = detail::find_reader<Obj, constraints::group, default_c_group_t, 0, Ts...>;
     static constexpr size_t good_arguments =
         unsigned(c_predicate::index != sizeof...(Ts)) +
         unsigned(c_range::index != sizeof...(Ts)) +
-        unsigned(c_length::index != sizeof...(Ts)) +
-        unsigned(c_group::index != sizeof...(Ts));
+        unsigned(c_length::index != sizeof...(Ts));
     static_assert(sizeof...(Ts) == good_arguments, "ignored arguments");
 
 public:
@@ -109,7 +105,6 @@ public:
     using Predicate  = typename c_predicate::type;
     using Range      = typename c_range::type;
     using Length     = typename c_length::type;
-    using Group      = typename c_group::type;
 
     StringView name;
     [[no_unique_address]] R reader;
@@ -117,7 +112,6 @@ public:
     [[no_unique_address]] Predicate predicate;
     [[no_unique_address]] Range range;
     [[no_unique_address]] Length length;
-    [[no_unique_address]] Group group;
 
     fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(entity_field);
 
@@ -134,15 +128,12 @@ public:
     constexpr constraints::range<Type> get_range(const Obj& x) const { return get_range(range, x); }
     static constexpr constraints::max_length get_max_length(const Length& l, const Obj& x);
     constexpr constraints::max_length get_max_length(const Obj& x) const { return get_max_length(length, x); }
-    static constexpr constraints::group get_group(const Group& g, const Obj& x);
-    constexpr constraints::group get_group(const Obj& x) const { return get_group(group, x); }
 
     constexpr entity_field(StringView name, R r, W w, Ts&&... ts) noexcept :
         name{name}, reader{r}, writer{w},
         predicate { std::get<c_predicate::index>(std::forward_as_tuple(ts..., default_predicate)) },
         range     { std::get<c_range::index>    (std::forward_as_tuple(ts..., default_c_range))   },
-        length    { std::get<c_length::index>   (std::forward_as_tuple(ts..., default_c_length))  },
-        group     { std::get<c_group::index>    (std::forward_as_tuple(ts..., default_c_group))   }
+        length    { std::get<c_length::index>   (std::forward_as_tuple(ts..., default_c_length))  }
     {}
     constexpr erased_accessor erased() const;
 };
@@ -161,7 +152,6 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     using predicate_t = typename erased_accessor::predicate_t;
     using c_range_t   = typename erased_accessor::c_range_t;
     using c_length_t  = typename erased_accessor::c_length_t;
-    using c_group_t   = typename erased_accessor::c_group_t;
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
 
     constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {
@@ -192,18 +182,14 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr auto c_length_fn = [](const void* obj, const c_length_t* reader) -> erased_constraints::max_length {
         return get_max_length(*reinterpret_cast<const Length*>(reader), *reinterpret_cast<const Obj*>(obj));
     };
-    constexpr auto c_group_fn = [](const void* obj, const c_group_t* reader) -> erased_constraints::group {
-        return get_group(*reinterpret_cast<const Group*>(reader), *reinterpret_cast<const Obj*>(obj));
-    };
-
     return erased_accessor {
         (void*)&reader, has_writer ? (void*)&writer : nullptr,
         (void*)&predicate,
-        (void*)&range, (void*)&length, (void*)&group,
+        (void*)&range, (void*)&length,
         name, obj_name, field_name,
         reader_fn, has_writer ? writer_fn : writer_stub_fn,
         predicate_fn,
-        c_range_fn, c_length_fn, c_group_fn,
+        c_range_fn, c_length_fn,
     };
 }
 
@@ -218,10 +204,6 @@ constexpr constraints::range<Type> entity_field<Obj, Type, R, W, Ts...>::get_ran
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 constexpr constraints::max_length entity_field<Obj, Type, R, W, Ts...>::get_max_length(const Length& l, const Obj& x)
 { return detail::read_field<Obj, constraints::max_length , Length>::read(x, l); }
-
-template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-constexpr constraints::group entity_field<Obj, Type, R, W, Ts...>::get_group(const Group& g, const Obj& x)
-{ return detail::read_field<Obj, constraints::group, Group>::read(x, g); }
 
 template<typename Obj>
 struct Entity final {
