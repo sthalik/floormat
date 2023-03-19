@@ -195,7 +195,6 @@ start:      for (auto i = size-1; i != (size_t)-1; i--)
                 fm_debug_assert(!(e.last_update > curframe));
                 if (curframe > e.last_update) [[likely]]
                 {
-                    auto off = e.ordinal_offset({});
                     e.last_update = curframe;
                     auto status = e.update(i, dt);
                     if (status == entity_update_status::updated_repositioning)
