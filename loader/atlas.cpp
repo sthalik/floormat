@@ -47,11 +47,11 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
     fm_soft_assert(dir && dir[dir.size()-1] == '/');
     char path_buf[FILENAME_MAX];
     name = Path::splitExtension(name).first();
-    fm_soft_assert(dir.size() + name.size() + 1 + 1 < FILENAME_MAX);
-    std::memcpy(path_buf, dir.data(), dir.size());
-    path_buf[dir.size()] = '/';
-    std::memcpy(&path_buf[dir.size() + 1], name.data(), name.size());
-    path_buf[dir.size() + 1 + name.size()] = '\0';
+    const auto dirsiz = dir.size(), namesiz = name.size();
+    fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
+    std::memcpy(path_buf, dir.data(), dirsiz);
+    std::memcpy(&path_buf[dirsiz], name.data(), namesiz);
+    path_buf[dirsiz + namesiz] = '\0';
     const StringView path = path_buf;
 
     if (auto it = anim_atlas_map.find(path); it != anim_atlas_map.end())
