@@ -1,7 +1,7 @@
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -march=core2 -mtune=native -mavx -flto -fipa-pta"
+     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -march=core2 -mtune=native -mavx -flto -fipa-pta -static"
 )
 
 add_compile_options(-U__SIZEOF_INT128__ -D__SIZEOF_INT128__=0 -U__SIZEOF_FLOAT128__ -D__SIZEOF_FLOAT128__=0)
@@ -23,6 +23,10 @@ endif()
 
 # for building submodule dependencies
 function(fm-userconfig-external)
+    sets(BOOL
+         CORRADE_BUILD_TESTS                                        OFF
+         MAGNUM_BUILD_TESTS                                         OFF
+    )
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
              CORRADE_BUILD_TESTS                                    ON
