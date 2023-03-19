@@ -36,8 +36,8 @@ static chunk make_test_chunk()
 
 void test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
-    fm_assert(Path::exists("../CMakeCache.txt"));
-    constexpr auto output_dir = "../test/."_s;
+    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
+    const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
     {
         auto atlas = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass);
         json_helper::to_json(atlas, Path::join(output_dir, "atlas.json"));

@@ -33,8 +33,9 @@ StringView loader_::strip_prefix(StringView name)
     return name;
 }
 
-const StringView loader_::IMAGE_PATH = "share/floormat/images/"_s;
-const StringView loader_::ANIM_PATH = "share/floormat/anim/"_s;
-const StringView loader_::SCENERY_PATH = "share/floormat/scenery/"_s;
+const StringView loader_::IMAGE_PATH = "images/"_s;
+const StringView loader_::ANIM_PATH = "anim/"_s;
+const StringView loader_::SCENERY_PATH = "scenery/"_s;
+const StringView loader_::TEMP_PATH = "../../../"_s;
 
 } // namespace floormat

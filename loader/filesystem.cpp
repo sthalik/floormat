@@ -75,7 +75,8 @@ void loader_impl::set_application_working_directory()
             if (c == '/')
                 c = '\\';
 #endif
-        chdir(path);
+        chdir(path) &&
+        chdir("share/floormat"_s);
     }
     else
         fm_warn("can't find install prefix!");

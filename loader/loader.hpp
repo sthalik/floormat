@@ -41,6 +41,7 @@ struct loader_
     static const StringView IMAGE_PATH;
     static const StringView ANIM_PATH;
     static const StringView SCENERY_PATH;
+    static const StringView TEMP_PATH;
 
 protected:
     loader_();

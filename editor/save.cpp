@@ -1,16 +1,18 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
+#include "loader/loader.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
-#define save_dir "../save"
+#define save_dir "save"
 #define quicksave_file save_dir "/" "quicksave.dat"
 #define quicksave_tmp save_dir "/" "quicksave.tmp"
 
 static bool ensure_save_directory()
 {
+    auto dir = Path::join(loader.TEMP_PATH, save_dir);
     if (Path::make(save_dir))
         return true;
     else
@@ -36,16 +38,17 @@ void app::do_quicksave()
 
 void app::do_quickload()
 {
+    auto file = Path::join(loader.TEMP_PATH, quicksave_file);
     kill_popups(true);
     if (!ensure_save_directory())
         return;
-    if (!Path::exists(quicksave_file))
+    if (!Path::exists(file))
     {
         fm_warn("no quicksave");
         return;
     }
     fputs("quickload... ", stderr); fflush(stderr);
-    reset_world(world::deserialize(quicksave_file));
+    reset_world(world::deserialize(file));
     fputs("done\n", stderr); fflush(stderr);
 }
 

@@ -88,6 +88,13 @@ size_t entity::index() const
     return (size_t)std::distance(es.cbegin(), it);
 }
 
+bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+{
+    bbox_offset = rotate_point(bbox_offset, old_r, new_r);
+    bbox_size = rotate_size(bbox_size, old_r, new_r);
+    return can_move_to({}, coord, offset, bbox_offset, bbox_size);
+}
+
 void entity::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
@@ -119,14 +126,14 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
     return { coord, Vector2b(off_new) };
 }
 
-bool entity::can_move_to(Vector2i delta)
+bool entity::can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     auto [coord_, offset_] = normalize_coords(coord, offset, delta);
     auto& w = *c->_world;
     auto& c_ = coord.chunk() == coord_.chunk() ? *c : w[coord_.chunk()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
-               half_bbox = Vector2(bbox_size/2),
+               half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
 
     bool ret = true;
@@ -140,35 +147,40 @@ bool entity::can_move_to(Vector2i delta)
     return ret;
 }
 
+bool entity::can_move_to(Vector2i delta)
+{
+    return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
+}
+
 size_t entity::move(size_t i, Vector2i delta, rotation new_r)
 {
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
     auto e_ = es[i];
-    const auto& e = *e_;
     auto& w = *c->_world;
-    const auto coord = e.coord;
-    const auto offset = e.offset;
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+
+    if (!can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size))
+        return i;
 
     if (coord_ == coord && offset_ == offset)
         return i;
 
-    if (!e.is_dynamic())
+    if (!is_dynamic())
         c->mark_scenery_modified();
 
     chunk::bbox bb0, bb1;
     const auto bb_offset = rotate_point(bbox_offset, r, new_r);
     const auto bb_size   = rotate_size(bbox_size, r, new_r);
-    bool b0 = c->_bbox_for_scenery(e, bb0),
-         b1 = c->_bbox_for_scenery(e, coord_.local(), offset_, bb_offset, bb_size, bb1);
-    const auto ord = e.ordinal(coord_.local(), offset_, e.type);
+    bool b0 = c->_bbox_for_scenery(*this, bb0),
+         b1 = c->_bbox_for_scenery(*this, coord_.local(), offset_, bb_offset, bb_size, bb1);
+    const auto ord = ordinal(coord_.local(), offset_, type);
 
     if (coord_.chunk() == coord.chunk())
     {
         c->_replace_bbox(bb0, bb1, b0, b1);
         auto it_ = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
-        e_->coord = coord_;
+        const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
         auto pos1 = std::distance(es.cbegin(), it_);
@@ -187,17 +199,17 @@ size_t entity::move(size_t i, Vector2i delta, rotation new_r)
     {
         //fm_debug("change-chunk (%hd;%hd|%hhd;%hhd)", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y);
         auto& c2 = w[coord_.chunk()];
-        if (!e.is_dynamic())
+        if (!is_dynamic())
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);
         c->remove_entity(i);
         auto& es = c2._entities;
         auto it = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
         auto ret = (size_t)std::distance(es.cbegin(), it);
-        e_->coord = coord_;
+        const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
-        const_cast<struct chunk*&>(e_->c) = &c2;
+        const_cast<struct chunk*&>(c) = &c2;
         es.insert(it, std::move(e_));
         return ret;
     }

@@ -41,7 +41,7 @@ struct entity
     const object_id id = 0;
     struct chunk* const c;
     std::shared_ptr<anim_atlas> atlas;
-    global_coords coord;
+    const global_coords coord;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
@@ -62,10 +62,12 @@ struct entity
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
     virtual bool update(size_t i, float dt) = 0;
+    [[nodiscard]] virtual bool can_rotate(global_coords coord, rotation r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     virtual void rotate(size_t i, rotation r);
 
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     [[nodiscard]] virtual bool can_move_to(Vector2i delta);
+    [[nodiscard]] bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
     size_t move(size_t i, Vector2i delta, rotation new_r);
     virtual void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
     bool is_dynamic() const;
