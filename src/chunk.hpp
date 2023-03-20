@@ -2,6 +2,7 @@
 #include "object-id.hpp"
 #include "tile.hpp"
 #include "tile-iterator.hpp"
+#include <Corrade/Containers/Array.h>
 #include <type_traits>
 #include <array>
 #include <memory>
@@ -77,9 +78,11 @@ struct chunk final
         const ArrayView<const uint16_t> ids;
         const size_t size;
     };
-
+    struct draw_entity { entity* e; float ord; };
     struct scenery_mesh_tuple final {
         GL::Mesh& mesh;
+        ArrayView<draw_entity> array;
+        size_t size;
     };
 
     struct vertex {
@@ -94,7 +97,8 @@ struct chunk final
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(size_t i) const noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh() noexcept;
+    scenery_mesh_tuple ensure_scenery_mesh(Array<draw_entity>&& array) noexcept;
+    scenery_mesh_tuple ensure_scenery_mesh(Array<draw_entity>& array) noexcept;
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
@@ -125,13 +129,15 @@ private:
 
     RTree _rtree;
 
-    mutable bool _maybe_empty      : 1 = true,
-                 _ground_modified  : 1 = true,
-                 _walls_modified   : 1 = true,
-                 _scenery_modified : 1 = true,
-                 _pass_modified    : 1 = true,
-                 _teardown         : 1 = false,
-                 _entities_sorted  : 1 = true;
+    mutable bool _maybe_empty           : 1 = true,
+                 _ground_modified       : 1 = true,
+                 _walls_modified        : 1 = true,
+                 _scenery_modified      : 1 = true,
+                 _pass_modified         : 1 = true,
+                 _teardown              : 1 = false,
+                 _entities_sorted       : 1 = true;
+
+    void ensure_scenery_draw_array(Array<draw_entity>& array);
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {

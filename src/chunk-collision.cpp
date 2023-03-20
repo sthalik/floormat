@@ -152,7 +152,7 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
 
 bool chunk::can_place_entity(const entity_proto& proto, local_coords pos)
 {
-    (void)ensure_scenery_mesh();
+    (void)ensure_scenery_mesh({});
 
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
                min = center - Vector2(proto.bbox_size/2), max = min + Vector2(proto.bbox_size);

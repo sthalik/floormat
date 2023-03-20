@@ -8,7 +8,9 @@ namespace floormat {
 
 namespace {
 
-size_t _reload_no_ = 0;
+constexpr auto entity_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
+
+size_t _reload_no_ = 0; // NOLINT
 
 bool is_log_quiet()
 {
@@ -123,7 +125,7 @@ void chunk::sort_entities()
     mark_scenery_modified();
 
     std::sort(_entities.begin(), _entities.end(), [](const auto& a, const auto& b) {
-        return a->ordinal() < b->ordinal();
+        return a->id < b->id;
     });
 }
 
@@ -134,25 +136,23 @@ void chunk::add_entity(const std::shared_ptr<entity>& e)
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
-
-    _entities.reserve(_entities.size() + 1);
-    auto it = std::lower_bound(_entities.cbegin(), _entities.cend(), e, [ord = e->ordinal()](const auto& a, const auto&) {
-        return a->ordinal() < ord;
-    });
+    auto& es = _entities;
+    es.reserve(es.size() + 1);
+    auto it = std::lower_bound(es.cbegin(), es.cend(), e, entity_id_lessp);
     _entities.insert(it, e);
 }
 
 void chunk::remove_entity(size_t i)
 {
     fm_assert(_entities_sorted);
-    fm_debug_assert(i < _entities.size());
-    const auto& e = _entities[i];
+    auto& es = _entities;
+    fm_debug_assert(i < es.size());
+    const auto& e = es[i];
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);
-
-    _entities.erase(_entities.cbegin() + ptrdiff_t(i));
+    es.erase(es.cbegin() + ptrdiff_t(i));
 }
 
 const std::vector<std::shared_ptr<entity>>& chunk::entities() const

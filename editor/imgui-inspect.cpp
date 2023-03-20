@@ -48,16 +48,14 @@ void app::draw_inspector()
             auto& s2 = static_cast<scenery&>(s);
             if (auto b2 = begin_window(buf, &is_open))
             {
-                auto idx = s.index();
                 bool ret = entities::inspect_type(s2);
-                if (ret)
-                    e->reposition(idx);
+                (void)ret;
             }
         }
         else
             is_open = false;
         if (!is_open)
-            inspectors.erase(inspectors.begin() + (int)i);
+            inspectors.erase(inspectors.begin() + (ptrdiff_t)i);
     }
 }
 

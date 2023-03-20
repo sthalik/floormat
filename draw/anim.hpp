@@ -1,7 +1,9 @@
 #pragma once
 #include "local-coords.hpp"
 #include "rotation.hpp"
+#include "chunk.hpp"
 #include <array>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
@@ -30,6 +32,8 @@ struct anim_mesh final
     static void add_clickable(tile_shader& shader, const Vector2i& win_size, const std::shared_ptr<entity>& s, std::vector<clickable>& list);
 
 private:
+    static std::array<UnsignedShort, 6> make_index_array();
+
     struct vertex_data final {
         Vector3 position;
         Vector2 texcoords;
@@ -37,8 +41,7 @@ private:
     };
     using quad_data = std::array<vertex_data, 4>;
 
-    static std::array<UnsignedShort, 6> make_index_array();
-
+    Array<typename chunk::draw_entity> _draw_array;
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{make_index_array()};

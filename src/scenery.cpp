@@ -23,18 +23,18 @@ bool scenery::can_activate(size_t) const
     return atlas && interactive;
 }
 
-entity_update_status scenery::update(size_t, float dt)
+bool scenery::update(size_t, float dt)
 {
     auto& s = *this;
     if (!s.active)
-        return entity_update_status::not_updated;
+        return false;
 
     switch (s.sc_type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
-        return entity_update_status::not_updated;
+        return false;
     case scenery_type::door: {
         fm_assert(atlas);
         auto& anim = *atlas;
@@ -49,11 +49,11 @@ entity_update_status scenery::update(size_t, float dt)
         s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
         fm_debug_assert(s.delta >= 0);
         if (n == 0)
-            return entity_update_status::not_updated;
+            return false;
         const int8_t dir = s.closing ? 1 : -1;
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
-        pass_mode old_pass = pass, p;
+        pass_mode p;
         if (fr <= 0)
             p = pass_mode::pass;
         else if (fr >= nframes-1)
@@ -67,11 +67,10 @@ entity_update_status scenery::update(size_t, float dt)
         if (!s.active)
             s.delta = s.closing = 0;
         //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (s.frame == 0 ? "-1" : "1");
-        return (p == pass_mode::pass) != (old_pass == pass_mode::pass)
-               ? entity_update_status::updated_repositioning
-               : entity_update_status::updated;
     }
     }
+
+    return false;
 }
 
 Vector2 scenery::ordinal_offset(Vector2b offset) const

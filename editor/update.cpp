@@ -111,7 +111,6 @@ void app::do_rotate(bool backward)
             auto i = e.index();
             auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
             e.rotate(i, r);
-            e.reposition(i);
         }
     }
 }
@@ -197,12 +196,7 @@ start:      for (auto i = size-1; i != (size_t)-1; i--)
                 {
                     e.last_update = curframe;
                     auto status = e.update(i, dt);
-                    if (status == entity_update_status::updated_repositioning)
-                    {
-                        //Debug{} << "reposition after update" << e.ordinal_offset({}) << off;
-                        e.reposition(i);
-                    }
-                    if (status >= entity_update_status::updated_repositioned)
+                    if (status)
                     {
                         //Debug{} << "goto start";
                         goto start;

@@ -48,12 +48,10 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size, con
 void anim_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr auto quad_index_count = 6;
-    auto [mesh_] = c.ensure_scenery_mesh();
-    const auto& es = c.entities();
+
+    auto [mesh_, es, size] = c.ensure_scenery_mesh(_draw_array);
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] size_t draw_count = 0;
-
-    const auto size = es.size();
     const auto max_index = uint32_t(size*quad_index_count - 1);
 
     const auto do_draw = [&](size_t from, size_t to, anim_atlas* atlas) {
@@ -75,7 +73,8 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
 
     for (auto k = 0_uz; k < size; k++)
     {
-        const auto& e = *es[k];
+        fm_assert(es[k].e);
+        const auto& e = *es[k].e;
         auto& atlas = *e.atlas;
         if (last && &atlas != last.atlas)
         {

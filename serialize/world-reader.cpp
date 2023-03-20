@@ -304,7 +304,7 @@ void reader_state::read_chunks(reader_t& s)
         c.sort_entities();
         c.ensure_ground_mesh();
         c.ensure_wall_mesh();
-        c.ensure_scenery_mesh();
+        c.ensure_scenery_mesh({});
         c.ensure_passability();
     }
 }

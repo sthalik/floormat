@@ -101,30 +101,30 @@ Vector2 character::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-entity_update_status character::update(size_t i, float dt)
+bool character::update(size_t i, float dt)
 {
     auto [lr, ud, new_r] = arrows_to_dir(b_L, b_R, b_U, b_D);
 
     if (!lr & !ud)
     {
         delta = 0;
-        return entity_update_status::not_updated;
+        return false;
     }
 
     int nframes = allocate_frame_time(dt);
 
+    auto coord_ = coord;
+
     if (nframes == 0)
     {
         if (r == new_r) [[unlikely]]
-            return entity_update_status::not_updated;
+            return false;
         rotate(i, new_r);
-        return entity_update_status::updated;
+        return coord.chunk() != coord_.chunk();
     }
 
     const auto vec = move_vec(lr, ud);
     c->ensure_passability();
-
-    entity_update_status ret = entity_update_status::updated;
 
     for (int k = 0; k < nframes; k++)
     {
@@ -133,22 +133,13 @@ entity_update_status character::update(size_t i, float dt)
         auto offset_ = vec + Vector2(offset_frac) * inv_frac;
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
-        const auto old_i = i;
         if (can_move_to(off_i))
-        {
             i = move_to(i, off_i, new_r);
-            if (i != old_i)
-            {
-                //Debug{} << "move_to repositioned" << i;
-                ret = entity_update_status::updated_repositioned;
-            }
-        }
         else
             break;
         ++frame %= atlas->info().nframes;
     }
-    //Debug{} << "pos" << Vector2i(pos.local());
-    return ret;
+    return coord.chunk() != coord_.chunk();
 }
 
 entity_type character::type() const noexcept { return entity_type::character; }

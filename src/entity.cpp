@@ -9,6 +9,12 @@
 
 namespace floormat {
 
+namespace {
+
+constexpr auto entity_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
+
+} // namespace
+
 bool entity_proto::operator==(const entity_proto&) const = default;
 entity_proto& entity_proto::operator=(const entity_proto&) = default;
 entity_proto::~entity_proto() noexcept = default;
@@ -62,18 +68,11 @@ struct chunk& entity::chunk() const
 size_t entity::index() const
 {
     auto& c = chunk();
+    const auto fn = [id = id](const auto& a, const auto&) { return a->id < id; };
     auto& es = c._entities;
-    auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, [ord = ordinal()](const auto& a, const auto&) { return a->ordinal() < ord; });
-    if (it == es.cend())
-        goto slow;
-    it = std::find_if(it, es.cend(), [id = id](const auto& x) { return x->id == id; });
-    if (it == es.cend())
-        goto slow;
-    return (size_t)std::distance(es.cbegin(), it);
-slow:
-    fm_warn_once("BUG: wrong entity sort order");
-    it = std::find_if(es.cbegin(), es.cend(), [id = id](const auto& x) { return x->id == id; });
+    auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);
     fm_assert(it != es.cend());
+    fm_assert((*it)->id == id);
     return (size_t)std::distance(es.cbegin(), it);
 }
 
@@ -95,12 +94,14 @@ bool entity::can_rotate(rotation new_r)
 void entity::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
+    // todo normalize coords
     auto offset_ = !is_dynamic() ? rotate_point(offset, r, new_r) : offset; // todo add boolean for this condition
     auto bbox_offset_ = rotate_point(bbox_offset, r, new_r);
     auto bbox_size_ = rotate_size(bbox_size, r, new_r);
     set_bbox(offset_, bbox_offset_, bbox_size_, pass);
     if (r != new_r && !is_dynamic())
         c->mark_scenery_modified();
+
     const_cast<rotation&>(r) = new_r;
 }
 
@@ -160,6 +161,8 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
     auto e_ = es[i];
+
+    fm_assert(&*e_ == this);
     auto& w = *c->_world;
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
@@ -174,7 +177,6 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
     const auto bb_size   = rotate_size(bbox_size, r, new_r);
     bool b0 = c->_bbox_for_scenery(*this, bb0),
          b1 = c->_bbox_for_scenery(*this, coord_.local(), offset_, bb_offset, bb_size, bb1);
-    const auto ord = ordinal(coord_.local(), offset_);
 
     if (coord_.chunk() == coord.chunk())
     {
@@ -184,7 +186,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
         const_cast<rotation&>(r) = new_r;
         //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
         //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
-        return reposition(i);
+        return i;
     }
     else
     {
@@ -195,7 +197,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
         c2._add_bbox(bb1);
         c->remove_entity(i);
         auto& es = c2._entities;
-        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, [=](const auto& a, const auto&) { return a->ordinal() < ord; });
+        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, entity_id_lessp);
         auto ret = (size_t)std::distance(es.cbegin(), it);
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
@@ -231,8 +233,9 @@ entity::operator entity_proto() const
 
 void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
 {
-    if (offset != offset_ && !is_dynamic())
-        c->mark_scenery_modified();
+    if (offset != offset_)
+        if (!is_dynamic())
+            c->mark_scenery_modified();
 
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
@@ -247,44 +250,6 @@ bool entity::activate(size_t) { return false; }
 bool entity::is_dynamic() const
 {
     return atlas->info().fps > 0;
-}
-
-size_t entity::reposition(size_t i)
-{
-    const auto ord = ordinal();
-    const auto fn = [=](const auto& a, const auto&) { return a->ordinal() < ord; };
-    auto& es = c->_entities;
-    fm_assert(i < es.size());
-    auto e_ = es[i];
-    fm_assert(&*e_ == this);
-    const auto old_it = es.cbegin() + ptrdiff_t(i);
-    if (auto it = std::lower_bound(es.cbegin(), old_it, e_, fn);
-        it != old_it)
-    {
-        auto pos = std::distance(es.cbegin(), it);
-        //Debug{} << "repos: backward to" << std::distance(es.cbegin(), it) << "from" << i;
-        es.erase(old_it);
-        es.insert(es.cbegin() + pos, e_);
-        i = (size_t)pos;
-        goto done;
-    }
-    if (auto it = std::lower_bound(old_it, es.cend(), e_, fn);
-        it != old_it)
-    {
-        --it;
-        auto pos = std::distance(es.cbegin(), it);
-        //Debug{} << "repos: forward to" << std::distance(es.cbegin(), it) << "from" << i;
-        es.erase(old_it);
-        es.insert(es.cbegin() + pos, e_);
-        goto done;
-    }
-
-    //Debug{} << "repos: no need to move" << i;
-    return i;
-done:
-    if (!is_dynamic())
-        c->mark_scenery_modified();
-    return (size_t)i;
 }
 
 entity_type entity::type_of() const noexcept

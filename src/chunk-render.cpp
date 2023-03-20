@@ -104,9 +104,47 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
     return { wall_mesh, wall_indexes, count };
 }
 
-auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
+void chunk::ensure_scenery_draw_array(Array<draw_entity>& array)
 {
+    const size_t len_ = _entities.size();
+
+    if (len_ <= array.size())
+        return;
+
+    size_t len;
+
+    if (len_ > 1 << 17)
+        len = len_;
+    else
+        len = std::bit_ceil(len_);
+
+    array = Array<draw_entity>{len};
+}
+
+auto chunk::ensure_scenery_mesh(Array<draw_entity>&& array) noexcept -> scenery_mesh_tuple
+{
+    return ensure_scenery_mesh(static_cast<Array<draw_entity>&>(array));
+}
+
+auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_mesh_tuple
+{
+    constexpr auto entity_ord_lessp = [](const auto& a, const auto& b) {
+      return a.ord < b.ord;
+    };
+
     fm_assert(_entities_sorted);
+
+    const auto size = _entities.size();
+
+    {
+        ensure_scenery_draw_array(array);
+        for (auto i = 0uz; const auto& e : _entities)
+            array[i++] = { e.get(), e->ordinal() };
+        std::sort(array.begin(), array.begin() + size, entity_ord_lessp);
+        //do { Debug{} << "scenery-mesh: sorting" << size; fflush(stdout); } while (false);
+    }
+
+    const auto es = ArrayView<draw_entity>{array, size};
 
     if (_scenery_modified)
     {
@@ -114,7 +152,7 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 
         const auto count = fm_begin(
             size_t ret = 0;
-            for (const auto& e : _entities)
+            for (const auto& [e, ord] : es)
                 ret += !e->is_dynamic();
             return ret;
         );
@@ -124,7 +162,7 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
         scenery_vertexes.clear();
         scenery_vertexes.reserve(count);
 
-        for (const auto& e : _entities)
+        for (const auto& [e, ord] : es)
         {
             if (e->atlas->info().fps > 0)
                 continue;
@@ -152,7 +190,10 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
             .setCount(int32_t(6 * count));
         scenery_mesh = Utility::move(mesh);
     }
-    return { scenery_mesh, };
+
+    fm_assert(!size || es);
+
+    return { scenery_mesh, es, size };
 }
 
 } // namespace floormat
