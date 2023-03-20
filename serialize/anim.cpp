@@ -135,11 +135,11 @@ void adl_serializer<floormat::anim_scale>::from_json(const json& j, floormat::an
     {
         auto factor = (float)j[1];
         fm_soft_assert(factor > 0 && factor <= 1);
-        val = {factor};
+        val = anim_scale::ratio{factor};
     }
     else if (bool is_width = type == "width"_s; is_width || type == "height"_s)
     {
-        val = {(unsigned)j[1], is_width};
+        val = anim_scale::fixed{(unsigned)j[1], is_width};
         fm_soft_assert(val.f.width_or_height > 0);
     }
     else

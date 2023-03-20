@@ -33,7 +33,7 @@ enum class anim_scale_type : unsigned char { invalid, ratio, fixed, };
 struct anim_scale final
 {
     struct ratio { float f; };
-    struct fixed { bool is_width; unsigned width_or_height; };
+    struct fixed { unsigned width_or_height; bool is_width; };
     struct empty {};
     union {
         struct ratio r;
@@ -44,8 +44,8 @@ struct anim_scale final
     constexpr anim_scale() = default;
     constexpr anim_scale(const anim_scale&) = default;
     constexpr anim_scale& operator=(const anim_scale&) = default;
-    constexpr anim_scale(float ratio) : r{ratio}, type{anim_scale_type::ratio} {}
-    constexpr anim_scale(unsigned width_or_height, bool is_width) : f{is_width, width_or_height}, type{anim_scale_type::ratio} {}
+    constexpr anim_scale(fixed x) noexcept : f{x}, type{anim_scale_type::fixed} {}
+    constexpr anim_scale(ratio x) noexcept : r{x}, type{anim_scale_type::ratio} {}
     Vector2ui scale_to(Vector2ui image_size) const;
     Vector2 scale_to_(Vector2ui image_size) const;
 };
@@ -55,7 +55,7 @@ struct anim_def final
     String object_name, anim_name;
     std::vector<anim_group> groups;
     Vector2ui pixel_size;
-    anim_scale scale = anim_scale{1};
+    anim_scale scale = anim_scale::ratio{1};
     size_t nframes = 0, fps = 0, actionframe = 0;
 };
 
