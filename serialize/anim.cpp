@@ -148,23 +148,7 @@ void adl_serializer<floormat::anim_scale>::from_json(const json& j, floormat::an
 
 void adl_serializer<anim_frame>::to_json(json& j, const anim_frame& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<anim_frame>::from_json(const json& j, anim_frame& val) { using nlohmann::from_json; from_json(j, val); }
-
-void adl_serializer<anim_group>::to_json(json& j, const anim_group& val)
-{
-    using nlohmann::to_json;
-    if (!val.mirror_from.isEmpty())
-    {
-        const anim_group def{};
-
-        j["name"] = val.name;
-        j["mirror-from"] = val.mirror_from;
-        if (val.offset != def.offset)
-            j["offset"] = val.offset;
-    }
-    else
-        to_json(j, val);
-}
-
+void adl_serializer<anim_group>::to_json(json& j, const anim_group& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<anim_group>::from_json(const json& j, anim_group& val) { using nlohmann::from_json; from_json(j, val); }
 void adl_serializer<anim_def>::to_json(json& j, const anim_def& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<anim_def>::from_json(const json& j, anim_def& val) { using nlohmann::from_json; from_json(j, val); }
