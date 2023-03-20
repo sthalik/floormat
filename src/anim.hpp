@@ -26,6 +26,7 @@ struct anim_group final
     std::vector<anim_frame> frames;
     Vector2ui ground; // for use in anim-crop-tool only
     Vector3b offset;
+    Vector2b z_offset;
 };
 
 enum class anim_scale_type : unsigned char { invalid, ratio, fixed, };

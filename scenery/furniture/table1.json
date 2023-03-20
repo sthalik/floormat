@@ -8,16 +8,12 @@
 				}
 			],
 			"ground": "960 x 540",
-			"name": "n"
+			"name": "n",
+			"z-offset": "0 x 32"
 		},
 		{
 			"mirror-from": "n",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"name": "w"
 		},
 		{
 			"frames": [
@@ -33,11 +29,7 @@
 		{
 			"mirror-from": "s",
 			"name": "e",
-			"offset": [
-				0,
-				0,
-				0
-			]
+			"z-offset": "0 x 32"
 		}
 	],
 	"nframes": 1,

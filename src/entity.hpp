@@ -54,7 +54,7 @@ struct entity
 
     virtual Vector2 ordinal_offset(Vector2b offset) const = 0;
     float ordinal() const;
-    float ordinal(local_coords xy, Vector2b offset) const;
+    float ordinal(local_coords xy, Vector2b offset, Vector2b z_offset) const;
     struct chunk& chunk() const;
     size_t index() const;
 
@@ -75,7 +75,7 @@ struct entity
     bool is_dynamic() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
-    [[nodiscard]] size_t move_to(size_t i, Vector2i delta, rotation new_r);
+    size_t move_to(size_t i, Vector2i delta, rotation new_r);
 
 protected:
     entity(object_id id, struct chunk& c, const entity_proto& proto);

@@ -46,6 +46,8 @@ static void to_json(nlohmann::json& j, const anim_group& val)
         j["ground"] = val.ground;
     if (val.offset != def.offset)
         j["offset"] = val.offset;
+    if (val.z_offset != def.z_offset)
+        j["z-offset"] = val.z_offset;
 }
 
 static void from_json(const nlohmann::json& j, anim_group& val)
@@ -54,13 +56,18 @@ static void from_json(const nlohmann::json& j, anim_group& val)
     val.name = j["name"];
     fm_soft_assert(!val.name.isEmpty());
     if (j.contains("mirror-from"))
+    {
+        fm_soft_assert(!j.contains("frames"));
         val.mirror_from = j["mirror-from"];
+    }
     else
         val.frames = j["frames"];
     if (j.contains("ground"))
         val.ground = j["ground"];
     if (j.contains("offset"))
         val.offset = j["offset"];
+    if (j.contains("z-offset"))
+        val.z_offset = j["z-offset"];
 }
 
 static void to_json(nlohmann::json& j, const anim_def& val)
@@ -109,7 +116,7 @@ using namespace floormat;
 
 namespace nlohmann {
 
-void adl_serializer<floormat::anim_scale>::to_json(json& j, const floormat::anim_scale val)
+void adl_serializer<floormat::anim_scale>::to_json(json& j, const anim_scale val)
 {
     switch (val.type)
     {
@@ -126,7 +133,7 @@ void adl_serializer<floormat::anim_scale>::to_json(json& j, const floormat::anim
     }
 }
 
-void adl_serializer<floormat::anim_scale>::from_json(const json& j, floormat::anim_scale& val)
+void adl_serializer<anim_scale>::from_json(const json& j, anim_scale& val)
 {
     fm_soft_assert(j.is_array());
     fm_soft_assert(j.size() == 2);
