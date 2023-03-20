@@ -158,6 +158,7 @@ StringView reader_state::lookup_string(uint32_t idx)
 
 void reader_state::read_chunks(reader_t& s)
 {
+    Array<typename chunk::draw_entity> array;
     const auto N = s.read<chunksiz>();
 #ifndef FM_NO_DEBUG
     [[maybe_unused]] size_t nbytes_read = 0;
@@ -304,7 +305,7 @@ void reader_state::read_chunks(reader_t& s)
         c.sort_entities();
         c.ensure_ground_mesh();
         c.ensure_wall_mesh();
-        c.ensure_scenery_mesh({});
+        c.ensure_scenery_mesh(array);
         c.ensure_passability();
     }
 }
