@@ -41,7 +41,7 @@ auto json_helper::from_json_(StringView filename) noexcept(false) -> json
 
 void json_helper::to_json_(const json& j, StringView filename) noexcept(false)
 {
-    (open_stream<std::ofstream, std::ios_base::out>(filename) << j.dump(1, '\t') << '\n').flush();
+    (open_stream<std::ofstream, std::ios_base::out>(filename) << j.dump(2, ' ') << '\n').flush();
 }
 
 } // namespace floormat
