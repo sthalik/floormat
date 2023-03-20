@@ -77,8 +77,6 @@ struct entity
     bool can_move_to(Vector2i delta);
     [[nodiscard]] size_t move_to(size_t i, Vector2i delta, rotation new_r);
 
-    friend struct world;
-
 protected:
     entity(object_id id, struct chunk& c, const entity_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
