@@ -1,6 +1,8 @@
 #pragma once
 #include "integer-types.hpp"
+#include "literals.hpp"
 
+#if 0
 namespace floormat {
 #ifdef _MSC_VER
 #if defined _WIN64
@@ -12,6 +14,7 @@ typedef unsigned int       size_t;
 typedef __SIZE_TYPE__      size_t;
 #endif
 } // namespace floormat
+#endif
 
 namespace Corrade::Containers {
 
