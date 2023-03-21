@@ -1,0 +1,38 @@
+{
+	"anim_name": "close",
+	"fps": 24,
+	"groups": [
+		{
+			"frames": [],
+			"ground": "951 x 556",
+			"name": "n",
+			"offset": [ 0, -32, 0 ],
+			"depth-offset": "128 x 128"
+		},
+		{
+			"frames": [],
+			"ground": "951 x 556",
+			"name": "e",
+			"offset": [ 32, 0, 0 ]
+		},
+		{
+			"frames": [],
+			"ground": "951 x 556",
+			"name": "s",
+			"offset": [ 0, 32, 0 ]
+		},
+		{
+			"frames": [],
+			"ground": "951 x 556",
+			"name": "w",
+			"offset": [ -32, 0, 0 ]
+		}
+	],
+	"nframes": 55,
+	"object_name": "door",
+	"pixel_size": "3809 x 507",
+	"scale": [
+		"width",
+		86
+	]
+}
