@@ -8,6 +8,7 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "character.hpp"
+#include "rotation.inl"
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Renderer.h>
@@ -53,7 +54,8 @@ void app::draw_cursor()
             {
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
-                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE;
+                const auto offset = Vector3i(Vector2i(sel.offset), 0);
+                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE + offset;
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }
