@@ -96,6 +96,8 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
+Vector2 character::depth_offset() const { return {}; }
+
 Vector2 character::ordinal_offset(Vector2b offset) const
 {
     return Vector2(offset);

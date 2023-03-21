@@ -25,8 +25,8 @@ struct anim_group final
     String name, mirror_from;
     std::vector<anim_frame> frames;
     Vector2ui ground; // for use in anim-crop-tool only
+    Vector2s z_offset;
     Vector3b offset;
-    Vector2b z_offset;
 };
 
 enum class anim_scale_type : unsigned char { invalid, ratio, fixed, };

@@ -84,8 +84,10 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
         }
         if (e.is_dynamic())
         {
+            const auto depth = e.depth_offset();
+            const auto depth1 = depth[1]*TILE_MAX_DIM + depth[0];
             //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
-            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, tile_shader::scenery_depth_offset);
+            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth1 + tile_shader::scenery_depth_offset);
             last = nullptr;
         }
         else

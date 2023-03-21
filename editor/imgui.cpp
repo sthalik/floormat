@@ -130,8 +130,15 @@ bool app::check_inspector_exists(const popup_target& p)
 
 void app::do_popup_menu()
 {
-    auto b0 = push_id(SCENERY_POPUP_NAME);
     const auto [sc, target] = _popup_target;
+    if (target == popup_target_type::none || sc == nullptr)
+    {
+        _popup_target = {};
+        _pending_popup = {};
+        return;
+    }
+
+    auto b0 = push_id(SCENERY_POPUP_NAME);
     //if (_popup_target.target != popup_target_type::scenery) {...}
 
     if (_pending_popup)
@@ -144,8 +151,6 @@ void app::do_popup_menu()
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
-        fm_assert(target != popup_target_type::none && sc != nullptr);
-
         ImGui::SeparatorText("Setup");
         const auto i = sc->index();
         if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))

@@ -53,8 +53,9 @@ struct entity
     virtual ~entity() noexcept;
 
     virtual Vector2 ordinal_offset(Vector2b offset) const = 0;
+    virtual Vector2 depth_offset() const = 0;
     float ordinal() const;
-    float ordinal(local_coords xy, Vector2b offset, Vector2b z_offset) const;
+    float ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const;
     struct chunk& chunk() const;
     size_t index() const;
 

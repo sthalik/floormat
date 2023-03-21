@@ -77,15 +77,28 @@ Vector2 scenery::ordinal_offset(Vector2b offset) const
 {
     if (sc_type == scenery_type::door)
     {
-        constexpr auto vec0 = Vector2b(-iTILE_SIZE2[0], -iTILE_SIZE[1]/2+1);
-        constexpr auto vec1 = Vector2b(0, -iTILE_SIZE[1]/2+1);
-        const auto vec0_ = rotate_point(vec0, rotation::N, r);
-        const auto vec1_ = rotate_point(vec1, rotation::N, r);
-        const auto vec = frame == 0 ? vec0_ : vec1_;
+        constexpr auto off_closed_ = Vector2b(0, -iTILE_SIZE[1]/2+2);
+        constexpr auto off_opened_ = Vector2b(-iTILE_SIZE[0]+2, -iTILE_SIZE[1]/2+2);
+        const auto off_closed = rotate_point(off_closed_, rotation::N, r);
+        const auto off_opened = rotate_point(off_opened_, rotation::N, r);
+        const auto vec = frame == atlas->info().nframes-1 ? off_closed : off_opened;
         return Vector2(offset) + Vector2(vec);
     }
-    else
-        return Vector2(offset);
+    return Vector2(offset);
+}
+
+Vector2 scenery::depth_offset() const
+{
+    constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
+    Vector2 ret;
+    if (sc_type == scenery_type::door)
+    {
+        constexpr auto door_offset = Vector2b(-iTILE_SIZE[0], 0);
+        const auto offset = rotate_point(door_offset, rotation::N, r);
+        ret += Vector2(offset);
+    }
+    ret += Vector2(atlas->group(r).z_offset);
+    return ret * inv_tile_size;
 }
 
 bool scenery::activate(size_t)

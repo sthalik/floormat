@@ -44,7 +44,7 @@ constexpr Pair<Vector2, Vector2> wall_west(size_t k)
     return { min, min + Vector2(2, TILE_SIZE2[1]), };
 }
 
-constexpr object_id make_id(collision_type type, pass_mode p, uint64_t id)
+constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
 {
     return std::bit_cast<object_id>(collision_data { (object_id)type, (object_id)p, id });
 }

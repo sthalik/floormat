@@ -51,7 +51,7 @@ float entity::ordinal() const
     return ordinal(coord.local(), offset, atlas->group(r).z_offset);
 }
 
-float entity::ordinal(local_coords xy, Vector2b offset, Vector2b z_offset) const
+float entity::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
 {
     constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
     constexpr float width = TILE_MAX_DIM+1;

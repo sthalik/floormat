@@ -23,14 +23,17 @@ constexpr Triple<Vector2b, Vector2ub, Vector2ub> rotation_symmetry(rotation r)
     return sym;
 }
 
-constexpr Vector2b rotate_point(Vector2b rect, rotation r_old, rotation r_new)
+template<typename T> using Vec2 = Math::Vector2<T>;
+
+template<typename T>
+constexpr Vec2<T> rotate_point(Vec2<T> rect, rotation r_old, rotation r_new)
 {
     fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
     auto [m_offset0, i_offset0, i_size0] = rotation_symmetry(r_old);
-    auto offset0_ = rect * m_offset0;
-    auto offset_n = Vector2b(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
+    auto offset0_ = rect * Vec2<T>(m_offset0);
+    auto offset_n = Vec2<T>(offset0_[i_offset0[0]], offset0_[i_offset0[1]]);
     auto [m_offset1, i_offset1, i_size1] = rotation_symmetry(r_new);
-    return Vector2b{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*m_offset1;
+    return Vec2<T>{offset_n[i_offset1[0]], offset_n[i_offset1[1]]}*Vec2<T>{m_offset1};
 }
 
 constexpr Vector2ub rotate_size(Vector2ub size0, rotation r_old, rotation r_new)
