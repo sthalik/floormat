@@ -100,7 +100,8 @@ Vector2 character::depth_offset() const { return {}; }
 
 Vector2 character::ordinal_offset(Vector2b offset) const
 {
-    return Vector2(offset);
+    (void)offset;
+    return {};
 }
 
 bool character::update(size_t i, float dt)
@@ -118,12 +119,13 @@ bool character::update(size_t i, float dt)
     auto coord_ = coord;
 
     if (nframes == 0)
-    {
-        if (r == new_r) [[unlikely]]
-            return false;
-        rotate(i, new_r);
-        return coord.chunk() != coord_.chunk();
-    }
+        return false;
+
+    bool ret = false;
+
+    if (r != new_r)
+        if (is_dynamic())
+            rotate(i, new_r);
 
     const auto vec = move_vec(lr, ud);
     c->ensure_passability();
@@ -136,12 +138,13 @@ bool character::update(size_t i, float dt)
         offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
         auto off_i = Vector2i(offset_);
         if (can_move_to(off_i))
-            i = move_to(i, off_i, new_r);
+            ret |= move_to(i, off_i, new_r);
         else
             break;
         ++frame %= atlas->info().nframes;
     }
-    return coord.chunk() != coord_.chunk();
+
+    return ret;
 }
 
 entity_type character::type() const noexcept { return entity_type::character; }

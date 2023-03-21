@@ -153,10 +153,10 @@ bool entity::can_move_to(Vector2i delta)
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
+bool entity::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
-        return i;
+        return false;
 
     auto& es = c->_entities;
     fm_debug_assert(i < es.size());
@@ -167,7 +167,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
     if (coord_ == coord && offset_ == offset)
-        return i;
+        return false;
 
     if (!is_dynamic())
         c->mark_scenery_modified();
@@ -186,7 +186,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
         const_cast<rotation&>(r) = new_r;
         //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
         //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
-        return i;
+        return false;
     }
     else
     {
@@ -204,7 +204,7 @@ size_t entity::move_to(size_t i, Vector2i delta, rotation new_r)
         const_cast<rotation&>(r) = new_r;
         const_cast<struct chunk*&>(c) = &c2;
         es.insert(it, std::move(e_));
-        return ret;
+        return true;
     }
 }
 

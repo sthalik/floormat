@@ -76,7 +76,7 @@ struct entity
     bool is_dynamic() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
-    size_t move_to(size_t i, Vector2i delta, rotation new_r);
+    bool move_to(size_t& i, Vector2i delta, rotation new_r);
 
 protected:
     entity(object_id id, struct chunk& c, const entity_proto& proto);
