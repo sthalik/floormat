@@ -186,9 +186,8 @@ void app::update_world(float dt)
         {
             auto& c = world[chunk_coords{x, y}];
             const auto& es = c.entities();
-            const auto size = es.size();
-
-start:      for (auto i = size-1; i != (size_t)-1; i--)
+start:      const auto size = es.size();
+            for (auto i = size-1; i != (size_t)-1; i--)
             {
                 auto& e = *es[i];
                 fm_debug_assert(!(e.last_update > curframe));
