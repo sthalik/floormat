@@ -97,7 +97,7 @@ Vector2 scenery::depth_offset() const
         const auto offset = rotate_point(door_offset, rotation::N, r);
         ret += Vector2(offset);
     }
-    ret += Vector2(atlas->group(r).z_offset);
+    ret += Vector2(atlas->group(r).depth_offset);
     return ret * inv_tile_size;
 }
 

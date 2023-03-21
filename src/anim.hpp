@@ -25,7 +25,7 @@ struct anim_group final
     String name, mirror_from;
     std::vector<anim_frame> frames;
     Vector2ui ground; // for use in anim-crop-tool only
-    Vector2s z_offset;
+    Vector2s z_offset, depth_offset;
     Vector3b offset;
 };
 

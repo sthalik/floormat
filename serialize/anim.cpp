@@ -48,6 +48,8 @@ static void to_json(nlohmann::json& j, const anim_group& val)
         j["offset"] = val.offset;
     if (val.z_offset != def.z_offset)
         j["z-offset"] = val.z_offset;
+    if (val.depth_offset != def.depth_offset)
+        j["depth-offset"] = val.depth_offset;
 }
 
 static void from_json(const nlohmann::json& j, anim_group& val)
@@ -68,6 +70,8 @@ static void from_json(const nlohmann::json& j, anim_group& val)
         val.offset = j["offset"];
     if (j.contains("z-offset"))
         val.z_offset = j["z-offset"];
+    if (j.contains("depth-offset"))
+        val.depth_offset = j["depth-offset"];
 }
 
 static void to_json(nlohmann::json& j, const anim_def& val)
