@@ -1,42 +1,40 @@
 {
-	"groups": [
-		{
-			"frames": [
-				{
-					"ground": "82 x 105",
-					"size": "163 x 150"
-				}
-			],
-			"ground": "960 x 540",
-			"name": "n",
-			"z-offset": "0 x 32"
-		},
-		{
-			"mirror-from": "n",
-			"name": "w"
-		},
-		{
-			"frames": [
-				{
-					"ground": "82 x 105",
-					"offset": "0 x 150",
-					"size": "163 x 150"
-				}
-			],
-			"ground": "960 x 540",
-			"name": "s"
-		},
-		{
-			"mirror-from": "s",
-			"name": "e",
-			"z-offset": "0 x 32"
-		}
-	],
-	"nframes": 1,
-	"object_name": "table1",
-	"pixel_size": "163 x 300",
-	"scale": [
-		"factor",
-		0.3799999952316284
-	]
+  "groups": [
+    {
+      "frames": [
+        {
+          "ground": "82 x 105",
+          "size": "163 x 150"
+        }
+      ],
+      "ground": "960 x 540",
+      "name": "n"
+    },
+    {
+      "mirror-from": "n",
+      "name": "w"
+    },
+    {
+      "frames": [
+        {
+          "ground": "82 x 105",
+          "offset": "0 x 150",
+          "size": "163 x 150"
+        }
+      ],
+      "ground": "960 x 540",
+      "name": "s"
+    },
+    {
+      "mirror-from": "s",
+      "name": "e"
+    }
+  ],
+  "nframes": 1,
+  "object_name": "table1",
+  "pixel_size": "163 x 300",
+  "scale": [
+    "factor",
+    0.3799999952316284
+  ]
 }

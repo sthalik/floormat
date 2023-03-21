@@ -73,7 +73,9 @@
   {
     "name": "table1",
     "type": "generic",
-    "atlas-name": "furniture/table1"
+    "atlas-name": "furniture/table1",
+    "bbox-offset": "-4 x 0",
+    "bbox-size": "70 x 96"
   },
   {
     "name": "table4",
