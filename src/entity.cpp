@@ -2,7 +2,7 @@
 #include "world.hpp"
 #include "rotation.inl"
 #include "anim-atlas.hpp"
-#include "RTree.hpp"
+#include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
 #include <algorithm>

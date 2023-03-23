@@ -20,9 +20,17 @@
 //#define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
 #define RTREE_USE_SPHERICAL_VOLUME // Better split classification, may be slower on some systems
 
-namespace floormat::detail { template<typename T> struct rtree_pool; }
+#ifdef RTREE_STDIO
+// Fwd decl
+class RTFileStream;  // File I/O helper class, look below for implementation and notes.
+#endif
 
-template<typename T> struct floormat::detail::rtree_pool final
+#define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
+#define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
+
+namespace floormat::detail {
+
+template<typename T> struct rtree_pool final
 {
     rtree_pool() noexcept;
     rtree_pool(const rtree_pool&) = delete;
@@ -44,10 +52,7 @@ private:
     node_u* free_list = nullptr;
 };
 
-#ifdef RTREE_STDIO
-// Fwd decl
-class RTFileStream;  // File I/O helper class, look below for implementation and notes.
-#endif
+} // namespace floormat::detail
 
 /// \class RTree
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
@@ -234,8 +239,8 @@ public:
     Node* m_node;                                 ///< Node
   };
 
-  floormat::detail::rtree_pool<Node> node_pool;
-  floormat::detail::rtree_pool<ListNode> list_node_pool;
+  static floormat::detail::rtree_pool<Node> node_pool;
+  static floormat::detail::rtree_pool<ListNode> list_node_pool;
 
 protected:
   /// Variables for finding a split partition
@@ -302,10 +307,12 @@ public:
   void ListTree(std::vector<Rect>& vec, std::vector<Node*>& temp) const;
 };
 
-extern template class RTree<floormat::uint64_t, float, 2, float>;
+
+#ifndef RTREE_NO_EXTERN_TEMPLATE
 extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::Node>;
 extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::ListNode>;
-
+extern template class RTree<floormat::uint64_t, float, 2, float>;
+#endif
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL
 

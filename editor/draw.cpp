@@ -12,7 +12,7 @@
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Renderer.h>
-#include "src/RTree.hpp"
+#include "src/RTree-search.hpp"
 
 namespace floormat {
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RTree.h"
+#include "RTree-search.hpp"
 
 #include <math.h>
 #include <stdlib.h>
@@ -13,8 +14,6 @@
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
-#define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
-#define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
 #undef _DEBUG
 #ifndef FM_NO_DEBUG
 #define _DEBUG
@@ -31,14 +30,10 @@
   #define Max std::max
 #endif //Max
 
-namespace floormat::detail {
-
-
-#ifndef RTREE_NO_EXTERN_TEMPLATE_POOL
-extern template struct rtree_pool<RTree<std::uint64_t, float, 2, float>::Node>;
-extern template struct rtree_pool<RTree<std::uint64_t, float, 2, float>::ListNode>;
+#ifndef RTREE_NO_EXTERN_TEMPLATE
+extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::Node>;
+extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::ListNode>;
 #endif
-} // namespace floormat::detail
 
 #ifdef RTREE_STDIO
 // Because there is not stream support, this is a quick and dirty file I/O helper.
@@ -211,34 +206,6 @@ void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
   }
 
   RemoveRect(&rect, a_dataId, &m_root);
-}
-
-
-RTREE_TEMPLATE
-template<typename F>
-int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const
-{
-#ifdef _DEBUG
-  for(int index=0; index<NUMDIMS; ++index)
-  {
-    ASSERT(a_min[index] <= a_max[index]);
-  }
-#endif //_DEBUG
-
-  Rect rect;
-
-  for(int axis=0; axis<NUMDIMS; ++axis)
-  {
-    rect.m_min[axis] = a_min[axis];
-    rect.m_max[axis] = a_max[axis];
-  }
-
-  // NOTE: May want to return search result another way, perhaps returning the number of found elements here.
-
-  int foundCount = 0;
-  Search(m_root, &rect, foundCount, callback);
-
-  return foundCount;
 }
 
 
@@ -1288,49 +1255,6 @@ void RTREE_QUAL::ReInsert(Node* a_node, ListNode** a_listNode)
 }
 
 
-// Search in an index tree or subtree for all data retangles that overlap the argument rectangle.
-RTREE_TEMPLATE
-template<typename F>
-bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const
-{
-  ASSERT(a_node);
-  ASSERT(a_node->m_level >= 0);
-  ASSERT(a_rect);
-
-  if(a_node->IsInternalNode())
-  {
-    // This is an internal node in the tree
-    for(int index=0; index < a_node->m_count; ++index)
-    {
-      if(Overlap(a_rect, &a_node->m_branch[index].m_rect))
-      {
-        if(!Search(a_node->m_branch[index].m_child, a_rect, a_foundCount, callback))
-        {
-          // The callback indicated to stop searching
-          return false;
-        }
-      }
-    }
-  }
-  else
-  {
-    // This is a leaf node
-    for(int index=0; index < a_node->m_count; ++index)
-    {
-      if(Overlap(a_rect, &a_node->m_branch[index].m_rect))
-      {
-        ++a_foundCount;
-        const Rect& r = a_node->m_branch[index].m_rect;
-        if(!callback(a_node->m_branch[index].m_data, r))
-          return false; // Don't continue searching
-      }
-    }
-  }
-
-  return true; // Continue searching
-}
-
-
 RTREE_TEMPLATE
 void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVisit) const
 {
@@ -1485,9 +1409,6 @@ bool RTREE_QUAL::Iterator::FindNextData()
 
 #undef _DEBUG
 #undef ASSERT
-
-#undef RTREE_QUAL
-#undef RTREE_TEMPLATE
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop

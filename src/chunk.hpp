@@ -2,12 +2,12 @@
 #include "object-id.hpp"
 #include "tile.hpp"
 #include "tile-iterator.hpp"
+#include "src/RTree.h"
 #include <Corrade/Containers/Array.h>
 #include <type_traits>
 #include <array>
 #include <memory>
 #include <Magnum/GL/Mesh.h>
-#include "RTree.h"
 
 namespace floormat {
 

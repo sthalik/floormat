@@ -1,4 +1,4 @@
-#define RTREE_NO_EXTERN_TEMPLATE_POOL
+#define RTREE_NO_EXTERN_TEMPLATE
 #include "RTree.hpp"
 
 //#define RTREE_POOL_DEBUG
@@ -70,10 +70,11 @@ template<typename T> void rtree_pool<T>::free(T* ptr)
     free_list = n;
 }
 
-using my_rtree = RTree<uint64_t, float, 2, float>;
-template struct rtree_pool<my_rtree::Node>;
-template struct rtree_pool<my_rtree::ListNode>;
-
 } // namespace floormat::detail
 
+using my_rtree = RTree<floormat::uint64_t, float, 2, float>;
+template struct floormat::detail::rtree_pool<my_rtree::Node>;
+template struct floormat::detail::rtree_pool<my_rtree::ListNode>;
+template<> floormat::detail::rtree_pool<my_rtree::Node> my_rtree::node_pool = {}; // NOLINT
+template<> floormat::detail::rtree_pool<my_rtree::ListNode> my_rtree::list_node_pool = {}; // NOLINT
 template class RTree<floormat::uint64_t, float, 2, float>;

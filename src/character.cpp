@@ -3,9 +3,10 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/entity.hpp"
-#include "src/RTree.hpp"
+#include "src/RTree-search.hpp"
 #include <cmath>
 #include <utility>
+#include <algorithm>
 
 namespace floormat {
 
