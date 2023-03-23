@@ -5,6 +5,7 @@
 #include "src/entity.hpp"
 #include "src/RTree.hpp"
 #include <cmath>
+#include <utility>
 
 namespace floormat {
 
@@ -16,37 +17,66 @@ constexpr int tile_size_1 = iTILE_SIZE2.sum()/2,
               framerate = 96, move_speed = tile_size_1 * 2;
 constexpr float frame_time = 1.f/framerate;
 
-constexpr auto arrows_to_dir(bool L, bool R, bool U, bool D)
+constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
-    if (L == R)
-        L = R = false;
-    if (U == D)
-        U = D = false;
+    if (left == right)
+        left = right = false;
+    if (up == down)
+        up = down = false;
 
+    const auto bits = unsigned(left << 3 | right << 2 | up << 1 | down << 0);
+    constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
+
+    switch (bits)
+    {
     using enum rotation;
-    struct {
-        int lr = 0, ud = 0;
-        rotation r = N;
-    } dir;
+    case 0: return rotation{rotation_COUNT};
+    case L | U: return W;
+    case L | D: return S;
+    case R | U: return N;
+    case R | D: return E;
+    case L: return SW;
+    case D: return SE;
+    case R: return NE;
+    case U: return NW;
+    }
+    std::unreachable();
+}
 
-    if (L && U)
-        dir = { -1,  0,  W };
-    else if (L && D)
-        dir = {  0,  1,  S };
-    else if (R && U)
-        dir = {  0, -1,  N };
-    else if (R && D)
-        dir = {  1,  0,  E };
-    else if (L)
-        dir = { -1,  1, SW };
-    else if (D)
-        dir = {  1,  1, SE };
-    else if (R)
-        dir = {  1, -1, NE };
-    else if (U)
-        dir = { -1, -1, NW };
+constexpr Vector2b rotation_to_vec(rotation r)
+{
+    CORRADE_ASSUME(r < rotation_COUNT);
+    switch (r)
+    {
+    using enum rotation;
+    case N:  return {  0, -1 };
+    case NE: return {  1, -1 };
+    case E:  return {  1,  0 };
+    case SE: return {  1,  1 };
+    case S:  return {  0,  1 };
+    case SW: return { -1,  1 };
+    case W:  return { -1,  0 };
+    case NW: return { -1, -1 };
+    }
+    std::unreachable();
+}
 
-    return dir;
+constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
+{
+    CORRADE_ASSUME(r < rotation_COUNT);
+    switch (r)
+    {
+    using enum rotation;
+    case N:  return {  N, NW, NE };
+    case NE: return { NE,  N,  E };
+    case E:  return {  E, NE, SE };
+    case SE: return { SE,  E,  S };
+    case S:  return {  S, SE, SW };
+    case SW: return { SW,  S,  W };
+    case W:  return {  W, SW, NW };
+    case NW: return { NW,  W,  N };
+    }
+    std::unreachable();
 }
 
 } // namespace
@@ -106,9 +136,8 @@ Vector2 character::ordinal_offset(Vector2b offset) const
 
 bool character::update(size_t i, float dt)
 {
-    auto [lr, ud, new_r] = arrows_to_dir(b_L, b_R, b_U, b_D);
-
-    if (!lr & !ud)
+    const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
+    if (new_r == rotation{rotation_COUNT})
     {
         delta = 0;
         return false;
@@ -116,10 +145,21 @@ bool character::update(size_t i, float dt)
 
     int nframes = allocate_frame_time(dt);
 
-    auto coord_ = coord;
-
     if (nframes == 0)
         return false;
+
+    auto [_0, _1, _2] = rotation_to_similar(r);
+    const std::array<Vector2b, 3> vecs = {
+        rotation_to_vec(_0),
+        rotation_to_vec(_1),
+        rotation_to_vec(_2)
+    };
+
+    const Vector2 move_vecs[] = {
+        move_vec(vecs[0][0], vecs[0][1]),
+        move_vec(vecs[1][0], vecs[1][1]),
+        move_vec(vecs[2][0], vecs[2][1]),
+    };
 
     bool ret = false;
 
@@ -127,21 +167,32 @@ bool character::update(size_t i, float dt)
         if (is_dynamic())
             rotate(i, new_r);
 
-    const auto vec = move_vec(lr, ud);
     c->ensure_passability();
 
     for (int k = 0; k < nframes; k++)
     {
-        constexpr auto frac = Vector2(32767);
-        constexpr auto inv_frac = 1.f / frac;
-        auto offset_ = vec + Vector2(offset_frac) * inv_frac;
-        offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
-        auto off_i = Vector2i(offset_);
-        if (can_move_to(off_i))
-            ret |= move_to(i, off_i, new_r);
-        else
+        bool done = false;
+        for (auto j = 0uz; j < 3; j++)
+        {
+            auto vec = move_vecs[j];
+            constexpr auto frac = Vector2(32767);
+            constexpr auto inv_frac = 1.f / frac;
+            auto offset_ = vec + Vector2(offset_frac) * inv_frac;
+            offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
+            auto off_i = Vector2i(offset_);
+            if (can_move_to(off_i))
+            {
+                ret |= move_to(i, off_i, new_r);
+                ++frame %= atlas->info().nframes;
+                done = true;
+                break;
+            }
+        }
+        if (!done)
+        {
+            delta = 0;
             break;
-        ++frame %= atlas->info().nframes;
+        }
     }
 
     return ret;
