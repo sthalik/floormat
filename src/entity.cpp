@@ -198,7 +198,6 @@ bool entity::move_to(size_t& i, Vector2i delta, rotation new_r)
         c->remove_entity(i);
         auto& es = c2._entities;
         auto it = std::lower_bound(es.cbegin(), es.cend(), e_, entity_id_lessp);
-        auto ret = (size_t)std::distance(es.cbegin(), it);
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
