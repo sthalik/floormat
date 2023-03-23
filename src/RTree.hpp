@@ -4,7 +4,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <cassert>
 #include <limits>
 #include <algorithm>
 
@@ -33,16 +32,7 @@
 #endif //Max
 
 namespace floormat::detail {
-template<typename T> struct rtree_pool final
-{
-    rtree_pool();
-    ~rtree_pool();
-    static T* construct();
-    static void free(T* pool);
 
-private:
-    static std::vector<T*> free_list; // NOLINT
-};
 
 #ifndef RTREE_NO_EXTERN_TEMPLATE_POOL
 extern template struct rtree_pool<RTree<std::uint64_t, float, 2, float>::Node>;
@@ -560,7 +550,7 @@ typename RTREE_QUAL::Node* RTREE_QUAL::AllocNode()
 #ifdef RTREE_DONT_USE_MEMPOOLS
   newNode = new Node;
 #else // RTREE_DONT_USE_MEMPOOLS
-  newNode = floormat::detail::rtree_pool<Node>::construct();
+  newNode = node_pool.construct();
 #endif // RTREE_DONT_USE_MEMPOOLS
   InitNode(newNode);
   return newNode;
@@ -575,7 +565,7 @@ void RTREE_QUAL::FreeNode(Node* a_node)
 #ifdef RTREE_DONT_USE_MEMPOOLS
   delete a_node;
 #else // RTREE_DONT_USE_MEMPOOLS
-  floormat::detail::rtree_pool<Node>::free(a_node);
+  node_pool.free(a_node);
 #endif // RTREE_DONT_USE_MEMPOOLS
 }
 
@@ -588,7 +578,7 @@ typename RTREE_QUAL::ListNode* RTREE_QUAL::AllocListNode()
 #ifdef RTREE_DONT_USE_MEMPOOLS
   return new ListNode;
 #else // RTREE_DONT_USE_MEMPOOLS
-  return floormat::detail::rtree_pool<ListNode>::construct();
+  return list_node_pool.construct();
 #endif // RTREE_DONT_USE_MEMPOOLS
 }
 
@@ -599,7 +589,7 @@ void RTREE_QUAL::FreeListNode(ListNode* a_listNode)
 #ifdef RTREE_DONT_USE_MEMPOOLS
   delete a_listNode;
 #else // RTREE_DONT_USE_MEMPOOLS
-  floormat::detail::rtree_pool<ListNode>::free(a_listNode);
+  list_node_pool.free(a_listNode);
 #endif // RTREE_DONT_USE_MEMPOOLS
 }
 

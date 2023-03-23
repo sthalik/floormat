@@ -11,53 +11,68 @@
 
 namespace floormat::detail {
 
-template<typename T> rtree_pool<T>::rtree_pool()
-{
-    free_list.reserve(128);
-}
+#ifdef RTREE_POOL_DEBUG
+static size_t fresh_counter, reuse_counter, dtor_counter; // NOLINT
+#endif
 
-template<typename T> rtree_pool<T>::~rtree_pool()
+template<typename T> rtree_pool<T>::rtree_pool() noexcept = default;
+
+template<typename T>
+rtree_pool<T>::~rtree_pool()
 {
-    for (auto* ptr : free_list)
-        ::operator delete(ptr);
-    free_list.clear();
-    free_list.shrink_to_fit();
+#ifdef RTREE_POOL_DEBUG
+    auto last = dtor_counter;
+#endif
+    while (free_list)
+    {
+#ifdef RTREE_POOL_DEBUG
+        ++dtor_counter;
+#endif
+        auto* p = free_list;
+        free_list = free_list->next;
+        p->data.~T();
+        delete p;
+    }
+#ifdef RTREE_POOL_DEBUG
+    if (dtor_counter != last) { Debug{} << "rtree-pool: dtor" << dtor_counter; std::fflush(stdout); }
+#endif
 }
 
 template<typename T> T* rtree_pool<T>::construct()
 {
-    if (free_list.empty())
+    if (!free_list)
     {
 #ifdef RTREE_POOL_DEBUG
-        static unsigned i = 0; Debug{} << "rtree-pool: fresh"_s << ++i; std::fflush(stdout);
+        Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
 #endif
-        return new T;
+        auto* ptr = new node_u;
+        auto* ret = new(&ptr->data) T;
+        return ret;
     }
     else
     {
-        auto* ret = free_list.back();
-        free_list.pop_back();
-        new (ret) T();
+        auto* ret = free_list;
+        free_list = free_list->next;
+        new (&ret->data) T();
 #ifdef RTREE_POOL_DEBUG
-        static unsigned i = 0; Debug{} << "rtree-pool: reused"_s << ++i; std::fflush(stdout);
+        Debug{} << "rtree-pool: reused"_s << ++reuse_counter; std::fflush(stdout);
 #endif
-        return ret;
+        return &ret->data;
     }
 }
 
 template<typename T> void rtree_pool<T>::free(T* ptr)
 {
     ptr->~T();
-    free_list.push_back(ptr);
+    node_p p = {.ptr = ptr };
+    node_u* n = p.data_ptr;
+    n->next = free_list;
+    free_list = n;
 }
 
 using my_rtree = RTree<uint64_t, float, 2, float>;
-
-template<> std::vector<my_rtree::Node*> rtree_pool<my_rtree::Node>::free_list = {}; // NOLINT
-template<> std::vector<my_rtree::ListNode*> rtree_pool<my_rtree::ListNode>::free_list = {}; // NOLINT
-
-template struct floormat::detail::rtree_pool<my_rtree::Node>;
-template struct floormat::detail::rtree_pool<my_rtree::ListNode>;
+template struct rtree_pool<my_rtree::Node>;
+template struct rtree_pool<my_rtree::ListNode>;
 
 } // namespace floormat::detail
 

@@ -22,6 +22,28 @@
 
 namespace floormat::detail { template<typename T> struct rtree_pool; }
 
+template<typename T> struct floormat::detail::rtree_pool final
+{
+    rtree_pool() noexcept;
+    rtree_pool(const rtree_pool&) = delete;
+    rtree_pool& operator=(const rtree_pool&) = delete;
+    ~rtree_pool();
+    T* construct();
+    void free(T* pool);
+
+    union node_u {
+        union { T data; };
+        node_u* next;
+    };
+    union node_p {
+        T* ptr;
+        node_u* data_ptr;
+    };
+
+private:
+    node_u* free_list = nullptr;
+};
+
 #ifdef RTREE_STDIO
 // Fwd decl
 class RTFileStream;  // File I/O helper class, look below for implementation and notes.
@@ -45,7 +67,7 @@ class RTFileStream;  // File I/O helper class, look below for implementation and
 ///
 template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
          class ELEMTYPEREAL = ELEMTYPE, int TMAXNODES = 8, int TMINNODES = TMAXNODES / 2>
-class RTree
+class RTree final
 {
 
 public:
@@ -65,7 +87,7 @@ public:
 
   RTree();
   RTree(const RTree& other);
-  virtual ~RTree() noexcept;
+  ~RTree() noexcept;
   RTree& operator=(const RTree&);
 
   /// Insert entry
@@ -212,6 +234,9 @@ public:
     Node* m_node;                                 ///< Node
   };
 
+  floormat::detail::rtree_pool<Node> node_pool;
+  floormat::detail::rtree_pool<ListNode> list_node_pool;
+
 protected:
   /// Variables for finding a split partition
   struct PartitionVars
@@ -278,6 +303,8 @@ public:
 };
 
 extern template class RTree<floormat::uint64_t, float, 2, float>;
+extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::Node>;
+extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::ListNode>;
 
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL
