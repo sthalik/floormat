@@ -38,7 +38,7 @@ struct character final : entity
 
 private:
     int allocate_frame_time(float dt);
-    static Vector2 move_vec(int left_right, int top_bottom);
+    static Vector2 move_vec(Vector2i vec);
 
     friend struct world;
     character(object_id id, struct chunk& c, const character_proto& proto);

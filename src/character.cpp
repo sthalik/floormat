@@ -43,7 +43,7 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     std::unreachable();
 }
 
-constexpr Vector2b rotation_to_vec(rotation r)
+constexpr Vector2i rotation_to_vec(rotation r)
 {
     CORRADE_ASSUME(r < rotation_COUNT);
     switch (r)
@@ -112,8 +112,9 @@ int character::allocate_frame_time(float dt)
     return ret;
 }
 
-Vector2 character::move_vec(int left_right, int top_bottom)
+Vector2 character::move_vec(Vector2i vec)
 {
+    const int left_right = vec[0], top_bottom = vec[1];
     constexpr auto c = move_speed * frame_time;
     return c * Vector2((float)sgn(left_right), (float)sgn(top_bottom)).normalized();
 }
@@ -149,16 +150,10 @@ bool character::update(size_t i, float dt)
         return false;
 
     auto [_0, _1, _2] = rotation_to_similar(r);
-    const std::array<Vector2b, 3> vecs = {
-        rotation_to_vec(_0),
-        rotation_to_vec(_1),
-        rotation_to_vec(_2)
-    };
-
     const Vector2 move_vecs[] = {
-        move_vec(vecs[0][0], vecs[0][1]),
-        move_vec(vecs[1][0], vecs[1][1]),
-        move_vec(vecs[2][0], vecs[2][1]),
+        move_vec(rotation_to_vec(_0)),
+        move_vec(rotation_to_vec(_1)),
+        move_vec(rotation_to_vec(_2)),
     };
 
     bool ret = false;
@@ -171,7 +166,6 @@ bool character::update(size_t i, float dt)
 
     for (int k = 0; k < nframes; k++)
     {
-        bool done = false;
         for (auto j = 0uz; j < 3; j++)
         {
             auto vec = move_vecs[j];
@@ -184,15 +178,13 @@ bool character::update(size_t i, float dt)
             {
                 ret |= move_to(i, off_i, new_r);
                 ++frame %= atlas->info().nframes;
-                done = true;
-                break;
+                goto done;
             }
         }
-        if (!done)
-        {
-            delta = 0;
-            break;
-        }
+        delta = 0;
+        break;
+done:
+        (void)0;
     }
 
     return ret;
