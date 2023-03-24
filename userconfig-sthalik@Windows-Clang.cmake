@@ -1,5 +1,4 @@
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    add_definitions(-D_LIBCPP_ENABLE_ASSERTIONS=1)
     add_compile_options(-mavx2)
     if(FLOORMAT_WITH-COVERAGE)
         set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE)
