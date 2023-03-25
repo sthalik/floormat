@@ -26,7 +26,7 @@ void app::draw_inspector()
 
     const auto dpi = M->dpi_scale();
 
-    for (auto i = inspectors.size()-1; i != -1_uz; i--)
+    for (auto i = inspectors.size()-1; i != -1uz; i--)
     {
         auto [e, target] = inspectors[i];
         fm_debug_assert(e);

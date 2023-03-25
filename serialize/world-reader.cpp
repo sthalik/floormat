@@ -91,14 +91,14 @@ void reader_state::read_sceneries(reader_t& s)
     fm_soft_assert(sz < scenery_id_max);
     sceneries.resize(sz);
 
-    auto i = 0_uz;
+    auto i = 0uz;
     while (i < sz)
     {
         uint8_t num; num << s;
         fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
         auto sc = loader.scenery(str);
-        for (auto n = 0_uz; n < num; n++)
+        for (auto n = 0uz; n < num; n++)
         {
             atlasid id; id << s;
             fm_soft_assert(id < sz);
@@ -121,7 +121,7 @@ void reader_state::read_strings(reader_t& s)
 {
     uint32_t size; size << s;
     strings.reserve(size);
-    for (auto i = 0_uz; i < size; i++)
+    for (auto i = 0uz; i < size; i++)
     {
         auto str = s.read_asciiz_string<string_max>();
         strings.emplace_back(StringView{str});
@@ -164,7 +164,7 @@ void reader_state::read_chunks(reader_t& s)
     [[maybe_unused]] size_t nbytes_read = 0;
 #endif
 
-    for (auto k = 0_uz; k < N; k++)
+    for (auto k = 0uz; k < N; k++)
     {
         const auto nbytes_start = s.bytes_read();
 
@@ -177,7 +177,7 @@ void reader_state::read_chunks(reader_t& s)
         ch.y << s;
         auto& c = (*_world)[ch];
         c.mark_modified();
-        for (auto i = 0_uz; i < TILE_COUNT; i++)
+        for (auto i = 0uz; i < TILE_COUNT; i++)
         {
             SET_CHUNK_SIZE();
             const tilemeta flags = s.read<tilemeta>();
@@ -219,7 +219,7 @@ void reader_state::read_chunks(reader_t& s)
 
         SET_CHUNK_SIZE();
 
-        for (auto i = 0_uz; i < entity_count; i++)
+        for (auto i = 0uz; i < entity_count; i++)
         {
             object_id _id; _id << s;
             const auto oid = _id & (1ULL << 60)-1;

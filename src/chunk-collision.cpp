@@ -68,7 +68,7 @@ void chunk::ensure_passability() noexcept
             _add_bbox(box);
     }
 
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         if (const auto* atlas = ground_atlas_at(i))
             if (auto p = atlas->pass_mode(pass_mode::pass); p != pass_mode::pass)
@@ -78,7 +78,7 @@ void chunk::ensure_passability() noexcept
                 _rtree.Insert(min.data(), max.data(), id);
             }
     }
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         auto tile = operator[](i);
         if (const auto* atlas = tile.wall_north_atlas().get())

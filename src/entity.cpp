@@ -112,7 +112,7 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
     auto off_tmp = Vector2i(cur_offset) + new_offset;
     auto off_new = off_tmp % iTILE_SIZE2;
     constexpr auto half_tile = iTILE_SIZE2/2;
-    for (auto i = 0_uz; i < 2; i++)
+    for (auto i = 0uz; i < 2; i++)
     {
         auto sign = sgn(off_new[i]);
         auto absval = std::abs(off_new[i]);
@@ -184,7 +184,7 @@ bool entity::move_to(size_t& i, Vector2i delta, rotation new_r)
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
-        //for (auto i = 0_uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
+        //for (auto i = 0uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
         //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
         return false;
     }

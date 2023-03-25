@@ -153,7 +153,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
-        for (auto i = 0_uz; i < T::Size; i++)
+        for (auto i = 0uz; i < T::Size; i++)
             value[i] = std::clamp(value[i], min[i], max[i]);
     }
 

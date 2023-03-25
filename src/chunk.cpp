@@ -25,7 +25,7 @@ bool chunk::empty(bool force) const noexcept
 {
     if (!force && !_maybe_empty)
         return false;
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
         if (_ground_atlases[i] || _wall_atlases[i*2 + 0] || _wall_atlases[i*2 + 1] || !_entities.empty())
             return _maybe_empty = false;
     if (!_entities.empty())

@@ -27,7 +27,7 @@ struct fmt_string final {
 
     template <size_t... Is>
     consteval fmt_string(const char (&arr)[N]) noexcept {
-        for (auto i = 0_uz; i < N; i++)
+        for (auto i = 0uz; i < N; i++)
             data[i] = arr[i];
     }
 };

@@ -30,7 +30,7 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     const auto ngroups = a.groups.size();
-    for (auto i = 0_uz; i < ngroups; i++)
+    for (auto i = 0uz; i < ngroups; i++)
         array[rotation_to_index(a.groups[i].name)] = uint8_t(i);
     return array;
 }
@@ -140,10 +140,10 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
     fm_soft_assert(tex.pixelSize() == 4);
     fm_soft_assert(pixels.stride()[1] == 4);
 
-    for (auto j = 0_uz; j < height; j++)
+    for (auto j = 0uz; j < height; j++)
     {
         constexpr unsigned char amin = 32;
-        auto i = 0_uz;
+        auto i = 0uz;
         for (; i < width0; i += 8)
         {
             const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width+i >> 3;
@@ -189,7 +189,7 @@ rotation anim_atlas::next_rotation_from(rotation r) const noexcept
     for (auto i = size_t(r)+1; i < count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
-    for (auto i = 0_uz; i < count; i++)
+    for (auto i = 0uz; i < count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
@@ -216,7 +216,7 @@ bool anim_atlas::check_rotation(rotation r) const noexcept
 
 rotation anim_atlas::first_rotation() const noexcept
 {
-    for (auto i = 0_uz; i < rot_count; i++)
+    for (auto i = 0uz; i < rot_count; i++)
         if (_group_indices[i] == 0)
             return rotation(i);
     fm_abort("unreachable! can't find first rotation");

@@ -49,13 +49,13 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
 {
     fm_assert(a.entities().size() == b.entities().size());
 
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         const auto &a1 = a[i], &b1 = b[i];
         fm_assert(a1 == b1);
     }
 
-    for (auto i = 0_uz; i < a.entities().size(); i++)
+    for (auto i = 0uz; i < a.entities().size(); i++)
     {
         const auto& ae = *a.entities()[i];
         const auto& be = *b.entities()[i];

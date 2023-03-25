@@ -23,7 +23,7 @@ size_t random_engine_impl::operator()()
             size_t x;
             uint32_t a[N];
         } ret;
-        for (auto i = 0_uz; i < N; i++)
+        for (auto i = 0uz; i < N; i++)
             ret.a[i] = g();
         return ret.x;
     }

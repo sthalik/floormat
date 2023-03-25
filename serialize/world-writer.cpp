@@ -269,7 +269,7 @@ void writer_state::serialize_scenery()
     s << (atlasid)sz;
 
     StringView last;
-    for (auto i = 0_uz; i < sz; i++)
+    for (auto i = 0uz; i < sz; i++)
     {
         fm_debug_assert(s.bytes_written() + atlasbuf_size1 < atlasbuf_size);
         const auto& [sc, idx] = vec[i];
@@ -277,7 +277,7 @@ void writer_state::serialize_scenery()
         {
             fm_assert(sc->name.size() < atlas_name_max);
             last = sc->name;
-            auto num = 1_uz;
+            auto num = 1uz;
             for (auto j = i+1; j < sz && vec[j].s->name == sc->name; j++)
                 num++;
             fm_assert(num < int_max<uint8_t>);
@@ -298,7 +298,7 @@ void writer_state::serialize_scenery()
 void writer_state::serialize_strings()
 {
     static_assert(character_name_max <= string_max);
-    auto len = 0_uz;
+    auto len = 0uz;
     for (const auto& [k, v] : string_map)
     {
         fm_assert(k.size()+1 < string_max);
@@ -408,7 +408,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
 
     s << chunk_magic << coord.x << coord.y;
 
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         const tile_proto x = c[i];
         const auto ground = x.ground(), wall_north = x.wall_north(), wall_west = x.wall_west();
@@ -506,7 +506,7 @@ ArrayView<const char> writer_state::serialize_world()
     fm_assert(_world->size() <= int_max<chunksiz>);
 
     const auto len = fm_begin(
-        auto len = 0_uz;
+        auto len = 0uz;
         len += std::size(file_magic)-1;
         len += sizeof(proto_t);
         len += atlas_buf.size();
@@ -519,7 +519,7 @@ ArrayView<const char> writer_state::serialize_world()
         return len;
     );
     file_buf.resize(len);
-    auto bytes_written = 0_uz;
+    auto bytes_written = 0uz;
     auto it = file_buf.begin();
     const auto copy = [&](const auto& in) {
         auto len1 = std::distance(std::cbegin(in), std::cend(in)),

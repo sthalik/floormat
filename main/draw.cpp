@@ -82,7 +82,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 void main_impl::update_collect_threshold()
 {
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    const auto value = std::max(64_uz, (size_t)(maxx-minx+4)*(size_t)(maxy-minx+4));
+    const auto value = std::max(64uz, (size_t)(maxx-minx+4)*(size_t)(maxy-minx+4));
     if (!(GL::Context::current().configurationFlags() & GL::Implementation::ContextConfigurationFlag::QuietLog))
         fm_debug("collect threshold is now %zu", value);
     _world.set_collect_threshold(value);

@@ -16,7 +16,7 @@ template <size_t N, typename T>
 void adl_serializer<Magnum::Math::Vector<N, T>>::to_json(json& j, const vec& val)
 {
     std::array<T, N> array{};
-    for (auto i = 0_uz; i < N; i++)
+    for (auto i = 0uz; i < N; i++)
         array[i] = val[i];
     using nlohmann::to_json;
     to_json(j, array);
@@ -28,7 +28,7 @@ void adl_serializer<Magnum::Math::Vector<N, T>>::from_json(const json& j, vec& v
     std::array<T, N> array{};
     using nlohmann::from_json;
     from_json(j, array);
-    for (auto i = 0_uz; i < N; i++)
+    for (auto i = 0uz; i < N; i++)
         val[i] = array[i];
 }
 

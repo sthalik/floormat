@@ -71,7 +71,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     } last;
     size_t i = 0;
 
-    for (auto k = 0_uz; k < size; k++)
+    for (auto k = 0uz; k < size; k++)
     {
         fm_assert(es[k].e);
         const auto& e = *es[k].e;
@@ -118,7 +118,7 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t 
     const auto& g = atlas.group(r);
     const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
     quad_data array;
-    for (auto i = 0_uz; i < 4; i++)
+    for (auto i = 0uz; i < 4; i++)
         array[i] = { pos[i], texcoords[i], depth };
     _vertex_buffer.setSubData(0, array);
     atlas.texture().bind(0);

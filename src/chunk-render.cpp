@@ -13,7 +13,7 @@ template<size_t N = 1>
 static auto make_index_array(size_t max)
 {
     std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
-    for (auto i = 0_uz; i < max; i++)
+    for (auto i = 0uz; i < max; i++)
         array[i] = tile_atlas::indices(i);
     return array;
 }
@@ -25,7 +25,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     _ground_modified = false;
 
     size_t count = 0;
-    for (auto i = 0_uz; i < TILE_COUNT; i++)
+    for (auto i = 0uz; i < TILE_COUNT; i++)
         if (_ground_atlases[i])
             ground_indexes[count++] = uint8_t(i);
 
@@ -35,7 +35,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
               });
 
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
-    for (auto k = 0_uz; k < count; k++)
+    for (auto k = 0uz; k < count; k++)
     {
         const uint8_t i = ground_indexes[k];
         const auto& atlas = _ground_atlases[i];
@@ -44,7 +44,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         const auto texcoords = atlas->texcoords_for_id(_ground_variants[i]);
         const float depth = tile_shader::depth_value(pos);
         auto& v = vertexes[k];
-        for (auto j = 0_uz; j < 4; j++)
+        for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth };
     }
 
@@ -67,7 +67,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
     _walls_modified = false;
 
     size_t count = 0;
-    for (auto i = 0_uz; i < TILE_COUNT*2; i++)
+    for (auto i = 0uz; i < TILE_COUNT*2; i++)
         if (_wall_atlases[i])
             wall_indexes[count++] = uint16_t(i);
 
@@ -77,7 +77,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
               });
 
     std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
-    for (auto k = 0_uz; k < count; k++)
+    for (auto k = 0uz; k < count; k++)
     {
         const uint16_t i = wall_indexes[k];
         const auto& atlas = _wall_atlases[i];
@@ -88,7 +88,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
         const float depth = tile_shader::depth_value(pos);
         const auto texcoords = atlas->texcoords_for_id(variant);
         auto& v = vertexes[k];
-        for (auto j = 0_uz; j < 4; j++)
+        for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth, };
     }
 
@@ -180,7 +180,7 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
             const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
             scenery_vertexes.emplace_back();
             auto& v = scenery_vertexes.back();
-            for (auto j = 0_uz; j < 4; j++)
+            for (auto j = 0uz; j < 4; j++)
                 v[j] = { quad[j], texcoords[j], depth };
         }
 

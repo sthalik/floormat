@@ -47,7 +47,7 @@ void bitmask_test()
     auto bitmask = anim_atlas::make_bitmask(img);
     fm_assert(img.pixelSize() == 4 && (size_t)img.size().product() >= data_nbytes);
 #ifdef DO_GENERATE
-    for (auto i = 0_uz; i < data_nbytes; i++)
+    for (auto i = 0uz; i < data_nbytes; i++)
     {
         if (i && i % 16 == 0)
             printf("\n");
@@ -59,7 +59,7 @@ void bitmask_test()
     fflush(stdout);
 #endif
     const auto len = std::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
-    for (auto i = 0_uz; i < len; i++)
+    for (auto i = 0uz; i < len; i++)
         if ((unsigned char)bitmask.data()[i] != data_door_close[i])
             fm_abort("wrong value at bit %zu, should be' 0x%02hhx'", i, data_door_close[i]);
 }

@@ -23,7 +23,7 @@ template<typename T> std::pair<T, T> range::convert() const
             using U = typename T::Type;
             constexpr auto Size = T::Size;
             T a, b;
-            for (auto i = 0_uz; i < Size; i++)
+            for (auto i = 0uz; i < Size; i++)
                 a[i] = std::numeric_limits<U>::min(), b[i] = std::numeric_limits<U>::max();
             return {a, b};
         }
@@ -64,14 +64,14 @@ template<typename T> std::pair<T, T> range::convert() const
                 if constexpr(std::is_signed_v<U>)
                 {
                     fm_assert(type == type_int4);
-                    for (auto i = 0_uz; i < Size; i++)
+                    for (auto i = 0uz; i < Size; i++)
                         a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
                 }
                 else
                 {
                     if (type == type_int4)
                     {
-                        for (auto i = 0_uz; i < Size; i++)
+                        for (auto i = 0uz; i < Size; i++)
                         {
                             fm_assert(min.i4[i] >= 0 && max.i4[i] >= 0);
                             a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
@@ -80,7 +80,7 @@ template<typename T> std::pair<T, T> range::convert() const
                     else
                     {
                         fm_assert(type == type_uint4);
-                        for (auto i = 0_uz; i < Size; i++)
+                        for (auto i = 0uz; i < Size; i++)
                             a[i] = U(min.u4[i]), b[i] = U(max.u4[i]);
                     }
                 }
@@ -89,7 +89,7 @@ template<typename T> std::pair<T, T> range::convert() const
             {
                 static_assert(std::is_floating_point_v<U>);
                 fm_assert(type == type_float4);
-                for (auto i = 0_uz; i < Size; i++)
+                for (auto i = 0uz; i < Size; i++)
                     a[i] = U(min.f4[i]), b[i] = U(max.f4[i]);
             }
             return { a, b };
