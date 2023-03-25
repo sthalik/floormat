@@ -112,9 +112,9 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const n
 {
     enum : size_t { x, y, z };
     const auto f = frame(r, i);
-    const auto gx = (float)f.ground[x]*.5f, gy = (float)f.ground[y]*.5f;
-    const auto size = Vector2d(f.size);
-    const auto sx = (float)size[x]*.5f, sy = (float)size[y]*.5f;
+    const auto gx = f.ground[x]*.5f, gy = f.ground[y]*.5f;
+    const auto size = Vector2(f.size);
+    const auto sx = size[x]*.5f, sy = size[y]*.5f;
     const auto bottom_right = tile_shader::unproject({  sx - gx,  sy - gy }),
                top_right    = tile_shader::unproject({  sx - gx,     - gy }),
                bottom_left  = tile_shader::unproject({     - gx,  sy - gy }),

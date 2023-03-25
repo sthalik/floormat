@@ -133,7 +133,7 @@ Vector2 character::depth_offset() const { return {}; }
 Vector2 character::ordinal_offset(Vector2b offset) const
 {
     (void)offset;
-    return {};
+    return Vector2(offset);
 }
 
 bool character::update(size_t i, float dt)

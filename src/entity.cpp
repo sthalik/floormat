@@ -4,6 +4,7 @@
 #include "anim-atlas.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
+#include "shaders/tile.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -54,10 +55,9 @@ float entity::ordinal() const
 float entity::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
 {
     constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
-    constexpr float width = TILE_MAX_DIM+1;
     auto offset_ = ordinal_offset(offset);
-    auto vec = Vector2(xy) + offset_*inv_tile_size + Vector2(z_offset)*inv_tile_size;
-    return vec[1]*width + vec[0];
+    auto vec = Vector2(xy) + offset_*inv_tile_size;
+    return vec[0] + vec[1] + Vector2(z_offset).sum();
 }
 
 struct chunk& entity::chunk() const

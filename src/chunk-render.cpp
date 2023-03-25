@@ -136,13 +136,10 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
 
     const auto size = _entities.size();
 
-    {
-        ensure_scenery_draw_array(array);
-        for (auto i = 0uz; const auto& e : _entities)
-            array[i++] = { e.get(), e->ordinal() };
-        std::sort(array.begin(), array.begin() + size, entity_ord_lessp);
-        //do { Debug{} << "scenery-mesh: sorting" << size; fflush(stdout); } while (false);
-    }
+    ensure_scenery_draw_array(array);
+    for (auto i = 0uz; const auto& e : _entities)
+        array[i++] = { e.get(), e->ordinal() };
+    std::sort(array.begin(), array.begin() + size, entity_ord_lessp);
 
     const auto es = ArrayView<draw_entity>{array, size};
 
@@ -164,7 +161,7 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
 
         for (const auto& [e, ord] : es)
         {
-            if (e->atlas->info().fps > 0)
+            if (e->is_dynamic())
                 continue;
 
             const auto i = scenery_indexes.size();
