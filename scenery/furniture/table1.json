@@ -8,11 +8,11 @@
         }
       ],
       "ground": "960 x 540",
-      "name": "n"
+      "name": "w"
     },
     {
-      "mirror-from": "n",
-      "name": "w"
+      "mirror-from": "w",
+      "name": "n"
     },
     {
       "frames": [

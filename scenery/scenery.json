@@ -53,7 +53,9 @@
   {
     "name": "shelf4",
     "type": "generic",
-    "atlas-name": "furniture/shelf4"
+    "atlas-name": "furniture/shelf4",
+    "bbox-offset": "0 x -4",
+    "bbox-size": "107 x 53"
   },
   {
     "name": "shelf6",
