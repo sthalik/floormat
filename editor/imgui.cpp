@@ -50,22 +50,29 @@ float app::draw_main_menu()
         {
             auto mode = _editor.mode();
             using m = editor_mode;
+            const auto* ed_sc = _editor.current_scenery_editor();
+            const auto* ed_w = _editor.current_tile_editor();
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
                  b_scenery = mode == m::scenery, b_collisions = _render_bboxes,
                  b_clickables = _render_clickables;
+            const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
+                                  mode == editor_mode::walls && ed_w && ed_w->is_anything_selected();
             ImGui::SeparatorText("Mode");
-            if (ImGui::MenuItem("Select",  "1", &b_none))
+            if (ImGui::MenuItem("Select",  "1", b_none))
                 do_key(key_mode_none);
-            if (ImGui::MenuItem("Floor",   "2", &b_floor))
+            if (ImGui::MenuItem("Floor",   "2", b_floor))
                 do_key(key_mode_floor);
-            if (ImGui::MenuItem("Walls",   "3", &b_walls))
+            if (ImGui::MenuItem("Walls",   "3", b_walls))
                 do_key(key_mode_walls);
-            if (ImGui::MenuItem("Scenery", "4", &b_scenery))
+            if (ImGui::MenuItem("Scenery", "4", b_scenery))
                 do_key(key_mode_scenery);
+            ImGui::SeparatorText("Modify");
+            if (ImGui::MenuItem("Rotate", "R", false, b_rotate))
+                do_key(key_rotate_tile);
             ImGui::SeparatorText("View");
-            if (ImGui::MenuItem("Show collisions", "Alt+C", &b_collisions))
+            if (ImGui::MenuItem("Show collisions", "Alt+C", b_collisions))
                 do_key(key_render_collision_boxes);
-            if (ImGui::MenuItem("Show clickables", "Alt+L", &b_clickables))
+            if (ImGui::MenuItem("Show clickables", "Alt+L", b_clickables))
                 do_key(key_render_clickables);
         }
 
