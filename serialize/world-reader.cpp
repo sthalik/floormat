@@ -8,6 +8,7 @@
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/chunk-scenery.hpp"
 
 #include <cstring>
 

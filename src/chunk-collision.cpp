@@ -2,6 +2,7 @@
 #include "tile-atlas.hpp"
 #include "entity.hpp"
 #include "src/RTree-search.hpp"
+#include "src/chunk-scenery.hpp"
 #include <bit>
 #include <Corrade/Containers/PairStl.h>
 

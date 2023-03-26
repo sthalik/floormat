@@ -9,6 +9,7 @@
 #include "chunk.hpp"
 #include "world.hpp"
 #include "loader/loader.hpp"
+#include "tile-iterator.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 

@@ -5,7 +5,8 @@
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
-#include "character.hpp"
+#include "src/character.hpp"
+#include "src/tile-iterator.hpp"
 #include <cmath>
 
 namespace floormat {

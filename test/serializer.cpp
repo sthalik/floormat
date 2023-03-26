@@ -5,6 +5,7 @@
 #include "src/character.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/tile-iterator.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {

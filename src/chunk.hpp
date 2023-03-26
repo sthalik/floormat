@@ -1,19 +1,23 @@
 #pragma once
 #include "object-id.hpp"
+#include "tile-defs.hpp"
 #include "tile.hpp"
-#include "tile-iterator.hpp"
+#include "local-coords.hpp"
 #include "src/RTree.h"
-#include <Corrade/Containers/Array.h>
 #include <type_traits>
 #include <array>
 #include <memory>
 #include <Magnum/GL/Mesh.h>
+
+namespace Corrade::Containers { template<typename T, typename D> class Array; }
 
 namespace floormat {
 
 struct anim_atlas;
 struct entity;
 struct entity_proto;
+class tile_iterator;
+class tile_const_iterator;
 
 enum class collision : unsigned char {
     view, shoot, move,
@@ -78,12 +82,9 @@ struct chunk final
         const ArrayView<const uint16_t> ids;
         const size_t size;
     };
-    struct draw_entity { entity* e; float ord; };
-    struct scenery_mesh_tuple final {
-        GL::Mesh& mesh;
-        ArrayView<draw_entity> array;
-        size_t size;
-    };
+    struct topo_sort_data;
+    struct draw_entity;
+    struct scenery_mesh_tuple;
 
     struct vertex {
         Vector3 position;
@@ -138,6 +139,7 @@ private:
                  _entities_sorted       : 1 = true;
 
     void ensure_scenery_draw_array(Array<draw_entity>& array);
+    static topo_sort_data make_topo_sort_data(const entity& e);
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {

@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "shaders/tile.hpp"
 #include "main/clickable.hpp"
+#include "chunk-scenery.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Texture.h>

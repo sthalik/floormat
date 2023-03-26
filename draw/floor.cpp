@@ -3,6 +3,7 @@
 #include "tile.hpp"
 #include "chunk.hpp"
 #include "tile-atlas.hpp"
+#include "compat/assert.hpp"
 #include <Magnum/GL/MeshView.h>
 
 namespace floormat {
