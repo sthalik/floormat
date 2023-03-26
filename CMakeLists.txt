@@ -151,7 +151,7 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG>:-D_LIBCPP_ENABLE_ASSERTIONS>>)
+    add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG>:_LIBCPP_ENABLE_ASSERTIONS>>)
     add_compile_options(-Wno-reserved-macro-identifier)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-ambiguous-reversed-operator>)
 endif()
