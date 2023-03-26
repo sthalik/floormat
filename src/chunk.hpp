@@ -1,6 +1,5 @@
 #pragma once
 #include "object-id.hpp"
-#include "tile-defs.hpp"
 #include "tile.hpp"
 #include "local-coords.hpp"
 #include "src/RTree.h"

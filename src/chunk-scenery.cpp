@@ -14,15 +14,62 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>&& array) noexcept -> scenery_
     return ensure_scenery_mesh(static_cast<Array<draw_entity>&>(array));
 }
 
-bool operator<(const chunk::topo_sort_data& a, const chunk::topo_sort_data& b)
-{
-
-}
-
 bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
 {
     return min[0] <= o.max[0] && max[0] >= o.min[0] &&
            min[1] <= o.max[1] && max[1] >= o.min[1];
+}
+
+static void topo_dfs(Array<chunk::draw_entity>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
+{
+    using topo_sort_data = chunk::topo_sort_data;
+    auto& data_i = array[i].data;
+    if (data_i.visited)
+        return;
+    data_i.visited = true;
+    for (auto j = 0uz; j < size; j++)
+    {
+        if (i == j)
+            continue;
+        auto& data_j = array[j].data;
+        if (data_j.visited)
+            continue;
+        if (data_j.mode == topo_sort_data::mode_static && data_i.mode == topo_sort_data::mode_character)
+        {
+            if (!data_i.intersects(data_j))
+                continue;
+            const topo_sort_data &c = data_i, &s = data_j;
+            auto off = c.center.x() - s.center.x();
+            auto y = s.center.y() + s.slope * off;
+            if (y >= c.center.y())
+                topo_dfs(array, output, j, size);
+        }
+        else if (data_i.mode == topo_sort_data::mode_static && data_j.mode == topo_sort_data::mode_character)
+        {
+            if (!data_i.intersects(data_j))
+                continue;
+            const topo_sort_data &c = data_j, &s = data_i;
+            auto off = c.center.x() - s.center.x();
+            auto y = s.center.y() + s.slope * off;
+            if (y < c.center.y())
+                topo_dfs(array, output, j, size);
+        }
+        else if (data_i.ord < data_j.ord)
+            topo_dfs(array, output, j, size);
+    }
+    fm_assert(output < size);
+    array[output--].e = data_i.in;
+    //array[output++].e =
+}
+
+static void topological_sort(Array<chunk::draw_entity>& array, size_t size)
+{
+    size_t output = size-1;
+
+    for (auto i = 0uz; i < size; i++)
+        if (!array[i].data.visited)
+            topo_dfs(array, output, i, size);
+    fm_assert(output == (size_t)-1);
 }
 
 auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
@@ -31,12 +78,13 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
     const auto& g = a.group(e.r);
     const auto& f = a.frame(e.r, e.frame);
     const auto world_pos = TILE_SIZE20 * Vector3(e.coord.local()) + Vector3(g.offset) + Vector3(Vector2(e.offset), 0);
-    const auto px_start = tile_shader::project(world_pos) - Vector2(f.ground), px_end = px_start + Vector2(f.size);
+    const auto pos = tile_shader::project(world_pos);
+    const auto px_start = pos - Vector2(f.ground), px_end = px_start + Vector2(f.size);
     topo_sort_data data = {
+        .in = &e,
         .min = Vector2i(px_start), .max = Vector2i(px_end),
-        .center = data.min + (data.max - data.min)/2,
+        .center = Vector2i(pos),
         .ord = e.ordinal(),
-        .is_character = false,
     };
     if (e.type() == entity_type::scenery && !e.is_dynamic())
     {
@@ -48,9 +96,6 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
         using enum rotation;
         case N:
         case S:
-            start = Vector2(bb_min_[0], bb_min_[1]);
-            end = Vector2(bb_max_[0], bb_max_[1]);
-            break;
         case W:
         case E:
             start = Vector2(bb_min_[0], bb_max_[1]);
@@ -63,19 +108,18 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
         const auto bb_max = tile_shader::project(Vector3(end, 0));
         const auto bb_len = std::fabs(bb_max[0] - bb_min[0]);
         if (bb_len >= 1)
+        {
             data.slope = (bb_max[1]-bb_min[1])/bb_len;
+            data.mode = topo_sort_data::mode_static;
+        }
     }
     else if (e.type() == entity_type::character)
-        data.is_character = true;
+        data.mode = topo_sort_data::mode_character;
     return data;
 }
 
 auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_mesh_tuple
 {
-    constexpr auto entity_ord_lessp = [](const auto& a, const auto& b) {
-      return a.ord < b.ord;
-    };
-
     fm_assert(_entities_sorted);
 
     const auto size = _entities.size();
@@ -83,7 +127,7 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
     ensure_scenery_draw_array(array);
     for (auto i = 0uz; const auto& e : _entities)
         array[i++] = { e.get(), e->ordinal(), make_topo_sort_data(*e) };
-    std::sort(array.begin(), array.begin() + size, entity_ord_lessp);
+    topological_sort(array, size);
 
     const auto es = ArrayView<draw_entity>{array, size};
 
