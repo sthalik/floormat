@@ -41,7 +41,7 @@ private:
     };
     using quad_data = std::array<vertex_data, 4>;
 
-    Array<chunk::draw_entity> _draw_array;
+    Array<chunk::entity_draw_order> _draw_array;
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{make_index_array()};

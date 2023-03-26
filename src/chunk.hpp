@@ -82,7 +82,7 @@ struct chunk final
         const size_t size;
     };
     struct topo_sort_data;
-    struct draw_entity;
+    struct entity_draw_order;
     struct scenery_mesh_tuple;
 
     struct vertex {
@@ -97,8 +97,8 @@ struct chunk final
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(size_t i) const noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh(Array<draw_entity>&& array) noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh(Array<draw_entity>& array) noexcept;
+    scenery_mesh_tuple ensure_scenery_mesh(Array<entity_draw_order>&& array) noexcept;
+    scenery_mesh_tuple ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept;
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
@@ -137,7 +137,7 @@ private:
                  _teardown              : 1 = false,
                  _entities_sorted       : 1 = true;
 
-    void ensure_scenery_draw_array(Array<draw_entity>& array);
+    void ensure_scenery_draw_array(Array<entity_draw_order>& array);
     static topo_sort_data make_topo_sort_data(const entity& e);
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)

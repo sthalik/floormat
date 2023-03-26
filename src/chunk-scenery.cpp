@@ -9,9 +9,9 @@
 
 namespace floormat {
 
-auto chunk::ensure_scenery_mesh(Array<draw_entity>&& array) noexcept -> scenery_mesh_tuple
+auto chunk::ensure_scenery_mesh(Array<entity_draw_order>&& array) noexcept -> scenery_mesh_tuple
 {
-    return ensure_scenery_mesh(static_cast<Array<draw_entity>&>(array));
+    return ensure_scenery_mesh(static_cast<Array<entity_draw_order>&>(array));
 }
 
 bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
@@ -20,7 +20,7 @@ bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
            min[1] <= o.max[1] && max[1] >= o.min[1];
 }
 
-static void topo_dfs(Array<chunk::draw_entity>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
+static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
 {
     using topo_sort_data = chunk::topo_sort_data;
     auto& data_i = array[i].data;
@@ -62,7 +62,7 @@ static void topo_dfs(Array<chunk::draw_entity>& array, size_t& output, size_t i,
     //array[output++].e =
 }
 
-static void topological_sort(Array<chunk::draw_entity>& array, size_t size)
+static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size)
 {
     size_t output = size-1;
 
@@ -118,7 +118,7 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
     return data;
 }
 
-auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_mesh_tuple
+auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> scenery_mesh_tuple
 {
     fm_assert(_entities_sorted);
 
@@ -129,7 +129,7 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
         array[i++] = { e.get(), e->ordinal(), make_topo_sort_data(*e) };
     topological_sort(array, size);
 
-    const auto es = ArrayView<draw_entity>{array, size};
+    const auto es = ArrayView<entity_draw_order>{array, size};
 
     if (_scenery_modified)
     {
@@ -181,7 +181,7 @@ auto chunk::ensure_scenery_mesh(Array<draw_entity>& array) noexcept -> scenery_m
     return { scenery_mesh, es, size };
 }
 
-void chunk::ensure_scenery_draw_array(Array<draw_entity>& array)
+void chunk::ensure_scenery_draw_array(Array<entity_draw_order>& array)
 {
     const size_t len_ = _entities.size();
 
@@ -195,7 +195,7 @@ void chunk::ensure_scenery_draw_array(Array<draw_entity>& array)
     else
         len = std::bit_ceil(len_);
 
-    array = Array<draw_entity>{len};
+    array = Array<entity_draw_order>{len};
 }
 
 } // namespace floormat

@@ -159,7 +159,7 @@ StringView reader_state::lookup_string(uint32_t idx)
 
 void reader_state::read_chunks(reader_t& s)
 {
-    Array<typename chunk::draw_entity> array;
+    Array<typename chunk::entity_draw_order> array;
     const auto N = s.read<chunksiz>();
 #ifndef FM_NO_DEBUG
     [[maybe_unused]] size_t nbytes_read = 0;

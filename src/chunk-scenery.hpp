@@ -17,7 +17,7 @@ struct chunk::topo_sort_data
 
     bool intersects(const topo_sort_data& other) const;
 };
-struct chunk::draw_entity
+struct chunk::entity_draw_order
 {
     const entity *e;
     float ord;
@@ -25,7 +25,7 @@ struct chunk::draw_entity
 };
 struct chunk::scenery_mesh_tuple {
     GL::Mesh& mesh;
-    ArrayView<draw_entity> array;
+    ArrayView<entity_draw_order> array;
     size_t size;
 };
 
