@@ -59,7 +59,6 @@ static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, siz
     }
     fm_assert(output < size);
     array[output--].e = data_i.in;
-    //array[output++].e =
 }
 
 static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size)
@@ -77,9 +76,9 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
     const auto& a = *e.atlas;
     const auto& g = a.group(e.r);
     const auto& f = a.frame(e.r, e.frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(e.coord.local()) + Vector3(g.offset) + Vector3(Vector2(e.offset), 0);
+    const auto world_pos = TILE_SIZE20 * Vector3(e.coord.local()) + Vector3(g.offset) + Vector3(Vector2(e.offset) + Vector2(e.bbox_offset), 0);
     const auto pos = tile_shader::project(world_pos);
-    const auto px_start = pos - Vector2(f.ground), px_end = px_start + Vector2(f.size);
+    const auto px_start = pos - Vector2(e.bbox_offset) - Vector2(f.ground), px_end = px_start + Vector2(f.size);
     topo_sort_data data = {
         .in = &e,
         .min = Vector2i(px_start), .max = Vector2i(px_end),
@@ -88,29 +87,28 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
     };
     if (e.type() == entity_type::scenery && !e.is_dynamic())
     {
-        const auto bb_min_ = world_pos - Vector3(Vector2(e.bbox_size/2) + Vector2(e.bbox_offset), 0);
+        const auto bb_min_ = world_pos - Vector3(Vector2(e.bbox_size/2), 0);
         const auto bb_max_ = bb_min_ + Vector3(Vector2(e.bbox_size), 0);
-        Vector2 start, end;
         switch (e.r)
         {
         using enum rotation;
+        default:
+            break;
         case N:
         case S:
         case W:
         case E:
-            start = Vector2(bb_min_[0], bb_max_[1]);
-            end = Vector2(bb_max_[0], bb_min_[1]);
+            const auto start = Vector2(bb_min_[0], bb_max_[1]);
+            const auto end = Vector2(bb_max_[0], bb_min_[1]);
+            const auto bb_min = tile_shader::project(Vector3(start, 0));
+            const auto bb_max = tile_shader::project(Vector3(end, 0));
+            const auto bb_len = std::fabs(bb_max[0] - bb_min[0]);
+            if (bb_len >= 1)
+            {
+                data.slope = (bb_max[1]-bb_min[1])/bb_len;
+                data.mode = topo_sort_data::mode_static;
+            }
             break;
-        default:
-            break;
-        }
-        const auto bb_min = tile_shader::project(Vector3(start, 0));
-        const auto bb_max = tile_shader::project(Vector3(end, 0));
-        const auto bb_len = std::fabs(bb_max[0] - bb_min[0]);
-        if (bb_len >= 1)
-        {
-            data.slope = (bb_max[1]-bb_min[1])/bb_len;
-            data.mode = topo_sort_data::mode_static;
         }
     }
     else if (e.type() == entity_type::character)
