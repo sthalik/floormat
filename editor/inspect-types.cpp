@@ -23,6 +23,11 @@ struct entity_accessors<scenery> {
     {
         using entity = Entity<scenery>;
         return std::tuple{
+            entity::type<uint64_t>::field{"id"_s,
+                [](const scenery& x) { return x.id; },
+                [](scenery&, uint64_t) {},
+                constantly(field_status::readonly),
+            },
             entity::type<StringView>::field{"atlas"_s,
                 [](const scenery& x) { return loader.strip_prefix(x.atlas->name()); },
                 [](scenery&, StringView) {},

@@ -34,6 +34,8 @@ template<> struct IGDT_<uint16_t> : std::integral_constant<int, ImGuiDataType_U1
 template<> struct IGDT_<int16_t> : std::integral_constant<int, ImGuiDataType_S16> {};
 template<> struct IGDT_<uint32_t> : std::integral_constant<int, ImGuiDataType_U32> {};
 template<> struct IGDT_<int32_t> : std::integral_constant<int, ImGuiDataType_S32> {};
+template<> struct IGDT_<uint64_t> : std::integral_constant<int, ImGuiDataType_U64> {};
+template<> struct IGDT_<int64_t> : std::integral_constant<int, ImGuiDataType_S64> {};
 template<> struct IGDT_<float> : std::integral_constant<int, ImGuiDataType_Float> {};
 template<typename T> constexpr auto IGDT = IGDT_<T>::value;
 
@@ -203,6 +205,8 @@ MAKE_SPEC_REPRS2(uint16_t)
 MAKE_SPEC_REPRS2(int16_t)
 MAKE_SPEC_REPRS2(uint32_t)
 MAKE_SPEC_REPRS2(int32_t)
+MAKE_SPEC_REPRS2(uint64_t)
+MAKE_SPEC_REPRS2(int64_t)
 MAKE_SPEC_REPRS2(float)
 MAKE_SPEC(bool, field_repr::input)
 MAKE_SPEC(String, field_repr::input)
