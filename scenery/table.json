@@ -1,31 +1,25 @@
 {
-	"fps": 24,
-	"groups": [
-		{
-			"frames": [
-				{
-					"ground": "90 x 88",
-					"size": "180 x 164"
-				}
-			],
-			"ground": "959 x 712",
-			"name": "n"
-		},
-		{
-			"mirror-from": "n",
-			"name": "w",
-			"offset": [
-				0,
-				0,
-				0
-			]
-		}
-	],
-	"nframes": 1,
-	"object_name": "table",
-	"pixel_size": "180 x 164",
-	"scale": [
-		"width",
-		180
-	]
+  "groups": [
+    {
+      "frames": [
+        {
+          "ground": "90 x 88",
+          "size": "180 x 164"
+        }
+      ],
+      "ground": "959 x 712",
+      "name": "n"
+    },
+    {
+      "mirror-from": "n",
+      "name": "w"
+    }
+  ],
+  "nframes": 1,
+  "object_name": "table",
+  "pixel_size": "180 x 164",
+  "scale": [
+    "width",
+    180
+  ]
 }

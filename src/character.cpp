@@ -212,7 +212,7 @@ character::character(object_id id, struct chunk& c, const character_proto& proto
     if (!atlas)
         atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
     fm_soft_assert(atlas->check_rotation(r));
-    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
+    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/4), pass);
 }
 
 } // namespace floormat
