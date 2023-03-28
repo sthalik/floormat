@@ -74,9 +74,8 @@ static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size
 auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
 {
     const auto& a = *e.atlas;
-    const auto& g = a.group(e.r);
     const auto& f = a.frame(e.r, e.frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(e.coord.local()) + Vector3(g.offset) + Vector3(Vector2(e.offset) + Vector2(e.bbox_offset), 0);
+    const auto world_pos = TILE_SIZE20 * Vector3(e.coord.local()) + Vector3(Vector2(e.offset) + Vector2(e.bbox_offset), 0);
     const auto pos = tile_shader::project(world_pos);
     const auto px_start = pos - Vector2(e.bbox_offset) - Vector2(f.ground), px_end = px_start + Vector2(f.size);
     topo_sort_data data = {
@@ -98,12 +97,10 @@ auto chunk::make_topo_sort_data(const entity& e) -> topo_sort_data
         case S:
         case W:
         case E:
-            const auto start = Vector2(bb_min_[0], bb_max_[1]);
-            const auto end = Vector2(bb_max_[0], bb_min_[1]);
-            const auto bb_min = tile_shader::project(Vector3(start, 0));
-            const auto bb_max = tile_shader::project(Vector3(end, 0));
-            const auto bb_len = std::fabs(bb_max[0] - bb_min[0]);
-            if (bb_len >= 1)
+            const auto bb_min = tile_shader::project(Vector3(Vector2(bb_min_[0], bb_max_[1]), 0));
+            const auto bb_max = tile_shader::project(Vector3(Vector2(bb_max_[0], bb_min_[1]), 0));
+            const auto bb_len = bb_max[0] - bb_min[0];
+            if (bb_len >= 1 && a.info().pixel_size.x() > iTILE_SIZE[0])
             {
                 data.slope = (bb_max[1]-bb_min[1])/bb_len;
                 data.mode = topo_sort_data::mode_static;
