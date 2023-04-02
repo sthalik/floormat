@@ -108,6 +108,7 @@ function(fm-userconfig-src)
         -Wno-reserved-identifier
         -Wno-zero-length-array
         -Wno-comma
+        -Wno-unsafe-buffer-usage
     )
     add_compile_options(
         -Werror
