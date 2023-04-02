@@ -169,8 +169,8 @@ void app::do_popup_menu()
         const auto i = sc->index();
         if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))
             sc->activate(i);
-        if (bool b_ins = sc && !check_inspector_exists(_popup_target);
-            ImGui::MenuItem("Inspect", nullptr, false, b_ins))
+        if (bool b_ins = !check_inspector_exists(_popup_target);
+            ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
         ImGui::SeparatorText("Modify");
         if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
