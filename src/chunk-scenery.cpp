@@ -41,7 +41,7 @@ static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, siz
             const topo_sort_data &c = data_i, &s = data_j;
             auto off = c.center.x() - s.center.x();
             auto y = s.center.y() + s.slope * off;
-            if (y >= c.center.y())
+            if (y < c.center.y())
                 topo_dfs(array, output, j, size);
         }
         else if (data_i.mode == topo_sort_data::mode_static && data_j.mode == topo_sort_data::mode_character)
@@ -51,24 +51,24 @@ static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, siz
             const topo_sort_data &c = data_j, &s = data_i;
             auto off = c.center.x() - s.center.x();
             auto y = s.center.y() + s.slope * off;
-            if (y < c.center.y())
+            if (y >= c.center.y())
                 topo_dfs(array, output, j, size);
         }
-        else if (data_i.ord < data_j.ord)
+        else if (data_i.ord > data_j.ord)
             topo_dfs(array, output, j, size);
     }
     fm_assert(output < size);
-    array[output--].e = data_i.in;
+    array[output++].e = data_i.in;
 }
 
 static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size)
 {
-    size_t output = size-1;
+    size_t output = 0;
 
     for (auto i = 0uz; i < size; i++)
         if (!array[i].data.visited)
             topo_dfs(array, output, i, size);
-    fm_assert(output == (size_t)-1);
+    fm_assert(output == size);
 }
 
 auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
@@ -124,6 +124,7 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
     ensure_scenery_draw_array(array);
     for (auto i = 0uz; const auto& e : _entities)
         array[i++] = { e.get(), e->ordinal(), make_topo_sort_data(*e) };
+    std::sort(array.begin(), array.begin() + size, [](const auto& a, const auto& b) { return a.ord < b.ord; });
     topological_sort(array, size);
 
     const auto es = ArrayView<entity_draw_order>{array, size};
