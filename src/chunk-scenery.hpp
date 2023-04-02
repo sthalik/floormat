@@ -9,9 +9,10 @@ struct chunk::topo_sort_data
 {
     enum m : uint8_t { mode_none, mode_static, mode_character,  };
 
-    const entity* in = nullptr;
+    entity* in = nullptr;
     Vector2i min, max, center;
     float slope = 0, ord;
+    Vector2s bb_min = {}, bb_max = {};
     m mode : 2 = mode_none;
     uint8_t visited : 1 = false;
 
@@ -19,7 +20,7 @@ struct chunk::topo_sort_data
 };
 struct chunk::entity_draw_order
 {
-    const entity *e;
+    entity *e;
     float ord;
     topo_sort_data data;
 };

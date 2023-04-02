@@ -26,31 +26,41 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
     }};
 }
 
-void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size, const std::shared_ptr<entity>& s, std::vector<clickable>& list)
+void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
+                              entity* s_, const chunk::topo_sort_data& data,
+                              std::vector<clickable>& list)
 {
-    const auto& a = *s->atlas;
-    const auto& g = a.group(s->r);
-    const auto& f = a.frame(s->r, s->frame);
-    const auto world_pos = TILE_SIZE20 * Vector3(s->coord.local()) + Vector3(g.offset) + Vector3(Vector2(s->offset), 0);
+    const auto& s = *s_;
+    const auto& a = *s.atlas;
+    const auto& g = a.group(s.r);
+    const auto& f = a.frame(s.r, s.frame);
+    const auto world_pos = TILE_SIZE20 * Vector3(s.coord.local()) + Vector3(g.offset) + Vector3(Vector2(s.offset), 0);
     const Vector2i offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                           + shader.project(world_pos) - Vector2(f.ground));
     if (offset < win_size && offset + Vector2i(f.size) >= Vector2i())
     {
         clickable item = {
-            { f.offset, f.offset + f.size }, { offset, offset + Vector2i(f.size) },
-            a.bitmask(), &*s, s->ordinal(),
-            a.info().pixel_size[0],
-            !g.mirror_from.isEmpty(),
+            .src = { f.offset, f.offset + f.size },
+            .dest = { offset, offset + Vector2i(f.size) },
+            .bitmask = a.bitmask(),
+            .e = s_,
+            .depth = s.ordinal(),
+            .slope = data.slope,
+            .stride = a.info().pixel_size[0],
+            .mirrored = !g.mirror_from.isEmpty(),
         };
         list.push_back(item);
     }
 }
 
-void anim_mesh::draw(tile_shader& shader, chunk& c)
+void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list)
 {
     constexpr auto quad_index_count = 6;
 
     auto [mesh_, es, size] = c.ensure_scenery_mesh(_draw_array);
+    for (const auto& x : es)
+        add_clickable(shader, win_size, x.data.in, x.data, list);
+
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] size_t draw_count = 0;
     const auto max_index = uint32_t(size*quad_index_count - 1);
@@ -75,7 +85,7 @@ void anim_mesh::draw(tile_shader& shader, chunk& c)
     for (auto k = 0uz; k < size; k++)
     {
         fm_assert(es[k].e);
-        const auto& e = *es[k].e;
+        auto& e = *es[k].e;
         auto& atlas = *e.atlas;
         if (last && &atlas != last.atlas)
         {

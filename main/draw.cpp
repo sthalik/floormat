@@ -134,11 +134,7 @@ void main_impl::draw_world() noexcept
                 continue;
             const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
-            {
-                _anim_mesh.draw(_shader, c);
-                for (const auto& e : c.entities())
-                    _anim_mesh.add_clickable(_shader, window_size(), e, _clickable_scenery);
-            }
+                _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
         }
 
     GL::Renderer::setDepthMask(true);

@@ -2,6 +2,7 @@
 #include "src/global-coords.hpp"
 #include <memory>
 #include <Corrade/Containers/BitArrayView.h>
+#include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Range.h>
 
 namespace floormat {
@@ -13,7 +14,7 @@ struct clickable final {
     Math::Range2D<int> dest;
     BitArrayView bitmask;
     entity* e;
-    float depth;
+    float depth, slope;
     uint32_t stride;
     bool mirrored;
 };

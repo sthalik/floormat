@@ -138,7 +138,7 @@ private:
                  _entities_sorted       : 1 = true;
 
     void ensure_scenery_draw_array(Array<entity_draw_order>& array);
-    static topo_sort_data make_topo_sort_data(const entity& e);
+    static topo_sort_data make_topo_sort_data(entity& e);
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
