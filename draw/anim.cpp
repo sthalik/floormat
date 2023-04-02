@@ -46,6 +46,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
             .e = s_,
             .depth = s.ordinal(),
             .slope = data.slope,
+            .bb_min = data.bb_min, .bb_max = data.bb_max,
             .stride = a.info().pixel_size[0],
             .mirrored = !g.mirror_from.isEmpty(),
         };

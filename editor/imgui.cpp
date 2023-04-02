@@ -115,22 +115,18 @@ void app::draw_clickables()
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     const auto color = ImGui::ColorConvertFloat4ToU32({0, .8f, .8f, .95f});
     constexpr float thickness = 2.5f;
-    const auto& shader = M->shader();
-    const auto win_size = M->window_size();
 
     for (const auto& x : M->clickable_scenery())
     {
         auto dest = Math::Range2D<float>(x.dest);
-        auto min = dest.min(), max = dest.max();
+        auto min = dest.min(), max = dest.max(), center = dest.center();
         draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
                      color, 0, ImDrawFlags_None, thickness);
         if (x.slope != 0.f)
         {
             const auto& e = *x.e;
-            const auto bb_min_ = -tile_shader::project(Vector3(Vector2(e.bbox_size/2), 0));
-            const auto bb_max_ = bb_min_ + tile_shader::project(Vector3(Vector2(e.bbox_size), 0));
-            const auto bb_min = min + tile_shader::project(Vector3(bb_min_, 0));
-            const auto bb_max = min + tile_shader::project(Vector3(bb_max_, 0));
+            const auto bb_min = Vector2(min[0] + x.bb_min[0], min[1] + x.bb_min[1]);
+            const auto bb_max = Vector2(min[0] + x.bb_max[0], min[1] + x.bb_max[1]);
             draw.AddLine({ bb_min[0], bb_min[1] }, { bb_max[0], bb_max[1] }, color, thickness);
         }
     }

@@ -104,8 +104,8 @@ auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
             {
                 data.slope = (bb_max[1]-bb_min[1])/bb_len;
                 data.mode = topo_sort_data::mode_static;
-                data.bb_min = Vector2s(bb_min);
-                data.bb_max = Vector2s(bb_max);
+                data.bb_min = Vector2s(bb_min - px_start);
+                data.bb_max = Vector2s(bb_max - px_start);
             }
             break;
         }

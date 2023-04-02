@@ -15,6 +15,7 @@ struct clickable final {
     BitArrayView bitmask;
     entity* e;
     float depth, slope;
+    Vector2s bb_min, bb_max;
     uint32_t stride;
     bool mirrored;
 };
