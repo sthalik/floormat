@@ -69,7 +69,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
         if (_wall_atlases[i])
             wall_indexes[count++] = uint16_t(i);
 
-    std::sort(wall_indexes.begin(), wall_indexes.begin() + count,
+    std::sort(wall_indexes.data(), wall_indexes.data() + (ptrdiff_t)count,
               [this](uint16_t a, uint16_t b) {
                   return _wall_atlases[a] < _wall_atlases[b];
               });

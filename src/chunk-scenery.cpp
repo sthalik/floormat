@@ -100,7 +100,7 @@ auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
             const auto bb_min = tile_shader::project(Vector3(Vector2(bb_min_[0], bb_max_[1]), 0));
             const auto bb_max = tile_shader::project(Vector3(Vector2(bb_max_[0], bb_min_[1]), 0));
             const auto bb_len = bb_max[0] - bb_min[0];
-            if (bb_len >= 1 && f.size[0] > iTILE_SIZE[0])
+            if (bb_len >= 1 && f.size[0] > uiTILE_SIZE[0])
             {
                 data.slope = (bb_max[1]-bb_min[1])/bb_len;
                 data.mode = topo_sort_data::mode_static;

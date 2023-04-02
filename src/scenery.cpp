@@ -77,8 +77,8 @@ Vector2 scenery::ordinal_offset(Vector2b offset) const
 {
     if (sc_type == scenery_type::door)
     {
-        constexpr auto off_closed_ = Vector2b(0, -iTILE_SIZE[1]/2+2);
-        constexpr auto off_opened_ = Vector2b(-iTILE_SIZE[0]+2, -iTILE_SIZE[1]/2+2);
+        constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
+        constexpr auto off_opened_ = Vector2b(-bTILE_SIZE[0]+2, -bTILE_SIZE[1]/2+2);
         const auto off_closed = rotate_point(off_closed_, rotation::N, r);
         const auto off_opened = rotate_point(off_opened_, rotation::N, r);
         const auto vec = frame == atlas->info().nframes-1 ? off_closed : off_opened;
@@ -93,7 +93,7 @@ Vector2 scenery::depth_offset() const
     Vector2 ret;
     if (sc_type == scenery_type::door)
     {
-        constexpr auto door_offset = Vector2b(-iTILE_SIZE[0], 0);
+        constexpr auto door_offset = Vector2b(-bTILE_SIZE[0], 0);
         const auto offset = rotate_point(door_offset, rotation::N, r);
         ret += Vector2(offset);
     }

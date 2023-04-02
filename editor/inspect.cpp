@@ -67,8 +67,8 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         fm_assert(accessor.check_field_type<T>());
     fm_assert(!list.isEmpty() == (repr == field_repr::cbx));
 
-    bool should_disable;
     char buf[128];
+    bool should_disable = false;
 
     switch (accessor.is_enabled(datum))
     {
