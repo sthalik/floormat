@@ -152,6 +152,7 @@ private:
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
+    GL::Mesh make_wall_mesh(size_t count);
 };
 
 } // namespace floormat

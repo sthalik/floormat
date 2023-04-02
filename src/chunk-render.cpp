@@ -58,23 +58,11 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     return { ground_mesh, ground_indexes, count };
 }
 
-auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
+fm_noinline
+GL::Mesh chunk::make_wall_mesh(size_t count)
 {
-    if (!_walls_modified)
-        return { wall_mesh, wall_indexes, size_t(wall_mesh.count()/6) };
-    _walls_modified = false;
-
-    size_t count = 0;
-    for (auto i = 0uz; i < TILE_COUNT*2; i++)
-        if (_wall_atlases[i])
-            wall_indexes[count++] = uint16_t(i);
-
-    std::sort(wall_indexes.data(), wall_indexes.data() + (ptrdiff_t)count,
-              [this](uint16_t a, uint16_t b) {
-                  return _wall_atlases[a] < _wall_atlases[b];
-              });
-
-    std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
+    //std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
+    vertex vertexes[TILE_COUNT*2][4];
     for (auto k = 0uz; k < count; k++)
     {
         const uint16_t i = wall_indexes[k];
@@ -91,19 +79,34 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
     }
 
     auto indexes = make_index_array<2>(count);
-    const auto vertex_view = ArrayView{vertexes.data(), count};
+    const auto vertex_view = ArrayView{&vertexes[0], count};
     const auto vert_index_view = ArrayView{indexes.data(), count};
 
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(int32_t(6 * count));
-    wall_mesh = Utility::move(mesh);
-    return { wall_mesh, wall_indexes, count };
+    return mesh;
 }
 
+auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
+{
+    if (!_walls_modified)
+        return { wall_mesh, wall_indexes, size_t(wall_mesh.count()/6) };
+    _walls_modified = false;
 
+    size_t count = 0;
+    for (auto i = 0uz; i < TILE_COUNT*2; i++)
+        if (_wall_atlases[i])
+            wall_indexes[count++] = uint16_t(i);
 
+    std::sort(wall_indexes.data(), wall_indexes.data() + (ptrdiff_t)count,
+              [this](uint16_t a, uint16_t b) {
+                  return _wall_atlases[a] < _wall_atlases[b];
+              });
 
+    wall_mesh = make_wall_mesh(count);
+    return { wall_mesh, wall_indexes, count };
+}
 
 } // namespace floormat
