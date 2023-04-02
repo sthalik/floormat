@@ -38,7 +38,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size, con
     {
         clickable item = {
             { f.offset, f.offset + f.size }, { offset, offset + Vector2i(f.size) },
-            a.bitmask(), s, s->ordinal(),
+            a.bitmask(), &*s, s->ordinal(),
             a.info().pixel_size[0],
             !g.mirror_from.isEmpty(),
         };

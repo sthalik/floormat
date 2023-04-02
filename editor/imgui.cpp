@@ -178,7 +178,9 @@ void app::kill_popups(bool hard)
 {
     const bool imgui = _imgui.context() != nullptr;
 
+    _pending_popup = false;
     _popup_target = {};
+
     if (imgui)
         ImGui::CloseCurrentPopup();
 

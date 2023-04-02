@@ -146,7 +146,6 @@ void app::draw_collision_boxes()
 
 void app::draw()
 {
-    //draw_character();
     if (_render_bboxes)
         draw_collision_boxes();
     if (_editor.current_tile_editor() || _editor.current_scenery_editor())
