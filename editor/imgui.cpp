@@ -124,8 +124,7 @@ void app::draw_clickables()
                      color, 0, ImDrawFlags_None, thickness);
         if (x.slope != 0.f)
         {
-            const auto bb_min = Vector2(min[0] + x.bb_min[0], min[1] + x.bb_min[1]);
-            const auto bb_max = Vector2(min[0] + x.bb_max[0], min[1] + x.bb_max[1]);
+            const auto bb_min = min + Vector2(x.bb_min), bb_max = min + Vector2(x.bb_max);
             draw.AddLine({ bb_min[0], bb_min[1] }, { bb_max[0], bb_max[1] }, color, thickness);
         }
     }
