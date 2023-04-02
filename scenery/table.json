@@ -8,11 +8,21 @@
         }
       ],
       "ground": "959 x 712",
-      "name": "n"
+      "name": "n",
+      "offset": [
+        -20,
+        -20,
+        0
+      ]
     },
     {
       "mirror-from": "n",
-      "name": "w"
+      "name": "w",
+      "offset": [
+        -20,
+        -20,
+        0
+      ]
     }
   ],
   "nframes": 1,

@@ -119,12 +119,11 @@ void app::draw_clickables()
     for (const auto& x : M->clickable_scenery())
     {
         auto dest = Math::Range2D<float>(x.dest);
-        auto min = dest.min(), max = dest.max(), center = dest.center();
+        auto min = dest.min(), max = dest.max();
         draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
                      color, 0, ImDrawFlags_None, thickness);
         if (x.slope != 0.f)
         {
-            const auto& e = *x.e;
             const auto bb_min = Vector2(min[0] + x.bb_min[0], min[1] + x.bb_min[1]);
             const auto bb_max = Vector2(min[0] + x.bb_max[0], min[1] + x.bb_max[1]);
             draw.AddLine({ bb_min[0], bb_min[1] }, { bb_max[0], bb_max[1] }, color, thickness);

@@ -1,0 +1,23 @@
+{
+	"actionframe": 0,
+	"anim_name": "",
+	"fps": 0,
+	"groups": [
+		{
+			"frames": [],
+			"ground": "959 x 712",
+                        "offset": [-20, -20, 0],
+			"name": "n"
+		},
+		{
+			"name": "w",
+                        "offset": [-20, -20, 0],
+                        "mirror-from": "n"
+		}
+	],
+	"height": 0,
+	"nframes": 1,
+	"object_name": "table",
+	"pixel_size": "0 x 0",
+	"scale": ["width", 180]
+}
