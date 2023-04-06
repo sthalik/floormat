@@ -30,20 +30,27 @@ constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
 struct global_coords final {
     using u0 = std::integral_constant<uint32_t, (1<<15)>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
-    uint32_t x = u0::value<<4, y = u0::value<<4;
+    using z0 = std::integral_constant<int32_t, (1 << 3)>;
+    using z_mask = std::integral_constant<uint32_t, (1u << 4) - 1u << 20>;
+    uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 
     constexpr global_coords() noexcept = default;
-    constexpr global_coords(chunk_coords c, local_coords xy) :
-        x{ uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) },
+    constexpr global_coords(chunk_coords c, local_coords xy, int8_t z = 0) :
+        x{
+            uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) |
+            uint32_t(((int)z + z0::value) & 0x0f) << 20
+        },
         y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {}
     constexpr global_coords(uint32_t x, uint32_t y) noexcept : x{x}, y{y} {}
-    constexpr global_coords(int32_t x, int32_t y) noexcept :
-          x{uint32_t(x + (s0::value<<4))}, y{uint32_t(y + (s0::value<<4))}
+    constexpr global_coords(int32_t x, int32_t y, int8_t z = 0) noexcept :
+          x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
+          y{uint32_t(y + (s0::value<<4))}
     {}
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
+    constexpr int8_t z() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
     constexpr Vector3i to_signed3() const noexcept;
@@ -63,12 +70,17 @@ constexpr local_coords global_coords::local() const noexcept
 
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
-    return { int16_t(int32_t((x>>4) - u0::value)), int16_t(int32_t((y>>4) - u0::value)), };
+    return { int16_t(int32_t(((x & ~z_mask::value)>>4) - u0::value)), int16_t(int32_t((y>>4) - u0::value)), };
+}
+
+constexpr int8_t global_coords::z() const noexcept
+{
+    return ((x >> 20) & 0x0f) - z0::value;
 }
 
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
-    return { int32_t(x - (s0::value<<4)), int32_t(y - (s0::value<<4)), };
+    return { int32_t((x & ~z_mask::value) - (s0::value<<4)), int32_t(y - (s0::value<<4)), };
 }
 
 constexpr Vector3i global_coords::to_signed3() const noexcept
