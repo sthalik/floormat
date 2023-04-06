@@ -31,7 +31,7 @@ private:
     void read_sceneries(reader_t& reader);
     void read_strings(reader_t& reader);
     void read_chunks(reader_t& reader);
-    void read_old_scenery(reader_t& s, chunk_coords ch, size_t i);
+    void read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i);
 
     std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
@@ -173,9 +173,11 @@ void reader_state::read_chunks(reader_t& s)
         magic << s;
         if (magic != chunk_magic)
             fm_throw("bad chunk magic"_cf);
-        chunk_coords ch;
+        chunk_coords_ ch;
         ch.x << s;
         ch.y << s;
+        if (PROTO >= 10) [[likely]]
+            ch.z << s;
         auto& c = (*_world)[ch];
         c.mark_modified();
         for (auto i = 0uz; i < TILE_COUNT; i++)
@@ -311,7 +313,7 @@ void reader_state::read_chunks(reader_t& s)
     }
 }
 
-void reader_state::read_old_scenery(reader_t& s, chunk_coords ch, size_t i)
+void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
 {
     atlasid id; id << s;
     const bool exact = id & meta_short_scenery_bit;

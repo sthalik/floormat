@@ -1,10 +1,34 @@
 #include "world.hpp"
 #include "chunk.hpp"
 #include "entity.hpp"
+#include "compat/int-hash.hpp"
+
+using namespace floormat;
+
+size_t std::hash<chunk_coords_>::operator()(const chunk_coords_& coord) const noexcept
+{
+    std::size_t x = 0;
+
+    x |= size_t(uint16_t(coord.y)) << 16;
+    x |= size_t(uint16_t(coord.x));
+    if constexpr(sizeof(size_t) > 4)
+        x |= size_t(uint8_t(coord.z+8) & 0xf) << 20;
+    else
+        x ^= size_t(uint8_t(coord.z+8) & 0xf) * size_t(1664525);
+
+    return int_hash(x);
+}
 
 namespace floormat {
 
 world::world(world&& w) noexcept = default;
+
+world::world(std::unordered_map<chunk_coords_, chunk>&& chunks) :
+    world{std::max(initial_capacity, size_t(1/max_load_factor * 2 * chunks.size()))}
+{
+    for (auto&& [coord, c] : chunks)
+        operator[](coord) = std::move(c);
+}
 
 world& world::operator=(world&& w) noexcept
 {
@@ -50,12 +74,12 @@ world::~world() noexcept
     _entities.clear();
 }
 
-world::world(size_t capacity) : _chunks{capacity, hasher}
+world::world(size_t capacity) : _chunks{capacity}
 {
     _chunks.max_load_factor(max_load_factor);
 }
 
-chunk& world::operator[](chunk_coords coord) noexcept
+chunk& world::operator[](chunk_coords_ coord) noexcept
 {
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
@@ -70,7 +94,7 @@ auto world::operator[](global_coords pt) noexcept -> pair
     return { c, c[pt.local()] };
 }
 
-bool world::contains(chunk_coords c) const noexcept
+bool world::contains(chunk_coords_ c) const noexcept
 {
     return _chunks.find(c) != _chunks.cend();
 }

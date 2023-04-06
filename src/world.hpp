@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/int-hash.hpp"
 #include "compat/defs.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
@@ -7,6 +6,13 @@
 #include "compat/exception.hpp"
 #include <unordered_map>
 #include <memory>
+
+namespace floormat { struct chunk_coords_; }
+
+template<>
+struct std::hash<floormat::chunk_coords_> final {
+    floormat::size_t operator()(const floormat::chunk_coords_& coord) const noexcept;
+};
 
 namespace floormat {
 
@@ -17,17 +23,14 @@ struct world final
 {
 private:
     struct chunk_tuple final {
-        static constexpr chunk_coords invalid_coords = { -1 << 15, -1 << 15 };
+        static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, -8 };
         chunk* c = nullptr;
-        chunk_coords pos = invalid_coords;
+        chunk_coords_ pos = invalid_coords;
     } _last_chunk;
 
     static constexpr size_t initial_capacity = 64;
     static constexpr float max_load_factor = .5;
-    static constexpr auto hasher = [](chunk_coords c) constexpr -> size_t {
-        return int_hash((size_t)c.y << 16 | (size_t)c.x);
-    };
-    std::unordered_map<chunk_coords, chunk, decltype(hasher)> _chunks;
+    std::unordered_map<chunk_coords_, chunk> _chunks;
     std::unordered_map<object_id, std::weak_ptr<entity>> _entities;
     size_t _last_collection = 0;
     size_t _collect_every = 64;
@@ -47,15 +50,13 @@ private:
 public:
     explicit world();
     ~world() noexcept;
+    explicit world(std::unordered_map<chunk_coords_, chunk>&& chunks);
 
     struct pair final { chunk& c; tile_ref t; }; // NOLINT
 
-    template<typename Hash, typename Alloc, typename Pred>
-    explicit world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks);
-
-    chunk& operator[](chunk_coords c) noexcept;
+    chunk& operator[](chunk_coords_ c) noexcept;
     pair operator[](global_coords pt) noexcept;
-    bool contains(chunk_coords c) const noexcept;
+    bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false);
     void maybe_collect();
@@ -94,14 +95,6 @@ public:
 
     fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);
 };
-
-template<typename Hash, typename Alloc, typename Pred>
-world::world(std::unordered_map<chunk_coords, chunk, Hash, Alloc, Pred>&& chunks) :
-    world{std::max(initial_capacity, size_t(1/max_load_factor * 2 * chunks.size()))}
-{
-    for (auto&& [coord, c] : chunks)
-        operator[](coord) = std::move(c);
-}
 
 template<typename T>
 std::shared_ptr<T> world::find_entity(object_id id)

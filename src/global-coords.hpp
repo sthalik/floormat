@@ -27,6 +27,17 @@ constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
     return { Int{x} - other.x, Int{y} - other.y };
 }
 
+struct chunk_coords_ final {
+    int16_t x = 0, y = 0;
+    int8_t z = 0;
+
+    explicit constexpr operator chunk_coords() const noexcept { return {x, y}; }
+    constexpr chunk_coords_(chunk_coords c) noexcept : x{c.x}, y{c.y} {}
+    constexpr chunk_coords_() noexcept = default;
+    constexpr chunk_coords_(int16_t x, int16_t y, int8_t z = 0) : x{x}, y{y}, z{z} {}
+    constexpr bool operator==(const chunk_coords_&) const noexcept = default;
+};
+
 struct global_coords final {
     using u0 = std::integral_constant<uint32_t, (1<<15)>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
@@ -35,7 +46,7 @@ struct global_coords final {
     uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 
     constexpr global_coords() noexcept = default;
-    constexpr global_coords(chunk_coords c, local_coords xy, int8_t z = 0) :
+    constexpr global_coords(chunk_coords c, local_coords xy, int8_t z) noexcept :
         x{
             uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) |
             uint32_t(((int)z + z0::value) & 0x0f) << 20
@@ -44,8 +55,11 @@ struct global_coords final {
     {}
     constexpr global_coords(uint32_t x, uint32_t y) noexcept : x{x}, y{y} {}
     constexpr global_coords(int32_t x, int32_t y, int8_t z = 0) noexcept :
-          x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
-          y{uint32_t(y + (s0::value<<4))}
+        x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
+        y{uint32_t(y + (s0::value<<4))}
+    {}
+    constexpr global_coords(chunk_coords_ c, local_coords xy) noexcept :
+        global_coords{chunk_coords{c.x, c.y}, xy, c.z}
     {}
 
     constexpr local_coords local() const noexcept;

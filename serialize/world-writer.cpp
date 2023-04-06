@@ -56,7 +56,7 @@ private:
     uint32_t intern_string(StringView name);
 
     void serialize_new_scenery(const chunk& c, writer_t& s);
-    void serialize_chunk(const chunk& c, chunk_coords coord);
+    void serialize_chunk(const chunk& c, chunk_coords_ coord);
     void serialize_atlases();
     void serialize_scenery();
     void serialize_strings();
@@ -74,7 +74,7 @@ private:
 };
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3 + sizeof(scenery);
-constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords) + tile_size * TILE_COUNT;
+constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords_) + tile_size * TILE_COUNT;
 constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery)) + character_name_max;
 
 writer_state::writer_state(const world& world) : _world{&world}
@@ -398,7 +398,7 @@ void writer_state::serialize_new_scenery(const chunk& c, writer_t& s)
     }
 }
 
-void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
+void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
 {
     fm_assert(chunk_buf.empty());
     const auto es_size = sizeof(uint32_t) + entity_size*c.entities().size();
@@ -407,6 +407,8 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords coord)
     auto s = binary_writer{chunk_buf.begin()};
 
     s << chunk_magic << coord.x << coord.y;
+    fm_assert(coord.z >= -8 && coord.z < 8);
+    s << coord.z;
 
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
@@ -496,7 +498,7 @@ ArrayView<const char> writer_state::serialize_world()
         if (c.empty(true))
             fm_warn("chunk %hd:%hd is empty", pos.x, pos.y);
 #endif
-        serialize_chunk(c, pos);
+        serialize_chunk(c, pos); // todo
     }
     serialize_atlases();
     serialize_scenery();
