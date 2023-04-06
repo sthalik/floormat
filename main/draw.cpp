@@ -97,11 +97,12 @@ void main_impl::draw_world() noexcept
         for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
-            if (!_world.contains(pos))
+            if (pos == chunk_coords_{} && !_world.contains(pos))
                 app.maybe_initialize_chunk(pos, _world[pos]);
-            auto& c = _world[pos];
-            if (c.empty())
+            auto* c_ = _world.at(pos);
+            if (!c_)
                 continue;
+            auto& c = *c_;
             const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _floor_mesh.draw(_shader, c);
@@ -113,9 +114,10 @@ void main_impl::draw_world() noexcept
         for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
-            auto& c = _world[pos];
-            if (c.empty())
+            auto* c_ = _world.at(pos);
+            if (!c_)
                 continue;
+            auto& c = *c_;
             const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _wall_mesh.draw(_shader, c);
@@ -129,9 +131,10 @@ void main_impl::draw_world() noexcept
         for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
-            auto& c = _world[pos];
-            if (c.empty())
+            auto* c_ = _world.at(pos);
+            if (!c_)
                 continue;
+            auto& c = *c_;
             const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
             if (check_chunk_visible(_shader.camera_offset(), sz))
                 _anim_mesh.draw(_shader, sz, c, _clickable_scenery);

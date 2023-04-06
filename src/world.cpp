@@ -94,6 +94,15 @@ auto world::operator[](global_coords pt) noexcept -> pair
     return { c, c[pt.local()] };
 }
 
+chunk* world::at(chunk_coords_ c) noexcept
+{
+    auto it = _chunks.find(c);
+    if (it != _chunks.end())
+        return &it->second;
+    else
+        return nullptr;
+}
+
 bool world::contains(chunk_coords_ c) const noexcept
 {
     return _chunks.find(c) != _chunks.cend();

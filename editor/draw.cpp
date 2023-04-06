@@ -80,9 +80,10 @@ void app::draw_collision_boxes()
         for (int16_t x = minx; x <= maxx; x++)
         {
             const chunk_coords pos{x, y};
-            auto& c = world[pos];
-            if (c.empty())
+            auto* c_ = world.at(pos);
+            if (!c_)
                 continue;
+            auto& c = *c_;
             c.ensure_passability();
             const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
             if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
@@ -116,9 +117,10 @@ void app::draw_collision_boxes()
             for (int16_t x = minx; x <= maxx; x++)
             {
                 const chunk_coords c_pos{x, y};
-                auto& c = world[c_pos];
-                if (c.empty())
+                auto* c_ = world.at(c_pos);
+                if (!c_)
                     continue;
+                auto& c = *c_;
                 c.ensure_passability();
                 const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))

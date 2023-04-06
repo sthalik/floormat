@@ -185,7 +185,10 @@ void app::update_world(float dt)
     for (int16_t y = miny; y <= maxy; y++)
         for (int16_t x = minx; x <= maxx; x++)
         {
-            auto& c = world[chunk_coords{x, y}];
+            auto* c_ = world.at(chunk_coords{x, y});
+            if (!c_)
+                continue;
+            auto& c = *c_;
             const auto& es = c.entities();
 start:      const auto size = es.size();
             for (auto i = size-1; i != (size_t)-1; i--)

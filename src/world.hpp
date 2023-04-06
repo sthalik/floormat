@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <memory>
 
-namespace floormat { struct chunk_coords_; }
-
 template<>
 struct std::hash<floormat::chunk_coords_> final {
     floormat::size_t operator()(const floormat::chunk_coords_& coord) const noexcept;
@@ -56,6 +54,7 @@ public:
 
     chunk& operator[](chunk_coords_ c) noexcept;
     pair operator[](global_coords pt) noexcept;
+    chunk* at(chunk_coords_ c) noexcept;
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false);
