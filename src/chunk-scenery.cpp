@@ -88,6 +88,7 @@ auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
     {
         const auto bb_min_ = world_pos - Vector3(Vector2(e.bbox_size/2), 0);
         const auto bb_max_ = bb_min_ + Vector3(Vector2(e.bbox_size), 0);
+        const auto& sc = static_cast<scenery&>(e);
         switch (e.r)
         {
         using enum rotation;
@@ -103,9 +104,10 @@ auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
             if (bb_len >= 1 && f.size[0] > uiTILE_SIZE[0])
             {
                 data.slope = (bb_max[1]-bb_min[1])/bb_len;
-                data.mode = topo_sort_data::mode_static;
                 data.bb_min = Vector2s(bb_min - px_start);
                 data.bb_max = Vector2s(bb_max - px_start);
+                if (sc.sc_type != scenery_type::door)
+                    data.mode = topo_sort_data::mode_static;
             }
             break;
         }

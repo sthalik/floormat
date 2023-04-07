@@ -12,6 +12,8 @@ chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &_rtree; }
 
 namespace {
 
+constexpr float wall_depth = 8, wall_depth_2 = wall_depth*.5f;
+
 constexpr Vector2 tile_start(size_t k)
 {
     constexpr auto half_tile = Vector2(TILE_SIZE2)/2;
@@ -35,14 +37,14 @@ constexpr Pair<Vector2, Vector2> whole_tile(size_t k)
 
 constexpr Pair<Vector2, Vector2> wall_north(size_t k)
 {
-    auto min = tile_start(k) - Vector2(0, 1);
-    return { min, min + Vector2(TILE_SIZE2[0], 2), };
+    auto min = tile_start(k) - Vector2(0, wall_depth_2);
+    return { min, min + Vector2(TILE_SIZE2[0], wall_depth), };
 }
 
 constexpr Pair<Vector2, Vector2> wall_west(size_t k)
 {
-    auto min = tile_start(k) - Vector2(1, 0);
-    return { min, min + Vector2(2, TILE_SIZE2[1]), };
+    auto min = tile_start(k) - Vector2(wall_depth_2, 0);
+    return { min, min + Vector2(wall_depth, TILE_SIZE2[1]), };
 }
 
 constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
