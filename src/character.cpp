@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/entity.hpp"
+#include "shaders/tile.hpp"
 #include "src/RTree-search.hpp"
 #include <cmath>
 #include <utility>
@@ -128,7 +129,10 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
-Vector2 character::depth_offset() const { return {}; }
+Vector2 character::depth_offset() const
+{
+    return Vector2(tile_shader::character_depth_offset, 0);
+}
 
 Vector2 character::ordinal_offset(Vector2b offset) const
 {

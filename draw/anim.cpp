@@ -96,10 +96,11 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         }
         if (e.is_dynamic())
         {
-            const auto depth = e.depth_offset();
-            const auto depth1 = depth[1]*TILE_MAX_DIM + depth[0];
+            const auto depth0 = e.depth_offset();
+            const auto depth1 = depth0[1]*TILE_MAX_DIM + depth0[0];
+            const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
             //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
-            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth1 + tile_shader::scenery_depth_offset);
+            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
             last = nullptr;
         }
         else
@@ -137,10 +138,9 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t 
     shader.draw(_mesh);
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float depth_offset)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float depth)
 {
     const auto pos = Vector3(xy) * TILE_SIZE + Vector3(Vector2(offset), 0);
-    const float depth = tile_shader::depth_value(xy, depth_offset);
     draw(shader, atlas, r, frame, pos, depth);
 }
 

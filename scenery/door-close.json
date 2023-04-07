@@ -3,7 +3,6 @@
   "fps": 24,
   "groups": [
     {
-      "depth-offset": "128 x 128",
       "frames": [
         {
           "ground": "126 x 121",

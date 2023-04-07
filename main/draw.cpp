@@ -8,6 +8,8 @@
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/RenderbufferFormat.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Math/Color.h>
 #include <algorithm>
 #include <thread>
@@ -20,6 +22,27 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     _virtual_scale = Vector2(fb_size) / Vector2(win_size);
     update_window_state();
     _shader.set_scale(Vector2{fb_size});
+
+    GL::defaultFramebuffer.bind();
+
+#ifdef FM_USE_DEPTH32
+    {
+        framebuffer.fb = GL::Framebuffer{{ {}, fb_size }};
+
+        framebuffer.color = GL::Texture2D{};
+        framebuffer.color.setStorage(1, GL::TextureFormat::RGBA8, fb_size);
+        framebuffer.depth = GL::Renderbuffer{};
+        framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
+
+        framebuffer.fb.attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0);
+        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
+        framebuffer.fb.clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
+        framebuffer.fb.clearDepth(0);
+
+        framebuffer.fb.bind();
+    }
+#endif
+
     GL::defaultFramebuffer.setViewport({{}, fb_size });
 
     // -- state ---
@@ -109,7 +132,11 @@ void main_impl::draw_world() noexcept
         }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::defaultFramebuffer.clearDepthStencil(0, 0);
+#ifdef FM_USE_DEPTH32
+    framebuffer.fb.clearDepth(0);
+#else
+    GL::defaultFramebuffer.clearDepth(0);
+#endif
     for (int16_t y = miny; y <= maxy; y++)
         for (int16_t x = minx; x <= maxx; x++)
         {
@@ -193,7 +220,11 @@ void main_impl::drawEvent()
     {
         _shader.set_tint({1, 1, 1, 1});
         const auto clear_color = 0x222222ff_rgbaf;
+#ifdef FM_USE_DEPTH32
+        framebuffer.fb.clearColor(0, clear_color);
+#else
         GL::defaultFramebuffer.clearColor(clear_color);
+#endif
         draw_world();
         GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
     }
@@ -202,6 +233,10 @@ void main_impl::drawEvent()
     GL::Renderer::flush();
 
     do_update();
+
+#ifdef FM_USE_DEPTH32
+    GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
+#endif
 
     swapBuffers();
     redraw();

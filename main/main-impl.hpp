@@ -14,6 +14,14 @@
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
+//#define FM_USE_DEPTH32
+
+#ifdef FM_USE_DEPTH32
+#include <Magnum/GL/Framebuffer.h>
+#include <Magnum/GL/Renderbuffer.h>
+#include <Magnum/GL/Texture.h>
+#endif
+
 namespace floormat {
 
 struct floormat_app;
@@ -23,6 +31,14 @@ struct clickable;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
+#ifdef FM_USE_DEPTH32
+    struct Framebuffer final {
+        GL::Framebuffer fb{NoCreate};
+        GL::Renderbuffer depth{NoCreate};
+        GL::Texture2D color{NoCreate};
+    };
+#endif
+
     explicit main_impl(floormat_app& app, fm_settings&& opts, int& argc, char** argv) noexcept;
     ~main_impl() noexcept override;
 
@@ -86,6 +102,10 @@ private:
     floor_mesh _floor_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
+#ifdef FM_USE_DEPTH32
+    Framebuffer framebuffer;
+#endif
+
     struct {
         float value = 0;
         float jitter = 0;
