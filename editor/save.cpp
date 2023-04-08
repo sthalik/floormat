@@ -57,7 +57,7 @@ void app::do_new_file()
 {
     reset_world();
     auto& w = M->world();
-    maybe_initialize_chunk_(chunk_coords{}, w[chunk_coords{}]);
+    maybe_initialize_chunk_(chunk_coords_{}, w[chunk_coords_{}]);
 }
 
 } // namespace floormat

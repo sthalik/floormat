@@ -129,12 +129,13 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
 
 bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    if (coord2.z() != coord.z()) [[unlikely]]
+    auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
+
+    if (coord_.z() != coord.z()) [[unlikely]]
         return false;
 
-    auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
     auto& w = *c->_world;
-    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk()];
+    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[{coord_.chunk(), coord_.z()}];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
@@ -194,7 +195,7 @@ bool entity::move_to(size_t& i, Vector2i delta, rotation new_r)
     else
     {
         //fm_debug("change-chunk (%hd;%hd|%hhd;%hhd)", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y);
-        auto& c2 = w[coord_.chunk()];
+        auto& c2 = w[{coord_.chunk(), coord_.z()}];
         if (!is_dynamic())
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);

@@ -33,8 +33,8 @@ struct chunk_coords_ final {
 
     explicit constexpr operator chunk_coords() const noexcept { return {x, y}; }
     constexpr chunk_coords_() noexcept = default;
-    constexpr chunk_coords_(int16_t x, int16_t y, int8_t z = 0) noexcept : x{x}, y{y}, z{z} {}
-    constexpr chunk_coords_(chunk_coords c, int8_t z = 0) noexcept : x{c.x}, y{c.y}, z{z} {}
+    constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z} {}
+    constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
 };
 

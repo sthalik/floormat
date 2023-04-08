@@ -72,7 +72,7 @@ void app::draw_collision_boxes()
     auto& world = M->world();
     auto& shader = M->shader();
 
-    using rtree_type = std::decay_t<decltype(*world[chunk_coords{}].rtree())>;
+    using rtree_type = std::decay_t<decltype(*world[chunk_coords_{}].rtree())>;
     using rect_type = typename rtree_type::Rect;
 
     for (int8_t z = z_min; z <= z_max; z++)

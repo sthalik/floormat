@@ -93,7 +93,7 @@ void test_serializer(StringView input, StringView tmp)
         w = world::deserialize(input);
     else
     {
-        coord = {1, 1};
+        coord = {1, 1, 0};
         w = world();
         make_test_chunk(w, coord);
     }
