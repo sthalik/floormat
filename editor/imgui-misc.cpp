@@ -63,7 +63,7 @@ void app::draw_z_level()
         const auto font_size = ImGui::GetCurrentContext()->FontSize+3;
         auto shadow_offset = Vector2(1, 1)/* * dpi */;
         auto px = Vector2(*cursor.pixel) + offset, px2 = px + shadow_offset;
-        draw.AddText(nullptr, font_size, {px2[0], px2[1]}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}), buf);
+        draw.AddText(nullptr, font_size, {px2[0], px2[1]}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, .75f}), buf);
         draw.AddText(nullptr, font_size, {px[0], px[1]}, ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1}), buf);
     }
 }

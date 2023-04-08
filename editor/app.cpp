@@ -87,12 +87,14 @@ void app::reset_world(struct world&& w_)
     kill_popups(true);
 
     clear_keys();
+    const auto pixel = cursor.pixel;
     cursor = {};
     _character_id = 0;
 
     auto& w = M->reset_world(std::move(w_));
     w.collect(true);
     ensure_player_character(w);
+    update_cursor_tile(pixel);
 }
 
 int app::exec()
