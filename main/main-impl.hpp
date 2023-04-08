@@ -14,7 +14,7 @@
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
-#define FM_USE_DEPTH32
+//#define FM_USE_DEPTH32
 
 #ifdef FM_USE_DEPTH32
 #include <Magnum/GL/Framebuffer.h>
