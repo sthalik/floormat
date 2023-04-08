@@ -422,6 +422,24 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
         auto img_n = maybe_intern_atlas(wall_north);
         auto img_w = maybe_intern_atlas(wall_west);
 
+        if (img_g == null_atlas && img_n == null_atlas && img_w == null_atlas)
+        {
+            size_t j, max = std::min(TILE_COUNT, i + 0x80);
+            for (j = i+1; j < max; j++)
+            {
+                auto tile = c[j];
+                if (tile.ground_atlas || tile.wall_north_atlas || tile.wall_west_atlas)
+                    break;
+            }
+            j -= i + 1;
+            fm_assert(j == (j & 0x7fuz));
+            i += j;
+            tilemeta flags = meta_rle | (tilemeta)j;
+            s << flags;
+
+            continue;
+        }
+
         tilemeta flags = {};
         flags |= meta_ground  * (img_g != null_atlas);
         flags |= meta_wall_n  * (img_n != null_atlas);

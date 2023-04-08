@@ -23,6 +23,7 @@
  *  8) Entity subtypes.
  *  9) Interned strings.
  * 10) Chunk Z level.
+ * 11) RLE empty tiles.
  */
 
 namespace floormat {
@@ -49,7 +50,7 @@ constexpr inline auto null_atlas = (atlasid)-1LL;
 constexpr inline size_t character_name_max = 128;
 constexpr inline size_t string_max = 512;
 
-constexpr inline proto_t proto_version = 10;
+constexpr inline proto_t proto_version = 11;
 constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
@@ -76,6 +77,8 @@ enum : tilemeta {
     meta_ground         = 1 << 2,
     meta_wall_n         = 1 << 3,
     meta_wall_w         = 1 << 4,
+    meta_rle            = 1 << 7,
+
     meta_short_atlasid_ = 1 << 5,
     meta_short_variant_ = 1 << 6,
     meta_scenery_       = 1 << 7,

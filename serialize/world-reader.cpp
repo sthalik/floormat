@@ -184,6 +184,15 @@ void reader_state::read_chunks(reader_t& s)
         {
             SET_CHUNK_SIZE();
             const tilemeta flags = s.read<tilemeta>();
+
+            if (PROTO >= 11) [[likely]]
+                if (flags & meta_rle)
+                {
+                    auto j = flags & 0x7fuz;
+                    i += j;
+                    continue;
+                }
+
             tile_ref t = c[i];
             using uchar = uint8_t;
             const auto make_atlas = [&]() -> tile_image_proto {
