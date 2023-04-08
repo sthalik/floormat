@@ -31,7 +31,6 @@ struct chunk_coords_ final {
     int16_t x = 0, y = 0;
     int8_t z = 0;
 
-    explicit constexpr operator chunk_coords() const noexcept { return {x, y}; }
     constexpr chunk_coords_() noexcept = default;
     constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z} {}
     constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
@@ -55,8 +54,8 @@ struct global_coords final {
         },
         y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {}
-    constexpr global_coords(uint32_t x, uint32_t y) noexcept : x{x}, y{y} {}
-    constexpr global_coords(int32_t x, int32_t y, int8_t z = 0) noexcept :
+    constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y} {}
+    constexpr global_coords(int32_t x, int32_t y, int8_t z) noexcept :
         x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
         y{uint32_t(y + (s0::value<<4))}
     {}
@@ -106,7 +105,7 @@ constexpr Vector3i global_coords::to_signed3() const noexcept
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
 {
-    return { uint32_t((int64_t)x+vec[0]), uint32_t((int64_t)y+vec[1]) };
+    return { uint32_t((int64_t)x+vec[0]), uint32_t((int64_t)y+vec[1]), nullptr };
 }
 
 constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
@@ -118,7 +117,7 @@ constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
 
 constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
 {
-    return { uint32_t((int64_t)x-vec[0]), uint32_t((int64_t)y-vec[1]) };
+    return { uint32_t((int64_t)x-vec[0]), uint32_t((int64_t)y-vec[1]), nullptr };
 }
 
 constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept

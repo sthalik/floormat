@@ -70,10 +70,10 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
                     const auto [miny, maxy] = std::minmax(draw_coord.y, last.draw_coord.y);
                     if (draw_offset[0])
                         for (uint32_t i = minx; i <= maxx; i++)
-                            on_click_(world, { i, draw_coord.y }, last.btn);
+                            on_click_(world, { i, draw_coord.y, nullptr }, last.btn);
                     else
                         for (uint32_t j = miny; j <= maxy; j++)
-                            on_click_(world, { draw_coord.x, j }, last.btn);
+                            on_click_(world, { draw_coord.x, j, nullptr }, last.btn);
                 }
                 else
                     on_click_(world, draw_coord, last.btn);
