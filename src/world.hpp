@@ -77,7 +77,7 @@ public:
     }
     std::shared_ptr<T> make_entity(object_id id, global_coords pos, Xs&&... xs)
     {
-        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk()), std::forward<Xs>(xs)...});
+        auto ret = std::shared_ptr<T>(new T{id, operator[](chunk_coords_{pos.chunk(), pos.z()}), std::forward<Xs>(xs)...});
         do_make_entity(std::static_pointer_cast<entity>(ret), pos, sorted);
         return ret;
     }

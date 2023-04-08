@@ -33,6 +33,7 @@ void app::draw_inspector()
         auto& s = *e;
         chunk_coords ch = e->coord.chunk();
         local_coords pos = e->coord.local();
+        auto z = e->coord.z();
 
         char buf[32];
         snformat(buf, "inspector-{:08x}"_cf, s.id);
@@ -40,7 +41,10 @@ void app::draw_inspector()
         auto b1 = push_id(buf);
         ImGui::SetNextWindowSize({300*dpi[0], 0});
         auto name = loader.strip_prefix(s.atlas->name());
-        snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
+        if (z == 0)
+            snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
+        else
+            snformat(buf, "{} ({}x{}:{} -> {}x{})"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y);
 
         bool is_open = true;
         if (s.type() == entity_type::scenery)

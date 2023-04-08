@@ -17,6 +17,7 @@ struct local_coords_ final {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords_, x, y)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords_, x, y, z)
 
 struct global_coords_ final {
     chunk_coords chunk;
@@ -39,6 +40,9 @@ void adl_serializer<local_coords>::from_json(const json& j, local_coords& val) {
 
 void adl_serializer<chunk_coords>::to_json(json& j, const chunk_coords& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<chunk_coords>::from_json(const json& j, chunk_coords& val) { using nlohmann::from_json; from_json(j, val); }
+
+void adl_serializer<chunk_coords_>::to_json(json& j, const chunk_coords_& val) { using nlohmann::to_json; to_json(j, val); }
+void adl_serializer<chunk_coords_>::from_json(const json& j, chunk_coords_& val) { using nlohmann::from_json; from_json(j, val); }
 
 void adl_serializer<global_coords>::to_json(json& j, const global_coords& val) { using nlohmann::to_json; to_json(j, global_coords_{val.chunk(), val.local()}); }
 void adl_serializer<global_coords>::from_json(const json& j, global_coords& val) { using nlohmann::from_json; global_coords_ x; from_json(j, x); val = {x.chunk, x.local}; }

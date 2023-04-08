@@ -39,7 +39,11 @@ void app::draw_tile_under_cursor()
     const auto coord = *cursor.tile;
     const auto chunk = coord.chunk();
     const auto local = coord.local();
-    snformat(buf, "{}:{} - {}:{}"_cf, chunk.x, chunk.y, local.x, local.y);
+    const auto z = coord.z();
+    if (z == 0)
+        snformat(buf, "{}x{} - {}:{}"_cf, chunk.x, chunk.y, local.x, local.y);
+    else
+        snformat(buf, "{}x{}:{} - {}:{}"_cf, chunk.x, chunk.y, (int)z, local.x, local.y);
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 

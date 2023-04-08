@@ -13,7 +13,7 @@ namespace floormat {
 
 //#define FM_NO_BINDINGS
 
-void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
+void app::maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c)
 {
     (void)pos; (void)c;
 
@@ -39,7 +39,7 @@ void app::maybe_initialize_chunk_(const chunk_coords& pos, chunk& c)
     c.mark_modified();
 }
 
-void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords& pos, [[maybe_unused]] chunk& c)
+void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords_& pos, [[maybe_unused]] chunk& c)
 {
     //maybe_initialize_chunk_(pos, c);
 }

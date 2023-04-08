@@ -6,6 +6,7 @@ namespace floormat {
 struct tile_image_ref;
 struct local_coords;
 struct chunk_coords;
+struct chunk_coords_;
 struct global_coords;
 
 } // namespace floormat
@@ -28,6 +29,12 @@ template<>
 struct adl_serializer<floormat::chunk_coords> {
     static void to_json(json& j, const floormat::chunk_coords& val);
     static void from_json(const json& j, floormat::chunk_coords& val);
+};
+
+template<>
+struct adl_serializer<floormat::chunk_coords_> {
+    static void to_json(json& j, const floormat::chunk_coords_& val);
+    static void from_json(const json& j, floormat::chunk_coords_& val);
 };
 
 template<>

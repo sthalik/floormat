@@ -13,6 +13,7 @@ struct text_editing_event;
 union any_event;
 
 struct chunk_coords;
+struct chunk_coords_;
 struct chunk;
 
 struct floormat_app
@@ -26,7 +27,7 @@ struct floormat_app
     [[deprecated]] floormat_app& operator=(floormat_app&&) = default;
 
     virtual void update(float dt) = 0;
-    virtual void maybe_initialize_chunk(const chunk_coords& pos, chunk& c) = 0;
+    virtual void maybe_initialize_chunk(const chunk_coords_& pos, chunk& c) = 0;
     virtual void draw() = 0;
 
     virtual void on_mouse_move(const mouse_move_event& event) noexcept = 0;

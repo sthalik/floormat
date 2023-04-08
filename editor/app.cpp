@@ -30,7 +30,7 @@ app::app(fm_settings&& opts) :
 {
     reset_world();
     auto& w = M->world();
-    constexpr chunk_coords coord{0, 0};
+    constexpr chunk_coords_ coord{0, 0, 0};
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     inspectors.reserve(16);
