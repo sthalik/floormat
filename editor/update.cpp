@@ -75,7 +75,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
                 {
                     _pending_popup = true;
-                    _popup_target = { .e = cl->e, .target = popup_target_type::scenery, };
+                    _popup_target = { .id = cl->e->id, .target = popup_target_type::scenery, };
                 }
             break;
         case editor_mode::floor:

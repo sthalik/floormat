@@ -82,7 +82,7 @@ public:
         return ret;
     }
 
-    template<typename T = entity>  std::shared_ptr<T> find_entity(object_id id);
+    template<typename T = entity> std::shared_ptr<T> find_entity(object_id id);
 
     bool is_teardown() const { return _teardown; }
     object_id entity_counter() const { return _entity_counter; }
@@ -98,7 +98,7 @@ public:
 template<typename T>
 std::shared_ptr<T> world::find_entity(object_id id)
 {
-    static_assert(std::is_base_of_v<entity, T>);
+    static_assert(std::is_same_v<entity, T> || std::is_base_of_v<entity, T>);
     // make it a dependent name so that including "src/entity.hpp" isn't needed
     using U = std::conditional_t<std::is_same_v<T, entity>, T, entity>;
     if (std::shared_ptr<U> ptr = find_entity_(id); !ptr)

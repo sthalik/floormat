@@ -147,13 +147,18 @@ bool app::check_inspector_exists(const popup_target& p)
 
 void app::do_popup_menu()
 {
-    const auto [sc, target] = _popup_target;
-    if (target == popup_target_type::none || sc == nullptr)
+    const auto [id, target] = _popup_target;
+    auto& w = M->world();
+    auto e_ = w.find_entity(id);
+
+    if (target == popup_target_type::none || !e_)
     {
         _popup_target = {};
         _pending_popup = {};
         return;
     }
+
+    auto& e = *e_;
 
     auto b0 = push_id(SCENERY_POPUP_NAME);
     //if (_popup_target.target != popup_target_type::scenery) {...}
@@ -161,7 +166,6 @@ void app::do_popup_menu()
     if (_pending_popup)
     {
         _pending_popup = false;
-        fm_assert(target != popup_target_type::none && sc != nullptr);
         //if (type != popup_target_type::scenery) {...}
         ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
     }
@@ -169,18 +173,18 @@ void app::do_popup_menu()
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
         ImGui::SeparatorText("Setup");
-        const auto i = sc->index();
-        if (ImGui::MenuItem("Activate", nullptr, false, sc->can_activate(i)))
-            sc->activate(i);
+        const auto i = e.index();
+        if (ImGui::MenuItem("Activate", nullptr, false, e.can_activate(i)))
+            e.activate(i);
         if (bool b_ins = !check_inspector_exists(_popup_target);
             ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
         ImGui::SeparatorText("Modify");
-        if (auto next_rot = sc->atlas->next_rotation_from(sc->r);
-            ImGui::MenuItem("Rotate", nullptr, false, next_rot != sc->r && sc->can_rotate(next_rot)))
-            sc->rotate(i, next_rot);
+        if (auto next_rot = e.atlas->next_rotation_from(e.r);
+            ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
+            e.rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
-            sc->chunk().remove_entity(sc->index());
+            e.chunk().remove_entity(e.index());
     }
 }
 

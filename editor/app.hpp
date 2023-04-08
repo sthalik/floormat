@@ -45,7 +45,7 @@ enum class popup_target_type : unsigned char {
 };
 
 struct popup_target final {
-    entity* e;
+    object_id id;
     popup_target_type target = popup_target_type::none;
     bool operator==(const popup_target&) const;
 };
