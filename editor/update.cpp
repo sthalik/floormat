@@ -100,7 +100,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
 
 void app::do_mouse_scroll(int offset)
 {
-    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, 2);
+    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, (int)chunk_max_z);
 }
 
 void app::do_rotate(bool backward)
