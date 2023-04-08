@@ -37,7 +37,7 @@ private:
     std::vector<scenery_proto> sceneries;
     std::vector<std::shared_ptr<tile_atlas>> atlases;
     world* _world;
-    uint16_t PROTO = 0;
+    uint16_t PROTO = proto_version;
 };
 
 reader_state::reader_state(world& world) noexcept : _world{&world} {}

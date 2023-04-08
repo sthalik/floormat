@@ -24,6 +24,7 @@
  *  9) Interned strings.
  * 10) Chunk Z level.
  * 11) RLE empty tiles.
+ * 12) Don't write entity name twice.
  */
 
 namespace floormat {
