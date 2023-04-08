@@ -127,11 +127,14 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
     return { coord, Vector2b(off_new) };
 }
 
-bool entity::can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    if (coord2.z() != coord.z()) [[unlikely]]
+        return false;
+
+    auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
     auto& w = *c->_world;
-    auto& c_ = coord.chunk() == coord_.chunk() ? *c : w[coord_.chunk()];
+    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
