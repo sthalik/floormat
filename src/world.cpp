@@ -81,7 +81,7 @@ world::world(size_t capacity) : _chunks{capacity}
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
-    fm_debug_assert(coord.z >= -8 && coord.z < 8);
+    fm_debug_assert(coord.z >= chunk_min_z && coord.z <= chunk_max_z);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
         c = &_chunks.try_emplace(coord, *this).first->second;

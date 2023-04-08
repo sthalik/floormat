@@ -185,33 +185,35 @@ void app::update_world(float dt)
 {
     auto& world = M->world();
     const auto curframe = world.increment_frame_no();
+    auto [z_min, z_max] = get_z_bounds();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
-    for (int16_t y = miny; y <= maxy; y++)
-        for (int16_t x = minx; x <= maxx; x++)
-        {
-            auto* c_ = world.at(chunk_coords{x, y});
-            if (!c_)
-                continue;
-            auto& c = *c_;
-            const auto& es = c.entities();
-start:      const auto size = es.size();
-            for (auto i = size-1; i != (size_t)-1; i--)
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
             {
-                auto& e = *es[i];
-                fm_debug_assert(!(e.last_update > curframe));
-                if (curframe > e.last_update) [[likely]]
+                auto* c_ = world.at({x, y, z});
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                const auto& es = c.entities();
+start:          const auto size = es.size();
+                for (auto i = size-1; i != (size_t)-1; i--)
                 {
-                    e.last_update = curframe;
-                    auto status = e.update(i, dt);
-                    if (status)
+                    auto& e = *es[i];
+                    fm_debug_assert(!(e.last_update > curframe));
+                    if (curframe > e.last_update) [[likely]]
                     {
-                        //Debug{} << "goto start";
-                        goto start;
+                        e.last_update = curframe;
+                        auto status = e.update(i, dt);
+                        if (status)
+                        {
+                            //Debug{} << "goto start";
+                            goto start;
+                        }
                     }
                 }
             }
-        }
 }
 
 void app::update_character([[maybe_unused]] float dt)
@@ -236,6 +238,14 @@ void app::set_cursor()
     }
     else
         set_cursor_from_imgui();
+}
+
+auto app::get_z_bounds() -> z_bounds
+{
+    if (_render_all_z_levels)
+        return { chunk_min_z, chunk_max_z };
+    else
+        return { _z_level, _z_level };
 }
 
 void app::update(float dt)

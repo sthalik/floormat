@@ -4,7 +4,6 @@
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
-#include "world.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
@@ -104,32 +103,37 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 
 void main_impl::update_collect_threshold()
 {
+    // todo remove it?
+#if 0
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto value = std::max(64uz, (size_t)(maxx-minx+4)*(size_t)(maxy-minx+4));
     if (!(GL::Context::current().configurationFlags() & GL::Implementation::ContextConfigurationFlag::QuietLog))
         fm_debug("collect threshold is now %zu", value);
     _world.set_collect_threshold(value);
+#endif
 }
 
 void main_impl::draw_world() noexcept
 {
+    const auto [z_min, z_max] = app.get_z_bounds();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = window_size();
 
-    for (int16_t y = miny; y <= maxy; y++)
-        for (int16_t x = minx; x <= maxx; x++)
-        {
-            const chunk_coords pos{x, y};
-            if (pos == chunk_coords_{} && !_world.contains(pos))
-                app.maybe_initialize_chunk(pos, _world[pos]);
-            auto* c_ = _world.at(pos);
-            if (!c_)
-                continue;
-            auto& c = *c_;
-            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
-            if (check_chunk_visible(_shader.camera_offset(), sz))
-                _floor_mesh.draw(_shader, c);
-        }
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
+            {
+                const chunk_coords_ pos{x, y, z};
+                if (pos == chunk_coords_{} && !_world.contains(pos))
+                    app.maybe_initialize_chunk(pos, _world[pos]);
+                auto* c_ = _world.at(pos);
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
+                if (check_chunk_visible(_shader.camera_offset(), sz))
+                    _floor_mesh.draw(_shader, c);
+            }
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 #ifdef FM_USE_DEPTH32
@@ -137,35 +141,37 @@ void main_impl::draw_world() noexcept
 #else
     GL::defaultFramebuffer.clearDepth(0);
 #endif
-    for (int16_t y = miny; y <= maxy; y++)
-        for (int16_t x = minx; x <= maxx; x++)
-        {
-            const chunk_coords pos{x, y};
-            auto* c_ = _world.at(pos);
-            if (!c_)
-                continue;
-            auto& c = *c_;
-            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
-            if (check_chunk_visible(_shader.camera_offset(), sz))
-                _wall_mesh.draw(_shader, c);
-        }
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
+            {
+                const chunk_coords_ pos{x, y, z};
+                auto* c_ = _world.at(pos);
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
+                if (check_chunk_visible(_shader.camera_offset(), sz))
+                    _wall_mesh.draw(_shader, c);
+            }
 
     _clickable_scenery.clear();
 
     GL::Renderer::setDepthMask(false);
 
-    for (int16_t y = miny; y <= maxy; y++)
-        for (int16_t x = minx; x <= maxx; x++)
-        {
-            const chunk_coords pos{x, y};
-            auto* c_ = _world.at(pos);
-            if (!c_)
-                continue;
-            auto& c = *c_;
-            const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
-            if (check_chunk_visible(_shader.camera_offset(), sz))
-                _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
-        }
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
+            {
+                const chunk_coords_ pos{x, y, z};
+                auto* c_ = _world.at(pos);
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
+                if (check_chunk_visible(_shader.camera_offset(), sz))
+                    _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
+            }
 
     GL::Renderer::setDepthMask(true);
 

@@ -38,6 +38,8 @@ struct chunk_coords_ final {
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
 };
 
+constexpr inline int8_t chunk_min_z = -8, chunk_max_z = 7;
+
 struct global_coords final {
     using u0 = std::integral_constant<uint32_t, (1<<15)>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;

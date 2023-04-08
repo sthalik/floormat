@@ -9,7 +9,7 @@ struct tile_shader;
 
 struct with_shifted_camera_offset final
 {
-    explicit with_shifted_camera_offset(tile_shader& shader, chunk_coords c, chunk_coords first, chunk_coords last);
+    explicit with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c, chunk_coords first, chunk_coords last);
     ~with_shifted_camera_offset();
 private:
     tile_shader& _shader; // NOLINT

@@ -66,6 +66,7 @@ void app::draw_cursor()
 
 void app::draw_collision_boxes()
 {
+    const auto [z_min, z_max] = get_z_bounds();
     const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     const auto sz = M->window_size();
     auto& world = M->world();
@@ -76,30 +77,31 @@ void app::draw_collision_boxes()
     using rtree_type = std::decay_t<decltype(*world[chunk_coords{}].rtree())>;
     using rect_type = typename rtree_type::Rect;
 
-    for (int16_t y = miny; y <= maxy; y++)
-        for (int16_t x = minx; x <= maxx; x++)
-        {
-            const chunk_coords pos{x, y};
-            auto* c_ = world.at(pos);
-            if (!c_)
-                continue;
-            auto& c = *c_;
-            c.ensure_passability();
-            const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
-            if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
             {
-                constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
-                const auto* rtree = c.rtree();
-                rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
-                    [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                    Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
-                    auto size = (end - start);
-                    auto center = Vector3(start + size*.5f, 0.f);
-                    _wireframe_rect.draw(shader, { center, size, 3 });
-                    return true;
-                });
+                const chunk_coords_ pos{x, y, z};
+                auto* c_ = world.at(pos);
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                c.ensure_passability();
+                const with_shifted_camera_offset o{shader, pos, {minx, miny}, {maxx, maxy}};
+                if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+                {
+                    constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
+                    const auto* rtree = c.rtree();
+                    rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
+                      [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                      Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                      auto size = (end - start);
+                      auto center = Vector3(start + size*.5f, 0.f);
+                      _wireframe_rect.draw(shader, { center, size, 3 });
+                      return true;
+                    });
+                }
             }
-        }
 
     shader.set_tint({1, 0, 1, 1});
 
@@ -113,34 +115,35 @@ void app::draw_collision_boxes()
         const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
         const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
                                           curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
-            {
-                const chunk_coords c_pos{x, y};
-                auto* c_ = world.at(c_pos);
-                if (!c_)
-                    continue;
-                auto& c = *c_;
-                c.ensure_passability();
-                const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
-                if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+        for (int8_t z = z_min; z <= z_max; z++)
+            for (int16_t y = miny; y <= maxy; y++)
+                for (int16_t x = minx; x <= maxx; x++)
                 {
-                    constexpr auto half_tile = TILE_SIZE2/2;
-                    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
-                    auto chunk_dist = (curchunk - Vector2(c_pos))*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
-                    auto t1 = t0+Vector2(1e-4f);
-                    const auto* rtree = c.rtree();
-                    rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                        [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                        Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
-                        auto size = end - start;
-                        auto center = Vector3(start + size*.5f, 0.f);
-                        _wireframe_rect.draw(shader, { center, size, 3 });
-                        return true;
-                    });
+                    const chunk_coords_ c_pos{x, y, z};
+                    auto* c_ = world.at(c_pos);
+                    if (!c_)
+                        continue;
+                    auto& c = *c_;
+                    c.ensure_passability();
+                    const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
+                    if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+                    {
+                        constexpr auto half_tile = TILE_SIZE2/2;
+                        constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
+                        auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
+                        auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
+                        auto t1 = t0+Vector2(1e-4f);
+                        const auto* rtree = c.rtree();
+                        rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+                          [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                          Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                          auto size = end - start;
+                          auto center = Vector3(start + size*.5f, 0.f);
+                          _wireframe_rect.draw(shader, { center, size, 3 });
+                          return true;
+                        });
+                    }
                 }
-            }
     }
 
     shader.set_tint({1, 1, 1, 1});

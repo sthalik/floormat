@@ -102,7 +102,7 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
         do_mouse_scroll((int)e.offset()[1]);
 }
 
-auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>
+auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
 {
     [[maybe_unused]] constexpr int CTRL  = kmod_ctrl;
     [[maybe_unused]] constexpr int SHIFT = kmod_shift;
