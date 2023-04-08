@@ -55,7 +55,7 @@ float app::draw_main_menu()
             const auto* ed_w = _editor.current_tile_editor();
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
                  b_scenery = mode == m::scenery, b_collisions = _render_bboxes,
-                 b_clickables = _render_clickables;
+                 b_clickables = _render_clickables, b_all_z_levels = _render_all_z_levels;
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
                                   mode == editor_mode::walls && ed_w && ed_w->is_anything_selected();
             ImGui::SeparatorText("Mode");
@@ -75,6 +75,8 @@ float app::draw_main_menu()
                 do_key(key_render_collision_boxes);
             if (ImGui::MenuItem("Show clickables", "Alt+L", b_clickables))
                 do_key(key_render_clickables);
+            if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
+                do_key(key_render_all_z_levels);
         }
 
         main_menu_height = ImGui::GetContentRegionMax().y;

@@ -119,7 +119,17 @@ void main_impl::draw_world() noexcept
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = window_size();
 
+    _clickable_scenery.clear();
+#ifdef FM_USE_DEPTH32
+        framebuffer.fb.clearDepth(0);
+#else
+        GL::defaultFramebuffer.clearDepth(0);
+#endif
+
     for (int8_t z = z_min; z <= z_max; z++)
+    {
+        GL::Renderer::setDepthMask(false);
+
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -135,13 +145,9 @@ void main_impl::draw_world() noexcept
                     _floor_mesh.draw(_shader, c);
             }
 
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-#ifdef FM_USE_DEPTH32
-    framebuffer.fb.clearDepth(0);
-#else
-    GL::defaultFramebuffer.clearDepth(0);
-#endif
-    for (int8_t z = z_min; z <= z_max; z++)
+        GL::Renderer::setDepthMask(true);
+        GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -155,11 +161,8 @@ void main_impl::draw_world() noexcept
                     _wall_mesh.draw(_shader, c);
             }
 
-    _clickable_scenery.clear();
+        GL::Renderer::setDepthMask(false);
 
-    GL::Renderer::setDepthMask(false);
-
-    for (int8_t z = z_min; z <= z_max; z++)
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -172,6 +175,7 @@ void main_impl::draw_world() noexcept
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                     _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
             }
+    }
 
     GL::Renderer::setDepthMask(true);
 
@@ -224,7 +228,6 @@ void main_impl::drawEvent()
     _shader.set_tint({1, 1, 1, 1});
 
     {
-        _shader.set_tint({1, 1, 1, 1});
         const auto clear_color = 0x222222ff_rgbaf;
 #ifdef FM_USE_DEPTH32
         framebuffer.fb.clearColor(0, clear_color);

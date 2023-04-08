@@ -14,7 +14,7 @@ namespace Path = Corrade::Utility::Path;
 
 namespace {
 
-chunk& make_test_chunk(world& w, chunk_coords ch)
+chunk& make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
@@ -87,7 +87,7 @@ void test_serializer(StringView input, StringView tmp)
 {
     if (Path::exists(tmp))
         Path::remove(tmp);
-    chunk_coords coord{};
+    chunk_coords_ coord{};
     world w;
     if (input)
         w = world::deserialize(input);

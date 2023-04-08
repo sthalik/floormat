@@ -136,6 +136,7 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
             case SDLK_4:        return { key_mode_scenery,              mods };
             case SDLK_c | ALT:  return { key_render_collision_boxes,    mods };
             case SDLK_l | ALT:  return { key_render_clickables,         mods };
+            case SDLK_t:        return { key_render_all_z_levels,       mods };
             case SDLK_F5:       return { key_quicksave,                 mods };
             case SDLK_F9:       return { key_quickload,                 mods };
             case SDLK_q | CTRL: return { key_quit,                      mods };

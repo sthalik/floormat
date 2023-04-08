@@ -90,6 +90,7 @@ void app::reset_world(struct world&& w_)
     const auto pixel = cursor.pixel;
     cursor = {};
     _character_id = 0;
+    _render_all_z_levels = true;
 
     auto& w = M->reset_world(std::move(w_));
     w.collect(true);
