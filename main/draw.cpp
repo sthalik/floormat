@@ -22,7 +22,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     update_window_state();
     _shader.set_scale(Vector2{fb_size});
 
-    GL::defaultFramebuffer.bind();
+    GL::Renderer::setDepthMask(true);
 
 #ifdef FM_USE_DEPTH32
     {
@@ -40,9 +40,12 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
         framebuffer.fb.bind();
     }
-#endif
-
+#else
     GL::defaultFramebuffer.setViewport({{}, fb_size });
+    GL::defaultFramebuffer.clearColor(Color4{0.f, 0.f, 0.f, 1.f});
+    GL::defaultFramebuffer.clearDepth(0);
+    GL::defaultFramebuffer.bind();
+#endif
 
     // -- state ---
     using R = GL::Renderer;
@@ -125,10 +128,11 @@ void main_impl::draw_world() noexcept
 #else
         GL::defaultFramebuffer.clearDepth(0);
 #endif
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
-    for (int8_t z = z_min; z <= z_max; z++)
+    for (int8_t z = z_max; z >= z_min; z--)
     {
-        GL::Renderer::setDepthMask(false);
+        GL::Renderer::setDepthMask(true);
 
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
@@ -144,9 +148,6 @@ void main_impl::draw_world() noexcept
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                     _floor_mesh.draw(_shader, c);
             }
-
-        GL::Renderer::setDepthMask(true);
-        GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
 
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
@@ -178,7 +179,6 @@ void main_impl::draw_world() noexcept
     }
 
     GL::Renderer::setDepthMask(true);
-
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
