@@ -98,6 +98,7 @@ private:
 
     void do_mouse_move(int modifiers);
     void do_mouse_up_down(uint8_t button, bool is_down, int modifiers);
+    void do_mouse_scroll(int offset);
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
@@ -122,6 +123,7 @@ private:
     float draw_main_menu();
     void draw_fps();
     void draw_tile_under_cursor();
+    void draw_z_level();
     void do_popup_menu();
     void kill_popups(bool hard);
     void render_menu();
@@ -155,9 +157,12 @@ private:
     cursor_state cursor;
     popup_target _popup_target;
 
-    bool _pending_popup     : 1 = false;
-    bool _render_bboxes     : 1 = false;
-    bool _render_clickables : 1 = false;
+    int8_t _z_level = 0;
+
+    bool _pending_popup         : 1 = false;
+    bool _render_bboxes         : 1 = false;
+    bool _render_clickables     : 1 = false;
+    bool _render_all_z_levels   : 1 = true;
 };
 
 } // namespace floormat

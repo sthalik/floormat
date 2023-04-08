@@ -97,7 +97,9 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
         accessor(Vector2, offset)
         accessor(Vector2i, position)
     } e = {event.offset, event.position};
-    _imgui.handleMouseScrollEvent(e);
+
+    if (!(cursor.in_imgui = _imgui.handleMouseScrollEvent(e)))
+        do_mouse_scroll((int)e.offset()[1]);
 }
 
 auto app::resolve_keybinding(int k_, int mods_) const -> std::tuple<key, int>

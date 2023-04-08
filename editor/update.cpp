@@ -98,6 +98,11 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
     _editor.on_release();
 }
 
+void app::do_mouse_scroll(int offset)
+{
+    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, 2);
+}
+
 void app::do_rotate(bool backward)
 {
     if (auto* ed = _editor.current_tile_editor())

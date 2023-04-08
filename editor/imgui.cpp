@@ -106,6 +106,7 @@ void app::draw_ui()
     draw_tile_under_cursor();
     if (_editor.mode() == editor_mode::none)
         draw_inspector();
+    draw_z_level();
     do_popup_menu();
     ImGui::EndFrame();
 }

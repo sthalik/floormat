@@ -53,6 +53,7 @@ void app::reset_camera_offset()
     constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
     constexpr auto projected = tile_shader::project(size);
     M->shader().set_camera_offset(projected, 0);
+    _z_level = 0;
     update_cursor_tile(cursor.pixel);
 }
 

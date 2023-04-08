@@ -48,4 +48,24 @@ void app::draw_tile_under_cursor()
                  {window_size[0]*.5f - size.x/2, 3*dpi[1]}, (unsigned)-1, buf);
 }
 
+void app::draw_z_level()
+{
+    if (_z_level == 0)
+        return;
+
+    if (cursor.pixel && cursor.tile && !cursor.in_imgui)
+    {
+        const auto dpi = M->dpi_scale();
+        const auto offset = Vector2(4, -3) * dpi;
+        char buf[32];
+        ImDrawList& draw = *ImGui::GetForegroundDrawList();
+        snformat(buf, " +{:d}"_cf, _z_level);
+        const auto font_size = ImGui::GetCurrentContext()->FontSize+3;
+        auto shadow_offset = Vector2(1, 1)/* * dpi */;
+        auto px = Vector2(*cursor.pixel) + offset, px2 = px + shadow_offset;
+        draw.AddText(nullptr, font_size, {px2[0], px2[1]}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}), buf);
+        draw.AddText(nullptr, font_size, {px[0], px[1]}, ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1}), buf);
+    }
+}
+
 } // namespace floormat
