@@ -17,7 +17,10 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
     //cx += c.z; cy += c.z;
     float depth_offset = shader.depth_tile_size*(cy*TILE_MAX_DIM*len_x*TILE_MAX_DIM + cx*TILE_MAX_DIM);
     const int z = c.z - chunk_min_z;
-    depth_offset += tile_shader::depth_value(local_coords{z, z}, tile_shader::scenery_depth_offset*(z+1));
+    depth_offset += tile_shader::depth_value(local_coords{z, z});
+
+    if (c.z == chunk_max_z)
+        depth_offset = 1;
 
     _shader.set_camera_offset(offset, depth_offset);
 }

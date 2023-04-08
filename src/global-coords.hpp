@@ -37,12 +37,12 @@ struct chunk_coords_ final {
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
 };
 
-constexpr inline int8_t chunk_min_z = -8, chunk_max_z = 7;
+constexpr inline int8_t chunk_min_z = -1, chunk_max_z = 14;
 
 struct global_coords final {
     using u0 = std::integral_constant<uint32_t, (1<<15)>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
-    using z0 = std::integral_constant<int32_t, (1 << 3)>;
+    using z0 = std::integral_constant<int32_t, (1 << 0)>;
     using z_mask = std::integral_constant<uint32_t, (1u << 4) - 1u << 20>;
     uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 

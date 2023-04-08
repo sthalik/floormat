@@ -13,7 +13,7 @@ static_assert(TILE_MAX_DIM == (1 << 4));
 
 static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM-1, 0}.chunk() == global_coords{}.chunk());
 static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM, 0}.chunk() == chunk_coords{0, 1});
-static_assert(global_coords{(1u + (1<<15)) << 4 | 3, (2u + (1<<15)) << 4 | 4, nullptr} == global_coords{{1, 2}, {3, 4}, -8});
+static_assert(global_coords{(1u + (1<<15)) << 4 | 3, (2u + (1<<15)) << 4 | 4, nullptr} == global_coords{{1, 2}, {3, 4}, -1});
 
 static_assert(global_coords{-123, 456, 1}.z() == 1);
 static_assert(global_coords{-123, 511, 5}.chunk() == chunk_coords{-8, 31});
