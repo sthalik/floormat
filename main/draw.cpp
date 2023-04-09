@@ -62,7 +62,6 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
     // -- user--
     app.on_viewport_event(fb_size);
-    update_collect_threshold();
 }
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
@@ -102,18 +101,6 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         y1 = std::max(y1, p.y);
     }
     return {x0, x1, y0, y1};
-}
-
-void main_impl::update_collect_threshold()
-{
-    // todo remove it?
-#if 0
-    const auto [minx, maxx, miny, maxy] = get_draw_bounds();
-    const auto value = std::max(64uz, (size_t)(maxx-minx+4)*(size_t)(maxy-minx+4));
-    if (!(GL::Context::current().configurationFlags() & GL::Implementation::ContextConfigurationFlag::QuietLog))
-        fm_debug("collect threshold is now %zu", value);
-    _world.set_collect_threshold(value);
-#endif
 }
 
 void main_impl::draw_world() noexcept

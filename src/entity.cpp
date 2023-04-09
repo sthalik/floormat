@@ -94,8 +94,7 @@ bool entity::can_rotate(rotation new_r)
 void entity::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
-    // todo normalize coords
-    auto offset_ = !is_dynamic() ? rotate_point(offset, r, new_r) : offset; // todo add boolean for this condition
+    auto offset_ = !is_dynamic() ? rotate_point(offset, r, new_r) : offset;
     auto bbox_offset_ = rotate_point(bbox_offset, r, new_r);
     auto bbox_size_ = rotate_size(bbox_size, r, new_r);
     set_bbox(offset_, bbox_offset_, bbox_size_, pass);
