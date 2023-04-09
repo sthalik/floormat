@@ -19,6 +19,10 @@ template<typename T> struct entity_type_;
 
 struct world final
 {
+    static constexpr object_id entity_counter_init = 1024;
+    static constexpr size_t initial_capacity = 64;
+    static constexpr float max_load_factor = .5;
+
 private:
     struct chunk_tuple final {
         static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_min_z };
@@ -26,14 +30,12 @@ private:
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
 
-    static constexpr size_t initial_capacity = 64;
-    static constexpr float max_load_factor = .5;
     std::unordered_map<chunk_coords_, chunk> _chunks;
     std::unordered_map<object_id, std::weak_ptr<entity>> _entities;
     size_t _last_collection = 0;
     size_t _collect_every = 64;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
-    object_id _entity_counter = 0;
+    object_id _entity_counter = entity_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct entity
     bool _teardown : 1 = false;
 

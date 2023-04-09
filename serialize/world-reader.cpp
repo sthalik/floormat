@@ -382,7 +382,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
                  (size_t)proto, (size_t)min_proto_version, (size_t)proto_version);
     PROTO = proto;
     fm_assert(PROTO > 0);
-    object_id entity_counter = 0;
+    object_id entity_counter = world::entity_counter_init;
     read_atlases(s);
     if (PROTO >= 3) [[likely]]
         read_sceneries(s);
@@ -393,10 +393,11 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
     read_chunks(s);
     s.assert_end();
     if (PROTO >= 8) [[likely]]
-    {
-        fm_assert(_world->entity_counter() == 0);
+        fm_assert(_world->entity_counter() == world::entity_counter_init);
+    if (PROTO >= 13) [[likely]]
         _world->set_entity_counter(entity_counter);
-    }
+    else if (PROTO >= 8) [[likely]]
+        _world->set_entity_counter(std::max(world::entity_counter_init, entity_counter));
     _world = nullptr;
 }
 

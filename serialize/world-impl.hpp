@@ -25,6 +25,7 @@
  * 10) Chunk Z level.
  * 11) RLE empty tiles.
  * 12) Don't write entity name twice.
+ * 13) Entity counter initialized to 1024.
  */
 
 namespace floormat {
@@ -51,7 +52,7 @@ constexpr inline auto null_atlas = (atlasid)-1LL;
 constexpr inline size_t character_name_max = 128;
 constexpr inline size_t string_max = 512;
 
-constexpr inline proto_t proto_version = 11;
+constexpr inline proto_t proto_version = 13;
 constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
