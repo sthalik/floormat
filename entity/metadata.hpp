@@ -250,19 +250,22 @@ namespace floormat {
 template<typename T>
 class entity_metadata final {
     static_assert(std::is_same_v<T, std::decay_t<T>>);
-    template<typename... Ts> static consteval auto erased_helper(const std::tuple<Ts...>& tuple);
+
+    template<typename Tuple, std::size_t... Ns>
+    static consteval auto erased_helper(const Tuple& tuple, std::index_sequence<Ns...>);
+
 public:
     static constexpr StringView class_name = name_of<T>;
     static constexpr auto accessors = entities::entity_accessors<T>::accessors();
     static constexpr size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
-    static constexpr auto erased_accessors = erased_helper(accessors);
+    static constexpr auto erased_accessors = erased_helper(accessors, std::make_index_sequence<size>{});
 };
 
 template<typename T>
-template<typename... Ts>
-consteval auto entity_metadata<T>::erased_helper(const std::tuple<Ts...>& tuple)
+template<typename Tuple, std::size_t... Ns>
+consteval auto entity_metadata<T>::erased_helper(const Tuple& tuple, std::index_sequence<Ns...>)
 {
-    std::array<entities::erased_accessor, sizeof...(Ts)> array { std::get<Ts>(tuple).erased()..., };
+    std::array<entities::erased_accessor, sizeof...(Ns)> array { std::get<Ns>(tuple).erased()..., };
     return array;
 }
 
