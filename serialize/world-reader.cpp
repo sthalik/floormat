@@ -38,6 +38,10 @@ private:
     std::vector<std::shared_ptr<tile_atlas>> atlases;
     world* _world;
     uint16_t PROTO = proto_version;
+
+    Array<chunk::entity_draw_order> draw_array;
+    std::vector<std::array<chunk::vertex, 4>> draw_vertexes;
+    std::vector<std::array<UnsignedShort, 6>> draw_indexes;
 };
 
 reader_state::reader_state(world& world) noexcept : _world{&world} {}
@@ -317,7 +321,7 @@ void reader_state::read_chunks(reader_t& s)
         c.sort_entities();
         c.ensure_ground_mesh();
         c.ensure_wall_mesh();
-        c.ensure_scenery_mesh(array);
+        c.ensure_scenery_mesh({ draw_array, draw_vertexes, draw_indexes });
         c.ensure_passability();
     }
 }

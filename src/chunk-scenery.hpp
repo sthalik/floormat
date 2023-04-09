@@ -19,6 +19,7 @@ struct chunk::topo_sort_data
 
     bool intersects(const topo_sort_data& other) const;
 };
+
 struct chunk::entity_draw_order
 {
     entity *e;
@@ -26,10 +27,18 @@ struct chunk::entity_draw_order
     float ord;
     topo_sort_data data;
 };
+
 struct chunk::scenery_mesh_tuple {
     GL::Mesh& mesh;
     ArrayView<entity_draw_order> array;
     size_t size;
+};
+
+struct chunk::scenery_scratch_buffers
+{
+    Array<entity_draw_order>& array;
+    std::vector<std::array<vertex, 4>>& scenery_vertexes;
+    std::vector<std::array<UnsignedShort, 6>>& scenery_indexes;
 };
 
 } // namespace floormat

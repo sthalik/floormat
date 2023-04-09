@@ -59,7 +59,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
 {
     constexpr auto quad_index_count = 6;
 
-    auto [mesh_, es, size] = c.ensure_scenery_mesh(_draw_array);
+    auto [mesh_, es, size] = c.ensure_scenery_mesh({ _draw_array, _draw_vertexes, _draw_indexes });
     GL::MeshView mesh{mesh_};
     const auto max_index = uint32_t(size*quad_index_count - 1);
 

@@ -84,6 +84,7 @@ struct chunk final
     struct topo_sort_data;
     struct entity_draw_order;
     struct scenery_mesh_tuple;
+    struct scenery_scratch_buffers;
 
     struct vertex {
         Vector3 position;
@@ -97,8 +98,9 @@ struct chunk final
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
     tile_atlas* wall_atlas_at(size_t i) const noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh(Array<entity_draw_order>&& array) noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept;
+
+    scenery_mesh_tuple ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept;
+    scenery_mesh_tuple ensure_scenery_mesh() noexcept;
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
@@ -120,9 +122,6 @@ private:
     std::array<uint16_t, TILE_COUNT*2> wall_indexes = {};
     std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
     std::vector<std::shared_ptr<entity>> _entities;
-
-    std::vector<std::array<UnsignedShort, 6>> scenery_indexes; // todo move to anim_mesh
-    std::vector<std::array<vertex, 4>> scenery_vertexes; // same
 
     struct world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};

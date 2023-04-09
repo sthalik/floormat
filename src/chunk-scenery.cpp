@@ -9,9 +9,12 @@
 
 namespace floormat {
 
-auto chunk::ensure_scenery_mesh(Array<entity_draw_order>&& array) noexcept -> scenery_mesh_tuple
+auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
-    return ensure_scenery_mesh(static_cast<Array<entity_draw_order>&>(array));
+    Array<entity_draw_order> array;
+    std::vector<std::array<vertex, 4>> scenery_vertexes;
+    std::vector<std::array<UnsignedShort, 6>> scenery_indexes;
+    return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
 }
 
 bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
@@ -124,12 +127,15 @@ auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
     return data;
 }
 
-auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> scenery_mesh_tuple
+auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> scenery_mesh_tuple
 {
     fm_assert(_entities_sorted);
 
     if (_scenery_modified)
     {
+        auto& scenery_vertexes = buffers.scenery_vertexes;
+        auto& scenery_indexes = buffers.scenery_indexes;
+
         _scenery_modified = false;
 
         const auto count = fm_begin(
@@ -173,6 +179,7 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
     }
 
     const auto size = _entities.size();
+    auto& array = buffers.array;
     ensure_scenery_draw_array(array);
     uint32_t j = 0;
     for (uint32_t i = 0; const auto& e : _entities)
