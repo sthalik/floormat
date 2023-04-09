@@ -19,31 +19,9 @@ set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-gc
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
-    sets(BOOL
-         FLOORMAT_PRECOMPILED-HEADERS                           OFF
-         CORRADE_BUILD_TESTS                                    ON
-         MAGNUM_BUILD_TESTS                                     ON
-         SDL_STATIC                                             OFF
-         SDL_SHARED                                             ON
-         CORRADE_BUILD_STATIC                                   OFF
-         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        OFF
-         MAGNUM_BUILD_STATIC                                    OFF
-         MAGNUM_BUILD_PLUGINS_STATIC                            OFF
-         MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     ON
-    )
+    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
 else()
-    sets(BOOL
-         FLOORMAT_PRECOMPILED-HEADERS                           ON
-         CORRADE_BUILD_TESTS                                    OFF
-         MAGNUM_BUILD_TESTS                                     OFF
-         SDL_STATIC                                             ON
-         SDL_SHARED                                             OFF
-         CORRADE_BUILD_STATIC                                   ON
-         CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        ON
-         MAGNUM_BUILD_STATIC                                    ON
-         MAGNUM_BUILD_PLUGINS_STATIC                            ON
-         MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
-    )
+    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
 
 # for building submodule dependencies
@@ -55,6 +33,32 @@ function(fm-userconfig-external)
         -Wno-restrict
         -Wno-uninitialized
     )
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+        sets(BOOL
+             CORRADE_BUILD_TESTS                                    ON
+             MAGNUM_BUILD_TESTS                                     ON
+             SDL_STATIC                                             OFF
+             SDL_SHARED                                             ON
+             CORRADE_BUILD_STATIC                                   OFF
+             CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        OFF
+             MAGNUM_BUILD_STATIC                                    OFF
+             MAGNUM_BUILD_PLUGINS_STATIC                            OFF
+             MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     ON
+        )
+    else()
+        sets(BOOL
+             CORRADE_BUILD_TESTS                                    OFF
+             MAGNUM_BUILD_TESTS                                     OFF
+             SDL_STATIC                                             ON
+             SDL_SHARED                                             OFF
+             CORRADE_BUILD_STATIC                                   ON
+             CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT        ON
+             MAGNUM_BUILD_STATIC                                    ON
+             MAGNUM_BUILD_PLUGINS_STATIC                            ON
+             MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
+        )
+    endif()
+
 endfunction()
 
 # for floormat sources only
