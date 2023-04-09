@@ -214,7 +214,7 @@ character::character(object_id id, struct chunk& c, const character_proto& proto
     if (!name)
         name = "(Unnamed)"_s;
     if (!atlas)
-        atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+        const_cast<std::shared_ptr<anim_atlas>&>(atlas) = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
     fm_soft_assert(atlas->check_rotation(r));
     entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }

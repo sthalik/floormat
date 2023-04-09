@@ -42,7 +42,7 @@ struct entity
     const object_id id = 0;
     uint64_t last_update = 0;
     struct chunk* const c;
-    std::shared_ptr<anim_atlas> atlas;
+    const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
