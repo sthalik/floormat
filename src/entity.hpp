@@ -40,13 +40,13 @@ struct entity
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(entity);
 
     const object_id id = 0;
-    uint64_t last_update = 0;
     struct chunk* const c;
     const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
+    uint8_t last_update = 0;
     const rotation r = rotation::N;
     const pass_mode pass = pass_mode::see_through;
 

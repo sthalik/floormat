@@ -203,10 +203,10 @@ start:          const auto size = es.size();
                 for (auto i = size-1; i != (size_t)-1; i--)
                 {
                     auto& e = *es[i];
-                    fm_debug_assert(!(e.last_update > curframe));
-                    if (curframe > e.last_update) [[likely]]
+                    using last_update_type = std::decay_t<decltype(e.last_update)>;
+                    if (last_update_type(curframe) != e.last_update) [[likely]]
                     {
-                        e.last_update = curframe;
+                        e.last_update = last_update_type(curframe);
                         auto status = e.update(i, dt);
                         if (status)
                         {
