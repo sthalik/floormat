@@ -126,6 +126,34 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
     return { coord, Vector2b(off_new) };
 }
 
+template<bool neighbor = true>
+static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector2 min, Vector2 max, Vector2i off = {})
+{
+    if constexpr(neighbor)
+    {
+        const auto ch = chunk_coords{(int16_t)(coord.x + off[0]), (int16_t)(coord.y + off[1])};
+        constexpr auto size = TILE_SIZE2 * TILE_MAX_DIM, grace = TILE_SIZE2 * 4;
+        const auto off_ = Vector2(off) * size;
+        min -= off_;
+        max -= off_;
+        if (!(min + grace >= Vector2{} && max - grace <= size)) [[likely]]
+            return true;
+        auto& w = c->world();
+        c = w.at({ch, coord.z});
+        if (!c) [[unlikely]]
+            return true;
+    }
+    bool ret = true;
+    c->rtree()->Search(min.data(), max.data(), [&](object_id data, const auto&) {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.data != id && x.pass != (uint64_t)pass_mode::pass)
+            return ret = false;
+        else
+            return true;
+    });
+    return ret;
+}
+
 bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
@@ -139,16 +167,16 @@ bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
-
-    bool ret = true;
-    c_.rtree()->Search(min.data(), max.data(), [&](object_id data, const auto&) {
-        auto id2 = std::bit_cast<collision_data>(data).data;
-        if (id2 != id)
-            return ret = false;
-        else
-            return true;
-    });
-    return ret;
+    auto ch = chunk_coords_{coord_.chunk(), coord_.z()};
+    return do_search<false>(&c_, ch, id, min, max)    &&
+           do_search(&c_, ch, id, min, max, {-1, -1}) &&
+           do_search(&c_, ch, id, min, max, {-1,  0}) &&
+           do_search(&c_, ch, id, min, max, { 0, -1}) &&
+           do_search(&c_, ch, id, min, max, { 1,  1}) &&
+           do_search(&c_, ch, id, min, max, { 1,  0}) &&
+           do_search(&c_, ch, id, min, max, { 0,  1}) &&
+           do_search(&c_, ch, id, min, max, { 1, -1}) &&
+           do_search(&c_, ch, id, min, max, {-1,  1});
 }
 
 bool entity::can_move_to(Vector2i delta)
