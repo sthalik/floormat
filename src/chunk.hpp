@@ -121,8 +121,8 @@ private:
     std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
     std::vector<std::shared_ptr<entity>> _entities;
 
-    std::vector<std::array<UnsignedShort, 6>> scenery_indexes;
-    std::vector<std::array<vertex, 4>> scenery_vertexes;
+    std::vector<std::array<UnsignedShort, 6>> scenery_indexes; // todo move to anim_mesh
+    std::vector<std::array<vertex, 4>> scenery_vertexes; // same
 
     struct world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
