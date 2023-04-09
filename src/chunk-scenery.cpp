@@ -132,7 +132,55 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
     std::sort(array.begin(), array.begin() + size, [](const auto& a, const auto& b) { return a.ord < b.ord; });
     topological_sort(array, size);
 
-    return { ArrayView<entity_draw_order>{array, size} };
+    const auto es = ArrayView<entity_draw_order>{array, size};
+
+    if (_scenery_modified)
+    {
+        _scenery_modified = false;
+
+        const auto count = fm_begin(
+            size_t ret = 0;
+            for (const auto& [e, ord, _data] : es)
+                ret += !e->is_dynamic();
+            return ret;
+        );
+
+        scenery_indexes.clear();
+        scenery_indexes.reserve(count);
+        scenery_vertexes.clear();
+        scenery_vertexes.reserve(count);
+
+        for (const auto& [e, ord, _data] : es)
+        {
+            if (e->is_dynamic())
+                continue;
+
+            const auto i = scenery_indexes.size();
+            scenery_indexes.emplace_back(tile_atlas::indices(i));
+            const auto& atlas = e->atlas;
+            const auto& fr = *e;
+            const auto pos = e->coord.local();
+            const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
+            const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
+            const auto& group = atlas->group(fr.r);
+            const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
+            const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
+            scenery_vertexes.emplace_back();
+            auto& v = scenery_vertexes.back();
+            for (auto j = 0uz; j < 4; j++)
+                v[j] = { quad[j], texcoords[j], depth };
+        }
+
+        GL::Mesh mesh{GL::MeshPrimitive::Triangles};
+        mesh.addVertexBuffer(GL::Buffer{scenery_vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+            .setIndexBuffer(GL::Buffer{scenery_indexes}, 0, GL::MeshIndexType::UnsignedShort)
+            .setCount(int32_t(6 * count));
+        scenery_mesh = Utility::move(mesh);
+    }
+
+    fm_assert(!size || es);
+
+    return { scenery_mesh, es, size };
 }
 
 void chunk::ensure_scenery_draw_array(Array<entity_draw_order>& array)

@@ -125,7 +125,7 @@ private:
     std::vector<std::array<vertex, 4>> scenery_vertexes;
 
     struct world* _world;
-    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
+    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
 
     RTree _rtree;
 

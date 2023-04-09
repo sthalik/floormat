@@ -6,7 +6,6 @@
 #include "chunk-scenery.hpp"
 #include <cstdio>
 #include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Texture.h>
 
@@ -14,29 +13,10 @@ namespace floormat {
 
 anim_mesh::anim_mesh()
 {
-    _mesh.setCount(quad_index_count)
+    _mesh.setCount(6)
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
     CORRADE_INTERNAL_ASSERT(_mesh.isIndexed());
-
-    _batch_mesh.setCount(batch_size * quad_index_count)
-               .addVertexBuffer(_batch_vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-               .setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
-    CORRADE_INTERNAL_ASSERT(_batch_mesh.isIndexed());
-}
-
-auto anim_mesh::make_batch_index_array() -> std::array<std::array<UnsignedShort, quad_index_count>, batch_size>
-{
-    std::array<std::array<UnsignedShort, quad_index_count>, batch_size> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
-    for (std::size_t N = 0; N < batch_size; N++)
-    {
-        using u16 = uint16_t;
-        array[N] = {                                    /* 3--1  1 */
-            (u16)(0+N*4), (u16)(1+N*4), (u16)(2+N*4),   /* | /  /| */
-            (u16)(2+N*4), (u16)(1+N*4), (u16)(3+N*4),   /* |/  / | */
-        };                                              /* 2  2--0 */
-    }
-    return array;
 }
 
 std::array<UnsignedShort, 6> anim_mesh::make_index_array()
@@ -77,59 +57,67 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
 
 void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list)
 {
-    GL::MeshView mesh{_batch_mesh};
-    auto [es] = c.ensure_scenery_mesh(_draw_array);
-    std::array<quad_data, batch_size> array = {};
-    std::array<anim_atlas*, batch_size> atlases = {};
-    anim_atlas* last_atlas = nullptr;
+    constexpr auto quad_index_count = 6;
 
-    constexpr auto do_draw = [](tile_shader& shader, GL::MeshView& mesh, anim_atlas*& last_atlas, anim_atlas* atlas, uint32_t i) {
-          constexpr auto max_index = uint32_t(batch_size*quad_index_count - 1);
-          if (atlas != last_atlas)
-          {
-              last_atlas = atlas;
-              atlas->texture().bind(0);
-          }
-          mesh.setCount((int)(quad_index_count));
-          mesh.setIndexRange((int)(i*quad_index_count), 0, max_index);
-          shader.draw(mesh);
+    auto [mesh_, es, size] = c.ensure_scenery_mesh(_draw_array);
+    for (const auto& x : es)
+        add_clickable(shader, win_size, x.data.in, x.data, list);
+
+    GL::MeshView mesh{mesh_};
+    [[maybe_unused]] size_t draw_count = 0;
+    const auto max_index = uint32_t(size*quad_index_count - 1);
+
+    const auto do_draw = [&](size_t from, size_t to, anim_atlas* atlas) {
+        atlas->texture().bind(0);
+        mesh.setCount((int)(quad_index_count * (to-from)));
+        mesh.setIndexRange((int)(from*quad_index_count), 0, max_index);
+        shader.draw(mesh);
+        draw_count++;
     };
 
-    uint32_t k = 0;
+    fm_debug_assert(size_t(mesh_.count()) <= size*quad_index_count);
 
-    for (const auto& x : es)
+    struct last_ {
+        anim_atlas* atlas = nullptr; size_t run_from = 0;
+        operator bool() const { return atlas; }
+        last_& operator=(std::nullptr_t) { atlas = nullptr; return *this; }
+    } last;
+    size_t i = 0;
+
+    for (auto k = 0uz; k < size; k++)
     {
-        fm_assert(x.e);
-        add_clickable(shader, win_size, x.data.in, x.data, list);
-        const auto& e = *x.e;
-        const auto depth0 = e.depth_offset();
-        const auto depth1 = depth0[1]*TILE_MAX_DIM + depth0[0];
-        const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
-        const auto pos0 = Vector3(e.coord.local()) * TILE_SIZE + Vector3(Vector2(e.offset), 0);
+        fm_assert(es[k].e);
+        auto& e = *es[k].e;
         auto& atlas = *e.atlas;
-        const auto pos = atlas.frame_quad(pos0, e.r, e.frame);
-        const auto& g = atlas.group(e.r);
-        const auto texcoords = atlas.texcoords_for_frame(e.r, e.frame, !g.mirror_from.isEmpty());
-
-        for (auto i = 0uz; i < 4; i++)
-            array[k][i] = { pos[i], texcoords[i], depth };
-        atlases[k] = &atlas;
-
-        if (++k >= 1)
+        if (last.atlas && &atlas != last.atlas)
         {
-            _batch_vertex_buffer.setSubData(0, { array.data(), k });
-            for (uint32_t i = 0; i < k; i++)
-                do_draw(shader, mesh, last_atlas, atlases[i], i);
-            k = 0;
+            //Debug{} << "draw-static" << es[last.run_from].e->atlas->name() << es[last.run_from].e->ordinal() << Vector2i(es[last.run_from].e->coord.local()) << i - last.run_from;
+            do_draw(last.run_from, i, last.atlas);
+            last = {};
+        }
+        if (e.is_dynamic())
+        {
+            const auto depth0 = e.depth_offset();
+            const auto depth1 = depth0[1]*TILE_MAX_DIM + depth0[0];
+            const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
+            //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
+            draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
+            last = {};
+        }
+        else
+        {
+            if (!last.atlas)
+                last = { &atlas, i };
+            i++;
         }
     }
-
-    if (k > 0)
+    if (last.atlas && i != last.run_from)
     {
-        _batch_vertex_buffer.setSubData(0, ArrayView<const quad_data>{array.data(), k});
-        for (uint32_t i = 0; i < k; i++)
-            do_draw(shader, mesh, last_atlas, atlases[i], i);
+        //Debug{} << "draw-last" << last.atlas->name() << es[es.size()-1].e->ordinal() << Vector2i(es[es.size()-1].e->coord.local()) << i - last.run_from;
+        do_draw(last.run_from, i, last.atlas);
     }
+
+    //Debug{} << "--" << i << draw_count << "--"; std::fflush(stdout);
 }
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, float depth)
