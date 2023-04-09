@@ -61,7 +61,9 @@ static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, siz
             topo_dfs(array, output, j, size);
     }
     fm_assert(output < size);
-    array[output++].e = data_i.in;
+    array[output].e = data_i.in;
+    array[output].mesh_idx = data_i.in_mesh_idx;
+    output++;
 }
 
 static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size)
@@ -74,7 +76,7 @@ static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size
     fm_assert(output == size);
 }
 
-auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
+auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
 {
     const auto& a = *e.atlas;
     const auto& f = a.frame(e.r, e.frame);
@@ -83,8 +85,10 @@ auto chunk::make_topo_sort_data(entity& e) -> topo_sort_data
     const auto px_start = pos - Vector2(e.bbox_offset) - Vector2(f.ground), px_end = px_start + Vector2(f.size);
     topo_sort_data data = {
         .in = &e,
-        .min = Vector2i(px_start), .max = Vector2i(px_end),
+        .min = Vector2i(px_start),
+        .max = Vector2i(px_end),
         .center = Vector2i(pos),
+        .in_mesh_idx = mesh_idx,
         .ord = e.ordinal(),
     };
     if (e.type() == entity_type::scenery && !e.is_dynamic())
@@ -124,23 +128,13 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
 {
     fm_assert(_entities_sorted);
 
-    const auto size = _entities.size();
-
-    ensure_scenery_draw_array(array);
-    for (auto i = 0uz; const auto& e : _entities)
-        array[i++] = { e.get(), e->ordinal(), make_topo_sort_data(*e) };
-    std::sort(array.begin(), array.begin() + size, [](const auto& a, const auto& b) { return a.ord < b.ord; });
-    topological_sort(array, size);
-
-    const auto es = ArrayView<entity_draw_order>{array, size};
-
     if (_scenery_modified)
     {
         _scenery_modified = false;
 
         const auto count = fm_begin(
             size_t ret = 0;
-            for (const auto& [e, ord, _data] : es)
+            for (const auto& e : _entities)
                 ret += !e->is_dynamic();
             return ret;
         );
@@ -150,7 +144,7 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
         scenery_vertexes.clear();
         scenery_vertexes.reserve(count);
 
-        for (const auto& [e, ord, _data] : es)
+        for (const auto& e : _entities)
         {
             if (e->is_dynamic())
                 continue;
@@ -178,9 +172,18 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
         scenery_mesh = Utility::move(mesh);
     }
 
-    fm_assert(!size || es);
+    const auto size = _entities.size();
+    ensure_scenery_draw_array(array);
+    uint32_t j = 0;
+    for (uint32_t i = 0; const auto& e : _entities)
+    {
+        auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
+        array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
+    }
+    std::sort(array.begin(), array.begin() + size, [](const auto& a, const auto& b) { return a.ord < b.ord; });
+    topological_sort(array, size);
 
-    return { scenery_mesh, es, size };
+    return { scenery_mesh, ArrayView<entity_draw_order>{array, size}, j };
 }
 
 void chunk::ensure_scenery_draw_array(Array<entity_draw_order>& array)

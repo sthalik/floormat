@@ -60,64 +60,40 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
     constexpr auto quad_index_count = 6;
 
     auto [mesh_, es, size] = c.ensure_scenery_mesh(_draw_array);
-    for (const auto& x : es)
-        add_clickable(shader, win_size, x.data.in, x.data, list);
-
     GL::MeshView mesh{mesh_};
-    [[maybe_unused]] size_t draw_count = 0;
     const auto max_index = uint32_t(size*quad_index_count - 1);
 
-    const auto do_draw = [&](size_t from, size_t to, anim_atlas* atlas) {
+    constexpr auto do_draw = [](tile_shader& shader, GL::Mesh& mesh_, anim_atlas* atlas, uint32_t i, uint32_t max_index) {
+        GL::MeshView mesh{mesh_};
         atlas->texture().bind(0);
-        mesh.setCount((int)(quad_index_count * (to-from)));
-        mesh.setIndexRange((int)(from*quad_index_count), 0, max_index);
+        mesh.setCount((int)(quad_index_count * 1));
+        mesh.setIndexRange((int)(i*quad_index_count), 0, max_index);
         shader.draw(mesh);
-        draw_count++;
     };
 
-    fm_debug_assert(size_t(mesh_.count()) <= size*quad_index_count);
+    uint32_t i = 0;
 
-    struct last_ {
-        anim_atlas* atlas = nullptr; size_t run_from = 0;
-        operator bool() const { return atlas; }
-        last_& operator=(std::nullptr_t) { atlas = nullptr; return *this; }
-    } last;
-    size_t i = 0;
-
-    for (auto k = 0uz; k < size; k++)
+    for (const auto& x : es)
     {
-        fm_assert(es[k].e);
-        auto& e = *es[k].e;
+        fm_assert(x.e);
+        add_clickable(shader, win_size, x.data.in, x.data, list);
+        auto& e = *x.e;
         auto& atlas = *e.atlas;
-        if (last.atlas && &atlas != last.atlas)
+        fm_assert(e.is_dynamic() == (x.mesh_idx == (uint32_t)-1));
+        if (!e.is_dynamic())
         {
-            //Debug{} << "draw-static" << es[last.run_from].e->atlas->name() << es[last.run_from].e->ordinal() << Vector2i(es[last.run_from].e->coord.local()) << i - last.run_from;
-            do_draw(last.run_from, i, last.atlas);
-            last = {};
+            fm_assert(i < size);
+            do_draw(shader, mesh_, &atlas, x.mesh_idx, max_index);
+            i++;
         }
-        if (e.is_dynamic())
+        else
         {
             const auto depth0 = e.depth_offset();
             const auto depth1 = depth0[1]*TILE_MAX_DIM + depth0[0];
             const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
-            //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
-            last = {};
-        }
-        else
-        {
-            if (!last.atlas)
-                last = { &atlas, i };
-            i++;
         }
     }
-    if (last.atlas && i != last.run_from)
-    {
-        //Debug{} << "draw-last" << last.atlas->name() << es[es.size()-1].e->ordinal() << Vector2i(es[es.size()-1].e->coord.local()) << i - last.run_from;
-        do_draw(last.run_from, i, last.atlas);
-    }
-
-    //Debug{} << "--" << i << draw_count << "--"; std::fflush(stdout);
 }
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, float depth)

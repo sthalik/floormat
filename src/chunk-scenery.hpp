@@ -11,6 +11,7 @@ struct chunk::topo_sort_data
 
     entity* in = nullptr;
     Vector2i min, max, center;
+    uint32_t in_mesh_idx;
     float slope = 0, ord;
     Vector2s bb_min = {}, bb_max = {};
     m mode : 2 = mode_none;
@@ -21,6 +22,7 @@ struct chunk::topo_sort_data
 struct chunk::entity_draw_order
 {
     entity *e;
+    uint32_t mesh_idx;
     float ord;
     topo_sort_data data;
 };
