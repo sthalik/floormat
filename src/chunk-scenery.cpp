@@ -12,8 +12,8 @@ namespace floormat {
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
     Array<entity_draw_order> array;
-    std::vector<std::array<vertex, 4>> scenery_vertexes;
-    std::vector<std::array<UnsignedShort, 6>> scenery_indexes;
+    Array<std::array<vertex, 4>> scenery_vertexes;
+    Array<std::array<UnsignedShort, 6>> scenery_indexes;
     return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
 }
 
@@ -129,13 +129,12 @@ auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
 
 auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> scenery_mesh_tuple
 {
+    ensure_scenery_buffers(buffers);
+
     fm_assert(_entities_sorted);
 
     if (_scenery_modified)
     {
-        auto& scenery_vertexes = buffers.scenery_vertexes;
-        auto& scenery_indexes = buffers.scenery_indexes;
-
         _scenery_modified = false;
 
         const auto count = fm_begin(
@@ -145,18 +144,14 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             return ret;
         );
 
-        scenery_indexes.clear();
-        scenery_indexes.reserve(count);
-        scenery_vertexes.clear();
-        scenery_vertexes.reserve(count);
+        auto& scenery_vertexes = buffers.scenery_vertexes;
+        auto& scenery_indexes = buffers.scenery_indexes;
 
-        for (const auto& e : _entities)
+        for (auto i = 0uz; const auto& e : _entities)
         {
             if (e->is_dynamic())
                 continue;
 
-            const auto i = scenery_indexes.size();
-            scenery_indexes.emplace_back(tile_atlas::indices(i));
             const auto& atlas = e->atlas;
             const auto& fr = *e;
             const auto pos = e->coord.local();
@@ -165,22 +160,24 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             const auto& group = atlas->group(fr.r);
             const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
             const float depth = tile_shader::depth_value(pos, tile_shader::scenery_depth_offset);
-            scenery_vertexes.emplace_back();
-            auto& v = scenery_vertexes.back();
+
             for (auto j = 0uz; j < 4; j++)
-                v[j] = { quad[j], texcoords[j], depth };
+                scenery_vertexes[i][j] = { quad[j], texcoords[j], depth };
+            scenery_indexes[i] = tile_atlas::indices(i);
+            i++;
         }
 
         GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-        mesh.addVertexBuffer(GL::Buffer{scenery_vertexes}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-            .setIndexBuffer(GL::Buffer{scenery_indexes}, 0, GL::MeshIndexType::UnsignedShort)
+        auto vert_view = ArrayView<std::array<vertex, 4>>{scenery_vertexes, count};
+        auto index_view = ArrayView<std::array<UnsignedShort, 6>>{scenery_indexes, count};
+        mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+            .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
             .setCount(int32_t(6 * count));
         scenery_mesh = Utility::move(mesh);
     }
 
     const auto size = _entities.size();
     auto& array = buffers.array;
-    ensure_scenery_draw_array(array);
     uint32_t j = 0;
     for (uint32_t i = 0; const auto& e : _entities)
     {
@@ -193,11 +190,11 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     return { scenery_mesh, ArrayView<entity_draw_order>{array, size}, j };
 }
 
-void chunk::ensure_scenery_draw_array(Array<entity_draw_order>& array)
+void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
 {
     const size_t len_ = _entities.size();
 
-    if (len_ <= array.size())
+    if (len_ <= bufs.array.size())
         return;
 
     size_t len;
@@ -207,7 +204,9 @@ void chunk::ensure_scenery_draw_array(Array<entity_draw_order>& array)
     else
         len = std::bit_ceil(len_);
 
-    array = Array<entity_draw_order>{len};
+    bufs.array = Array<entity_draw_order>{NoInit, len};
+    bufs.scenery_vertexes = Array<std::array<vertex, 4>>{NoInit, len};
+    bufs.scenery_indexes = Array<std::array<UnsignedShort, 6>>{NoInit, len};
 }
 
 } // namespace floormat

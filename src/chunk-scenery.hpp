@@ -37,8 +37,8 @@ struct chunk::scenery_mesh_tuple {
 struct chunk::scenery_scratch_buffers
 {
     Array<entity_draw_order>& array;
-    std::vector<std::array<vertex, 4>>& scenery_vertexes;
-    std::vector<std::array<UnsignedShort, 6>>& scenery_indexes;
+    Array<std::array<vertex, 4>>& scenery_vertexes;
+    Array<std::array<UnsignedShort, 6>>& scenery_indexes;
 };
 
 } // namespace floormat

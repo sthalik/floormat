@@ -40,8 +40,8 @@ private:
     uint16_t PROTO = proto_version;
 
     Array<chunk::entity_draw_order> draw_array;
-    std::vector<std::array<chunk::vertex, 4>> draw_vertexes;
-    std::vector<std::array<UnsignedShort, 6>> draw_indexes;
+    Array<std::array<chunk::vertex, 4>> draw_vertexes;
+    Array<std::array<UnsignedShort, 6>> draw_indexes;
 };
 
 reader_state::reader_state(world& world) noexcept : _world{&world} {}
