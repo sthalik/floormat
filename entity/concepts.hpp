@@ -8,17 +8,17 @@
 namespace floormat::entities {
 
 template<typename F, typename T, typename FieldType>
-concept FieldReader_memfn = requires(const T x, F f) {
+concept FieldReader_memfn = requires(const T& x, F f) {
     { (x.*f)() } -> std::convertible_to<FieldType>;
 };
 
 template<typename F, typename T, typename FieldType>
-concept FieldReader_ptr = requires(const T x, F f) {
+concept FieldReader_ptr = requires(const T& x, F f) {
     { x.*f } -> std::convertible_to<FieldType>;
 };
 
 template<typename F, typename T, typename FieldType>
-concept FieldReader_function = requires(const T x, F f) {
+concept FieldReader_function = requires(const T& x, F f) {
     { f(x) } -> std::convertible_to<FieldType>;
 };
 
@@ -30,17 +30,17 @@ concept FieldReader = requires {
 };
 
 template<typename F, typename T, typename FieldType>
-concept FieldWriter_memfn = requires(T x, move_qualified<FieldType> value, F f) {
+concept FieldWriter_memfn = requires(T& x, move_qualified<FieldType> value, F f) {
     { (x.*f)(value) } -> std::same_as<void>;
 };
 
 template<typename F, typename T, typename FieldType>
-concept FieldWriter_ptr = requires(T x, move_qualified<FieldType> value, F f) {
+concept FieldWriter_ptr = requires(T& x, move_qualified<FieldType> value, F f) {
     { x.*f = value };
 };
 
 template<typename F, typename T, typename FieldType>
-concept FieldWriter_function = requires(T x, move_qualified<FieldType> value, F f) {
+concept FieldWriter_function = requires(T& x, move_qualified<FieldType> value, F f) {
     { f(x, value) } -> std::same_as<void>;
 };
 
