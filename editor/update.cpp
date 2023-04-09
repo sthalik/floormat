@@ -68,7 +68,11 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
             if (button == mouse_button_left)
             {
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                    return (void)cl->e->activate(cl->e->index());
+                {
+                    auto& e = *cl->e;
+                    const auto i = e.index();
+                    return e.can_activate(i) ? (void)e.activate(i) : void();
+                }
             }
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
