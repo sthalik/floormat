@@ -22,33 +22,36 @@ bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
 
 static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
 {
-    using topo_sort_data = chunk::topo_sort_data;
-    auto& data_i = array[i].data;
-    if (data_i.visited)
+    using m = typename chunk::topo_sort_data::m;
+
+    if (array[i].data.visited)
         return;
-    data_i.visited = true;
+    array[i].data.visited = true;
+
+    const auto& data_i = array[i].data;
+
     for (auto j = 0uz; j < size; j++)
     {
         if (i == j)
             continue;
-        auto& data_j = array[j].data;
+        const auto& data_j = array[j].data;
         if (data_j.visited)
             continue;
-        if (data_j.mode == topo_sort_data::mode_static && data_i.mode == topo_sort_data::mode_character)
+        if (data_j.mode == m::mode_static && data_i.mode == m::mode_character)
         {
             if (!data_i.intersects(data_j))
                 continue;
-            const topo_sort_data &c = data_i, &s = data_j;
+            const auto &c = data_i, &s = data_j;
             auto off = c.center.x() - s.center.x();
             auto y = s.center.y() + s.slope * off;
             if (y < c.center.y())
                 topo_dfs(array, output, j, size);
         }
-        else if (data_i.mode == topo_sort_data::mode_static && data_j.mode == topo_sort_data::mode_character)
+        else if (data_i.mode == m::mode_static && data_j.mode == m::mode_character)
         {
             if (!data_i.intersects(data_j))
                 continue;
-            const topo_sort_data &c = data_j, &s = data_i;
+            const auto &c = data_j, &s = data_i;
             auto off = c.center.x() - s.center.x();
             auto y = s.center.y() + s.slope * off;
             if (y >= c.center.y())
@@ -153,8 +156,7 @@ auto chunk::ensure_scenery_mesh(Array<entity_draw_order>& array) noexcept -> sce
                 continue;
 
             const auto i = scenery_indexes.size();
-            scenery_indexes.emplace_back();
-            scenery_indexes.back() = tile_atlas::indices(i);
+            scenery_indexes.emplace_back(tile_atlas::indices(i));
             const auto& atlas = e->atlas;
             const auto& fr = *e;
             const auto pos = e->coord.local();
