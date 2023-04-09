@@ -155,7 +155,7 @@ template<typename T> bool inspect_type(T& x)
     return ret;
 }
 
-template bool inspect_type<entity>(entity&);
-template bool inspect_type<scenery>(scenery&);
+template bool inspect_type(entity&);
+template bool inspect_type(scenery&);
 
 } // namespace floormat::entities
