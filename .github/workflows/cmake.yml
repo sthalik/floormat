@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-22.04]
         include:
         - os: ubuntu-22.04
-          cmake: /usr/bin/env CC=clang-16 CXX=clang++-16 cmake
+          cmake: /usr/bin/env CC=gcc-12 CXX=g++-12 cmake
         #- os: macos-12
         #  cmake: /usr/bin/env CC="$(brew --prefix llvm@15)/bin/clang" CXX="$(brew --prefix llvm@15)/bin/clang++" cmake
         #- os: windows-latest
@@ -39,13 +39,10 @@ jobs:
 
     - name: Install Linux dependencies
       run: |
-        wget -q https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 16
         sudo apt -q=2 update
-        sudo apt install gdb ninja-build
-        sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libsdl2-dev
-      # sudo apt -q install libopencv-dev
+        sudo apt install g++-12 gdb ninja-build
+        sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
+        sudo apt -q install libsdl2-dev
       if: matrix.os == 'ubuntu-22.04'
 
     - name: Install OSX dependencies
@@ -54,7 +51,7 @@ jobs:
       if: matrix.os == 'macos-12'
 
     - name: Configure
-      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFLOORMAT_PRECOMPILED-HEADERS:BOOL=OFF
 
     - name: Build
       run: ${{matrix.cmake}} --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install
