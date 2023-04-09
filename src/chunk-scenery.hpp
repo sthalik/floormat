@@ -25,9 +25,7 @@ struct chunk::entity_draw_order
     topo_sort_data data;
 };
 struct chunk::scenery_mesh_tuple {
-    GL::Mesh& mesh;
     ArrayView<entity_draw_order> array;
-    size_t size;
 };
 
 } // namespace floormat

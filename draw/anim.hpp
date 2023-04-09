@@ -34,7 +34,9 @@ struct anim_mesh final
                               std::vector<clickable>& list);
 
 private:
-    static std::array<UnsignedShort, 6> make_index_array();
+    static constexpr size_t batch_size = 256, quad_index_count = 6;
+    static std::array<UnsignedShort, quad_index_count> make_index_array();
+    static std::array<std::array<UnsignedShort, quad_index_count>, batch_size> make_batch_index_array();
 
     struct vertex_data final {
         Vector3 position;
@@ -47,6 +49,10 @@ private:
     GL::Mesh _mesh;
     GL::Buffer _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
                _index_buffer{make_index_array()};
+
+    GL::Mesh _batch_mesh{NoCreate};
+    GL::Buffer _batch_vertex_buffer{std::array<quad_data, batch_size>{}, Magnum::GL::BufferUsage::DynamicDraw},
+               _batch_index_buffer{make_batch_index_array()};
 };
 
 } // namespace floormat
