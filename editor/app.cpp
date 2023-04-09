@@ -146,11 +146,20 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     }
     if (auto str = args.value<StringView>("window");
         str == "fullscreen")
-        opts.fullscreen = true, opts.resizable = false;
+    {
+        opts.fullscreen = true;
+        opts.resizable = false;
+    }
     else if (str == "borderless")
-        opts.borderless = true, opts.resizable = false;
+    {
+        opts.borderless = true;
+        opts.resizable = false;
+    }
     else if (str == "fullscreen-desktop")
-        opts.fullscreen_desktop = true, opts.resizable = false;
+    {
+        opts.fullscreen_desktop = true;
+        opts.resizable = false;
+    }
     else if (str == "maximize" || str == "maximized")
         opts.maximized = true;
     else if (str == "windowed")

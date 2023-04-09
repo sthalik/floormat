@@ -107,7 +107,6 @@ function(fm-userconfig-src)
         -Wno-ignored-attributes
         -Wno-reserved-identifier
         -Wno-zero-length-array
-        -Wno-comma
         -Wno-unsafe-buffer-usage
     )
     add_compile_options(
@@ -123,5 +122,6 @@ function(fm-userconfig-src)
         -Wno-error=alloca
         -Wno-error=double-promotion
         -Wno-error=ambiguous-reversed-operator
+        -Wno-error=comma
     )
 endfunction()
