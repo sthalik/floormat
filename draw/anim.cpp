@@ -4,6 +4,7 @@
 #include "shaders/tile.hpp"
 #include "main/clickable.hpp"
 #include "chunk-scenery.hpp"
+#include <cstdio>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Texture.h>
@@ -88,11 +89,11 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         fm_assert(es[k].e);
         auto& e = *es[k].e;
         auto& atlas = *e.atlas;
-        if (last && &atlas != last.atlas)
+        if (last.atlas && &atlas != last.atlas)
         {
-            //Debug{} << "draw-static" << last.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
+            //Debug{} << "draw-static" << es[last.run_from].e->atlas->name() << es[last.run_from].e->ordinal() << Vector2i(es[last.run_from].e->coord.local()) << i - last.run_from;
             do_draw(last.run_from, i, last.atlas);
-            last = nullptr;
+            last = {};
         }
         if (e.is_dynamic())
         {
@@ -101,28 +102,22 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
             const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
             //Debug{} << "draw-dyn" << e.atlas->name() << e.ordinal() << Vector2i(e.coord.local());
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
-            last = nullptr;
+            last = {};
         }
         else
         {
-            if (!last)
+            if (!last.atlas)
                 last = { &atlas, i };
             i++;
         }
     }
-    if (last)
+    if (last.atlas && i != last.run_from)
     {
-        //Debug{} << "draw-last" << last.atlas->name() << es[es.size()-1]->ordinal() << Vector2i(es[es.size()-1]->coord.local());
+        //Debug{} << "draw-last" << last.atlas->name() << es[es.size()-1].e->ordinal() << Vector2i(es[es.size()-1].e->coord.local()) << i - last.run_from;
         do_draw(last.run_from, i, last.atlas);
     }
 
-    //Debug{} << "--" << i << "--";
-
-//#define FM_DEBUG_DRAW_COUNT
-#ifdef FM_DEBUG_DRAW_COUNT
-    if (draw_count)
-        fm_debug("anim draws: %zu", draw_count);
-#endif
+    //Debug{} << "--" << i << draw_count << "--"; std::fflush(stdout);
 }
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, float depth)
