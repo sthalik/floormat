@@ -8,81 +8,80 @@
 #include "chunk.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 
-//#define TEST_STR
-
-#ifdef TEST_STR
-#include <Corrade/Containers/String.h>
-static Corrade::Containers::String my_str;
-#endif
-
 namespace floormat::entities {
+
+template<>
+struct entity_accessors<entity> {
+    static constexpr auto accessors()
+    {
+        using E = Entity<entity>;
+        return std::tuple{
+            E::type<object_id>::field{"id"_s,
+                [](const entity& x) { return x.id; },
+                [](entity&, object_id) {},
+                constantly(field_status::readonly),
+            },
+            E::type<StringView>::field{"atlas"_s,
+                [](const entity& x) { return loader.strip_prefix(x.atlas->name()); },
+                [](entity&, StringView) {},
+                constantly(field_status::readonly),
+            },
+            E::type<rotation>::field{"rotation"_s,
+                [](const entity& x) { return x.r; },
+                [](entity& x, rotation r) { x.rotate(x.index(), r); },
+            },
+            E::type<uint16_t>::field{"frame"_s,
+                [](const entity& x) { return x.frame; },
+                [](entity& x, uint16_t value) { x.frame = value; },
+                [](const entity& x) { return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)}; }
+            },
+            E::type<Vector2b>::field{"offset"_s,
+                [](const entity& x) { return x.offset; },
+                [](entity& x, Vector2b value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
+                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
+            },
+            E::type<pass_mode>::field{"pass-mode"_s,
+                [](const entity& x) { return x.pass; },
+                [](entity& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); }
+            },
+            E::type<Vector2b>::field{"bbox-offset"_s,
+                [](const entity& x) { return x.bbox_offset; },
+                [](entity& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
+                [](const entity& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+            },
+            E::type<Vector2ub>::field{"bbox-size"_s,
+                [](const entity& x) { return x.bbox_size; },
+                [](entity& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
+                [](const entity& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+            },
+        };
+    }
+};
 
 template<>
 struct entity_accessors<scenery> {
     static constexpr auto accessors()
     {
-        using entity = Entity<scenery>;
-        return std::tuple{
-            entity::type<uint64_t>::field{"id"_s,
-                [](const scenery& x) { return x.id; },
-                [](scenery&, uint64_t) {},
-                constantly(field_status::readonly),
-            },
-            entity::type<StringView>::field{"atlas"_s,
-                [](const scenery& x) { return loader.strip_prefix(x.atlas->name()); },
-                [](scenery&, StringView) {},
-                constantly(field_status::readonly),
-            },
-            entity::type<rotation>::field{"rotation"_s,
-                [](const scenery& x) { return x.r; },
-                [](scenery& x, rotation r) { x.rotate(x.index(), r); },
-            },
-            entity::type<uint16_t>::field{"frame"_s,
-                [](const scenery& x) { return x.frame; },
-                [](scenery& x, uint16_t value) { x.frame = value; },
-                [](const scenery& x) { return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)}; }
-            },
-            entity::type<Vector2b>::field{"offset"_s,
-                [](const scenery& x) { return x.offset; },
-                [](scenery& x, Vector2b value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
-                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
-            },
-            entity::type<pass_mode>::field{"pass-mode"_s,
-                [](const scenery& x) { return x.pass; },
-                [](scenery& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); }
-            },
-            entity::type<Vector2b>::field{"bbox-offset"_s,
-                [](const scenery& x) { return x.bbox_offset; },
-                [](scenery& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
-                [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
-            },
-            entity::type<Vector2ub>::field{"bbox-size"_s,
-                [](const scenery& x) { return x.bbox_size; },
-                [](scenery& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
-                [](const scenery& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
-            },
-            entity::type<bool>::field{"interactive"_s,
+        using E = Entity<scenery>;
+        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple = std::tuple{
+            E::type<bool>::field{"interactive"_s,
                 [](const scenery& x) { return x.interactive; },
                 [](scenery& x, bool value) { x.interactive = value; }
             },
-#ifdef TEST_STR
-            entity::type<String>::field{"string"_s,
-                [](const scenery&) { return my_str; },
-                [](scenery&, String value) { my_str = std::move_to(value); },
-                constantly(constraints::max_length{8}),
-            },
-#endif
         };
+        return std::tuple_cat(tuple0, tuple);
     }
 };
 
 template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
-template<> struct has_anim_atlas<scenery> : std::true_type {
-    static const anim_atlas& get_atlas(const scenery& x) {
+template<> struct has_anim_atlas<entity> : std::true_type {
+    static const anim_atlas& get_atlas(const entity& x) {
         fm_assert(x.atlas);
         return *x.atlas;
     }
 };
+template<> struct has_anim_atlas<scenery> : has_anim_atlas<entity> {};
 
 using enum_pair = std::pair<StringView, size_t>;
 template<typename T, typename U> struct enum_values;
@@ -136,13 +135,12 @@ struct enum_values<rotation, U> : std::false_type {
     }
 };
 
-template<>
-bool inspect_type<scenery>(scenery& x)
+template<typename T> bool inspect_type(T& x)
 {
     bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
-        using enum_type = enum_values<type, scenery>;
+        using enum_type = enum_values<type, T>;
         if constexpr(enum_type::value)
         {
             constexpr auto list = enum_type::get();
@@ -153,8 +151,11 @@ bool inspect_type<scenery>(scenery& x)
             const auto& list = enum_type::get(x);
             ret |= inspect_field<type>(&x, field.erased(), list);
         }
-    }, entity_metadata<scenery>::accessors);
+    }, entity_metadata<T>::accessors);
     return ret;
 }
+
+template bool inspect_type<entity>(entity&);
+template bool inspect_type<scenery>(scenery&);
 
 } // namespace floormat::entities
