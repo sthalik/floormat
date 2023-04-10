@@ -1,8 +1,6 @@
 #pragma once
 #include "src/precomp.hpp"
 
-#include <Corrade/Utility/DebugStl.h>
-
 #include <Magnum/Timeline.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/GL/DefaultFramebuffer.h>

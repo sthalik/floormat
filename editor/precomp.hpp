@@ -1,6 +1,8 @@
 #pragma once
 
 #include "src/precomp.hpp"
+#include "entity/metadata.hpp"
+#include "entity/accessor.hpp"
 
 #include <cstdlib>
 #include <map>

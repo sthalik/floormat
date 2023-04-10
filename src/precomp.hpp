@@ -5,26 +5,19 @@
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
 
+#if __has_include(<fmt/core.h>)
+#include "compat/exception.hpp"
+#endif
+
 #ifdef __GNUG__
 #pragma GCC system_header
 #endif
 
-#include <bit>
-#include <cerrno>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <cmath>
-#include <cstdio>
-
 #include <concepts>
-#include <iterator>
-#include <limits>
 #include <memory>
 #include <type_traits>
-
-#include <algorithm>
 #include <utility>
+#include <algorithm>
 
 #include <tuple>
 #include <bitset>
@@ -34,13 +27,14 @@
 
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/EnumSet.h>
 #include <Corrade/Containers/Pointer.h>
-#include <Corrade/Containers/StringStl.h>
-#include <Corrade/Containers/StringStlHash.h>
+#include <Corrade/Containers/String.h>
+#include <Corrade/Containers/StringView.h>
 
-#include <Corrade/Utility/DebugStl.h>
-#include <Corrade/Utility/Resource.h>
+#include <Corrade/Containers/PairStl.h>
+#include <Corrade/Containers/TripleStl.h>
+
+#include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/Path.h>
 
 #include <Magnum/Magnum.h>

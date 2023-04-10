@@ -18,7 +18,6 @@
 #include <Corrade/Containers/String.h>
 
 #include <Corrade/Utility/Arguments.h>
-#include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Path.h>
 

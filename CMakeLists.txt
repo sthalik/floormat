@@ -202,10 +202,10 @@ include_directories(SYSTEM
 )
 
 #add_subdirectory(demangle)
+add_subdirectory(src)
 add_subdirectory(main)
 add_subdirectory(draw)
 add_subdirectory(serialize)
-add_subdirectory(src)
 add_subdirectory(editor)
 add_subdirectory(test)
 add_subdirectory(anim-crop-tool)
