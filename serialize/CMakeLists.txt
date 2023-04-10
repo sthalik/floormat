@@ -7,6 +7,7 @@ target_link_libraries(
     Magnum::Trade
     nlohmann_json::nlohmann_json
     fmt::fmt
+    tsl::robin_map
 )
 
 if(MSVC)
