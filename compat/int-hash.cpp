@@ -3,7 +3,7 @@
 
 namespace floormat {
 
-size_t int_hash32(uint32_t x) noexcept
+size_t int_hash(uint32_t x) noexcept
 {
     if constexpr(sizeof(size_t) == 4)
     {
@@ -18,10 +18,10 @@ size_t int_hash32(uint32_t x) noexcept
         return x;
     }
     else
-        return int_hash64(x);
+        return int_hash(uint64_t(x));
 }
 
-size_t int_hash64(uint64_t x) noexcept
+size_t int_hash(uint64_t x) noexcept
 {
     // NASAM by Pelle Evensen <https://mostlymangling.blogspot.com/2020/01/nasam-not-another-strange-acronym-mixer.html>
 
