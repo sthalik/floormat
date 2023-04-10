@@ -2,6 +2,7 @@ name: tag
 
 on:
   push:
+    branches: [ wip ]
     tags:
     - '*'
 
