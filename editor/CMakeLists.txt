@@ -29,3 +29,9 @@ add_executable(${self} dummy.cc)
 target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize floormat-draw floormat)
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)
+
+if(NOT MSVC)
+    target_precompile_headers(${self}_o REUSE_FROM floormat)
+else()
+    target_precompile_headers(${self}_o PRIVATE ../src/precomp.hpp)
+endif()
