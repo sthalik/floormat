@@ -1,9 +1,10 @@
 #pragma once
-#include "compat/exception.hpp"
 #include <cstdio>
 #include <string>
 #include <Magnum/Math/Vector2.h>
 #include <nlohmann/json.hpp>
+
+namespace floormat::Serialize { [[noreturn]] void throw_failed_to_parse_vector2(const std::string& str); }
 
 namespace nlohmann {
 
@@ -29,7 +30,7 @@ struct adl_serializer<Magnum::Math::Vector2<t>> final
         int n = 0;
         int ret = std::sscanf(str.data(), format_string, &x, &y, &n);
         if (ret != 2 || (size_t)n != str.size() || x != (t)x || y != (t)y)
-            fm_throw("failed to parse Vector2 '{}'"_cf, str);
+            floormat::Serialize::throw_failed_to_parse_vector2(str);
         val = { (t)x, (t)y };
     }
 };

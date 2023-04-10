@@ -4,6 +4,7 @@
 #include "serialize/magnum-vector2i.hpp"
 #include "loader/loader.hpp"
 #include "serialize/pass-mode.hpp"
+#include "compat/exception.hpp"
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
