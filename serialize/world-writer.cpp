@@ -408,7 +408,7 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
     auto s = binary_writer{chunk_buf.begin()};
 
     s << chunk_magic << coord.x << coord.y;
-    fm_assert(coord.z >= chunk_min_z && coord.z <= chunk_max_z);
+    fm_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     s << coord.z;
 
     for (auto i = 0uz; i < TILE_COUNT; i++)

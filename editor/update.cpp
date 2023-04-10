@@ -104,7 +104,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
 
 void app::do_mouse_scroll(int offset)
 {
-    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, (int)chunk_max_z);
+    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, (int)chunk_z_max);
 }
 
 void app::do_rotate(bool backward)
@@ -190,11 +190,10 @@ void app::apply_commands(const key_set& keys)
 void app::update_world(float dt)
 {
     auto& world = M->world();
-    auto [z_min, z_max] = get_z_bounds();
     world.increment_frame_no();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
-    for (int8_t z = z_min; z <= z_max; z++)
+    for (int8_t z = chunk_z_min; z <= chunk_z_max; z++)
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -236,7 +235,7 @@ void app::set_cursor()
 auto app::get_z_bounds() -> z_bounds
 {
     if (_render_all_z_levels)
-        return { chunk_min_z, chunk_max_z };
+        return { chunk_z_min, chunk_z_max };
     else
         return { _z_level, _z_level };
 }

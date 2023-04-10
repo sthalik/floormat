@@ -13,9 +13,9 @@ size_t std::hash<chunk_coords_>::operator()(const chunk_coords_& coord) const no
     x |= size_t(uint16_t(coord.y)) << 16;
     x |= size_t(uint16_t(coord.x));
     if constexpr(sizeof(size_t) > 4)
-        x |= size_t(uint8_t(coord.z-chunk_min_z) & 0xf) << 32;
+        x |= size_t(uint8_t(coord.z- chunk_z_min) & 0xf) << 32;
     else
-        x ^= size_t(uint8_t(coord.z-chunk_min_z) & 0xf) * size_t(1664525);
+        x ^= size_t(uint8_t(coord.z- chunk_z_min) & 0xf) * size_t(1664525);
 
     if constexpr(sizeof(size_t) > 4)
         return int_hash(uint64_t(x));
@@ -88,7 +88,7 @@ world::world(size_t capacity) : _chunks{capacity}
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
-    fm_debug_assert(coord.z >= chunk_min_z && coord.z <= chunk_max_z);
+    fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
         c = &_chunks.try_emplace(coord, *this).first->second;

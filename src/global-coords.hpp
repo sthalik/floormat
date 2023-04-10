@@ -37,7 +37,7 @@ struct chunk_coords_ final {
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
 };
 
-constexpr inline int8_t chunk_min_z = -1, chunk_max_z = 14;
+constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
 
 struct global_coords final {
     using u0 = std::integral_constant<uint32_t, (1<<15)>;

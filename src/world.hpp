@@ -30,7 +30,7 @@ struct world final
 
 private:
     struct chunk_tuple final {
-        static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_min_z };
+        static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_z_min };
         chunk* c = nullptr;
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
