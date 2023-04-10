@@ -1,7 +1,7 @@
 #pragma once
 #include "../src/precomp.hpp"
 
-#if 0
+#if 1
 #ifdef __APPLE__
 #include <Magnum/Platform/WindowlessCglApplication.h>
 #elif defined _WIN32

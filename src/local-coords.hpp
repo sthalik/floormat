@@ -1,9 +1,12 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "tile-defs.hpp"
-#include <concepts>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
+#include <type_traits>
+
+namespace Magnum::Math {
+template<class T> class Vector2;
+template<class T> class Vector3;
+} // namespace Magnum::Math
 
 namespace floormat {
 

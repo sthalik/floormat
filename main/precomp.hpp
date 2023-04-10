@@ -1,5 +1,9 @@
 #pragma once
 #include "src/precomp.hpp"
+#include "floormat/main.hpp"
+#include "floormat/app.hpp"
+#include "floormat/settings.hpp"
+#include "main-impl.hpp"
 
 #include <Magnum/Timeline.h>
 #include <Magnum/GL/DebugOutput.h>

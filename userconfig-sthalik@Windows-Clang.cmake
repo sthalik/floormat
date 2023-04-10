@@ -83,6 +83,9 @@ endfunction()
 
 # for test_app sources only
 function(fm-userconfig-src)
+    #add_compile_options(-ftime-trace)
+    #sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
+
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything
     )
