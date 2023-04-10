@@ -4,10 +4,8 @@
 #include "src/world.hpp"
 #include "keys.hpp"
 
-#include <Corrade/Containers/StringView.h>
-
-#include <vector>
 #include <algorithm>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 
