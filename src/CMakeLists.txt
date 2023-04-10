@@ -7,4 +7,5 @@ target_link_libraries(
     Magnum::Magnum
     Magnum::Shaders
     fmt::fmt
+    tsl::robin_map
 )

@@ -4,7 +4,7 @@ file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
 add_library(${self}_o OBJECT "${sources}")
-target_link_libraries(${self}_o PUBLIC Magnum::GL Magnum::Trade nlohmann_json::nlohmann_json fmt::fmt)
+target_link_libraries(${self}_o PUBLIC Magnum::GL Magnum::Trade nlohmann_json::nlohmann_json fmt::fmt tsl::robin_map)
 
 if(APPLE)
     target_link_libraries(${self}_o PUBLIC Magnum::WindowlessCglApplication)

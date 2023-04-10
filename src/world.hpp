@@ -6,6 +6,7 @@
 #include "compat/exception.hpp"
 #include <unordered_map>
 #include <memory>
+#include <tsl/robin_map.h>
 
 template<>
 struct std::hash<floormat::chunk_coords_> final {
@@ -31,7 +32,7 @@ private:
     } _last_chunk;
 
     std::unordered_map<chunk_coords_, chunk> _chunks;
-    std::unordered_map<object_id, std::weak_ptr<entity>> _entities;
+    tsl::robin_map<object_id, std::weak_ptr<entity>> _entities;
     size_t _last_collection = 0;
     size_t _collect_every = 64;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');

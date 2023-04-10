@@ -10,7 +10,7 @@ else()
 endif()
 
 add_library(${self}_o OBJECT "${res}" "${sources}")
-target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json)
+target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json tsl::robin_map)
 
 if(WIN32)
     target_sources(${self}_o PRIVATE "../main/floormat.rc")
