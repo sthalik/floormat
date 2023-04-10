@@ -17,7 +17,10 @@ size_t std::hash<chunk_coords_>::operator()(const chunk_coords_& coord) const no
     else
         x ^= size_t(uint8_t(coord.z-chunk_min_z) & 0xf) * size_t(1664525);
 
-    return int_hash(x);
+    if constexpr(sizeof(size_t) > 4)
+        return int_hash(uint64_t(x));
+    else
+        return int_hash(uint32_t(x));
 }
 
 namespace floormat {
