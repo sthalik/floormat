@@ -5,7 +5,7 @@ if(NOT DEFINED floormat-64bit)
     if ("$ENV{LIBPATH}" MATCHES "lib\\\\x64;")
         set(floormat-64bit 1)
     elseif("$ENV{LIBPATH}" MATCHES "lib\\\\x86;")
-        set(floormat-64bit5 0)
+        set(floormat-64bit 0)
     endif()
 endif()
 
