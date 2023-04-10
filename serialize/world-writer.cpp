@@ -88,7 +88,7 @@ writer_state::writer_state(const world& world) : _world{&world}
 
 uint32_t writer_state::intern_string(StringView name)
 {
-    auto [kv, fresh] = string_map.try_emplace(name, string_map.size());
+    auto [kv, fresh] = string_map.try_emplace(name, (uint32_t)string_map.size());
     return kv->second;
 }
 
