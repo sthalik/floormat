@@ -15,6 +15,20 @@ sets(BOOL FLOORMAT_SUBMODULE-SDL2 ON)
 
 add_link_options(-STACK:41943040)
 
+if(CMAKE_SIZEOF_VOID_P GREATER 4)
+    set(CMAKE_C_COMPILER_LAUNCHER msvc64.cmd)
+    set(CMAKE_CXX_COMPILER_LAUNCHER msvc64.cmd)
+    set(CMAKE_C_LINKER_LAUNCHER msvc64.cmd)
+    set(CMAKE_CXX_LINKER_LAUNCHER msvc64.cmd)
+    set(CMAKE_RC_COMPILER_LAUNCHER msvc64.cmd)
+else()
+    set(CMAKE_C_COMPILER_LAUNCHER msvc.cmd)
+    set(CMAKE_CXX_COMPILER_LAUNCHER msvc.cmd)
+    set(CMAKE_C_LINKER_LAUNCHER msvc.cmd)
+    set(CMAKE_CXX_LINKER_LAUNCHER msvc.cmd)
+    set(CMAKE_RC_COMPILER_LAUNCHER msvc.cmd)
+endif()
+
 function(fm-userconfig-external)
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
