@@ -46,7 +46,6 @@ struct entity
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
-    uint8_t last_update = 0;
     const rotation r = rotation::N;
     const pass_mode pass = pass_mode::see_through;
 

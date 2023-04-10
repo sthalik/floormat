@@ -190,8 +190,8 @@ void app::apply_commands(const key_set& keys)
 void app::update_world(float dt)
 {
     auto& world = M->world();
-    const auto curframe = world.increment_frame_no();
     auto [z_min, z_max] = get_z_bounds();
+    world.increment_frame_no();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
     for (int8_t z = z_min; z <= z_max; z++)
@@ -203,22 +203,9 @@ void app::update_world(float dt)
                     continue;
                 auto& c = *c_;
                 const auto& es = c.entities();
-start:          const auto size = es.size();
+                const auto size = es.size();
                 for (auto i = size-1; i != (size_t)-1; i--)
-                {
-                    auto& e = *es[i];
-                    using last_update_type = std::decay_t<decltype(e.last_update)>;
-                    if (last_update_type(curframe) != e.last_update) [[likely]]
-                    {
-                        e.last_update = last_update_type(curframe);
-                        auto status = e.update(i, dt);
-                        if (status)
-                        {
-                            //Debug{} << "goto start";
-                            goto start;
-                        }
-                    }
-                }
+                    (void)es[i]->update(i, dt);
             }
 }
 
