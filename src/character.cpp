@@ -5,6 +5,7 @@
 #include "src/entity.hpp"
 #include "shaders/tile.hpp"
 #include "src/RTree-search.hpp"
+#include "compat/exception.hpp"
 #include <cmath>
 #include <utility>
 #include <algorithm>

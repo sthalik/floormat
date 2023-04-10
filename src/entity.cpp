@@ -127,7 +127,7 @@ Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vect
 }
 
 template<bool neighbor = true>
-static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector2 min, Vector2 max, Vector2i off = {})
+static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector2 min, Vector2 max, Vector2b off = {})
 {
     if constexpr(neighbor)
     {
@@ -168,15 +168,15 @@ bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, 
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
     auto ch = chunk_coords_{coord_.chunk(), coord_.z()};
-    return do_search<false>(&c_, ch, id, min, max)    &&
-           do_search(&c_, ch, id, min, max, {-1, -1}) &&
-           do_search(&c_, ch, id, min, max, {-1,  0}) &&
-           do_search(&c_, ch, id, min, max, { 0, -1}) &&
-           do_search(&c_, ch, id, min, max, { 1,  1}) &&
-           do_search(&c_, ch, id, min, max, { 1,  0}) &&
-           do_search(&c_, ch, id, min, max, { 0,  1}) &&
-           do_search(&c_, ch, id, min, max, { 1, -1}) &&
-           do_search(&c_, ch, id, min, max, {-1,  1});
+    if (!do_search<false>(&c_, ch, id, min, max))
+        return false;
+    constexpr Vector2b offsets[] = {
+        {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
+    };
+    for (const auto& off : offsets)
+        if (!do_search(&c_, ch, id, min, max, off))
+            return false;
+    return true;
 }
 
 bool entity::can_move_to(Vector2i delta)

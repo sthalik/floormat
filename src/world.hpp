@@ -4,8 +4,9 @@
 #include "global-coords.hpp"
 #include "entity-type.hpp"
 #include "compat/exception.hpp"
-#include <unordered_map>
+#include "compat/int-hash.hpp"
 #include <memory>
+#include <unordered_map>
 #include <tsl/robin_map.h>
 
 template<>
@@ -17,6 +18,9 @@ namespace floormat {
 
 struct entity;
 template<typename T> struct entity_type_;
+struct object_id_hasher {
+    size_t operator()(object_id id) const noexcept { return int_hash(id); }
+};
 
 struct world final
 {
@@ -32,7 +36,7 @@ private:
     } _last_chunk;
 
     std::unordered_map<chunk_coords_, chunk> _chunks;
-    tsl::robin_map<object_id, std::weak_ptr<entity>> _entities;
+    tsl::robin_map<object_id, std::weak_ptr<entity>, object_id_hasher> _entities;
     size_t _last_collection = 0;
     size_t _collect_every = 64;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
