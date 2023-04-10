@@ -24,6 +24,8 @@ else()
     sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
 
+sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
+
 # for building submodule dependencies
 function(fm-userconfig-external)
     add_compile_options(
