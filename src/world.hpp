@@ -3,7 +3,6 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "entity-type.hpp"
-#include "compat/exception.hpp"
 #include "compat/int-hash.hpp"
 #include <memory>
 #include <unordered_map>
@@ -25,8 +24,9 @@ struct object_id_hasher {
 struct world final
 {
     static constexpr object_id entity_counter_init = 1024;
-    static constexpr size_t initial_capacity = 64;
+    static constexpr size_t initial_capacity = 512;
     static constexpr float max_load_factor = .5;
+    static constexpr size_t initial_collect_every = 64;
 
 private:
     struct chunk_tuple final {
@@ -38,7 +38,7 @@ private:
     std::unordered_map<chunk_coords_, chunk> _chunks;
     tsl::robin_map<object_id, std::weak_ptr<entity>, object_id_hasher> _entities;
     size_t _last_collection = 0;
-    size_t _collect_every = 64;
+    size_t _collect_every = initial_collect_every;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
     object_id _entity_counter = entity_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct entity
@@ -49,6 +49,7 @@ private:
     void do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, bool sorted);
     void do_kill_entity(object_id id);
     std::shared_ptr<entity> find_entity_(object_id id);
+    [[noreturn]] static void throw_on_wrong_entity_type(object_id id, entity_type actual, entity_type expected);
 
     friend struct entity;
 
@@ -114,7 +115,8 @@ std::shared_ptr<T> world::find_entity(object_id id)
         return ptr;
     else
     {
-        fm_soft_assert(ptr->type() == entity_type_<T>::value);
+        if (!(ptr->type() == entity_type_<T>::value)) [[unlikely]]
+            throw_on_wrong_entity_type(id, ptr->type(), entity_type_<T>::value);
         return std::static_pointer_cast<T>(std::move(ptr));
     }
 }

@@ -78,6 +78,9 @@ world::~world() noexcept
 world::world(size_t capacity) : _chunks{capacity}
 {
     _chunks.max_load_factor(max_load_factor);
+    _chunks.reserve(initial_capacity);
+    _entities.max_load_factor(max_load_factor);
+    _entities.reserve(initial_capacity);
 }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
@@ -112,9 +115,14 @@ bool world::contains(chunk_coords_ c) const noexcept
 
 void world::clear()
 {
+    fm_assert(!_teardown);
     _last_collection = 0;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
+    _entities.clear();
+    _entities.rehash(initial_capacity);
+    _collect_every = initial_collect_every;
+    _entity_counter = entity_counter_init;
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
@@ -181,6 +189,11 @@ void world::set_entity_counter(object_id value)
 {
     fm_assert(value >= _entity_counter);
     _entity_counter = value;
+}
+
+void world::throw_on_wrong_entity_type(object_id id, entity_type actual, entity_type expected)
+{
+    fm_throw("object '{}' has wrong entity type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
 }
 
 } // namespace floormat
