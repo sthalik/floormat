@@ -198,8 +198,9 @@ void main_impl::do_update()
             const float alpha = 1/(1 + RC);
             _frame_time = _frame_time*(1-alpha) + alpha*dt;
         }
+        static size_t ctr = 0;
         if (dt >= 1.f/55 && dt_expected.value < 1e-1f)
-            fm_debug("frame took %.1f milliseconds", dt*1e3f);
+            fm_debug("%zu frame took %.1f milliseconds", ctr++, dt*1e3f);
     }
     else
     {

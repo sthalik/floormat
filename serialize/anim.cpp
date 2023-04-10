@@ -85,8 +85,10 @@ static void to_json(nlohmann::json& j, const anim_def& val)
         j["pixel_size"] = val.pixel_size;
     if (val.nframes != def.nframes)
         j["nframes"] = val.nframes;
-    if (val.actionframe != def.actionframe)
-        j["actionframe"] = val.actionframe;
+    if (val.action_frame != def.action_frame)
+        j["action-frame"] = val.action_frame;
+    if (val.action_frame2 != def.action_frame2)
+        j["action-frame-2"] = val.action_frame2;
     if (val.fps != def.fps)
         j["fps"] = val.fps;
     j["groups"] = val.groups;
@@ -98,14 +100,16 @@ static void from_json(const nlohmann::json& j, anim_def& val)
     val = {};
     val.object_name = j["object_name"];
     fm_soft_assert(!val.object_name.isEmpty());
-    if (j.contains("anim_name"))
+    if (j.contains("anim_name")) // todo underscore to hyphen
         val.anim_name = j["anim_name"];
     if (j.contains("pixel_size"))
         val.pixel_size = j["pixel_size"];
     if (j.contains("nframes"))
         val.nframes = j["nframes"];
-    if (j.contains("actionframe"))
-        val.actionframe = j["actionframe"];
+    if (j.contains("action-frame"))
+        val.action_frame = j["action-frame"];
+    if (j.contains("action-frame-2"))
+        val.action_frame2 = j["action-frame-2"];
     if (j.contains("fps"))
         val.fps = j["fps"];
     val.groups = j["groups"];
