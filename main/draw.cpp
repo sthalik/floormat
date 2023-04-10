@@ -62,6 +62,8 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
     // -- user--
     app.on_viewport_event(fb_size);
+
+    fps_sample_timeline.start();
 }
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
@@ -189,15 +191,15 @@ void main_impl::do_update()
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
-        const float RC1 = dt_expected.do_sleep ? 1.f : 1.f/5, RC2 = 1.f/10;
-        const float alpha1 = dt/(dt + RC1);
-        const float alpha2 = dt/(dt + RC2);
-
-        _frame_time1 = _frame_time1*(1-alpha1) + alpha1*dt;
-        _frame_time2 = _frame_time1*(1-alpha2) + alpha2*dt;
-        constexpr float max_deviation = 5 * 1e-3f;
-        if (std::fabs(_frame_time1 - _frame_time2) > max_deviation)
-            _frame_time1 = _frame_time2;
+        if (fps_sample_timeline.currentFrameDuration() > 1.f/15)
+        {
+            fps_sample_timeline.nextFrame();
+            constexpr float RC = 10;
+            const float alpha = 1/(1 + RC);
+            _frame_time = _frame_time*(1-alpha) + alpha*dt;
+        }
+        if (dt >= 1.f/55 && dt_expected.value < 1e-1f)
+            fm_debug("frame took %.1f milliseconds", dt*1e3f);
     }
     else
     {

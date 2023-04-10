@@ -45,7 +45,7 @@ struct floormat_main
     virtual Magnum::Math::Vector2<int> window_size() const noexcept;
     virtual tile_shader& shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
-    constexpr float smoothed_dt() const noexcept { return _frame_time1; }
+    constexpr float smoothed_dt() const noexcept { return _frame_time; }
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;
 
@@ -75,7 +75,7 @@ struct floormat_main
     [[maybe_unused]] static void debug_break();
 
 protected:
-    float _frame_time1 = 0, _frame_time2 = 0;
+    float _frame_time = 0;
     Vector2 _dpi_scale{1, 1}, _virtual_scale{1, 1};
     Vector2i _framebuffer_size;
 };

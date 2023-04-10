@@ -112,6 +112,8 @@ private:
         bool do_sleep = false;
     } dt_expected;
 
+    Timeline fps_sample_timeline;
+
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
 
