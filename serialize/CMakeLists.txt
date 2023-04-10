@@ -22,7 +22,3 @@ endif()
 if(WIN32)
     target_link_libraries(${self} PUBLIC ntdll)
 endif()
-
-if(FLOORMAT_PRECOMPILED-HEADERS)
-    target_precompile_headers(${self} PRIVATE precomp.hpp)
-endif()

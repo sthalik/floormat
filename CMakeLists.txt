@@ -48,9 +48,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 endif()
 
-set(FLOORMAT_PRECOMPILED-HEADERS ON CACHE BOOL
-    "Use precompiled headers while building the floormat.")
-
 function(sets type)
     set(i 0)
     list(LENGTH ARGN max)

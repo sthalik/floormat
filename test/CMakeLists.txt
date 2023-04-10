@@ -17,9 +17,6 @@ endif()
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} ${self}_o floormat-serialize floormat)
 
-if(FLOORMAT_PRECOMPILED-HEADERS)
-    target_precompile_headers(${self}_o PRIVATE precomp.hpp)
-endif()
 install(TARGETS ${self} RUNTIME DESTINATION bin)
 
 set(save-dir "${CMAKE_BINARY_DIR}/test/save")

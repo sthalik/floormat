@@ -19,12 +19,7 @@ set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-gc
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
-    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
-else()
-    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
-
-sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 
 # for building submodule dependencies
 function(fm-userconfig-external)

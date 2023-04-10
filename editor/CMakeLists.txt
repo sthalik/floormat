@@ -23,16 +23,9 @@ if(NOT SDL2_INCLUDE_DIRS)
         get_target_property(SDL2_INCLUDE_DIRS SDL2::SDL2 INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 endif()
-if(FLOORMAT_PRECOMPILED-HEADERS)
-    include_directories("${SDL2_INCLUDE_DIRS}")
-endif()
 set_property(SOURCE "events.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
 
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize floormat-draw floormat)
-
-if(FLOORMAT_PRECOMPILED-HEADERS)
-    target_precompile_headers(${self}_o PRIVATE precomp.hpp)
-endif()
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)
