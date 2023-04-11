@@ -97,6 +97,14 @@ public:
     [[nodiscard]] object_id make_id() { return ++_entity_counter; }
     void set_entity_counter(object_id value);
 
+    struct neighbor_pair final { chunk* c; chunk_coords_ coord; };
+
+    std::array<neighbor_pair, 8> neighbors(chunk_coords_ coord);
+
+    static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
+        {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
+    }};
+
     world& operator=(world&& w) noexcept;
     world(world&& w) noexcept;
 

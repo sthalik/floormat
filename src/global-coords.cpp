@@ -18,4 +18,10 @@ static_assert(global_coords{(1u + (1<<15)) << 4 | 3, (2u + (1<<15)) << 4 | 4, nu
 static_assert(global_coords{-123, 456, 1}.z() == 1);
 static_assert(global_coords{-123, 511, 5}.chunk() == chunk_coords{-8, 31});
 
+static_assert(chunk_coords_{(short)100, (short)200, (char)300} + Vector3i(1, 2, 3) == chunk_coords_{(short)101, (short)202, (char)303});
+static_assert(chunk_coords_{(short)101, (short)202, (char)303} - Vector3i(1, 2, 3) == chunk_coords_{(short)100, (short)200, (char)300});
+
+static_assert(chunk_coords_{(short)100, (short)200, (char)300} + Vector2i(1, 2) == chunk_coords_{(short)101, (short)202, (char)300});
+static_assert(chunk_coords_{(short)101, (short)202, (char)300} - Vector2i(1, 2) == chunk_coords_{(short)100, (short)200, (char)300});
+
 } // namespace floormat

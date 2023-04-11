@@ -1,6 +1,7 @@
 #pragma once
 #include "local-coords.hpp"
 #include "compat/assert.hpp"
+#include <concepts>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -11,7 +12,6 @@ struct chunk_coords final {
     int16_t x = 0, y = 0;
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
-    constexpr Vector2i operator-(chunk_coords other) const noexcept;
 
     template<typename T>
     requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
@@ -22,11 +22,6 @@ struct chunk_coords final {
     explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }
 };
 
-constexpr Vector2i chunk_coords::operator-(chunk_coords other) const noexcept
-{
-    return { Int{x} - other.x, Int{y} - other.y };
-}
-
 struct chunk_coords_ final {
     int16_t x = 0, y = 0;
     int8_t z = 0;
@@ -35,6 +30,30 @@ struct chunk_coords_ final {
     constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z} {}
     constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
+
+    template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept {
+        return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), z };
+    }
+
+    template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector2<T> off) const noexcept {
+        return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), z };
+    }
+
+    template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector3<T> off) const noexcept {
+        return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), int8_t(z + int{off.z()}) };
+    }
+
+    template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector3<T> off) const noexcept {
+        return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), int8_t(z - int{off.z()}) };
+    }
+
+    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept {
+        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); z = int8_t(z + off.z()); return *this;
+    }
+
+    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept {
+        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - off.z()); return *this;
+    }
 };
 
 constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;

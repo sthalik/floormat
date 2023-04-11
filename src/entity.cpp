@@ -170,10 +170,7 @@ bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, 
     auto ch = chunk_coords_{coord_.chunk(), coord_.z()};
     if (!do_search<false>(&c_, ch, id, min, max))
         return false;
-    constexpr Vector2b offsets[] = {
-        {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
-    };
-    for (const auto& off : offsets)
+    for (const auto& off : world::neighbor_offsets)
         if (!do_search(&c_, ch, id, min, max, off))
             return false;
     return true;
