@@ -31,19 +31,19 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
         framebuffer.color = GL::Texture2D{};
         framebuffer.color.setStorage(1, GL::TextureFormat::RGBA8, fb_size);
         framebuffer.depth = GL::Renderbuffer{};
-        framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
+        framebuffer.depth.setStorage(GL::RenderbufferFormat::Depth32FStencil8, fb_size);
 
         framebuffer.fb.attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0);
-        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
+        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, framebuffer.depth);
         framebuffer.fb.clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
-        framebuffer.fb.clearDepth(0);
+        framebuffer.fb.clearDepthStencil(0, 0);
 
         framebuffer.fb.bind();
     }
 #else
     GL::defaultFramebuffer.setViewport({{}, fb_size });
     GL::defaultFramebuffer.clearColor(Color4{0.f, 0.f, 0.f, 1.f});
-    GL::defaultFramebuffer.clearDepth(0);
+    GL::defaultFramebuffer.clearDepthStencil(0, 0);
     GL::defaultFramebuffer.bind();
 #endif
 
@@ -113,7 +113,7 @@ void main_impl::draw_world() noexcept
 
     _clickable_scenery.clear();
 #ifdef FM_USE_DEPTH32
-        framebuffer.fb.clearDepth(0);
+        framebuffer.fb.clearDepthStencil(0, 0);
 #else
         GL::defaultFramebuffer.clearDepth(0);
 #endif
@@ -127,28 +127,16 @@ void main_impl::draw_world() noexcept
             for (int16_t x = minx; x <= maxx; x++)
             {
                 const chunk_coords_ pos{x, y, z};
-                if (pos == chunk_coords_{} && !_world.contains(pos))
-                    app.maybe_initialize_chunk(pos, _world[pos]);
                 auto* c_ = _world.at(pos);
                 if (!c_)
                     continue;
                 auto& c = *c_;
                 const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
-                    _floor_mesh.draw(_shader, c);
-            }
-
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
-            {
-                const chunk_coords_ pos{x, y, z};
-                auto* c_ = _world.at(pos);
-                if (!c_)
-                    continue;
-                auto& c = *c_;
-                const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
-                if (check_chunk_visible(_shader.camera_offset(), sz))
+                {
                     _wall_mesh.draw(_shader, c);
+                    _floor_mesh.draw(_shader, c);
+                }
             }
 
         GL::Renderer::setDepthMask(false);

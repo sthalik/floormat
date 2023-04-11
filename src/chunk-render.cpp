@@ -71,7 +71,7 @@ GL::Mesh chunk::make_wall_mesh(size_t count)
         const local_coords pos{i / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto quad = i & 1 ? atlas->wall_quad_W(center, TILE_SIZE) : atlas->wall_quad_N(center, TILE_SIZE);
-        const float depth = tile_shader::depth_value(pos, tile_shader::wall_depth_offset);
+        const float depth = tile_shader::depth_value(pos);
         const auto texcoords = atlas->texcoords_for_id(variant);
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)

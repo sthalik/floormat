@@ -90,22 +90,19 @@ Vector2 scenery::ordinal_offset(Vector2b offset) const
 
 Vector2 scenery::depth_offset() const
 {
-    constexpr auto sc_offset = tile_shader::scenery_depth_offset;
     constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
     Vector2 ret;
     ret += Vector2(atlas->group(r).depth_offset) * inv_tile_size;
     if (sc_type == scenery_type::door)
     {
         const bool is_open = frame != atlas->info().nframes-1;
-        ret += Vector2(sc_offset * is_open, 0);
-        constexpr auto off_opened = Vector2(-1, 0);
+        constexpr auto off_opened = Vector2(-1, 0) + Vector2();
         constexpr auto off_closed = Vector2(0, 0);
         const auto vec = is_open ? off_opened : off_closed;
         const auto offset = rotate_point(vec, rotation::N, r);
         ret += offset;
     }
-    else
-        ret += Vector2(sc_offset, 0);
+    ret += Vector2(tile_shader::scenery_depth_offset, 0);
 
     return ret;
 }
