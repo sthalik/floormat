@@ -1,8 +1,8 @@
 #pragma once
 #include "loader/loader.hpp"
+#include <tsl/robin_map.h>
 #include <memory>
 #include <vector>
-#include <unordered_map>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/StringStlHash.h>
@@ -21,12 +21,12 @@ struct loader_impl final : loader_
     Containers::Pointer<Trade::AbstractImporter> image_importer;
     Containers::Pointer<Trade::AbstractImporter> tga_importer;
 
-    std::unordered_map<StringView, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
-    std::unordered_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
+    tsl::robin_map<StringView, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
+    tsl::robin_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
 
     std::vector<serialized_scenery> sceneries_array;
-    std::unordered_map<StringView, const serialized_scenery*> sceneries_map;
+    tsl::robin_map<StringView, const serialized_scenery*> sceneries_map;
 
     String original_working_directory;
 

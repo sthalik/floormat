@@ -16,6 +16,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <tsl/robin_map.h>
 #include <Corrade/Containers/StringStlHash.h>
 #include <Corrade/Utility/Path.h>
 
@@ -67,9 +68,9 @@ private:
     const world* _world;
     std::vector<char> atlas_buf, scenery_buf, chunk_buf, file_buf, string_buf;
     std::vector<std::vector<char>> chunk_bufs;
-    std::unordered_map<const void*, interned_atlas> tile_images;
+    tsl::robin_map<const void*, interned_atlas> tile_images;
     std::unordered_map<const void*, std::vector<interned_scenery>> scenery_map;
-    std::unordered_map<StringView, uint32_t> string_map;
+    tsl::robin_map<StringView, uint32_t> string_map;
     atlasid scenery_map_size = 0;
 };
 
