@@ -61,4 +61,11 @@
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/PixelFormat.h>
 #include <Magnum/Trade/ImageData.h>
+
+#include "compat/prelude.hpp"
+#include "compat/defs.hpp"
+#include "compat/assert.hpp"
+#include "src/global-coords.hpp"
+#include "src/anim-atlas.hpp"
+
 #endif
