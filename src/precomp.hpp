@@ -23,6 +23,12 @@
 #include <utility>
 #include <vector>
 
+#if __has_include(<external/robin-map/include/tsl/robin_map.h>)
+#include <external/robin-map/include/tsl/robin_map.h>
+#elif __has_include(<tsl/robin_map.h>)
+#include <tsl/robin_map.h>
+#endif
+
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/ArrayViewStl.h>
