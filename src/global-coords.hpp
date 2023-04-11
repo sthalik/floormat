@@ -54,6 +54,8 @@ struct chunk_coords_ final {
     template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept {
         x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - off.z()); return *this;
     }
+
+    Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
 };
 
 constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
