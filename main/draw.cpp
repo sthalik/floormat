@@ -199,7 +199,7 @@ void main_impl::do_update()
             _frame_time = _frame_time*(1-alpha) + alpha*dt;
         }
         static size_t ctr = 0;
-        if (dt >= 1.f/55 && dt_expected.value < 1e-1f)
+        if (dt >= 1.f/55 && !dt_expected.do_sleep)
             fm_debug("%zu frame took %.1f milliseconds", ctr++, dt*1e3f);
     }
     else
@@ -239,15 +239,16 @@ void main_impl::drawEvent()
 
     swapBuffers();
     redraw();
+    timeline.nextFrame();
 
     if (dt_expected.do_sleep)
     {
         constexpr float ε = 1e-3f;
-        const float Δt൦ = timeline.currentFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
+        const float Δt൦ = timeline.previousFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
         if (sleep_secs > ε)
             std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
         //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
-        const float Δt = timeline.currentFrameDuration() - dt_expected.value;
+        const float Δt = timeline.previousFrameDuration() - dt_expected.value;
         constexpr float α = .1f;
         dt_expected.jitter = std::fmax(dt_expected.jitter + Δt * α,
                                        dt_expected.jitter * (1-α) + Δt * α);
@@ -255,8 +256,6 @@ void main_impl::drawEvent()
     }
     else
         dt_expected.jitter = 0;
-
-    timeline.nextFrame();
 }
 
 ArrayView<const clickable> main_impl::clickable_scenery() const noexcept
