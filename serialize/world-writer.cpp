@@ -385,7 +385,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             if (!sc_exact)
             {
                 write_entity_flags(s, sc);
-                fm_assert(sc.active || sc.delta == 0);
+                fm_assert(sc.active || sc.delta == 0.f);
                 if (sc.frame <= 0xff)
                     s << (uint8_t)sc.frame;
                 else
