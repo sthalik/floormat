@@ -75,7 +75,7 @@ void tile_shader::_draw()
 
 float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
 {
-    return (float)((xy.to_index() + (double)offset) * depth_tile_size);
+    return (xy.to_index() + offset) * depth_tile_size;
 }
 
 } // namespace floormat

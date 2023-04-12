@@ -245,6 +245,7 @@ auto app::get_z_bounds() -> z_bounds
 
 void app::update(float dt)
 {
+    update_cursor_tile(cursor.pixel);
     apply_commands(keys);
     update_character(dt);
     update_world(dt);

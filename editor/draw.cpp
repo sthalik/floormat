@@ -77,7 +77,10 @@ void app::draw_collision_boxes()
 
     for (int8_t z = z_min; z <= z_max; z++)
     {
-        shader.set_tint({0, .5f, 1, 1});
+        if (z == _z_level)
+            shader.set_tint({0, .5f, 1, 1});
+        else
+            shader.set_tint({.7f, .7f, .7f, .6f});
 
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
@@ -103,48 +106,52 @@ void app::draw_collision_boxes()
                     });
                 }
             }
+    }
 
-        shader.set_tint({1, 0, 1, 1});
+    shader.set_tint({1, 0, 1, 1});
 
-        if (cursor.tile)
-        {
-            constexpr auto eps = 1e-6f;
-            constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
-            const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*cursor.pixel)));
-            const auto tile = *cursor.tile;
-            const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-            const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
-            const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
-                                              curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
-            for (int16_t y = miny; y <= maxy; y++)
-                for (int16_t x = minx; x <= maxx; x++)
+    if (cursor.pixel)
+    {
+        auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
+        auto pixel = Vector2d{*cursor.pixel} + pos;
+        auto coord = M->pixel_to_tile(pixel);
+        auto tile = global_coords{coord.chunk(), coord.local(), 0};
+
+        constexpr auto eps = 1e-6f;
+        constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
+        const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
+        const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
+        const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
+        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
+                                          curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
+            {
+                const chunk_coords_ c_pos{x, y, _z_level};
+                auto* c_ = world.at(c_pos);
+                if (!c_)
+                    continue;
+                auto& c = *c_;
+                c.ensure_passability();
+                const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
+                if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
-                    const chunk_coords_ c_pos{x, y, z};
-                    auto* c_ = world.at(c_pos);
-                    if (!c_)
-                        continue;
-                    auto& c = *c_;
-                    c.ensure_passability();
-                    const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
-                    if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-                    {
-                        constexpr auto half_tile = TILE_SIZE2/2;
-                        constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
-                        auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
-                        auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
-                        auto t1 = t0+Vector2(1e-4f);
-                        const auto* rtree = c.rtree();
-                        rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                          [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                          Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
-                          auto size = end - start;
-                          auto center = Vector3(start + size*.5f, 0.f);
-                          _wireframe_rect.draw(shader, { center, size, 3 });
-                          return true;
-                        });
-                    }
+                    constexpr auto half_tile = TILE_SIZE2/2;
+                    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
+                    auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
+                    auto t1 = t0+Vector2(1e-4f);
+                    const auto* rtree = c.rtree();
+                    rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+                      [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                      Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                      auto size = end - start;
+                      auto center = Vector3(start + size*.5f, 0.f);
+                      _wireframe_rect.draw(shader, { center, size, 3 });
+                      return true;
+                    });
                 }
-        }
+            }
     }
 
     shader.set_tint({1, 1, 1, 1});

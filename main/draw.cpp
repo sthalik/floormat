@@ -142,7 +142,6 @@ void main_impl::draw_world() noexcept
                 const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                 {
-
                     _wall_mesh.draw(_shader, c);
                     _floor_mesh.draw(_shader, c);
                 }

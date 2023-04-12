@@ -63,7 +63,7 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     if (pixel)
     {
         auto coord = M->pixel_to_tile(Vector2d{*pixel});
-        cursor.tile = {InPlaceInit, coord.chunk(), coord.local(), _z_level};
+        cursor.tile = global_coords{coord.chunk(), coord.local(), _z_level};
     }
     else
         cursor.tile = NullOpt;

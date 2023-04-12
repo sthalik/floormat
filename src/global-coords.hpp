@@ -125,7 +125,7 @@ constexpr Vector2i global_coords::to_signed() const noexcept
 
 constexpr Vector3i global_coords::to_signed3() const noexcept
 {
-    return Vector3i(to_signed(), 0);
+    return Vector3i(to_signed(), z());
 }
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
