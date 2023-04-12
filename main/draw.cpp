@@ -148,9 +148,9 @@ void main_impl::draw_world() noexcept
 
     GL::Renderer::setDepthMask(false);
 
-    for (int8_t z = z_max; z >= z_min; z--)
-        for (int16_t y = maxy; y >= miny; y--)
-            for (int16_t x = maxx; x >= minx; x--)
+    for (int8_t z = z_min; z <= z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
             {
                 const chunk_coords_ pos{x, y, z};
                 auto* c_ = _world.at(pos);
