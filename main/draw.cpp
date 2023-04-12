@@ -130,8 +130,8 @@ void main_impl::draw_world() noexcept
     {
         GL::Renderer::setDepthMask(true);
 
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
+        for (int16_t y = maxy; y >= miny; y--)
+            for (int16_t x = maxx; x >= minx; x--)
             {
                 const chunk_coords_ pos{x, y, z};
                 auto* c_ = _world.at(pos);
@@ -148,8 +148,8 @@ void main_impl::draw_world() noexcept
 
         GL::Renderer::setDepthMask(false);
 
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
+        for (int16_t y = maxy; y >= miny; y--)
+            for (int16_t x = maxx; x >= minx; x--)
             {
                 const chunk_coords_ pos{x, y, z};
                 auto* c_ = _world.at(pos);

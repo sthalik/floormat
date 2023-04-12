@@ -7,6 +7,7 @@
 #include "floormat/main.hpp"
 #include "src/character.hpp"
 #include "src/tile-iterator.hpp"
+#include "keys.hpp"
 #include <cmath>
 
 namespace floormat {
@@ -104,7 +105,9 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
 
 void app::do_mouse_scroll(int offset)
 {
-    _z_level = (int8_t)Math::clamp(_z_level + offset, 0, (int)chunk_z_max);
+    auto mods = get_key_modifiers();
+    int min_z = mods & kmod_ctrl ? chunk_z_min : std::max(0, (int)chunk_z_min);
+    _z_level = (int8_t)Math::clamp(_z_level + offset, min_z, (int)chunk_z_max);
 }
 
 void app::do_rotate(bool backward)

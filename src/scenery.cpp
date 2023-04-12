@@ -96,7 +96,7 @@ Vector2 scenery::depth_offset() const
     if (sc_type == scenery_type::door)
     {
         const bool is_open = frame != atlas->info().nframes-1;
-        constexpr auto off_opened = Vector2(-1, 0) + Vector2();
+        constexpr auto off_opened = Vector2(-1, 0);
         constexpr auto off_closed = Vector2(0, 0);
         const auto vec = is_open ? off_opened : off_closed;
         const auto offset = rotate_point(vec, rotation::N, r);
