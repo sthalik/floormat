@@ -21,7 +21,7 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
                 (int)TILE_COUNT * len.x() * pos.y() +
                 z * (TILE_MAX_DIM+1);
 
-#if 1
+#if 0
     if (c_.z == 0)
         printf("c=(%2hd %2hd %2hhd) pos=(%2d %2d) len=(%d %d) --> %d\n", c_.x, c_.y, c_.z, pos.x(), pos.y(), len.x(), len.y(), depth);
 #endif
