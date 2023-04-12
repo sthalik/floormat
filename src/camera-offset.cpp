@@ -4,25 +4,35 @@
 
 namespace floormat {
 
-with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c, chunk_coords first, chunk_coords last) :
+with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c_, chunk_coords first_, chunk_coords last_) :
     _shader{shader},
     _camera{shader.camera_offset()}
 {
     fm_assert(shader.depth_offset() == 0.f);
 
     constexpr auto chunk_size = TILE_MAX_DIM20d*dTILE_SIZE;
-    const auto offset = _camera + tile_shader::project(Vector3d(c.x, c.y, 0) * chunk_size);
-    first.x -= 8; first.y -= 8; last.x += 8; last.y += 8; // Z levels
-    auto len_x = (float)(last.x - first.x), cx = (float)(c.x - first.x), cy = (float)(c.y - first.y);
-    //cx += c.z; cy += c.z;
-    float depth_offset = shader.depth_tile_size*(cy*TILE_MAX_DIM*len_x*TILE_MAX_DIM + cx*TILE_MAX_DIM);
-    const int z = c.z - chunk_z_min;
-    depth_offset += tile_shader::depth_value(local_coords{z, z});
+    auto offset = _camera + tile_shader::project(Vector3d(c_.x, c_.y, 0) * chunk_size);
+    auto pos  = Vector2d(chunk_coords(c_) - first_);
+    auto len = Vector2d(last_ - first_) + Vector2d(1, 1);
+    auto pos1 = pos.y() * len.x() + pos.x();
+    auto z = c_.z - chunk_z_min;
+    constexpr auto depth_start = -1 + 1.111e-16;
 
-    // wip
+    double chunk_offset, tile_offset;
 
-    if (c.z == chunk_z_max)
-        depth_offset = 1;
+    if (c_.z < chunk_z_max)
+    {
+        chunk_offset = depth_start + tile_shader::depth_chunk_size * pos1;
+        tile_offset = (double)tile_shader::depth_value({z, z});
+    }
+    else
+    {
+        chunk_offset = 1;
+        tile_offset = 0;
+    }
+
+    double depth_offset_ = chunk_offset + tile_offset;
+    auto depth_offset = (float)depth_offset_;
 
     _shader.set_camera_offset(offset, depth_offset);
 }

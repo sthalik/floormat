@@ -20,6 +20,8 @@ struct chunk_coords final {
     template<typename T>
     requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
     explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }
+
+    constexpr Vector2i operator-(chunk_coords other) const noexcept { return Vector2i{x - other.x, y - other.y }; }
 };
 
 struct chunk_coords_ final {
@@ -55,7 +57,9 @@ struct chunk_coords_ final {
         x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - off.z()); return *this;
     }
 
-    Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
+    constexpr Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
+
+    explicit operator chunk_coords() const noexcept { return chunk_coords{x, y}; }
 };
 
 constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;

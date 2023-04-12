@@ -2,6 +2,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "local-coords.hpp"
+#include <cmath>
 #include <Corrade/Containers/Iterable.h>
 #include <Corrade/Containers/StringStl.h>
 #include <Magnum/Math/Vector4.h>
@@ -74,7 +75,7 @@ void tile_shader::_draw()
 
 float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
 {
-    return depth_tile_size + (xy.to_index() + offset)*depth_tile_size;
+    return (float)((xy.to_index() + (double)offset) * depth_tile_size);
 }
 
 } // namespace floormat

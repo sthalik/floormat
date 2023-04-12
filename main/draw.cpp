@@ -31,12 +31,12 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
         framebuffer.color = GL::Texture2D{};
         framebuffer.color.setStorage(1, GL::TextureFormat::RGBA8, fb_size);
         framebuffer.depth = GL::Renderbuffer{};
-        framebuffer.depth.setStorage(GL::RenderbufferFormat::Depth32FStencil8, fb_size);
+        framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
 
         framebuffer.fb.attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0);
-        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::DepthStencil, framebuffer.depth);
+        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
         framebuffer.fb.clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
-        framebuffer.fb.clearDepthStencil(0, 0);
+        framebuffer.fb.clearDepth(0);
 
         framebuffer.fb.bind();
     }
@@ -102,6 +102,13 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         y0 = std::min(y0, p.y);
         y1 = std::max(y1, p.y);
     }
+
+    constexpr int16_t max = 7, min = -max;
+    x0 = std::clamp(x0, min, max);
+    x1 = std::clamp(x1, min, max);
+    y0 = std::clamp(y0, min, max);
+    y1 = std::clamp(y1, min, max);
+
     return {x0, x1, y0, y1};
 }
 
@@ -113,7 +120,7 @@ void main_impl::draw_world() noexcept
 
     _clickable_scenery.clear();
 #ifdef FM_USE_DEPTH32
-        framebuffer.fb.clearDepthStencil(0, 0);
+        framebuffer.fb.clearDepth(0);
 #else
         GL::defaultFramebuffer.clearDepth(0);
 #endif
