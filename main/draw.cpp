@@ -116,7 +116,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 
 void main_impl::draw_world() noexcept
 {
-    const auto [z_min, z_max] = app.get_z_bounds();
+    const auto [z_min, z_max, z_cur, only] = app.get_z_bounds();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = window_size();
 
@@ -131,6 +131,12 @@ void main_impl::draw_world() noexcept
     GL::Renderer::setDepthMask(true);
 
     for (int8_t z = z_max; z >= z_min; z--)
+    {
+        if (only && z != z_cur)
+            _shader.set_tint({1, 1, 1, 0.75});
+        else
+            _shader.set_tint({1, 1, 1, 1});
+
         for (int16_t y = maxy; y >= miny; y--)
             for (int16_t x = maxx; x >= minx; x--)
             {
@@ -142,10 +148,11 @@ void main_impl::draw_world() noexcept
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                 {
-                    _wall_mesh.draw(_shader, c);
                     _floor_mesh.draw(_shader, c);
+                    _wall_mesh.draw(_shader, c);
                 }
             }
+    }
 
     GL::Renderer::setDepthMask(false);
 

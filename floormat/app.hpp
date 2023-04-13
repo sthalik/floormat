@@ -18,7 +18,7 @@ struct chunk;
 
 struct floormat_app
 {
-    struct z_bounds final { int8_t min, max; };
+    struct z_bounds final { int8_t min, max, cur; bool only; };
 
     explicit floormat_app() noexcept;
     virtual ~floormat_app() noexcept;

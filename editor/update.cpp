@@ -237,10 +237,7 @@ void app::set_cursor()
 
 auto app::get_z_bounds() -> z_bounds
 {
-    if (_render_all_z_levels)
-        return { chunk_z_min, chunk_z_max };
-    else
-        return { _z_level, _z_level };
+    return { chunk_z_min, chunk_z_max, _z_level, !_render_all_z_levels };
 }
 
 void app::update(float dt)
