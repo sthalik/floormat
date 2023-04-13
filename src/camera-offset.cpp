@@ -16,9 +16,7 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
     auto len = (last_ - first_) + Vector2i(1, 1);
     constexpr auto depth_start = -1 + 1.111e-16f;
 
-    int depth = TILE_MAX_DIM * pos.x() +
-                (int)TILE_COUNT * len.x() * pos.y() +
-                z * (TILE_MAX_DIM+1);
+    int depth = TILE_MAX_DIM * pos.x() + (int)TILE_COUNT * len.x() * pos.y();
 
 #if 0
     if (c_ == chunk_coords_{} || c_ == chunk_coords_{0, -1, 1})

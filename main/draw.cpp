@@ -134,12 +134,12 @@ void main_impl::draw_world() noexcept
         for (int16_t y = maxy; y >= miny; y--)
             for (int16_t x = maxx; x >= minx; x--)
             {
-                const chunk_coords_ pos{x, y, z};
-                auto* c_ = _world.at(pos);
+                const chunk_coords_ ch{x, y, z};
+                auto* c_ = _world.at(ch);
                 if (!c_)
                     continue;
                 auto& c = *c_;
-                const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
+                const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                 {
                     _wall_mesh.draw(_shader, c);

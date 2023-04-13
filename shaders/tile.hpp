@@ -39,7 +39,7 @@ struct tile_shader : GL::AbstractShaderProgram
 
     static constexpr Vector2s max_screen_tiles{16, 16};
     static constexpr float depth_tile_size = 1/(double)(TILE_COUNT * max_screen_tiles.product());
-    static constexpr float scenery_depth_offset = 0.25f, character_depth_offset = 0.25f, wall_depth_offset = 0.125f;
+    static constexpr float scenery_depth_offset = 0.25f, character_depth_offset = 0.25f, wall_depth_offset = 0;
 
 private:
     void _draw();
