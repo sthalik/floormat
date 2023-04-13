@@ -57,7 +57,7 @@ float app::draw_main_menu()
                  b_scenery = mode == m::scenery, b_collisions = _render_bboxes,
                  b_clickables = _render_clickables, b_all_z_levels = _render_all_z_levels;
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
-                                  mode == editor_mode::walls && ed_w && ed_w->is_anything_selected();
+                                  mode == editor_mode::walls && ed_w;
             ImGui::SeparatorText("Mode");
             if (ImGui::MenuItem("Select",  "1", b_none))
                 do_key(key_mode_none);
