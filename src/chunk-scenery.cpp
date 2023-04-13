@@ -5,7 +5,6 @@
 #include "tile-atlas.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>
-#include <algorithm>
 
 namespace floormat {
 
@@ -186,7 +185,6 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
         array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
     }
-    std::sort(array.begin(), array.begin() + size, [](const auto& a, const auto& b) { return a.ord < b.ord; });
     topological_sort(array, size);
 
     return { scenery_mesh, ArrayView<entity_draw_order>{array, size}, j };
