@@ -3,7 +3,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/entity.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
 #include <cmath>

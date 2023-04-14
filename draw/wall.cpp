@@ -1,6 +1,6 @@
 #include "wall.hpp"
 #include "tile-atlas.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "chunk.hpp"
 #include "tile-image.hpp"
 #include "anim-atlas.hpp"

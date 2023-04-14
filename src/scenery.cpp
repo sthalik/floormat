@@ -3,7 +3,7 @@
 #include "chunk.hpp"
 #include "compat/assert.hpp"
 #include "world.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "src/rotation.inl"
 #include <algorithm>
 

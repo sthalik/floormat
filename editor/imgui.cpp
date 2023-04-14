@@ -3,7 +3,7 @@
 #include "compat/format.hpp"
 #include "src/world.hpp"
 #include "src/anim-atlas.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
 

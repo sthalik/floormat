@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "src/anim-atlas.hpp"
 #include "draw/anim.hpp"

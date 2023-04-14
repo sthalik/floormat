@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "src/global-coords.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "floormat/main.hpp"
 #include <algorithm>
 

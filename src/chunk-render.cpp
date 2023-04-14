@@ -1,6 +1,6 @@
 #include "chunk.hpp"
 #include "tile-atlas.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include <algorithm>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>

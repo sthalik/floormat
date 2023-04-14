@@ -1,6 +1,6 @@
 #include "compat/defs.hpp"
 #include "wireframe.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/Math/Range.h>

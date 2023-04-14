@@ -4,7 +4,7 @@
 #include "anim-atlas.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include <cmath>
 #include <algorithm>
 

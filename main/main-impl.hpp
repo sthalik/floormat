@@ -5,7 +5,7 @@
 #include "draw/floor.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include <vector>
 #include <Corrade/Containers/String.h>

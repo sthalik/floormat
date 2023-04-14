@@ -1,7 +1,7 @@
 #include "anim.hpp"
 #include "anim-atlas.hpp"
 #include "chunk.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "chunk-scenery.hpp"
 #include <cstdio>

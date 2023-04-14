@@ -1,5 +1,5 @@
 #include "floor.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "tile.hpp"
 #include "chunk.hpp"
 #include "tile-atlas.hpp"

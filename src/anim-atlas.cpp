@@ -1,6 +1,6 @@
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "tile-defs.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/BitArrayView.h>

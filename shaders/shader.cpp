@@ -1,4 +1,4 @@
-#include "shaders/tile.hpp"
+#include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "local-coords.hpp"
@@ -23,8 +23,8 @@ tile_shader::tile_shader()
     GL::Shader vert{version, GL::Shader::Type::Vertex};
     GL::Shader frag{version, GL::Shader::Type::Fragment};
 
-    vert.addSource(loader.shader("shaders/tile.vert"));
-    frag.addSource(loader.shader("shaders/tile.frag"));
+    vert.addSource(loader.shader("shaders/shader.vert"));
+    frag.addSource(loader.shader("shaders/shader.frag"));
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile());
     CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
