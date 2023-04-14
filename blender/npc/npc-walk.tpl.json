@@ -1,0 +1,58 @@
+{
+	"actionframe": 0,
+	"anim_name": "walk",
+	"fps": 60,
+	"groups": [
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "n",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "ne",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "e",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "se",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "s",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "sw",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "w",
+			"offset": [0, 0, 0]
+		},
+		{
+			"frames": [],
+			"ground": "960 x 540",
+			"name": "nw",
+			"offset": [0, 0, 0]
+		}
+	],
+	"nframes": 60,
+	"object_name": "npc",
+	"scale": ["factor", 0.27443]
+}
