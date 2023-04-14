@@ -43,7 +43,7 @@ struct scenery final : entity
 
     bool update(size_t i, float dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
-    Vector2 depth_offset() const override;
+    float depth_offset() const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
 

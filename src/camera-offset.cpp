@@ -19,11 +19,11 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
     int depth = TILE_MAX_DIM*2 * pos.sum();
 
 #if 0
-    if (c_ == chunk_coords_{} || c_ == chunk_coords_{0, -1, 1})
-        printf("c=(%2hd %2hd %2hhd) pos=(%2d %2d) len=(%d %d) --> %d\n", c_.x, c_.y, c_.z, pos.x(), pos.y(), len.x(), len.y(), depth);
+    printf("c=(%2hd %2hd %2hhd) pos=(%2d %2d) len=(%d %d) --> %d\n", c_.x, c_.y, c_.z, pos.x(), pos.y(), len.x(), len.y(), depth);
 #endif
 
-    float d = depth * tile_shader::depth_tile_size + depth_start;
+    auto z_offset = (z-chunk_z_min) * tile_shader::depth_value({}, tile_shader::z_depth_offset);
+    auto d = depth * tile_shader::depth_tile_size + depth_start + z_offset;
 
     if (c_.z == chunk_z_max)
         d = 1;

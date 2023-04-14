@@ -89,8 +89,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         else
         {
             const auto depth0 = e.depth_offset();
-            const auto depth1 = depth0[1]*TILE_MAX_DIM + depth0[0];
-            const auto depth = tile_shader::depth_value(e.coord.local(), depth1);
+            const auto depth = tile_shader::depth_value(e.coord.local(), depth0);
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
         }
     }

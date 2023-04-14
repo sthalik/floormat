@@ -158,8 +158,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
             const auto& group = atlas->group(fr.r);
             const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
-            const auto depth2 = e->depth_offset();
-            const auto d = depth2.y() * TILE_MAX_DIM + depth2.x();
+            const auto d = e->depth_offset();
             const float depth = tile_shader::depth_value(pos, d);
 
             for (auto j = 0uz; j < 4; j++)

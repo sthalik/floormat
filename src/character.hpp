@@ -29,7 +29,7 @@ struct character final : entity
     bool update(size_t i, float dt) override;
     void set_keys(bool L, bool R, bool U, bool D);
     Vector2 ordinal_offset(Vector2b offset) const override;
-    Vector2 depth_offset() const override;
+    float depth_offset() const override;
 
     String name;
     Vector2s offset_frac;

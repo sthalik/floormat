@@ -37,9 +37,9 @@ struct tile_shader : GL::AbstractShaderProgram
     template<typename T, typename... Xs>
     decltype(auto) draw(T&& mesh, Xs&&... xs);
 
-    static constexpr Vector2s max_screen_tiles{32, 32};
+    static constexpr Vector2s max_screen_tiles{8, 8};
     static constexpr float depth_tile_size = 1/(double)(TILE_MAX_DIM * 2 * max_screen_tiles.product());
-    static constexpr float scenery_depth_offset = 0.25f, character_depth_offset = 0.25f, wall_depth_offset = 0;
+    static const float scenery_depth_offset, wall_depth_offset, z_depth_offset;
 
 private:
     void _draw();

@@ -127,7 +127,6 @@ void main_impl::draw_world() noexcept
         GL::defaultFramebuffer.clearDepth(0);
 #endif
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-
     GL::Renderer::setDepthMask(true);
 
     for (int8_t z = z_max; z >= z_min; z--)
@@ -160,6 +159,11 @@ void main_impl::draw_world() noexcept
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
+                if (only && z != z_cur)
+                    _shader.set_tint({1, 1, 1, 0.75});
+                else
+                    _shader.set_tint({1, 1, 1, 1});
+
                 const chunk_coords_ pos{x, y, z};
                 auto* c_ = _world.at(pos);
                 if (!c_)
@@ -170,6 +174,7 @@ void main_impl::draw_world() noexcept
                     _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
             }
 
+    _shader.set_tint({1, 1, 1, 1});
     GL::Renderer::setDepthMask(true);
 
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
