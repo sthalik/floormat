@@ -78,8 +78,11 @@ float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
     return ((float)xy.x + (float)xy.y + offset) * depth_tile_size;
 }
 
-const float tile_shader::scenery_depth_offset = 1./64;
-const float tile_shader::wall_depth_offset = 0;
-const float tile_shader::z_depth_offset = 1e-4f;
+const Vector2s tile_shader::max_screen_tiles = {8, 8};
+const float tile_shader::character_depth_offset = 1 + 4./64;
+const float tile_shader::scenery_depth_offset = 1 + 4./64;
+const float tile_shader::wall_depth_offset = 1;
+const float tile_shader::z_depth_offset = 1./64;
+const float tile_shader::depth_tile_size = 1/(double)(TILE_MAX_DIM * 2 * max_screen_tiles.product());
 
 } // namespace floormat

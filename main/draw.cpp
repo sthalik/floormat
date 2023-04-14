@@ -103,8 +103,8 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         y1 = std::max(y1, p.y);
     }
 
-    constexpr int16_t maxx = tile_shader::max_screen_tiles.x()/2 - 1, minx = -maxx,
-                      maxy = tile_shader::max_screen_tiles.y()/2 - 1, miny = -maxy;
+    const int16_t maxx = tile_shader::max_screen_tiles.x()/2 - 1, minx = -maxx,
+                  maxy = tile_shader::max_screen_tiles.y()/2 - 1, miny = -maxy;
 
     x0 = std::clamp(x0, minx, maxx);
     x1 = std::clamp(x1, minx, maxx);

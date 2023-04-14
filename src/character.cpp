@@ -132,7 +132,7 @@ void character::set_keys(bool L, bool R, bool U, bool D)
 
 float character::depth_offset() const
 {
-    return tile_shader::scenery_depth_offset;
+    return tile_shader::character_depth_offset;
 }
 
 Vector2 character::ordinal_offset(Vector2b offset) const
