@@ -8,6 +8,7 @@
 #include "src/character.hpp"
 #include "src/tile-iterator.hpp"
 #include "keys.hpp"
+#include "loader/loader.hpp"
 #include <cmath>
 
 namespace floormat {
@@ -16,12 +17,20 @@ namespace floormat {
 
 void app::maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c)
 {
+    auto floor1 = loader.tile_atlas("floor-tiles", {44, 4}, pass_mode::pass);
+    auto floor2 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass);
+    auto wall1  = loader.tile_atlas("wood2", {2, 1}, pass_mode::blocked);
+    auto wall2  = loader.tile_atlas("wood1", {2, 1}, pass_mode::blocked);
+    auto door   = loader.anim_atlas("door-close", loader.SCENERY_PATH);
+    auto table  = loader.anim_atlas("table", loader.SCENERY_PATH);
+    auto control_panel = loader.anim_atlas("control-panel", loader.SCENERY_PATH);
+
     (void)pos; (void)c;
 
     [[maybe_unused]] constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c) {
 #if 1
-        const auto& atlas = _floor1;
+        const auto& atlas = floor1;
 #else
         const auto& atlas = pt.x == N/2 || pt.y == N/2 ? _floor2 : _floor1;
 #endif

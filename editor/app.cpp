@@ -19,14 +19,7 @@
 namespace floormat {
 
 app::app(fm_settings&& opts) :
-    M{floormat_main::create(*this, std::move(opts))},
-    _floor1{loader.tile_atlas("floor-tiles", {44, 4}, pass_mode::pass)},
-    _floor2{loader.tile_atlas("metal1", {2, 2}, pass_mode::pass)},
-    _wall1{loader.tile_atlas("wood2", {2, 1}, pass_mode::blocked)},
-    _wall2{loader.tile_atlas("wood1", {2, 1}, pass_mode::blocked)},
-    _door{loader.anim_atlas("door-close", loader.SCENERY_PATH)},
-    _table{loader.anim_atlas("table", loader.SCENERY_PATH)},
-    _control_panel(loader.anim_atlas("control-panel", loader.SCENERY_PATH))
+    M{floormat_main::create(*this, std::move(opts))}
 {
     reset_world();
     auto& w = M->world();
