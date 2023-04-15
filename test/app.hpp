@@ -1,4 +1,6 @@
 #pragma once
+#undef FM_NO_DEBUG
+#include "compat/assert.hpp"
 #include <Magnum/Magnum.h>
 
 #ifdef __APPLE__
