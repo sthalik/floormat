@@ -65,6 +65,7 @@
 #include "compat/prelude.hpp"
 #include "compat/defs.hpp"
 #include "compat/assert.hpp"
+#include "compat/function2.hpp"
 #include "src/global-coords.hpp"
 #include "src/anim-atlas.hpp"
 
