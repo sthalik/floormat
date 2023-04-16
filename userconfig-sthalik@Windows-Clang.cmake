@@ -126,5 +126,6 @@ function(fm-userconfig-src)
         -Wno-error=double-promotion
         -Wno-error=ambiguous-reversed-operator
         -Wno-error=comma
+        -Wno-error=weak-vtables
     )
 endfunction()
