@@ -1,6 +1,5 @@
 #pragma once
 #include "src/global-coords.hpp"
-#include <memory>
 #include <Corrade/Containers/BitArrayView.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Range.h>

@@ -3,7 +3,6 @@
 #include "tile-defs.hpp"
 #include "rotation.hpp"
 #include "entity.hpp"
-#include <memory>
 #include <type_traits>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Magnum.h>

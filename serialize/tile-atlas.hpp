@@ -1,8 +1,7 @@
 #pragma once
+#include "src/tile-atlas.hpp"
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
-
-namespace floormat { struct tile_atlas; }
 
 namespace nlohmann {
 

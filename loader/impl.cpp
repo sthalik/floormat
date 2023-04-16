@@ -2,7 +2,6 @@
 #include "compat/assert.hpp"
 #include "loader/scenery.hpp"
 #include <cstring>
-#include <memory>
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Trade/ImageData.h>
 

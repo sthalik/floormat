@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "compat/prelude.hpp"
 #include "loader/loader.hpp"
 #include "src/tile-atlas.hpp"
 

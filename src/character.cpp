@@ -7,6 +7,7 @@
 #include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
+#include <memory>
 #include <utility>
 #include <algorithm>
 

@@ -8,7 +8,6 @@
 #include "scenery-editor.hpp"
 
 #include <map>
-#include <memory>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 
