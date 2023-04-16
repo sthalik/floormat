@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 #include <tsl/robin_map.h>
+#include <Corrade/Utility/Move.h>
 
 template<>
 struct std::hash<floormat::chunk_coords_> final {
@@ -85,8 +86,8 @@ public:
     }
     std::shared_ptr<T> make_entity(object_id id, global_coords pos, Xs&&... xs)
     {
-        auto ret = std::shared_ptr<T>(new T{id, operator[](chunk_coords_{pos.chunk(), pos.z()}), std::forward<Xs>(xs)...});
-        do_make_entity(std::static_pointer_cast<entity>(ret), pos, sorted);
+        auto ret = std::shared_ptr<T>(new T{id, operator[](chunk_coords_{pos.chunk(), pos.z()}), Utility::forward<Xs>(xs)...});
+        do_make_entity(static_pointer_cast<entity>(ret), pos, sorted);
         return ret;
     }
 
@@ -125,7 +126,7 @@ std::shared_ptr<T> world::find_entity(object_id id)
     {
         if (!(ptr->type() == entity_type_<T>::value)) [[unlikely]]
             throw_on_wrong_entity_type(id, ptr->type(), entity_type_<T>::value);
-        return std::static_pointer_cast<T>(std::move(ptr));
+        return static_pointer_cast<T>(Utility::move(ptr));
     }
 }
 

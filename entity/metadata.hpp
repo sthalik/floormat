@@ -5,8 +5,9 @@
 #include "util.hpp"
 #include "concepts.hpp"
 #include "compat/defs.hpp"
-#include <concepts>
 #include <type_traits>
+#include <concepts>
+#include <utility>
 #include <limits>
 #include <utility>
 #include <tuple>
@@ -216,7 +217,7 @@ struct Entity final {
         struct field final : entity_field<Obj, Type, R, W, Ts...>
         {
             constexpr field(StringView field_name, R r, W w, Ts&&... ts) noexcept :
-                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, std::forward<Ts>(ts)...}
+                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, Utility::forward<Ts>(ts)...}
             {}
         };
 
@@ -230,7 +231,7 @@ constexpr void visit_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        detail::visit_tuple<F, Tuple, 0>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+        detail::visit_tuple<F, Tuple, 0>(Utility::forward<F>(fun), Utility::forward<Tuple>(tuple));
 }
 
 template<typename F, typename Tuple>
@@ -238,7 +239,7 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        return detail::find_in_tuple<F, Tuple, 0>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+        return detail::find_in_tuple<F, Tuple, 0>(Utility::forward<F>(fun), Utility::forward<Tuple>(tuple));
     else
         return false;
 }

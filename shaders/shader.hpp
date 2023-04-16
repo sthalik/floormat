@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "tile-defs.hpp"
+#include <Corrade/Utility/Move.h>
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -60,7 +61,7 @@ template<typename T, typename... Xs>
 decltype(auto) tile_shader::draw(T&& mesh, Xs&&... xs)
 {
     _draw();
-    return GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
+    return GL::AbstractShaderProgram::draw(Utility::forward<T>(mesh), Utility::forward<Xs>(xs)...);
 }
 
 template<typename T>

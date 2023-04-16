@@ -10,16 +10,15 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <array>
-#include <utility>
 #include <algorithm>
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Arguments.h>
+#include <Corrade/Utility/Move.h>
 
 namespace floormat {
 
 app::app(fm_settings&& opts) :
-    M{floormat_main::create(*this, std::move(opts))}
+    M{floormat_main::create(*this, Utility::move(opts))}
 {
     reset_world();
     auto& w = M->world();
@@ -85,7 +84,7 @@ void app::reset_world(struct world&& w_)
     _character_id = 0;
     _render_all_z_levels = true;
 
-    auto& w = M->reset_world(std::move(w_));
+    auto& w = M->reset_world(Utility::move(w_));
     w.collect(true);
     ensure_player_character(w);
     update_cursor_tile(pixel);
@@ -175,9 +174,9 @@ int app::run_from_argv(const int argc, const char* const* const argv)
 
     Pointer<floormat_main> ptr;
     {
-        app application{std::move(opts)};
+        app application{Utility::move(opts)};
         ret = application.exec();
-        ptr = std::move(application.M);
+        ptr = Utility::move(application.M);
         (void)ptr;
     }
     loader_::destroy();

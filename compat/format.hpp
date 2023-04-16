@@ -3,6 +3,7 @@
 #include <fmt/compile.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
+#include <Corrade/Utility/Move.h>
 
 namespace fmt {
 
@@ -50,7 +51,7 @@ template<size_t N, typename Fmt, typename... Xs>
 size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 {
     constexpr size_t n = N > 0 ? N - 1 : 0;
-    auto result = fmt::format_to_n(buf, n, std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
+    auto result = fmt::format_to_n(buf, n, Utility::forward<Fmt>(fmt), std::forward<Xs>(args)...);
     const auto len = std::min(n, result.size);
     if constexpr(N > 0)
         buf[len] = '\0';

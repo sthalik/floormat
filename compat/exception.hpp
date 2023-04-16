@@ -22,7 +22,7 @@ private:
 template<typename Fmt, typename... Ts>
 exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 {
-    fmt::format_to(std::back_inserter(buf), fmt, std::forward<Ts>(args)...);
+    fmt::format_to(std::back_inserter(buf), fmt, Utility::forward<Ts>(args)...);
     buf.push_back('\0');
 }
 

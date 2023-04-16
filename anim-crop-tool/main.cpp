@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
-#include <utility>
 #include <tuple>
 
 #include <Corrade/Containers/Pair.h>
@@ -19,6 +18,7 @@
 
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
+#include <Corrade/Utility/Move.h>
 #include <Corrade/Utility/Path.h>
 
 #include <opencv2/core/mat.hpp>
@@ -75,7 +75,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
             Error{} << "error: failed to load" << filename << "as RGBA32 image";
             return cv::Mat4b{};
         }
-        return cv::Mat4b(std::move(mat));
+        return cv::Mat4b(Utility::move(mat));
     );
 
     if (mat.empty())
@@ -119,7 +119,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
     const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
 
     group.frames.push_back({ground, atlas.offset(), dest_size_});
-    atlas.add_entry({&group.frames.back(), std::move(resized)});
+    atlas.add_entry({&group.frames.back(), Utility::move(resized)});
     return true;
 }
 
@@ -223,7 +223,7 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    return { std::move(opts), std::move(args), true };
+    return { Utility::move(opts), Utility::move(args), true };
 }
 
 [[nodiscard]] static int usage(const Arguments& args) noexcept
