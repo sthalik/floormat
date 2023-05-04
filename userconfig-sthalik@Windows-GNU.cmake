@@ -4,9 +4,8 @@ sets(STRING
      CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -march=core2 -mtune=native -mavx -flto -fipa-pta -static"
 )
 
-add_compile_options(-U__SIZEOF_INT128__ -D__SIZEOF_INT128__=0 -U__SIZEOF_FLOAT128__ -D__SIZEOF_FLOAT128__=0)
 sets(STRING
-     CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fext-numeric-literals"
+     CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}"
      CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}"
      CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
 )
