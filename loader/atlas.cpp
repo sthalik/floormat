@@ -109,7 +109,7 @@ bool loader_impl::check_atlas_name(StringView str)
 {
     if (str.isEmpty())
         return false;
-    if (str.findAny("\0\\<>&;:^'\""_s) || str.find("/."_s))
+    if (str.findAny("\n\r\t\0\\|$<>&;:^'\""_s) || str.find("/."_s))
         return false;
     if (str[0] == '.' || str[0] == '/')
         return false;
