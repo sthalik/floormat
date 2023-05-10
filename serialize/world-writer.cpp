@@ -314,11 +314,9 @@ void writer_state::serialize_strings()
     fm_assert(s.bytes_written() == string_buf.size());
 }
 
-const auto def_char_bbox_size = character_proto{}.bbox_size;
-const auto def_char_pass = character_proto{}.pass;
-
 void writer_state::serialize_scenery(const chunk& c, writer_t& s)
 {
+    const auto def_char_bbox_size = character_proto{}.bbox_size;
     const auto entity_count = (uint32_t)c.entities().size();
     s << entity_count;
     fm_assert(entity_count == c.entities().size());

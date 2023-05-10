@@ -57,6 +57,7 @@ struct entity
     float ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const;
     struct chunk& chunk() const;
     size_t index() const;
+    virtual bool is_virtual() const;
 
     explicit operator entity_proto() const;
 

@@ -161,6 +161,7 @@ scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :
     entity{id, c, proto}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {
+    fm_debug_assert(atlas); // todo add placeholder graphic
 }
 
 } // namespace floormat

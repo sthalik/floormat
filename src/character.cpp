@@ -92,6 +92,7 @@ character_proto& character_proto::operator=(const character_proto&) = default;
 character_proto::character_proto()
 {
     type = entity_type::character;
+    atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
 }
 
 bool character_proto::operator==(const entity_proto& e0) const
@@ -215,8 +216,6 @@ character::character(object_id id, struct chunk& c, const character_proto& proto
 {
     if (!name)
         name = "(Unnamed)"_s;
-    if (!atlas)
-        const_cast<std::shared_ptr<anim_atlas>&>(atlas) = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
     fm_soft_assert(atlas->check_rotation(r));
     entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }

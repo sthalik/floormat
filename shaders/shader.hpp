@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/defs.hpp"
 #include "tile-defs.hpp"
 #include <Corrade/Utility/Move.h>
 #include <Magnum/GL/AbstractShaderProgram.h>
@@ -11,14 +10,11 @@ namespace floormat {
 
 struct local_coords;
 
-struct tile_shader : GL::AbstractShaderProgram
+struct tile_shader final : GL::AbstractShaderProgram
 {
     using Position           = GL::Attribute<0, Vector3>;
     using TextureCoordinates = GL::Attribute<1, Vector2>;
     using Depth              = GL::Attribute<2, float>;
-
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(tile_shader);
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(tile_shader);
 
     explicit tile_shader();
     ~tile_shader() override;

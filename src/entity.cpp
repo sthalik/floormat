@@ -29,11 +29,9 @@ entity::entity(object_id id, struct chunk& c, const entity_proto& proto) :
     bbox_size{proto.bbox_size}, delta{proto.delta},
     frame{proto.frame}, r{proto.r}, pass{proto.pass}
 {
-    if (atlas)
-    {
-        fm_soft_assert(atlas->check_rotation(r));
-        fm_soft_assert(frame < atlas->info().nframes);
-    }
+    fm_soft_assert(atlas);
+    fm_soft_assert(atlas->check_rotation(r));
+    fm_soft_assert(frame < atlas->info().nframes);
 }
 
 entity::~entity() noexcept
@@ -74,6 +72,11 @@ size_t entity::index() const
     fm_assert(it != es.cend());
     fm_assert((*it)->id == id);
     return (size_t)std::distance(es.cbegin(), it);
+}
+
+bool entity::is_virtual() const
+{
+    return false;
 }
 
 bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)

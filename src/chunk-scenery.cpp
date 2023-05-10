@@ -139,7 +139,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         const auto count = fm_begin(
             size_t ret = 0;
             for (const auto& e : _entities)
-                ret += !e->is_dynamic();
+                ret += !e->is_dynamic() && !e->is_virtual();
             return ret;
         );
 
@@ -150,7 +150,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         {
             if (e->is_dynamic())
                 continue;
-
+            if (e->is_virtual())
+                continue;
             const auto& atlas = e->atlas;
             const auto& fr = *e;
             const auto pos = e->coord.local();
@@ -178,13 +179,15 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
     const auto size = _entities.size();
     auto& array = buffers.array;
-    uint32_t j = 0;
-    for (uint32_t i = 0; const auto& e : _entities)
+    uint32_t j = 0, i = 0;
+    for (const auto& e : _entities)
     {
+        if (e->is_virtual())
+            continue;
         auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
         array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
     }
-    topological_sort(array, size);
+    topological_sort(array, i);
 
     return { scenery_mesh, ArrayView<entity_draw_order>{array, size}, j };
 }

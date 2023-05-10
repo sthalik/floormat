@@ -163,7 +163,6 @@ void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, 
     fm_assert(e->id > 0);
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
     fm_assert(!_entities.contains(e->id));
-    fm_assert(Vector2ui(e->bbox_size).product() > 0);
     fm_assert(e->type() != entity_type::none);
     const_cast<global_coords&>(e->coord) = pos;
     _entities[e->id] = e;
