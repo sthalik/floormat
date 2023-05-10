@@ -76,10 +76,7 @@ struct entity_accessors<scenery> {
 
 template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
 template<> struct has_anim_atlas<entity> : std::true_type {
-    static const anim_atlas& get_atlas(const entity& x) {
-        fm_assert(x.atlas);
-        return *x.atlas;
-    }
+    static const anim_atlas& get_atlas(const entity& x) { return *x.atlas; }
 };
 template<> struct has_anim_atlas<scenery> : has_anim_atlas<entity> {};
 
