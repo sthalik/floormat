@@ -16,6 +16,7 @@ namespace floormat {
 struct tile_atlas;
 struct anim_atlas;
 struct scenery_proto;
+struct vobj_info;
 
 struct loader_
 {
@@ -32,6 +33,8 @@ struct loader_
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);
+    virtual const vobj_info& vobj(StringView name) = 0;
+    virtual ArrayView<struct vobj_info> vobj_list() = 0;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;
@@ -42,6 +45,7 @@ struct loader_
     static const StringView ANIM_PATH;
     static const StringView SCENERY_PATH;
     static const StringView TEMP_PATH;
+    static const StringView VOBJ_PATH;
 
 protected:
     loader_();

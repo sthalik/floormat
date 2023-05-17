@@ -207,7 +207,7 @@ add_subdirectory(editor)
 add_subdirectory(test)
 add_subdirectory(anim-crop-tool)
 
-install(DIRECTORY images anim scenery DESTINATION "share/floormat")
+install(DIRECTORY images anim scenery vobj DESTINATION "share/floormat")
 
 fm_run_hook(fm-userconfig-post)
 

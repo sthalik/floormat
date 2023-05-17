@@ -1,0 +1,71 @@
+Formulas:
+
+center = 304, 290
+
+def slope(x, y):
+  return (center[1] - y)/(x - center[0])
+
+>>> s1 = slope(231, 516)
+>>> s2 = slope(193, 463)
+>>> atan2((s1 - s2), (1 + s1 * s2)) * 180/pi
+
+21:57 [WhiteShark] I'll just write down the fixed quadrant instructions anyway for the old method
+21:57 [WhiteShark] Q1, make it positive and add 270; Q2, add 180; Q3, make it positive and add 90; Q4, no
+                   change
+
+----
+
+Written by WhiteShark:
+
+----
+
+FINDING ANGLES AROUND AN IMAGINARY CIRCLE
+
+STARTING INFORMATION
+The coordinates of the center of our circle and the coordinates of various outside points around it.
+
+STEP 1
+We must choose a direction to be our base of 0°. For simplicity we will have this be directly to the right. This creates an imaginary ray starting from the center of our circle with a slope of 0. All angles will be found relative to this imaginary ray.
+
+STEP 2
+We must find the slope of our second ray which runs from the center of the circle through one of the outside points.
+
+SLOPE FORMULA
+m is the slope of a line
+x1,y1 are the coordinates of our center point
+x2,y2 are the coordinates of the outside point
+
+m = (y2 - y1) / (x2 - x1)
+
+STEP 3
+We now have the slopes of two rays, so we may calculate the acute (smallest) angle between them.
+
+ACUTE ANGLE BETWEEN TWO LINES FORMULA
+θ is the acute angle between two lines
+(Tan^-1 is the inverse tangent)
+θ = Tan^-1 ((slope1 - slope2) / (1 + slope1 * slope2))
+
+Since we know slope1 to be 0, we can greatly simply the formula.
+
+θ = Tan^-1 (-slope2)
+
+STEP 4
+Now we have the acute angle but that could be in either direction relative to our base angle. We must now find out the absolute angle. Since our base ray is running directly to the right, any angle on the bottom half of the circle can be left alone, but any angle on the top half of the circle must be adjusted. To find out if the angle is on the top half of the circle, we first find the delta y between the center point and the outside point.
+
+delta y = y2 - y1
+
+If delta y is negative, we can leave the angle alone; the outside point is below the center point. If it's positive, that means the outside point is above the center point, so we need to adjust the acute angle.
+
+absolute angle = θ + 180
+
+STEP 5
+Now we can find the absolute angle of any outside point compared to the center point and can also easily find the difference between them, but what if we need to find the difference between an angle of 359° and an angle of 1°? It would be easy to accidentally get a difference of 358° when really it's only a difference of 2°. To find out which is applicable, we can test which is smaller.
+
+test1 = |angle2 - angle1|
+test2 = ||angle2 - angle1| - 360|
+if test1 <= test2
+return test1
+else
+return test2
+
+Our above test will find that test1 = 358° and test2 = 2° and therefore return test2.

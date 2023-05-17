@@ -23,7 +23,9 @@ struct loader_impl final : loader_
 
     tsl::robin_map<StringView, std::shared_ptr<struct tile_atlas>> tile_atlas_map;
     tsl::robin_map<StringView, std::shared_ptr<struct anim_atlas>> anim_atlas_map;
+    tsl::robin_map<StringView, const struct vobj_info*> vobj_atlas_map;
     std::vector<String> anim_atlases;
+    std::vector<struct vobj_info> vobjs;
 
     std::vector<serialized_scenery> sceneries_array;
     tsl::robin_map<StringView, const serialized_scenery*> sceneries_map;
@@ -42,6 +44,11 @@ struct loader_impl final : loader_
     void get_anim_atlas_list();
     void get_scenery_list();
     static anim_def deserialize_anim(StringView filename);
+
+    void get_vobj_list();
+    std::shared_ptr<struct anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
+    const struct vobj_info& vobj(StringView name) override;
+    ArrayView<struct vobj_info> vobj_list() override;
 
     void set_application_working_directory();
     StringView startup_directory() noexcept override;

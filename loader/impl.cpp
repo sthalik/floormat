@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "loader/scenery.hpp"
+#include "loader/vobj-info.hpp"
 #include <cstring>
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Trade/ImageData.h>

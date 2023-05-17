@@ -30,6 +30,8 @@ StringView loader_::strip_prefix(StringView name)
         return name.exceptPrefix(ANIM_PATH.size());
     if (name.hasPrefix(SCENERY_PATH))
         return name.exceptPrefix(SCENERY_PATH.size());
+    if (name.hasPrefix(VOBJ_PATH))
+        return name.exceptPrefix(VOBJ_PATH.size());
     return name;
 }
 
@@ -37,5 +39,6 @@ const StringView loader_::IMAGE_PATH = "images/"_s;
 const StringView loader_::ANIM_PATH = "anim/"_s;
 const StringView loader_::SCENERY_PATH = "scenery/"_s;
 const StringView loader_::TEMP_PATH = "../../../"_s;
+const StringView loader_::VOBJ_PATH = "vobj/"_s;
 
 } // namespace floormat

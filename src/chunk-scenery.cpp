@@ -150,9 +150,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         {
             if (e->is_dynamic())
                 continue;
-            if (e->is_virtual())
-                continue;
             const auto& atlas = e->atlas;
+            fm_debug_assert(atlas != nullptr);
             const auto& fr = *e;
             const auto pos = e->coord.local();
             const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
@@ -182,8 +181,6 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     uint32_t j = 0, i = 0;
     for (const auto& e : _entities)
     {
-        if (e->is_virtual())
-            continue;
         auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
         array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
     }
