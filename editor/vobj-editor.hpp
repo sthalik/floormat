@@ -17,7 +17,7 @@ struct entity;
 struct anim_atlas;
 struct vobj_info;
 
-#ifdef __clang__
+#if defined __clang__ || defined __CLION_IDE__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #endif
@@ -25,7 +25,7 @@ struct vobj_info;
 struct vobj_factory
 {
     constexpr vobj_factory() = default;
-    virtual constexpr ~vobj_factory() noexcept = default;
+    virtual constexpr ~vobj_factory() noexcept;
     virtual const vobj_info& info() const = 0;
     virtual entity_type type() const = 0;
     virtual std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const = 0;
@@ -35,7 +35,9 @@ struct vobj_factory
     std::shared_ptr<anim_atlas> atlas() const;
 };
 
-#ifdef __clang__
+constexpr vobj_factory::~vobj_factory() noexcept {}; // NOLINT workaround gcc 12 bug #93413
+
+#if defined __clang__ || defined __CLION_IDE__
 #pragma clang diagnostic pop
 #endif
 

@@ -29,12 +29,13 @@ struct light_factory final : vobj_factory
         constexpr auto NAME = "light"_s;
         static const vobj_info& ret = loader.vobj(NAME);
         fm_debug_assert(ret.name == NAME);
+        fm_debug_assert(ret.atlas != nullptr);
         return ret;
     }
 
     std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const override
     {
-        auto ret = w.make_entity<light>(id, pos, light_proto{});
+        auto ret = w.make_entity<light>(id, {pos.chunk(), pos.local(), 0}, light_proto{});
         return ret;
     }
 };
@@ -60,7 +61,7 @@ const vobj_factory* vobj_editor::get_factory(entity_type type)
     if (!ptr)
     {
         fm_warn_once("invalid vobj type '%zu'", idx);
-        return {};
+        return nullptr;
     }
     else
         return ptr;
