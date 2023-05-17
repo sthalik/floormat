@@ -8,7 +8,7 @@ constexpr inline unsigned char TILE_MAX_DIM = 16;
 constexpr inline size_t TILE_COUNT = size_t{TILE_MAX_DIM}*size_t{TILE_MAX_DIM};
 
 constexpr inline auto TILE_MAX_DIM20d = Magnum::Math::Vector3<double>       { TILE_MAX_DIM, TILE_MAX_DIM, 0 };
-constexpr inline auto iTILE_SIZE      = Magnum::Math::Vector3<Int>          { 64, 64, 160 };
+constexpr inline auto iTILE_SIZE      = Magnum::Math::Vector3<Int>          { 64, 64, 192 };
 constexpr inline auto uiTILE_SIZE     = Magnum::Math::Vector3<UnsignedInt>  { iTILE_SIZE };
 constexpr inline auto bTILE_SIZE      = Magnum::Math::Vector3<Byte>         { iTILE_SIZE };
 constexpr inline auto iTILE_SIZE2     = Magnum::Math::Vector2<Int>          { iTILE_SIZE[0], iTILE_SIZE[1] };
