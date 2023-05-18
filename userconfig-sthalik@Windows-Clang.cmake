@@ -46,6 +46,8 @@ sets(STRING
 
 add_compile_options(-Xclang -fcolor-diagnostics -fdiagnostics-color=always)
 
+set(FLOORMAT_SUBMODULE-SDL2 1)
+
 # for building submodule dependencies
 function(fm-userconfig-external)
     add_compile_options(

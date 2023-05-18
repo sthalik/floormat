@@ -20,9 +20,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
 endif()
 
+set(FLOORMAT_SUBMODULE-SDL2 1)
+
 # for building submodule dependencies
 function(fm-userconfig-external)
-    set(FLOORMAT_SUBMODULE-SDL2 1)
     add_compile_options(
         -Wno-ignored-attributes
         -Wno-unused-function
