@@ -23,7 +23,7 @@ vobj_editor::vobj_::operator bool() const { return factory != nullptr; }
 vobj_editor::vobj_editor() = default;
 void vobj_editor::select_tile(const vobj_& type) { _selected = &type; }
 
-auto vobj_editor::get_type(StringView name) -> const vobj_&
+auto vobj_editor::get_type(StringView name) -> const vobj_*
 {
     auto it = _types.find(name);
     if (it != _types.cend())

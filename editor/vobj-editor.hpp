@@ -51,7 +51,7 @@ struct vobj_editor final
     void select_tile(const vobj_& type);
     void clear_selection();
 
-    static const vobj_& get_type(StringView name);
+    static const vobj_* get_type(StringView name);
     bool is_item_selected(const vobj_& x) const;
     bool is_anything_selected() const;
 
