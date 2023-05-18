@@ -4,7 +4,12 @@
 
 namespace floormat {
 
-light_proto::light_proto() = default;
+light_proto::light_proto()
+{
+    pass = pass_mode::pass;
+    type = entity_type::light;
+}
+
 light_proto::light_proto(const light_proto&) = default;
 light_proto& light_proto::operator=(const light_proto&) = default;
 light_proto::~light_proto() noexcept = default;
@@ -20,7 +25,7 @@ light::light(object_id id, struct chunk& c, const light_proto& proto) :
 
 float light::depth_offset() const
 {
-    constexpr auto ret = 4.f / tile_shader::depth_tile_size;
+    constexpr auto ret = 4 / tile_shader::depth_tile_size;
     return ret;
 }
 

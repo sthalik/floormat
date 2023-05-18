@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "scenery-editor.hpp"
 #include "imgui-raii.hpp"
 #include "anim-atlas.hpp"
 #include "loader/loader.hpp"
@@ -10,12 +9,38 @@ namespace floormat {
 
 using namespace floormat::imgui;
 
-void app::draw_editor_scenery_pane(scenery_editor& ed)
+static StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
+{
+    switch (sc.proto.sc_type)
+    {
+    case scenery_type::none:    return "none"_s;    break;
+    case scenery_type::generic: return "generic"_s; break;
+    case scenery_type::door:    return "door"_s;    break;
+    default:                    return "unknown"_s; break;
+    }
+}
+
+static std::shared_ptr<anim_atlas> get_atlas(const scenery_editor::scenery_& sc)
+{
+    return sc.proto.atlas;
+}
+
+static StringView scenery_type_to_string(const vobj_editor::vobj_& vobj)
+{
+    return vobj.name;
+}
+
+static std::shared_ptr<anim_atlas> get_atlas(const vobj_editor::vobj_& vobj)
+{
+    return vobj.factory->atlas();
+}
+
+template<typename T>
+static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 {
     const auto b1 = push_id("scenery-pane");
 
     const auto& style = ImGui::GetStyle();
-    const auto dpi = M->dpi_scale();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr int ncolumns = 4;
     const auto size = ImGui::GetWindowSize();
@@ -41,12 +66,12 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
 
     for (const auto& [name, scenery] : ed)
     {
-        fm_debug_assert(scenery.proto.atlas != nullptr);
+        fm_debug_assert(get_atlas(scenery));
         ImGui::TableNextRow(ImGuiTableRowFlags_None, row_height);
 
         if (ImGui::TableSetColumnIndex(0))
         {
-            auto& atlas = *scenery.proto.atlas;
+            auto& atlas = *get_atlas(scenery);
             const auto r = atlas.first_rotation();
             const auto& frame = atlas.frame(r, 0);
             const auto size = Vector2(frame.size);
@@ -69,18 +94,13 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
         }
         if (ImGui::TableSetColumnIndex(2))
         {
-            switch (scenery.proto.sc_type)
-            {
-            case scenery_type::none: text("none"); break;
-            case scenery_type::generic: text("generic"); break;
-            case scenery_type::door: text("door"); break;
-            default: text("unknown"); break;
-            }
+            text(scenery_type_to_string(scenery));
             click_event();
         }
         if (ImGui::TableSetColumnIndex(3))
         {
-            StringView name = loader.strip_prefix(scenery.proto.atlas->name());
+            auto& atlas = *get_atlas(scenery);
+            StringView name = loader.strip_prefix(atlas.name());
             if (auto last = name.findLast('/'))
                 name = name.prefix(last.data());
             else
@@ -91,11 +111,25 @@ void app::draw_editor_scenery_pane(scenery_editor& ed)
     }
 }
 
+template void impl_draw_editor_scenery_pane(scenery_editor&, Vector2);
+template void impl_draw_editor_scenery_pane(vobj_editor&, Vector2);
+
+void app::draw_editor_scenery_pane(scenery_editor& ed)
+{
+    impl_draw_editor_scenery_pane<scenery_editor>(ed, M->dpi_scale());
+}
+
+void app::draw_editor_vobj_pane(vobj_editor& ed)
+{
+    impl_draw_editor_scenery_pane<vobj_editor>(ed, M->dpi_scale());
+}
+
 void app::draw_editor_pane(float main_menu_height)
 {
     auto* ed = _editor.current_tile_editor();
     auto* sc = _editor.current_scenery_editor();
-    fm_assert(!ed || !sc);
+    auto* vo = _editor.current_vobj_editor();
+    fm_assert(!ed || !sc || !vo);
 
     const auto window_size = M->window_size();
     const auto dpi = M->dpi_scale();
@@ -116,13 +150,15 @@ void app::draw_editor_pane(float main_menu_height)
 
     if (main_menu_height > 0)
     {
+        constexpr auto igwf = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration |
+                                                ImGuiWindowFlags_NoMove |
+                                                ImGuiWindowFlags_NoSavedSettings);
         const auto b = push_id("editor");
 
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({425 * dpi[0], window_size[1] - main_menu_height - style.WindowPadding.y});
-        if (const auto flags = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
-            auto b = begin_window({}, nullptr, flags))
+        ImGui::SetNextWindowSize({425 * dpi[0], window_size[1]-main_menu_height - style.WindowPadding.y});
+        if (auto b = begin_window({}, nullptr, igwf))
         {
             const auto b2 = push_id("editor-pane");
             if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
@@ -132,6 +168,8 @@ void app::draw_editor_pane(float main_menu_height)
                         draw_editor_tile_pane_atlas(*ed, k, v);
                 else if (sc)
                     draw_editor_scenery_pane(*sc);
+                else if (vo)
+                    draw_editor_vobj_pane(*vo);
             }
         }
     }

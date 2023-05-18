@@ -140,7 +140,7 @@ void app::do_rotate(bool backward)
 void app::do_set_mode(editor_mode mode)
 {
     if (mode != _editor.mode())
-        kill_popups(true);
+        kill_popups(false);
     _editor.set_mode(mode);
 }
 

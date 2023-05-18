@@ -59,6 +59,20 @@ void app::draw_cursor()
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }
+        else if (const auto* ed = _editor.current_vobj_editor())
+        {
+            if (!ed->is_anything_selected())
+                shader.set_tint(inactive_color);
+            if (ed->is_anything_selected())
+            {
+                const auto& atlas = ed->get_selected()->factory->atlas();
+                draw(_wireframe_quad, TILE_SIZE2);
+                shader.set_tint({1, 1, 1, 0.75f});
+                auto [_f, _w, anim_mesh] = M->meshes();
+                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE;
+                anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
+            }
+        }
 
         shader.set_tint({1, 1, 1, 1});
     }
@@ -79,10 +93,8 @@ void app::draw_collision_boxes()
 
     for (int8_t z = z_min; z <= z_max; z++)
     {
-        if (z == _z_level)
-            shader.set_tint({0, .5f, 1, 1});
-        else
-            shader.set_tint({.7f, .7f, .7f, .6f});
+        constexpr Vector4 pass_tint = {.7f, .7f, .7f, .6f};
+        const auto tint = z == _z_level ? Vector4{0, .5f, 1, 1} : Vector4{.7f, .7f, .7f, .6f};
 
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
@@ -99,12 +111,15 @@ void app::draw_collision_boxes()
                     constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
                     const auto* rtree = c.rtree();
                     rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
-                      [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                      Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
-                      auto size = (end - start);
-                      auto center = Vector3(start + size*.5f, 0.f);
-                      _wireframe_rect.draw(shader, { center, size, 3 });
-                      return true;
+                        [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                        if (x.tag == (uint64_t)collision_type::geometry)
+                            return true;
+                        Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                        auto size = (end - start);
+                        auto center = Vector3(start + size*.5f, 0.f);
+                        shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
+                        _wireframe_rect.draw(shader, { center, size, 3 });
+                        return true;
                     });
                 }
             }
@@ -145,12 +160,14 @@ void app::draw_collision_boxes()
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                      [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                      Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
-                      auto size = end - start;
-                      auto center = Vector3(start + size*.5f, 0.f);
-                      _wireframe_rect.draw(shader, { center, size, 3 });
-                      return true;
+                        [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                        if (x.tag == (uint64_t)collision_type::geometry)
+                            return true;
+                        Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                        auto size = end - start;
+                        auto center = Vector3(start + size*.5f, 0.f);
+                        _wireframe_rect.draw(shader, { center, size, 3 });
+                        return true;
                     });
                 }
             }
@@ -163,7 +180,7 @@ void app::draw()
 {
     if (_render_bboxes)
         draw_collision_boxes();
-    if (_editor.current_tile_editor() || _editor.current_scenery_editor())
+    if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_cursor();
     draw_ui();
     render_menu();
@@ -186,7 +203,7 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
             const auto pos = !c.mirrored ? pos_ : Vector2i(int(c.src.sizeX()) - 1 - pos_[0], pos_[1]);
             size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
             fm_assert(idx < c.bitmask.size());
-            if (c.bitmask[idx])
+            if (c.bitmask.isEmpty() || c.bitmask[idx])
             {
                 depth = c.depth;
                 item = &c;

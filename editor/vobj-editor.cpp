@@ -7,10 +7,6 @@
 #include <utility>
 #include <Corrade/Containers/StringView.h>
 
-#if defined __clang__ || defined __CLION_IDE__
-#pragma clang diagnostic ignored "-Wweak-vtables"
-#endif
-
 namespace floormat {
 
 StringView vobj_factory::name() const { return info().name; }
@@ -19,9 +15,14 @@ std::shared_ptr<anim_atlas> vobj_factory::atlas() const { return info().atlas; }
 vobj_factory::vobj_factory() = default;
 vobj_factory::~vobj_factory() noexcept = default;
 
-vobj_editor::vobj_::operator bool() const { return factory != nullptr; }
 vobj_editor::vobj_editor() = default;
 void vobj_editor::select_tile(const vobj_& type) { _selected = &type; }
+void vobj_editor::clear_selection() { _selected = nullptr; }
+
+auto vobj_editor::get_selected() const -> const vobj_*
+{
+    return _selected;
+}
 
 auto vobj_editor::get_type(StringView name) -> const vobj_*
 {
@@ -37,6 +38,33 @@ auto vobj_editor::get_type(StringView name) -> const vobj_*
 
 bool vobj_editor::is_item_selected(const vobj_& x) const { return _selected == &x; }
 bool vobj_editor::is_anything_selected() const { return _selected != nullptr; }
+
+void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x)
+{
+    if (!x)
+    {
+        // don't regen colliders
+        auto [c, t] = w[pos];
+        const auto px = Vector2(pos.local()) * TILE_SIZE2;
+        const auto es = c.entities();
+        for (auto i = es.size()-1; i != (size_t)-1; i--)
+        {
+            const auto& e = *es[i];
+            if (!e.is_virtual())
+                continue;
+            auto center = Vector2(e.coord.local())*TILE_SIZE2 + Vector2(e.offset) + Vector2(e.bbox_offset),
+                 min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);
+            if (px >= min && px <= max)
+                c.remove_entity(i);
+        }
+    }
+    else
+        x->factory->make(w, w.make_id(), pos);
+}
+
+#if defined __clang__ || defined __CLION_IDE__
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 struct light_factory final : vobj_factory
 {
@@ -58,7 +86,7 @@ struct light_factory final : vobj_factory
     }
 };
 
-static auto make_vobj_type_map()
+auto vobj_editor::make_vobj_type_map() -> std::map<StringView, vobj_>
 {
     constexpr auto add = [](auto& m, std::unique_ptr<vobj_factory>&& x) {
         StringView name = x->name(), descr = x->descr();
@@ -68,7 +96,5 @@ static auto make_vobj_type_map()
     add(map, std::make_unique<light_factory>());
     return map;
 }
-
-const std::map<StringView, vobj_editor::vobj_> vobj_editor::_types = make_vobj_type_map();
 
 } // namespace floormat

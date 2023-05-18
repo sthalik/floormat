@@ -6,6 +6,7 @@
 #include "editor-enums.hpp"
 #include "tile-editor.hpp"
 #include "scenery-editor.hpp"
+#include "vobj-editor.hpp"
 
 #include <map>
 #include <Corrade/Containers/Optional.h>
@@ -28,6 +29,8 @@ struct editor final
     const tile_editor* current_tile_editor() const noexcept;
     scenery_editor* current_scenery_editor() noexcept;
     const scenery_editor* current_scenery_editor() const noexcept;
+    vobj_editor* current_vobj_editor() noexcept;
+    const vobj_editor* current_vobj_editor() const noexcept;
 
     enum class button : unsigned char { none, place, remove, };
 
@@ -53,6 +56,7 @@ private:
     tile_editor _floor{ editor_mode::floor, "floor"_s };
     tile_editor _wall { editor_mode::walls, "wall"_s  };
     scenery_editor _scenery;
+    vobj_editor _vobj;
 
     struct drag_pos final {
         global_coords coord, draw_coord;

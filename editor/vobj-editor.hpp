@@ -43,27 +43,29 @@ struct vobj_editor final
     struct vobj_ final {
         StringView name, descr;
         std::unique_ptr<vobj_factory> factory;
-        operator bool() const;
     };
 
     vobj_editor();
 
     void select_tile(const vobj_& type);
     void clear_selection();
+    const vobj_* get_selected() const;
 
-    static const vobj_* get_type(StringView name);
+    const vobj_* get_type(StringView name);
     bool is_item_selected(const vobj_& x) const;
     bool is_anything_selected() const;
 
-    static void place_tile(world& w, global_coords pos, const vobj_& x);
+    static void place_tile(world& w, global_coords pos, const vobj_* x);
 
-    static auto cbegin() noexcept { return _types.cbegin(); }
-    static auto cend() noexcept { return _types.cend(); }
-    static auto begin() noexcept { return _types.cbegin(); }
-    static auto end() noexcept { return _types.cend(); }
+    auto cbegin() const noexcept { return _types.cbegin(); }
+    auto cend() const noexcept { return _types.cend(); }
+    auto begin() const noexcept { return _types.cbegin(); }
+    auto end() const noexcept { return _types.cend(); }
 
 private:
-    static const std::map<StringView, vobj_> _types;
+    static std::map<StringView, vobj_> make_vobj_type_map();
+
+    std::map<StringView, vobj_> _types = make_vobj_type_map();
     const vobj_* _selected = nullptr;
 };
 

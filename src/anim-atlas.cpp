@@ -176,6 +176,9 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 
 BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
 {
+    if (tex.pixelSize() == 3)
+        return {};
+
     const auto size = tex.pixels().size();
     auto array = BitArray{NoInit, size[0]*size[1]};
     make_bitmask_(tex, array);

@@ -20,6 +20,8 @@ void editor::clear_selection()
         ed->clear_selection();
     else if (auto* ed = current_scenery_editor())
         ed->clear_selection();
+    else if (auto* vo = current_vobj_editor())
+        vo->clear_selection();
 }
 
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
@@ -115,6 +117,23 @@ void editor::on_click_(world& world, global_coords pos, button b)
             }
         }
     }
+    else if (auto* mode = current_vobj_editor())
+    {
+        if (const auto* opt = mode->get_selected(); opt || b == button::remove)
+        {
+            switch (b)
+            {
+            default: break;
+            case button::place:
+                if (const auto& sel = mode->get_selected())
+                    mode->place_tile(world, pos, sel);
+                break;
+            case button::remove:
+                mode->place_tile(world, pos, {});
+                break;
+            }
+        }
+    }
     on_release();
 }
 
@@ -161,6 +180,14 @@ const scenery_editor* editor::current_scenery_editor() const noexcept
         return nullptr;
 }
 
+const vobj_editor* editor::current_vobj_editor() const noexcept
+{
+    if (_mode == editor_mode::vobj)
+        return &_vobj;
+    else
+        return nullptr;
+}
+
 tile_editor* editor::current_tile_editor() noexcept
 {
     return const_cast<tile_editor*>(static_cast<const editor&>(*this).current_tile_editor());
@@ -169,6 +196,11 @@ tile_editor* editor::current_tile_editor() noexcept
 scenery_editor* editor::current_scenery_editor() noexcept
 {
     return const_cast<scenery_editor*>(static_cast<const editor&>(*this).current_scenery_editor());
+}
+
+vobj_editor* editor::current_vobj_editor() noexcept
+{
+    return const_cast<vobj_editor*>(static_cast<const editor&>(*this).current_vobj_editor());
 }
 
 } // namespace floormat
