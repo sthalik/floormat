@@ -4,7 +4,7 @@
 #include "src/world.hpp"
 #include "src/light.hpp"
 #include <array>
-#include <Corrade/Containers/ArrayView.h>
+#include <utility>
 #include <Corrade/Containers/StringView.h>
 
 #if defined __clang__ || defined __CLION_IDE__
@@ -13,12 +13,30 @@
 
 namespace floormat {
 
-[[nodiscard]]
-std::shared_ptr<entity> make_vobj(world& w, entity_type type, object_id id, global_coords pos);
-
 StringView vobj_factory::name() const { return info().name; }
 StringView vobj_factory::descr() const { return info().descr; }
 std::shared_ptr<anim_atlas> vobj_factory::atlas() const { return info().atlas; }
+vobj_factory::vobj_factory() = default;
+vobj_factory::~vobj_factory() noexcept = default;
+
+vobj_editor::vobj_::operator bool() const { return factory != nullptr; }
+vobj_editor::vobj_editor() = default;
+void vobj_editor::select_tile(const vobj_& type) { _selected = &type; }
+
+auto vobj_editor::get_type(StringView name) -> const vobj_&
+{
+    auto it = _types.find(name);
+    if (it != _types.cend())
+        return &it->second;
+    else
+    {
+        fm_warn_once("invalid vobj type '%s'", name.data());
+        return nullptr;
+    }
+}
+
+bool vobj_editor::is_item_selected(const vobj_& x) const { return _selected == &x; }
+bool vobj_editor::is_anything_selected() const { return _selected != nullptr; }
 
 struct light_factory final : vobj_factory
 {
@@ -40,31 +58,17 @@ struct light_factory final : vobj_factory
     }
 };
 
-template<typename T> struct factory_ { static constexpr const T value = {}; };
-
-static consteval auto make_factory_array()
+static auto make_vobj_type_map()
 {
-    const auto size = (1uz << entity_type_BITS)-1;
-    std::array<const vobj_factory*, size> array = {};
-    array[(unsigned)entity_type::light] = &factory_<light_factory>::value;
-    return array;
+    constexpr auto add = [](auto& m, std::unique_ptr<vobj_factory>&& x) {
+        StringView name = x->name(), descr = x->descr();
+        m[name] = vobj_editor::vobj_{ name, descr, std::move(x) };
+    };
+    std::map<StringView, vobj_editor::vobj_> map;
+    add(map, std::make_unique<light_factory>());
+    return map;
 }
 
-static constexpr auto factory_array = make_factory_array();
-const ArrayView<const vobj_factory* const> vobj_editor::_types = { factory_array.data(), factory_array.size() };
-
-const vobj_factory* vobj_editor::get_factory(entity_type type)
-{
-    const auto idx = size_t(type);
-    fm_debug_assert(idx < std::size(factory_array));
-    const auto* ptr = factory_array[idx];
-    if (!ptr)
-    {
-        fm_warn_once("invalid vobj type '%zu'", idx);
-        return nullptr;
-    }
-    else
-        return ptr;
-}
+const std::map<StringView, vobj_editor::vobj_> vobj_editor::_types = make_vobj_type_map();
 
 } // namespace floormat

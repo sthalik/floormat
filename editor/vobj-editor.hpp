@@ -1,12 +1,11 @@
 #pragma once
 #include "src/entity-type.hpp"
 #include <memory>
-//#include <Corrade/Containers/ArrayView.h>
+#include <map>
 
 namespace Corrade::Containers {
 template<typename T> class BasicStringView;
 using StringView = BasicStringView<const char>;
-template<typename T> class ArrayView;
 } // namespace Corrade::Containers
 
 namespace floormat {
@@ -24,8 +23,8 @@ struct vobj_info;
 
 struct vobj_factory
 {
-    constexpr vobj_factory() = default;
-    virtual constexpr ~vobj_factory() noexcept;
+    vobj_factory();
+    virtual ~vobj_factory() noexcept;
     virtual const vobj_info& info() const = 0;
     virtual entity_type type() const = 0;
     virtual std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const = 0;
@@ -35,24 +34,28 @@ struct vobj_factory
     std::shared_ptr<anim_atlas> atlas() const;
 };
 
-constexpr vobj_factory::~vobj_factory() noexcept {}; // NOLINT workaround gcc 12 bug #93413
-
 #if defined __clang__ || defined __CLION_IDE__
 #pragma clang diagnostic pop
 #endif
 
 struct vobj_editor final
 {
+    struct vobj_ final {
+        StringView name, descr;
+        std::unique_ptr<vobj_factory> factory;
+        operator bool() const;
+    };
+
     vobj_editor();
 
-    void select_type(entity_type type);
+    void select_tile(const vobj_& type);
     void clear_selection();
 
-    [[nodiscard]] static const vobj_factory* get_factory(entity_type type);
-    bool is_type_selected(entity_type type) const;
+    static const vobj_& get_type(StringView name);
+    bool is_item_selected(const vobj_& x) const;
     bool is_anything_selected() const;
 
-    static void place_tile(world& w, global_coords pos, const vobj_factory& factory);
+    static void place_tile(world& w, global_coords pos, const vobj_& x);
 
     static auto cbegin() noexcept { return _types.cbegin(); }
     static auto cend() noexcept { return _types.cend(); }
@@ -60,8 +63,8 @@ struct vobj_editor final
     static auto end() noexcept { return _types.cend(); }
 
 private:
-    static const ArrayView<const vobj_factory* const> _types;
-    const vobj_factory* _selected = nullptr;
+    static const std::map<StringView, vobj_> _types;
+    const vobj_* _selected = nullptr;
 };
 
 } // namespace floormat
