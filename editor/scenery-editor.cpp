@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "src/world.hpp"
+#include "src/RTree-search.hpp"
 #include "rotation.inl"
 
 namespace floormat {
@@ -79,20 +80,33 @@ bool scenery_editor::is_anything_selected() const
 
 void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
 {
-    auto [c, t] = w[pos];
     if (!s)
     {
+        auto [c, t] = w[pos];
+
         // don't regen colliders
-        const auto px = Vector2(pos.local()) * TILE_SIZE2;
         const auto es = c.entities();
+        constexpr auto half_tile = TILE_SIZE2/2;
+        auto center = Vector2(pos.local())*TILE_SIZE2,
+             min = center - half_tile, max = min + half_tile;
         for (auto i = es.size()-1; i != (size_t)-1; i--)
         {
             const auto& e = *es[i];
             if (e.type() != entity_type::scenery)
                 continue;
-            auto center = Vector2(e.coord.local())*TILE_SIZE2 + Vector2(e.offset) + Vector2(e.bbox_offset),
-                 min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);
-            if (px >= min && px <= max)
+            using rtree_type = std::decay_t<decltype(*w[chunk_coords_{}].rtree())>;
+            using rect_type = typename rtree_type::Rect;
+            bool do_remove = false;
+            c.rtree()->Search(min.data(), max.data(), [&](uint64_t data, const rect_type&) {
+                [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                if (e.id == x.data)
+                {
+                    do_remove = true;
+                    return false;
+                }
+                return true;
+            });
+            if (do_remove)
                 c.remove_entity(i);
         }
     }
