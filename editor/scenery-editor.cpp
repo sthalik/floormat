@@ -5,6 +5,8 @@
 #include "src/world.hpp"
 #include "src/RTree-search.hpp"
 #include "rotation.inl"
+#include "app.hpp"
+#include <Magnum/Math/Range.h>
 
 namespace floormat {
 
@@ -78,36 +80,23 @@ bool scenery_editor::is_anything_selected() const
     return _selected.proto.atlas != nullptr;
 }
 
-void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s)
+void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, app& a)
 {
     if (!s)
     {
         auto [c, t] = w[pos];
-
-        // don't regen colliders
-        const auto es = c.entities();
-        constexpr auto half_tile = TILE_SIZE2/2;
-        auto center = Vector2(pos.local())*TILE_SIZE2,
-             min = center - half_tile, max = min + half_tile;
-        for (auto i = es.size()-1; i != (size_t)-1; i--)
+        const auto& es = c.entities();
+start:  while (auto id = a.object_at_cursor())
         {
-            const auto& e = *es[i];
-            if (e.type() != entity_type::scenery)
-                continue;
-            using rtree_type = std::decay_t<decltype(*w[chunk_coords_{}].rtree())>;
-            using rect_type = typename rtree_type::Rect;
-            bool do_remove = false;
-            c.rtree()->Search(min.data(), max.data(), [&](uint64_t data, const rect_type&) {
-                [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                if (e.id == x.data)
+            for (auto i = es.size()-1; i != (size_t)-1; i--)
+            {
+                if (es[i]->id == id)
                 {
-                    do_remove = true;
-                    return false;
+                    c.remove_entity(i);
+                    goto start;
                 }
-                return true;
-            });
-            if (do_remove)
-                c.remove_entity(i);
+            }
+            break;
         }
     }
     else

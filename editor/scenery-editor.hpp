@@ -9,6 +9,7 @@ namespace floormat {
 struct anim_atlas;
 struct global_coords;
 struct world;
+struct app;
 
 struct scenery_editor final
 {
@@ -31,7 +32,7 @@ struct scenery_editor final
     bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
     bool is_item_selected(const scenery_& s) const;
     bool is_anything_selected() const;
-    static void place_tile(world& w, global_coords pos, const scenery_& s);
+    static void place_tile(world& w, global_coords pos, const scenery_& s, app& a);
 
     auto cbegin() const noexcept { return _atlases.cbegin(); }
     auto cend() const noexcept { return _atlases.cend(); }

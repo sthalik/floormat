@@ -180,7 +180,9 @@ void app::draw()
 {
     if (_render_bboxes)
         draw_collision_boxes();
-    if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
+    if (_editor.current_tile_editor() ||
+        _editor.current_scenery_editor() && _editor.current_scenery_editor()->is_anything_selected() ||
+        _editor.current_vobj_editor())
         draw_cursor();
     draw_ui();
     render_menu();

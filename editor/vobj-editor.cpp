@@ -46,7 +46,7 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x)
         // don't regen colliders
         auto [c, t] = w[pos];
         const auto px = Vector2(pos.local()) * TILE_SIZE2;
-        const auto es = c.entities();
+        const auto& es = c.entities();
         for (auto i = es.size()-1; i != (size_t)-1; i--)
         {
             const auto& e = *es[i];

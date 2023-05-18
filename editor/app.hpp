@@ -58,6 +58,7 @@ struct app final : floormat_app
 #ifdef _WIN32
     static void set_dpi_aware();
 #endif
+    object_id object_at_cursor();
 
 private:
     using key_set = enum_bitset<key, key_COUNT>;
@@ -149,7 +150,7 @@ private:
     wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w {_wireframe_texture};
     wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
     wireframe_mesh<wireframe::quad>        _wireframe_rect   {_wireframe_texture};
-    editor _editor;
+    editor _editor{this};
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;

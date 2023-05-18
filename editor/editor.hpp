@@ -17,6 +17,7 @@ namespace floormat {
 struct world;
 struct anim_atlas;
 struct tile_atlas;
+struct app;
 
 struct editor final
 {
@@ -40,7 +41,7 @@ struct editor final
     void on_release();
     void clear_selection();
 
-    editor();
+    editor(app* a);
     editor(editor&&) noexcept = default;
     editor& operator=(editor&&) noexcept = default;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
@@ -52,6 +53,8 @@ struct editor final
 private:
     snap_mode get_snap_value(snap_mode snap, int mods) const;
     static global_coords apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept;
+
+    app* _app;
 
     tile_editor _floor{ editor_mode::floor, "floor"_s };
     tile_editor _wall { editor_mode::walls, "wall"_s  };
