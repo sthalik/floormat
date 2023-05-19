@@ -9,7 +9,9 @@ namespace floormat {
 
 using namespace floormat::imgui;
 
-static StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
+namespace {
+
+StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
 {
     switch (sc.proto.sc_type)
     {
@@ -20,20 +22,35 @@ static StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
     }
 }
 
-static std::shared_ptr<anim_atlas> get_atlas(const scenery_editor::scenery_& sc)
+std::shared_ptr<anim_atlas> get_atlas(const scenery_editor::scenery_& sc)
 {
     return sc.proto.atlas;
 }
 
-static StringView scenery_type_to_string(const vobj_editor::vobj_& vobj)
+StringView scenery_name(StringView name, const scenery_editor::scenery_&)
+{
+    return name;
+}
+
+template<typename T> struct do_group_column : std::bool_constant<false> {};
+template<> struct do_group_column<scenery_editor> : std::bool_constant<true> {};
+
+StringView scenery_type_to_string(const vobj_editor::vobj_& vobj)
 {
     return vobj.name;
 }
 
-static std::shared_ptr<anim_atlas> get_atlas(const vobj_editor::vobj_& vobj)
+std::shared_ptr<anim_atlas> get_atlas(const vobj_editor::vobj_& vobj)
 {
     return vobj.factory->atlas();
 }
+
+StringView scenery_name(StringView, const vobj_editor::vobj_& vobj)
+{
+    return vobj.descr;
+}
+
+} // namespace
 
 template<typename T>
 static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
@@ -42,20 +59,23 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 
     const auto& style = ImGui::GetStyle();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    constexpr int ncolumns = 4;
+    constexpr int ncolumns = do_group_column<T>::value ? 4 : 2;
     const auto size = ImGui::GetWindowSize();
     auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
     constexpr auto thumbnail_width = 50;
-    const auto colwidth_type = ImGui::CalcTextSize("generic").x;
-    const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
     ImGui::TableSetupScrollFreeze(1, 1);
     constexpr auto colflags_ = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
     constexpr auto colflags = colflags_ | ImGuiTableColumnFlags_WidthFixed;
     ImGui::TableSetupColumn("##thumbnail", colflags, thumbnail_width);
     ImGui::TableSetupColumn("Name", colflags_ | ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableSetupColumn("Type", colflags, colwidth_type);
-    ImGui::TableSetupColumn("Group", colflags, colwidth_group);
+    if constexpr(do_group_column<T>::value)
+    {
+        const auto colwidth_type = ImGui::CalcTextSize("generic").x;
+        const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
+        ImGui::TableSetupColumn("Type", colflags, colwidth_type);
+        ImGui::TableSetupColumn("Group", colflags, colwidth_group);
+    }
     ImGui::TableHeadersRow();
 
     const auto click_event = [&] {
@@ -88,16 +108,17 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
         {
             constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
             bool selected = ed.is_item_selected(scenery);
-            if (ImGui::Selectable(name.data(), &selected, flags, {0, row_height}) && selected)
+            auto name_ = scenery_name(name, scenery);
+            if (ImGui::Selectable(name_.data(), &selected, flags, {0, row_height}) && selected)
                 ed.select_tile(scenery);
             click_event();
         }
-        if (ImGui::TableSetColumnIndex(2))
+        if (do_group_column<T>::value && ImGui::TableSetColumnIndex(2))
         {
             text(scenery_type_to_string(scenery));
             click_event();
         }
-        if (ImGui::TableSetColumnIndex(3))
+        if (do_group_column<T>::value && ImGui::TableSetColumnIndex(3))
         {
             auto& atlas = *get_atlas(scenery);
             StringView name = loader.strip_prefix(atlas.name());
