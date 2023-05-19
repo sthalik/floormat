@@ -32,7 +32,10 @@ float light::depth_offset() const
     return ret;
 }
 
-Vector2 light::ordinal_offset(Vector2b) const { return {}; }
+Vector2 light::ordinal_offset(Vector2b) const
+{
+    return Vector2(TILE_COUNT, TILE_COUNT);
+}
 
 entity_type light::type() const noexcept { return entity_type::light; }
 bool light::update(size_t, float) { return false; }
