@@ -34,7 +34,8 @@ float light::depth_offset() const
 
 Vector2 light::ordinal_offset(Vector2b) const
 {
-    return Vector2(TILE_COUNT, TILE_COUNT);
+    constexpr auto ret = Vector2(TILE_COUNT, TILE_COUNT) * TILE_SIZE2;
+    return ret;
 }
 
 entity_type light::type() const noexcept { return entity_type::light; }
