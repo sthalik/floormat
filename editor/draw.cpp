@@ -59,13 +59,13 @@ void app::draw_cursor()
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }
-        else if (const auto* ed = _editor.current_vobj_editor())
+        else if (const auto* vo = _editor.current_vobj_editor())
         {
-            if (!ed->is_anything_selected())
+            if (!vo->is_anything_selected())
                 shader.set_tint(inactive_color);
-            if (ed->is_anything_selected())
+            if (vo->is_anything_selected())
             {
-                const auto& atlas = ed->get_selected()->factory->atlas();
+                const auto& atlas = vo->get_selected()->factory->atlas();
                 draw(_wireframe_quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
@@ -182,7 +182,7 @@ void app::draw()
         draw_collision_boxes();
     if (_editor.current_tile_editor() ||
         _editor.current_scenery_editor() && _editor.current_scenery_editor()->is_anything_selected() ||
-        _editor.current_vobj_editor())
+        _editor.current_vobj_editor() && _editor.current_vobj_editor()->is_anything_selected())
         draw_cursor();
     draw_ui();
     render_menu();
@@ -204,7 +204,7 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
             const auto pos_ = *pixel - c.dest.min() + Vector2i(c.src.min());
             const auto pos = !c.mirrored ? pos_ : Vector2i(int(c.src.sizeX()) - 1 - pos_[0], pos_[1]);
             size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
-            fm_assert(idx < c.bitmask.size());
+            fm_assert(c.bitmask.isEmpty() || idx < c.bitmask.size());
             if (c.bitmask.isEmpty() || c.bitmask[idx])
             {
                 depth = c.depth;

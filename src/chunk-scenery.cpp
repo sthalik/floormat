@@ -139,7 +139,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         const auto count = fm_begin(
             size_t ret = 0;
             for (const auto& e : _entities)
-                ret += !e->is_dynamic() && !e->is_virtual();
+                ret += !e->is_dynamic();
             return ret;
         );
 

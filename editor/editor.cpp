@@ -88,6 +88,7 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 
 void editor::on_click_(world& world, global_coords pos, button b)
 {
+    // todo make template
     if (auto* mode = current_tile_editor(); mode != nullptr)
     {
         if (auto opt = mode->get_selected(); opt || b == button::remove)
@@ -126,10 +127,10 @@ void editor::on_click_(world& world, global_coords pos, button b)
             default: break;
             case button::place:
                 if (const auto& sel = mode->get_selected())
-                    mode->place_tile(world, pos, sel);
+                    mode->place_tile(world, pos, sel, *_app);
                 break;
             case button::remove:
-                mode->place_tile(world, pos, {});
+                mode->place_tile(world, pos, {}, *_app);
                 break;
             }
         }
@@ -144,7 +145,7 @@ void editor::on_click(world& world, global_coords pos, int mods, button b)
         _last_pos = { InPlaceInit, pos, pos, mode->check_snap(mods), b };
         on_click_(world, pos, b);
     }
-    else if (current_scenery_editor())
+    else if (current_scenery_editor() || current_vobj_editor())
     {
         _last_pos = {};
         on_click_(world, pos, b);

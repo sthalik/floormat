@@ -1,11 +1,14 @@
 #include "light.hpp"
 #include "shaders/shader.hpp"
+#include "loader/loader.hpp"
+#include "loader/vobj-info.hpp"
 #include <cmath>
 
 namespace floormat {
 
 light_proto::light_proto()
 {
+    atlas = loader.vobj("light"_s).atlas;
     pass = pass_mode::pass;
     type = entity_type::light;
 }
@@ -30,6 +33,7 @@ float light::depth_offset() const
 }
 
 Vector2 light::ordinal_offset(Vector2b) const { return {}; }
+
 entity_type light::type() const noexcept { return entity_type::light; }
 bool light::update(size_t, float) { return false; }
 bool light::is_virtual() const { return true; }

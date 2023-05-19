@@ -54,7 +54,7 @@ float app::draw_main_menu()
             const auto* ed_sc = _editor.current_scenery_editor();
             const auto* ed_w = _editor.current_tile_editor();
             bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
-                 b_scenery = mode == m::scenery, b_collisions = _render_bboxes,
+                 b_scenery = mode == m::scenery, b_vobj = mode == m::vobj, b_collisions = _render_bboxes,
                  b_clickables = _render_clickables, b_all_z_levels = _render_all_z_levels;
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
                                   mode == editor_mode::walls && ed_w;
@@ -67,6 +67,8 @@ float app::draw_main_menu()
                 do_key(key_mode_walls);
             if (ImGui::MenuItem("Scenery", "4", b_scenery))
                 do_key(key_mode_scenery);
+            if (ImGui::MenuItem("Virtual objects", "5", b_vobj))
+                do_key(key_mode_vobj);
             ImGui::SeparatorText("Modify");
             if (ImGui::MenuItem("Rotate", "R", false, b_rotate))
                 do_key(key_rotate_tile);
@@ -102,7 +104,7 @@ void app::draw_ui()
 
     const float main_menu_height = draw_main_menu();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
-    if (_editor.current_tile_editor() || _editor.current_scenery_editor())
+    if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
     draw_fps();
     draw_tile_under_cursor();

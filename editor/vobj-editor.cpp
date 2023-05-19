@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/light.hpp"
+#include "app.hpp"
 #include <array>
 #include <utility>
 #include <Corrade/Containers/StringView.h>
@@ -39,23 +40,23 @@ auto vobj_editor::get_type(StringView name) -> const vobj_*
 bool vobj_editor::is_item_selected(const vobj_& x) const { return _selected == &x; }
 bool vobj_editor::is_anything_selected() const { return _selected != nullptr; }
 
-void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x)
+void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct app& a)
 {
     if (!x)
     {
-        // don't regen colliders
         auto [c, t] = w[pos];
-        const auto px = Vector2(pos.local()) * TILE_SIZE2;
         const auto& es = c.entities();
-        for (auto i = es.size()-1; i != (size_t)-1; i--)
+start:  while (auto id = a.object_at_cursor())
         {
-            const auto& e = *es[i];
-            if (!e.is_virtual())
-                continue;
-            auto center = Vector2(e.coord.local())*TILE_SIZE2 + Vector2(e.offset) + Vector2(e.bbox_offset),
-                 min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);
-            if (px >= min && px <= max)
-                c.remove_entity(i);
+            for (auto i = es.size()-1; i != (size_t)-1; i--)
+            {
+                if (es[i]->id == id)
+                {
+                    c.remove_entity(i);
+                    goto start;
+                }
+            }
+            break;
         }
     }
     else
@@ -81,7 +82,7 @@ struct light_factory final : vobj_factory
 
     std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const override
     {
-        auto ret = w.make_entity<light>(id, {pos.chunk(), pos.local(), 0}, light_proto{});
+        auto ret = w.make_entity<light>(id, pos, light_proto{});
         return ret;
     }
 };

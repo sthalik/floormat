@@ -95,6 +95,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
         case editor_mode::floor:
         case editor_mode::walls:
         case editor_mode::scenery:
+        case editor_mode::vobj:
             auto pos = *cursor.tile;
             switch (button)
             {
@@ -146,10 +147,12 @@ void app::do_set_mode(editor_mode mode)
 
 void app::do_escape()
 {
-    if (auto* ed = _editor.current_scenery_editor())
-        ed->clear_selection();
     if (auto* ed = _editor.current_tile_editor())
         ed->clear_selection();
+    if (auto* sc = _editor.current_scenery_editor())
+        sc->clear_selection();
+    if (auto* vo = _editor.current_vobj_editor())
+        vo->clear_selection();
     kill_popups(false);
 }
 
@@ -172,6 +175,8 @@ void app::do_key(key k, int mods)
         return do_set_mode(editor_mode::walls);
     case key_mode_scenery:
         return do_set_mode(editor_mode::scenery);
+    case key_mode_vobj:
+        return do_set_mode(editor_mode::vobj);
     case key_render_collision_boxes:
         return void(_render_bboxes = !_render_bboxes);
     case key_render_clickables:

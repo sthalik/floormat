@@ -132,6 +132,7 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
             case SDLK_2:        return { key_mode_floor,                mods };
             case SDLK_3:        return { key_mode_walls,                mods };
             case SDLK_4:        return { key_mode_scenery,              mods };
+            case SDLK_5:        return { key_mode_vobj,                 mods };
             case SDLK_c | ALT:  return { key_render_collision_boxes,    mods };
             case SDLK_l | ALT:  return { key_render_clickables,         mods };
             case SDLK_t:        return { key_render_all_z_levels,       mods };

@@ -41,23 +41,27 @@ void nlohmann::adl_serializer<vobj>::from_json(const json& j, vobj& val)
 
 namespace floormat::loader_detail {
 
+#if defined __GNUG__ && !defined __clang__
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
+
 std::shared_ptr<struct anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
     auto tex = texture(VOBJ_PATH, image_filename);
     anim_def def;
     def.object_name = name;
     const auto size = tex.pixels().size();
-    const auto width = size[1], height = size[0];
-    def.pixel_size = { (unsigned)width, (unsigned)height };
+    const auto width = (unsigned)size[1], height = (unsigned)size[0];
+    def.pixel_size = { width, height };
     def.nframes = 1;
     def.fps = 0;
-    anim_group g;
-    g.name = "n"_s;
-    anim_frame f;
-    f.size = def.pixel_size;
-    g.frames = { f };
-    def.groups = { std::move(g) };
-
+    def.groups = {{
+        .name = "n"_s,
+        .frames = {{
+            .ground = Vector2i(def.pixel_size/2),
+            .size = def.pixel_size
+        }}
+    }};
     auto atlas = std::make_shared<struct anim_atlas>(name, tex, std::move(def));
     return atlas;
 }

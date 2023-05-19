@@ -15,6 +15,7 @@ struct global_coords;
 struct entity;
 struct anim_atlas;
 struct vobj_info;
+struct app;
 
 #if defined __clang__ || defined __CLION_IDE__
 #pragma clang diagnostic push
@@ -55,7 +56,7 @@ struct vobj_editor final
     bool is_item_selected(const vobj_& x) const;
     bool is_anything_selected() const;
 
-    static void place_tile(world& w, global_coords pos, const vobj_* x);
+    static void place_tile(world& w, global_coords pos, const vobj_* x, app& a);
 
     auto cbegin() const noexcept { return _types.cbegin(); }
     auto cend() const noexcept { return _types.cend(); }
