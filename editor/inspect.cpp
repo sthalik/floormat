@@ -16,13 +16,14 @@ namespace floormat::entities {
 
 namespace {
 
-const char* label_left(StringView label, char* buf, size_t len, float width)
+template<std::size_t N>
+const char* label_left(StringView label, char(&buf)[N], size_t width)
 {
-    std::snprintf(buf, len, "##%s", label.data());
+    std::snprintf(buf, N, "##%s", label.data());
     float x = ImGui::GetCursorPosX();
     ImGui::Text("%s", label.data());
     ImGui::SameLine();
-    ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
+    ImGui::SetCursorPosX(x + (float)width + ImGui::GetStyle().ItemInnerSpacing.x);
     ImGui::SetNextItemWidth(-1);
     return buf;
 }
@@ -40,8 +41,8 @@ template<> struct IGDT_<float> : std::integral_constant<int, ImGuiDataType_Float
 template<typename T> constexpr auto IGDT = IGDT_<T>::value;
 
 template<typename T> requires std::is_integral_v<T> constexpr bool eqv(T a, T b) { return a == b; }
-inline bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
-inline bool eqv(const String& a, const String& b) { return a == b; }
+bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
+bool eqv(const String& a, const String& b) { return a == b; }
 template<typename T, size_t N> constexpr bool eqv(const Math::Vector<N, T>& a, const Math::Vector<N, T>& b) { return a == b; }
 
 int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
@@ -80,7 +81,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
     bool ret = false;
-    const char* const label = label_left(accessor.field_name, buf, sizeof buf, (float)label_width);
+    const char* const label = label_left(accessor.field_name, buf, label_width);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;
