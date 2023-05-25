@@ -173,6 +173,7 @@ struct entity_accessors<character> {
             E::type<bool>::field{"playable"_s,
                                  [](const character& x) { return x.playable; },
                                  [](character& x, bool value) { x.playable = value; },
+                                 constantly(constraints::max_length{128}),
             },
         };
         return std::tuple_cat(tuple0, tuple);
