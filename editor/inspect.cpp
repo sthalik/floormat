@@ -89,7 +89,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         ret = ImGui::InputText(label, const_cast<char*>(value.data()), value.size(), ImGuiInputTextFlags_ReadOnly);
     else if constexpr(std::is_same_v<T, String>)
     {
-        ret = ImGui::InputText(label, value.begin(), value.size(), ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
+        ret = ImGui::InputText(label, value.begin(), value.size()+1, ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
         if (auto max_len = accessor.get_max_length(datum); value.size() > max_len)
             value = value.prefix(max_len);
     }
