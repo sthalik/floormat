@@ -53,17 +53,11 @@ void app::draw_inspector()
             snformat(buf, "{} ({}x{}:{} -> {}x{})"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y);
 
         bool is_open = true;
-        if (e.type() == entity_type::scenery)
+        if (auto b2 = begin_window(buf, &is_open))
         {
-            auto& s2 = static_cast<scenery&>(e);
-            if (auto b2 = begin_window(buf, &is_open))
-            {
-                bool ret = entities::inspect_type(s2);
-                (void)ret;
-            }
+            bool ret = entities::inspect_entity_subtype(e);
+            (void)ret;
         }
-        else
-            is_open = false;
         if (!is_open)
             inspectors.erase(inspectors.begin() + (ptrdiff_t)i);
     }

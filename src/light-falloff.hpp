@@ -3,7 +3,7 @@
 namespace floormat {
 
 enum class light_falloff : uint8_t {
-    linear, quadratic, constant,
+    constant = 1, linear = 0, quadratic = 2,
 };
 
 } // namespace floormat

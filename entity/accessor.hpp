@@ -170,6 +170,4 @@ field_status erased_accessor::is_enabled(const void* x) const noexcept { return 
 erased_constraints::range erased_accessor::get_range(const void* x) const noexcept { return range_fun(x,range); }
 erased_constraints::max_length erased_accessor::get_max_length(const void* x) const noexcept { return length_fun(x,length); }
 
-template<typename T> void get_erased_accessors(std::vector<erased_accessor>& ret);
-
 } // namespace floormat::entities

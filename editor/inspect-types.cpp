@@ -6,6 +6,8 @@
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include "chunk.hpp"
+#include "src/character.hpp"
+#include "src/light.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 
 namespace floormat::entities {
@@ -75,10 +77,20 @@ struct entity_accessors<scenery> {
 };
 
 template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
+
+template<typename T>
+requires requires (const T& x) { { x.atlas } -> std::convertible_to<const std::shared_ptr<anim_atlas>&>; }
+struct has_anim_atlas<T> : std::true_type {
+    static const anim_atlas& get_atlas(const entity& x) { return *x.atlas; }
+};
+
+#if 0
 template<> struct has_anim_atlas<entity> : std::true_type {
     static const anim_atlas& get_atlas(const entity& x) { return *x.atlas; }
 };
 template<> struct has_anim_atlas<scenery> : has_anim_atlas<entity> {};
+template<> struct has_anim_atlas<character> : has_anim_atlas<entity> {};
+#endif
 
 using enum_pair = std::pair<StringView, size_t>;
 template<typename T, typename U> struct enum_values;
@@ -94,23 +106,26 @@ template<size_t N> enum_pair_array(std::array<enum_pair, N> array, size_t) -> en
 
 template<typename T, typename U>
 requires (!std::is_enum_v<T>)
-struct enum_values<T, U> : std::true_type {
-    static constexpr std::array<enum_pair, 0> get() { return {}; }
+struct enum_values<T, U>
+{
+    static constexpr std::array<enum_pair, 0> get(const U&) { return {}; }
 };
 
-template<typename U> struct enum_values<pass_mode, U> : std::true_type {
+template<typename U> struct enum_values<pass_mode, U>
+{
     static constexpr auto ret = std::to_array<enum_pair>({
         { "blocked"_s, (size_t)pass_mode::blocked, },
         { "see-through"_s, (size_t)pass_mode::see_through, },
         { "shoot-through"_s, (size_t)pass_mode::shoot_through, },
         { "pass"_s, (size_t)pass_mode::pass },
     });
-    static constexpr const auto& get() { return ret; }
+    static constexpr const auto& get(const U&) { return ret; }
 };
 
 template<typename U>
 requires has_anim_atlas<U>::value
-struct enum_values<rotation, U> : std::false_type {
+struct enum_values<rotation, U>
+{
     static auto get(const U& x) {
         const anim_atlas& atlas = has_anim_atlas<U>::get_atlas(x);
         std::array<enum_pair, (size_t)rotation_COUNT> array;
@@ -132,27 +147,86 @@ struct enum_values<rotation, U> : std::false_type {
     }
 };
 
-template<typename T> bool inspect_type(T& x)
+template<typename T>
+static bool inspect_type(T& x)
 {
     bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
-        using enum_type = enum_values<type, T>;
-        if constexpr(enum_type::value)
-        {
-            constexpr auto list = enum_type::get();
-            ret |= inspect_field<type>(&x, field.erased(), list);
-        }
-        else
-        {
-            const auto& list = enum_type::get(x);
-            ret |= inspect_field<type>(&x, field.erased(), list);
-        }
+      using enum_type = enum_values<type, T>;
+      const auto& list = enum_type::get(x);
+      ret |= inspect_field<type>(&x, field.erased(), list);
     }, entity_metadata<T>::accessors);
     return ret;
 }
 
-template bool inspect_type(entity&);
+template<>
+struct entity_accessors<character> {
+    static constexpr auto accessors()
+    {
+        using E = Entity<character>;
+        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple = std::tuple{
+            E::type<String>::field{"name"_s,
+                                 [](const character& x) { return x.name; },
+                                 [](character& x, const String& value) { x.name = value; }},
+            E::type<bool>::field{"playable"_s,
+                                 [](const character& x) { return x.playable; },
+                                 [](character& x, bool value) { x.playable = value; },
+            },
+        };
+        return std::tuple_cat(tuple0, tuple);
+    }
+};
+
+template<typename U> struct enum_values<light_falloff, U>
+{
+    static constexpr auto ret = std::to_array<enum_pair>({
+        { "constant"_s, (size_t)light_falloff::constant },
+        { "linear"_s, (size_t)light_falloff::linear },
+        { "quadratic"_s, (size_t)light_falloff::quadratic },
+    });
+    static constexpr const auto& get(const U&) { return ret; }
+};
+
+template<>
+struct entity_accessors<light> {
+    static constexpr auto accessors()
+    {
+        using E = Entity<light>;
+        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple = std::tuple{
+            E::type<Vector3ub>::field{"color"_s,
+                                 [](const light& x) { return Vector3ub(x.color); },
+                                 [](light& x, Vector3ub value) { x.color = Color3ub{value}; },
+                                 constantly(constraints::range<Vector3ub>{{0, 0, 0}, {255, 255, 255}}),
+            },
+            E::type<light_falloff>::field{"falloff"_s,
+                                 [](const light& x) { return x.falloff; },
+                                 [](light& x, light_falloff value) { x.falloff = value; },
+            },
+            // half_dist
+            // symmetric
+        };
+        return std::tuple_cat(tuple0, tuple);
+    }
+};
+
+//template bool inspect_type(entity&);
 template bool inspect_type(scenery&);
+template bool inspect_type(character&);
+template bool inspect_type(light&);
+
+bool inspect_entity_subtype(entity& x)
+{
+    switch (auto type = x.type())
+    {
+    default: fm_warn_once("unknown entity subtype '%d'", (int)type); return false;
+    //case entity_type::none: return inspect_type(x);
+    case entity_type::scenery: return inspect_type(static_cast<scenery&>(x));
+    case entity_type::character: return inspect_type(static_cast<character&>(x));
+    case entity_type::light: return inspect_type(static_cast<light&>(x));
+    }
+}
 
 } // namespace floormat::entities
