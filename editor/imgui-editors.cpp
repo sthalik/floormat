@@ -15,10 +15,10 @@ StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
 {
     switch (sc.proto.sc_type)
     {
-    case scenery_type::none:    return "none"_s;    break;
-    case scenery_type::generic: return "generic"_s; break;
-    case scenery_type::door:    return "door"_s;    break;
-    default:                    return "unknown"_s; break;
+    case scenery_type::none:    return "none"_s;
+    case scenery_type::generic: return "generic"_s;
+    case scenery_type::door:    return "door"_s;
+    default:                    return "unknown"_s;
     }
 }
 
