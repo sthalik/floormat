@@ -16,13 +16,13 @@ namespace floormat::entities {
 
 namespace {
 
-const char* label_left(StringView label, char* buf, size_t len)
+const char* label_left(StringView label, char* buf, size_t len, float width)
 {
     std::snprintf(buf, len, "##%s", label.data());
-    float width = ImGui::CalcItemWidth(), x = ImGui::GetCursorPosX();
+    float x = ImGui::GetCursorPosX();
     ImGui::Text("%s", label.data());
     ImGui::SameLine();
-    ImGui::SetCursorPosX(x + width*.5f + ImGui::GetStyle().ItemInnerSpacing.x);
+    ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
     ImGui::SetNextItemWidth(-1);
     return buf;
 }
@@ -38,9 +38,6 @@ template<> struct IGDT_<uint64_t> : std::integral_constant<int, ImGuiDataType_U6
 template<> struct IGDT_<int64_t> : std::integral_constant<int, ImGuiDataType_S64> {};
 template<> struct IGDT_<float> : std::integral_constant<int, ImGuiDataType_Float> {};
 template<typename T> constexpr auto IGDT = IGDT_<T>::value;
-
-using namespace imgui;
-using namespace entities;
 
 template<typename T> requires std::is_integral_v<T> constexpr bool eqv(T a, T b) { return a == b; }
 inline bool eqv(float a, float b) { return std::fabs(a - b) < 1e-8f; }
@@ -59,9 +56,12 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
     return 0;
 }
 
+using namespace imgui;
+
 template<typename T>
 bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr repr,
-                      const ArrayView<const std::pair<StringView, size_t>>& list)
+                      const ArrayView<const std::pair<StringView, size_t>>& list,
+                      size_t label_width)
 {
     if (list.isEmpty())
         fm_assert(accessor.check_field_type<T>());
@@ -80,7 +80,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
     bool ret = false;
-    const char* const label = label_left(accessor.field_name, buf, sizeof buf);
+    const char* const label = label_left(accessor.field_name, buf, sizeof buf, (float)label_width);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;
@@ -173,17 +173,19 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
 #define MAKE_SPEC(type, repr)                                                                                                   \
     template<>                                                                                                                  \
     bool inspect_field<type>(void* datum, const erased_accessor& accessor,                                                      \
-                             const ArrayView<const std::pair<StringView, size_t>>& list)                                   \
+                             const ArrayView<const std::pair<StringView, size_t>>& list,                                        \
+                             size_t label_width)                                                                                \
     {                                                                                                                           \
-        return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
+        return do_inspect_field<type>(datum, accessor, (repr), list, label_width);                                              \
     }
 
 #define MAKE_SPEC2(type, repr)                                                                                                  \
     template<>                                                                                                                  \
     bool inspect_field<field_repr_<type, field_repr, repr>>(void* datum, const erased_accessor& accessor,                       \
-                                                            const ArrayView<const std::pair<StringView, size_t>>& list)    \
+                                                            const ArrayView<const std::pair<StringView, size_t>>& list,         \
+                                                            size_t label_width)                                                 \
     {                                                                                                                           \
-        return do_inspect_field<type>(datum, accessor, (repr), list);                                                           \
+        return do_inspect_field<type>(datum, accessor, (repr), list, label_width);                                              \
     }
 
 #define MAKE_SPEC_REPRS(type)                                                                                                   \

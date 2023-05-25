@@ -9,6 +9,7 @@
 #include "src/character.hpp"
 #include "src/light.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <imgui.h>
 
 namespace floormat::entities {
 
@@ -150,12 +151,19 @@ struct enum_values<rotation, U>
 template<typename T>
 static bool inspect_type(T& x)
 {
+    size_t width = 0;
+    visit_tuple([&](const auto& field) {
+        const auto& name = field.name;
+        auto width_ = (size_t)ImGui::CalcTextSize(name.cbegin(), name.cend()).x;
+        width = std::max(width, width_);
+    }, entity_metadata<T>::accessors);
+
     bool ret = false;
     visit_tuple([&](const auto& field) {
         using type = typename std::decay_t<decltype(field)>::FieldType;
-      using enum_type = enum_values<type, T>;
-      const auto& list = enum_type::get(x);
-      ret |= inspect_field<type>(&x, field.erased(), list);
+        using enum_type = enum_values<type, T>;
+        const auto& list = enum_type::get(x);
+        ret |= inspect_field<type>(&x, field.erased(), list, width);
     }, entity_metadata<T>::accessors);
     return ret;
 }

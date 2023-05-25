@@ -45,7 +45,7 @@ void app::draw_inspector()
         snformat(buf, "inspector-{:08x}"_cf, e.id);
 
         auto b1 = push_id(buf);
-        ImGui::SetNextWindowSize({300*dpi[0], 0});
+        ImGui::SetNextWindowSize({375*dpi[0], 0});
         auto name = loader.strip_prefix(e.atlas->name());
         if (z == 0)
             snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
