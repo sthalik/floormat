@@ -37,7 +37,8 @@ struct light final : entity
     bool is_dynamic() const override;
     bool is_virtual() const override;
 
-    static float calc_intensity(float half_dist, light_falloff falloff);
+    static Vector2 intensity(Vector2  half_dist, light_falloff falloff);
+    Vector2 intensity() const;
 
     friend struct world;
 };
