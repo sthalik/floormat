@@ -205,10 +205,10 @@ struct entity_accessors<light> {
         using E = Entity<light>;
         auto tuple0 = entity_accessors<entity>::accessors();
         auto tuple = std::tuple{
-            E::type<Vector3ub>::field{"color"_s,
-                                 [](const light& x) { return Vector3ub(x.color); },
-                                 [](light& x, Vector3ub value) { x.color = Color3ub{value}; },
-                                 constantly(constraints::range<Vector3ub>{{0, 0, 0}, {255, 255, 255}}),
+            E::type<Color3ub>::field{"color"_s,
+                                 [](const light& x) { return x.color; },
+                                 [](light& x, Color3ub value) { x.color = value; },
+                                 constantly(constraints::range<Color3ub>{{0, 0, 0}, {255, 255, 255}}),
             },
             E::type<light_falloff>::field{"falloff"_s,
                                  [](const light& x) { return x.falloff; },

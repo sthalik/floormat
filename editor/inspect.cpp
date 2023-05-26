@@ -10,6 +10,7 @@
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
+#include <Magnum/Math/Color.h>
 #include <algorithm>
 
 namespace floormat::entities {
@@ -96,6 +97,18 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     }
     else if constexpr(std::is_same_v<T, bool>)
         ret = ImGui::Checkbox(label, &value);
+    else if constexpr (std::is_same_v<T, Color3ub>)
+    {
+        auto vec = Vector3(value) * (1.f/255);
+        ret = ImGui::ColorEdit3(label, vec.data());
+        value = Color3ub(vec * 255);
+    }
+    else if constexpr (std::is_same_v<T, Color4ub>)
+    {
+        auto vec = Vector4(value) * (1.f/255);
+        ret = ImGui::ColorEdit4(label, vec.data());
+        value = Color4ub(vec * 255);
+    }
     else if constexpr (!Math::IsVector<T>())
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
@@ -214,5 +227,7 @@ MAKE_SPEC_REPRS2(float)
 MAKE_SPEC(bool, field_repr::input)
 MAKE_SPEC(String, field_repr::input)
 MAKE_SPEC(StringView, field_repr::input)
+MAKE_SPEC(Color3ub, field_repr::input)
+MAKE_SPEC(Color4ub, field_repr::input)
 
 } // namespace floormat::entities
