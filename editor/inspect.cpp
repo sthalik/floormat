@@ -113,8 +113,8 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     {
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<T>;
-        constexpr T step(!std::is_floating_point_v<T> ? T(1) : T(1e-6f)),
-                    step2(!std::is_floating_point_v<T> ? T(10) : T(1e-3f));
+        constexpr T step(!std::is_floating_point_v<T> ? T(1) : T(1.f)),
+                    step2(!std::is_floating_point_v<T> ? T(10) : T(.25f));
         switch (repr)
         {
         default: fm_warn_once("invalid repr enum value '%zu'", (size_t)repr); break;
@@ -152,8 +152,8 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         using U = typename T::Type;
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<U>;
-        constexpr T step(!std::is_floating_point_v<U> ? U(1) : U(1e-6f)),
-                    step2(!std::is_floating_point_v<U> ? U(10) : U(1e-3f));
+        constexpr T step(!std::is_floating_point_v<U> ? U(1) : U(1.f)),
+                    step2(!std::is_floating_point_v<U> ? U(10) : U(0.25f));
         switch (repr)
         {
         default:

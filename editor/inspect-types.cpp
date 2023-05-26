@@ -13,6 +13,8 @@
 
 namespace floormat::entities {
 
+using st = field_status;
+
 template<>
 struct entity_accessors<entity> {
     static constexpr auto accessors()
@@ -22,12 +24,12 @@ struct entity_accessors<entity> {
             E::type<object_id>::field{"id"_s,
                 [](const entity& x) { return x.id; },
                 [](entity&, object_id) {},
-                constantly(field_status::readonly),
+                constantly(st::readonly),
             },
             E::type<StringView>::field{"atlas"_s,
                 [](const entity& x) { return loader.strip_prefix(x.atlas->name()); },
                 [](entity&, StringView) {},
-                constantly(field_status::readonly),
+                constantly(st::readonly),
             },
             E::type<rotation>::field{"rotation"_s,
                 [](const entity& x) { return x.r; },
@@ -36,26 +38,28 @@ struct entity_accessors<entity> {
             E::type<uint16_t>::field{"frame"_s,
                 [](const entity& x) { return x.frame; },
                 [](entity& x, uint16_t value) { x.frame = value; },
-                [](const entity& x) { return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)}; }
+                [](const entity& x) {
+                    return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)};
+                },
             },
             E::type<Vector2b>::field{"offset"_s,
                 [](const entity& x) { return x.offset; },
                 [](entity& x, Vector2b value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
-                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)})
+                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)}),
             },
             E::type<pass_mode>::field{"pass-mode"_s,
                 [](const entity& x) { return x.pass; },
-                [](entity& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); }
+                [](entity& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); },
             },
             E::type<Vector2b>::field{"bbox-offset"_s,
                 [](const entity& x) { return x.bbox_offset; },
                 [](entity& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
-                [](const entity& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+                [](const entity& x) { return x.pass == pass_mode::pass ? st::readonly : st::enabled; },
             },
             E::type<Vector2ub>::field{"bbox-size"_s,
                 [](const entity& x) { return x.bbox_size; },
                 [](entity& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
-                [](const entity& x) { return x.pass == pass_mode::pass ? field_status::readonly : field_status::enabled; },
+                [](const entity& x) { return x.pass == pass_mode::pass ? st::readonly : st::enabled; },
             },
         };
     }
@@ -206,16 +210,28 @@ struct entity_accessors<light> {
         auto tuple0 = entity_accessors<entity>::accessors();
         auto tuple = std::tuple{
             E::type<Color3ub>::field{"color"_s,
-                                 [](const light& x) { return x.color; },
-                                 [](light& x, Color3ub value) { x.color = value; },
-                                 constantly(constraints::range<Color3ub>{{0, 0, 0}, {255, 255, 255}}),
+                [](const light& x) { return x.color; },
+                [](light& x, Color3ub value) { x.color = value; },
+                constantly(constraints::range<Color3ub>{{0, 0, 0}, {255, 255, 255}}),
             },
             E::type<light_falloff>::field{"falloff"_s,
-                                 [](const light& x) { return x.falloff; },
-                                 [](light& x, light_falloff value) { x.falloff = value; },
+                [](const light& x) { return x.falloff; },
+                [](light& x, light_falloff value) { x.falloff = value; },
             },
-            // half_dist
-            // symmetric
+            E::type<Vector2>::field{"half-dist"_s,
+                [](const light& x) { return x.half_dist; },
+                [](light& x, Vector2 value) { x.half_dist = value; },
+                [](const light& x) { return !x.symmetric ? st::enabled : st::hidden; },
+            },
+            E::type<float>::field{"half-dist"_s,
+                [](const light& x) { return x.half_dist.x(); },
+                [](light& x, float value) { x.half_dist = Vector2(value); },
+                [](const light& x) { return x.symmetric ? st::enabled : st::hidden; }
+            },
+            E::type<bool>::field{"symmetric"_s,
+                [](const light& x) { return x.symmetric; },
+                [](light& x, bool value) { x.symmetric = value; if (value) x.half_dist = Vector2(x.half_dist.x()); },
+            },
         };
         return std::tuple_cat(tuple0, tuple);
     }
