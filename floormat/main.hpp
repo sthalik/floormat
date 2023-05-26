@@ -71,6 +71,9 @@ struct floormat_main
     Vector2 dpi_scale() const noexcept { return _dpi_scale; }
     static int get_mods() noexcept;
 
+    void set_render_vobjs(bool value);
+    bool is_rendering_vobjs() const;
+
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
     [[maybe_unused]] static void debug_break();
 
@@ -78,6 +81,7 @@ protected:
     float _frame_time = 0;
     Vector2 _dpi_scale{1, 1}, _virtual_scale{1, 1};
     Vector2i _framebuffer_size;
+    bool _do_render_vobjs : 1 = true;
 };
 
 } // namespace floormat

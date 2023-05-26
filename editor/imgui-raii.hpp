@@ -58,10 +58,18 @@ struct font_saver final
 {
     font_saver(float size);
     ~font_saver();
-private:
-    font_saver(ImGuiContext& ctx, float size);
 
+private:
     float font_size, font_base_size;
+};
+
+struct draw_list_font_saver final
+{
+    draw_list_font_saver(float size);
+    ~draw_list_font_saver();
+
+private:
+    float font_size;
 };
 
 } // namespace floormat::imgui

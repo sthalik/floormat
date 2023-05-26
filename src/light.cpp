@@ -40,6 +40,7 @@ Vector2 light::ordinal_offset(Vector2b) const
 
 entity_type light::type() const noexcept { return entity_type::light; }
 bool light::update(size_t, float) { return false; }
+bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 
 float light::calc_intensity(float half_dist, light_falloff falloff)

@@ -13,14 +13,26 @@ font_saver::~font_saver()
     ctx.FontBaseSize = font_base_size;
 }
 
-font_saver::font_saver(ImGuiContext& ctx, float size) :
-      font_size{ctx.FontSize}, font_base_size{ctx.FontBaseSize}
+font_saver::font_saver(float size) :
+    font_size{ImGui::GetCurrentContext()->FontSize},
+    font_base_size{ImGui::GetCurrentContext()->FontBaseSize}
 {
+    auto& ctx = *ImGui::GetCurrentContext();
     ctx.FontSize = size;
     ctx.FontBaseSize = size;
 }
 
-font_saver::font_saver(float size) : font_saver{*ImGui::GetCurrentContext(), size} {}
+draw_list_font_saver::draw_list_font_saver(float size) :
+    font_size{ImGui::GetForegroundDrawList()->_Data->FontSize}
+{
+    ImGui::GetForegroundDrawList()->_Data->FontSize = size;
+}
+
+draw_list_font_saver::~draw_list_font_saver()
+{
+    ImGui::GetForegroundDrawList()->_Data->FontSize = font_size;
+}
+
 style_saver::style_saver() : style{ImGui::GetStyle()} {}
 style_saver::~style_saver() { ImGui::GetStyle() = style; }
 

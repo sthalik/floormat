@@ -6,6 +6,7 @@
 #include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
+#include "src/light.hpp"
 
 namespace floormat {
 
@@ -53,21 +54,24 @@ float app::draw_main_menu()
             using m = editor_mode;
             const auto* ed_sc = _editor.current_scenery_editor();
             const auto* ed_w = _editor.current_tile_editor();
-            bool b_none = mode == m::none, b_floor = mode == m::floor, b_walls = mode == m::walls,
-                 b_scenery = mode == m::scenery, b_vobj = mode == m::vobj, b_collisions = _render_bboxes,
-                 b_clickables = _render_clickables, b_all_z_levels = _render_all_z_levels;
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
                                   mode == editor_mode::walls && ed_w;
+
+            bool m_none    = mode == m::none, m_floor = mode == m::floor, m_walls = mode == m::walls,
+                 m_scenery = mode == m::scenery, m_vobjs = mode == m::vobj,
+                 b_collisions = _render_bboxes, b_clickables = _render_clickables,
+                 b_vobjs = _render_vobjs, b_all_z_levels = _render_all_z_levels;
+
             ImGui::SeparatorText("Mode");
-            if (ImGui::MenuItem("Select",  "1", b_none))
+            if (ImGui::MenuItem("Select",  "1", m_none))
                 do_key(key_mode_none);
-            if (ImGui::MenuItem("Floor",   "2", b_floor))
+            if (ImGui::MenuItem("Floor",   "2", m_floor))
                 do_key(key_mode_floor);
-            if (ImGui::MenuItem("Walls",   "3", b_walls))
+            if (ImGui::MenuItem("Walls",   "3", m_walls))
                 do_key(key_mode_walls);
-            if (ImGui::MenuItem("Scenery", "4", b_scenery))
+            if (ImGui::MenuItem("Scenery", "4", m_scenery))
                 do_key(key_mode_scenery);
-            if (ImGui::MenuItem("Virtual objects", "5", b_vobj))
+            if (ImGui::MenuItem("Virtual objects", "5", m_vobjs))
                 do_key(key_mode_vobj);
             ImGui::SeparatorText("Modify");
             if (ImGui::MenuItem("Rotate", "R", false, b_rotate))
@@ -77,6 +81,8 @@ float app::draw_main_menu()
                 do_key(key_render_collision_boxes);
             if (ImGui::MenuItem("Show clickables", "Alt+L", b_clickables))
                 do_key(key_render_clickables);
+            if (ImGui::MenuItem("Render virtual objects", "Alt+V", b_vobjs))
+                do_key(key_render_vobjs);
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
         }
@@ -101,12 +107,15 @@ void app::draw_ui()
 
     if (_render_clickables)
         draw_clickables();
+    if (_render_vobjs)
+        draw_light_info();
 
     const float main_menu_height = draw_main_menu();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
     draw_fps();
+
     draw_tile_under_cursor();
     if (_editor.mode() == editor_mode::none)
         draw_inspector();
@@ -131,6 +140,65 @@ void app::draw_clickables()
         {
             const auto bb_min = min + Vector2(x.bb_min), bb_max = min + Vector2(x.bb_max);
             draw.AddLine({ bb_min[0], bb_min[1] }, { bb_max[0], bb_max[1] }, color, thickness);
+        }
+    }
+}
+
+void app::draw_light_info()
+{
+    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    const auto dpi = M->dpi_scale();
+    constexpr float font_size = 12;
+    const auto& style = ImGui::GetStyle();
+    const ImVec2 pad { style.FramePadding.x*.5f, 0 };
+    const auto font_size_ = dpi.sum()*.5f * font_size;
+
+    draw_list_font_saver saver2{font_size_};
+    imgui::font_saver saver{font_size_};
+
+    for (const auto& x : M->clickable_scenery())
+    {
+        if (x.e->type() == entity_type::light)
+        {
+            const auto dest = Math::Range2D<float>(x.dest);
+            const auto& e = static_cast<const light&>(*x.e);
+
+            if (e.id == _popup_target.id) // TODO use z order instead
+                continue;
+
+            StringView falloff;
+            switch (e.falloff)
+            {
+            default: falloff = "?"_s; break;
+            case light_falloff::constant: falloff = "Constant"_s; break;
+            case light_falloff::linear: falloff = "Linear"_s; break;
+            case light_falloff::quadratic: falloff = "Quadratic"_s; break;
+            }
+
+            char dist[32];
+            if (!e.symmetric)
+                snformat(dist, "{{{}, {}}}"_cf, e.half_dist.x(), e.half_dist.y());
+            else
+                snformat(dist, "{}"_cf, e.half_dist.x());
+
+            // todo add rendering color as part of the lightbulb icon
+#if 0
+            char color[8];
+            snformat(color, "{:2X}{:2X}{:2X}"_cf, e.color.x(), e.color.y(), e.color.z());
+#endif
+
+            char buf[128];
+            if (e.falloff == light_falloff::constant)
+                snformat(buf, "{}"_cf, falloff);
+            else
+                snformat(buf, "{} D={}"_cf, falloff, dist);
+            auto text_size = ImGui::CalcTextSize(buf);
+
+            float offy = dest.max().y() + 5 * dpi.y();
+            float offx = dest.min().x() + (dest.max().x() - dest.min().x())*.5f - text_size.x*.5f;
+
+            draw.AddRectFilled({offx-pad.x, offy-pad.y}, {offx + text_size.x + pad.x, offy + text_size.y + pad.y}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
+            draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), buf);
         }
     }
 }
@@ -174,6 +242,7 @@ void app::do_popup_menu()
 
     if (auto b1 = begin_popup(SCENERY_POPUP_NAME))
     {
+        ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
         ImGui::SeparatorText("Setup");
         const auto i = e.index();
         if (ImGui::MenuItem("Activate", nullptr, false, e.can_activate(i)))
@@ -188,6 +257,8 @@ void app::do_popup_menu()
         if (ImGui::MenuItem("Delete", nullptr, false))
             e.chunk().remove_entity(e.index());
     }
+    else
+        _popup_target = {};
 }
 
 void app::kill_popups(bool hard)

@@ -34,6 +34,7 @@ struct light final : entity
     float depth_offset() const override;
     entity_type type() const noexcept override;
     bool update(size_t i, float dt) override;
+    bool is_dynamic() const override;
     bool is_virtual() const override;
 
     static float calc_intensity(float half_dist, light_falloff falloff);

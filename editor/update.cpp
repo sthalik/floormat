@@ -181,6 +181,8 @@ void app::do_key(key k, int mods)
         return void(_render_bboxes = !_render_bboxes);
     case key_render_clickables:
         return void(_render_clickables = !_render_clickables);
+    case key_render_vobjs:
+        return M->set_render_vobjs(_render_vobjs = !_render_vobjs);
     case key_render_all_z_levels:
         return void(_render_all_z_levels = !_render_all_z_levels);
     case key_quicksave:

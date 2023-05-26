@@ -171,7 +171,7 @@ void main_impl::draw_world() noexcept
                 auto& c = *c_;
                 const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
-                    _anim_mesh.draw(_shader, sz, c, _clickable_scenery);
+                    _anim_mesh.draw(_shader, sz, c, _clickable_scenery, _do_render_vobjs);
             }
 
     _shader.set_tint({1, 1, 1, 1});

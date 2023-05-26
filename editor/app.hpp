@@ -113,6 +113,7 @@ private:
 
     void draw_collision_boxes();
     void draw_clickables();
+    void draw_light_info();
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
     bool check_inspector_exists(const popup_target& p);
@@ -163,6 +164,7 @@ private:
     bool _pending_popup         : 1 = false;
     bool _render_bboxes         : 1 = false;
     bool _render_clickables     : 1 = false;
+    bool _render_vobjs          : 1 = true;
     bool _render_all_z_levels   : 1 = true;
 };
 

@@ -25,6 +25,7 @@ app::app(fm_settings&& opts) :
     constexpr chunk_coords_ coord{0, 0, 0};
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
+    M->set_render_vobjs(_render_vobjs);
     inspectors.reserve(16);
 }
 
@@ -82,6 +83,7 @@ void app::reset_world(struct world&& w_)
     const auto pixel = cursor.pixel;
     cursor = {};
     _character_id = 0;
+    _render_vobjs = true;
     _render_all_z_levels = true;
 
     auto& w = M->reset_world(Utility::move(w_));

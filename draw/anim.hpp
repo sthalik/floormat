@@ -26,7 +26,7 @@ struct anim_mesh final
 {
     anim_mesh();
 
-    void draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list);
+    void draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list, bool draw_vobjs);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& pos, float depth);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float dpeth);
     static void add_clickable(tile_shader& shader, const Vector2i& win_size,

@@ -73,7 +73,7 @@ struct entity
     entity_type type_of() const noexcept;
     static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
 
-    bool is_dynamic() const;
+    virtual bool is_dynamic() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
     size_t move_to(size_t& i, Vector2i delta, rotation new_r);

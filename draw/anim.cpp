@@ -55,7 +55,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
     }
 }
 
-void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list)
+void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list, bool draw_vobjs)
 {
     constexpr auto quad_index_count = 6;
 
@@ -78,6 +78,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         fm_assert(x.e);
         add_clickable(shader, win_size, x.data.in, x.data, list);
         auto& e = *x.e;
+
         auto& atlas = *e.atlas;
         fm_assert(e.is_dynamic() == (x.mesh_idx == (uint32_t)-1));
         if (!e.is_dynamic())
@@ -88,6 +89,10 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         }
         else
         {
+            if (!draw_vobjs) [[likely]]
+                if (e.is_virtual()) [[unlikely]]
+                    continue;
+
             const auto depth0 = e.depth_offset();
             const auto depth = tile_shader::depth_value(e.coord.local(), depth0);
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);

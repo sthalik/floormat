@@ -46,6 +46,9 @@ Vector2i floormat_main::window_size() const noexcept
     return _framebuffer_size;
 }
 
+void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }
+bool floormat_main::is_rendering_vobjs() const { return _do_render_vobjs; }
+
 void main_impl::set_cursor(uint32_t cursor) noexcept
 {
     if (cursor != _mouse_cursor || _mouse_cursor == (uint32_t)-1)
