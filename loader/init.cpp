@@ -1,6 +1,7 @@
 #include "impl.hpp"
 
 #ifdef _WIN32
+#include <cstdio>
 #include <windows.h>
 #if __has_include(<ntddk.h>)
 #include <ntddk.h>
@@ -38,7 +39,32 @@ static void system_init_()
 #ifdef _WIN32
     (void)::SetConsoleOutputCP(CP_UTF8);
     if (check_windows_build_number(10, 0, 17035))
+    {
+        for (const auto h : { STD_INPUT_HANDLE, STD_ERROR_HANDLE, STD_OUTPUT_HANDLE })
+        {
+            HANDLE handle = GetStdHandle(h);
+            if (!handle)
+            {
+                puts(""); // put breakpoint here
+            }
+            else
+            {
+                DWORD mode = 0;
+                if (!::GetConsoleMode(handle, &mode))
+                {
+                    puts(""); // put breakpoint here
+                }
+                else
+                {
+                    if (!::SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+                    {
+                        puts(""); // put breakpoint here
+                    }
+                }
+            }
+        }
         (void)::SetConsoleCP(CP_UTF8);
+    }
 #endif
 #ifdef __GLIBCXX__
     std::set_terminate(__gnu_cxx::__verbose_terminate_handler);
