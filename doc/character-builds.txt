@@ -1,0 +1,46 @@
+character archetypes:
+- firearms with a strength & crafting requirement; making civilian rifles fully
+  automatic, creating suppressors out of loose parts
+- stealth (unique quest solutions, very limited combat); other character types
+  can't be stealthy
+- melee with magic-like abilities
+
+player character attributes:
+# not more than 4 to 5
+- strength / constitution rolled into one
+- perception / intelligence / wisdom rolled into one
+- agility *or* dexterity, not both
+
+player character skills:
+# not more than 5 levels
+# level 5 is superhuman
+# level 4 is one of the very best in the world
+# level 3 is very experienced
+# level 0 is technically being able to use it
+- stealth
+- firearms
+- melee
+- etiquette (making factions work for you despite negative reputation)
+- mercantile (getting better goodies, like in underrail)
+- magic
+
+player character derived abilities:
+- recoil control (strength*3 + firearms)
+- close quarters maneuverability (agility - weapon bulkiness)
+- being detected by sound (agility + stealth)
+- being detected by sight (stealth only)
+- chance to hit (perception * 3 + weapon skill)
+
+combat etc
+- silent bows requiring actual skill to aim (simple, recurve, compound)
+- crafting modifies weapons into full auto
+- crafting adjustable stock, foregrips
+- gun types like pistol caliber rifles, bolt-action 7.62x39 rifles
+- limits on suppressor usability or no suppressors at all
+
+magic melee
+# uses wisdom, agility
+# try ripping off LoL skills for melee:
+- Lee Sin kick enemy into enemy
+- Fizz gap closer while untargetable
+- Tryndamere's invulnerability
