@@ -330,10 +330,10 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         const auto& e = *e_;
         fm_assert(s.bytes_written() + entity_size <= chunk_buf.size());
         object_id oid = e.id;
-        fm_assert((oid & lowbits<60, object_id>) == oid);
-        static_assert(entity_type_BITS == 3);
+        fm_assert((oid & lowbits<60, object_id>) == e.id);
         const auto type = e.type();
-        fm_assert(((entity_type_i)type & lowbits<entity_type_BITS, entity_type_i>) == (entity_type_i)type);
+        const auto type_ = (entity_type_i)type;
+        fm_assert(type_ == (type_ & lowbits<entity_type_BITS, entity_type_i>));
         oid |= (object_id)type << 64 - entity_type_BITS;
         s << oid;
         const auto local = e.coord.local();

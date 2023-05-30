@@ -239,9 +239,8 @@ void reader_state::read_chunks(reader_t& s)
         for (auto i = 0uz; i < entity_count; i++)
         {
             object_id _id; _id << s;
-            const auto oid = _id & (1ULL << 60)-1;
+            const auto oid = _id & lowbits<60, object_id>;
             fm_soft_assert(oid != 0);
-            static_assert(entity_type_BITS == 3);
             const auto type = entity_type(_id >> 61);
             const auto local = local_coords{s.read<uint8_t>()};
 

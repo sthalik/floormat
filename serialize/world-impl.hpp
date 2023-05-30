@@ -67,7 +67,7 @@ template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
 template<size_t N, typename T = uint8_t>
-constexpr auto lowbits = (T(1) << N)-T(1);
+constexpr T lowbits = T((T{1} << N)-T{1});
 
 constexpr inline atlasid meta_short_scenery_bit = highbits<atlasid, 1, 0>;
 constexpr inline atlasid meta_rotation_bits = highbits<atlasid, rotation_BITS, 1>;
