@@ -4,6 +4,10 @@
 #include "loader/vobj-info.hpp"
 #include <cmath>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wfloat-equal" // workaround ICE on clang 16
+#endif
+
 namespace floormat {
 
 light_proto::light_proto()
