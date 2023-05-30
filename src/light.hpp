@@ -18,6 +18,7 @@ struct light_proto : entity_proto
     float max_distance = 0;
     Color3ub color{255, 255, 255};
     light_falloff falloff : 3 = light_falloff::linear;
+    uint8_t enabled : 1 = true;
 };
 
 struct light final : entity
@@ -35,6 +36,8 @@ struct light final : entity
     bool update(size_t i, float dt) override;
     bool is_dynamic() const override;
     bool is_virtual() const override;
+
+    explicit operator light_proto() const;
 
     friend struct world;
 };

@@ -26,6 +26,7 @@
  * 11) RLE empty tiles.
  * 12) Don't write entity name twice.
  * 13) Entity counter initialized to 1024.
+ * 14) Always store entity offset, rework how sc_exact works.
  */
 
 namespace floormat {
@@ -62,11 +63,13 @@ using pass_mode_i = std::underlying_type_t<pass_mode>;
 constexpr inline pass_mode_i pass_mask = (1 << pass_mode_BITS)-1;
 using entity_type_i = std::underlying_type_t<entity_type>;
 
-template<typename T> constexpr inline auto highbit = T(1) << sizeof(T)*8-1;
 template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
-constexpr inline atlasid meta_short_scenery_bit = highbit<atlasid>;
+template<size_t N, typename T = uint8_t>
+constexpr auto lowbits = (T(1) << N)-T(1);
+
+constexpr inline atlasid meta_short_scenery_bit = highbits<atlasid, 1, 0>;
 constexpr inline atlasid meta_rotation_bits = highbits<atlasid, rotation_BITS, 1>;
 constexpr inline atlasid scenery_id_flag_mask = meta_short_scenery_bit | meta_rotation_bits;
 constexpr inline atlasid scenery_id_max = int_max<atlasid> & ~scenery_id_flag_mask;

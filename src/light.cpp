@@ -22,7 +22,8 @@ light::light(object_id id, struct chunk& c, const light_proto& proto) :
     entity{id, c, proto},
     max_distance{proto.max_distance},
     color{proto.color},
-    falloff{proto.falloff}
+    falloff{proto.falloff},
+    enabled{proto.enabled}
 {
 }
 
@@ -35,6 +36,17 @@ float light::depth_offset() const
 Vector2 light::ordinal_offset(Vector2b) const
 {
     constexpr auto ret = Vector2(TILE_COUNT, TILE_COUNT) * TILE_SIZE2;
+    return ret;
+}
+
+light::operator light_proto() const
+{
+    light_proto ret;
+    static_cast<entity_proto&>(ret) = entity_proto(*this);
+    ret.max_distance = max_distance;
+    ret.color = color;
+    ret.falloff = falloff;
+    ret.enabled = enabled;
     return ret;
 }
 

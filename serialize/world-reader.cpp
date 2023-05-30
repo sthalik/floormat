@@ -272,6 +272,7 @@ void reader_state::read_chunks(reader_t& s)
                 Vector2s offset_frac;
                 offset_frac[0] << s;
                 offset_frac[1] << s;
+                const bool exact = id & meta_short_scenery_bit;
                 SET_CHUNK_SIZE();
 
                 if (PROTO >= 9) [[likely]]
@@ -287,7 +288,7 @@ void reader_state::read_chunks(reader_t& s)
                     auto name = StringView{buf, len};
                     proto.name = name;
                 }
-                if (!(id & meta_short_scenery_bit))
+                if (!exact)
                 {
                     if (PROTO < 14) [[unlikely]]
                     {
@@ -334,9 +335,29 @@ void reader_state::read_chunks(reader_t& s)
             case entity_type::light: {
                 light_proto proto;
                 proto.offset = offset;
+
                 uint8_t flags; flags << s;
-                const bool sc_exact = flags & (1 << 7);
-                proto.r = rotation((flags >> 4) & rotation_MASK);
+                const bool exact = flags & 1;
+                proto.r = rotation((flags >> 1) & lowbits<rotation_BITS>);
+                proto.falloff = light_falloff((flags >> 4) & lowbits<light_falloff_BITS>);
+                const bool enabled = (flags >> 6) & 1;
+
+                s >> proto.max_distance;
+                for (auto i = 0uz; i < 3; i++)
+                    s >> proto.color[i];
+                if (!exact)
+                {
+                    uint16_t frame; frame << s;
+                    auto pass = pass_mode((frame >> 14) & lowbits<2>);
+                    frame &= lowbits<14, uint16_t>;
+                    proto.pass = pass;
+                    proto.frame = frame;
+                    read_bbox(s, proto);
+                }
+                SET_CHUNK_SIZE();
+                auto L = _world->make_entity<light, false>(oid, {ch, local}, proto);
+                L->enabled = enabled;
+                (void)L;
                 break;
             }
             default:

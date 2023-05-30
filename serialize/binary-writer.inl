@@ -31,7 +31,8 @@ constexpr binary_writer<It>& operator<<(binary_writer<It>& writer, T x) noexcept
 template<std::output_iterator<char> It>
 constexpr void binary_writer<It>::write_asciiz_string(StringView str) noexcept
 {
-    fm_debug_assert(str.flags() & StringViewFlag::NullTerminated);
+    //fm_debug_assert(str.flags() & StringViewFlag::NullTerminated);
+    fm_debug_assert(!str.find('\0'));
     const auto sz = str.size();
     _bytes_written += sz + 1;
     for (auto i = 0uz; i < sz; i++)

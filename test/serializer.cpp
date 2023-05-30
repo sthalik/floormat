@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
 #include "src/character.hpp"
+#include "src/light.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-iterator.hpp"
@@ -74,6 +75,13 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             const auto& e1 = static_cast<const scenery&>(ae);
             const auto& e2 = static_cast<const scenery&>(be);
             const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
+            fm_assert(p1 == p2);
+            break;
+        }
+        case entity_type::light: {
+            const auto& e1 = static_cast<const light&>(ae);
+            const auto& e2 = static_cast<const light&>(be);
+            const auto p1 = light_proto(e1), p2 = light_proto(e2);
             fm_assert(p1 == p2);
             break;
         }

@@ -77,7 +77,7 @@ private:
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3;
 constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords_) + tile_size * TILE_COUNT + sizeof(uint32_t);
-constexpr auto entity_size = std::max(sizeof(character), sizeof(scenery));
+constexpr auto entity_size = std::max({ sizeof(character), sizeof(scenery), sizeof(light), });
 
 writer_state::writer_state(const world& world) : _world{&world}
 {
@@ -230,7 +230,6 @@ void writer_state::serialize_atlases()
         const auto namesiz = name.size();
         fm_debug_assert(s.bytes_written() + namesiz < atlasbuf_size);
         fm_assert(namesiz < atlas_name_max);
-        fm_debug_assert(name.find('\0') == name.cend());
         const auto sz2 = atlas->num_tiles2();
         s << sz2[0]; s << sz2[1];
         s.write_asciiz_string(name);
@@ -284,6 +283,7 @@ void writer_state::serialize_scenery_names()
                 num++;
             fm_assert(num < int_max<uint8_t>);
             s << (uint8_t)num;
+            fm_assert(sc->name.size() < atlas_name_max);
             s.write_asciiz_string(sc->name);
         }
         s << idx;
@@ -310,7 +310,10 @@ void writer_state::serialize_strings()
     auto s = binary_writer{string_buf.begin()};
     s << (uint32_t)string_map.size();
     for (const auto& [k, v] : string_map)
+    {
+        fm_assert(k.size() < string_max);
         s.write_asciiz_string(k);
+    }
     fm_assert(s.bytes_written() == sizeof(uint32_t) + len);
     fm_assert(s.bytes_written() == string_buf.size());
 }
@@ -327,10 +330,10 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         const auto& e = *e_;
         fm_assert(s.bytes_written() + entity_size <= chunk_buf.size());
         object_id oid = e.id;
-        fm_assert((oid & ((object_id)1 << 60)-1) == oid);
+        fm_assert((oid & lowbits<60, object_id>) == oid);
         static_assert(entity_type_BITS == 3);
         const auto type = e.type();
-        fm_assert(((entity_type_i)type & (1 << entity_type_BITS)-1) == (entity_type_i)type);
+        fm_assert(((entity_type_i)type & lowbits<entity_type_BITS, entity_type_i>) == (entity_type_i)type);
         oid |= (object_id)type << 64 - entity_type_BITS;
         s << oid;
         const auto local = e.coord.local();
@@ -374,15 +377,15 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             const auto& sc = static_cast<const scenery&>(e);
             auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
             sc_exact = sc_exact &&
-                       e.bbox_offset == ss->bbox_offset && e.bbox_size == ss->bbox_size &&
-                       e.pass == ss->pass && sc.sc_type == ss->sc_type &&
+                       sc.bbox_offset == ss->bbox_offset && sc.bbox_size == ss->bbox_size &&
+                       sc.pass == ss->pass && sc.sc_type == ss->sc_type &&
                        sc.active == ss->active && sc.closing == ss->closing &&
                        sc.interactive == ss->interactive &&
                        sc.delta == 0 && sc.frame == ss->frame;
             fm_assert(img_s != null_atlas);
             atlasid id = img_s;
             static_assert(rotation_BITS == 3);
-            fm_assert((id & (1 << 16-3-1)-1) == id);
+            fm_assert(id == (id & lowbits<16-3-1, atlasid>));
             id |= meta_short_scenery_bit * sc_exact;
             id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
@@ -402,18 +405,16 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         }
         case entity_type::light: {
             const auto& L = static_cast<const light&>(e);
-            const auto sc_exact = L.frame == 0 && L.pass == pass_mode::pass &&
-                                  L.bbox_offset.isZero() && L.bbox_size.isZero();
+            const auto exact = L.frame == 0 && L.pass == pass_mode::pass &&
+                               L.bbox_offset.isZero() && L.bbox_size.isZero();
             {
                 fm_assert(L.r < rotation_COUNT);
                 fm_assert(L.falloff < light_falloff_COUNT);
-                fm_assert(L.pass < pass_mode_COUNT);
-
                 uint8_t flags = 0;
-                flags |= uint8_t(sc_exact)  << 0; // 1 bit
-                flags |= uint8_t(L.r)       << 1; // 3 bits
-                flags |= (uint8_t)L.falloff << 4; // 2 bits
-                flags |= (uint8_t)L.enabled << 5; // 1 bit
+                flags |= (uint8_t)exact;                                            // 1 bit
+                flags |= ((uint8_t)L.r       & lowbits<rotation_BITS>)      << 1;   // 3 bits
+                flags |= ((uint8_t)L.falloff & lowbits<light_falloff_BITS>) << 4;   // 2 bits
+                flags |= (uint8_t)!!L.enabled                               << 6;   // 1 bit
                 s << flags;
             }
             {
@@ -421,7 +422,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
                 for (auto i = 0uz; i < 3; i++)
                     s << L.color[i];
             }
-            if (!sc_exact)
+            if (!exact)
             {
                 fm_assert(L.frame < (1 << 14));
                 fm_assert(L.pass < pass_mode_COUNT);
@@ -542,6 +543,7 @@ ArrayView<const char> writer_state::serialize_world()
                 intern_scenery(static_cast<const scenery&>(e), false);
                 break;
             case entity_type::character:
+            case entity_type::light:
                 break;
             default:
                 fm_abort("invalid scenery type '%d'", (int)e.type());
