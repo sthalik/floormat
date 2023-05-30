@@ -15,18 +15,17 @@ struct light_proto : entity_proto
     ~light_proto() noexcept override;
     bool operator==(const light_proto&) const;
 
-    Vector2 half_dist{3};
+    float max_distance = 0;
     Color3ub color{255, 255, 255};
     light_falloff falloff : 3 = light_falloff::linear;
-    uint8_t symmetric : 1 = true;
 };
 
 struct light final : entity
 {
-    Vector2 half_dist;
+    float max_distance;
     Color3ub color;
-    light_falloff falloff : 3;
-    uint8_t symmetric : 1 = true;
+    light_falloff falloff : 2;
+    uint8_t enabled : 1 = true;
 
     light(object_id id, struct chunk& c, const light_proto& proto);
 
@@ -37,10 +36,10 @@ struct light final : entity
     bool is_dynamic() const override;
     bool is_virtual() const override;
 
-    static Vector2 intensity(Vector2  half_dist, light_falloff falloff);
-    Vector2 intensity() const;
-
     friend struct world;
 };
+
+template<> struct entity_type_<struct light> : std::integral_constant<entity_type, entity_type::light> {};
+template<> struct entity_type_<struct light_proto> : std::integral_constant<entity_type, entity_type::light> {};
 
 } // namespace floormat

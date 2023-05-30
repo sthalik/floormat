@@ -4,6 +4,7 @@
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/character.hpp"
+#include "src/light.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
 #include "src/tile-atlas.hpp"
@@ -243,9 +244,14 @@ void reader_state::read_chunks(reader_t& s)
             static_assert(entity_type_BITS == 3);
             const auto type = entity_type(_id >> 61);
             const auto local = local_coords{s.read<uint8_t>()};
-            constexpr auto read_offsets = [](auto& s, auto& e) {
-                s >> e.offset[0];
-                s >> e.offset[1];
+
+            Vector2b offset;
+            if (PROTO >= 14) [[likely]]
+            {
+                offset[0] << s;
+                offset[1] << s;
+            }
+            constexpr auto read_bbox = [](auto& s, auto& e) {
                 s >> e.bbox_offset[0];
                 s >> e.bbox_offset[1];
                 s >> e.bbox_size[0];
@@ -256,6 +262,7 @@ void reader_state::read_chunks(reader_t& s)
             {
             case entity_type::character: {
                 character_proto proto;
+                proto.offset = offset;
                 uint8_t id; id << s;
                 proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                 if (read_entity_flags(s, proto))
@@ -280,11 +287,18 @@ void reader_state::read_chunks(reader_t& s)
                     auto name = StringView{buf, len};
                     proto.name = name;
                 }
-
                 if (!(id & meta_short_scenery_bit))
-                    read_offsets(s, proto);
+                {
+                    if (PROTO < 14) [[unlikely]]
+                    {
+                        s >> proto.offset[0];
+                        s >> proto.offset[1];
+                    }
+                    read_bbox(s, proto);
+                }
                 SET_CHUNK_SIZE();
                 auto e = _world->make_entity<character, false>(oid, {ch, local}, proto);
+                e->offset_frac = offset_frac;
                 (void)e;
                 break;
             }
@@ -294,6 +308,7 @@ void reader_state::read_chunks(reader_t& s)
                 const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                 id &= ~scenery_id_flag_mask;
                 auto sc = lookup_scenery(id);
+                sc.offset = offset;
                 (void)sc.atlas->group(r);
                 sc.r = r;
                 if (!exact)
@@ -302,12 +317,26 @@ void reader_state::read_chunks(reader_t& s)
                         sc.frame = s.read<uint8_t>();
                     else
                         sc.frame << s;
-                    read_offsets(s, sc);
+                    (void)sc.atlas->frame(sc.r, sc.frame);
+                    if (PROTO < 14) [[unlikely]]
+                    {
+                        s >> sc.offset[0];
+                        s >> sc.offset[1];
+                    }
+                    read_bbox(s, sc);
                     if (sc.active)
                         sc.delta << s;
                 }
                 auto e = _world->make_entity<scenery, false>(oid, {ch, local}, sc);
                 (void)e;
+                break;
+            }
+            case entity_type::light: {
+                light_proto proto;
+                proto.offset = offset;
+                uint8_t flags; flags << s;
+                const bool sc_exact = flags & (1 << 7);
+                proto.r = rotation((flags >> 4) & rotation_MASK);
                 break;
             }
             default:

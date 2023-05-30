@@ -20,7 +20,7 @@ bool light_proto::operator==(const light_proto&) const = default;
 
 light::light(object_id id, struct chunk& c, const light_proto& proto) :
     entity{id, c, proto},
-    half_dist{proto.half_dist},
+    max_distance{proto.max_distance},
     color{proto.color},
     falloff{proto.falloff}
 {
@@ -42,20 +42,5 @@ entity_type light::type() const noexcept { return entity_type::light; }
 bool light::update(size_t, float) { return false; }
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
-
-Vector2 light::intensity(Vector2 half_dist, light_falloff falloff)
-{
-    switch (falloff)
-    {
-    case light_falloff::linear: return 2 * half_dist;
-    case light_falloff::quadratic: return Vector2{std::sqrt(2 * half_dist.x()), std::sqrt(2 * half_dist.y())};
-    default: case light_falloff::constant: return Vector2{1, 1};
-    }
-}
-
-Vector2 light::intensity() const
-{
-    return intensity(half_dist, falloff);
-}
 
 } // namespace floormat

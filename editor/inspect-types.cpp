@@ -203,7 +203,8 @@ template<typename U> struct enum_values<light_falloff, U>
 };
 
 template<>
-struct entity_accessors<light> {
+struct entity_accessors<light>
+{
     static constexpr auto accessors()
     {
         using E = Entity<light>;
@@ -218,19 +219,13 @@ struct entity_accessors<light> {
                 [](const light& x) { return x.falloff; },
                 [](light& x, light_falloff value) { x.falloff = value; },
             },
-            E::type<Vector2>::field{"half-dist"_s,
-                [](const light& x) { return x.half_dist; },
-                [](light& x, Vector2 value) { x.half_dist = value; },
-                [](const light& x) { return !x.symmetric ? st::enabled : st::hidden; },
+            E::type<float>::field{"range"_s,
+                [](const light& x) { return x.max_distance; },
+                [](light& x, float value) { x.max_distance = value; },
             },
-            E::type<float>::field{"half-dist"_s,
-                [](const light& x) { return x.half_dist.x(); },
-                [](light& x, float value) { x.half_dist = Vector2(value); },
-                [](const light& x) { return x.symmetric ? st::enabled : st::hidden; }
-            },
-            E::type<bool>::field{"symmetric"_s,
-                [](const light& x) { return x.symmetric; },
-                [](light& x, bool value) { x.symmetric = value; if (value) x.half_dist = Vector2(x.half_dist.x()); },
+            E::type<bool>::field{"enabled"_s,
+                [](const light& x) { return !!x.enabled; },
+                [](light& x, bool value) { x.enabled = value; },
             },
         };
         return std::tuple_cat(tuple0, tuple);

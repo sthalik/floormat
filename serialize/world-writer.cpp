@@ -12,6 +12,7 @@
 #include "src/character.hpp"
 #include "loader/scenery.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/light.hpp"
 #include <concepts>
 #include <cstring>
 #include <vector>
@@ -37,7 +38,7 @@ struct interned_scenery {
 };
 
 struct scenery_pair {
-    const serialized_scenery* s;
+    const scenery_proto* s;
     atlasid index;
     bool exact_match;
 };
@@ -150,7 +151,7 @@ scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
         if (s == proto)
         {
             if (x.index != null_atlas)
-                return { x.s, x.index, true };
+                return { &x.s->proto, x.index, true };
             else
                 ret = &x;
         }
@@ -161,16 +162,16 @@ scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
     if (ret)
     {
         ret->index = scenery_map_size++;
-        return { ret->s, ret->index, true };
+        return { &ret->s->proto, ret->index, true };
     }
     else if (create)
     {
         if (ret2)
-            return { ret2->s, ret2->index, false };
+            return { &ret2->s->proto, ret2->index, false };
         else
         {
             fm_assert(vec[0].index == null_atlas);
-            return { vec[0].s, vec[0].index = scenery_map_size++, false };
+            return { &vec[0].s->proto, vec[0].index = scenery_map_size++, false };
         }
     }
     else
@@ -316,7 +317,8 @@ void writer_state::serialize_strings()
 
 void writer_state::serialize_scenery(const chunk& c, writer_t& s)
 {
-    const auto def_char_bbox_size = character_proto{}.bbox_size;
+    constexpr auto def_char_bbox_size = Vector2ub(iTILE_SIZE2); // copied from character_proto
+
     const auto entity_count = (uint32_t)c.entities().size();
     s << entity_count;
     fm_assert(entity_count == c.entities().size());
@@ -333,9 +335,10 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         s << oid;
         const auto local = e.coord.local();
         s << local.to_index();
-        constexpr auto write_offsets = [](auto& s, const auto& e) {
-            s << e.offset[0];
-            s << e.offset[1];
+        s << e.offset[0];
+        s << e.offset[1];
+
+        constexpr auto write_bbox = [](auto& s, const auto& e) {
             s << e.bbox_offset[0];
             s << e.bbox_offset[1];
             s << e.bbox_size[0];
@@ -349,7 +352,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             const auto& C = static_cast<const character&>(e);
             uint8_t id = 0;
             const auto sc_exact =
-                C.offset.isZero() && C.bbox_offset.isZero() &&
+                C.bbox_offset.isZero() &&
                 C.bbox_size == def_char_bbox_size;
             id |= meta_short_scenery_bit * sc_exact;
             id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
@@ -364,15 +367,18 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             fm_assert(C.name.size() < character_name_max);
             s << intern_string(C.name);
             if (!sc_exact)
-                write_offsets(s, C);
+                write_bbox(s, C);
             break;
         }
         case entity_type::scenery: {
             const auto& sc = static_cast<const scenery&>(e);
             auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
             sc_exact = sc_exact &&
-                       e.offset.isZero() && e.bbox_offset.isZero() && e.bbox_size.isZero() &&
-                       !sc.active && !sc.closing && !sc.interactive;
+                       e.bbox_offset == ss->bbox_offset && e.bbox_size == ss->bbox_size &&
+                       e.pass == ss->pass && sc.sc_type == ss->sc_type &&
+                       sc.active == ss->active && sc.closing == ss->closing &&
+                       sc.interactive == ss->interactive &&
+                       sc.delta == 0 && sc.frame == ss->frame;
             fm_assert(img_s != null_atlas);
             atlasid id = img_s;
             static_assert(rotation_BITS == 3);
@@ -383,14 +389,47 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             if (!sc_exact)
             {
                 write_entity_flags(s, sc);
-                fm_assert(sc.active || sc.delta == 0.f);
+                fm_assert(sc.active || sc.delta == 0);
                 if (sc.frame <= 0xff)
                     s << (uint8_t)sc.frame;
                 else
                     s << sc.frame;
-                write_offsets(s, sc);
+                write_bbox(s, sc);
                 if (sc.active)
                     s << sc.delta;
+            }
+            break;
+        }
+        case entity_type::light: {
+            const auto& L = static_cast<const light&>(e);
+            const auto sc_exact = L.frame == 0 && L.pass == pass_mode::pass &&
+                                  L.bbox_offset.isZero() && L.bbox_size.isZero();
+            {
+                fm_assert(L.r < rotation_COUNT);
+                fm_assert(L.falloff < light_falloff_COUNT);
+                fm_assert(L.pass < pass_mode_COUNT);
+
+                uint8_t flags = 0;
+                flags |= uint8_t(sc_exact)  << 0; // 1 bit
+                flags |= uint8_t(L.r)       << 1; // 3 bits
+                flags |= (uint8_t)L.falloff << 4; // 2 bits
+                flags |= (uint8_t)L.enabled << 5; // 1 bit
+                s << flags;
+            }
+            {
+                s << L.max_distance;
+                for (auto i = 0uz; i < 3; i++)
+                    s << L.color[i];
+            }
+            if (!sc_exact)
+            {
+                fm_assert(L.frame < (1 << 14));
+                fm_assert(L.pass < pass_mode_COUNT);
+                uint16_t frame = 0;
+                frame |= L.frame;
+                frame |= uint16_t(L.pass) << 14;
+                s << frame;
+                write_bbox(s, L);
             }
             break;
         }

@@ -170,28 +170,22 @@ void app::draw_light_info()
             switch (e.falloff)
             {
             default: falloff = "?"_s; break;
-            case light_falloff::constant: falloff = "Constant"_s; break;
-            case light_falloff::linear: falloff = "Linear"_s; break;
-            case light_falloff::quadratic: falloff = "Quadratic"_s; break;
+            case light_falloff::constant: falloff = "constant"_s; break;
+            case light_falloff::linear: falloff = "linear"_s; break;
+            case light_falloff::quadratic: falloff = "quadratic"_s; break;
             }
-
-            char dist[32];
-            if (!e.symmetric)
-                snformat(dist, "{{{}, {}}}"_cf, e.half_dist.x(), e.half_dist.y());
-            else
-                snformat(dist, "{}"_cf, e.half_dist.x());
 
             // todo add rendering color as part of the lightbulb icon
 #if 0
             char color[8];
             snformat(color, "{:2X}{:2X}{:2X}"_cf, e.color.x(), e.color.y(), e.color.z());
 #endif
-
             char buf[128];
+
             if (e.falloff == light_falloff::constant)
                 snformat(buf, "{}"_cf, falloff);
             else
-                snformat(buf, "{} D={}"_cf, falloff, dist);
+                snformat(buf, "{} range={}"_cf, falloff, e.max_distance);
             auto text_size = ImGui::CalcTextSize(buf);
 
             float offy = dest.max().y() + 5 * dpi.y();
