@@ -53,9 +53,12 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
 auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
-    using f = GLConfiguration::Flag;
-    flags |= f::ForwardCompatible;
-    return GLConfiguration{}.setFlags(flags);
+    flags |= GLConfiguration::Flag::ForwardCompatible;
+    return GLConfiguration{}
+        .setFlags(flags)
+        .setDepthBufferSize(0)
+        .setColorBufferSize({8, 8, 8, 0})
+        .setStencilBufferSize(0);
 }
 
 static int get_window_refresh_rate(SDL_Window* window)
