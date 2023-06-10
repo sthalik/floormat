@@ -63,7 +63,7 @@ endfunction()
 function(fm-userconfig-src)
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
-        -fconcepts-diagnostics-depth=2
+        #-fconcepts-diagnostics-depth=2
     )
     add_link_options(-Wno-lto-type-mismatch -Wno-odr)
     add_compile_options(

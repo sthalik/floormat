@@ -128,13 +128,13 @@ private:
 
     RTree _rtree;
 
-    mutable bool _maybe_empty           : 1 = true,
-                 _ground_modified       : 1 = true,
-                 _walls_modified        : 1 = true,
-                 _scenery_modified      : 1 = true,
-                 _pass_modified         : 1 = true,
-                 _teardown              : 1 = false,
-                 _entities_sorted       : 1 = true;
+    mutable bool _maybe_empty            : 1 = true,
+                 _ground_modified        : 1 = true,
+                 _walls_modified         : 1 = true,
+                 _scenery_modified       : 1 = true,
+                 _pass_modified          : 1 = true,
+                 _teardown               : 1 = false,
+                 _entities_sorted        : 1 = true;
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
     static topo_sort_data make_topo_sort_data(entity& e, uint32_t mesh_idx);

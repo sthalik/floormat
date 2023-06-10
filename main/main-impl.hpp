@@ -6,6 +6,7 @@
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
 #include "shaders/shader.hpp"
+#include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
 #include <vector>
 #include <Corrade/Containers/String.h>
@@ -95,6 +96,7 @@ private:
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
+    lightmap_shader _lightmap_shader;
     std::vector<clickable> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;

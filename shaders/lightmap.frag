@@ -1,18 +1,13 @@
 precision mediump float;
 
-struct light_u
-{
-    vec4 color_and_intensity;
-    vec2 center;
-    uint mode;
-};
-
-#define TILE_MAX_DIM 16
-#define TILE_SIZE_X 64
-#define TILE_SIZE_Y 64
-
-#define CHUNK_SIZE_X (TILE_SIZE_X * TILE_MAX_DIM)
-#define CHUNK_SIZE_Y (TILE_SIZE_Y * TILE_MAX_DIM)
-
 layout (location = 0) uniform vec4 color_intensity;
-layout (location = 1) uniform vec2 px;
+layout (location = 1) uniform vec2 center;
+layout (location = 2) uniform uint falloff;
+layout (location = 3) uniform vec2 size;
+
+out vec4 color;
+
+void main() {
+    vec3 color = color_intensity.xyz;
+    float dist = color_intensity.w;
+}

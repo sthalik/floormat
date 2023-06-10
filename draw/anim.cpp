@@ -63,14 +63,6 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
     GL::MeshView mesh{mesh_};
     const auto max_index = uint32_t(size*quad_index_count - 1);
 
-    constexpr auto do_draw = [](tile_shader& shader, GL::Mesh& mesh_, anim_atlas* atlas, uint32_t i, uint32_t max_index) {
-        GL::MeshView mesh{mesh_};
-        atlas->texture().bind(0);
-        mesh.setCount((int)(quad_index_count * 1));
-        mesh.setIndexRange((int)(i*quad_index_count), 0, max_index);
-        shader.draw(mesh);
-    };
-
     uint32_t i = 0;
 
     for (const auto& x : es)
@@ -84,7 +76,11 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         if (!e.is_dynamic())
         {
             fm_assert(i < size);
-            do_draw(shader, mesh_, &atlas, x.mesh_idx, max_index);
+            GL::MeshView mesh{mesh_};
+            atlas.texture().bind(0);
+            mesh.setCount((int)(quad_index_count * 1));
+            mesh.setIndexRange((int)(i*quad_index_count), 0, max_index);
+            shader.draw(mesh);
             i++;
         }
         else
