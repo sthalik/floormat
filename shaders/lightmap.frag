@@ -5,9 +5,13 @@ layout (location = 1) uniform vec2 center;
 layout (location = 2) uniform uint falloff;
 layout (location = 3) uniform vec2 size;
 
-out vec4 color;
+out vec3 color;
 
 void main() {
-    vec3 color = color_intensity.xyz;
-    float dist = color_intensity.w;
+    vec2 pos = gl_FragCoord.xy;
+    float I = color_intensity.w;
+    vec2 tmp = pos - center;
+    float dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
+    float alpha = 1 - min(1, dist / I);
+    color = alpha * color_intensity.xyz;
 }
