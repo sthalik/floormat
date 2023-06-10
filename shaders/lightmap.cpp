@@ -109,8 +109,20 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     constexpr auto scale = 2/chunk_size;
-    auto dist = std::fmax(0.f, light.dist/* * tile_size*/);
-    auto dist_clip = dist/* * tile_size*/;
+    float I;
+    switch (light.falloff)
+    {
+    default:
+        I = 1;
+        break;
+    case light_falloff::linear:
+        I = std::fmax(1.f, light.dist * tile_size);
+        break;
+    case light_falloff::quadratic:
+        I = std::fmax(1.f, light.dist * tile_size * 100);
+        break;
+    }
+    auto I_clip = I * tile_size;
     auto center = light.center + chunk_offset + Vector2(neighbor_offset)*chunk_size;
     auto center_clip = Vector2{center} * scale; // clip coordinate
     constexpr auto image_size_factor = Vector2(image_size) / Vector2(chunk_size);
@@ -118,10 +130,10 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     _indexes[_count] = quad_indexes(0);
     _quads[_count] = std::array<Vector2, 4>{{
-        {  dist_clip + center_clip.x(), -dist_clip + center_clip.y() },
-        {  dist_clip + center_clip.x(),  dist_clip + center_clip.y() },
-        { -dist_clip + center_clip.x(), -dist_clip + center_clip.y() },
-        { -dist_clip + center_clip.x(),  dist_clip + center_clip.y() },
+        { I_clip + center_clip.x(), -I_clip + center_clip.y() },
+        { I_clip + center_clip.x(), I_clip + center_clip.y() },
+        { -I_clip + center_clip.x(), -I_clip + center_clip.y() },
+        { -I_clip + center_clip.x(), I_clip + center_clip.y() },
     }};
 
     _count++;
@@ -129,10 +141,10 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     float alpha = light.color.a() / 255.f;
     auto color = Vector3{light.color.rgb()} / 255.f;
 
-    setUniform(ColorIntensityUniform, Vector4{Vector3{color} * alpha, dist});
+    setUniform(ColorIntensityUniform, Vector4{Vector3{color} * alpha, I });
     setUniform(CenterUniform, center_fragcoord);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
-    setUniform(SizeUniform, chunk_size);
+    setUniform(SizeUniform, 1.f/image_size_factor);
 }
 
 lightmap_shader::~lightmap_shader() = default;

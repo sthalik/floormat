@@ -218,12 +218,12 @@ void app::draw_lightmap_test()
 
     if (e_ && ImGui::Begin("Lightmap", &is_open, flags))
     {
-        constexpr auto chunk_size = TILE_SIZE2.sum()/2;
+        constexpr auto tile_size = TILE_SIZE2.sum()/2;
         fm_assert(e_->type() == entity_type::light);
         const auto& li = static_cast<const light&>(*e_);
         light_s L {
             .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
-            .dist = li.max_distance * chunk_size,
+            .dist = li.max_distance,
             .color = li.color,
             .falloff = li.falloff,
         };

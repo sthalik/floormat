@@ -10,9 +10,12 @@ out vec4 color;
 void main() {
     vec2 pos = gl_FragCoord.xy;
     float I = color_intensity.w;
-    vec2 tmp = pos - center;
+    float dist = distance(pos, center);
     //float dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
-    float dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
-    float alpha = 1 - min(1, dist / I);
-    color = vec4(color_intensity.xyz, alpha);
+    float A = 1;
+    if (falloff == 0) // linear
+        A = 1 - min(1, dist / I);
+    else if (falloff == 2) // quadratic
+        A = I/(1 + I + dist*dist);
+    color = vec4(color_intensity.xyz, A);
 }
