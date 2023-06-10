@@ -109,8 +109,8 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     constexpr auto scale = 2/chunk_size;
-    auto dist = std::fmax(0.f, light.dist * tile_size);
-    auto dist_clip = dist * tile_size;
+    auto dist = std::fmax(0.f, light.dist/* * tile_size*/);
+    auto dist_clip = dist/* * tile_size*/;
     auto center = light.center + chunk_offset + Vector2(neighbor_offset)*chunk_size;
     auto center_clip = Vector2{center} * scale; // clip coordinate
     constexpr auto image_size_factor = Vector2(image_size) / Vector2(chunk_size);
@@ -126,7 +126,10 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     _count++;
 
-    setUniform(ColorIntensityUniform, Vector4{Vector3{light.color}, dist});
+    float alpha = light.color.a() / 255.f;
+    auto color = Vector3{light.color.rgb()} / 255.f;
+
+    setUniform(ColorIntensityUniform, Vector4{Vector3{color} * alpha, dist});
     setUniform(CenterUniform, center_fragcoord);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
     setUniform(SizeUniform, chunk_size);
@@ -136,7 +139,7 @@ lightmap_shader::~lightmap_shader() = default;
 
 void lightmap_shader::clear()
 {
-    framebuffer.fb.clearColor(0, Color4{1.f, 0.f, 1.f, 1.f});
+    framebuffer.fb.clearColor(0, Vector4ui{0});
     //framebuffer.fb.clearDepth(0);
 }
 

@@ -37,20 +37,21 @@ void app::draw_inspector()
             continue;
         }
         auto& e = *e_;
-        chunk_coords ch = e.coord.chunk();
-        local_coords pos = e.coord.local();
-        auto z = e.coord.z();
 
         char buf[32];
-        snformat(buf, "inspector-{:08x}"_cf, e.id);
-
-        auto b1 = push_id(buf);
         ImGui::SetNextWindowSize({375*dpi[0], 0});
+#if 0
         auto name = loader.strip_prefix(e.atlas->name());
+        chunk_coords ch = e.coord.chunk();
+        local_coords pos = e.coord.local();
+auto z = e.coord.z();
         if (z == 0)
-            snformat(buf, "{} ({}x{} -> {}x{})"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y);
+            snformat(buf, "{} ({}x{} -> {}x{})###inspector-{:08x}"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y, e.id);
         else
-            snformat(buf, "{} ({}x{}:{} -> {}x{})"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y);
+            snformat(buf, "{} ({}x{}:{} -> {}x{})###inspector-{:08x}"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y, e.id);
+#else
+        snformat(buf, "inspector-{:08x}"_cf, e.id);
+#endif
 
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))

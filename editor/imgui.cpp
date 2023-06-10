@@ -110,11 +110,13 @@ void app::draw_ui()
         draw_clickables();
     if (_render_vobjs)
         draw_light_info();
+    const float main_menu_height = draw_main_menu();
+
+    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
+
     if (_tested_light)
         draw_lightmap_test();
 
-    const float main_menu_height = draw_main_menu();
-    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
     if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
     draw_fps();
@@ -207,31 +209,32 @@ void app::draw_lightmap_test()
     ImGui::SetNextWindowSize({1024, 1024});
 
     auto& w = M->world();
-    auto L = w.find_entity(_tested_light);
+    auto e_ = w.find_entity(_tested_light);
 
-    constexpr auto flags =
-        ImGuiWindowFlags_NoTitleBar |
-        ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_NoScrollbar;
+    auto b1 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
 
-    if (L && ImGui::Begin("Lightmap", nullptr, flags))
+    constexpr auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar;
+    bool is_open = true;
+
+    if (e_ && ImGui::Begin("Lightmap", &is_open, flags))
     {
-        fm_assert(L->type() == entity_type::light);
-        auto& shader = M->lightmap_shader();
-        light_s light {
-            .center = {8 * 64, 8 * 64},
-            .dist = 4,
-            .color = {255, 255, 255},
-            .falloff = light_falloff::linear,
+        constexpr auto chunk_size = TILE_SIZE2.sum()/2;
+        fm_assert(e_->type() == entity_type::light);
+        const auto& li = static_cast<const light&>(*e_);
+        light_s L {
+            .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
+            .dist = li.max_distance * chunk_size,
+            .color = li.color,
+            .falloff = li.falloff,
         };
-        shader.begin({0, 0}, light);
+        auto& shader = M->lightmap_shader();
+        shader.begin({0, 0}, L);
         shader.end();
-        M->bind();
+        M->bind(); // todo
         ImGui::Image(&shader.texture(), {1024, 1024});
-        ImGui::End();
     }
-    else
+    ImGui::End();
+    if (!is_open)
         _tested_light = 0;
 }
 

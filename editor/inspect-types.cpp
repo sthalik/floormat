@@ -42,10 +42,11 @@ struct entity_accessors<entity> {
                     return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)};
                 },
             },
-            E::type<Vector2b>::field{"offset"_s,
-                [](const entity& x) { return x.offset; },
-                [](entity& x, Vector2b value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
-                constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)}),
+            E::type<Vector2i>::field{"offset"_s,
+                [](const entity& x) { return Vector2i(x.offset); },
+                //[](entity& x, Vector2i value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
+                [](entity& x, Vector2i value) { x.move_to(value - Vector2i(x.offset)); },
+                //constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)}),
             },
             E::type<pass_mode>::field{"pass-mode"_s,
                 [](const entity& x) { return x.pass; },
@@ -210,10 +211,10 @@ struct entity_accessors<light>
         using E = Entity<light>;
         auto tuple0 = entity_accessors<entity>::accessors();
         auto tuple = std::tuple{
-            E::type<Color3ub>::field{"color"_s,
+            E::type<Color4ub>::field{"color"_s,
                 [](const light& x) { return x.color; },
-                [](light& x, Color3ub value) { x.color = value; },
-                constantly(constraints::range<Color3ub>{{0, 0, 0}, {255, 255, 255}}),
+                [](light& x, Color4ub value) { x.color = value; },
+                constantly(constraints::range<Color4ub>{{0, 0, 0, 0}, {255, 255, 255, 255}}),
             },
             E::type<light_falloff>::field{"falloff"_s,
                 [](const light& x) { return x.falloff; },

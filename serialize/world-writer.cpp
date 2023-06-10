@@ -419,7 +419,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             }
             {
                 s << L.max_distance;
-                for (auto i = 0uz; i < 3; i++)
+                for (auto i = 0uz; i < 4; i++)
                     s << L.color[i];
             }
             if (!exact)

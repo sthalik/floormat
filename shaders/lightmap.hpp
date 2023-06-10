@@ -20,7 +20,7 @@ struct light_s final
     Vector2 center;
     float dist = 1;
     //float depth = -1 + 1e-4f;
-    Math::Color3<uint8_t> color {255, 255, 255};
+    Math::Color4<uint8_t> color;
     light_falloff falloff = light_falloff::linear;
 
     bool operator==(const light_s&) const noexcept;

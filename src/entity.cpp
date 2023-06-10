@@ -239,6 +239,12 @@ size_t entity::move_to(size_t& i, Vector2i delta, rotation new_r)
     return i;
 }
 
+void entity::move_to(Magnum::Vector2i delta)
+{
+    auto i = index();
+    (void)move_to(i, delta, r);
+}
+
 void entity::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)
 {
     const_cast<Vector2b&>(offset) = offset_;

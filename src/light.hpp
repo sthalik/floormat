@@ -16,7 +16,7 @@ struct light_proto : entity_proto
     bool operator==(const light_proto&) const;
 
     float max_distance = 0;
-    Color3ub color{255, 255, 255};
+    Color4ub color{255, 255, 255, 255};
     light_falloff falloff : 3 = light_falloff::linear;
     uint8_t enabled : 1 = true;
 };
@@ -24,9 +24,9 @@ struct light_proto : entity_proto
 struct light final : entity
 {
     float max_distance;
-    Color3ub color;
+    Color4ub color;
     light_falloff falloff : 2;
-    uint8_t enabled : 1 = true;
+    uint8_t enabled : 1;
 
     light(object_id id, struct chunk& c, const light_proto& proto);
 

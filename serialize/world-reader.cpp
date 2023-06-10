@@ -344,6 +344,8 @@ void reader_state::read_chunks(reader_t& s)
                 s >> proto.max_distance;
                 for (auto i = 0uz; i < 3; i++)
                     s >> proto.color[i];
+                if (PROTO >= 15) [[likely]]
+                    s >> proto.color[3];
                 if (!exact)
                 {
                     uint16_t frame; frame << s;

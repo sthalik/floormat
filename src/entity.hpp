@@ -77,6 +77,7 @@ struct entity
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
     size_t move_to(size_t& i, Vector2i delta, rotation new_r);
+    void move_to(Vector2i delta);
 
 protected:
     entity(object_id id, struct chunk& c, const entity_proto& proto);

@@ -8,5 +8,5 @@ layout (location = 3) uniform vec2 size;
 layout (location = 0) in vec4 position;
 
 void main() {
-    gl_Position = vec4(position.x, -position.y, 0, 1);
+    gl_Position = vec4(position.x, position.y, 0, 1);
 }

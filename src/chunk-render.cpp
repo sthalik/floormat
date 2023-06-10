@@ -40,7 +40,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         const local_coords pos{i};
         const auto quad = atlas->floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
         const auto texcoords = atlas->texcoords_for_id(_ground_variants[i]);
-        const float depth = tile_shader::depth_value(pos);
+        const float depth = tile_shader::depth_value(pos, tile_shader::ground_depth_offset);
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth };
