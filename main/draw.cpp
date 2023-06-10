@@ -222,20 +222,22 @@ void main_impl::do_update()
     app.update(dt);
 }
 
+void main_impl::bind() noexcept
+{
+    framebuffer.fb.bind();
+}
+
 void main_impl::drawEvent()
 {
     _shader.set_tint({1, 1, 1, 1});
 
-    {
-        const auto clear_color = 0x222222ff_rgbaf;
+    const auto clear_color = 0x222222ff_rgbaf;
 #ifdef FM_USE_DEPTH32
-        framebuffer.fb.clearColor(0, clear_color);
+    framebuffer.fb.clearColor(0, clear_color);
 #else
-        GL::defaultFramebuffer.clearColor(clear_color);
+    GL::defaultFramebuffer.clearColor(clear_color);
 #endif
-        draw_world();
-        GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
-    }
+    draw_world();
 
     app.draw();
     GL::Renderer::flush();

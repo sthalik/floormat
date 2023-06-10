@@ -114,6 +114,8 @@ private:
     void draw_collision_boxes();
     void draw_clickables();
     void draw_light_info();
+    void draw_lightmap_test();
+
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
     bool check_inspector_exists(const popup_target& p);
@@ -158,6 +160,8 @@ private:
     object_id _character_id = 0;
     cursor_state cursor;
     popup_target _popup_target;
+
+    object_id _tested_light = 0;
 
     int8_t _z_level = 0;
 

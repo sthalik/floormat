@@ -56,7 +56,9 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
     flags |= GLConfiguration::Flag::ForwardCompatible;
     return GLConfiguration{}
         .setFlags(flags)
+#ifdef FM_USE_DEPTH32
         .setDepthBufferSize(0)
+#endif
         .setColorBufferSize({8, 8, 8, 0})
         .setStencilBufferSize(0);
 }

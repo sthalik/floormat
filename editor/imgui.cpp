@@ -4,6 +4,7 @@
 #include "src/world.hpp"
 #include "src/anim-atlas.hpp"
 #include "shaders/shader.hpp"
+#include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
@@ -109,6 +110,8 @@ void app::draw_ui()
         draw_clickables();
     if (_render_vobjs)
         draw_light_info();
+    if (_tested_light)
+        draw_lightmap_test();
 
     const float main_menu_height = draw_main_menu();
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
@@ -197,6 +200,41 @@ void app::draw_light_info()
     }
 }
 
+void app::draw_lightmap_test()
+{
+    fm_debug_assert(_tested_light != 0);
+
+    ImGui::SetNextWindowSize({1024, 1024});
+
+    auto& w = M->world();
+    auto L = w.find_entity(_tested_light);
+
+    constexpr auto flags =
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoScrollbar;
+
+    if (L && ImGui::Begin("Lightmap", nullptr, flags))
+    {
+        fm_assert(L->type() == entity_type::light);
+        auto& shader = M->lightmap_shader();
+        light_s light {
+            .center = {8 * 64, 8 * 64},
+            .dist = 4,
+            .color = {255, 255, 255},
+            .falloff = light_falloff::linear,
+        };
+        shader.begin({0, 0}, light);
+        shader.end();
+        M->bind();
+        ImGui::Image(&shader.texture(), {1024, 1024});
+        ImGui::End();
+    }
+    else
+        _tested_light = 0;
+}
+
 static constexpr auto SCENERY_POPUP_NAME = "##scenery-popup"_s;
 
 bool app::check_inspector_exists(const popup_target& p)
@@ -244,6 +282,10 @@ void app::do_popup_menu()
         if (bool b_ins = !check_inspector_exists(_popup_target);
             ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
+        if (bool b_testing = e.id == _tested_light;
+            e.type() == entity_type::light)
+            if (ImGui::MenuItem("Test", nullptr, b_testing))
+                _tested_light = e.id;
         ImGui::SeparatorText("Modify");
         if (auto next_rot = e.atlas->next_rotation_from(e.r);
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))

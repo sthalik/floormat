@@ -49,6 +49,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     tile_shader& shader() noexcept override;
     const tile_shader& shader() const noexcept override;
 
+    struct lightmap_shader& lightmap_shader() noexcept override;
+
     struct world& world() noexcept override;
     struct world& reset_world() noexcept override;
     struct world& reset_world(struct world&& w) noexcept override;
@@ -78,6 +80,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
     
     void drawEvent() override;
+    void bind() noexcept override;
     void do_update();
     void update_window_state();
     struct meshes meshes() noexcept override;
@@ -96,7 +99,7 @@ private:
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
-    lightmap_shader _lightmap_shader;
+    struct lightmap_shader _lightmap_shader;
     std::vector<clickable> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;

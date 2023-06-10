@@ -21,6 +21,7 @@ fm_settings& main_impl::settings() noexcept { return s; }
 const fm_settings& main_impl::settings() const noexcept { return s; }
 tile_shader& main_impl::shader() noexcept { return _shader; }
 const tile_shader& main_impl::shader() const noexcept { return _shader; }
+struct lightmap_shader& main_impl::lightmap_shader() noexcept { return _lightmap_shader; }
 bool main_impl::is_text_input_active() const noexcept { return const_cast<main_impl&>(*this).isTextInputActive(); }
 void main_impl::start_text_input() noexcept { startTextInput(); }
 void main_impl::stop_text_input() noexcept { stopTextInput(); }
