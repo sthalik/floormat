@@ -79,7 +79,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
             GL::MeshView mesh{mesh_};
             atlas.texture().bind(0);
             mesh.setCount((int)(quad_index_count * 1));
-            mesh.setIndexRange((int)(i*quad_index_count), 0, max_index);
+            mesh.setIndexRange((int)(x.mesh_idx*quad_index_count), 0, max_index);
             shader.draw(mesh);
             i++;
         }
