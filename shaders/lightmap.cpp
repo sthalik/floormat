@@ -116,12 +116,15 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
         I = 1;
         break;
     case light_falloff::linear:
-        I = std::fmax(1.f, light.dist * tile_size);
+        I = light.dist * tile_size / 5;
         break;
     case light_falloff::quadratic:
-        I = std::fmax(1.f, light.dist * tile_size * 100);
+        I = light.dist * tile_size * 100;
         break;
     }
+
+    I = std::fmax(1.f, I);
+
     auto I_clip = I * tile_size;
     auto center = light.center + chunk_offset + Vector2(neighbor_offset)*chunk_size;
     auto center_clip = Vector2{center} * scale; // clip coordinate

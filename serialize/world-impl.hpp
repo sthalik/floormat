@@ -28,6 +28,7 @@
  * 13) Entity counter initialized to 1024.
  * 14) Always store entity offset, rework how sc_exact works.
  * 15) Add light alpha.
+ * 16) One more bit for light falloff enum.
  */
 
 namespace floormat {
@@ -48,7 +49,7 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 
 #define file_magic ".floormat.save"
 
-constexpr inline proto_t proto_version = 15;
+constexpr inline proto_t proto_version = 16;
 
 constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;

@@ -7,7 +7,7 @@ enum class light_falloff : uint8_t {
 };
 
 constexpr inline light_falloff light_falloff_COUNT{3};
-constexpr inline uint8_t light_falloff_BITS = 2;
-constexpr inline uint8_t light_falloff_MASK = (1 << 2)-1;
+constexpr inline uint8_t light_falloff_BITS = 3;
+constexpr inline uint8_t light_falloff_MASK = (1 << light_falloff_BITS)-1;
 
 } // namespace floormat

@@ -414,7 +414,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
                 flags |= (uint8_t)exact;                                            // 1 bit
                 flags |= ((uint8_t)L.r       & lowbits<rotation_BITS>)      << 1;   // 3 bits
                 flags |= ((uint8_t)L.falloff & lowbits<light_falloff_BITS>) << 4;   // 2 bits
-                flags |= (uint8_t)!!L.enabled                               << 6;   // 1 bit
+                flags |= (uint8_t)!!L.enabled                               << 7;   // 1 bit
                 s << flags;
             }
             {

@@ -338,8 +338,17 @@ void reader_state::read_chunks(reader_t& s)
                 uint8_t flags; flags << s;
                 const bool exact = flags & 1;
                 proto.r = rotation((flags >> 1) & lowbits<rotation_BITS>);
-                proto.falloff = light_falloff((flags >> 4) & lowbits<light_falloff_BITS>);
-                const bool enabled = (flags >> 6) & 1;
+                bool enabled;
+                if (PROTO >= 16) [[likely]]
+                {
+                    proto.falloff = light_falloff((flags >> 4) & lowbits<light_falloff_BITS>);
+                    enabled = (flags >> 7) & 1;
+                }
+                else
+                {
+                    proto.falloff = light_falloff((flags >> 4) & lowbits<2>);
+                    enabled = (flags >> 6) & 1;
+                }
 
                 s >> proto.max_distance;
                 for (auto i = 0uz; i < 3; i++)
