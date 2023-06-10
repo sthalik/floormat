@@ -349,7 +349,6 @@ void reader_state::read_chunks(reader_t& s)
                     proto.falloff = light_falloff((flags >> 4) & lowbits<2>);
                     enabled = (flags >> 6) & 1;
                 }
-
                 s >> proto.max_distance;
                 for (auto i = 0uz; i < 3; i++)
                     s >> proto.color[i];
