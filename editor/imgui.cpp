@@ -303,6 +303,7 @@ void app::kill_popups(bool hard)
 
     _pending_popup = false;
     _popup_target = {};
+    _tested_light = 0;
 
     if (imgui)
         ImGui::CloseCurrentPopup();
