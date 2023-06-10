@@ -17,5 +17,8 @@ void main() {
         A = 1 - min(1, dist / I);
     else if (falloff == 2) // quadratic
         A = I/(1 + I + dist*dist);
+    //I = sqrt(color_intensity.w*1.5)*16;
+    //dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
+    //float alpha = 1 - min(1, dist / I);
     color = vec4(color_intensity.xyz, A);
 }
