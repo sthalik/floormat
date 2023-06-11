@@ -9,14 +9,18 @@ out vec4 color;
 
 void main() {
     vec2 pos = gl_FragCoord.xy;
-    float I = color_intensity.w;
+    float L = color_intensity.w;
     float dist = distance(pos, center);
     //float dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
     float A = 1;
+    //attenuation = ((light_dist - dist)**exponent) / (light_dist**exponent)
     if (falloff == 0) // linear
-        A = I/(I + dist);
+        A = max(0, (L - dist) / L);
     else if (falloff == 2) // quadratic
-        A = I/(I + dist*dist);
+    {
+        float tmp = max(0, L - dist);
+        A = max(0, tmp*tmp / (L*L));
+    }
     //I = sqrt(color_intensity.w*1.5)*16;
     //dist = sqrt(tmp.x*tmp.x + tmp.y*tmp.y);
     //float alpha = 1 - min(1, dist / I);

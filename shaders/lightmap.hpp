@@ -43,12 +43,11 @@ struct lightmap_shader final : GL::AbstractShaderProgram
 
     void begin(Vector2i neighbor_offset, const light_s& light);
     void add_chunk(Vector2i neighbor_offset, const chunk& ch);
-    void add_vertex(Vector2i neighbor_offset, const std::array<Vector2, 4>& obj);
     void end();
     GL::Texture2D& texture();
 
 private:
-    static Framebuffer make_framebuffer();
+    static Framebuffer make_framebuffer(Vector2i size);
     GL::Mesh make_mesh();
     void add_light(Vector2i neighbor_offset, const light_s& light);
     void flush_vertexes();
@@ -64,12 +63,10 @@ private:
         //DepthUniform          = 4,
     };
 
-    Framebuffer framebuffer;
+    Framebuffer framebuffer, accum;
     Array<std::array<Vector2, 4>> _quads;
     Array<std::array<UnsignedShort, 6>> _indexes;
     size_t _count = 0;
-    //light_u _light_uniform;
-    //light_s _light;
     GL::Buffer _vertex_buf{NoCreate}, _index_buf{NoCreate};
     GL::Mesh _mesh{NoCreate};
 };

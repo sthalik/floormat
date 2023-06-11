@@ -24,14 +24,14 @@ constexpr auto buffer_size = 256uz;
 
 } // namespace
 
-auto lightmap_shader::make_framebuffer() -> Framebuffer
+auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
 {
     Framebuffer framebuffer;
 
-    framebuffer.fb = GL::Framebuffer{{ {}, image_size }};
+    framebuffer.fb = GL::Framebuffer{{ {}, size }};
 
     framebuffer.color = GL::Texture2D{};
-    framebuffer.color.setStorage(1, GL::TextureFormat::RGB8, image_size);
+    framebuffer.color.setStorage(1, GL::TextureFormat::RGB8, size);
     //framebuffer.depth = GL::Renderbuffer{};
     //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
 
@@ -53,7 +53,8 @@ GL::Mesh lightmap_shader::make_mesh()
 }
 
 lightmap_shader::lightmap_shader() :
-    framebuffer { make_framebuffer() },
+    framebuffer { make_framebuffer(image_size) },
+    accum { make_framebuffer(image_size) },
     _quads { ValueInit, buffer_size },
     _indexes { ValueInit, buffer_size },
     _vertex_buf { _quads },
@@ -116,10 +117,8 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
         I = 1;
         break;
     case light_falloff::linear:
-        I = light.dist * tile_size / 5;
-        break;
     case light_falloff::quadratic:
-        I = light.dist * tile_size * 100;
+        I = light.dist * tile_size;
         break;
     }
 

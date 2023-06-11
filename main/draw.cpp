@@ -114,6 +114,22 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     return {x0, x1, y0, y1};
 }
 
+void main_impl::draw_lights_for_chunk(chunk& c, chunk_coords_ ch, Vector2b neighbor_offset) noexcept
+{
+}
+
+void main_impl::draw_lights(chunk& c, chunk_coords_ ch, const std::array<chunk*, 8>& ns) noexcept
+{
+    for (auto i = 0uz; i < 8; i++)
+        if (ns[i] != nullptr)
+        {
+            auto off = world::neighbor_offsets[i];
+            draw_lights_for_chunk(*ns[i], ch + off, off);
+        }
+
+    draw_lights_for_chunk(c, ch, {});
+}
+
 void main_impl::draw_world() noexcept
 {
     const auto [z_min, z_max, z_cur, only] = app.get_z_bounds();
@@ -143,7 +159,16 @@ void main_impl::draw_world() noexcept
                 auto* c_ = _world.at(ch);
                 if (!c_)
                     continue;
+                std::array<chunk*, 8> ns = {};
+                for (auto i = 0uz; i < 8; i++)
+                {
+                    auto off = world::neighbor_offsets[i];
+                    auto n = chunk_coords_{int16_t(x + off.x()), int16_t(y + off.y()), z};
+                    ns[i] = _world.at(n);
+                }
                 auto& c = *c_;
+                draw_lights(c, ch, ns);
+                // tex = _lightmap_shader.texture(); // todo
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                 {

@@ -121,6 +121,8 @@ private:
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
+    void draw_lights(chunk& c, chunk_coords_ ch, const std::array<chunk*, 8>& neighbors) noexcept;
+    void draw_lights_for_chunk(chunk& c, chunk_coords_ ch, Vector2b neighbor_offset) noexcept;
 
     draw_bounds get_draw_bounds() const noexcept override;
 

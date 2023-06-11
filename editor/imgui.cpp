@@ -218,7 +218,6 @@ void app::draw_lightmap_test()
 
     if (e_ && ImGui::Begin("Lightmap", &is_open, flags))
     {
-        constexpr auto tile_size = TILE_SIZE2.sum()/2;
         fm_assert(e_->type() == entity_type::light);
         const auto& li = static_cast<const light&>(*e_);
         light_s L {
