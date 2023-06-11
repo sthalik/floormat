@@ -2,7 +2,9 @@
 #include "compat/assert.hpp"
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
+#include "src/chunk.hpp"
 #include <Corrade/Containers/Iterable.h>
+#include <cmath>
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
@@ -132,10 +134,10 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     _indexes[_count] = quad_indexes(0);
     _quads[_count] = std::array<Vector2, 4>{{
-        { I_clip + center_clip.x(), -I_clip + center_clip.y() },
-        { I_clip + center_clip.x(), I_clip + center_clip.y() },
+        {  I_clip + center_clip.x(), -I_clip + center_clip.y() },
+        {  I_clip + center_clip.x(),  I_clip + center_clip.y() },
         { -I_clip + center_clip.x(), -I_clip + center_clip.y() },
-        { -I_clip + center_clip.x(), I_clip + center_clip.y() },
+        { -I_clip + center_clip.x(),  I_clip + center_clip.y() },
     }};
 
     _count++;
@@ -147,13 +149,91 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     setUniform(CenterUniform, center_fragcoord);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
     setUniform(SizeUniform, 1.f/image_size_factor);
+
+    _light_center = center;
+    flush_vertexes();
+
+    setUniform(ColorIntensityUniform, Vector4{0, 0, 0, 1});
 }
 
-lightmap_shader::~lightmap_shader() = default;
+Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 length)
+{
+    auto dir = vertex - light;
+    auto len = dir.length();
+    if (std::fabs(len) < 1e-4f)
+        return vertex;
+    auto dir_norm = dir * (1/len);
+    auto ret = vertex + dir_norm * length;
+    return ret;
+}
+
+void lightmap_shader::add_chunk(Vector2i neighbor_offset, const chunk& c)
+{
+    fm_assert(_light_center);
+
+    for (const auto& e_ : c.entities())
+    {
+        const auto& e = *e_;
+        if (e.is_virtual())
+            continue;
+        if (e.pass == pass_mode::pass || e.pass == pass_mode::see_through)
+            continue;
+        auto li = *_light_center;
+        auto center = Vector2(e.offset) + Vector2(e.bbox_offset) +
+                      Vector2(e.coord.local()) * TILE_SIZE2 +
+                      Vector2(neighbor_offset)*chunk_size + chunk_offset;
+        const auto x = center.x(), y = center.y(),
+                   w = (float)e.bbox_size.x(), h = (float)e.bbox_size.y();
+        /* 3--1  1 */
+        /* | /  /| */
+        /* |/  / | */
+        /* 2  2--0 */
+        const auto vertexes = std::array<Vector2, 4>{{
+            {  w + x, -h + y }, // bottom right
+            {  w + x,  h + y }, // top right
+            { -w + x, -h + y }, // bottom left
+            { -w + x,  h + y }, // top left
+        }};
+        struct pair { uint8_t first, second; };
+        constexpr std::array<pair, 4> from = {{
+            { 3, 1 }, // side #1: 3 -> 2, 1 -> 0
+            { 1, 0 }, // side #2: 1 -> 3, 0 -> 2
+            { 0, 2 }, // side #3: 0 -> 1, 2 -> 3
+            { 2, 3 }, // side #4: 2 -> 0, 3 -> 1
+        }};
+        constexpr std::array<pair, 4> to = {{
+            { 2, 0 },
+            { 3, 2 },
+            { 1, 3 },
+            { 0, 1 },
+        }};
+        for (auto i = 0uz; i < 4; i++)
+        {
+            auto [src1, src2] = from[i];
+            auto [dest1, dest2] = to[i];
+            auto verts = vertexes;
+            verts[dest1] = project_vertex(li, vertexes[src1], {128, 128});
+            verts[dest2] = project_vertex(li, vertexes[src2], {128, 128});
+            // todo
+        }
+    }
+}
+
+void lightmap_shader::add_quad(const std::array<Vector2, 4>& quad)
+{
+    fm_debug_assert(_count < buffer_size);
+    const auto i = _count++;
+    _quads[i] = quad;
+    _indexes[i] = quad_indexes(i);
+    if (i+1 == buffer_size) [[unlikely]]
+        flush_vertexes();
+}
 
 void lightmap_shader::clear()
 {
+    _light_center = {};
     framebuffer.fb.clearColor(0, Vector4ui{0});
+    accum.fb.clearColor(0, Vector4ui{0});
     //framebuffer.fb.clearDepth(0);
 }
 
@@ -164,15 +244,18 @@ void lightmap_shader::bind()
 
 void lightmap_shader::begin(Vector2i neighbor_offset, const light_s& light)
 {
-    fm_assert(_count == 0);
+    fm_assert(_count == 0 && !_light_center);
     clear();
     bind();
     add_light(neighbor_offset, light);
+    flush_vertexes();
 }
 
 void lightmap_shader::end()
 {
+    fm_assert(_light_center);
     flush_vertexes();
+    _light_center = {};
 }
 
 GL::Texture2D& lightmap_shader::texture()
@@ -183,5 +266,7 @@ GL::Texture2D& lightmap_shader::texture()
 }
 
 bool light_s::operator==(const light_s&) const noexcept = default;
+
+lightmap_shader::~lightmap_shader() = default;
 
 } // namespace floormat

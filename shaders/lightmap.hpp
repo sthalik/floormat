@@ -3,6 +3,7 @@
 #include "light-falloff.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/Math/Color.h>
@@ -42,7 +43,7 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     };
 
     void begin(Vector2i neighbor_offset, const light_s& light);
-    void add_chunk(Vector2i neighbor_offset, const chunk& ch);
+    void add_chunk(Vector2i neighbor_offset, const chunk& c);
     void end();
     GL::Texture2D& texture();
 
@@ -51,9 +52,11 @@ private:
     GL::Mesh make_mesh();
     void add_light(Vector2i neighbor_offset, const light_s& light);
     void flush_vertexes();
+    void add_quad(const std::array<Vector2, 4>& quad);
     void bind();
     void clear();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
+    static Vector2 project_vertex(Vector2 light, Vector2 vertex, Vector2 length);
 
     enum : int {
         ColorIntensityUniform = 0,
@@ -69,6 +72,7 @@ private:
     size_t _count = 0;
     GL::Buffer _vertex_buf{NoCreate}, _index_buf{NoCreate};
     GL::Mesh _mesh{NoCreate};
+    Optional<Vector2> _light_center;
 };
 
 } // namespace floormat

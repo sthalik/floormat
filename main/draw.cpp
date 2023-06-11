@@ -116,6 +116,13 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 
 void main_impl::draw_lights_for_chunk(chunk& c, chunk_coords_ ch, Vector2b neighbor_offset) noexcept
 {
+    for (const auto& e_ : c.entities())
+    {
+        const auto& e = *e_;
+        if (e.type_of() != entity_type::light)
+            continue;
+        // todo
+    }
 }
 
 void main_impl::draw_lights(chunk& c, chunk_coords_ ch, const std::array<chunk*, 8>& ns) noexcept
