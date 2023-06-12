@@ -228,8 +228,9 @@ void app::draw_lightmap_test()
         };
         auto& shader = M->lightmap_shader();
         shader.begin({0, 0}, L);
+        shader.add_chunk({}, e_->chunk());
         shader.end();
-        M->bind(); // todo
+        M->bind();
         ImGui::Image(&shader.texture(), {1024, 1024});
     }
     ImGui::End();
@@ -305,7 +306,9 @@ void app::kill_popups(bool hard)
 
     _pending_popup = false;
     _popup_target = {};
-    _tested_light = 0;
+
+    if (hard)
+        _tested_light = 0;
 
     if (imgui)
         ImGui::CloseCurrentPopup();

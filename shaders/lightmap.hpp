@@ -43,7 +43,11 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     };
 
     void begin(Vector2i neighbor_offset, const light_s& light);
-    void add_chunk(Vector2i neighbor_offset, const chunk& c);
+    void add_chunk(Vector2i neighbor_offset, chunk& c);
+    void add_entities(Vector2i neighbor_offset, chunk& c);
+    void add_geometry(Vector2i neighbor_offset, chunk& c);
+    void add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 max);
+    void add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> minmax);
     void end();
     GL::Texture2D& texture();
 

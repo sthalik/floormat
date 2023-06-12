@@ -174,7 +174,7 @@ void main_impl::draw_world() noexcept
                     ns[i] = _world.at(n);
                 }
                 auto& c = *c_;
-                draw_lights(c, ch, ns);
+                //draw_lights(c, ch, ns);
                 // tex = _lightmap_shader.texture(); // todo
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))

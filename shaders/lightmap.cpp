@@ -3,13 +3,15 @@
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
 #include "src/chunk.hpp"
+#include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
 #include <cmath>
 #include <Magnum/Magnum.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
-//#include "src/tile-bbox.hpp"
+#include "src/tile-bbox.hpp"
+#include "src/tile-atlas.hpp"
 
 #if defined __CLION_IDE__ || defined __clang__
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -22,7 +24,14 @@ namespace {
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
 constexpr auto image_size = iTILE_SIZE2 * TILE_MAX_DIM;
+
 constexpr auto buffer_size = 256uz;
+
+constexpr auto clip_start = Vector2{-1, -1};
+constexpr auto clip_scale = 2/chunk_size;
+
+constexpr auto shadow_length = chunk_size * 4;
+constexpr auto shadow_color = Vector4{0, 0, 0, 1};
 
 } // namespace
 
@@ -85,8 +94,8 @@ void lightmap_shader::flush_vertexes()
 {
     if (_count > 0)
     {
-        _index_buf.setSubData(0, ArrayView<std::array<UnsignedShort, 6>>{_indexes, 1});
-        _vertex_buf.setSubData(0, ArrayView<std::array<Vector2, 4>>{_quads, 1});
+        _index_buf.setSubData(0, ArrayView<std::array<UnsignedShort, 6>>{_indexes, _count});
+        _vertex_buf.setSubData(0, ArrayView<std::array<Vector2, 4>>{_quads, _count});
 
         GL::MeshView mesh{_mesh};
         mesh.setCount((int)(6 * _count));
@@ -111,7 +120,6 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     fm_debug_assert(_quads.size() > 0);
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
-    constexpr auto scale = 2/chunk_size;
     float I;
     switch (light.falloff)
     {
@@ -128,7 +136,7 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 
     auto I_clip = I * tile_size;
     auto center = light.center + chunk_offset + Vector2(neighbor_offset)*chunk_size;
-    auto center_clip = Vector2{center} * scale; // clip coordinate
+    auto center_clip = clip_start + Vector2{center} * clip_scale; // clip coordinates
     constexpr auto image_size_factor = Vector2(image_size) / Vector2(chunk_size);
     auto center_fragcoord = center * image_size_factor; // window-relative coordinates
 
@@ -153,7 +161,8 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     _light_center = center;
     flush_vertexes();
 
-    setUniform(ColorIntensityUniform, Vector4{0, 0, 0, 1});
+    setUniform(FalloffUniform, (uint32_t)light_falloff::constant);
+    setUniform(ColorIntensityUniform, shadow_color);
 }
 
 Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 length)
@@ -167,10 +176,80 @@ Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 l
     return ret;
 }
 
-void lightmap_shader::add_chunk(Vector2i neighbor_offset, const chunk& c)
+void lightmap_shader::add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 max)
+{
+    fm_assert(_light_center);
+    auto li = *_light_center;
+
+    auto off = Vector2(neighbor_offset)*chunk_size + chunk_offset;
+    min += off;
+    max += off;
+
+    const auto vertexes = std::array<Vector2, 4>{{
+        { max.x(), min.y() },
+        { max.x(), max.y() },
+        { min.x(), min.y() },
+        { min.x(), max.y() },
+    }};
+    struct pair { uint8_t first, second; };
+    constexpr std::array<pair, 4> from = {{
+        { 3, 1 }, // side #1: 3 -> 2, 1 -> 0
+        { 1, 0 }, // side #2: 1 -> 3, 0 -> 2
+        { 0, 2 }, // side #3: 0 -> 1, 2 -> 3
+        { 2, 3 }, // side #4: 2 -> 0, 3 -> 1
+    }};
+    constexpr std::array<pair, 4> to = {{
+        { 2, 0 }, /* 3--1  1 */
+        { 3, 2 }, /* | /  /| */
+        { 1, 3 }, /* |/  / | */
+        { 0, 1 }, /* 2  2--0 */
+    }};
+    for (auto i = 0uz; i < 4; i++)
+    {
+        auto [src1, src2] = from[i];
+        auto [dest1, dest2] = to[i];
+        auto verts = vertexes;
+        verts[dest1] = project_vertex(li, vertexes[src1], shadow_length);
+        verts[dest2] = project_vertex(li, vertexes[src2], shadow_length);
+        for (auto& x : verts)
+            x = clip_start + x * clip_scale;
+        add_quad(verts);
+    }
+}
+
+void lightmap_shader::add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> minmax)
+{
+    auto [min, max] = minmax;
+    add_rect(neighbor_offset, min, max);
+}
+
+void lightmap_shader::add_chunk(Vector2i neighbor_offset, chunk& c)
 {
     fm_assert(_light_center);
 
+    add_geometry(neighbor_offset, c);
+    add_entities(neighbor_offset, c);
+}
+
+void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
+{
+    for (auto i = 0uz; i < TILE_COUNT; i++)
+    {
+        auto t = c[i];
+        if (auto atlas = t.ground_atlas())
+            if (atlas->pass_mode(pass_mode::pass) == pass_mode::blocked)
+                add_rect(neighbor_offset, whole_tile(i));
+        if (auto atlas = t.wall_north_atlas())
+            if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
+                add_rect(neighbor_offset, wall_north(i));
+        if (auto atlas = t.wall_west_atlas())
+            if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
+                add_rect(neighbor_offset, wall_west(i));
+    }
+}
+
+void lightmap_shader::add_entities(Vector2i neighbor_offset, chunk& c)
+{
     for (const auto& e_ : c.entities())
     {
         const auto& e = *e_;
@@ -178,44 +257,12 @@ void lightmap_shader::add_chunk(Vector2i neighbor_offset, const chunk& c)
             continue;
         if (e.pass == pass_mode::pass || e.pass == pass_mode::see_through)
             continue;
-        auto li = *_light_center;
         auto center = Vector2(e.offset) + Vector2(e.bbox_offset) +
-                      Vector2(e.coord.local()) * TILE_SIZE2 +
-                      Vector2(neighbor_offset)*chunk_size + chunk_offset;
-        const auto x = center.x(), y = center.y(),
-                   w = (float)e.bbox_size.x(), h = (float)e.bbox_size.y();
-        /* 3--1  1 */
-        /* | /  /| */
-        /* |/  / | */
-        /* 2  2--0 */
-        const auto vertexes = std::array<Vector2, 4>{{
-            {  w + x, -h + y }, // bottom right
-            {  w + x,  h + y }, // top right
-            { -w + x, -h + y }, // bottom left
-            { -w + x,  h + y }, // top left
-        }};
-        struct pair { uint8_t first, second; };
-        constexpr std::array<pair, 4> from = {{
-            { 3, 1 }, // side #1: 3 -> 2, 1 -> 0
-            { 1, 0 }, // side #2: 1 -> 3, 0 -> 2
-            { 0, 2 }, // side #3: 0 -> 1, 2 -> 3
-            { 2, 3 }, // side #4: 2 -> 0, 3 -> 1
-        }};
-        constexpr std::array<pair, 4> to = {{
-            { 2, 0 },
-            { 3, 2 },
-            { 1, 3 },
-            { 0, 1 },
-        }};
-        for (auto i = 0uz; i < 4; i++)
-        {
-            auto [src1, src2] = from[i];
-            auto [dest1, dest2] = to[i];
-            auto verts = vertexes;
-            verts[dest1] = project_vertex(li, vertexes[src1], {128, 128});
-            verts[dest2] = project_vertex(li, vertexes[src2], {128, 128});
-            // todo
-        }
+                      Vector2(e.coord.local()) * TILE_SIZE2;
+        auto half = Vector2(e.bbox_size)*.5f;
+        auto min = center - half, max = center + half;
+
+        add_rect(neighbor_offset, min, max);
     }
 }
 
