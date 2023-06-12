@@ -3,8 +3,8 @@ name: tag
 on:
   push:
     branches: [ wip ]
-    tags:
-    - '*'
+    #tags:
+    #- '*'
 
 env:
   BUILD_TYPE: RELEASE
