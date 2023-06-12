@@ -30,8 +30,9 @@ constexpr auto buffer_size = 256uz;
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/chunk_size;
 
-constexpr auto shadow_length = chunk_size * 4;
+constexpr auto shadow_length = chunk_size * 2;
 constexpr auto shadow_color = Vector4{0, 0, 0, 1};
+constexpr auto shadow_wall_depth = 4.f;
 
 } // namespace
 
@@ -241,10 +242,22 @@ void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
                 add_rect(neighbor_offset, whole_tile(i));
         if (auto atlas = t.wall_north_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
-                add_rect(neighbor_offset, wall_north(i));
+            {
+                // todo check backface
+                auto start = tile_start(i);
+                auto min = start - Vector2(0, shadow_wall_depth),
+                     max = start + Vector2(TILE_SIZE2[0], 0);
+                add_rect(neighbor_offset, {min, max});
+            }
         if (auto atlas = t.wall_west_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
-                add_rect(neighbor_offset, wall_west(i));
+            {
+                // todo check backface
+                auto start = tile_start(i);
+                auto min = start - Vector2(shadow_wall_depth, 0),
+                     max = start + Vector2(0, TILE_SIZE[1]);
+                add_rect(neighbor_offset, {min, max});
+            }
     }
 }
 

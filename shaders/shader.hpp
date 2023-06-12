@@ -10,7 +10,7 @@ namespace floormat {
 
 struct local_coords;
 
-struct tile_shader final : GL::AbstractShaderProgram
+struct tile_shader final : private GL::AbstractShaderProgram
 {
     using Position           = GL::Attribute<0, Vector3>;
     using TextureCoordinates = GL::Attribute<1, Vector2>;
