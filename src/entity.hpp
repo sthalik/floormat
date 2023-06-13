@@ -30,6 +30,7 @@ struct entity_proto
     entity_proto(const entity_proto&);
 
     virtual bool operator==(const entity_proto&) const;
+    bool operator!=(const entity_proto& o) const { return !operator==(o); }
     virtual ~entity_proto() noexcept;
 
     entity_type type_of() const noexcept;
