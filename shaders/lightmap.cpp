@@ -40,17 +40,21 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
 {
     Framebuffer framebuffer;
 
-    framebuffer.fb = GL::Framebuffer{{ {}, size }};
-
     framebuffer.color = GL::Texture2D{};
-    framebuffer.color.setStorage(1, GL::TextureFormat::RGB8, size);
-    //framebuffer.depth = GL::Renderbuffer{};
-    //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
+    framebuffer.color
+        .setStorage(1, GL::TextureFormat::RGB8, size)
+        .setWrapping(GL::SamplerWrapping::ClampToBorder)
+        .setBorderColor(Color4{0.f, 0.f, 0.f, 1.f});
 
-    framebuffer.fb.attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0);
-    //framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
-    framebuffer.fb.clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
-    //framebuffer.fb.clearDepth(0);
+    //framebuffer.depth = GL::Renderbuffer{};
+    //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
+
+    framebuffer.fb = GL::Framebuffer{{ {}, size }};
+    framebuffer.fb
+        //.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
+        .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0)
+        //.clearDepth(0);
+        .clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
 
     return framebuffer;
 }

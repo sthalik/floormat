@@ -32,7 +32,10 @@ tile_shader::tile_shader()
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
-    setUniform(OffsetUniform, Vector3{});
+    setUniform(OffsetUniform, Vector3(Vector2(_camera_offset), _depth_offset));
+    setUniform(EnableLightmapUniform, _enable_lightmap);
+    setUniform(SamplerUniform, 0);
+    setUniform(LightmapSamplerUniform, 1);
 }
 
 tile_shader::~tile_shader() = default;
@@ -54,6 +57,13 @@ tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset, float
 tile_shader& tile_shader::set_tint(const Vector4& tint)
 {
     _tint = tint;
+    return *this;
+}
+
+tile_shader& tile_shader::set_lightmap_enabled(bool value)
+{
+    if (value != _enable_lightmap)
+        setUniform(EnableLightmapUniform, _enable_lightmap = value);
     return *this;
 }
 

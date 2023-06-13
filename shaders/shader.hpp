@@ -14,7 +14,8 @@ struct tile_shader final : private GL::AbstractShaderProgram
 {
     using Position           = GL::Attribute<0, Vector3>;
     using TextureCoordinates = GL::Attribute<1, Vector2>;
-    using Depth              = GL::Attribute<2, float>;
+    using LightCoord         = GL::Attribute<2, Vector2>;
+    using Depth              = GL::Attribute<3, float>;
 
     explicit tile_shader();
     ~tile_shader() override;
@@ -27,12 +28,13 @@ struct tile_shader final : private GL::AbstractShaderProgram
     tile_shader& set_tint(const Vector4& tint);
     float depth_offset() const { return _depth_offset; }
     static float depth_value(const local_coords& xy, float offset = 0) noexcept;
+    bool is_lightmap_enabled() const { return _enable_lightmap; }
+    tile_shader& set_lightmap_enabled(bool value);
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
 
-    template<typename T, typename... Xs>
-    decltype(auto) draw(T&& mesh, Xs&&... xs);
+    template<typename T, typename... Xs> decltype(auto) draw(T&& mesh, Xs&&... xs);
 
     static constexpr Vector2s max_screen_tiles = {8, 8};
     static constexpr float character_depth_offset = 1 + 1./64;
@@ -41,6 +43,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr float wall_depth_offset = 1;
     static constexpr float z_depth_offset = 1 + 2./64;
     static constexpr float depth_tile_size = 1/(double)(TILE_MAX_DIM * 2 * max_screen_tiles.product());
+    static constexpr float foreshortening_factor = 0.578125f;
 
 private:
     void _draw();
@@ -50,8 +53,13 @@ private:
     Vector2 _scale;
     Vector3 _real_camera_offset;
     float _depth_offset = 0;
+    bool _enable_lightmap : 1 = false;
 
-    enum { ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2, };
+    enum {
+        ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
+        EnableLightmapUniform = 3,
+        SamplerUniform = 4, LightmapSamplerUniform = 5,
+    };
 };
 
 template<typename T, typename... Xs>
