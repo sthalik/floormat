@@ -66,14 +66,16 @@ constexpr Math::Vector2<T> tile_shader::project(const Math::Vector3<T>& pt)
 {
     static_assert(std::is_floating_point_v<T>);
     const auto x = pt[0], y = pt[1], z = -pt[2];
-    return { x-y, (x+y+z*2)*T(.59) };
+    return { x-y, (x+y+z*2)*T(foreshortening_factor) };
 }
 
 template<typename T>
 constexpr Math::Vector2<T> tile_shader::unproject(const Math::Vector2<T>& px)
 {
+    static_assert(std::is_floating_point_v<T>);
     const auto X = px[0], Y = px[1];
-    return { X + 100 * Y / 59, 100 * Y / 59 - X };
+    const auto Y_ = Y / T(foreshortening_factor);
+    return { X + Y_, Y_ - X };
 }
 
 } // namespace floormat
