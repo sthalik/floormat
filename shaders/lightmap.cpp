@@ -22,16 +22,18 @@ namespace floormat {
 
 namespace {
 
+constexpr auto max_neighbors = 8;
+
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
-constexpr auto image_size = iTILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto image_size   = max_neighbors * iTILE_SIZE2 * TILE_MAX_DIM;
 
 constexpr auto buffer_size = 256uz;
 
 constexpr auto clip_start = Vector2{-1, -1};
-constexpr auto clip_scale = 2/chunk_size;
+constexpr auto clip_scale = 2/(chunk_size * max_neighbors);
 
-constexpr auto shadow_length = chunk_size * 2;
+constexpr auto shadow_length = chunk_size * 2 * max_neighbors;
 constexpr auto shadow_color = Vector4{0, 0, 0, 1};
 constexpr auto shadow_wall_depth = 4.f;
 
@@ -160,18 +162,15 @@ void lightmap_shader::add_light(Vector2b neighbor_offset, const light_s& light)
     auto I_clip = I * tile_size;
     auto center = light.center + chunk_offset + Vector2(neighbor_offset)*chunk_size;
     auto center_clip = clip_start + Vector2{center} * clip_scale; // clip coordinates
-    constexpr auto image_size_factor = Vector2(image_size) / Vector2(chunk_size);
-    auto center_fragcoord = center * image_size_factor; // window-relative coordinates
+    auto center_fragcoord = center; // window-relative coordinates
 
-    _count = 0;
-    _indexes[_count] = quad_indexes(0);
-    _quads[_count] = std::array<Vector2, 4>{{
+    _indexes[0] = quad_indexes(0);
+    _quads[0] = std::array<Vector2, 4>{{
         {  I_clip + center_clip.x(), -I_clip + center_clip.y() },
         {  I_clip + center_clip.x(),  I_clip + center_clip.y() },
         { -I_clip + center_clip.x(), -I_clip + center_clip.y() },
         { -I_clip + center_clip.x(),  I_clip + center_clip.y() },
     }};
-
     _count = 1;
 
     float alpha = light.color.a() / 255.f;
@@ -180,7 +179,7 @@ void lightmap_shader::add_light(Vector2b neighbor_offset, const light_s& light)
     setUniform(ColorIntensityUniform, Vector4{Vector3{color} * alpha, I });
     setUniform(CenterUniform, center_fragcoord);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
-    setUniform(SizeUniform, image_size_factor / chunk_size);
+    setUniform(SizeUniform, 1 / (chunk_size * max_neighbors));
 
     _light_center = center;
     flush_vertexes(DrawLightmapMode);
@@ -373,6 +372,7 @@ void lightmap_shader::begin_light(Vector2b neighbor_offset, const light_s& light
 void lightmap_shader::finish_light_only()
 {
     fm_assert(_light_center && _count != (size_t)-1);
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     flush_vertexes(DrawLightmapMode);
     _light_center = {};
     _count = (size_t)0;

@@ -56,6 +56,8 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     void end_accum();
     void bind();
 
+    static constexpr auto max_chunks = Vector2s(8, 8);
+
 private:
     enum {
         ColorIntensityUniform = 0,

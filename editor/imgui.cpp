@@ -232,11 +232,12 @@ void app::draw_lightmap_test()
         shader.begin_accum();
         shader.begin_light({ 0, 0 }, L);
         shader.add_chunk({}, e_->chunk());
-        shader.finish_and_blend_light();
-        //shader.finish_light_only();
+        //shader.finish_and_blend_light();
+        shader.finish_light_only();
         shader.end_accum();
-        //ImGui::Image(&shader.scratch_texture(), preview_size);
-        ImGui::Image(&shader.accum_texture(), preview_size, ImVec2{0, 0}, ImVec2{1, 1});
+        constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
+        constexpr auto uv1 = ImVec2{img_size.x(), img_size.y()};
+        ImGui::Image(&shader.scratch_texture(), preview_size, ImVec2{0, 0}, uv1);
         M->bind();
     }
     ImGui::End();
