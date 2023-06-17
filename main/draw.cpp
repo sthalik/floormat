@@ -4,6 +4,7 @@
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
+#include "src/light.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
@@ -114,27 +115,48 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     return {x0, x1, y0, y1};
 }
 
-void main_impl::draw_lights_for_chunk(chunk& c, chunk_coords_ ch, Vector2b neighbor_offset) noexcept
+bool main_impl::draw_lights_for_chunk(chunk& c, Vector2b neighbor_offset) noexcept
 {
+    bool ret = false;
     for (const auto& e_ : c.entities())
     {
         const auto& e = *e_;
         if (e.type_of() != entity_type::light)
             continue;
-        // todo
+        const auto& li = static_cast<const light&>(e);
+        if (li.max_distance >= 1e-4f || li.falloff == light_falloff::constant)
+        {
+            ret = true;
+            auto L = light_s {
+                .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
+                .dist = li.max_distance,
+                .color = li.color,
+                .falloff = li.falloff,
+            };
+            _lightmap_shader.begin_light(neighbor_offset, L);
+            _lightmap_shader.add_chunk(neighbor_offset, c);
+            _lightmap_shader.finish_and_blend_light();
+        }
     }
+    return ret;
 }
 
-void main_impl::draw_lights(chunk& c, chunk_coords_ ch, const std::array<chunk*, 8>& ns) noexcept
+bool main_impl::draw_lights(chunk& c, const std::array<chunk*, 8>& ns) noexcept
 {
+    bool ret = false;
+    _lightmap_shader.bind();
+    _lightmap_shader.begin_accum();
+
     for (auto i = 0uz; i < 8; i++)
         if (ns[i] != nullptr)
         {
             auto off = world::neighbor_offsets[i];
-            draw_lights_for_chunk(*ns[i], ch + off, off);
+            ret |= draw_lights_for_chunk(*ns[i], off);
         }
+    ret |= draw_lights_for_chunk(c, {});
 
-    draw_lights_for_chunk(c, ch, {});
+    _lightmap_shader.end_accum();
+    return ret;
 }
 
 void main_impl::draw_world() noexcept
@@ -166,16 +188,19 @@ void main_impl::draw_world() noexcept
                 auto* c_ = _world.at(ch);
                 if (!c_)
                     continue;
-                std::array<chunk*, 8> ns = {};
-                for (auto i = 0uz; i < 8; i++)
-                {
-                    auto off = world::neighbor_offsets[i];
-                    auto n = chunk_coords_{int16_t(x + off.x()), int16_t(y + off.y()), z};
-                    ns[i] = _world.at(n);
-                }
                 auto& c = *c_;
-                //draw_lights(c, ch, ns);
-                // tex = _lightmap_shader.texture(); // todo
+                {
+                    std::array<chunk*, 8> ns = {};
+                    for (auto i = 0uz; i < 8; i++)
+                    {
+                        auto off = world::neighbor_offsets[i];
+                        auto n = chunk_coords_{int16_t(x + off.x()), int16_t(y + off.y()), z};
+                        ns[i] = _world.at(n);
+                    }
+                    draw_lights(c, ns);
+                }
+                bind();
+
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                 {

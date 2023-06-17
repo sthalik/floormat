@@ -42,18 +42,19 @@ struct lightmap_shader final : GL::AbstractShaderProgram
         GL::Texture2D scratch{NoCreate}, accum{NoCreate};
     };
 
-    void begin_light(Vector2i neighbor_offset, const light_s& light);
-    void add_chunk(Vector2i neighbor_offset, chunk& c);
-    void add_entities(Vector2i neighbor_offset, chunk& c);
-    void add_geometry(Vector2i neighbor_offset, chunk& c);
-    void add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 max);
-    void add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> minmax);
+    void begin_light(Vector2b neighbor_offset, const light_s& light);
+    void add_chunk(Vector2b neighbor_offset, chunk& c);
+    void add_entities(Vector2b neighbor_offset, chunk& c);
+    void add_geometry(Vector2b neighbor_offset, chunk& c);
+    void add_rect(Vector2b neighbor_offset, Vector2 min, Vector2 max);
+    void add_rect(Vector2b neighbor_offset, Pair<Vector2, Vector2> minmax);
     void finish_light_only();
     void finish_and_blend_light();
     GL::Texture2D& scratch_texture();
     GL::Texture2D& accum_texture();
     void begin_accum();
     void end_accum();
+    void bind();
 
 private:
     enum {
@@ -76,12 +77,11 @@ private:
 
     static Framebuffer make_framebuffer(Vector2i size);
     GL::Mesh make_mesh();
-    void add_light(Vector2i neighbor_offset, const light_s& light);
+    void add_light(Vector2b neighbor_offset, const light_s& light);
     void flush_vertexes(ShaderMode mode);
     void add_quad(const std::array<Vector2, 4>& quad);
-    void bind();
     void clear_scratch();
-    void clear();
+    void clear_accum();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
     static Vector2 project_vertex(Vector2 light, Vector2 vertex, Vector2 length);
 

@@ -45,13 +45,13 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.scratch
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGBA8, size);
+        .setStorage(1, GL::TextureFormat::RGB8, size);
 
     framebuffer.accum = GL::Texture2D{};
     framebuffer.accum
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGBA8, size);
+        .setStorage(1, GL::TextureFormat::RGB8, size);
 
     //framebuffer.depth = GL::Renderbuffer{};
     //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
@@ -60,8 +60,11 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.fb
         //.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
+        .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
         //.clearDepth(0);
-        .clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
+        .clearColor(0, Color4{0, 0, 0, 1})
+        .clearColor(1, Color4{0, 0, 0, 1});
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
 
     return framebuffer;
 }
@@ -101,7 +104,8 @@ lightmap_shader::lightmap_shader() :
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
     setUniform(ModeUniform, DrawLightmapMode);
-    clear();
+    clear_scratch();
+    clear_accum();
 }
 
 void lightmap_shader::flush_vertexes(ShaderMode mode)
@@ -132,7 +136,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
     };                                              /* 2  2--0 */
 }
 
-void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
+void lightmap_shader::add_light(Vector2b neighbor_offset, const light_s& light)
 {
     fm_debug_assert(_count == 0);
     fm_debug_assert(_quads.size() > 0);
@@ -176,14 +180,14 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     setUniform(ColorIntensityUniform, Vector4{Vector3{color} * alpha, I });
     setUniform(CenterUniform, center_fragcoord);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
-    setUniform(SizeUniform, 1.f/image_size_factor);
+    setUniform(SizeUniform, image_size_factor / chunk_size);
 
     _light_center = center;
     flush_vertexes(DrawLightmapMode);
 
     setUniform(FalloffUniform, (uint32_t)light_falloff::constant);
     setUniform(ColorIntensityUniform, shadow_color);
-    setUniform(SamplerUniform, 1);
+    setUniform(SamplerUniform, TextureSampler);
 }
 
 Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 length)
@@ -197,7 +201,7 @@ Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 l
     return ret;
 }
 
-void lightmap_shader::add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 max)
+void lightmap_shader::add_rect(Vector2b neighbor_offset, Vector2 min, Vector2 max)
 {
     fm_assert(_light_center && _count != (size_t)-1);
 
@@ -239,7 +243,7 @@ void lightmap_shader::add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 ma
     }
 }
 
-void lightmap_shader::add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> minmax)
+void lightmap_shader::add_rect(Vector2b neighbor_offset, Pair<Vector2, Vector2> minmax)
 {
     fm_assert(_light_center && _count != (size_t)-1);
 
@@ -247,13 +251,13 @@ void lightmap_shader::add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> 
     add_rect(neighbor_offset, min, max);
 }
 
-void lightmap_shader::add_chunk(Vector2i neighbor_offset, chunk& c)
+void lightmap_shader::add_chunk(Vector2b neighbor_offset, chunk& c)
 {
     add_geometry(neighbor_offset, c);
     add_entities(neighbor_offset, c);
 }
 
-void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
+void lightmap_shader::add_geometry(Vector2b neighbor_offset, chunk& c)
 {
     fm_assert(_light_center && _count != (size_t)-1);
 
@@ -284,7 +288,7 @@ void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
     }
 }
 
-void lightmap_shader::add_entities(Vector2i neighbor_offset, chunk& c)
+void lightmap_shader::add_entities(Vector2b neighbor_offset, chunk& c)
 {
     fm_assert(_light_center && _count != (size_t)-1);
 
@@ -317,21 +321,19 @@ void lightmap_shader::add_quad(const std::array<Vector2, 4>& quad)
 void lightmap_shader::clear_scratch()
 {
     _light_center = {};
-    framebuffer.fb.clearColor(0, Vector4ui{0});
+    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 0});
 }
 
-void lightmap_shader::clear()
+void lightmap_shader::clear_accum()
 {
-    clear_scratch();
+    fm_assert(!_light_center && _count == (size_t)-1);
     _count = (size_t)-1;
-    framebuffer.fb.clearColor(1, Vector4ui{0});
-    //framebuffer.fb.clearDepth(0);
+    //framebuffer.fb.clearColor(1, Color4{0, 0, 0, 0});
 }
 
 void lightmap_shader::bind()
 {
     //fm_assert(_count == 0 && !_light_center);
-    using BF = Magnum::GL::Renderer::BlendFunction;
     framebuffer.scratch.bind(TextureSampler);
     framebuffer.fb.bind();
 }
@@ -341,9 +343,13 @@ void lightmap_shader::begin_accum()
     fm_assert(!_light_center);
     fm_assert(_count == (size_t)-1);
 
-    clear();
-    bind();
+    clear_accum();
     _count = 0;
+
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
+    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 0});
+    //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
+    //framebuffer.fb.clearColor(1, Color4{0, 0, 0, 0});
 }
 
 void lightmap_shader::end_accum()
@@ -353,11 +359,13 @@ void lightmap_shader::end_accum()
     _count = (size_t)-1;
 }
 
-void lightmap_shader::begin_light(Vector2i neighbor_offset, const light_s& light)
+void lightmap_shader::begin_light(Vector2b neighbor_offset, const light_s& light)
 {
     fm_assert(_count == 0 && !_light_center);
     clear_scratch();
     _count = 0;
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
+    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
     add_light(neighbor_offset, light);
     flush_vertexes(DrawLightmapMode);
 }
@@ -367,6 +375,7 @@ void lightmap_shader::finish_light_only()
     fm_assert(_light_center && _count != (size_t)-1);
     flush_vertexes(DrawLightmapMode);
     _light_center = {};
+    _count = (size_t)0;
 }
 
 void lightmap_shader::finish_and_blend_light()
@@ -383,22 +392,24 @@ void lightmap_shader::finish_and_blend_light()
     }};
 
     using BF = Magnum::GL::Renderer::BlendFunction;
+
     GL::Renderer::setBlendFunction(BF::One, BF::One);
-    _count = 1;
-    flush_vertexes(BlendLightmapMode);
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
+    _count = 1; flush_vertexes(BlendLightmapMode);
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     GL::Renderer::setBlendFunction(BF::SourceAlpha, BF::OneMinusSourceAlpha);
 }
 
 GL::Texture2D& lightmap_shader::scratch_texture()
 {
-    fm_assert(_count == 0);
+    fm_assert(_count == (size_t)-1);
     fm_debug_assert(framebuffer.scratch.id());
     return framebuffer.scratch;
 }
 
 GL::Texture2D& lightmap_shader::accum_texture()
 {
-    fm_assert(_count == 0);
+    fm_assert(_count == (size_t)-1);
     fm_debug_assert(framebuffer.accum.id());
     return framebuffer.accum;
 }

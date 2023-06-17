@@ -9,6 +9,8 @@ layout (location = 5) uniform sampler2D sampler;
 
 out vec4 color;
 
+//layout(origin_upper_left, pixel_center_integer) in vec4 gl_FragCoord;
+
 void main() {
     if (mode == 1) // draw
     {
@@ -32,6 +34,6 @@ void main() {
     }
     else if (mode == 2) // blend
     {
-        color = texture(sampler, gl_FragCoord.xy );
+        color = texture(sampler, gl_FragCoord.xy * size);
     }
 }
