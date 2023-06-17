@@ -12,6 +12,7 @@
 #include <Magnum/GL/Version.h>
 #include "src/tile-bbox.hpp"
 #include "src/tile-atlas.hpp"
+#include <Magnum/GL/Renderer.h>
 
 #if defined __CLION_IDE__ || defined __clang__
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -40,11 +41,17 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
 {
     Framebuffer framebuffer;
 
-    framebuffer.color = GL::Texture2D{};
-    framebuffer.color
-        .setStorage(1, GL::TextureFormat::RGB8, size)
+    framebuffer.scratch = GL::Texture2D{};
+    framebuffer.scratch
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
-        .setBorderColor(Color4{0.f, 0.f, 0.f, 1.f});
+        .setBorderColor(Color4{0, 0, 0, 1})
+        .setStorage(1, GL::TextureFormat::RGBA8, size);
+
+    framebuffer.accum = GL::Texture2D{};
+    framebuffer.accum
+        .setWrapping(GL::SamplerWrapping::ClampToBorder)
+        .setBorderColor(Color4{0, 0, 0, 1})
+        .setStorage(1, GL::TextureFormat::RGBA8, size);
 
     //framebuffer.depth = GL::Renderbuffer{};
     //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
@@ -52,7 +59,7 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.fb = GL::Framebuffer{{ {}, size }};
     framebuffer.fb
         //.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
-        .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0)
+        .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
         //.clearDepth(0);
         .clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
 
@@ -70,7 +77,6 @@ GL::Mesh lightmap_shader::make_mesh()
 
 lightmap_shader::lightmap_shader() :
     framebuffer { make_framebuffer(image_size) },
-    accum { make_framebuffer(image_size) },
     _quads { ValueInit, buffer_size },
     _indexes { ValueInit, buffer_size },
     _vertex_buf { _quads },
@@ -93,12 +99,19 @@ lightmap_shader::lightmap_shader() :
     CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
+
+    setUniform(ModeUniform, DrawLightmapMode);
+    clear();
 }
 
-void lightmap_shader::flush_vertexes()
+void lightmap_shader::flush_vertexes(ShaderMode mode)
 {
+    fm_assert(_count != (size_t)-1);
+
     if (_count > 0)
     {
+        setUniform(ModeUniform, mode);
+
         _index_buf.setSubData(0, ArrayView<std::array<UnsignedShort, 6>>{_indexes, _count});
         _vertex_buf.setSubData(0, ArrayView<std::array<Vector2, 4>>{_quads, _count});
 
@@ -106,8 +119,8 @@ void lightmap_shader::flush_vertexes()
         mesh.setCount((int)(6 * _count));
         mesh.setIndexRange(0, 0, (uint32_t)(_count * 6 - 1));
         AbstractShaderProgram::draw(mesh);
-        _count = 0;
     }
+    _count = 0;
 }
 
 std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
@@ -123,6 +136,7 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
 {
     fm_debug_assert(_count == 0);
     fm_debug_assert(_quads.size() > 0);
+    fm_assert(!_light_center);
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float I;
@@ -145,6 +159,7 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     constexpr auto image_size_factor = Vector2(image_size) / Vector2(chunk_size);
     auto center_fragcoord = center * image_size_factor; // window-relative coordinates
 
+    _count = 0;
     _indexes[_count] = quad_indexes(0);
     _quads[_count] = std::array<Vector2, 4>{{
         {  I_clip + center_clip.x(), -I_clip + center_clip.y() },
@@ -153,7 +168,7 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
         { -I_clip + center_clip.x(),  I_clip + center_clip.y() },
     }};
 
-    _count++;
+    _count = 1;
 
     float alpha = light.color.a() / 255.f;
     auto color = Vector3{light.color.rgb()} / 255.f;
@@ -164,10 +179,11 @@ void lightmap_shader::add_light(Vector2i neighbor_offset, const light_s& light)
     setUniform(SizeUniform, 1.f/image_size_factor);
 
     _light_center = center;
-    flush_vertexes();
+    flush_vertexes(DrawLightmapMode);
 
     setUniform(FalloffUniform, (uint32_t)light_falloff::constant);
     setUniform(ColorIntensityUniform, shadow_color);
+    setUniform(SamplerUniform, 1);
 }
 
 Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 length)
@@ -183,7 +199,8 @@ Vector2 lightmap_shader::project_vertex(Vector2 light, Vector2 vertex, Vector2 l
 
 void lightmap_shader::add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 max)
 {
-    fm_assert(_light_center);
+    fm_assert(_light_center && _count != (size_t)-1);
+
     auto li = *_light_center;
 
     auto off = Vector2(neighbor_offset)*chunk_size + chunk_offset;
@@ -224,20 +241,22 @@ void lightmap_shader::add_rect(Vector2i neighbor_offset, Vector2 min, Vector2 ma
 
 void lightmap_shader::add_rect(Vector2i neighbor_offset, Pair<Vector2, Vector2> minmax)
 {
+    fm_assert(_light_center && _count != (size_t)-1);
+
     auto [min, max] = minmax;
     add_rect(neighbor_offset, min, max);
 }
 
 void lightmap_shader::add_chunk(Vector2i neighbor_offset, chunk& c)
 {
-    fm_assert(_light_center);
-
     add_geometry(neighbor_offset, c);
     add_entities(neighbor_offset, c);
 }
 
 void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
 {
+    fm_assert(_light_center && _count != (size_t)-1);
+
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         auto t = c[i];
@@ -267,6 +286,8 @@ void lightmap_shader::add_geometry(Vector2i neighbor_offset, chunk& c)
 
 void lightmap_shader::add_entities(Vector2i neighbor_offset, chunk& c)
 {
+    fm_assert(_light_center && _count != (size_t)-1);
+
     for (const auto& e_ : c.entities())
     {
         const auto& e = *e_;
@@ -290,47 +311,101 @@ void lightmap_shader::add_quad(const std::array<Vector2, 4>& quad)
     _quads[i] = quad;
     _indexes[i] = quad_indexes(i);
     if (i+1 == buffer_size) [[unlikely]]
-        flush_vertexes();
+        flush_vertexes(DrawLightmapMode);
+}
+
+void lightmap_shader::clear_scratch()
+{
+    _light_center = {};
+    framebuffer.fb.clearColor(0, Vector4ui{0});
 }
 
 void lightmap_shader::clear()
 {
-    _light_center = {};
-    framebuffer.fb.clearColor(0, Vector4ui{0});
-    accum.fb.clearColor(0, Vector4ui{0});
+    clear_scratch();
+    _count = (size_t)-1;
+    framebuffer.fb.clearColor(1, Vector4ui{0});
     //framebuffer.fb.clearDepth(0);
 }
 
 void lightmap_shader::bind()
 {
+    //fm_assert(_count == 0 && !_light_center);
+    using BF = Magnum::GL::Renderer::BlendFunction;
+    framebuffer.scratch.bind(TextureSampler);
     framebuffer.fb.bind();
 }
 
-void lightmap_shader::begin(Vector2i neighbor_offset, const light_s& light)
+void lightmap_shader::begin_accum()
 {
-    fm_assert(_count == 0 && !_light_center);
+    fm_assert(!_light_center);
+    fm_assert(_count == (size_t)-1);
+
     clear();
     bind();
-    add_light(neighbor_offset, light);
-    flush_vertexes();
+    _count = 0;
 }
 
-void lightmap_shader::end()
+void lightmap_shader::end_accum()
 {
-    fm_assert(_light_center);
-    flush_vertexes();
+    fm_assert(!_light_center);
+    fm_assert(_count == 0);
+    _count = (size_t)-1;
+}
+
+void lightmap_shader::begin_light(Vector2i neighbor_offset, const light_s& light)
+{
+    fm_assert(_count == 0 && !_light_center);
+    clear_scratch();
+    _count = 0;
+    add_light(neighbor_offset, light);
+    flush_vertexes(DrawLightmapMode);
+}
+
+void lightmap_shader::finish_light_only()
+{
+    fm_assert(_light_center && _count != (size_t)-1);
+    flush_vertexes(DrawLightmapMode);
     _light_center = {};
 }
 
-GL::Texture2D& lightmap_shader::texture()
+void lightmap_shader::finish_and_blend_light()
+{
+    fm_assert(_light_center && _count != (size_t)-1);
+    flush_vertexes(DrawLightmapMode);
+    _light_center = {};
+    _indexes[0] = quad_indexes(0);
+    _quads[0] = {{
+        {  1, -1 }, /* 3--1  1 */
+        {  1,  1 }, /* | /  /| */
+        { -1, -1 }, /* |/  / | */
+        { -1,  1 }, /* 2  2--0 */
+    }};
+
+    using BF = Magnum::GL::Renderer::BlendFunction;
+    GL::Renderer::setBlendFunction(BF::One, BF::One);
+    _count = 1;
+    flush_vertexes(BlendLightmapMode);
+    GL::Renderer::setBlendFunction(BF::SourceAlpha, BF::OneMinusSourceAlpha);
+}
+
+GL::Texture2D& lightmap_shader::scratch_texture()
 {
     fm_assert(_count == 0);
-    fm_debug_assert(framebuffer.color.id());
-    return framebuffer.color;
+    fm_debug_assert(framebuffer.scratch.id());
+    return framebuffer.scratch;
+}
+
+GL::Texture2D& lightmap_shader::accum_texture()
+{
+    fm_assert(_count == 0);
+    fm_debug_assert(framebuffer.accum.id());
+    return framebuffer.accum;
 }
 
 bool light_s::operator==(const light_s&) const noexcept = default;
 
 lightmap_shader::~lightmap_shader() = default;
+
 
 } // namespace floormat

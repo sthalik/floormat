@@ -227,11 +227,13 @@ void app::draw_lightmap_test()
             .falloff = li.falloff,
         };
         auto& shader = M->lightmap_shader();
-        shader.begin({0, 0}, L);
+        shader.begin_accum();
+        shader.begin_light({ 0, 0 }, L);
         shader.add_chunk({}, e_->chunk());
-        shader.end();
+        shader.finish_light_only();
+        ImGui::Image(&shader.scratch_texture(), {1024, 1024});
+        shader.end_accum();
         M->bind();
-        ImGui::Image(&shader.texture(), {1024, 1024});
     }
     ImGui::End();
     if (!is_open)
