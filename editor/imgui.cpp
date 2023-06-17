@@ -206,7 +206,8 @@ void app::draw_lightmap_test()
 {
     fm_debug_assert(_tested_light != 0);
 
-    ImGui::SetNextWindowSize({1024, 1024});
+    constexpr auto preview_size = ImVec2{512, 512};
+    ImGui::SetNextWindowSize(preview_size);
 
     auto& w = M->world();
     auto e_ = w.find_entity(_tested_light);
@@ -234,8 +235,8 @@ void app::draw_lightmap_test()
         shader.finish_and_blend_light();
         //shader.finish_light_only();
         shader.end_accum();
-        //ImGui::Image(&shader.scratch_texture(), {1024, 1024});
-        ImGui::Image(&shader.accum_texture(), {1024, 1024});
+        //ImGui::Image(&shader.scratch_texture(), preview_size);
+        ImGui::Image(&shader.accum_texture(), preview_size, ImVec2{0, 0}, ImVec2{1, 1});
         M->bind();
     }
     ImGui::End();
