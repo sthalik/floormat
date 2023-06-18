@@ -96,6 +96,8 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk(),
     };
 
+    auto center = pixel_to_tile(Vector2d{win[0]/2, win[1]/2}).chunk();
+
     for (auto p : list)
     {
         x0 = std::min(x0, p.x);
@@ -104,8 +106,10 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         y1 = std::max(y1, p.y);
     }
 
-    const int16_t maxx = tile_shader::max_screen_tiles.x()/2 - 1, minx = -maxx,
-                  maxy = tile_shader::max_screen_tiles.y()/2 - 1, miny = -maxy;
+    constexpr int16_t mx = tile_shader::max_screen_tiles.x()/(int16_t)2,
+                      my = tile_shader::max_screen_tiles.y()/(int16_t)2;
+    int16_t minx = center.x - mx + 1, maxx = center.x + mx,
+            miny = center.y - my + 1, maxy = center.y + my;
 
     x0 = std::clamp(x0, minx, maxx);
     x1 = std::clamp(x1, minx, maxx);
@@ -164,6 +168,9 @@ void main_impl::draw_world() noexcept
     const auto [z_min, z_max, z_cur, only] = app.get_z_bounds();
     const auto [minx, maxx, miny, maxy] = get_draw_bounds();
     const auto sz = window_size();
+
+    fm_debug_assert(1 + maxx - minx <= 8);
+    fm_debug_assert(1 + maxy - miny <= 8);
 
     _clickable_scenery.clear();
 #ifdef FM_USE_DEPTH32
