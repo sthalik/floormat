@@ -5,7 +5,7 @@
 #include "src/RTree.h"
 #include <type_traits>
 #include <array>
-#include <memory>
+#include <Corrade/Containers/Pointer.h>
 #include <Magnum/GL/Mesh.h>
 
 namespace Corrade::Containers { template<typename T, typename D> class Array; }
@@ -94,6 +94,8 @@ struct chunk final
 
     using RTree = ::RTree<object_id, float, 2, float>;
 
+    void ensure_alloc_ground();
+    void ensure_alloc_walls();
     ground_mesh_tuple ensure_ground_mesh() noexcept;
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
@@ -115,12 +117,20 @@ struct chunk final
     const std::vector<std::shared_ptr<entity>>& entities() const;
 
 private:
-    std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
-    std::array<uint8_t, TILE_COUNT> ground_indexes = {};
-    std::array<variant_t, TILE_COUNT> _ground_variants = {};
-    std::array<std::shared_ptr<tile_atlas>, TILE_COUNT*2> _wall_atlases; // todo make into vector
-    std::array<uint16_t, TILE_COUNT*2> wall_indexes = {};
-    std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
+    struct ground_stuff {
+        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
+        std::array<uint8_t, TILE_COUNT> ground_indexes = {};
+        std::array<variant_t, TILE_COUNT> _ground_variants = {};
+    };
+
+    struct wall_stuff {
+        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT*2> _wall_atlases; // todo make into vector
+        std::array<uint16_t, TILE_COUNT*2> wall_indexes = {};
+        std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
+    };
+
+    Pointer<ground_stuff> _ground;
+    Pointer<wall_stuff> _walls;
     std::vector<std::shared_ptr<entity>> _entities;
 
     struct world* _world;

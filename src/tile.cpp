@@ -15,27 +15,43 @@ tile_image_proto tile_proto::wall_west() const noexcept  { return { wall_west_at
 
 tile_ref::tile_ref(struct chunk& c, uint8_t i) noexcept : _chunk{&c}, i{i} {}
 
-std::shared_ptr<tile_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground_atlases[i]; }
-std::shared_ptr<tile_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_wall_atlases[i*2+0]; }
-std::shared_ptr<tile_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_wall_atlases[i*2+1]; }
+std::shared_ptr<tile_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground ? _chunk->_ground->_ground_atlases[i] : nullptr; }
+std::shared_ptr<tile_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_walls ? _chunk->_walls->_wall_atlases[i*2+0] : nullptr; }
+std::shared_ptr<tile_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_walls ? _chunk->_walls->_wall_atlases[i*2+1] : nullptr; }
 
-std::shared_ptr<const tile_atlas> tile_ref::ground_atlas()      const noexcept { return _chunk->_ground_atlases[i]; }
-std::shared_ptr<const tile_atlas> tile_ref::wall_north_atlas()  const noexcept { return _chunk->_wall_atlases[i*2+0]; }
-std::shared_ptr<const tile_atlas> tile_ref::wall_west_atlas()   const noexcept { return _chunk->_wall_atlases[i*2+1]; }
+std::shared_ptr<const tile_atlas> tile_ref::ground_atlas()      const noexcept { return _chunk->_ground ? _chunk->_ground->_ground_atlases[i] : nullptr; }
+std::shared_ptr<const tile_atlas> tile_ref::wall_north_atlas()  const noexcept { return _chunk->_walls ? _chunk->_walls->_wall_atlases[i*2+0] : nullptr; }
+std::shared_ptr<const tile_atlas> tile_ref::wall_west_atlas()   const noexcept { return _chunk->_walls ? _chunk->_walls->_wall_atlases[i*2+1] : nullptr; }
 
-tile_image_ref tile_ref::ground() noexcept     { return {_chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
-tile_image_ref tile_ref::wall_north() noexcept { return {_chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }
-tile_image_ref tile_ref::wall_west() noexcept  { return {_chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
+tile_image_ref tile_ref::ground() noexcept     { _chunk->ensure_alloc_ground(); return {_chunk->_ground->_ground_atlases[i], _chunk->_ground->_ground_variants[i] };     }
+tile_image_ref tile_ref::wall_north() noexcept { _chunk->ensure_alloc_walls(); return {_chunk->_walls->_wall_atlases[i*2+0], _chunk->_walls->_wall_variants[i*2+0] }; }
+tile_image_ref tile_ref::wall_west() noexcept  { _chunk->ensure_alloc_walls(); return {_chunk->_walls->_wall_atlases[i*2+1],  _chunk->_walls->_wall_variants[i*2+1] };  }
 
-tile_image_proto tile_ref::ground() const noexcept     { return { _chunk->_ground_atlases[i],     _chunk->_ground_variants[i] };     }
-tile_image_proto tile_ref::wall_north() const noexcept { return { _chunk->_wall_atlases[i*2+0], _chunk->_wall_variants[i*2+0] }; }
-tile_image_proto tile_ref::wall_west() const noexcept  { return { _chunk->_wall_atlases[i*2+1],  _chunk->_wall_variants[i*2+1] };  }
+tile_image_proto tile_ref::ground() const noexcept
+{
+    _chunk->ensure_alloc_ground();
+    return { _chunk->_ground->_ground_atlases[i], _chunk->_ground->_ground_variants[i] };
+}
+
+tile_image_proto tile_ref::wall_north() const noexcept
+{
+    _chunk->ensure_alloc_walls();
+    return { _chunk->_walls->_wall_atlases[i*2+0], _chunk->_walls->_wall_variants[i*2+0] };
+}
+
+tile_image_proto tile_ref::wall_west() const noexcept
+{
+    _chunk->ensure_alloc_walls();
+    return { _chunk->_walls->_wall_atlases[i*2+1],  _chunk->_walls->_wall_variants[i*2+1] };
+}
 
 tile_ref::operator tile_proto() const noexcept
 {
+    _chunk->ensure_alloc_ground();
+    _chunk->ensure_alloc_walls();
     return {
-        _chunk->_ground_atlases[i],  _chunk->_wall_atlases[i*2+0],  _chunk->_wall_atlases[i*2+1],
-        _chunk->_ground_variants[i], _chunk->_wall_variants[i*2+0], _chunk->_wall_variants[i*2+1],
+        _chunk->_ground->_ground_atlases[i],  _chunk->_walls->_wall_atlases[i*2+0],  _chunk->_walls->_wall_atlases[i*2+1],
+        _chunk->_ground->_ground_variants[i], _chunk->_walls->_wall_variants[i*2+0], _chunk->_walls->_wall_variants[i*2+1],
     };
 }
 
