@@ -42,7 +42,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr float ground_depth_offset = 0; // todo scenery cut off at chunk boundary
     static constexpr float wall_depth_offset = 1;
     static constexpr float z_depth_offset = 1 + 2./64;
-    static constexpr float depth_tile_size = 1/(double)(TILE_MAX_DIM * 2 * max_screen_tiles.product());
+    static constexpr float depth_tile_size = 1.f/(TILE_MAX_DIM * 2 * max_screen_tiles.product());
     static constexpr float foreshortening_factor = 0.578125f;
 
 private:
