@@ -20,6 +20,7 @@ void app::draw_cursor()
 {
     constexpr float LINE_WIDTH = 2;
     auto& shader = M->shader();
+    auto& w = M->world();
     const auto inactive_color = 0xff00ffff_rgbaf;
 
     if (cursor.tile && !cursor.in_imgui)
@@ -56,6 +57,9 @@ void app::draw_cursor()
                 auto [_f, _w, anim_mesh] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
                 const auto pos = cursor.tile->to_signed3()*iTILE_SIZE + offset;
+                auto [ch, t] = w[*cursor.tile];
+                if (!ch.can_place_entity(sel, cursor.tile->local()))
+                    shader.set_tint({1, 0, 1, 0.5f});
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }

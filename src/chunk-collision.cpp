@@ -120,12 +120,22 @@ bool chunk::can_place_entity(const entity_proto& proto, local_coords pos)
 {
     (void)ensure_scenery_mesh();
 
+    switch (proto.pass)
+    {
+    case pass_mode::blocked:
+    case pass_mode::see_through:
+        break;
+    case pass_mode::pass:
+    case pass_mode::shoot_through:
+        return true;
+    }
+
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
                min = center - Vector2(proto.bbox_size/2), max = min + Vector2(proto.bbox_size);
     bool ret = true;
     _rtree.Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
           [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-          if (x.pass == (uint64_t)pass_mode::pass)
+          if (x.pass == (uint64_t)pass_mode::pass || x.pass == (uint64_t)pass_mode::shoot_through)
               return true;
           return ret = false;
     });
