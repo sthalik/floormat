@@ -44,6 +44,4 @@ namespace floormat {
     using Debug [[maybe_unused]] = ::Corrade::Utility::Debug;
     using Error [[maybe_unused]] = ::Corrade::Utility::Error;
     namespace Path = Corrade::Utility::Path; // NOLINT(misc-unused-alias-decls)
-    consteval auto operator""_uz(unsigned long long int x) { return size_t(x); }
 } // namespace floormat
-namespace nlohmann { using ::floormat::operator""_uz; }
