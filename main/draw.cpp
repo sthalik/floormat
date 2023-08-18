@@ -50,6 +50,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
     // -- state ---
     using R = GL::Renderer;
+    glEnable(GL_LINE_SMOOTH);
     GL::Renderer::setBlendEquation(R::BlendEquation::Add, R::BlendEquation::Add);
     GL::Renderer::setBlendFunction(R::BlendFunction::SourceAlpha, R::BlendFunction::OneMinusSourceAlpha);
     GL::Renderer::disable(R::Feature::FaceCulling);
@@ -57,9 +58,9 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     GL::Renderer::enable(R::Feature::Blending);
     GL::Renderer::enable(R::Feature::ScissorTest);
     GL::Renderer::enable(R::Feature::DepthClamp);
-    glEnable(GL_LINE_SMOOTH);
     GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
     GL::Renderer::setScissor({{}, fb_size});
+    GL::Renderer::setProvokingVertex(R::ProvokingVertex::FirstVertexConvention);
 
     // -- user--
     app.on_viewport_event(fb_size);
