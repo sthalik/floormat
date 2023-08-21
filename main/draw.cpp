@@ -1,4 +1,3 @@
-#include "Magnum/GL/Context.h"
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
@@ -49,18 +48,22 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 #endif
 
     // -- state ---
-    using R = GL::Renderer;
     glEnable(GL_LINE_SMOOTH);
-    GL::Renderer::setBlendEquation(R::BlendEquation::Add, R::BlendEquation::Add);
-    GL::Renderer::setBlendFunction(R::BlendFunction::SourceAlpha, R::BlendFunction::OneMinusSourceAlpha);
-    GL::Renderer::disable(R::Feature::FaceCulling);
-    GL::Renderer::disable(R::Feature::DepthTest);
-    GL::Renderer::enable(R::Feature::Blending);
-    GL::Renderer::enable(R::Feature::ScissorTest);
-    GL::Renderer::enable(R::Feature::DepthClamp);
-    GL::Renderer::setDepthFunction(R::DepthFunction::Greater);
+    using BlendEquation   = GL::Renderer::BlendEquation;
+    using BF   = GL::Renderer::BlendFunction;
+    using DepthFunction   = GL::Renderer::DepthFunction;
+    using ProvokingVertex = GL::Renderer::ProvokingVertex;
+    using Feature         = GL::Renderer::Feature;
+    GL::Renderer::setBlendEquation(BlendEquation::Add, BlendEquation::Add);
+    GL::Renderer::setBlendFunction(BF::SourceAlpha, BF::OneMinusSourceAlpha);
+    GL::Renderer::disable(Feature::FaceCulling);
+    GL::Renderer::disable(Feature::DepthTest);
+    GL::Renderer::enable(Feature::Blending);
+    GL::Renderer::enable(Feature::ScissorTest);
+    GL::Renderer::enable(Feature::DepthClamp);
+    GL::Renderer::setDepthFunction(DepthFunction::Greater);
     GL::Renderer::setScissor({{}, fb_size});
-    GL::Renderer::setProvokingVertex(R::ProvokingVertex::FirstVertexConvention);
+    GL::Renderer::setProvokingVertex(ProvokingVertex::FirstVertexConvention);
 
     // -- user--
     app.on_viewport_event(fb_size);
@@ -197,6 +200,7 @@ void main_impl::draw_world() noexcept
                 if (!c_)
                     continue;
                 auto& c = *c_;
+#if 0
                 {
                     std::array<chunk*, 8> ns = {};
                     for (auto i = 0uz; i < 8; i++)
@@ -210,6 +214,7 @@ void main_impl::draw_world() noexcept
                         (void)_lightmap_shader.accum_texture();
                     }
                 }
+#endif
                 bind();
 
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
