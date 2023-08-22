@@ -204,6 +204,7 @@ void app::draw_light_info()
 
 void app::draw_lightmap_test()
 {
+#if 0
     fm_debug_assert(_tested_light != 0);
 
     constexpr auto preview_size = ImVec2{512, 512};
@@ -242,6 +243,7 @@ void app::draw_lightmap_test()
     ImGui::End();
     if (!is_open)
         _tested_light = 0;
+#endif
 }
 
 static constexpr auto SCENERY_POPUP_NAME = "##scenery-popup"_s;

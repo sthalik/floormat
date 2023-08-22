@@ -134,7 +134,8 @@ private:
     //void clear_accum();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
 
-    GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate}; // set to {NoCreate} on capacity change
+    // todo use setData() and a boolean flag on capacity change
+    GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate};
     Array<std::array<Vector3, 4>> vertexes; // todo make a contiguous allocation
     Array<std::array<UnsignedShort, 6>> indexes;
     size_t count = 0, capacity = 0;

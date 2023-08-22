@@ -12,6 +12,8 @@ layout (location = 1) noperspective in vec2 frag_light_coord;
 out vec4 color;
 //layout (depth_greater) out float gl_FragDepth;
 
+layout(pixel_center_integer) in vec4 gl_FragCoord;
+
 void main() {
     vec4 light = tint;
     if (enable_lightmap)

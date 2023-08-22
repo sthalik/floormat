@@ -204,7 +204,7 @@ lightmap_shader::lightmap_shader()
     setUniform(LightColorUniform, Color3{1, 1, 1});
     setUniform(SizeUniform, Vector2(1 / (chunk_size * max_neighbors)));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
-    setUniform(CenterClipUniform, Vector2(-1, 1));
+    setUniform(CenterClipUniform, Vector2(-1, -1));
     setUniform(IntensityUniform, 1.f);
     setUniform(ModeUniform, DrawLightmapMode);
     setUniform(FalloffUniform, (uint32_t)light_falloff::constant);

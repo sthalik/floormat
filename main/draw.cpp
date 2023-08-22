@@ -123,6 +123,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     return {x0, x1, y0, y1};
 }
 
+#if 0
 bool main_impl::draw_lights_for_chunk(chunk& c, Vector2b neighbor_offset) noexcept
 {
     bool ret = false;
@@ -166,6 +167,7 @@ bool main_impl::draw_lights(chunk& c, const std::array<chunk*, 8>& ns) noexcept
     _lightmap_shader.end_accum();
     return ret;
 }
+#endif
 
 void main_impl::draw_world() noexcept
 {
