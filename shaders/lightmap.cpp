@@ -29,16 +29,12 @@ constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
 constexpr auto image_size   = max_neighbors * iTILE_SIZE2 * TILE_MAX_DIM;
 
-constexpr auto buffer_size = 256uz;
-
-constexpr auto clip_start = Vector2{-1, -1};
+constexpr auto clip_start = Vector2{-1, 1};
 constexpr auto clip_scale = 2/(chunk_size * max_neighbors);
 
 //constexpr auto shadow_length = chunk_size * 2 * max_neighbors;
 constexpr auto shadow_color = Vector4{0, 0, 0, 1};
 constexpr auto shadow_wall_depth = 4.f;
-
-constexpr auto half_neighbors = Vector2(max_neighbors)/2;
 
 using Utility::forward;
 
@@ -90,11 +86,6 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     return framebuffer;
 }
 
-auto lightmap_shader::output() -> struct output
-{
-    return { framebuffer.scratch, framebuffer.accum };
-}
-
 GL::Mesh lightmap_shader::make_occlusion_mesh()
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
@@ -107,6 +98,8 @@ GL::Mesh lightmap_shader::make_occlusion_mesh()
 void lightmap_shader::begin_occlusion()
 {
     count = 0;
+    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
+    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
 }
 
 void lightmap_shader::end_occlusion()
@@ -242,7 +235,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
-    Vector2 I;
+    Vector2 I_clip;
 
     switch (light.falloff)
     {
@@ -250,15 +243,14 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         break;
     case light_falloff::linear:
     case light_falloff::quadratic:
-        I = light.dist * TILE_SIZE2;
+        I_clip = light.dist * TILE_SIZE2;
         break;
     }
 
-    I = { std::fmax(1.f, I.x()), std::fmax(1.f, I.y()) };
+    I_clip = { std::fmax(1.f, I_clip.x()), std::fmax(1.f, I_clip.y()) };
 
-    auto I_clip = I * TILE_SIZE2;
     // window-relative coordinates
-    auto center_fragcoord = light.center + chunk_offset + (neighbor_offset+half_neighbors)*chunk_size;
+    auto center_fragcoord = light.center + chunk_offset + neighbor_offset*chunk_size;
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
@@ -285,24 +277,23 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         { -I_clip.x() + center_clip.x(),  I_clip.y() + center_clip.y(), 0 },
     }};
     light_vertex_buf.setSubData(0, quad);
-    draw(light_mesh);
+    AbstractShaderProgram::draw(light_mesh);
 
-    setUniform(ModeUniform, DrawShadowsMode);
-
+    setUniform(LightColorUniform, Color3{0, 0, 0});
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
-    mesh_view.setCount((int32_t)count);
-    draw(mesh_view);
+    mesh_view.setCount((int32_t)count*6);
+    AbstractShaderProgram::draw(mesh_view);
     //mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
 
     setUniform(ModeUniform, BlendLightmapMode);
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
-    draw(blend_mesh);
+    AbstractShaderProgram::draw(blend_mesh);
 }
 
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
 {
-    auto off = (neighbor_offset+half_neighbors)*chunk_size + chunk_offset;
+    auto off = neighbor_offset*chunk_size + chunk_offset;
     min += off;
     max += off;
 
@@ -401,33 +392,6 @@ void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
     }
 }
 
-#if 0
-void lightmap_shader::add_quad(const std::array<Vector2, 4>& quad)
-{
-    fm_debug_assert(_count < buffer_size);
-    const auto i = _count++;
-    _quads[i] = quad;
-    _indexes[i] = quad_indexes(i);
-    if (i+1 == buffer_size) [[unlikely]]
-        flush_vertexes(DrawLightmapMode);
-}
-#endif
-
-#if 0
-void lightmap_shader::clear_scratch()
-{
-    _light_center = {};
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 0});
-}
-
-void lightmap_shader::clear_accum()
-{
-    fm_assert(!_light_center && _count == (size_t)-1);
-    _count = (size_t)-1;
-    //framebuffer.fb.clearColor(1, Color4{0, 0, 0, 0});
-}
-#endif
-
 void lightmap_shader::bind()
 {
     //fm_assert(_count == 0 && !_light_center);
@@ -502,21 +466,17 @@ void lightmap_shader::finish_and_blend_light()
 }
 #endif
 
-#if 0
 GL::Texture2D& lightmap_shader::scratch_texture()
 {
-    fm_assert(_count == (size_t)-1);
     fm_debug_assert(framebuffer.scratch.id());
     return framebuffer.scratch;
 }
 
 GL::Texture2D& lightmap_shader::accum_texture()
 {
-    fm_assert(_count == (size_t)-1);
     fm_debug_assert(framebuffer.accum.id());
     return framebuffer.accum;
 }
-#endif
 
 bool light_s::operator==(const light_s&) const noexcept = default;
 

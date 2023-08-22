@@ -123,52 +123,6 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     return {x0, x1, y0, y1};
 }
 
-#if 0
-bool main_impl::draw_lights_for_chunk(chunk& c, Vector2b neighbor_offset) noexcept
-{
-    bool ret = false;
-    for (const auto& e_ : c.entities())
-    {
-        const auto& e = *e_;
-        if (e.type_of() != entity_type::light)
-            continue;
-        const auto& li = static_cast<const light&>(e);
-        if (li.max_distance >= 1e-4f || li.falloff == light_falloff::constant)
-        {
-            ret = true;
-            auto L = light_s {
-                .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
-                .dist = li.max_distance,
-                .color = li.color,
-                .falloff = li.falloff,
-            };
-            _lightmap_shader.begin_light(neighbor_offset, L);
-            _lightmap_shader.add_chunk(neighbor_offset, c);
-            _lightmap_shader.finish_and_blend_light();
-        }
-    }
-    return ret;
-}
-
-bool main_impl::draw_lights(chunk& c, const std::array<chunk*, 8>& ns) noexcept
-{
-    bool ret = false;
-    _lightmap_shader.bind();
-    _lightmap_shader.begin_accum();
-
-    for (auto i = 0uz; i < 8; i++)
-        if (ns[i] != nullptr)
-        {
-            auto off = world::neighbor_offsets[i];
-            ret |= draw_lights_for_chunk(*ns[i], off);
-        }
-    ret |= draw_lights_for_chunk(c, {});
-
-    _lightmap_shader.end_accum();
-    return ret;
-}
-#endif
-
 void main_impl::draw_world() noexcept
 {
     const auto [z_min, z_max, z_cur, only] = app.get_z_bounds();

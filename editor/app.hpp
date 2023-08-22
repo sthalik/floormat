@@ -170,6 +170,7 @@ private:
     bool _render_clickables     : 1 = false;
     bool _render_vobjs          : 1 = true;
     bool _render_all_z_levels   : 1 = true;
+    bool _testing_light         : 1 = false;
 };
 
 } // namespace floormat

@@ -204,7 +204,6 @@ void app::draw_light_info()
 
 void app::draw_lightmap_test()
 {
-#if 0
     fm_debug_assert(_tested_light != 0);
 
     constexpr auto preview_size = ImVec2{512, 512};
@@ -229,21 +228,31 @@ void app::draw_lightmap_test()
             .falloff = li.falloff,
         };
         auto& shader = M->lightmap_shader();
-        shader.bind();
-        shader.begin_accum();
-        shader.begin_light({ 0, 0 }, L);
-        shader.add_chunk({}, e_->chunk());
-        //shader.finish_and_blend_light();
-        shader.finish_light_only();
-        shader.end_accum();
+        if (!_testing_light || true)
+        {
+            //constexpr auto chunk_offset = Vector2(lightmap_shader::max_chunks)/2;
+            Vector2 chunk_offset;
+            _testing_light = true;
+            shader.begin_occlusion();
+#if 0
+            shader.add_chunk(chunk_offset, e_->chunk());
+#endif
+            shader.end_occlusion();
+            shader.bind();
+            shader.add_light(chunk_offset, L);
+            M->bind();
+        }
+        else
+            _testing_light = false;
         //constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
         ImGui::Image(&shader.scratch_texture(), preview_size, {0, 0}, {1, 1});
         M->bind();
     }
+    else
+        _testing_light = false;
     ImGui::End();
     if (!is_open)
         _tested_light = 0;
-#endif
 }
 
 static constexpr auto SCENERY_POPUP_NAME = "##scenery-popup"_s;
