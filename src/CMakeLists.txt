@@ -6,9 +6,9 @@ target_link_libraries(
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
-    Magnum::DebugTools
+    #Magnum::DebugTools
     fmt::fmt
     tsl::robin_map
 )
 
-#target_precompile_headers(${self} PRIVATE precomp.hpp)
+target_precompile_headers(${self} PRIVATE precomp.hpp)
