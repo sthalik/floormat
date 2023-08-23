@@ -31,8 +31,6 @@ constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/chunk_size;
 
-//constexpr auto shadow_length = chunk_size * 2 * max_neighbors;
-constexpr auto shadow_color = Vector4{0, 0, 0, 1};
 constexpr auto shadow_wall_depth = 4.f;
 
 using Utility::forward;
@@ -188,7 +186,7 @@ lightmap_shader::lightmap_shader()
 
     setUniform(SamplerUniform, TextureSampler);
     setUniform(LightColorUniform, Color3{1, 1, 1});
-    setUniform(SizeUniform, Vector2(1 / chunk_size));
+    setUniform(SizeUniform, Vector2(1));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
     setUniform(CenterClipUniform, Vector2(-1, -1));
     setUniform(RangeUniform, 1.f);
@@ -364,77 +362,9 @@ void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
 
 void lightmap_shader::bind()
 {
-    //fm_assert(_count == 0 && !_light_center);
     framebuffer.scratch.bind(TextureSampler);
     framebuffer.fb.bind();
 }
-
-#if 0
-void lightmap_shader::begin_accum()
-{
-    fm_assert(!_light_center);
-    fm_assert(_count == (size_t)-1);
-
-    clear_accum();
-    _count = 0;
-
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 0});
-    //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
-    //framebuffer.fb.clearColor(1, Color4{0, 0, 0, 0});
-}
-void lightmap_shader::end_accum()
-{
-    fm_assert(!_light_center);
-    fm_assert(_count == 0);
-    _count = (size_t)-1;
-}
-#endif
-
-#if 0
-void lightmap_shader::begin_light(Vector2 neighbor_offset, const light_s& light)
-{
-    fm_assert(_count == 0 && !_light_center);
-    clear_scratch();
-    _count = 0;
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
-    add_light(neighbor_offset, light);
-    flush_vertexes(DrawLightmapMode);
-}
-
-void lightmap_shader::finish_light_only()
-{
-    fm_assert(_light_center && _count != (size_t)-1);
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
-    flush_vertexes(DrawLightmapMode);
-    _light_center = {};
-    _count = (size_t)0;
-}
-
-void lightmap_shader::finish_and_blend_light()
-{
-    fm_assert(_light_center && _count != (size_t)-1);
-    flush_vertexes(DrawLightmapMode);
-    _light_center = {};
-    _indexes[0] = quad_indexes(0);
-    _quads[0] = {{
-        {  1, -1 }, /* 3--1  1 */
-        {  1,  1 }, /* | /  /| */
-        { -1, -1 }, /* |/  / | */
-        { -1,  1 }, /* 2  2--0 */
-    }};
-
-    using BF = Magnum::GL::Renderer::BF;
-
-    //GL::Renderer::setBlendColor(0x000000ff_rgbf);
-    GL::Renderer::setBlendFunction(BF::One, BF::One);
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
-    _count = 1; flush_vertexes(BlendLightmapMode);
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
-    GL::Renderer::setBlendFunction(BF::SourceAlpha, BF::OneMinusSourceAlpha);
-}
-#endif
 
 GL::Texture2D& lightmap_shader::scratch_texture()
 {
@@ -451,6 +381,5 @@ GL::Texture2D& lightmap_shader::accum_texture()
 bool light_s::operator==(const light_s&) const noexcept = default;
 
 lightmap_shader::~lightmap_shader() = default;
-
 
 } // namespace floormat
