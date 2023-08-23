@@ -23,6 +23,7 @@ namespace floormat {
 
 namespace {
 
+// todo add back drawing an 8x8 grid
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
 constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM;
@@ -265,13 +266,15 @@ void lightmap_shader::add_light(const light_s& light)
     setUniform(ModeUniform, DrawLightmapMode);
     AbstractShaderProgram::draw(blend_mesh);
 
-#if 0
+#if 1
+    setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
+    setUniform(IntensityUniform, 1 );
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
-    AbstractShaderProgram::draw(mesh_view);
     mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
+    AbstractShaderProgram::draw(mesh_view);
 #endif
 
 #if 0

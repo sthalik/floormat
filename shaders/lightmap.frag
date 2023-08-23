@@ -33,4 +33,8 @@ void main() {
     {
         color = texture(sampler, gl_FragCoord.xy * size);
     }
+    else if (mode == 0) // shadows
+    {
+        color = vec4(0, 0, 0, 1);
+    }
 }
