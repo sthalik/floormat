@@ -232,9 +232,7 @@ void app::draw_lightmap_test()
         {
             _testing_light = true;
             shader.begin_occlusion();
-#if 0
-            shader.add_chunk(chunk_offset, e_->chunk());
-#endif
+            shader.add_chunk(Vector2{}, e_->chunk()); // todo add neighbors
             shader.end_occlusion();
             shader.bind();
             shader.add_light(L);

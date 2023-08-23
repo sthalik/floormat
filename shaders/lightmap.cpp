@@ -256,14 +256,12 @@ void lightmap_shader::add_light(const light_s& light)
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
-    auto color = Vector3{light.color.rgb()} / 255.f;
+    auto color = (Vector3{light.color.rgb()} / 255.f) * alpha;
 
     setUniform(SamplerUniform, TextureSampler);
-    //setUniform(LightColorUniform, color * alpha);
-    setUniform(LightColorUniform, Vector3{1});
+    setUniform(LightColorUniform, color * alpha);
     setUniform(SizeUniform, 1 / chunk_size);
-    //setUniform(CenterFragcoordUniform, center_fragcoord);
-    setUniform(CenterFragcoordUniform, Vector2{512});
+    setUniform(CenterFragcoordUniform, center_fragcoord);
     setUniform(CenterClipUniform, center_clip);
     setUniform(IntensityUniform, I);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
