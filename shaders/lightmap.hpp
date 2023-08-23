@@ -117,9 +117,6 @@ private:
     GL::Mesh occlusion_mesh{NoCreate};
     static constexpr auto starting_capacity = 1; // todo
 
-    GL::Buffer light_vertex_buf{NoCreate};
-    GL::Mesh light_mesh{NoCreate};
-
     GL::Mesh blend_mesh{NoCreate};
 
     [[nodiscard]] std::array<Vector3, 4>& alloc_rect();

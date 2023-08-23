@@ -185,12 +185,6 @@ lightmap_shader::lightmap_shader()
     }};
     blend_mesh = make_light_mesh<GL::Buffer&&>(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
 
-    light_vertex_buf = GL::Buffer{std::array<Vector3, 4>{}};
-    light_mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
-    light_mesh.addVertexBuffer(light_vertex_buf, 0, lightmap_shader::Position{})
-        .setIndexBuffer(GL::Buffer{quad_indexes(0)}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(6);
-
     setUniform(SamplerUniform, TextureSampler);
     setUniform(LightColorUniform, Color3{1, 1, 1});
     setUniform(SizeUniform, Vector2(1 / chunk_size));
@@ -250,7 +244,6 @@ void lightmap_shader::add_light(const light_s& light)
 
     I *= tile_size;
     I = std::fmax(0.f, I);
-    //I_clip = { std::fmax(1.f, I_clip.x()), std::fmax(1.f, I_clip.y()) };
 
     auto center_fragcoord = light.center + chunk_offset; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
@@ -269,18 +262,7 @@ void lightmap_shader::add_light(const light_s& light)
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
 
-    fm_debug_assert(light_vertex_buf.id());
-    fm_debug_assert(light_mesh.id());
     setUniform(ModeUniform, DrawLightmapMode);
-#if 0
-    auto quad = std::array<Vector3, 4>{{
-        {  I_clip + center_clip.x(), -I_clip + center_clip.y(), 0 },
-        {  I_clip + center_clip.x(),  I_clip + center_clip.y(), 0 },
-        { -I_clip + center_clip.x(), -I_clip + center_clip.y(), 0 },
-        { -I_clip + center_clip.x(),  I_clip + center_clip.y(), 0 },
-    }};
-    light_vertex_buf.setSubData(0, quad);
-#endif
     AbstractShaderProgram::draw(blend_mesh);
 
 #if 0
