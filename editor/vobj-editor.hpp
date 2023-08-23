@@ -1,7 +1,9 @@
 #pragma once
 #include "src/entity-type.hpp"
+#include "src/object-id.hpp"
 #include <memory>
 #include <map>
+#include <Corrade/Containers/StringView.h>
 
 namespace Corrade::Containers {
 template<typename T> class BasicStringView;

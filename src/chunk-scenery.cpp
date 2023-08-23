@@ -3,6 +3,7 @@
 #include "entity.hpp"
 #include "anim-atlas.hpp"
 #include "tile-atlas.hpp"
+#include <bit>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>
 

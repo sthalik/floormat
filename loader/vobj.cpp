@@ -6,6 +6,9 @@
 #include "src/anim.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/StridedArrayView.h>
+#include <Corrade/Utility/Path.h>
+#include <Magnum/Trade/ImageData.h>
 
 namespace floormat::loader_detail {
 struct vobj {

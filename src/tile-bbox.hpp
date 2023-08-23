@@ -1,6 +1,7 @@
 #pragma once
 #include "src/tile-defs.hpp"
 #include "src/local-coords.hpp"
+#include <Corrade/Containers/Pair.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 

@@ -9,11 +9,11 @@
 #include <concepts>
 #include <utility>
 #include <limits>
-#include <utility>
 #include <tuple>
 #include <array>
 #include <compat/function2.hpp>
 #include <Corrade/Containers/StringView.h>
+#include <Corrade/Utility/Move.h>
 
 namespace floormat::entities {
 
@@ -32,7 +32,7 @@ constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
 
     fun(std::get<N>(tuple));
     if constexpr(N+1 < Size())
-        visit_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+        visit_tuple<F, Tuple, N+1>(Corrade::Utility::forward<F>(fun), Corrade::Utility::forward<Tuple>(tuple));
 }
 
 template<typename F, typename Tuple, size_t N>
@@ -45,7 +45,7 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     if (fun(std::get<N>(tuple)))
         return true;
     if constexpr(N+1 < Size())
-        return find_in_tuple<F, Tuple, N+1>(std::forward<F>(fun), std::forward<Tuple>(tuple));
+        return find_in_tuple<F, Tuple, N+1>(Corrade::Utility::forward<F>(fun), Corrade::Utility::forward<Tuple>(tuple));
     return false;
 }
 
@@ -119,7 +119,7 @@ public:
     static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
     static constexpr void write(const W& writer, Obj& x, Type v);
     constexpr decltype(auto) read(const Obj& x) const { return read(reader, x); }
-    constexpr void write(Obj& x, Type value) const { write(writer, x, std::move(value)); }
+    constexpr void write(Obj& x, Type value) const { write(writer, x, Corrade::Utility::move(value)); }
     static constexpr bool can_write = !std::is_same_v<std::nullptr_t, decltype(entity_field<Obj, Type, R, W, Ts...>::writer)>;
 
     static constexpr field_status is_enabled(const Predicate & p, const Obj& x);
@@ -142,7 +142,7 @@ public:
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj& x, Type v)
 {
-    static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, std::move(v));
+    static_assert(can_write); detail::write_field<Obj, Type, W>::write(x, writer, Corrade::Utility::move(v));
 }
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
@@ -164,8 +164,8 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value) {
         auto& obj_ = *reinterpret_cast<Obj*>(obj);
         const auto& writer_ = *reinterpret_cast<const W*>(writer);
-        Type value_ = std::move(*reinterpret_cast<Type*>(value));
-        write(writer_, obj_, std::move(value_));
+        Type value_ = Corrade::Utility::move(*reinterpret_cast<Type*>(value));
+        write(writer_, obj_, Corrade::Utility::move(value_));
     };
     constexpr auto predicate_fn = [](const void* obj, const predicate_t* predicate) {
         const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
@@ -217,7 +217,7 @@ struct Entity final {
         struct field final : entity_field<Obj, Type, R, W, Ts...>
         {
             constexpr field(StringView field_name, R r, W w, Ts&&... ts) noexcept :
-                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, Utility::forward<Ts>(ts)...}
+                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, Corrade::Utility::forward<Ts>(ts)...}
             {}
         };
 
@@ -231,7 +231,7 @@ constexpr void visit_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        detail::visit_tuple<F, Tuple, 0>(Utility::forward<F>(fun), Utility::forward<Tuple>(tuple));
+        detail::visit_tuple<F, Tuple, 0>(Corrade::Utility::forward<F>(fun), Corrade::Utility::forward<Tuple>(tuple));
 }
 
 template<typename F, typename Tuple>
@@ -239,7 +239,7 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        return detail::find_in_tuple<F, Tuple, 0>(Utility::forward<F>(fun), Utility::forward<Tuple>(tuple));
+        return detail::find_in_tuple<F, Tuple, 0>(Corrade::Utility::forward<F>(fun), Corrade::Utility::forward<Tuple>(tuple));
     else
         return false;
 }

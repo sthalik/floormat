@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+namespace floormat { struct entity; }
 namespace floormat::entities {
 
 struct erased_accessor;
