@@ -5,7 +5,7 @@ layout (location = 1) uniform vec3 light_color;
 layout (location = 2) uniform vec2 size;
 layout (location = 3) uniform vec2 center_fragcoord;
 layout (location = 4) uniform vec2 center_clip;
-layout (location = 5) uniform float intensity;
+layout (location = 5) uniform float range;
 layout (location = 6) uniform uint mode;
 layout (location = 7) uniform uint falloff;
 

@@ -40,24 +40,6 @@ struct lightmap_shader final : GL::AbstractShaderProgram
         GL::Texture2D scratch{NoCreate}, accum{NoCreate};
     };
 
-#if 0
-const blend_light = {
-  equation: {color: gl.FUNC_ADD, alpha: gl.FUNC_ADD},
-  function: {color_src:gl.DST_ALPHA, alpha_src:gl.ONE,
-             color_dst:gl.ONE, alpha_dst:gl.ZERO},
-};
-
-// Shadows should only be drawn into the alpha channel and should leave color untouched.
-// You could also do this with a write mask if that's supported.
-const blend_shadow = {
-  equation: {color: gl.FUNC_ADD, alpha: gl.FUNC_ADD},
-  function: {color_src:gl.ZERO, alpha_src:gl.ZERO,
-             color_dst:gl.ONE_MINUS_SRC_COLOR, alpha_dst:GL_ONE},
-};
-#endif
-
-    //void begin_light(Vector2 neighbor_offset, const light_s& light);
-
     void begin_occlusion();
     void end_occlusion();
     void add_chunk(Vector2 neighbor_offset, chunk& c);
@@ -65,8 +47,6 @@ const blend_shadow = {
     void add_geometry(Vector2 neighbor_offset, chunk& c);
     void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
-    //void finish_light_only();
-    //void finish_and_blend_light();
     void add_light(const light_s& light);
     void bind();
 
@@ -84,7 +64,7 @@ private:
         SizeUniform            = 2,
         CenterFragcoordUniform = 3,
         CenterClipUniform      = 4,
-        IntensityUniform       = 5,
+        RangeUniform           = 5,
         ModeUniform            = 6,
         FalloffUniform         = 7,
     };
@@ -102,10 +82,6 @@ private:
 
     static Framebuffer make_framebuffer(Vector2i size);
     GL::Mesh make_occlusion_mesh();
-    //void flush_vertexes(ShaderMode mode);
-    //void add_quad(const std::array<Vector2, 4>& quad);
-    //void clear_scratch();
-    //void clear_accum();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
 
     // todo use setData() and a boolean flag on capacity change

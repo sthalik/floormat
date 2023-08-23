@@ -191,31 +191,10 @@ lightmap_shader::lightmap_shader()
     setUniform(SizeUniform, Vector2(1 / chunk_size));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
     setUniform(CenterClipUniform, Vector2(-1, -1));
-    setUniform(IntensityUniform, 1.f);
+    setUniform(RangeUniform, 1.f);
     setUniform(ModeUniform, DrawLightmapMode);
     setUniform(FalloffUniform, (uint32_t)light_falloff::constant);
 }
-
-#if 0
-void lightmap_shader::flush_vertexes(ShaderMode mode)
-{
-    fm_assert(_count != (size_t)-1);
-
-    if (_count > 0)
-    {
-        setUniform(ModeUniform, mode);
-
-        _index_buf.setSubData(0, ArrayView<std::array<UnsignedShort, 6>>{_indexes, _count});
-        _vertex_buf.setSubData(0, ArrayView<std::array<Vector2, 4>>{_quads, _count});
-
-        GL::MeshView mesh{_mesh};
-        mesh.setCount((int)(6 * _count));
-        mesh.setIndexRange(0, 0, (uint32_t)(_count * 6 - 1));
-        AbstractShaderProgram::draw(mesh);
-    }
-    _count = 0;
-}
-#endif
 
 std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 {
@@ -229,7 +208,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 void lightmap_shader::add_light(const light_s& light)
 {
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
-    float I = tile_size;
+    float I;
 
     switch (light.falloff)
     {
@@ -257,7 +236,7 @@ void lightmap_shader::add_light(const light_s& light)
     setUniform(SizeUniform, 1 / chunk_size);
     setUniform(CenterFragcoordUniform, center_fragcoord);
     setUniform(CenterClipUniform, center_clip);
-    setUniform(IntensityUniform, I);
+    setUniform(RangeUniform, I);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
 
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
@@ -269,7 +248,7 @@ void lightmap_shader::add_light(const light_s& light)
 #if 1
     setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
-    setUniform(IntensityUniform, 1 );
+    setUniform(RangeUniform, 1 );
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
@@ -349,7 +328,6 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
         if (auto atlas = t.wall_north_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
             {
-                // todo check backface
                 auto start = tile_start(i);
                 auto min = start - Vector2(0, shadow_wall_depth),
                      max = start + Vector2(TILE_SIZE2[0], 0);
@@ -358,7 +336,6 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
         if (auto atlas = t.wall_west_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
             {
-                // todo check backface
                 auto start = tile_start(i);
                 auto min = start - Vector2(shadow_wall_depth, 0),
                      max = start + Vector2(0, TILE_SIZE[1]);

@@ -5,7 +5,7 @@ layout (location = 1) uniform vec3 light_color;
 layout (location = 2) uniform vec2 size;
 layout (location = 3) uniform vec2 center_fragcoord;
 layout (location = 4) uniform vec2 center_clip;
-layout (location = 5) uniform float intensity;
+layout (location = 5) uniform float range;
 layout (location = 6) uniform uint mode;
 layout (location = 7) uniform uint falloff;
 
@@ -16,7 +16,7 @@ out vec4 color;
 void main() {
     if (mode == 1)
     {
-        float L = intensity;
+        float L = range;
         vec2 pos = gl_FragCoord.xy;
         float dist = distance(pos, center_fragcoord);
         float A = 1;
