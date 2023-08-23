@@ -67,7 +67,7 @@ const blend_shadow = {
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
     //void finish_light_only();
     //void finish_and_blend_light();
-    void add_light(Vector2 neighbor_offset, const light_s& light);
+    void add_light(const light_s& light);
     void bind();
 
     GL::Texture2D& scratch_texture();
@@ -75,7 +75,7 @@ const blend_shadow = {
 
     static constexpr auto max_chunks = Vector2s(8, 8);
 
-    using Position = GL::Attribute<0, Vector2>;
+    using Position = GL::Attribute<0, Vector3>;
 
 private:
     enum : Int {
@@ -117,7 +117,6 @@ private:
     GL::Mesh occlusion_mesh{NoCreate};
     static constexpr auto starting_capacity = 1; // todo
 
-    std::array<Vector3, 4> light_vertexes;
     GL::Buffer light_vertex_buf{NoCreate};
     GL::Mesh light_mesh{NoCreate};
 

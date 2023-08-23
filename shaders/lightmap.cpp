@@ -23,14 +23,12 @@ namespace floormat {
 
 namespace {
 
-constexpr auto max_neighbors = 8;
-
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
-constexpr auto image_size   = max_neighbors * iTILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM;
 
-constexpr auto clip_start = Vector2{-1, 1};
-constexpr auto clip_scale = 2/(chunk_size * max_neighbors);
+constexpr auto clip_start = Vector2{-1, -1};
+constexpr auto clip_scale = 2/chunk_size;
 
 //constexpr auto shadow_length = chunk_size * 2 * max_neighbors;
 constexpr auto shadow_color = Vector4{0, 0, 0, 1};
@@ -39,7 +37,7 @@ constexpr auto shadow_wall_depth = 4.f;
 using Utility::forward;
 
 template<typename T>
-GL::Mesh make_light_mesh(T&& vert, T&& index)
+GL::Mesh make_light_mesh(T vert, T index)
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(forward<T>(vert), 0, lightmap_shader::Position{})
@@ -195,7 +193,7 @@ lightmap_shader::lightmap_shader()
 
     setUniform(SamplerUniform, TextureSampler);
     setUniform(LightColorUniform, Color3{1, 1, 1});
-    setUniform(SizeUniform, Vector2(1 / (chunk_size * max_neighbors)));
+    setUniform(SizeUniform, Vector2(1 / chunk_size));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
     setUniform(CenterClipUniform, Vector2(-1, -1));
     setUniform(IntensityUniform, 1.f);
@@ -233,35 +231,41 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
     };                                              /* 2  2--0 */
 }
 
-void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
+void lightmap_shader::add_light(const light_s& light)
 {
-    Vector2 I_clip;
+    constexpr auto tile_size = TILE_SIZE2.sum()/2;
+    float I = tile_size;
 
     switch (light.falloff)
     {
     default:
+    case light_falloff::constant:
+        I = TILE_MAX_DIM * 3;
         break;
     case light_falloff::linear:
     case light_falloff::quadratic:
-        I_clip = light.dist * TILE_SIZE2;
+        I = light.dist;
         break;
     }
 
-    I_clip = { std::fmax(1.f, I_clip.x()), std::fmax(1.f, I_clip.y()) };
+    I *= tile_size;
+    I = std::fmax(0.f, I);
+    //I_clip = { std::fmax(1.f, I_clip.x()), std::fmax(1.f, I_clip.y()) };
 
-    // window-relative coordinates
-    auto center_fragcoord = light.center + chunk_offset + neighbor_offset*chunk_size;
+    auto center_fragcoord = light.center + chunk_offset; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
     auto color = Vector3{light.color.rgb()} / 255.f;
 
     setUniform(SamplerUniform, TextureSampler);
-    setUniform(LightColorUniform, color);
-    setUniform(SizeUniform, 1 / (chunk_size * max_neighbors));
-    setUniform(CenterFragcoordUniform, center_fragcoord);
+    //setUniform(LightColorUniform, color * alpha);
+    setUniform(LightColorUniform, Vector3{1});
+    setUniform(SizeUniform, 1 / chunk_size);
+    //setUniform(CenterFragcoordUniform, center_fragcoord);
+    setUniform(CenterFragcoordUniform, Vector2{512});
     setUniform(CenterClipUniform, center_clip);
-    setUniform(IntensityUniform, alpha);
+    setUniform(IntensityUniform, I);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
 
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
@@ -270,25 +274,31 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     fm_debug_assert(light_vertex_buf.id());
     fm_debug_assert(light_mesh.id());
     setUniform(ModeUniform, DrawLightmapMode);
+#if 0
     auto quad = std::array<Vector3, 4>{{
-        {  I_clip.x() + center_clip.x(), -I_clip.y() + center_clip.y(), 0 },
-        {  I_clip.x() + center_clip.x(),  I_clip.y() + center_clip.y(), 0 },
-        { -I_clip.x() + center_clip.x(), -I_clip.y() + center_clip.y(), 0 },
-        { -I_clip.x() + center_clip.x(),  I_clip.y() + center_clip.y(), 0 },
+        {  I_clip + center_clip.x(), -I_clip + center_clip.y(), 0 },
+        {  I_clip + center_clip.x(),  I_clip + center_clip.y(), 0 },
+        { -I_clip + center_clip.x(), -I_clip + center_clip.y(), 0 },
+        { -I_clip + center_clip.x(),  I_clip + center_clip.y(), 0 },
     }};
     light_vertex_buf.setSubData(0, quad);
-    AbstractShaderProgram::draw(light_mesh);
+#endif
+    AbstractShaderProgram::draw(blend_mesh);
 
+#if 0
     setUniform(LightColorUniform, Color3{0, 0, 0});
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
     AbstractShaderProgram::draw(mesh_view);
-    //mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
+    mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
+#endif
 
+#if 0
     setUniform(ModeUniform, BlendLightmapMode);
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
     AbstractShaderProgram::draw(blend_mesh);
+#endif
 }
 
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)

@@ -230,8 +230,6 @@ void app::draw_lightmap_test()
         auto& shader = M->lightmap_shader();
         if (!_testing_light || true)
         {
-            //constexpr auto chunk_offset = Vector2(lightmap_shader::max_chunks)/2;
-            Vector2 chunk_offset;
             _testing_light = true;
             shader.begin_occlusion();
 #if 0
@@ -239,7 +237,7 @@ void app::draw_lightmap_test()
 #endif
             shader.end_occlusion();
             shader.bind();
-            shader.add_light(chunk_offset, L);
+            shader.add_light(L);
             M->bind();
         }
         else

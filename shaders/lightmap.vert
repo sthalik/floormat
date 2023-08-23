@@ -16,6 +16,7 @@ layout (location = 0) in vec3 position;
 
 void main() {
     vec2 pos = position.xy;
+    /*
     if (mode == 0)
     {
         vec2 dir = pos - center_clip;
@@ -26,5 +27,6 @@ void main() {
             pos += dir_norm * position.z * 4;
         }
     }
+    */
     gl_Position = vec4(pos, 0, 1);
 }

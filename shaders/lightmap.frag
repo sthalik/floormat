@@ -27,7 +27,9 @@ void main() {
             float tmp = max(0, L - dist);
             A = tmp*tmp / (L*L);
         }
-        color = vec4(light_color, A);
+        color = vec4(light_color.rgb, A);
+        //A += 0.2;
+        //color = vec4(vec3(A), 1);
     }
     else if (mode == 2) // blend
     {
