@@ -117,14 +117,14 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_SHADERS                                ON
          MAGNUM_WITH_SHADERTOOLS                            ON
 
-         MAGNUM_WITH_ANYIMAGECONVERTER                      OFF
+         MAGNUM_WITH_ANYIMAGECONVERTER                      ON
          MAGNUM_WITH_ANYSCENECONVERTER                      OFF
          MAGNUM_WITH_ANYSHADERCONVERTER                     OFF
          MAGNUM_WITH_BASISIMAGECONVERTER                    OFF
          MAGNUM_WITH_DISTANCEFIELDCONVERTER                 OFF
          MAGNUM_WITH_GLSLANGSHADERCONVERTER                 OFF
          MAGNUM_WITH_GLTFSCENECONVERTER                     OFF
-         MAGNUM_WITH_IMAGECONVERTER                         OFF
+         MAGNUM_WITH_IMAGECONVERTER                         ON
          MAGNUM_WITH_JPEGIMAGECONVERTER                     OFF
          MAGNUM_WITH_KTXIMAGECONVERTER                      OFF
          MAGNUM_WITH_MESHOPTIMIZERSCENECONVERTER            OFF
@@ -135,7 +135,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_SPIRVTOOLSSHADERCONVERTER              OFF
          MAGNUM_WITH_STANFORDSCENECONVERTER                 OFF
          MAGNUM_WITH_STBRESIZEIMAGECONVERTER                ON
-         MAGNUM_WITH_TGAIMAGECONVERTER                      OFF
+         MAGNUM_WITH_TGAIMAGECONVERTER                      ON
 
          MAGNUM_WITH_MAGNUMFONTCONVERTER                    ON
          MAGNUM_WITH_SHADERCONVERTER                        ON
@@ -295,7 +295,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
 endif()
 
 if(fm-external-configured)
-    set(fm-quiet-message 1)
+    #set(fm-quiet-message 1)
 endif()
 find_package(SDL2 QUIET REQUIRED)
 find_package(Corrade QUIET REQUIRED)

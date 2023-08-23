@@ -129,5 +129,6 @@ function(fm-userconfig-src)
         -Wno-error=ambiguous-reversed-operator
         -Wno-error=comma
         -Wno-error=weak-vtables
+        -Wno-error=unreachable-code
     )
 endfunction()

@@ -30,8 +30,8 @@ target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)
 
-if(NOT MSVC)
-    target_precompile_headers(${self}_o REUSE_FROM floormat)
-else()
-    target_precompile_headers(${self}_o PRIVATE ../src/precomp.hpp)
-endif()
+#if(NOT MSVC)
+#    target_precompile_headers(${self}_o REUSE_FROM floormat)
+#else()
+#    target_precompile_headers(${self}_o PRIVATE ../src/precomp.hpp)
+#endif()

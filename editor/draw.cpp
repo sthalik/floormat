@@ -182,6 +182,7 @@ void app::draw_collision_boxes()
 
 void app::draw()
 {
+    do_lightmap_test();
     if (_render_bboxes)
         draw_collision_boxes();
     if (_editor.current_tile_editor() ||

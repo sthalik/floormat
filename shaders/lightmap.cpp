@@ -3,17 +3,21 @@
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
 #include "src/chunk.hpp"
-#include <Corrade/Utility/Move.h>
+#include "src/tile-bbox.hpp"
+#include "src/tile-atlas.hpp"
+#include "src/entity.hpp"
+#include <utility>
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
-#include <cmath>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Magnum.h>
+#include <Magnum/GL/Context.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
-#include "src/tile-bbox.hpp"
-#include "src/tile-atlas.hpp"
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/TextureFormat.h>
+#include <Magnum/DebugTools/Screenshot.h>
 
 #if defined __CLION_IDE__ || defined __clang__
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -23,24 +27,22 @@ namespace floormat {
 
 namespace {
 
-// todo add back drawing an 8x8 grid
+constexpr auto neighbor_count = 8;
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
-constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 
 constexpr auto clip_start = Vector2{-1, -1};
-constexpr auto clip_scale = 2/chunk_size;
+constexpr auto clip_scale = 2/(chunk_size * neighbor_count);
 
 constexpr auto shadow_wall_depth = 4.f;
 
-using Utility::forward;
-
-template<typename T>
-GL::Mesh make_light_mesh(T vert, T index)
+template<typename T, typename U>
+GL::Mesh make_light_mesh(T&& vert, U&& index)
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(forward<T>(vert), 0, lightmap_shader::Position{})
-        .setIndexBuffer(forward<T>(index), 0, GL::MeshIndexType::UnsignedShort)
+    mesh.addVertexBuffer(std::forward<T>(vert), 0, lightmap_shader::Position{})
+        .setIndexBuffer(std::forward<U>(index), 0, GL::MeshIndexType::UnsignedShort)
         .setCount(6);
     return mesh;
 }
@@ -55,13 +57,13 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.scratch
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGB8, size);
+        .setStorage(1, GL::TextureFormat::RGBA8, size);
 
     framebuffer.accum = GL::Texture2D{};
     framebuffer.accum
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGB8, size);
+        .setStorage(1, GL::TextureFormat::RGBA8, size);
 
     //framebuffer.depth = GL::Renderbuffer{};
     //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
@@ -72,9 +74,9 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
         .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
         //.clearDepth(0);
-        .clearColor(0, Color4{0, 0, 0, 1})
+        .clearColor(0, Color4{1, 0, 1, 1})
         .clearColor(1, Color4{0, 0, 0, 1});
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
+    //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
 
     using BF = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(0, BF::One, BF::Zero, BF::One, BF::Zero);
@@ -95,8 +97,6 @@ GL::Mesh lightmap_shader::make_occlusion_mesh()
 void lightmap_shader::begin_occlusion()
 {
     count = 0;
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
-    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
 }
 
 void lightmap_shader::end_occlusion()
@@ -176,14 +176,21 @@ lightmap_shader::lightmap_shader()
 
     framebuffer = make_framebuffer(image_size);
 
+    light_vertexes = {};
+    light_vertex_buf = GL::Buffer{light_vertexes, GL::BufferUsage::DynamicDraw};
+    light_mesh = make_light_mesh(light_vertex_buf, GL::Buffer{quad_indexes(0)});
+
+#if 0
     auto blend_vertexes = std::array<Vector3, 4>{{
         {  1, -1, 0 }, /* 3--1  1 */
         {  1,  1, 0 }, /* | /  /| */
         { -1, -1, 0 }, /* |/  / | */
         { -1,  1, 0 }, /* 2  2--0 */
     }};
-    blend_mesh = make_light_mesh<GL::Buffer&&>(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
+    light_mesh = make_light_mesh<GL::Buffer&&>(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
+#endif
 
+    framebuffer.scratch.bind(TextureSampler);
     setUniform(SamplerUniform, TextureSampler);
     setUniform(LightColorUniform, Color3{1, 1, 1});
     setUniform(SizeUniform, Vector2(1));
@@ -203,7 +210,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
     };                                              /* 2  2--0 */
 }
 
-void lightmap_shader::add_light(const light_s& light)
+void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float I;
@@ -223,13 +230,15 @@ void lightmap_shader::add_light(const light_s& light)
     I *= tile_size;
     I = std::fmax(0.f, I);
 
-    auto center_fragcoord = light.center + chunk_offset; // window-relative coordinates
+    auto center_fragcoord = light.center + chunk_offset + neighbor_offset * chunk_size; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
     auto color = (Vector3{light.color.rgb()} / 255.f) * alpha;
 
-    setUniform(SamplerUniform, TextureSampler);
+    //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
+    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
+
     setUniform(LightColorUniform, color * alpha);
     setUniform(SizeUniform, 1 / chunk_size);
     setUniform(CenterFragcoordUniform, center_fragcoord);
@@ -237,28 +246,33 @@ void lightmap_shader::add_light(const light_s& light)
     setUniform(RangeUniform, I);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
 
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
-
     setUniform(ModeUniform, DrawLightmapMode);
-    AbstractShaderProgram::draw(blend_mesh);
+    const auto size = I * clip_scale;
+    light_vertexes = {{
+        {  size.x() + center_clip.x(), -size.y() + center_clip.y(), 0 },
+        {  size.x() + center_clip.x(),  size.y() + center_clip.y(), 0 },
+        { -size.x() + center_clip.x(), -size.y() + center_clip.y(), 0 },
+        { -size.x() + center_clip.x(),  size.y() + center_clip.y(), 0 },
+    }};
+    light_vertex_buf.setSubData(0, light_vertexes);
+    AbstractShaderProgram::draw(light_mesh);
 
-#if 1
     setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
-    setUniform(RangeUniform, 1 );
+    setUniform(RangeUniform, I);
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
     mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
     AbstractShaderProgram::draw(mesh_view);
-#endif
 
 #if 0
     setUniform(ModeUniform, BlendLightmapMode);
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
     AbstractShaderProgram::draw(blend_mesh);
 #endif
+
+    //DebugTools::screenshot(framebuffer.fb, "../../../screenshot.bmp");
 }
 
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
@@ -362,7 +376,7 @@ void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
 
 void lightmap_shader::bind()
 {
-    framebuffer.scratch.bind(TextureSampler);
+    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     framebuffer.fb.bind();
 }
 

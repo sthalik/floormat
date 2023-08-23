@@ -16,12 +16,15 @@ layout (location = 0) in vec3 position;
 
 void main() {
     vec2 pos = position.xy;
-    vec2 dir = pos - center_clip;
-    float len = length(dir);
-    if (len > 1e-6)
+    if (mode == 0)
     {
-        vec2 dir_norm = dir * (1/len);
-        pos += dir_norm * position.z * 4;
+        vec2 dir = pos - center_clip;
+        float len = length(dir);
+        if (len > 1e-6)
+        {
+            vec2 dir_norm = dir * (1/len);
+            pos += dir_norm * position.z * 4;
+        }
     }
     gl_Position = vec4(pos, 0, 1);
 }

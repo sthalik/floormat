@@ -115,6 +115,7 @@ private:
     void draw_clickables();
     void draw_light_info();
     void draw_lightmap_test();
+    void do_lightmap_test();
 
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
@@ -170,7 +171,6 @@ private:
     bool _render_clickables     : 1 = false;
     bool _render_vobjs          : 1 = true;
     bool _render_all_z_levels   : 1 = true;
-    bool _testing_light         : 1 = false;
 };
 
 } // namespace floormat

@@ -17,6 +17,7 @@ endif()
 if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
     target_link_libraries(${self} PUBLIC
         MagnumPlugins::StbImageImporter
+        Magnum::AnyImageConverter
         Magnum::TgaImporter
         tsl::robin_map
     )
@@ -25,8 +26,8 @@ if(WIN32)
     target_link_libraries(${self} PUBLIC ntdll)
 endif()
 
-if(NOT MSVC)
-    target_precompile_headers(${self} REUSE_FROM floormat)
-else()
-    target_precompile_headers(${self} PRIVATE ../src/precomp.hpp)
-endif()
+#if(NOT MSVC)
+#    target_precompile_headers(${self} REUSE_FROM floormat)
+#else()
+#    target_precompile_headers(${self} PRIVATE ../src/precomp.hpp)
+#endif()

@@ -8,6 +8,7 @@
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
+#include <Magnum/GL/Renderer.h>
 
 namespace floormat {
 
@@ -95,6 +96,8 @@ float app::draw_main_menu()
 
 void app::draw_ui()
 {
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
+
     const auto dpi = M->dpi_scale().min();
     [[maybe_unused]] const auto style_ = style_saver{};
     auto& style = ImGui::GetStyle();
@@ -114,8 +117,7 @@ void app::draw_ui()
 
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
 
-    if (_tested_light)
-        draw_lightmap_test();
+    draw_lightmap_test();
 
     if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
@@ -127,6 +129,8 @@ void app::draw_ui()
     draw_z_level();
     do_popup_menu();
     ImGui::EndFrame();
+
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
 }
 
 void app::draw_clickables()
@@ -202,25 +206,22 @@ void app::draw_light_info()
     }
 }
 
-void app::draw_lightmap_test()
+void app::do_lightmap_test()
 {
-    fm_debug_assert(_tested_light != 0);
+    if (!_tested_light)
+        return;
 
-    constexpr auto preview_size = ImVec2{512, 512};
-    ImGui::SetNextWindowSize(preview_size);
+    //GL::Renderer::setScissor({{}, M->window_size()}); // FIXME
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
 
     auto& w = M->world();
     auto e_ = w.find_entity(_tested_light);
 
-    auto b1 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
-
-    constexpr auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar;
-    bool is_open = true;
-
-    if (e_ && ImGui::Begin("Lightmap", &is_open, flags))
+    if (e_)
     {
+        auto& e = *e_;
         fm_assert(e_->type() == entity_type::light);
-        const auto& li = static_cast<const light&>(*e_);
+        const auto& li = static_cast<const light&>(e);
         light_s L {
             .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
             .dist = li.max_distance,
@@ -228,25 +229,36 @@ void app::draw_lightmap_test()
             .falloff = li.falloff,
         };
         auto& shader = M->lightmap_shader();
-        if (!_testing_light || true)
-        {
-            _testing_light = true;
-            shader.begin_occlusion();
-            shader.add_chunk(Vector2{}, e_->chunk()); // todo add neighbors
-            shader.end_occlusion();
-            shader.bind();
-            shader.add_light(L);
-            M->bind();
-        }
-        else
-            _testing_light = false;
-        //constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
-        ImGui::Image(&shader.scratch_texture(), preview_size, {0, 0}, {1, 1});
+        auto ch = Vector2(e.coord.chunk());
+        shader.begin_occlusion();
+        shader.add_chunk(ch, e.chunk()); // todo add neighbors
+        shader.end_occlusion();
+        shader.bind();
+        shader.add_light(ch, L);
         M->bind();
     }
-    else
-        _testing_light = false;
-    ImGui::End();
+}
+
+void app::draw_lightmap_test()
+{
+    if (!_tested_light)
+        return;
+
+    auto& shader = M->lightmap_shader();
+    bool is_open = true;
+    constexpr auto preview_size = ImVec2{512, 512};
+
+    ImGui::SetNextWindowSize(preview_size);
+
+    auto b1 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
+    constexpr auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar;
+
+    //constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
+    if (ImGui::Begin("Lightmap", &is_open, flags))
+    {
+        ImGui::Image(&shader.scratch_texture(), preview_size, {0, 0}, {1, 1});
+        ImGui::End();
+    }
     if (!is_open)
         _tested_light = 0;
 }

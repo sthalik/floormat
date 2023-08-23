@@ -47,7 +47,7 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     void add_geometry(Vector2 neighbor_offset, chunk& c);
     void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
-    void add_light(const light_s& light);
+    void add_light(Vector2 neighbor_offset, const light_s& light);
     void bind();
 
     GL::Texture2D& scratch_texture();
@@ -93,7 +93,9 @@ private:
     GL::Mesh occlusion_mesh{NoCreate};
     static constexpr auto starting_capacity = 1; // todo
 
-    GL::Mesh blend_mesh{NoCreate};
+    std::array<Vector3, 4> light_vertexes;
+    GL::Buffer light_vertex_buf{NoCreate};
+    GL::Mesh light_mesh{NoCreate};
 
     [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
 };
