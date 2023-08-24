@@ -43,17 +43,15 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     void begin_occlusion();
     void end_occlusion();
     void add_chunk(Vector2 neighbor_offset, chunk& c);
-    void add_entities(Vector2 neighbor_offset, chunk& c);
-    void add_geometry(Vector2 neighbor_offset, chunk& c);
-    void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
-    void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
     void add_light(Vector2 neighbor_offset, const light_s& light);
     void bind();
 
     GL::Texture2D& scratch_texture();
     GL::Texture2D& accum_texture();
 
-    static constexpr auto max_chunks = Vector2s(8, 8);
+    // todo allow 16 neighbors on new gpu's
+    static constexpr auto neighbor_count = 8;
+    static constexpr auto half_neighbors = Vector2(neighbor_count)/2;
 
     using Position = GL::Attribute<0, Vector3>;
 
@@ -84,7 +82,12 @@ private:
     GL::Mesh make_occlusion_mesh();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
 
-    // todo use setData() and a boolean flag on capacity change
+    void add_entities(Vector2 neighbor_offset, chunk& c);
+    void add_geometry(Vector2 neighbor_offset, chunk& c);
+    void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
+    void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
+    [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
+
     GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate};
     Array<std::array<Vector3, 4>> vertexes; // todo make a contiguous allocation
     Array<std::array<UnsignedShort, 6>> indexes;
@@ -96,8 +99,6 @@ private:
     std::array<Vector3, 4> light_vertexes;
     GL::Buffer light_vertex_buf{NoCreate};
     GL::Mesh light_mesh{NoCreate};
-
-    [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
 };
 
 } // namespace floormat

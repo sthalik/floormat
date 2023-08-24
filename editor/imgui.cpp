@@ -252,7 +252,7 @@ void app::draw_lightmap_test()
     //constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
     if (ImGui::Begin("Lightmap", &is_open, flags))
     {
-        ImGui::Image(&shader.scratch_texture(), preview_size, {0, 0}, {1, 1});
+        ImGui::Image(&shader.accum_texture(), preview_size, {0, 0}, {1, 1});
         ImGui::End();
     }
     if (!is_open)

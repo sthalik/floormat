@@ -27,7 +27,8 @@ namespace floormat {
 
 namespace {
 
-constexpr auto neighbor_count = 8;
+constexpr auto neighbor_count = lightmap_shader::neighbor_count;
+
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
 constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
@@ -75,7 +76,7 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
         //.clearDepth(0);
         .clearColor(0, Color4{1, 0, 1, 1})
-        .clearColor(1, Color4{0, 0, 0, 1});
+        .clearColor(1, Color4{0, 1, 0, 1});
     //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
 
     using BF = Magnum::GL::Renderer::BlendFunction;
@@ -117,6 +118,8 @@ void lightmap_shader::end_occlusion()
         vertex_buf.setSubData(0, vertexes.prefix(count));
         index_buf.setSubData(0, indexes.prefix(count));
     }
+
+    framebuffer.fb.clearColor(1, Color4{0, 0, 1, 1});
 }
 
 std::array<Vector3, 4>& lightmap_shader::alloc_rect()
@@ -212,6 +215,8 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
+    neighbor_offset += half_neighbors;
+
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float I;
 
@@ -236,11 +241,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     float alpha = light.color.a() / 255.f;
     auto color = (Vector3{light.color.rgb()} / 255.f) * alpha;
 
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
 
     setUniform(LightColorUniform, color * alpha);
-    setUniform(SizeUniform, 1 / chunk_size);
+    setUniform(SizeUniform, 1 / (chunk_size * neighbor_count));
     setUniform(CenterFragcoordUniform, center_fragcoord);
     setUniform(CenterClipUniform, center_clip);
     setUniform(RangeUniform, I);
@@ -323,6 +327,8 @@ void lightmap_shader::add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> m
 
 void lightmap_shader::add_chunk(Vector2 neighbor_offset, chunk& c)
 {
+    neighbor_offset += half_neighbors;
+
     add_geometry(neighbor_offset, c);
     add_entities(neighbor_offset, c);
 }
