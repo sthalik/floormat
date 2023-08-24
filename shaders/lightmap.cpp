@@ -10,14 +10,12 @@
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
 #include <Corrade/Containers/ArrayViewStl.h>
-#include <Magnum/Magnum.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
-#include <Magnum/DebugTools/Screenshot.h>
 
 #if defined __CLION_IDE__ || defined __clang__
 #pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -76,12 +74,12 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
         //.clearDepth(0);
         .clearColor(0, Color4{1, 0, 1, 1})
-        .clearColor(1, Color4{0, 1, 0, 1});
-    //framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
+        .clearColor(1, Color4{0, 0, 0, 1});
 
-    using BF = Magnum::GL::Renderer::BlendFunction;
-    GL::Renderer::setBlendFunction(0, BF::One, BF::Zero, BF::One, BF::Zero);
-    GL::Renderer::setBlendFunction(1, BF::One, BF::One, BF::One, BF::One);
+    framebuffer.fb.mapForDraw({
+        { 0u, GL::Framebuffer::ColorAttachment{0} },
+        { 1u, GL::Framebuffer::ColorAttachment{1} },
+    });
 
     return framebuffer;
 }
@@ -118,8 +116,6 @@ void lightmap_shader::end_occlusion()
         vertex_buf.setSubData(0, vertexes.prefix(count));
         index_buf.setSubData(0, indexes.prefix(count));
     }
-
-    framebuffer.fb.clearColor(1, Color4{0, 0, 1, 1});
 }
 
 std::array<Vector3, 4>& lightmap_shader::alloc_rect()
@@ -259,11 +255,13 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         { -size.x() + center_clip.x(),  size.y() + center_clip.y(), 0 },
     }};
     light_vertex_buf.setSubData(0, light_vertexes);
+
     AbstractShaderProgram::draw(light_mesh);
 
     setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
     setUniform(RangeUniform, I);
+
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
@@ -271,10 +269,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     AbstractShaderProgram::draw(mesh_view);
 
     setUniform(ModeUniform, BlendLightmapMode);
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{1});
     AbstractShaderProgram::draw(light_mesh);
-
-    //DebugTools::screenshot(framebuffer.fb, "../../../screenshot.bmp");
 }
 
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
@@ -380,15 +375,18 @@ void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
 
 void lightmap_shader::bind()
 {
-    framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     framebuffer.fb.bind();
-    GL::Renderer::setScissor({{}, {(int)1e6, (int)1e6}});
+    GL::Renderer::setScissor({{}, image_size});
+    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
+    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
+    GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::Zero);
+    GL::Renderer::setBlendFunction(1, BlendFunction::One, BlendFunction::One);
 }
 
-GL::Texture2D& lightmap_shader::scratch_texture()
+void lightmap_shader::finish() // NOLINT(*-convert-member-functions-to-static)
 {
-    fm_debug_assert(framebuffer.scratch.id());
-    return framebuffer.scratch;
+    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
+    GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
 }
 
 GL::Texture2D& lightmap_shader::accum_texture()

@@ -171,6 +171,8 @@ endif()
 
 if(MSVC)
     add_compile_options(-GR-)
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
 fm_run_hook(fm-userconfig-src)

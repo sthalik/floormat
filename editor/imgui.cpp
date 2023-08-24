@@ -217,20 +217,54 @@ void app::do_lightmap_test()
     {
         auto& e = *e_;
         fm_assert(e_->type() == entity_type::light);
-        const auto& li = static_cast<const light&>(e);
-        light_s L {
-            .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
-            .dist = li.max_distance,
-            .color = li.color,
-            .falloff = li.falloff,
-        };
         auto& shader = M->lightmap_shader();
-        auto ch = Vector2(e.coord.chunk());
+        auto ch = e.coord.chunk();
+        auto z = e.coord.z();
+        constexpr auto ns = lightmap_shader::neighbor_count;
+
         shader.begin_occlusion();
-        shader.add_chunk(ch, e.chunk()); // todo add neighbors
+
+#if 1
+        for (int j = ch.y - ns; j < ch.y + ns; j++)
+            for (int i = ch.x - ns; i < ch.x + ns; i++)
+            {
+                auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+                if (auto* chunk = w.at(c))
+                {
+                    auto offset = Vector2(Vector2i(c.x) - Vector2i(ch));
+                    shader.add_chunk(offset, *chunk);
+                }
+            }
+#endif
+
         shader.end_occlusion();
         shader.bind();
-        shader.add_light(ch, L);
+
+        for (int j = ch.y - ns; j < ch.y + ns; j++)
+            for (int i = ch.x - ns; i < ch.x + ns; i++)
+            {
+                auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+                if (auto* chunk = w.at(c))
+                {
+                    auto offset = Vector2(Vector2i(c.x) - Vector2i(ch));
+                    for (const auto& e_ : chunk->entities())
+                    {
+                        if (e_->type() == entity_type::light)
+                        {
+                            const auto& li = static_cast<const light&>(*e_);
+                            light_s L {
+                                .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
+                                .dist = li.max_distance,
+                                .color = li.color,
+                                .falloff = li.falloff,
+                            };
+                            shader.add_light(offset, L);
+                        }
+                    }
+                }
+            }
+
+        shader.finish();
         M->bind();
     }
 }

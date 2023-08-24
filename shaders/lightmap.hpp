@@ -45,8 +45,8 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     void add_chunk(Vector2 neighbor_offset, chunk& c);
     void add_light(Vector2 neighbor_offset, const light_s& light);
     void bind();
+    void finish();
 
-    GL::Texture2D& scratch_texture();
     GL::Texture2D& accum_texture();
 
     // todo allow 16 neighbors on new gpu's
@@ -57,14 +57,14 @@ struct lightmap_shader final : GL::AbstractShaderProgram
 
 private:
     enum : Int {
-        SamplerUniform         = 0,
-        LightColorUniform      = 1,
-        SizeUniform            = 2,
-        CenterFragcoordUniform = 3,
-        CenterClipUniform      = 4,
-        RangeUniform           = 5,
-        ModeUniform            = 6,
-        FalloffUniform         = 7,
+        SamplerUniform         = 2,
+        LightColorUniform      = 3,
+        SizeUniform            = 4,
+        CenterFragcoordUniform = 5,
+        CenterClipUniform      = 6,
+        RangeUniform           = 7,
+        ModeUniform            = 8,
+        FalloffUniform         = 9,
     };
 
     enum : Int {

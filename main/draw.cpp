@@ -50,12 +50,12 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     // -- state ---
     glEnable(GL_LINE_SMOOTH);
     using BlendEquation   = GL::Renderer::BlendEquation;
-    using BF   = GL::Renderer::BlendFunction;
+    using BlendFunction   = GL::Renderer::BlendFunction;
     using DepthFunction   = GL::Renderer::DepthFunction;
     using ProvokingVertex = GL::Renderer::ProvokingVertex;
     using Feature         = GL::Renderer::Feature;
     GL::Renderer::setBlendEquation(BlendEquation::Add, BlendEquation::Add);
-    GL::Renderer::setBlendFunction(BF::SourceAlpha, BF::OneMinusSourceAlpha);
+    GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
     GL::Renderer::disable(Feature::FaceCulling);
     GL::Renderer::disable(Feature::DepthTest);
     GL::Renderer::enable(Feature::Blending);
