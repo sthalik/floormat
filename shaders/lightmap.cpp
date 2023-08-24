@@ -113,8 +113,11 @@ void lightmap_shader::end_occlusion()
     {
         if (!occlusion_mesh.id())
             occlusion_mesh = make_occlusion_mesh();
-        vertex_buf.setSubData(0, vertexes.prefix(count));
-        index_buf.setSubData(0, indexes.prefix(count));
+        if (count > 0)
+        {
+            vertex_buf.setSubData(0, vertexes.prefix(count));
+            index_buf.setSubData(0, indexes.prefix(count));
+        }
     }
 }
 
@@ -249,7 +252,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
-    mesh_view.setIndexRange(0, 0, uint32_t(count*6 - 1));
     AbstractShaderProgram::draw(mesh_view);
 
     setUniform(ModeUniform, BlendLightmapMode);
