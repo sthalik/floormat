@@ -82,11 +82,6 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .clearColor(0, Color4{1, 0, 1, 1})
         .clearColor(1, Color4{0, 0, 0, 1});
 
-    framebuffer.fb.mapForDraw({
-        { 0u, GL::Framebuffer::ColorAttachment{0} },
-        { 1u, GL::Framebuffer::ColorAttachment{1} },
-    });
-
     return framebuffer;
 }
 
@@ -240,7 +235,9 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     float alpha = light.color.a() / 255.f;
     auto color = (Vector3{light.color.rgb()} / 255.f) * alpha;
 
-    framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
+    framebuffer.fb.mapForDraw({
+        { 0u, GL::Framebuffer::ColorAttachment{0} },
+    });
 
     setUniform(LightColorUniform, color * alpha);
     setUniform(SizeUniform, Vector2(1) / real_image_size);
@@ -258,6 +255,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
     AbstractShaderProgram::draw(mesh_view);
+
+    framebuffer.fb.mapForDraw({
+        { 1u, GL::Framebuffer::ColorAttachment{1} },
+    });
 
     setUniform(ModeUniform, BlendLightmapMode);
     AbstractShaderProgram::draw(light_mesh);
