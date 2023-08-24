@@ -25,8 +25,8 @@ namespace floormat {
 
 namespace {
 
-constexpr float fuzz_pixels = 32;
-constexpr float shadow_wall_depth = 4;
+constexpr float fuzz_pixels = 16;
+constexpr float shadow_wall_depth = 8;
 constexpr float real_image_size = 1024;
 
 constexpr auto neighbor_count = lightmap_shader::neighbor_count;

@@ -19,12 +19,7 @@ void main() {
     if (mode == 0)
     {
         vec2 dir = pos - center_clip;
-        float len = length(dir);
-        if (len > 1e-6)
-        {
-            vec2 dir_norm = dir * (1/len);
-            pos += dir_norm * position.z * 4;
-        }
+        pos += dir * position.z * 1e4;
     }
     gl_Position = vec4(pos, 0, 1);
 }
