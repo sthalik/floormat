@@ -96,8 +96,6 @@ float app::draw_main_menu()
 
 void app::draw_ui()
 {
-    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
-
     const auto dpi = M->dpi_scale().min();
     [[maybe_unused]] const auto style_ = style_saver{};
     auto& style = ImGui::GetStyle();
@@ -129,8 +127,6 @@ void app::draw_ui()
     draw_z_level();
     do_popup_menu();
     ImGui::EndFrame();
-
-    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
 }
 
 void app::draw_clickables()

@@ -376,6 +376,7 @@ void lightmap_shader::bind()
 {
     framebuffer.fb.mapForDraw(GL::Framebuffer::ColorAttachment{0});
     framebuffer.fb.bind();
+    GL::Renderer::setScissor({{}, {(int)1e6, (int)1e6}});
 }
 
 GL::Texture2D& lightmap_shader::scratch_texture()
