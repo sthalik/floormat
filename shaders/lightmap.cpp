@@ -258,6 +258,28 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     AbstractShaderProgram::draw(light_mesh);
 }
 
+void lightmap_shader::bind()
+{
+    framebuffer.fb.bind();
+    GL::Renderer::setScissor({{}, image_size});
+    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
+    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
+    GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::Zero);
+    GL::Renderer::setBlendFunction(1, BlendFunction::One, BlendFunction::One);
+}
+
+void lightmap_shader::finish() // NOLINT(*-convert-member-functions-to-static)
+{
+    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
+    GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
+}
+
+GL::Texture2D& lightmap_shader::accum_texture()
+{
+    fm_debug_assert(framebuffer.accum.id());
+    return framebuffer.accum;
+}
+
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
 {
     auto off = neighbor_offset*chunk_size + chunk_offset;
@@ -357,28 +379,6 @@ void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
 
         add_rect(neighbor_offset, min, max);
     }
-}
-
-void lightmap_shader::bind()
-{
-    framebuffer.fb.bind();
-    GL::Renderer::setScissor({{}, image_size});
-    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
-    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
-    GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::Zero);
-    GL::Renderer::setBlendFunction(1, BlendFunction::One, BlendFunction::One);
-}
-
-void lightmap_shader::finish() // NOLINT(*-convert-member-functions-to-static)
-{
-    using BlendFunction = Magnum::GL::Renderer::BlendFunction;
-    GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
-}
-
-GL::Texture2D& lightmap_shader::accum_texture()
-{
-    fm_debug_assert(framebuffer.accum.id());
-    return framebuffer.accum;
 }
 
 bool light_s::operator==(const light_s&) const noexcept = default;
