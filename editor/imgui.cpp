@@ -207,9 +207,6 @@ void app::do_lightmap_test()
     if (!_tested_light)
         return;
 
-    //GL::Renderer::setScissor({{}, M->window_size()}); // FIXME
-    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
-
     auto& w = M->world();
     auto e_ = w.find_entity(_tested_light);
 
