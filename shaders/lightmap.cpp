@@ -25,16 +25,20 @@ namespace floormat {
 
 namespace {
 
+constexpr float fuzz_pixels = 32;
+constexpr float shadow_wall_depth = 4;
+constexpr float real_image_size = 1024;
+
 constexpr auto neighbor_count = lightmap_shader::neighbor_count;
+constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
-constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/image_size;
 
-constexpr auto shadow_wall_depth = 4.f;
+constexpr auto image_size_ratio = real_image_size / image_size;
 
 template<typename T, typename U>
 GL::Mesh make_light_mesh(T&& vert, U&& index)
@@ -56,13 +60,15 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.scratch
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGBA8, size);
+        .setStorage(1, GL::TextureFormat::RGBA8, size)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest);
 
     framebuffer.accum = GL::Texture2D{};
     framebuffer.accum
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
-        .setStorage(1, GL::TextureFormat::RGBA8, size);
+        .setStorage(1, GL::TextureFormat::RGBA8, size)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest);
 
     //framebuffer.depth = GL::Renderbuffer{};
     //framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, size);
@@ -176,7 +182,7 @@ lightmap_shader::lightmap_shader()
     attachShaders({vert, frag});
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    framebuffer = make_framebuffer(Vector2i(image_size));
+    framebuffer = make_framebuffer(Vector2i((int)real_image_size));
 
     auto blend_vertexes = std::array<Vector3, 4>{{
         {  1, -1, 0 }, /* 3--1  1 */
@@ -211,22 +217,22 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     neighbor_offset += half_neighbors;
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
-    float I;
+    float range;
 
     switch (light.falloff)
     {
     default:
     case light_falloff::constant:
-        I = TILE_MAX_DIM;
+        range = TILE_MAX_DIM;
         break;
     case light_falloff::linear:
     case light_falloff::quadratic:
-        I = light.dist;
+        range = light.dist;
         break;
     }
 
-    I *= tile_size;
-    I = std::fmax(0.f, I);
+    range *= tile_size;
+    range = std::fmax(0.f, range);
 
     auto center_fragcoord = light.center + chunk_offset + neighbor_offset * chunk_size; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
@@ -237,10 +243,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
 
     setUniform(LightColorUniform, color * alpha);
-    setUniform(SizeUniform, 1 / image_size);
-    setUniform(CenterFragcoordUniform, center_fragcoord);
+    setUniform(SizeUniform, Vector2(1) / real_image_size);
+    setUniform(CenterFragcoordUniform, center_fragcoord * image_size_ratio);
     setUniform(CenterClipUniform, center_clip);
-    setUniform(RangeUniform, I);
+    setUniform(RangeUniform, range * image_size_ratio.sum()/2);
     setUniform(FalloffUniform, (uint32_t)light.falloff);
 
     setUniform(ModeUniform, DrawLightmapMode);
@@ -248,7 +254,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 
     setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
-    setUniform(RangeUniform, I);
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
@@ -343,14 +348,19 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
         auto t = c[i];
         if (auto atlas = t.ground_atlas())
             if (atlas->pass_mode(pass_mode::pass) == pass_mode::blocked)
-                add_rect(neighbor_offset, whole_tile(i));
+            {
+                auto [min, max] = whole_tile(i);
+                constexpr auto fuzz = Vector2(fuzz_pixels, fuzz_pixels), fuzz2 = fuzz*2;
+                add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
+            }
         if (auto atlas = t.wall_north_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
             {
                 auto start = tile_start(i);
                 auto min = start - Vector2(0, shadow_wall_depth),
                      max = start + Vector2(TILE_SIZE2[0], 0);
-                add_rect(neighbor_offset, {min, max});
+                constexpr auto fuzz = Vector2(fuzz_pixels, 0), fuzz2 = fuzz*2;
+                add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
             }
         if (auto atlas = t.wall_west_atlas())
             if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
@@ -358,7 +368,8 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
                 auto start = tile_start(i);
                 auto min = start - Vector2(shadow_wall_depth, 0),
                      max = start + Vector2(0, TILE_SIZE[1]);
-                add_rect(neighbor_offset, {min, max});
+                constexpr auto fuzz = Vector2(0, fuzz_pixels), fuzz2 = fuzz*2;
+                add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
             }
     }
 }
