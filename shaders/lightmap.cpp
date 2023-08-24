@@ -29,10 +29,10 @@ constexpr auto neighbor_count = lightmap_shader::neighbor_count;
 
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto chunk_offset = TILE_SIZE2/2;
-constexpr auto image_size   = iTILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
+constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 
 constexpr auto clip_start = Vector2{-1, -1};
-constexpr auto clip_scale = 2/(chunk_size * neighbor_count);
+constexpr auto clip_scale = 2/image_size;
 
 constexpr auto shadow_wall_depth = 4.f;
 
@@ -176,7 +176,7 @@ lightmap_shader::lightmap_shader()
     attachShaders({vert, frag});
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    framebuffer = make_framebuffer(image_size);
+    framebuffer = make_framebuffer(Vector2i(image_size));
 
     auto blend_vertexes = std::array<Vector3, 4>{{
         {  1, -1, 0 }, /* 3--1  1 */
@@ -237,7 +237,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
 
     setUniform(LightColorUniform, color * alpha);
-    setUniform(SizeUniform, 1 / (chunk_size * neighbor_count));
+    setUniform(SizeUniform, 1 / image_size);
     setUniform(CenterFragcoordUniform, center_fragcoord);
     setUniform(CenterClipUniform, center_clip);
     setUniform(RangeUniform, I);
@@ -261,7 +261,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 void lightmap_shader::bind()
 {
     framebuffer.fb.bind();
-    GL::Renderer::setScissor({{}, image_size});
+    GL::Renderer::setScissor({{}, Vector2i(image_size)});
     framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::Zero);

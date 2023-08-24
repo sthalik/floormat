@@ -2,7 +2,7 @@ precision mediump float;
 
 layout (location = 2) uniform sampler2D sampler0;
 layout (location = 3) uniform vec3 light_color;
-layout (location = 4) uniform vec2 size;
+layout (location = 4) uniform vec2 scale;
 layout (location = 5) uniform vec2 center_fragcoord;
 layout (location = 6) uniform vec2 center_clip;
 layout (location = 7) uniform float range;
@@ -32,7 +32,7 @@ void main() {
     }
     else if (mode == 2) // blend
     {
-        color1 = texture(sampler0, gl_FragCoord.xy * size);
+        color1 = texture(sampler0, gl_FragCoord.xy * scale);
     }
     else if (mode == 0) // shadows
     {
