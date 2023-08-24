@@ -224,7 +224,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     {
     default:
     case light_falloff::constant:
-        I = TILE_MAX_DIM * 3;
+        I = TILE_MAX_DIM;
         break;
     case light_falloff::linear:
     case light_falloff::quadratic:
