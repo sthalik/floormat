@@ -96,7 +96,6 @@ private:
     GL::Mesh occlusion_mesh{NoCreate};
     static constexpr auto starting_capacity = 1; // todo
 
-    std::array<Vector3, 4> light_vertexes;
     GL::Buffer light_vertex_buf{NoCreate};
     GL::Mesh light_mesh{NoCreate};
 };

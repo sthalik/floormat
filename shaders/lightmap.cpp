@@ -175,19 +175,13 @@ lightmap_shader::lightmap_shader()
 
     framebuffer = make_framebuffer(image_size);
 
-    light_vertexes = {};
-    light_vertex_buf = GL::Buffer{light_vertexes, GL::BufferUsage::DynamicDraw};
-    light_mesh = make_light_mesh(light_vertex_buf, GL::Buffer{quad_indexes(0)});
-
-#if 0
     auto blend_vertexes = std::array<Vector3, 4>{{
         {  1, -1, 0 }, /* 3--1  1 */
         {  1,  1, 0 }, /* | /  /| */
         { -1, -1, 0 }, /* |/  / | */
         { -1,  1, 0 }, /* 2  2--0 */
     }};
-    light_mesh = make_light_mesh<GL::Buffer&&>(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
-#endif
+    light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
 
     framebuffer.scratch.bind(TextureSampler);
     setUniform(SamplerUniform, TextureSampler);
@@ -247,21 +241,11 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     setUniform(FalloffUniform, (uint32_t)light.falloff);
 
     setUniform(ModeUniform, DrawLightmapMode);
-    const auto size = I * clip_scale;
-    light_vertexes = {{
-        {  size.x() + center_clip.x(), -size.y() + center_clip.y(), 0 },
-        {  size.x() + center_clip.x(),  size.y() + center_clip.y(), 0 },
-        { -size.x() + center_clip.x(), -size.y() + center_clip.y(), 0 },
-        { -size.x() + center_clip.x(),  size.y() + center_clip.y(), 0 },
-    }};
-    light_vertex_buf.setSubData(0, light_vertexes);
-
     AbstractShaderProgram::draw(light_mesh);
 
     setUniform(ModeUniform, DrawShadowsMode);
     setUniform(LightColorUniform, Color3{0, 0, 0});
     setUniform(RangeUniform, I);
-
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
