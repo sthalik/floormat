@@ -9,6 +9,7 @@
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
 #include <Magnum/GL/Renderer.h>
+#include <imgui.h>
 
 namespace floormat {
 
@@ -115,7 +116,7 @@ void app::draw_ui()
 
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
 
-    draw_lightmap_test();
+    draw_lightmap_test(main_menu_height);
 
     if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
@@ -264,21 +265,26 @@ void app::do_lightmap_test()
     }
 }
 
-void app::draw_lightmap_test()
+void app::draw_lightmap_test(float main_menu_height)
 {
     if (!_tested_light)
         return;
+
+    auto dpi = M->dpi_scale();
+    auto win_size = M->window_size();
+    auto window_pos = ImVec2(win_size.x() - 512, (main_menu_height + 1) * dpi.y());
 
     auto& shader = M->lightmap_shader();
     bool is_open = true;
     constexpr auto preview_size = ImVec2{512, 512};
 
-    ImGui::SetNextWindowSize(preview_size);
+    ImGui::SetNextWindowSize(preview_size, ImGuiCond_Appearing);
 
     auto b1 = push_style_var(ImGuiStyleVar_WindowPadding, {0, 0});
     constexpr auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar;
 
-    //constexpr auto img_size = 1 / Vector2(lightmap_shader::max_chunks);
+    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Appearing);
+
     if (ImGui::Begin("Lightmap", &is_open, flags))
     {
         ImGui::Image(&shader.accum_texture(), preview_size, {0, 0}, {1, 1});

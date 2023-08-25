@@ -114,7 +114,7 @@ private:
     void draw_collision_boxes();
     void draw_clickables();
     void draw_light_info();
-    void draw_lightmap_test();
+    void draw_lightmap_test(float main_menu_height);
     void do_lightmap_test();
 
     void draw_editor_pane(float main_menu_height);
