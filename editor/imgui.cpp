@@ -152,7 +152,7 @@ void app::draw_clickables()
 
 void app::draw_light_info()
 {
-    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto dpi = M->dpi_scale();
     constexpr float font_size = 12;
     const auto& style = ImGui::GetStyle();
@@ -168,9 +168,6 @@ void app::draw_light_info()
         {
             const auto dest = Math::Range2D<float>(x.dest);
             const auto& e = static_cast<const light&>(*x.e);
-
-            if (e.id == _popup_target.id) // TODO use z order instead
-                continue;
 
             StringView falloff;
             switch (e.falloff)
