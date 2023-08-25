@@ -20,7 +20,7 @@ struct TestAccessors {
 
 namespace floormat::entities {
 
-template<> struct entity_accessors<TestAccessors> {
+template<> struct entity_accessors<TestAccessors, inspect_intent_t> {
     static constexpr auto accessors()
     {
         using entity = Entity<TestAccessors>;
@@ -126,7 +126,7 @@ void test_erasure() {
 
 void test_metadata()
 {
-    constexpr auto m = entity_metadata<TestAccessors>();
+    constexpr auto m = entity_metadata<TestAccessors, inspect_intent_t>();
     static_assert(sizeof m == 1);
     fm_assert(m.class_name == name_of<TestAccessors>);
     fm_assert(m.class_name.contains("TestAccessors"_s));
@@ -160,7 +160,7 @@ void test_type_name()
     constexpr auto foo = entity::type<int>::field{"foo"_s, &TestAccessors::foo, nullptr};
     static_assert(foo.writer == nullptr);
     static_assert(!foo.can_write);
-    static_assert(std::get<0>(entity_accessors<TestAccessors>::accessors()).can_write);
+    static_assert(std::get<0>(entity_accessors<TestAccessors, inspect_intent_t>::accessors()).can_write);
 }
 
 void test_predicate()
@@ -185,7 +185,7 @@ void test_predicate()
 
 constexpr bool test_names()
 {
-    constexpr auto m = entity_metadata<TestAccessors>();
+    constexpr auto m = entity_metadata<TestAccessors, inspect_intent_t>();
     auto [foo1, bar1, baz1] = m.accessors;
     auto [foo2, bar2, baz2] = m.erased_accessors;
 

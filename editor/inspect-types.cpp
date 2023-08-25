@@ -16,7 +16,7 @@ namespace floormat::entities {
 using st = field_status;
 
 template<>
-struct entity_accessors<entity> {
+struct entity_accessors<entity, inspect_intent_t> {
     static constexpr auto accessors()
     {
         using E = Entity<entity>;
@@ -67,11 +67,11 @@ struct entity_accessors<entity> {
 };
 
 template<>
-struct entity_accessors<scenery> {
+struct entity_accessors<scenery, inspect_intent_t> {
     static constexpr auto accessors()
     {
         using E = Entity<scenery>;
-        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple0 = entity_accessors<entity, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
             E::type<bool>::field{"interactive"_s,
                 [](const scenery& x) { return x.interactive; },
@@ -153,15 +153,15 @@ struct enum_values<rotation, U>
     }
 };
 
-template<typename T>
-static bool inspect_type(T& x)
+template<typename T, typename Intent>
+static bool inspect_type(T& x, Intent)
 {
     size_t width = 0;
     visit_tuple([&](const auto& field) {
         const auto& name = field.name;
         auto width_ = (size_t)ImGui::CalcTextSize(name.cbegin(), name.cend()).x;
         width = std::max(width, width_);
-    }, entity_metadata<T>::accessors);
+    }, entity_metadata<T, Intent>::accessors);
 
     bool ret = false;
     visit_tuple([&](const auto& field) {
@@ -169,16 +169,16 @@ static bool inspect_type(T& x)
         using enum_type = enum_values<type, T>;
         const auto& list = enum_type::get(x);
         ret |= inspect_field<type>(&x, field.erased(), list, width);
-    }, entity_metadata<T>::accessors);
+    }, entity_metadata<T, Intent>::accessors);
     return ret;
 }
 
 template<>
-struct entity_accessors<character> {
+struct entity_accessors<character, inspect_intent_t> {
     static constexpr auto accessors()
     {
         using E = Entity<character>;
-        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple0 = entity_accessors<entity, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
             E::type<String>::field{"name"_s,
                                  [](const character& x) { return x.name; },
@@ -204,12 +204,12 @@ template<typename U> struct enum_values<light_falloff, U>
 };
 
 template<>
-struct entity_accessors<light>
+struct entity_accessors<light, inspect_intent_t>
 {
     static constexpr auto accessors()
     {
         using E = Entity<light>;
-        auto tuple0 = entity_accessors<entity>::accessors();
+        auto tuple0 = entity_accessors<entity, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
             E::type<Color4ub>::field{"color"_s,
                 [](const light& x) { return x.color; },
@@ -234,9 +234,9 @@ struct entity_accessors<light>
 };
 
 //template bool inspect_type(entity&);
-template bool inspect_type(scenery&);
-template bool inspect_type(character&);
-template bool inspect_type(light&);
+template bool inspect_type(scenery&, inspect_intent_t);
+template bool inspect_type(character&, inspect_intent_t);
+template bool inspect_type(light&, inspect_intent_t);
 
 bool inspect_entity_subtype(entity& x)
 {
@@ -244,9 +244,9 @@ bool inspect_entity_subtype(entity& x)
     {
     default: fm_warn_once("unknown entity subtype '%d'", (int)type); return false;
     //case entity_type::none: return inspect_type(x);
-    case entity_type::scenery: return inspect_type(static_cast<scenery&>(x));
-    case entity_type::character: return inspect_type(static_cast<character&>(x));
-    case entity_type::light: return inspect_type(static_cast<light&>(x));
+    case entity_type::scenery: return inspect_type(static_cast<scenery&>(x), inspect_intent_t{});
+    case entity_type::character: return inspect_type(static_cast<character&>(x), inspect_intent_t{});
+    case entity_type::light: return inspect_type(static_cast<light&>(x), inspect_intent_t{});
     }
 }
 

@@ -17,7 +17,11 @@
 
 namespace floormat::entities {
 
-template<typename T> struct entity_accessors;
+struct inspect_intent_t   {};
+struct serialize_intent_t {};
+struct report_intent_t    {};
+
+template<typename T, typename Intent> struct entity_accessors;
 
 } // namespace floormat::entities
 
@@ -248,7 +252,7 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
 
 namespace floormat {
 
-template<typename T>
+template<typename T, typename Intent>
 class entity_metadata final {
     static_assert(std::is_same_v<T, std::decay_t<T>>);
 
@@ -257,14 +261,14 @@ class entity_metadata final {
 
 public:
     static constexpr StringView class_name = name_of<T>;
-    static constexpr auto accessors = entities::entity_accessors<T>::accessors();
+    static constexpr auto accessors = entities::entity_accessors<T, Intent>::accessors();
     static constexpr size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
     static constexpr auto erased_accessors = erased_helper(accessors, std::make_index_sequence<size>{});
 };
 
-template<typename T>
+template<typename T, typename Intent>
 template<typename Tuple, std::size_t... Ns>
-consteval auto entity_metadata<T>::erased_helper(const Tuple& tuple, std::index_sequence<Ns...>)
+consteval auto entity_metadata<T, Intent>::erased_helper(const Tuple& tuple, std::index_sequence<Ns...>)
 {
     std::array<entities::erased_accessor, sizeof...(Ns)> array { std::get<Ns>(tuple).erased()..., };
     return array;
