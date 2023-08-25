@@ -228,7 +228,7 @@ void app::do_lightmap_test()
                 auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
                 if (auto* chunk = w.at(c))
                 {
-                    auto offset = Vector2(Vector2i(c.x) - Vector2i(ch));
+                    auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(ch));
                     shader.add_chunk(offset, *chunk);
                 }
             }
