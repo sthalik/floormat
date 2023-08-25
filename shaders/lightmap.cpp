@@ -45,6 +45,7 @@ constexpr auto half_neighbors = (int)poor_mans_ceil(neighbor_count/2.f);
 
 constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto chunk_offset = TILE_SIZE2/2;
 
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/image_size;
@@ -240,7 +241,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     range *= tile_size;
     range = std::fmax(0.f, range);
 
-    auto center_fragcoord = light.center + neighbor_offset * chunk_size; // window-relative coordinates
+    auto center_fragcoord = light.center + neighbor_offset * chunk_size + chunk_offset; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
@@ -304,7 +305,7 @@ int lightmap_shader::iter_bounds()
 
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
 {
-    auto off = neighbor_offset*chunk_size;
+    auto off = neighbor_offset*chunk_size + chunk_offset;
     min += off;
     max += off;
 
