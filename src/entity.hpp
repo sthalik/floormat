@@ -36,6 +36,7 @@ struct entity_proto
     entity_type type_of() const noexcept;
 };
 
+// todo rename to 'object'
 struct entity
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(entity);
