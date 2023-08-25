@@ -25,15 +25,26 @@ namespace floormat {
 
 namespace {
 
+template<typename T>
+constexpr T poor_mans_ceil(T x)
+{
+    static_assert(std::is_floating_point_v<T>);
+    const auto x0 = (int64_t)x;
+    if (x > x0)
+        return T(x0 + (int64_t)1);
+    else
+        return x0;
+}
+
+constexpr auto neighbor_count = 4;
 constexpr float fuzz_pixels = 16;
 constexpr float shadow_wall_depth = 8;
 constexpr float real_image_size = 1024;
 
-constexpr auto neighbor_count = lightmap_shader::neighbor_count;
-constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
+constexpr auto half_neighbors = (int)poor_mans_ceil(neighbor_count/2.f);
 
+constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
-constexpr auto chunk_offset = TILE_SIZE2/2;
 
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/image_size;
@@ -209,7 +220,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
-    neighbor_offset += half_neighbors;
+    neighbor_offset += Vector2((float)half_neighbors);
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float range;
@@ -229,7 +240,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     range *= tile_size;
     range = std::fmax(0.f, range);
 
-    auto center_fragcoord = light.center + chunk_offset + neighbor_offset * chunk_size; // window-relative coordinates
+    auto center_fragcoord = light.center + neighbor_offset * chunk_size; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
     float alpha = light.color.a() / 255.f;
@@ -286,9 +297,14 @@ GL::Texture2D& lightmap_shader::accum_texture()
     return framebuffer.accum;
 }
 
+int lightmap_shader::iter_bounds()
+{
+    return half_neighbors;
+}
+
 void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max)
 {
-    auto off = neighbor_offset*chunk_size + chunk_offset;
+    auto off = neighbor_offset*chunk_size;
     min += off;
     max += off;
 
@@ -336,7 +352,7 @@ void lightmap_shader::add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> m
 
 void lightmap_shader::add_chunk(Vector2 neighbor_offset, chunk& c)
 {
-    neighbor_offset += half_neighbors;
+    neighbor_offset += Vector2(half_neighbors);
 
     add_geometry(neighbor_offset, c);
     add_entities(neighbor_offset, c);

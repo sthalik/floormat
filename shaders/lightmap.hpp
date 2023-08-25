@@ -46,12 +46,9 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     void add_light(Vector2 neighbor_offset, const light_s& light);
     void bind();
     void finish();
+    static int iter_bounds();
 
     GL::Texture2D& accum_texture();
-
-    // todo allow 16 neighbors on new gpu's
-    static constexpr auto neighbor_count = 4;
-    static constexpr auto half_neighbors = Vector2(neighbor_count)/2;
 
     using Position = GL::Attribute<0, Vector3>;
 

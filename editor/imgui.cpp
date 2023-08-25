@@ -217,11 +217,10 @@ void app::do_lightmap_test()
         auto& shader = M->lightmap_shader();
         auto ch = e.coord.chunk();
         auto z = e.coord.z();
-        constexpr auto ns = lightmap_shader::neighbor_count;
+        const auto ns = shader.iter_bounds();
 
         shader.begin_occlusion();
 
-#if 1
         for (int j = ch.y - ns; j < ch.y + ns; j++)
             for (int i = ch.x - ns; i < ch.x + ns; i++)
             {
@@ -232,7 +231,6 @@ void app::do_lightmap_test()
                     shader.add_chunk(offset, *chunk);
                 }
             }
-#endif
 
         shader.end_occlusion();
         shader.bind();
