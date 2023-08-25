@@ -178,11 +178,6 @@ void app::draw_light_info()
             case light_falloff::quadratic: falloff = "quadratic"_s; break;
             }
 
-            // todo add rendering color as part of the lightbulb icon
-#if 0
-            char color[8];
-            snformat(color, "{:2X}{:2X}{:2X}"_cf, e.color.x(), e.color.y(), e.color.z());
-#endif
             char buf[128];
 
             if (e.falloff == light_falloff::constant)
@@ -192,10 +187,19 @@ void app::draw_light_info()
             auto text_size = ImGui::CalcTextSize(buf);
 
             float offy = dest.max().y() + 5 * dpi.y();
-            float offx = dest.min().x() + (dest.max().x() - dest.min().x())*.5f - text_size.x*.5f;
+            float offx = dest.min().x() + (dest.max().x() - dest.min().x())*.5f - text_size.x*.5f + 9*dpi.x()*.5f;
 
-            draw.AddRectFilled({offx-pad.x, offy-pad.y}, {offx + text_size.x + pad.x, offy + text_size.y + pad.y}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
+            constexpr auto inv_255 = 1.f/255;
+            auto color = Vector4(e.color)*inv_255 * e.color.a()*inv_255;
+            auto color_pad_y = 3 * dpi.y();
+
+            draw.AddRectFilled({offx-pad.x - 9 * dpi.x(), offy-pad.y},
+                               {offx + text_size.x + pad.x, offy + text_size.y + pad.y},
+                               ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
             draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), buf);
+            draw.AddRectFilled({offx-pad.x - 5 * dpi.x(), offy-pad.y + color_pad_y},
+                               {offx-pad.x + 0 * dpi.x(), offy-pad.y + text_size.y - color_pad_y},
+                               ImGui::ColorConvertFloat4ToU32({color.x(), color.y(), color.z(), 1}));
         }
     }
 }
