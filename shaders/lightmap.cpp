@@ -212,11 +212,7 @@ lightmap_shader::lightmap_shader()
 
 std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 {
-    using u16 = UnsignedShort;
-    return {                                        /* 3--1  1 */
-        (u16)(0+N*4), (u16)(1+N*4), (u16)(2+N*4),   /* | /  /| */
-        (u16)(2+N*4), (u16)(1+N*4), (u16)(3+N*4),   /* |/  / | */
-    };                                              /* 2  2--0 */
+    return tile_atlas::indices(N);
 }
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
