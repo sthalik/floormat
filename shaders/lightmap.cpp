@@ -170,7 +170,7 @@ std::array<Vector3, 4>& lightmap_shader::alloc_rect()
     }
 }
 
-lightmap_shader::lightmap_shader()
+lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
 {
     constexpr auto min_version = GL::Version::GL330;
     const auto version = GL::Context::current().version();
@@ -199,8 +199,8 @@ lightmap_shader::lightmap_shader()
     }};
     light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
 
-    framebuffer.scratch.bind(TextureSampler);
-    setUniform(SamplerUniform, TextureSampler);
+    //framebuffer.scratch.bind(TextureSampler);
+    setUniform(SamplerUniform, -1);
     setUniform(LightColorUniform, Color3{1, 1, 1});
     setUniform(SizeUniform, Vector2(1));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
@@ -264,10 +264,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     mesh_view.setCount((int32_t)count*6);
     AbstractShaderProgram::draw(mesh_view);
 
+    setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
     framebuffer.fb.mapForDraw({
         { 1u, GL::Framebuffer::ColorAttachment{1} },
     });
-
     setUniform(ModeUniform, BlendLightmapMode);
     AbstractShaderProgram::draw(light_mesh);
 }

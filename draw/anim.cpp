@@ -77,10 +77,9 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, st
         {
             fm_assert(i < size);
             GL::MeshView mesh{mesh_};
-            atlas.texture().bind(0);
             mesh.setCount((int)(quad_index_count * 1));
             mesh.setIndexRange((int)(x.mesh_idx*quad_index_count), 0, max_index);
-            shader.draw(mesh);
+            shader.draw(atlas.texture(), mesh);
             i++;
         }
         else
@@ -105,8 +104,7 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t 
     for (auto i = 0uz; i < 4; i++)
         array[i] = { pos[i], texcoords[i], depth };
     _vertex_buffer.setSubData(0, array);
-    atlas.texture().bind(0);
-    shader.draw(_mesh);
+    shader.draw(atlas.texture(), _mesh);
 }
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float depth)

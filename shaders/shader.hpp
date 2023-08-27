@@ -1,10 +1,13 @@
 #pragma once
 #include "tile-defs.hpp"
-#include <Corrade/Utility/Move.h>
+#include "shaders/texture-unit-cache.hpp"
+#include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
+
+namespace Magnum::GL { class AbstractTexture; }
 
 namespace floormat {
 
@@ -17,7 +20,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     using LightCoord         = GL::Attribute<2, Vector2>;
     using Depth              = GL::Attribute<3, float>;
 
-    explicit tile_shader();
+    explicit tile_shader(texture_unit_cache& tuc);
     ~tile_shader() override;
 
     Vector2 scale() const { return _scale; }
@@ -34,7 +37,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
 
-    template<typename T, typename... Xs> decltype(auto) draw(T&& mesh, Xs&&... xs);
+    template<typename T, typename... Xs> decltype(auto) draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
 
     static constexpr Vector2s max_screen_tiles = {8, 8};
     static constexpr float character_depth_offset = 1 + 1./64;
@@ -45,15 +48,21 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr float depth_tile_size = 1.f/(TILE_MAX_DIM * 2 * max_screen_tiles.product());
     static constexpr float foreshortening_factor = 0.578125f;
 
-private:
-    void _draw();
+    tile_shader& set_sampler(Int sampler);
+    Int sampler() const { return _sampler; }
 
+private:
+    void draw_pre(GL::AbstractTexture& tex);
+    void draw_post(GL::AbstractTexture& tex);
+
+    texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
     Vector2d _camera_offset;
     Vector4 _tint, _real_tint;
     Vector2 _scale;
     Vector3 _real_camera_offset;
     float _depth_offset = 0;
     bool _enable_lightmap : 1 = false;
+    Int _sampler = 0, _real_sampler;
 
     enum {
         ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
@@ -63,10 +72,12 @@ private:
 };
 
 template<typename T, typename... Xs>
-decltype(auto) tile_shader::draw(T&& mesh, Xs&&... xs)
+decltype(auto) tile_shader::draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs)
 {
-    _draw();
-    return GL::AbstractShaderProgram::draw(Utility::forward<T>(mesh), Utility::forward<Xs>(xs)...);
+    draw_pre(tex);
+    decltype(auto) ret = GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
+    draw_post(tex);
+    return ret;
 }
 
 template<typename T>

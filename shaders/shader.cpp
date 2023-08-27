@@ -12,7 +12,7 @@
 
 namespace floormat {
 
-tile_shader::tile_shader()
+tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
 {
     constexpr auto min_version = GL::Version::GL330;
     const auto version = GL::Context::current().version();
@@ -34,7 +34,7 @@ tile_shader::tile_shader()
     set_tint({1, 1, 1, 1});
     setUniform(OffsetUniform, Vector3(Vector2(_camera_offset), _depth_offset));
     setUniform(EnableLightmapUniform, _enable_lightmap);
-    setUniform(SamplerUniform, 0);
+    setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, 1);
 }
 
@@ -67,7 +67,13 @@ tile_shader& tile_shader::set_lightmap_enabled(bool value)
     return *this;
 }
 
-void tile_shader::_draw()
+tile_shader& tile_shader::set_sampler(Int sampler)
+{
+    _sampler = sampler;
+    return *this;
+}
+
+void tile_shader::draw_pre(GL::AbstractTexture& tex)
 {
     fm_assert(std::fabs(_camera_offset[0]) < 1 << 24 && std::fabs(_camera_offset[1]) < 1 << 24);
     fm_assert(std::fabs(_depth_offset) < 1 << 24);
@@ -75,12 +81,19 @@ void tile_shader::_draw()
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    if (const auto offset = Vector3(Vector2(_camera_offset), _depth_offset);
-        offset != _real_camera_offset)
-    {
-        _real_camera_offset = offset;
-        setUniform(OffsetUniform, offset);
-    }
+    const auto offset = Vector3(Vector2(_camera_offset), _depth_offset);
+    if (offset != _real_camera_offset)
+        setUniform(OffsetUniform, _real_camera_offset = offset);
+
+    auto id = tuc.bind(tex);
+    set_sampler(id);
+    if (_sampler != _real_sampler)
+        setUniform(SamplerUniform, _real_sampler = _sampler);
+}
+
+void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
+{
+    (void)tex;
 }
 
 float tile_shader::depth_value(const local_coords& xy, float offset) noexcept

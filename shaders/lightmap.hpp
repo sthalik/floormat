@@ -1,6 +1,7 @@
 #pragma once
 
 #include "light-falloff.hpp"
+#include "shaders/texture-unit-cache.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Optional.h>
@@ -15,6 +16,8 @@
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
+
+struct texture_unit_cache;
 
 struct light_s final
 {
@@ -31,7 +34,7 @@ struct chunk;
 
 struct lightmap_shader final : GL::AbstractShaderProgram
 {
-    explicit lightmap_shader();
+    explicit lightmap_shader(texture_unit_cache& tuc);
     ~lightmap_shader() override;
 
     struct Framebuffer final {
@@ -85,6 +88,7 @@ private:
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
     [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
 
+    texture_unit_cache& tuc;
     GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate};
     Array<std::array<Vector3, 4>> vertexes; // todo make a contiguous allocation
     Array<std::array<UnsignedShort, 6>> indexes;

@@ -9,7 +9,7 @@ namespace floormat {
 main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv) noexcept :
     Platform::Sdl2Application{Arguments{argc, argv},
                               make_conf(se), make_gl_conf(se)},
-    s{std::move(se)}, app{app}
+    s{std::move(se)}, app{app}, _shader{_tuc}
 {
     if (s.vsync)
     {

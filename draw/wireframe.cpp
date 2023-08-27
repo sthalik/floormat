@@ -50,8 +50,7 @@ mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_da
 
 void mesh_base::draw(tile_shader& shader)
 {
-    _texture->bind(0);
-    shader.draw(_mesh);
+    shader.draw(*_texture, _mesh);
 }
 
 void mesh_base::set_subdata(ArrayView<const void> array)

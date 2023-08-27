@@ -5,6 +5,7 @@
 #include "draw/floor.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
+#include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
@@ -94,12 +95,15 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void set_cursor(uint32_t cursor) noexcept override;
     uint32_t cursor() const noexcept override;
 
+    struct texture_unit_cache& texture_unit_cache() override { return _tuc; }
+
 private:
+    struct texture_unit_cache _tuc;
     fm_settings s;
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
-    struct lightmap_shader _lightmap_shader;
+    struct lightmap_shader _lightmap_shader{_tuc};
     std::vector<clickable> _clickable_scenery;
     struct world _world{};
     Magnum::Timeline timeline;
