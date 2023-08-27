@@ -181,7 +181,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
     add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
     add_compile_options(-Wno-shift-op-parentheses)
 elseif(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-Wno-subobject-linkage -Wno-parentheses)
+    add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
 endif()
 
 include_directories(.)

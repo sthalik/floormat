@@ -10,9 +10,3 @@ target_link_libraries(${self} PUBLIC
     fmt::fmt
     tsl::robin_map
 )
-
-if(NOT MSVC)
-    target_precompile_headers(${self} REUSE_FROM floormat)
-else()
-    target_precompile_headers(${self} PRIVATE ../src/precomp.hpp)
-endif()

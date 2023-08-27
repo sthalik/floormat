@@ -1,6 +1,7 @@
 #include "texture-unit-cache.hpp"
 
 #include "compat/assert.hpp"
+#include <Corrade/Containers/String.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
