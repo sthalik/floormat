@@ -13,6 +13,22 @@
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 
+namespace floormat {
+
+StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name)
+{
+    fm_soft_assert(!dir || dir[dir.size()-1] == '/');
+    auto name_noext = Path::splitExtension(name).first();
+    const auto dirsiz = dir.size(), namesiz = name_noext.size();
+    fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
+    std::memcpy(buf, dir.data(), dirsiz);
+    std::memcpy(&buf[dirsiz], name_noext.data(), namesiz);
+    buf[dirsiz + namesiz] = '\0';
+    return StringView{buf};
+}
+
+} // namespace floormat
+
 namespace floormat::loader_detail {
 
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size, Optional<pass_mode> pass) noexcept(false)

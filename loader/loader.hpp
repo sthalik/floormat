@@ -35,6 +35,7 @@ struct loader_
     static StringView strip_prefix(StringView name);
     virtual const vobj_info& vobj(StringView name) = 0;
     virtual ArrayView<struct vobj_info> vobj_list() = 0;
+    static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;
