@@ -10,15 +10,15 @@
 
 namespace floormat {
 
-tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile_count, Optional<enum pass_mode> p) :
+tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, Optional<enum pass_mode> p) :
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
-    name_{name}, size_{image.size()}, dims_{tile_count}, passability{std::move(p)}
+    path_{path}, name_{name}, size_{image.size()}, dims_{tile_count}, passability{std::move(p)}
 {
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(dims_[0] > 0 && dims_[1] > 0);
     fm_soft_assert(size_ % Vector2ui{tile_count} == Vector2ui());
-    tex_.setLabel(name_)
+    tex_.setLabel(path_)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)

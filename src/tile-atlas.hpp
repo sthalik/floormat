@@ -15,7 +15,7 @@ struct tile_atlas final
     using quad = std::array<Vector3, 4>;
     using texcoords = std::array<Vector2, 4>;
 
-    tile_atlas(StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
+    tile_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
     texcoords texcoords_for_id(size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
@@ -37,7 +37,7 @@ private:
 
     std::unique_ptr<const texcoords[]> texcoords_;
     GL::Texture2D tex_;
-    String name_;
+    String path_, name_;
     Vector2ui size_;
     Vector2ub dims_;
     Optional<enum pass_mode> passability;

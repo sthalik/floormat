@@ -37,7 +37,11 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
         return it->second;
 
     fm_soft_assert(check_atlas_name(name));
-    auto atlas = std::make_shared<struct tile_atlas>(name, texture(IMAGE_PATH, name), size, pass);
+
+    char buf[FILENAME_MAX];
+    auto path = make_atlas_path(buf, IMAGE_PATH, name);
+
+    auto atlas = std::make_shared<struct tile_atlas>(path, name, texture(""_s, path), size, pass);
     tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
