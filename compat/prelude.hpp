@@ -1,40 +1,22 @@
 #pragma once
 #include "integer-types.hpp"
-#include "literals.hpp"
+#include <type_traits>
+#include <Corrade/Containers/Containers.h>
+#include <Corrade/Utility/Macros.h>
+#include <Magnum/Magnum.h>
 
-#if 0
-namespace floormat {
+#if !(defined __cpp_size_t_suffix || defined _MSC_VER && _MSVC_LANG < 202004)
 #ifdef _MSC_VER
-#if defined _WIN64
-typedef unsigned __int64   size_t;
+#pragma system_header
 #else
-typedef unsigned int       size_t;
+#pragma GCC system_header
 #endif
-#else
-typedef __SIZE_TYPE__      size_t;
+consteval auto operator""uz(unsigned long long int x) { return ::floormat::size_t(x); }
 #endif
-} // namespace floormat
-#endif
-
-namespace Corrade::Containers {
-
-class String;
-template<typename T> class BasicStringView;
-using StringView = BasicStringView<const char>;
-
-template<typename T> class ArrayView;
-
-} // namespace Corrade::Containers
 
 namespace Corrade::Containers::Literals {}
 namespace Corrade::Utility::Path {}
-namespace Corrade::Utility { class Debug; class Error; }
 namespace Magnum::Math::Literals {}
-namespace Magnum::Math {
-template<typename T> class Vector2;
-template<typename T> class Vector3;
-template<typename T> class Vector4;
-} // namespace Magnum::Math
 
 namespace floormat {
     using namespace ::Magnum;
