@@ -26,7 +26,7 @@ struct character final : entity
     entity_type type() const noexcept override;
     explicit operator character_proto() const;
 
-    bool update(size_t i, float dt) override;
+    void update(size_t i, float dt) override;
     void set_keys(bool L, bool R, bool U, bool D);
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;

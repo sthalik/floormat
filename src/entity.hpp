@@ -66,7 +66,7 @@ struct entity
     virtual entity_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual bool update(size_t i, float dt) = 0;
+    virtual void update(size_t i, float dt) = 0;
     virtual void rotate(size_t i, rotation r);
     virtual bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     virtual bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);

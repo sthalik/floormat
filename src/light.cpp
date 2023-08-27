@@ -55,7 +55,7 @@ light::operator light_proto() const
 }
 
 entity_type light::type() const noexcept { return entity_type::light; }
-bool light::update(size_t, float) { return false; }
+void light::update(size_t, float) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 

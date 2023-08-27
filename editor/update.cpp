@@ -225,7 +225,7 @@ void app::update_world(float dt)
                 const auto& es = c.entities();
                 const auto size = es.size();
                 for (auto i = size-1; i != (size_t)-1; i--)
-                    (void)es[i]->update(i, dt);
+                    es[i]->update(i, dt);
             }
 }
 

@@ -143,19 +143,19 @@ Vector2 character::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-bool character::update(size_t i, float dt)
+void character::update(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
     if (new_r == rotation{rotation_COUNT})
     {
         delta = 0;
-        return false;
+        return;
     }
 
     int nframes = allocate_frame_time(dt);
 
     if (nframes == 0)
-        return false;
+        return;
 
     auto [_0, _1, _2] = rotation_to_similar(r);
     const Vector2 move_vecs[] = {
@@ -164,7 +164,6 @@ bool character::update(size_t i, float dt)
         move_vec(rotation_to_vec(_2)),
     };
 
-    bool ret = false;
 
     if (r != new_r)
         if (is_dynamic())
@@ -184,7 +183,7 @@ bool character::update(size_t i, float dt)
             auto off_i = Vector2i(offset_);
             if (can_move_to(off_i))
             {
-                ret |= move_to(i, off_i, new_r);
+                move_to(i, off_i, new_r);
                 ++frame %= atlas->info().nframes;
                 goto done;
             }
@@ -194,8 +193,6 @@ bool character::update(size_t i, float dt)
 done:
         (void)0;
     }
-
-    return ret;
 }
 
 entity_type character::type() const noexcept { return entity_type::character; }

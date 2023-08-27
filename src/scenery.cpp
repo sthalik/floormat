@@ -24,18 +24,18 @@ bool scenery::can_activate(size_t) const
     return atlas && interactive;
 }
 
-bool scenery::update(size_t, float dt)
+void scenery::update(size_t, float dt)
 {
     auto& s = *this;
     if (!s.active)
-        return false;
+        return;
 
     switch (s.sc_type)
     {
     default:
     case scenery_type::none:
     case scenery_type::generic:
-        return false;
+        return;
     case scenery_type::door: {
         fm_assert(atlas);
         auto& anim = *atlas;
@@ -50,7 +50,7 @@ bool scenery::update(size_t, float dt)
         s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
         fm_debug_assert(s.delta >= 0);
         if (n == 0)
-            return false;
+            return;
         const int8_t dir = s.closing ? 1 : -1;
         const int fr = s.frame + dir*n;
         s.active = fr > 0 && fr < nframes-1;
@@ -70,8 +70,6 @@ bool scenery::update(size_t, float dt)
         //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (s.frame == 0 ? "-1" : "1");
     }
     }
-
-    return false;
 }
 
 Vector2 scenery::ordinal_offset(Vector2b offset) const
