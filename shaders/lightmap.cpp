@@ -33,7 +33,7 @@ constexpr T poor_mans_ceil(T x)
     if (x > x0)
         return T(x0 + (int64_t)1);
     else
-        return x0;
+        return T(x0);
 }
 
 constexpr auto neighbor_count = 4;
