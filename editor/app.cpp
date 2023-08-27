@@ -175,12 +175,13 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     opts.argv = argv;
     opts.argc = argc;
 
-    Pointer<floormat_main> ptr;
+    Pointer<struct floormat_main> main;
+    Pointer<struct app> app_ptr{new app{Utility::move(opts)}};
+    auto& app = *app_ptr;
     {
-        app application{Utility::move(opts)};
-        ret = application.exec();
-        ptr = Utility::move(application.M);
-        (void)ptr;
+        ret = app.exec();
+        main = Utility::move(app.M);
+        (void)main;
     }
     loader_::destroy();
     return ret;
