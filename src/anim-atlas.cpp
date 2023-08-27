@@ -55,7 +55,8 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
             fm_soft_assert(fr.offset + fr.size <= pixel_size);
         }
 
-    _tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
+    _tex.setLabel(_name)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMaxAnisotropy(1)

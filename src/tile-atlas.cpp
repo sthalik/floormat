@@ -18,7 +18,8 @@ tile_atlas::tile_atlas(StringView name, const ImageView2D& image, Vector2ub tile
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(dims_[0] > 0 && dims_[1] > 0);
     fm_soft_assert(size_ % Vector2ui{tile_count} == Vector2ui());
-    tex_.setWrapping(GL::SamplerWrapping::ClampToEdge)
+    tex_.setLabel(name_)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(1)
