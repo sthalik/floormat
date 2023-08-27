@@ -12,24 +12,26 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
             -fcoverage-mapping
         )
     endif()
-    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
+    #sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
 else()
     add_compile_options(-march=native -mavx2)
     add_compile_options(-emit-llvm)
     add_compile_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
-    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
+    #sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
 
-set(CMAKE_INSTALL_MESSAGE NEVER)
+sets(BOOL FLOORMAT_PRECOMPILED-HEADERS OFF)
 
 if(FLOORMAT_ASAN)
     add_compile_options(-fsanitize=undefined -fsanitize=address)
     add_link_options(-fsanitize=undefined -fsanitize=address)
+    sets(BOOL FLOORMAT_PRECOMPILED-HEADERS ON)
 endif()
 
 set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-clang-amd64/install" CACHE PATH "" FORCE)
+set(CMAKE_INSTALL_MESSAGE NEVER)
 
 sets(STRING
      CMAKE_C_FLAGS ""

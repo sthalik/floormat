@@ -26,6 +26,9 @@ endif()
 set_property(SOURCE "events.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
 
 add_executable(${self} dummy.cc)
+if (FLOORMAT_ASAN)
+    set_target_properties(${self} PROPERTIES OUTPUT_NAME "floormat-editor-asan")
+endif()
 target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize floormat-draw floormat)
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)
