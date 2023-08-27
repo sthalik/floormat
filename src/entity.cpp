@@ -91,6 +91,9 @@ bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vec
 
 bool entity::can_rotate(rotation new_r)
 {
+    if (new_r == r)
+        return true;
+
     return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
 }
 
