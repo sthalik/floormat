@@ -1,6 +1,7 @@
 #include "texture-unit-cache.hpp"
 
 #include "compat/assert.hpp"
+#include <cstdio>
 #include <Corrade/Containers/String.h>
 #include <Magnum/GL/Texture.h>
 
@@ -39,7 +40,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
         tex->bind((Int)unbound_id);
         ++cache_hit_count;
         auto label = tex->label();
-        Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << unbound_id;
+        //Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << unbound_id;
         return (int32_t)unbound_id;
     }
     else
@@ -55,10 +56,10 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
             }
         }
         fm_assert(min_index != invalid);
-        ++rebind_count;
+        ++cache_miss_count;
         units[min_index] = {tex, ++lru_counter};
         tex->bind((Int)min_index);
-        Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << min_index;
+        //Debug{Debug::Flag::NoSpace} << "rebinding '" << tex->label() << "' to " << min_index;
         return (int32_t)min_index;
     }
 }
@@ -73,7 +74,7 @@ void texture_unit_cache::invalidate()
 {
     units = {};
     lru_counter = 0;
-    rebind_count = 0;
+    cache_miss_count = 0;
 }
 
 void texture_unit_cache::lock(floormat::size_t i, GL::AbstractTexture* tex)
@@ -82,12 +83,23 @@ void texture_unit_cache::lock(floormat::size_t i, GL::AbstractTexture* tex)
     units[i] = { .ptr = tex, .lru_val = (uint64_t)i, };
 }
 
-void texture_unit_cache::unlock(size_t i, bool immediately)
+void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
 {
     fm_assert(i < unit_count);
     if (units[i].ptr == (GL::AbstractTexture*)-1)
-        immediately = true;
-    units[i] = { .ptr = units[i].ptr, .lru_val = immediately ? 0 : ++lru_counter };
+        reuse_immediately = true;
+    units[i] = { .ptr = units[i].ptr, .lru_val = reuse_immediately ? 0 : ++lru_counter };
+}
+
+void texture_unit_cache::output_stats() const
+{
+        auto total = cache_hit_count + cache_miss_count;
+
+        if (total > 0)
+        {
+            auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
+            printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, (size_t)total); std::fflush(stdout);
+        }
 }
 
 size_t texture_unit_cache::get_unit_count()
@@ -96,6 +108,7 @@ size_t texture_unit_cache::get_unit_count()
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
         fm_assert(value >= /*GL 3.3*/ 16);
+        //value = 16; // for performance testing
         return value;
     }();
     return (size_t)ret;

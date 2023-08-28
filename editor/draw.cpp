@@ -8,11 +8,14 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "character.hpp"
+
 #include "rotation.inl"
+#include "src/RTree-search.hpp"
+
+#include <chrono>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/GL/Renderer.h>
-#include "src/RTree-search.hpp"
 
 namespace floormat {
 
@@ -191,6 +194,19 @@ void app::draw()
         draw_cursor();
     draw_ui();
     render_menu();
+
+    using namespace std::chrono_literals;
+    {
+        constexpr auto print_every = 4s;
+
+        static auto t0 = std::chrono::high_resolution_clock::now();
+        auto t = std::chrono::high_resolution_clock::now();
+        if (t - t0 >= print_every)
+        {
+            t0 = t;
+            M->texture_unit_cache().output_stats();
+        }
+    }
 }
 
 clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
