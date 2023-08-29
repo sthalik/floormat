@@ -3,11 +3,13 @@ project(floormat-external)
 if(NOT DEFINED FLOORMAT_SUBMODULE-SDL2)
     find_package(SDL2 QUIET)
     if(SDL2_FOUND)
-        set(FLOORMAT_SUBMODULE-SDL2 OFF CACHE BOOL "SDL2 as submodule")
+        set(FLOORMAT_SUBMODULE-SDL2 OFF CACHE BOOL
+            "SDL2 as submodule")
     endif()
 endif()
 
-set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL "SDL2 as submodule")
+set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL
+    "SDL2 as submodule")
 set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
     "Use dependencies included in the source directory (needs git submodule update --init).")
 
