@@ -313,10 +313,10 @@ void lightmap_shader::add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max
     }};
     struct pair { uint8_t first, second; };
     constexpr std::array<pair, 4> from = {{
-        { 3, 1 }, // side #1: 3 -> 2, 1 -> 0
-        { 1, 0 }, // side #2: 1 -> 3, 0 -> 2
-        { 0, 2 }, // side #3: 0 -> 1, 2 -> 3
-        { 2, 3 }, // side #4: 2 -> 0, 3 -> 1
+        { 3, 1 }, // side #0: 3 -> 2, 1 -> 0
+        { 1, 0 }, // side #1: 1 -> 3, 0 -> 2
+        { 0, 2 }, // side #2: 0 -> 1, 2 -> 3
+        { 2, 3 }, // side #3: 2 -> 0, 3 -> 1
     }};
     constexpr std::array<pair, 4> to = {{
         { 2, 0 }, /* 3--1  1 */
