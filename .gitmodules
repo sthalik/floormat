@@ -24,7 +24,7 @@
 	url = https://github.com/fmtlib/fmt.git
 [submodule "luajit"]
 	path = external/luajit
-	url = https://github.com/WohlSoft/LuaJIT.git
+	url = https://github.com/sthalik/luajit.git
 [submodule "robin-map"]
 	path = external/robin-map
 	url = https://github.com/Tessil/robin-map.git

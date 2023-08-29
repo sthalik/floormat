@@ -217,6 +217,9 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
+    // todo finish uniform interface block
+    // NOTE, go benchjmark case where the main inteface block doesn't need to be uploaded ijn given frame.
+
     neighbor_offset += Vector2((float)half_neighbors);
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
@@ -240,14 +243,11 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     auto center_fragcoord = light.center + neighbor_offset * chunk_size + chunk_offset; // window-relative coordinates
     auto center_clip = clip_start + center_fragcoord * clip_scale; // clip coordinates
 
-    float alpha = light.color.a() / 255.f;
-    auto color = (Vector3{light.color.rgb()} / 255.f) * alpha;
-
     framebuffer.fb.mapForDraw({
         { 0u, GL::Framebuffer::ColorAttachment{0} },
     });
 
-    setUniform(LightColorUniform, color * alpha);
+    setUniform(LightColorUniform, Vector4(light.color)  / 255.f);
     setUniform(SizeUniform, Vector2(1) / real_image_size);
     setUniform(CenterFragcoordUniform, center_fragcoord * image_size_ratio);
     setUniform(CenterClipUniform, center_clip);
@@ -264,7 +264,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     mesh_view.setCount((int32_t)count*6);
     AbstractShaderProgram::draw(mesh_view);
 
-    setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
     framebuffer.fb.mapForDraw({
         { 1u, GL::Framebuffer::ColorAttachment{1} },
     });
@@ -280,6 +279,7 @@ void lightmap_shader::bind()
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::Zero);
     GL::Renderer::setBlendFunction(1, BlendFunction::One, BlendFunction::One);
+    setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
 }
 
 void lightmap_shader::finish() // NOLINT(*-convert-member-functions-to-static)

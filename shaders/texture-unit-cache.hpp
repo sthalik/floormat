@@ -25,7 +25,7 @@ struct texture_unit_cache final
     size_t reuse_count() const { return cache_hit_count; }
     size_t bind_count() const { return cache_miss_count; }
 
-    void output_stats() const;
+    void output_stats();
     statistics stats() const { return statistics { cache_hit_count, cache_miss_count }; }
 
     void reset_stats() { cache_miss_count = cache_hit_count = 0; }

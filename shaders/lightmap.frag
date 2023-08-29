@@ -1,7 +1,7 @@
 precision mediump float;
 
 layout (location = 2) uniform sampler2D sampler0;
-layout (location = 3) uniform vec3 light_color;
+layout (location = 3) uniform vec4 light_color;
 layout (location = 4) uniform vec2 scale;
 layout (location = 5) uniform vec2 center_fragcoord;
 layout (location = 6) uniform vec2 center_clip;
@@ -28,7 +28,7 @@ void main() {
             float tmp = max(0, L - dist);
             A = tmp*tmp / (L*L);
         }
-        color0 = vec4(light_color.rgb * A, 1);
+        color0 = vec4(light_color.rgb * light_color.a * A, 1);
     }
     else if (mode == 2) // blend
     {

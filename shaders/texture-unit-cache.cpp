@@ -91,7 +91,7 @@ void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
     units[i] = { .ptr = units[i].ptr, .lru_val = reuse_immediately ? 0 : ++lru_counter };
 }
 
-void texture_unit_cache::output_stats() const
+void texture_unit_cache::output_stats()
 {
         auto total = cache_hit_count + cache_miss_count;
 
@@ -99,6 +99,11 @@ void texture_unit_cache::output_stats() const
         {
             auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
             printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, (size_t)total); std::fflush(stdout);
+        }
+        if (total > (size_t)10'000)
+        {
+            cache_hit_count /= 5;
+            cache_miss_count /= 5;
         }
 }
 
@@ -108,7 +113,7 @@ size_t texture_unit_cache::get_unit_count()
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
         fm_assert(value >= /*GL 3.3*/ 16);
-        //value = 16; // for performance testing
+        value = 1; // limit for performance testing
         return value;
     }();
     return (size_t)ret;
