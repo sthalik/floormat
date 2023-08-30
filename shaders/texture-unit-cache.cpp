@@ -2,6 +2,7 @@
 
 #include "compat/assert.hpp"
 #include <cstdio>
+#include <chrono>
 #include <Corrade/Containers/String.h>
 #include <Magnum/GL/Texture.h>
 
@@ -94,18 +95,26 @@ void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
 
 void texture_unit_cache::output_stats()
 {
-        auto total = cache_hit_count + cache_miss_count;
+#if 0
+    using namespace std::literals;
+    auto total = cache_hit_count + cache_miss_count;
 
-        if (total > 0)
-        {
-            [[maybe_unused]] auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
-            //printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, (size_t)total); std::fflush(stdout);
-        }
-        if (total > (size_t)10'000)
-        {
-            cache_hit_count /= 5;
-            cache_miss_count /= 5;
-        }
+    static auto t0 = std::chrono::high_resolution_clock::now();
+    auto t = std::chrono::high_resolution_clock::now();
+
+    if (t - t0 > 5s) [[unlikely]]
+    {
+        t0 = t;
+        [[maybe_unused]] auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
+        printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, total);
+        std::fflush(stdout);
+    }
+    if (total > (size_t)1e4)
+    {
+        cache_hit_count /= 9;
+        cache_miss_count /= 9;
+    }
+#endif
 }
 
 size_t texture_unit_cache::get_unit_count()
