@@ -199,9 +199,8 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
     }};
     light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
 
-    //framebuffer.scratch.bind(TextureSampler);
-    setUniform(SamplerUniform, -1);
-    setUniform(LightColorUniform, Color3{1, 1, 1});
+    setUniform(SamplerUniform, 0);
+    setUniform(LightColorUniform, 0xffffffff_rgbaf);
     setUniform(SizeUniform, Vector2(1));
     setUniform(CenterFragcoordUniform, Vector2(0, 0));
     setUniform(CenterClipUniform, Vector2(-1, -1));
