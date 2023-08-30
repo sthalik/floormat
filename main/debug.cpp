@@ -5,7 +5,8 @@ namespace floormat {
 
 using Severity = GL::DebugOutput::Severity;
 
-CORRADE_NEVER_INLINE void put_debug_breakpoint_here()  {}
+CORRADE_NEVER_INLINE extern "C" void put_debug_breakpoint_here();
+CORRADE_NEVER_INLINE extern "C" void put_debug_breakpoint_here()  {}
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
