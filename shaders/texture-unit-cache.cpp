@@ -113,7 +113,7 @@ size_t texture_unit_cache::get_unit_count()
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
         fm_assert(value >= /*GL 3.3*/ 16);
-        value = 1; // limit for performance testing
+        //value = 1; // limit for performance testing
         return value;
     }();
     return (size_t)ret;
