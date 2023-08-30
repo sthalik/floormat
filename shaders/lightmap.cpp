@@ -257,7 +257,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     AbstractShaderProgram::draw(light_mesh);
 
     setUniform(ModeUniform, DrawShadowsMode);
-    setUniform(LightColorUniform, Color3{0, 0, 0});
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((int32_t)count*6);
