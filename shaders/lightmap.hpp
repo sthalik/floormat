@@ -58,17 +58,9 @@ struct lightmap_shader final : GL::AbstractShaderProgram
 private:
     enum : Int {
         SamplerUniform         = 2,
-        LightColorUniform      = 3,
-        SizeUniform            = 4,
-        CenterFragcoordUniform = 5,
-        CenterClipUniform      = 6,
-        RangeUniform           = 7,
-        ModeUniform            = 8,
-        FalloffUniform         = 9,
-    };
-
-    enum : Int {
-        TextureSampler = 1,
+        ModeUniform            = 3,
+        // GL_MAX_UNIFORM_BUFFER_BINDINGS must be at least 36
+        BlockUniform           = 35,
     };
 
     enum ShaderMode : uint32_t
@@ -88,8 +80,9 @@ private:
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
     [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
 
-    texture_unit_cache& tuc;
-    GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate};
+    texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
+    GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate},
+               block_uniform_buf{GL::Buffer::TargetHint::Uniform, };
     Array<std::array<Vector3, 4>> vertexes; // todo make a contiguous allocation
     Array<std::array<UnsignedShort, 6>> indexes;
     size_t count = 0, capacity = 0;

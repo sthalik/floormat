@@ -62,6 +62,16 @@ GL::Mesh make_light_mesh(T&& vert, U&& index)
     return mesh;
 }
 
+struct Block final
+{
+    Vector4 light_color;
+    Vector2 scale;
+    Vector2 center_fragcoord;
+    Vector2 center_clip;
+    float range;
+    uint32_t falloff;
+};
+
 } // namespace
 
 auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
@@ -200,13 +210,20 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
     light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
 
     setUniform(SamplerUniform, 0);
-    setUniform(LightColorUniform, 0xffffffff_rgbaf);
-    setUniform(SizeUniform, Vector2(1));
-    setUniform(CenterFragcoordUniform, Vector2(0, 0));
-    setUniform(CenterClipUniform, Vector2(-1, -1));
-    setUniform(RangeUniform, 1.f);
     setUniform(ModeUniform, DrawLightmapMode);
-    setUniform(FalloffUniform, (uint32_t)light_falloff::constant);
+
+    Block block {
+        .light_color = 0xffffffff_rgbaf,
+        .scale = Vector2(1),
+        .center_fragcoord = Vector2(0, 0),
+        .center_clip = Vector2(-1, -1),
+        .range = 1.f,
+        .falloff = (uint32_t)light_falloff::constant,
+    };
+
+    setUniformBlockBinding(uniformBlockIndex("Lightmap"_s), BlockUniform);
+    block_uniform_buf.setData({&block, 1});
+    block_uniform_buf.bind(GL::Buffer::Target::Uniform, BlockUniform);
 }
 
 std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
@@ -246,12 +263,16 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         { 0u, GL::Framebuffer::ColorAttachment{0} },
     });
 
-    setUniform(LightColorUniform, Vector4(light.color)  / 255.f);
-    setUniform(SizeUniform, Vector2(1) / real_image_size);
-    setUniform(CenterFragcoordUniform, center_fragcoord * image_size_ratio);
-    setUniform(CenterClipUniform, center_clip);
-    setUniform(RangeUniform, range * image_size_ratio.sum()/2);
-    setUniform(FalloffUniform, (uint32_t)light.falloff);
+    Block block = {
+        .light_color = Vector4(light.color)  / 255.f,
+        .scale = Vector2(1) / real_image_size,
+        .center_fragcoord = center_fragcoord * image_size_ratio,
+        .center_clip = center_clip,
+        .range = range * image_size_ratio.sum()/2,
+        .falloff = (uint32_t)light.falloff,
+    };
+
+    block_uniform_buf.setSubData(0, {&block, 1});
 
     setUniform(ModeUniform, DrawLightmapMode);
     AbstractShaderProgram::draw(light_mesh);
