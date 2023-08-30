@@ -25,7 +25,7 @@ if(FLOORMAT_ASAN)
     add_link_options(-fsanitize=undefined -fsanitize=address)
 endif()
 
-set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-clang-amd64/install" CACHE PATH "" FORCE)
+set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-clang-amd64/install" CACHE PATH "" FORCE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 sets(STRING
