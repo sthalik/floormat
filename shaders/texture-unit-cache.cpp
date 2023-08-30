@@ -122,7 +122,7 @@ size_t texture_unit_cache::get_unit_count()
     static auto ret = [] {
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
-        Debug{} << "texture-binding: got" << value << "texture image units";
+        //Debug{} << "texture-binding: got" << value << "texture image units";
         fm_assert(value >= /*GL 3.3*/ 16);
         //value = 16; // limit for performance testing
         return value;
