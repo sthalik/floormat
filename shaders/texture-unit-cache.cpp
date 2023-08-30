@@ -30,6 +30,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
         {
             unit.lru_val = ++lru_counter;
             ++cache_hit_count;
+            //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
             return (int32_t)i;
         }
     }
@@ -97,8 +98,8 @@ void texture_unit_cache::output_stats()
 
         if (total > 0)
         {
-            auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
-            printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, (size_t)total); std::fflush(stdout);
+            [[maybe_unused]] auto ratio = (double)cache_hit_count/(double)(cache_hit_count+cache_miss_count);
+            //printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, (size_t)total); std::fflush(stdout);
         }
         if (total > (size_t)10'000)
         {
@@ -112,8 +113,9 @@ size_t texture_unit_cache::get_unit_count()
     static auto ret = [] {
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
+        Debug{} << "texture-binding: got" << value << "texture image units";
         fm_assert(value >= /*GL 3.3*/ 16);
-        //value = 1; // limit for performance testing
+        //value = 16; // limit for performance testing
         return value;
     }();
     return (size_t)ret;
