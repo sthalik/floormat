@@ -5,6 +5,8 @@ namespace floormat {
 
 using Severity = GL::DebugOutput::Severity;
 
+CORRADE_NEVER_INLINE void put_debug_breakpoint_here()  {}
+
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
 {
@@ -49,7 +51,7 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
 #endif
 
     //debug_break();
-    std::fputs("", stdout); // put breakpoint here
+    put_debug_breakpoint_here();
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
@@ -57,7 +59,6 @@ static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type t
 {
     static_cast<const main_impl*>(self)->debug_callback((unsigned)src, (unsigned)type, (unsigned)id, (unsigned)severity, str);
 }
-
 
 void main_impl::register_debug_callback()
 {
