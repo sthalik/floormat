@@ -218,7 +218,7 @@ std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
     // todo finish uniform interface block
-    // NOTE, go benchjmark case where the main inteface block doesn't need to be uploaded ijn given frame.
+    // NOTE, make a benchmark where the vertex buffer isn't updated every frame
 
     neighbor_offset += Vector2((float)half_neighbors);
 
