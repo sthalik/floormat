@@ -2,8 +2,19 @@ set(CMAKE_C_COMPILER_INIT cl.exe)
 set(CMAKE_CXX_COMPILER_INIT cl.exe)
 set(CMAKE_ASM_NASM_COMPILER nasm.exe)
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/msvc.cmake" CACHE FILEPATH "" FORCE)
-set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-amd64/install" CACHE PATH "" FORCE)
+
+if(NOT DEFINED OpenCV_DIR)
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+        #set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-msvc64-debug/install" CACHE PATH "" FORCE)
+        sets(PATH OpenCV_DIR "")
+    else()
+        set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-amd64/install" CACHE PATH "" FORCE)
+    endif()
+endif()
 
 list(APPEND CMAKE_IGNORE_PATH "c:/msys64")
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64")
@@ -14,6 +25,10 @@ sets(BOOL FLOORMAT_SUBMODULE-SDL2 ON)
 
 add_link_options(-STACK:41943040)
 add_link_options(-WX:NO)
+
+if(FLOORMAT_ASAN)
+    add_compile_options(-fsanitize-address-use-after-return -fsanitize=address)
+endif()
 
 if(CMAKE_SIZEOF_VOID_P GREATER 4)
     set(CMAKE_C_COMPILER_LAUNCHER msvc64.cmd)
@@ -37,6 +52,7 @@ function(fm-userconfig-external)
              SDL_STATIC                                         OFF
              SDL_SHARED                                         ON
              SDL_FORCE_STATIC_VCRT                              OFF
+             SDL_LIBC                                           ON
              CORRADE_BUILD_STATIC                               OFF
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
              MAGNUM_BUILD_STATIC                                OFF
