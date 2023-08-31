@@ -273,7 +273,7 @@ void app::draw_lightmap_test(float main_menu_height)
 
     auto dpi = M->dpi_scale();
     auto win_size = M->window_size();
-    auto window_pos = ImVec2(win_size.x() - 512, (main_menu_height + 1) * dpi.y());
+    auto window_pos = ImVec2((float)win_size.x() - 512, (main_menu_height + 1) * dpi.y());
 
     auto& shader = M->lightmap_shader();
     bool is_open = true;
