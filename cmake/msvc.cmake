@@ -78,12 +78,13 @@ if(DEFINED floormat-64bit)
     endif()
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG,Debug>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG>:Debug>")
 
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 
 set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -wd4117 -Zi -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDebugDLL" CACHE INTERNAL "" FORCE)
 elseif(NOT floormat-no-static-crt)
