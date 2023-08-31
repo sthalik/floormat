@@ -27,7 +27,7 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
         if (auto len = i - last.pos; last.atlas && len > 0)
         {
             mesh.setCount((int)(quad_index_count * len));
-            mesh.setIndexRange((int)(last.pos*quad_index_count), 0, max_index);
+            mesh.setIndexOffset((int)(last.pos*quad_index_count), 0, max_index);
             shader.draw(last.atlas->texture(), mesh);
             draw_count++;
         }
