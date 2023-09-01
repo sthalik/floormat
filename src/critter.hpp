@@ -9,22 +9,22 @@ namespace floormat {
 struct anim_atlas;
 struct world;
 
-struct character_proto : object_proto
+struct critter_proto : object_proto
 {
     String name;
     bool playable : 1 = false;
 
-    character_proto();
-    character_proto(const character_proto&);
-    ~character_proto() noexcept override;
-    character_proto& operator=(const character_proto&);
+    critter_proto();
+    critter_proto(const critter_proto&);
+    ~critter_proto() noexcept override;
+    critter_proto& operator=(const critter_proto&);
     bool operator==(const object_proto& proto) const override;
 };
 
-struct character final : object
+struct critter final : object
 {
     object_type type() const noexcept override;
-    explicit operator character_proto() const;
+    explicit operator critter_proto() const;
 
     void update(size_t i, float dt) override;
     void set_keys(bool L, bool R, bool U, bool D);
@@ -41,10 +41,10 @@ private:
     static Vector2 move_vec(Vector2i vec);
 
     friend struct world;
-    character(object_id id, struct chunk& c, const character_proto& proto);
+    critter(object_id id, struct chunk& c, const critter_proto& proto);
 };
 
-template<> struct object_type_<struct character> : std::integral_constant<object_type, object_type::character> {};
-template<> struct object_type_<struct character_proto> : std::integral_constant<object_type, object_type::character> {};
+template<> struct object_type_<struct critter> : std::integral_constant<object_type, object_type::critter> {};
+template<> struct object_type_<struct critter_proto> : std::integral_constant<object_type, object_type::critter> {};
 
 } // namespace floormat

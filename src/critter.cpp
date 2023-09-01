@@ -1,4 +1,4 @@
-#include "character.hpp"
+#include "critter.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
@@ -85,17 +85,17 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 
 } // namespace
 
-character_proto::character_proto(const character_proto&) = default;
-character_proto::~character_proto() noexcept = default;
-character_proto& character_proto::operator=(const character_proto&) = default;
+critter_proto::critter_proto(const critter_proto&) = default;
+critter_proto::~critter_proto() noexcept = default;
+critter_proto& critter_proto::operator=(const critter_proto&) = default;
 
-character_proto::character_proto()
+critter_proto::critter_proto()
 {
-    type = object_type::character;
+    type = object_type::critter;
     atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
 }
 
-bool character_proto::operator==(const object_proto& e0) const
+bool critter_proto::operator==(const object_proto& e0) const
 {
     if (type != e0.type)
         return false;
@@ -103,11 +103,11 @@ bool character_proto::operator==(const object_proto& e0) const
     if (!object_proto::operator==(e0))
         return false;
 
-    const auto& s0 = static_cast<const character_proto&>(e0);
+    const auto& s0 = static_cast<const critter_proto&>(e0);
     return name == s0.name && playable == s0.playable;
 }
 
-int character::allocate_frame_time(float dt)
+int critter::allocate_frame_time(float dt)
 {
     int d = int(delta) + int(65535u * dt);
     constexpr int framerate_ = 65535/framerate;
@@ -117,14 +117,14 @@ int character::allocate_frame_time(float dt)
     return ret;
 }
 
-Vector2 character::move_vec(Vector2i vec)
+Vector2 critter::move_vec(Vector2i vec)
 {
     const int left_right = vec[0], top_bottom = vec[1];
     constexpr auto c = move_speed * frame_time;
     return c * Vector2((float)sgn(left_right), (float)sgn(top_bottom)).normalized();
 }
 
-void character::set_keys(bool L, bool R, bool U, bool D)
+void critter::set_keys(bool L, bool R, bool U, bool D)
 {
     b_L = L;
     b_R = R;
@@ -132,18 +132,18 @@ void character::set_keys(bool L, bool R, bool U, bool D)
     b_D = D;
 }
 
-float character::depth_offset() const
+float critter::depth_offset() const
 {
     return tile_shader::character_depth_offset;
 }
 
-Vector2 character::ordinal_offset(Vector2b offset) const
+Vector2 critter::ordinal_offset(Vector2b offset) const
 {
     (void)offset;
     return Vector2(offset);
 }
 
-void character::update(size_t i, float dt)
+void critter::update(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
     if (new_r == rotation{rotation_COUNT})
@@ -195,18 +195,18 @@ done:
     }
 }
 
-object_type character::type() const noexcept { return object_type::character; }
+object_type critter::type() const noexcept { return object_type::critter; }
 
-character::operator character_proto() const
+critter::operator critter_proto() const
 {
-    character_proto ret;
+    critter_proto ret;
     static_cast<object_proto&>(ret) = object::operator object_proto();
     ret.name = name;
     ret.playable = playable;
     return ret;
 }
 
-character::character(object_id id, struct chunk& c, const character_proto& proto) :
+critter::critter(object_id id, struct chunk& c, const critter_proto& proto) :
     object{id, c, proto},
     name{proto.name},
     playable{proto.playable}

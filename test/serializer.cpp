@@ -2,7 +2,7 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
@@ -64,10 +64,10 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         fm_assert(ae.type() == be.type());
         switch (ae.type())
         {
-        case object_type::character: {
-            const auto& e1 = static_cast<const character&>(ae);
-            const auto& e2 = static_cast<const character&>(be);
-            const auto p1 = character_proto(e1), p2 = character_proto(e2);
+        case object_type::critter: {
+            const auto& e1 = static_cast<const critter&>(ae);
+            const auto& e2 = static_cast<const critter&>(be);
+            const auto p1 =critter_proto(e1), p2 =critter_proto(e2);
             fm_assert(p1 == p2);
             break;
         }

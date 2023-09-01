@@ -6,7 +6,7 @@
 #include "loader/loader.hpp"
 #include "world.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -39,7 +39,7 @@ void app::reset_world()
 void app::ensure_player_character(world& w)
 {
     if (_character_id)
-        if (auto C = w.find_object(_character_id); C && C->type() == object_type::character)
+        if (auto C = w.find_object(_character_id); C && C->type() == object_type::critter)
             return;
     _character_id = 0;
 
@@ -50,9 +50,9 @@ void app::ensure_player_character(world& w)
         for (const auto& e_ : c.objects())
         {
             const auto& e = *e_;
-            if (e.type() == object_type::character)
+            if (e.type() == object_type::critter)
             {
-                const auto& C = static_cast<const character&>(e);
+                const auto& C = static_cast<const critter&>(e);
                 if (C.playable)
                     id = std::min(id, C.id);
             }
@@ -63,10 +63,10 @@ void app::ensure_player_character(world& w)
         _character_id = id;
     else
     {
-        character_proto cproto;
+        critter_proto cproto;
         cproto.name = "Player"_s;
         cproto.playable = true;
-        _character_id = w.make_object<character>(w.make_id(), global_coords{}, cproto)->id;
+        _character_id = w.make_object<critter>(w.make_id(), global_coords{}, cproto)->id;
     }
 }
 

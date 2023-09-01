@@ -24,7 +24,7 @@ struct tile_atlas;
 struct tile_editor;
 struct fm_settings;
 struct anim_atlas;
-struct character;
+struct critter;
 
 struct cursor_state final {
     Optional<Vector2i> pixel;

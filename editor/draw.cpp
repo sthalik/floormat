@@ -7,7 +7,7 @@
 #include "draw/anim.hpp"
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
-#include "character.hpp"
+#include "src/critter.hpp"
 
 #include "rotation.inl"
 #include "src/RTree-search.hpp"

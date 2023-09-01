@@ -9,7 +9,7 @@
 #include "src/emplacer.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
 #include "loader/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/light.hpp"
@@ -77,7 +77,7 @@ private:
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3;
 constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords_) + tile_size * TILE_COUNT + sizeof(uint32_t);
-constexpr auto object_size = std::max({ sizeof(character), sizeof(scenery), sizeof(light), });
+constexpr auto object_size = std::max({ sizeof(critter), sizeof(scenery), sizeof(light), });
 
 writer_state::writer_state(const world& world) : _world{&world}
 {
@@ -194,7 +194,7 @@ void write_object_flags(binary_writer<T>& s, const U& e)
         flags |= (1 << 3) * e.closing;
         flags |= (1 << 4) * e.interactive;
     }
-    else if constexpr(tag == object_type::character)
+    else if constexpr(tag == object_type::critter)
     {
         flags |= (1 << 2) * e.playable;
     }
@@ -299,7 +299,7 @@ void writer_state::serialize_scenery_names()
 
 void writer_state::serialize_strings()
 {
-    static_assert(character_name_max <= string_max);
+    static_assert(critter_name_max <= string_max);
     auto len = 0uz;
     for (const auto& [k, v] : string_map)
     {
@@ -351,8 +351,8 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         {
         default:
             fm_abort("invalid object type '%d'", (int)type);
-        case object_type::character: {
-            const auto& C = static_cast<const character&>(e);
+        case object_type::critter: {
+            const auto& C = static_cast<const critter&>(e);
             uint8_t id = 0;
             const auto sc_exact =
                 C.bbox_offset.isZero() &&
@@ -367,7 +367,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
                 s << C.frame;
             s << C.offset_frac[0];
             s << C.offset_frac[1];
-            fm_assert(C.name.size() < character_name_max);
+            fm_assert(C.name.size() < critter_name_max);
             s << intern_string(C.name);
             if (!sc_exact)
                 write_bbox(s, C);
@@ -542,7 +542,7 @@ ArrayView<const char> writer_state::serialize_world()
             case object_type::scenery:
                 intern_scenery(static_cast<const scenery&>(e), false);
                 break;
-            case object_type::character:
+            case object_type::critter:
             case object_type::light:
                 break;
             default:

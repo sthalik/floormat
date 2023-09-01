@@ -5,7 +5,7 @@
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
 #include "src/tile-iterator.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
@@ -234,7 +234,7 @@ void app::update_character([[maybe_unused]] float dt)
     if (_character_id)
     {
         auto& w = M->world();
-        auto c = w.find_object<character>(_character_id);
+        auto c = w.find_object<critter>(_character_id);
         if (c && c->playable)
             c->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
     }

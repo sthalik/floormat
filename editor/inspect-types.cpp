@@ -6,7 +6,8 @@
 #include "inspect.hpp"
 #include "loader/loader.hpp"
 #include "chunk.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
+
 #include "src/light.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <imgui.h>
@@ -95,7 +96,7 @@ template<> struct has_anim_atlas<object> : std::true_type {
     static const anim_atlas& get_atlas(const object& x) { return *x.atlas; }
 };
 template<> struct has_anim_atlas<scenery> : has_anim_atlas<object> {};
-template<> struct has_anim_atlas<character> : has_anim_atlas<object> {};
+template<> struct has_anim_atlas<critter> : has_anim_atlas<object> {};
 #endif
 
 using enum_pair = std::pair<StringView, size_t>;
@@ -174,18 +175,18 @@ static bool inspect_type(T& x, Intent)
 }
 
 template<>
-struct entity_accessors<character, inspect_intent_t> {
+struct entity_accessors<critter, inspect_intent_t> {
     static constexpr auto accessors()
     {
-        using E = Entity<character>;
+        using E = Entity<critter>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
             E::type<String>::field{"name"_s,
-                                 [](const character& x) { return x.name; },
-                                 [](character& x, const String& value) { x.name = value; }},
+                                 [](const critter& x) { return x.name; },
+                                 [](critter& x, const String& value) { x.name = value; }},
             E::type<bool>::field{"playable"_s,
-                                 [](const character& x) { return x.playable; },
-                                 [](character& x, bool value) { x.playable = value; },
+                                 [](const critter& x) { return x.playable; },
+                                 [](critter& x, bool value) { x.playable = value; },
                                  constantly(constraints::max_length{128}),
             },
         };
@@ -235,7 +236,7 @@ struct entity_accessors<light, inspect_intent_t>
 
 //template bool inspect_type(object&);
 template bool inspect_type(scenery&, inspect_intent_t);
-template bool inspect_type(character&, inspect_intent_t);
+template bool inspect_type(critter&, inspect_intent_t);
 template bool inspect_type(light&, inspect_intent_t);
 
 bool inspect_object_subtype(object& x)
@@ -245,7 +246,7 @@ bool inspect_object_subtype(object& x)
     default: fm_warn_once("unknown object subtype '%d'", (int)type); return false;
     //case object_type::none: return inspect_type(x);
     case object_type::scenery: return inspect_type(static_cast<scenery&>(x), inspect_intent_t{});
-    case object_type::character: return inspect_type(static_cast<character&>(x), inspect_intent_t{});
+    case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
     case object_type::light: return inspect_type(static_cast<light&>(x), inspect_intent_t{});
     }
 }

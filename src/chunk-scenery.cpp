@@ -122,7 +122,7 @@ auto chunk::make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
             break;
         }
     }
-    else if (e.type() == object_type::character)
+    else if (e.type() == object_type::critter)
         data.mode = topo_sort_data::mode_character;
     return data;
 }

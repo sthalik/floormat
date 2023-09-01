@@ -3,7 +3,7 @@
 #include "binary-reader.inl"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
-#include "src/character.hpp"
+#include "src/critter.hpp"
 #include "src/light.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
@@ -77,7 +77,7 @@ bool read_object_flags(binary_reader<T>& s, U& e)
         e.closing     = !!(flags & 1 << 3);
         e.interactive = !!(flags & 1 << 4);
     }
-    else if constexpr(tag == object_type::character)
+    else if constexpr(tag == object_type::critter)
     {
         e.playable    = !!(flags & 1 << 2);
     }
@@ -259,8 +259,8 @@ void reader_state::read_chunks(reader_t& s)
             SET_CHUNK_SIZE();
             switch (type)
             {
-            case object_type::character: {
-                character_proto proto;
+            case object_type::critter: {
+                critter_proto proto;
                 proto.offset = offset;
                 uint8_t id; id << s;
                 proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
@@ -278,12 +278,12 @@ void reader_state::read_chunks(reader_t& s)
                 {
                     uint32_t id; id << s;
                     auto name = lookup_string(id);
-                    fm_soft_assert(name.size() < character_name_max);
+                    fm_soft_assert(name.size() < critter_name_max);
                     proto.name = name;
                 }
                 else
                 {
-                    auto [buf, len] = s.read_asciiz_string<character_name_max>();
+                    auto [buf, len] = s.read_asciiz_string<critter_name_max>();
                     auto name = StringView{buf, len};
                     proto.name = name;
                 }
@@ -297,7 +297,7 @@ void reader_state::read_chunks(reader_t& s)
                     read_bbox(s, proto);
                 }
                 SET_CHUNK_SIZE();
-                auto e = _world->make_object<character, false>(oid, {ch, local}, proto);
+                auto e = _world->make_object<critter, false>(oid, {ch, local}, proto);
                 e->offset_frac = offset_frac;
                 (void)e;
                 break;

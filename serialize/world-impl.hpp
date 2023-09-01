@@ -54,7 +54,7 @@ constexpr inline proto_t proto_version = 16;
 constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
 
-constexpr inline size_t character_name_max = 128;
+constexpr inline size_t critter_name_max = 128;
 constexpr inline size_t string_max = 512;
 
 constexpr inline proto_t min_proto_version = 1;
