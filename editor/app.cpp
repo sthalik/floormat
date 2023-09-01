@@ -78,7 +78,7 @@ void app::reset_world(struct world&& w_)
     _editor.on_release();
     _editor.clear_selection();
     kill_popups(true);
-    _tested_light = 0;
+    tested_light_chunk = {};
 
     clear_keys();
     const auto pixel = cursor.pixel;

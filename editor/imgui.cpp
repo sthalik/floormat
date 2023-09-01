@@ -206,69 +206,70 @@ void app::draw_light_info()
 
 void app::do_lightmap_test()
 {
-    if (!_tested_light)
+    if (!tested_light_chunk)
         return;
 
     auto& w = M->world();
-    auto e_ = w.find_object(_tested_light);
 
-    if (e_)
+    if (!w.at(*tested_light_chunk))
     {
-        auto& e = *e_;
-        fm_assert(e_->type() == object_type::light);
-        auto& shader = M->lightmap_shader();
-        auto ch = e.coord.chunk();
-        auto z = e.coord.z();
-        const auto ns = shader.iter_bounds();
+        tested_light_chunk = {};
+        return;
+    }
 
-        shader.begin_occlusion();
+    auto coord = *tested_light_chunk;
+    auto [x, y, z] = coord;
 
-        for (int j = ch.y - ns; j < ch.y + ns; j++)
-            for (int i = ch.x - ns; i < ch.x + ns; i++)
+    auto& shader = M->lightmap_shader();
+    const auto ns = shader.iter_bounds();
+
+    shader.begin_occlusion();
+
+    for (int j = y - ns; j < y + ns; j++)
+        for (int i = x - ns; i < x + ns; i++)
+        {
+            auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+            if (auto* chunk = w.at(c))
             {
-                auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
-                if (auto* chunk = w.at(c))
-                {
-                    auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(ch));
-                    shader.add_chunk(offset, *chunk);
-                }
+                auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
+                shader.add_chunk(offset, *chunk);
             }
+        }
 
-        shader.end_occlusion();
-        shader.bind();
+    shader.end_occlusion();
+    shader.bind();
 
-        for (int j = ch.y - ns; j < ch.y + ns; j++)
-            for (int i = ch.x - ns; i < ch.x + ns; i++)
+    for (int j = y - ns; j < y + ns; j++)
+        for (int i = x - ns; i < x + ns; i++)
+        {
+            auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+            if (auto* chunk = w.at(c))
             {
-                auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
-                if (auto* chunk = w.at(c))
+                auto offset = Vector2(Vector2i(c.x) - Vector2i(x, y));
+                for (const auto& e_ : chunk->objects())
                 {
-                    auto offset = Vector2(Vector2i(c.x) - Vector2i(ch));
-                    for (const auto& e_ : chunk->objects())
+                    if (e_->type() == object_type::light)
                     {
-                        if (e_->type() == object_type::light)
-                        {
-                            const auto& li = static_cast<const light&>(*e_);
-                            light_s L {
-                                .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
-                                .dist = li.max_distance,
-                                .color = li.color,
-                                .falloff = li.falloff,
-                            };
-                            shader.add_light(offset, L);
-                        }
+                        const auto& li = static_cast<const light&>(*e_);
+                        light_s L {
+                            .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
+                            .dist = li.max_distance,
+                            .color = li.color,
+                            .falloff = li.falloff,
+                        };
+                        shader.add_light(offset, L);
                     }
                 }
             }
+        }
 
-        shader.finish();
-        M->bind();
-    }
+    shader.finish();
+    M->bind();
 }
 
 void app::draw_lightmap_test(float main_menu_height)
 {
-    if (!_tested_light)
+    if (!tested_light_chunk)
         return;
 
     auto dpi = M->dpi_scale();
@@ -291,8 +292,11 @@ void app::draw_lightmap_test(float main_menu_height)
         ImGui::Image(&shader.accum_texture(), preview_size, {0, 0}, {1, 1});
         ImGui::End();
     }
+    else
+        is_open = false;
+
     if (!is_open)
-        _tested_light = 0;
+        tested_light_chunk = {};
 }
 
 static constexpr auto SCENERY_POPUP_NAME = "##scenery-popup"_s;
@@ -342,10 +346,10 @@ void app::do_popup_menu()
         if (bool b_ins = !check_inspector_exists(_popup_target);
             ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
-        if (bool b_testing = e.id == _tested_light;
+        if (bool b_testing = tested_light_chunk == chunk_coords_(e.coord);
             e.type() == object_type::light)
             if (ImGui::MenuItem("Test", nullptr, b_testing))
-                _tested_light = e.id;
+                tested_light_chunk = chunk_coords_(e.coord);
         ImGui::SeparatorText("Modify");
         if (auto next_rot = e.atlas->next_rotation_from(e.r);
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
@@ -365,7 +369,7 @@ void app::kill_popups(bool hard)
     _popup_target = {};
 
     if (hard)
-        _tested_light = 0;
+        tested_light_chunk = {};
 
     if (imgui)
         ImGui::CloseCurrentPopup();

@@ -162,7 +162,7 @@ private:
     cursor_state cursor;
     popup_target _popup_target;
 
-    object_id _tested_light = 0;
+    Optional<chunk_coords_> tested_light_chunk;
 
     int8_t _z_level = 0;
 
