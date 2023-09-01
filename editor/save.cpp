@@ -14,7 +14,10 @@ static bool ensure_save_directory()
 {
     auto dir = Path::join(loader.TEMP_PATH, save_dir);
     if (Path::make(save_dir))
+    {
+        fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt"_s)));
         return true;
+    }
     else
     {
         fm_warn("failed to create save directory '%s'", save_dir);
