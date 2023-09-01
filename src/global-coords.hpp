@@ -90,6 +90,7 @@ struct global_coords final {
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
+    constexpr operator chunk_coords_() const noexcept;
     constexpr int8_t z() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
@@ -111,6 +112,11 @@ constexpr local_coords global_coords::local() const noexcept
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
     return { int16_t(int32_t(((x & ~z_mask::value)>>4) - u0::value)), int16_t(int32_t((y>>4) - u0::value)), };
+}
+
+constexpr global_coords::operator chunk_coords_() const noexcept
+{
+    return chunk_coords_{ chunk(), z() };
 }
 
 constexpr int8_t global_coords::z() const noexcept
