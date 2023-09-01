@@ -251,6 +251,8 @@ void app::do_lightmap_test()
                     if (e_->type() == object_type::light)
                     {
                         const auto& li = static_cast<const light&>(*e_);
+                        if (li.max_distance < 1e-6f)
+                            continue;
                         light_s L {
                             .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
                             .dist = li.max_distance,
