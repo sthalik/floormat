@@ -77,7 +77,7 @@ private:
 
 constexpr auto tile_size = sizeof(tilemeta) + (sizeof(atlasid) + sizeof(variant_t)) * 3;
 constexpr auto chunkbuf_size = sizeof(chunk_magic) + sizeof(chunk_coords_) + tile_size * TILE_COUNT + sizeof(uint32_t);
-constexpr auto entity_size = std::max({ sizeof(character), sizeof(scenery), sizeof(light), });
+constexpr auto object_size = std::max({ sizeof(character), sizeof(scenery), sizeof(light), });
 
 writer_state::writer_state(const world& world) : _world{&world}
 {
@@ -178,28 +178,28 @@ scenery_pair writer_state::intern_scenery(const scenery& sc, bool create)
         return {};
 }
 
-template<typename T, entity_subtype U>
-void write_entity_flags(binary_writer<T>& s, const U& e)
+template<typename T, object_subtype U>
+void write_object_flags(binary_writer<T>& s, const U& e)
 {
     uint8_t flags = 0;
     auto pass = (pass_mode_i)e.pass;
     fm_assert((pass & pass_mask) == pass);
     flags |= pass;
-    constexpr auto tag = entity_type_<U>::value;
+    constexpr auto tag = object_type_<U>::value;
     if (e.type_of() != tag)
-        fm_abort("invalid entity type '%d'", (int)e.type_of());
-    if constexpr(tag == entity_type::scenery)
+        fm_abort("invalid object type '%d'", (int)e.type_of());
+    if constexpr(tag == object_type::scenery)
     {
         flags |= (1 << 2) * e.active;
         flags |= (1 << 3) * e.closing;
         flags |= (1 << 4) * e.interactive;
     }
-    else if constexpr(tag == entity_type::character)
+    else if constexpr(tag == object_type::character)
     {
         flags |= (1 << 2) * e.playable;
     }
     else
-        static_assert(tag == entity_type::none);
+        static_assert(tag == object_type::none);
     flags |= (1 << 7) * (e.frame <= 0xff);
     s << flags;
 }
@@ -287,7 +287,7 @@ void writer_state::serialize_scenery_names()
             s.write_asciiz_string(sc->name);
         }
         s << idx;
-        write_entity_flags(s, sc->proto);
+        write_object_flags(s, sc->proto);
         if (sc->proto.frame <= 0xff)
             s << (uint8_t)sc->proto.frame;
         else
@@ -322,19 +322,19 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
 {
     constexpr auto def_char_bbox_size = Vector2ub(iTILE_SIZE2); // copied from character_proto
 
-    const auto entity_count = (uint32_t)c.entities().size();
-    s << entity_count;
-    fm_assert(entity_count == c.entities().size());
-    for (const auto& e_ : c.entities())
+    const auto object_count = (uint32_t)c.objects().size();
+    s << object_count;
+    fm_assert(object_count == c.objects().size());
+    for (const auto& e_ : c.objects())
     {
         const auto& e = *e_;
-        fm_assert(s.bytes_written() + entity_size <= chunk_buf.size());
+        fm_assert(s.bytes_written() + object_size <= chunk_buf.size());
         object_id oid = e.id;
         fm_assert((oid & lowbits<60, object_id>) == e.id);
         const auto type = e.type();
-        const auto type_ = (entity_type_i)type;
-        fm_assert(type_ == (type_ & lowbits<entity_type_BITS, entity_type_i>));
-        oid |= (object_id)type << 64 - entity_type_BITS;
+        const auto type_ = (object_type_i)type;
+        fm_assert(type_ == (type_ & lowbits<object_type_BITS, object_type_i>));
+        oid |= (object_id)type << 64 - object_type_BITS;
         s << oid;
         const auto local = e.coord.local();
         s << local.to_index();
@@ -350,8 +350,8 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         switch (type)
         {
         default:
-            fm_abort("invalid entity type '%d'", (int)type);
-        case entity_type::character: {
+            fm_abort("invalid object type '%d'", (int)type);
+        case object_type::character: {
             const auto& C = static_cast<const character&>(e);
             uint8_t id = 0;
             const auto sc_exact =
@@ -360,7 +360,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             id |= meta_short_scenery_bit * sc_exact;
             id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
-            write_entity_flags(s, C);
+            write_object_flags(s, C);
             if (C.frame <= 0xff)
                 s << (uint8_t)C.frame;
             else
@@ -373,7 +373,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
                 write_bbox(s, C);
             break;
         }
-        case entity_type::scenery: {
+        case object_type::scenery: {
             const auto& sc = static_cast<const scenery&>(e);
             auto [ss, img_s, sc_exact] = intern_scenery(sc, true);
             sc_exact = sc_exact &&
@@ -391,7 +391,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             s << id;
             if (!sc_exact)
             {
-                write_entity_flags(s, sc);
+                write_object_flags(s, sc);
                 fm_assert(sc.active || sc.delta == 0);
                 if (sc.frame <= 0xff)
                     s << (uint8_t)sc.frame;
@@ -403,7 +403,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             }
             break;
         }
-        case entity_type::light: {
+        case object_type::light: {
             const auto& L = static_cast<const light&>(e);
             const auto exact = L.frame == 0 && L.pass == pass_mode::pass &&
                                L.bbox_offset.isZero() && L.bbox_size.isZero();
@@ -441,7 +441,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
 void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
 {
     fm_assert(chunk_buf.empty());
-    const auto es_size = sizeof(uint32_t) + entity_size*c.entities().size();
+    const auto es_size = sizeof(uint32_t) + object_size*c.objects().size();
     chunk_buf.resize(std::max(chunk_buf.size(), chunkbuf_size + es_size));
 
     auto s = binary_writer{chunk_buf.begin()};
@@ -534,16 +534,16 @@ ArrayView<const char> writer_state::serialize_world()
 
     for (const auto& [_, c] : _world->chunks())
     {
-        for (const auto& e_ : c.entities())
+        for (const auto& e_ : c.objects())
         {
             const auto& e = *e_;
             switch (e.type())
             {
-            case entity_type::scenery:
+            case object_type::scenery:
                 intern_scenery(static_cast<const scenery&>(e), false);
                 break;
-            case entity_type::character:
-            case entity_type::light:
+            case object_type::character:
+            case object_type::light:
                 break;
             default:
                 fm_abort("invalid scenery type '%d'", (int)e.type());
@@ -597,7 +597,7 @@ ArrayView<const char> writer_state::serialize_world()
     copy(atlas_buf);
     copy(scenery_buf);
     copy(string_buf);
-    copy_int((object_id)_world->entity_counter());
+    copy_int((object_id)_world->object_counter());
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);

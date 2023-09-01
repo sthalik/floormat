@@ -34,10 +34,10 @@ chunk& make_test_chunk(world& w, chunk_coords_ ch)
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal1, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
-    w.make_entity<scenery>(w.make_id(), {ch, {3, 4}}, table);
-    w.make_entity<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
+    w.make_object<scenery>(w.make_id(), {ch, {3, 4}}, table);
+    w.make_object<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
     {
-        auto& e = *w.make_entity<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
+        auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         auto i = e.index();
         e.activate(i);
         e.update(i, 1.f/60);
@@ -49,7 +49,7 @@ chunk& make_test_chunk(world& w, chunk_coords_ ch)
 
 void assert_chunks_equal(const chunk& a, const chunk& b)
 {
-    fm_assert(a.entities().size() == b.entities().size());
+    fm_assert(a.objects().size() == b.objects().size());
 
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
@@ -57,28 +57,28 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         fm_assert(a1 == b1);
     }
 
-    for (auto i = 0uz; i < a.entities().size(); i++)
+    for (auto i = 0uz; i < a.objects().size(); i++)
     {
-        const auto& ae = *a.entities()[i];
-        const auto& be = *b.entities()[i];
+        const auto& ae = *a.objects()[i];
+        const auto& be = *b.objects()[i];
         fm_assert(ae.type() == be.type());
         switch (ae.type())
         {
-        case entity_type::character: {
+        case object_type::character: {
             const auto& e1 = static_cast<const character&>(ae);
             const auto& e2 = static_cast<const character&>(be);
             const auto p1 = character_proto(e1), p2 = character_proto(e2);
             fm_assert(p1 == p2);
             break;
         }
-        case entity_type::scenery: {
+        case object_type::scenery: {
             const auto& e1 = static_cast<const scenery&>(ae);
             const auto& e2 = static_cast<const scenery&>(be);
             const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
             fm_assert(p1 == p2);
             break;
         }
-        case entity_type::light: {
+        case object_type::light: {
             const auto& e1 = static_cast<const light&>(ae);
             const auto& e2 = static_cast<const light&>(be);
             const auto p1 = light_proto(e1), p2 = light_proto(e2);
@@ -86,7 +86,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             break;
         }
         default:
-            fm_abort("invalid entity type '%d'", (int)ae.type());
+            fm_abort("invalid object type '%d'", (int)ae.type());
         }
     }
 }

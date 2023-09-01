@@ -13,8 +13,8 @@ namespace Corrade::Containers { template<typename T, typename D> class Array; }
 namespace floormat {
 
 struct anim_atlas;
-struct entity;
-struct entity_proto;
+struct object;
+struct object_proto;
 class tile_iterator;
 class tile_const_iterator;
 
@@ -23,7 +23,7 @@ enum class collision : unsigned char {
 };
 
 enum class collision_type : unsigned char {
-    none, entity, scenery, geometry,
+    none, object, scenery, geometry,
 };
 
 struct collision_data final {
@@ -35,7 +35,7 @@ struct collision_data final {
 struct chunk final
 {
     friend struct tile_ref;
-    friend struct entity;
+    friend struct object;
     friend struct world;
 
     tile_ref operator[](size_t idx) noexcept;
@@ -82,7 +82,7 @@ struct chunk final
         const size_t size;
     };
     struct topo_sort_data;
-    struct entity_draw_order;
+    struct object_draw_order;
     struct scenery_mesh_tuple;
     struct scenery_scratch_buffers;
 
@@ -108,13 +108,13 @@ struct chunk final
     RTree* rtree() noexcept;
     struct world& world() noexcept { return *_world; }
 
-    [[nodiscard]] bool can_place_entity(const entity_proto& proto, local_coords pos);
+    [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
 
-    void add_entity(const std::shared_ptr<entity>& e);
-    void add_entity_unsorted(const std::shared_ptr<entity>& e);
-    void sort_entities();
-    void remove_entity(size_t i);
-    const std::vector<std::shared_ptr<entity>>& entities() const;
+    void add_object(const std::shared_ptr<object>& e);
+    void add_object_unsorted(const std::shared_ptr<object>& e);
+    void sort_objects();
+    void remove_object(size_t i);
+    const std::vector<std::shared_ptr<object>>& objects() const;
 
 private:
     struct ground_stuff {
@@ -131,7 +131,7 @@ private:
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
-    std::vector<std::shared_ptr<entity>> _entities;
+    std::vector<std::shared_ptr<object>> _objects;
 
     struct world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
@@ -144,10 +144,10 @@ private:
                  _scenery_modified       : 1 = true,
                  _pass_modified          : 1 = true,
                  _teardown               : 1 = false,
-                 _entities_sorted        : 1 = true;
+                 _objects_sorted        : 1 = true;
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
-    static topo_sort_data make_topo_sort_data(entity& e, uint32_t mesh_idx);
+    static topo_sort_data make_topo_sort_data(object& e, uint32_t mesh_idx);
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
@@ -156,8 +156,8 @@ private:
 
         bool operator==(const bbox& other) const noexcept;
     };
-    static bool _bbox_for_scenery(const entity& s, bbox& value) noexcept;
-    static bool _bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
+    static bool _bbox_for_scenery(const object& s, bbox& value) noexcept;
+    static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);

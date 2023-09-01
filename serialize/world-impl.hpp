@@ -6,7 +6,7 @@
 #include "src/tile.hpp"
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
-#include "src/entity-type.hpp"
+#include "src/object-type.hpp"
 #include <bit>
 #include <cstdio>
 #include <limits>
@@ -24,16 +24,16 @@
  *  9) Interned strings.
  * 10) Chunk Z level.
  * 11) RLE empty tiles.
- * 12) Don't write entity name twice.
+ * 12) Don't write object name twice.
  * 13) Entity counter initialized to 1024.
- * 14) Always store entity offset, rework how sc_exact works.
+ * 14) Always store object offset, rework how sc_exact works.
  * 15) Add light alpha.
  * 16) One more bit for light falloff enum.
  */
 
 namespace floormat {
-struct entity;
-struct entity_proto;
+struct object;
+struct object_proto;
 } // namespace floormat
 
 namespace floormat::Serialize {
@@ -63,7 +63,7 @@ constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
 
 using pass_mode_i = std::underlying_type_t<pass_mode>;
 constexpr inline pass_mode_i pass_mask = (1 << pass_mode_BITS)-1;
-using entity_type_i = std::underlying_type_t<entity_type>;
+using object_type_i = std::underlying_type_t<object_type>;
 
 template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
@@ -78,7 +78,7 @@ constexpr inline atlasid scenery_id_max = int_max<atlasid> & ~scenery_id_flag_ma
 
 } // namespace
 
-template<typename T> concept entity_subtype = std::is_base_of_v<entity, T> || std::is_base_of_v<entity_proto, T>;
+template<typename T> concept object_subtype = std::is_base_of_v<object, T> || std::is_base_of_v<object_proto, T>;
 
 enum : tilemeta {
     meta_ground         = 1 << 2,

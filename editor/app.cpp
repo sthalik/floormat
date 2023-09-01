@@ -39,7 +39,7 @@ void app::reset_world()
 void app::ensure_player_character(world& w)
 {
     if (_character_id)
-        if (auto C = w.find_entity(_character_id); C && C->type() == entity_type::character)
+        if (auto C = w.find_object(_character_id); C && C->type() == object_type::character)
             return;
     _character_id = 0;
 
@@ -47,10 +47,10 @@ void app::ensure_player_character(world& w)
 
     for (const auto& [coord, c] : w.chunks())
     {
-        for (const auto& e_ : c.entities())
+        for (const auto& e_ : c.objects())
         {
             const auto& e = *e_;
-            if (e.type() == entity_type::character)
+            if (e.type() == object_type::character)
             {
                 const auto& C = static_cast<const character&>(e);
                 if (C.playable)
@@ -66,7 +66,7 @@ void app::ensure_player_character(world& w)
         character_proto cproto;
         cproto.name = "Player"_s;
         cproto.playable = true;
-        _character_id = w.make_entity<character>(w.make_id(), global_coords{}, cproto)->id;
+        _character_id = w.make_object<character>(w.make_id(), global_coords{}, cproto)->id;
     }
 }
 

@@ -1,6 +1,6 @@
 #include "world.hpp"
 #include "chunk.hpp"
-#include "entity.hpp"
+#include "object.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
 
@@ -47,10 +47,10 @@ world& world::operator=(world&& w) noexcept
         fm_debug_assert(w._unique_id == nullptr);
         _last_chunk = {};
         _chunks = std::move(w._chunks);
-        _entities = std::move(w._entities);
-        _entity_counter = w._entity_counter;
+        _objects = std::move(w._objects);
+        _object_counter = w._object_counter;
         _current_frame = w._current_frame;
-        w._entity_counter = 0;
+        w._object_counter = 0;
 
         for (auto& [id, c] : _chunks)
             c._world = this;
@@ -71,19 +71,19 @@ world::~world() noexcept
         v.mark_scenery_modified();
         v.mark_passability_modified();
         _last_chunk = {};
-        v._entities.clear();
+        v._objects.clear();
     }
     _last_chunk = {};
     _chunks.clear();
-    _entities.clear();
+    _objects.clear();
 }
 
 world::world(size_t capacity) : _chunks{capacity}
 {
     _chunks.max_load_factor(max_load_factor);
     _chunks.reserve(initial_capacity);
-    _entities.max_load_factor(max_load_factor);
-    _entities.reserve(initial_capacity);
+    _objects.max_load_factor(max_load_factor);
+    _objects.reserve(initial_capacity);
 }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
@@ -122,10 +122,10 @@ void world::clear()
     _last_collection = 0;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
-    _entities.clear();
-    _entities.rehash(initial_capacity);
+    _objects.clear();
+    _objects.rehash(initial_capacity);
     _collect_every = initial_collect_every;
-    _entity_counter = entity_counter_init;
+    _object_counter = object_counter_init;
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
@@ -158,44 +158,44 @@ void world::collect(bool force)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
-void world::do_make_entity(const std::shared_ptr<entity>& e, global_coords pos, bool sorted)
+void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted)
 {
     fm_assert(e->id > 0);
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
-    fm_assert(!_entities.contains(e->id));
-    fm_assert(e->type() != entity_type::none);
+    fm_assert(!_objects.contains(e->id));
+    fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
-    _entities[e->id] = e;
+    _objects[e->id] = e;
     if (sorted)
-        e->c->add_entity(e);
+        e->c->add_object(e);
     else
-        e->c->add_entity_unsorted(e);
+        e->c->add_object_unsorted(e);
 }
 
-void world::do_kill_entity(object_id id)
+void world::do_kill_object(object_id id)
 {
     fm_debug_assert(id > 0);
-    auto cnt = _entities.erase(id);
+    auto cnt = _objects.erase(id);
     fm_debug_assert(cnt > 0);
 }
 
-std::shared_ptr<entity> world::find_entity_(object_id id)
+std::shared_ptr<object> world::find_object_(object_id id)
 {
-    auto it = _entities.find(id);
-    auto ret = it == _entities.end() ? nullptr : it->second.lock();
+    auto it = _objects.find(id);
+    auto ret = it == _objects.end() ? nullptr : it->second.lock();
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }
 
-void world::set_entity_counter(object_id value)
+void world::set_object_counter(object_id value)
 {
-    fm_assert(value >= _entity_counter);
-    _entity_counter = value;
+    fm_assert(value >= _object_counter);
+    _object_counter = value;
 }
 
-void world::throw_on_wrong_entity_type(object_id id, entity_type actual, entity_type expected)
+void world::throw_on_wrong_object_type(object_id id, object_type actual, object_type expected)
 {
-    fm_throw("object '{}' has wrong entity type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
+    fm_throw("object '{}' has wrong object type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
 }
 
 auto world::neighbors(floormat::chunk_coords_ coord) -> std::array<neighbor_pair, 8>

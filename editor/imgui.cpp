@@ -164,7 +164,7 @@ void app::draw_light_info()
 
     for (const auto& x : M->clickable_scenery())
     {
-        if (x.e->type() == entity_type::light)
+        if (x.e->type() == object_type::light)
         {
             const auto dest = Math::Range2D<float>(x.dest);
             const auto& e = static_cast<const light&>(*x.e);
@@ -210,12 +210,12 @@ void app::do_lightmap_test()
         return;
 
     auto& w = M->world();
-    auto e_ = w.find_entity(_tested_light);
+    auto e_ = w.find_object(_tested_light);
 
     if (e_)
     {
         auto& e = *e_;
-        fm_assert(e_->type() == entity_type::light);
+        fm_assert(e_->type() == object_type::light);
         auto& shader = M->lightmap_shader();
         auto ch = e.coord.chunk();
         auto z = e.coord.z();
@@ -244,9 +244,9 @@ void app::do_lightmap_test()
                 if (auto* chunk = w.at(c))
                 {
                     auto offset = Vector2(Vector2i(c.x) - Vector2i(ch));
-                    for (const auto& e_ : chunk->entities())
+                    for (const auto& e_ : chunk->objects())
                     {
-                        if (e_->type() == entity_type::light)
+                        if (e_->type() == object_type::light)
                         {
                             const auto& li = static_cast<const light&>(*e_);
                             light_s L {
@@ -311,7 +311,7 @@ void app::do_popup_menu()
 {
     const auto [id, target] = _popup_target;
     auto& w = M->world();
-    auto e_ = w.find_entity(id);
+    auto e_ = w.find_object(id);
 
     if (target == popup_target_type::none || !e_)
     {
@@ -343,7 +343,7 @@ void app::do_popup_menu()
             ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
             inspectors.push_back(std::exchange(_popup_target, {}));
         if (bool b_testing = e.id == _tested_light;
-            e.type() == entity_type::light)
+            e.type() == object_type::light)
             if (ImGui::MenuItem("Test", nullptr, b_testing))
                 _tested_light = e.id;
         ImGui::SeparatorText("Modify");
@@ -351,7 +351,7 @@ void app::do_popup_menu()
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
             e.rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
-            e.chunk().remove_entity(e.index());
+            e.chunk().remove_object(e.index());
     }
     else
         _popup_target = {};

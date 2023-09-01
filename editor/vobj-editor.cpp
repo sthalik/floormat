@@ -45,14 +45,14 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
     if (!x)
     {
         auto [c, t] = w[pos];
-        const auto& es = c.entities();
+        const auto& es = c.objects();
 start:  while (auto id = a.object_at_cursor())
         {
             for (auto i = es.size()-1; i != (size_t)-1; i--)
             {
                 if (es[i]->id == id)
                 {
-                    c.remove_entity(i);
+                    c.remove_object(i);
                     goto start;
                 }
             }
@@ -69,7 +69,7 @@ start:  while (auto id = a.object_at_cursor())
 
 struct light_factory final : vobj_factory
 {
-    entity_type type() const override { return entity_type::light; }
+    object_type type() const override { return object_type::light; }
 
     const vobj_info& info() const override
     {
@@ -80,9 +80,9 @@ struct light_factory final : vobj_factory
         return ret;
     }
 
-    std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const override
+    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override
     {
-        auto ret = w.make_entity<light>(id, pos, light_proto{});
+        auto ret = w.make_object<light>(id, pos, light_proto{});
         return ret;
     }
 };

@@ -9,7 +9,7 @@ struct chunk::topo_sort_data
 {
     enum m : uint8_t { mode_none, mode_static, mode_character,  };
 
-    entity* in = nullptr;
+    object* in = nullptr;
     Vector2i min, max, center;
     uint32_t in_mesh_idx;
     float slope = 0, ord;
@@ -20,9 +20,9 @@ struct chunk::topo_sort_data
     bool intersects(const topo_sort_data& other) const;
 };
 
-struct chunk::entity_draw_order
+struct chunk::object_draw_order
 {
-    entity *e;
+    object *e;
     uint32_t mesh_idx;
     float ord;
     topo_sort_data data;
@@ -30,13 +30,13 @@ struct chunk::entity_draw_order
 
 struct chunk::scenery_mesh_tuple {
     GL::Mesh& mesh;
-    ArrayView<entity_draw_order> array;
+    ArrayView<object_draw_order> array;
     size_t size;
 };
 
 struct chunk::scenery_scratch_buffers
 {
-    Array<entity_draw_order>& array;
+    Array<object_draw_order>& array;
     Array<std::array<vertex, 4>>& scenery_vertexes;
     Array<std::array<UnsignedShort, 6>>& scenery_indexes;
 };

@@ -74,7 +74,7 @@ private:
     GL::Mesh make_occlusion_mesh();
     static std::array<UnsignedShort, 6> quad_indexes(size_t N);
 
-    void add_entities(Vector2 neighbor_offset, chunk& c);
+    void add_objects(Vector2 neighbor_offset, chunk& c);
     void add_geometry(Vector2 neighbor_offset, chunk& c);
     void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
     void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);

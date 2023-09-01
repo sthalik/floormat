@@ -30,7 +30,7 @@ void app::draw_inspector()
     for (auto i = inspectors.size()-1; i != -1uz; i--)
     {
         auto [id, target] = inspectors[i];
-        auto e_ = w.find_entity(id);
+        auto e_ = w.find_object(id);
         if (!e_)
         {
             inspectors.erase(inspectors.begin() + ptrdiff_t(i));
@@ -56,7 +56,7 @@ auto z = e.coord.z();
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
         {
-            bool ret = entities::inspect_entity_subtype(e);
+            bool ret = entities::inspect_object_subtype(e);
             (void)ret;
         }
         if (!is_open)

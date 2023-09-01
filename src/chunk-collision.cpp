@@ -1,6 +1,6 @@
 #include "chunk.hpp"
 #include "tile-atlas.hpp"
-#include "entity.hpp"
+#include "object.hpp"
 #include "src/RTree-search.hpp"
 #include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
@@ -22,7 +22,7 @@ constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
 
 void chunk::ensure_passability() noexcept
 {
-    fm_assert(_entities_sorted); // not strictly necessary
+    fm_assert(_objects_sorted); // not strictly necessary
 
     if (!_pass_modified)
         return;
@@ -30,7 +30,7 @@ void chunk::ensure_passability() noexcept
 
     _rtree.RemoveAll();
 
-    for (const std::shared_ptr<entity>& s : entities())
+    for (const std::shared_ptr<object>& s : objects())
     {
         bbox box;
         if (_bbox_for_scenery(*s, box))
@@ -64,7 +64,7 @@ void chunk::ensure_passability() noexcept
     }
 }
 
-bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
 {
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id(collision_type::scenery, s.pass, s.id);
@@ -72,7 +72,7 @@ bool chunk::_bbox_for_scenery(const entity& s, local_coords local, Vector2b offs
     return s.atlas && !Vector2ui(s.bbox_size).isZero();
 }
 
-bool chunk::_bbox_for_scenery(const entity& s, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
 {
     return _bbox_for_scenery(s, s.coord.local(), s.offset, s.bbox_offset, s.bbox_size, value);
 }
@@ -116,7 +116,7 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
     CORRADE_ASSUME(false);
 }
 
-bool chunk::can_place_entity(const entity_proto& proto, local_coords pos)
+bool chunk::can_place_object(const object_proto& proto, local_coords pos)
 {
     (void)ensure_scenery_mesh();
 

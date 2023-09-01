@@ -222,7 +222,7 @@ void app::update_world(float dt)
                 if (!c_)
                     continue;
                 auto& c = *c_;
-                const auto& es = c.entities();
+                const auto& es = c.objects();
                 const auto size = es.size();
                 for (auto i = size-1; i != (size_t)-1; i--)
                     es[i]->update(i, dt);
@@ -234,7 +234,7 @@ void app::update_character([[maybe_unused]] float dt)
     if (_character_id)
     {
         auto& w = M->world();
-        auto c = w.find_entity<character>(_character_id);
+        auto c = w.find_object<character>(_character_id);
         if (c && c->playable)
             c->set_keys(keys[key_left], keys[key_right], keys[key_up], keys[key_down]);
     }

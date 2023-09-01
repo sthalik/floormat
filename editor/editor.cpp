@@ -110,7 +110,7 @@ void editor::on_click_(world& world, global_coords pos, button b)
             default: break;
             case button::place:
                 if (const auto& sel = mode->get_selected())
-                    if (auto [ch, t] = world[pos]; ch.can_place_entity(sel.proto, pos.local()))
+                    if (auto [ch, t] = world[pos]; ch.can_place_object(sel.proto, pos.local()))
                         mode->place_tile(world, pos, sel, *_app);
                 break;
             case button::remove:

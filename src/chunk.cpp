@@ -9,7 +9,7 @@ namespace floormat {
 
 namespace {
 
-constexpr auto entity_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
+constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
 
 size_t _reload_no_ = 0; // NOLINT
 
@@ -27,9 +27,9 @@ bool chunk::empty(bool force) const noexcept
     if (!force && !_maybe_empty)
         return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (!_entities.empty() || _ground && _ground->_ground_atlases[i] || _walls && (_walls->_wall_atlases[i*2+0] || _walls->_wall_atlases[i*2+1]))
+        if (!_objects.empty() || _ground && _ground->_ground_atlases[i] || _walls && (_walls->_wall_atlases[i*2+0] || _walls->_wall_atlases[i*2+1]))
             return _maybe_empty = false;
-    if (!_entities.empty())
+    if (!_objects.empty())
         return false;
     return true;
 }
@@ -98,7 +98,7 @@ chunk::chunk(struct world& w) noexcept : _world{&w}
 chunk::~chunk() noexcept
 {
     _teardown = true;
-    _entities.clear();
+    _objects.clear();
     _rtree.RemoveAll();
 }
 
@@ -107,46 +107,46 @@ chunk& chunk::operator=(chunk&&) noexcept = default;
 
 bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
 
-void chunk::add_entity_unsorted(const std::shared_ptr<entity>& e)
+void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
 {
-    _entities_sorted = false;
+    _objects_sorted = false;
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
-    _entities.push_back(e);
+    _objects.push_back(e);
 }
 
-void chunk::sort_entities()
+void chunk::sort_objects()
 {
-    if (_entities_sorted)
+    if (_objects_sorted)
         return;
 
-    _entities_sorted = true;
+    _objects_sorted = true;
     mark_scenery_modified();
 
-    std::sort(_entities.begin(), _entities.end(), [](const auto& a, const auto& b) {
+    std::sort(_objects.begin(), _objects.end(), [](const auto& a, const auto& b) {
         return a->id < b->id;
     });
 }
 
-void chunk::add_entity(const std::shared_ptr<entity>& e)
+void chunk::add_object(const std::shared_ptr<object>& e)
 {
-    fm_assert(_entities_sorted);
+    fm_assert(_objects_sorted);
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
-    auto& es = _entities;
+    auto& es = _objects;
     es.reserve(es.size() + 1);
-    auto it = std::lower_bound(es.cbegin(), es.cend(), e, entity_id_lessp);
-    _entities.insert(it, e);
+    auto it = std::lower_bound(es.cbegin(), es.cend(), e, object_id_lessp);
+    _objects.insert(it, e);
 }
 
-void chunk::remove_entity(size_t i)
+void chunk::remove_object(size_t i)
 {
-    fm_assert(_entities_sorted);
-    auto& es = _entities;
+    fm_assert(_objects_sorted);
+    auto& es = _objects;
     fm_debug_assert(i < es.size());
     const auto& e = es[i];
     if (!e->is_dynamic())
@@ -156,10 +156,10 @@ void chunk::remove_entity(size_t i)
     es.erase(es.cbegin() + ptrdiff_t(i));
 }
 
-const std::vector<std::shared_ptr<entity>>& chunk::entities() const
+const std::vector<std::shared_ptr<object>>& chunk::objects() const
 {
-    fm_assert(_entities_sorted);
-    return _entities;
+    fm_assert(_objects_sorted);
+    return _objects;
 }
 
 } // namespace floormat

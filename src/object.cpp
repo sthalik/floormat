@@ -1,4 +1,4 @@
-#include "entity.hpp"
+#include "object.hpp"
 #include "world.hpp"
 #include "rotation.inl"
 #include "anim-atlas.hpp"
@@ -12,18 +12,18 @@ namespace floormat {
 
 namespace {
 
-constexpr auto entity_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
+constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
 
 } // namespace
 
-bool entity_proto::operator==(const entity_proto&) const = default;
-entity_proto& entity_proto::operator=(const entity_proto&) = default;
-entity_proto::~entity_proto() noexcept = default;
-entity_proto::entity_proto() = default;
-entity_proto::entity_proto(const entity_proto&) = default;
-entity_type entity_proto::type_of() const noexcept { return type; }
+bool object_proto::operator==(const object_proto&) const = default;
+object_proto& object_proto::operator=(const object_proto&) = default;
+object_proto::~object_proto() noexcept = default;
+object_proto::object_proto() = default;
+object_proto::object_proto(const object_proto&) = default;
+object_type object_proto::type_of() const noexcept { return type; }
 
-entity::entity(object_id id, struct chunk& c, const entity_proto& proto) :
+object::object(object_id id, struct chunk& c, const object_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
@@ -34,23 +34,23 @@ entity::entity(object_id id, struct chunk& c, const entity_proto& proto) :
     fm_soft_assert(frame < atlas->info().nframes);
 }
 
-entity::~entity() noexcept
+object::~object() noexcept
 {
     fm_debug_assert(id);
     if (c->_teardown || c->_world->_teardown) [[unlikely]]
         return;
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);
-    c->_world->do_kill_entity(id);
+    c->_world->do_kill_object(id);
     const_cast<object_id&>(id) = 0;
 }
 
-float entity::ordinal() const
+float object::ordinal() const
 {
     return ordinal(coord.local(), offset, atlas->group(r).z_offset);
 }
 
-float entity::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
+float object::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
 {
     constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
     auto offset_ = ordinal_offset(offset);
@@ -58,28 +58,28 @@ float entity::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
     return vec[0] + vec[1] + Vector2(z_offset).sum();
 }
 
-struct chunk& entity::chunk() const
+struct chunk& object::chunk() const
 {
     return *c;
 }
 
-size_t entity::index() const
+size_t object::index() const
 {
     auto& c = chunk();
     const auto fn = [id = id](const auto& a, const auto&) { return a->id < id; };
-    auto& es = c._entities;
+    auto& es = c._objects;
     auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);
     fm_assert(it != es.cend());
     fm_assert((*it)->id == id);
     return (size_t)std::distance(es.cbegin(), it);
 }
 
-bool entity::is_virtual() const
+bool object::is_virtual() const
 {
     return false;
 }
 
-bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
@@ -89,7 +89,7 @@ bool entity::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vec
     return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
 }
 
-bool entity::can_rotate(rotation new_r)
+bool object::can_rotate(rotation new_r)
 {
     if (new_r == r)
         return true;
@@ -97,7 +97,7 @@ bool entity::can_rotate(rotation new_r)
     return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
 }
 
-void entity::rotate(size_t, rotation new_r)
+void object::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
     auto offset_ = !is_dynamic() ? rotate_point(offset, r, new_r) : offset;
@@ -112,7 +112,7 @@ void entity::rotate(size_t, rotation new_r)
 
 template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
 
-Pair<global_coords, Vector2b> entity::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
+Pair<global_coords, Vector2b> object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
 {
     auto off_tmp = Vector2i(cur_offset) + new_offset;
     auto off_new = off_tmp % iTILE_SIZE2;
@@ -160,7 +160,7 @@ static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector
     return ret;
 }
 
-bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
 
@@ -182,17 +182,17 @@ bool entity::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, 
     return true;
 }
 
-bool entity::can_move_to(Vector2i delta)
+bool object::can_move_to(Vector2i delta)
 {
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-size_t entity::move_to(size_t& i, Vector2i delta, rotation new_r)
+size_t object::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
         return i;
 
-    auto& es = c->_entities;
+    auto& es = c->_objects;
     fm_debug_assert(i < es.size());
     auto e_ = es[i];
 
@@ -228,9 +228,9 @@ size_t entity::move_to(size_t& i, Vector2i delta, rotation new_r)
         if (!is_dynamic())
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);
-        c->remove_entity(i);
-        auto& es = c2._entities;
-        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, entity_id_lessp);
+        c->remove_object(i);
+        auto& es = c2._objects;
+        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, object_id_lessp);
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
@@ -242,13 +242,13 @@ size_t entity::move_to(size_t& i, Vector2i delta, rotation new_r)
     return i;
 }
 
-void entity::move_to(Magnum::Vector2i delta)
+void object::move_to(Magnum::Vector2i delta)
 {
     auto i = index();
     (void)move_to(i, delta, r);
 }
 
-void entity::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)
+void object::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)
 {
     const_cast<Vector2b&>(offset) = offset_;
     const_cast<Vector2b&>(bbox_offset) = bbox_offset_;
@@ -256,9 +256,9 @@ void entity::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_s
     const_cast<pass_mode&>(pass) = pass_;
 }
 
-entity::operator entity_proto() const
+object::operator object_proto() const
 {
-    entity_proto ret;
+    object_proto ret;
     ret.atlas = atlas;
     ret.offset = offset;
     ret.bbox_offset = bbox_offset;
@@ -271,7 +271,7 @@ entity::operator entity_proto() const
     return ret;
 }
 
-void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
+void object::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
 {
     if (offset != offset_)
         if (!is_dynamic())
@@ -284,15 +284,15 @@ void entity::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_si
     c->_replace_bbox(bb0, bb, b0, b);
 }
 
-bool entity::can_activate(size_t) const { return false; }
-bool entity::activate(size_t) { return false; }
+bool object::can_activate(size_t) const { return false; }
+bool object::activate(size_t) { return false; }
 
-bool entity::is_dynamic() const
+bool object::is_dynamic() const
 {
     return atlas->info().fps > 0;
 }
 
-entity_type entity::type_of() const noexcept
+object_type object::type_of() const noexcept
 {
     return type();
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "src/entity-type.hpp"
+#include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include <memory>
 #include <map>
@@ -14,7 +14,7 @@ namespace floormat {
 
 struct world;
 struct global_coords;
-struct entity;
+struct object;
 struct anim_atlas;
 struct vobj_info;
 struct app;
@@ -29,8 +29,8 @@ struct vobj_factory
     vobj_factory();
     virtual ~vobj_factory() noexcept;
     virtual const vobj_info& info() const = 0;
-    virtual entity_type type() const = 0;
-    virtual std::shared_ptr<entity> make(world& w, object_id id, global_coords pos) const = 0;
+    virtual object_type type() const = 0;
+    virtual std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const = 0;
 
     StringView name() const;
     StringView descr() const;

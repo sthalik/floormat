@@ -14,7 +14,7 @@ light_proto::light_proto()
 {
     atlas = loader.vobj("light"_s).atlas;
     pass = pass_mode::pass;
-    type = entity_type::light;
+    type = object_type::light;
 }
 
 light_proto::light_proto(const light_proto&) = default;
@@ -23,7 +23,7 @@ light_proto::~light_proto() noexcept = default;
 bool light_proto::operator==(const light_proto&) const = default;
 
 light::light(object_id id, struct chunk& c, const light_proto& proto) :
-    entity{id, c, proto},
+    object{id, c, proto},
     max_distance{proto.max_distance},
     color{proto.color},
     falloff{proto.falloff},
@@ -46,7 +46,7 @@ Vector2 light::ordinal_offset(Vector2b) const
 light::operator light_proto() const
 {
     light_proto ret;
-    static_cast<entity_proto&>(ret) = entity_proto(*this);
+    static_cast<object_proto&>(ret) = object_proto(*this);
     ret.max_distance = max_distance;
     ret.color = color;
     ret.falloff = falloff;
@@ -54,7 +54,7 @@ light::operator light_proto() const
     return ret;
 }
 
-entity_type light::type() const noexcept { return entity_type::light; }
+object_type light::type() const noexcept { return object_type::light; }
 void light::update(size_t, float) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }

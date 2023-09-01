@@ -113,7 +113,7 @@ object_id app::object_at_cursor()
                         Vector2 min(rect.m_min[0], rect.m_min[1]), max(rect.m_max[0], rect.m_max[1]);
                         if (t0 >= min && t0 <= max)
                         {
-                            if (auto e_ = world.find_entity(x.data);
+                            if (auto e_ = world.find_object(x.data);
                                 e_ && Vector2ui(e_->bbox_size).product() != 0)
                             {
                                 ret = x.data;

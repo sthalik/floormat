@@ -6,13 +6,13 @@
 
 namespace floormat {
 
-struct entity;
+struct object;
 
 struct clickable final {
     Math::Range2D<unsigned> src;
     Math::Range2D<int> dest;
     BitArrayView bitmask;
-    entity* e;
+    object* e;
     float depth, slope;
     Vector2s bb_min, bb_max; // debug only
     uint32_t stride;

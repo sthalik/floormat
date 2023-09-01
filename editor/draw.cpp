@@ -60,7 +60,7 @@ void app::draw_cursor()
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
                 const auto pos = cursor.tile->to_signed3()*iTILE_SIZE + offset;
                 auto [ch, t] = w[*cursor.tile];
-                if (!ch.can_place_entity(sel, cursor.tile->local()))
+                if (!ch.can_place_object(sel, cursor.tile->local()))
                     shader.set_tint({1, 0, 1, 0.5f});
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }

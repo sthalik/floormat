@@ -1,7 +1,7 @@
 #pragma once
 #include "src/global-coords.hpp"
 #include "src/rotation.hpp"
-#include "src/entity.hpp"
+#include "src/object.hpp"
 #include <Corrade/Containers/String.h>
 
 namespace floormat {
@@ -9,7 +9,7 @@ namespace floormat {
 struct anim_atlas;
 struct world;
 
-struct character_proto : entity_proto
+struct character_proto : object_proto
 {
     String name;
     bool playable : 1 = false;
@@ -18,12 +18,12 @@ struct character_proto : entity_proto
     character_proto(const character_proto&);
     ~character_proto() noexcept override;
     character_proto& operator=(const character_proto&);
-    bool operator==(const entity_proto& proto) const override;
+    bool operator==(const object_proto& proto) const override;
 };
 
-struct character final : entity
+struct character final : object
 {
-    entity_type type() const noexcept override;
+    object_type type() const noexcept override;
     explicit operator character_proto() const;
 
     void update(size_t i, float dt) override;
@@ -44,7 +44,7 @@ private:
     character(object_id id, struct chunk& c, const character_proto& proto);
 };
 
-template<> struct entity_type_<struct character> : std::integral_constant<entity_type, entity_type::character> {};
-template<> struct entity_type_<struct character_proto> : std::integral_constant<entity_type, entity_type::character> {};
+template<> struct object_type_<struct character> : std::integral_constant<object_type, object_type::character> {};
+template<> struct object_type_<struct character_proto> : std::integral_constant<object_type, object_type::character> {};
 
 } // namespace floormat

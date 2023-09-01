@@ -28,7 +28,7 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
 }
 
 void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
-                              entity* s_, const chunk::topo_sort_data& data,
+                              object* s_, const chunk::topo_sort_data& data,
                               std::vector<clickable>& list)
 {
     const auto& s = *s_;

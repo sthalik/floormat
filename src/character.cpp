@@ -2,7 +2,7 @@
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
-#include "src/entity.hpp"
+#include "src/object.hpp"
 #include "shaders/shader.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
@@ -91,16 +91,16 @@ character_proto& character_proto::operator=(const character_proto&) = default;
 
 character_proto::character_proto()
 {
-    type = entity_type::character;
+    type = object_type::character;
     atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
 }
 
-bool character_proto::operator==(const entity_proto& e0) const
+bool character_proto::operator==(const object_proto& e0) const
 {
     if (type != e0.type)
         return false;
 
-    if (!entity_proto::operator==(e0))
+    if (!object_proto::operator==(e0))
         return false;
 
     const auto& s0 = static_cast<const character_proto&>(e0);
@@ -195,26 +195,26 @@ done:
     }
 }
 
-entity_type character::type() const noexcept { return entity_type::character; }
+object_type character::type() const noexcept { return object_type::character; }
 
 character::operator character_proto() const
 {
     character_proto ret;
-    static_cast<entity_proto&>(ret) = entity::operator entity_proto();
+    static_cast<object_proto&>(ret) = object::operator object_proto();
     ret.name = name;
     ret.playable = playable;
     return ret;
 }
 
 character::character(object_id id, struct chunk& c, const character_proto& proto) :
-    entity{id, c, proto},
+    object{id, c, proto},
     name{proto.name},
     playable{proto.playable}
 {
     if (!name)
         name = "(Unnamed)"_s;
     fm_soft_assert(atlas->check_rotation(r));
-    entity::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
+    object::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
 } // namespace floormat

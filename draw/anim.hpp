@@ -20,7 +20,7 @@ struct tile_shader;
 struct anim_atlas;
 struct chunk;
 struct clickable;
-struct entity;
+struct object;
 
 struct anim_mesh final
 {
@@ -30,7 +30,7 @@ struct anim_mesh final
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& pos, float depth);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float dpeth);
     static void add_clickable(tile_shader& shader, const Vector2i& win_size,
-                              entity* s_, const chunk::topo_sort_data& data,
+                              object* s_, const chunk::topo_sort_data& data,
                               std::vector<clickable>& list);
 
 private:
@@ -43,7 +43,7 @@ private:
     };
     using quad_data = std::array<vertex_data, 4>;
 
-    Array<chunk::entity_draw_order> _draw_array;
+    Array<chunk::object_draw_order> _draw_array;
     Array<std::array<uint16_t, 6>> _draw_indexes;
     Array<std::array<chunk::vertex, 4>> _draw_vertexes;
 

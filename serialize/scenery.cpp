@@ -137,7 +137,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     default:
         fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
     case scenery_type::generic:
-        f.type = entity_type::scenery;
+        f.type = object_type::scenery;
         f.sc_type = scenery_type::generic;
         f.r = r;
         f.frame = frame;
@@ -150,7 +150,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
         break;
     case scenery_type::door:
         fm_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
-        f.type = entity_type::scenery;
+        f.type = object_type::scenery;
         f.sc_type = scenery_type::door;
         f.r = r;
         f.frame = uint16_t(f.atlas->group(r).frames.size()-1);

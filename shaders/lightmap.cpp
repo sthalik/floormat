@@ -5,7 +5,7 @@
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/tile-atlas.hpp"
-#include "src/entity.hpp"
+#include "src/object.hpp"
 #include <utility>
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
@@ -371,7 +371,7 @@ void lightmap_shader::add_chunk(Vector2 neighbor_offset, chunk& c)
     neighbor_offset += Vector2(half_neighbors);
 
     add_geometry(neighbor_offset, c);
-    add_entities(neighbor_offset, c);
+    add_objects(neighbor_offset, c);
 }
 
 void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
@@ -407,9 +407,9 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
     }
 }
 
-void lightmap_shader::add_entities(Vector2 neighbor_offset, chunk& c)
+void lightmap_shader::add_objects(Vector2 neighbor_offset, chunk& c)
 {
-    for (const auto& e_ : c.entities())
+    for (const auto& e_ : c.objects())
     {
         const auto& e = *e_;
         if (e.is_virtual())

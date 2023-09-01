@@ -1,13 +1,13 @@
 #pragma once
 #include "src/light-falloff.hpp"
-#include "src/entity.hpp"
+#include "src/object.hpp"
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
 
 namespace floormat {
 
-struct light_proto : entity_proto
+struct light_proto : object_proto
 {
     light_proto();
     light_proto(const light_proto&);
@@ -21,7 +21,7 @@ struct light_proto : entity_proto
     uint8_t enabled : 1 = true;
 };
 
-struct light final : entity
+struct light final : object
 {
     float max_distance;
     Color4ub color;
@@ -32,7 +32,7 @@ struct light final : entity
 
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
-    entity_type type() const noexcept override;
+    object_type type() const noexcept override;
     void update(size_t i, float dt) override;
     bool is_dynamic() const override;
     bool is_virtual() const override;
@@ -42,7 +42,7 @@ struct light final : entity
     friend struct world;
 };
 
-template<> struct entity_type_<struct light> : std::integral_constant<entity_type, entity_type::light> {};
-template<> struct entity_type_<struct light_proto> : std::integral_constant<entity_type, entity_type::light> {};
+template<> struct object_type_<struct light> : std::integral_constant<object_type, object_type::light> {};
+template<> struct object_type_<struct light_proto> : std::integral_constant<object_type, object_type::light> {};
 
 } // namespace floormat

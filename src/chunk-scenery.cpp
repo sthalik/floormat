@@ -1,6 +1,6 @@
 #include "chunk-scenery.hpp"
 #include "shaders/shader.hpp"
-#include "entity.hpp"
+#include "object.hpp"
 #include "anim-atlas.hpp"
 #include "tile-atlas.hpp"
 #include <bit>
@@ -11,7 +11,7 @@ namespace floormat {
 
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
-    Array<entity_draw_order> array;
+    Array<object_draw_order> array;
     Array<std::array<vertex, 4>> scenery_vertexes;
     Array<std::array<UnsignedShort, 6>> scenery_indexes;
     return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
@@ -23,7 +23,7 @@ bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
            min[1] <= o.max[1] && max[1] >= o.min[1];
 }
 
-static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
+static void topo_dfs(Array<chunk::object_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
 {
     using m = typename chunk::topo_sort_data::m;
 
@@ -69,7 +69,7 @@ static void topo_dfs(Array<chunk::entity_draw_order>& array, size_t& output, siz
     output++;
 }
 
-static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size)
+static void topological_sort(Array<chunk::object_draw_order>& array, size_t size)
 {
     size_t output = 0;
 
@@ -79,7 +79,7 @@ static void topological_sort(Array<chunk::entity_draw_order>& array, size_t size
     fm_assert(output == size);
 }
 
-auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
+auto chunk::make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
 {
     const auto& a = *e.atlas;
     const auto& f = a.frame(e.r, e.frame);
@@ -94,7 +94,7 @@ auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
         .in_mesh_idx = mesh_idx,
         .ord = e.ordinal(),
     };
-    if (e.type() == entity_type::scenery && !e.is_dynamic())
+    if (e.type() == object_type::scenery && !e.is_dynamic())
     {
         const auto bb_min_ = world_pos - Vector3(Vector2(e.bbox_size/2), 0);
         const auto bb_max_ = bb_min_ + Vector3(Vector2(e.bbox_size), 0);
@@ -122,7 +122,7 @@ auto chunk::make_topo_sort_data(entity& e, uint32_t mesh_idx) -> topo_sort_data
             break;
         }
     }
-    else if (e.type() == entity_type::character)
+    else if (e.type() == object_type::character)
         data.mode = topo_sort_data::mode_character;
     return data;
 }
@@ -131,7 +131,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 {
     ensure_scenery_buffers(buffers);
 
-    fm_assert(_entities_sorted);
+    fm_assert(_objects_sorted);
 
     if (_scenery_modified)
     {
@@ -139,7 +139,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
         const auto count = fm_begin(
             size_t ret = 0;
-            for (const auto& e : _entities)
+            for (const auto& e : _objects)
                 ret += !e->is_dynamic();
             return ret;
         );
@@ -147,7 +147,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         auto& scenery_vertexes = buffers.scenery_vertexes;
         auto& scenery_indexes = buffers.scenery_indexes;
 
-        for (auto i = 0uz; const auto& e : _entities)
+        for (auto i = 0uz; const auto& e : _objects)
         {
             if (e->is_dynamic())
                 continue;
@@ -177,22 +177,22 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         scenery_mesh = Utility::move(mesh);
     }
 
-    const auto size = _entities.size();
+    const auto size = _objects.size();
     auto& array = buffers.array;
     uint32_t j = 0, i = 0;
-    for (const auto& e : _entities)
+    for (const auto& e : _objects)
     {
         auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
         array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
     }
     topological_sort(array, i);
 
-    return { scenery_mesh, ArrayView<entity_draw_order>{array, size}, j };
+    return { scenery_mesh, ArrayView<object_draw_order>{array, size}, j };
 }
 
 void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
 {
-    const size_t len_ = _entities.size();
+    const size_t len_ = _objects.size();
 
     if (len_ <= bufs.array.size())
         return;
@@ -204,7 +204,7 @@ void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
     else
         len = std::bit_ceil(len_);
 
-    bufs.array = Array<entity_draw_order>{NoInit, len};
+    bufs.array = Array<object_draw_order>{NoInit, len};
     bufs.scenery_vertexes = Array<std::array<vertex, 4>>{NoInit, len};
     bufs.scenery_indexes = Array<std::array<UnsignedShort, 6>>{NoInit, len};
 }

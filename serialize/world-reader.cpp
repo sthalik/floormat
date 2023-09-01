@@ -40,7 +40,7 @@ private:
     world* _world;
     uint16_t PROTO = proto_version;
 
-    Array<chunk::entity_draw_order> draw_array;
+    Array<chunk::object_draw_order> draw_array;
     Array<std::array<chunk::vertex, 4>> draw_vertexes;
     Array<std::array<UnsignedShort, 6>> draw_indexes;
 };
@@ -63,26 +63,26 @@ void reader_state::read_atlases(reader_t& s)
     }
 }
 
-template<typename T, entity_subtype U>
-bool read_entity_flags(binary_reader<T>& s, U& e)
+template<typename T, object_subtype U>
+bool read_object_flags(binary_reader<T>& s, U& e)
 {
-    constexpr auto tag = entity_type_<U>::value;
+    constexpr auto tag = object_type_<U>::value;
     uint8_t flags; flags << s;
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
-         fm_throw("invalid entity type '{}'"_cf, (int)e.type);
-    if constexpr(tag == entity_type::scenery)
+         fm_throw("invalid object type '{}'"_cf, (int)e.type);
+    if constexpr(tag == object_type::scenery)
     {
         e.active      = !!(flags & 1 << 2);
         e.closing     = !!(flags & 1 << 3);
         e.interactive = !!(flags & 1 << 4);
     }
-    else if constexpr(tag == entity_type::character)
+    else if constexpr(tag == object_type::character)
     {
         e.playable    = !!(flags & 1 << 2);
     }
     else
-        static_assert(tag == entity_type::none);
+        static_assert(tag == object_type::none);
     return flags & 1 << 7;
 }
 
@@ -109,7 +109,7 @@ void reader_state::read_sceneries(reader_t& s)
             atlasid id; id << s;
             fm_soft_assert(id < sz);
             fm_soft_assert(!sceneries[id]);
-            bool short_frame = read_entity_flags(s, sc);
+            bool short_frame = read_object_flags(s, sc);
             fm_debug_assert(sc.atlas != nullptr);
             if (short_frame)
                 sc.frame = s.read<uint8_t>();
@@ -164,7 +164,7 @@ StringView reader_state::lookup_string(uint32_t idx)
 
 void reader_state::read_chunks(reader_t& s)
 {
-    Array<typename chunk::entity_draw_order> array;
+    Array<typename chunk::object_draw_order> array;
     const auto N = s.read<chunksiz>();
 #ifndef FM_NO_DEBUG
     [[maybe_unused]] size_t nbytes_read = 0;
@@ -230,18 +230,18 @@ void reader_state::read_chunks(reader_t& s)
                     read_old_scenery(s, ch, i);
             SET_CHUNK_SIZE();
         }
-        uint32_t entity_count = 0;
+        uint32_t object_count = 0;
         if (PROTO >= 8) [[likely]]
-                entity_count << s;
+                object_count << s;
 
         SET_CHUNK_SIZE();
 
-        for (auto i = 0uz; i < entity_count; i++)
+        for (auto i = 0uz; i < object_count; i++)
         {
             object_id _id; _id << s;
             const auto oid = _id & lowbits<60, object_id>;
             fm_soft_assert(oid != 0);
-            const auto type = entity_type(_id >> 61);
+            const auto type = object_type(_id >> 61);
             const auto local = local_coords{s.read<uint8_t>()};
 
             Vector2b offset;
@@ -259,12 +259,12 @@ void reader_state::read_chunks(reader_t& s)
             SET_CHUNK_SIZE();
             switch (type)
             {
-            case entity_type::character: {
+            case object_type::character: {
                 character_proto proto;
                 proto.offset = offset;
                 uint8_t id; id << s;
                 proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
-                if (read_entity_flags(s, proto))
+                if (read_object_flags(s, proto))
                     proto.frame = s.read<uint8_t>();
                 else
                     proto.frame << s;
@@ -297,12 +297,12 @@ void reader_state::read_chunks(reader_t& s)
                     read_bbox(s, proto);
                 }
                 SET_CHUNK_SIZE();
-                auto e = _world->make_entity<character, false>(oid, {ch, local}, proto);
+                auto e = _world->make_object<character, false>(oid, {ch, local}, proto);
                 e->offset_frac = offset_frac;
                 (void)e;
                 break;
             }
-            case entity_type::scenery: {
+            case object_type::scenery: {
                 atlasid id; id << s;
                 const bool exact = id & meta_short_scenery_bit;
                 const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
@@ -313,7 +313,7 @@ void reader_state::read_chunks(reader_t& s)
                 sc.r = r;
                 if (!exact)
                 {
-                    if (read_entity_flags(s, sc))
+                    if (read_object_flags(s, sc))
                         sc.frame = s.read<uint8_t>();
                     else
                         sc.frame << s;
@@ -327,11 +327,11 @@ void reader_state::read_chunks(reader_t& s)
                     if (sc.active)
                         sc.delta << s;
                 }
-                auto e = _world->make_entity<scenery, false>(oid, {ch, local}, sc);
+                auto e = _world->make_object<scenery, false>(oid, {ch, local}, sc);
                 (void)e;
                 break;
             }
-            case entity_type::light: {
+            case object_type::light: {
                 light_proto proto;
                 proto.offset = offset;
 
@@ -364,20 +364,20 @@ void reader_state::read_chunks(reader_t& s)
                     read_bbox(s, proto);
                 }
                 SET_CHUNK_SIZE();
-                auto L = _world->make_entity<light, false>(oid, {ch, local}, proto);
+                auto L = _world->make_object<light, false>(oid, {ch, local}, proto);
                 L->enabled = enabled;
                 (void)L;
                 break;
             }
             default:
-                fm_throw("invalid_entity_type '{}'"_cf, (int)type);
+                fm_throw("invalid_object_type '{}'"_cf, (int)type);
             }
         }
 
         SET_CHUNK_SIZE();
         fm_assert(c.is_scenery_modified());
         fm_assert(c.is_passability_modified());
-        c.sort_entities();
+        c.sort_objects();
         c.ensure_ground_mesh();
         c.ensure_wall_mesh();
         c.ensure_scenery_mesh({ draw_array, draw_vertexes, draw_indexes });
@@ -396,7 +396,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
     sc.r = r;
     if (!exact)
     {
-        if (read_entity_flags(s, sc))
+        if (read_object_flags(s, sc))
             sc.frame = s.read<uint8_t>();
         else
             sc.frame << s;
@@ -424,7 +424,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
         }
     }
     global_coords coord{ch, local_coords{i}};
-    auto e = _world->make_entity<scenery, false>(_world->make_id(), coord, sc);
+    auto e = _world->make_object<scenery, false>(_world->make_id(), coord, sc);
     (void)e;
 }
 
@@ -441,22 +441,22 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
                  (size_t)proto, (size_t)min_proto_version, (size_t)proto_version);
     PROTO = proto;
     fm_assert(PROTO > 0);
-    object_id entity_counter = world::entity_counter_init;
+    object_id object_counter = world::object_counter_init;
     read_atlases(s);
     if (PROTO >= 3) [[likely]]
         read_sceneries(s);
     if (PROTO >= 9) [[likely]]
         read_strings(s);
     if (PROTO >= 8) [[likely]]
-        entity_counter << s;
+        object_counter << s;
     read_chunks(s);
     s.assert_end();
     if (PROTO >= 8) [[likely]]
-        fm_assert(_world->entity_counter() == world::entity_counter_init);
+        fm_assert(_world->object_counter() == world::object_counter_init);
     if (PROTO >= 13) [[likely]]
-        _world->set_entity_counter(entity_counter);
+        _world->set_object_counter(object_counter);
     else if (PROTO >= 8) [[likely]]
-        _world->set_entity_counter(std::max(world::entity_counter_init, entity_counter));
+        _world->set_object_counter(std::max(world::object_counter_init, object_counter));
     _world = nullptr;
 }
 

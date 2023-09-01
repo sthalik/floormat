@@ -11,7 +11,7 @@ namespace floormat {
 
 scenery_proto::scenery_proto()
 {
-    type = entity_type::scenery;
+    type = object_type::scenery;
 }
 
 scenery_proto& scenery_proto::operator=(const scenery_proto&) = default;
@@ -129,12 +129,12 @@ bool scenery::activate(size_t)
     return false;
 }
 
-bool scenery_proto::operator==(const entity_proto& e0) const
+bool scenery_proto::operator==(const object_proto& e0) const
 {
     if (type != e0.type)
         return false;
 
-    if (!entity_proto::operator==(e0))
+    if (!object_proto::operator==(e0))
         return false;
 
     const auto& s0 = static_cast<const scenery_proto&>(e0);
@@ -142,12 +142,12 @@ bool scenery_proto::operator==(const entity_proto& e0) const
            closing == s0.closing && interactive == s0.interactive;
 }
 
-entity_type scenery::type() const noexcept { return entity_type::scenery; }
+object_type scenery::type() const noexcept { return object_type::scenery; }
 
 scenery::operator scenery_proto() const
 {
     scenery_proto ret;
-    static_cast<entity_proto&>(ret) = entity::operator entity_proto();
+    static_cast<object_proto&>(ret) = object::operator object_proto();
     ret.sc_type = sc_type;
     ret.active = active;
     ret.closing = closing;
@@ -156,7 +156,7 @@ scenery::operator scenery_proto() const
 }
 
 scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :
-    entity{id, c, proto}, sc_type{proto.sc_type}, active{proto.active},
+    object{id, c, proto}, sc_type{proto.sc_type}, active{proto.active},
     closing{proto.closing}, interactive{proto.interactive}
 {
     fm_debug_assert(atlas); // todo add placeholder graphic

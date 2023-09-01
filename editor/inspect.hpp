@@ -1,6 +1,6 @@
 #pragma once
 #include <utility>
-namespace floormat { struct entity; }
+namespace floormat { struct object; }
 namespace floormat::entities {
 
 struct erased_accessor;
@@ -27,7 +27,7 @@ template<typename T> using field_repr_slider = field_repr_<T, field_repr, field_
 template<typename T> using field_repr_drag = field_repr_<T, field_repr, field_repr::drag>;
 template<typename T> using field_repr_cbx = field_repr_<T, field_repr, field_repr::cbx>;
 
-bool inspect_entity_subtype(entity& x);
+bool inspect_object_subtype(object& x);
 
 template<typename T> bool inspect_field(void* datum, const entities::erased_accessor& accessor,
                                         const ArrayView<const std::pair<StringView, size_t>>& list,

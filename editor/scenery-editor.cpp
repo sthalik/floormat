@@ -85,14 +85,14 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, 
     if (!s)
     {
         auto [c, t] = w[pos];
-        const auto& es = c.entities();
+        const auto& es = c.objects();
 start:  while (auto id = a.object_at_cursor())
         {
             for (auto i = es.size()-1; i != (size_t)-1; i--)
             {
                 if (es[i]->id == id)
                 {
-                    c.remove_entity(i);
+                    c.remove_object(i);
                     goto start;
                 }
             }
@@ -101,7 +101,7 @@ start:  while (auto id = a.object_at_cursor())
     }
     else
         // todo check collision at pos
-        w.make_entity<scenery>(w.make_id(), pos, s.proto);
+        w.make_object<scenery>(w.make_id(), pos, s.proto);
 }
 
 } // namespace floormat
