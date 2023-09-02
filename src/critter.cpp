@@ -4,8 +4,8 @@
 #include "src/world.hpp"
 #include "src/object.hpp"
 #include "shaders/shader.hpp"
-#include "src/RTree-search.hpp"
 #include "compat/exception.hpp"
+#include "compat/math.hpp"
 #include <cmath>
 #include <memory>
 #include <utility>
@@ -17,9 +17,13 @@ namespace {
 
 template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
 
-constexpr int tile_size_1 = iTILE_SIZE2.sum()/2,
-              framerate = 96 * 3, move_speed = tile_size_1 * 2 * 3;
-constexpr float frame_time = 1.f/framerate;
+constexpr auto vector_length(Vector2 vec)
+{
+    return math::sqrt(Math::dot(vec, vec));
+};
+
+constexpr float framerate = 96 * 3, move_speed = vector_length(TILE_SIZE2) * 4.25f;
+constexpr float frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
@@ -30,6 +34,7 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 
     const auto bits = unsigned(left << 3 | right << 2 | up << 1 | down << 0);
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
+    CORRADE_ASSUME(bits <= 0xff);
 
     switch (bits)
     {
@@ -109,7 +114,7 @@ bool critter_proto::operator==(const object_proto& e0) const
 
 int critter::allocate_frame_time(float dt)
 {
-    int d = int(delta) + int(65535u * dt);
+    int d = int(delta) + int(65535 * dt);
     constexpr int framerate_ = 65535/framerate;
     static_assert(framerate_ > 0);
     auto ret = d / framerate_;
