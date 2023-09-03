@@ -62,15 +62,11 @@ constexpr inline T ceil(T x)
 {
     if (std::is_constant_evaluated())
     {
-#ifdef __GNUG__
-        return __builtin_ceil(x);
-#else
-        const auto x0 = uint64_t(x);
+        const auto x0 = int64_t(x);
         if (x > x0)
-            return T(x0 + uint64_t(1));
+            return T(x0 + int64_t(1));
         else
             return x0;
-#endif
     }
     else
         return std::ceil(x);
