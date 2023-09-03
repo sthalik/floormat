@@ -130,8 +130,17 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
         return true;
     }
 
+    if (!proto.bbox_size.x() || proto.bbox_size.y())
+        return true;
+
+    auto bbox_size = Vector2i(proto.bbox_size);
+    if (bbox_size.x() > 1)
+        bbox_size.x() -= 1;
+    if (bbox_size.y() > 1)
+        bbox_size.y() -= 1;
+
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
-               min = center - Vector2(proto.bbox_size/2), max = min + Vector2(proto.bbox_size);
+               min = center - Vector2(bbox_size)*.5f, max = min + Vector2(bbox_size);
     bool ret = true;
     _rtree.Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
           [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
