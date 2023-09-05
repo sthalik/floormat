@@ -187,10 +187,10 @@ bool object::can_move_to(Vector2i delta)
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-size_t object::move_to(size_t& i, Vector2i delta, rotation new_r)
+void object::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
-        return i;
+        return;
 
     auto& es = c->_objects;
     fm_debug_assert(i < es.size());
@@ -201,7 +201,7 @@ size_t object::move_to(size_t& i, Vector2i delta, rotation new_r)
     const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
     if (coord_ == coord && offset_ == offset)
-        return i;
+        return;
 
     if (!is_dynamic())
         c->mark_scenery_modified();
@@ -238,8 +238,6 @@ size_t object::move_to(size_t& i, Vector2i delta, rotation new_r)
         i = (size_t)std::distance(es.cbegin(), it);
         es.insert(it, std::move(e_));
     }
-
-    return i;
 }
 
 void object::move_to(Magnum::Vector2i delta)
