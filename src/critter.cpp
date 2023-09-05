@@ -187,12 +187,20 @@ void critter::update(size_t i, float dt)
             offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_[0], 1.f)), std::fabs(std::fmod(offset_[1], 1.f))) * frac);
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
+            {
                 if (can_move_to(off_i))
                 {
                     move_to(i, off_i, new_r);
                     ++frame %= atlas->info().nframes;
                     goto done;
                 }
+                else
+                {
+                    offset_frac = {};
+                    delta = 0;
+                    return;
+                }
+            }
         }
         delta = 0;
         break;
