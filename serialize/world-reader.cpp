@@ -268,9 +268,11 @@ void reader_state::read_chunks(reader_t& s)
                     proto.frame = s.read<uint8_t>();
                 else
                     proto.frame << s;
-                Vector2s offset_frac;
+                Vector2us offset_frac;
                 offset_frac[0] << s;
                 offset_frac[1] << s;
+                if (PROTO < 17) [[unlikely]]
+                    offset_frac = {};
                 const bool exact = id & meta_short_scenery_bit;
                 SET_CHUNK_SIZE();
 

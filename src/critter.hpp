@@ -32,7 +32,7 @@ struct critter final : object
     float depth_offset() const override;
 
     String name;
-    Vector2s offset_frac;
+    Vector2us offset_frac;
     bool b_L : 1 = false, b_R : 1 = false, b_U : 1 = false, b_D : 1 = false;
     bool playable : 1 = false;
 

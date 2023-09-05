@@ -151,8 +151,9 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
 void critter::update(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
-    if (new_r == rotation{rotation_COUNT})
+    if (new_r == rotation_COUNT)
     {
+        offset_frac = {};
         delta = 0;
         return;
     }
@@ -169,7 +170,6 @@ void critter::update(size_t i, float dt)
         move_vec(rotation_to_vec(_2)),
     };
 
-
     if (r != new_r)
         if (is_dynamic())
             rotate(i, new_r);
@@ -181,10 +181,11 @@ void critter::update(size_t i, float dt)
         for (auto j = 0uz; j < 3; j++)
         {
             auto vec = move_vecs[j];
-            constexpr auto frac = Vector2(32767);
-            constexpr auto inv_frac = 1.f / frac;
-            auto offset_ = vec + Vector2(offset_frac) * inv_frac;
-            offset_frac = Vector2s(Vector2(std::fmod(offset_[0], 1.f), std::fmod(offset_[1], 1.f)) * frac);
+            constexpr auto frac = 65535u;
+            constexpr auto inv_frac = 1.f / (float)frac;
+            const auto sign_vec = Vector2(sgn(vec[0]), sgn(vec[1]));
+            auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
+            offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_[0], 1.f)), std::fabs(std::fmod(offset_[1], 1.f))) * frac);
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
                 if (can_move_to(off_i))
