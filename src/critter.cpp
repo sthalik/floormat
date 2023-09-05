@@ -7,7 +7,6 @@
 #include "compat/exception.hpp"
 #include "compat/math.hpp"
 #include <cmath>
-#include <memory>
 #include <utility>
 #include <algorithm>
 
@@ -20,7 +19,7 @@ template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(
 constexpr auto vector_length(Vector2 vec)
 {
     return math::sqrt(Math::dot(vec, vec));
-};
+}
 
 constexpr float framerate = 96 * 3, move_speed = vector_length(TILE_SIZE2) * 4.25f;
 constexpr float frame_time = 1/framerate;
@@ -115,7 +114,7 @@ bool critter_proto::operator==(const object_proto& e0) const
 int critter::allocate_frame_time(float dt)
 {
     int d = int(delta) + int(65535 * dt);
-    constexpr int framerate_ = 65535/framerate;
+    constexpr auto framerate_ = (int)(65535/framerate);
     static_assert(framerate_ > 0);
     auto ret = d / framerate_;
     delta = (uint16_t)std::clamp(d - ret*65535LL, 0LL, 65535LL);
