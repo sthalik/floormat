@@ -3,6 +3,7 @@
 #include "tile.hpp"
 #include "local-coords.hpp"
 #include "src/RTree.h"
+#include "global-coords.hpp"
 #include <type_traits>
 #include <array>
 #include <Corrade/Containers/Pointer.h>
@@ -55,7 +56,7 @@ struct chunk final
 
     bool empty(bool force = false) const noexcept;
 
-    explicit chunk(struct world& w) noexcept;
+    explicit chunk(struct world& w, chunk_coords_ ch) noexcept;
     ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
@@ -132,11 +133,10 @@ private:
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
     std::vector<std::shared_ptr<object>> _objects;
-
     struct world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
-
     RTree _rtree;
+    chunk_coords_ _coord;
 
     mutable bool _maybe_empty            : 1 = true,
                  _ground_modified        : 1 = true,

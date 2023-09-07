@@ -23,7 +23,7 @@ static chunk make_test_chunk()
          tiles = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
     world w;
-    chunk c{w};
+    chunk c{w, {}};
     for (auto [x, k, pt] : c) {
         x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
     }

@@ -91,7 +91,7 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
     fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
-        c = &_chunks.try_emplace(coord, *this).first->second;
+        c = &_chunks.try_emplace(coord, *this, coord).first->second;
     coord2 = coord;
     return *c;
 }
