@@ -47,8 +47,8 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case D: return SE;
     case R: return NE;
     case U: return NW;
+    default: std::unreachable();
     }
-    std::unreachable();
 }
 
 constexpr Vector2i rotation_to_vec(rotation r)
@@ -65,8 +65,8 @@ constexpr Vector2i rotation_to_vec(rotation r)
     case SW: return { -1,  1 };
     case W:  return { -1,  0 };
     case NW: return { -1, -1 };
+    default: std::unreachable();
     }
-    std::unreachable();
 }
 
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
@@ -83,8 +83,8 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     case SW: return { SW,  S,  W };
     case W:  return {  W, SW, NW };
     case NW: return { NW,  W,  N };
+    default: std::unreachable();
     }
-    std::unreachable();
 }
 
 } // namespace
@@ -121,11 +121,13 @@ int critter::allocate_frame_time(float dt)
     return ret;
 }
 
-Vector2 critter::move_vec(Vector2i vec)
+constexpr Vector2 move_vec(Vector2i vec)
 {
     const int left_right = vec[0], top_bottom = vec[1];
     constexpr auto c = move_speed * frame_time;
-    return c * Vector2((float)sgn(left_right), (float)sgn(top_bottom)).normalized();
+    auto dir = Vector2((float)sgn(left_right), (float)sgn(top_bottom));
+    auto inv_norm = 1.f/math::sqrt(Math::dot(dir, dir));
+    return c * dir * inv_norm;
 }
 
 void critter::set_keys(bool L, bool R, bool U, bool D)
@@ -147,6 +149,24 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
+constexpr auto make_move_vec(rotation r)
+{
+    auto [_0, _1, _2] = rotation_to_similar(r);
+    return std::array<Vector2, 3>{{
+        move_vec(rotation_to_vec(_0)),
+        move_vec(rotation_to_vec(_1)),
+        move_vec(rotation_to_vec(_2)),
+    }};
+}
+
+template<size_t... Index>
+constexpr auto make_move_vecs(std::index_sequence<Index...>)
+{
+    return std::array<std::array<Vector2, 3>, (size_t)rotation_COUNT>{{
+        make_move_vec((rotation)Index)...,
+    }};
+}
+
 void critter::update(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
@@ -158,16 +178,11 @@ void critter::update(size_t i, float dt)
     }
 
     int nframes = allocate_frame_time(dt);
-
     if (nframes == 0)
         return;
 
-    auto [_0, _1, _2] = rotation_to_similar(r);
-    const Vector2 move_vecs[] = {
-        move_vec(rotation_to_vec(_0)),
-        move_vec(rotation_to_vec(_1)),
-        move_vec(rotation_to_vec(_2)),
-    };
+    constexpr auto move_vecs_ = make_move_vecs(std::make_index_sequence<(size_t)rotation_COUNT>{});
+    const auto& move_vecs = move_vecs_[(size_t)r];
 
     if (r != new_r)
         if (is_dynamic())

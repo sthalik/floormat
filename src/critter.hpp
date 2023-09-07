@@ -38,7 +38,6 @@ struct critter final : object
 
 private:
     int allocate_frame_time(float dt);
-    static Vector2 move_vec(Vector2i vec);
 
     friend struct world;
     critter(object_id id, struct chunk& c, const critter_proto& proto);
