@@ -119,34 +119,42 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
             if (k2 == last)
                 continue;
             last = k2;
-            switch (int mods = k2 & kmod_mask; k2)
+            auto mods = k2 & kmod_mask;
+            auto ret = [=]
             {
-            default: continue;
-            case SDLK_w:        return { key_camera_up,                 mods };
-            case SDLK_a:        return { key_camera_left,               mods };
-            case SDLK_s:        return { key_camera_down,               mods };
-            case SDLK_d:        return { key_camera_right,              mods };
-            case SDLK_HOME:     return { key_camera_reset,              mods };
-            case SDLK_r:        return { key_rotate_tile,               mods };
-            case SDLK_1:        return { key_mode_none,                 mods };
-            case SDLK_2:        return { key_mode_floor,                mods };
-            case SDLK_3:        return { key_mode_walls,                mods };
-            case SDLK_4:        return { key_mode_scenery,              mods };
-            case SDLK_5:        return { key_mode_vobj,                 mods };
-            case SDLK_c | ALT:  return { key_render_collision_boxes,    mods };
-            case SDLK_l | ALT:  return { key_render_clickables,         mods };
-            case SDLK_v | ALT:  return { key_render_vobjs,              mods };
-            case SDLK_t:        return { key_render_all_z_levels,       mods };
-            case SDLK_F5:       return { key_quicksave,                 mods };
-            case SDLK_F9:       return { key_quickload,                 mods };
-            case SDLK_q | CTRL: return { key_quit,                      mods };
-            case SDLK_n | CTRL: return { key_new_file,                  mods };
-            case SDLK_ESCAPE:   return { key_escape,                    mods };
-            case SDLK_LEFT:     return { key_left,                      mods };
-            case SDLK_RIGHT:    return { key_right,                     mods };
-            case SDLK_UP:       return { key_up,                        mods };
-            case SDLK_DOWN:     return { key_down,                      mods };
-            }
+                switch (k2)
+                {
+                default:            return key_noop;
+                case SDLK_w:        return key_camera_up;
+                case SDLK_a:        return key_camera_left;
+                case SDLK_s:        return key_camera_down;
+                case SDLK_d:        return key_camera_right;
+                case SDLK_HOME:     return key_camera_reset;
+                case SDLK_r:        return key_rotate_tile;
+                case SDLK_1:        return key_mode_none;
+                case SDLK_2:        return key_mode_floor;
+                case SDLK_3:        return key_mode_walls;
+                case SDLK_4:        return key_mode_scenery;
+                case SDLK_5:        return key_mode_vobj;
+                case SDLK_c | ALT:  return key_render_collision_boxes;
+                case SDLK_l | ALT:  return key_render_clickables;
+                case SDLK_v | ALT:  return key_render_vobjs;
+                case SDLK_t:        return key_render_all_z_levels;
+                case SDLK_F5:       return key_quicksave;
+                case SDLK_F9:       return key_quickload;
+                case SDLK_q | CTRL: return key_quit;
+                case SDLK_n | CTRL: return key_new_file;
+                case SDLK_ESCAPE:   return key_escape;
+                case SDLK_LEFT:     return key_left;
+                case SDLK_RIGHT:    return key_right;
+                case SDLK_UP:       return key_up;
+                case SDLK_DOWN:     return key_down;
+                }
+            }();
+            if (ret == key_noop)
+                continue;
+            else
+                return {ret, mods};
         }
     }
     return { key_COUNT, k & kmod_mask };
