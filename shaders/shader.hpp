@@ -42,7 +42,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr Vector2s max_screen_tiles = {8, 8};
     static constexpr float character_depth_offset = 1 + 1./64;
     static constexpr float scenery_depth_offset = 1 + 1./64;
-    static constexpr float ground_depth_offset = 0; // todo scenery cut off at chunk boundary
+    static constexpr float ground_depth_offset = 0;
     static constexpr float wall_depth_offset = 1;
     static constexpr float z_depth_offset = 1 + 2./64;
     static constexpr float depth_tile_size = 1.f/(TILE_MAX_DIM * 2 * max_screen_tiles.product());
