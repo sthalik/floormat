@@ -2,6 +2,8 @@
 
 namespace floormat {
 
+namespace {
+
 static_assert(sizeof(decltype(local_coords::x))*8 == 8);
 static_assert(sizeof(decltype(chunk_coords::x))*8 == 16);
 static_assert(std::is_same_v<decltype(local_coords::x), decltype(local_coords::y)>);
@@ -23,5 +25,14 @@ static_assert(chunk_coords_{(char)11, (char)22, (char)33} - Vector3i(1, 2, 3) ==
 
 static_assert(chunk_coords_{(short)10, (short)20, (char)30} + Vector2i(1, 2) == chunk_coords_{(short)11, (short)22, (char)30});
 static_assert(chunk_coords_{(short)11, (short)22, (char)30} - Vector2i(1, 2) == chunk_coords_{(short)10, (short)20, (char)30});
+
+constexpr auto g1 = global_coords{{1, 2, 0}, {3, 0}};
+constexpr auto g2 = global_coords{{1, 1, 0}, {3, TILE_MAX_DIM-1}};
+
+static_assert(g1 - g2 == Vector2i(0, 1));
+static_assert((g1 + Vector2i(0, -1)).chunk() == g2.chunk());
+static_assert(g1 + Vector2i(0, -1) == g2);
+
+} // namespace
 
 } // namespace floormat
