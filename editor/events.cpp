@@ -136,6 +136,11 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
                 case SDLK_3:        return key_mode_walls;
                 case SDLK_4:        return key_mode_scenery;
                 case SDLK_5:        return key_mode_vobj;
+                // for things like:
+                // - detect collisions with a line placed using the cursor (can be diagonal)
+                // - make charactere pathfind somewhere
+                // - make character walk around waypoints
+                case SDLK_6:        return key_mode_tests;
                 case SDLK_c | ALT:  return key_render_collision_boxes;
                 case SDLK_l | ALT:  return key_render_clickables;
                 case SDLK_v | ALT:  return key_render_vobjs;

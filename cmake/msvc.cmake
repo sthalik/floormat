@@ -78,7 +78,7 @@ if(DEFINED floormat-64bit)
     endif()
 endif()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG>:Debug>")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG,Debug>:Debug>")
 
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 

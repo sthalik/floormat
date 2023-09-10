@@ -36,7 +36,6 @@ struct object_proto
     object_type type_of() const noexcept;
 };
 
-// todo rename to 'object'
 struct object
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);

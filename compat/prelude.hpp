@@ -18,6 +18,12 @@ namespace Corrade::Containers::Literals {}
 namespace Corrade::Utility::Path {}
 namespace Magnum::Math::Literals {}
 
+namespace Magnum {
+using Vector2uz = ::Magnum::Math::Vector2<size_t>;
+using Vector3uz = ::Magnum::Math::Vector3<size_t>;
+using Vector4uz = ::Magnum::Math::Vector4<size_t>;
+}
+
 namespace floormat {
     using namespace ::Magnum;
     using namespace ::Corrade::Containers;

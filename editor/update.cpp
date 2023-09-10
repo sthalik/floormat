@@ -179,6 +179,8 @@ void app::do_key(key k, int mods)
         return do_set_mode(editor_mode::scenery);
     case key_mode_vobj:
         return do_set_mode(editor_mode::vobj);
+    case key_mode_tests:
+        return do_set_mode(editor_mode::tests);
     case key_render_collision_boxes:
         return void(_render_bboxes = !_render_bboxes);
     case key_render_clickables:

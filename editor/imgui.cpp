@@ -61,7 +61,7 @@ float app::draw_main_menu()
                                   mode == editor_mode::walls && ed_w;
 
             bool m_none    = mode == m::none, m_floor = mode == m::floor, m_walls = mode == m::walls,
-                 m_scenery = mode == m::scenery, m_vobjs = mode == m::vobj,
+                 m_scenery = mode == m::scenery, m_vobjs = mode == m::vobj, m_tests = mode == m::tests,
                  b_collisions = _render_bboxes, b_clickables = _render_clickables,
                  b_vobjs = _render_vobjs, b_all_z_levels = _render_all_z_levels;
 
@@ -76,6 +76,8 @@ float app::draw_main_menu()
                 do_key(key_mode_scenery);
             if (ImGui::MenuItem("Virtual objects", "5", m_vobjs))
                 do_key(key_mode_vobj);
+            if (ImGui::MenuItem("Functional tests", "6", m_tests))
+                do_key(key_mode_tests);
             ImGui::SeparatorText("Modify");
             if (ImGui::MenuItem("Rotate", "R", false, b_rotate))
                 do_key(key_rotate_tile);

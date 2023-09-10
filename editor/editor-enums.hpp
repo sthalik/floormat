@@ -3,7 +3,7 @@
 namespace floormat {
 
 enum class editor_mode : unsigned char {
-    none, floor, walls, scenery, vobj,
+    none, floor, walls, scenery, vobj, tests,
 };
 
 enum class editor_wall_rotation : unsigned char {
