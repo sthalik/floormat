@@ -74,6 +74,8 @@ void scenery::update(size_t, float dt)
 
 Vector2 scenery::ordinal_offset(Vector2b offset) const
 {
+    constexpr auto bTILE_SIZE = Vector2b(iTILE_SIZE2);
+
     if (sc_type == scenery_type::door)
     {
         constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
