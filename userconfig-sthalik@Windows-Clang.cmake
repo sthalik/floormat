@@ -71,11 +71,11 @@ function(fm-userconfig-external)
              SDL_SHARED                                         ON
              SDL_STATIC                                         OFF
              CORRADE_BUILD_STATIC                               OFF
-             CORRADE_BUILD_TESTS                                OFF
+             CORRADE_BUILD_TESTS                                ON
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
              MAGNUM_BUILD_PLUGINS_STATIC                        OFF
              MAGNUM_BUILD_STATIC                                OFF
-             MAGNUM_BUILD_TESTS                                 OFF
+             MAGNUM_BUILD_TESTS                                 ON
         )
     endif()
 endfunction()
