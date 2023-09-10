@@ -13,11 +13,14 @@
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
 #endif
 
-using namespace Magnum;
+namespace floormat {
+
 using Magnum::Math::Vector;
 
+namespace {
+
 template<typename vec, typename T>
-static constexpr void test_float2()
+constexpr void test_float2()
 {
     const vec a{(T)1, (T)2}, b{(T)2, (T)3};
 
@@ -31,7 +34,7 @@ static constexpr void test_float2()
 }
 
 template<typename ivec>
-static constexpr void test_int()
+constexpr void test_int()
 {
     using I = typename ivec::Type;
     constexpr auto vec = [](auto x, auto y) { return ivec{(I)x, (I)y}; };
@@ -46,7 +49,7 @@ static constexpr void test_int()
     fm_assert(a.sum() == 8);
 }
 
-static constexpr bool compile_tests()
+constexpr bool compile_tests()
 {
     test_float2<Vector<2, float>, float>();
     test_float2<Vector<2, double>, double>();
@@ -59,7 +62,7 @@ static constexpr bool compile_tests()
     return true;
 }
 
-namespace floormat {
+} // namespace
 
 void test_app::test_const_math()
 {
