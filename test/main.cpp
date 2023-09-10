@@ -29,6 +29,7 @@ int test_app::exec()
     test_bitmask();
     test_serializer_1();
     test_serializer_2();
+    test_path_search();
     zzz_test_misc();
 
     return 0;
