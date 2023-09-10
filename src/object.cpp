@@ -173,11 +173,10 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
-    auto ch = chunk_coords_{coord_.chunk(), coord_.z()};
-    if (!do_search<false>(&c_, ch, id, min, max))
+    if (!do_search<false>(&c_, coord_, id, min, max))
         return false;
     for (const auto& off : world::neighbor_offsets)
-        if (!do_search(&c_, ch, id, min, max, off))
+        if (!do_search(&c_, coord_, id, min, max, off))
             return false;
     return true;
 }
