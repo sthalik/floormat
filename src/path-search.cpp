@@ -62,14 +62,27 @@ bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 center, Vector2 s
         // because neighbors can still contain bounding boxes for that tile
         if (!sample_rtree_1(*c, min, max, own_id))
             return false;
-    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
+
     for (auto nb : world::neighbor_offsets)
+    {
+        static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
+        constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+        constexpr int bbox_max = 1 << sizeof(Vector2b().x())*8;
+        constexpr auto chunk_max = (chunk_size + Vector2i(bbox_max)).x();
+
+        const auto off = Vector2(nb)*Vector2(chunk_size);
+        const auto min_ = min + off, max_ = max + off;
+
+        const auto bmin = std::min({ min_.x(), min_.y(), max_.x(), max_.y() }),
+                   bmax = std::max({ min_.x(), min_.y(), max_.x(), max_.y() });
+
+        if (bmin < -bbox_max || bmax > chunk_max)
+            continue;
+
         if (auto* c2 = w.at(ch0 + Vector2i(nb)))
-        {
-            auto off = Vector2(nb)*chunk_size;
-            if (!sample_rtree_1(*c2, min + off, max + off, own_id))
+            if (!sample_rtree_1(*c2, min_, max_, own_id))
                 return false;
-        }
+    }
     return true;
 }
 
