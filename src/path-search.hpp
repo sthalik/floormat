@@ -69,7 +69,6 @@ class search final
     };
 
     struct obj_position { Vector2 center, size; };
-    struct bbox { Vector2 min, max; };
 
     chunk_cache cache;
     Array<global_coords> output;
@@ -80,6 +79,8 @@ class search final
     void ensure_allocated(chunk_coords a, chunk_coords b);
 
 public:
+    struct bbox { Vector2 min, max; };
+
     // todo remember to check from.z() == to.z()
     // todo add simple bresenham short-circuit
     Optional<search_result> operator()(world& w, object_id own_id, global_coords from, Vector2b from_offset, Vector2ub size, global_coords to, Vector2b to_offset);
@@ -89,7 +90,7 @@ public:
     static bool sample_rtree(world& w, chunk_coords_ ch0, Vector2 center, Vector2 size, object_id own_id);
     static bool sample_rtree(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id);
 
-    static bbox make_neighbor_tile_bbox(global_coords coord, Vector2ub own_size, rotation r);
+    static bbox make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r);
     static neighbors get_walkable_neighbor_tiles(world& w, global_coords pos, Vector2 size, object_id own_id);
 };
 

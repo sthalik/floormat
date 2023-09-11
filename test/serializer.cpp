@@ -13,9 +13,7 @@ namespace floormat {
 
 namespace Path = Corrade::Utility::Path;
 
-namespace {
-
-chunk& make_test_chunk(world& w, chunk_coords_ ch)
+chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
@@ -46,6 +44,8 @@ chunk& make_test_chunk(world& w, chunk_coords_ ch)
     }
     return c;
 }
+
+namespace {
 
 void assert_chunks_equal(const chunk& a, const chunk& b)
 {
@@ -103,7 +103,7 @@ void test_serializer(StringView input, StringView tmp)
     {
         coord = {1, 1, 0};
         w = world();
-        make_test_chunk(w, coord);
+        test_app::make_test_chunk(w, coord);
     }
     w.serialize(tmp);
     auto w2 = world::deserialize(tmp);

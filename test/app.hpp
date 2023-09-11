@@ -17,6 +17,7 @@
 namespace floormat {
 
 struct chunk_coords;
+struct chunk_coords_;
 struct chunk;
 struct world;
 
@@ -25,7 +26,11 @@ struct test_app final : private FM_APPLICATION
     using Application = FM_APPLICATION;
     explicit test_app(const Arguments& arguments);
     ~test_app();
+
+    static chunk& make_test_chunk(world& w, chunk_coords_ ch);
+
     int exec() override;
+
     static void test_json();
     static void test_tile_iter();
     static void test_const_math();

@@ -79,12 +79,11 @@ bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector
     return sample_rtree(w, coord, Vector2(center), Vector2(size), own_id);
 }
 
-auto search::make_neighbor_tile_bbox(global_coords coord, Vector2ub own_size, rotation r) -> bbox
+auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
 {
     constexpr auto full_tile = Vector2ui(iTILE_SIZE2*3/4);
-    constexpr auto tx = iTILE_SIZE2.x()*2u, ty = iTILE_SIZE2.y()*2u;
+    constexpr auto tx = full_tile.x()*2u, ty = full_tile.y()*2u;
 
-    fm_assert(Vector2i(own_size).product() != 0);
     const auto s  = Math::max(Vector2ui(own_size), full_tile);
     const auto sx = s[0], sy = s[1];
 
@@ -93,14 +92,14 @@ auto search::make_neighbor_tile_bbox(global_coords coord, Vector2ub own_size, ro
 
     switch (r)
     {
-    case rotation::N: off = { 0, -1}; size = {sx, ty}; break;
     case rotation::E: off = { 1,  0}; size = {tx, sy}; break;
-    case rotation::S: off = { 0,  1}; size = {tx, sy}; break;
-    case rotation::W: off = {-1,  0}; size = {sx, ty}; break;
+    case rotation::N: off = { 0, -1}; size = {sx, ty}; break;
+    case rotation::S: off = { 0,  1}; size = {sx, ty}; break;
+    case rotation::W: off = {-1,  0}; size = {tx, sy}; break;
     default: fm_abort("wrong 4-way rotation enum value '%d", (int)r);
     }
 
-    auto center1 = Vector2i(coord.local()) * iTILE_SIZE2;
+    auto center1 = coord * iTILE_SIZE2;
     auto center2 = center1 + off*iTILE_SIZE2;
     auto center  = (center1 + center2)/2;
 
@@ -129,12 +128,15 @@ Optional<search_result> search::operator()(world& w, object_id own_id,
 
 Optional<search_result> search::operator()(world& w, const object& obj, global_coords to, Vector2b to_offset)
 {
+    constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
+    auto size = Math::max(obj.bbox_size, full_tile);
+
     // todo fixme
     // if bbox_offset is added to obj's offset, then all coordinates in the paths are shifted by bbox_offset.
     // maybe add handling to subtract bbox_offset from the returned path.
     // for that it needs to be passed into callees separately.
     fm_assert(obj.bbox_offset.isZero());
-    return operator()(w, obj.id, obj.coord, obj.offset, obj.bbox_size, to, to_offset);
+    return operator()(w, obj.id, obj.coord, obj.offset, size, to, to_offset);
 }
 
 } // namespace floormat
