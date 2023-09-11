@@ -17,8 +17,8 @@ void test_bbox()
     };
 
     constexpr auto sample2 = [](world& w, chunk_coords_ ch, search::bbox bb) {
-            return search::sample_rtree(w, ch, bb.min, bb.max, (object_id)-1);
-        };
+        return search::sample_rtree(w, ch, bb.min, bb.max, (object_id)-1);
+    };
 
     constexpr auto bbox = [](Vector2i coord, rotation r) {
         return search::make_neighbor_tile_bbox(coord, {}, r);
