@@ -54,9 +54,8 @@ bool search::sample_rtree_1(chunk& c, Vector2 min, Vector2 max, object_id own_id
     return is_passable;
 }
 
-bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 center, Vector2 size, object_id own_id)
+bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
 {
-    const auto min = center - size*.5f, max = min + size;
     if (auto* c = w.at(ch0))
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
@@ -85,10 +84,12 @@ bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 center, Vector2 s
     return true;
 }
 
-bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id)
+bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector2ub size_, object_id own_id)
 {
     auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
-    return sample_rtree(w, coord, Vector2(center), Vector2(size), own_id);
+    auto size = Vector2(size_);
+    auto min = Vector2(center) - size*.5f, max = min + size;
+    return sample_rtree(w, coord, min, max, own_id);
 }
 
 auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
