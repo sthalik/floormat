@@ -94,11 +94,10 @@ bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector
 
 auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
 {
-    constexpr auto full_tile = Vector2ui(iTILE_SIZE2*3/4);
-    constexpr auto tx = full_tile.x()*2u, ty = full_tile.y()*2u;
+    constexpr auto tx = iTILE_SIZE2.x()/2, ty = iTILE_SIZE2.y()/2;
 
-    const auto s  = Math::max(Vector2ui(own_size), full_tile);
-    const auto sx = s[0], sy = s[1];
+    const auto s  = Math::max(Vector2ui(own_size), Vector2ui(iTILE_SIZE2));
+    const auto sx = s.x(), sy = s.y();
 
     Vector2i off;
     Vector2ui size;

@@ -1,11 +1,12 @@
 #include "shaders/lightmap.hpp"
 #include "compat/assert.hpp"
+#include "compat/math.hpp"
 #include "src/tile-defs.hpp"
-#include "loader/loader.hpp"
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/tile-atlas.hpp"
 #include "src/object.hpp"
+#include "loader/loader.hpp"
 #include <utility>
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
@@ -25,23 +26,12 @@ namespace floormat {
 
 namespace {
 
-template<typename T>
-constexpr T poor_mans_ceil(T x)
-{
-    static_assert(std::is_floating_point_v<T>);
-    const auto x0 = (int64_t)x;
-    if (x > x0)
-        return T(x0 + (int64_t)1);
-    else
-        return T(x0);
-}
-
 constexpr auto neighbor_count = 4;
 constexpr float fuzz_pixels = 16;
 constexpr float shadow_wall_depth = 8;
 constexpr float real_image_size = 1024;
 
-constexpr auto half_neighbors = (int)poor_mans_ceil(neighbor_count/2.f);
+constexpr auto half_neighbors = (int)math::ceil(neighbor_count/2.f);
 
 constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
