@@ -11,13 +11,6 @@
 
 namespace floormat {
 
-namespace {
-
-constexpr inline auto null_coord = global_coords{0, 0, nullptr};
-constexpr inline size_t path_size_min = 32;
-
-} // namespace
-
 search_result::~search_result() = default;
 
 void search::ensure_allocated(chunk_coords a, chunk_coords b)
@@ -94,29 +87,87 @@ bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector
 
 auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
 {
-    constexpr auto tx = iTILE_SIZE2.x()/2, ty = iTILE_SIZE2.y()/2;
+    constexpr auto get_value = [](Vector2i coord, Vector2i sz, rotation r) constexpr -> Pair<Vector2i, Vector2i> {
+        constexpr auto half_tile = iTILE_SIZE2/2;
+        constexpr int offset_W = iTILE_SIZE2.x(), offset_N = iTILE_SIZE2.y();
 
-    const auto s  = Math::max(Vector2ui(own_size), Vector2ui(iTILE_SIZE2));
-    const auto sx = s.x(), sy = s.y();
+        auto tile_center = coord * iTILE_SIZE2;
+        auto tile_start = tile_center - half_tile;
 
-    Vector2i off;
-    Vector2ui size;
+        auto empty_space_NS = (iTILE_SIZE2.x() - sz.x()) / 2;
+        auto empty_space_WE = (iTILE_SIZE2.y() - sz.y()) / 2;
 
-    switch (r)
+        switch (r)
+        {
+        case rotation::N: {
+            auto min_N = Vector2i(tile_start.x() + empty_space_NS,  tile_center.y() - offset_N          );
+            auto max_N = Vector2i(min_N.x() + sz.x(),               tile_center.y()                     );
+            return {min_N, max_N};
+        }
+        case rotation::S: {
+            auto min_S = Vector2i(tile_start.x() + empty_space_NS,   tile_center.y()                    );
+            auto max_S = Vector2i(min_S.x() + sz.x(),                tile_center.y() + offset_N         );
+            return {min_S, max_S};
+        }
+        case rotation::W: {
+            auto min_W = Vector2i(tile_center.x() - offset_W,        tile_start.y() + empty_space_WE    );
+            auto max_W = Vector2i(tile_center.x(),                   min_W.y() + sz.y()                 );
+            return {min_W, max_W};
+            }
+        case rotation::E: {
+            auto min_E = Vector2i(tile_center.x(),                   tile_start.y() + empty_space_WE    );
+            auto max_E = Vector2i(tile_center.x() + offset_W,        min_E.y() + sz.y()                 );
+            return {min_E, max_E};
+        }
+        case rotation_COUNT: {
+            auto min_C = Vector2i(tile_center.x() - (sz.x() >> 1), tile_center.y() - (sz.y() >> 1));
+            auto max_C = min_C + sz;
+            return {min_C, max_C};
+        }
+        default:
+            fm_abort("wrong 4-way rotation enum '%d'", (int)r);
+        }
+    };
+
+#if 0
+    if constexpr(true)
     {
-    case rotation::E: off = { 1,  0}; size = {tx, sy}; break;
-    case rotation::N: off = { 0, -1}; size = {sx, ty}; break;
-    case rotation::S: off = { 0,  1}; size = {sx, ty}; break;
-    case rotation::W: off = {-1,  0}; size = {tx, sy}; break;
-    default: fm_abort("wrong 4-way rotation enum value '%d", (int)r);
+        constexpr auto sz_  = min_size;
+        constexpr Vector2i coord_   = Vector2i(1, 2);
+
+        {
+            constexpr auto N = get_value(coord_, sz_, rotation::N);
+            constexpr auto min_N = N.first(), max_N = N.second();
+            { [[maybe_unused]] constexpr auto N_x = min_N.x(),    N_y = min_N.y();  }
+            { [[maybe_unused]] constexpr auto N_x = max_N.x(),    N_y = max_N.y();  }
+        }
+        {
+            constexpr auto E = get_value(coord_, sz_, rotation::E);
+            constexpr auto min_E = E.first(), max_E = E.second();
+            { [[maybe_unused]] constexpr auto E_x = min_E.x(),    E_y = min_E.y();  }
+            { [[maybe_unused]] constexpr auto E_x = max_E.x(),    E_y = max_E.y();  }
+        }
+        {
+            constexpr auto S = get_value(coord_, sz_, rotation::S);
+            constexpr auto min_S = S.first(), max_S = S.second();
+            { [[maybe_unused]] constexpr auto S_x = min_S.x(),    S_y = min_S.y();  }
+            { [[maybe_unused]] constexpr auto S_x = max_S.x(),    S_y = max_S.y();  }
+        }
+        {
+            constexpr auto W = get_value(coord_, sz_, rotation::W);
+            constexpr auto min_W = W.first(), max_W = W.second();
+            { [[maybe_unused]] constexpr auto W_x = min_W.x(),    W_y = min_W.y();  }
+            { [[maybe_unused]] constexpr auto W_x = max_W.x(),    W_y = max_W.y();  }
+        }
     }
+#endif
 
-    auto center1 = coord * iTILE_SIZE2;
-    auto center2 = center1 + off*iTILE_SIZE2;
-    auto center  = (center1 + center2)/2;
+    constexpr auto min_size = iTILE_SIZE2*3/4;
+    static_assert(min_size.x() % 2 == 0);
 
-    auto c = Vector2(center), sz = Vector2(size);
-    return { c - sz*.5f, c + sz };
+    auto sz  = Math::max(Vector2i(own_size), min_size);
+    auto [min, max] = get_value(coord, sz, r);
+    return { Vector2(min), Vector2(max) };
 }
 
 Optional<search_result> search::operator()(world& w, object_id own_id,
