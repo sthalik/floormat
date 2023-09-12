@@ -3,7 +3,6 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
-
 #include "src/path-search.hpp"
 
 namespace floormat {
@@ -28,21 +27,25 @@ void test_bbox()
     const auto table  = loader.scenery("table1");
 
     {
+        constexpr auto coord1 = chunk_coords_{1, 1, 0},
+                       coord2 = chunk_coords_{1, 2, 0};
         using enum rotation;
-        auto w = world();
-        [[maybe_unused]] auto& c12 = w[chunk_coords_{1, 2, 0}];
-        [[maybe_unused]] auto& c11 = w[chunk_coords_{1, 1, 0}];
-        c12[{0, 0}].wall_north() = {metal2, 0};
+        {
+            auto w = world();
+            [[maybe_unused]] auto& c12 = w[coord2];
+            [[maybe_unused]] auto& c11 = w[coord1];
+            c12[{0, 0}].wall_north() = {metal2, 0};
 
-        fm_assert(  sample2(w, chunk_coords_{1, 1, 0}, bbox({0, TILE_MAX_DIM-1}, W)) );
-        fm_assert(  sample2(w, chunk_coords_{1, 1, 0}, bbox({0, TILE_MAX_DIM-1}, E)) );
-        fm_assert(  sample2(w, chunk_coords_{1, 1, 0}, bbox({0, TILE_MAX_DIM-1}, N)) );
-        fm_assert( !sample2(w, chunk_coords_{1, 1, 0}, bbox({0, TILE_MAX_DIM-1}, S)) );
+            fm_assert( !sample(c12, bbox({0, 0}, N)) );
+            fm_assert(  sample(c12, bbox({0, 0}, E)) );
+            fm_assert(  sample(c12, bbox({0, 0}, S)) );
+            fm_assert(  sample(c12, bbox({0, 0}, W)) );
 
-        fm_assert( !sample(c12, bbox({0, 0}, N)) );
-        fm_assert(  sample(c12, bbox({0, 0}, E)) );
-        fm_assert(  sample(c12, bbox({0, 0}, S)) );
-        fm_assert(  sample(c12, bbox({0, 0}, W)) );
+            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, N)) );
+            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, E)) );
+            fm_assert( !sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, S)) );
+            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, W)) );
+        }
     }
     // todo use test chunk
 }
