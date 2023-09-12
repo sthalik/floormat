@@ -17,6 +17,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <string_view>
 #include <tsl/robin_map.h>
 #include <Corrade/Containers/StringStlHash.h>
 #include <Corrade/Utility/Path.h>
@@ -253,7 +254,9 @@ void writer_state::serialize_scenery_names()
     fm_assert(sz == vec.size());
 
     std::sort(vec.begin(), vec.end(), [](const interned_scenery& a, const interned_scenery& b) {
-      auto cmp = a.s->name <=> b.s->name;
+      auto a_ = std::string_view{a.s->name.data(), a.s->name.size()},
+           b_ = std::string_view{b.s->name.data(), b.s->name.size()};
+      auto cmp = a_ <=> b_;
       if (cmp == std::strong_ordering::equal)
           return a.index < b.index;
       else
