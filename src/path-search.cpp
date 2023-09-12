@@ -135,7 +135,8 @@ Optional<search_result> search::operator()(world& w, object_id own_id,
 
     ensure_allocated(from.chunk(), to.chunk());
 
-    //...
+    // todo...
+    return {};
 }
 
 Optional<search_result> search::operator()(world& w, const object& obj, global_coords to, Vector2b to_offset)
