@@ -3,6 +3,9 @@
 
 namespace floormat {
 
+// no avoiding it with rotations
+static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
+
 bool operator==(const tile_proto& a, const tile_proto& b) noexcept {
     return a.ground()     == b.ground() &&
            a.wall_north() == b.wall_north() &&
