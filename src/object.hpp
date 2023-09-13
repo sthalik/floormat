@@ -23,7 +23,7 @@ struct object_proto
     uint16_t delta = 0, frame = 0;
     object_type type : 3              = object_type::none;
     rotation r       : rotation_BITS  = rotation::N;
-    pass_mode pass   : pass_mode_BITS = pass_mode::see_through;
+    pass_mode pass   : pass_mode_BITS = pass_mode::see_through; // todo move to struct scenery, add inherit bit
 
     object_proto& operator=(const object_proto&);
     object_proto();
