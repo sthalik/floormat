@@ -15,13 +15,13 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
     static const auto t0 = clock.now();
 
 #if 1
-    [[maybe_unused]] volatile auto _type = type;
-    [[maybe_unused]] volatile auto _id = id;
-    [[maybe_unused]] volatile auto _src = src;
-    [[maybe_unused]] volatile auto _severity = severity;
+    [[maybe_unused]] volatile const auto _type = type;
+    [[maybe_unused]] volatile const auto _id = id;
+    [[maybe_unused]] volatile const auto _src = src;
+    [[maybe_unused]] volatile const auto _severity = severity;
     [[maybe_unused]] volatile const char* _str = str.data();
+    (void)_type; (void)_id; (void)_src; (void)_severity; (void)_str;
 #endif
-    (void)src; (void)type;
 
     if (auto pfx = "Buffer detailed info: "_s; str.hasPrefix(pfx))
         str = str.exceptPrefix(pfx.size());
@@ -46,13 +46,16 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
     std::fflush(stdout);
     std::fputs("", stdout); // put breakpoint here
 
-#if 0
-    if (severity != Severity::Notification)
-        std::abort();
-#endif
-
-    //debug_break();
-    gl_debug_put_breakpoint_here();
+    switch (Severity{severity})
+    {
+    default:
+        break;
+    case Severity::High:
+        //std::abort();
+        //debug_break();
+        gl_debug_put_breakpoint_here();
+        break;
+    }
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
