@@ -112,11 +112,11 @@ public:
     using Length     = typename c_length::type;
 
     StringView name;
-    [[no_unique_address]] R reader;
-    [[no_unique_address]] W writer;
-    [[no_unique_address]] Predicate predicate;
-    [[no_unique_address]] Range range;
-    [[no_unique_address]] Length length;
+    [[fm_no_unique_address]] R reader;
+    [[fm_no_unique_address]] W writer;
+    [[fm_no_unique_address]] Predicate predicate;
+    [[fm_no_unique_address]] Range range;
+    [[fm_no_unique_address]] Length length;
 
     fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(entity_field);
 

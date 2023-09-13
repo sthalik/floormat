@@ -53,3 +53,11 @@
 #else
 #   define fm_noinline __attribute__((noinline))
 #endif
+
+#ifdef _MSC_VER
+// standard version not supported in MSVC v14x ABI
+// see https://devblogs.microsoft.com/cppblog/msvc-cpp20-and-the-std-cpp20-switch/
+#define fm_no_unique_address msvc::no_unique_address
+#else
+#define fm_no_unique_address no_unique_address
+#endif
