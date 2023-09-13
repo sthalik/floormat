@@ -27,7 +27,7 @@ namespace floormat {
 namespace {
 
 constexpr auto neighbor_count = 4;
-constexpr float fuzz_pixels = 16;
+constexpr float fuzz_pixels = 4;
 constexpr float shadow_wall_depth = 8;
 constexpr float real_image_size = 1024;
 
