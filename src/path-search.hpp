@@ -86,9 +86,9 @@ public:
     Optional<search_result> operator()(world& w, object_id own_id, global_coords from, Vector2b from_offset, Vector2ub size, global_coords to, Vector2b to_offset);
     Optional<search_result> operator()(world& w, const object& obj, global_coords to, Vector2b to_offset);
 
-    static bool sample_rtree_1(chunk& c, Vector2 min, Vector2 max, object_id own_id);
-    static bool sample_rtree(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id);
-    static bool sample_rtree(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id);
+    static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id);
+    static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id);
+    static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id);
 
     static bbox make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r);
     static neighbors get_walkable_neighbor_tiles(world& w, global_coords pos, Vector2 size, object_id own_id);

@@ -30,7 +30,7 @@ void search::ensure_allocated(chunk_coords a, chunk_coords b)
             x = {};
 }
 
-bool search::sample_rtree_1(chunk& c, Vector2 min, Vector2 max, object_id own_id)
+bool search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id)
 {
     auto& rt = *c.rtree();
     bool is_passable = true;
@@ -47,12 +47,12 @@ bool search::sample_rtree_1(chunk& c, Vector2 min, Vector2 max, object_id own_id
     return is_passable;
 }
 
-bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
+bool search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
 {
     if (auto* c = w.at(ch0))
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
-        if (!sample_rtree_1(*c, min, max, own_id))
+        if (!is_passable_1(*c, min, max, own_id))
             return false;
 
     for (auto nb : world::neighbor_offsets)
@@ -71,18 +71,18 @@ bool search::sample_rtree(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max,
             continue;
 
         if (auto* c2 = w.at(ch0 + Vector2i(nb)))
-            if (!sample_rtree_1(*c2, min_, max_, own_id))
+            if (!is_passable_1(*c2, min_, max_, own_id))
                 return false;
     }
     return true;
 }
 
-bool search::sample_rtree(world& w, global_coords coord, Vector2b offset, Vector2ub size_, object_id own_id)
+bool search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size_, object_id own_id)
 {
     auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
     auto size = Vector2(size_);
     auto min = Vector2(center) - size*.5f, max = min + size;
-    return sample_rtree(w, coord, min, max, own_id);
+    return is_passable(w, coord, min, max, own_id);
 }
 
 auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
@@ -181,7 +181,7 @@ Optional<search_result> search::operator()(world& w, object_id own_id,
         return {};
 
     // check if obj can actually move at all
-    if (!sample_rtree(w, from, from_offset, size, own_id))
+    if (!is_passable(w, from, from_offset, size, own_id))
         return {};
 
     ensure_allocated(from.chunk(), to.chunk());

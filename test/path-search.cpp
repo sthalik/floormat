@@ -12,11 +12,11 @@ namespace {
 void test_bbox()
 {
     constexpr auto sample = [](chunk& c, search::bbox bb) {
-        return search::sample_rtree_1(c, bb.min, bb.max, (object_id)-1);
+        return search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
     };
 
     constexpr auto sample2 = [](world& w, chunk_coords_ ch, search::bbox bb) {
-        return search::sample_rtree(w, ch, bb.min, bb.max, (object_id)-1);
+        return search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
     };
 
     constexpr auto bbox = [](Vector2i coord, rotation r) {
