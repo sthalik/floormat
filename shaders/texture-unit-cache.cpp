@@ -82,7 +82,7 @@ void texture_unit_cache::invalidate()
 void texture_unit_cache::lock(floormat::size_t i, GL::AbstractTexture* tex)
 {
     fm_assert(i < unit_count);
-    units[i] = { .ptr = tex, .lru_val = (uint64_t)i, };
+    units[i] = { .ptr = tex, .lru_val = (uint64_t)-1, };
 }
 
 void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
