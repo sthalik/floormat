@@ -14,8 +14,6 @@ namespace floormat {
 
 namespace {
 
-template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
-
 constexpr auto vector_length(Vector2 vec)
 {
     return math::sqrt(Math::dot(vec, vec));
@@ -125,7 +123,7 @@ constexpr Vector2 move_vec(Vector2i vec)
 {
     const int left_right = vec[0], top_bottom = vec[1];
     constexpr auto c = move_speed * frame_time;
-    auto dir = Vector2((float)sgn(left_right), (float)sgn(top_bottom));
+    auto dir = Vector2((float)math::sgn(left_right), (float)math::sgn(top_bottom));
     auto inv_norm = 1.f/math::sqrt(Math::dot(dir, dir));
     return c * dir * inv_norm;
 }
@@ -197,7 +195,7 @@ void critter::update(size_t i, float dt)
             auto vec = move_vecs[j];
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
-            const auto sign_vec = Vector2(sgn(vec[0]), sgn(vec[1]));
+            const auto sign_vec = Vector2(math::sgn(vec[0]), math::sgn(vec[1]));
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
             offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_[0], 1.f)), std::fabs(std::fmod(offset_[1], 1.f))) * frac);
             auto off_i = Vector2i(offset_);

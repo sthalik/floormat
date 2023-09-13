@@ -33,7 +33,8 @@ struct test_app final : private FM_APPLICATION
 
     static void test_json();
     static void test_tile_iter();
-    static void test_const_math();
+    static void test_magnum_math();
+    static void test_math();
     static void test_serializer_1();
     static void test_serializer_2();
     static void test_entity();

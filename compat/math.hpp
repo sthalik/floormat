@@ -1,52 +1,57 @@
 #pragma once
 
+#include <cstdlib>
 #include <bit>
 #include <cmath>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
+
 namespace floormat::math::detail {
 
-constexpr double sqrt_newton_raphson(double x, double curr, double prev)
-{
-    return curr == prev
-           ? curr
-           : sqrt_newton_raphson(x, 0.5 * (curr + x / curr), curr);
-}
+template<typename T> struct int_type_for_;
 
-template<typename T> requires std::is_floating_point_v<T> struct float_constants;
-
-template<>
-struct float_constants<double>
-{
-    static constexpr auto quiet_nan = std::bit_cast<double>(uint64_t(0x7FF8000000000000ULL));
-    static constexpr auto positive_infinity = std::bit_cast<double>(uint64_t(0x7FF0000000000000ULL));
-    static constexpr auto negative_infinity = std::bit_cast<double>(uint64_t(0xFFF0000000000000ULL));
-};
-
-template<>
-struct float_constants<float>
-{
-    static constexpr auto quiet_nan = std::bit_cast<float>(uint32_t(0x7FC00000U));
-    static constexpr auto positive_infinity = std::bit_cast<float>(uint32_t(0x7F800000U));
-    static constexpr auto negative_infinity = std::bit_cast<float>(uint32_t(0xFF800000U));
-};
+template<> struct int_type_for_<float> { using type = int32_t; };
+template<> struct int_type_for_<double> { using type = int64_t; };
+template<typename T> using int_type_for = typename int_type_for_<T>::type;
 
 } // namespace floormat::math::detail
 
 namespace floormat::math {
 
 template<typename T>
-constexpr inline T sqrt(T x)
+constexpr inline T abs(T x)
+requires std::is_arithmetic_v<T>
+{
+    static_assert(std::is_floating_point_v<T> ||
+                  std::is_integral_v<T> && std::is_signed_v<T>);
+    return x < T{0} ? -x : x;
+}
+
+template <typename T>
+requires std::is_arithmetic_v<T>
+constexpr inline T sgn(T val)
+{
+    return T(T{0} < val) - T(val < T{0});
+}
+
+template<typename T>
+constexpr inline T sqrt(T x0)
 requires std::is_floating_point_v<T>
 {
     if (std::is_constant_evaluated())
     {
-        using K = detail::float_constants<T>;
-        return x >= 0 && x < K::positive_infinity
-               ? T(detail::sqrt_newton_raphson(double(x), double(x), 0))
-               : K::quiet_nan;
+        auto x = x0, prev = T{0};
+        while (x != prev)
+        {
+            prev = x;
+            x = T(0.5) * (x + x0 / x);
+        }
+        return x;
     }
     else
-        return std::sqrt(x);
+        return std::sqrt(x0);
 }
 
 template<typename T>
@@ -62,14 +67,26 @@ constexpr inline T ceil(T x)
 {
     if (std::is_constant_evaluated())
     {
-        const auto x0 = int64_t(x);
-        if (x > x0)
-            return T(x0 + int64_t(1));
-        else
-            return x0;
+        using int_ = detail::int_type_for<T>;
+        const auto x0 = int_(x);
+        return x0 + int_{1} * (x > x0);
     }
     else
         return std::ceil(x);
+}
+
+template<typename T>
+requires std::is_floating_point_v<T>
+constexpr inline T floor(T x)
+{
+    if (std::is_constant_evaluated())
+    {
+        using int_ = detail::int_type_for<T>;
+        const auto x0 = int_(x);
+        return x0 - int_{1} * (x < T{0} && x != x0);
+    }
+    else
+        return std::floor(x);
 }
 
 } // namespace floormat::math

@@ -23,13 +23,14 @@ int test_app::exec()
 {
     test_json();
     test_tile_iter();
-    test_const_math();
+    test_magnum_math();
     test_entity();
     test_loader();
     test_bitmask();
     test_serializer_1();
     test_serializer_2();
     test_path_search();
+    test_math();
     zzz_test_misc();
 
     return 0;

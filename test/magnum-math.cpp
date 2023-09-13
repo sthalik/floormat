@@ -6,8 +6,6 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 
-#if defined CORRADE_CONSTEXPR14_
-
 #ifdef __GNUG__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
@@ -64,7 +62,7 @@ constexpr bool compile_tests()
 
 } // namespace
 
-void test_app::test_const_math()
+void test_app::test_magnum_math()
 {
     static_assert(compile_tests());
 }
@@ -73,7 +71,4 @@ void test_app::test_const_math()
 
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop
-#endif
-#else
-void floormat::test_app::test_const_math() {}
 #endif
