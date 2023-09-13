@@ -50,7 +50,7 @@ auto z = e.coord.z();
         else
             snformat(buf, "{} ({}x{}:{} -> {}x{})###inspector-{:08x}"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y, e.id);
 #else
-        snformat(buf, "inspector-{:08x}"_cf, e.id);
+        entity_inspector_name(buf, sizeof buf, e.id);
 #endif
 
         bool is_open = true;
@@ -62,6 +62,15 @@ auto z = e.coord.z();
         if (!is_open)
             inspectors.erase(inspectors.begin() + (ptrdiff_t)i);
     }
+}
+
+void app::entity_inspector_name(char* buf, size_t len, object_id id)
+{
+    constexpr auto min_len = sizeof "inspector-" + 8;
+    fm_debug_assert(len >= min_len);
+    auto result = fmt::format_to_n(buf, len, "inspector-{:08x}"_cf, id);
+    fm_assert(result.size < len);
+    buf[result.size] = '\0';
 }
 
 } // namespace floormat

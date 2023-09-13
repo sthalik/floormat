@@ -347,9 +347,19 @@ void app::do_popup_menu()
         const auto i = e.index();
         if (ImGui::MenuItem("Activate", nullptr, false, e.can_activate(i)))
             e.activate(i);
-        if (bool b_ins = !check_inspector_exists(_popup_target);
-            ImGui::MenuItem("Inspect", nullptr, !b_ins, b_ins))
-            inspectors.push_back(std::exchange(_popup_target, {}));
+        if (bool exists = check_inspector_exists(_popup_target);
+            ImGui::MenuItem("Inspect", nullptr, exists))
+        {
+            if (!exists)
+                inspectors.push_back(std::exchange(_popup_target, {}));
+            else
+            {
+                char buf[32];
+                entity_inspector_name(buf, sizeof buf, e.id);
+                ImGui::SetWindowFocus(buf);
+                ImGui::SetWindowCollapsed(buf, false);
+            }
+        }
         if (bool b_testing = tested_light_chunk == chunk_coords_(e.coord);
             e.type() == object_type::light)
             if (ImGui::MenuItem("Test", nullptr, b_testing))
