@@ -20,7 +20,7 @@ jobs:
         - os: ubuntu-22.04
           cmake: /usr/bin/env CC=gcc-12 CXX=g++-12 cmake
         - os: macos-12
-          cmake: /usr/bin/env CC="$(brew --prefix llvm@16)/bin/clang" CXX="$(brew --prefix llvm@15)/bin/clang++" cmake
+          cmake: /usr/bin/env CC="$(brew --prefix llvm@16)/bin/clang" CXX="$(brew --prefix llvm@16)/bin/clang++" cmake
         - os: windows-latest
           cmake: .\.github\workflows\build-windows.bat cmake
 
