@@ -119,7 +119,7 @@ private:
 
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
-    static void entity_inspector_name(char* buf, object_id id, size_t len);
+    static void entity_inspector_name(char* buf, size_t len, object_id id);
     bool check_inspector_exists(const popup_target& p);
     void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
