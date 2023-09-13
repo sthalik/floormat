@@ -37,6 +37,7 @@ function(fm-userconfig-src)
         -Wno-ignored-attributes
         -Wno-reserved-identifier
         -Wno-zero-length-array
+        -Wno-unsafe-buffer-usage
     )
     add_compile_options(
         #-Werror
