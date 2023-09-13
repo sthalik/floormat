@@ -97,29 +97,32 @@ auto search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotatio
         auto empty_space_NS = (iTILE_SIZE2.x() - sz.x()) / 2;
         auto empty_space_WE = (iTILE_SIZE2.y() - sz.y()) / 2;
 
-        switch (r)
+        const auto r_ = (uint8_t)r;
+        CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
+
+        switch (r_)
         {
-        case rotation::N: {
+        case (uint8_t)rotation::N: {
             auto min_N = Vector2i(tile_start.x() + empty_space_NS,  tile_center.y() - offset_N          );
             auto max_N = Vector2i(min_N.x() + sz.x(),               tile_center.y()                     );
             return {min_N, max_N};
         }
-        case rotation::S: {
+        case (uint8_t)rotation::S: {
             auto min_S = Vector2i(tile_start.x() + empty_space_NS,   tile_center.y()                    );
             auto max_S = Vector2i(min_S.x() + sz.x(),                tile_center.y() + offset_N         );
             return {min_S, max_S};
         }
-        case rotation::W: {
+        case (uint8_t)rotation::W: {
             auto min_W = Vector2i(tile_center.x() - offset_W,        tile_start.y() + empty_space_WE    );
             auto max_W = Vector2i(tile_center.x(),                   min_W.y() + sz.y()                 );
             return {min_W, max_W};
             }
-        case rotation::E: {
+        case (uint8_t)rotation::E: {
             auto min_E = Vector2i(tile_center.x(),                   tile_start.y() + empty_space_WE    );
             auto max_E = Vector2i(tile_center.x() + offset_W,        min_E.y() + sz.y()                 );
             return {min_E, max_E};
         }
-        case rotation_COUNT: {
+        case (uint8_t)rotation_COUNT: {
             auto min_C = Vector2i(tile_center.x() - (sz.x() >> 1), tile_center.y() - (sz.y() >> 1));
             auto max_C = min_C + sz;
             return {min_C, max_C};
