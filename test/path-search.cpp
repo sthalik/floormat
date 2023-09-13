@@ -11,16 +11,16 @@ namespace {
 
 void test_bbox()
 {
-    constexpr auto sample = [](chunk& c, search::bbox bb) {
-        return search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
+    constexpr auto is_passable_1 = [](chunk& c, path_search::bbox bb) {
+        return path_search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
     };
 
-    constexpr auto sample2 = [](world& w, chunk_coords_ ch, search::bbox bb) {
-        return search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
+    constexpr auto is_passable = [](world& w, chunk_coords_ ch, path_search::bbox bb) {
+        return path_search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
     };
 
     constexpr auto bbox = [](Vector2i coord, rotation r) {
-        return search::make_neighbor_tile_bbox(coord, {}, r);
+        return path_search::make_neighbor_tile_bbox(coord, {}, r);
     };
 
     const auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked);
@@ -29,6 +29,7 @@ void test_bbox()
     {
         constexpr auto coord1 = chunk_coords_{1, 1, 0},
                        coord2 = chunk_coords_{1, 2, 0};
+        constexpr auto _15 = TILE_MAX_DIM-1;
         using enum rotation;
         {
             auto w = world();
@@ -36,15 +37,15 @@ void test_bbox()
             [[maybe_unused]] auto& c11 = w[coord1];
             c12[{0, 0}].wall_north() = {metal2, 0};
 
-            fm_assert( !sample(c12, bbox({0, 0}, N)) );
-            fm_assert(  sample(c12, bbox({0, 0}, E)) );
-            fm_assert(  sample(c12, bbox({0, 0}, S)) );
-            fm_assert(  sample(c12, bbox({0, 0}, W)) );
+            fm_assert( !is_passable_1(c12, bbox({}, N)) );
+            fm_assert(  is_passable_1(c12, bbox({}, E)) );
+            fm_assert(  is_passable_1(c12, bbox({}, S)) );
+            fm_assert(  is_passable_1(c12, bbox({}, W)) );
 
-            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, N)) );
-            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, E)) );
-            fm_assert( !sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, S)) );
-            fm_assert(  sample2(w, coord1, bbox({0, TILE_MAX_DIM-1}, W)) );
+            fm_assert(  is_passable(w, coord1, bbox({0, _15}, N)) );
+            fm_assert(  is_passable(w, coord1, bbox({0, _15}, E)) );
+            fm_assert( !is_passable(w, coord1, bbox({0, _15}, S)) );
+            fm_assert(  is_passable(w, coord1, bbox({0, _15}, W)) );
         }
     }
     // todo use test chunk

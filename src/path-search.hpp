@@ -22,13 +22,13 @@ struct world;
 struct object;
 struct chunk;
 
-struct search_result;
-class search;
+struct path_search_result;
+class path_search;
 
-struct search_result final
+struct path_search_result final
 {
-    friend class search;
-    ~search_result();
+    friend class path_search;
+    path_search_result();
 
     size_t size() const;
     const global_coords& operator[](size_t index) const;
@@ -41,14 +41,14 @@ struct search_result final
     const global_coords* data() const;
 
 private:
-    mutable search_result* _next;
+    mutable path_search_result* _next;
     std::unique_ptr<global_coords[]> _path;
     size_t _size;
 };
 
-class search final
+class path_search final
 {
-    struct neighbors
+    struct neighbors final
     {
         auto begin() const { return neighbors.data(); }
         auto end() const { return neighbors.data() + size; }
@@ -74,7 +74,7 @@ class search final
     Array<global_coords> output;
 
     // todo bucketize by array length
-    search_result* pool = nullptr;
+    path_search_result* pool = nullptr;
 
     void ensure_allocated(chunk_coords a, chunk_coords b);
 
@@ -83,8 +83,8 @@ public:
 
     // todo remember to check from.z() == to.z()
     // todo add simple bresenham short-circuit
-    Optional<search_result> operator()(world& w, object_id own_id, global_coords from, Vector2b from_offset, Vector2ub size, global_coords to, Vector2b to_offset);
-    Optional<search_result> operator()(world& w, const object& obj, global_coords to, Vector2b to_offset);
+    Optional<path_search_result> operator()(world& w, object_id own_id, global_coords from, Vector2b from_offset, Vector2ub size, global_coords to, Vector2b to_offset);
+    Optional<path_search_result> operator()(world& w, const object& obj, global_coords to, Vector2b to_offset);
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id);
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id);
