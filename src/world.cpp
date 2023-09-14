@@ -6,21 +6,15 @@
 
 using namespace floormat;
 
-size_t std::hash<chunk_coords_>::operator()(const chunk_coords_& coord) const noexcept
+size_t world::object_id_hasher::operator()(object_id id) const noexcept { return (size_t)int_hash(id); }
+
+size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const noexcept
 {
-    std::size_t x = 0;
-
-    x |= size_t(uint16_t(coord.y)) << 16;
-    x |= size_t(uint16_t(coord.x));
-    if constexpr(sizeof(size_t) > 4)
-        x |= size_t(uint8_t(coord.z- chunk_z_min) & 0xf) << 32;
-    else
-        x ^= size_t(uint8_t(coord.z- chunk_z_min) & 0xf) * size_t(1664525);
-
-    if constexpr(sizeof(size_t) > 4)
-        return int_hash(uint64_t(x));
-    else
-        return int_hash(uint32_t(x));
+    uint64_t x = 0;
+    x |= uint64_t((uint16_t)coord.x) << 0;
+    x |= uint64_t((uint16_t)coord.y) << 16;
+    x |= uint64_t( (uint8_t)coord.z) << 32;
+    return (size_t)int_hash(x);
 }
 
 namespace floormat {

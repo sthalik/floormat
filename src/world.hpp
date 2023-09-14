@@ -3,24 +3,15 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
-#include "compat/int-hash.hpp"
 #include <memory>
 #include <unordered_map>
 #include <tsl/robin_map.h>
 #include <Corrade/Utility/Move.h>
 
-template<>
-struct std::hash<floormat::chunk_coords_> final {
-    floormat::size_t operator()(const floormat::chunk_coords_& coord) const noexcept;
-};
-
 namespace floormat {
 
 struct object;
 template<typename T> struct object_type_;
-struct object_id_hasher {
-    size_t operator()(object_id id) const noexcept { return int_hash(id); }
-};
 
 struct world final
 {
@@ -36,7 +27,16 @@ private:
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
 
-    std::unordered_map<chunk_coords_, chunk> _chunks;
+    struct object_id_hasher
+    {
+        size_t operator()(object_id id) const noexcept;
+    };
+
+    struct chunk_coords_hasher {
+        size_t operator()(const chunk_coords_& coord) const noexcept;
+    };
+
+    std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher> _objects;
     size_t _last_collection = 0;
     size_t _collect_every = initial_collect_every;
