@@ -80,6 +80,7 @@ struct global_coords final {
         y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {}
     constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y} {}
+    constexpr global_coords(uint32_t, uint32_t, uint32_t) = delete;
     constexpr global_coords(int32_t x, int32_t y, int8_t z) noexcept :
         x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
         y{uint32_t(y + (s0::value<<4))}
