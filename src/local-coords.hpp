@@ -12,11 +12,17 @@ namespace floormat {
 
 struct local_coords final {
     uint8_t x : 4 = 0, y : 4 = 0;
+
     explicit constexpr local_coords(size_t idx) noexcept;
     constexpr local_coords() noexcept = default;
+    constexpr local_coords(uint8_t x, uint8_t y) noexcept : x{x}, y{y} {}
+
     template<typename T> requires (std::is_integral_v<T> && sizeof(T) <= sizeof(size_t))
     constexpr local_coords(T x, T y) noexcept;
-    constexpr local_coords(uint8_t x, uint8_t y) noexcept : x{x}, y{y} {}
+
+    template<typename T> requires requires (const Math::Vector2<T>& vec) { local_coords{vec.x(), vec.y()}; }
+    constexpr local_coords(Math::Vector2<T> vec) noexcept : local_coords{vec.x(), vec.y()} {}
+
     constexpr uint8_t to_index() const noexcept { return y*TILE_MAX_DIM + x; }
     constexpr bool operator==(const local_coords&) const noexcept = default;
 
