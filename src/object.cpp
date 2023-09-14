@@ -242,7 +242,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
 void object::move_to(Magnum::Vector2i delta)
 {
     auto i = index();
-    (void)move_to(i, delta, r);
+    move_to(i, delta, r);
 }
 
 void object::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)

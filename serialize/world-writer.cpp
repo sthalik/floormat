@@ -600,7 +600,7 @@ ArrayView<const char> writer_state::serialize_world()
     copy(atlas_buf);
     copy(scenery_buf);
     copy(string_buf);
-    copy_int((object_id)_world->object_counter());
+    copy_int(_world->object_counter());
     copy_int((chunksiz)_world->size());
     for (const auto& buf : chunk_bufs)
         copy(buf);

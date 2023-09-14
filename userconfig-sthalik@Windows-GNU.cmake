@@ -65,6 +65,7 @@ function(fm-userconfig-src)
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
         #-fconcepts-diagnostics-depth=2
     )
+    #add_compile_options(-Wuseless-cast)
     add_link_options(-Wno-lto-type-mismatch -Wno-odr)
     add_compile_options(
         #-Wno-c++20-compat

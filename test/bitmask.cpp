@@ -34,7 +34,7 @@ const unsigned char data_door_close[] = {
     {
         auto time0 = clock.now();
         for (int i = 0; i < cycles; i++)
-            (void)anim_atlas::make_bitmask_(img, bitmask);
+            anim_atlas::make_bitmask_(img, bitmask);
         std::chrono::duration<double, std::milli> time = clock.now() - time0;
 
         fm_log("[BENCH] bitmask %d/%d took %.1f ms", i, runs, time.count());
