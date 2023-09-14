@@ -48,6 +48,22 @@ void test_bbox()
             fm_assert(  is_passable(w, coord1, bbox({0, _15}, W)) );
         }
     }
+    {
+        using enum rotation;
+        constexpr auto ch = chunk_coords_{11, 22, 0};
+        auto w = world();
+        auto& c = w[ch];
+        c[{8, 7}].wall_north() = {metal2,0};
+        c[{8, 9}].wall_north() = {metal2,0};
+        fm_assert(  is_passable_1(c, bbox({8, 8}, N)) );
+        fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
+        fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
+        fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
+
+        c[{8, 8}].wall_north() = {metal2,0};
+        c.mark_passability_modified();
+        fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
+    }
     // todo use test chunk
 }
 
