@@ -36,25 +36,27 @@ struct chunk_coords_ final {
     template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept {
         return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), z };
     }
-
     template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector2<T> off) const noexcept {
         return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), z };
+    }
+    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept {
+        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); return *this;
+    }
+    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept {
+        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); return *this;
     }
 
     template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector3<T> off) const noexcept {
         return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), int8_t(z + int{off.z()}) };
     }
-
     template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector3<T> off) const noexcept {
         return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), int8_t(z - int{off.z()}) };
     }
-
-    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept {
-        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); z = int8_t(z + off.z()); return *this;
+    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector3<T> off) noexcept {
+        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
     }
-
-    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept {
-        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - off.z()); return *this;
+    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector3<T> off) noexcept {
+        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
     }
 
     constexpr Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
