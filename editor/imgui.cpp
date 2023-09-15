@@ -182,7 +182,7 @@ void app::draw_light_info()
 
             char buf[128];
 
-            if (e.falloff == light_falloff::constant)
+            if (e.falloff == light_falloff::constant || e.max_distance < 1e-6f)
                 snformat(buf, "{}"_cf, falloff);
             else
                 snformat(buf, "{} range={}"_cf, falloff, e.max_distance);
@@ -200,7 +200,7 @@ void app::draw_light_info()
                                ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
             draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), buf);
             draw.AddRectFilled({offx-pad.x - 5 * dpi.x(), offy-pad.y + color_pad_y},
-                               {offx-pad.x + 0 * dpi.x(), offy-pad.y + text_size.y - color_pad_y},
+                               {offx-pad.x + 0 * dpi.x(), offy-pad.y + text_size.y - color_pad_y + 1},
                                ImGui::ColorConvertFloat4ToU32({color.x(), color.y(), color.z(), 1}));
         }
     }
