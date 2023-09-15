@@ -58,6 +58,9 @@ void test_bbox()
 
         c[{8, 7}].wall_north() = {metal2,0};
         c[{8, 9}].wall_north() = {metal2,0};
+        fm_assert(  is_passable_1(c, bbox({8, 6}, N)) );
+        fm_assert( !is_passable_1(c, bbox({8, 6}, S)) );
+        fm_assert( !is_passable_1(c, bbox({8, 7}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
@@ -66,6 +69,7 @@ void test_bbox()
         c[{8, 8}].wall_north() = {metal2,0};
         c.mark_passability_modified();
         fm_assert(  is_passable_1(c, bbox({8, 8}, C)));
+        fm_assert( !is_passable_1(c, bbox({8, 7}, S)) );
         fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
