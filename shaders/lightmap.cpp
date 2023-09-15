@@ -250,6 +250,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 
     framebuffer.fb.mapForDraw({
         { 0u, GL::Framebuffer::ColorAttachment{0} },
+        { 1u, GL::Framebuffer::DrawAttachment::None },
     });
 
     Block block = {
@@ -273,6 +274,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     AbstractShaderProgram::draw(mesh_view);
 
     framebuffer.fb.mapForDraw({
+        { 0u, GL::Framebuffer::DrawAttachment::None },
         { 1u, GL::Framebuffer::ColorAttachment{1} },
     });
     setUniform(ModeUniform, BlendLightmapMode);
