@@ -27,8 +27,8 @@ void test_bbox()
     const auto table  = loader.scenery("table1");
 
     {
-        constexpr auto coord1 = chunk_coords_{1, 1, 0},
-                       coord2 = chunk_coords_{1, 2, 0};
+        constexpr auto coord1 = chunk_coords_{10, 11, 0},
+                       coord2 = chunk_coords_{10, 12, 0};
         constexpr auto _15 = TILE_MAX_DIM-1;
         using enum rotation;
         {
@@ -51,7 +51,7 @@ void test_bbox()
     {
         using enum rotation;
         constexpr auto C = rotation_COUNT;
-        constexpr auto ch = chunk_coords_{11, 22, 0};
+        constexpr auto ch = chunk_coords_{21, 22, 0};
 
         auto w = world();
         auto& c = w[ch];
@@ -65,9 +65,10 @@ void test_bbox()
 
         c[{8, 8}].wall_north() = {metal2,0};
         c.mark_passability_modified();
-        fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, C)));
+        fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
+        fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
     }
     // todo use test chunk
