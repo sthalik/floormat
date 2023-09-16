@@ -34,7 +34,11 @@ namespace floormat::loader_detail {
 std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size, Optional<pass_mode> pass) noexcept(false)
 {
     if (auto it = tile_atlas_map.find(name); it != tile_atlas_map.end())
+    {
+        if (pass)
+            fm_assert(it->second->pass_mode() == pass);
         return it->second;
+    }
 
     fm_soft_assert(check_atlas_name(name));
 

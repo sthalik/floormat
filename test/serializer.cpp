@@ -17,8 +17,7 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
-    auto metal1 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass),
-         metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
+    auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
          tiles  = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c)
@@ -28,9 +27,9 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
          control_panel = loader.scenery("control panel (wall) 1");
     control_panel.r = rotation::W;
     constexpr auto K = N/2;
-    c[{K,   K  }].wall_north() = { metal1, 0 };
+    c[{K,   K  }].wall_north() = { metal2, 0 };
     c[{K,   K  }].wall_west()  = { metal2, 0 };
-    c[{K,   K+1}].wall_north() = { metal1, 0 };
+    c[{K,   K+1}].wall_north() = { metal2, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
     w.make_object<scenery>(w.make_id(), {ch, {3, 4}}, table);
     w.make_object<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
