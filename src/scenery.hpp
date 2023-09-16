@@ -14,7 +14,8 @@ struct anim_atlas;
 struct world;
 
 enum class scenery_type : unsigned char {
-    none, generic, door,
+    none, generic,
+    door, // todo remove it
 };
 constexpr inline size_t scenery_type_BITS = 3;
 

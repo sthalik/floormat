@@ -93,15 +93,6 @@ float scenery::depth_offset() const
     constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
     Vector2 offset;
     offset += Vector2(atlas->group(r).depth_offset) * inv_tile_size;
-    if (sc_type == scenery_type::door)
-    {
-        const bool is_open = frame != atlas->info().nframes-1;
-        constexpr auto off_opened = Vector2(-1, 0);
-        constexpr auto off_closed = Vector2(-1, 0);
-        const auto vec = is_open ? off_opened : off_closed;
-        const auto pt = rotate_point(vec, rotation::N, r);
-        offset += pt;
-    }
     float ret = 0;
     ret += offset[1]*TILE_MAX_DIM + offset[0];
     ret += tile_shader::scenery_depth_offset;

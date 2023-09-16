@@ -7,25 +7,28 @@
 			"ground": "951 x 556",
 			"name": "n",
 			"offset": [ 0, -32, 0 ],
-			"depth-offset": "128 x 128"
+			"depth-offset": "-64 x 0"
 		},
 		{
 			"frames": [],
 			"ground": "951 x 556",
 			"name": "e",
-			"offset": [ 32, 0, 0 ]
+			"offset": [ 32, 0, 0 ],
+			"depth-offset": "0 x -64"
 		},
 		{
 			"frames": [],
 			"ground": "951 x 556",
 			"name": "s",
-			"offset": [ 0, 32, 0 ]
+			"offset": [ 0, 32, 0 ],
+			"depth-offset": "64 x 0"
 		},
 		{
 			"frames": [],
 			"ground": "951 x 556",
 			"name": "w",
-			"offset": [ -32, 0, 0 ]
+			"offset": [ -32, 0, 0 ],
+			"depth-offset": "0 x 64"
 		}
 	],
 	"nframes": 55,
