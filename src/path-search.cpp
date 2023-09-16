@@ -49,6 +49,7 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
 
 bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
 {
+    fm_debug_assert(max >= min);
     if (auto* c = w.at(ch0))
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
@@ -59,7 +60,7 @@ bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 
     {
         static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
         constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-        constexpr int bbox_max = 1 << sizeof(Vector2b().x())*8;
+        constexpr auto bbox_max = -Vector2i(1 << sizeof(Vector2b().x())*8);
         constexpr auto chunk_max = chunk_size + Vector2i(bbox_max);
 
         const auto off = Vector2(nb)*Vector2(chunk_size);
@@ -67,7 +68,7 @@ bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 
 
         if (min_.x() > chunk_max.x() || min_.y() > chunk_max.y())
             continue;
-        if (max_.x() < -bbox_max || max_.y() < -bbox_max)
+        if (max_.x() < bbox_max.x() || max_.y() < bbox_max.y())
             continue;
 
         if (auto* c2 = w.at(ch0 + Vector2i(nb)))
@@ -168,7 +169,7 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, ro
 #endif
 
     const auto shift = coord * iTILE_SIZE2;
-    auto sz  = Math::max(Vector2i(own_size), min_size);
+    auto sz = Math::max(Vector2i(own_size), min_size);
     auto [min, max] = get_value(sz, r);
     return { Vector2(min + shift), Vector2(max + shift) };
 }

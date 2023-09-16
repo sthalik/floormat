@@ -75,7 +75,22 @@ void test_bbox()
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
     }
-    // todo use test chunk
+    {
+        using enum rotation;
+        constexpr auto ch = chunk_coords_{0, 0, 0};
+        auto w = world();
+        auto& c = test_app::make_test_chunk(w, ch);
+
+        fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
+        fm_assert( !is_passable_1(c, bbox({8, 8}, E)) );
+        fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
+        fm_assert( !is_passable_1(c, bbox({8, 8}, W)) );
+
+        fm_assert( !is_passable_1(c, bbox({8, 9}, N)) );
+        fm_assert(  is_passable_1(c, bbox({8, 9}, E)) );
+        fm_assert(  is_passable_1(c, bbox({8, 9}, S)) );
+        fm_assert(  is_passable_1(c, bbox({8, 9}, W)) );
+    }
 }
 
 } // namespace
