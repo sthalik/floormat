@@ -39,6 +39,7 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
         if (x.data != own_id && x.pass != (uint64_t)pass_mode::pass)
         {
             is_passable = false;
+            //[[maybe_unused]] auto obj = c.world().find_object(x.data);
             return false;
         }
         else

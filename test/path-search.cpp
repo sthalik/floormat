@@ -11,15 +11,15 @@ namespace {
 
 void test_bbox()
 {
-    constexpr auto is_passable_1 = [](chunk& c, path_search::bbox bb) {
+    static constexpr auto is_passable_1 = [](chunk& c, path_search::bbox bb) {
         return path_search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
     };
 
-    constexpr auto is_passable = [](world& w, chunk_coords_ ch, path_search::bbox bb) {
+    static constexpr auto is_passable = [](world& w, chunk_coords_ ch, path_search::bbox bb) {
         return path_search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
     };
 
-    constexpr auto bbox = [](Vector2i coord, rotation r) {
+    static constexpr auto bbox = [](Vector2i coord, rotation r) {
         return path_search::make_neighbor_tile_bbox(coord, {}, r);
     };
 
@@ -81,15 +81,17 @@ void test_bbox()
         auto w = world();
         auto& c = test_app::make_test_chunk(w, ch);
 
-        fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
-        fm_assert( !is_passable_1(c, bbox({8, 8}, E)) );
-        fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
-        fm_assert( !is_passable_1(c, bbox({8, 8}, W)) );
+        constexpr auto is_passable_NESW = [](chunk& c, Vector2i coord, std::array<bool, 4> dirs) {
+            fm_assert(is_passable_1(c, bbox(coord, N)) == dirs[0]);
+            fm_assert(is_passable_1(c, bbox(coord, E)) == dirs[1]);
+            fm_assert(is_passable_1(c, bbox(coord, S)) == dirs[2]);
+            fm_assert(is_passable_1(c, bbox(coord, W)) == dirs[3]);
+        };
 
-        fm_assert( !is_passable_1(c, bbox({8, 9}, N)) );
-        fm_assert(  is_passable_1(c, bbox({8, 9}, E)) );
-        fm_assert(  is_passable_1(c, bbox({8, 9}, S)) );
-        fm_assert(  is_passable_1(c, bbox({8, 9}, W)) );
+        is_passable_NESW(c, {8, 8}, { false, false, false, false });
+        is_passable_NESW(c, {8, 9}, { false, true,  true,  true  });
+        is_passable_NESW(c, {2, 4}, { true,  false, true,  true  });
+        is_passable_NESW(c, {4, 4}, { true,  true,  true,  false });
     }
 }
 
