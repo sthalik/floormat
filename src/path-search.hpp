@@ -41,9 +41,9 @@ struct path_search_result final
     const global_coords* data() const;
 
 private:
-    mutable path_search_result* _next;
+    mutable path_search_result* _next = nullptr;
     std::unique_ptr<global_coords[]> _path;
-    size_t _size;
+    size_t _size = 0;
 };
 
 class path_search final
@@ -54,7 +54,7 @@ class path_search final
         auto end() const { return neighbors.data() + size; }
 
         std::array<global_coords, 4> neighbors;
-        uint8_t size;
+        uint8_t size = 0;
     };
 
     struct chunk_tiles_cache
@@ -91,7 +91,8 @@ public:
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id);
 
     static bbox make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r);
-    static neighbors get_walkable_neighbor_tiles(world& w, global_coords pos, Vector2 size, object_id own_id);
+    static bbox bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub size);
+    static neighbors get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id);
 };
 
 } // namespace floormat

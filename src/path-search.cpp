@@ -176,10 +176,52 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, ro
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
-Optional<path_search_result>
-path_search::operator()(world& w, object_id own_id,
-                                           global_coords from, Vector2b from_offset, Vector2ub size,
-                                           global_coords to, Vector2b to_offset)
+auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id) -> neighbors
+{
+    auto ch = chunk_coords_{ coord.chunk(), coord.z() };
+    auto pos = Vector2i(coord.local());
+
+    if (auto [min, max] = make_neighbor_tile_bbox(pos, size, rotation_COUNT);
+        !is_passable(w, ch, min, max, own_id))
+        return {};
+
+    neighbors ns;
+
+    using enum rotation;
+    constexpr struct {
+        Vector2i off;
+        rotation r = {};
+    } nbs[] = {
+        { {  0, -1 }, N },
+        { {  1,  0 }, E },
+        { {  0,  1 }, S },
+        { { -1,  0 }, W },
+    };
+
+    for (auto [off, dir] : nbs)
+    {
+        auto [min, max] = make_neighbor_tile_bbox(pos, size, dir);
+        if (is_passable(w, ch, min, max, own_id))
+            ns.neighbors[ns.size++] = coord + off;
+    }
+
+    return ns;
+}
+
+auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox
+{
+    auto center = coord * iTILE_SIZE2 + Vector2i(offset);
+    auto min = center - Vector2i(size / 2u);
+    auto max = center + Vector2i(size);
+    return {
+        .min = Math::min(bb.min, Vector2(min)),
+        .max = Math::max(bb.max, Vector2(max)),
+    };
+}
+
+Optional<path_search_result> path_search::operator()(world& w, object_id own_id,
+                                                     global_coords from, Vector2b from_offset, Vector2ub size,
+                                                     global_coords to, Vector2b to_offset)
 {
     if (from.z() != to.z()) [[unlikely]]
         return {};

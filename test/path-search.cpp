@@ -23,6 +23,10 @@ void test_bbox()
         return path_search::make_neighbor_tile_bbox(coord, {}, r);
     };
 
+    constexpr auto neighbor_tiles = [](world& w, chunk_coords_ ch, Vector2i pos) {
+        return path_search::get_walkable_neighbor_tiles(w, {ch, pos}, {}, (object_id)-1);
+    };
+
     const auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked);
     const auto table  = loader.scenery("table1");
 
@@ -61,19 +65,25 @@ void test_bbox()
         fm_assert(  is_passable_1(c, bbox({8, 6}, N)) );
         fm_assert( !is_passable_1(c, bbox({8, 6}, S)) );
         fm_assert( !is_passable_1(c, bbox({8, 7}, N)) );
+
         fm_assert(  is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
 
+        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 3);
+
         c[{8, 8}].wall_north() = {metal2,0};
         c.mark_passability_modified();
         fm_assert(  is_passable_1(c, bbox({8, 8}, C)));
         fm_assert( !is_passable_1(c, bbox({8, 7}, S)) );
+
         fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, E)) );
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
+
+        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 2);
     }
     {
         using enum rotation;
@@ -92,6 +102,11 @@ void test_bbox()
         is_passable_NESW(c, {8, 9}, { false, true,  true,  true  });
         is_passable_NESW(c, {2, 4}, { true,  false, true,  true  });
         is_passable_NESW(c, {4, 4}, { true,  true,  true,  false });
+
+        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 0);
+        fm_assert(neighbor_tiles(w, ch, {8, 9}).size == 3);
+        fm_assert(neighbor_tiles(w, ch, {2, 4}).size == 3);
+        fm_assert(neighbor_tiles(w, ch, {4, 4}).size == 3);
     }
 }
 

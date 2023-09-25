@@ -98,7 +98,7 @@ public:
     [[nodiscard]] object_id make_id() { return ++_object_counter; }
     void set_object_counter(object_id value);
 
-    struct neighbor_pair final { chunk* c; chunk_coords_ coord; };
+    struct neighbor_pair final { chunk* c = nullptr; chunk_coords_ coord; };
 
     std::array<neighbor_pair, 8> neighbors(chunk_coords_ coord);
 
