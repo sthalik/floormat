@@ -62,7 +62,7 @@ bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 
     {
         static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
         constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-        constexpr auto bbox_size = Vector2i(1 << sizeof(Vector2b().x())*8);
+        constexpr auto bbox_size = Vector2i(1 << sizeof(Vector2b::Type)*8);
         constexpr auto chunk_max = chunk_size + bbox_size;
 
         const auto off = Vector2(nb)*Vector2(chunk_size);

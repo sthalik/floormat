@@ -91,7 +91,8 @@ void test_bbox()
         auto w = world();
         auto& c = test_app::make_test_chunk(w, ch);
 
-        constexpr auto is_passable_NESW = [](chunk& c, Vector2i coord, std::array<bool, 4> dirs) {
+        constexpr auto is_passable_NESW = [](chunk& c, Vector2i coord, std::array<bool, 4> dirs)
+        {
             fm_assert(is_passable_1(c, bbox(coord, N)) == dirs[0]);
             fm_assert(is_passable_1(c, bbox(coord, E)) == dirs[1]);
             fm_assert(is_passable_1(c, bbox(coord, S)) == dirs[2]);
