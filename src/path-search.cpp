@@ -28,6 +28,8 @@ void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
     else
         for (auto& x : cache.array)
             x = {};
+
+    fm_assert(cache.size.product() > 0);
 }
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id)
@@ -50,33 +52,47 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
 
 bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
 {
+    auto* c = w.at(ch0);
+    auto neighbors = w.neighbors(ch0);
+    return is_passable_(c, neighbors, min, max, own_id);
+}
+
+bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
+                               Vector2 min, Vector2 max, object_id own_id)
+{
     fm_debug_assert(max >= min);
 
-    if (auto* c = w.at(ch0))
+    if (c0)
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
-        if (!is_passable_1(*c, min, max, own_id))
+        if (!is_passable_1(*c0, min, max, own_id))
             return false;
 
-    for (auto nb : world::neighbor_offsets)
+    for (auto i = 0uz; i < 8; i++)
     {
-        static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
-        constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-        constexpr auto bbox_size = Vector2i(1 << sizeof(Vector2b::Type)*8);
-        constexpr auto chunk_max = chunk_size + bbox_size;
+        auto nb = world::neighbor_offsets[i];
+        auto* c2 = neighbors[i].c;
 
-        const auto off = Vector2(nb)*Vector2(chunk_size);
-        const auto min_ = min - off, max_ = max - off;
+        if (c2)
+        {
+            static_assert(std::size(world::neighbor_offsets) == 8);
+            constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+            constexpr auto bbox_size = Vector2i(1 << sizeof(Vector2b::Type)*8);
+            constexpr auto chunk_max = chunk_size + bbox_size;
 
-        if (min_.x() > chunk_max.x() || min_.y() > chunk_max.y())
-            continue;
-        if (max_.x() < -bbox_size.x() || max_.y() < -bbox_size.y())
-            continue;
+            const auto off = Vector2(nb)*Vector2(chunk_size);
+            const auto min_ = min - off, max_ = max - off;
 
-        if (auto* c2 = w.at(ch0 + Vector2i(nb)))
+            if (min_.x() > chunk_max.x() || min_.y() > chunk_max.y())
+                continue;
+            if (max_.x() < -bbox_size.x() || max_.y() < -bbox_size.y())
+                continue;
+
             if (!is_passable_1(*c2, min_, max_, own_id))
                 return false;
+        }
     }
+
     return true;
 }
 
@@ -221,10 +237,12 @@ auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub
     };
 }
 
-Optional<path_search_result> path_search::operator()(world& w, object_id own_id,
-                                                     global_coords from, Vector2b from_offset, Vector2ub size,
+Optional<path_search_result> path_search::operator()(world& w, Vector2ub own_size, object_id own_id,
+                                                     global_coords from, Vector2b from_offset,
                                                      global_coords to, Vector2b to_offset)
 {
+    fm_assert(from.x <= to.x && from.y <= to.y);
+
     if (from.z() != to.z()) [[unlikely]]
         return {};
     // todo try removing this eventually
@@ -232,10 +250,41 @@ Optional<path_search_result> path_search::operator()(world& w, object_id own_id,
         return {};
 
     // check if obj can actually move at all
-    if (!is_passable(w, from, from_offset, size, own_id))
+    if (!is_passable(w, from, from_offset, own_size, own_id))
+        return {};
+    if (!is_passable(w, to, to_offset, own_size, own_id))
         return {};
 
     ensure_allocated(from.chunk(), to.chunk());
+    auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
+                                     Vector2i(to.chunk()) + Vector2i(1, 1));
+
+    for (int32_t y = cmin.y(); y <= cmax.y(); y++)
+    {
+        for (int32_t x = cmin.x(); x <= cmax.x(); x++)
+        {
+            auto off = Vector2i(x - cmin.x(), y - cmin.y());
+            fm_debug_assert(off.x() >= 0 && off.y() >= 0);
+            fm_debug_assert(off.x() < cache.size.x() && off.y() < cache.size.y());
+            auto ch = chunk_coords_{(int16_t)x, (int16_t)y, from.z()};
+            if (auto* c = w.at(ch))
+            {
+                auto& bits = cache.array[off.y()*cache.size.x()+off.x()];
+                auto nb = w.neighbors(ch);
+                for (auto i = 0uz; i < TILE_COUNT; i++)
+                {
+                    auto pos = Vector2i(local_coords{i});
+                    auto bb_N = make_neighbor_tile_bbox(pos, own_size, rotation::N),
+                         bb_W = make_neighbor_tile_bbox(pos, own_size, rotation::W);
+                    bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id),
+                         b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id);
+
+                    bits.can_go_north[i] = b_N;
+                    bits.can_go_west[i] = b_W;
+                }
+            }
+        }
+    }
 
     // todo...
     return {};
@@ -251,7 +300,7 @@ Optional<path_search_result> path_search::operator()(world& w, const object& obj
     // maybe add handling to subtract bbox_offset from the returned path.
     // for that it needs to be passed into callees separately.
     fm_assert(obj.bbox_offset.isZero());
-    return operator()(w, obj.id, obj.coord, obj.offset, size, to, to_offset);
+    return operator()(w, size, obj.id, obj.coord, obj.offset, to, to_offset);
 }
 
 } // namespace floormat

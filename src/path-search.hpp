@@ -3,6 +3,7 @@
 #include "global-coords.hpp"
 #include "object-id.hpp"
 #include "rotation.hpp"
+#include "world.hpp"
 #include <array>
 #include <bitset>
 #include <memory>
@@ -59,7 +60,7 @@ class path_search final
 
     struct chunk_tiles_cache
     {
-        std::bitset<TILE_COUNT> is_passable, can_go_north, can_go_west;
+        std::bitset<TILE_COUNT> can_go_north{true}, can_go_west{true};
     };
 
     struct chunk_cache
@@ -83,10 +84,12 @@ public:
 
     // todo remember to check from.z() == to.z()
     // todo add simple bresenham short-circuit
-    Optional<path_search_result> operator()(world& w, object_id own_id, global_coords from, Vector2b from_offset, Vector2ub size, global_coords to, Vector2b to_offset);
+    Optional<path_search_result> operator()(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset);
     Optional<path_search_result> operator()(world& w, const object& obj, global_coords to, Vector2b to_offset);
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id);
+    static bool is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
+                             Vector2 min, Vector2 max, object_id own_id);
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id);
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id);
 
