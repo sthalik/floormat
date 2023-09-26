@@ -127,25 +127,24 @@ void test_bbox()
         search.ensure_allocated({-1, -1}, {0, 0});
         search.fill_cache_(w, {0, 0, 0}, {}, {});
 
-        const auto c_idx = [&](chunk_coords ch)
-        {
+        static constexpr auto c_idx = [](path_search& search, chunk_coords ch) {
             auto ch_ = Vector2i(ch) - search.cache.start;
             return ch_.y()*search.cache.size.x() + ch_.x();
         };
-        constexpr auto t_idx = [](local_coords tile) {
+        static constexpr auto t_idx = [](local_coords tile) constexpr {
             return (size_t)tile.y * TILE_MAX_DIM + (size_t)tile.x;
         };
-        const auto check_north = [&](chunk_coords ch, local_coords tile) {
-            return search.cache.array[c_idx(ch)].can_go_north[t_idx(tile)];
+        constexpr auto check_N = [&](path_search& search, chunk_coords ch, local_coords tile) {
+            return search.cache.array[c_idx(search, ch)].can_go_north[t_idx(tile)];
         };
-        const auto check_west = [&](chunk_coords ch, local_coords tile) {
-            return search.cache.array[c_idx(ch)].can_go_west[t_idx(tile)];
+        constexpr auto check_W = [&](path_search& search, chunk_coords ch, local_coords tile) {
+            return search.cache.array[c_idx(search, ch)].can_go_west[t_idx(tile)];
         };
 
-        fm_assert(  check_west ({}, {0, 0}) );
-        fm_assert(  check_north({}, {0, 0}) );
-        fm_assert( !check_north({}, {K, K}) );
-        fm_assert( !check_west ({}, {K, K}) );
+        fm_assert(  check_W(search, {}, {0, 0}) );
+        fm_assert(  check_N(search, {}, {0, 0}) );
+        fm_assert( !check_N(search, {}, {K, K}) );
+        fm_assert( !check_W(search, {}, {K, K}) );
     }
 }
 
