@@ -77,10 +77,12 @@ class path_search final
     // todo bucketize by array length
     path_search_result* pool = nullptr;
 
-    void ensure_allocated(chunk_coords a, chunk_coords b);
-
 public:
     struct bbox { Vector2 min, max; };
+
+    void ensure_allocated(chunk_coords a, chunk_coords b);
+    void fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id);
+    void fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id);
 
     // todo remember to check from.z() == to.z()
     // todo add simple bresenham short-circuit

@@ -237,6 +237,41 @@ auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub
     };
 }
 
+void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id)
+{
+    int32_t x = coord.x, y = coord.y;
+    int8_t z = coord.z;
+
+    auto off = Vector2i(x - cache.start.x(), y - cache.start.y());
+    fm_debug_assert(off.x() >= 0 && off.y() >= 0);
+    fm_debug_assert(off.x() < cache.size.x() && off.y() < cache.size.y());
+    auto ch = chunk_coords_{(int16_t)x, (int16_t)y, z};
+    auto* c = w.at(ch);
+    auto nb = w.neighbors(ch);
+
+    if (!c && std::all_of(nb.begin(), nb.end(), [](const auto& c) { return c.c == nullptr; }))
+        return;
+
+    auto& bits = cache.array[off.y()*cache.size.x()+off.x()];
+    for (auto i = 0uz; i < TILE_COUNT; i++)
+    {
+        auto pos = Vector2i(local_coords{i});
+        auto bb_N = make_neighbor_tile_bbox(pos, own_size, rotation::N),
+             bb_W = make_neighbor_tile_bbox(pos, own_size, rotation::W);
+        bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id),
+             b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id);
+        bits.can_go_north[i] = b_N;
+        bits.can_go_west[i] = b_W;
+    }
+}
+
+void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id)
+{
+    for (int32_t y = cmin.y(); y <= cmax.y(); y++)
+        for (int32_t x = cmin.x(); x <= cmax.x(); x++)
+            fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id);
+}
+
 Optional<path_search_result> path_search::operator()(world& w, Vector2ub own_size, object_id own_id,
                                                      global_coords from, Vector2b from_offset,
                                                      global_coords to, Vector2b to_offset)
@@ -258,33 +293,7 @@ Optional<path_search_result> path_search::operator()(world& w, Vector2ub own_siz
     ensure_allocated(from.chunk(), to.chunk());
     auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
                                      Vector2i(to.chunk()) + Vector2i(1, 1));
-
-    for (int32_t y = cmin.y(); y <= cmax.y(); y++)
-    {
-        for (int32_t x = cmin.x(); x <= cmax.x(); x++)
-        {
-            auto off = Vector2i(x - cmin.x(), y - cmin.y());
-            fm_debug_assert(off.x() >= 0 && off.y() >= 0);
-            fm_debug_assert(off.x() < cache.size.x() && off.y() < cache.size.y());
-            auto ch = chunk_coords_{(int16_t)x, (int16_t)y, from.z()};
-            if (auto* c = w.at(ch))
-            {
-                auto& bits = cache.array[off.y()*cache.size.x()+off.x()];
-                auto nb = w.neighbors(ch);
-                for (auto i = 0uz; i < TILE_COUNT; i++)
-                {
-                    auto pos = Vector2i(local_coords{i});
-                    auto bb_N = make_neighbor_tile_bbox(pos, own_size, rotation::N),
-                         bb_W = make_neighbor_tile_bbox(pos, own_size, rotation::W);
-                    bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id),
-                         b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id);
-
-                    bits.can_go_north[i] = b_N;
-                    bits.can_go_west[i] = b_W;
-                }
-            }
-        }
-    }
+    fill_cache(w, cmin, cmax, from.z(), own_size, own_id);
 
     // todo...
     return {};
