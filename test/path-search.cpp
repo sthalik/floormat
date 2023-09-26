@@ -75,7 +75,7 @@ void test_bbox()
 
         c[{8, 8}].wall_north() = {metal2,0};
         c.mark_passability_modified();
-        fm_assert(  is_passable_1(c, bbox({8, 8}, C)));
+        fm_assert(  is_passable_1(c, bbox({8, 8}, C)) );
         fm_assert( !is_passable_1(c, bbox({8, 7}, S)) );
 
         fm_assert( !is_passable_1(c, bbox({8, 8}, N)) );
@@ -108,6 +108,44 @@ void test_bbox()
         fm_assert(neighbor_tiles(w, ch, {8, 9}).size == 3);
         fm_assert(neighbor_tiles(w, ch, {2, 4}).size == 3);
         fm_assert(neighbor_tiles(w, ch, {4, 4}).size == 3);
+    }
+    {
+        constexpr auto ch = chunk_coords_{};
+        auto w = world();
+        auto& c = w[ch];
+        constexpr size_t K = 8;
+        const auto wall = tile_image_proto{metal2, 0};
+        c[{0, 0}].wall_north() = wall;
+        c[{0, 0}].wall_west() = wall;
+
+        c[{K,   K  }].wall_north() = { metal2, 0 };
+        c[{K,   K  }].wall_west()  = { metal2, 0 };
+        c[{K,   K+1}].wall_north() = { metal2, 0 };
+        c[{K+1, K  }].wall_west()  = { metal2, 0 };
+
+        path_search search;
+        search.ensure_allocated({-1, -1}, {0, 0});
+        search.fill_cache_(w, {0, 0, 0}, {}, {});
+
+        const auto c_idx = [&](chunk_coords ch)
+        {
+            auto ch_ = Vector2i(ch) - search.cache.start;
+            return ch_.y()*search.cache.size.x() + ch_.x();
+        };
+        constexpr auto t_idx = [](local_coords tile) {
+            return (size_t)tile.y * TILE_MAX_DIM + (size_t)tile.x;
+        };
+        const auto check_north = [&](chunk_coords ch, local_coords tile) {
+            return search.cache.array[c_idx(ch)].can_go_north[t_idx(tile)];
+        };
+        const auto check_west = [&](chunk_coords ch, local_coords tile) {
+            return search.cache.array[c_idx(ch)].can_go_west[t_idx(tile)];
+        };
+
+        fm_assert(  check_west ({}, {0, 0}) );
+        fm_assert(  check_north({}, {0, 0}) );
+        fm_assert( !check_north({}, {K, K}) );
+        fm_assert( !check_west ({}, {K, K}) );
     }
 }
 

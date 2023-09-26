@@ -71,13 +71,13 @@ class path_search final
 
     struct obj_position { Vector2 center, size; };
 
-    chunk_cache cache;
-    Array<global_coords> output;
-
     // todo bucketize by array length
     path_search_result* pool = nullptr;
 
 public:
+    chunk_cache cache;
+    Array<global_coords> output;
+
     struct bbox { Vector2 min, max; };
 
     void ensure_allocated(chunk_coords a, chunk_coords b);
