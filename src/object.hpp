@@ -24,6 +24,7 @@ struct object_proto
     object_type type : 3              = object_type::none;
     rotation r       : rotation_BITS  = rotation::N;
     pass_mode pass   : pass_mode_BITS = pass_mode::see_through; // todo move to struct scenery, add inherit bit
+    bool inherit_pass_mode = true; // todo
 
     object_proto& operator=(const object_proto&);
     object_proto();
@@ -49,6 +50,8 @@ struct object
     uint16_t delta = 0, frame = 0;
     const rotation r = rotation::N;
     const pass_mode pass = pass_mode::see_through;
+    const bool inherit_pass_mode = true; // todo
+    //char pad[3]; // got 3 bytes left
 
     virtual ~object() noexcept;
 
