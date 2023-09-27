@@ -131,13 +131,13 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, ro
         {
         case (uint8_t)rotation::N: {
             const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-            auto min_N = Vector2i(-half_tile.x() + space_NS,  -offset_N                         );
+            auto min_N = Vector2i(-half_tile.x() + space_NS,        -offset_N                   );
             auto max_N = Vector2i(min_N.x() + sz.x(),               0                           );
             return {min_N, max_N};
         }
         case (uint8_t)rotation::S: {
             const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-            auto min_S = Vector2i(-half_tile.x() + space_NS,  0                                 );
+            auto min_S = Vector2i(-half_tile.x() + space_NS,        0                           );
             auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N                    );
             return {min_S, max_S};
         }
@@ -148,13 +148,13 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, ro
             return {min_W, max_W};
         }
         case (uint8_t)rotation::E: {
-            const auto empty_WE = iTILE_SIZE2.y() - sz.y() >> 1;
-            auto min_E = Vector2i(0,                                -half_tile.y() + empty_WE   );
+            const auto space_WE = iTILE_SIZE2.y() - sz.y() >> 1;
+            auto min_E = Vector2i(0,                                -half_tile.y() + space_WE   );
             auto max_E = Vector2i(offset_W,                         min_E.y() + sz.y()          );
             return {min_E, max_E};
         }
         case (uint8_t)rotation_COUNT: {
-            auto min_C = Vector2i(-(sz.x() >> 1),                   - (sz.y() >> 1)             );
+            auto min_C = Vector2i(-(sz.x() >> 1),                   -(sz.y() >> 1)              );
             auto max_C = min_C + sz;
             return {min_C, max_C};
         }
