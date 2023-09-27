@@ -124,7 +124,7 @@ void test_bbox()
         c[{K+1, K  }].wall_west()  = { metal2, 0 };
 
         path_search search;
-        search.ensure_allocated({-1, -1}, {0, 0});
+        search.ensure_allocated({}, {});
         search.fill_cache_(w, {0, 0, 0}, {}, {});
 
         static constexpr auto c_idx = [](path_search& search, chunk_coords ch) {
@@ -141,10 +141,25 @@ void test_bbox()
             return search.cache.array[c_idx(search, ch)].can_go_west[t_idx(tile)];
         };
 
-        fm_assert(  check_W(search, {}, {0, 0}) );
-        fm_assert(  check_N(search, {}, {0, 0}) );
-        fm_assert( !check_N(search, {}, {K, K}) );
-        fm_assert( !check_W(search, {}, {K, K}) );
+        fm_assert(  check_W(search, {}, {0,   0  } ));
+        fm_assert(  check_N(search, {}, {0,   0  } ));
+
+        fm_assert(  check_W(search, {}, {K-1, K  } ));
+        fm_assert(  check_N(search, {}, {K-1, K  } ));
+        fm_assert(  check_W(search, {}, {K,   K-1} ));
+        fm_assert(  check_N(search, {}, {K,   K-1} ));
+
+        fm_assert( !check_N(search, {}, {K,   K  } ));
+        fm_assert( !check_W(search, {}, {K,   K  } ));
+        fm_assert( !check_W(search, {}, {K+1, K  } ));
+        fm_assert(  check_N(search, {}, {K+1, K  } ));
+        fm_assert( !check_N(search, {}, {K,   K+1} ));
+        fm_assert(  check_W(search, {}, {K,   K+1} ));
+
+        fm_assert(  check_N(search, {}, {K+2, K  } ));
+        fm_assert(  check_W(search, {}, {K+2, K  } ));
+        fm_assert(  check_N(search, {}, {K,   K+2} ));
+        fm_assert(  check_W(search, {}, {K,   K+2} ));
     }
 }
 
