@@ -243,8 +243,7 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size,
     int8_t z = coord.z;
 
     auto off = Vector2i(x - cache.start.x(), y - cache.start.y());
-    fm_debug_assert(off.x() >= 0 && off.y() >= 0);
-    fm_debug_assert(off.x() < cache.size.x() && off.y() < cache.size.y());
+    fm_debug_assert(off >= Vector2i{} && off < cache.size);
     auto ch = chunk_coords_{(int16_t)x, (int16_t)y, z};
     auto* c = w.at(ch);
     auto nb = w.neighbors(ch);

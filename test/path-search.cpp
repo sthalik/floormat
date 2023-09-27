@@ -129,6 +129,7 @@ void test_bbox()
 
         static constexpr auto c_idx = [](path_search& search, chunk_coords ch) {
             auto ch_ = Vector2i(ch) - search.cache.start;
+            fm_assert(ch_ >= Vector2i{} && ch_ < search.cache.size);
             return ch_.y()*search.cache.size.x() + ch_.x();
         };
         static constexpr auto t_idx = [](local_coords tile) constexpr {
