@@ -3,6 +3,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "RTree-search.hpp"
+#include "compat/function2.hpp"
 #include <bit>
 #include <algorithm>
 #include <Corrade/Containers/Optional.h>
@@ -11,7 +12,13 @@
 
 namespace floormat {
 
+namespace {
+constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
+constexpr auto never_continue_ = path_search::pred{never_continue_1};
+} // namespace
+
 path_search_result::path_search_result() = default;
+auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 
 void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 {
@@ -32,40 +39,42 @@ void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
     fm_assert(cache.size.product() > 0);
 }
 
-bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id)
+bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
     auto& rt = *c.rtree();
     bool is_passable = true;
     rt.Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-        if (x.data != own_id && x.pass != (uint64_t)pass_mode::pass)
+        if (x.data != own_id)
         {
-            is_passable = false;
-            //[[maybe_unused]] auto obj = c.world().find_object(x.data);
-            return false;
+            if (x.pass != (uint64_t)pass_mode::pass && p(x) != path_search_continue::pass)
+            {
+                is_passable = false;
+                //[[maybe_unused]] auto obj = c.world().find_object(x.data);
+                return false;
+            }
         }
-        else
-            return true;
+        return true;
     });
     return is_passable;
 }
 
-bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id)
+bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
     auto* c = w.at(ch0);
     auto neighbors = w.neighbors(ch0);
-    return is_passable_(c, neighbors, min, max, own_id);
+    return is_passable_(c, neighbors, min, max, own_id, p);
 }
 
 bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
-                               Vector2 min, Vector2 max, object_id own_id)
+                               Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
     fm_debug_assert(max >= min);
 
     if (c0)
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
-        if (!is_passable_1(*c0, min, max, own_id))
+        if (!is_passable_1(*c0, min, max, own_id, p))
             return false;
 
     for (auto i = 0uz; i < 8; i++)
@@ -88,7 +97,7 @@ bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair,
             if (max_.x() < -bbox_size.x() || max_.y() < -bbox_size.y())
                 continue;
 
-            if (!is_passable_1(*c2, min_, max_, own_id))
+            if (!is_passable_1(*c2, min_, max_, own_id, p))
                 return false;
         }
     }
@@ -96,12 +105,13 @@ bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair,
     return true;
 }
 
-bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size_, object_id own_id)
+bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size_,
+                              object_id own_id, const pred& p)
 {
     auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
     auto size = Vector2(size_);
     auto min = Vector2(center) - size*.5f, max = min + size;
-    return is_passable(w, coord, min, max, own_id);
+    return is_passable(w, coord, min, max, own_id, p);
 }
 
 auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
@@ -192,7 +202,7 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, ro
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
-auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id) -> neighbors
+auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
@@ -219,7 +229,7 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
     for (auto [off, dir] : nbs)
     {
         auto [min, max] = make_neighbor_tile_bbox(pos, size, dir);
-        if (is_passable(w, ch, min, max, own_id))
+        if (is_passable(w, ch, min, max, own_id, p))
             ns.neighbors[ns.size++] = coord + off;
     }
 
@@ -237,7 +247,7 @@ auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub
     };
 }
 
-void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id)
+void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id, const pred& p)
 {
     int32_t x = coord.x, y = coord.y;
     int8_t z = coord.z;
@@ -257,23 +267,25 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size,
         auto pos = Vector2i(local_coords{i});
         auto bb_N = make_neighbor_tile_bbox(pos, own_size, rotation::N),
              bb_W = make_neighbor_tile_bbox(pos, own_size, rotation::W);
-        bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id),
-             b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id);
+        bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id, p),
+             b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id, p);
         bits.can_go_north[i] = b_N;
         bits.can_go_west[i] = b_W;
     }
 }
 
-void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id)
+void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
+                             Vector2ub own_size, object_id own_id, const pred& p)
 {
     for (int32_t y = cmin.y(); y <= cmax.y(); y++)
         for (int32_t x = cmin.x(); x <= cmax.x(); x++)
-            fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id);
+            fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id, p);
 }
 
-Optional<path_search_result> path_search::operator()(world& w, Vector2ub own_size, object_id own_id,
-                                                     global_coords from, Vector2b from_offset,
-                                                     global_coords to, Vector2b to_offset)
+Optional<path_search_result> path_search::dijkstra(world& w, Vector2ub own_size, object_id own_id,
+                                                   global_coords from, Vector2b from_offset,
+                                                   global_coords to, Vector2b to_offset,
+                                                   const pred& p)
 {
     fm_assert(from.x <= to.x && from.y <= to.y);
 
@@ -284,21 +296,23 @@ Optional<path_search_result> path_search::operator()(world& w, Vector2ub own_siz
         return {};
 
     // check if obj can actually move at all
-    if (!is_passable(w, from, from_offset, own_size, own_id))
+    if (!is_passable(w, from, from_offset, own_size, own_id, p))
         return {};
-    if (!is_passable(w, to, to_offset, own_size, own_id))
+    if (!is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
 
     ensure_allocated(from.chunk(), to.chunk());
     auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
                                      Vector2i(to.chunk()) + Vector2i(1, 1));
-    fill_cache(w, cmin, cmax, from.z(), own_size, own_id);
+    fill_cache(w, cmin, cmax, from.z(), own_size, own_id, p);
 
     // todo...
     return {};
 }
 
-Optional<path_search_result> path_search::operator()(world& w, const object& obj, global_coords to, Vector2b to_offset)
+Optional<path_search_result> path_search::dijkstra(world& w, const object& obj,
+                                                   global_coords to, Vector2b to_offset,
+                                                   const pred& p)
 {
     constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
     auto size = Math::max(obj.bbox_size, full_tile);
@@ -308,7 +322,7 @@ Optional<path_search_result> path_search::operator()(world& w, const object& obj
     // maybe add handling to subtract bbox_offset from the returned path.
     // for that it needs to be passed into callees separately.
     fm_assert(obj.bbox_offset.isZero());
-    return operator()(w, size, obj.id, obj.coord, obj.offset, to, to_offset);
+    return dijkstra(w, size, obj.id, obj.coord, obj.offset, to, to_offset, p);
 }
 
 } // namespace floormat

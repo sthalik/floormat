@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
+#include "compat/function2.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
@@ -115,9 +116,8 @@ void test_bbox()
         auto& c = w[ch];
         constexpr size_t K = 8;
         const auto wall = tile_image_proto{metal2, 0};
-        c[{0, 0}].wall_north() = wall;
-        c[{0, 0}].wall_west() = wall;
-
+        c[{0,   0  }].wall_north() = wall;
+        c[{0,   0  }].wall_west() = wall;
         c[{K,   K  }].wall_north() = { metal2, 0 };
         c[{K,   K  }].wall_west()  = { metal2, 0 };
         c[{K,   K+1}].wall_north() = { metal2, 0 };
@@ -142,8 +142,10 @@ void test_bbox()
             return search.cache.array[c_idx(search, ch)].can_go_west[t_idx(tile)];
         };
 
-        fm_assert(  check_W(search, {}, {0,   0  } ));
-        fm_assert(  check_N(search, {}, {0,   0  } ));
+        fm_assert( !check_N(search, {}, {  0,   0} ));
+        fm_assert( !check_W(search, {}, {  0,   0} ));
+        fm_assert(  check_N(search, {}, {  0,   1} ));
+        fm_assert(  check_W(search, {}, {  1,   0} ));
 
         fm_assert(  check_W(search, {}, {K-1, K  } ));
         fm_assert(  check_N(search, {}, {K-1, K  } ));
