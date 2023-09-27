@@ -48,7 +48,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
                   return _ground->_ground_atlases[a] < _ground->_ground_atlases[b];
               });
 
-    float hack_offset = _coord.z <= 0 ? -16 : 0;
+    float hack_offset = _coord.z <= 0 ? -16 : 0; // XXX hack
 
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (auto k = 0uz; k < count; k++)
