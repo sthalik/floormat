@@ -15,10 +15,13 @@ namespace floormat {
 namespace {
 constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = path_search::pred{never_continue_1};
+constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
+constexpr auto always_continue_ = path_search::pred{always_continue_1};
 } // namespace
 
 path_search_result::path_search_result() = default;
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
+auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
 void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 {

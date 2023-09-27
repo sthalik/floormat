@@ -85,6 +85,7 @@ public:
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
+    static const pred& always_continue() noexcept;
 
     void ensure_allocated(chunk_coords a, chunk_coords b);
     void fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
