@@ -42,7 +42,7 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = ground_atlas_at(i))
         {
             auto [min, max] = whole_tile(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::pass), i);
+            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::pass), i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
     }
@@ -52,13 +52,13 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = tile.wall_north_atlas().get())
         {
             auto [min, max] = wall_north(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), i);
+            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), TILE_COUNT+i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto [min, max] = wall_west(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), i);
+            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), TILE_COUNT*2+i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
     }
