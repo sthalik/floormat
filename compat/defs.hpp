@@ -61,3 +61,20 @@
 #else
 #define fm_no_unique_address no_unique_address
 #endif
+
+#ifdef _MSC_VER
+#define fm_UNROLL _Pragma("loop(ivdep)")
+#define fm_UNROLL_4 fm_UNROLL
+#define fm_UNROLL_8 fm_UNROLL
+#else
+#ifndef __SIZEOF_POINTER__
+#error "missing __SIZEOF_POINTER__"
+#endif
+#define fm_UNROLL_4 _Pragma("GCC unroll 4")
+#define fm_UNROLL_8 _Pragma("GCC unroll 8")
+#if __SIZEOF_POINTER__ >= 8
+#define fm_UNROLL _Pragma("GCC unroll 8")
+#else
+#define fm_UNROLL _Pragma("GCC unroll 4")
+#endif
+#endif
