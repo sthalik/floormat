@@ -26,15 +26,10 @@
 #define FM_KILL_PRINTF_WARN_2()
 #endif
 
-namespace floormat {
-
-[[noreturn]] [[maybe_unused]] static inline void _fm_abort() {
-    *(volatile int*)nullptr = 0;
-    for (;;)
+#define fm_EMIT_ABORT()                                                 \
+    *(volatile int*)nullptr = 0;                                        \
+    for (;;)                                                            \
         ;
-}
-
-} // namespace floormat
 
 #define fm_EMIT_DEBUG2(pfx, ...)                                        \
     do {                                                                \
@@ -62,7 +57,7 @@ namespace floormat {
     do {                                                                \
         fm_EMIT_DEBUG2("fatal: ", __VA_ARGS__);                         \
         fm_EMIT_DEBUG("", " in %s:%d", __FILE__, __LINE__);             \
-        ::floormat::_fm_abort();                                        \
+        fm_EMIT_ABORT();                                                \
     } while (false)
 
 #define fm_assert(...)                                                  \
@@ -70,7 +65,7 @@ namespace floormat {
         if (!(__VA_ARGS__)) [[unlikely]] {                              \
             fm_EMIT_DEBUG("", "assertion failed: %s in %s:%d",          \
                           #__VA_ARGS__, __FILE__, __LINE__);            \
-            ::floormat::_fm_abort();                                    \
+            fm_EMIT_ABORT();                                            \
         }                                                               \
     } while(false)
 
