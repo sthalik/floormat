@@ -21,7 +21,7 @@ void test_bbox()
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
-        return path_search::make_neighbor_tile_bbox(coord, {}, r);
+        return path_search::make_neighbor_tile_bbox(coord, {}, {1,1}, r);
     };
 
     constexpr auto neighbor_tiles = [](world& w, chunk_coords_ ch, Vector2i pos) {
