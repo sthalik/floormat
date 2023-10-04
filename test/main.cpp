@@ -31,6 +31,7 @@ int test_app::exec()
     test_serializer_2();
     test_path_search();
     test_math();
+    test_hash();
     zzz_test_misc();
 
     return 0;
