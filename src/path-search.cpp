@@ -27,10 +27,8 @@ constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
 constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotation r)
 {
-    fm_debug_assert(div == Vector2ub{div});
-
-    constexpr auto half_tile = iTILE_SIZE2/2;
-    constexpr int offset_W = iTILE_SIZE2.x(), offset_N = iTILE_SIZE2.y();
+    const auto half_tile = iTILE_SIZE2/2/(int)div.x();
+    const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
     const auto r_ = (uint8_t)r;
     CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
@@ -70,6 +68,39 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
         fm_abort("wrong 4-way rotation enum '%d'", (int)r);
     }
 };
+
+[[maybe_unused]] constexpr bool test_offsets()
+{
+    constexpr auto min_size = iTILE_SIZE2*1/4;
+    static_assert(min_size.x() % 2 == 0);
+    static_assert(min_size.x() >= div && min_size.y() >= div);
+    constexpr auto sz_  = min_size;
+    constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
+
+    [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
+    [[maybe_unused]] constexpr auto min_N = N.first() + shift, max_N = N.second() + shift;
+    [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
+    [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
+
+    [[maybe_unused]] constexpr auto E = get_value(sz_, {1,1}, rotation::E);
+    [[maybe_unused]] constexpr auto min_E = E.first() + shift, max_E = E.second() + shift;
+    [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
+    [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
+
+    [[maybe_unused]] constexpr auto S = get_value(sz_, {1,1}, rotation::S);
+    [[maybe_unused]] constexpr auto min_S = S.first() + shift, max_S = S.second() + shift;
+    [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
+    [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
+
+    [[maybe_unused]] constexpr auto W = get_value(sz_, {1,1}, rotation::W);
+    [[maybe_unused]] constexpr auto min_W = W.first() + shift, max_W = W.second() + shift;
+    [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
+    [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
+
+    return true;
+}
+
+static_assert(test_offsets());
 
 constexpr Vector2i tile_subdiv_at(Vector2i subdiv)
 {
@@ -192,39 +223,6 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Ve
     constexpr auto min_size = iTILE_SIZE2*1/4;
     static_assert(min_size.x() % 2 == 0);
     static_assert(min_size.x() >= subdivide_factor && min_size.y() >= subdivide_factor);
-
-#if 1
-    if constexpr(std::is_constant_evaluated())
-    {
-        constexpr auto sz_  = min_size;
-        constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
-
-        {
-            constexpr auto N = get_value(sz_, {1,1}, rotation::N);
-            constexpr auto min_N = N.first() + shift, max_N = N.second() + shift;
-            { [[maybe_unused]] constexpr auto N_x = min_N.x(), N_y = min_N.y(); }
-            { [[maybe_unused]] constexpr auto N_x = max_N.x(), N_y = max_N.y(); }
-        }
-        {
-            constexpr auto E = get_value(sz_, {1,1}, rotation::E);
-            constexpr auto min_E = E.first() + shift, max_E = E.second() + shift;
-            { [[maybe_unused]] constexpr auto E_x = min_E.x(), E_y = min_E.y(); }
-            { [[maybe_unused]] constexpr auto E_x = max_E.x(), E_y = max_E.y(); }
-        }
-        {
-            constexpr auto S = get_value(sz_, {1,1}, rotation::S);
-            constexpr auto min_S = S.first() + shift, max_S = S.second() + shift;
-            { [[maybe_unused]] constexpr auto S_x = min_S.x(), S_y = min_S.y(); }
-            { [[maybe_unused]] constexpr auto S_x = max_S.x(), S_y = max_S.y(); }
-        }
-        {
-            constexpr auto W = get_value(sz_, {1,1}, rotation::W);
-            constexpr auto min_W = W.first() + shift, max_W = W.second() + shift;
-            { [[maybe_unused]] constexpr auto W_x = min_W.x(), W_y = min_W.y(); }
-            { [[maybe_unused]] constexpr auto W_x = max_W.x(), W_y = max_W.y(); }
-        }
-    }
-#endif
 
     const auto shift = coord * iTILE_SIZE2;
     auto sz = Math::max(Vector2i(own_size), min_size);
