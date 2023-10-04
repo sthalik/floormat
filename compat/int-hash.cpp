@@ -1,33 +1,50 @@
+#include "compat/defs.hpp"
 #include "int-hash.hpp"
 #include <bit>
 
 namespace floormat {
 
-template<typename T, T offset_basis, T prime>
-static CORRADE_ALWAYS_INLINE
-T FNVHash(const char* str, size_t size)
+namespace {
+
+CORRADE_ALWAYS_INLINE uint32_t FNVHash_32(uint32_t x)
 {
-    const auto* end = str + size;
-    T hash = offset_basis;
+    const auto *str = (const char*)&x, *end = str + 4;
+    uint32_t hash = 0x811c9dc5u;
+fm_UNROLL_4
     for (; str != end; ++str)
     {
-        hash *= prime;
+        hash *= 0x01000193u;
         hash ^= (uint8_t)*str;
     }
     return hash;
 }
 
+CORRADE_ALWAYS_INLINE uint64_t FNVHash_64(uint64_t x)
+{
+    const auto *str = (const char*)&x, *end = str + 8;
+    uint64_t hash = 0xcbf29ce484222325u;
+fm_UNROLL_8
+    for (; str != end; ++str)
+    {
+        hash *= 0x100000001b3u;
+        hash ^= (uint8_t)*str;
+    }
+    return hash;
+}
+
+} // namespace
+
 size_t int_hash(uint32_t x) noexcept
 {
     if constexpr(sizeof(size_t) == 4)
-        return FNVHash<uint32_t, 0x811c9dc5u, 0x01000193u>((const char*)&x, 4);
+        return FNVHash_32(x);
     else
-        return int_hash(uint64_t(x));
+        return FNVHash_64(x);
 }
 
 size_t int_hash(uint64_t x) noexcept
 {
-    return FNVHash<uint64_t, 0xcbf29ce484222325u, 0x100000001b3u>((const char*)&x, 8);
+    return FNVHash_64(x);
 }
 
 } // namespace floormat
