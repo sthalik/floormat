@@ -312,13 +312,11 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_
     constexpr auto stride = TILE_MAX_DIM*(size_t)div;
 
     for (auto j = 0uz; j < TILE_MAX_DIM; j++)
-    {
         for (auto i = 0uz; i < TILE_MAX_DIM; i++)
         {
             const auto pos_ = tile_start + Vector2(i, j) * TILE_SIZE2;
 
             for (auto ky = 0uz; ky < div; ky++)
-            {
                 for (auto kx = 0uz; kx < div; kx++)
                 {
                     auto pos = pos_ + part_size*Vector2(kx, ky);
@@ -332,9 +330,7 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_
                     bits.can_go_north[index] = b_N;
                     bits.can_go_west[index] = b_W;
                 }
-            }
         }
-    }
 }
 
 void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
