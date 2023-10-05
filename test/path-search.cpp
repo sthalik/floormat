@@ -10,18 +10,21 @@ namespace floormat {
 
 namespace {
 
+constexpr auto div = path_search::subdivide_factor;
+template<typename T> using bbox = path_search::bbox<T>;
+
 void test_bbox()
 {
-    static constexpr auto is_passable_1 = [](chunk& c, path_search::bbox bb) {
+    static constexpr auto is_passable_1 = [](chunk& c, bbox<float> bb) {
         return path_search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
     };
 
-    static constexpr auto is_passable = [](world& w, chunk_coords_ ch, path_search::bbox bb) {
+    static constexpr auto is_passable = [](world& w, chunk_coords_ ch, bbox<float> bb) {
         return path_search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
-        return path_search::make_neighbor_tile_bbox(coord, {}, r);
+        return path_search::make_neighbor_tile_bbox(coord, {}, {1,1}, r);
     };
 
     constexpr auto neighbor_tiles = [](world& w, chunk_coords_ ch, Vector2i pos) {
@@ -132,37 +135,57 @@ void test_bbox()
             fm_assert(ch_ >= Vector2i{} && ch_ < search.cache.size);
             return ch_.y()*search.cache.size.x() + ch_.x();
         };
-        static constexpr auto t_idx = [](local_coords tile) constexpr {
-            return (size_t)tile.y * TILE_MAX_DIM + (size_t)tile.x;
+        static constexpr auto t_idx = [](local_coords tile, Vector2i subdiv) constexpr {
+            constexpr auto stride = TILE_MAX_DIM * (size_t)div;
+            auto jj = tile.y * (size_t)div + (size_t)subdiv.y();
+            auto ii = tile.x * (size_t)div + (size_t)subdiv.x();
+            return jj * stride + ii;
         };
-        constexpr auto check_N = [&](path_search& search, chunk_coords ch, local_coords tile) {
-            return search.cache.array[c_idx(search, ch)].can_go_north[t_idx(tile)];
+        constexpr auto check_N = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
+            auto c = c_idx(search, ch);
+            auto t = t_idx(tile, subdiv);
+            return search.cache.array[c].can_go_north[t];
         };
-        constexpr auto check_W = [&](path_search& search, chunk_coords ch, local_coords tile) {
-            return search.cache.array[c_idx(search, ch)].can_go_west[t_idx(tile)];
+        constexpr auto check_W = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
+            auto c = c_idx(search, ch);
+            auto t = t_idx(tile, subdiv);
+            return search.cache.array[c].can_go_west[t];
         };
 
-        fm_assert( !check_N(search, {}, {  0,   0} ));
-        fm_assert( !check_W(search, {}, {  0,   0} ));
-        fm_assert(  check_N(search, {}, {  0,   1} ));
-        fm_assert(  check_W(search, {}, {  1,   0} ));
+        static_assert(div == 4);
+        constexpr Vector2i s00 = {0,0}, s01 = {0,2}, s10 = {2,0}, s11 = {2,2}, s22 = {3,3};
 
-        fm_assert(  check_W(search, {}, {K-1, K  } ));
-        fm_assert(  check_N(search, {}, {K-1, K  } ));
-        fm_assert(  check_W(search, {}, {K,   K-1} ));
-        fm_assert(  check_N(search, {}, {K,   K-1} ));
+        fm_assert( !check_N(search, {}, {  0,   0}, s10 ));
+        fm_assert( !check_W(search, {}, {  0,   0}, s01 ));
+        fm_assert(  check_N(search, {}, {  0,   1}, s10 ));
+        fm_assert(  check_W(search, {}, {  1,   0}, s01 ));
 
-        fm_assert( !check_N(search, {}, {K,   K  } ));
-        fm_assert( !check_W(search, {}, {K,   K  } ));
-        fm_assert( !check_W(search, {}, {K+1, K  } ));
-        fm_assert(  check_N(search, {}, {K+1, K  } ));
-        fm_assert( !check_N(search, {}, {K,   K+1} ));
-        fm_assert(  check_W(search, {}, {K,   K+1} ));
+        fm_assert( !check_N(search, {}, {  0,   1}, s00 ));
+        fm_assert( !check_W(search, {}, {  1,   0}, s00 ));
 
-        fm_assert(  check_N(search, {}, {K+2, K  } ));
-        fm_assert(  check_W(search, {}, {K+2, K  } ));
-        fm_assert(  check_N(search, {}, {K,   K+2} ));
-        fm_assert(  check_W(search, {}, {K,   K+2} ));
+        fm_assert(  check_W(search, {}, {K-1, K  }, s01 ));
+        fm_assert(  check_N(search, {}, {K-1, K  }, s10 ));
+        fm_assert(  check_W(search, {}, {K,   K-1}, s01 ));
+        fm_assert(  check_N(search, {}, {K,   K-1}, s10 ));
+
+        fm_assert(  check_W(search, {}, {K-1, K  }, s22 ));
+        fm_assert(  check_N(search, {}, {K-1, K  }, s22 ));
+        fm_assert(  check_W(search, {}, {K,   K-1}, s22 ));
+        fm_assert(  check_N(search, {}, {K,   K-1}, s22 ));
+
+        fm_assert( !check_N(search, {}, {K,   K  }, s10 ));
+        fm_assert( !check_W(search, {}, {K,   K  }, s01 ));
+        fm_assert(  check_N(search, {}, {K,   K  }, s11 ));
+        fm_assert(  check_W(search, {}, {K,   K  }, s11 ));
+
+        fm_assert( !check_W(search, {}, {K+1, K  }, s01 ));
+        fm_assert(  check_N(search, {}, {K+1, K  }, s10 ));
+        fm_assert( !check_N(search, {}, {K,   K+1}, s10 ));
+        fm_assert(  check_W(search, {}, {K,   K+1}, s01 ));
+        fm_assert(  check_N(search, {}, {K+2, K  }, s10 ));
+        fm_assert(  check_W(search, {}, {K+2, K  }, s01 ));
+        fm_assert(  check_N(search, {}, {K,   K+2}, s10 ));
+        fm_assert(  check_W(search, {}, {K,   K+2}, s01 ));
     }
 }
 

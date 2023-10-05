@@ -13,10 +13,122 @@
 namespace floormat {
 
 namespace {
+
+constexpr auto div = path_search::subdivide_factor;
+constexpr int div_BITS = 2;
+static_assert(1 << div_BITS == div);
+
+static_assert(path_search::min_size.x() % 2 == 0 && path_search::min_size.x() * div * 2 == iTILE_SIZE2.x());
+
 constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
+
+constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotation r)
+{
+    const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
+
+    const auto r_ = (uint8_t)r;
+    CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
+
+    switch (r_)
+    {
+    case (uint8_t)rotation::N: {
+        auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
+        auto max_N = Vector2i(min_N.x() + sz.x(),               sz.y() - sz.y()/2               );
+        return {min_N, max_N};
+    }
+    case (uint8_t)rotation::S: {
+        auto min_S = Vector2i(-sz.x()/2,                        -sz.y()                         );
+        auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N + sz.y() - sz.y()/2    );
+        return {min_S, max_S};
+    }
+    case (uint8_t)rotation::W: {
+        auto min_W = Vector2i(-offset_W - sz.x()/2,             -sz.y()/2                       );
+        auto max_W = Vector2i(sz.x() - sz.x()/2,                min_W.y() + sz.y()              );
+        return {min_W, max_W};
+    }
+    case (uint8_t)rotation::E: {
+        auto min_E = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
+        auto max_E = Vector2i(offset_W + sz.x() - sz.x()/2,     min_E.y() + sz.y()              );
+        return {min_E, max_E};
+    }
+    case (uint8_t)rotation_COUNT: {
+        auto min_C = Vector2i(-(sz.x() >> 1),                   -(sz.y() >> 1)                  );
+        auto max_C = min_C + sz;
+        return {min_C, max_C};
+    }
+    default:
+        fm_abort("wrong 4-way rotation enum '%d'", (int)r);
+    }
+};
+
+[[maybe_unused]] constexpr bool test_offsets()
+{
+    constexpr auto sz_  = path_search::min_size;
+    constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
+
+    [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
+    [[maybe_unused]] constexpr auto min_N = N.first() + shift, max_N = N.second() + shift;
+    [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
+    [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
+
+    [[maybe_unused]] constexpr auto E = get_value(sz_, {1,1}, rotation::E);
+    [[maybe_unused]] constexpr auto min_E = E.first() + shift, max_E = E.second() + shift;
+    [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
+    [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
+
+    [[maybe_unused]] constexpr auto S = get_value(sz_, {1,1}, rotation::S);
+    [[maybe_unused]] constexpr auto min_S = S.first() + shift, max_S = S.second() + shift;
+    [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
+    [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
+
+    [[maybe_unused]] constexpr auto W = get_value(sz_, {1,1}, rotation::W);
+    [[maybe_unused]] constexpr auto min_W = W.first() + shift, max_W = W.second() + shift;
+    [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
+    [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
+
+    return true;
+}
+
+static_assert(test_offsets());
+
+[[maybe_unused]] constexpr bool test_offsets2()
+{
+    using enum rotation;
+    constexpr auto tile_start = iTILE_SIZE2/-2;
+    constexpr auto sz = Vector2i(8, 16);
+
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), N);
+        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
+        static_assert(min.x() == -32 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -48 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), W);
+        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
+        static_assert(min.x() == -32 - 16 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -32 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+
+    return true;
+}
+
+static_assert(test_offsets2());
+
+struct chunk_subdiv_array { Vector2i min[div], max[div]; };
+
+constexpr chunk_subdiv_array make_chunk_subdiv_array()
+{
+    return {};
+}
+
 } // namespace
 
 path_search_result::path_search_result() = default;
@@ -25,7 +137,7 @@ auto path_search::always_continue() noexcept -> const pred& { return always_cont
 
 void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 {
-    auto new_size = Math::abs(a - b) + Vector2i(3);
+    auto new_size = (Math::abs(a - b) + Vector2i(3));
     auto new_start = Vector2i(std::min(a.x, b.x), std::min(a.y, b.y)) - Vector2i(1);
     auto size1 = new_size.product();
     fm_debug_assert(size1 > 0);
@@ -117,91 +229,11 @@ bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Ve
     return is_passable(w, coord, min, max, own_id, p);
 }
 
-auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, rotation r) -> bbox
+auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
 {
-    constexpr auto get_value = [](Vector2i sz, rotation r) constexpr -> Pair<Vector2i, Vector2i>
-    {
-        constexpr auto half_tile = iTILE_SIZE2/2;
-        constexpr int offset_W = iTILE_SIZE2.x(), offset_N = iTILE_SIZE2.y();
-
-        const auto r_ = (uint8_t)r;
-        CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
-
-        switch (r_)
-        {
-        case (uint8_t)rotation::N: {
-            const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-            auto min_N = Vector2i(-half_tile.x() + space_NS,        -offset_N                   );
-            auto max_N = Vector2i(min_N.x() + sz.x(),               0                           );
-            return {min_N, max_N};
-        }
-        case (uint8_t)rotation::S: {
-            const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-            auto min_S = Vector2i(-half_tile.x() + space_NS,        0                           );
-            auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N                    );
-            return {min_S, max_S};
-        }
-        case (uint8_t)rotation::W: {
-            const auto space_WE = iTILE_SIZE2.y() - sz.y() >> 1;
-            auto min_W = Vector2i(-offset_W,                        -half_tile.y() + space_WE   );
-            auto max_W = Vector2i(0,                                min_W.y() + sz.y()          );
-            return {min_W, max_W};
-        }
-        case (uint8_t)rotation::E: {
-            const auto space_WE = iTILE_SIZE2.y() - sz.y() >> 1;
-            auto min_E = Vector2i(0,                                -half_tile.y() + space_WE   );
-            auto max_E = Vector2i(offset_W,                         min_E.y() + sz.y()          );
-            return {min_E, max_E};
-        }
-        case (uint8_t)rotation_COUNT: {
-            auto min_C = Vector2i(-(sz.x() >> 1),                   -(sz.y() >> 1)              );
-            auto max_C = min_C + sz;
-            return {min_C, max_C};
-        }
-        default:
-            fm_abort("wrong 4-way rotation enum '%d'", (int)r);
-        }
-    };
-
-    constexpr auto min_size = iTILE_SIZE2*3/4;
-    static_assert(min_size.x() % 2 == 0);
-
-#if 0
-    if constexpr(true)
-    {
-        constexpr auto sz_  = min_size;
-        constexpr Vector2i shift = Vector2i(1, 2) * iTILE_SIZE2;
-
-        {
-            constexpr auto N = get_value(sz_, rotation::N);
-            constexpr auto min_N = N.first() + shift, max_N = N.second() + shift;
-            { [[maybe_unused]] constexpr auto N_x = min_N.x(),  N_y = min_N.y();  }
-            { [[maybe_unused]] constexpr auto N_x = max_N.x(),  N_y = max_N.y();  }
-        }
-        {
-            constexpr auto E = get_value(sz_, rotation::E);
-            constexpr auto min_E = E.first() + shift, max_E = E.second() + shift;
-            { [[maybe_unused]] constexpr auto E_x = min_E.x(),  E_y = min_E.y();  }
-            { [[maybe_unused]] constexpr auto E_x = max_E.x(),  E_y = max_E.y();  }
-        }
-        {
-            constexpr auto S = get_value(sz_, rotation::S);
-            constexpr auto min_S = S.first() + shift, max_S = S.second() + shift;
-            { [[maybe_unused]] constexpr auto S_x = min_S.x(),  S_y = min_S.y();  }
-            { [[maybe_unused]] constexpr auto S_x = max_S.x(),  S_y = max_S.y();  }
-        }
-        {
-            constexpr auto W = get_value(sz_, rotation::W);
-            constexpr auto min_W = W.first() + shift, max_W = W.second() + shift;
-            { [[maybe_unused]] constexpr auto W_x = min_W.x(),  W_y = min_W.y();  }
-            { [[maybe_unused]] constexpr auto W_x = max_W.x(),  W_y = max_W.y();  }
-        }
-    }
-#endif
-
     const auto shift = coord * iTILE_SIZE2;
     auto sz = Math::max(Vector2i(own_size), min_size);
-    auto [min, max] = get_value(sz, r);
+    auto [min, max] = get_value(sz, div, r);
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
@@ -231,7 +263,7 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
 
     for (auto [off, dir] : nbs)
     {
-        auto [min, max] = make_neighbor_tile_bbox(pos, size, dir);
+        auto [min, max] = make_neighbor_tile_bbox(pos, size, {1,1}, dir);
         if (is_passable(w, ch, min, max, own_id, p))
             ns.neighbors[ns.size++] = coord + off;
     }
@@ -239,7 +271,7 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
     return ns;
 }
 
-auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox
+auto path_search::bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<float>
 {
     auto center = coord * iTILE_SIZE2 + Vector2i(offset);
     auto min = center - Vector2i(size / 2u);
@@ -250,13 +282,16 @@ auto path_search::bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub
     };
 }
 
-void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id, const pred& p)
+void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_, object_id own_id, const pred& p)
 {
+    auto own_size = Math::max(Vector2i(own_size_), path_search::min_size);
+
     int32_t x = coord.x, y = coord.y;
     int8_t z = coord.z;
 
     auto off = Vector2i(x - cache.start.x(), y - cache.start.y());
     fm_debug_assert(off >= Vector2i{} && off < cache.size);
+    static_assert(iTILE_SIZE2 / div * div == iTILE_SIZE2);
     auto ch = chunk_coords_{(int16_t)x, (int16_t)y, z};
     auto* c = w.at(ch);
     auto nb = w.neighbors(ch);
@@ -264,16 +299,41 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size,
     if (!c && std::all_of(nb.begin(), nb.end(), [](const auto& c) { return c.c == nullptr; }))
         return;
 
+    const auto [min_N_, max_N_] = get_value(Vector2i(own_size), Vector2ub(div), rotation::N);
+    const auto [min_W_, max_W_] = get_value(Vector2i(own_size), Vector2ub(div), rotation::W);
+
+    const auto min_N = Vector2(min_N_), max_N = Vector2(max_N_),
+               min_W = Vector2(min_W_), max_W = Vector2(max_W_);
+
+    constexpr auto tile_start = TILE_SIZE2/-2;
+    constexpr auto part_size = Vector2(iTILE_SIZE2/Vector2i(div));
+
     auto& bits = cache.array[off.y()*cache.size.x()+off.x()];
-    for (auto i = 0uz; i < TILE_COUNT; i++)
+    constexpr auto stride = TILE_MAX_DIM*(size_t)div;
+
+    for (auto j = 0uz; j < TILE_MAX_DIM; j++)
     {
-        auto pos = Vector2i(local_coords{i});
-        auto bb_N = make_neighbor_tile_bbox(pos, own_size, rotation::N),
-             bb_W = make_neighbor_tile_bbox(pos, own_size, rotation::W);
-        bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id, p),
-             b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id, p);
-        bits.can_go_north[i] = b_N;
-        bits.can_go_west[i] = b_W;
+        for (auto i = 0uz; i < TILE_MAX_DIM; i++)
+        {
+            const auto pos_ = tile_start + Vector2(i, j) * TILE_SIZE2;
+
+            for (auto ky = 0uz; ky < div; ky++)
+            {
+                for (auto kx = 0uz; kx < div; kx++)
+                {
+                    auto pos = pos_ + part_size*Vector2(kx, ky);
+                    auto bb_N = bbox<float> { pos + min_N, pos + max_N };
+                    auto bb_W = bbox<float> { pos + min_W, pos + max_W };
+                    bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id, p),
+                         b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id, p);
+                    auto jj = j * div + ky, ii = i * div + kx;
+                    auto index = jj * stride + ii;
+                    //fm_debug_assert(index < bits.can_go_north.size());
+                    bits.can_go_north[index] = b_N;
+                    bits.can_go_west[index] = b_W;
+                }
+            }
+        }
     }
 }
 
