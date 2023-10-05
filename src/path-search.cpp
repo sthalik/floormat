@@ -62,7 +62,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
     default:
         fm_abort("wrong 4-way rotation enum '%d'", (int)r);
     }
-};
+}
 
 [[maybe_unused]] constexpr bool test_offsets()
 {
