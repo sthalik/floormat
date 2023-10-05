@@ -305,8 +305,6 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_
     const auto min_N = Vector2(min_N_), max_N = Vector2(max_N_),
                min_W = Vector2(min_W_), max_W = Vector2(max_W_);
 
-    enum : unsigned { N, E, S, W };
-
     constexpr auto tile_start = TILE_SIZE2/-2;
     constexpr auto part_size = Vector2(iTILE_SIZE2/Vector2i(div));
 
@@ -330,7 +328,7 @@ void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_
                          b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id, p);
                     auto jj = j * div + ky, ii = i * div + kx;
                     auto index = jj * stride + ii;
-                    fm_debug_assert(index < bits.can_go_north.size());
+                    //fm_debug_assert(index < bits.can_go_north.size());
                     bits.can_go_north[index] = b_N;
                     bits.can_go_west[index] = b_W;
                 }
