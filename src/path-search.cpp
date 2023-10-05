@@ -27,7 +27,6 @@ constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
 constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotation r)
 {
-    const auto half_tile = iTILE_SIZE2/2/(int)div.x();
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
     const auto r_ = (uint8_t)r;
@@ -36,31 +35,27 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
     switch (r_)
     {
     case (uint8_t)rotation::N: {
-        const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-        auto min_N = Vector2i(-half_tile.x() + space_NS,    -offset_N                   );
-        auto max_N = Vector2i(min_N.x() + sz.x(),           0                           );
+        auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
+        auto max_N = Vector2i(min_N.x() + sz.x(),               sz.y() - sz.y()/2               );
         return {min_N, max_N};
     }
     case (uint8_t)rotation::S: {
-        const auto space_NS = iTILE_SIZE2.x() - sz.x() >> 1;
-        auto min_S = Vector2i(-half_tile.x() + space_NS,    0                           );
-        auto max_S = Vector2i(min_S.x() + sz.x(),           offset_N                    );
+        auto min_S = Vector2i(-sz.x()/2,                        -sz.y()                         );
+        auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N + sz.y() - sz.y()/2    );
         return {min_S, max_S};
     }
     case (uint8_t)rotation::W: {
-        const auto space_WE = iTILE_SIZE2.y() - sz.y() >> 1;
-        auto min_W = Vector2i(-offset_W,                    -half_tile.y() + space_WE   );
-        auto max_W = Vector2i(0,                            min_W.y() + sz.y()          );
+        auto min_W = Vector2i(-offset_W - sz.x()/2,             -sz.y()/2                       );
+        auto max_W = Vector2i(sz.x() - sz.x()/2,                min_W.y() + sz.y()              );
         return {min_W, max_W};
     }
     case (uint8_t)rotation::E: {
-        const auto space_WE = iTILE_SIZE2.y() - sz.y() >> 1;
-        auto min_E = Vector2i(0,                            -half_tile.y() + space_WE   );
-        auto max_E = Vector2i(offset_W,                     min_E.y() + sz.y()          );
+        auto min_E = Vector2i(sz.x()/2,                         -sz.y()/2                       );
+        auto max_E = Vector2i(offset_W + sz.x() - sz.x()/2,     min_E.y() + sz.y() - sz.y()/2   );
         return {min_E, max_E};
     }
     case (uint8_t)rotation_COUNT: {
-        auto min_C = Vector2i(-(sz.x() >> 1),               -(sz.y() >> 1)              );
+        auto min_C = Vector2i(-(sz.x() >> 1),                   -(sz.y() >> 1)                  );
         auto max_C = min_C + sz;
         return {min_C, max_C};
     }
@@ -71,7 +66,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
 
 [[maybe_unused]] constexpr bool test_offsets()
 {
-    constexpr auto min_size = iTILE_SIZE2*1/4;
+    constexpr auto min_size = iTILE_SIZE2/2;
     static_assert(min_size.x() % 2 == 0);
     static_assert(min_size.x() >= div && min_size.y() >= div);
     constexpr auto sz_  = min_size;
@@ -101,6 +96,34 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
 }
 
 static_assert(test_offsets());
+
+[[maybe_unused]] constexpr bool test_offsets2()
+{
+    using enum rotation;
+    constexpr auto tile_start = iTILE_SIZE2/-2;
+    constexpr auto sz = Vector2i(8, 16);
+
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), N);
+        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
+        static_assert(min.x() == -32 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -48 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), W);
+        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
+        static_assert(min.x() == -32 - 16 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -32 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+
+    return true;
+}
+
+static_assert(test_offsets2());
 
 constexpr Vector2i tile_subdiv_at(Vector2i subdiv)
 {
