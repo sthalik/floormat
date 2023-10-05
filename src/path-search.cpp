@@ -241,6 +241,8 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
+    constexpr auto min_size = Vector2ub(iTILE_SIZE2/4);
+    size = Math::max(size, min_size);
 
 #if 0
     if (auto [min, max] = make_neighbor_tile_bbox(pos, size, rotation_COUNT);
