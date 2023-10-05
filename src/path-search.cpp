@@ -122,13 +122,6 @@ static_assert(test_offsets());
 
 static_assert(test_offsets2());
 
-struct chunk_subdiv_array { Vector2i min[div], max[div]; };
-
-constexpr chunk_subdiv_array make_chunk_subdiv_array()
-{
-    return {};
-}
-
 } // namespace
 
 path_search_result::path_search_result() = default;
