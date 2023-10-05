@@ -12,6 +12,8 @@
 #include <Corrade/Containers/BitArray.h>
 #include <Corrade/Containers/StridedDimensions.h>
 #include <Magnum/Math/Vector2.h>
+#include <Magnum/DimensionTraits.h>
+
 
 namespace Corrade::Containers {
 template<typename T> class Optional;
@@ -57,6 +59,7 @@ class path_search final
 
 public:
     static constexpr int subdivide_factor = 4;
+    static constexpr auto min_size = iTILE_SIZE2 / subdivide_factor / 2;
     static constexpr size_t tile_count = Vector2i(subdivide_factor * TILE_MAX_DIM).product();
 
     struct neighbors final
@@ -84,7 +87,7 @@ public:
     chunk_cache cache;
     Array<global_coords> output;
 
-    struct bbox { Vector2 min, max; };
+    template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
@@ -105,8 +108,8 @@ public:
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id, const pred& p = never_continue());
 
-    static bbox make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
-    static bbox bbox_union(bbox bb, Vector2i coord, Vector2b offset, Vector2ub size);
+    static bbox<float> make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
+    static bbox<float> bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size);
     static neighbors get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p = never_continue());
 };
 
