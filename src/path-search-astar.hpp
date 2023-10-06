@@ -17,12 +17,11 @@ struct astar_edge
     friend struct astar_equal;
     bool operator==(const astar_edge&) const noexcept;
 
-    astar_edge(global_coords ch1, Vector2b off1, global_coords ch2, Vector2b off2);
+    astar_edge(global_coords coord1, Vector2b off1, global_coords coord2, Vector2b off2);
     astar_edge(chunk_coords_ ch1, local_coords t1, Vector2b off1,
                chunk_coords_ ch2, local_coords t2, Vector2b off2);
     size_t hash() const;
 
-private:
     int16_t from_cx, from_cy, to_cx, to_cy;
     int8_t from_cz, to_cz;
     uint8_t from_t, to_t;
@@ -44,9 +43,9 @@ struct astar final
 {
     void reserve(size_t count);
     bool empty() const { return Q.empty(); }
-    [[nodiscard]] bool add_seen(const astar_edge& value);
+    [[nodiscard]] bool add_visited(const astar_edge& value);
     void push(const astar_edge& value, uint32_t dist);
-    astar_edge pop();
+    astar_edge_tuple pop();
     void clear();
 
 private:

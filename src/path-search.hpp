@@ -1,5 +1,4 @@
 #pragma once
-#include "tile-defs.hpp"
 #include "global-coords.hpp"
 #include "object-id.hpp"
 #include "rotation.hpp"
@@ -41,8 +40,8 @@ class path_search final
 
 public:
     static constexpr int subdivide_factor = 4;
-    static constexpr auto min_size = iTILE_SIZE2 / subdivide_factor;
-    static constexpr size_t tile_count = Vector2i(subdivide_factor * TILE_MAX_DIM).product();
+    static constexpr auto div_size = iTILE_SIZE2 / subdivide_factor;
+    static constexpr auto min_size = div_size / 2;
 
     struct neighbors final
     {
@@ -89,6 +88,7 @@ public:
                              Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id, const pred& p = never_continue());
+    static bool is_passable(world& w, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p = never_continue());
 
     static bbox<float> neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
     template<typename T> requires std::is_arithmetic_v<T> static bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size);

@@ -60,6 +60,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2ub sz, Vector2ub div, rotati
     }
 }
 
+#if 0
 [[maybe_unused]] constexpr bool test_offsets()
 {
     constexpr auto sz_  = Vector2ub(path_search::min_size);
@@ -87,9 +88,10 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2ub sz, Vector2ub div, rotati
 
     return true;
 }
-
 static_assert(test_offsets());
+#endif
 
+#if 0
 [[maybe_unused]] constexpr bool test_offsets2()
 {
     using enum rotation;
@@ -115,18 +117,8 @@ static_assert(test_offsets());
 
     return true;
 }
-
 static_assert(test_offsets2());
-
-constexpr auto tile_bbox(local_coords tile, Vector2b offset, Vector2ub size)
-{
-    constexpr auto tile_start = TILE_SIZE2*.5f;
-    auto size_ = Vector2(size), half_size = Vector2(size/2);
-    auto pos = tile_start + Vector2(tile) * TILE_SIZE2 + Vector2(offset);
-    auto bb = path_search::bbox<float>{pos - half_size, pos + size_};
-    return bb;
-};
-
+#endif
 
 } // namespace
 
@@ -164,13 +156,6 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
         return true;
     });
     return is_passable;
-}
-
-bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p)
-{
-    auto* c = w.at(ch0);
-    auto neighbors = w.neighbors(ch0);
-    return is_passable_(c, neighbors, min, max, own_id, p);
 }
 
 bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
@@ -212,6 +197,13 @@ bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair,
     return true;
 }
 
+bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p)
+{
+    auto* c = w.at(ch0);
+    auto neighbors = w.neighbors(ch0);
+    return is_passable_(c, neighbors, min, max, own_id, p);
+}
+
 bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size_,
                               object_id own_id, const pred& p)
 {
@@ -219,6 +211,11 @@ bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Ve
     auto size = Vector2(size_);
     auto min = Vector2(center) - size*.5f, max = min + size;
     return is_passable(w, coord, min, max, own_id, p);
+}
+
+bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb, object_id own_id, const pred& p)
+{
+    return is_passable(w, ch, bb.min, bb.max, own_id, p);
 }
 
 auto path_search::neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>

@@ -14,11 +14,11 @@ size_t astar_hash::operator()(const astar_edge& e) const
 
 bool astar_edge::operator==(const astar_edge&) const noexcept = default;
 
-astar_edge::astar_edge(global_coords ch1, Vector2b off1,
-                       global_coords ch2, Vector2b off2) :
+astar_edge::astar_edge(global_coords coord1, Vector2b off1,
+                       global_coords coord2, Vector2b off2) :
     astar_edge {
-        chunk_coords_{ch1}, ch1.local(), off1,
-        chunk_coords_{ch2}, ch2.local(), off2,
+        chunk_coords_{coord1}, coord1.local(), off1,
+        chunk_coords_{coord2}, coord2.local(), off2,
     }
 {
 }
@@ -44,9 +44,9 @@ void astar::reserve(size_t count)
     seen.reserve(2*count);
 }
 
-bool astar::add_seen(const astar_edge& e)
+bool astar::add_visited(const astar_edge& value)
 {
-    return seen.insert(e).second;
+    return seen.insert(value).second;
 }
 
 void astar::push(const astar_edge& value, uint32_t dist)
@@ -55,12 +55,12 @@ void astar::push(const astar_edge& value, uint32_t dist)
     std::push_heap(Q.begin(), Q.end());
 }
 
-astar_edge astar::pop()
+astar_edge_tuple astar::pop()
 {
     fm_debug_assert(!Q.empty());
     auto ret = Q.back();
     std::pop_heap(Q.begin(), Q.end());
-    return ret.e;
+    return ret;
 }
 
 void astar::clear()

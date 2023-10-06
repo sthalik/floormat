@@ -1,6 +1,6 @@
 #include "path-search.hpp"
-#include "compat/math.hpp"
 #include "object.hpp"
+#include "compat/math.hpp"
 #include <Corrade/Containers/PairStl.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
@@ -31,46 +31,61 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id
     astar.clear();
     astar.reserve(TILE_COUNT*(size_t)(subdivide_factor*subdivide_factor));
 
+    static constexpr auto eps = (uint32_t)math::ceil(math::sqrt((Vector2(div_size)/4).product()));
+    static_assert(eps > 1 && eps < TILE_SIZE2.x());
+
     const auto pos0 = Vector2(from.local()) * TILE_SIZE2;
     const auto start_bbox = bbox<float>{pos0 - Vector2(own_size/2), pos0 + Vector2(own_size)};
+    const auto from_offset_f = Vector2(from_offset);
+    const auto from_offset_len = Math::max(eps, (uint32_t)Math::ceil(from_offset_f.length()));
 
-    constexpr auto div = Vector2ub{subdivide_factor};
-    constexpr auto sub_size = Vector2i(Vector2ub(iTILE_SIZE2) / div);
-    constexpr auto sqrt_2 = (float)math::sqrt(2);
-
-    constexpr Vector2i directions[8] = {
-        iTILE_SIZE2 * Vector2i{ -1,  0 },
-        iTILE_SIZE2 * Vector2i{  0, -1 },
-        iTILE_SIZE2 * Vector2i{  1,  0 },
-        iTILE_SIZE2 * Vector2i{  0,  1 },
-        iTILE_SIZE2 * Vector2i{  1,  1 },
-        iTILE_SIZE2 * Vector2i{ -1, -1 },
-        iTILE_SIZE2 * Vector2i{ -1,  1 },
-        iTILE_SIZE2 * Vector2i{  1, -1 },
+    struct tuple
+    {
+        bbox<float> bbox;
+        uint32_t dist;
     };
-    const auto bb0 = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
-    //if (is_passable(w, chunk_coords_{from}, bb0.min, bb0.max, own_id, p))
-    //    push_heap(_astar.Q, {from, from_offset, from, {}, 0});
+
+    constexpr auto get_bbox = [](chunk_coords_ ch_1, local_coords pos1, Vector2b off1,
+                                 chunk_coords_ ch_2, local_coords pos2, Vector2b off2,
+                                 Vector2ub size, uint32_t dist0) -> tuple
+    {
+        constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+        auto c = (Vector2i(ch_2.x, ch_2.y) - Vector2i(ch_1.x, ch_1.y)) * chunk_size;
+        auto t = (Vector2i(pos2) - Vector2i(pos1)) * iTILE_SIZE2;
+        auto o = Vector2i(off2) - Vector2i(off1);
+        auto cto = Vector2i(c + t + o);
+        auto dist = Math::max(1u, (uint32_t)Math::ceil(Vector2(cto).length()));
+        auto center0 = Vector2i(pos1) * iTILE_SIZE2 + Vector2i(off1);
+        auto min0 = center0 - Vector2i(size/2), max0 = min0 + Vector2i(size);
+        auto min1 = min0 + cto, max1 = max0 + cto;
+        fm_debug_assert(dist > eps);
+
+        return {
+            { .min = Vector2(Math::min(min0, min1)),
+              .max = Vector2(Math::max(max0, max1)) },
+            dist0 + dist,
+        };
+    };
 
     path_search_result result;
     fm_debug_assert(result._node); // todo
     auto& path = result._node->vec; path.clear();
 
-    {
-        auto [pos2, _offset2] = object::normalize_coords(from, from_offset, {});
-    }
+    constexpr auto div = Vector2i(subdivide_factor);
+    constexpr auto div_size = Vector2i(iTILE_SIZE2 / div);
+    constexpr auto tile_start = Vector2i(iTILE_SIZE2/-2);
 
-    for (const auto& dir : directions)
-    {
-        auto pos = object::normalize_coords(from, from_offset, dir);
-    }
+    astar.push(astar_edge{from, from_offset, from, from_offset}, 0);
+
+    const auto ch0 = chunk_coords_{from};
+    const auto bb0 = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
+    if (from_offset_len >= eps && is_passable(w, ch0, bb0, own_id, p))
+        astar.push({from, from_offset, from, from_offset}, from_offset_len);
 
     while (!astar.empty())
     {
+        auto [prev, dist0] = astar.pop();
     }
-
-    auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
-                                     Vector2i(to.chunk()) + Vector2i(1, 1));
 
     // todo...
     return result;
