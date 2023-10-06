@@ -143,45 +143,7 @@ astar_edge::astar_edge(chunk_coords_ ch1, local_coords t1, Vector2b off1,
     to_offx{off2.x()},      to_offy{off2.y()}
 {
 
-#if 0
-size_t path_search::cache_chunk_index(chunk_coords ch)
-{
-    auto ch_ = Vector2i(ch) - cache.start;
-    fm_assert(ch_ >= Vector2i{} && ch_ < cache.size);
-    auto index = ch_.y()*cache.size.x() + ch_.x();
-    return (size_t)index;
 }
-
-size_t path_search::cache_tile_index(local_coords tile, Vector2i subdiv)
-{
-    constexpr auto stride = TILE_MAX_DIM * (size_t)div;
-    auto jj = tile.y * (size_t)div + (size_t)subdiv.y();
-    auto ii = tile.x * (size_t)div + (size_t)subdiv.x();
-    auto index = jj * stride + ii;
-    fm_debug_assert(index < tile_count);
-    return index;
-}
-
-void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
-{
-    constexpr auto max_chunks = 1uz << 26;
-    auto new_size = (Math::abs(a - b) + Vector2i(3));
-    auto new_start = Vector2i(std::min(a.x, b.x), std::min(a.y, b.y)) - Vector2i(1);
-    auto size1 = (size_t)new_size.product();
-    fm_assert(size1 < max_chunks);
-    cache.start = new_start;
-    if (size1 > cache.array.size())
-    {
-        cache.array = Array<chunk_tiles_cache>{ValueInit, size1};
-        cache.size = new_size;
-    }
-    else
-        for (auto& x : cache.array)
-            x = {};
-
-    fm_assert(cache.size.product() > 0);
-}
-#endif
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
@@ -317,66 +279,5 @@ auto path_search::bbox_union(bbox<int> bb1, bbox<int> bb2) -> bbox<int>
 {
     return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
 }
-
-#if 0
-void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_, object_id own_id, const pred& p)
-{
-    auto own_size = Math::max(Vector2i(own_size_), path_search::min_size);
-
-    int32_t x = coord.x, y = coord.y;
-    int8_t z = coord.z;
-
-    auto off = Vector2i(x - cache.start.x(), y - cache.start.y());
-    fm_debug_assert(off >= Vector2i{} && off < cache.size);
-    static_assert(iTILE_SIZE2 / div * div == iTILE_SIZE2);
-    auto ch = chunk_coords_{(int16_t)x, (int16_t)y, z};
-    auto* c = w.at(ch);
-    auto nb = w.neighbors(ch);
-
-    if (!c && std::all_of(nb.begin(), nb.end(), [](const auto& c) { return c.c == nullptr; }))
-        return;
-
-    const auto [min_N_, max_N_] = get_value(Vector2i(own_size), Vector2ub(div), rotation::N);
-    const auto [min_W_, max_W_] = get_value(Vector2i(own_size), Vector2ub(div), rotation::W);
-
-    const auto min_N = Vector2(min_N_), max_N = Vector2(max_N_),
-               min_W = Vector2(min_W_), max_W = Vector2(max_W_);
-
-    constexpr auto tile_start = TILE_SIZE2/-2;
-    constexpr auto part_size = Vector2(iTILE_SIZE2/Vector2i(div));
-
-    auto& bits = cache.array[off.y()*cache.size.x()+off.x()];
-    constexpr auto stride = TILE_MAX_DIM*(size_t)div;
-
-    for (auto j = 0uz; j < TILE_MAX_DIM; j++)
-        for (auto i = 0uz; i < TILE_MAX_DIM; i++)
-        {
-            const auto pos_ = tile_start + Vector2(i, j) * TILE_SIZE2;
-
-            for (auto ky = 0uz; ky < div; ky++)
-                for (auto kx = 0uz; kx < div; kx++)
-                {
-                    auto pos = pos_ + part_size*Vector2(kx, ky);
-                    auto bb_N = bbox<float> { pos + min_N, pos + max_N };
-                    auto bb_W = bbox<float> { pos + min_W, pos + max_W };
-                    bool b_N = is_passable_(c, nb, bb_N.min, bb_N.max, own_id, p),
-                         b_W = is_passable_(c, nb, bb_W.min, bb_W.max, own_id, p);
-                    auto jj = j * div + ky, ii = i * div + kx;
-                    auto index = jj * stride + ii;
-                    //fm_debug_assert(index < bits.can_go_north.size());
-                    bits.can_go_north[index] = b_N;
-                    bits.can_go_west[index] = b_W;
-                }
-        }
-}
-
-void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
-                             Vector2ub own_size, object_id own_id, const pred& p)
-{
-    for (int32_t y = cmin.y(); y <= cmax.y(); y++)
-        for (int32_t x = cmin.x(); x <= cmax.x(); x++)
-            fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id, p);
-}
-#endif
 
 } // namespace floormat

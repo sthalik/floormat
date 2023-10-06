@@ -84,15 +84,6 @@ public:
     static const pred& never_continue() noexcept;
     static const pred& always_continue() noexcept;
 
-#if 0
-    size_t cache_chunk_index(chunk_coords coord);
-    static size_t cache_tile_index(local_coords tile, Vector2i subdiv);
-
-    void ensure_allocated(chunk_coords a, chunk_coords b);
-    void fill_cac`he(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
-    void fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
-#endif
-
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
     path_search_result Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
