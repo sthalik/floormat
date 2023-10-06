@@ -5,6 +5,7 @@
 #include "rotation.hpp"
 #include "world.hpp"
 #include "compat/function2.fwd.hpp"
+#include "path-search-astar.hpp"
 #include "path-search-result.hpp"
 #include <memory>
 #include <array>
@@ -13,6 +14,7 @@
 #include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
+
 
 namespace Corrade::Containers {
 template<typename T> class Optional;
@@ -28,25 +30,9 @@ struct chunk;
 struct path_search_result;
 class path_search;
 
-struct search_astar final
-{
-    struct vertex_tuple
-    {
-        vertex_tuple(global_coords coord1, Vector2b offset1,
-                     global_coords coord2, Vector2b offset2,
-                     float dist = INF);
-
-        static constexpr float INF = 1 << 24;
-
-        global_coords coord1, coord2;
-        float dist = INF;
-        Vector2b offset1, offset2;
-
-        friend bool operator<(const vertex_tuple& a, const vertex_tuple& b) noexcept;
-    };
-
-    std::vector<vertex_tuple> Q;
-};
+struct astar_edge;
+struct astar_hash;
+struct astar;
 
 enum class path_search_continue : bool { pass = false, blocked = true };
 
@@ -55,7 +41,7 @@ class path_search final
     friend struct path_search_result;
 
     // todo bucketize by array length
-    search_astar _astar;
+    struct astar astar;
 
 public:
     static constexpr int subdivide_factor = 4;
@@ -71,13 +57,6 @@ public:
         uint8_t size = 0;
 
         operator ArrayView<const global_coords>() const;
-    };
-
-    struct positions
-    {
-        size_t size = 0;
-        std::array<global_coords, 5> coords;
-        std::array<Vector2b, 5> offsets;
     };
 
 #if 0

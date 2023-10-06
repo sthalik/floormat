@@ -11,11 +11,13 @@ struct path_search_result final
     friend class path_search;
     friend struct test_app;
 
-    const global_coords* data() const;
-    const global_coords& operator[](size_t index) const;
+    struct pair { global_coords pos; Vector2 offset; };
+
+    const pair* data() const;
+    const pair& operator[](size_t index) const;
     size_t size() const;
 
-    explicit operator ArrayView<const global_coords>() const;
+    explicit operator ArrayView<const pair>() const;
     explicit operator bool() const;
 
 private:
@@ -34,7 +36,7 @@ private:
         fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
         fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
 
-        std::vector<global_coords> vec;
+        std::vector<pair> vec;
 
     private:
         std::unique_ptr<node> _next;

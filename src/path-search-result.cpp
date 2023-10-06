@@ -51,16 +51,16 @@ path_search_result& path_search_result::operator=(const path_search_result& x) n
 
 path_search_result::node::node() noexcept = default;
 size_t path_search_result::size() const { return _node->vec.size(); }
-const global_coords* path_search_result::data() const { return _node->vec.data(); }
+auto path_search_result::data() const -> const pair* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }
 
-path_search_result::operator ArrayView<const global_coords>() const
+path_search_result::operator ArrayView<const pair>() const
 {
     fm_debug_assert(_node);
     return {_node->vec.data(), _node->vec.size()};
 }
 
-const global_coords& path_search_result::operator[](size_t index) const
+auto path_search_result::operator[](size_t index) const -> const pair&
 {
     fm_debug_assert(_node);
     fm_debug_assert(index < _node->vec.size());

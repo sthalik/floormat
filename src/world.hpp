@@ -17,7 +17,7 @@ struct world final
 {
     static constexpr object_id object_counter_init = 1024;
     static constexpr size_t initial_capacity = 4096;
-    static constexpr float max_load_factor = .5;
+    static constexpr float max_load_factor = .25;
     static constexpr size_t initial_collect_every = 64;
 
 private:

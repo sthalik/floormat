@@ -1,0 +1,72 @@
+#include "path-search-astar.hpp"
+#include "compat/int-hash.hpp"
+
+namespace floormat {
+
+size_t astar_hash::operator()(const astar_edge& e) const
+{
+    static_assert(sizeof e == 16);
+    if constexpr(sizeof(void*) > 4)
+        return fnvhash_64(&e, sizeof e);
+    else
+        return fnvhash_32(&e, sizeof e);
+}
+
+bool astar_edge::operator==(const astar_edge&) const noexcept = default;
+
+astar_edge::astar_edge(global_coords ch1, Vector2b off1,
+                       global_coords ch2, Vector2b off2) :
+    astar_edge {
+        chunk_coords_{ch1}, ch1.local(), off1,
+        chunk_coords_{ch2}, ch2.local(), off2,
+    }
+{
+}
+
+size_t astar_edge::hash() const
+{
+    static_assert(sizeof *this == 16);
+
+    if constexpr(sizeof nullptr > 4)
+        return fnvhash_64(this, sizeof *this);
+    else
+        return fnvhash_32(this, sizeof *this);
+}
+
+bool operator<(const astar_edge_tuple& a, const astar_edge_tuple& b)
+{
+    return b.dist < a.dist;
+}
+
+void astar::reserve(size_t count)
+{
+    Q.reserve(count);
+    seen.reserve(2*count);
+}
+
+bool astar::add_seen(const astar_edge& e)
+{
+    return seen.insert(e).second;
+}
+
+void astar::push(const astar_edge& value, uint32_t dist)
+{
+    Q.emplace_back(value, dist);
+    std::push_heap(Q.begin(), Q.end());
+}
+
+astar_edge astar::pop()
+{
+    fm_debug_assert(!Q.empty());
+    auto ret = Q.back();
+    std::pop_heap(Q.begin(), Q.end());
+    return ret.e;
+}
+
+void astar::clear()
+{
+    Q.clear();
+    seen.clear();
+}
+
+} // namespace floormat

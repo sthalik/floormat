@@ -3,12 +3,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "RTree-search.hpp"
-#include "compat/math.hpp"
 #include "compat/function2.hpp"
-#include "object.hpp"
-#include <bit>
-#include <algorithm>
-#include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/PairStl.h>
 #include <Magnum/Math/Range.h>
 
@@ -131,37 +126,22 @@ constexpr auto tile_bbox(local_coords tile, Vector2b offset, Vector2ub size)
     return bb;
 };
 
-void push_heap(std::vector<search_astar::vertex_tuple>& vec, search_astar::vertex_tuple value)
-{
-    vec.push_back(value);
-    std::push_heap(vec.begin(), vec.end());
-}
-
-auto pop_heap(std::vector<search_astar::vertex_tuple>& vec)
-{
-    auto ret = vec.back();
-    std::pop_heap(vec.begin(), vec.end());
-    return ret;
-}
 
 } // namespace
-
-bool operator<(const search_astar::vertex_tuple& a, const search_astar::vertex_tuple& b) noexcept
-{
-    return b.dist <= a.dist;
-}
 
 path_search::neighbors::operator ArrayView<const global_coords>() const { return {data.data(), size}; }
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
-search_astar::vertex_tuple::vertex_tuple(global_coords coord1, Vector2b offset1,
-                                         global_coords coord2, Vector2b offset2,
-                                         float dist) :
-    coord1{coord1}, coord2{coord2}, dist{dist},
-    offset1{offset1}, offset2{offset2}
+astar_edge::astar_edge(chunk_coords_ ch1, local_coords t1, Vector2b off1,
+                       chunk_coords_ ch2, local_coords t2, Vector2b off2) :
+    from_cx{ch1.x},         from_cy{ch1.y},
+    to_cx{ch2.x},           to_cy{ch2.y},
+    from_cz{ch1.z},         to_cz{ch2.z},
+    from_t{t1.to_index()},  to_t{t2.to_index()},
+    from_offx{off1.x()},    from_offy{off1.y()},
+    to_offx{off2.x()},      to_offy{off2.y()}
 {
-}
 
 #if 0
 size_t path_search::cache_chunk_index(chunk_coords ch)
@@ -398,84 +378,5 @@ void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
             fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id, p);
 }
 #endif
-
-path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id own_id,
-                                         global_coords from, Vector2b from_offset,
-                                         global_coords to, Vector2b to_offset,
-                                         const pred& p)
-{
-    fm_assert(from.x <= to.x && from.y <= to.y);
-    own_size = Math::max(own_size, Vector2ub(min_size));
-
-    if (from.z() != to.z()) [[unlikely]]
-        return {};
-
-    // todo try removing this eventually
-    if (from.z() != 0) [[unlikely]]
-        return {};
-
-    if (!is_passable(w, from, from_offset, own_size, own_id, p))
-        return {};
-
-    if (!is_passable(w, to, to_offset, own_size, own_id, p))
-        return {};
-
-    _astar.Q.clear();
-    _astar.Q.reserve(TILE_COUNT*(size_t)(subdivide_factor*subdivide_factor));
-
-    const auto pos0 = Vector2(from.local()) * TILE_SIZE2;
-    const auto start_bbox = bbox<float>{pos0 - Vector2(own_size/2), pos0 + Vector2(own_size)};
-
-    constexpr auto div = Vector2ub{subdivide_factor};
-    constexpr auto sub_size = Vector2(Vector2ub(iTILE_SIZE2) / div);
-    constexpr auto sqrt_2 = (float)math::sqrt(2);
-
-    constexpr Vector2 directions[8] = {
-        sub_size * Vector2{ -1,  0 },
-        sub_size * Vector2{  0, -1 },
-        sub_size * Vector2{  1,  0 },
-        sub_size * Vector2{  0,  1 },
-        sub_size * Vector2{   sqrt_2,  sqrt_2, },
-        sub_size * Vector2{  -sqrt_2, -sqrt_2  },
-        sub_size * Vector2{   sqrt_2, -sqrt_2  },
-        sub_size * Vector2{  -sqrt_2,  sqrt_2  },
-    };
-
-    const auto bb0 = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
-    if (is_passable(w, chunk_coords_{from}, bb0.min, bb0.max, own_id, p))
-        push_heap(_astar.Q, {from, from_offset, from, {}, 0});
-
-    path_search_result result;
-    auto& path = result._node->vec;
-    path.clear();
-
-    auto& Q = _astar.Q;
-
-    while (!Q.empty())
-    {
-        auto cur = pop_heap(Q);
-    }
-
-    auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
-                                     Vector2i(to.chunk()) + Vector2i(1, 1));
-
-    // todo...
-    return result;
-}
-
-path_search_result path_search::Dijkstra(world& w, const object& obj,
-                                         global_coords to, Vector2b to_offset,
-                                         const pred& p)
-{
-    constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
-    auto size = Math::max(obj.bbox_size, full_tile);
-
-    // todo fixme
-    // if bbox_offset is added to obj's offset, then all coordinates in the paths are shifted by bbox_offset.
-    // maybe add handling to subtract bbox_offset from the returned path.
-    // for that it needs to be passed into callees separately.
-    fm_assert(obj.bbox_offset.isZero());
-    return Dijkstra(w, size, obj.id, obj.coord, obj.offset, to, to_offset, p);
-}
 
 } // namespace floormat

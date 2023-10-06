@@ -34,6 +34,32 @@ fm_UNROLL_8
 
 } // namespace
 
+uint64_t fnvhash_64(const void* str_, size_t size)
+{
+    const auto *str = (const char*)str_, *end = str + size;
+    uint32_t hash = 0x811c9dc5u;
+fm_UNROLL_4
+    for (; str != end; ++str)
+    {
+        hash *= 0x01000193u;
+        hash ^= (uint8_t)*str;
+    }
+    return hash;
+}
+
+uint64_t fnvhash_32(const void* str_, size_t size)
+{
+    const auto *str = (const char*)str_, *end = str + size;
+    uint64_t hash = 0xcbf29ce484222325u;
+fm_UNROLL_4
+    for (; str != end; ++str)
+    {
+        hash *= 0x100000001b3u;
+        hash ^= (uint8_t)*str;
+    }
+    return hash;
+}
+
 size_t int_hash(uint32_t x) noexcept
 {
     if constexpr(sizeof(size_t) == 4)
