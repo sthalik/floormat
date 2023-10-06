@@ -9,6 +9,7 @@
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
+#include "src/path-search.hpp"
 #include <vector>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Timeline.h>
@@ -95,7 +96,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void set_cursor(uint32_t cursor) noexcept override;
     uint32_t cursor() const noexcept override;
 
-    struct texture_unit_cache& texture_unit_cache() override { return _tuc; }
+    struct texture_unit_cache& texture_unit_cache() override;
+    path_search& search() override;
 
 private:
     struct texture_unit_cache _tuc;
@@ -114,6 +116,7 @@ private:
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
 #endif
+    path_search _search;
 
     struct {
         float value = 0;

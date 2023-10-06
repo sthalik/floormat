@@ -65,4 +65,7 @@ uint32_t main_impl::cursor() const noexcept
     return (uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
 }
 
+struct texture_unit_cache& main_impl::texture_unit_cache() { return _tuc; }
+path_search& main_impl::search() { return _search; }
+
 } // namespace floormat

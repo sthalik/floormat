@@ -22,6 +22,7 @@ struct floor_mesh;
 struct wall_mesh;
 struct anim_mesh;
 struct texture_unit_cache;
+class path_search;
 
 struct floormat_main
 {
@@ -79,6 +80,7 @@ struct floormat_main
     bool is_rendering_vobjs() const;
 
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
+    virtual path_search& search() = 0;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
     [[maybe_unused]] static void debug_break();

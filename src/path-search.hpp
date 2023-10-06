@@ -5,15 +5,13 @@
 #include "rotation.hpp"
 #include "world.hpp"
 #include "compat/function2.fwd.hpp"
-#include <array>
-#include <bitset>
 #include <memory>
+#include <array>
+#include <vector>
+#include <bitset>
 #include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/BitArray.h>
-#include <Corrade/Containers/StridedDimensions.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
-
 
 namespace Corrade::Containers {
 template<typename T> class Optional;
