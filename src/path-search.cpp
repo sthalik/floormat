@@ -124,6 +124,24 @@ static_assert(test_offsets2());
 
 } // namespace
 
+size_t path_search::cache_chunk_index(chunk_coords ch)
+{
+    auto ch_ = Vector2i(ch) - cache.start;
+    fm_assert(ch_ >= Vector2i{} && ch_ < cache.size);
+    auto index = ch_.y()*cache.size.x() + ch_.x();
+    return (size_t)index;
+}
+
+size_t path_search::cache_tile_index(local_coords tile, Vector2i subdiv)
+{
+    constexpr auto stride = TILE_MAX_DIM * (size_t)div;
+    auto jj = tile.y * (size_t)div + (size_t)subdiv.y();
+    auto ii = tile.x * (size_t)div + (size_t)subdiv.x();
+    auto index = jj * stride + ii;
+    fm_debug_assert(index < tile_count);
+    return index;
+}
+
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 

@@ -130,25 +130,14 @@ void test_bbox()
         search.ensure_allocated({}, {});
         search.fill_cache_(w, {0, 0, 0}, {}, {});
 
-        static constexpr auto c_idx = [](path_search& search, chunk_coords ch) {
-            auto ch_ = Vector2i(ch) - search.cache.start;
-            fm_assert(ch_ >= Vector2i{} && ch_ < search.cache.size);
-            return ch_.y()*search.cache.size.x() + ch_.x();
-        };
-        static constexpr auto t_idx = [](local_coords tile, Vector2i subdiv) constexpr {
-            constexpr auto stride = TILE_MAX_DIM * (size_t)div;
-            auto jj = tile.y * (size_t)div + (size_t)subdiv.y();
-            auto ii = tile.x * (size_t)div + (size_t)subdiv.x();
-            return jj * stride + ii;
-        };
         constexpr auto check_N = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
-            auto c = c_idx(search, ch);
-            auto t = t_idx(tile, subdiv);
+            auto c = search.cache_chunk_index(ch);
+            auto t = search.cache_tile_index(tile, subdiv);
             return search.cache.array[c].can_go_north[t];
         };
         constexpr auto check_W = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
-            auto c = c_idx(search, ch);
-            auto t = t_idx(tile, subdiv);
+            auto c = search.cache_chunk_index(ch);
+            auto t = search.cache_tile_index(tile, subdiv);
             return search.cache.array[c].can_go_west[t];
         };
 

@@ -88,6 +88,9 @@ public:
 
     chunk_cache cache;
 
+    size_t cache_chunk_index(chunk_coords coord);
+    static size_t cache_tile_index(local_coords tile, Vector2i subdiv);
+
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
     static const pred& always_continue() noexcept;
