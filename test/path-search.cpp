@@ -187,6 +187,10 @@ void test_bbox()
         fm_assert(  check_N(search, {}, {K,   K+2}, s10 ));
         fm_assert(  check_W(search, {}, {K,   K+2}, s01 ));
 
+        fm_assert(  check_N(search, {}, {K+1, K+2  }, s00 ));
+        fm_assert(  check_N(search, {}, {K+1, K+2  }, s10 ));
+        fm_assert(  check_W(search, {}, {K+1, K+2  }, s00 ));
+
         fm_assert(  check_N(search, {}, {K+2, K+2  }, s00 ));
         fm_assert(  check_W(search, {}, {K+2, K+2  }, s00 ));
     }
