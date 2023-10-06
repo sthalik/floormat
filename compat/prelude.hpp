@@ -22,7 +22,7 @@ namespace Magnum {
 using Vector2uz = ::Magnum::Math::Vector2<size_t>;
 using Vector3uz = ::Magnum::Math::Vector3<size_t>;
 using Vector4uz = ::Magnum::Math::Vector4<size_t>;
-}
+} // namespace Magnum
 
 namespace floormat {
     using namespace ::Magnum;

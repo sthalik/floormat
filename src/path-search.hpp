@@ -32,20 +32,20 @@ struct search_astar final
 {
     struct vertex_tuple
     {
-        static constexpr auto INF = (uint32_t)-1;
+        vertex_tuple(global_coords coord1, Vector2b offset1,
+                     global_coords coord2, Vector2b offset2,
+                     float dist = INF);
 
-        const chunk *c1 = nullptr, *c2 = nullptr;
-        uint32_t dist = 0;
+        static constexpr float INF = 1 << 24;
+
+        global_coords coord1, coord2;
+        float dist = INF;
+        Vector2b offset1, offset2;
+
+        friend bool operator<(const vertex_tuple& a, const vertex_tuple& b) noexcept;
     };
 
-    [[nodiscard]] bool reserve(chunk_coords_ c1, chunk_coords_ c2);
-    void insert(const chunk& c1, const chunk& c2);
-    vertex_tuple delete_min();
-    void add_edges();
-    bool find(chunk_coords_);
-
     std::vector<vertex_tuple> Q;
-    std::vector<global_coords> output;
 };
 
 enum class path_search_continue : bool { pass = false, blocked = true };
@@ -55,22 +55,32 @@ class path_search final
     friend struct path_search_result;
 
     // todo bucketize by array length
-    path_search_result* pool = nullptr;
+    search_astar _astar;
 
 public:
     static constexpr int subdivide_factor = 4;
-    static constexpr auto min_size = iTILE_SIZE2 / subdivide_factor / 2;
+    static constexpr auto min_size = iTILE_SIZE2 / subdivide_factor;
     static constexpr size_t tile_count = Vector2i(subdivide_factor * TILE_MAX_DIM).product();
 
     struct neighbors final
     {
-        auto begin() const { return neighbors.data(); }
-        auto end() const { return neighbors.data() + size; }
+        auto begin() const { return data.data(); }
+        auto end() const { return data.data() + size; }
 
-        std::array<global_coords, 4> neighbors;
+        std::array<global_coords, 5> data;
         uint8_t size = 0;
+
+        operator ArrayView<const global_coords>() const;
     };
 
+    struct positions
+    {
+        size_t size = 0;
+        std::array<global_coords, 5> coords;
+        std::array<Vector2b, 5> offsets;
+    };
+
+#if 0
     struct chunk_tiles_cache
     {
         std::bitset<tile_count> can_go_north{true}, can_go_west{true};
@@ -81,28 +91,32 @@ public:
         Array<chunk_tiles_cache> array;
         Vector2i start, size; // in chunks
     };
+#endif
 
     struct obj_position { Vector2 center, size; };
 
     template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
+#if 0
     chunk_cache cache;
-
-    size_t cache_chunk_index(chunk_coords coord);
-    static size_t cache_tile_index(local_coords tile, Vector2i subdiv);
+#endif
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
     static const pred& always_continue() noexcept;
 
-    void ensure_allocated(chunk_coords a, chunk_coords b);
-    void fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
-    void fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
+#if 0
+    size_t cache_chunk_index(chunk_coords coord);
+    static size_t cache_tile_index(local_coords tile, Vector2i subdiv);
 
-    // todo remember to check from.z() == to.z()
+    void ensure_allocated(chunk_coords a, chunk_coords b);
+    void fill_cac`he(world& w, Vector2i cmin, Vector2i cmax, int8_t z, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
+    void fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size, object_id own_id, const pred& p = never_continue());
+#endif
+
     // todo add simple bresenham short-circuit
-    Optional<path_search_result> Dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
-    Optional<path_search_result> Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
+    path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
+    path_search_result Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
@@ -111,7 +125,8 @@ public:
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id, const pred& p = never_continue());
 
     static bbox<float> neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
-    static bbox<float> bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size);
+    template<typename T> requires std::is_arithmetic_v<T> static bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size);
+    static bbox<int> bbox_union(bbox<int> bb1, bbox<int> bb2);
     static neighbors neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p = never_continue());
 };
 

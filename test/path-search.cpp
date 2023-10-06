@@ -113,6 +113,7 @@ void test_bbox()
         fm_assert(neighbor_tiles(w, ch, {2, 4}).size == 3);
         fm_assert(neighbor_tiles(w, ch, {4, 4}).size == 3);
     }
+#if 0
     {
         constexpr auto ch = chunk_coords_{};
         auto w = world();
@@ -183,6 +184,7 @@ void test_bbox()
         fm_assert(  check_N(search, {}, {K+2, K+2  }, s00 ));
         fm_assert(  check_W(search, {}, {K+2, K+2  }, s00 ));
     }
+#endif
 }
 
 } // namespace

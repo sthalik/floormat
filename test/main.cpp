@@ -32,6 +32,7 @@ int test_app::exec()
     test_path_search();
     test_math();
     test_hash();
+    test_path_search_node_pool();
     zzz_test_misc();
 
     return 0;

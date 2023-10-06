@@ -3,7 +3,9 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "RTree-search.hpp"
+#include "compat/math.hpp"
 #include "compat/function2.hpp"
+#include "object.hpp"
 #include <bit>
 #include <algorithm>
 #include <Corrade/Containers/Optional.h>
@@ -18,14 +20,12 @@ constexpr auto div = path_search::subdivide_factor;
 constexpr int div_BITS = 2;
 static_assert(1 << div_BITS == div);
 
-static_assert(path_search::min_size.x() % 2 == 0 && path_search::min_size.x() * div * 2 == iTILE_SIZE2.x());
-
 constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
-constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotation r)
+constexpr Pair<Vector2i, Vector2i> get_value(Vector2ub sz, Vector2ub div, rotation r)
 {
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
@@ -56,7 +56,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
     }
     case (uint8_t)rotation_COUNT: {
         auto min_C = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
-        auto max_C = min_C + sz;
+        auto max_C = min_C + Vector2i(sz);
         return {min_C, max_C};
     }
     default:
@@ -66,7 +66,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
 
 [[maybe_unused]] constexpr bool test_offsets()
 {
-    constexpr auto sz_  = path_search::min_size;
+    constexpr auto sz_  = Vector2ub(path_search::min_size);
     constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
 
     [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
@@ -98,7 +98,7 @@ static_assert(test_offsets());
 {
     using enum rotation;
     constexpr auto tile_start = iTILE_SIZE2/-2;
-    constexpr auto sz = Vector2i(8, 16);
+    constexpr auto sz = Vector2ub(8, 16);
 
     {
         constexpr auto bb = get_value(sz, Vector2ub(div), N);
@@ -122,8 +122,48 @@ static_assert(test_offsets());
 
 static_assert(test_offsets2());
 
+constexpr auto tile_bbox(local_coords tile, Vector2b offset, Vector2ub size)
+{
+    constexpr auto tile_start = TILE_SIZE2*.5f;
+    auto size_ = Vector2(size), half_size = Vector2(size/2);
+    auto pos = tile_start + Vector2(tile) * TILE_SIZE2 + Vector2(offset);
+    auto bb = path_search::bbox<float>{pos - half_size, pos + size_};
+    return bb;
+};
+
+void push_heap(std::vector<search_astar::vertex_tuple>& vec, search_astar::vertex_tuple value)
+{
+    vec.push_back(value);
+    std::push_heap(vec.begin(), vec.end());
+}
+
+auto pop_heap(std::vector<search_astar::vertex_tuple>& vec)
+{
+    auto ret = vec.back();
+    std::pop_heap(vec.begin(), vec.end());
+    return ret;
+}
+
 } // namespace
 
+bool operator<(const search_astar::vertex_tuple& a, const search_astar::vertex_tuple& b) noexcept
+{
+    return b.dist <= a.dist;
+}
+
+path_search::neighbors::operator ArrayView<const global_coords>() const { return {data.data(), size}; }
+auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
+auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
+
+search_astar::vertex_tuple::vertex_tuple(global_coords coord1, Vector2b offset1,
+                                         global_coords coord2, Vector2b offset2,
+                                         float dist) :
+    coord1{coord1}, coord2{coord2}, dist{dist},
+    offset1{offset1}, offset2{offset2}
+{
+}
+
+#if 0
 size_t path_search::cache_chunk_index(chunk_coords ch)
 {
     auto ch_ = Vector2i(ch) - cache.start;
@@ -141,9 +181,6 @@ size_t path_search::cache_tile_index(local_coords tile, Vector2i subdiv)
     fm_debug_assert(index < tile_count);
     return index;
 }
-
-auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
-auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
 void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 {
@@ -164,6 +201,7 @@ void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 
     fm_assert(cache.size.product() > 0);
 }
+#endif
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
@@ -242,9 +280,9 @@ bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Ve
 
 auto path_search::neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
 {
+    own_size = Math::max(own_size, Vector2ub(min_size));
     const auto shift = coord * iTILE_SIZE2;
-    auto sz = Math::max(Vector2i(own_size), min_size);
-    auto [min, max] = get_value(sz, div, r);
+    auto [min, max] = get_value(own_size, div, r);
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
@@ -254,12 +292,6 @@ auto path_search::neighbor_tiles(world& w, global_coords coord, Vector2ub size, 
     auto pos = Vector2i(coord.local());
     constexpr auto min_size = Vector2ub(iTILE_SIZE2/4);
     size = Math::max(size, min_size);
-
-#if 0
-    if (auto [min, max] = neighbor_tile_bbox(pos, size, rotation_COUNT);
-        !is_passable(w, ch, min, max, own_id))
-        return {};
-#endif
 
     neighbors ns;
 
@@ -278,23 +310,35 @@ auto path_search::neighbor_tiles(world& w, global_coords coord, Vector2ub size, 
     {
         auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, dir);
         if (is_passable(w, ch, min, max, own_id, p))
-            ns.neighbors[ns.size++] = coord + off;
+            ns.data[ns.size++] = { coord + off, {} };
     }
 
     return ns;
 }
 
-auto path_search::bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<float>
+template<typename T = float>
+requires std::is_arithmetic_v<T>
+auto path_search::bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<T>
 {
     auto center = coord * iTILE_SIZE2 + Vector2i(offset);
-    auto min = center - Vector2i(size / 2u);
+    auto min = center - Vector2i(size / 2);
     auto max = center + Vector2i(size);
+    using Vec = VectorTypeFor<2, T>;
     return {
-        .min = Math::min(bb.min, Vector2(min)),
-        .max = Math::max(bb.max, Vector2(max)),
+        .min = Math::min(Vec(bb.min), Vec(min)),
+        .max = Math::max(Vec(bb.max), Vec(max)),
     };
 }
 
+template auto path_search::bbox_union(bbox<int> bb, Math::Vector2<int> coord, Vector2b offset, Vector2ub size) -> bbox<int>;
+template auto path_search::bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<float>;
+
+auto path_search::bbox_union(bbox<int> bb1, bbox<int> bb2) -> bbox<int>
+{
+    return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
+}
+
+#if 0
 void path_search::fill_cache_(world& w, chunk_coords_ coord, Vector2ub own_size_, object_id own_id, const pred& p)
 {
     auto own_size = Math::max(Vector2i(own_size_), path_search::min_size);
@@ -353,38 +397,75 @@ void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
         for (int32_t x = cmin.x(); x <= cmax.x(); x++)
             fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id, p);
 }
+#endif
 
-Optional<path_search_result> path_search::Dijkstra(world& w, Vector2ub own_size, object_id own_id,
-                                                   global_coords from, Vector2b from_offset,
-                                                   global_coords to, Vector2b to_offset,
-                                                   const pred& p)
+path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id own_id,
+                                         global_coords from, Vector2b from_offset,
+                                         global_coords to, Vector2b to_offset,
+                                         const pred& p)
 {
     fm_assert(from.x <= to.x && from.y <= to.y);
+    own_size = Math::max(own_size, Vector2ub(min_size));
 
     if (from.z() != to.z()) [[unlikely]]
         return {};
+
     // todo try removing this eventually
     if (from.z() != 0) [[unlikely]]
         return {};
 
-    // check if obj can actually move at all
     if (!is_passable(w, from, from_offset, own_size, own_id, p))
         return {};
+
     if (!is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
 
-    ensure_allocated(from.chunk(), to.chunk());
+    _astar.Q.clear();
+    _astar.Q.reserve(TILE_COUNT*(size_t)(subdivide_factor*subdivide_factor));
+
+    const auto pos0 = Vector2(from.local()) * TILE_SIZE2;
+    const auto start_bbox = bbox<float>{pos0 - Vector2(own_size/2), pos0 + Vector2(own_size)};
+
+    constexpr auto div = Vector2ub{subdivide_factor};
+    constexpr auto sub_size = Vector2(Vector2ub(iTILE_SIZE2) / div);
+    constexpr auto sqrt_2 = (float)math::sqrt(2);
+
+    constexpr Vector2 directions[8] = {
+        sub_size * Vector2{ -1,  0 },
+        sub_size * Vector2{  0, -1 },
+        sub_size * Vector2{  1,  0 },
+        sub_size * Vector2{  0,  1 },
+        sub_size * Vector2{   sqrt_2,  sqrt_2, },
+        sub_size * Vector2{  -sqrt_2, -sqrt_2  },
+        sub_size * Vector2{   sqrt_2, -sqrt_2  },
+        sub_size * Vector2{  -sqrt_2,  sqrt_2  },
+    };
+
+    const auto bb0 = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
+    if (is_passable(w, chunk_coords_{from}, bb0.min, bb0.max, own_id, p))
+        push_heap(_astar.Q, {from, from_offset, from, {}, 0});
+
+    path_search_result result;
+    auto& path = result._node->vec;
+    path.clear();
+
+    auto& Q = _astar.Q;
+
+    while (!Q.empty())
+    {
+        auto cur = pop_heap(Q);
+    }
+
     auto [cmin, cmax] = Math::minmax(Vector2i(from.chunk()) - Vector2i(1, 1),
                                      Vector2i(to.chunk()) + Vector2i(1, 1));
-    fill_cache(w, cmin, cmax, from.z(), own_size, own_id, p);
 
     // todo...
-    return {};
+    return result;
 }
 
-Optional<path_search_result> path_search::Dijkstra(world& w, const object& obj,
-                                                   global_coords to, Vector2b to_offset,
-                                                   const pred& p)
+path_search_result path_search::Dijkstra(world& w, const object& obj,
+                                         global_coords to, Vector2b to_offset,
+                                         const pred& p)
 {
     constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
     auto size = Math::max(obj.bbox_size, full_tile);
