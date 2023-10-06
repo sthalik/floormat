@@ -82,10 +82,11 @@ public:
 
     struct obj_position { Vector2 center, size; };
 
+    template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
+
     chunk_cache cache;
     Array<global_coords> output;
 
-    template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
