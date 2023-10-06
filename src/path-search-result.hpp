@@ -1,5 +1,6 @@
 #pragma once
 #include "src/global-coords.hpp"
+#include "compat/defs.hpp"
 #include <memory>
 #include <vector>
 
@@ -27,6 +28,7 @@ private:
     struct node
     {
         friend struct path_search_result;
+        friend struct test_app;
 
         node() noexcept;
         fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
