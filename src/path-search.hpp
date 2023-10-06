@@ -7,14 +7,10 @@
 #include "compat/function2.fwd.hpp"
 #include "path-search-astar.hpp"
 #include "path-search-result.hpp"
-#include <memory>
 #include <array>
-#include <vector>
-#include <bitset>
 #include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
-
 
 namespace Corrade::Containers {
 template<typename T> class Optional;

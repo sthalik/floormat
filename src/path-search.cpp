@@ -1,10 +1,11 @@
 #include "path-search.hpp"
 #include "global-coords.hpp"
-#include "object.hpp"
 #include "world.hpp"
+#include "pass-mode.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
 #include <Corrade/Containers/PairStl.h>
+#include <Magnum/Math/Functions.h>
 #include <Magnum/Math/Range.h>
 
 namespace floormat {
