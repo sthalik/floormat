@@ -5,6 +5,7 @@
 #include "rotation.hpp"
 #include "world.hpp"
 #include "compat/function2.fwd.hpp"
+#include "path-search-result.hpp"
 #include <memory>
 #include <array>
 #include <vector>
@@ -27,31 +28,32 @@ struct chunk;
 struct path_search_result;
 class path_search;
 
-struct path_search_result final
+struct search_astar final
 {
-    friend class path_search;
-    path_search_result();
+    struct vertex_tuple
+    {
+        static constexpr auto INF = (uint32_t)-1;
 
-    size_t size() const;
-    const global_coords& operator[](size_t index) const;
-    explicit operator ArrayView<global_coords>() const;
+        const chunk *c1 = nullptr, *c2 = nullptr;
+        uint32_t dist = 0;
+    };
 
-    const global_coords* begin() const;
-    const global_coords* cbegin() const;
-    const global_coords* end() const;
-    const global_coords* cend() const;
-    const global_coords* data() const;
+    [[nodiscard]] bool reserve(chunk_coords_ c1, chunk_coords_ c2);
+    void insert(const chunk& c1, const chunk& c2);
+    vertex_tuple delete_min();
+    void add_edges();
+    bool find(chunk_coords_);
 
-private:
-    mutable path_search_result* _next = nullptr;
-    std::unique_ptr<global_coords[]> _path;
-    size_t _size = 0;
+    std::vector<vertex_tuple> Q;
+    std::vector<global_coords> output;
 };
 
 enum class path_search_continue : bool { pass = false, blocked = true };
 
 class path_search final
 {
+    friend struct path_search_result;
+
     // todo bucketize by array length
     path_search_result* pool = nullptr;
 
@@ -85,8 +87,6 @@ public:
     template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
     chunk_cache cache;
-    Array<global_coords> output;
-
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
     static const pred& never_continue() noexcept;
@@ -98,8 +98,8 @@ public:
 
     // todo remember to check from.z() == to.z()
     // todo add simple bresenham short-circuit
-    Optional<path_search_result> dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
-    Optional<path_search_result> dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
+    Optional<path_search_result> Dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
+    Optional<path_search_result> Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
@@ -107,9 +107,9 @@ public:
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id, const pred& p = never_continue());
 
-    static bbox<float> make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
+    static bbox<float> neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
     static bbox<float> bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size);
-    static neighbors get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p = never_continue());
+    static neighbors neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p = never_continue());
 };
 
 } // namespace floormat

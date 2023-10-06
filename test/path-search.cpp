@@ -24,11 +24,11 @@ void test_bbox()
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
-        return path_search::make_neighbor_tile_bbox(coord, {}, {1,1}, r);
+        return path_search::neighbor_tile_bbox(coord, {}, { 1, 1 }, r);
     };
 
     constexpr auto neighbor_tiles = [](world& w, chunk_coords_ ch, Vector2i pos) {
-        return path_search::get_walkable_neighbor_tiles(w, {ch, pos}, {}, (object_id)-1);
+        return path_search::neighbor_tiles(w, { ch, pos }, {}, (object_id)-1);
     };
 
     const auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked);

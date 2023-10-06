@@ -124,7 +124,6 @@ static_assert(test_offsets2());
 
 } // namespace
 
-path_search_result::path_search_result() = default;
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
@@ -223,7 +222,7 @@ bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Ve
     return is_passable(w, coord, min, max, own_id, p);
 }
 
-auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
+auto path_search::neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
 {
     const auto shift = coord * iTILE_SIZE2;
     auto sz = Math::max(Vector2i(own_size), min_size);
@@ -231,7 +230,7 @@ auto path_search::make_neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Ve
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
-auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
+auto path_search::neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
@@ -239,7 +238,7 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
     size = Math::max(size, min_size);
 
 #if 0
-    if (auto [min, max] = make_neighbor_tile_bbox(pos, size, rotation_COUNT);
+    if (auto [min, max] = neighbor_tile_bbox(pos, size, rotation_COUNT);
         !is_passable(w, ch, min, max, own_id))
         return {};
 #endif
@@ -259,7 +258,7 @@ auto path_search::get_walkable_neighbor_tiles(world& w, global_coords coord, Vec
 
     for (auto [off, dir] : nbs)
     {
-        auto [min, max] = make_neighbor_tile_bbox(pos, size, {1,1}, dir);
+        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, dir);
         if (is_passable(w, ch, min, max, own_id, p))
             ns.neighbors[ns.size++] = coord + off;
     }
@@ -337,7 +336,7 @@ void path_search::fill_cache(world& w, Vector2i cmin, Vector2i cmax, int8_t z,
             fill_cache_(w, {(int16_t)x, (int16_t)y, z}, own_size, own_id, p);
 }
 
-Optional<path_search_result> path_search::dijkstra(world& w, Vector2ub own_size, object_id own_id,
+Optional<path_search_result> path_search::Dijkstra(world& w, Vector2ub own_size, object_id own_id,
                                                    global_coords from, Vector2b from_offset,
                                                    global_coords to, Vector2b to_offset,
                                                    const pred& p)
@@ -365,7 +364,7 @@ Optional<path_search_result> path_search::dijkstra(world& w, Vector2ub own_size,
     return {};
 }
 
-Optional<path_search_result> path_search::dijkstra(world& w, const object& obj,
+Optional<path_search_result> path_search::Dijkstra(world& w, const object& obj,
                                                    global_coords to, Vector2b to_offset,
                                                    const pred& p)
 {
@@ -377,7 +376,7 @@ Optional<path_search_result> path_search::dijkstra(world& w, const object& obj,
     // maybe add handling to subtract bbox_offset from the returned path.
     // for that it needs to be passed into callees separately.
     fm_assert(obj.bbox_offset.isZero());
-    return dijkstra(w, size, obj.id, obj.coord, obj.offset, to, to_offset, p);
+    return Dijkstra(w, size, obj.id, obj.coord, obj.offset, to, to_offset, p);
 }
 
 } // namespace floormat
