@@ -130,14 +130,15 @@ auto path_search::always_continue() noexcept -> const pred& { return always_cont
 
 void path_search::ensure_allocated(chunk_coords a, chunk_coords b)
 {
+    constexpr auto max_chunks = 1uz << 26;
     auto new_size = (Math::abs(a - b) + Vector2i(3));
     auto new_start = Vector2i(std::min(a.x, b.x), std::min(a.y, b.y)) - Vector2i(1);
-    auto size1 = new_size.product();
-    fm_debug_assert(size1 > 0);
+    auto size1 = (size_t)new_size.product();
+    fm_assert(size1 < max_chunks);
     cache.start = new_start;
-    if ((size_t)size1 > cache.array.size())
+    if (size1 > cache.array.size())
     {
-        cache.array = Array<chunk_tiles_cache>{ValueInit, (size_t)size1};
+        cache.array = Array<chunk_tiles_cache>{ValueInit, size1};
         cache.size = new_size;
     }
     else
