@@ -55,7 +55,7 @@ constexpr Pair<Vector2i, Vector2i> get_value(Vector2i sz, Vector2ub div, rotatio
         return {min_E, max_E};
     }
     case (uint8_t)rotation_COUNT: {
-        auto min_C = Vector2i(-(sz.x() >> 1),                   -(sz.y() >> 1)                  );
+        auto min_C = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
         auto max_C = min_C + sz;
         return {min_C, max_C};
     }
