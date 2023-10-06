@@ -16,7 +16,7 @@ template<typename T> struct object_type_;
 struct world final
 {
     static constexpr object_id object_counter_init = 1024;
-    static constexpr size_t initial_capacity = 512;
+    static constexpr size_t initial_capacity = 4096;
     static constexpr float max_load_factor = .5;
     static constexpr size_t initial_collect_every = 64;
 
