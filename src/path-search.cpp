@@ -122,21 +122,11 @@ static_assert(test_offsets2());
 
 } // namespace
 
+
+
 path_search::neighbors::operator ArrayView<const global_coords>() const { return {data.data(), size}; }
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
-
-astar_edge::astar_edge(chunk_coords_ ch1, local_coords t1, Vector2b off1,
-                       chunk_coords_ ch2, local_coords t2, Vector2b off2) :
-    from_cx{ch1.x},         from_cy{ch1.y},
-    to_cx{ch2.x},           to_cy{ch2.y},
-    from_cz{ch1.z},         to_cz{ch2.z},
-    from_t{t1.to_index()},  to_t{t2.to_index()},
-    from_offx{off1.x()},    from_offy{off1.y()},
-    to_offx{off2.x()},      to_offy{off2.y()}
-{
-
-}
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
@@ -246,36 +236,14 @@ auto path_search::neighbor_tiles(world& w, global_coords coord, Vector2ub size, 
         { { -1,  0 }, W },
     };
 
-    for (auto [off, dir] : nbs)
+    for (auto [off, r] : nbs)
     {
-        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, dir);
+        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
         if (is_passable(w, ch, min, max, own_id, p))
             ns.data[ns.size++] = { coord + off, {} };
     }
 
     return ns;
-}
-
-template<typename T = float>
-requires std::is_arithmetic_v<T>
-auto path_search::bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<T>
-{
-    auto center = coord * iTILE_SIZE2 + Vector2i(offset);
-    auto min = center - Vector2i(size / 2);
-    auto max = center + Vector2i(size);
-    using Vec = VectorTypeFor<2, T>;
-    return {
-        .min = Math::min(Vec(bb.min), Vec(min)),
-        .max = Math::max(Vec(bb.max), Vec(max)),
-    };
-}
-
-template auto path_search::bbox_union(bbox<int> bb, Math::Vector2<int> coord, Vector2b offset, Vector2ub size) -> bbox<int>;
-template auto path_search::bbox_union(bbox<float> bb, Vector2i coord, Vector2b offset, Vector2ub size) -> bbox<float>;
-
-auto path_search::bbox_union(bbox<int> bb1, bbox<int> bb2) -> bbox<int>
-{
-    return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
 }
 
 } // namespace floormat

@@ -7,12 +7,117 @@
 
 namespace floormat {
 
+template<typename T> using bbox = path_search::bbox<T>;
+
+namespace {
+
+constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto div = Vector2i(path_search::subdivide_factor);
+constexpr auto div_size = path_search::div_size;
+constexpr auto min_size = path_search::min_size;
+constexpr auto tile_start = Vector2i(iTILE_SIZE2/-2);
+constexpr auto inf =- (uint32_t)-1;
+
+template<typename T>
+requires std::is_arithmetic_v<T>
+constexpr bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size)
+{
+    auto center = coord * iTILE_SIZE2 + Vector2i(offset);
+    auto min = center - Vector2i(size / 2);
+    auto max = center + Vector2i(size);
+    using Vec = VectorTypeFor<2, T>;
+    return {
+        .min = Math::min(Vec(bb.min), Vec(min)),
+        .max = Math::max(Vec(bb.max), Vec(max)),
+    };
+}
+
+template<typename T>
+requires std::is_arithmetic_v<T>
+constexpr bbox<T> bbox_union(bbox<T> bb1, bbox<T> bb2)
+{
+    return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
+}
+
+constexpr auto get_bbox(chunk_coords_ ch_1, local_coords pos1, Vector2b off1,
+                        chunk_coords_ ch_2, local_coords pos2, Vector2b off2,
+                        Vector2ub size, uint32_t dist0)
+{
+    auto c = (Vector2i(ch_2.x, ch_2.y) - Vector2i(ch_1.x, ch_1.y)) * chunk_size;
+    auto t = (Vector2i(pos2) - Vector2i(pos1)) * iTILE_SIZE2;
+    auto o = Vector2i(off2) - Vector2i(off1);
+    auto cto = Vector2i(c + t + o);
+    auto dist = Math::max(1u, (uint32_t)Math::ceil(Vector2(cto).length()));
+    auto center0 = Vector2i(pos1) * iTILE_SIZE2 + Vector2i(off1);
+    auto min0 = center0 - Vector2i(size/2u), max0 = min0 + Vector2i(size);
+    auto min1 = min0 + cto, max1 = max0 + cto;
+
+    return Pair<bbox<float>, uint32_t>{
+        { .min = Vector2(Math::min(min0, min1)),
+          .max = Vector2(Math::max(max0, max1)) },
+        dist0 + dist,
+    };
+};
+
+constexpr auto dirs = [] constexpr
+{
+    struct pair { Vector2i dir; uint32_t len; };
+    constexpr auto len1 = div_size;
+    constexpr auto len2 = (uint32_t)(math::sqrt((float)len1.dot()) + 0.5f); // NOLINT
+    std::array<pair, 8> array = {{
+        { { -1, -1 }, len2 },
+        { {  1,  1 }, len2 },
+        { { -1,  1 }, len2 },
+        { {  1, -1 }, len2 },
+        { { -1,  0 }, len1.x() },
+        { {  0, -1 }, len1.y() },
+        { {  1,  0 }, len1.x() },
+        { {  0,  1 }, len1.y() },
+    }};
+    for (auto& [vec, len] : array)
+        vec *= div_size;
+#if 0
+    for (auto i = 0uz; i < array.size(); i++)
+        for (auto j = 0uz; j < i; j++)
+            fm_assert(array[i].dir != array[j].dir);
+#endif
+    return array;
+}();
+
+template<typename T>
+requires std::is_arithmetic_v<T>
+constexpr bbox<T> bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2ub size)
+{
+    using Vec = VectorTypeFor<2, T>;
+    constexpr auto tile_size = Vec(iTILE_SIZE2);
+    const auto vec = pos * tile_size + Vec(offset);
+    const auto bb = bbox<float>{vec - Vec(size >> 1), vec + Vec(size)};
+    return bb;
+}
+
+} // namespace
+
+size_t astar::hash_op::operator()(position coord) const
+{
+    static_assert(sizeof(global_coords) == 8);
+    if constexpr(sizeof nullptr > 4)
+        return fnvhash_64(&coord, sizeof coord);
+    else
+        return fnvhash_32(&coord, sizeof coord);
+}
+
 path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id own_id,
                                          global_coords from, Vector2b from_offset,
                                          global_coords to, Vector2b to_offset,
                                          const pred& p)
 {
-    fm_assert(from.x <= to.x && from.y <= to.y);
+    auto heap_comparator = [&A = astar](uint32_t a, uint32_t b) {
+        fm_debug_assert(std::max(a, b) < A.nodes.size());
+        const auto& n1 = A.nodes[a];
+        const auto& n2 = A.nodes[b];
+        return n2.dist < n1.dist;
+    };
+
     own_size = Math::max(own_size, Vector2ub(min_size));
 
     if (from.z() != to.z()) [[unlikely]]
@@ -29,110 +134,44 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id
         return {};
 
     astar.clear();
-    astar.reserve(TILE_COUNT*(size_t)(subdivide_factor*subdivide_factor));
+    fm_debug_assert(astar.nodes.empty());
 
-    static constexpr auto eps = (uint32_t)math::ceil(math::sqrt((Vector2(div_size)/4).product()));
-    static_assert(eps > 1 && eps < TILE_SIZE2.x());
-
-    const auto pos0 = Vector2(from.local()) * TILE_SIZE2;
-    const auto start_bbox = bbox<float>{pos0 - Vector2(own_size/2), pos0 + Vector2(own_size)};
-    const auto from_offset_f = Vector2(from_offset);
-    const auto from_offset_len = Math::max(eps, (uint32_t)Math::ceil(from_offset_f.length()));
-
-    struct tuple
-    {
-        bbox<float> bb;
-        uint32_t dist;
-    };
-
-    constexpr auto get_bbox = [](chunk_coords_ ch_1, local_coords pos1, Vector2b off1,
-                                 chunk_coords_ ch_2, local_coords pos2, Vector2b off2,
-                                 Vector2ub size, uint32_t dist0) -> tuple
-    {
-        constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-        auto c = (Vector2i(ch_2.x, ch_2.y) - Vector2i(ch_1.x, ch_1.y)) * chunk_size;
-        auto t = (Vector2i(pos2) - Vector2i(pos1)) * iTILE_SIZE2;
-        auto o = Vector2i(off2) - Vector2i(off1);
-        auto cto = Vector2i(c + t + o);
-        auto dist = Math::max(1u, (uint32_t)Math::ceil(Vector2(cto).length()));
-        auto center0 = Vector2i(pos1) * iTILE_SIZE2 + Vector2i(off1);
-        auto min0 = center0 - Vector2i(size/2), max0 = min0 + Vector2i(size);
-        auto min1 = min0 + cto, max1 = max0 + cto;
-        fm_debug_assert(dist > eps);
-
-        return {
-            { .min = Vector2(Math::min(min0, min1)),
-              .max = Vector2(Math::max(max0, max1)) },
-            dist0 + dist,
-        };
-    };
+    const auto start_bbox = bbox_from_pos(Vector2(from.local()), from_offset, own_size);
+    const auto from_offset_len = Math::max(1u, (uint32_t)Math::ceil(Vector2(from_offset).length()));
 
     path_search_result result;
     fm_debug_assert(result._node); // todo
     auto& path = result._node->vec; path.clear();
 
-    constexpr auto div = Vector2i(subdivide_factor);
-    constexpr auto div_size = Vector2i(iTILE_SIZE2 / div);
-    constexpr auto tile_start = Vector2i(iTILE_SIZE2/-2);
+    astar.indexes[{from, from_offset}] = 0;
+    astar.nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });
+    astar.Q.push_back(0);
+    std::push_heap(astar.Q.begin(), astar.Q.end(), heap_comparator);
 
-    astar.push(astar_edge{from, from_offset, from, from_offset}, 0);
-
-    const auto ch0 = chunk_coords_{from};
-    const auto bb0 = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
-    if (from_offset_len >= eps && is_passable(w, ch0, bb0, own_id, p))
-        astar.push({from, from_offset, from, from_offset}, from_offset_len);
-
-    struct pair { Vector2i dir; uint32_t len; };
-
-    constexpr auto dirs = [] constexpr -> std::array<pair, 8> {
-        constexpr auto len1 = path_search::div_size;
-        constexpr auto len2 = (uint32_t)(math::sqrt((float)len1.dot()) + 0.5f); // NOLINT
-        std::array<pair, 8> array = {{
-            { { -1, -1 }, len2 },
-            { {  1,  1 }, len2 },
-            { { -1,  1 }, len2 },
-            { {  1, -1 }, len2 },
-            { { -1,  0 }, len1.x() },
-            { {  0, -1 }, len1.y() },
-            { {  1,  0 }, len1.x() },
-            { {  0,  1 }, len1.y() },
-        }};
-        for (auto& [vec, len] : array)
-            vec *= path_search::div_size;
-#if 0
-        for (auto i = 0uz; i < array.size(); i++)
-            for (auto j = 0uz; j < i; j++)
-                fm_assert(array[i].dir != array[j].dir);
-#endif
-        return array;
-    }();
-
-    while (!astar.empty())
+    if (!from_offset.isZero())
     {
-        auto [cur, dist0] = astar.pop();
-        if (!astar.add_visited(cur))
-            continue;
-        for (auto [dir, len] : dirs)
+        auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
+        if (is_passable(w, chunk_coords_{from}, bb, own_id, p))
         {
-
+            astar.indexes[{from, {}}] = 1;
+            astar.nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
+            astar.Q.push_back(1);
+            std::push_heap(astar.Q.begin(), astar.Q.end(), heap_comparator);
         }
     }
+
+
 
     // todo...
     return result;
 }
 
-path_search_result path_search::Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p)
+path_search_result path_search::Dijkstra(world& w, const object& obj,
+                                         global_coords to, Vector2b to_offset,
+                                         const pred& p)
 {
-    constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
-    auto size = Math::max(obj.bbox_size, full_tile);
-
-    // todo fixme
-    // if bbox_offset is added to obj's offset, then all coordinates in the paths are shifted by bbox_offset.
-    // maybe add handling to subtract bbox_offset from the returned path.
-    // for that it needs to be passed into callees separately.
     fm_assert(obj.bbox_offset.isZero());
-    return Dijkstra(w, size, obj.id, obj.coord, obj.offset, to, to_offset, p);
+    return Dijkstra(w, obj.bbox_size, obj.id, obj.coord, obj.offset, to, to_offset, p);
 }
 
 } // namespace floormat
