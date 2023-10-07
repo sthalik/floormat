@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/defs.hpp"
 #include "global-coords.hpp"
 #include <vector>
 
@@ -17,10 +18,12 @@ struct astar_edge
     friend struct astar_equal;
     bool operator==(const astar_edge&) const noexcept;
 
+    fm_DECLARE_DEFAULT_COPY_ASSIGNMENT_(astar_edge);
     astar_edge(global_coords coord1, Vector2b off1, global_coords coord2, Vector2b off2);
     astar_edge(chunk_coords_ ch1, local_coords t1, Vector2b off1,
                chunk_coords_ ch2, local_coords t2, Vector2b off2);
     size_t hash() const;
+    astar_edge swapped() const;
 
     int16_t from_cx, from_cy, to_cx, to_cy;
     int8_t from_cz, to_cz;
@@ -28,6 +31,9 @@ struct astar_edge
     int8_t from_offx, from_offy, to_offx, to_offy;
 
     static constexpr auto INF = (uint32_t)-1;
+
+private:
+    astar_edge();
 };
 
 struct astar_edge_tuple

@@ -1,5 +1,6 @@
 #include "path-search-astar.hpp"
 #include "compat/int-hash.hpp"
+#include <utility>
 
 namespace floormat {
 
@@ -33,6 +34,20 @@ size_t astar_edge::hash() const
         return fnvhash_32(this, sizeof *this);
 }
 
+astar_edge astar_edge::swapped() const
+{
+    auto e = *this;
+    std::exchange(e.from_cx,   e.to_cx);
+    std::exchange(e.from_cy,   e.to_cy);
+    std::exchange(e.from_cz,   e.to_cz);
+    std::exchange(e.from_t,    e.to_t);
+    std::exchange(e.from_offx, e.to_offx);
+    std::exchange(e.from_offy, e.to_offy);
+    return e;
+}
+
+astar_edge::astar_edge() {}
+
 bool operator<(const astar_edge_tuple& a, const astar_edge_tuple& b)
 {
     return b.dist < a.dist;
@@ -46,7 +61,7 @@ void astar::reserve(size_t count)
 
 bool astar::add_visited(const astar_edge& value)
 {
-    return seen.insert(value).second;
+    return seen.insert(value).second && seen.insert(value.swapped()).second;
 }
 
 void astar::push(const astar_edge& value, uint32_t dist)
