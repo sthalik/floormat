@@ -37,15 +37,16 @@ auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 
 global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept
 {
+    auto rpos = pos.raw();
     switch (snap)
     {
     default:
         break;
     case snap_mode::horizontal:
-        pos.y = last.y;
+        rpos.y = last.raw().y;
         break;
     case snap_mode::vertical:
-        pos.x = last.x;
+        rpos.x = last.raw().x;
         break;
     }
     return pos;
@@ -66,14 +67,16 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
                 const auto draw_offset = draw_coord - last.draw_coord;
                 if (!!draw_offset[0] ^ !!draw_offset[1] && std::abs(draw_offset.sum()) > 1)
                 {
-                    const auto [minx, maxx] = std::minmax(draw_coord.x, last.draw_coord.x);
-                    const auto [miny, maxy] = std::minmax(draw_coord.y, last.draw_coord.y);
+                    const auto drawc = draw_coord.raw();
+                    auto lastc = last.draw_coord.raw();
+                    const auto [minx, maxx] = std::minmax(drawc.x, lastc.x);
+                    const auto [miny, maxy] = std::minmax(drawc.y, lastc.y);
                     if (draw_offset[0])
                         for (uint32_t i = minx; i <= maxx; i++)
-                            on_click_(world, { i, draw_coord.y, nullptr }, last.btn);
+                            on_click_(world, { i, lastc.y, nullptr }, last.btn);
                     else
                         for (uint32_t j = miny; j <= maxy; j++)
-                            on_click_(world, { draw_coord.x, j, nullptr }, last.btn);
+                            on_click_(world, { lastc.x, j, nullptr }, last.btn);
                 }
                 else
                     on_click_(world, draw_coord, last.btn);

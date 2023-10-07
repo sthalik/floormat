@@ -66,13 +66,19 @@ struct chunk_coords_ final {
 
 constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
 
-struct global_coords final {
+struct global_coords final
+{
+    struct raw_coords final { uint32_t &x, &y; }; // NOLINT
+    struct raw_coords_ final { uint32_t x, y; };
+
+private:
     using u0 = std::integral_constant<uint32_t, (1<<15)>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
     using z0 = std::integral_constant<int32_t, (1 << 0)>;
     using z_mask = std::integral_constant<uint32_t, (1u << 4) - 1u << 20>;
     uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 
+public:
     constexpr global_coords() noexcept = default;
     constexpr global_coords(chunk_coords c, local_coords xy, int8_t z) noexcept :
         x{
@@ -94,6 +100,8 @@ struct global_coords final {
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
     constexpr operator chunk_coords_() const noexcept;
+    constexpr raw_coords_ raw() const noexcept;
+    constexpr raw_coords raw() noexcept;
     constexpr int8_t z() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
@@ -121,6 +129,9 @@ constexpr global_coords::operator chunk_coords_() const noexcept
 {
     return chunk_coords_{ chunk(), z() };
 }
+
+constexpr auto global_coords::raw() const noexcept -> raw_coords_ { return {x, y}; }
+constexpr auto global_coords::raw() noexcept -> raw_coords { return {x, y}; }
 
 constexpr int8_t global_coords::z() const noexcept
 {
