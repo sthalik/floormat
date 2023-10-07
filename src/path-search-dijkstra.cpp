@@ -41,7 +41,7 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id
 
     struct tuple
     {
-        bbox<float> bbox;
+        bbox<float> bb;
         uint32_t dist;
     };
 
