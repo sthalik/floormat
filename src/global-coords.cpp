@@ -1,4 +1,7 @@
 #include "global-coords.hpp"
+#include "compat/defs.hpp"
+#include <array>
+#include <algorithm>
 
 namespace floormat {
 
@@ -32,6 +35,37 @@ constexpr auto g2 = global_coords{{1, 1, 0}, {3, TILE_MAX_DIM-1}};
 static_assert(g1 - g2 == Vector2i(0, 1));
 static_assert((g1 + Vector2i(0, -1)).chunk() == g2.chunk());
 static_assert(g1 + Vector2i(0, -1) == g2);
+
+constexpr bool test_comparison1()
+{
+    auto a = point{{2, 8, 2}, {0, 0}};
+    auto b = point{{1, 1, 2}, {9, 1}};
+    auto c = point{{1, 0, 2}, {1, 2}};
+    auto d = point{{1, 9, 1}, {1, 9}};
+    auto e = point{{3, 1, 2}, {0, 0}};
+    auto f = point{{9, 8, 0}, {9, 9}};
+    auto g = point{{1, 9, 1}, {9, 0}};
+
+    const auto sorted = std::array{
+        f, g, d, c, b, e, a,
+    };
+    auto array1 = std::array{
+        a, b, c, d, e, f, g,
+    };
+    auto array2 = std::array {
+        a, c, e, g, b, d, f,
+    };
+
+    std::sort(array1.begin(), array1.end());
+    fm_assert(array1 == sorted);
+
+    std::sort(array2.begin(), array2.end());
+    fm_assert(array2 == sorted);
+
+    return true;
+}
+
+static_assert(test_comparison1());
 
 } // namespace
 
