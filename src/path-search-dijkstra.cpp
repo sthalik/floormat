@@ -82,9 +82,36 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id
     if (from_offset_len >= eps && is_passable(w, ch0, bb0, own_id, p))
         astar.push({from, from_offset, from, from_offset}, from_offset_len);
 
+    constexpr auto dirs = [] constexpr -> std::array<Vector2i, 8> {
+        constexpr auto sqrt_2 = math::sqrt(2.f);
+        std::array<Vector2i, 8> array = {{
+            { -1, -1 },
+            {  1,  1 },
+            { -1,  1 },
+            {  1, -1 },
+            { -1,  0 },
+            {  0, -1 },
+            {  1,  0 },
+            {  0,  1 },
+        }};
+        for (auto i = 0uz; i < array.size(); i++)
+            for (auto j = 0uz; j < i; j++)
+                fm_assert(array[i] != array[j]);
+        for (auto& vec : array)
+        {
+            if (vec.product() != 0)
+                vec = Vector2i(Vector2(vec) * path_search::div_size * sqrt_2);
+            else
+                vec *= path_search::div_size;
+        }
+        return array;
+    }();
+
     while (!astar.empty())
     {
-        auto [prev, dist0] = astar.pop();
+        auto [cur, dist0] = astar.pop();
+        if (!astar.add_visited(cur))
+            continue;
     }
 
     // todo...
