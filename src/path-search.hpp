@@ -10,7 +10,8 @@
 #include <array>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
-#include <tsl/robin_hash.h>
+#include <tsl/robin_map.h>
+#include <tsl/robin_set.h>
 
 namespace Corrade::Containers {
 //template<typename T> class Optional;
@@ -23,7 +24,6 @@ namespace floormat {
 struct world;
 struct object;
 struct chunk;
-
 struct path_search_result;
 
 enum class path_search_continue : bool { pass = false, blocked = true };
@@ -32,13 +32,6 @@ struct astar
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
-    struct position
-    {
-        global_coords coord;
-        Vector2b offset;
-
-        bool operator==(const position&) const = default;
-    };
     struct visited
     {
         uint32_t dist = (uint32_t)-1;
@@ -46,11 +39,19 @@ struct astar
         global_coords coord;
         Vector2b offset;
         bool expanded = false;
+
     };
-    struct hash_op
+    struct edge
     {
-        size_t operator()(position coord) const;
+        global_coords from, to;
+        Vector2b from_offset, to_offset;
+
+        bool operator==(const edge& other) const;
     };
+
+    struct point_hash { size_t operator()(point pt) const; };
+    struct edge_hash { size_t operator()(const edge& e) const; };
+
     void reserve(size_t capacity)
     {
         nodes.reserve(capacity);
@@ -71,7 +72,8 @@ struct astar
     }
 
     std::vector<visited> nodes;
-    tsl::robin_map<position, uint32_t, hash_op> indexes;
+    tsl::robin_set<edge, edge_hash> edges;
+    tsl::robin_map<point, uint32_t, point_hash> indexes;
     std::vector<uint32_t> Q;
 };
 
@@ -105,8 +107,7 @@ public:
     static const pred& always_continue() noexcept;
 
     // todo add simple bresenham short-circuit
-    path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id, global_coords from, Vector2b from_offset, global_coords to, Vector2b to_offset, const pred& p = never_continue());
-    path_search_result Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p = never_continue());
+    path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id, point from, point to, const pred& p = never_continue());
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
