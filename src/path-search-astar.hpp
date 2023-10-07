@@ -2,8 +2,8 @@
 #include "compat/defs.hpp"
 #include "global-coords.hpp"
 #include <vector>
-
 #include <tsl/robin_set.h>
+#include <tsl/robin_map.h>
 
 namespace floormat {
 
@@ -30,9 +30,6 @@ struct astar_edge
     int8_t from_offx, from_offy, to_offx, to_offy;
 
     static constexpr auto INF = (uint32_t)-1;
-
-private:
-    astar_edge();
 };
 
 struct astar_edge_tuple
@@ -46,19 +43,24 @@ struct astar_edge_tuple
 
 struct astar final
 {
-    void reserve(size_t count);
-    bool empty() const { return Q.empty(); }
+    astar();
     [[nodiscard]] bool add_visited(const astar_edge& value);
     void push(const astar_edge& value, uint32_t dist);
     astar_edge_tuple pop();
+
+    bool empty() const { return Q.empty(); }
+    void reserve(size_t count);
     void clear();
 
 private:
+    struct edge_min { astar_edge prev; uint32_t len; };
+
     static constexpr bool StoreHash = true; // todo benchmark it
     tsl::robin_set<astar_edge,
                    astar_hash, std::equal_to<>,
                    std::allocator<astar_edge>,
                    StoreHash> seen;
+    tsl::robin_map<astar_edge, edge_min, astar_hash> mins;
     std::vector<astar_edge_tuple> Q;
 };
 

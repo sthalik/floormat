@@ -46,22 +46,26 @@ astar_edge astar_edge::swapped() const
     return e;
 }
 
-astar_edge::astar_edge() {}
-
 bool operator<(const astar_edge_tuple& a, const astar_edge_tuple& b)
 {
     return b.dist < a.dist;
 }
 
-void astar::reserve(size_t count)
+astar::astar()
 {
-    Q.reserve(count);
-    seen.reserve(2*count);
+    mins.max_load_factor(0.25f);
+    reserve(4096);
 }
 
 bool astar::add_visited(const astar_edge& value)
 {
-    return seen.insert(value).second && seen.insert(value.swapped()).second;
+    if (seen.insert(value).second)
+    {
+        auto ret = seen.insert(value.swapped()).second;
+        fm_debug_assert(ret);
+        return true;
+    }
+    return false;
 }
 
 void astar::push(const astar_edge& value, uint32_t dist)
@@ -78,10 +82,17 @@ astar_edge_tuple astar::pop()
     return ret;
 }
 
+void astar::reserve(size_t count)
+{
+    Q.reserve(count);
+    seen.reserve(2*count);
+}
+
 void astar::clear()
 {
     Q.clear();
     seen.clear();
+    mins.clear();
 }
 
 } // namespace floormat

@@ -112,15 +112,17 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, object_id
         auto [cur, dist0] = astar.pop();
         if (!astar.add_visited(cur))
             continue;
+        for (auto [dir, len] : dirs)
+        {
+
+        }
     }
 
     // todo...
     return result;
 }
 
-path_search_result path_search::Dijkstra(world& w, const object& obj,
-                                         global_coords to, Vector2b to_offset,
-                                         const pred& p)
+path_search_result path_search::Dijkstra(world& w, const object& obj, global_coords to, Vector2b to_offset, const pred& p)
 {
     constexpr auto full_tile = Vector2ub(iTILE_SIZE2*3/4);
     auto size = Math::max(obj.bbox_size, full_tile);
