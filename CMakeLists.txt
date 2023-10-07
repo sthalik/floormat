@@ -151,13 +151,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "App
     add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_LIBCPP_ENABLE_ASSERTIONS>>)
     add_compile_options(-Wno-reserved-macro-identifier)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-ambiguous-reversed-operator>)
-    if (NOT APPLE)
-        add_compile_options(-fmodules)
-        add_link_options(-fmodules)
-    else()
-        add_compile_options(-fno-modules)
-        add_link_options(-fno-modules)
-    endif()
 endif()
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
