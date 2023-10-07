@@ -15,7 +15,6 @@ struct astar_hash {
 
 struct astar_edge
 {
-    friend struct astar_equal;
     bool operator==(const astar_edge&) const noexcept;
 
     fm_DECLARE_DEFAULT_COPY_ASSIGNMENT_(astar_edge);
