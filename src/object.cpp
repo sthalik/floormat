@@ -112,7 +112,7 @@ void object::rotate(size_t, rotation new_r)
 
 template <typename T> constexpr T sgn(T val) { return T(T(0) < val) - T(val < T(0)); }
 
-Pair<global_coords, Vector2b> object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
+point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
 {
     auto off_tmp = Vector2i(cur_offset) + new_offset;
     auto off_new = off_tmp % iTILE_SIZE2;

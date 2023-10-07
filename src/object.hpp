@@ -75,7 +75,7 @@ struct object
     virtual void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;
-    static Pair<global_coords, Vector2b> normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
+    static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
 
     virtual bool is_dynamic() const;
     bool can_rotate(rotation new_r);

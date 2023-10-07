@@ -124,6 +124,14 @@ size_t astar::edge_hash::operator()(const edge& e) const
 #endif
 }
 
+constexpr astar::edge make_edge(const point& a, const point& b)
+{
+    if (a < b)
+        return { a.coord, b.coord, a.offset, b.offset };
+    else
+        return { b.coord, a.coord, b.offset, a.offset };
+}
+
 path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
                                          const point from_, const point to_, const pred& p)
 {
@@ -201,6 +209,10 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, const obj
                 continue;
 
             auto [new_coord, new_offset] = object::normalize_coords(node.coord, node.offset, vec);
+
+            if (!astar.edges.insert(make_edge({node.coord, node.offset}, {new_coord, new_offset})).second)
+                continue;
+
             auto [it, found] = astar.indexes.try_emplace({.coord = new_coord, .offset = new_offset}, (uint32_t)-1);
             if (!found)
             {
