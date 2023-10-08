@@ -9,17 +9,13 @@
 #include <cmath>
 #include <utility>
 #include <algorithm>
+#include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
 namespace {
 
-constexpr auto vector_length(Vector2 vec)
-{
-    return math::sqrt(Math::dot(vec, vec));
-}
-
-constexpr float framerate = 96 * 3, move_speed = vector_length(TILE_SIZE2) * 4.25f;
+constexpr float framerate = 96 * 3, move_speed = TILE_SIZE2.length() * 4.25f;
 constexpr float frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
@@ -123,8 +119,8 @@ constexpr Vector2 move_vec(Vector2i vec)
 {
     const int left_right = vec[0], top_bottom = vec[1];
     constexpr auto c = move_speed * frame_time;
-    auto dir = Vector2((float)math::sgn(left_right), (float)math::sgn(top_bottom));
-    auto inv_norm = 1.f/math::sqrt(Math::dot(dir, dir));
+    auto dir = Vector2((float)Math::sign(left_right), (float)Math::sign(top_bottom));
+    auto inv_norm = 1.f/dir.length();
     return c * dir * inv_norm;
 }
 
@@ -195,7 +191,7 @@ void critter::update(size_t i, float dt)
             auto vec = move_vecs[j];
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
-            const auto sign_vec = Vector2(math::sgn(vec[0]), math::sgn(vec[1]));
+            const auto sign_vec = Vector2(Math::sign(vec[0]), Math::sign(vec[1]));
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
             offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_[0], 1.f)), std::fabs(std::fmod(offset_[1], 1.f))) * frac);
             auto off_i = Vector2i(offset_);

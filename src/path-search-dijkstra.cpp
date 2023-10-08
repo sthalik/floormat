@@ -14,6 +14,7 @@ namespace {
 constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto div_size = path_search::div_size;
 constexpr auto min_size = path_search::min_size;
+constexpr auto goal_distance = div_size;
 
 template<typename T>
 requires std::is_arithmetic_v<T>
@@ -40,7 +41,7 @@ constexpr auto directions = [] constexpr
 {
     struct pair { Vector2i dir; uint32_t len; };
     constexpr auto len1 = div_size;
-    constexpr auto len2 = (uint32_t)(math::sqrt((float)len1.dot()) + 0.5f); // NOLINT
+    constexpr auto len2 = (uint32_t)(len1.length() + 0.5f); // NOLINT
     std::array<pair, 8> array = {{
         { { -1, -1 }, len2 },
         { {  1,  1 }, len2 },
