@@ -13,8 +13,9 @@ void bench_run(StringView name, F&& fun)
 {
     using namespace std::chrono;
     using clock = high_resolution_clock;
+    for (int i = 0; i < 20; i++)
+        fun();
     const auto t0 = clock::now();
-    fun();
     for (int i = 0; i < 1000; i++)
         fun();
     const auto tm = clock::now() - t0;

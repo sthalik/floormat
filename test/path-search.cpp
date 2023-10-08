@@ -13,7 +13,7 @@ namespace {
 
 template<typename T> using bbox = path_search::bbox<T>;
 using pred = path_search::pred;
-constexpr auto div = path_search::div_factor;
+constexpr auto div_factor = path_search::div_factor;
 constexpr auto min_size = path_search::min_size;
 
 constexpr bbox<int> get_value(Vector2ub sz, Vector2ub div, rotation r)
@@ -90,7 +90,7 @@ constexpr bool test_offsets2()
     constexpr auto sz = Vector2ub(8, 16);
 
     {
-        constexpr auto bb = get_value(sz, Vector2ub(div), N);
+        constexpr auto bb = get_value(sz, Vector2ub(div_factor), N);
         constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
         static_assert(min.x() == -32 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);
@@ -98,7 +98,7 @@ constexpr bool test_offsets2()
         static_assert(max.y() == -32 + sz.y()/2);
     }
     {
-        constexpr auto bb = get_value(sz, Vector2ub(div), W);
+        constexpr auto bb = get_value(sz, Vector2ub(div_factor), W);
         constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
         static_assert(min.x() == -32 - 16 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);

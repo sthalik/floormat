@@ -73,6 +73,13 @@ constexpr bbox<T> bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2
     return bb;
 }
 
+bool add_start_node(std::vector<astar::visited>& nodes,
+                    tsl::robin_map<point, uint32_t, astar::point_hash>& indexes,
+                    std::vector<uint32_t>& Q)
+{
+
+}
+
 } // namespace
 
 bool astar::edge::operator==(const floormat::astar::edge& other) const = default;
@@ -147,10 +154,6 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
             nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
             Q.push_back(idx++);
             std::push_heap(Q.begin(), Q.end(), heap_comparator);
-        }
-        else
-        {
-
         }
 
     }
