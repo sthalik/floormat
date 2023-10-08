@@ -6,6 +6,7 @@ namespace floormat {
 
 namespace {
 
+[[maybe_unused]]
 CORRADE_ALWAYS_INLINE uint32_t FNVHash_32(uint32_t x)
 {
     const auto *str = (const char*)&x, *end = str + 4;
