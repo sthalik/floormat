@@ -12,11 +12,8 @@ template<typename T> using bbox = path_search::bbox<T>;
 namespace {
 
 constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-constexpr auto div = Vector2i(path_search::subdivide_factor);
 constexpr auto div_size = path_search::div_size;
 constexpr auto min_size = path_search::min_size;
-constexpr auto tile_start = Vector2i(iTILE_SIZE2/-2);
-constexpr auto inf =- (uint32_t)-1;
 
 template<typename T>
 requires std::is_arithmetic_v<T>

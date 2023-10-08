@@ -111,9 +111,6 @@ constexpr bool test_offsets2()
 
 struct neighbors final
 {
-    auto begin() const { return data.data(); }
-    auto end() const { return data.data() + size; }
-
     std::array<global_coords, 5> data;
     uint8_t size = 0;
 };
