@@ -84,9 +84,7 @@ endfunction()
 function(fm-userconfig-src)
     #add_compile_options(-ftime-trace)
 
-    add_compile_options(
-        -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything
-    )
+    add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything)
     add_compile_options(
         -Wno-c++98-compat
         -Wno-c++20-compat
