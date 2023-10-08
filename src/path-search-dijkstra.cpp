@@ -168,8 +168,8 @@ size_t astar::edge_hash::operator()(const edge& e) const
 #endif
 }
 
-path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,
-                                   Vector2ub own_size, const pred& p)
+path_search_result astar::Dijkstra(world& w, point from_, point to_,object_id own_id, uint32_t max_dist,
+                                   Vector2ub own_size, int debug, const pred& p)
 {
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
@@ -238,7 +238,11 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
             closest_path_len = n_dist;
         }
 
-        //Debug{} << "node" << id << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
+        if (debug >= 2) [[unlikely]]
+            DBG_nospace << "node"
+                        << " px:" << closest << " path:" << closest_path_len
+                        << " pos:" << closest_pos.coord.to_signed()
+                        << ";" << closest_pos.offset;
         const auto bb0 = bbox_from_pos(Vector2(n_coord.local()), n_offset, own_size);
 
         for (auto [vec, len] : directions)
@@ -284,16 +288,21 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                 }
             }
 
-            //Debug{} << (fresh ? "   new" : "  old") << new_idx << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
+            if (debug >= 3) [[unlikely]]
+                DBG_nospace << (fresh ? "" : " old")
+                            << " path:" << closest_path_len
+                            << " pos:" << closest_pos.coord.to_signed()
+                            << ";" << closest_pos.offset;
 
             add_to_heap(new_idx);
         }
     }
 
     fm_debug_assert(nodes.size() == indexes.size());
-    DBG_nospace << "dijkstra: closest px:" << closest << " path:" << closest_path_len
-                << " pos:" << closest_pos.coord.to_signed() << ";" << closest_pos.offset
-                << " nodes:" << nodes.size() << " edges:" << edges.size();
+    if (debug)
+        DBG_nospace << "dijkstra: closest px:" << closest << " path:" << closest_path_len
+                    << " pos:" << closest_pos.coord.to_signed() << ";" << closest_pos.offset
+                    << " nodes:" << nodes.size() << " edges:" << edges.size();
 
     // todo...
     return result;

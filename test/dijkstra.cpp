@@ -38,9 +38,9 @@ void test_app::test_dijkstra()
     auto metal2 = tile_image_proto{loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked), 0};
     auto& ch = w[chunk_coords_{0,0,0}];
 
+#if 0
     ch[{4, 4}].wall_west()  = metal2;
     ch[{4, 4}].wall_north() = metal2;
-#if 1
     ch[{8, 8}].wall_west()  = metal2;
     ch[{8, 8}].wall_north() = metal2;
     ch[{9, 8}].wall_west()  = metal2;

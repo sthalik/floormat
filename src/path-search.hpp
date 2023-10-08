@@ -91,7 +91,7 @@ struct astar
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, point from, point to,
                                 object_id own_id, uint32_t max_dist, Vector2ub own_size,
-                                const pred& p = path_search::never_continue());
+                                int debug = 0, const pred& p = path_search::never_continue());
 
     static constexpr auto div_factor = path_search::div_factor;
     static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
