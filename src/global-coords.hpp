@@ -1,7 +1,6 @@
 #pragma once
 #include "local-coords.hpp"
 #include "compat/assert.hpp"
-#include <compare>
 #include <concepts>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
@@ -116,15 +115,6 @@ public:
     constexpr Vector2i operator-(global_coords other) const noexcept;
 };
 
-struct point
-{
-    global_coords coord;
-    Vector2b offset;
-
-    constexpr bool operator==(const point&) const = default;
-    friend constexpr std::strong_ordering operator<=>(const point& a, const point& b) noexcept;
-};
-
 constexpr local_coords global_coords::local() const noexcept
 {
     return { uint8_t(x & 0x0f), uint8_t(y & 0x0f), };
@@ -185,24 +175,6 @@ constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
 constexpr Vector2i global_coords::operator-(global_coords other) const noexcept
 {
     return to_signed() - other.to_signed();
-}
-
-constexpr std::strong_ordering operator<=>(const point& p1, const point& p2) noexcept
-{
-    auto c1 = p1.coord.to_signed3(), c2 = p2.coord.to_signed3();
-
-    if (auto val = c1.z() <=> c2.z(); val != std::strong_ordering::equal)
-        return val;
-    if (auto val = c1.y() <=> c2.y(); val != std::strong_ordering::equal)
-        return val;
-    if (auto val = c1.x() <=> c2.x(); val != std::strong_ordering::equal)
-        return val;
-    if (auto val = p1.offset.y() <=> p2.offset.y(); val != std::strong_ordering::equal)
-        return val;
-    if (auto val = p1.offset.x() <=> p2.offset.x(); val != std::strong_ordering::equal)
-        return val;
-
-    return std::strong_ordering::equal;
 }
 
 } // namespace floormat

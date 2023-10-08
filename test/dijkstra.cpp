@@ -30,7 +30,7 @@ void test_app::test_dijkstra()
     auto a = astar();
 
     bench_run("Dijkstra", [&] {
-      a.Dijkstra(w, {}, 0, {{0, 0, 0}, {}}, {{1, 1, 0}, {}},
+      a.Dijkstra(w, {}, 0, {{0, 0, 0}, {0, 0}}, {{1, 1, 0}, {7, 9}},
                  1*TILE_MAX_DIM*iTILE_SIZE2.x());
     });
 }

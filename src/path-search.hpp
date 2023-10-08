@@ -6,6 +6,7 @@
 #include "compat/function2.fwd.hpp"
 #include "path-search-result.hpp"
 #include "compat/int-hash.hpp"
+#include "point.hpp"
 #include <bit>
 #include <array>
 #include <Magnum/Math/Vector2.h>
@@ -62,8 +63,8 @@ struct astar
         uint32_t prev = (uint32_t)-1;
         global_coords coord;
         Vector2b offset;
-
     };
+
     struct edge
     {
         global_coords from, to;
@@ -72,71 +73,20 @@ struct astar
         bool operator==(const edge& other) const;
     };
 
-    class box
-    {
-        std::vector<visited>& vec; // NOLINT
-        uint32_t id;
-
-    public:
-        fm_DECLARE_DELETED_COPY_ASSIGNMENT(box);
-        fm_DECLARE_DELETED_MOVE_ASSIGNMENT(box);
-
-        visited& operator*() { return vec[id]; }
-        visited* operator->() { return &vec[id]; }
-
-        box(std::vector<visited>& vec, uint32_t id) : vec{vec}, id{id} {}
-    };
-
-    enum class edge_status : uint8_t
-    {
-        // good, bad, I'm the man with the gun.
-        unknown, good, bad,
-    };
-
+    using pred = path_search::pred;
+    enum class edge_status : uint8_t { unknown, good, bad, };
+    template<typename T> using bbox = path_search::bbox<T>;
     struct point_hash { size_t operator()(point pt) const; };
     struct edge_hash { size_t operator()(const edge& e) const; };
 
-    using pred = path_search::pred;
-    template<typename T> using bbox = path_search::bbox<T>;
-
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
-    static edge make_edge(const point& a, const point& b)
-    {
-        if (a < b)
-            return { a.coord, b.coord, a.offset, b.offset };
-        else
-            return { b.coord, a.coord, b.offset, a.offset };
-    }
-
-    void reserve(size_t capacity)
-    {
-        nodes.reserve(capacity);
-        indexes.reserve(capacity);
-        edges.reserve(capacity*4);
-        Q.reserve(capacity);
-    }
-    astar()
-    {
-        indexes.max_load_factor(.4f);
-        reserve(initial_capacity);
-    }
-    void clear()
-    {
-        nodes.clear();
-        indexes.clear();
-        edges.clear();
-        Q.clear();
-    }
-    auto make_heap_comparator()
-    {
-        return [this](uint32_t a, uint32_t b) {
-            fm_debug_assert(std::max(a, b) < nodes.size());
-            const auto& n1 = nodes[a];
-            const auto& n2 = nodes[b];
-            return n2.dist < n1.dist;
-        };
-    }
+    astar();
+    void reserve(size_t capacity);
+    void clear();
+    void add_to_heap(uint32_t id);
+    uint32_t pop_from_heap();
+    static edge make_edge(const point& a, const point& b);
 
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id,

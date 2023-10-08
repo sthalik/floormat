@@ -111,6 +111,7 @@ void object::rotate(size_t, rotation new_r)
     const_cast<rotation&>(r) = new_r;
 }
 
+// todo rewrite using bitwise ops
 point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
 {
     auto off_tmp = Vector2i(cur_offset) + new_offset;
@@ -119,7 +120,7 @@ point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2
     for (auto i = 0uz; i < 2; i++)
     {
         auto sign = Math::sign(off_new[i]);
-        auto absval = std::abs(off_new[i]);
+        auto absval = Math::abs(off_new[i]);
         if (absval > half_tile[i])
         {
             Vector2i v(0);

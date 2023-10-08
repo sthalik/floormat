@@ -5,6 +5,7 @@
 #include "src/pass-mode.hpp"
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
+#include "src/point.hpp"
 #include <memory>
 #include <vector>
 

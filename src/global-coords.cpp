@@ -1,5 +1,5 @@
 #include "global-coords.hpp"
-#include "compat/defs.hpp"
+#include "point.hpp"
 #include <array>
 #include <algorithm>
 

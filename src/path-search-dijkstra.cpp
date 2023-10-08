@@ -1,7 +1,6 @@
 #include "path-search.hpp"
 #include "object.hpp"
-#include "compat/math.hpp"
-#include <Corrade/Containers/PairStl.h>
+#include "point.hpp"
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
 
@@ -73,14 +72,91 @@ constexpr bbox<T> bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2
     return bb;
 }
 
-bool add_start_node(std::vector<astar::visited>& nodes,
-                    tsl::robin_map<point, uint32_t, astar::point_hash>& indexes,
-                    std::vector<uint32_t>& Q)
+class heap_comparator
 {
+    const std::vector<astar::visited>& nodes; // NOLINT
 
+public:
+    heap_comparator(const std::vector<astar::visited>& nodes) : nodes{nodes} {}
+
+    inline bool operator()(uint32_t a, uint32_t b) const
+    {
+        fm_debug_assert(std::max(a, b) < nodes.size());
+        const auto& n1 = nodes[a];
+        const auto& n2 = nodes[b];
+        return n2.dist < n1.dist;
+    }
+};
+
+class box
+{
+    using visited = astar::visited;
+    std::vector<visited>& vec; // NOLINT
+    uint32_t id;
+
+public:
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(box);
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(box);
+
+    visited& operator*() { return vec[id]; }
+    visited* operator->() { return &vec[id]; }
+
+    box(std::vector<visited>& vec, uint32_t id) : vec{vec}, id{id} {}
+};
+
+uint32_t distance(point a, point b)
+{
+    Vector2i dist;
+    dist += Math::abs(a.coord - b.coord)*iTILE_SIZE2;
+    dist += Vector2i(a.offset - b.offset);
+    return (uint32_t)Math::sqrt(dist.dot());
 }
 
 } // namespace
+
+astar::astar()
+{
+    indexes.max_load_factor(.4f);
+    reserve(initial_capacity);
+}
+
+void astar::reserve(size_t capacity)
+{
+    nodes.reserve(capacity);
+    indexes.reserve(capacity);
+    edges.reserve(capacity*4);
+    Q.reserve(capacity);
+}
+
+void astar::clear()
+{
+    nodes.clear();
+    indexes.clear();
+    edges.clear();
+    Q.clear();
+}
+
+void astar::add_to_heap(uint32_t id)
+{
+    Q.push_back(id);
+    std::push_heap(Q.begin(), Q.end(), heap_comparator(nodes));
+}
+
+uint32_t astar::pop_from_heap()
+{
+    std::pop_heap(Q.begin(), Q.end(), heap_comparator(nodes));
+    const auto id = Q.back();
+    Q.pop_back();
+    return id;
+}
+
+auto astar::make_edge(const point& a, const point& b) -> edge
+{
+    if (a < b)
+        return { a.coord, b.coord, a.offset, b.offset };
+    else
+        return { b.coord, a.coord, b.offset, a.offset };
+}
 
 bool astar::edge::operator==(const floormat::astar::edge& other) const = default;
 
@@ -111,7 +187,6 @@ size_t astar::edge_hash::operator()(const edge& e) const
 path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
                                    point from_, point to_, uint32_t max_dist, const pred& p)
 {
-    const auto heap_comparator = make_heap_comparator();
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
 
@@ -139,8 +214,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
     indexes[from_] = 0;
     nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });
-    Q.push_back(0);
-    std::push_heap(Q.begin(), Q.end(), heap_comparator);
+    add_to_heap(0);
 
     if (!from_offset.isZero())
     {
@@ -152,19 +226,19 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         {
             indexes[{from, {}}] = idx;
             nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
-            Q.push_back(idx++);
-            std::push_heap(Q.begin(), Q.end(), heap_comparator);
+            add_to_heap(idx++);
         }
-
     }
+
+    auto closest = (uint32_t)-1;
 
     while (!Q.empty())
     {
-        std::pop_heap(Q.begin(), Q.end(), heap_comparator);
-        const auto id = Q.back();
-        Q.pop_back();
-
+        const auto id = pop_from_heap();
         auto node = box{nodes, id};
+
+        if (auto d = distance({node->coord, node->offset}, {to, to_offset}); d < closest)
+            closest = d;
 
         //Debug{} << "node" << id << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
 
@@ -215,14 +289,13 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
             //Debug{} << (fresh ? "   new" : "  old") << new_idx << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
 
-            Q.push_back(new_idx);
-            std::push_heap(Q.begin(), Q.end(), heap_comparator);
-
+            add_to_heap(new_idx);
         }
     }
 
     //DBG << "done!" << nodes.size() << "nodes," << indexes.size() << "indexes," << edges.size() << "edges.";
 
+    Debug{} << "closest" << closest;
     // todo...
     return result;
 }
