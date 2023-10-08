@@ -13,7 +13,7 @@ namespace {
 
 template<typename T> using bbox = path_search::bbox<T>;
 using pred = path_search::pred;
-constexpr auto div = path_search::subdivide_factor;
+constexpr auto div = path_search::div_factor;
 constexpr auto min_size = path_search::min_size;
 
 constexpr bbox<int> get_value(Vector2ub sz, Vector2ub div, rotation r)

@@ -12,7 +12,7 @@ namespace floormat {
 
 namespace {
 
-constexpr auto div = path_search::subdivide_factor;
+constexpr auto div = path_search::div_factor;
 constexpr int div_BITS = 2;
 static_assert(1 << div_BITS == div);
 

@@ -1,6 +1,7 @@
 #include "path-search.hpp"
 #include "path-search-result.hpp"
 #include "compat/assert.hpp"
+#include <Corrade/Containers/ArrayView.h>
 #include <utility>
 
 namespace floormat {
@@ -56,7 +57,7 @@ size_t path_search_result::size() const { return _node->vec.size(); }
 auto path_search_result::data() const -> const pair* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }
 
-path_search_result::operator ArrayView<const pair>() const
+path_search_result::operator ArrayView<const path_search_result::pair>() const
 {
     fm_debug_assert(_node);
     return {_node->vec.data(), _node->vec.size()};

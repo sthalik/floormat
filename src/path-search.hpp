@@ -35,8 +35,8 @@ class path_search final
     friend struct path_search_result;
 
 public:
-    static constexpr int subdivide_factor = 4;
-    static constexpr auto div_size = iTILE_SIZE2 / subdivide_factor;
+    static constexpr int div_factor = 4;
+    static constexpr auto div_size = iTILE_SIZE2 / div_factor;
     static constexpr auto min_size = div_size / 2;
 
     template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
@@ -119,14 +119,13 @@ public:
     {
         nodes.reserve(capacity);
         indexes.reserve(capacity);
-        edges.reserve(capacity);
+        edges.reserve(capacity*4);
         Q.reserve(capacity);
     }
     astar()
     {
-        constexpr auto capacity = TILE_COUNT * 16;
         indexes.max_load_factor(.4f);
-        reserve(capacity);
+        reserve(initial_capacity);
     }
     void clear()
     {
@@ -135,11 +134,23 @@ public:
         edges.clear();
         Q.clear();
     }
+    auto make_heap_comparator()
+    {
+        return [this](uint32_t a, uint32_t b) {
+            fm_debug_assert(std::max(a, b) < nodes.size());
+            const auto& n1 = nodes[a];
+            const auto& n2 = nodes[b];
+            return n2.dist < n1.dist;
+        };
+    }
 
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id,
                                 point from, point to, uint32_t max_dist,
                                 const pred& p = path_search::never_continue());
+
+    static constexpr auto div_factor = path_search::div_factor;
+    static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
 };
 
 } // namespace floormat

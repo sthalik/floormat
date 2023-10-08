@@ -37,7 +37,7 @@ constexpr bbox<T> bbox_union(bbox<T> bb1, bbox<T> bb2)
     return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
 }
 
-constexpr auto directions = [] constexpr
+constexpr auto directions = []() constexpr
 {
     struct pair { Vector2i dir; uint32_t len; };
     constexpr auto len1 = div_size;
@@ -104,13 +104,7 @@ size_t astar::edge_hash::operator()(const edge& e) const
 path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
                                    point from_, point to_, uint32_t max_dist, const pred& p)
 {
-    auto heap_comparator = [this](uint32_t a, uint32_t b) {
-        fm_debug_assert(std::max(a, b) < nodes.size());
-        const auto& n1 = nodes[a];
-        const auto& n2 = nodes[b];
-        return n2.dist < n1.dist;
-    };
-
+    const auto heap_comparator = make_heap_comparator();
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
 
@@ -130,13 +124,10 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         return {};
 
     clear();
-    fm_debug_assert(nodes.empty());
 
     const auto start_bbox = bbox_from_pos(Vector2(from.local()), from_offset, own_size);
-    const auto from_offset_len = Math::max(1u, (uint32_t)(Vector2(from_offset).length() + 0.5f));
 
     path_search_result result;
-    fm_debug_assert(result._node); // todo
     auto& path = result._node->vec; path.clear();
 
     indexes[from_] = 0;
@@ -146,16 +137,22 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
     if (!from_offset.isZero())
     {
+        const auto from_offset_len = Math::max(1u, (uint32_t)(Vector2(from_offset).length() + 0.5f));
         uint32_t idx = 1;
         // todo also add 4 subdivisions within the tile the same way
-        auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
-        if (path_search::is_passable(w, chunk_coords_{from}, bb, own_id, p))
+        if (auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
+            path_search::is_passable(w, chunk_coords_{from}, bb, own_id, p))
         {
             indexes[{from, {}}] = idx;
             nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
             Q.push_back(idx++);
             std::push_heap(Q.begin(), Q.end(), heap_comparator);
         }
+        else
+        {
+
+        }
+
     }
 
     while (!Q.empty())
@@ -221,7 +218,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         }
     }
 
-    //Debug {} << "done!" << nodes.size() << "nodes";
+    //DBG << "done!" << nodes.size() << "nodes," << indexes.size() << "indexes," << edges.size() << "edges.";
 
     // todo...
     return result;

@@ -5,6 +5,9 @@
 #include <Corrade/Utility/Macros.h>
 #include <Magnum/Magnum.h>
 
+#define DBG_nospace (::Corrade::Utility::Debug{::Corrade::Utility::Debug::Flag::NoSpace})
+#define DBG (::Corrade::Utility::Debug{})
+
 #if !(defined __cpp_size_t_suffix || defined _MSC_VER && _MSVC_LANG < 202004)
 #ifdef _MSC_VER
 #pragma system_header

@@ -15,7 +15,7 @@ void bench_run(StringView name, F&& fun)
     using clock = high_resolution_clock;
     const auto t0 = clock::now();
     fun();
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 1000; i++)
         fun();
     const auto tm = clock::now() - t0;
     Debug{} << "test" << name << "took" << duration_cast<milliseconds>(tm).count() << "ms.";
