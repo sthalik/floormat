@@ -21,8 +21,6 @@ constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
-
-
 } // namespace
 
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }

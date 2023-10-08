@@ -100,7 +100,7 @@ public:
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
-    constexpr operator chunk_coords_() const noexcept;
+    constexpr operator chunk_coords_() const noexcept; // todo make invoking this take less typing
     constexpr raw_coords_ raw() const noexcept;
     constexpr raw_coords raw() noexcept;
     constexpr int8_t z() const noexcept;

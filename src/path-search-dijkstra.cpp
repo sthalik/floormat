@@ -36,26 +36,6 @@ constexpr bbox<T> bbox_union(bbox<T> bb1, bbox<T> bb2)
     return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
 }
 
-constexpr auto get_bbox(chunk_coords_ ch_1, local_coords pos1, Vector2b off1,
-                        chunk_coords_ ch_2, local_coords pos2, Vector2b off2,
-                        Vector2ub size, uint32_t dist0)
-{
-    auto c = (Vector2i(ch_2.x, ch_2.y) - Vector2i(ch_1.x, ch_1.y)) * chunk_size;
-    auto t = (Vector2i(pos2) - Vector2i(pos1)) * iTILE_SIZE2;
-    auto o = Vector2i(off2) - Vector2i(off1);
-    auto cto = Vector2i(c + t + o);
-    auto dist = Math::max(1u, (uint32_t)(Vector2(cto).length() + 0.5f));
-    auto center0 = Vector2i(pos1) * iTILE_SIZE2 + Vector2i(off1);
-    auto min0 = center0 - Vector2i(size/2u), max0 = min0 + Vector2i(size);
-    auto min1 = min0 + cto, max1 = max0 + cto;
-
-    return Pair<bbox<float>, uint32_t>{
-        { .min = Vector2(Math::min(min0, min1)),
-          .max = Vector2(Math::max(max0, max1)) },
-        dist0 + dist,
-    };
-}
-
 constexpr auto directions = [] constexpr
 {
     struct pair { Vector2i dir; uint32_t len; };
@@ -165,6 +145,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
     if (!from_offset.isZero())
     {
+        // todo also add 4 subdivisions within the tile the same way
         auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
         if (path_search::is_passable(w, chunk_coords_{from}, bb, own_id, p))
         {
@@ -177,13 +158,17 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
     while (!Q.empty())
     {
+        fm_assert(nodes.size() < 500);
+
         std::pop_heap(Q.begin(), Q.end(), heap_comparator);
         const auto id = Q.back();
-        fm_debug_assert(id < nodes.size());
-
-        auto& node = nodes[id];
         Q.pop_back();
+
+        fm_debug_assert(id < nodes.size());
+        auto& node = nodes[id];
         fm_debug_assert(node.dist != (uint32_t)-1);
+
+        Debug{} << "node" << id << node.coord.to_signed3() << node.dist;
 
         const auto bb0 = bbox_from_pos(Vector2(node.coord.local()), node.offset, own_size);
 
@@ -191,19 +176,29 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         {
             auto [new_coord, new_offset] = object::normalize_coords(node.coord, node.offset, vec);
             const auto dist = node.dist + len;
+            fm_assert(len);
+            fm_assert(dist);
             if (dist >= max_dist)
                 continue;
 
-            auto [it, found_] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, (uint32_t)-1);
-            auto& new_id = it.value();
-            const auto found = found_ && it->second != (uint32_t)-1;
-            const auto cur_dist = found ? nodes[new_id].dist : (uint32_t)-1;
+            const auto sz = nodes.size();
+            auto [it, found] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, sz);
+            const auto new_idx = it.value();
 
-            fm_debug_assert(!found || nodes[new_id].prev != (uint32_t)-1);
-            fm_debug_assert(!found || nodes[new_id].dist < max_dist);
+            if (new_idx == sz)
+            {
+                auto new_node = astar::visited {
+                    .dist = dist, .prev = id,
+                    .coord = new_coord, .offset = new_offset,
+                };
+                nodes.push_back(new_node);
+            }
 
-            if (dist >= cur_dist)
+            auto& node = nodes[new_idx];
+
+            if (found && dist >= node.dist)
                 continue;
+            node.dist = dist;
 
             auto e = make_edge({node.coord, node.offset}, {new_coord, new_offset});
             if (auto [it, found] = edges.try_emplace(e, edge_status::unknown); !found)
@@ -222,15 +217,18 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
                 }
             }
 
-            new_id = (uint32_t)nodes.size();
-            auto new_node = astar::visited {
-                .dist = dist, .prev = id,
-                .coord = new_coord, .offset = new_offset,
-            };
-            nodes.push_back(new_node);
+            if (!found)
+                Debug{} << " new" << new_idx << node.coord.to_signed3() << node.dist;
+            else
+                Debug{} << " old" << new_idx << node.coord.to_signed3() << node.dist;
+
+            Q.push_back(new_idx);
             std::push_heap(Q.begin(), Q.end(), heap_comparator);
+
         }
     }
+
+    Debug {} << "done";
 
     // todo...
     return result;

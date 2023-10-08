@@ -26,10 +26,12 @@ path_search_result::path_search_result()
 
 path_search_result::~path_search_result() noexcept
 {
-    fm_debug_assert(_node);
-    _node->vec.clear();
-    _node->_next = std::move(_pool);
-    _pool = std::move(_node);
+    if (_node) [[likely]]
+    {
+        _node->vec.clear();
+        _node->_next = std::move(_pool);
+        _pool = std::move(_node);
+    }
 }
 
 path_search_result::path_search_result(const path_search_result& x) noexcept

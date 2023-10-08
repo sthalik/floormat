@@ -123,7 +123,7 @@ public:
 
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id,
-                                point from, point to, uint32_t max_dist = (uint32_t)-1,
+                                point from, point to, uint32_t max_dist,
                                 const pred& p = path_search::never_continue());
 };
 
