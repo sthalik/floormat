@@ -113,32 +113,23 @@ size_t astar::point_hash::operator()(point pt) const
 
 size_t astar::edge_hash::operator()(const edge& e) const
 {
-    constexpr auto len = sizeof e;
-    static_assert(len == 8 + 8 + 2 + 2);
+    static_assert(sizeof e == 8 + 8 + 2 + 2);
 #ifdef FLOORMAT_64
     static_assert(sizeof nullptr > 4);
-    return fnvhash_64(&e, len);
+    return fnvhash_64(&e, sizeof e);
 #else
     static_assert(sizeof nullptr == 4);
-    return fnvhash_32(&e, len);
+    return fnvhash_32(&e, sizeof e);
 #endif
 }
 
-constexpr astar::edge make_edge(const point& a, const point& b)
+path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
+                                   point from_, point to_, uint32_t max_dist, const pred& p)
 {
-    if (a < b)
-        return { a.coord, b.coord, a.offset, b.offset };
-    else
-        return { b.coord, a.coord, b.offset, a.offset };
-}
-
-path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
-                                         const point from_, const point to_, const pred& p)
-{
-    auto heap_comparator = [&A = astar](uint32_t a, uint32_t b) {
-        fm_debug_assert(std::max(a, b) < A.nodes.size());
-        const auto& n1 = A.nodes[a];
-        const auto& n2 = A.nodes[b];
+    auto heap_comparator = [this](uint32_t a, uint32_t b) {
+        fm_debug_assert(std::max(a, b) < nodes.size());
+        const auto& n1 = nodes[a];
+        const auto& n2 = nodes[b];
         return n2.dist < n1.dist;
     };
 
@@ -154,14 +145,14 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, const obj
     if (from.z() != 0) [[unlikely]]
         return {};
 
-    if (!is_passable(w, from, from_offset, own_size, own_id, p))
+    if (!path_search::is_passable(w, from, from_offset, own_size, own_id, p))
         return {};
 
-    if (!is_passable(w, to, to_offset, own_size, own_id, p))
+    if (!path_search::is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
 
-    astar.clear();
-    fm_debug_assert(astar.nodes.empty());
+    clear();
+    fm_debug_assert(nodes.empty());
 
     const auto start_bbox = bbox_from_pos(Vector2(from.local()), from_offset, own_size);
     const auto from_offset_len = Math::max(1u, (uint32_t)(Vector2(from_offset).length() + 0.5f));
@@ -170,67 +161,77 @@ path_search_result path_search::Dijkstra(world& w, Vector2ub own_size, const obj
     fm_debug_assert(result._node); // todo
     auto& path = result._node->vec; path.clear();
 
-    astar.indexes[from_] = 0;
-    astar.nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });
-    astar.Q.push_back(0);
-    std::push_heap(astar.Q.begin(), astar.Q.end(), heap_comparator);
+    indexes[from_] = 0;
+    nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });
+    Q.push_back(0);
+    std::push_heap(Q.begin(), Q.end(), heap_comparator);
 
     if (!from_offset.isZero())
     {
         auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
-        if (is_passable(w, chunk_coords_{from}, bb, own_id, p))
+        if (path_search::is_passable(w, chunk_coords_{from}, bb, own_id, p))
         {
-            astar.indexes[{from, {}}] = 1;
-            astar.nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
-            astar.Q.push_back(1);
-            std::push_heap(astar.Q.begin(), astar.Q.end(), heap_comparator);
+            indexes[{from, {}}] = 1;
+            nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
+            Q.push_back(1);
+            std::push_heap(Q.begin(), Q.end(), heap_comparator);
         }
     }
 
-    while (!astar.Q.empty())
+    while (!Q.empty())
     {
-        std::pop_heap(astar.Q.begin(), astar.Q.end(), heap_comparator);
-        const auto id = astar.Q.back();
-        fm_debug_assert(id < astar.nodes.size());
-        auto& node = astar.nodes[id];
-        astar.Q.pop_back();
-        const auto bb0 = bbox_from_pos(Vector2(node.coord.local()), node.offset, own_size);
+        std::pop_heap(Q.begin(), Q.end(), heap_comparator);
+        const auto id = Q.back();
+        fm_debug_assert(id < nodes.size());
 
-        node.expanded = true;
+        auto& node = nodes[id];
+        Q.pop_back();
+        fm_debug_assert(node.dist != (uint32_t)-1);
+
+        const auto bb0 = bbox_from_pos(Vector2(node.coord.local()), node.offset, own_size);
 
         for (auto [vec, len] : directions)
         {
-            auto vec_ = Vector2(vec);
-            const auto new_dist = node.dist + len;
-            auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
-            const auto bb = bbox_union(bb1, bb0);
-
-            if (!is_passable(w, node.coord, bb, own_id, p))
-                continue;
-
             auto [new_coord, new_offset] = object::normalize_coords(node.coord, node.offset, vec);
-
-            if (!astar.edges.insert(make_edge({node.coord, node.offset}, {new_coord, new_offset})).second)
+            const auto dist = node.dist + len;
+            if (dist >= max_dist)
                 continue;
 
-            auto [it, found] = astar.indexes.try_emplace({.coord = new_coord, .offset = new_offset}, (uint32_t)-1);
-            if (!found)
-            {
-                const auto new_id = (uint32_t)astar.nodes.size();
-                it.value() = new_id;
-                auto new_node = astar::visited {
-                    .dist = new_dist, .prev = id,
-                    .coord = new_coord, .offset = new_offset,
-                    .expanded = false,
-                };
-                astar.nodes.push_back(new_node);
-            }
-            else if (new_dist >= node.dist)
-                continue;
-            else
-            {
+            auto [it, found_] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, (uint32_t)-1);
+            auto& new_id = it.value();
+            const auto found = found_ && it->second != (uint32_t)-1;
+            const auto cur_dist = found ? nodes[new_id].dist : (uint32_t)-1;
 
+            fm_debug_assert(!found || nodes[new_id].prev != (uint32_t)-1);
+            fm_debug_assert(!found || nodes[new_id].dist < max_dist);
+
+            if (dist >= cur_dist)
+                continue;
+
+            auto e = make_edge({node.coord, node.offset}, {new_coord, new_offset});
+            if (auto [it, found] = edges.try_emplace(e, edge_status::unknown); !found)
+            {
+                auto& status = it.value();
+                auto vec_ = Vector2(vec);
+                auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
+                auto bb = bbox_union(bb1, bb0);
+
+                if (path_search::is_passable(w, chunk_coords_(node.coord), bb, own_id, p))
+                    status = edge_status::good;
+                else
+                {
+                    status = edge_status::bad;
+                    continue;
+                }
             }
+
+            new_id = (uint32_t)nodes.size();
+            auto new_node = astar::visited {
+                .dist = dist, .prev = id,
+                .coord = new_coord, .offset = new_offset,
+            };
+            nodes.push_back(new_node);
+            std::push_heap(Q.begin(), Q.end(), heap_comparator);
         }
     }
 

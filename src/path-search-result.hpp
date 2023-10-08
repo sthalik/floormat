@@ -9,6 +9,7 @@ namespace floormat {
 struct path_search_result final
 {
     friend class path_search;
+    friend class astar;
     friend struct test_app;
 
     struct pair { global_coords pos; Vector2 offset; };

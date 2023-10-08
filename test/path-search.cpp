@@ -5,13 +5,159 @@
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/path-search.hpp"
+#include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
 namespace {
 
-constexpr auto div = path_search::subdivide_factor;
 template<typename T> using bbox = path_search::bbox<T>;
+using pred = path_search::pred;
+constexpr auto div = path_search::subdivide_factor;
+constexpr auto min_size = path_search::min_size;
+
+constexpr bbox<int> get_value(Vector2ub sz, Vector2ub div, rotation r)
+{
+    const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
+
+    const auto r_ = (uint8_t)r;
+    CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
+
+    switch (r_)
+    {
+    case (uint8_t)rotation::N: {
+        auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
+        auto max_N = Vector2i(min_N.x() + sz.x(),               sz.y() - sz.y()/2               );
+        return {min_N, max_N};
+    }
+    case (uint8_t)rotation::S: {
+        auto min_S = Vector2i(-sz.x()/2,                        -sz.y()                         );
+        auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N + sz.y() - sz.y()/2    );
+        return {min_S, max_S};
+    }
+    case (uint8_t)rotation::W: {
+        auto min_W = Vector2i(-offset_W - sz.x()/2,             -sz.y()/2                       );
+        auto max_W = Vector2i(sz.x() - sz.x()/2,                min_W.y() + sz.y()              );
+        return {min_W, max_W};
+    }
+    case (uint8_t)rotation::E: {
+        auto min_E = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
+        auto max_E = Vector2i(offset_W + sz.x() - sz.x()/2,     min_E.y() + sz.y()              );
+        return {min_E, max_E};
+    }
+    case (uint8_t)rotation_COUNT: {
+        auto min_C = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
+        auto max_C = min_C + Vector2i(sz);
+        return {min_C, max_C};
+    }
+    default:
+        fm_abort("wrong 4-way rotation enum '%d'", (int)r);
+    }
+}
+
+constexpr bool test_offsets()
+{
+    constexpr auto sz_  = Vector2ub(path_search::min_size);
+    constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
+
+    [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
+    [[maybe_unused]] constexpr auto min_N = N.min + shift, max_N = N.max + shift;
+    [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
+    [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
+
+    [[maybe_unused]] constexpr auto E = get_value(sz_, {1,1}, rotation::E);
+    [[maybe_unused]] constexpr auto min_E = E.min + shift, max_E = E.max + shift;
+    [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
+    [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
+
+    [[maybe_unused]] constexpr auto S = get_value(sz_, {1,1}, rotation::S);
+    [[maybe_unused]] constexpr auto min_S = S.min + shift, max_S = S.max + shift;
+    [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
+    [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
+
+    [[maybe_unused]] constexpr auto W = get_value(sz_, {1,1}, rotation::W);
+    [[maybe_unused]] constexpr auto min_W = W.min + shift, max_W = W.max + shift;
+    [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
+    [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
+
+    return true;
+}
+
+constexpr bool test_offsets2()
+{
+    using enum rotation;
+    constexpr auto tile_start = iTILE_SIZE2/-2;
+    constexpr auto sz = Vector2ub(8, 16);
+
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), N);
+        constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
+        static_assert(min.x() == -32 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -48 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+    {
+        constexpr auto bb = get_value(sz, Vector2ub(div), W);
+        constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
+        static_assert(min.x() == -32 - 16 - sz.x()/2);
+        static_assert(max.x() == -32 + sz.x()/2);
+        static_assert(min.y() == -32 - sz.y()/2);
+        static_assert(max.y() == -32 + sz.y()/2);
+    }
+
+    return true;
+}
+
+struct neighbors final
+{
+    auto begin() const { return data.data(); }
+    auto end() const { return data.data() + size; }
+
+    std::array<global_coords, 5> data;
+    uint8_t size = 0;
+};
+
+bbox<float> neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
+neighbors neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p);
+
+auto neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
+{
+    own_size = Math::max(own_size, Vector2ub(min_size));
+    const auto shift = coord * iTILE_SIZE2;
+    auto [min, max] = get_value(own_size, div, r);
+    return { Vector2(min + shift), Vector2(max + shift) };
+}
+
+auto neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
+{
+    auto ch = chunk_coords_{ coord.chunk(), coord.z() };
+    auto pos = Vector2i(coord.local());
+    constexpr auto min_size = Vector2ub(iTILE_SIZE2/4);
+    size = Math::max(size, min_size);
+
+    neighbors ns;
+
+    using enum rotation;
+    constexpr struct {
+        Vector2i off;
+        rotation r = {};
+    } nbs[] = {
+        { {  0, -1 }, N },
+        { {  1,  0 }, E },
+        { {  0,  1 }, S },
+        { { -1,  0 }, W },
+    };
+
+    for (auto [off, r] : nbs)
+    {
+        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
+        if (path_search::is_passable(w, ch, min, max, own_id, p))
+            ns.data[ns.size++] = { coord + off, {} };
+    }
+
+    return ns;
+}
 
 void test_bbox()
 {
@@ -24,11 +170,11 @@ void test_bbox()
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
-        return path_search::neighbor_tile_bbox(coord, {}, { 1, 1 }, r);
+        return neighbor_tile_bbox(coord, {}, { 1, 1 }, r);
     };
 
-    constexpr auto neighbor_tiles = [](world& w, chunk_coords_ ch, Vector2i pos) {
-        return path_search::neighbor_tiles(w, { ch, pos }, {}, (object_id)-1);
+    constexpr auto neighbors = [](world& w, chunk_coords_ ch, Vector2i pos) {
+        return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
     };
 
     const auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked);
@@ -75,7 +221,7 @@ void test_bbox()
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
 
-        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 3);
+        fm_assert(neighbors(w, ch, {8, 8}).size == 3);
 
         c[{8, 8}].wall_north() = {metal2,0};
         c.mark_passability_modified();
@@ -87,7 +233,7 @@ void test_bbox()
         fm_assert( !is_passable_1(c, bbox({8, 8}, S)) );
         fm_assert(  is_passable_1(c, bbox({8, 8}, W)) );
 
-        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 2);
+        fm_assert(neighbors(w, ch, {8, 8}).size == 2);
     }
     {
         using enum rotation;
@@ -108,11 +254,15 @@ void test_bbox()
         is_passable_NESW(c, {2, 4}, { true,  false, true,  true  });
         is_passable_NESW(c, {4, 4}, { true,  true,  true,  false });
 
-        fm_assert(neighbor_tiles(w, ch, {8, 8}).size == 0);
-        fm_assert(neighbor_tiles(w, ch, {8, 9}).size == 3);
-        fm_assert(neighbor_tiles(w, ch, {2, 4}).size == 3);
-        fm_assert(neighbor_tiles(w, ch, {4, 4}).size == 3);
+        fm_assert(neighbors(w, ch, {8, 8}).size == 0);
+        fm_assert(neighbors(w, ch, {8, 9}).size == 3);
+        fm_assert(neighbors(w, ch, {2, 4}).size == 3);
+        fm_assert(neighbors(w, ch, {4, 4}).size == 3);
     }
+
+    fm_assert(test_offsets2());
+    fm_assert(test_offsets());
+
 #if 0
     {
         constexpr auto ch = chunk_coords_{};

@@ -21,110 +21,10 @@ constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
-constexpr Pair<Vector2i, Vector2i> get_value(Vector2ub sz, Vector2ub div, rotation r)
-{
-    const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
-    const auto r_ = (uint8_t)r;
-    CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
-
-    switch (r_)
-    {
-    case (uint8_t)rotation::N: {
-        auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
-        auto max_N = Vector2i(min_N.x() + sz.x(),               sz.y() - sz.y()/2               );
-        return {min_N, max_N};
-    }
-    case (uint8_t)rotation::S: {
-        auto min_S = Vector2i(-sz.x()/2,                        -sz.y()                         );
-        auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N + sz.y() - sz.y()/2    );
-        return {min_S, max_S};
-    }
-    case (uint8_t)rotation::W: {
-        auto min_W = Vector2i(-offset_W - sz.x()/2,             -sz.y()/2                       );
-        auto max_W = Vector2i(sz.x() - sz.x()/2,                min_W.y() + sz.y()              );
-        return {min_W, max_W};
-    }
-    case (uint8_t)rotation::E: {
-        auto min_E = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
-        auto max_E = Vector2i(offset_W + sz.x() - sz.x()/2,     min_E.y() + sz.y()              );
-        return {min_E, max_E};
-    }
-    case (uint8_t)rotation_COUNT: {
-        auto min_C = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
-        auto max_C = min_C + Vector2i(sz);
-        return {min_C, max_C};
-    }
-    default:
-        fm_abort("wrong 4-way rotation enum '%d'", (int)r);
-    }
-}
-
-#if 0
-[[maybe_unused]] constexpr bool test_offsets()
-{
-    constexpr auto sz_  = Vector2ub(path_search::min_size);
-    constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
-
-    [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
-    [[maybe_unused]] constexpr auto min_N = N.first() + shift, max_N = N.second() + shift;
-    [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
-    [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
-
-    [[maybe_unused]] constexpr auto E = get_value(sz_, {1,1}, rotation::E);
-    [[maybe_unused]] constexpr auto min_E = E.first() + shift, max_E = E.second() + shift;
-    [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
-    [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
-
-    [[maybe_unused]] constexpr auto S = get_value(sz_, {1,1}, rotation::S);
-    [[maybe_unused]] constexpr auto min_S = S.first() + shift, max_S = S.second() + shift;
-    [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
-    [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
-
-    [[maybe_unused]] constexpr auto W = get_value(sz_, {1,1}, rotation::W);
-    [[maybe_unused]] constexpr auto min_W = W.first() + shift, max_W = W.second() + shift;
-    [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
-    [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
-
-    return true;
-}
-static_assert(test_offsets());
-#endif
-
-#if 0
-[[maybe_unused]] constexpr bool test_offsets2()
-{
-    using enum rotation;
-    constexpr auto tile_start = iTILE_SIZE2/-2;
-    constexpr auto sz = Vector2ub(8, 16);
-
-    {
-        constexpr auto bb = get_value(sz, Vector2ub(div), N);
-        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
-        static_assert(min.x() == -32 - sz.x()/2);
-        static_assert(max.x() == -32 + sz.x()/2);
-        static_assert(min.y() == -48 - sz.y()/2);
-        static_assert(max.y() == -32 + sz.y()/2);
-    }
-    {
-        constexpr auto bb = get_value(sz, Vector2ub(div), W);
-        constexpr auto min = tile_start + bb.first(), max = tile_start + bb.second();
-        static_assert(min.x() == -32 - 16 - sz.x()/2);
-        static_assert(max.x() == -32 + sz.x()/2);
-        static_assert(min.y() == -32 - sz.y()/2);
-        static_assert(max.y() == -32 + sz.y()/2);
-    }
-
-    return true;
-}
-static_assert(test_offsets2());
-#endif
 
 } // namespace
 
-
-
-path_search::neighbors::operator ArrayView<const global_coords>() const { return {data.data(), size}; }
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
 auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
@@ -206,44 +106,6 @@ bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Ve
 bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb, object_id own_id, const pred& p)
 {
     return is_passable(w, ch, bb.min, bb.max, own_id, p);
-}
-
-auto path_search::neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
-{
-    own_size = Math::max(own_size, Vector2ub(min_size));
-    const auto shift = coord * iTILE_SIZE2;
-    auto [min, max] = get_value(own_size, div, r);
-    return { Vector2(min + shift), Vector2(max + shift) };
-}
-
-auto path_search::neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
-{
-    auto ch = chunk_coords_{ coord.chunk(), coord.z() };
-    auto pos = Vector2i(coord.local());
-    constexpr auto min_size = Vector2ub(iTILE_SIZE2/4);
-    size = Math::max(size, min_size);
-
-    neighbors ns;
-
-    using enum rotation;
-    constexpr struct {
-        Vector2i off;
-        rotation r = {};
-    } nbs[] = {
-        { {  0, -1 }, N },
-        { {  1,  0 }, E },
-        { {  0,  1 }, S },
-        { { -1,  0 }, W },
-    };
-
-    for (auto [off, r] : nbs)
-    {
-        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
-        if (is_passable(w, ch, min, max, own_id, p))
-            ns.data[ns.size++] = { coord + off, {} };
-    }
-
-    return ns;
 }
 
 } // namespace floormat
