@@ -89,8 +89,8 @@ struct astar
     static edge make_edge(const point& a, const point& b);
 
     // todo add simple bresenham short-circuit
-    path_search_result Dijkstra(world& w, Vector2ub own_size, object_id own_id,
-                                point from, point to, uint32_t max_dist,
+    path_search_result Dijkstra(world& w, point from, point to,
+                                object_id own_id, uint32_t max_dist, Vector2ub own_size,
                                 const pred& p = path_search::never_continue());
 
     static constexpr auto div_factor = path_search::div_factor;

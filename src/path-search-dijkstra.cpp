@@ -88,22 +88,6 @@ public:
     }
 };
 
-class box
-{
-    using visited = astar::visited;
-    std::vector<visited>& vec; // NOLINT
-    uint32_t id;
-
-public:
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(box);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(box);
-
-    visited& operator*() { return vec[id]; }
-    visited* operator->() { return &vec[id]; }
-
-    box(std::vector<visited>& vec, uint32_t id) : vec{vec}, id{id} {}
-};
-
 uint32_t distance(point a, point b)
 {
     Vector2i dist;
@@ -184,8 +168,8 @@ size_t astar::edge_hash::operator()(const edge& e) const
 #endif
 }
 
-path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id own_id,
-                                   point from_, point to_, uint32_t max_dist, const pred& p)
+path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,
+                                   Vector2ub own_size, const pred& p)
 {
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
@@ -230,24 +214,37 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         }
     }
 
-    auto closest = (uint32_t)-1;
+    auto closest = distance({from, from_offset}, {to, to_offset});
+    auto closest_pos = point{from, from_offset};
+    uint32_t closest_path_len = 0;
 
     while (!Q.empty())
     {
         const auto id = pop_from_heap();
-        auto node = box{nodes, id};
+        global_coords n_coord;
+        Vector2b n_offset;
+        uint32_t n_dist;
+        {
+            auto& n = nodes[id];
+            n_coord = n.coord;
+            n_offset = n.offset;
+            n_dist = n.dist;
+        }
 
-        if (auto d = distance({node->coord, node->offset}, {to, to_offset}); d < closest)
+        if (auto d = distance({n_coord, n_offset}, {to, to_offset}); d < closest)
+        {
             closest = d;
+            closest_pos = {n_coord, n_offset};
+            closest_path_len = n_dist;
+        }
 
         //Debug{} << "node" << id << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
-
-        const auto bb0 = bbox_from_pos(Vector2(node->coord.local()), node->offset, own_size);
+        const auto bb0 = bbox_from_pos(Vector2(n_coord.local()), n_offset, own_size);
 
         for (auto [vec, len] : directions)
         {
-            auto [new_coord, new_offset] = object::normalize_coords(node->coord, node->offset, vec);
-            const auto dist = node->dist + len;
+            auto [new_coord, new_offset] = object::normalize_coords(n_coord, n_offset, vec);
+            const auto dist = n_dist + len;
             if (dist >= max_dist)
                 continue;
 
@@ -293,9 +290,11 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         }
     }
 
-    //DBG << "done!" << nodes.size() << "nodes," << indexes.size() << "indexes," << edges.size() << "edges.";
+    fm_debug_assert(nodes.size() == indexes.size());
+    DBG_nospace << "dijkstra: closest px:" << closest << " path:" << closest_path_len
+                << " pos:" << closest_pos.coord.to_signed() << ";" << closest_pos.offset
+                << " nodes:" << nodes.size() << " edges:" << edges.size();
 
-    Debug{} << "closest" << closest;
     // todo...
     return result;
 }
