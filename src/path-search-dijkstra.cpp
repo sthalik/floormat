@@ -168,7 +168,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         auto& node = nodes[id];
         fm_debug_assert(node.dist != (uint32_t)-1);
 
-        Debug{} << "node" << id << node.coord.to_signed3() << node.dist;
+        Debug{} << "node" << id << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
 
         const auto bb0 = bbox_from_pos(Vector2(node.coord.local()), node.offset, own_size);
 
@@ -176,13 +176,11 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         {
             auto [new_coord, new_offset] = object::normalize_coords(node.coord, node.offset, vec);
             const auto dist = node.dist + len;
-            fm_assert(len);
-            fm_assert(dist);
             if (dist >= max_dist)
                 continue;
 
             const auto sz = nodes.size();
-            auto [it, found] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, sz);
+            auto [it, created] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, sz);
             const auto new_idx = it.value();
 
             if (new_idx == sz)
@@ -196,12 +194,12 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
             auto& node = nodes[new_idx];
 
-            if (found && dist >= node.dist)
+            if (!created && dist >= node.dist)
                 continue;
             node.dist = dist;
 
             auto e = make_edge({node.coord, node.offset}, {new_coord, new_offset});
-            if (auto [it, found] = edges.try_emplace(e, edge_status::unknown); !found)
+            if (auto [it, created] = edges.try_emplace(e, edge_status::unknown); created)
             {
                 auto& status = it.value();
                 auto vec_ = Vector2(vec);
@@ -217,10 +215,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
                 }
             }
 
-            if (!found)
-                Debug{} << " new" << new_idx << node.coord.to_signed3() << node.dist;
-            else
-                Debug{} << " old" << new_idx << node.coord.to_signed3() << node.dist;
+            Debug{} << (created ? " new" : " old") << new_idx << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
 
             Q.push_back(new_idx);
             std::push_heap(Q.begin(), Q.end(), heap_comparator);
