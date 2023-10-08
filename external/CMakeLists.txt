@@ -81,7 +81,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_WINDOWLESSCGLAPPLICATION               OFF
 
          MAGNUM_WITH_ANYAUDIOIMPORTER                       OFF
-         MAGNUM_WITH_ANYIMAGEIMPORTER                       OFF
+         MAGNUM_WITH_ANYIMAGEIMPORTER                       ON
          MAGNUM_WITH_ANYSCENEIMPORTER                       OFF
          MAGNUM_WITH_ASSIMPIMPORTER                         OFF
          MAGNUM_WITH_ASTCIMPORTER                           OFF
