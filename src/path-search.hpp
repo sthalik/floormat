@@ -72,6 +72,21 @@ class astar
         bool operator==(const edge& other) const;
     };
 
+    class box
+    {
+        std::vector<visited>& vec; // NOLINT
+        uint32_t id;
+
+    public:
+        fm_DECLARE_DELETED_COPY_ASSIGNMENT(box);
+        fm_DECLARE_DELETED_MOVE_ASSIGNMENT(box);
+
+        visited& operator*() { return vec[id]; }
+        visited* operator->() { return &vec[id]; }
+
+        box(std::vector<visited>& vec, uint32_t id) : vec{vec}, id{id} {}
+    };
+
     enum class edge_status : uint8_t
     {
         // good, bad, I'm the man with the gun.

@@ -145,13 +145,14 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
 
     if (!from_offset.isZero())
     {
+        uint32_t idx = 1;
         // todo also add 4 subdivisions within the tile the same way
         auto bb = bbox_union(start_bbox, Vector2i(from.local()), {}, own_size);
         if (path_search::is_passable(w, chunk_coords_{from}, bb, own_id, p))
         {
-            indexes[{from, {}}] = 1;
+            indexes[{from, {}}] = idx;
             nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = {}});
-            Q.push_back(1);
+            Q.push_back(idx++);
             std::push_heap(Q.begin(), Q.end(), heap_comparator);
         }
     }
@@ -162,18 +163,16 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         const auto id = Q.back();
         Q.pop_back();
 
-        fm_debug_assert(id < nodes.size());
-        auto& node = nodes[id];
-        fm_debug_assert(node.dist != (uint32_t)-1);
+        auto node = box{nodes, id};
 
         //Debug{} << "node" << id << "|" << node.coord.to_signed3() << node.offset << "|" << node.dist;
 
-        const auto bb0 = bbox_from_pos(Vector2(node.coord.local()), node.offset, own_size);
+        const auto bb0 = bbox_from_pos(Vector2(node->coord.local()), node->offset, own_size);
 
         for (auto [vec, len] : directions)
         {
-            auto [new_coord, new_offset] = object::normalize_coords(node.coord, node.offset, vec);
-            const auto dist = node.dist + len;
+            auto [new_coord, new_offset] = object::normalize_coords(node->coord, node->offset, vec);
+            const auto dist = node->dist + len;
             if (dist >= max_dist)
                 continue;
 
@@ -221,7 +220,7 @@ path_search_result astar::Dijkstra(world& w, Vector2ub own_size, const object_id
         }
     }
 
-    Debug {} << "done";
+    //Debug {} << "done!" << nodes.size() << "nodes";
 
     // todo...
     return result;
