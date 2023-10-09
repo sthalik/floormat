@@ -264,17 +264,23 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
             if (dist >= max_dist)
                 continue;
 
-            #ifdef FM_ASTAR_NO_EDGE_CACHE
+            const auto new_pt = point{.coord = new_coord, .offset = new_offset};
+
+            if (auto it = indexes.find(new_pt); it != indexes.end())
+                if (nodes[it->second].dist >= dist)
+                    continue;
+
+#ifdef FM_ASTAR_NO_EDGE_CACHE
             {  auto vec_ = Vector2(vec);
                auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
                auto bb = bbox_union(bb1, bb0);
                if (!path_search::is_passable(w, chunk_coords_(new_coord), bb, own_id, p))
                    continue;
             }
-            #endif
+#endif
 
             const auto sz = nodes.size();
-            auto [it, fresh] = indexes.try_emplace({.coord = new_coord, .offset = new_offset}, sz);
+            auto [it, fresh] = indexes.try_emplace(new_pt, sz);
             const auto new_idx = it.value();
 
             if (new_idx == sz)

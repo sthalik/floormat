@@ -81,7 +81,7 @@ struct astar
                                 object_id own_id, uint32_t max_dist, Vector2ub own_size,
                                 int debug = 0, const pred& p = path_search::never_continue());
 
-//#define FM_ASTAR_NO_EDGE_CACHE
+#define FM_ASTAR_NO_EDGE_CACHE
 
 private:
     static constexpr auto div_factor = (int8_t)path_search::div_factor;
