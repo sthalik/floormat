@@ -126,7 +126,7 @@ fm_UNROLL_2
         auto& off = off_new[i];
         auto sign = Math::sign(off);
         auto absval = Math::abs(off);
-        if (absval > half_tile[i])
+        if (off >= half_tile[i]-1 || off < half_tile[i])
         {
             tiles[i] += sign;
             off = (tile_size[i] - absval)*-sign;
