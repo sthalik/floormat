@@ -80,7 +80,8 @@ bool object::is_virtual() const
     return false;
 }
 
-bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
+                        Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
@@ -121,14 +122,15 @@ point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_o
     int8_t off[2] = { (int8_t)(tmp[0] % tile_size[0]),  (int8_t)(tmp[1] % tile_size[1]) };
 
 fm_UNROLL_2
-    for (auto i = 0uz; i < 2; i++)
+    for (int i = 0; i < 2; i++)
     {
         auto& x = off[i];
-        auto sign = Math::sign(x);
+        auto a = Math::abs(x);
+        auto s = Math::sign(x);
         if (x >= half_tile[i] || x < -half_tile[i])
         {
-            tiles[i] += sign;
-            x = (int8_t)((tile_size[i] - Math::abs(x))*-sign);
+            tiles[i] += s;
+            x = (int8_t)((tile_size[i] - a)*-s);
         }
     }
     return {
@@ -143,7 +145,8 @@ point object::normalize_coords(const point& pt, Vector2i delta)
 }
 
 template<bool neighbor = true>
-static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector2 min, Vector2 max, Vector2b off = {})
+static bool do_search(struct chunk* c, chunk_coords_ coord,
+                      object_id id, Vector2 min, Vector2 max, Vector2b off = {})
 {
     if constexpr(neighbor)
     {
@@ -170,7 +173,8 @@ static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector
     return ret;
 }
 
-bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
+bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
+                         Vector2b bbox_offset, Vector2ub bbox_size)
 {
     auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
 
@@ -227,12 +231,9 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
-        //for (auto i = 0uz; const auto& x : es) fm_debug("%zu %s %f", i++, x->atlas->name().data(), x->ordinal());
-        //fm_debug("insert (%hd;%hd|%hhd;%hhd) %td -> %zu | %f", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y, pos1, es.size(), e.ordinal());
     }
     else
     {
-        //fm_debug("change-chunk (%hd;%hd|%hhd;%hhd)", coord_.chunk().x, coord_.chunk().y, coord_.local().x, coord_.local().y);
         auto& c2 = w[chunk_coords_{coord_}];
         if (!is_dynamic())
             c2.mark_scenery_modified();
@@ -255,11 +256,11 @@ void object::move_to(Magnum::Vector2i delta)
     move_to(i, delta, r);
 }
 
-void object::set_bbox_(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass_)
+void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
     const_cast<Vector2b&>(offset) = offset_;
-    const_cast<Vector2b&>(bbox_offset) = bbox_offset_;
-    const_cast<Vector2ub&>(bbox_size) = bbox_size_;
+    const_cast<Vector2b&>(bbox_offset) = bb_offset_;
+    const_cast<Vector2ub&>(bbox_size) = bb_size_;
     const_cast<pass_mode&>(pass) = pass_;
 }
 
@@ -278,7 +279,7 @@ object::operator object_proto() const
     return ret;
 }
 
-void object::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_size_, pass_mode pass)
+void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass)
 {
     if (offset != offset_)
         if (!is_dynamic())
@@ -286,7 +287,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bbox_offset_, Vector2ub bbox_si
 
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
-    set_bbox_(offset_, bbox_offset_, bbox_size_, pass);
+    set_bbox_(offset_, bb_offset_, bb_size_, pass);
     const bool b = c->_bbox_for_scenery(*this, bb);
     c->_replace_bbox(bb0, bb, b0, b);
 }
