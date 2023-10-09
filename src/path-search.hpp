@@ -90,7 +90,7 @@ private:
 
 #define FM_ASTAR_NO_EDGE_CACHE 1
 
-#ifndef FM_ASTAR_NO_EDGE_CACHE
+#if !FM_ASTAR_NO_EDGE_CACHE
     struct edge
     {
         global_coords from, to;

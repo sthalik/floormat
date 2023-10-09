@@ -127,7 +127,7 @@ uint32_t astar::pop_from_heap()
     return id;
 }
 
-#ifndef FM_ASTAR_NO_EDGE_CACHE
+#if !FM_ASTAR_NO_EDGE_CACHE
 auto astar::make_edge(const point& a, const point& b) -> edge
 {
     if (a < b)
@@ -277,7 +277,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                     continue;
             }
 
-#ifdef FM_ASTAR_NO_EDGE_CACHE
+#if FM_ASTAR_NO_EDGE_CACHE
             {   auto vec_ = Vector2(vec);
                 auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
                 auto bb = bbox_union(bb1, bb0);
@@ -331,7 +331,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
         DBG_nospace << "dijkstra: closest px:" << closest << " path:" << closest_path_len
                     << " pos:" << closest_pos.coord.to_signed() << ";" << closest_pos.offset
                     << " nodes:" << nodes.size()
-#ifndef FM_ASTAR_NO_EDGE_CACHE
+#if !FM_ASTAR_NO_EDGE_CACHE
                     << " edges:" << edges.size()
 #endif
             ;
