@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "path-search.hpp"
+#include "src/path-search.hpp"
 #include "loader/loader.hpp"
 #include <Magnum/Math/Functions.h>
 #include <chrono>

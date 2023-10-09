@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "global-coords.hpp"
-#include "tile-image.hpp"
-#include "scenery.hpp"
+#include "src/global-coords.hpp"
+#include "src/tile-image.hpp"
+#include "src/scenery.hpp"
 #include "editor-enums.hpp"
 #include "tile-editor.hpp"
 #include "scenery-editor.hpp"

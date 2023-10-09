@@ -1,9 +1,9 @@
 #include "anim.hpp"
-#include "anim-atlas.hpp"
-#include "chunk.hpp"
+#include "src/anim-atlas.hpp"
+#include "src/chunk.hpp"
 #include "shaders/shader.hpp"
 #include "main/clickable.hpp"
-#include "chunk-scenery.hpp"
+#include "src/chunk-scenery.hpp"
 #include <cstdio>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>

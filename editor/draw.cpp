@@ -9,7 +9,7 @@
 #include "src/world.hpp"
 #include "src/critter.hpp"
 
-#include "rotation.inl"
+#include "src/rotation.inl"
 #include "src/RTree-search.hpp"
 
 #include <Magnum/Math/Color.h>

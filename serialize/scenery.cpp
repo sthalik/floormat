@@ -1,6 +1,6 @@
 #include "scenery.hpp"
 #include "compat/exception.hpp"
-#include "anim-atlas.hpp"
+#include "src/anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "serialize/corrade-string.hpp"

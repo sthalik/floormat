@@ -4,7 +4,7 @@
 #include "compat/assert.hpp"
 #include "src/world.hpp"
 #include "src/RTree-search.hpp"
-#include "rotation.inl"
+#include "src/rotation.inl"
 #include "app.hpp"
 #include <Magnum/Math/Range.h>
 

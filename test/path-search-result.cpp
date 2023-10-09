@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "path-search-result.hpp"
+#include "src/path-search-result.hpp"
 
 namespace floormat {
 

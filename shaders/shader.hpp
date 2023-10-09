@@ -1,5 +1,5 @@
 #pragma once
-#include "tile-defs.hpp"
+#include "src/tile-defs.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>

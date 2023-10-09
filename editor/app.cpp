@@ -4,7 +4,7 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
-#include "world.hpp"
+#include "src/world.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
 #include <cerrno>

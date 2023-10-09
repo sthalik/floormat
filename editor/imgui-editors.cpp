@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "imgui-raii.hpp"
-#include "anim-atlas.hpp"
+#include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>

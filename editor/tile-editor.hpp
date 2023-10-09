@@ -2,7 +2,7 @@
 
 #include "editor-enums.hpp"
 #include "src/tile-image.hpp"
-#include "global-coords.hpp"
+#include "src/global-coords.hpp"
 #include <vector>
 #include <map>
 #include <memory>

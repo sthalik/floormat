@@ -1,9 +1,9 @@
 #include "wall.hpp"
-#include "tile-atlas.hpp"
+#include "src/tile-atlas.hpp"
 #include "shaders/shader.hpp"
-#include "chunk.hpp"
-#include "tile-image.hpp"
-#include "anim-atlas.hpp"
+#include "src/chunk.hpp"
+#include "src/tile-image.hpp"
+#include "src/anim-atlas.hpp"
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>
 

@@ -1,7 +1,7 @@
 #include "app.hpp"
-#include "chunk.hpp"
-#include "world.hpp"
-#include "tile-iterator.hpp"
+#include "src/chunk.hpp"
+#include "src/world.hpp"
+#include "src/tile-iterator.hpp"
 namespace floormat {
 
 static inline bool always_false()

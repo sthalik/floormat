@@ -1,9 +1,9 @@
 #include "tile-editor.hpp"
-#include "tile-atlas.hpp"
-#include "world.hpp"
+#include "src/tile-atlas.hpp"
+#include "src/world.hpp"
+#include "src/random.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
-#include "random.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>

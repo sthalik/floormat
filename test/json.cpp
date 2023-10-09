@@ -4,12 +4,12 @@
 #include "serialize/tile.hpp"
 #include "serialize/json-helper.hpp"
 #include "compat/assert.hpp"
-#include "tile-atlas.hpp"
-#include "tile.hpp"
-#include "chunk.hpp"
-#include "world.hpp"
+#include "src/tile-atlas.hpp"
+#include "src/tile.hpp"
+#include "src/tile-iterator.hpp"
+#include "src/chunk.hpp"
+#include "src/world.hpp"
 #include "loader/loader.hpp"
-#include "tile-iterator.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 

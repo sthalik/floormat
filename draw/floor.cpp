@@ -1,8 +1,7 @@
 #include "floor.hpp"
 #include "shaders/shader.hpp"
-#include "tile.hpp"
-#include "chunk.hpp"
-#include "tile-atlas.hpp"
+#include "src/chunk.hpp"
+#include "src/tile-atlas.hpp"
 #include "compat/assert.hpp"
 #include <Magnum/GL/MeshView.h>
 

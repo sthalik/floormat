@@ -5,7 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "inspect.hpp"
 #include "loader/loader.hpp"
-#include "chunk.hpp"
+#include "src/chunk.hpp"
 #include "src/critter.hpp"
 
 #include "src/light.hpp"

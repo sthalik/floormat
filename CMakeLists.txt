@@ -186,7 +186,6 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 include_directories(.)
-include_directories(src)
 
 #get_property(_fm-sdl2-include-dirs TARGET SDL2::SDL2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 get_property(_fm-json-include-dirs TARGET nlohmann_json::nlohmann_json PROPERTY INTERFACE_INCLUDE_DIRECTORIES)

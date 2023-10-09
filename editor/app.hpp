@@ -10,7 +10,7 @@
 #include "draw/box.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
-#include "object-id.hpp"
+#include "src/object-id.hpp"
 #include <memory>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>

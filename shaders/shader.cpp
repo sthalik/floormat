@@ -1,7 +1,7 @@
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
-#include "local-coords.hpp"
+#include "src/local-coords.hpp"
 #include <cmath>
 #include <Corrade/Containers/Iterable.h>
 #include <Corrade/Containers/StringStl.h>

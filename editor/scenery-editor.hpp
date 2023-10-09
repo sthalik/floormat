@@ -1,5 +1,5 @@
 #pragma once
-#include "scenery.hpp"
+#include "src/scenery.hpp"
 #include <map>
 #include <memory>
 #include <Corrade/Containers/String.h>

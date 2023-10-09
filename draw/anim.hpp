@@ -1,7 +1,7 @@
 #pragma once
-#include "local-coords.hpp"
-#include "rotation.hpp"
-#include "chunk.hpp"
+#include "src/local-coords.hpp"
+#include "src/rotation.hpp"
+#include "src/chunk.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>

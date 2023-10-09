@@ -1,6 +1,6 @@
 #pragma once
 
-#include "light-falloff.hpp"
+#include "src/light-falloff.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>

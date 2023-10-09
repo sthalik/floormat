@@ -1,6 +1,6 @@
 #include "editor.hpp"
 #include "loader/loader.hpp"
-#include "tile-atlas.hpp"
+#include "src/tile-atlas.hpp"
 #include "src/world.hpp"
 #include "keys.hpp"
 

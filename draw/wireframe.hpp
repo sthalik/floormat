@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tile-defs.hpp"
+#include "src/tile-defs.hpp"
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
 #include "Magnum/GL/Texture.h"
