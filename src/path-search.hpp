@@ -81,14 +81,14 @@ struct astar
                                 object_id own_id, uint32_t max_dist, Vector2ub own_size,
                                 int debug = 0, const pred& p = path_search::never_continue());
 
-#define FM_ASTAR_NO_EDGE_CACHE
-
 private:
     static constexpr auto div_factor = (int8_t)path_search::div_factor;
     static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
 
     void add_to_heap(uint32_t id);
     uint32_t pop_from_heap();
+
+#define FM_ASTAR_NO_EDGE_CACHE 1
 
 #ifndef FM_ASTAR_NO_EDGE_CACHE
     struct edge

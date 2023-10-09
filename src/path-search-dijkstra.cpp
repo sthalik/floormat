@@ -7,14 +7,12 @@
 namespace floormat {
 
 template<typename T> using bbox = path_search::bbox<T>;
+using visited = astar::visited;
 
 namespace {
 
-constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
 constexpr auto div_size = path_search::div_size;
-constexpr auto min_size = path_search::min_size;
 constexpr auto goal_distance = div_size;
-using visited = astar::visited;
 
 template<typename T>
 requires std::is_arithmetic_v<T>
@@ -100,7 +98,7 @@ void astar::reserve(size_t capacity)
 {
     nodes.reserve(capacity);
     indexes.reserve(capacity);
-#ifndef FM_ASTAR_NO_EDGE_CACHE
+#if !FM_ASTAR_NO_EDGE_CACHE
     edges.reserve(capacity*4);
 #endif
     Q.reserve(capacity);
@@ -110,7 +108,7 @@ void astar::clear()
 {
     nodes.clear();
     indexes.clear();
-#ifndef FM_ASTAR_NO_EDGE_CACHE
+#if !FM_ASTAR_NO_EDGE_CACHE
     edges.clear();
 #endif
     Q.clear();
@@ -231,13 +229,14 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     while (!Q.empty())
     {
         const auto id = pop_from_heap();
+        point n_pt;
         global_coords n_coord;
         Vector2b n_offset;
         uint32_t n_dist;
-        {
-            auto& n = nodes[id];
+        {   auto& n = nodes[id];
             n_coord = n.coord;
             n_offset = n.offset;
+            n_pt = {n_coord, n_offset};
             n_dist = n.dist;
         }
 
@@ -266,39 +265,27 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
 
             const auto new_pt = point{.coord = new_coord, .offset = new_offset};
 
+            auto new_idx = (uint32_t)-1;
+            bool fresh = true;
+
             if (auto it = indexes.find(new_pt); it != indexes.end())
-                if (nodes[it->second].dist >= dist)
+            {
+                new_idx = it->second;
+                fresh = false;
+
+                if (nodes[new_idx].dist <= dist)
                     continue;
+            }
 
 #ifdef FM_ASTAR_NO_EDGE_CACHE
-            {  auto vec_ = Vector2(vec);
-               auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
-               auto bb = bbox_union(bb1, bb0);
-               if (!path_search::is_passable(w, chunk_coords_(new_coord), bb, own_id, p))
-                   continue;
+            {   auto vec_ = Vector2(vec);
+                auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
+                auto bb = bbox_union(bb1, bb0);
+                if (!path_search::is_passable(w, chunk_coords_(new_coord), bb, own_id, p))
+                    continue;
             }
-#endif
-
-            const auto sz = nodes.size();
-            auto [it, fresh] = indexes.try_emplace(new_pt, sz);
-            const auto new_idx = it.value();
-
-            if (new_idx == sz)
-            {
-                auto new_node = visited {
-                    .dist = dist, .prev = id,
-                    .coord = new_coord, .offset = new_offset,
-                };
-                nodes.push_back(new_node);
-            }
-
-            auto& node = nodes[new_idx];
-
-            if (!fresh && dist >= node.dist)
-                continue;
-            node.dist = dist;
-#ifndef FM_ASTAR_NO_EDGE_CACHE
-            auto e = make_edge({node.coord, node.offset}, {new_coord, new_offset});
+#else
+            auto e = make_edge(n_pt, {new_coord, new_offset});
             if (auto [it, fresh] = edges.try_emplace(e, edge_status::unknown); fresh)
             {
                 auto& status = it.value();
@@ -306,7 +293,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                 auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
                 auto bb = bbox_union(bb1, bb0);
 
-                if (path_search::is_passable(w, chunk_coords_(node.coord), bb, own_id, p))
+                if (path_search::is_passable(w, chunk_coords_(new_coord), bb, own_id, p))
                     status = edge_status::good;
                 else
                 {
@@ -315,6 +302,16 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                 }
             }
 #endif
+
+            if (fresh)
+            {   const auto sz = nodes.size();
+                new_idx = indexes[new_pt] = (uint32_t)sz;
+                auto new_node = visited {
+                    .dist = dist, .prev = id,
+                    .coord = new_coord, .offset = new_offset,
+                };
+                nodes.push_back(new_node);
+            }
 
 #ifndef FM_NO_DEBUG
             if (debug >= 3) [[unlikely]]
