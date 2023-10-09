@@ -38,7 +38,7 @@ class path_search final
 public:
     static constexpr int div_factor = 4;
     static constexpr auto div_size = iTILE_SIZE2 / div_factor;
-    static constexpr auto min_size = div_size * 2;
+    static constexpr auto min_size = Vector2ui(div_size * 2);
 
     template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
@@ -52,6 +52,7 @@ public:
                              Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size, object_id own_id, const pred& p = never_continue());
+    static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ui size, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p = never_continue());
 };
 

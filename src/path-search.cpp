@@ -92,13 +92,19 @@ bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 
     return is_passable_(c, neighbors, min, max, own_id, p);
 }
 
-bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size_,
+bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ui size_,
                               object_id own_id, const pred& p)
 {
     auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
     auto size = Vector2(size_);
     auto min = Vector2(center) - size*.5f, max = min + size;
     return is_passable(w, coord, min, max, own_id, p);
+}
+
+bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size,
+                              object_id own_id, const pred& p)
+{
+    return is_passable(w, coord, offset, Vector2ui(size), own_id, p);
 }
 
 bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb, object_id own_id, const pred& p)

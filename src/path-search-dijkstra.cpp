@@ -18,7 +18,7 @@ using visited = astar::visited;
 
 template<typename T>
 requires std::is_arithmetic_v<T>
-constexpr bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ub size)
+constexpr bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ui size)
 {
     auto center = coord * iTILE_SIZE2 + Vector2i(offset);
     auto min = center - Vector2i(size / 2);
@@ -64,29 +64,20 @@ constexpr auto directions = []() constexpr
 
 template<typename T>
 requires std::is_arithmetic_v<T>
-constexpr bbox<T> bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2ub size)
+constexpr auto bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2ui size)
 {
-    using Vec = VectorTypeFor<2, T>;
-    constexpr auto tile_size = Vec(iTILE_SIZE2);
-    const auto vec = pos * tile_size + Vec(offset);
-    const auto bb = bbox<float>{vec - Vec(size >> 1), vec + Vec(size)};
+    const auto vec = Vector2i(pos) * iTILE_SIZE2 + Vector2i(offset);
+    const auto min = vec - Vector2i(size / 2);
+    const auto max = vec + Vector2i(size);
+    const auto bb = bbox<float>{Vector2(min), Vector2(max)};
     return bb;
 }
 
-class heap_comparator
+struct heap_comparator
 {
     const std::vector<visited>& nodes; // NOLINT
-
-public:
-    heap_comparator(const std::vector<visited>& nodes) : nodes{nodes} {}
-
-    inline bool operator()(uint32_t a, uint32_t b) const
-    {
-        fm_debug_assert(std::max(a, b) < nodes.size());
-        const auto& n1 = nodes[a];
-        const auto& n2 = nodes[b];
-        return n2.dist < n1.dist;
-    }
+    inline heap_comparator(const std::vector<visited>& nodes) : nodes{nodes} {}
+    inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
 };
 
 uint32_t distance(point a, point b)
@@ -175,16 +166,20 @@ size_t astar::point_hash::operator()(point pt) const
 #endif
 }
 
-path_search_result astar::Dijkstra(world& w, point from_, point to_,object_id own_id, uint32_t max_dist,
-                                   Vector2ub own_size, int debug, const pred& p)
+path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,
+                                   Vector2ub own_size_, int debug, const pred& p)
 {
 #ifdef FM_NO_DEBUG
     (void)debug;
 #endif
+
+    clear();
+
+    constexpr auto min_size_ = Vector2ui{Vector2(div_size) * 1.5f + Vector2{.5f}};
+    const auto own_size = Math::max(Vector2ui{Vector2{own_size_}*1.5f + Vector2{.5f}}, min_size_);
+
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
-
-    own_size = Math::max(own_size, Vector2ub(min_size));
 
     if (from.z() != to.z()) [[unlikely]]
         return {};
@@ -193,15 +188,14 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_,object_id ow
     if (from.z() != 0) [[unlikely]]
         return {};
 
+    const auto from_local = Vector2i(from.local());
+
     if (!path_search::is_passable(w, from, from_offset, own_size, own_id, p))
         return {};
 
     if (!path_search::is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
 
-    clear();
-
-    const auto from_local = Vector2i(from.local());
     const auto start_bbox = bbox_from_pos(Vector2(from_local), from_offset, own_size);
 
     path_search_result result;
