@@ -12,7 +12,6 @@ using visited = astar::visited;
 namespace {
 
 constexpr auto div_size = path_search::div_size;
-constexpr auto goal_distance = div_size;
 
 template<typename T>
 requires std::is_arithmetic_v<T>
@@ -175,6 +174,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
 
     constexpr auto min_size_ = Vector2ui{Vector2(div_size) * 1.5f + Vector2{.5f}};
     const auto own_size = Math::max(Vector2ui{Vector2{own_size_}*1.5f + Vector2{.5f}}, min_size_);
+    const auto goal_distance = (uint32_t)(own_size * 2).length();
 
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
