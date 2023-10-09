@@ -116,6 +116,7 @@ point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2
 {
     auto off_tmp = Vector2i(cur_offset) + new_offset;
     auto off_new = off_tmp % iTILE_SIZE2;
+    auto tiles   = off_tmp / iTILE_SIZE2;
     constexpr auto half_tile = iTILE_SIZE2/2;
     for (auto i = 0uz; i < 2; i++)
     {
@@ -129,7 +130,7 @@ point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2
             off_new[i] = (iTILE_SIZE[i] - absval)*-sign;
         }
     }
-    return { coord, Vector2b(off_new) };
+    return { coord + tiles, Vector2b(off_new) };
 }
 
 point object::normalize_coords(const point& pt, Vector2i delta)
