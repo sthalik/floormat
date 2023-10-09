@@ -66,6 +66,7 @@
 #define fm_UNROLL _Pragma("loop(ivdep)")
 #define fm_UNROLL_4 fm_UNROLL
 #define fm_UNROLL_8 fm_UNROLL
+#define fm_UNROLL_2 fm_UNROLL
 #else
 #ifndef __SIZEOF_POINTER__
 #error "missing __SIZEOF_POINTER__"
