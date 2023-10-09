@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "path-search.hpp"
 #include "loader/loader.hpp"
+#include <Magnum/Math/Functions.h>
 #include <chrono>
 #include <Corrade/Containers/StringView.h>
 
@@ -35,25 +36,34 @@ void test_app::test_dijkstra()
     auto w = world();
     auto a = astar();
 
-    auto metal2 = tile_image_proto{loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked), 0};
-    auto& ch = w[chunk_coords_{0,0,0}];
+#if 1
+    constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
+    constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
+    constexpr auto wch = chunk_coords_{chunk_coords_{wcx, wcy,0}};
+    constexpr auto wt = local_coords{wtx, wty};
+    constexpr auto wpos = global_coords{wch, wt};
 
-#if 0
+    auto metal2 = tile_image_proto{loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked), 0};
+    auto& ch  = w[chunk_coords_{0,0,0}];
+    auto& ch2 = w[wch];
+
     ch[{4, 4}].wall_west()  = metal2;
     ch[{4, 4}].wall_north() = metal2;
-    ch[{8, 8}].wall_west()  = metal2;
-    ch[{8, 8}].wall_north() = metal2;
-    ch[{9, 8}].wall_west()  = metal2;
-    ch[{8, 7}].wall_north() = metal2;
+
+    ch2[{ wtx,   wty   }].wall_west()  = metal2;
+    ch2[{ wtx,   wty   }].wall_north() = metal2;
+    ch2[{ wtx+1, wty   }].wall_west()  = metal2;
+    ch2[{ wtx,   wty -1}].wall_north() = metal2;
 #endif
-    ch.mark_modified();
+
+    fm_assert(ch.is_passability_modified());
 
     bench_run("Dijkstra", [&] {
-      constexpr auto max_dist = Vector2ui(2*TILE_MAX_DIM*iTILE_SIZE2).length();
       a.Dijkstra(w,
-                 {{0, 0, 0},   {0, 0}}, // from
-                 {{16, 16, 0}, {7, 9}}, // to
-                 0, max_dist, {32,32}); // size
+                 {{ 0, 0,  0}, {11, 9}}, // from
+                 {wpos, {wox, woy}},     // to
+                 0, max_dist,  {32,32},  // size
+                 1);
     });
 }
 

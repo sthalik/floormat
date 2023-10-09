@@ -65,6 +65,31 @@ struct astar
         Vector2b offset;
     };
 
+    using pred = path_search::pred;
+    template<typename T> using bbox = path_search::bbox<T>;
+    struct point_hash { size_t operator()(point pt) const; };
+
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
+
+    astar();
+    void reserve(size_t capacity);
+    void clear();
+
+    // todo add simple bresenham short-circuit
+    path_search_result Dijkstra(world& w, point from, point to,
+                                object_id own_id, uint32_t max_dist, Vector2ub own_size,
+                                int debug = 0, const pred& p = path_search::never_continue());
+
+//#define FM_ASTAR_NO_EDGE_CACHE
+
+private:
+    static constexpr auto div_factor = (int8_t)path_search::div_factor;
+    static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
+
+    void add_to_heap(uint32_t id);
+    uint32_t pop_from_heap();
+
+#ifndef FM_ASTAR_NO_EDGE_CACHE
     struct edge
     {
         global_coords from, to;
@@ -72,33 +97,14 @@ struct astar
 
         bool operator==(const edge& other) const;
     };
-
-    using pred = path_search::pred;
     enum class edge_status : uint8_t { unknown, good, bad, };
-    template<typename T> using bbox = path_search::bbox<T>;
-    struct point_hash { size_t operator()(point pt) const; };
     struct edge_hash { size_t operator()(const edge& e) const; };
-
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
-
-    astar();
-    void reserve(size_t capacity);
-    void clear();
-    void add_to_heap(uint32_t id);
-    uint32_t pop_from_heap();
     static edge make_edge(const point& a, const point& b);
 
-    // todo add simple bresenham short-circuit
-    path_search_result Dijkstra(world& w, point from, point to,
-                                object_id own_id, uint32_t max_dist, Vector2ub own_size,
-                                int debug = 0, const pred& p = path_search::never_continue());
-
-    static constexpr auto div_factor = path_search::div_factor;
-    static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
-
-private:
-    std::vector<visited> nodes;
     tsl::robin_map<edge, edge_status, edge_hash> edges;
+#endif
+
+    std::vector<visited> nodes;
     tsl::robin_map<point, uint32_t, point_hash> indexes;
     std::vector<uint32_t> Q;
 };
