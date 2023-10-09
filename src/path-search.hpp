@@ -38,7 +38,7 @@ class path_search final
 public:
     static constexpr int div_factor = 4;
     static constexpr auto div_size = iTILE_SIZE2 / div_factor;
-    static constexpr auto min_size = div_size / 2;
+    static constexpr auto min_size = div_size * 2;
 
     template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
 
