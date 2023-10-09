@@ -92,11 +92,13 @@
     {                                                                   \
         if (a != b) [[unlikely]]                                        \
         {                                                               \
-            DBG_nospace << "assertion failed: fm_assert_equal("         \
-                        << #__VA_ARGS__ << ")";                         \
-            DBG_nospace << "in" << __FILE__ << ":" << __LINE__;         \
-            DBG_nospace << "  expected: " << a;                         \
-            DBG_nospace << "    actual: " << b;                         \
+            DBG_nospace << __FILE__ << ":" << __LINE__ << ": "          \
+                        << Debug::color(Debug::Color::Red)              \
+                        << "fatal:"                                     \
+                        << Debug::resetColor                            \
+                        << " assertion failed: " << #__VA_ARGS__;       \
+            DBG_nospace << "    expected: " << b;                       \
+            DBG_nospace << "      actual: " << a;                       \
             fm_EMIT_ABORT();                                            \
         }                                                               \
     })(__VA_ARGS__)

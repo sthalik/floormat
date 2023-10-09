@@ -115,8 +115,8 @@ void object::rotate(size_t, rotation new_r)
 point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
 {
     auto off_tmp = Vector2i(cur_offset) + new_offset;
-    auto off_new = off_tmp % iTILE_SIZE2;
-    auto tiles   = off_tmp / iTILE_SIZE2;
+    int off_new[2] = { off_tmp.x() % iTILE_SIZE2.x(), off_tmp.y() % iTILE_SIZE2.y() };
+    int tiles[2] = { off_tmp.x() / iTILE_SIZE2.x(), off_tmp.y() / iTILE_SIZE2.y() };
     constexpr auto half_tile = iTILE_SIZE2/2;
     for (auto i = 0uz; i < 2; i++)
     {
@@ -130,7 +130,10 @@ point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2
             off_new[i] = (iTILE_SIZE[i] - absval)*-sign;
         }
     }
-    return { coord + tiles, Vector2b(off_new) };
+    return {
+        coord + Vector2i(tiles[0], tiles[1]),
+        { (int8_t)off_new[0], (int8_t)off_new[1] },
+    };
 }
 
 point object::normalize_coords(const point& pt, Vector2i delta)
