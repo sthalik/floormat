@@ -93,8 +93,8 @@
         if (a != b) [[unlikely]]                                        \
         {                                                               \
             DBG_nospace << "assertion failed: fm_assert_equal("         \
-                        << #__VA_ARGS__ << ") in "                      \
-                        << __FILE__ << ":" << __LINE__;                 \
+                        << #__VA_ARGS__ << ")";                         \
+            DBG_nospace << "in" << __FILE__ << ":" << __LINE__;         \
             DBG_nospace << "  expected: " << a;                         \
             DBG_nospace << "    actual: " << b;                         \
             fm_EMIT_ABORT();                                            \
