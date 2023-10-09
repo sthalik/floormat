@@ -41,7 +41,7 @@ void test_app::test_dijkstra()
                  debug);
     };
 
-    //do_bench(0);
+    do_bench(0);
     bench_run("Dijkstra", [&] {
       a.Dijkstra(w,
                  {{0,0,0}, {11,9}},    // from

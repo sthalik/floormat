@@ -112,22 +112,24 @@ void object::rotate(size_t, rotation new_r)
 }
 
 // todo rewrite using bitwise ops
-point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i new_offset)
+point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_offset)
 {
-    auto off_tmp = Vector2i(cur_offset) + new_offset;
-    int off_new[2] = { off_tmp.x() % iTILE_SIZE2.x(), off_tmp.y() % iTILE_SIZE2.y() };
-    int tiles[2] = { off_tmp.x() / iTILE_SIZE2.x(), off_tmp.y() / iTILE_SIZE2.y() };
-    constexpr auto half_tile = iTILE_SIZE2/2;
+    constexpr int tile_size[2] = { iTILE_SIZE2.x(), iTILE_SIZE2.y() };
+    constexpr int half_tile[2] = { tile_size[0]/2, tile_size[1]/2 };
+    const int off_tmp[2] = { cur.x() + new_offset.x(),  cur.y() + new_offset.y()  };
+    int off_new[2]       = { off_tmp[0] % tile_size[0], off_tmp[1] % tile_size[1] };
+    int tiles[2]         = { off_tmp[0] / tile_size[0], off_tmp[1] / tile_size[1] };
+
+fm_UNROLL_2
     for (auto i = 0uz; i < 2; i++)
     {
-        auto sign = Math::sign(off_new[i]);
-        auto absval = Math::abs(off_new[i]);
+        auto& off = off_new[i];
+        auto sign = Math::sign(off);
+        auto absval = Math::abs(off);
         if (absval > half_tile[i])
         {
-            Vector2i v(0);
-            v[i] = sign;
-            coord += v;
-            off_new[i] = (iTILE_SIZE[i] - absval)*-sign;
+            tiles[i] += sign;
+            off = (tile_size[i] - absval)*-sign;
         }
     }
     return {
