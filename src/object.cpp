@@ -132,6 +132,11 @@ point object::normalize_coords(global_coords coord, Vector2b cur_offset, Vector2
     return { coord, Vector2b(off_new) };
 }
 
+point object::normalize_coords(const point& pt, Vector2i delta)
+{
+    return object::normalize_coords(pt.coord, pt.offset, delta);
+}
+
 template<bool neighbor = true>
 static bool do_search(struct chunk* c, chunk_coords_ coord, object_id id, Vector2 min, Vector2 max, Vector2b off = {})
 {

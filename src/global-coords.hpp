@@ -14,12 +14,18 @@ struct chunk_coords final {
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
 
     template<typename T>
-    requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
-    explicit constexpr operator Math::Vector2<T>() const noexcept { return Math::Vector2<T>(T(x), T(y)); }
+    explicit constexpr operator Math::Vector2<T>() const noexcept
+    {
+        static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int16_t));
+        return Math::Vector2<T>(T(x), T(y));
+    }
 
     template<typename T>
-    requires (std::is_floating_point_v<T> || std::is_integral_v<T> && (sizeof(T) > sizeof(x) || std::is_same_v<T, std::decay_t<decltype(x)>>))
-    explicit constexpr operator Math::Vector3<T>() const noexcept { return Math::Vector3<T>(T(x), T(y), T(0)); }
+    explicit constexpr inline operator Math::Vector3<T>() const noexcept
+    {
+        static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int16_t));
+        return Math::Vector3<T>(T(x), T(y), T(0));
+    }
 
     constexpr Vector2i operator-(chunk_coords other) const noexcept { return Vector2i{x - other.x, y - other.y }; }
 };
@@ -61,7 +67,13 @@ struct chunk_coords_ final {
 
     constexpr Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
 
-    explicit operator chunk_coords() const noexcept { return chunk_coords{x, y}; }
+    explicit constexpr inline operator chunk_coords() const noexcept { return chunk_coords{x, y}; }
+
+    template<typename T> explicit constexpr inline operator Math::Vector3<T>() const noexcept
+    {
+        static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int16_t));
+        return Math::Vector3<T>(x, y, z);
+    }
 };
 
 constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
@@ -99,13 +111,15 @@ public:
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
-    constexpr operator chunk_coords_() const noexcept; // todo make invoking this take less typing
+    constexpr chunk_coords_ chunk3() const noexcept { return chunk_coords_(*this); }
+    constexpr operator chunk_coords_() const noexcept;
     constexpr raw_coords_ raw() const noexcept;
     constexpr raw_coords raw() noexcept;
     constexpr int8_t z() const noexcept;
 
     constexpr Vector2i to_signed() const noexcept;
     constexpr Vector3i to_signed3() const noexcept;
+    template<typename T> explicit constexpr inline operator Math::Vector3<T>() const noexcept;
     constexpr bool operator==(const global_coords& other) const noexcept = default;
 
     constexpr global_coords operator+(Vector2i vec) const noexcept;
@@ -141,6 +155,12 @@ constexpr int8_t global_coords::z() const noexcept
 constexpr Vector2i global_coords::to_signed() const noexcept
 {
     return { int32_t((x & ~z_mask::value) - (s0::value<<4)), int32_t(y - (s0::value<<4)), };
+}
+
+template<typename T> constexpr global_coords::operator Math::Vector3<T>() const noexcept
+{
+    static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int32_t));
+    return Math::Vector3<T>(to_signed3());
 }
 
 constexpr Vector3i global_coords::to_signed3() const noexcept

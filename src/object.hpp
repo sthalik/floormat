@@ -77,6 +77,7 @@ struct object
 
     object_type type_of() const noexcept;
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
+    static point normalize_coords(const point& pt, Vector2i delta);
 
     virtual bool is_dynamic() const;
     bool can_rotate(rotation new_r);

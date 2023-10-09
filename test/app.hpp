@@ -44,6 +44,7 @@ struct test_app final : private FM_APPLICATION
     static void test_hash();
     static void test_path_search_node_pool();
     static void test_dijkstra();
+    static void test_coords();
     static void zzz_test_misc();
 };
 } // namespace floormat

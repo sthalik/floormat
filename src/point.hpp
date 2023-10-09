@@ -1,5 +1,6 @@
 #pragma once
 #include "global-coords.hpp"
+#include <Corrade/Utility/Move.h>
 #include <compare>
 
 namespace floormat {
@@ -12,6 +13,8 @@ struct point
 
     constexpr bool operator==(const point&) const = default;
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b) noexcept;
+
+    friend Debug& operator<<(Debug& dbg, const point& pt);
 };
 
 constexpr std::strong_ordering operator<=>(const point& p1, const point& p2) noexcept

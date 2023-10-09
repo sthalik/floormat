@@ -1,4 +1,5 @@
 #pragma once
+#include "defs.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include <type_traits>
@@ -85,6 +86,17 @@
             fm_warn(__VA_ARGS__);                                       \
         }                                                               \
     } while (false)
+
+#define fm_assert_equal(...)                                            \
+    ([](auto a, auto b) -> void                                         \
+    {                                                                   \
+        if (a != b) [[unlikely]]                                        \
+        {                                                               \
+            DBG_nospace << "fatal: '" << a << "' != '" << b             \
+                        << "' in " << __FILE__ << ":" << __LINE__;      \
+            fm_EMIT_ABORT();                                            \
+        }                                                               \
+    })(__VA_ARGS__)
 
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop
