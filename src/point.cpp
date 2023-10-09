@@ -9,12 +9,12 @@ Debug& operator<<(Debug& dbg, const point& pt)
 
     auto c = Vector3i(chunk_coords_{pt.coord});
     auto t = Vector2i(pt.coord.local());
+    auto o = pt.offset;
 
-    dbg << "point( ";
-    dbg << c << ", ";
-    dbg << t << ", ";
-    dbg << pt.offset;
-    dbg << " )";
+    dbg << "point{";
+    dbg << "{" << c.x() << "," << c.y() << "," << c.z() << "},";
+    dbg << "{" << t.x() << "," << t.y() << "},";
+    dbg << "{" << o.x() << "," << o.y() << "}}";
 
     dbg.setFlags(flags);
     return dbg;

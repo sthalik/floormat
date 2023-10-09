@@ -92,8 +92,8 @@
     {                                                                   \
         if (a != b) [[unlikely]]                                        \
         {                                                               \
-            DBG_nospace << "fatal: '" << a << "' != '" << b             \
-                        << "' in " << __FILE__ << ":" << __LINE__;      \
+            DBG_nospace << "fatal: " << a << " != " << b                \
+                        << " in " << __FILE__ << ":" << __LINE__;       \
             fm_EMIT_ABORT();                                            \
         }                                                               \
     })(__VA_ARGS__)
