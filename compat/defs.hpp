@@ -70,6 +70,7 @@
 #ifndef __SIZEOF_POINTER__
 #error "missing __SIZEOF_POINTER__"
 #endif
+#define fm_UNROLL_2 _Pragma("GCC unroll 2")
 #define fm_UNROLL_4 _Pragma("GCC unroll 4")
 #define fm_UNROLL_8 _Pragma("GCC unroll 8")
 #if __SIZEOF_POINTER__ >= 8
