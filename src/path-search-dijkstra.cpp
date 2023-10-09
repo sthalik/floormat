@@ -238,6 +238,9 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
             n_offset = n.offset;
             n_pt = {n_coord, n_offset};
             n_dist = n.dist;
+#if FM_ASTAR_NO_EDGE_CACHE
+            (void)n_pt;
+#endif
         }
 
         if (auto d = distance({n_coord, n_offset}, {to, to_offset}); d < closest)

@@ -1,35 +1,10 @@
 #include "app.hpp"
+#include "bench.hpp"
 #include "src/path-search.hpp"
 #include "loader/loader.hpp"
 #include <Magnum/Math/Functions.h>
-#include <chrono>
-#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
-
-namespace {
-
-template<typename F>
-requires requires (F& fun) { fun(); }
-void bench_run(StringView name, F&& fun)
-{
-    using namespace std::chrono;
-    using clock = high_resolution_clock;
-#if 0
-    for (int i = 0; i < 20; i++)
-        fun();
-    const auto t0 = clock::now();
-    for (int i = 0; i < 1000; i++)
-        fun();
-#else
-    const auto t0 = clock::now();
-    fun();
-#endif
-    const auto tm = clock::now() - t0;
-    Debug{} << "test" << name << "took" << duration_cast<milliseconds>(tm).count() << "ms.";
-}
-
-} // namespace
 
 void test_app::test_dijkstra()
 {
@@ -58,6 +33,15 @@ void test_app::test_dijkstra()
 
     fm_assert(ch.is_passability_modified());
 
+    auto do_bench = [&](int debug) {
+      a.Dijkstra(w,
+                 {{0,0,0}, {11,9}},    // from
+                 {wpos, {wox, woy}},   // to
+                 0, max_dist, {32,32}, // size
+                 debug);
+    };
+
+    //do_bench(0);
     bench_run("Dijkstra", [&] {
       a.Dijkstra(w,
                  {{0,0,0}, {11,9}},    // from

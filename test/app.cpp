@@ -21,6 +21,7 @@ test_app::~test_app()
 
 int test_app::exec()
 {
+    test_coords();
     test_json();
     test_tile_iter();
     test_magnum_math();
@@ -33,7 +34,6 @@ int test_app::exec()
     test_math();
     test_hash();
     test_path_search_node_pool();
-    test_coords();
 
     test_dijkstra();
 
