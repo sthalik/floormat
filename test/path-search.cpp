@@ -16,7 +16,7 @@ using pred = path_search::pred;
 constexpr auto div_factor = path_search::div_factor;
 constexpr auto min_size = path_search::min_size;
 
-constexpr bbox<int> get_value(Vector2ub sz, Vector2ub div, rotation r)
+constexpr bbox<int> get_value(Vector2i sz, Vector2ui div, rotation r)
 {
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
@@ -57,25 +57,25 @@ constexpr bbox<int> get_value(Vector2ub sz, Vector2ub div, rotation r)
 
 constexpr bool test_offsets()
 {
-    constexpr auto sz_  = Vector2ub(path_search::min_size);
+    constexpr auto sz = Vector2i(path_search::min_size);
     constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
 
-    [[maybe_unused]] constexpr auto N = get_value(sz_, {1,1}, rotation::N);
+    [[maybe_unused]] constexpr auto N = get_value(sz, {1,1}, rotation::N);
     [[maybe_unused]] constexpr auto min_N = N.min + shift, max_N = N.max + shift;
     [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
     [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
 
-    [[maybe_unused]] constexpr auto E = get_value(sz_, {1,1}, rotation::E);
+    [[maybe_unused]] constexpr auto E = get_value(sz, {1,1}, rotation::E);
     [[maybe_unused]] constexpr auto min_E = E.min + shift, max_E = E.max + shift;
     [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
     [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
 
-    [[maybe_unused]] constexpr auto S = get_value(sz_, {1,1}, rotation::S);
+    [[maybe_unused]] constexpr auto S = get_value(sz, {1,1}, rotation::S);
     [[maybe_unused]] constexpr auto min_S = S.min + shift, max_S = S.max + shift;
     [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
     [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
 
-    [[maybe_unused]] constexpr auto W = get_value(sz_, {1,1}, rotation::W);
+    [[maybe_unused]] constexpr auto W = get_value(sz, {1,1}, rotation::W);
     [[maybe_unused]] constexpr auto min_W = W.min + shift, max_W = W.max + shift;
     [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
     [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
@@ -87,18 +87,18 @@ constexpr bool test_offsets2()
 {
     using enum rotation;
     constexpr auto tile_start = iTILE_SIZE2/-2;
-    constexpr auto sz = Vector2ub(8, 16);
+    constexpr auto sz = Vector2i(8, 16);
 
     {
-        constexpr auto bb = get_value(sz, Vector2ub(div_factor), N);
-        constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
+        constexpr auto bb = get_value(sz, Vector2ui(div_factor), N);
+        constexpr auto min = tile_start + bb.min, max = tile_start + Vector2i(bb.max);
         static_assert(min.x() == -32 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);
         static_assert(min.y() == -48 - sz.y()/2);
         static_assert(max.y() == -32 + sz.y()/2);
     }
     {
-        constexpr auto bb = get_value(sz, Vector2ub(div_factor), W);
+        constexpr auto bb = get_value(sz, Vector2ui(div_factor), W);
         constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
         static_assert(min.x() == -32 - 16 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);
@@ -115,23 +115,19 @@ struct neighbors final
     uint8_t size = 0;
 };
 
-bbox<float> neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r);
-neighbors neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p);
-
-auto neighbor_tile_bbox(Vector2i coord, Vector2ub own_size, Vector2ub div, rotation r) -> bbox<float>
+auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotation r) -> bbox<float>
 {
-    own_size = Math::max(own_size, Vector2ub(min_size));
+    own_size = Math::max(own_size, Vector2i(min_size));
     const auto shift = coord * iTILE_SIZE2;
     auto [min, max] = get_value(own_size, div, r);
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
-auto neighbor_tiles(world& w, global_coords coord, Vector2ub size, object_id own_id, const pred& p) -> neighbors
+auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_id, const pred& p) -> neighbors
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
-    constexpr auto min_size = Vector2ub(iTILE_SIZE2/4);
-    size = Math::max(size, min_size);
+    size = Math::max(size, path_search::div_size);
 
     neighbors ns;
 
