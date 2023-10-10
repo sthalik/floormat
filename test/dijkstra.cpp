@@ -42,13 +42,14 @@ void test_app::test_dijkstra()
                        debug);
     };
 
-    static constexpr int iters = 1;
+    static constexpr int iters = 10;
     if constexpr (iters > 1)
         do_bench(1, 1);
 #if 1
-    bench_run("Dijkstra", [&] {
-      do_bench(iters, iters == 1);
-    });
+    for (int i = 0; i < iters; i++)
+        bench_run("Dijkstra", [&] {
+          do_bench(1, iters == 1);
+        });
 #endif
 }
 

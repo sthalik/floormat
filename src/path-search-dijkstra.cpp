@@ -85,6 +85,18 @@ uint32_t distance(point a, point b)
     return (uint32_t)Math::sqrt(dist.dot());
 }
 
+inline size_t hash_point(const point& pt)
+{
+    static_assert(sizeof(global_coords) == 8);
+#ifdef FLOORMAT_64
+    static_assert(sizeof nullptr > 4);
+    return fnvhash_64(&pt, sizeof pt);
+#else
+    static_assert(sizeof nullptr == 4);
+    return fnvhash_32(&pt, sizeof pt);
+#endif
+}
+
 } // namespace
 
 astar::astar()
@@ -151,16 +163,9 @@ size_t astar::edge_hash::operator()(const edge& e) const
 bool astar::edge::operator==(const floormat::astar::edge& other) const = default;
 #endif
 
-size_t astar::point_hash::operator()(point pt) const
+size_t astar::point_hash::operator()(const point& pt) const
 {
-    static_assert(sizeof(global_coords) == 8);
-#ifdef FLOORMAT_64
-    static_assert(sizeof nullptr > 4);
-    return fnvhash_64(&pt, sizeof pt);
-#else
-    static_assert(sizeof nullptr == 4);
-    return fnvhash_32(&pt, sizeof pt);
-#endif
+    return hash_point(pt);
 }
 
 path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,
@@ -186,15 +191,11 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     if (from.z() != 0) [[unlikely]]
         return {};
 
-    const auto from_local = Vector2i(from.local());
-
     if (!path_search::is_passable(w, from, from_offset, own_size, own_id, p))
         return {};
 
     if (!path_search::is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
-
-    const auto start_bbox = bbox_from_pos(Vector2(from_local), from_offset, own_size);
 
     path_search_result result;
     auto& path = result._node->vec; path.clear();
@@ -205,6 +206,8 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
 
     if (!from_offset.isZero())
     {
+        const auto from_local = Vector2i(from.local());
+        const auto start_bbox = bbox_from_pos(Vector2(from_local), from_offset, own_size);
         const auto from_offset_len = Math::max(1u, (uint32_t)(Vector2(from_offset).length() + 0.5f));
         uint32_t idx = 1;
         constexpr int8_t div_min = (div_factor+1)/-2, div_max = div_factor/2;
@@ -267,11 +270,12 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                 continue;
 
             const auto new_pt = point{.coord = new_coord, .offset = new_offset};
+            const size_t new_pt_hash = hash_point(new_pt);
 
             auto new_idx = (uint32_t)-1;
             bool fresh = true;
 
-            if (auto it = indexes.find(new_pt); it != indexes.end())
+            if (auto it = indexes.find(new_pt, new_pt_hash); it != indexes.end())
             {
                 new_idx = it->second;
                 fresh = false;
@@ -308,7 +312,8 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
 
             if (fresh)
             {   const auto sz = nodes.size();
-                new_idx = indexes[new_pt] = (uint32_t)sz;
+                new_idx = (uint32_t)sz;
+                indexes.insert({new_pt, new_idx}, new_pt_hash);
                 auto new_node = visited {
                     .dist = dist, .prev = id,
                     .coord = new_coord, .offset = new_offset,
@@ -319,9 +324,9 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
 #ifndef FM_NO_DEBUG
             if (debug >= 3) [[unlikely]]
                 DBG_nospace << (fresh ? "" : " old")
-                            << " path:" << closest_path_len
-                            << " pos:" << closest_pos.coord.to_signed()
-                            << ";" << closest_pos.offset;
+                            << " path:" << dist
+                            << " pos:" << Vector3i(new_coord)
+                            << ";" << new_offset;
 #endif
 
             add_to_heap(new_idx);

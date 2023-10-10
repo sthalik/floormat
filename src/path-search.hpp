@@ -68,7 +68,7 @@ struct astar
 
     using pred = path_search::pred;
     template<typename T> using bbox = path_search::bbox<T>;
-    struct point_hash { size_t operator()(point pt) const; };
+    struct point_hash { size_t operator()(const point& pt) const; };
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
