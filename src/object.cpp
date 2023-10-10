@@ -24,18 +24,20 @@ constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
 {
-    constexpr auto half_tile = (int8_t)(tile_size/2);
-    const auto tmp = cur + new_off;
+    constexpr int8_t half_tile = tile_size/2;
+    const int tmp = cur + new_off;
     auto x = (int8_t)(tmp % tile_size);
     auto t = tmp / tile_size;
     auto a = Math::abs(x);
     auto s = Math::sign(x);
-    auto b = (volatile bool)(x >= half_tile | x < -half_tile);
-#if defined __GNUG__ && !defined __clang__
-    asm volatile ("" : "+r"(b));
+    bool b = x >= half_tile | x < -half_tile;
+    int tmask = -(volatile int)b;
+    int8_t xmask = -(volatile int8_t)b;
+#if defined __GNUG__
+    asm volatile ("" : "+r"(tmask), "+r"(xmask));
 #endif
-    t += s * b;
-    x = (int8_t)((tile_size - a)*-s) * b | x * !b;
+    t += s & tmask;
+    x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
     return { t, (int8_t)x };
 }
 
