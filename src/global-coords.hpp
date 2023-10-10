@@ -117,8 +117,7 @@ public:
     constexpr raw_coords raw() noexcept;
     constexpr int8_t z() const noexcept;
 
-    constexpr Vector2i to_signed() const noexcept;
-    constexpr Vector3i to_signed3() const noexcept;
+    template<typename T> explicit constexpr inline operator Math::Vector2<T>() const noexcept;
     template<typename T> explicit constexpr inline operator Math::Vector3<T>() const noexcept;
     constexpr bool operator==(const global_coords& other) const noexcept = default;
 
@@ -152,20 +151,16 @@ constexpr int8_t global_coords::z() const noexcept
     return ((x >> 20) & 0x0f) - z0::value;
 }
 
-constexpr Vector2i global_coords::to_signed() const noexcept
+template<typename T> constexpr global_coords::operator Math::Vector2<T>() const noexcept
 {
-    return { int32_t((x & ~z_mask::value) - (s0::value<<4)), int32_t(y - (s0::value<<4)), };
+    static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int32_t));
+    return { (T)int32_t((x & ~z_mask::value) - (s0::value<<4)), (T)int32_t(y - (s0::value<<4)), };
 }
 
 template<typename T> constexpr global_coords::operator Math::Vector3<T>() const noexcept
 {
     static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int32_t));
-    return Math::Vector3<T>(to_signed3());
-}
-
-constexpr Vector3i global_coords::to_signed3() const noexcept
-{
-    return Vector3i(to_signed(), z());
+    return Math::Vector3<T>(Math::Vector2<T>(*this), (T)z());
 }
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
@@ -194,7 +189,7 @@ constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
 
 constexpr Vector2i global_coords::operator-(global_coords other) const noexcept
 {
-    return to_signed() - other.to_signed();
+    return Vector2i(*this) - Vector2i(other);
 }
 
 } // namespace floormat

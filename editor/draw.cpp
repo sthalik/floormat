@@ -28,7 +28,7 @@ void app::draw_cursor()
     if (cursor.tile && !cursor.in_imgui)
     {
         const auto draw = [&, pos = *cursor.tile](auto& mesh, const auto& size) {
-            const auto center = Vector3(pos.to_signed3() * iTILE_SIZE);
+            const auto center = Vector3(pos) * TILE_SIZE;
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
 
@@ -58,7 +58,7 @@ void app::draw_cursor()
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
-                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE + offset;
+                const auto pos = Vector3i(*cursor.tile)*iTILE_SIZE + offset;
                 auto [ch, t] = w[*cursor.tile];
                 if (!ch.can_place_object(sel, cursor.tile->local()))
                     shader.set_tint({1, 0, 1, 0.5f});
@@ -75,7 +75,7 @@ void app::draw_cursor()
                 draw(_wireframe_quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
-                const auto pos = cursor.tile->to_signed3()*iTILE_SIZE;
+                const auto pos = Vector3i(*cursor.tile)*iTILE_SIZE;
                 anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
             }
         }

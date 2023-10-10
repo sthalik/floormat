@@ -19,7 +19,7 @@ struct point
 
 constexpr std::strong_ordering operator<=>(const point& p1, const point& p2) noexcept
 {
-    auto c1 = p1.coord.to_signed3(), c2 = p2.coord.to_signed3();
+    auto c1 = Vector3i(p1.coord), c2 = Vector3i(p2.coord);
 
     if (auto val = c1.z() <=> c2.z(); val != std::strong_ordering::equal)
         return val;

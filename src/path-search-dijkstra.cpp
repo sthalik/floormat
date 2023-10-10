@@ -61,7 +61,7 @@ constexpr auto directions = []() constexpr
 
 template<typename T>
 requires std::is_arithmetic_v<T>
-constexpr auto bbox_from_pos(Math::Vector<2, T> pos, Vector2b offset, Vector2ui size)
+constexpr auto bbox_from_pos(Math::Vector2<T> pos, Vector2b offset, Vector2ui size)
 {
     const auto vec = Vector2i(pos) * iTILE_SIZE2 + Vector2i(offset);
     const auto min = vec - Vector2i(size / 2);
@@ -257,7 +257,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
         if (debug >= 2) [[unlikely]]
             DBG_nospace << "node"
                         << " px:" << closest << " path:" << closest_path_len
-                        << " pos:" << closest_pos.coord.to_signed()
+                        << " pos:" << Vector3i(closest_pos.coord)
                         << ";" << closest_pos.offset;
 #endif
 
@@ -336,8 +336,10 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     fm_debug_assert(nodes.size() == indexes.size());
 #ifndef FM_NO_DEBUG
     if (debug >= 1)
-        DBG_nospace << "dijkstra: closest px:" << closest << " path:" << closest_path_len
-                    << " pos:" << closest_pos.coord.to_signed() << ";" << closest_pos.offset
+        DBG_nospace << "dijkstra: closest px:" << closest
+                    << " path:" << closest_path_len
+                    << " pos:" << Vector3i(closest_pos.coord)
+                    << ";" << closest_pos.offset
                     << " nodes:" << nodes.size()
 #if !FM_ASTAR_NO_EDGE_CACHE
                     << " edges:" << edges.size()
