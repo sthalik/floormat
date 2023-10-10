@@ -188,7 +188,7 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
         return false;
 
     auto& w = *c->_world;
-    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[chunk_coords_{coord_}];
+    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
@@ -240,7 +240,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
     }
     else
     {
-        auto& c2 = w[chunk_coords_{coord_}];
+        auto& c2 = w[coord_.chunk3()];
         if (!is_dynamic())
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);

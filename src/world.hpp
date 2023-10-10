@@ -86,7 +86,7 @@ public:
     }
     std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
     {
-        auto ret = std::shared_ptr<T>(new T{id, operator[](chunk_coords_{pos}), Utility::forward<Xs>(xs)...});
+        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), Utility::forward<Xs>(xs)...});
         do_make_object(static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }

@@ -92,7 +92,7 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
 
 auto world::operator[](global_coords pt) noexcept -> pair
 {
-    auto& c = operator[](chunk_coords_{pt});
+    auto& c = operator[](pt.chunk3());
     return { c, c[pt.local()] };
 }
 

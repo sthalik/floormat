@@ -7,7 +7,7 @@ Debug& operator<<(Debug& dbg, const point& pt)
     const auto flags = dbg.flags();
     dbg.setFlags(flags | Debug::Flag::NoSpace);
 
-    auto c = Vector3i(chunk_coords_{pt.coord});
+    auto c = Vector3i(pt.coord.chunk3());
     auto t = Vector2i(pt.coord.local());
     auto o = pt.offset;
 

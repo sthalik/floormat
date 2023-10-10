@@ -13,7 +13,7 @@ void test_app::test_dijkstra()
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 3, woy = 3;
     constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
-    constexpr auto wch = chunk_coords_{chunk_coords_{wcx, wcy, 0}};
+    constexpr auto wch = chunk_coords_{wcx, wcy, 0};
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
 
