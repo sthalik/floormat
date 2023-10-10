@@ -7,6 +7,7 @@
 #include "shaders/shader.hpp"
 #include <cmath>
 #include <algorithm>
+#include <Corrade/Containers/PairStl.h>
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
@@ -14,6 +15,29 @@ namespace floormat {
 namespace {
 
 constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
+
+#if defined __GNUG__ && !defined __clang__
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#endif
+
+// todo try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
+template<int tile_size>
+constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
+{
+    constexpr auto half_tile = (int8_t)(tile_size/2);
+    const auto tmp = cur + new_off;
+    auto x = (int8_t)(tmp % tile_size);
+    auto t = tmp / tile_size;
+    auto a = Math::abs(x);
+    auto s = Math::sign(x);
+    auto b = (volatile bool)(x >= half_tile | x < -half_tile);
+#if defined __GNUG__ && !defined __clang__
+    asm volatile ("" : "+r"(b));
+#endif
+    t += s * b;
+    x = (int8_t)((tile_size - a)*-s) * b | x * !b;
+    return { t, (int8_t)x };
+}
 
 } // namespace
 
@@ -115,28 +139,10 @@ void object::rotate(size_t, rotation new_r)
 // todo rewrite using bitwise ops
 point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
 {
-    constexpr int8_t tile_size[2] = { iTILE_SIZE2.x(), iTILE_SIZE2.y() };
-    constexpr int8_t half_tile[2] = { tile_size[0]/2, tile_size[1]/2 };
-    int tmp[2]    = { cur.x() + new_off.x(), cur.y() + new_off.y()  };
-    int tiles[2]  = { tmp[0] / tile_size[0],  tmp[1] / tile_size[1] };
-    int8_t off[2] = { (int8_t)(tmp[0] % tile_size[0]),  (int8_t)(tmp[1] % tile_size[1]) };
-
-fm_UNROLL_2
-    for (int i = 0; i < 2; i++)
-    {
-        auto& x = off[i];
-        auto a = Math::abs(x);
-        auto s = Math::sign(x);
-        if (x >= half_tile[i] || x < -half_tile[i])
-        {
-            tiles[i] += s;
-            x = (int8_t)((tile_size[i] - a)*-s);
-        }
-    }
-    return {
-        coord + Vector2i(tiles[0], tiles[1]),
-        { (int8_t)off[0], (int8_t)off[1] },
-    };
+    auto [cx, ox] = normalize_coord<iTILE_SIZE2.x()>(cur.x(), new_off.x());
+    auto [cy, oy] = normalize_coord<iTILE_SIZE2.y()>(cur.y(), new_off.y());
+    coord += Vector2i(cx, cy);
+    return { coord, { ox, oy }, };
 }
 
 point object::normalize_coords(const point& pt, Vector2i delta)

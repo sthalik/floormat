@@ -33,22 +33,23 @@ void test_app::test_dijkstra()
 
     fm_assert(ch.is_passability_modified());
 
-    auto do_bench = [&](int debug) {
-      a.Dijkstra(w,
-                 {{0,0,0}, {11,9}},    // from
-                 {wpos, {wox, woy}},   // to
-                 0, max_dist, {32,32}, // size
-                 debug);
+    auto do_bench = [&](int count, int debug) {
+        for (int i = 0; i < count; i++)
+            a.Dijkstra(w,
+                       {{0,0,0}, {11,9}},    // from
+                       {wpos, {wox, woy}},   // to
+                       0, max_dist, {32,32}, // size
+                       debug);
     };
 
-    do_bench(0);
+    static constexpr int iters = 1;
+    if constexpr (iters > 1)
+        do_bench(1, 1);
+#if 1
     bench_run("Dijkstra", [&] {
-      a.Dijkstra(w,
-                 {{0,0,0}, {11,9}},    // from
-                 {wpos, {wox, woy}},   // to
-                 0, max_dist, {32,32}, // size
-                 1);
+      do_bench(iters, iters == 1);
     });
+#endif
 }
 
 } // namespace floormat
