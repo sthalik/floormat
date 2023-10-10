@@ -5,11 +5,6 @@
 #include <map>
 #include <Corrade/Containers/StringView.h>
 
-namespace Corrade::Containers {
-template<typename T> class BasicStringView;
-using StringView = BasicStringView<const char>;
-} // namespace Corrade::Containers
-
 namespace floormat {
 
 struct world;

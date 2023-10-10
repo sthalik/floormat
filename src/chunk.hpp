@@ -9,8 +9,6 @@
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/GL/Mesh.h>
 
-namespace Corrade::Containers { template<typename T, typename D> class Array; }
-
 namespace floormat {
 
 struct anim_atlas;

@@ -5,7 +5,6 @@
 #include <Magnum/Math/Vector2.h>
 
 struct SDL_Window;
-namespace Corrade::Containers { template<typename T> class ArrayView; }
 namespace Magnum::Platform { class Sdl2Application; }
 
 namespace floormat {

@@ -9,13 +9,6 @@
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/Texture.h>
 
-namespace Corrade::Containers {
-class BitArray;
-template<class> class BasicBitArrayView;
-typedef BasicBitArrayView<const char> BitArrayView;
-typedef BasicBitArrayView<char> MutableBitArrayView;
-} // namespace Corrade::Containers
-
 namespace floormat {
 
 struct anim_atlas final

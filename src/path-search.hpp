@@ -14,12 +14,6 @@
 #include <tsl/robin_map.h>
 #include <tsl/robin_set.h>
 
-namespace Corrade::Containers {
-//template<typename T> class Optional;
-//template<typename T, typename U> class Pair;
-template<typename T> class ArrayView;
-} // namespace Corrade::Containers
-
 namespace floormat {
 
 struct world;
