@@ -149,7 +149,7 @@ point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_o
 
 point object::normalize_coords(const point& pt, Vector2i delta)
 {
-    return object::normalize_coords(pt.coord, pt.offset, delta);
+    return object::normalize_coords(pt.coord(), pt.offset, delta);
 }
 
 template<bool neighbor = true>

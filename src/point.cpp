@@ -7,8 +7,8 @@ Debug& operator<<(Debug& dbg, const point& pt)
     const auto flags = dbg.flags();
     dbg.setFlags(flags | Debug::Flag::NoSpace);
 
-    auto c = Vector3i(pt.coord.chunk3());
-    auto t = Vector2i(pt.coord.local());
+    auto c = Vector3i(pt.chunk3());
+    auto t = Vector2i(pt.local());
     auto o = pt.offset;
 
     dbg << "point{";

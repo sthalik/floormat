@@ -35,41 +35,22 @@ fm_UNROLL_8
 
 } // namespace
 
-#define fnvhash_64_ROUND() do { hash *= 0x01000193u; hash ^= (uint8_t)*str++; } while(false)
-
-uint64_t fnvhash_64(const void* str_, size_t size)
+uint64_t fnvhash_32(const void* buf, size_t size)
 {
-    const auto *str = (const char*)str_;
+    const auto *str = (const char*)buf, *const end = str + size;
     uint32_t hash = 0x811c9dc5u;
-    size_t full = size / 8;
-    for (size_t i = 0; i < full; i++)
+fm_UNROLL_8
+    for (; str != end; ++str)
     {
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-        fnvhash_64_ROUND();
-    }
-    switch (size & 7u)
-    {
-    case 7: fnvhash_64_ROUND(); [[fallthrough]];
-    case 6: fnvhash_64_ROUND(); [[fallthrough]];
-    case 5: fnvhash_64_ROUND(); [[fallthrough]];
-    case 4: fnvhash_64_ROUND(); [[fallthrough]];
-    case 3: fnvhash_64_ROUND(); [[fallthrough]];
-    case 2: fnvhash_64_ROUND(); [[fallthrough]];
-    case 1: fnvhash_64_ROUND(); [[fallthrough]];
-    case 0: break;
+        hash *= 0x01000193u;
+        hash ^= (uint8_t)*str;
     }
     return hash;
 }
 
-uint64_t fnvhash_32(const void* str_, size_t size)
+uint64_t fnvhash_64(const void* buf, size_t size)
 {
-    const auto *str = (const char*)str_, *end = str + size;
+    const auto *str = (const char*)buf, *const end = str + size;
     uint64_t hash = 0xcbf29ce484222325u;
 fm_UNROLL_4
     for (; str != end; ++str)

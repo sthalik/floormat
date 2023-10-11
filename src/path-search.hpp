@@ -56,8 +56,7 @@ struct astar
     {
         uint32_t dist = (uint32_t)-1;
         uint32_t prev = (uint32_t)-1;
-        global_coords coord;
-        Vector2b offset;
+        point pt;
     };
 
     using pred = path_search::pred;

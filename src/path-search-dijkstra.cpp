@@ -80,7 +80,7 @@ struct heap_comparator
 uint32_t distance(point a, point b)
 {
     Vector2i dist;
-    dist += Math::abs(a.coord - b.coord)*iTILE_SIZE2;
+    dist += Math::abs(a.coord() - b.coord())*iTILE_SIZE2;
     dist += Vector2i(a.offset - b.offset);
     return (uint32_t)Math::sqrt(dist.dot());
 }
@@ -201,7 +201,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     auto& path = result.path(); path.clear();
 
     indexes[from_] = 0;
-    nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });
+    nodes.push_back({.dist = 0, .pt = from_ });
     add_to_heap(0);
 
     if (!from_offset.isZero())
@@ -219,7 +219,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                     path_search::is_passable(w, from.chunk3(), bb, own_id, p))
                 {
                     indexes[{from, offset}] = idx;
-                    nodes.push_back({.dist = from_offset_len, .prev = 0, .coord = from, .offset = offset});
+                    nodes.push_back({.dist = from_offset_len, .prev = 0, .pt = {from, offset}});
                     add_to_heap(idx++);
                 }
             }
@@ -232,44 +232,40 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     while (!Q.empty())
     {
         const auto id = pop_from_heap();
-        point n_pt;
-        global_coords n_coord;
-        Vector2b n_offset;
-        uint32_t n_dist;
+        point cur_pt;
+        uint32_t cur_dist;
         {   auto& n = nodes[id];
-            n_coord = n.coord;
-            n_offset = n.offset;
-            n_pt = {n_coord, n_offset};
-            n_dist = n.dist;
+            cur_pt = n.pt;
+            cur_dist = n.dist;
 #if FM_ASTAR_NO_EDGE_CACHE
-            (void)n_pt;
+            (void)cur_pt;
 #endif
         }
 
-        if (auto d = distance({n_coord, n_offset}, {to, to_offset}); d < closest)
+        if (auto d = distance(cur_pt, to_); d < closest)
         {
             closest = d;
-            closest_pos = {n_coord, n_offset};
-            closest_path_len = n_dist;
+            closest_pos = cur_pt;
+            closest_path_len = cur_dist;
         }
 
 #ifndef FM_NO_DEBUG
         if (debug >= 2) [[unlikely]]
             DBG_nospace << "node"
                         << " px:" << closest << " path:" << closest_path_len
-                        << " pos:" << Vector3i(closest_pos.coord)
+                        << " pos:" << Vector3i(closest_pos.coord())
                         << ";" << closest_pos.offset;
 #endif
 
-        const auto bb0 = bbox_from_pos(Vector2(n_coord.local()), n_offset, own_size);
+        const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset, own_size);
         for (auto [vec, len] : directions)
         {
-            auto [new_coord, new_offset] = object::normalize_coords(n_coord, n_offset, vec);
-            const auto dist = n_dist + len;
+            auto [new_coord, new_offset] = object::normalize_coords(cur_pt, vec);
+            const auto dist = cur_dist + len;
             if (dist >= max_dist)
                 continue;
 
-            const auto new_pt = point{.coord = new_coord, .offset = new_offset};
+            const auto new_pt = point{new_coord, new_offset};
             const size_t new_pt_hash = hash_point(new_pt);
 
             auto new_idx = (uint32_t)-1;
@@ -316,7 +312,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                 indexes.insert({new_pt, new_idx}, new_pt_hash);
                 auto new_node = visited {
                     .dist = dist, .prev = id,
-                    .coord = new_coord, .offset = new_offset,
+                    .pt = {new_coord, new_offset},
                 };
                 nodes.push_back(new_node);
             }
@@ -338,7 +334,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     if (debug >= 1)
         DBG_nospace << "dijkstra: closest px:" << closest
                     << " path:" << closest_path_len
-                    << " pos:" << Vector3i(closest_pos.coord)
+                    << " pos:" << Vector3i(closest_pos.coord())
                     << ";" << closest_pos.offset
                     << " nodes:" << nodes.size()
 #if !FM_ASTAR_NO_EDGE_CACHE

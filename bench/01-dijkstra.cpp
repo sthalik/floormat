@@ -22,29 +22,32 @@ void Dijkstra(benchmark::State& state)
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
 
-    auto& ch  = w[chunk_coords_{0,0,0}];
-    auto& ch2 = w[wch];
+    auto& ch = w[wch];
     auto metal2 = tile_image_proto{loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked), 0};
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
         {
             auto &c = w[chunk_coords_{i, j, 0}];
-            for (int k : { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, })
+            for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
             {
                 c[{ k, k }].wall_north() = metal2;
                 c[{ k, k }].wall_west() = metal2;
             }
         }
 
-    ch2[{ wtx,   wty   }].wall_west()  = metal2;
-    ch2[{ wtx,   wty   }].wall_north() = metal2;
-    ch2[{ wtx+1, wty   }].wall_west()  = metal2;
-    ch2[{ wtx,   wty -1}].wall_north() = metal2;
+    ch[{ wtx,   wty   }].wall_west()  = metal2;
+    ch[{ wtx,   wty   }].wall_north() = metal2;
+    ch[{ wtx+1, wty   }].wall_west()  = metal2;
+    ch[{ wtx,   wty -1}].wall_north() = metal2;
 
-    fm_assert(ch.is_passability_modified());
-    ch.ensure_passability();
-    ch2.ensure_passability();
+    for (int16_t j = wcy - 1; j <= wcy + 1; j++)
+        for (int16_t i = wcx - 1; i <= wcx + 1; i++)
+        {
+            auto& c = w[chunk_coords_{i, j, 0}];
+            c.mark_passability_modified();
+            c.ensure_passability();
+        }
 
     auto run = [&] {
         A.Dijkstra(w,
