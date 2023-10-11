@@ -198,7 +198,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
         return {};
 
     path_search_result result;
-    auto& path = result._node->vec; path.clear();
+    auto& path = result.path(); path.clear();
 
     indexes[from_] = 0;
     nodes.push_back({.dist = 0, .coord = from, .offset = from_offset });

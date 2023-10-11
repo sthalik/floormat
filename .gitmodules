@@ -28,3 +28,6 @@
 [submodule "robin-map"]
 	path = external/robin-map
 	url = https://github.com/Tessil/robin-map.git
+[submodule "benchmark"]
+	path = external/benchmark
+	url = https://github.com/google/benchmark.git

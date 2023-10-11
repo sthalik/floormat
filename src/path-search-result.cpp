@@ -69,5 +69,7 @@ auto path_search_result::operator[](size_t index) const -> const pair&
     fm_debug_assert(index < _node->vec.size());
     return data()[index];
 }
+auto path_search_result::path() -> std::vector<pair>& { fm_assert(_node); return _node->vec; }
+auto path_search_result::path() const -> const std::vector<pair>& { fm_assert(_node); return _node->vec; }
 
 } // namespace floormat

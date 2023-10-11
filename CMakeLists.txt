@@ -177,17 +177,12 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
-fm_run_hook(fm-userconfig-src)
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-Wno-float-equal)
-endif()
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
-    add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
-    add_compile_options(-Wno-shift-op-parentheses)
-elseif(CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
+if(APPLE)
+    set(floormat_headless-library Magnum::WindowlessCglApplication)
+elseif(WIN32)
+    set(floormat_headless-library Magnum::WindowlessWglApplication ntdll)
+else()
+    set(floormat_headless-library Magnum::WindowlessGlxApplication)
 endif()
 
 include_directories(.)
@@ -203,13 +198,30 @@ include_directories(SYSTEM
     "${_fm-json-include-dirs}"
 )
 
-#add_subdirectory(demangle)
+fm_run_hook(fm-userconfig-src)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wno-float-equal)
+endif()
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+    add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+    add_compile_options(-Wno-shift-op-parentheses)
+elseif(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
+endif()
+
 add_subdirectory(src)
 add_subdirectory(main)
 add_subdirectory(draw)
 add_subdirectory(serialize)
 add_subdirectory(editor)
 add_subdirectory(test)
+
+find_package(benchmark QUIET)
+if(TARGET benchmark::benchmark OR TARGET benchmark)
+    add_subdirectory(bench)
+endif()
 add_subdirectory(anim-crop-tool)
 
 install(DIRECTORY images anim scenery vobj DESTINATION "share/floormat")

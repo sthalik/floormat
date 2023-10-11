@@ -4,12 +4,24 @@ if(NOT DEFINED FLOORMAT_SUBMODULE-SDL2)
     find_package(SDL2 QUIET)
     if(SDL2_FOUND)
         set(FLOORMAT_SUBMODULE-SDL2 OFF CACHE BOOL
-            "SDL2 as submodule")
+            "SDL2 as a submodule")
     endif()
 endif()
 
 set(FLOORMAT_SUBMODULE-SDL2 ON CACHE BOOL
     "SDL2 as submodule")
+
+if(NOT DEFINED FLOORMAT_SUBMODULE-BENCHMARK)
+    find_package(benchmark QUIET)
+    if(benchmark_FOUND)
+        set(FLOORMAT_SUBMODULE-BENCHMARK OFF CACHE BOOL
+            "Benchmark as a submodule")
+    endif()
+endif()
+
+set(FLOORMAT_SUBMODULE-BENCHMARK ON CACHE BOOL
+    "Benchmark as a submodule")
+
 set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
     "Use dependencies included in the source directory (needs git submodule update --init).")
 
@@ -234,6 +246,23 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         endif()
     endfunction()
 
+    function(fm_add_benchmark)
+        set(BUILD_SHARED_LIBS 1)
+        if(WIN32)
+            set(HAVE_STD_REGEX 1)
+        endif()
+        set(BENCHMARK_ENABLE_TESTING OFF)
+        set(BENCHMARK_ENABLE_EXCEPTIONS ON)
+        set(BENCHMARK_ENABLE_LTO OFF)
+        set(BENCHMARK_ENABLE_WERROR OFF)
+        set(BENCHMARK_FORCE_WERROR OFF)
+        set(BENCHMARK_ENABLE_INSTALL OFF)
+        set(BENCHMARK_ENABLE_DOXYGEN OFF)
+        set(BENCHMARK_INSTALL_DOCS OFF)
+        set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+        add_subdirectory(benchmark ${system})
+    endfunction()
+
     function(fm_add_luajit)
         set(CMAKE_C_STANDARD 11)
         set(CMAKE_C_EXTENSIONS 1)
@@ -255,6 +284,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         endif()
         if(MAGNUM_BUILD_TESTS OR CORRADE_BUILD_TESTS AND NOT DEFINED CORRADE_TESTSUITE_TEST_TARGET)
             sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
+        endif()
+        if(FLOORMAT_SUBMODULE-BENCHMARK)
+            fm_add_benchmark()
         endif()
         fm_add_sdl2()
         #fm_add_luajit()

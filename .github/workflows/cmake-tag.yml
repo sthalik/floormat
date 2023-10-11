@@ -37,7 +37,7 @@ jobs:
     - name: Install Linux dependencies
       run: |
         sudo apt -q=2 update
-        sudo apt install g++-12 gdb ninja-build
+        sudo apt install g++-12 gdb ninja-build libbenchmark-dev
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
       if: matrix.os == 'ubuntu-22.04'
@@ -58,6 +58,7 @@ jobs:
         cd ${{github.workspace}}/build/install
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test </dev/null
+        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
       if: matrix.os == 'ubuntu-22.04'
 
 #    - name: Upload build

@@ -8,8 +8,6 @@ namespace floormat {
 
 struct path_search_result final
 {
-    friend class path_search;
-    friend struct astar;
     friend struct test_app;
 
     struct pair { global_coords pos; Vector2 offset; };
@@ -18,14 +16,18 @@ struct path_search_result final
     const pair& operator[](size_t index) const;
     size_t size() const;
 
+    std::vector<pair>& path();
+    const std::vector<pair>& path() const;
     explicit operator ArrayView<const pair>() const;
     explicit operator bool() const;
 
-private:
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(path_search_result);
     path_search_result(const path_search_result& x) noexcept;
     path_search_result& operator=(const path_search_result& x) noexcept;
+    path_search_result();
+    ~path_search_result() noexcept;
 
+private:
     static constexpr size_t min_length = TILE_MAX_DIM*2;
 
     struct node
@@ -44,9 +46,6 @@ private:
     };
 
     static std::unique_ptr<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
-
-    path_search_result();
-    ~path_search_result() noexcept;
 
     std::unique_ptr<node> _node;
 };
