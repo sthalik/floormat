@@ -135,6 +135,7 @@ if(MSVC)
         add_link_options(-HIGHENTROPYVA)
     endif()
 else()
+    add_compile_options(-Wno-float-equal)
     if(NOT WIN32)
         add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fuse-cxa-atexit>)
     endif()
@@ -177,6 +178,10 @@ else()
 endif()
 
 fm_run_hook(fm-userconfig-src)
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wno-float-equal)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
     add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)

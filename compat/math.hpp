@@ -4,10 +4,6 @@
 #include <bit>
 #include <cmath>
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wfloat-equal"
-#endif
-
 namespace floormat::math::detail {
 
 template<typename T> struct int_type_for_;

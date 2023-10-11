@@ -18,10 +18,6 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
 
-#if defined __CLION_IDE__ || defined __clang__
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-
 namespace floormat {
 
 namespace {

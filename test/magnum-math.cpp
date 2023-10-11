@@ -6,11 +6,6 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 
-#ifdef __GNUG__
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-
 namespace floormat {
 
 using Magnum::Math::Vector;
@@ -68,7 +63,3 @@ void test_app::test_magnum_math()
 }
 
 } // namespace floormat
-
-#ifdef __GNUG__
-#   pragma GCC diagnostic pop
-#endif
