@@ -31,7 +31,7 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -gcolumn-info -gmodules -gdwarf-aranges -gz=zlib -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -g -ggdb -ffast-math -march=nehalem -mtune=native -mpopcnt -mavx -fomit-frame-pointer -fno-stack-protector"
+     CMAKE_C_FLAGS_RELEASE "-O3 -g -ggdb -gsplit-dwarf -ffast-math -march=nehalem -mtune=native -mpopcnt -mavx -fomit-frame-pointer -fno-stack-protector"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
      CMAKE_SHARED_LINKER_FLAGS_DEBUG ""
 )
