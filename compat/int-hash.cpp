@@ -39,7 +39,7 @@ uint64_t fnvhash_32(const void* buf, size_t size)
 {
     const auto *str = (const char*)buf, *const end = str + size;
     uint32_t hash = 0x811c9dc5u;
-fm_UNROLL_8
+fm_UNROLL_4
     for (; str != end; ++str)
     {
         hash *= 0x01000193u;
@@ -52,7 +52,7 @@ uint64_t fnvhash_64(const void* buf, size_t size)
 {
     const auto *str = (const char*)buf, *const end = str + size;
     uint64_t hash = 0xcbf29ce484222325u;
-fm_UNROLL_4
+fm_UNROLL_8
     for (; str != end; ++str)
     {
         hash *= 0x100000001b3u;
