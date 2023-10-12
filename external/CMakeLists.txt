@@ -261,6 +261,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         set(BENCHMARK_INSTALL_DOCS OFF)
         set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
         add_subdirectory(benchmark ${system})
+        install(TARGETS benchmark RUNTIME DESTINATION "bin")
     endfunction()
 
     function(fm_add_luajit)
