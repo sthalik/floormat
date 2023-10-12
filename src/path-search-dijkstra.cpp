@@ -81,7 +81,7 @@ uint32_t distance(point a, point b)
 {
     Vector2i dist;
     dist += Math::abs(a.coord() - b.coord())*iTILE_SIZE2;
-    dist += Vector2i(a.offset - b.offset);
+    dist += Vector2i(a.offset() - b.offset());
     return (uint32_t)Math::sqrt(dist.dot());
 }
 
@@ -143,9 +143,9 @@ uint32_t astar::pop_from_heap()
 auto astar::make_edge(const point& a, const point& b) -> edge
 {
     if (a < b)
-        return { a.coord, b.coord, a.offset, b.offset };
+        return { a.coord(), b.coord(), a.offset(), b.offset() };
     else
-        return { b.coord, a.coord, b.offset, a.offset };
+        return { b.coord(), a.coord(), b.offset(), a.offset() };
 }
 
 size_t astar::edge_hash::operator()(const edge& e) const
@@ -254,10 +254,10 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
             DBG_nospace << "node"
                         << " px:" << closest << " path:" << closest_path_len
                         << " pos:" << Vector3i(closest_pos.coord())
-                        << ";" << closest_pos.offset;
+                        << ";" << closest_pos.offset();
 #endif
 
-        const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset, own_size);
+        const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
         for (auto [vec, len] : directions)
         {
             auto [new_coord, new_offset] = object::normalize_coords(cur_pt, vec);
@@ -288,7 +288,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
                     continue;
             }
 #else
-            auto e = make_edge(n_pt, {new_coord, new_offset});
+            auto e = make_edge(cur_pt, new_pt);
             if (auto [it, fresh] = edges.try_emplace(e, edge_status::unknown); fresh)
             {
                 auto& status = it.value();
@@ -335,7 +335,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
         DBG_nospace << "dijkstra: closest px:" << closest
                     << " path:" << closest_path_len
                     << " pos:" << Vector3i(closest_pos.coord())
-                    << ";" << closest_pos.offset
+                    << ";" << closest_pos.offset()
                     << " nodes:" << nodes.size()
 #if !FM_ASTAR_NO_EDGE_CACHE
                     << " edges:" << edges.size()

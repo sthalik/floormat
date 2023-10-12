@@ -9,7 +9,7 @@ Debug& operator<<(Debug& dbg, const point& pt)
 
     auto c = Vector3i(pt.chunk3());
     auto t = Vector2i(pt.local());
-    auto o = pt.offset;
+    auto o = pt.offset();
 
     dbg << "point{";
     dbg << "{" << c.x() << "," << c.y() << "," << c.z() << "},";
