@@ -1,6 +1,5 @@
 #pragma once
 #include "global-coords.hpp"
-#include "compat/defs.hpp"
 #include <compare>
 #include <type_traits>
 #include <Corrade/Utility/StlForwardTuple.h>
@@ -21,7 +20,8 @@ struct point
     constexpr point();
     constexpr point(global_coords coord, Vector2b offset);
     constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset);
-    fm_DECLARE_DEFAULT_COPY_ASSIGNMENT(point);
+    constexpr point(const point& other);
+    constexpr point& operator=(const point& other);
 
     constexpr bool operator==(const point&) const noexcept;
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b);
@@ -33,6 +33,7 @@ struct point
     constexpr Vector2b offset() const;
     template<size_t N> std::tuple_element_t<N, point> constexpr get() const;
 
+    size_t hash() const;
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
 private:
@@ -41,6 +42,14 @@ private:
     local_coords tile;
     Vector2b _offset;
 };
+
+constexpr point::point() = default;
+constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk3(), coord.local(), offset} {}
+constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
+    cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
+{}
+constexpr point::point(const floormat::point& other) = default;
+constexpr point& point::operator=(const point& other) = default;
 
 constexpr bool point::operator==(const point&) const noexcept = default;
 
@@ -55,13 +64,6 @@ constexpr std::strong_ordering operator<=>(const point& p1, const point& p2)
     if (auto val = p1._offset.x() <=> p2._offset.x(); val != std::strong_ordering::equal) return val;
     return std::strong_ordering::equal;
 }
-
-constexpr point::point() = default;
-constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk3(), coord.local(), offset} { }
-
-constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
-    cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
-{}
 
 constexpr global_coords point::coord() const { return {{cx, cy}, tile, cz}; }
 constexpr chunk_coords_ point::chunk3() const { return {cx, cy, cz}; }

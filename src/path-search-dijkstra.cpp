@@ -85,18 +85,6 @@ uint32_t distance(point a, point b)
     return (uint32_t)Math::sqrt(dist.dot());
 }
 
-inline size_t hash_point(const point& pt)
-{
-    static_assert(sizeof(global_coords) == 8);
-#ifdef FLOORMAT_64
-    static_assert(sizeof nullptr > 4);
-    return fnvhash_64(&pt, sizeof pt);
-#else
-    static_assert(sizeof nullptr == 4);
-    return fnvhash_32(&pt, sizeof pt);
-#endif
-}
-
 } // namespace
 
 astar::astar()
@@ -143,14 +131,14 @@ uint32_t astar::pop_from_heap()
 auto astar::make_edge(const point& a, const point& b) -> edge
 {
     if (a < b)
-        return { a.coord(), b.coord(), a.offset(), b.offset() };
+        return { b, a };
     else
-        return { b.coord(), a.coord(), b.offset(), a.offset() };
+        return { a, b };
 }
 
 size_t astar::edge_hash::operator()(const edge& e) const
 {
-    static_assert(sizeof e == 8 + 8 + 2 + 2);
+    static_assert(sizeof e == 16);
 #ifdef FLOORMAT_64
     static_assert(sizeof nullptr > 4);
     return fnvhash_64(&e, sizeof e);
@@ -162,11 +150,6 @@ size_t astar::edge_hash::operator()(const edge& e) const
 
 bool astar::edge::operator==(const floormat::astar::edge& other) const = default;
 #endif
-
-size_t astar::point_hash::operator()(const point& pt) const
-{
-    return hash_point(pt);
-}
 
 path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,
                                    Vector2ub own_size_, int debug, const pred& p)
@@ -225,8 +208,8 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
             }
     }
 
-    auto closest = distance({from, from_offset}, {to, to_offset});
-    auto closest_pos = point{from, from_offset};
+    auto closest = distance(from_, to_);
+    auto closest_pos = from_;
     uint32_t closest_path_len = 0;
 
     while (!Q.empty())
@@ -253,20 +236,19 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
         if (debug >= 2) [[unlikely]]
             DBG_nospace << "node"
                         << " px:" << closest << " path:" << closest_path_len
-                        << " pos:" << Vector3i(closest_pos.coord())
-                        << ";" << closest_pos.offset();
+                        << " pos:" << closest_pos;
 #endif
 
         const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
         for (auto [vec, len] : directions)
         {
-            auto [new_coord, new_offset] = object::normalize_coords(cur_pt, vec);
             const auto dist = cur_dist + len;
             if (dist >= max_dist)
                 continue;
 
-            const auto new_pt = point{new_coord, new_offset};
-            const size_t new_pt_hash = hash_point(new_pt);
+            const auto new_pt = object::normalize_coords(cur_pt, vec);
+            const auto [new_coord, new_offset] = new_pt;
+            const size_t new_pt_hash = new_pt.hash();
 
             auto new_idx = (uint32_t)-1;
             bool fresh = true;
@@ -334,8 +316,7 @@ path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id o
     if (debug >= 1)
         DBG_nospace << "dijkstra: closest px:" << closest
                     << " path:" << closest_path_len
-                    << " pos:" << Vector3i(closest_pos.coord())
-                    << ";" << closest_pos.offset()
+                    << " pos:" << closest_pos
                     << " nodes:" << nodes.size()
 #if !FM_ASTAR_NO_EDGE_CACHE
                     << " edges:" << edges.size()

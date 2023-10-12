@@ -61,7 +61,7 @@ struct astar
 
     using pred = path_search::pred;
     template<typename T> using bbox = path_search::bbox<T>;
-    struct point_hash { size_t operator()(const point& pt) const; };
+    struct point_hash { size_t operator()(const point& pt) const { return pt.hash(); } };
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
@@ -86,9 +86,7 @@ private:
 #if !FM_ASTAR_NO_EDGE_CACHE
     struct edge
     {
-        global_coords from, to;
-        Vector2b from_offset, to_offset;
-
+        point from, to;
         bool operator==(const edge& other) const;
     };
     enum class edge_status : uint8_t { unknown, good, bad, };
