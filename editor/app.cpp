@@ -33,7 +33,7 @@ app::~app() = default;
 
 void app::reset_world()
 {
-    reset_world(floormat::world{});
+    reset_world(world{});
 }
 
 void app::ensure_player_character(world& w)

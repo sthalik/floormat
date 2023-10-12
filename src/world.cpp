@@ -192,7 +192,7 @@ void world::throw_on_wrong_object_type(object_id id, object_type actual, object_
     fm_throw("object '{}' has wrong object type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
 }
 
-auto world::neighbors(floormat::chunk_coords_ coord) -> std::array<neighbor_pair, 8>
+auto world::neighbors(chunk_coords_ coord) -> std::array<neighbor_pair, 8>
 {
     std::array<neighbor_pair, 8> ret;
     for (auto i = 0uz; const auto& x : neighbor_offsets)

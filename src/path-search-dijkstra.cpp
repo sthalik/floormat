@@ -148,7 +148,7 @@ size_t astar::edge_hash::operator()(const edge& e) const
 #endif
 }
 
-bool astar::edge::operator==(const floormat::astar::edge& other) const = default;
+bool astar::edge::operator==(const astar::edge& other) const = default;
 #endif
 
 path_search_result astar::Dijkstra(world& w, point from_, point to_, object_id own_id, uint32_t max_dist,

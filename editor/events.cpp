@@ -220,7 +220,7 @@ void app::on_mouse_leave() noexcept
     update_cursor_tile(NullOpt);
 }
 
-void app::do_key(floormat::key k)
+void app::do_key(key k)
 {
     do_key(k, get_key_modifiers());
 }

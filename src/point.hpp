@@ -48,7 +48,7 @@ constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk
 constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
     cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
 {}
-constexpr point::point(const floormat::point& other) = default;
+constexpr point::point(const point& other) = default;
 constexpr point& point::operator=(const point& other) = default;
 
 constexpr bool point::operator==(const point&) const noexcept = default;

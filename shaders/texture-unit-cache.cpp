@@ -79,7 +79,7 @@ void texture_unit_cache::invalidate()
     cache_miss_count = 0;
 }
 
-void texture_unit_cache::lock(floormat::size_t i, GL::AbstractTexture* tex)
+void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
 {
     fm_assert(i < unit_count);
     units[i] = { .ptr = tex, .lru_val = (uint64_t)-1, };
