@@ -22,3 +22,4 @@ endif()
 
 target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat)
 install(TARGETS ${self} RUNTIME DESTINATION bin)
+fm_add_debug_info(${self})

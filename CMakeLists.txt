@@ -22,6 +22,7 @@ set(CMAKE_CXX_LINKER_PREFERENCE_PROPAGATES ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 set(CMAKE_INSTALL_MESSAGE LAZY)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -211,6 +212,25 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
 elseif(CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
 endif()
+
+function(fm_add_debug_info self)
+    if(NOT MSVC AND NOT APPLE)
+        if(CMAKE_RUNTIME_OUTPUT_DIRECTORY STREQUAL "")
+            message(FATAL_ERROR "")
+        endif()
+        if(NOT CMAKE_OBJCOPY)
+            message(FATAL_ERROR "objcopy missing")
+        endif()
+        add_custom_command(TARGET ${self} POST_BUILD
+                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${self}.exe" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug"
+                           COMMAND "${CMAKE_OBJCOPY}" --strip-all "${self}.exe" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe"
+                           COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${self}.exe.debug "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe"
+                           BYPRODUCTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug"
+                           WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+        )
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug" DESTINATION bin)
+    endif()
+endfunction()
 
 add_subdirectory(src)
 add_subdirectory(main)

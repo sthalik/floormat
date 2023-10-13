@@ -19,6 +19,7 @@ if (FLOORMAT_ASAN)
 endif()
 
 install(TARGETS ${self} RUNTIME DESTINATION bin)
+fm_add_debug_info(${self})
 
 set(save-dir "${CMAKE_BINARY_DIR}/test/save")
 file(REMOVE_RECURSE "${save-dir}")
