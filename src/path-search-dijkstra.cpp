@@ -169,7 +169,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     auto closest_pos = from_;
     uint32_t closest_path_len = 0;
     auto goal_idx = (uint32_t)-1;
-    const auto goal_bb = bbox_from_pos(Vector2(to_.local()), to_.offset(), own_size);
+    const auto goal_bb = bbox_from_pos(Vector2(to_.local()), to_offset, own_size);
     const auto goal_chunk_idx = cache.get_chunk_index(Vector2i(to_.chunk()));
     const auto goal_tile_idx = cache.get_tile_index(Vector2i(to_.local()), to_offset);
 
