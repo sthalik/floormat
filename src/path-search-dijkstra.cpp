@@ -117,7 +117,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
     constexpr auto min_size = Vector2ui{div_size*3/2};
     const auto own_size = Math::max(Vector2ui(own_size_), min_size);
-    constexpr auto goal_distance = (div_size*3/2).length();
+    constexpr auto goal_thres = (div_size*3/2).length();
 
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
@@ -165,11 +165,13 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             }
     }
 
-    auto closest = distance(from_, to_);
+    auto closest_dist = distance(from_, to_);
     auto closest_pos = from_;
     uint32_t closest_path_len = 0;
     auto goal_idx = (uint32_t)-1;
     const auto goal_bb = bbox_from_pos(Vector2(to_.local()), to_.offset(), own_size);
+    const auto goal_chunk_idx = cache.get_chunk_index(Vector2i(to_.chunk()));
+    const auto goal_tile_idx = cache.get_tile_index(Vector2i(to_.local()), to_offset);
 
     while (!Q.empty())
     {
@@ -181,9 +183,12 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             cur_dist = n.dist;
         }
 
-        if (auto d = distance(cur_pt, to_); d < closest) [[unlikely]]
+        if (cur_dist >= max_dist) [[unlikely]]
+            continue;
+
+        if (auto d = distance(cur_pt, to_); d < closest_dist) [[unlikely]]
         {
-            closest = d;
+            closest_dist = d;
             closest_pos = cur_pt;
             closest_path_len = cur_dist;
         }
@@ -191,42 +196,47 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 #ifndef FM_NO_DEBUG
         if (debug >= 2) [[unlikely]]
             DBG_nospace << "node"
-                        << " px:" << closest << " path:" << closest_path_len
+                        << " px:" << closest_dist << " path:" << closest_path_len
                         << " pos:" << closest_pos;
 #endif
 
         const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
 
-        if (auto dist_to_goal = distance(cur_pt, to_); dist_to_goal < goal_distance) [[unlikely]]
+        if (auto dist_to_goal = distance(cur_pt, to_); dist_to_goal < goal_thres) [[unlikely]]
         {
             if (auto dist = cur_dist + dist_to_goal; dist < max_dist)
             {
                 auto vec = Vector2(cur_pt.coord() - to_.coord()) * TILE_SIZE2 + Vector2(cur_pt.offset() - to_.offset());
                 auto bb1 = bbox<float>{goal_bb.min + vec, goal_bb.max + vec};
                 auto bb = bbox_union(goal_bb, bb1);
+                bool fresh = true;
+
+                if (goal_idx != (uint32_t)-1)
+                {
+                    if (dist >= nodes[goal_idx].dist)
+                        continue;
+                    fresh = false;
+                }
+
                 if (path_search::is_passable(w, to_.chunk3(), bb, own_id, p))
                 {
-                    if (goal_idx != (uint32_t)-1)
+                    if (fresh)
                     {
-                        auto& n = nodes[goal_idx];
-                        if (dist >= n.dist)
-                            continue;
-                        n.dist = dist;
-                        n.prev = id;
-                    }
-                    else
-                    {
-                        auto chunk_idx = cache.get_chunk_index(Vector2i(to_.chunk()));
-                        auto tile_idx = cache.get_tile_index(Vector2i(to_.local()), to_offset);
                         goal_idx = (uint32_t)nodes.size();
-                        cache.add_index(chunk_idx, tile_idx, goal_idx);
+                        cache.add_index(goal_chunk_idx, goal_tile_idx, goal_idx);
                         auto new_node = visited {
                             .dist = dist, .prev = id,
                             .pt = to_,
                         };
                         nodes.push_back(new_node);
-                        auto idx = cache.lookup_index(chunk_idx, tile_idx);
+                        auto idx = cache.lookup_index(goal_chunk_idx, goal_tile_idx);
                         fm_assert(idx == goal_idx);
+                    }
+                    else
+                    {
+                        auto& n = nodes[goal_idx];
+                        n.dist = dist;
+                        n.prev = id;
                     }
                     max_dist = dist;
                     continue; // path can only get longer
@@ -254,7 +264,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                 if (nodes[new_idx].dist <= dist)
                     continue;
                 fresh = false;
-
             }
 
             {   auto vec_ = Vector2(vec);
@@ -265,7 +274,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             }
 
             if (fresh)
-            {   const auto sz = nodes.size();
+            {
+                const auto sz = nodes.size();
                 new_idx = (uint32_t)sz;
                 cache.add_index(chunk_idx, tile_idx, new_idx);
                 auto new_node = visited {
@@ -303,8 +313,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             dbg << "found len:" << nodes[goal_idx].dist;
         else
         {
-            dbg << "closest px:" << closest
-                << " path:" << closest_path_len
+            dbg << "closest_dist px:" << closest_dist << " path:" << closest_path_len
                 << " pos:" << closest_pos;
         }
          dbg << " nodes:" << nodes.size();
