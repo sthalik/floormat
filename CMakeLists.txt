@@ -221,11 +221,12 @@ function(fm_add_debug_info self)
         if(NOT CMAKE_OBJCOPY)
             message(FATAL_ERROR "objcopy missing")
         endif()
+        set(exe "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe")
         add_custom_command(TARGET ${self} POST_BUILD
-                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${self}.exe" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug"
-                           COMMAND "${CMAKE_OBJCOPY}" --strip-all "${self}.exe" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe"
-                           COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${self}.exe.debug "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe"
-                           BYPRODUCTS "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug"
+                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug"
+                           COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}"
+                           COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${self}.exe.debug "${exe}"
+                           BYPRODUCTS "${exe}.debug"
                            WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
         )
         install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug" DESTINATION bin)
