@@ -9,10 +9,11 @@
 #include "point.hpp"
 #include <bit>
 #include <array>
+#include <vector>
+#include <bitset>
+#include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
-#include <tsl/robin_map.h>
-#include <tsl/robin_set.h>
 
 namespace floormat {
 
@@ -78,26 +79,33 @@ private:
     static constexpr auto div_factor = (int8_t)path_search::div_factor;
     static constexpr auto initial_capacity = TILE_COUNT * 16 * div_factor*div_factor;
 
+    struct chunk_cache;
+
+    struct cache
+    {
+        Vector2ui size;
+        Vector2i start{(int)((1u << 31) - 1)};
+        Array<chunk_cache> array;
+
+        cache();
+        fm_DECLARE_DELETED_COPY_ASSIGNMENT(cache);
+
+        size_t get_chunk_index(Vector2i chunk) const;
+        static size_t get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord);
+        static size_t get_tile_index(Vector2b from_offset, Vector2i pos, Vector2b offset);
+        static Vector2ui get_size_to_allocate(uint32_t max_dist);
+
+        void allocate(point from, uint32_t max_dist);
+        void add_index(size_t chunk_index, size_t tile_index, uint32_t index);
+        void add_index(Vector2b from_offset, point pt, uint32_t index);
+        uint32_t lookup_index(size_t chunk_index, size_t tile_index);
+    };
+
     void add_to_heap(uint32_t id);
     uint32_t pop_from_heap();
 
-#define FM_ASTAR_NO_EDGE_CACHE 1
-
-#if !FM_ASTAR_NO_EDGE_CACHE
-    struct edge
-    {
-        point from, to;
-        bool operator==(const edge& other) const;
-    };
-    enum class edge_status : uint8_t { unknown, good, bad, };
-    struct edge_hash { size_t operator()(const edge& e) const; };
-    static edge make_edge(const point& a, const point& b);
-
-    tsl::robin_map<edge, edge_status, edge_hash> edges;
-#endif
-
+    struct cache cache;
     std::vector<visited> nodes;
-    tsl::robin_map<point, uint32_t, point_hash> indexes;
     std::vector<uint32_t> Q;
 };
 
