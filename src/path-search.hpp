@@ -62,7 +62,6 @@ struct astar
 
     using pred = path_search::pred;
     template<typename T> using bbox = path_search::bbox<T>;
-    struct point_hash { size_t operator()(const point& pt) const { return pt.hash(); } };
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
@@ -92,12 +91,12 @@ private:
 
         size_t get_chunk_index(Vector2i chunk) const;
         static size_t get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord);
-        static size_t get_tile_index(Vector2b from_offset, Vector2i pos, Vector2b offset);
+        static size_t get_tile_index(Vector2i pos, Vector2b offset);
         static Vector2ui get_size_to_allocate(uint32_t max_dist);
 
         void allocate(point from, uint32_t max_dist);
         void add_index(size_t chunk_index, size_t tile_index, uint32_t index);
-        void add_index(Vector2b from_offset, point pt, uint32_t index);
+        void add_index(point pt, uint32_t index);
         uint32_t lookup_index(size_t chunk_index, size_t tile_index);
     };
 

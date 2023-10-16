@@ -16,20 +16,6 @@ constexpr auto div_size = path_search::div_size;
 
 template<typename T>
 requires std::is_arithmetic_v<T>
-constexpr bbox<T> bbox_union(bbox<T> bb, Vector2i coord, Vector2b offset, Vector2ui size)
-{
-    auto center = coord * iTILE_SIZE2 + Vector2i(offset);
-    auto min = center - Vector2i(size / 2);
-    auto max = center + Vector2i(size);
-    using Vec = VectorTypeFor<2, T>;
-    return {
-        .min = Math::min(Vec(bb.min), Vec(min)),
-        .max = Math::max(Vec(bb.max), Vec(max)),
-    };
-}
-
-template<typename T>
-requires std::is_arithmetic_v<T>
 constexpr auto bbox_from_pos(Math::Vector2<T> pos, Vector2b offset, Vector2ui size)
 {
     const auto vec = Vector2i(pos) * iTILE_SIZE2 + Vector2i(offset);
@@ -41,9 +27,9 @@ constexpr auto bbox_from_pos(Math::Vector2<T> pos, Vector2b offset, Vector2ui si
 
 template<typename T>
 requires std::is_arithmetic_v<T>
-constexpr inline bbox<T> bbox_union(bbox<T> bb1, bbox<T> bb2)
+constexpr inline bbox<T> bbox_union(bbox<T> bb0, bbox<T> bb1)
 {
-    return { Math::min(bb1.min, bb2.min), Math::max(bb1.max, bb2.max) };
+    return { Math::min(bb0.min, bb1.min), Math::max(bb0.max, bb1.max) };
 }
 
 constexpr auto directions = []() constexpr
@@ -153,30 +139,29 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     auto& path = result.path(); path.clear();
 
     cache.allocate(from_, max_dist);
-    cache.add_index(from_offset, from_, 0);
     nodes.push_back({.dist = 0, .pt = from_, });
     add_to_heap(0);
 
-    if (!from_offset.isZero())
-    {
-        const auto from_local = Vector2i(from.local());
-        const auto start_bbox = bbox_from_pos(Vector2(from_local), from_offset, own_size);
-        const auto from_offset_len = Math::max(1u, (uint32_t)(Vector2(from_offset).length() + 0.5f));
-        uint32_t idx = 1;
-        constexpr int8_t div_min = (div_factor+1)/-2, div_max = div_factor/2;
-        for (int8_t y = div_min; y < div_max; y++)
-            for (int8_t x = div_min; x < div_max; x++)
+    {   const auto bb0 = bbox_from_pos(Vector2(from.local()), {}, own_size);
+        uint32_t idx = 0;
+        constexpr int8_t div_min = div_factor*-2, div_max = div_factor*2;
+
+        for (int8_t y = div_min; y <= div_max; y++)
+            for (int8_t x = div_min; x <= div_max; x++)
             {
-                const auto offset = Vector2b(div_size * Vector2i(x, y));
-                if (offset != from_offset)
-                    if (auto bb = bbox_union(start_bbox, from_local, offset, own_size);
-                        path_search::is_passable(w, from.chunk3(), bb, own_id, p))
-                    {
-                        auto pt = point{from, offset};
-                        cache.add_index(from_offset, pt, idx);
-                        nodes.push_back({.dist = from_offset_len, .prev = 0, .pt = pt, });
-                        add_to_heap(idx++);
-                    }
+                auto off_ = Vector2i(x, y) * div_size;
+                auto off = Vector2(off_);
+                auto bb1 = bbox<float>{ bb0.min + off, bb0.max + off};
+                auto bb = bbox_union(bb0, bb1);
+                auto dist = (uint32_t)off.length();
+
+                if (path_search::is_passable(w, from.chunk3(), bb, own_id, p))
+                {
+                    auto pt = object::normalize_coords({from, {}}, off_);
+                    cache.add_index(pt, idx);
+                    nodes.push_back({.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+                    add_to_heap(idx++);
+                }
             }
     }
 
@@ -217,12 +202,11 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
             const auto new_pt = object::normalize_coords(cur_pt, vec);
             const auto [new_coord, new_offset] = new_pt;
-            //const size_t new_pt_hash = new_pt.hash();
 
             bool fresh = true;
 
             auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
-            auto tile_idx = cache.get_tile_index(from_offset, Vector2i(new_pt.local()), new_offset);
+            auto tile_idx = cache.get_tile_index(Vector2i(new_pt.local()), new_offset);
             auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
             if (new_idx != (uint32_t)-1)
@@ -263,7 +247,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             {   const auto sz = nodes.size();
                 new_idx = (uint32_t)sz;
                 cache.add_index(chunk_idx, tile_idx, new_idx);
-                //indexes.insert({new_pt, new_idx}, new_pt_hash);
                 auto new_node = visited {
                     .dist = dist, .prev = id,
                     .pt = {new_coord, new_offset},
@@ -299,7 +282,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 struct astar::chunk_cache
 {
     static constexpr size_t dimensions[] = {
-        2 /* offset, no-offset*/,
         TILE_COUNT,
         (size_t)div_factor * (size_t)div_factor,
     };
@@ -358,22 +340,15 @@ size_t astar::cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i co
 
 size_t astar::cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
 
-size_t astar::cache::get_tile_index(Vector2b from_offset, Vector2i pos, Vector2b offset_)
+size_t astar::cache::get_tile_index(Vector2i pos, Vector2b offset_)
 {
     Vector2i offset{offset_};
-    bool is_offset = false;
-    if (offset % div_size != Vector2i{0, 0})
-    {
-        offset -= Vector2i(from_offset);
-        fm_assert(offset % div_size == Vector2i{0, 0});
-        is_offset = true;
-    }
     constexpr auto tile_start = div_size * div_factor/-2;
     offset -= tile_start;
     fm_debug_assert(offset >= Vector2i{0, 0});
+    fm_debug_assert(offset < div_size * div_factor);
     auto nth_div = offset / div_size;
     const size_t idx[] = {
-        (size_t)is_offset,
         (size_t)pos.y() * TILE_MAX_DIM + (size_t)pos.x(),
         (size_t)nth_div.y() * div_factor + (size_t)nth_div.x(),
     };
@@ -397,10 +372,10 @@ void astar::cache::add_index(size_t chunk_index, size_t tile_index, uint32_t ind
     c.indexes[tile_index] = {index};
 }
 
-void astar::cache::add_index(Vector2b from_offset, point pt, uint32_t index)
+void astar::cache::add_index(point pt, uint32_t index)
 {
     auto ch = get_chunk_index(Vector2i(pt.chunk()));
-    auto tile = get_tile_index(from_offset, Vector2i(pt.local()), pt.offset());
+    auto tile = get_tile_index(Vector2i(pt.local()), pt.offset());
     fm_debug_assert(!array[ch].exists[tile]);
     array[ch].exists[tile] = true;
     array[ch].indexes[tile] = {index};
