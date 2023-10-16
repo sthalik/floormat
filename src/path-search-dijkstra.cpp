@@ -115,9 +115,9 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     clear();
     cache.allocate(from_, max_dist);
 
-    constexpr auto min_size_ = Vector2ui{Vector2(div_size) * 1.5f + Vector2{.5f}};
-    const auto own_size = Math::max(Vector2ui{Vector2{own_size_}*1.5f + Vector2{.5f}}, min_size_);
-    const auto goal_distance = (uint32_t)Math::max(Vector2ui(iTILE_SIZE2*11/10), own_size * 2).length();
+    constexpr auto min_size = Vector2ui{div_size*3/2};
+    const auto own_size = Math::max(Vector2ui(own_size_), min_size);
+    constexpr auto goal_distance = (div_size*3/2).length();
 
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
