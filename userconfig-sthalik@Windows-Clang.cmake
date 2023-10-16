@@ -119,6 +119,7 @@ function(fm-userconfig-src)
         -Wno-error=unused-private-field
         -Wno-error=unused-variable
         -Wno-error=unused-function
+        -Wno-error=unused-template
         -Wno-error=unused-member-function
         -Wno-error=unused-macros
         -Wno-error=alloca
