@@ -6,19 +6,19 @@
 
 namespace floormat {
 
+struct point;
+
 struct path_search_result final
 {
     friend struct test_app;
 
-    struct pair { global_coords pos; Vector2 offset; };
-
-    const pair* data() const;
-    const pair& operator[](size_t index) const;
+    const point* data() const;
+    const point& operator[](size_t index) const;
     size_t size() const;
 
-    std::vector<pair>& path();
-    const std::vector<pair>& path() const;
-    explicit operator ArrayView<const pair>() const;
+    std::vector<point>& path();
+    const std::vector<point>& path() const;
+    explicit operator ArrayView<const point>() const;
     explicit operator bool() const;
 
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(path_search_result);
@@ -39,7 +39,7 @@ private:
         fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
         fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
 
-        std::vector<pair> vec;
+        std::vector<point> vec;
 
     private:
         std::unique_ptr<node> _next;
