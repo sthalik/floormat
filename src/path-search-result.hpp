@@ -15,6 +15,8 @@ struct path_search_result final
     const point* data() const;
     const point& operator[](size_t index) const;
     size_t size() const;
+    uint32_t cost() const;
+    void set_cost(uint32_t value);
 
     std::vector<point>& path();
     const std::vector<point>& path() const;
@@ -48,6 +50,7 @@ private:
     static std::unique_ptr<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
 
     std::unique_ptr<node> _node;
+    uint32_t _cost = 0;
 };
 
 } // namespace floormat

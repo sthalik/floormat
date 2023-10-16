@@ -135,9 +135,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     if (!path_search::is_passable(w, to, to_offset, own_size, own_id, p))
         return {};
 
-    path_search_result result;
-    auto& path = result.path(); path.clear();
-
     cache.allocate(from_, max_dist);
     nodes.push_back({.dist = 0, .pt = from_, });
     add_to_heap(0);
@@ -319,7 +316,23 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     }
 #endif
 
-    // todo...
+    path_search_result result;
+    auto& path = result.path();
+    path.clear();
+
+    if (auto i = goal_idx; i != (uint32_t)-1)
+    {
+        do {
+            const auto& node = nodes[i];
+            path.push_back(node.pt);
+            i = node.prev;
+
+        } while(i !=(uint32_t)-1);
+
+        result.set_cost(nodes[goal_idx].dist);
+        std::reverse(path.begin(), path.end());
+    }
+
     return result;
 }
 
