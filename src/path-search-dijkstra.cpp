@@ -312,7 +312,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             dbg << "found len:" << nodes[goal_idx].dist;
         else
         {
-            dbg << "closest_dist px:" << closest_dist << " path:" << closest_path_len
+            dbg << "closest px:" << closest_dist << " path:" << closest_path_len
                 << " pos:" << closest_pos;
         }
          dbg << " nodes:" << nodes.size();

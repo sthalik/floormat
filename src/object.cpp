@@ -33,9 +33,6 @@ constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int n
     bool b = x >= half_tile | x < -half_tile;
     int tmask = -(volatile int)b;
     int8_t xmask = -(volatile int8_t)b;
-#if defined __GNUG__
-    asm volatile ("" : "+r"(tmask), "+r"(xmask));
-#endif
     t += s & tmask;
     x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
     return { t, (int8_t)x };
