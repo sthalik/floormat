@@ -12,5 +12,5 @@ if(OpenCV_FOUND)
     add_executable(${self} "${sources}")
     target_link_libraries(${self} PRIVATE floormat-serialize floormat)
 
-    install(TARGETS ${self} RUNTIME DESTINATION "bin")
+    fm_add_install_executable(${self})
 endif()

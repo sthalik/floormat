@@ -213,7 +213,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
 endif()
 
-function(fm_add_debug_info self)
+function(fm_add_install_executable self)
     if(NOT MSVC AND NOT APPLE)
         if(CMAKE_RUNTIME_OUTPUT_DIRECTORY STREQUAL "")
             message(FATAL_ERROR "")
@@ -224,12 +224,13 @@ function(fm_add_debug_info self)
         set(exe "${self}${CMAKE_EXECUTABLE_SUFFIX}")
         add_custom_command(TARGET ${self} POST_BUILD
                            COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug"
-                           COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}"
-                           COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${exe}.debug "${exe}"
-                           BYPRODUCTS "${exe}.debug"
+                           COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}" "${exe}.nodebug"
+                           COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${exe}.debug "${exe}.nodebug"
+                           # BYPRODUCTS "${exe}.debug" "${exe}.nodebug"
                            WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
         )
         install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exe}.debug" DESTINATION bin)
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exe}.nodebug" RENAME "${exe}" DESTINATION bin)
     endif()
 
 endfunction()

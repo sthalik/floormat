@@ -18,8 +18,7 @@ if (FLOORMAT_ASAN)
     set_target_properties(${self} PROPERTIES OUTPUT_NAME "floormat-test-asan")
 endif()
 
-install(TARGETS ${self} RUNTIME DESTINATION bin)
-fm_add_debug_info(${self})
+fm_add_install_executable(${self})
 
 set(save-dir "${CMAKE_BINARY_DIR}/test/save")
 file(REMOVE_RECURSE "${save-dir}")
