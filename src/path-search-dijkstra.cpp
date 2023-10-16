@@ -144,7 +144,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
     {   const auto bb0 = bbox_from_pos(Vector2(from.local()), {}, own_size);
         uint32_t idx = 0;
-        constexpr int8_t div_min = div_factor*-2, div_max = div_factor*2;
+        constexpr int8_t div_min = div_factor*-2, div_max = div_factor*2+1;
 
         for (int8_t y = div_min; y <= div_max; y++)
             for (int8_t x = div_min; x <= div_max; x++)
