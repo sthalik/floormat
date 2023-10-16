@@ -221,11 +221,7 @@ function(fm_add_debug_info self)
         if(NOT CMAKE_OBJCOPY)
             message(FATAL_ERROR "objcopy missing")
         endif()
-        if(WIN32)
-            set(exe "${self}.exe")
-        else()
-            set(exe "${self}")
-        endif()
+        set(exe "${self}${CMAKE_EXECUTABLE_SUFFIX}")
         add_custom_command(TARGET ${self} POST_BUILD
                            COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug"
                            COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}"
