@@ -229,8 +229,9 @@ function(fm_add_debug_info self)
                            BYPRODUCTS "${exe}.debug"
                            WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
         )
-        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${self}.exe.debug" DESTINATION bin)
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${exe}.debug" DESTINATION bin)
     endif()
+
 endfunction()
 
 add_subdirectory(src)
