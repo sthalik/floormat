@@ -374,9 +374,7 @@ void astar::cache::allocate(point from, uint32_t max_dist)
 
 size_t astar::cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 {
-    auto off_ =  coord - start;
-    fm_assert(off_ >= Vector2i{0, 0});
-    auto off = Vector2ui(off_);
+    auto off = Vector2ui(coord - start);
     fm_assert(off < size);
     auto index = off.y() * size.x() + off.x();
     fm_debug_assert(index < size.product());
@@ -390,9 +388,8 @@ size_t astar::cache::get_tile_index(Vector2i pos, Vector2b offset_)
     Vector2i offset{offset_};
     constexpr auto tile_start = div_size * div_factor/-2;
     offset -= tile_start;
-    fm_debug_assert(offset >= Vector2i{0, 0});
-    fm_debug_assert(offset < div_size * div_factor);
-    auto nth_div = offset / div_size;
+    fm_debug_assert(offset >= Vector2i{0, 0} && offset < div_size * div_factor);
+    auto nth_div = Vector2ui(offset) / Vector2ui(div_size);
     const size_t idx[] = {
         (size_t)pos.y() * TILE_MAX_DIM + (size_t)pos.x(),
         (size_t)nth_div.y() * div_factor + (size_t)nth_div.x(),
@@ -405,7 +402,7 @@ size_t astar::cache::get_tile_index(Vector2i pos, Vector2b offset_)
             k *= chunk_cache::dimensions[j];
         index += k;
     }
-    fm_assert(index < chunk_cache::size);
+    fm_debug_assert(index < chunk_cache::size);
     return index;
 }
 
