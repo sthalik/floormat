@@ -181,7 +181,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             cur_dist = n.dist;
         }
 
-        if (auto d = distance(cur_pt, to_); d < closest)
+        if (auto d = distance(cur_pt, to_); d < closest) [[unlikely]]
         {
             closest = d;
             closest_pos = cur_pt;
