@@ -200,8 +200,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                         << " pos:" << closest_pos;
 #endif
 
-        const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
-
         if (auto dist_to_goal = distance(cur_pt, to_); dist_to_goal < goal_thres) [[unlikely]]
         {
             if (auto dist = cur_dist + dist_to_goal; dist < max_dist)
@@ -266,7 +264,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                 fresh = false;
             }
 
-            {   auto vec_ = Vector2(vec);
+            {   const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
+                auto vec_ = Vector2(vec);
                 auto bb1 = bbox<float>{ bb0.min + vec_, bb0.max + vec_ };
                 auto bb = bbox_union(bb0, bb1);
                 if (!path_search::is_passable(w, new_coord.chunk3(), bb, own_id, p))
