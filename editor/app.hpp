@@ -29,6 +29,7 @@ struct critter;
 struct cursor_state final {
     Optional<Vector2i> pixel;
     Optional<global_coords> tile;
+    Optional<Vector2b> subpixel;
     bool in_imgui = false;
 };
 
