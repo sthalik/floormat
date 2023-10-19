@@ -140,13 +140,11 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
         auto tile = global_coords{coord.chunk(), coord.local(), _z_level};
         cursor.tile = tile;
 
-        constexpr auto eps = 1e-6f;
-        constexpr auto m = TILE_SIZE2 * Vector2(1-eps, 1-eps);
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*pixel)));
         const auto curchunk = Vector2(tile.chunk());
         const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
-        auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
-                                    curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
+        auto subpixel = TILE_SIZE2 * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
+                                             curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
         constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
         subpixel -= half_tile;
         subpixel.x() = Math::clamp(std::round(subpixel.x()), -half_tile.x(), half_tile.x()-1);
