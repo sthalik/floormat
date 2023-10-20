@@ -30,7 +30,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
         {
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
             auto pt0 = C->position();
-            auto vec = (pt->coord() - pt0.coord()) * iTILE_SIZE2 + chunk_size * 1;
+            auto vec = (pt->coord() - pt0.coord()) * iTILE_SIZE2 * 2 + chunk_size * 1;
             auto dist = (uint32_t)vec.length();
 
             has_pending = true;
@@ -40,7 +40,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
         return true;
     }
     case mouse_button_right:
-        if (has_pending | has_result)
+        if (has_pending || has_result)
         {
             has_pending = has_result = false;
             pending = {};
