@@ -39,7 +39,7 @@ bool app::tests_handle_mouse_click(const mouse_button_event& e)
             [&](path_test& t) {
                 // todo
             }
-        }, var.data);
+        }, var);
 
         return true;
     }
@@ -52,7 +52,7 @@ bool app::tests_handle_mouse_click(const mouse_button_event& e)
                 ret = t.active;
                 t = {};
             },
-        }, var.data);
+        }, var);
         return ret;
     }
     return false;
@@ -75,8 +75,8 @@ tests_data& app::tests()
 
 void app::tests_reset_mode()
 {
-    if (!std::holds_alternative<std::monostate>(tests().data))
-        tests().data = std::monostate{};
+    if (!std::holds_alternative<std::monostate>(tests()))
+        tests() = std::monostate{};
 }
 
 void app::draw_tests_pane(float main_menu_height)

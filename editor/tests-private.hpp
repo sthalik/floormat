@@ -23,14 +23,14 @@ using variant = std::variant<std::monostate, tests::path_test>;
 
 namespace floormat {
 
-struct tests_data final : tests_data_
+struct tests_data final : tests_data_, tests::variant
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(tests_data);
     tests_data();
     ~tests_data() noexcept override;
+    using tests::variant::operator=;
     //tests::variant& operator*();
     //tests::variant* operator->();
-    tests::variant data{std::monostate{}};
 };
 
 } // namespace floormat
