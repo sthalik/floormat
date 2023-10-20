@@ -17,6 +17,17 @@
 
 namespace floormat {
 
+struct Optional<point> cursor_state::point() const
+{
+    if (tile)
+        return {InPlaceInit, *tile, *subpixel};
+    else
+        return {};
+}
+
+floormat_main& app::main() { return *M; }
+const cursor_state& app::cursor_state() { return cursor; }
+
 app::app(fm_settings&& opts) :
     M{floormat_main::create(*this, Utility::move(opts))},
     _tests{tests_data_::make()}
@@ -40,14 +51,16 @@ void app::reset_world()
     reset_world(world{});
 }
 
-void app::ensure_player_character(world& w)
+std::shared_ptr<critter> app::ensure_player_character(world& w)
 {
     if (_character_id)
         if (auto C = w.find_object(_character_id); C && C->type() == object_type::critter)
-            return;
+            return std::static_pointer_cast<critter>(C);
     _character_id = 0;
 
     auto id = (object_id)-1;
+
+    std::shared_ptr<critter> ret;
 
     for (const auto& [coord, c] : w.chunks())
     {
@@ -58,7 +71,10 @@ void app::ensure_player_character(world& w)
             {
                 const auto& C = static_cast<const critter&>(e);
                 if (C.playable)
+                {
                     id = std::min(id, C.id);
+                    ret = std::static_pointer_cast<critter>(e_);
+                }
             }
         }
     }
@@ -70,8 +86,11 @@ void app::ensure_player_character(world& w)
         critter_proto cproto;
         cproto.name = "Player"_s;
         cproto.playable = true;
-        _character_id = w.make_object<critter>(w.make_id(), global_coords{}, cproto)->id;
+        ret = w.make_object<critter>(w.make_id(), global_coords{}, cproto);
+        _character_id = ret->id;
     }
+    fm_debug_assert(ret);
+    return ret;
 }
 
 void app::reset_world(struct world&& w_)

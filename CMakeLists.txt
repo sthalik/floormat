@@ -204,6 +204,7 @@ fm_run_hook(fm-userconfig-src)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-float-equal)
+    add_compile_options(-Wreturn-type -Werror=return-type)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")

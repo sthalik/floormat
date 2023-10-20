@@ -63,6 +63,7 @@ struct object
     struct chunk& chunk() const;
     size_t index() const;
     virtual bool is_virtual() const;
+    point position() const;
 
     explicit operator object_proto() const;
 

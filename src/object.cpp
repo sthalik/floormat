@@ -103,6 +103,11 @@ bool object::is_virtual() const
     return false;
 }
 
+point object::position() const
+{
+    return {coord, offset};
+}
+
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
                         Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {

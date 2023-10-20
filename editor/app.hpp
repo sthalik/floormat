@@ -26,12 +26,15 @@ struct tile_editor;
 struct fm_settings;
 struct anim_atlas;
 struct critter;
+struct point;
 
 struct cursor_state final {
     Optional<Vector2i> pixel;
     Optional<global_coords> tile;
     Optional<Vector2b> subpixel;
     bool in_imgui = false;
+
+    struct Optional<point> point() const;
 };
 
 struct clickable;
@@ -60,7 +63,11 @@ struct app final : floormat_app
 #ifdef _WIN32
     static void set_dpi_aware();
 #endif
-    object_id object_at_cursor();
+    object_id get_object_colliding_with_cursor();
+    floormat_main& main();
+    const struct cursor_state& cursor_state();
+    clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
+    std::shared_ptr<critter> ensure_player_character(world& w);
 
 private:
     using key_set = enum_bitset<key, key_COUNT>;
@@ -82,7 +89,6 @@ private:
     void update_character(float dt);
     void reset_world();
     void reset_world(struct world&& w);
-    void ensure_player_character(world& w);
 
     void draw() override;
 
@@ -106,7 +112,6 @@ private:
 
     void do_camera(float dt, const key_set& cmds, int mods);
     void reset_camera_offset();
-    clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
 
     void do_quicksave();
     void do_quickload();
@@ -173,7 +178,7 @@ private:
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
     object_id _character_id = 0;
-    cursor_state cursor;
+    struct cursor_state cursor;
     popup_target _popup_target;
 
     Optional<chunk_coords_> tested_light_chunk;

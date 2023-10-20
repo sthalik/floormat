@@ -204,18 +204,18 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                 auto vec = Vector2(cur_pt.coord() - to_.coord()) * TILE_SIZE2 + Vector2(cur_pt.offset() - to_.offset());
                 auto bb1 = bbox<float>{goal_bb.min + vec, goal_bb.max + vec};
                 auto bb = bbox_union(goal_bb, bb1);
-                bool fresh = true;
 
                 if (goal_idx != (uint32_t)-1)
-                {
                     if (dist >= nodes[goal_idx].dist)
                         continue;
-                    fresh = false;
-                }
 
                 if (path_search::is_passable(w, to_.chunk3(), bb, own_id, p))
                 {
-                    if (fresh)
+                    if (goal_idx == (uint32_t)-1)
+                    {
+                        goal_idx = cache.lookup_index(goal_chunk_idx, goal_tile_idx);
+                    }
+                    if (goal_idx == (uint32_t)-1)
                     {
                         goal_idx = (uint32_t)nodes.size();
                         cache.add_index(goal_chunk_idx, goal_tile_idx, goal_idx);

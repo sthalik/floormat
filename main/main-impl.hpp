@@ -98,6 +98,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     struct texture_unit_cache& texture_unit_cache() override;
     path_search& search() override;
+    struct astar& astar() override;
 
 private:
     struct texture_unit_cache _tuc;
@@ -117,6 +118,7 @@ private:
     Framebuffer framebuffer;
 #endif
     path_search _search;
+    struct astar _astar;
 
     struct {
         float value = 0;

@@ -1,6 +1,6 @@
 set(self floormat-editor)
 
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+file(GLOB sources "*.cpp" "tests/*.cpp" CONFIGURE_ARGS)
 corrade_add_resource(res "../resources.conf")
 
 if(MSVC)
@@ -23,7 +23,7 @@ if(NOT SDL2_INCLUDE_DIRS)
         get_target_property(SDL2_INCLUDE_DIRS SDL2::SDL2 INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 endif()
-set_property(SOURCE "events.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
+set_property(SOURCE "events.cpp" "tests.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
 
 add_executable(${self} dummy.cc)
 if (FLOORMAT_ASAN)

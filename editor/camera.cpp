@@ -60,11 +60,8 @@ void app::reset_camera_offset()
     update_cursor_tile(cursor.pixel);
 }
 
-object_id app::object_at_cursor()
+object_id app::get_object_colliding_with_cursor()
 {
-    auto [z_min, z_max, z_cur, only] = get_z_bounds();
-    if (only)
-        z_min = z_max = z_cur;
     const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     const auto sz = M->window_size();
     auto& world = M->world();
