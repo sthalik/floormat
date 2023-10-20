@@ -6,7 +6,6 @@
 namespace floormat {
 using namespace floormat::imgui;
 
-
 void app::draw_fps()
 {
     const auto dpi = M->dpi_scale();

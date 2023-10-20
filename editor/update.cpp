@@ -263,13 +263,14 @@ auto app::get_z_bounds() -> z_bounds
 void app::update(float dt)
 {
     update_cursor_tile(cursor.pixel);
+    tests_pre_update();
     apply_commands(keys);
     update_character(dt);
     update_world(dt);
     do_camera(dt, keys, get_key_modifiers());
     clear_non_repeated_keys();
     set_cursor();
-
+    tests_post_update();
     M->world().maybe_collect();
 }
 

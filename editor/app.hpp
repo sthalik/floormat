@@ -11,6 +11,7 @@
 #include "floormat/app.hpp"
 #include "keys.hpp"
 #include "src/object-id.hpp"
+#include "tests.hpp"
 #include <memory>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
@@ -148,7 +149,18 @@ private:
     void clear_non_global_keys();
     void clear_non_repeated_keys();
 
-    Containers::Pointer<floormat_main> M;
+    [[nodiscard]] bool tests_handle_key(const key_event& e);
+    [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e);
+    [[nodiscard]] bool tests_handle_mouse_move(const mouse_move_event& e);
+    void tests_pre_update();
+    void tests_post_update();
+    void draw_tests_pane(float main_menu_height);
+    void draw_tests_overlay();
+    void tests_reset_mode();
+    tests_data& tests();
+
+    Pointer<floormat_main> M;
+    Pointer<tests_data_> _tests;
     ImGuiIntegration::Context _imgui{NoCreate};
     GL::Texture2D _wireframe_texture = wireframe::make_constant_texture();
     wireframe_mesh<wireframe::quad_floor>  _wireframe_quad   {_wireframe_texture};

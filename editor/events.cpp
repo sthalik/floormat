@@ -58,7 +58,10 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
         accessor(Vector2i, position)
     } e = {event.position};
 
-    cursor.in_imgui = _imgui.handleMouseMoveEvent(e);
+    if ((cursor.in_imgui = _imgui.handleMouseMoveEvent(e)))
+        void();
+    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_move(event))
+        void();
     update_cursor_tile(event.position);
     do_mouse_move(fixup_mods(event.mods));
 }
@@ -82,7 +85,11 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         accessor(Button, button)
     } e = {event.position, Button_(button)};
 
-    if (!(cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
+    if ((cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
+        void();
+    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event))
+        void();
+    else
         do_mouse_up_down(button, is_down, fixup_mods(event.mods));
 }
 
@@ -182,9 +189,8 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
-    if (x == key_COUNT)
-        is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e);
-    else if (x < key_GLOBAL && is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e))
+    if (x == key_COUNT && (is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e)) ||
+        x == key_COUNT && _editor.mode() == editor_mode::tests && tests_handle_key(event))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
         is_down && !event.is_repeated ? do_key(x, mods) : void();

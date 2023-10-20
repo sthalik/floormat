@@ -114,6 +114,8 @@ void app::draw_ui()
         draw_clickables();
     if (_render_vobjs)
         draw_light_info();
+    if (_editor.mode() == editor_mode::tests)
+        draw_tests_overlay();
     const float main_menu_height = draw_main_menu();
 
     [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
@@ -122,11 +124,15 @@ void app::draw_ui()
 
     if (_editor.current_tile_editor() || _editor.current_scenery_editor() || _editor.current_vobj_editor())
         draw_editor_pane(main_menu_height);
+    else if (_editor.mode() == editor_mode::tests)
+        draw_tests_pane(main_menu_height);
     draw_fps();
 
     draw_tile_under_cursor();
     if (_editor.mode() == editor_mode::none)
         draw_inspector();
+    if (_editor.mode() == editor_mode::tests)
+        draw_tests_pane(main_menu_height);
     draw_z_level();
     do_popup_menu();
     ImGui::EndFrame();

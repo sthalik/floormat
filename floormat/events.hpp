@@ -1,4 +1,5 @@
 #pragma once
+#include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Vector2.h>
 
 namespace floormat {
@@ -32,11 +33,11 @@ struct mouse_scroll_event final {
 };
 
 struct text_input_event final {
-    Containers::StringView text;
+    StringView text;
 };
 
 struct text_editing_event final {
-    Containers::StringView text;
+    StringView text;
     int32_t start = 0, length = 0;
 };
 

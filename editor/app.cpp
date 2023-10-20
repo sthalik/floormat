@@ -18,7 +18,8 @@
 namespace floormat {
 
 app::app(fm_settings&& opts) :
-    M{floormat_main::create(*this, Utility::move(opts))}
+    M{floormat_main::create(*this, Utility::move(opts))},
+    _tests{tests_data_::make()}
 {
     reset_world();
     auto& w = M->world();
@@ -29,7 +30,10 @@ app::app(fm_settings&& opts) :
     inspectors.reserve(16);
 }
 
-app::~app() = default;
+app::~app()
+{
+
+}
 
 void app::reset_world()
 {
@@ -79,6 +83,7 @@ void app::reset_world(struct world&& w_)
     _editor.clear_selection();
     kill_popups(true);
     tested_light_chunk = {};
+    tests_reset_mode();
 
     clear_keys();
     const auto pixel = cursor.pixel;
