@@ -238,7 +238,6 @@ function(fm_add_install_executable self)
             install(FILES $<TARGET_PDB_FILE:${self}> DESTINATION bin)
         endif()
     endif()
-
 endfunction()
 
 add_subdirectory(src)

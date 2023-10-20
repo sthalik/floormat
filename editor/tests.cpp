@@ -51,17 +51,17 @@ void app::tests_post_update()
     }, tests());
 }
 
-bool app::tests_handle_mouse_click(const mouse_button_event& e)
+bool app::tests_handle_mouse_click(const mouse_button_event& e, bool is_down)
 {
     update_cursor_tile(cursor.pixel);
 
     return std::visit(overloaded {
         [](std::monostate) { return false; },
-        [&](base_test& x) { return x.handle_mouse_click(*this, e); }
+        [&](base_test& x) { return x.handle_mouse_click(*this, e, is_down); }
     }, tests());
 }
 
-bool app::tests_handle_key(const key_event& e)
+bool app::tests_handle_key(const key_event& e, bool is_down)
 {
     switch (e.key)
     {
@@ -71,7 +71,7 @@ bool app::tests_handle_key(const key_event& e)
     default:
         return std::visit(overloaded {
             [](std::monostate) { return false; },
-            [&](base_test& x) { return x.handle_key(*this, e); }
+            [&](base_test& x) { return x.handle_key(*this, e, is_down); }
         }, tests());
     }
 }

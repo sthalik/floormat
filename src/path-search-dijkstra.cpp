@@ -67,9 +67,17 @@ struct heap_comparator
 inline uint32_t distance(point a, point b)
 {
     Vector2i dist;
-    dist += Math::abs(a.coord() - b.coord())*iTILE_SIZE2;
-    dist += Vector2i(a.offset() - b.offset());
-    return (uint32_t)Math::sqrt(dist.dot());
+    dist += (a.coord() - b.coord())*iTILE_SIZE2;
+    dist += Vector2i(a.offset()) - Vector2i(b.offset());
+    return (uint32_t)Math::sqrt(Math::abs(dist).dot());
+}
+
+inline uint32_t distance_l2(point a, point b)
+{
+    Vector2i dist;
+    dist += (a.coord() - b.coord())*iTILE_SIZE2;
+    dist += Vector2i(a.offset()) - Vector2i(b.offset());
+    return (uint32_t)Math::abs(dist).sum();
 }
 
 } // namespace
@@ -117,7 +125,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
     constexpr auto min_size = Vector2ui{div_size*3/2};
     const auto own_size = Math::max(Vector2ui(own_size_), min_size);
-    constexpr auto goal_thres = (div_size*3/2).length();
+    constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
 
     const auto [from, from_offset] = from_;
     const auto [to, to_offset] = to_;
@@ -167,8 +175,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     uint32_t closest_path_len = 0;
     auto goal_idx = (uint32_t)-1;
     const auto goal_bb = bbox_from_pos(Vector2(to_.local()), to_offset, own_size);
-    const auto goal_chunk_idx = cache.get_chunk_index(Vector2i(to_.chunk()));
-    const auto goal_tile_idx = cache.get_tile_index(Vector2i(to_.local()), to_offset);
 
     while (!Q.empty())
     {
@@ -197,42 +203,18 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                         << " pos:" << closest_pos;
 #endif
 
-        if (auto dist_to_goal = distance(cur_pt, to_); dist_to_goal < goal_thres) [[unlikely]]
+        if (auto dist_to_goal = distance_l2(cur_pt, to_); dist_to_goal < goal_thres) [[unlikely]]
         {
-            if (auto dist = cur_dist + dist_to_goal; dist < max_dist)
+            //if (auto dist = cur_dist + dist_to_goal; dist < max_dist)
             {
+                auto dist = cur_dist;
                 auto vec = Vector2(cur_pt.coord() - to_.coord()) * TILE_SIZE2 + Vector2(cur_pt.offset() - to_.offset());
                 auto bb1 = bbox<float>{goal_bb.min + vec, goal_bb.max + vec};
                 auto bb = bbox_union(goal_bb, bb1);
 
-                if (goal_idx != (uint32_t)-1)
-                    if (dist >= nodes[goal_idx].dist)
-                        continue;
-
                 if (path_search::is_passable(w, to_.chunk3(), bb, own_id, p))
                 {
-                    if (goal_idx == (uint32_t)-1)
-                    {
-                        goal_idx = cache.lookup_index(goal_chunk_idx, goal_tile_idx);
-                    }
-                    if (goal_idx == (uint32_t)-1)
-                    {
-                        goal_idx = (uint32_t)nodes.size();
-                        cache.add_index(goal_chunk_idx, goal_tile_idx, goal_idx);
-                        auto new_node = visited {
-                            .dist = dist, .prev = id,
-                            .pt = to_,
-                        };
-                        nodes.push_back(new_node);
-                        auto idx = cache.lookup_index(goal_chunk_idx, goal_tile_idx);
-                        fm_assert(idx == goal_idx);
-                    }
-                    else
-                    {
-                        auto& n = nodes[goal_idx];
-                        n.dist = dist;
-                        n.prev = id;
-                    }
+                    goal_idx = id;
                     max_dist = dist;
                     continue; // path can only get longer
                 }
@@ -247,9 +229,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
             const auto new_pt = object::normalize_coords(cur_pt, vec);
             const auto [new_coord, new_offset] = new_pt;
-
-            bool fresh = true;
-
             auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
             auto tile_idx = cache.get_tile_index(Vector2i(new_pt.local()), new_offset);
             auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
@@ -258,7 +237,6 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             {
                 if (nodes[new_idx].dist <= dist)
                     continue;
-                fresh = false;
             }
 
             {   const auto bb0 = bbox_from_pos(Vector2(cur_pt.local()), cur_pt.offset(), own_size);
@@ -269,7 +247,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                     continue;
             }
 
-            if (fresh)
+            if (new_idx == (uint32_t)-1)
             {
                 const auto sz = nodes.size();
                 new_idx = (uint32_t)sz;
@@ -289,8 +267,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
 #ifndef FM_NO_DEBUG
             if (debug >= 3) [[unlikely]]
-                DBG_nospace << (fresh ? "" : " old")
-                            << " path:" << dist
+                DBG_nospace << " path:" << dist
                             << " pos:" << Vector3i(new_coord)
                             << ";" << new_offset;
 #endif
@@ -322,15 +299,19 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
     if (auto i = goal_idx; i != (uint32_t)-1)
     {
-        do {
+        if (to_ != nodes[goal_idx].pt)
+            path.push_back(to_);
+
+        do
+        {
             const auto& node = nodes[i];
             path.push_back(node.pt);
             i = node.prev;
+        }
+        while (i !=(uint32_t)-1);
 
-        } while(i !=(uint32_t)-1);
-
-        result.set_cost(nodes[goal_idx].dist);
         std::reverse(path.begin(), path.end());
+        result.set_cost(nodes[goal_idx].dist);
     }
 
     return result;

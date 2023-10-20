@@ -154,8 +154,8 @@ private:
     void clear_non_global_keys();
     void clear_non_repeated_keys();
 
-    [[nodiscard]] bool tests_handle_key(const key_event& e);
-    [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e);
+    [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
+    [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_move(const mouse_move_event& e);
     void tests_pre_update();
     void tests_post_update();

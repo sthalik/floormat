@@ -18,6 +18,7 @@ size_t point::hash() const
 
 Debug& operator<<(Debug& dbg, const point& pt)
 {
+    dbg << "";
     const auto flags = dbg.flags();
     dbg.setFlags(flags | Debug::Flag::NoSpace);
 

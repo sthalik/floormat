@@ -87,7 +87,7 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
 
     if ((cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
         void();
-    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event))
+    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event, is_down))
         void();
     else
         do_mouse_up_down(button, is_down, fixup_mods(event.mods));
@@ -190,7 +190,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
     if (x == key_COUNT && (is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e)) ||
-        (x == key_COUNT || x == key_escape) && _editor.mode() == editor_mode::tests && tests_handle_key(event))
+        (x == key_COUNT || x == key_escape) && _editor.mode() == editor_mode::tests && tests_handle_key(event, is_down))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
         is_down && !event.is_repeated ? do_key(x, mods) : void();
