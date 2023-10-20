@@ -79,7 +79,7 @@ void app::tests_reset_mode()
         tests() = std::monostate{};
 }
 
-void app::draw_tests_pane(float main_menu_height)
+void app::draw_tests_pane()
 {
 }
 

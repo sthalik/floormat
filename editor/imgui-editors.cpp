@@ -32,8 +32,8 @@ StringView scenery_name(StringView name, const scenery_editor::scenery_&)
     return name;
 }
 
-template<typename T> struct do_group_column : std::bool_constant<false> {};
-template<> struct do_group_column<scenery_editor> : std::bool_constant<true> {};
+template<typename T> constexpr inline bool do_group_column = false;
+template<> constexpr inline bool do_group_column<scenery_editor> = true;
 
 StringView scenery_type_to_string(const vobj_editor::vobj_& vobj)
 {
@@ -59,7 +59,7 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 
     const auto& style = ImGui::GetStyle();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    constexpr int ncolumns = do_group_column<T>::value ? 4 : 2;
+    constexpr int ncolumns = do_group_column<T> ? 4 : 2;
     const auto size = ImGui::GetWindowSize();
     auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
@@ -69,7 +69,7 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
     constexpr auto colflags = colflags_ | ImGuiTableColumnFlags_WidthFixed;
     ImGui::TableSetupColumn("##thumbnail", colflags, thumbnail_width);
     ImGui::TableSetupColumn("Name", colflags_ | ImGuiTableColumnFlags_WidthStretch);
-    if constexpr(do_group_column<T>::value)
+    if constexpr(do_group_column<T>)
     {
         const auto colwidth_type = ImGui::CalcTextSize("generic").x;
         const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
@@ -113,12 +113,12 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
                 ed.select_tile(scenery);
             click_event();
         }
-        if (do_group_column<T>::value && ImGui::TableSetColumnIndex(2))
+        if (do_group_column<T> && ImGui::TableSetColumnIndex(2))
         {
             text(scenery_type_to_string(scenery));
             click_event();
         }
-        if (do_group_column<T>::value && ImGui::TableSetColumnIndex(3))
+        if (do_group_column<T> && ImGui::TableSetColumnIndex(3))
         {
             auto& atlas = *get_atlas(scenery);
             StringView name = loader.strip_prefix(atlas.name());
@@ -150,7 +150,6 @@ void app::draw_editor_pane(float main_menu_height)
     auto* ed = _editor.current_tile_editor();
     auto* sc = _editor.current_scenery_editor();
     auto* vo = _editor.current_vobj_editor();
-    fm_assert(!ed || !sc || !vo);
 
     const auto window_size = M->window_size();
     const auto dpi = M->dpi_scale();
@@ -191,6 +190,8 @@ void app::draw_editor_pane(float main_menu_height)
                     draw_editor_scenery_pane(*sc);
                 else if (vo)
                     draw_editor_vobj_pane(*vo);
+                else if (_editor.mode() == editor_mode::tests)
+                    draw_tests_pane();
             }
         }
     }

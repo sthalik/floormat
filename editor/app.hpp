@@ -154,7 +154,7 @@ private:
     [[nodiscard]] bool tests_handle_mouse_move(const mouse_move_event& e);
     void tests_pre_update();
     void tests_post_update();
-    void draw_tests_pane(float main_menu_height);
+    void draw_tests_pane();
     void draw_tests_overlay();
     void tests_reset_mode();
     tests_data& tests();
