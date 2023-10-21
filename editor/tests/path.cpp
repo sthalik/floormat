@@ -39,15 +39,22 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
         }
         return true;
     }
-    case mouse_button_right:
-        if (has_pending || has_result)
+    case mouse_button_right: {
+        bool ret = false;
+        if (has_pending)
         {
-            has_pending = has_result = false;
+            has_pending = false;
             pending = {};
-            result = {};
-            return true;
+            ret = true;
         }
-        return false;
+        if (has_result)
+        {
+            has_result = false;
+            result = {};
+            ret = true;
+        }
+        return ret;
+    }
     default:
         return false;
     }
