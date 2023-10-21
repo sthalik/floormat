@@ -22,11 +22,6 @@ constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
-inline bool rect_intersects(Vector2 min1, Vector2 max1, Vector2 min2, Vector2 max2)
-{
-    return bool{min1 < max2} && bool{max1 > min2};
-}
-
 } // namespace
 
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
