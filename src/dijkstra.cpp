@@ -151,8 +151,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     add_to_heap(0);
 
     {   const auto bb0 = bbox_from_pos(Vector2(from.local()), {}, own_size);
-        uint32_t idx = 0;
-        constexpr int8_t div_min = div_factor*-2, div_max = div_factor*2+1;
+        constexpr int8_t div_min = -div_factor, div_max = div_factor;
 
         for (int8_t y = div_min; y <= div_max; y++)
             for (int8_t x = div_min; x <= div_max; x++)
@@ -161,14 +160,15 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                 auto off = Vector2(off_);
                 auto bb1 = bbox<float>{ bb0.min + off, bb0.max + off};
                 auto bb = bbox_union(bb0, bb1);
-                auto dist = (uint32_t)off.length();
+                auto pt = object::normalize_coords({from, {}}, off_);
+                auto dist = distance(from_, pt);
 
                 if (path_search::is_passable(w, from.chunk3(), bb, own_id, p))
                 {
-                    auto pt = object::normalize_coords({from, {}}, off_);
+                    auto idx = (uint32_t)nodes.size();
                     cache.add_index(pt, idx);
                     nodes.push_back({.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-                    add_to_heap(idx++);
+                    add_to_heap(idx);
                 }
             }
     }
