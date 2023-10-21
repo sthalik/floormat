@@ -18,5 +18,9 @@
     {
         "name": "concrete7",
         "size": "4 x 4"
+    },
+    {
+        "name": "wall1",
+        "size": "4 x 1"
     }
 ]

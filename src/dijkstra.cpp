@@ -4,6 +4,7 @@
 #include <Corrade/Containers/StaticArray.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
+#include <Magnum/Timeline.h>
 
 namespace floormat {
 
@@ -119,6 +120,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 #ifdef FM_NO_DEBUG
     (void)debug;
 #endif
+
+    Timeline timeline; timeline.start();
 
     clear();
     cache.allocate(from_, max_dist);
@@ -313,6 +316,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
         std::reverse(path.begin(), path.end());
         result.set_cost(nodes[goal_idx].dist);
     }
+
+    result.set_time(timeline.currentFrameTime());
 
     return result;
 }

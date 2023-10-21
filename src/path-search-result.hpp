@@ -17,6 +17,8 @@ struct path_search_result final
     size_t size() const;
     uint32_t cost() const;
     void set_cost(uint32_t value);
+    float time() const;
+    void set_time(float time);
 
     std::vector<point>& path();
     const std::vector<point>& path() const;
@@ -50,6 +52,7 @@ private:
     static std::unique_ptr<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
 
     std::unique_ptr<node> _node;
+    float _time = 0;
     uint32_t _cost = 0;
 };
 

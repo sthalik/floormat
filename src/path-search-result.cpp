@@ -59,6 +59,9 @@ path_search_result::node::node() noexcept = default;
 size_t path_search_result::size() const { return _node->vec.size(); }
 uint32_t path_search_result::cost() const { return _cost; }
 void path_search_result::set_cost(uint32_t value) { _cost = value; }
+float path_search_result::time() const { return _time; }
+void path_search_result::set_time(float time) { _time = time; }
+
 auto path_search_result::data() const -> const point* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }
 

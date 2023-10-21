@@ -75,6 +75,7 @@ struct tests_data final : tests_data_, tests::variant
     struct pair { StringView str; size_t index; };
 
     static constexpr inline pair fields[] = {
+        { "None"_s, 0 },
         { "Path"_s, 1 },
     };
 

@@ -97,6 +97,8 @@ void app::tests_reset_mode()
 
 void app::draw_tests_pane()
 {
+    ImGui::SeparatorText("Functional tests");
+
     constexpr int selectable_flags = ImGuiSelectableFlags_SpanAvailWidth;
     for (auto [str, i] : tests_data::fields)
         if (ImGui::Selectable(str.data(), i == tests().index(), selectable_flags))
