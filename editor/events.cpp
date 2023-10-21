@@ -71,26 +71,22 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
     if (!(event.position >= Vector2i() && event.position < M->window_size()))
         return;
 
-    enum class Button_ : std::underlying_type_t<mouse_button> {
-        Left = mouse_button_left,
-        Right = mouse_button_right,
-        Middle = mouse_button_middle,
-    };
-
-    const auto button = uint8_t(1 << (event.button-1));
-
     struct ev {
-        using Button = Button_;
+        enum class Button : std::underlying_type_t<mouse_button> {
+            Left = mouse_button_left,
+            Right = mouse_button_right,
+            Middle = mouse_button_middle,
+        };
         accessor(Vector2i, position)
         accessor(Button, button)
-    } e = {event.position, Button_(button)};
+    } e = {event.position, ev::Button(event.button)};
 
     if ((cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
         void();
     else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event, is_down))
         void();
     else
-        do_mouse_up_down(button, is_down, fixup_mods(event.mods));
+        do_mouse_up_down(event.button, is_down, fixup_mods(event.mods));
 }
 
 void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept

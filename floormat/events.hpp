@@ -8,9 +8,9 @@ enum mouse_button : unsigned char {
     mouse_button_none   = 0,
     mouse_button_left   = 1 << 0,
     mouse_button_middle = 1 << 1,
-    mouse_button_right  = 1 << 3,
-    mouse_button_x1     = 1 << 4,
-    mouse_button_x2     = 1 << 5,
+    mouse_button_right  = 1 << 2,
+    mouse_button_x1     = 1 << 3,
+    mouse_button_x2     = 1 << 4,
 };
 
 struct mouse_button_event final {
