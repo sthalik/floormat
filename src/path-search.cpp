@@ -7,6 +7,7 @@
 #include <Corrade/Containers/PairStl.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Math/Range.h>
+#include <Magnum/Math/BitVector.h>
 
 namespace floormat {
 
@@ -21,6 +22,11 @@ constexpr auto never_continue_ = path_search::pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = path_search::pred{always_continue_1};
 
+inline bool rect_intersects(Vector2 min1, Vector2 max1, Vector2 min2, Vector2 max2)
+{
+    return bool{min1 < max2} && bool{max1 > min2};
+}
+
 } // namespace
 
 auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
@@ -30,16 +36,18 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
 {
     auto& rt = *c.rtree();
     bool is_passable = true;
-    rt.Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
-        [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-        if (x.data != own_id)
+    rt.Search(min.data(), max.data(), [&](uint64_t data, const auto& r)
+    {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.data != own_id && x.pass != (uint64_t)pass_mode::pass)
         {
-            if (x.pass != (uint64_t)pass_mode::pass && p(x) != path_search_continue::pass)
-            {
-                is_passable = false;
-                //[[maybe_unused]] auto obj = c.world().find_object(x.data);
-                return false;
-            }
+            if (rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
+                if (p(x) != path_search_continue::pass)
+                {
+                    is_passable = false;
+                    //[[maybe_unused]] auto obj = c.world().find_object(x.data);
+                    return false;
+                }
         }
         return true;
     });

@@ -126,7 +126,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     clear();
     cache.allocate(from_, max_dist);
 
-    constexpr auto min_size = Vector2ui{div_size*3/2};
+    constexpr auto min_size = Vector2ui{div_size};
     const auto own_size = Math::max(Vector2ui(own_size_), min_size);
     constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
 
@@ -147,20 +147,17 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
         return {};
 
     cache.allocate(from_, max_dist);
-    nodes.push_back({.dist = 0, .pt = from_, });
-    add_to_heap(0);
 
-    {   const auto bb0 = bbox_from_pos(Vector2(from.local()), {}, own_size);
+    {   const auto bb0 = bbox_from_pos(Vector2(from.local()), from_offset, own_size);
         constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
 
         for (int8_t y = div_min; y <= div_max; y++)
             for (int8_t x = div_min; x <= div_max; x++)
             {
-                auto off_ = Vector2i(x, y) * div_size;
-                auto off = Vector2(off_);
-                auto bb1 = bbox<float>{ bb0.min + off, bb0.max + off};
+                auto off = Vector2i(x, y) * div_size;
+                auto pt = object::normalize_coords({from, {}}, off);
+                auto bb1 = bbox_from_pos(Vector2(pt.local()), pt.offset(), own_size);
                 auto bb = bbox_union(bb0, bb1);
-                auto pt = object::normalize_coords({from, {}}, off_);
                 auto dist = distance(from_, pt);
 
                 if (path_search::is_passable(w, from.chunk3(), bb, own_id, p))
