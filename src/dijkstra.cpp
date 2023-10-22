@@ -125,7 +125,7 @@ uint32_t astar::pop_from_heap()
     return id;
 }
 
-path_search_result astar::Dijkstra(world& w, const point from_, const point to_, object_id own_id, uint32_t max_dist,
+path_search_result astar::Dijkstra(world& w, const point from, const point to, object_id own_id, uint32_t max_dist,
                                    Vector2ub own_size_, int debug, const pred& p)
 {
 #ifdef FM_NO_DEBUG
@@ -135,29 +135,26 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
     Timeline timeline; timeline.start();
 
     clear();
-    cache.allocate(from_, max_dist);
+    cache.allocate(from, max_dist);
 
     constexpr auto min_size = Vector2ui{div_size};
     const auto own_size = Math::max(Vector2ui(own_size_), min_size);
     constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
 
-    const auto [from, from_offset] = from_;
-    const auto [to, to_offset] = to_;
-
-    if (from.z() != to.z()) [[unlikely]]
+    if (from.coord().z() != to.coord().z()) [[unlikely]]
         return {};
 
     // todo try removing this eventually
-    if (from.z() != 0) [[unlikely]]
+    if (from.coord().z() != 0) [[unlikely]]
         return {};
 
-    if (!path_search::is_passable(w, from, from_offset, own_size, own_id, p))
+    if (!path_search::is_passable(w, from.coord(), from.offset(), own_size, own_id, p))
         return {};
 
-    if (!path_search::is_passable(w, to, to_offset, own_size, own_id, p))
+    if (!path_search::is_passable(w, to.coord(), to.offset(), own_size, own_id, p))
         return {};
 
-    cache.allocate(from_, max_dist);
+    cache.allocate(from, max_dist);
 
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
 
@@ -165,9 +162,9 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
         for (int8_t x = div_min; x <= div_max; x++)
         {
             auto off = Vector2i(x, y) * div_size;
-            auto pt = object::normalize_coords({from, {}}, off);
-            auto bb = bbox<float>(bbox_from_pos2(from_, pt, own_size));
-            auto dist = distance(from_, pt);
+            auto pt = object::normalize_coords({from.coord(), {}}, off);
+            auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
+            auto dist = distance(from, pt);
 
             if (path_search::is_passable(w, from.chunk3(), bb, own_id, p))
             {
@@ -178,8 +175,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
             }
         }
 
-    auto closest_dist = distance(from_, to_);
-    auto closest_pos = from_;
+    auto closest_dist = distance(from, to);
+    auto closest_pos = from;
     uint32_t closest_path_len = 0;
     auto goal_idx = (uint32_t)-1;
 
@@ -196,7 +193,7 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
         if (cur_dist >= max_dist) [[unlikely]]
             continue;
 
-        if (auto d = distance(cur_pt, to_); d < closest_dist) [[unlikely]]
+        if (auto d = distance(cur_pt, to); d < closest_dist) [[unlikely]]
         {
             closest_dist = d;
             closest_pos = cur_pt;
@@ -210,11 +207,11 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
                         << " pos:" << closest_pos;
 #endif
 
-        if (auto dist_to_goal = distance_l2(cur_pt, to_); dist_to_goal < goal_thres) [[unlikely]]
+        if (auto dist_to_goal = distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist;
-            if (auto bb = bbox<float>(bbox_from_pos2(to_, cur_pt, own_size));
-                path_search::is_passable(w, to_.chunk3(), bb, own_id, p))
+            if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
+                path_search::is_passable(w, to.chunk3(), bb, own_id, p))
             {
                 goal_idx = id;
                 max_dist = dist;
@@ -295,8 +292,8 @@ path_search_result astar::Dijkstra(world& w, const point from_, const point to_,
 
     if (auto i = goal_idx; i != (uint32_t)-1)
     {
-        if (to_ != nodes[goal_idx].pt)
-            path.push_back(to_);
+        if (to != nodes[goal_idx].pt)
+            path.push_back(to);
 
         do
         {
@@ -358,7 +355,7 @@ void astar::cache::allocate(point from, uint32_t max_dist)
         for (auto i = 0uz; i < len; i++)
         {
             array[i].exists = {};
-            array[i].indexes = {}; // todo
+            //array[i].indexes = {}; // todo
         }
     }
 }
