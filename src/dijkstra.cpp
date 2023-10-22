@@ -351,13 +351,8 @@ void astar::cache::allocate(point from, uint32_t max_dist)
     if (len > array.size())
         array = Array<chunk_cache>{ValueInit, len};
     else
-    {
         for (auto i = 0uz; i < len; i++)
-        {
             array[i].exists = {};
-            //array[i].indexes = {}; // todo
-        }
-    }
 }
 
 size_t astar::cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
