@@ -35,7 +35,21 @@ public:
     static constexpr auto div_size = iTILE_SIZE2 / div_factor;
     static constexpr auto min_size = Vector2ui(div_size * 2);
 
-    template<typename T> struct bbox { VectorTypeFor<2, T> min, max; };
+    template<typename T>
+    requires std::is_arithmetic_v<T>
+    struct bbox
+    {
+        VectorTypeFor<2, T> min, max;
+
+        template<typename U>
+        requires std::is_arithmetic_v<U>
+        explicit constexpr operator bbox<U>() const {
+            using Vec = VectorTypeFor<2, U>;
+            return bbox<U>{ Vec(min), Vec(max) };
+        }
+
+        constexpr bool operator==(const bbox<T>&) const = default;
+    };
 
     using pred = fu2::function_view<path_search_continue(collision_data) const>;
 
