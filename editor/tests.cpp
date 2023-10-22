@@ -2,6 +2,7 @@
 #include "app.hpp"
 #include "floormat/events.hpp"
 #include "imgui-raii.hpp"
+#define HAVE_LIBC 1
 #include <SDL_keycode.h>
 
 namespace floormat {
