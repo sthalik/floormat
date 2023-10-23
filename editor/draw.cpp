@@ -25,9 +25,17 @@ void app::draw_cursor()
     auto& w = M->world();
     const auto inactive_color = 0xff00ffff_rgbaf;
 
-    if (cursor.tile && !cursor.in_imgui)
+    global_coords tile;
+    if (auto pos = _editor.mouse_drag_pos())
+        tile = *pos;
+    else if (cursor.tile)
+        tile = *cursor.tile;
+    else
+        return;
+
+    if (!cursor.in_imgui)
     {
-        const auto draw = [&, pos = *cursor.tile](auto& mesh, const auto& size) {
+        const auto draw = [&, pos = tile](auto& mesh, const auto& size) {
             const auto center = Vector3(pos) * TILE_SIZE;
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
@@ -58,9 +66,9 @@ void app::draw_cursor()
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
-                const auto pos = Vector3i(*cursor.tile)*iTILE_SIZE + offset;
-                auto [ch, t] = w[*cursor.tile];
-                if (!ch.can_place_object(sel, cursor.tile->local()))
+                const auto pos = Vector3i(tile)*iTILE_SIZE + offset;
+                auto [ch, t] = w[tile];
+                if (!ch.can_place_object(sel, tile.local()))
                     shader.set_tint({1, 0, 1, 0.5f});
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
@@ -75,7 +83,7 @@ void app::draw_cursor()
                 draw(_wireframe_quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_f, _w, anim_mesh] = M->meshes();
-                const auto pos = Vector3i(*cursor.tile)*iTILE_SIZE;
+                const auto pos = Vector3i(tile)*iTILE_SIZE;
                 anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
             }
         }

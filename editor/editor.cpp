@@ -89,6 +89,14 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
         on_release();
 }
 
+Optional<global_coords> editor::mouse_drag_pos()
+{
+    if (_last_pos)
+        return _last_pos->draw_coord;
+    else
+        return NullOpt;
+}
+
 void editor::on_click_(world& world, global_coords pos, button b)
 {
     // todo make template

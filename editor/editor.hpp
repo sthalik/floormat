@@ -40,6 +40,7 @@ struct editor final
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
     void clear_selection();
+    Optional<global_coords> mouse_drag_pos();
 
     editor(app* a);
     editor(editor&&) noexcept = default;
