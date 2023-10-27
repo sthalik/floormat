@@ -67,10 +67,10 @@ constexpr tile_atlas::quad tile_atlas::wall_quad_W(const Vector3 center, const V
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
-        {-x + center[0],  y + center[1],     center[2] },
         {-x + center[0],  y + center[1], z + center[2] },
-        {-x + center[0], -y + center[1],     center[2] },
+        {-x + center[0],  y + center[1],     center[2] },
         {-x + center[0], -y + center[1], z + center[2] },
+        {-x + center[0], -y + center[1],     center[2] },
     }};
 }
 
@@ -78,10 +78,10 @@ constexpr tile_atlas::quad tile_atlas::wall_quad_N(const Vector3 center, const V
 {
     float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     return {{
-        { x + center[0], -y + center[1],     center[2] },
         { x + center[0], -y + center[1], z + center[2] },
-        {-x + center[0], -y + center[1],     center[2] },
+        { x + center[0], -y + center[1],     center[2] },
         {-x + center[0], -y + center[1], z + center[2] },
+        {-x + center[0], -y + center[1],     center[2] },
     }};
 }
 
