@@ -14,7 +14,7 @@ list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 
 add_compile_options(-fdiagnostics-color=always)
-set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
+set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
