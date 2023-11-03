@@ -2,6 +2,7 @@
 #include "magnum-vector2i.hpp"
 #include "magnum-vector.hpp"
 #include "compat/exception.hpp"
+#include <utility>
 #include <Corrade/Containers/StringStl.h>
 #include <nlohmann/json.hpp>
 
@@ -22,23 +23,41 @@ size_t rotation_from_name(StringView s)
     fm_throw("bad rotation name '{}'"_cf, fmt::string_view{s.data(), s.size()});
 }
 
-void read_frameset_metadata(nlohmann::json& j, wall_frames& ret)
+void read_frameset_metadata(const nlohmann::json& j, wall_frames& val)
 {
     if (j.contains("pixel-size"))
-        ret.pixel_size = j["pixel-size"];
+        val.pixel_size = j["pixel-size"];
     if (j.contains("tint"))
     {
         auto& t = j["tint"];
         fm_soft_assert(t.contains("mult") || t.contains("add"));
         if (t.contains("mult"))
-            ret.tint_mult = Vector4(t["mult"]);
+            val.tint_mult = Vector4(t["mult"]);
         if (t.contains("add"))
-            ret.tint_add = Vector3(t["add"]);
+            val.tint_add = Vector3(t["add"]);
     }
     if (j.contains("from-rotation"))
-        ret.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"]});
+        val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"]});
     if (j.contains("mirrored"))
-        ret.mirrored = j["mirrored"];
+        val.mirrored = j["mirrored"];
+}
+
+void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_frames& val)
+{
+    constexpr wall_frames default_value;
+#if 0
+    fm_soft_assert(val.index      != (uint32_t)default_value.index);
+    fm_soft_assert(val.count      != (uint32_t)default_value.count);
+    fm_soft_assert(val.pixel_size != default_value.pixel_size);
+    fm_soft_assert(val.from_rotation == (uint8_t)-1 || val.from_rotation < 4);
+#endif
+    fm_soft_assert(val.index < a.array().size());
+    fm_soft_assert(val.count != (uint32_t)-1 && val.count > 0);
+    j["pixel-size"] = val.pixel_size;
+    if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
+    {
+        auto tint = std::pair{Vector4{val.tint_mult}, Vector3{val.tint_add}};
+    }
 }
 
 } // namespace

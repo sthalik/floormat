@@ -47,7 +47,8 @@ StringView wall_atlas::name() const { return _info.name; }
 
 ArrayView<const wall_frame> wall_frames::items(const wall_atlas& a) const
 {
-    fm_debug_assert(index != (uint32_t)-1);
+    fm_assert(index < a.array().size());
+    fm_debug_assert(count != (uint32_t)-1);
     return { a.array() + index, count };
 }
 

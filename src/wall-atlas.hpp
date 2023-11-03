@@ -18,13 +18,15 @@ struct wall_frame
 
 struct wall_frames
 {
-    uint32_t index = (uint32_t)-1, count = (uint32_t)-1;
+    ArrayView<const wall_frame> items(const wall_atlas& a) const;
+
+    uint32_t index = (uint32_t)-1, count = (uint32_t)-1; // not serialized
+
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add;
     uint8_t from_rotation = (uint8_t)-1;
     bool mirrored : 1 = false;
-    ArrayView<const wall_frame> items(const wall_atlas& a) const;
 };
 
 struct wall_frame_set

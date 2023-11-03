@@ -247,6 +247,7 @@ add_subdirectory(serialize)
 add_subdirectory(editor)
 add_subdirectory(test)
 add_subdirectory(anim-crop-tool)
+add_subdirectory(wall-tileset-tool)
 
 find_package(benchmark QUIET)
 if(TARGET benchmark::benchmark OR TARGET benchmark)
