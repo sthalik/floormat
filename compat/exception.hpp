@@ -36,8 +36,11 @@ exception::exception(const Fmt& fmt, Ts&&... args) noexcept
             if (std::is_constant_evaluated())                                       \
                 throw ::floormat::base_exception{};                                 \
             else                                                                    \
-                throw ::floormat::exception{"assertion failed: {} in {}:{}"_cf,     \
-                                #__VA_ARGS__, __FILE__, __LINE__};                  \
+                throw ::floormat::exception{                                        \
+                    "assertion failed: {} in {}:{}"_cf,                             \
+                    #__VA_ARGS__,                                                   \
+                    __FILE__, (floormat::size_t)__LINE__                            \
+                };                                                                  \
         }                                                                           \
     } while (false)
 
