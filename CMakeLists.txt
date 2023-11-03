@@ -246,12 +246,12 @@ add_subdirectory(draw)
 add_subdirectory(serialize)
 add_subdirectory(editor)
 add_subdirectory(test)
+add_subdirectory(anim-crop-tool)
 
 find_package(benchmark QUIET)
 if(TARGET benchmark::benchmark OR TARGET benchmark)
     add_subdirectory(bench)
 endif()
-add_subdirectory(anim-crop-tool)
 
 install(DIRECTORY images anim scenery vobj DESTINATION "share/floormat")
 

@@ -20,7 +20,7 @@ tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& imag
     fm_soft_assert(size_ % Vector2ui{tile_count} == Vector2ui());
     tex_.setLabel(path_)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Linear)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(1)
         .setBorderColor(Color4{1, 0, 0, 1})

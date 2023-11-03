@@ -20,6 +20,10 @@
         "size": "4 x 4"
     },
     {
+        "name": "concrete1",
+        "size": "3 x 1"
+    },
+    {
         "name": "wall1",
         "size": "4 x 1"
     }
