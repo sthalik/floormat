@@ -6,6 +6,8 @@
 #include <Corrade/Containers/StringStl.h>
 #include <nlohmann/json.hpp>
 
+// todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
+
 namespace floormat {
 
 namespace {
@@ -35,11 +37,14 @@ void read_frameset_metadata(const nlohmann::json& j, wall_frames& val)
             val.tint_mult = Vector4(t["mult"]);
         if (t.contains("add"))
             val.tint_add = Vector3(t["add"]);
+        fm_soft_assert(val.tint_mult >= Color4{0});
     }
     if (j.contains("from-rotation"))
         val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"]});
     if (j.contains("mirrored"))
         val.mirrored = j["mirrored"];
+    if (j.contains("use-default-tint"))
+        val.use_default_tint = j["use-default-tint"];
 }
 
 void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_frames& val)
@@ -51,13 +56,25 @@ void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_
     fm_soft_assert(val.pixel_size != default_value.pixel_size);
     fm_soft_assert(val.from_rotation == (uint8_t)-1 || val.from_rotation < 4);
 #endif
+
     fm_soft_assert(val.index < a.array().size());
     fm_soft_assert(val.count != (uint32_t)-1 && val.count > 0);
     j["pixel-size"] = val.pixel_size;
     if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
     {
-        auto tint = std::pair{Vector4{val.tint_mult}, Vector3{val.tint_add}};
+        auto tint = std::pair<Vector4, Vector3>{{val.tint_mult}, {val.tint_add}};
+        j["tint"] = tint;
     }
+    if (val.from_rotation != default_value.from_rotation)
+    {
+        fm_soft_assert(val.from_rotation != (uint8_t)-1 && val.from_rotation < 4);
+        j["from-rotation"] = val.from_rotation;
+    }
+    if (val.mirrored != default_value.mirrored)
+        j["mirrored"] = val.mirrored;
+    if (val.use_default_tint)
+        if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
+            j["use-default-tint"] = true;
 }
 
 } // namespace

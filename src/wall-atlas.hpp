@@ -26,7 +26,8 @@ struct wall_frames
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add;
     uint8_t from_rotation = (uint8_t)-1;
-    bool mirrored : 1 = false;
+    bool mirrored         : 1 = false,
+         use_default_tint : 1 = true;
 };
 
 struct wall_frame_set
