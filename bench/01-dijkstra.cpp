@@ -10,7 +10,8 @@ namespace floormat {
 namespace {
 
 auto A = astar();
-bool first_run = true;
+bool first_run = false;
+
 
 void Dijkstra(benchmark::State& state)
 {
@@ -65,6 +66,6 @@ void Dijkstra(benchmark::State& state)
 
 } // namespace
 
-BENCHMARK(Dijkstra);
+BENCHMARK(Dijkstra)->Unit(benchmark::kMillisecond);
 
 } // namespace floormat

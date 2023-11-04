@@ -29,7 +29,7 @@ int argc_ = 0; // NOLINT
 bench_app::bench_app(int argc, char** argv) :
     Application {
         {argc_, nullptr},
-        Configuration{}
+        Configuration{}.setFlags(Configuration::Flag::QuietLog)
     },
     argc{argc}, argv{argv}
 {
