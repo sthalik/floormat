@@ -27,6 +27,16 @@ StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, St
     return StringView{buf};
 }
 
+bool loader_::check_atlas_name(StringView str) noexcept
+{
+    if (!str || str[0] == '.' || str[0] == '/')
+        return false;
+    if (str.findAny("\\\"'\n\r\t\a\033\0|$!%{}#^*?<>&;:^"_s) || str.find("/."_s))
+        return false;
+
+    return true;
+}
+
 } // namespace floormat
 
 namespace floormat::loader_detail {
@@ -127,18 +137,6 @@ void loader_impl::get_anim_atlas_list()
             if (str.hasSuffix(".json"))
                 anim_atlases.emplace_back(str.exceptSuffix(std::size(".json")-1));
     }
-}
-
-bool loader_impl::check_atlas_name(StringView str)
-{
-    if (str.isEmpty())
-        return false;
-    if (str.findAny("\n\r\t\0\\|$<>&;:^'\""_s) || str.find("/."_s))
-        return false;
-    if (str[0] == '.' || str[0] == '/')
-        return false;
-
-    return true;
 }
 
 } // namespace floormat::loader_detail

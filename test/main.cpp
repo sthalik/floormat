@@ -30,11 +30,12 @@ int test_app::exec()
     test_bitmask();
     test_serializer_1();
     test_serializer_2();
-    test_path_search();
     test_math();
     test_hash();
-    test_path_search_node_pool();
     test_wall_atlas();
+
+    test_path_search_node_pool();
+    test_path_search();
     zzz_test_misc();
 
     return 0;

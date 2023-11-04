@@ -40,6 +40,7 @@ struct loader_
     virtual const vobj_info& vobj(StringView name) = 0;
     virtual ArrayView<struct vobj_info> vobj_list() = 0;
     static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
+    [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;

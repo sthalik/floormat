@@ -1,10 +1,12 @@
 #include "atlas.hpp"
+#include "compat/assert.hpp"
+#include "compat/defs.hpp"
+#include "compat/sysexits.hpp"
+#include "compat/fix-argv0.hpp"
+#include "loader/loader.hpp"
 #include "serialize/magnum-vector2i.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include "compat/defs.hpp"
-#include "compat/sysexits.hpp"
-#include "loader/loader.hpp"
 
 #include <cerrno>
 #include <cmath>
@@ -22,10 +24,8 @@
 #include <Corrade/Utility/Path.h>
 
 #include <opencv2/core/mat.hpp>
-#include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
-#include "compat/assert.hpp"
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 
 using namespace floormat;
 
@@ -96,10 +96,12 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
         opts.scale = anim_scale::ratio{new_width / (float)size.width};
     }
 
-    const auto dest_size = fm_begin(
+    cv::Size dest_size;
+    {
         auto xy = opts.scale.scale_to({(unsigned)size.width, (unsigned)size.height});
-        return cv::Size{(int)xy[0], (int)xy[1]};
-    );
+        dest_size = cv::Size{(int)xy[0], (int)xy[1]};
+    }
+
     const auto factor = (float)dest_size.width / (float)size.width;
 
     if (size.width < dest_size.width || size.height < dest_size.height)
@@ -179,22 +181,6 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
     return true;
 }
 
-static char* fix_argv0(char* argv0) noexcept
-{
-#ifdef _WIN32
-    if (auto* c = strrchr(argv0, '\\'); c && c[1])
-    {
-        if (auto* s = strrchr(c, '.'); s && !strcmp(".exe", s))
-            *s = '\0';
-        return c+1;
-    }
-#else
-    if (auto* c = strrchr(argv0, '/'); c && c[1])
-        return c+1;
-#endif
-    return argv0;
-}
-
 using Corrade::Utility::Arguments;
 
 static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
@@ -232,18 +218,6 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     return EX_USAGE;
 }
 
-[[nodiscard]] static bool check_atlas_name(StringView str) noexcept
-{
-    if (str.isEmpty())
-        return false;
-    if (str.findAny("\\<>&;:^'\" ") || str.find("/."))
-        return false;
-    if (str[0] == '.' || str[0] == '/')
-        return false;
-
-    return true;
-}
-
 int main(int argc, char** argv)
 {
     argv[0] = fix_argv0(argv[0]);
@@ -253,13 +227,13 @@ int main(int argc, char** argv)
 
     auto anim_info = json_helper::from_json<anim_def>(opts.input_file);
 
-    if (!check_atlas_name(anim_info.object_name))
+    if (!loader.check_atlas_name(anim_info.object_name))
     {
         Error{} << "error: atlas object name" << anim_info.object_name << "is invalid";
         return EX_DATAERR;
     }
 
-    if (!anim_info.anim_name.isEmpty() && !check_atlas_name(anim_info.anim_name))
+    if (!anim_info.anim_name.isEmpty() && !loader.check_atlas_name(anim_info.anim_name))
     {
         Error{} << "error: atlas animation name" << anim_info.object_name << "is invalid";
         return EX_DATAERR;

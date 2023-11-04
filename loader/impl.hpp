@@ -54,7 +54,6 @@ struct loader_impl final : loader_
     StringView startup_directory() noexcept override;
     static void system_init();
     static bool chdir(StringView pathname);
-    [[nodiscard]] static bool check_atlas_name(StringView name);
     void ensure_plugins();
 
     explicit loader_impl();
