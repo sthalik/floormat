@@ -51,10 +51,9 @@ void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_
 {
     constexpr wall_frames default_value;
 #if 0
-    fm_soft_assert(val.index      != (uint32_t)default_value.index);
-    fm_soft_assert(val.count      != (uint32_t)default_value.count);
+    fm_soft_assert(val.index      != default_value.index);
+    fm_soft_assert(val.count      != default_value.count);
     fm_soft_assert(val.pixel_size != default_value.pixel_size);
-    fm_soft_assert(val.from_rotation == (uint8_t)-1 || val.from_rotation < 4);
 #endif
 
     fm_soft_assert(val.index < a.array().size());
