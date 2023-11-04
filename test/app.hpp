@@ -34,6 +34,7 @@ struct test_app final : private FM_APPLICATION
     static void test_path_search();
     static void test_hash();
     static void test_path_search_node_pool();
+    static void test_wall_atlas();
     static void zzz_test_misc();
 };
 } // namespace floormat

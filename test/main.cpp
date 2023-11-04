@@ -34,6 +34,7 @@ int test_app::exec()
     test_math();
     test_hash();
     test_path_search_node_pool();
+    test_wall_atlas();
     zzz_test_misc();
 
     return 0;
