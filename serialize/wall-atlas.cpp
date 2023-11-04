@@ -12,6 +12,7 @@ namespace floormat {
 
 namespace {
 
+using namespace std::string_literals;
 constexpr StringView rotation_names[] = { "n"_s, "e"_s, "s"_s, "w"_s, };
 
 size_t rotation_from_name(StringView s)
@@ -27,24 +28,24 @@ size_t rotation_from_name(StringView s)
 
 void read_frameset_metadata(const nlohmann::json& j, wall_frames& val)
 {
-    if (j.contains("pixel-size"))
-        val.pixel_size = j["pixel-size"];
-    if (j.contains("tint"))
+    if (j.contains("pixel-size"s))
+        val.pixel_size = j["pixel-size"s];
+    if (j.contains("tint"s))
     {
-        auto& t = j["tint"];
-        fm_soft_assert(t.contains("mult") || t.contains("add"));
-        if (t.contains("mult"))
-            val.tint_mult = Vector4(t["mult"]);
-        if (t.contains("add"))
-            val.tint_add = Vector3(t["add"]);
+        auto& t = j["tint"s];
+        fm_soft_assert(t.contains("mult"s) || t.contains("add"s));
+        if (t.contains("mult"s))
+            val.tint_mult = Vector4(t["mult"s]);
+        if (t.contains("add"s))
+            val.tint_add = Vector3(t["add"s]);
         fm_soft_assert(val.tint_mult >= Color4{0});
     }
-    if (j.contains("from-rotation"))
-        val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"]});
-    if (j.contains("mirrored"))
-        val.mirrored = j["mirrored"];
-    if (j.contains("use-default-tint"))
-        val.use_default_tint = j["use-default-tint"];
+    if (j.contains("from-rotation"s))
+        val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"s]});
+    if (j.contains("mirrored"s))
+        val.mirrored = j["mirrored"s];
+    if (j.contains("use-default-tint"s))
+        val.use_default_tint = j["use-default-tint"s];
 }
 
 void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_frames& val)
@@ -58,22 +59,22 @@ void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_
 
     fm_soft_assert(val.index < a.array().size());
     fm_soft_assert(val.count != (uint32_t)-1 && val.count > 0);
-    j["pixel-size"] = val.pixel_size;
+    j["pixel-size"s] = val.pixel_size;
     if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
     {
         auto tint = std::pair<Vector4, Vector3>{{val.tint_mult}, {val.tint_add}};
-        j["tint"] = tint;
+        j["tint"s] = tint;
     }
     if (val.from_rotation != default_value.from_rotation)
     {
         fm_soft_assert(val.from_rotation != (uint8_t)-1 && val.from_rotation < 4);
-        j["from-rotation"] = val.from_rotation;
+        j["from-rotation"s] = val.from_rotation;
     }
     if (val.mirrored != default_value.mirrored)
-        j["mirrored"] = val.mirrored;
+        j["mirrored"s] = val.mirrored;
     if (val.use_default_tint)
         if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
-            j["use-default-tint"] = true;
+            j["use-default-tint"s] = true;
 }
 
 } // namespace

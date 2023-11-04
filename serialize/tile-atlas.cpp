@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 using namespace floormat;
+using namespace std::string_literals;
 
 namespace {
 
@@ -34,7 +35,7 @@ void adl_serializer<std::shared_ptr<tile_atlas>>::to_json(json& j, const std::sh
     {
         to_json(j, proxy{x->name(), x->num_tiles2(), NullOpt});
         if (auto p = x->pass_mode())
-            j["pass-mode"] = *p;
+            j["pass-mode"s] = *p;
     }
 }
 
@@ -48,8 +49,8 @@ void adl_serializer<std::shared_ptr<tile_atlas>>::from_json(const json& j, std::
         proxy x;
         from_json(j, x);
         Optional<pass_mode> p;
-        if (j.contains("pass-mode"))
-            p = {InPlaceInit, j["pass-mode"]};
+        if (j.contains("pass-mode"s))
+            p = {InPlaceInit, j["pass-mode"s]};
         val = loader.tile_atlas(x.name, x.size, p);
         if (auto p2 = val->pass_mode(); p && p2 != p)
         {
