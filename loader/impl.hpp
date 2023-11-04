@@ -36,7 +36,7 @@ struct loader_impl final : loader_
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) override;
     std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) override;
-    ArrayView<String> anim_atlas_list() override;
+    ArrayView<const String> anim_atlas_list() override;
     std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir) noexcept(false) override;
     const std::vector<serialized_scenery>& sceneries() override;
     const scenery_proto& scenery(StringView name) noexcept(false) override;
@@ -48,7 +48,7 @@ struct loader_impl final : loader_
     void get_vobj_list();
     std::shared_ptr<struct anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_info& vobj(StringView name) override;
-    ArrayView<struct vobj_info> vobj_list() override;
+    ArrayView<const struct vobj_info> vobj_list() override;
 
     void set_application_working_directory();
     StringView startup_directory() noexcept override;

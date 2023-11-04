@@ -28,7 +28,7 @@ struct loader_
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
-    virtual ArrayView<String> anim_atlas_list() = 0;
+    virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
@@ -38,7 +38,7 @@ struct loader_
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);
     virtual const vobj_info& vobj(StringView name) = 0;
-    virtual ArrayView<struct vobj_info> vobj_list() = 0;
+    virtual ArrayView<const struct vobj_info> vobj_list() = 0;
     static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 

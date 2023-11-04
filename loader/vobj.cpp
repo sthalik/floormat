@@ -89,7 +89,7 @@ void loader_impl::get_vobj_list()
     }
 }
 
-ArrayView<vobj_info> loader_impl::vobj_list()
+ArrayView<const vobj_info> loader_impl::vobj_list()
 {
     if (vobjs.empty())
         get_vobj_list();

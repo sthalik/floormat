@@ -69,7 +69,7 @@ std::shared_ptr<struct tile_atlas> loader_impl::tile_atlas(StringView filename) 
     return it->second;
 }
 
-ArrayView<String> loader_impl::anim_atlas_list()
+ArrayView<const String> loader_impl::anim_atlas_list()
 {
     if (anim_atlases.empty())
         get_anim_atlas_list();
