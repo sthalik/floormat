@@ -13,7 +13,7 @@ using nlohmann::json;
 
 namespace {
 
-void test_atlas_header(StringView path, StringView filename)
+Pair<json, Info> test_read_info(StringView path, StringView filename)
 {
     auto jroot = json_helper::from_json_(Path::join(path, filename));
     auto info = read_info_header(jroot);
@@ -33,6 +33,8 @@ void test_atlas_header(StringView path, StringView filename)
     else
         fm_assert(false);
 #endif
+
+    return {std::move(jroot), std::move(info)};
 }
 
 } // namespace
@@ -47,5 +49,5 @@ void floormat::test_app::test_wall_atlas()
     const auto path = Path::join(loader.TEMP_PATH, "test/json"_s);
     fm_assert(Path::isDirectory(path));
 
-    (void)test_atlas_header(path, "wall-atlas-header1.json"_s);
+    (void)test_read_info(path, "wall-atlas-header1.json"_s);
 }
