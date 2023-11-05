@@ -8,6 +8,7 @@ namespace floormat {
 
 size_t wall_atlas::enum_to_index(enum rotation r)
 {
+    static_assert(rotation_COUNT == rotation{8});
     fm_debug_assert(r < rotation_COUNT);
 
     auto x = uint8_t(r);
@@ -16,19 +17,27 @@ size_t wall_atlas::enum_to_index(enum rotation r)
 }
 
 wall_atlas::wall_atlas(wall_info info, const ImageView2D& image,
-                       ArrayView<const wall_frame_set> rotations,
-                       ArrayView<const wall_frame> frames) :
-    _array{NoInit, frames.size()}, _info(std::move(info))
+                       Array<wall_frame> frames,
+                       std::unique_ptr<wall_frame_set[]> framesets,
+                       uint8_t frameset_count,
+                       std::array<uint8_t, 4> frameset_indexes) :
+    _framesets{std::move(framesets)}, _frame_array{std::move(frames)}, _info(std::move(info)),
+    _frameset_indexes{frameset_indexes},
+    _frameset_count{(uint8_t)frameset_count}
 {
-    fm_assert(info.depth > 0);
-    fm_assert(rotations.size() <= _rotations.size());
-    _rotation_count = (uint8_t)rotations.size();
-    for (auto i = 0uz; const auto& fr : frames)
-        _array[i++] = fr;
-    for (auto i = 0uz; const auto& r : rotations)
-        _rotations[i++] = r;
+    {   fm_assert(frameset_count <= 4);
+        uint8_t counts[4] = {}, total = 0;
 
-    _texture.setLabel(_name)
+        for (auto i = 0uz; i < frameset_count; i++)
+            if (frameset_indexes[i] != (uint8_t)-1)
+            {
+                fm_assert(++counts[i] == 1);
+                total++;
+            }
+        fm_assert(total == frameset_count);
+    }
+
+    _texture.setLabel(_info.name)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
             .setMinificationFilter(GL::SamplerFilter::Linear)
@@ -40,16 +49,21 @@ wall_atlas::wall_atlas(wall_info info, const ImageView2D& image,
 
 wall_atlas::wall_atlas() = default;
 wall_atlas::~wall_atlas() noexcept = default;
-const wall_frame_set& wall_atlas::frameset(size_t i) const { return _rotations[i]; }
-const wall_frame_set& wall_atlas::frameset(enum rotation r) const { return frameset(enum_to_index(r)); }
-const ArrayView<const wall_frame> wall_atlas::array() const { return _array; }
+ArrayView<const wall_frame> wall_atlas::frame_array() const { return _frame_array; }
 StringView wall_atlas::name() const { return _info.name; }
+const wall_frame_set& wall_atlas::frameset(enum rotation r) const { return frameset(enum_to_index(r)); }
+
+const wall_frame_set& wall_atlas::frameset(size_t i) const
+{
+    fm_assert(i < 4 && _frameset_indexes[i] != (uint8_t)-1);
+    return _framesets[i];
+}
 
 ArrayView<const wall_frame> wall_frames::items(const wall_atlas& a) const
 {
-    fm_assert(index < a.array().size());
-    fm_debug_assert(count != (uint32_t)-1);
-    return { a.array() + index, count };
+    auto sz = a.frame_array().size(); (void)sz;
+    fm_assert(index < sz && index + count <= sz);
+    return { a.frame_array() + index, count };
 }
 
 } // namespace floormat

@@ -1,6 +1,8 @@
 #pragma once
+#include "compat/defs.hpp"
 #include "src/rotation.hpp"
 #include <array>
+#include <memory>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
@@ -20,7 +22,7 @@ struct wall_frames
 {
     ArrayView<const wall_frame> items(const wall_atlas& a) const;
 
-    uint32_t index = (uint32_t)-1, count = (uint32_t)-1; // not serialized
+    uint32_t index = (uint32_t)-1, count = 0;
 
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
@@ -39,30 +41,44 @@ struct wall_frame_set
 struct wall_info
 {
     String name = "(unnamed)"_s;
-    float depth = 1;
+    unsigned depth = 0;
+};
+
+struct wall_atlas_def
+{
+    wall_info info;
+    std::unique_ptr<wall_frame_set[]> framesets;
+    std::array<uint8_t, 4> frameset_indexes = {255, 255, 255, 255};
+    uint8_t frameset_count = 0;
+
+    Array<wall_frame> array;
+    uint32_t frame_count = 0;
 };
 
 struct wall_atlas final
 {
+    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(wall_atlas);
     wall_atlas();
-    wall_atlas(wall_info info,
-               const ImageView2D& image,
-               ArrayView<const wall_frame_set> rotations,
-               ArrayView<const wall_frame> frames);
     ~wall_atlas() noexcept;
+    wall_atlas(wall_info info, const ImageView2D& image,
+               Array<wall_frame> frames,
+               std::unique_ptr<wall_frame_set[]> framesets,
+               uint8_t frameset_count,
+               std::array<uint8_t, 4> frameset_indexes);
+
     static size_t enum_to_index(enum rotation x);
     const wall_frame_set& frameset(size_t i) const;
     const wall_frame_set& frameset(enum rotation r) const;
-    const ArrayView<const wall_frame> array() const;
+    ArrayView<const wall_frame> frame_array() const;
     StringView name() const;
 
 private:
-    String _name;
-    std::array<wall_frame_set, 4> _rotations;
-    Array<wall_frame> _array;
-    GL::Texture2D _texture;
+    std::unique_ptr<wall_frame_set[]> _framesets;
+    Array<wall_frame> _frame_array;
     wall_info _info;
-    uint8_t _rotation_count = 0;
+    GL::Texture2D _texture;
+    std::array<uint8_t, 4> _frameset_indexes;
+    uint8_t _frameset_count = 0;
 };
 
 } // namespace floormat

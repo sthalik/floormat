@@ -11,6 +11,7 @@
 #include <Corrade/Containers/TripleStl.h>
 #include <Corrade/Utility/Path.h>
 #include <Corrade/Utility/Arguments.h>
+#include <nlohmann/json.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
@@ -21,6 +22,18 @@ using Corrade::Utility::Arguments;
 using namespace std::string_literals;
 
 namespace {
+
+wall_atlas_def read_atlas_def(const nlohmann::json& j)
+{
+    auto val = wall_atlas_def{};
+    auto& info = val.info;
+    info.name = std::string(j["name"s]);
+    info.depth = j["depth"s];
+
+    fm_assert(loader.check_atlas_name(info.name));
+
+    return val;
+}
 
 struct options
 {
