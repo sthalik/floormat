@@ -34,7 +34,7 @@ struct cursor_state final {
     Optional<Vector2b> subpixel;
     bool in_imgui = false;
 
-    struct Optional<struct point> point() const;
+    Optional<struct point> point() const;
 };
 
 struct clickable;
