@@ -26,6 +26,10 @@ endif()
 
 set(CMAKE_INSTALL_PREFIX_INIT "${CMAKE_BINARY_DIR}/install")
 
+if(CMAKE_GENERATOR STREQUAL "Ninja" OR CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
+    set(CMAKE_MAKE_PROGRAM ninja)
+endif()
+
 set(CMAKE_C_COMPILER_INIT cl.exe)
 set(CMAKE_CXX_COMPILER_INIT cl.exe)
 set(CMAKE_ASM_NASM_COMPILER_INIT nasm.exe)
