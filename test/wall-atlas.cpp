@@ -3,21 +3,31 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
-#include <algorithm>
-#include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat::Wall::detail {
 
 using nlohmann::json;
+using namespace std::string_literals;
 
 namespace {
 
-Pair<json, Info> test_read_info(StringView path, StringView filename)
+StringView json_path()
 {
-    auto jroot = json_helper::from_json_(Path::join(path, filename));
-    auto info = read_info_header(jroot);
+    static const auto path = [] {
+        fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
+        const auto path = Path::join(loader.TEMP_PATH, "test/json"_s);
+        fm_assert(Path::isDirectory(path));
+        return path;
+    }();
+    return path;
+}
 
+void test_read_info(StringView filename)
+{
+    const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
+    fm_assert(jroot.contains("directions"s));
+    auto info = read_info_header(jroot);
     fm_assert(info.name == "foo"_s);
     fm_assert(info.depth == 42);
 
@@ -33,8 +43,24 @@ Pair<json, Info> test_read_info(StringView path, StringView filename)
     else
         fm_assert(false);
 #endif
+}
 
-    return {std::move(jroot), std::move(info)};
+void test_read_empty_direction(StringView filename)
+{
+    const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
+    test_read_info(filename);
+    fm_assert(!jroot.empty());
+    fm_assert(jroot.contains("directions"s));
+    const auto& jdir = jroot["directions"s];
+
+    fm_assert( jdir.contains("n"s) );
+    fm_assert(!jdir.contains("e"s) );
+    fm_assert(!jdir.contains("s"s) );
+    fm_assert( jdir.contains("w"s) );
+
+    {   auto g = read_group_metadata(jdir["w"]);
+        fm_assert(g.is_empty());
+    }
 }
 
 } // namespace
@@ -44,10 +70,6 @@ Pair<json, Info> test_read_info(StringView path, StringView filename)
 void floormat::test_app::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
-
-    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
-    const auto path = Path::join(loader.TEMP_PATH, "test/json"_s);
-    fm_assert(Path::isDirectory(path));
-
-    (void)test_read_info(path, "wall-atlas-header1.json"_s);
+    test_read_info("wall-atlas-header1.json"_s);
+    test_read_empty_direction("wall-atlas-header1.json"_s);
 }
