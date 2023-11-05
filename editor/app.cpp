@@ -17,7 +17,7 @@
 
 namespace floormat {
 
-struct Optional<struct point> cursor_state::point() const
+Optional<struct point> cursor_state::point() const
 {
     if (tile)
         return {InPlaceInit, *tile, *subpixel};

@@ -13,6 +13,8 @@ namespace floormat {
 
 namespace {
 
+using nlohmann::json;
+constexpr auto none = (uint8_t)-1;
 using namespace std::string_literals;
 constexpr StringView rotation_names[] = { "n"_s, "e"_s, "s"_s, "w"_s, };
 
@@ -33,27 +35,71 @@ StringView rotation_to_name(size_t i)
     return rotation_names[i];
 }
 
-void read_frameset_metadata(const nlohmann::json& j, wall_frames& val, size_t& rot)
+[[nodiscard]] wall_frames read_frames_metadata(const json& jfs)
 {
-    val = {};
-    rot = rotation_from_name(std::string{j["name"s]});
+    wall_frames val;
 
-    if (j.contains("pixel-size"s))
-        val.pixel_size = j["pixel-size"s];
-    if (j.contains("tint"s))
+    if (jfs.contains("pixel-size"s))
+        val.pixel_size = jfs["pixel-size"s];
+    if (jfs.contains("tint"s))
     {
-        std::tie(val.tint_mult, val.tint_add) = std::pair<Vector4, Vector3>{j["tint"s]};
+        std::tie(val.tint_mult, val.tint_add) = std::pair<Vector4, Vector3>{ jfs["tint"s]};
         fm_soft_assert(val.tint_mult >= Color4{0});
     }
-    if (j.contains("from-rotation"s))
-        val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"s]});
-    if (j.contains("mirrored"s))
-        val.mirrored = !!j["mirrored"s];
-    if (j.contains("use-default-tint"s))
-        val.use_default_tint = !!j["use-default-tint"s];
+    if (jfs.contains("from-rotation"s))
+        val.from_rotation = (uint8_t)rotation_from_name(std::string{jfs["from-rotation"s]});
+    if (jfs.contains("mirrored"s))
+        val.mirrored = jfs["mirrored"s];
+    if (jfs.contains("use-default-tint"s))
+        val.use_default_tint = jfs["use-default-tint"s];
+
+    return val;
 }
 
-void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_frames& val, size_t rot)
+[[nodiscard]] wall_frame_set read_frameset_metadata(const json& j)
+{
+    return {};
+}
+
+void read_framesets(const json& jf, wall_atlas_def& val)
+{
+    fm_soft_assert(jf.is_object());
+    fm_soft_assert(val.framesets == nullptr && val.frameset_count == 0);
+    uint8_t count = 0;
+
+    static_assert(std::size(rotation_names) == 4);
+    for (auto i = 0uz; i < 4; i++)
+    {
+        const auto& r = rotation_names[i];
+        auto key = std::string_view{r.data(), r.size()};
+        if (jf.contains(key))
+        {
+            fm_soft_assert(jf[key].is_object());
+            auto& index = val.frameset_indexes[i];
+            fm_soft_assert(index == none);
+            index = count++;
+        }
+    }
+    fm_soft_assert(count > 0);
+    fm_soft_assert(count == jf.size());
+
+    val.framesets = std::make_unique<wall_frame_set[]>(count);
+    val.frameset_count = count;
+
+    for (auto i = 0uz; i < 4; i++)
+    {
+        auto index = val.frameset_indexes[i];
+        if (index == none)
+            continue;
+        auto r = rotation_to_name(i);
+        auto key = std::string_view{r.data(), r.size()};
+
+        fm_debug_assert(index < val.frameset_count);
+        val.framesets[index] = read_frameset_metadata(jf[key]);
+    }
+}
+
+void write_frameset_metadata(json& j, const wall_atlas& a, const wall_frames& val, size_t rot)
 {
     constexpr wall_frames default_value;
 
@@ -70,7 +116,7 @@ void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_
     }
     if (val.from_rotation != default_value.from_rotation)
     {
-        fm_soft_assert(val.from_rotation != (uint8_t)-1 && val.from_rotation < 4);
+        fm_soft_assert(val.from_rotation != none && val.from_rotation < 4);
         j["from-rotation"s] = val.from_rotation;
     }
     if (val.mirrored != default_value.mirrored)
@@ -80,35 +126,9 @@ void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_
             j["use-default-tint"s] = true;
 }
 
-void read_framesets(const nlohmann::json& jf, wall_atlas_def& val)
-{
-    fm_soft_assert(jf.is_object());
-    fm_soft_assert(val.framesets == nullptr && val.frameset_count == 0);
-    uint8_t count = 0;
-
-    static_assert(std::size(rotation_names) == 4);
-    for (auto i = 0uz; i < 4; i++)
-    {
-        const auto& r = rotation_names[i];
-        auto key = std::string_view{r.data(), r.size()};
-        if (jf.contains(key))
-        {
-            fm_soft_assert(jf[key].is_object());
-            auto& index = val.frameset_indexes[i];
-            fm_soft_assert(index == (uint8_t)-1);
-            index = count++;
-        }
-    }
-    fm_soft_assert(count > 0);
-    fm_soft_assert(count == jf.size());
-
-    val.framesets = std::make_unique<wall_frame_set[]>(count);
-    val.frameset_count = count;
-}
-
 } // namespace
 
-void Serialize::wall_test::read_atlas_header(const nlohmann::json& j, wall_atlas_def& val)
+void Serialize::wall_test::read_atlas_header(const json& j, wall_atlas_def& val)
 {
     val = {};
     val.info = { std::string(j["name"s]), j["depth"], };

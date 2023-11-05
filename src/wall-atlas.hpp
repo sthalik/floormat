@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/function2.fwd.hpp"
 #include "src/rotation.hpp"
 #include <array>
 #include <memory>
@@ -20,6 +21,7 @@ struct wall_frame
 
 struct wall_frames
 {
+    bool is_empty() const noexcept;
     ArrayView<const wall_frame> items(const wall_atlas& a) const;
 
     uint32_t index = (uint32_t)-1, count = 0;
@@ -34,6 +36,13 @@ struct wall_frames
 
 struct wall_frame_set
 {
+    enum class type : uint8_t { wall = 1, overlay, side, top, corner_L, corner_R, };
+
+    bool is_empty() const noexcept;
+
+    void visit(const fu2::function_view<bool(StringView, const wall_frames&, type) const>& fun) const&;
+    void visit(const fu2::function_view<bool(StringView, wall_frames&, type) const>& fun) &;
+
     wall_frames wall, overlay, side, top;
     wall_frames corner_L, corner_R;
 };

@@ -6,7 +6,7 @@
 
 using namespace floormat;
 
-size_t world::object_id_hasher::operator()(object_id id) const noexcept { return int_hash(id); }
+size_t world::object_id_hasher::operator()(object_id id) const noexcept { return hash_int(id); }
 
 size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const noexcept
 {
@@ -14,7 +14,7 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
     x |= uint64_t((uint16_t)coord.x) << 0;
     x |= uint64_t((uint16_t)coord.y) << 16;
     x |= uint64_t( (uint8_t)coord.z) << 32;
-    return int_hash(x);
+    return hash_int(x);
 }
 
 namespace floormat {

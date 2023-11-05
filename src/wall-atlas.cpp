@@ -1,10 +1,31 @@
 #include "wall-atlas.hpp"
 #include "compat/assert.hpp"
+#include "compat/function2.hpp"
 #include <utility>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
+
+namespace {
+
+#define FM_FRAMESET_ITER(Name) do { if (fun( #Name ## _s, const_cast<Self>(frameset.Name), wall_frame_set::type::Name)) return; } while(false)
+#define FM_FRAMESET_ITER2(Str, Name) do { if (fun( Str, const_cast<Self>(frameset.Name), wall_frame_set::type::Name )) return; } while(false)
+
+template<typename Self>
+CORRADE_ALWAYS_INLINE void visit_frameset_impl(const wall_frame_set& frameset, auto&& fun)
+{
+    FM_FRAMESET_ITER(wall);
+    FM_FRAMESET_ITER(overlay);
+    FM_FRAMESET_ITER(side);
+    FM_FRAMESET_ITER(top);
+    FM_FRAMESET_ITER2("corner-L"_s, corner_L);
+    FM_FRAMESET_ITER2("corner-R"_s, corner_R);
+}
+
+#undef FM_FRAMESET_ITER
+
+} // namespace
 
 size_t wall_atlas::enum_to_index(enum rotation r)
 {
@@ -14,6 +35,17 @@ size_t wall_atlas::enum_to_index(enum rotation r)
     auto x = uint8_t(r);
     x >>= 1;
     return x;
+}
+
+bool wall_frames::is_empty() const noexcept
+{
+    return count == 0;
+}
+
+bool wall_frame_set::is_empty() const noexcept
+{
+    return !wall.is_empty() && !overlay.is_empty() && !side.is_empty() && !top.is_empty() &&
+           !corner_L.is_empty() && !corner_R.is_empty();
 }
 
 wall_atlas::wall_atlas(wall_info info, const ImageView2D& image,
@@ -52,6 +84,16 @@ wall_atlas::~wall_atlas() noexcept = default;
 ArrayView<const wall_frame> wall_atlas::frame_array() const { return _frame_array; }
 StringView wall_atlas::name() const { return _info.name; }
 const wall_frame_set& wall_atlas::frameset(enum rotation r) const { return frameset(enum_to_index(r)); }
+
+void wall_frame_set::visit(const fu2::function_view<bool(StringView name, const wall_frames& frames, type tag) const>& fun) const&
+{
+    visit_frameset_impl<const wall_frames&>(*this, fun);
+}
+
+void wall_frame_set::visit(const fu2::function_view<bool(StringView name, wall_frames& frames, type tag) const>& fun) &
+{
+    visit_frameset_impl<wall_frames&>(*this, fun);
+}
 
 const wall_frame_set& wall_atlas::frameset(size_t i) const
 {

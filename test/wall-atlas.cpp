@@ -4,18 +4,20 @@
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include <algorithm>
+#include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
 namespace ranges = std::ranges;
 namespace test = floormat::Serialize::wall_test;
+using nlohmann::json;
 
 namespace {
 
-void test_atlas_header(StringView path)
+Pair<wall_atlas_def, json> test_atlas_header(StringView path, StringView filename)
 {
-    auto j = json_helper::from_json_(Path::join(path, "frameset-header.json"_s));
+    auto j = json_helper::from_json_(Path::join(path, filename));
     wall_atlas_def def;
     test::read_atlas_header(j, def);
 
@@ -34,8 +36,10 @@ void test_atlas_header(StringView path)
         fm_assert(def.frameset_indexes[W] == 1);
     else if (def.frameset_indexes[N] == 1)
         fm_assert(def.frameset_indexes[W] == 0);
+    else
+        fm_assert(false);
 
-    std::fputs("", stdout);
+    return {std::move(def), std::move(j)};
 }
 
 } // namespace
@@ -46,7 +50,7 @@ void test_app::test_wall_atlas()
     const auto path = Path::join(loader.TEMP_PATH, "test/json"_s);
     fm_assert(Path::isDirectory(path));
 
-    test_atlas_header(path);
+    test_atlas_header(path, "frameset-header.json"_s);
 }
 
 

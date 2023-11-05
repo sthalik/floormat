@@ -9,10 +9,10 @@ size_t point::hash() const
     static_assert(sizeof *this == size);
 #ifdef FLOORMAT_64
     static_assert(sizeof nullptr > 4);
-    return fnvhash_64(this, sizeof *this);
+    return hash_64(this, sizeof *this);
 #else
     static_assert(sizeof nullptr == 4);
-    return fnvhash_32(this, sizeof *this);
+    return hash_32(this, sizeof *this);
 #endif
 }
 
