@@ -21,7 +21,6 @@ endif()
 fm_add_install_executable(${self})
 
 set(save-dir "${CMAKE_BINARY_DIR}/test/save")
-file(REMOVE_RECURSE "${save-dir}")
 file(GLOB files "save/*.dat" CONFIGURE_ARGS)
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${save-dir}")

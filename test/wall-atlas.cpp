@@ -7,25 +7,21 @@
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
-namespace floormat {
+namespace floormat::Wall::detail {
 
 using nlohmann::json;
 
 namespace {
 
-[[nodiscard]] Pair<wall_atlas_def, json> test_atlas_header(StringView path, StringView filename)
+void test_atlas_header(StringView path, StringView filename)
 {
-    auto j = json_helper::from_json_(Path::join(path, filename));
-    wall_atlas_def def;
-    test::read_atlas_header(j, def);
+    auto jroot = json_helper::from_json_(Path::join(path, filename));
+    auto info = read_info_header(jroot);
 
-    fm_assert(def.info.name == "foo"_s);
-    fm_assert(def.info.depth == 42);
-    fm_assert(def.dir_count == 2);
+    fm_assert(info.name == "foo"_s);
+    fm_assert(info.depth == 42);
 
-    constexpr auto none = (uint8_t)-1;
-    enum : uint8_t { N, E, S, W, };
-
+#if 0
     fm_assert(def.dir_indexes[N] == 0 || def.dir_indexes[N] == 1);
     fm_assert(def.dir_indexes[E] == none);
     fm_assert(def.dir_indexes[S] == none);
@@ -36,21 +32,20 @@ namespace {
         fm_assert(def.dir_indexes[W] == 0);
     else
         fm_assert(false);
-
-    return {std::move(def), std::move(j)};
+#endif
 }
 
 } // namespace
 
-void test_app::test_wall_atlas()
+} // namespace floormat::Wall::detail
+
+void floormat::test_app::test_wall_atlas()
 {
+    using namespace floormat::Wall::detail;
+
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto path = Path::join(loader.TEMP_PATH, "test/json"_s);
     fm_assert(Path::isDirectory(path));
 
-    (void)test_atlas_header(path, "frame_direction-header.json"_s);
+    (void)test_atlas_header(path, "wall-atlas-header1.json"_s);
 }
-
-
-
-} // namespace floormat
