@@ -1,93 +1,115 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/function2.fwd.hpp"
 #include "src/rotation.hpp"
 #include <array>
-#include <memory>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/Texture.h>
 
-namespace floormat {
+namespace floormat { class wall_atlas; }
 
-struct wall_atlas;
+namespace floormat::Wall {
 
-struct wall_frame
+struct Frame
 {
     Vector2ui offset = { (unsigned)-1, (unsigned)-1 };
 };
 
-struct wall_frames
+struct Group
 {
-    bool is_empty() const noexcept;
-    ArrayView<const wall_frame> items(const wall_atlas& a) const;
-
     uint32_t index = (uint32_t)-1, count = 0;
-
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add;
     uint8_t from_rotation = (uint8_t)-1;
     bool mirrored         : 1 = false,
          use_default_tint : 1 = true;
+
+    explicit operator bool() const noexcept { return !is_empty(); }
+    bool is_empty() const noexcept { return count == 0; }
 };
 
-struct wall_frame_set
-{
-    enum class type : uint8_t { wall = 1, overlay, side, top, corner_L, corner_R, };
+enum class Tag : uint8_t { wall, overlay, side, top, corner_L, corner_R, COUNT };
 
+enum class Direction_ : uint8_t { N, E, S, W, COUNT };
+
+struct Direction
+{
+    using memfn_ptr = Group Direction::*;
+    struct member_tuple { StringView str; memfn_ptr member; Tag tag; };
+
+    explicit operator bool() const noexcept { return !is_empty(); }
     bool is_empty() const noexcept;
 
-    void visit(const fu2::function_view<bool(StringView, const wall_frames&, type) const>& fun) const&;
-    void visit(const fu2::function_view<bool(StringView, wall_frames&, type) const>& fun) &;
+    Group wall, overlay, side, top;
+    Group corner_L, corner_R;
 
-    wall_frames wall, overlay, side, top;
-    wall_frames corner_L, corner_R;
+    static constexpr inline member_tuple members[] = {
+        { "wall"_s,     &Direction::wall,     Tag::wall      },
+        { "overlay"_s,  &Direction::overlay,  Tag::overlay   },
+        { "side"_s,     &Direction::side,     Tag::side      },
+        { "top"_s,      &Direction::top,      Tag::top       },
+        { "corner-L"_s, &Direction::corner_L, Tag::corner_L, },
+        { "corner-R"_s, &Direction::corner_R, Tag::corner_R, },
+    };
+    static_assert(arraySize(members) == (size_t)Tag::COUNT);
 };
 
-struct wall_info
+struct Info
 {
     String name = "(unnamed)"_s;
     unsigned depth = 0;
 };
 
-struct wall_atlas_def
-{
-    wall_info info;
-    std::unique_ptr<wall_frame_set[]> framesets;
-    std::array<uint8_t, 4> frameset_indexes = {255, 255, 255, 255};
-    uint8_t frameset_count = 0;
-
-    Array<wall_frame> array;
-    uint32_t frame_count = 0;
+struct DirArrayIndex {
+    std::uint8_t val = (uint8_t)-1;
+    operator bool() const { return val == (uint8_t)-1; }
 };
 
-struct wall_atlas final
+} // namespace floormat::Wall
+
+namespace floormat {
+
+class wall_atlas final
 {
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(wall_atlas);
-    wall_atlas();
+    using Frame = Wall::Frame;
+    using Group = Wall::Group;
+    using Direction_ = Wall::Direction_;
+    using Direction = Wall::Direction;
+    using Info = Wall::Info;
+    using Tag = Wall::Tag;
+    using DirArrayIndex = Wall::DirArrayIndex;
+
+    Array<Direction> _dir_array;
+    Array<Frame> _frame_array;
+    Info _info;
+    GL::Texture2D _texture;
+    std::array<DirArrayIndex, 4> _direction_to_Direction_array_index;
+
+    Direction* get_Direction(Direction_ num) const;
+
+public:
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(wall_atlas);
+    wall_atlas() noexcept;
     ~wall_atlas() noexcept;
-    wall_atlas(wall_info info, const ImageView2D& image,
-               Array<wall_frame> frames,
-               std::unique_ptr<wall_frame_set[]> framesets,
-               uint8_t frameset_count,
-               std::array<uint8_t, 4> frameset_indexes);
+
+    wall_atlas(Info info, const ImageView2D& image,
+               Array<Frame> frames, Array<Direction> directions,
+               std::array<DirArrayIndex, 4> direction_to_DirArrayIndex);
+    StringView name() const;
+    uint8_t direction_count() const;
+
+    const Group* group(size_t dir, Tag tag) const;
+    const Group* group(const Direction& dir, Tag tag) const;
+    const Group* group(const Direction* dir, Tag tag) const;
+    const Direction* direction(size_t dir) const;
+    ArrayView<const Frame> frames(const Group& a) const;
+    ArrayView<const Frame> raw_frame_array() const;
 
     static size_t enum_to_index(enum rotation x);
-    const wall_frame_set& frameset(size_t i) const;
-    const wall_frame_set& frameset(enum rotation r) const;
-    ArrayView<const wall_frame> frame_array() const;
-    StringView name() const;
-
-private:
-    std::unique_ptr<wall_frame_set[]> _framesets;
-    Array<wall_frame> _frame_array;
-    wall_info _info;
-    GL::Texture2D _texture;
-    std::array<uint8_t, 4> _frameset_indexes;
-    uint8_t _frameset_count = 0;
 };
+
 
 } // namespace floormat

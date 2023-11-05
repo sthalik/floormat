@@ -14,8 +14,12 @@ struct adl_serializer<std::shared_ptr<floormat::wall_atlas>>
 
 } // namespace nlohmann
 
-namespace floormat::Serialize::wall_test {
+namespace floormat::Wall::detail {
 
-void read_atlas_header(const nlohmann::json& j, wall_atlas_def& val);
+uint8_t direction_index_from_name(StringView s);
+StringView direction_index_to_name(size_t i);
+[[nodiscard]] Group read_group_metadata(const nlohmann::json& jgroup);
+void write_group_metadata(nlohmann::json& jgroup, const Group& val);
+Info read_info_header(const nlohmann::json& jroot);
 
-} // namespace floormat::Serialize::wall_test
+} // namespace floormat::Wall::detail
