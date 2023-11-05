@@ -187,7 +187,7 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output").setHelp("output", "", "DIR")
-        .addArgument("input")
+        .addArgument("input.json")
         .addOption('W', "width", "")
         .addOption('H', "height", "")
         .addOption('F', "scale", "");
@@ -203,7 +203,7 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
         opts.scale = anim_scale::ratio{args.value<float>("scale")};
 
     opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
-    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input"));
+    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
     opts.input_dir = Path::split(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())

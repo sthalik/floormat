@@ -31,7 +31,7 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output"s).setHelp("output"s, ""s, "DIR"s);
-    args.addArgument("input"s);
+    args.addArgument("input.json"s);
     args.parse(argc, argv);
     options opts;
     //Path::exists(args.value<StringView>());
