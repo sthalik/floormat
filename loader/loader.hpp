@@ -45,7 +45,7 @@ struct loader_
     loader_(const loader_&) = delete;
     loader_& operator=(const loader_&) = delete;
 
-    virtual ~loader_();
+    virtual ~loader_() noexcept;
 
     static const StringView IMAGE_PATH;
     static const StringView ANIM_PATH;

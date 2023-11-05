@@ -20,7 +20,7 @@ loader_& loader_::default_loader() noexcept
 loader_& loader = loader_::default_loader();
 
 loader_::loader_() = default;
-loader_::~loader_() = default;
+loader_::~loader_() noexcept = default;
 
 StringView loader_::strip_prefix(StringView name)
 {
