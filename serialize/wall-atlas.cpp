@@ -48,9 +48,9 @@ void read_frameset_metadata(const nlohmann::json& j, wall_frames& val, size_t& r
     if (j.contains("from-rotation"s))
         val.from_rotation = (uint8_t)rotation_from_name(std::string{j["from-rotation"s]});
     if (j.contains("mirrored"s))
-        val.mirrored = j["mirrored"s];
+        val.mirrored = !!j["mirrored"s];
     if (j.contains("use-default-tint"s))
-        val.use_default_tint = j["use-default-tint"s];
+        val.use_default_tint = !!j["use-default-tint"s];
 }
 
 void write_frameset_metadata(nlohmann::json& j, const wall_atlas& a, const wall_frames& val, size_t rot)
