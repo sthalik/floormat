@@ -19,6 +19,10 @@ struct path_search_result final
     void set_cost(uint32_t value);
     float time() const;
     void set_time(float time);
+    bool is_found() const;
+    void set_found(bool value);
+    uint32_t distance() const;
+    void set_distance(uint32_t dist);
 
     std::vector<point>& path();
     const std::vector<point>& path() const;
@@ -32,8 +36,6 @@ struct path_search_result final
     ~path_search_result() noexcept;
 
 private:
-    static constexpr size_t min_length = TILE_MAX_DIM*2;
-
     struct node
     {
         friend struct path_search_result;
@@ -53,7 +55,8 @@ private:
 
     std::unique_ptr<node> _node;
     float _time = 0;
-    uint32_t _cost = 0;
+    uint32_t _cost = 0, _distance = (uint32_t)-1;
+    bool _found : 1 = false;
 };
 
 } // namespace floormat

@@ -1,0 +1,66 @@
+#include "app.hpp"
+#include "src/path-search.hpp"
+#include "loader/loader.hpp"
+#include <Magnum/Math/Functions.h>
+
+namespace floormat {
+
+void test_app::test_dijkstra()
+{
+    constexpr bool debug = true;
+
+    auto A = astar{};
+    auto w = world();
+
+    constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
+    constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
+    constexpr auto wch = chunk_coords_{wcx, wcy, 0};
+    constexpr auto wt = local_coords{wtx, wty};
+    constexpr auto wpos = global_coords{wch, wt};
+
+    auto& ch = w[wch];
+    auto metal2 = tile_image_proto{loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked), 0};
+
+    for (int16_t j = wcy - 1; j <= wcy + 1; j++)
+        for (int16_t i = wcx - 1; i <= wcx + 1; i++)
+        {
+            auto &c = w[chunk_coords_{i, j, 0}];
+            for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
+            {
+                c[{ k, k }].wall_north() = metal2;
+                c[{ k, k }].wall_west() = metal2;
+            }
+        }
+
+    ch[{ wtx,   wty   }].wall_west()  = metal2;
+    ch[{ wtx,   wty   }].wall_north() = metal2;
+    ch[{ wtx+1, wty   }].wall_west()  = metal2;
+    ch[{ wtx,   wty +1}].wall_north() = metal2;
+
+    for (int16_t j = wcy - 1; j <= wcy + 1; j++)
+        for (int16_t i = wcx - 1; i <= wcx + 1; i++)
+        {
+            auto& c = w[chunk_coords_{i, j, 0}];
+            c.mark_passability_modified();
+            c.ensure_passability();
+        }
+
+    auto result = A.Dijkstra(w,
+                             {{0,0,0}, {11,9}},    // from
+                             {wpos, {wox, woy}},   // to
+                             0, max_dist, {16,16}, // size
+                             debug ? 1 : 0);
+
+    constexpr auto min = (uint32_t)(TILE_SIZE2*.5f).length() - uint32_t{1},
+                   max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
+
+    fm_assert(!result.is_found());
+    fm_assert(!result.path().empty());
+    fm_assert(result.size() > 4);
+    fm_assert(result.cost() > 1000);
+    fm_assert(result.cost() < 3000);
+    fm_assert(result.distance() > min);
+    fm_assert(result.distance() < max);
+}
+
+} // namespace floormat

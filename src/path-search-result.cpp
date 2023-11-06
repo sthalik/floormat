@@ -7,6 +7,12 @@
 
 namespace floormat {
 
+namespace {
+
+constexpr size_t min_length = TILE_MAX_DIM*2;
+
+} // namespace
+
 std::unique_ptr<path_search_result::node> path_search_result::_pool; // NOLINT
 
 path_search_result::path_search_result()
@@ -55,12 +61,17 @@ path_search_result& path_search_result::operator=(const path_search_result& x) n
     return *this;
 }
 
-path_search_result::node::node() noexcept = default;
 size_t path_search_result::size() const { return _node->vec.size(); }
+path_search_result::node::node() noexcept = default;
+float path_search_result::time() const { return _time; }
+
 uint32_t path_search_result::cost() const { return _cost; }
 void path_search_result::set_cost(uint32_t value) { _cost = value; }
-float path_search_result::time() const { return _time; }
 void path_search_result::set_time(float time) { _time = time; }
+bool path_search_result::is_found() const { return _found; }
+void path_search_result::set_found(bool value) { _found = value; }
+uint32_t path_search_result::distance() const { return _distance; }
+void path_search_result::set_distance(uint32_t dist) { _distance = dist; }
 
 auto path_search_result::data() const -> const point* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }

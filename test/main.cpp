@@ -36,6 +36,8 @@ int test_app::exec()
 
     test_path_search_node_pool();
     test_path_search();
+    test_dijkstra();
+
     zzz_test_misc();
 
     return 0;

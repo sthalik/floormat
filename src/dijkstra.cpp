@@ -98,6 +98,29 @@ inline uint32_t distance_l2(point a, point b)
     return (uint32_t)Math::abs(dist).sum();
 }
 
+void set_result_from_idx(path_search_result& result, const std::vector<visited>& nodes,
+                         point to, const uint32_t idx)
+{
+    fm_debug_assert(idx != (uint32_t)-1);
+
+    auto& path = result.path();
+    path.clear();
+
+    const auto& to_node = nodes[idx];
+    if (to != to_node.pt)
+        path.push_back(to);
+    result.set_cost(to_node.dist);
+
+    auto i = idx;
+    do {
+        const auto& node = nodes[i];
+        path.push_back(node.pt);
+        i = node.prev;
+    } while (i != (uint32_t)-1);
+
+    std::reverse(path.begin(), path.end());
+}
+
 } // namespace
 
 astar::astar()
@@ -182,17 +205,16 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
             }
         }
 
-    auto closest_dist = distance(from, to);
-    auto closest_pos = from;
-    uint32_t closest_path_len = 0;
+    auto closest_dist = (uint32_t)-1;
+    uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
 
     while (!Q.empty())
     {
-        const auto id = pop_from_heap();
+        const auto cur_idx = pop_from_heap();
         point cur_pt;
         uint32_t cur_dist;
-        {   auto& n = nodes[id];
+        {   auto& n = nodes[cur_idx];
             cur_pt = n.pt;
             cur_dist = n.dist;
         }
@@ -203,16 +225,15 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
         if (auto d = distance(cur_pt, to); d < closest_dist) [[unlikely]]
         {
             closest_dist = d;
-            closest_pos = cur_pt;
-            closest_path_len = cur_dist;
-        }
+            closest_idx = cur_idx;
 
 #ifndef FM_NO_DEBUG
-        if (debug >= 2) [[unlikely]]
-            DBG_nospace << "node"
-                        << " px:" << closest_dist << " path:" << closest_path_len
-                        << " pos:" << closest_pos;
+            if (debug >= 2) [[unlikely]]
+                DBG_nospace << "closest node"
+                            << " px:" << closest_dist << " path:" << cur_dist
+                            << " pos:" << cur_pt;
 #endif
+        }
 
         if (auto dist_to_goal = distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
@@ -220,7 +241,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
             if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
                 path_search::is_passable(w, to.chunk3(), bb, own_id, p))
             {
-                goal_idx = id;
+                goal_idx = cur_idx;
                 max_dist = dist;
                 continue; // path can only get longer
             }
@@ -253,7 +274,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
                 new_idx = (uint32_t)sz;
                 cache.add_index(chunk_idx, tile_idx, new_idx);
                 auto new_node = visited {
-                    .dist = dist, .prev = id,
+                    .dist = dist, .prev = cur_idx,
                     .pt = new_pt,
                 };
                 nodes.push_back(new_node);
@@ -262,7 +283,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
             {
                 auto& n = nodes[new_idx];
                 n.dist = dist;
-                n.prev = id;
+                n.prev = cur_idx;
             }
 
 #ifndef FM_NO_DEBUG
@@ -279,53 +300,54 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
     //fm_debug_assert(nodes.size() == indexes.size());
 
     path_search_result result;
-    auto& path = result.path();
-    path.clear();
 
-    if (auto i = goal_idx; i != (uint32_t)-1)
+    if (goal_idx != (uint32_t)-1)
     {
-        if (to != nodes[goal_idx].pt)
-            path.push_back(to);
-
-        do
-        {
-            const auto& node = nodes[i];
-            path.push_back(node.pt);
-            i = node.prev;
-        }
-        while (i !=(uint32_t)-1);
-
-        std::reverse(path.begin(), path.end());
-        result.set_cost(nodes[goal_idx].dist);
+        result.set_found(true);
+        result.set_distance(0);
+        set_result_from_idx(result, nodes, to, goal_idx);
+    }
+    else if (closest_idx != (uint32_t)-1)
+    {
+        result.set_found(false);
+        result.set_distance(closest_dist);
+        set_result_from_idx(result, nodes, to, closest_idx);
     }
 
     result.set_time(timeline.currentFrameTime());
 
 #ifndef FM_NO_DEBUG
-    if (debug >= 1)
+    if (debug >= 1) [[unlikely]]
     {
         auto d0_ =
             Vector2i(Math::abs(from.coord() - to.coord())) * iTILE_SIZE2
             + Vector2i(Math::abs(Vector2i(from.offset()) - Vector2i(to.offset())));
         auto d0 = (uint32_t)d0_.length();
         char buf[128];
-        size_t len;
+        size_t len = 0;
         const auto time = (uint32_t)Math::ceil(result.time() * 1e3f);
         if (goal_idx != (uint32_t)-1)
         {
             auto d = nodes[goal_idx].dist;
-            len = snformat(buf, "Dijkstra: found in {} ms len:{} len0:{} ratio:{:.4}\n"_cf,
+            len = snformat(buf, "Dijkstra: found in {} ms "
+                                "len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, d, d0,
                            d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
         }
-        else
+        else if (closest_idx != (uint32_t)-1)
         {
-            len = snformat(buf, "Dijkstra: no path found in {} ms closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           time, closest_dist, closest_path_len, d0,
-                           closest_path_len > 0 && d0 > 0 ? (float)closest_path_len/(float)d0 : 1);
+            const auto& closest = nodes[closest_idx];
+            fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
+            len = snformat(buf, "Dijkstra: no path found in {} ms "
+                                "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
+                           time, closest_dist, closest.dist, d0,
+                           d0 > 0 ? (float)closest.dist/(float)d0 : 1);
         }
-        std::fwrite(buf, len, 1, stdout);
-        std::fflush(stdout);
+        if (len)
+        {
+            std::fwrite(buf, len, 1, stdout);
+            std::fflush(stdout);
+        }
     }
 #endif
 
