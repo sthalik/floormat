@@ -211,7 +211,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
 
         if (auto dist_to_goal = distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
-            auto dist = cur_dist;
+            auto dist = cur_dist + dist_to_goal;
             if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
                 path_search::is_passable(w, to.chunk3(), bb, own_id, p))
             {
@@ -305,21 +305,18 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
         auto d0 = (uint32_t)d0_.length();
         char buf[128];
         size_t len;
+        const auto time = result.time() * 1e3f;
         if (goal_idx != (uint32_t)-1)
         {
             auto d = nodes[goal_idx].dist;
-            len = snformat(buf, "Dijkstra: found time:{:.3} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           result.time()*1e3f,
-                           d, d0,
+            len = snformat(buf, "Dijkstra: found in {:.3} ms len:{} len0:{} ratio:{:.4}\n"_cf,
+                           time, d, d0,
                            d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
         }
         else
         {
-            len = snformat(buf, "Dijkstra: not found closest:{} time:{:.3} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           closest_dist,
-                           result.time()*1e3f,
-                           closest_path_len,
-                           d0,
+            len = snformat(buf, "Dijkstra: no path found in {:.3} ms closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
+                           time, closest_dist, closest_path_len, d0,
                            closest_path_len > 0 && d0 > 0 ? (float)closest_path_len/(float)d0 : 1);
         }
         std::fwrite(buf, len, 1, stdout);
