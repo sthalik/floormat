@@ -109,9 +109,12 @@ endif()
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
 endif()
+
 if(NOT APPLE AND NOT WIN32)
     add_compile_options(-fno-plt)
+    add_link_options(-Wl,-z,relro,-z,now)
 endif()
+
 add_definitions(
     -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
     -DIMGUI_DISABLE_OBSOLETE_KEYIO
