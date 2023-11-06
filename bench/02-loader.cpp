@@ -29,7 +29,7 @@ void Loader_json(benchmark::State& state)
         }
 }
 
-BENCHMARK(Loader_json)->Unit(benchmark::kMillisecond);
+BENCHMARK(Loader_json)->Unit(benchmark::kMillisecond)->ReportAggregatesOnly();
 
 } // namespace
 
