@@ -17,16 +17,36 @@ if test -z "$1"; then
     usage
 fi
 
+if ! command -v llvm-profdata >/dev/null 2>&1; then
+    export PATH="/clang64/bin:/usr/bin:$PATH"
+fi
+
 compile=0
 run=0
 generate=0
 open=0
+exe=floormat-editor
+
+find_exe() {
+    case "$1" in
+        floormat-*) exe="$1" ;;
+        *) exe="floormat-$1" ;;
+    esac
+}
 
 while test $# -gt 0; do
     case "$1" in
-        all) compile=1; run=1; generate=1; open=1 ;;
+        all)
+        {
+            compile=1; run=1; generate=1; open=1 exe=floormat-test
+            if test $# -gt 1; then shift; find_exe "$1"; fi
+        } ;;
         compile) compile=1 ;;
-        run) compile=1; run=1 ;;
+        run)
+        {
+            compile=1; run=1;
+            if test $# -gt 1; then shift; find_exe "$1"; fi
+        } ;;
         generate) generate=1 ;;
         open) open=1 ;;
         *) echo "error: invalid command-line argument '$1'" >&2; usage ;;
@@ -35,12 +55,12 @@ while test $# -gt 0; do
 done
 
 #find build directory
-build="build-coverage"
+build="build/coverage"
 if test -f CMakeLists.txt && test -f resources.conf; then
     cd ./"${build}"
 elif test -d bin; then
     cd ../../"${build}"
-elif test -x floormat-editor || test -x floormat-editor.exe; then
+elif test -x "${exe}" || test -x "${exe}".exe; then
     cd ../../"${build}"
 elif test -d install/bin && test -d install/share/floormat; then
     cd ../"${build}"
@@ -56,13 +76,18 @@ if ! test -f "./CMakeCache.txt"; then
     exit 65
 fi
 
-exe=
-for i in ./install/bin/floormat-editor.exe ./install/bin/floormat-editor; do
-    if test -x "$i"; then
-        exe="$i"
-        break
-    fi
-done
+case "${exe}" in
+[a-zA-Z]:/*) : ;;
+[a-zA-Z]:\\*) : ;;
+/*) : ;;
+\\*) : ;;
+*)  for i in ./install/bin/"${exe}".exe ./install/bin/"${exe}"; do
+        if test -x "$i"; then
+            exe="$i"
+            break
+        fi
+    done ;;
+esac
 
 
 prof=coverage

@@ -44,6 +44,9 @@ sets(STRING
 )
 
 add_compile_options(-Xclang -fcolor-diagnostics -fdiagnostics-color=always)
+if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)
+endif()
 
 set(FLOORMAT_SUBMODULE-SDL2 1)
 
