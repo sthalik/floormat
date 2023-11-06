@@ -20,12 +20,12 @@ endif()
 
 fm_add_install_executable(${self})
 
-file(GLOB files "save/*.dat" CONFIGURE_ARGS)
+file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat" CONFIGURE_ARGS)
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/test/save")
 endforeach()
 
-file(GLOB files "json/*.json" CONFIGURE_ARGS)
+file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/json/*.json" CONFIGURE_ARGS)
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/test/json")
 endforeach()

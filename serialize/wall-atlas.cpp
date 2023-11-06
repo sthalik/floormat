@@ -5,6 +5,7 @@
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/StringStl.h>
+#include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
 
 // todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
@@ -38,7 +39,7 @@ StringView direction_index_to_name(size_t i)
     return direction_names[i];
 }
 
-[[nodiscard]] Group read_group_metadata(const json& jgroup)
+Group read_group_metadata(const json& jgroup)
 {
     fm_assert(jgroup.is_object());
 
@@ -56,6 +57,26 @@ StringView direction_index_to_name(size_t i)
         val.use_default_tint = jgroup["use-default-tint"s];
 
     fm_soft_assert(val.tint_mult >= Color4{0});
+
+    return val;
+}
+
+Direction read_direction_metadata(const json& jroot, Direction_ dir)
+{
+    std::string_view s = direction_index_to_name((size_t)dir);
+    if (!jroot.contains(s))
+        return {};
+    const auto& jdir = jroot[s];
+
+    Direction val;
+
+    for (auto [s_, memfn, tag] : Direction::members)
+    {
+        std::string_view s = s_;
+        if (!jdir.contains(s))
+            continue;
+        val.*memfn = read_group_metadata(jdir[s]);
+    }
 
     return val;
 }

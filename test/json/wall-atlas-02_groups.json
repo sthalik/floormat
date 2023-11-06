@@ -1,0 +1,12 @@
+{
+    "name": "foo",
+    "depth": 42,
+    "frames": [],
+    "n": {},
+    "w": {
+        "wall": {},
+        "side": {
+            "pixel-size": "42 x 192"
+        }
+    }
+}

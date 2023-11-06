@@ -1,9 +1,0 @@
-{
-    "name": "foo",
-    "depth": 42,
-    "directions": {
-        "w": {},
-        "n": {}
-    },
-    "frames": []
-}

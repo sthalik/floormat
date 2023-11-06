@@ -23,44 +23,47 @@ StringView json_path()
     return path;
 }
 
-void test_read_info(StringView filename)
+void test_read_header(StringView filename)
 {
     const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
-    fm_assert(jroot.contains("directions"s));
     auto info = read_info_header(jroot);
     fm_assert(info.name == "foo"_s);
     fm_assert(info.depth == 42);
-
-#if 0
-    fm_assert(def.dir_indexes[N] == 0 || def.dir_indexes[N] == 1);
-    fm_assert(def.dir_indexes[E] == none);
-    fm_assert(def.dir_indexes[S] == none);
-
-    if (def.dir_indexes[N] == 0)
-        fm_assert(def.dir_indexes[W] == 1);
-    else if (def.dir_indexes[N] == 1)
-        fm_assert(def.dir_indexes[W] == 0);
-    else
-        fm_assert(false);
-#endif
 }
 
 void test_read_empty_direction(StringView filename)
 {
     const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
-    test_read_info(filename);
+    test_read_header(filename);
     fm_assert(!jroot.empty());
-    fm_assert(jroot.contains("directions"s));
-    const auto& jdir = jroot["directions"s];
 
-    fm_assert( jdir.contains("n"s) );
-    fm_assert(!jdir.contains("e"s) );
-    fm_assert(!jdir.contains("s"s) );
-    fm_assert( jdir.contains("w"s) );
+    fm_assert( jroot.contains("n"s) );
+    fm_assert(!jroot.contains("e"s) );
+    fm_assert(!jroot.contains("s"s) );
+    fm_assert( jroot.contains("w"s) );
 
-    {   auto g = read_group_metadata(jdir["w"]);
-        fm_assert(g.is_empty());
-    }
+    fm_assert(jroot["n"s].is_object() && jroot["n"s].empty());
+    fm_assert(jroot["w"s].is_object() && jroot["w"s].empty());
+}
+
+void test_read_groups(StringView filename)
+{
+    const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
+    read_info_header(jroot);
+
+    fm_assert(jroot["depth"s] == 42);
+    fm_assert( jroot.contains("n"s) );
+    fm_assert(!jroot.contains("e"s) );
+    fm_assert(!jroot.contains("s"s) );
+    fm_assert( jroot.contains("w"s) );
+    fm_assert(jroot["n"s].is_object() && jroot["n"s].empty());
+    fm_assert(jroot["w"s].is_object() && !jroot["w"s].empty());
+    fm_assert(read_direction_metadata(jroot, Direction_::N).is_empty());
+    fm_assert(read_direction_metadata(jroot, Direction_::E).is_empty());
+    fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
+    const auto dir = read_direction_metadata(jroot, Direction_::W);
+    fm_assert(dir.wall.pixel_size == Vector2ui{});
+    fm_assert(dir.side.pixel_size == Vector2ui{42, 192});
 }
 
 } // namespace
@@ -70,6 +73,7 @@ void test_read_empty_direction(StringView filename)
 void floormat::test_app::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
-    test_read_info("wall-atlas-header1.json"_s);
-    test_read_empty_direction("wall-atlas-header1.json"_s);
+    test_read_header("wall-atlas-01_header.json"_s);
+    test_read_empty_direction("wall-atlas-01_header.json"_s);
+    test_read_groups("wall-atlas-02_groups.json"_s);
 }
