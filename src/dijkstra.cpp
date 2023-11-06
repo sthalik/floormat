@@ -2,6 +2,7 @@
 #include "compat/format.hpp"
 #include "object.hpp"
 #include "point.hpp"
+#include "compat/math.hpp"
 #include <cstdio>
 #include <Corrade/Containers/StaticArray.h>
 #include <Magnum/Math/Vector2.h>
@@ -62,7 +63,10 @@ constexpr auto directions = []() constexpr
         { {  0,  1 }, len1.y() },
     }};
     for (auto& [vec, len] : array)
+    {
         vec *= div_size;
+        vec += Vector2i(1);
+    }
 #if 0
     for (auto i = 0uz; i < array.size(); i++)
         for (auto j = 0uz; j < i; j++)
@@ -163,10 +167,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
     for (int8_t y = div_min; y <= div_max; y++)
         for (int8_t x = div_min; x <= div_max; x++)
         {
+            constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
             auto off = Vector2i(x, y) * div_size;
             auto pt = object::normalize_coords({from.coord(), {}}, off);
             auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
-            auto dist = distance(from, pt);
+            auto dist = distance(from, pt) + min_dist;
 
             if (path_search::is_passable(w, from.chunk3(), bb, own_id, p))
             {
@@ -305,17 +310,17 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
         auto d0 = (uint32_t)d0_.length();
         char buf[128];
         size_t len;
-        const auto time = result.time() * 1e3f;
+        const auto time = (uint32_t)Math::ceil(result.time() * 1e3f);
         if (goal_idx != (uint32_t)-1)
         {
             auto d = nodes[goal_idx].dist;
-            len = snformat(buf, "Dijkstra: found in {:.3} ms len:{} len0:{} ratio:{:.4}\n"_cf,
+            len = snformat(buf, "Dijkstra: found in {} ms len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, d, d0,
                            d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
         }
         else
         {
-            len = snformat(buf, "Dijkstra: no path found in {:.3} ms closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
+            len = snformat(buf, "Dijkstra: no path found in {} ms closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, closest_dist, closest_path_len, d0,
                            closest_path_len > 0 && d0 > 0 ? (float)closest_path_len/(float)d0 : 1);
         }
