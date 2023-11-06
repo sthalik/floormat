@@ -1,6 +1,8 @@
 #include "path-search.hpp"
+#include "compat/format.hpp"
 #include "object.hpp"
 #include "point.hpp"
+#include <cstdio>
 #include <Corrade/Containers/StaticArray.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
@@ -81,7 +83,7 @@ inline uint32_t distance(point a, point b)
     Vector2i dist;
     dist += (a.coord() - b.coord())*iTILE_SIZE2;
     dist += Vector2i(a.offset()) - Vector2i(b.offset());
-    return (uint32_t)Math::sqrt(Math::abs(dist).dot());
+    return (uint32_t)Math::ceil(Math::sqrt(dist.dot()));
 }
 
 inline uint32_t distance_l2(point a, point b)
@@ -270,21 +272,6 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
     }
 
     //fm_debug_assert(nodes.size() == indexes.size());
-#ifndef FM_NO_DEBUG
-    if (debug >= 1)
-    {
-        auto dbg = DBG_nospace;
-        dbg << "dijkstra: ";
-        if (goal_idx != (uint32_t)-1)
-            dbg << "found len:" << nodes[goal_idx].dist;
-        else
-        {
-            dbg << "closest px:" << closest_dist << " path:" << closest_path_len
-                << " pos:" << closest_pos;
-        }
-         dbg << " nodes:" << nodes.size();
-    }
-#endif
 
     path_search_result result;
     auto& path = result.path();
@@ -308,6 +295,37 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to, o
     }
 
     result.set_time(timeline.currentFrameTime());
+
+#ifndef FM_NO_DEBUG
+    if (debug >= 1)
+    {
+        auto d0_ =
+            Vector2i(Math::abs(from.coord() - to.coord())) * iTILE_SIZE2
+            + Vector2i(Math::abs(Vector2i(from.offset()) - Vector2i(to.offset())));
+        auto d0 = (uint32_t)d0_.length();
+        char buf[128];
+        size_t len;
+        if (goal_idx != (uint32_t)-1)
+        {
+            auto d = nodes[goal_idx].dist;
+            len = snformat(buf, "Dijkstra: found time:{:.3} len:{} len0:{} ratio:{:.4}\n"_cf,
+                           result.time()*1e3f,
+                           d, d0,
+                           d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
+        }
+        else
+        {
+            len = snformat(buf, "Dijkstra: not found closest:{} time:{:.3} len:{} len0:{} ratio:{:.4}\n"_cf,
+                           closest_dist,
+                           result.time()*1e3f,
+                           closest_path_len,
+                           d0,
+                           closest_path_len > 0 && d0 > 0 ? (float)closest_path_len/(float)d0 : 1);
+        }
+        std::fwrite(buf, len, 1, stdout);
+        std::fflush(stdout);
+    }
+#endif
 
     return result;
 }
