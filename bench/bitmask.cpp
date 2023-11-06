@@ -20,7 +20,7 @@ namespace {
         anim_atlas::make_bitmask_(img, bitmask);
 }
 
-BENCHMARK(Bitmask)->Unit(benchmark::kMicrosecond)->ReportAggregatesOnly();
+BENCHMARK(Bitmask)->Unit(benchmark::kMicrosecond);
 
 } // namespace
 

@@ -66,6 +66,6 @@ void Dijkstra(benchmark::State& state)
 
 } // namespace
 
-BENCHMARK(Dijkstra)->Unit(benchmark::kMillisecond)->ReportAggregatesOnly();
+BENCHMARK(Dijkstra)->Unit(benchmark::kMillisecond);
 
 } // namespace floormat
