@@ -5,6 +5,7 @@ sets(STRING
      CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG -g -ggdb"
      CMAKE_CXX_FLAGS_RELEASE "-O0 -DNDEBUG -g -ggdb")
 
+add_definitions(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2)
 add_compile_options(-fsanitize=address,undefined)
 add_link_options(-fsanitize=address,undefined)
 sets(BOOL CORRADE_CPU_USE_IFUNC OFF)
