@@ -199,7 +199,7 @@ void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
 
     size_t len;
 
-    if (len_ > 1 << 17)
+    if (len_ > 1 << 20)
         len = len_;
     else
         len = std::bit_ceil(len_);
