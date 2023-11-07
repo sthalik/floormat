@@ -53,8 +53,9 @@ Group read_group_metadata(const json& jgroup)
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"s] });
     if (jgroup.contains("mirrored"s))
         val.mirrored = !!jgroup["mirrored"s];
-    if (jgroup.contains("use-default-tint"s))
-        val.use_default_tint = !!jgroup["use-default-tint"s];
+    val._default_tint_specified = jgroup.contains("default-tint"s);
+    if (val._default_tint_specified)
+        val.default_tint = !!jgroup["default-tint"s];
 
     fm_soft_assert(val.tint_mult >= Color4{0});
 
@@ -81,6 +82,12 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
     return val;
 }
 
+Info read_info_header(const json& jroot)
+{
+    Info val { std::string(jroot["name"s]), jroot["depth"] };
+    return val;
+}
+
 void write_group_metadata(json& jgroup, const Group& val)
 {
     constexpr Group default_value;
@@ -101,15 +108,8 @@ void write_group_metadata(json& jgroup, const Group& val)
     }
     if (val.mirrored != default_value.mirrored)
         jgroup["mirrored"s] = val.mirrored;
-    if (val.use_default_tint)
-        if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
-            jgroup["use-default-tint"s] = true;
-}
-
-Info read_info_header(const json& jroot)
-{
-    Info val { std::string(jroot["name"s]), jroot["depth"] };
-    return val;
+    if (val._default_tint_specified)
+        jgroup["default-tint"s] = val.default_tint;
 }
 
 } // namespace floormat::Wall::detail

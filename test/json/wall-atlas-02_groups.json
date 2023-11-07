@@ -6,7 +6,8 @@
     "w": {
         "wall": {},
         "side": {
-            "pixel-size": "42 x 192"
+            "pixel-size": "42 x 192",
+            "default-tint": true
         }
     }
 }
