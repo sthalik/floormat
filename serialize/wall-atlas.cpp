@@ -52,9 +52,9 @@ Group read_group_metadata(const json& jgroup)
     if (jgroup.contains("from-rotation"s))
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"s] });
     if (jgroup.contains("mirrored"s))
-        val.mirrored = jgroup["mirrored"s];
+        val.mirrored = !!jgroup["mirrored"s];
     if (jgroup.contains("use-default-tint"s))
-        val.use_default_tint = jgroup["use-default-tint"s];
+        val.use_default_tint = !!jgroup["use-default-tint"s];
 
     fm_soft_assert(val.tint_mult >= Color4{0});
 
