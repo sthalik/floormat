@@ -15,7 +15,7 @@
 
 namespace floormat {
 
-[[maybe_unused]]
+#if 0
 static chunk make_test_chunk()
 {
     auto metal1 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass),
@@ -34,6 +34,7 @@ static chunk make_test_chunk()
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
     return c;
 }
+#endif
 
 void test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
