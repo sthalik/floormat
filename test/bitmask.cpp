@@ -2,13 +2,11 @@
 #include "compat/assert.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
-#include <iterator>
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/PixelFormat.h>
-#include <chrono>
 
 //#define DO_GENERATE
 
@@ -16,10 +14,12 @@ namespace floormat {
 
 namespace {
 
-constexpr size_t data_nbytes = 128;
 const unsigned char data_door_close[] = {
 #include "bitmask.embed.inc"
 };
+
+constexpr auto data_nbytes = arraySize(data_door_close);
+static_assert(data_nbytes == 128);
 
 void bitmask_test()
 {
