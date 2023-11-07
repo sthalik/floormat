@@ -7,7 +7,7 @@ namespace floormat {
 
 void test_app::test_dijkstra()
 {
-    constexpr bool debug = true;
+    constexpr bool debug = false;
 
     auto A = astar{};
     auto w = world();

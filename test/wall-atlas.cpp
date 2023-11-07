@@ -64,14 +64,16 @@ void test_read_groups(StringView filename)
     fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
-
-    fm_assert(dir.wall.pixel_size == Vector2ui{});
-    fm_assert(!dir.wall.default_tint);
-
-    fm_assert(dir.side.pixel_size == Vector2ui{42, 192});
-    fm_assert(dir.side.default_tint);
-
-    fm_assert(dir.top.default_tint == group_defaults.default_tint);
+    fm_assert(dir.wall.pixel_size    == Vector2ui{}                        );
+    fm_assert(dir.wall.default_tint  == false                              );
+    fm_assert(dir.wall.mirrored      == group_defaults.mirrored            );
+    fm_assert(dir.wall.from_rotation == (uint8_t)-1                        );
+    fm_assert(dir.side.pixel_size    == Vector2ui{42, 192}                 );
+    fm_assert(dir.side.default_tint  == true                               );
+    fm_assert(dir.top.default_tint   == group_defaults.default_tint        );
+    fm_assert(dir.overlay.tint_mult  == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
+    fm_assert(dir.overlay.tint_add   == Vector3{1, 2, 3}                   );
+    fm_assert(dir.overlay.mirrored   == true                               );
 }
 
 } // namespace

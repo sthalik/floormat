@@ -6,7 +6,8 @@ case "$OS" in
     Windows_NT) export PATH="$PATH:/usr/bin" ;;
 esac
 
-self="$(basename -- "$1")"
+self="$(basename -- "$0")"
+cd -- "$(dirname -- "$0")"
 
 usage() {
     echo "usage: ${self} <all|compile|run|generate|open>..." >&2

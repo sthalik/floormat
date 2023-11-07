@@ -56,8 +56,10 @@ Group read_group_metadata(const json& jgroup)
 
     if (jgroup.contains("pixel-size"s))
         val.pixel_size = jgroup["pixel-size"s];
-    if (jgroup.contains("tint"s))
-        std::tie(val.tint_mult, val.tint_add) = std::pair<Vector4, Vector3>{ jgroup["tint"s] };
+    if (jgroup.contains("tint-mult"s))
+        val.tint_mult = Vector4(jgroup["tint-mult"s]);
+    if (jgroup.contains("tint-add"s))
+        val.tint_add = Vector3(jgroup["tint-add"s]);
     if (jgroup.contains("from-rotation"s))
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"s] });
     if (jgroup.contains("mirrored"s))
@@ -104,7 +106,8 @@ void write_group_metadata(json& jgroup, const Group& val)
         jgroup["index"s] = val.index;
     jgroup["count"s] = val.count;
     jgroup["pixel-size"s] = val.pixel_size;
-    jgroup["tint"s] = std::pair<Vector4, Vector3>{{val.tint_mult}, {val.tint_add}};
+    jgroup["tint-mult"s] = Vector4(val.tint_mult);
+    jgroup["tint-add"s] = Vector3(val.tint_add);
     jgroup["from-rotation"s] = val.from_rotation;
     jgroup["mirrored"s] = val.mirrored;
     jgroup["default-tint"s] = val.default_tint;
