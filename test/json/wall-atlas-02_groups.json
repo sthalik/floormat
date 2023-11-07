@@ -4,10 +4,15 @@
     "frames": [],
     "n": {},
     "w": {
-        "wall": {},
+        "wall": {
+            "default-tint": false
+        },
         "side": {
             "pixel-size": "42 x 192",
             "default-tint": true
+        },
+        "top": {
+            "pixel-size": "42 x 192"
         }
     }
 }

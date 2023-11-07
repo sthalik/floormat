@@ -48,6 +48,7 @@ void test_read_empty_direction(StringView filename)
 
 void test_read_groups(StringView filename)
 {
+    constexpr Group group_defaults;
     const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
     read_info_header(jroot);
 
@@ -61,9 +62,19 @@ void test_read_groups(StringView filename)
     fm_assert(read_direction_metadata(jroot, Direction_::N).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::E).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
+
     const auto dir = read_direction_metadata(jroot, Direction_::W);
+
     fm_assert(dir.wall.pixel_size == Vector2ui{});
+    fm_assert(!dir.wall.default_tint);
+    fm_assert(dir.wall._default_tint_specified);
+
     fm_assert(dir.side.pixel_size == Vector2ui{42, 192});
+    fm_assert(dir.side.default_tint);
+    fm_assert(dir.side._default_tint_specified);
+
+    fm_assert(dir.top.default_tint == group_defaults.default_tint);
+    fm_assert(!dir.top._default_tint_specified);
 }
 
 } // namespace
