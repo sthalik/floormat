@@ -45,6 +45,15 @@ Group read_group_metadata(const json& jgroup)
 
     Group val;
 
+    {
+        int count = 0, index = -1;
+        bool has_count = jgroup.contains("count"s) && (count = jgroup["count"s]) != 0,
+             has_index = jgroup.contains("index"s);
+        fm_soft_assert(has_count == has_index);
+        fm_soft_assert(!has_index || index >= 0 && index < 1 << 20);
+        // todo check index within range;
+    }
+
     if (jgroup.contains("pixel-size"s))
         val.pixel_size = jgroup["pixel-size"s];
     if (jgroup.contains("tint"s))
@@ -53,11 +62,8 @@ Group read_group_metadata(const json& jgroup)
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"s] });
     if (jgroup.contains("mirrored"s))
         val.mirrored = !!jgroup["mirrored"s];
-    val._default_tint_specified = jgroup.contains("default-tint"s);
-    if (val._default_tint_specified)
+    if (jgroup.contains("default-tint"s))
         val.default_tint = !!jgroup["default-tint"s];
-
-    fm_soft_assert(val.tint_mult >= Color4{0});
 
     return val;
 }
@@ -90,26 +96,18 @@ Info read_info_header(const json& jroot)
 
 void write_group_metadata(json& jgroup, const Group& val)
 {
-    constexpr Group default_value;
-
     fm_soft_assert(jgroup.is_object());
     fm_soft_assert(jgroup.empty());
 
+    //jgroup[""s] = ;
+    if (val.index != none)
+        jgroup["index"s] = val.index;
+    jgroup["count"s] = val.count;
     jgroup["pixel-size"s] = val.pixel_size;
-    if (val.tint_mult != default_value.tint_mult || val.tint_add != default_value.tint_add)
-    {
-        auto tint = std::pair<Vector4, Vector3>{{val.tint_mult}, {val.tint_add}};
-        jgroup["tint"s] = tint;
-    }
-    if (val.from_rotation != default_value.from_rotation)
-    {
-        fm_soft_assert(val.from_rotation != none && val.from_rotation < 4);
-        jgroup["from-rotation"s] = val.from_rotation;
-    }
-    if (val.mirrored != default_value.mirrored)
-        jgroup["mirrored"s] = val.mirrored;
-    if (val._default_tint_specified)
-        jgroup["default-tint"s] = val.default_tint;
+    jgroup["tint"s] = std::pair<Vector4, Vector3>{{val.tint_mult}, {val.tint_add}};
+    jgroup["from-rotation"s] = val.from_rotation;
+    jgroup["mirrored"s] = val.mirrored;
+    jgroup["default-tint"s] = val.default_tint;
 }
 
 } // namespace floormat::Wall::detail
