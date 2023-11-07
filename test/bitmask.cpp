@@ -21,26 +21,6 @@ const unsigned char data_door_close[] = {
 #include "bitmask.embed.inc"
 };
 
-[[maybe_unused]] void bitmask_benchmark()
-{
-    std::chrono::high_resolution_clock clock;
-
-    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
-    auto bitmask = anim_atlas::make_bitmask(img);
-    constexpr int runs = 10, warmup = 500, cycles = 1000;
-    for (int i = 0; i < warmup; i++)
-        anim_atlas::make_bitmask_(img, bitmask);
-    for (int i = 0; i < runs; i++)
-    {
-        auto time0 = clock.now();
-        for (int i = 0; i < cycles; i++)
-            anim_atlas::make_bitmask_(img, bitmask);
-        std::chrono::duration<double, std::milli> time = clock.now() - time0;
-
-        fm_log("[BENCH] bitmask %d/%d took %.1f ms", i, runs, time.count());
-    }
-}
-
 void bitmask_test()
 {
     auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
