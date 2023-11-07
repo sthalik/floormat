@@ -7,7 +7,7 @@ namespace floormat {
 
 void test_app::test_dijkstra()
 {
-    constexpr bool debug = false;
+    [[maybe_unused]] constexpr bool debug = false;
 
     auto A = astar{};
     auto w = world();
@@ -45,22 +45,41 @@ void test_app::test_dijkstra()
             c.ensure_passability();
         }
 
-    auto result = A.Dijkstra(w,
-                             {{0,0,0}, {11,9}},    // from
-                             {wpos, {wox, woy}},   // to
-                             0, max_dist, {16,16}, // size
-                             debug ? 1 : 0);
+    const auto run = [&](int debug) {
+        return A.Dijkstra(w,
+                          {{0,0,0}, {11,9}},    // from
+                          {wpos, {wox, woy}},   // to
+                          0, max_dist, {16,16}, // size
+                          debug ? 1 : 0);
+    };
 
-    constexpr auto min = (uint32_t)(TILE_SIZE2*.5f).length() - uint32_t{1},
-                   max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
+    {
+        constexpr auto min = (uint32_t)(TILE_SIZE2*.5f).length() - uint32_t{1},
+                       max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
+        auto result = run(debug);
 
-    fm_assert(!result.is_found());
-    fm_assert(!result.path().empty());
-    fm_assert(result.size() > 4);
-    fm_assert(result.cost() > 1000);
-    fm_assert(result.cost() < 3000);
-    fm_assert(result.distance() > min);
-    fm_assert(result.distance() < max);
+        fm_assert(!result.is_found());
+        fm_assert(!result.path().empty());
+        fm_assert(result.size() > 4);
+        fm_assert(result.cost() > 1000);
+        fm_assert(result.cost() < 3000);
+        fm_assert(result.distance() > min);
+        fm_assert(result.distance() < max);
+    }
+
+    {
+        ch[{ wtx,   wty +1}].wall_north() = {};
+        ch.mark_passability_modified();
+        ch.ensure_passability();
+        auto result = run(debug);
+
+        fm_assert(result.is_found());
+        fm_assert(!result.path().empty());
+        fm_assert(result.size() > 4);
+        fm_assert(result.cost() > 1000);
+        fm_assert(result.cost() < 3000);
+        fm_assert(result.distance() == 0);
+    }
 }
 
 } // namespace floormat
