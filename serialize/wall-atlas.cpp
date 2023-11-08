@@ -101,22 +101,6 @@ Info read_info_header(const json& jroot)
     return val;
 }
 
-void write_direction_metadata(json& jroot, const Direction& dir, Direction_ i)
-{
-    auto name = std::string_view{direction_index_to_name((size_t)i)};
-    auto j = json{json::value_t::object};
-    fm_assert(!jroot.contains(name));
-
-    for (auto [s_, memfn, tag] : Direction::members)
-    {
-        std::string_view s = s_;
-        const auto& group = dir.*memfn;
-        write_group_metadata(j[s], group);
-    }
-
-    jroot[name] = std::move(j);
-}
-
 void write_group_metadata(json& jgroup, const Group& val)
 {
     fm_assert(jgroup.is_object());
@@ -130,6 +114,18 @@ void write_group_metadata(json& jgroup, const Group& val)
     jgroup["from-rotation"s] = val.from_rotation;
     jgroup["mirrored"s] = val.mirrored;
     jgroup["default-tint"s] = val.default_tint;
+}
+
+void write_direction_metadata(json& jdir, const Direction& dir)
+{
+    //auto name = std::string_view{direction_index_to_name((size_t)i)};
+
+    for (auto [s_, memfn, tag] : Direction::members)
+    {
+        std::string_view s = s_;
+        const auto& group = dir.*memfn;
+        write_group_metadata(jdir[s], group);
+    }
 }
 
 void write_info_header(json& jroot, const Info& info)
