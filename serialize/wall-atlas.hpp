@@ -18,10 +18,12 @@ namespace floormat::Wall::detail {
 
 uint8_t direction_index_from_name(StringView s);
 StringView direction_index_to_name(size_t i);
+
 [[nodiscard]] Group read_group_metadata(const nlohmann::json& jgroup);
 [[nodiscard]] Direction read_direction_metadata(const nlohmann::json& jroot, Direction_ dir);
 Info read_info_header(const nlohmann::json& jroot);
 
 void write_group_metadata(nlohmann::json& jgroup, const Group& val);
+void write_info_header(nlohmann::json& jroot, const Info& info);
 
 } // namespace floormat::Wall::detail

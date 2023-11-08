@@ -127,4 +127,10 @@ bool Direction::is_empty() const noexcept
     return true;
 }
 
+bool Frame::operator==(const Frame&) const noexcept = default;
+bool Group::operator==(const Group&) const noexcept = default;
+bool Direction::operator==(const Direction&) const noexcept = default;
+bool Info::operator==(const floormat::Wall::Info&) const noexcept = default;
+bool DirArrayIndex::operator==(const floormat::Wall::DirArrayIndex&) const noexcept = default;
+
 } // namespace floormat::Wall

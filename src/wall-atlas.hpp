@@ -15,6 +15,8 @@ namespace floormat::Wall {
 struct Frame
 {
     Vector2ui offset = { (unsigned)-1, (unsigned)-1 };
+
+    bool operator==(const Frame&) const noexcept;
 };
 
 struct Group
@@ -29,6 +31,8 @@ struct Group
 
     explicit operator bool() const noexcept { return !is_empty(); }
     bool is_empty() const noexcept { return count == 0; }
+
+    bool operator==(const Group&) const noexcept;
 };
 
 enum class Tag : uint8_t { wall, overlay, side, top, corner_L, corner_R, COUNT };
@@ -55,17 +59,23 @@ struct Direction
         { "corner-R"_s, &Direction::corner_R, Tag::corner_R, },
     };
     static_assert(arraySize(members) == (size_t)Tag::COUNT);
+
+    bool operator==(const Direction&) const noexcept;
 };
 
 struct Info
 {
     String name = "(unnamed)"_s, description = {};
     unsigned depth = 0;
+
+    bool operator==(const Info&) const noexcept;
 };
 
 struct DirArrayIndex {
     std::uint8_t val = (uint8_t)-1;
     operator bool() const { return val == (uint8_t)-1; }
+
+    bool operator==(const DirArrayIndex&) const noexcept;
 };
 
 } // namespace floormat::Wall
