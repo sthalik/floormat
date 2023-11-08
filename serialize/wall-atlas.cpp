@@ -16,7 +16,6 @@ using namespace std::string_view_literals;
 
 namespace {
 
-constexpr auto none = (uint8_t)-1;
 constexpr StringView direction_names[] = { "n"_s, "e"_s, "s"_s, "w"_s, };
 
 } // namespace

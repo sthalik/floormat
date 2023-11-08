@@ -6,19 +6,6 @@
 
 namespace floormat {
 
-namespace {
-
-inline uint8_t direction_count_(std::array<uint8_t, 4> rot_to_direction)
-{
-    uint8_t total = 0;
-    for (uint8_t x : rot_to_direction)
-        if (x != (uint8_t)-1)
-            total++;
-    return total;
-}
-
-} // namespace
-
 namespace Wall {
 
 } // namespace Wall
