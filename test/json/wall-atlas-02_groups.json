@@ -13,7 +13,7 @@
             "default-tint": true
         },
         "top": {
-            "pixel-size": "42 x 192"
+            "pixel-size": "192 x 42"
         },
         "overlay": {
             "pixel-size": "42 x 192",

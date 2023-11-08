@@ -126,6 +126,12 @@ void write_direction_metadata(json& jdir, const Direction& dir)
         const auto& group = dir.*memfn;
         write_group_metadata(jdir[s], group);
     }
+    if (jdir.contains("top"s))
+    {
+        auto& top = jdir["top"s];
+        if (top.contains("pixel-size"s))
+            top["pixel-size"s] = Vector2i{top["pixel-size"s]}.flipped();
+    }
 }
 
 void write_info_header(json& jroot, const Info& info)
