@@ -16,14 +16,17 @@ struct adl_serializer<std::shared_ptr<floormat::wall_atlas>>
 
 namespace floormat::Wall::detail {
 
+using nlohmann::json;
+
 uint8_t direction_index_from_name(StringView s);
 StringView direction_index_to_name(size_t i);
 
-[[nodiscard]] Group read_group_metadata(const nlohmann::json& jgroup);
-[[nodiscard]] Direction read_direction_metadata(const nlohmann::json& jroot, Direction_ dir);
-Info read_info_header(const nlohmann::json& jroot);
+[[nodiscard]] Group read_group_metadata(const json& jgroup);
+[[nodiscard]] Direction read_direction_metadata(const json& jroot, Direction_ dir);
+Info read_info_header(const json& jroot);
 
-void write_group_metadata(nlohmann::json& jgroup, const Group& val);
-void write_info_header(nlohmann::json& jroot, const Info& info);
+void write_group_metadata(json& jgroup, const Group& val);
+void write_direction_metadata(json& jdir, const Direction& dir);
+void write_info_header(json& jroot, const Info& info);
 
 } // namespace floormat::Wall::detail

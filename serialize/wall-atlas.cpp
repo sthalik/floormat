@@ -12,8 +12,7 @@
 
 namespace floormat::Wall::detail {
 
-using nlohmann::json;
-using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 namespace {
 
@@ -47,25 +46,25 @@ Group read_group_metadata(const json& jgroup)
 
     {
         int count = 0, index = -1;
-        bool has_count = jgroup.contains("count"s) && (count = jgroup["count"s]) != 0,
-             has_index = jgroup.contains("index"s);
+        bool has_count = jgroup.contains("count"sv) && (count = jgroup["count"sv]) != 0,
+             has_index = jgroup.contains("index"sv);
         fm_soft_assert(has_count == has_index);
         fm_soft_assert(!has_index || index >= 0 && index < 1 << 20);
         // todo check index within range;
     }
 
-    if (jgroup.contains("pixel-size"s))
-        val.pixel_size = jgroup["pixel-size"s];
-    if (jgroup.contains("tint-mult"s))
-        val.tint_mult = Vector4(jgroup["tint-mult"s]);
-    if (jgroup.contains("tint-add"s))
-        val.tint_add = Vector3(jgroup["tint-add"s]);
-    if (jgroup.contains("from-rotation"s))
-        val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"s] });
-    if (jgroup.contains("mirrored"s))
-        val.mirrored = !!jgroup["mirrored"s];
-    if (jgroup.contains("default-tint"s))
-        val.default_tint = !!jgroup["default-tint"s];
+    if (jgroup.contains("pixel-size"sv))
+        val.pixel_size = jgroup["pixel-size"sv];
+    if (jgroup.contains("tint-mult"sv))
+        val.tint_mult = Vector4(jgroup["tint-mult"sv]);
+    if (jgroup.contains("tint-add"sv))
+        val.tint_add = Vector3(jgroup["tint-add"sv]);
+    if (jgroup.contains("from-rotation"sv))
+        val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"sv] });
+    if (jgroup.contains("mirrored"sv))
+        val.mirrored = !!jgroup["mirrored"sv];
+    if (jgroup.contains("default-tint"sv))
+        val.default_tint = !!jgroup["default-tint"sv];
 
     return val;
 }
@@ -92,12 +91,12 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
 Info read_info_header(const json& jroot)
 {
-    fm_soft_assert(jroot.contains(("name"s)));
+    fm_soft_assert(jroot.contains(("name"sv)));
     fm_soft_assert(jroot.contains(("depth")));
-    Info val = {std::string{jroot["name"s]}, {}, jroot["depth"s]};
+    Info val = {std::string{jroot["name"sv]}, {}, jroot["depth"sv]};
     fm_soft_assert(val.depth > 0);
-    if (jroot.contains("description"s))
-        val.description = std::string{jroot["description"s]};
+    if (jroot.contains("description"sv))
+        val.description = std::string{jroot["description"sv]};
     return val;
 }
 
@@ -106,14 +105,14 @@ void write_group_metadata(json& jgroup, const Group& val)
     fm_assert(jgroup.is_object());
     fm_assert(jgroup.empty());
 
-    jgroup["index"s] = val.index;
-    jgroup["count"s] = val.count;
-    jgroup["pixel-size"s] = val.pixel_size;
-    jgroup["tint-mult"s] = Vector4(val.tint_mult);
-    jgroup["tint-add"s] = Vector3(val.tint_add);
-    jgroup["from-rotation"s] = val.from_rotation;
-    jgroup["mirrored"s] = val.mirrored;
-    jgroup["default-tint"s] = val.default_tint;
+    jgroup["index"sv] = val.index;
+    jgroup["count"sv] = val.count;
+    jgroup["pixel-size"sv] = val.pixel_size;
+    jgroup["tint-mult"sv] = Vector4(val.tint_mult);
+    jgroup["tint-add"sv] = Vector3(val.tint_add);
+    jgroup["from-rotation"sv] = val.from_rotation;
+    jgroup["mirrored"sv] = val.mirrored;
+    jgroup["default-tint"sv] = val.default_tint;
 }
 
 void write_direction_metadata(json& jdir, const Direction& dir)
@@ -126,20 +125,20 @@ void write_direction_metadata(json& jdir, const Direction& dir)
         const auto& group = dir.*memfn;
         write_group_metadata(jdir[s], group);
     }
-    if (jdir.contains("top"s))
+    if (jdir.contains("top"sv))
     {
-        auto& top = jdir["top"s];
-        if (top.contains("pixel-size"s))
-            top["pixel-size"s] = Vector2i{top["pixel-size"s]}.flipped();
+        auto& top = jdir["top"sv];
+        if (top.contains("pixel-size"sv))
+            top["pixel-size"sv] = Vector2i{top["pixel-size"sv]}.flipped();
     }
 }
 
 void write_info_header(json& jroot, const Info& info)
 {
-    jroot["name"s] = info.name;
+    jroot["name"sv] = info.name;
     if (info.description)
-        jroot["description"s] = info.description;
-    jroot["depth"s] = info.depth;
+        jroot["description"sv] = info.description;
+    jroot["depth"sv] = info.depth;
 }
 
 } // namespace floormat::Wall::detail
