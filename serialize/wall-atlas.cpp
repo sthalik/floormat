@@ -92,7 +92,12 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
 Info read_info_header(const json& jroot)
 {
-    Info val { std::string(jroot["name"s]), jroot["depth"] };
+    fm_soft_assert(jroot.contains(("name"s)));
+    fm_soft_assert(jroot.contains(("depth")));
+    Info val = {std::string{jroot["name"s]}, {}, jroot["depth"s]};
+    fm_soft_assert(val.depth > 0);
+    if (jroot.contains("description"s))
+        val.description = std::string{jroot["description"s]};
     return val;
 }
 
@@ -111,6 +116,14 @@ void write_group_metadata(json& jgroup, const Group& val)
     jgroup["from-rotation"s] = val.from_rotation;
     jgroup["mirrored"s] = val.mirrored;
     jgroup["default-tint"s] = val.default_tint;
+}
+
+void write_info_header(json& jroot, const Info& info)
+{
+    jroot["name"s] = info.name;
+    if (info.description)
+        jroot["description"s] = info.description;
+    jroot["depth"s] = info.depth;
 }
 
 } // namespace floormat::Wall::detail

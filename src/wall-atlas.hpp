@@ -59,7 +59,7 @@ struct Direction
 
 struct Info
 {
-    String name = "(unnamed)"_s;
+    String name = "(unnamed)"_s, description = {};
     unsigned depth = 0;
 };
 
