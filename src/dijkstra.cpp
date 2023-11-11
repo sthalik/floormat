@@ -154,8 +154,9 @@ uint32_t astar::pop_from_heap()
     return id;
 }
 
-path_search_result astar::Dijkstra(world& w, const point from, const point to, object_id own_id, uint32_t max_dist,
-                                   Vector2ub own_size_, int debug, const pred& p)
+path_search_result astar::Dijkstra(world& w, const point from, const point to,
+                                   object_id own_id, uint32_t max_dist, Vector2ub own_size_,
+                                   int debug, const pred& p)
 {
 #ifdef FM_NO_DEBUG
     (void)debug;
