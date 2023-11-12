@@ -37,6 +37,13 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     options opts;
     //Path::exists(args.value<StringView>());
 
+    opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
+    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
+    opts.input_dir = Path::split(opts.input_file).first();
+
+    if (opts.output_dir.isEmpty())
+        opts.output_dir = opts.input_dir;
+
     return { std::move(opts), std::move(args), false };
 }
 

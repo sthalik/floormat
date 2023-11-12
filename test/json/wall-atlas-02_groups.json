@@ -1,12 +1,19 @@
 {
     "name": "foo",
     "depth": 42,
-    "frames": [],
+    "frames": [
+        {
+            "offset": "0 x 0",
+            "size": "64 x 192"
+        }
+    ],
     "n": {
     },
     "w": {
         "wall": {
-            "default-tint": false
+            "default-tint": false,
+            "offset": 0,
+            "count": 1
         },
         "side": {
             "pixel-size": "42 x 192",

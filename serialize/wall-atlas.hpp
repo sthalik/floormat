@@ -27,6 +27,7 @@ Info read_info_header(const json& jroot);
 
 void write_group_metadata(json& jgroup, const Group& val);
 void write_direction_metadata(json& jdir, const Direction& dir);
+void write_all_directions(json& jroot, const wall_atlas& a);
 void write_info_header(json& jroot, const Info& info);
 
 } // namespace floormat::Wall::detail

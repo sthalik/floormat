@@ -14,15 +14,9 @@ namespace floormat::Wall::detail {
 
 using namespace std::string_view_literals;
 
-namespace {
-
-constexpr StringView direction_names[] = { "n"_s, "e"_s, "s"_s, "w"_s, };
-
-} // namespace
-
 uint8_t direction_index_from_name(StringView s)
 {
-    for (uint8_t i = 0; auto n : direction_names)
+    for (uint8_t i = 0; auto [n, _] : wall_atlas::directions)
         if (n == s)
             return i;
         else
@@ -33,8 +27,8 @@ uint8_t direction_index_from_name(StringView s)
 
 StringView direction_index_to_name(size_t i)
 {
-    fm_soft_assert(i < arraySize(direction_names));
-    return direction_names[i];
+    fm_soft_assert(i < arraySize(wall_atlas::directions));
+    return wall_atlas::directions[i].name;
 }
 
 Group read_group_metadata(const json& jgroup)
@@ -46,10 +40,12 @@ Group read_group_metadata(const json& jgroup)
     {
         int count = 0, index = -1;
         bool has_count = jgroup.contains("count"sv) && (count = jgroup["count"sv]) != 0,
-             has_index = jgroup.contains("index"sv);
+             has_index = jgroup.contains("offset"sv);
+        if (has_index)
+            index = jgroup["offset"sv];
         fm_soft_assert(has_count == has_index);
         fm_soft_assert(!has_index || index >= 0 && index < 1 << 20);
-        // todo check index within range;
+        // todo check index within range
     }
 
     if (jgroup.contains("pixel-size"sv))
@@ -85,6 +81,8 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
         val.*memfn = read_group_metadata(jdir[s]);
     }
 
+    val.top.pixel_size = val.top.pixel_size.flipped();
+
     return val;
 }
 
@@ -104,7 +102,7 @@ void write_group_metadata(json& jgroup, const Group& val)
     fm_assert(jgroup.is_object());
     fm_assert(jgroup.empty());
 
-    jgroup["index"sv] = val.index;
+    jgroup["offset"sv] = val.index;
     jgroup["count"sv] = val.count;
     jgroup["pixel-size"sv] = val.pixel_size;
     jgroup["tint-mult"sv] = Vector4(val.tint_mult);
@@ -132,6 +130,19 @@ void write_direction_metadata(json& jdir, const Direction& dir)
     }
 }
 
+void write_all_directions(json& jroot, const wall_atlas& a)
+{
+    for (auto [name, i] : wall_atlas::directions)
+    {
+        if (const auto* dir = a.direction((size_t)i))
+        {
+            auto jdir = json{json::value_t::object};
+            write_direction_metadata(jdir, *dir);
+            jroot[name] = jdir;
+        }
+    }
+}
+
 void write_info_header(json& jroot, const Info& info)
 {
     jroot["name"sv] = info.name;
@@ -149,7 +160,9 @@ using namespace floormat::Wall::detail;
 
 void adl_serializer<std::shared_ptr<wall_atlas>>::to_json(json& j, const std::shared_ptr<const wall_atlas>& x)
 {
-
+    fm_assert(x != nullptr);
+    write_info_header(j, x->info());
+    write_all_directions(j, *x);
 }
 
 void adl_serializer<std::shared_ptr<wall_atlas>>::from_json(const json& j, std::shared_ptr<wall_atlas>& x)

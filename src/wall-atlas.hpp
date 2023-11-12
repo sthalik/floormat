@@ -117,9 +117,22 @@ public:
     const Direction* direction(size_t dir) const;
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> raw_frame_array() const;
+    const Info& info() const;
 
     static size_t enum_to_index(enum rotation x);
-};
 
+    struct dir_tuple
+    {
+        StringView name;
+        Direction_ direction;
+    };
+
+    static constexpr dir_tuple directions[] = {
+        { "n"_s, Direction_::N },
+        { "e"_s, Direction_::E },
+        { "s"_s, Direction_::S },
+        { "w"_s, Direction_::W },
+    };
+};
 
 } // namespace floormat

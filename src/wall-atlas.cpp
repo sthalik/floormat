@@ -90,6 +90,7 @@ auto wall_atlas::direction(size_t dir) const -> const Direction*
 
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
+auto wall_atlas::info() const -> const Info& { return _info; }
 StringView wall_atlas::name() const { return _info.name; }
 
 size_t wall_atlas::enum_to_index(enum rotation r)
