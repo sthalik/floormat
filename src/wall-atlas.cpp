@@ -1,6 +1,8 @@
 #include "wall-atlas.hpp"
-#include "compat/assert.hpp"
+#include "compat/exception.hpp"
+#include "src/tile-defs.hpp"
 #include <utility>
+#include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
@@ -13,7 +15,66 @@ namespace Wall {
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
-wall_atlas::wall_atlas(Info info, const ImageView2D& image,
+void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(false)
+{
+    const auto pixels = img.pixels();
+    const auto size   = pixels.size();
+    const auto width = size[1], height = size[0];
+
+    fm_soft_assert(width * height > 0);
+
+    for (const auto& frame : a.raw_frame_array())
+    {
+        fm_soft_assert(frame.offset < Vector2ui{(unsigned)width, (unsigned)height});
+        // todo check frame offset + size
+    }
+
+    const auto frame_count = a.raw_frame_array().size();
+    bool got_group = false;
+
+    for (auto [_str, _group, tag] : Direction::groups)
+    {
+        const auto* dir = a.direction((size_t)tag);
+        if (!dir)
+            continue;
+        const auto* g = a.group(dir, tag);
+        if (!g)
+            continue;
+        got_group = true;
+        fm_soft_assert(g->count > 0 == g->index < (uint32_t)-1);
+        if (g->count > 0)
+        {
+            fm_soft_assert(g->index < frame_count);
+            fm_soft_assert(g->index + g->count <= frame_count);
+        }
+    }
+    fm_soft_assert(got_group);
+}
+
+Vector2i wall_atlas::expected_size(int depth, Tag group)
+{
+    static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
+    constexpr int half_tile = iTILE_SIZE2.x()/2;
+    CORRADE_ASSUME(group < Tag::COUNT);
+    using enum Tag;
+    switch (group)
+    {
+    case overlay:
+    case wall:
+        return { iTILE_SIZE.x(), iTILE_SIZE.z() };
+    case top:
+    case side:
+        return { depth, iTILE_SIZE.z() };
+    case corner_L:
+        return { half_tile, iTILE_SIZE.z() };
+    case corner_R:
+        return { iTILE_SIZE2.x() - half_tile, iTILE_SIZE.z() };
+    default:
+        fm_assert(false);
+    }
+}
+
+wall_atlas::wall_atlas(Info info, const ImageView2D& img,
                        Array<Frame> frames,
                        Array<Direction> directions,
                        std::array<DirArrayIndex, 4> direction_to_DirArrayIndex)
@@ -21,31 +82,14 @@ wall_atlas::wall_atlas(Info info, const ImageView2D& image,
       _info{ std::move(info) },
       _direction_to_Direction_array_index{ direction_to_DirArrayIndex }
 {
-    const auto frame_count = frames.size();
-    for (const Direction& dir : directions)
-    {
-        for (auto [_str, _group, tag] : Direction::members)
-        {
-            const auto* g = group(dir, tag);
-            if (!g)
-                continue;
-            fm_assert(g->count > 0 == g->index < (uint32_t)-1);
-            if (g->count > 0)
-            {
-                fm_assert(g->index < frame_count);
-                fm_assert(g->index + g->count <= frame_count);
-            }
-        }
-    }
-
     _texture.setLabel(_info.name)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setMaxAnisotropy(1) // todo?
             .setBorderColor(Color4{1, 0, 0, 1})
-            .setStorage(1, GL::textureFormat(image.format()), image.size())
-            .setSubImage(0, {}, image);
+            .setStorage(1, GL::textureFormat(img.format()), img.size())
+            .setSubImage(0, {}, img);
 }
 
 auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
@@ -77,7 +121,7 @@ auto wall_atlas::group(size_t dir, Tag tag) const -> const Group*
         return {};
     const auto& set = *set_;
 
-    const auto memfn = set.members[(size_t)tag].member;
+    const auto memfn = set.groups[(size_t)tag].member;
     const Group& ret = set.*memfn;
     if (ret.is_empty())
         return {};
@@ -87,7 +131,7 @@ auto wall_atlas::group(size_t dir, Tag tag) const -> const Group*
 auto wall_atlas::group(const Direction& dir, Tag tag) const -> const Group*
 {
     fm_assert(tag < Tag::COUNT);
-    const auto memfn = dir.members[(size_t)tag].member;
+    const auto memfn = dir.groups[(size_t)tag].member;
     const Group& ret = dir.*memfn;
     if (ret.is_empty())
         return {};
@@ -127,7 +171,7 @@ namespace floormat::Wall {
 
 bool Direction::is_empty() const noexcept
 {
-    for (auto [str, member, tag] : Direction::members)
+    for (auto [str, member, tag] : Direction::groups)
         if (const auto& val = this->*member; !val.is_empty())
             return false;
     return true;

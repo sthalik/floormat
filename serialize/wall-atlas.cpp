@@ -98,7 +98,7 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
     Direction val;
 
-    for (auto [s_, memfn, tag] : Direction::members)
+    for (auto [s_, memfn, tag] : Direction::groups)
     {
         std::string_view s = s_;
         if (!jdir.contains(s))
@@ -170,7 +170,7 @@ void write_group_metadata(json& jgroup, const Group& val)
 
 void write_direction_metadata(json& jdir, const Direction& dir)
 {
-    for (auto [s_, memfn, tag] : Direction::members)
+    for (auto [s_, memfn, tag] : Direction::groups)
     {
         std::string_view s = s_;
         const auto& group = dir.*memfn;

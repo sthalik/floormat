@@ -50,7 +50,7 @@ struct Direction
     Group wall, overlay, side, top;
     Group corner_L, corner_R;
 
-    static constexpr inline member_tuple members[] = {
+    static constexpr inline member_tuple groups[] = {
         { "wall"_s,     &Direction::wall,     Tag::wall      },
         { "overlay"_s,  &Direction::overlay,  Tag::overlay   },
         { "side"_s,     &Direction::side,     Tag::side      },
@@ -58,7 +58,7 @@ struct Direction
         { "corner-L"_s, &Direction::corner_L, Tag::corner_L, },
         { "corner-R"_s, &Direction::corner_R, Tag::corner_R, },
     };
-    static_assert(arraySize(members) == (size_t)Tag::COUNT);
+    static_assert(arraySize(groups) == (size_t)Tag::COUNT);
 
     bool operator==(const Direction&) const noexcept;
 };
@@ -104,7 +104,7 @@ public:
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(wall_atlas);
     wall_atlas() noexcept;
     ~wall_atlas() noexcept;
-    wall_atlas(Info info, const ImageView2D& image,
+    wall_atlas(Info info, const ImageView2D& img,
                Array<Frame> frames, Array<Direction> directions,
                std::array<DirArrayIndex, 4> direction_to_DirArrayIndex);
     StringView name() const;
@@ -120,6 +120,8 @@ public:
     GL::Texture2D& texture();
 
     static size_t enum_to_index(enum rotation x);
+    static void validate(const wall_atlas& a, const ImageView2D& img) noexcept(false);
+    static Vector2i expected_size(int depth, Tag group);
 
     struct dir_tuple
     {
