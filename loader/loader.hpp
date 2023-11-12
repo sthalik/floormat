@@ -52,6 +52,7 @@ struct loader_
     static const StringView SCENERY_PATH;
     static const StringView TEMP_PATH;
     static const StringView VOBJ_PATH;
+    static const StringView WALL_TILESET_PATH;
 
 protected:
     loader_();

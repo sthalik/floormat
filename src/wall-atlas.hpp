@@ -95,7 +95,7 @@ class wall_atlas final
     Array<Direction> _dir_array;
     Array<Frame> _frame_array;
     Info _info;
-    GL::Texture2D _texture;
+    GL::Texture2D _texture{NoCreate};
     std::array<DirArrayIndex, 4> _direction_to_Direction_array_index;
 
     Direction* get_Direction(Direction_ num) const;
@@ -104,7 +104,6 @@ public:
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(wall_atlas);
     wall_atlas() noexcept;
     ~wall_atlas() noexcept;
-
     wall_atlas(Info info, const ImageView2D& image,
                Array<Frame> frames, Array<Direction> directions,
                std::array<DirArrayIndex, 4> direction_to_DirArrayIndex);
@@ -118,6 +117,7 @@ public:
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> raw_frame_array() const;
     const Info& info() const;
+    GL::Texture2D& texture();
 
     static size_t enum_to_index(enum rotation x);
 

@@ -21,6 +21,23 @@ wall_atlas::wall_atlas(Info info, const ImageView2D& image,
       _info{ std::move(info) },
       _direction_to_Direction_array_index{ direction_to_DirArrayIndex }
 {
+    const auto frame_count = frames.size();
+    for (const Direction& dir : directions)
+    {
+        for (auto [_str, _group, tag] : Direction::members)
+        {
+            const auto* g = group(dir, tag);
+            if (!g)
+                continue;
+            fm_assert(g->count > 0 == g->index < (uint32_t)-1);
+            if (g->count > 0)
+            {
+                fm_assert(g->index < frame_count);
+                fm_assert(g->index + g->count <= frame_count);
+            }
+        }
+    }
+
     _texture.setLabel(_info.name)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
@@ -91,6 +108,7 @@ auto wall_atlas::direction(size_t dir) const -> const Direction*
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
 auto wall_atlas::info() const -> const Info& { return _info; }
+GL::Texture2D& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
 StringView wall_atlas::name() const { return _info.name; }
 
 size_t wall_atlas::enum_to_index(enum rotation r)
