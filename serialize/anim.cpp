@@ -7,8 +7,6 @@
 
 namespace floormat {
 
-using namespace std::string_view_literals;
-
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_frame, ground, offset, size)
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground, offset)
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_def, object_name, anim_name, pixel_size, nframes, actionframe, fps, groups, scale)
@@ -18,106 +16,106 @@ static void to_json(nlohmann::json& j, const anim_frame& val)
     constexpr anim_frame def;
 
     if (val.ground != def.ground)
-        j["ground"sv] = val.ground;
+        j["ground"] = val.ground;
     if (val.offset != def.offset)
-        j["offset"sv] = val.offset;
+        j["offset"] = val.offset;
     if (val.size != def.size)
-        j["size"sv] = val.size;
+        j["size"] = val.size;
 }
 
 static void from_json(const nlohmann::json& j, anim_frame& val)
 {
     val = {};
-    if (j.contains("ground"sv))
-        val.ground = j["ground"sv];
-    if (j.contains("offset"sv))
-        val.offset = j["offset"sv];
-    if (j.contains("size"sv))
-        val.size = j["size"sv];
+    if (j.contains("ground"))
+        val.ground = j["ground"];
+    if (j.contains("offset"))
+        val.offset = j["offset"];
+    if (j.contains("size"))
+        val.size = j["size"];
 }
 
 static void to_json(nlohmann::json& j, const anim_group& val)
 {
     const anim_group def{};
 
-    j["name"sv] = val.name;
+    j["name"] = val.name;
     if (val.mirror_from)
-        j["mirror-from"sv] = val.mirror_from;
+        j["mirror-from"] = val.mirror_from;
     else
-        j["frames"sv] = val.frames;
+        j["frames"] = val.frames;
     if (val.ground != def.ground)
-        j["ground"sv] = val.ground;
+        j["ground"] = val.ground;
     if (val.offset != def.offset)
-        j["offset"sv] = val.offset;
+        j["offset"] = val.offset;
     if (val.z_offset != def.z_offset)
-        j["z-offset"sv] = val.z_offset;
+        j["z-offset"] = val.z_offset;
     if (val.depth_offset != def.depth_offset)
-        j["depth-offset"sv] = val.depth_offset;
+        j["depth-offset"] = val.depth_offset;
 }
 
 static void from_json(const nlohmann::json& j, anim_group& val)
 {
     val = {};
-    val.name = j["name"sv];
+    val.name = j["name"];
     fm_soft_assert(!val.name.isEmpty());
-    if (j.contains("mirror-from"sv))
+    if (j.contains("mirror-from"))
     {
-        fm_soft_assert(!j.contains("frames"sv));
-        val.mirror_from = j["mirror-from"sv];
+        fm_soft_assert(!j.contains("frames"));
+        val.mirror_from = j["mirror-from"];
     }
     else
-        val.frames = j["frames"sv];
-    if (j.contains("ground"sv))
-        val.ground = j["ground"sv];
-    if (j.contains("offset"sv))
-        val.offset = j["offset"sv];
-    if (j.contains("z-offset"sv))
-        val.z_offset = j["z-offset"sv];
-    if (j.contains("depth-offset"sv))
-        val.depth_offset = j["depth-offset"sv];
+        val.frames = j["frames"];
+    if (j.contains("ground"))
+        val.ground = j["ground"];
+    if (j.contains("offset"))
+        val.offset = j["offset"];
+    if (j.contains("z-offset"))
+        val.z_offset = j["z-offset"];
+    if (j.contains("depth-offset"))
+        val.depth_offset = j["depth-offset"];
 }
 
 static void to_json(nlohmann::json& j, const anim_def& val)
 {
     const anim_def def{};
 
-    j["object_name"sv] = val.object_name;
+    j["object_name"] = val.object_name;
     if (val.anim_name != def.anim_name)
-        j["anim_name"sv] = val.anim_name;
+        j["anim_name"] = val.anim_name;
     if (val.pixel_size != def.pixel_size)
-        j["pixel_size"sv] = val.pixel_size;
+        j["pixel_size"] = val.pixel_size;
     if (val.nframes != def.nframes)
-        j["nframes"sv] = val.nframes;
+        j["nframes"] = val.nframes;
     if (val.action_frame != def.action_frame)
-        j["action-frame"sv] = val.action_frame;
+        j["action-frame"] = val.action_frame;
     if (val.action_frame2 != def.action_frame2)
-        j["action-frame-2"sv] = val.action_frame2;
+        j["action-frame-2"] = val.action_frame2;
     if (val.fps != def.fps)
-        j["fps"sv] = val.fps;
-    j["groups"sv] = val.groups;
-    j["scale"sv] = val.scale;
+        j["fps"] = val.fps;
+    j["groups"] = val.groups;
+    j["scale"] = val.scale;
 }
 
 static void from_json(const nlohmann::json& j, anim_def& val)
 {
     val = {};
-    val.object_name = j["object_name"sv];
+    val.object_name = j["object_name"];
     fm_soft_assert(!val.object_name.isEmpty());
-    if (j.contains("anim_name"sv)) // todo underscore to hyphen
-        val.anim_name = j["anim_name"sv];
-    if (j.contains("pixel_size"sv))
-        val.pixel_size = j["pixel_size"sv];
-    if (j.contains("nframes"sv))
-        val.nframes = j["nframes"sv];
-    if (j.contains("action-frame"sv))
-        val.action_frame = j["action-frame"sv];
-    if (j.contains("action-frame-2"sv))
-        val.action_frame2 = j["action-frame-2"sv];
-    if (j.contains("fps"sv))
-        val.fps = j["fps"sv];
-    val.groups = j["groups"sv];
+    if (j.contains("anim_name")) // todo underscore to hyphen
+        val.anim_name = j["anim_name"];
+    if (j.contains("pixel_size"))
+        val.pixel_size = j["pixel_size"];
+    if (j.contains("nframes"))
+        val.nframes = j["nframes"];
+    if (j.contains("action-frame"))
+        val.action_frame = j["action-frame"];
+    if (j.contains("action-frame-2"))
+        val.action_frame2 = j["action-frame-2"];
+    if (j.contains("fps"))
+        val.fps = j["fps"];
+    val.groups = j["groups"];
     fm_soft_assert(!val.groups.empty());
-    val.scale = j["scale"sv];
+    val.scale = j["scale"];
     fm_soft_assert(val.scale.type != anim_scale_type::invalid);
 }
 

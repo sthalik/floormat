@@ -13,7 +13,6 @@
 namespace {
 
 using namespace floormat;
-using namespace std::string_view_literals;
 
 constexpr struct {
     scenery_type value = scenery_type::none;
@@ -86,24 +85,24 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
     fm_assert(f.atlas);
     const scenery_proto default_scenery;
     if (f.type != default_scenery.type)
-        j["type"sv] = f.type;
-    j["atlas-name"sv] = f.atlas->name();
+        j["type"] = f.type;
+    j["atlas-name"] = f.atlas->name();
     if (f.frame != default_scenery.frame)
-        j["frame"sv] = f.frame;
+        j["frame"] = f.frame;
     if (f.r != default_scenery.r)
-        j["rotation"sv] = f.r;
+        j["rotation"] = f.r;
     if (f.pass != default_scenery.pass)
-        j["pass-mode"sv] = f.pass;
+        j["pass-mode"] = f.pass;
     if (f.active != default_scenery.active)
-        j["active"sv] = f.active;
+        j["active"] = f.active;
     if (f.interactive != default_scenery.interactive)
-        j["interactive"sv] = f.interactive;
+        j["interactive"] = f.interactive;
     if (f.offset != default_scenery.offset)
-        j["offset"sv] = Vector2i(f.offset);
+        j["offset"] = Vector2i(f.offset);
     if (f.bbox_offset != default_scenery.bbox_offset)
-        j["bbox-offset"sv] = Vector2i(f.bbox_offset);
+        j["bbox-offset"] = Vector2i(f.bbox_offset);
     if (f.bbox_size != default_scenery.bbox_size)
-        j["bbox-size"sv] = Vector2ui(f.bbox_size);
+        j["bbox-size"] = Vector2ui(f.bbox_size);
 }
 
 void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
@@ -115,7 +114,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
             value = j[s];
     };
 
-    StringView atlas_name = j["atlas-name"sv];
+    StringView atlas_name = j["atlas-name"];
     fm_soft_assert(!atlas_name.isEmpty());
     f = {};
     f.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
@@ -170,17 +169,17 @@ void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scene
     fm_soft_assert(val.proto.atlas);
     j = val.proto;
     const auto name = !val.name.isEmpty() ? StringView{val.name} : val.proto.atlas->name();
-    j["name"sv] = name;
-    j["description"sv] = val.descr;
+    j["name"] = name;
+    j["description"] = val.descr;
 }
 
 void adl_serializer<serialized_scenery>::from_json(const json& j, serialized_scenery& val)
 {
     val = {};
     val.proto = j;
-    val.name = j["name"sv];
-    if (j.contains("description"sv))
-        val.descr = j["description"sv];
+    val.name = j["name"];
+    if (j.contains("description"))
+        val.descr = j["description"];
 }
 
 } // namespace nlohmann

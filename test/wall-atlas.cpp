@@ -3,13 +3,12 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
-#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/StringStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat::Wall::detail {
 
 using nlohmann::json;
-using namespace std::string_view_literals;
 
 namespace {
 
@@ -44,13 +43,13 @@ void test_read_empty_directions(StringView filename)
     test_read_header(filename);
     fm_assert(!jroot.empty());
 
-    fm_assert( jroot.contains("n"sv) );
-    fm_assert(!jroot.contains("e"sv) );
-    fm_assert(!jroot.contains("s"sv) );
-    fm_assert( jroot.contains("w"sv) );
+    fm_assert( jroot.contains("n") );
+    fm_assert(!jroot.contains("e") );
+    fm_assert(!jroot.contains("s") );
+    fm_assert( jroot.contains("w") );
 
-    fm_assert(jroot["n"sv].is_object() && jroot["n"sv].empty());
-    fm_assert(jroot["w"sv].is_object() && jroot["w"sv].empty());
+    fm_assert(jroot["n"].is_object() && jroot["n"].empty());
+    fm_assert(jroot["w"].is_object() && jroot["w"].empty());
 }
 
 void test_read_groups(StringView filename)
@@ -63,13 +62,13 @@ void test_read_groups(StringView filename)
     fm_assert(info.depth == 42);
     fm_assert(info.description == ""_s);
 
-    fm_assert(jroot["depth"sv] == 42);
-    fm_assert( jroot.contains("n"sv) );
-    fm_assert(!jroot.contains("e"sv) );
-    fm_assert(!jroot.contains("s"sv) );
-    fm_assert( jroot.contains("w"sv) );
-    fm_assert(jroot["n"sv].is_object() && jroot["n"sv].empty());
-    fm_assert(jroot["w"sv].is_object() && !jroot["w"sv].empty());
+    fm_assert(jroot["depth"] == 42);
+    fm_assert( jroot.contains("n") );
+    fm_assert(!jroot.contains("e") );
+    fm_assert(!jroot.contains("s") );
+    fm_assert( jroot.contains("w") );
+    fm_assert(jroot["n"].is_object() && jroot["n"].empty());
+    fm_assert(jroot["w"].is_object() && !jroot["w"].empty());
     fm_assert(read_direction_metadata(jroot, Direction_::N).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::E).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
@@ -89,7 +88,7 @@ void test_read_groups(StringView filename)
 
 struct wall_atlas_
 {
-    bool operator==(const wall_atlas_&) const noexcept = default;
+    bool operator==(const wall_atlas_&) const noexcept;
 
     Info header;
     std::array<Direction, 4> directions = {};
@@ -115,7 +114,7 @@ struct wall_atlas_
     {
         auto i = (size_t)curdir;
         atlas.directions[i] = read_direction_metadata(jroot, curdir);
-        got_any_directions = true;
+        got_any_directions = got_any_directions || atlas.directions[i];
     }
     if (do_checks)
         fm_assert(got_any_directions);
@@ -137,14 +136,14 @@ struct wall_atlas_
 
 void write_to_temp_file(const wall_atlas_& atlas)
 {
-    auto jroot = json{json::value_t::object};
+    auto jroot = json{};
 
     write_info_header(jroot, atlas.header);
     write_all_frames(jroot, atlas.frames);
 
     for (const auto [name_, dir] : wall_atlas::directions)
     {
-        std::string_view name = name_;
+        std::string_view name = {name_.data(), name_.size()};
         auto i = (size_t)dir;
         if (atlas.directions[i])
             write_direction_metadata(jroot[name], atlas.directions[i]);
@@ -152,6 +151,20 @@ void write_to_temp_file(const wall_atlas_& atlas)
 
     const auto filename = temp_filename();
     json_helper::to_json_(jroot, filename);
+}
+
+bool wall_atlas_::operator==(const wall_atlas_& other) const noexcept
+{
+    if (header != other.header)
+        return false;
+    if (directions != other.directions)
+        return false;
+    if (frames.size() != other.frames.size())
+        return false;
+    for (auto i = 0uz; i < frames.size(); i++)
+        if (frames[i] != other.frames[i])
+            return false;
+    return true;
 }
 
 } // namespace

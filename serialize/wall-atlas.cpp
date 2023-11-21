@@ -8,7 +8,6 @@
 #include <string_view>
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/StringStl.h>
-#include <Corrade/Containers/StringStlView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/ImageData.h>
 #include <nlohmann/json.hpp>
@@ -16,8 +15,6 @@
 // todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
 
 namespace floormat::Wall::detail {
-
-using namespace std::string_view_literals;
 
 uint8_t direction_index_from_name(StringView s)
 {
@@ -38,10 +35,10 @@ StringView direction_index_to_name(size_t i)
 
 Array<Frame> read_all_frames(const json& jroot)
 {
-    fm_assert(jroot.contains("frames"sv));
+    fm_assert(jroot.contains("frames"));
 
     Array<Frame> frames;
-    const auto& jframes = jroot["frames"sv];
+    const auto& jframes = jroot["frames"];
 
     fm_assert(jframes.is_array());
     const auto sz = jframes.size();
@@ -65,33 +62,41 @@ Group read_group_metadata(const json& jgroup)
 
     {
         int count = 0, index = -1;
-        bool has_count = jgroup.contains("count"sv) && (count = jgroup["count"sv]) != 0,
-             has_index = jgroup.contains("offset"sv) && (index = jgroup["offset"sv]) != -1;
+        bool has_count = jgroup.contains("count") && (count = jgroup["count"]) != 0,
+             has_index = jgroup.contains("offset") && (index = jgroup["offset"]) != -1;
         fm_soft_assert(has_count == has_index);
         fm_soft_assert(!has_index || index >= 0 && index < 1 << 20);
         fm_soft_assert(count >= 0);
+        if (has_count)
+        {
+            val.index = (uint32_t)index;
+            val.count = (uint32_t)count;
+        }
         // todo check index within range
     }
 
-    if (jgroup.contains("pixel-size"sv))
-        val.pixel_size = jgroup["pixel-size"sv];
-    if (jgroup.contains("tint-mult"sv))
-        val.tint_mult = Vector4(jgroup["tint-mult"sv]);
-    if (jgroup.contains("tint-add"sv))
-        val.tint_add = Vector3(jgroup["tint-add"sv]);
-    if (jgroup.contains("from-rotation"sv))
-        val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"sv] });
-    if (jgroup.contains("mirrored"sv))
-        val.mirrored = !!jgroup["mirrored"sv];
-    if (jgroup.contains("default-tint"sv))
-        val.default_tint = !!jgroup["default-tint"sv];
+    if (jgroup.contains("pixel-size"))
+        val.pixel_size = jgroup["pixel-size"];
+    if (jgroup.contains("tint-mult"))
+        val.tint_mult = Vector4(jgroup["tint-mult"]);
+    if (jgroup.contains("tint-add"))
+        val.tint_add = Vector3(jgroup["tint-add"]);
+    if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
+        val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"] });
+    if (jgroup.contains("mirrored"))
+        val.mirrored = !!jgroup["mirrored"];
+    if (jgroup.contains("default-tint"))
+        val.default_tint = !!jgroup["default-tint"];
 
     return val;
 }
 
 Direction read_direction_metadata(const json& jroot, Direction_ dir)
 {
-    std::string_view s = direction_index_to_name((size_t)dir);
+    const auto s_ = direction_index_to_name((size_t)dir);
+    fm_assert(s_.size() == 1);
+    std::string_view s = {s_.data(), s_.size()};
+    fm_assert(s.size() == 1);
     if (!jroot.contains(s))
         return {};
     const auto& jdir = jroot[s];
@@ -100,7 +105,7 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
     for (auto [s_, memfn, tag] : Direction::groups)
     {
-        std::string_view s = s_;
+        std::string_view s = {s_.data(), s_.size()};
         if (!jdir.contains(s))
             continue;
         val.*memfn = read_group_metadata(jdir[s]);
@@ -130,57 +135,62 @@ Pair<Array<Direction>, std::array<DirArrayIndex, 4>> read_all_directions(const j
 
 Info read_info_header(const json& jroot)
 {
-    fm_soft_assert(jroot.contains(("name"sv)));
+    fm_soft_assert(jroot.contains(("name")));
     fm_soft_assert(jroot.contains(("depth")));
-    Info val = {std::string{jroot["name"sv]}, {}, jroot["depth"sv]};
+    Info val = {std::string{jroot["name"]}, {}, jroot["depth"]};
     fm_soft_assert(val.depth > 0);
-    if (jroot.contains("description"sv))
-        val.description = std::string{jroot["description"sv]};
+    if (jroot.contains("description"))
+        val.description = std::string{jroot["description"]};
     return val;
 }
 
 void write_all_frames(json& jroot, ArrayView<const Frame> array)
 {
-    auto jframes = json{json::value_t::array};
+    auto jframes = json{};
     for (const Frame& frame : array)
     {
         json jframe = frame;
         jframes.push_back(std::move(jframe));
     }
-    jroot["frames"sv] = std::move(jframes);
+    jroot["frames"] = std::move(jframes);
 }
 
 void write_group_metadata(json& jgroup, const Group& val)
 {
-    fm_assert(jgroup.is_object());
+    constexpr Group group_defaults;
+
+    fm_assert(jgroup.is_null());
 
     if (val.index != (uint32_t)-1)
-        jgroup["offset"sv] = val.index;
+        jgroup["offset"] = val.index;
     else
-        jgroup["offset"sv] = -1;
+        jgroup["offset"] = -1;
 
-    jgroup["count"sv] = val.count;
-    jgroup["pixel-size"sv] = val.pixel_size;
-    jgroup["tint-mult"sv] = Vector4(val.tint_mult);
-    jgroup["tint-add"sv] = Vector3(val.tint_add);
-    jgroup["from-rotation"sv] = val.from_rotation;
-    jgroup["mirrored"sv] = val.mirrored;
-    jgroup["default-tint"sv] = val.default_tint;
+    jgroup["count"] = val.count;
+    jgroup["pixel-size"] = val.pixel_size;
+    jgroup["tint-mult"] = Vector4(val.tint_mult);
+    jgroup["tint-add"] = Vector3(val.tint_add);
+    if (val.from_rotation != group_defaults.from_rotation)
+        jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
+    else
+        jgroup["from-rotation"] = nullptr;
+    jgroup["mirrored"] = val.mirrored;
+    jgroup["default-tint"] = val.default_tint;
 }
 
 void write_direction_metadata(json& jdir, const Direction& dir)
 {
     for (auto [s_, memfn, tag] : Direction::groups)
     {
-        std::string_view s = s_;
+        std::string_view s = {s_.data(), s_.size()};
         const auto& group = dir.*memfn;
         write_group_metadata(jdir[s], group);
     }
-    if (jdir.contains("top"sv))
+    if (jdir.contains("top"))
     {
-        auto& top = jdir["top"sv];
-        if (top.contains("pixel-size"sv))
-            top["pixel-size"sv] = Vector2i{top["pixel-size"sv]}.flipped();
+        auto& top = jdir["top"];
+        if (top.contains("pixel-size"))
+            top["pixel-size"] = Vector2i{top["pixel-size"]}.flipped();
     }
 }
 
@@ -190,7 +200,7 @@ void write_all_directions(json& jroot, const wall_atlas& a)
     {
         if (const auto* dir = a.direction((size_t)i))
         {
-            auto jdir = json{json::value_t::object};
+            auto jdir = json{};
             write_direction_metadata(jdir, *dir);
             jroot[name] = std::move(jdir);
         }
@@ -198,10 +208,10 @@ void write_all_directions(json& jroot, const wall_atlas& a)
 }
 
 void write_info_header(json& jroot, const Info& info)
-{    jroot["name"sv] = info.name;
+{    jroot["name"] = info.name;
     if (info.description)
-        jroot["description"sv] = info.description;
-    jroot["depth"sv] = info.depth;
+        jroot["description"] = info.description;
+    jroot["depth"] = info.depth;
 }
 
 } // namespace floormat::Wall::detail
@@ -237,7 +247,7 @@ void adl_serializer<std::shared_ptr<wall_atlas>>::from_json(const json& j, std::
     auto [dirs, map] = read_all_directions(j);
     Array<Frame> frames;
     auto img = loader.texture(loader.WALL_TILESET_PATH, info.name);
-    if (j.contains("frames"sv))
+    if (j.contains("frames"))
         frames = read_all_frames(j);
 
     x = std::make_shared<wall_atlas>(std::move(info), img, std::move(frames), std::move(dirs), map);

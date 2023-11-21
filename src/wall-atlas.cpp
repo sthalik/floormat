@@ -180,9 +180,31 @@ bool Direction::is_empty() const noexcept
 }
 
 bool Frame::operator==(const Frame&) const noexcept = default;
-bool Group::operator==(const Group&) const noexcept = default;
 bool Direction::operator==(const Direction&) const noexcept = default;
 bool Info::operator==(const floormat::Wall::Info&) const noexcept = default;
 bool DirArrayIndex::operator==(const floormat::Wall::DirArrayIndex&) const noexcept = default;
+
+#if 1
+bool Group::operator==(const Group&) const noexcept = default;
+#else
+bool Group::operator==(const Group& other) const noexcept
+{
+    bool ret = index == other.index && count == other.count &&
+               pixel_size == other.pixel_size &&
+               from_rotation == other.from_rotation &&
+               mirrored == other.mirrored && default_tint == other.default_tint;
+
+    if (!ret)
+        return ret;
+
+    constexpr auto eps = 1e-5f;
+    if (auto diff = Math::abs(Vector4(tint_mult) - Vector4(other.tint_mult)).sum(); diff > eps)
+        return false;
+    if (auto diff = Math::abs(Vector3(tint_add) - Vector3(other.tint_add)).sum(); diff > eps)
+        return false;
+
+    return true;
+}
+#endif
 
 } // namespace floormat::Wall
