@@ -5,6 +5,16 @@
         {
             "offset": "0 x 0",
             "size": "64 x 192"
+        },
+        {
+
+            "offset": "64 x 0",
+            "size": "64 x 64"
+        },
+        {
+
+            "offset": "128 x 0",
+            "size": "64 x 64"
         }
     ],
     "n": {
@@ -20,7 +30,9 @@
             "default-tint": true
         },
         "top": {
-            "pixel-size": "192 x 42"
+            "pixel-size": "192 x 42",
+            "offset": 1,
+            "count": 2
         },
         "overlay": {
             "pixel-size": "42 x 192",
