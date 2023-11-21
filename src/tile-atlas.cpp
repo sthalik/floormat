@@ -34,18 +34,25 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(size_t i) const
     return texcoords_[i];
 }
 
+auto tile_atlas::texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size) -> texcoords
+{
+    const auto x0 = (float)pos.x()+.5f, x1 = x0 + (float)size.x()-1,
+               y0 = (float)pos.y()+.5f, y1 = y0 + (float)size.y()-1;
+    const auto W = image_size.x(), H = image_size.y();
+    return {{
+        { x1 / W, 1 - y1 / H  }, // bottom right
+        { x1 / W, 1 - y0 / H  }, // top right
+        { x0 / W, 1 - y1 / H  }, // bottom left
+        { x0 / W, 1 - y0 / H  }, // top left
+    }};
+}
+
 auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
 {
     const auto sz = pixel_size/Vector2ui{tile_count};
-    const Vector2ui id = { uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
-    const Vector2 p0(id * sz), p1(sz);
-    const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
-    return {{
-        { (x0+x1) / pixel_size[0], 1 - (y0+y1) / pixel_size[1]  }, // bottom right
-        { (x0+x1) / pixel_size[0], 1 -      y0 / pixel_size[1]  }, // top right
-        {      x0 / pixel_size[0], 1 - (y0+y1) / pixel_size[1]  }, // bottom left
-        {      x0 / pixel_size[0], 1 -      y0 / pixel_size[1]  }, // top left
-    }};
+    const auto id = Vector2ui{ uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
+    const auto p0 = id * sz;
+    return texcoords_at(p0, sz, pixel_size);
 }
 
 auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> std::unique_ptr<const texcoords[]>

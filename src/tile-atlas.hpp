@@ -17,6 +17,7 @@ struct tile_atlas final
 
     tile_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
+    static texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size);
     texcoords texcoords_for_id(size_t id) const;
     static constexpr quad floor_quad(Vector3 center, Vector2 size);
     static constexpr quad wall_quad_N(Vector3 center, Vector3 size);
