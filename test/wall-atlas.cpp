@@ -12,6 +12,12 @@ using namespace std::string_view_literals;
 
 namespace {
 
+const StringView temp_filename() {
+    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
+    static const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-wall-atlas.json"_s);
+    return tmp_filename;
+};
+
 StringView json_path()
 {
     static const auto path = [] {
@@ -50,7 +56,11 @@ void test_read_groups(StringView filename)
 {
     constexpr Group group_defaults;
     const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
-    read_info_header(jroot);
+
+    auto info = read_info_header(jroot);
+    fm_assert(info.name == "foo"_s);
+    fm_assert(info.depth == 42);
+    fm_assert(info.description == ""_s);
 
     fm_assert(jroot["depth"sv] == 42);
     fm_assert( jroot.contains("n"sv) );
@@ -74,6 +84,21 @@ void test_read_groups(StringView filename)
     fm_assert(dir.overlay.tint_mult  == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
     fm_assert(dir.overlay.tint_add   == Vector3{1, 2, 3}                   );
     fm_assert(dir.overlay.mirrored   == true                               );
+}
+
+struct wall_atlas_
+{
+    bool operator==(const wall_atlas_&) const noexcept = default;
+
+    Info header;
+    Array<Direction> directions;
+    Array<Frame> frames;
+};
+
+void write_to_temp_file()
+{
+    const auto filename = temp_filename();
+
 }
 
 } // namespace
