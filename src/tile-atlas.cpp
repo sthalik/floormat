@@ -34,16 +34,16 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(size_t i) const
     return texcoords_[i];
 }
 
-auto tile_atlas::texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size) -> texcoords
+auto tile_atlas::texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_) -> texcoords
 {
-    const auto x0 = (float)pos.x()+.5f, x1 = x0 + (float)size.x()-1,
-               y0 = (float)pos.y()+.5f, y1 = y0 + (float)size.y()-1;
-    const auto W = image_size.x(), H = image_size.y();
+    auto pos = Vector2(pos_), size = Vector2(size_), image_size = Vector2(image_size_);
+    auto offset = pos + Vector2(.5f), end = offset + size - Vector2(1);
+    auto x0 = offset / image_size, x1 = end / image_size;
     return {{
-        { x1 / W, 1 - y1 / H  }, // bottom right
-        { x1 / W, 1 - y0 / H  }, // top right
-        { x0 / W, 1 - y1 / H  }, // bottom left
-        { x0 / W, 1 - y0 / H  }, // top left
+        { x1.x(), 1.f - x1.y() }, // bottom right
+        { x1.x(), 1.f - x0.y() }, // top right
+        { x0.x(), 1.f - x1.y() }, // bottom left
+        { x0.x(), 1.f - x0.y() }, // top left
     }};
 }
 
