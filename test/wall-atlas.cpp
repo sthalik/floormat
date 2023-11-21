@@ -91,9 +91,48 @@ struct wall_atlas_
     bool operator==(const wall_atlas_&) const noexcept = default;
 
     Info header;
-    Array<Direction> directions;
+    std::array<Direction, 4> directions = {};
     Array<Frame> frames;
 };
+
+[[nodiscard]] wall_atlas_ read_from_file(StringView filename, bool do_checks = true)
+{
+    wall_atlas_ atlas;
+
+    const auto jroot = json_helper::from_json_(filename);
+    atlas.header = read_info_header(jroot);
+
+    if (do_checks)
+    {
+        const Info header_defaults;
+        fm_assert(atlas.header.name != header_defaults.name);
+        fm_assert(atlas.header.depth != header_defaults.depth);
+    }
+
+    bool got_any_directions = false;
+    for (const auto& [_, curdir] : wall_atlas::directions)
+    {
+        auto i = (size_t)curdir;
+        atlas.directions[i] = read_direction_metadata(jroot, curdir);
+        got_any_directions = true;
+    }
+    if (do_checks)
+        fm_assert(got_any_directions);
+
+    atlas.frames = read_all_frames(jroot);
+
+    if (do_checks)
+    {
+        constexpr Frame frame_defaults;
+        constexpr Group group_defaults;
+
+        fm_assert(!atlas.frames.isEmpty());
+        fm_assert(atlas.frames[0].offset != frame_defaults.offset);
+        fm_assert(atlas.directions[(size_t)Direction_::W].side.pixel_size != group_defaults.pixel_size);
+    }
+
+    return atlas;
+}
 
 void write_to_temp_file()
 {

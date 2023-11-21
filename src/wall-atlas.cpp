@@ -94,13 +94,15 @@ wall_atlas::wall_atlas(Info info, const ImageView2D& img,
 
 auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
 {
+    constexpr DirArrayIndex default_DAI;
     fm_debug_assert(num < Direction_::COUNT);
 
     if (_dir_array.isEmpty()) [[unlikely]]
         return {};
-    if (auto idx = _direction_to_Direction_array_index[(uint8_t)num])
-        return const_cast<Direction*>(&_dir_array[idx.val]);
-    return {};
+    else if (auto DAI = _direction_to_Direction_array_index[(uint8_t)num]; DAI != default_DAI) [[likely]]
+        return const_cast<Direction*>(&_dir_array[DAI.val]);
+    else
+        return {};
 }
 
 auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
