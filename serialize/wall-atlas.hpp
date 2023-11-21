@@ -34,7 +34,7 @@ StringView direction_index_to_name(size_t i);
 Pair<Array<Direction>, std::array<DirArrayIndex, 4>> read_all_directions(const json& jroot);
 Info read_info_header(const json& jroot);
 
-void write_all_frames(json& jframes, ArrayView<const Frame> array);
+void write_all_frames(json& jroot, ArrayView<const Frame> array);
 void write_group_metadata(json& jgroup, const Group& val);
 void write_direction_metadata(json& jdir, const Direction& dir);
 void write_all_directions(json& jroot, const wall_atlas& a);

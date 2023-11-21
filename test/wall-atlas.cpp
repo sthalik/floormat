@@ -3,6 +3,7 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
+#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat::Wall::detail {
@@ -37,7 +38,7 @@ void test_read_header(StringView filename)
     fm_assert(info.depth == 42);
 }
 
-void test_read_empty_direction(StringView filename)
+void test_read_empty_directions(StringView filename)
 {
     const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
     test_read_header(filename);
@@ -134,10 +135,23 @@ struct wall_atlas_
     return atlas;
 }
 
-void write_to_temp_file()
+void write_to_temp_file(const wall_atlas_& atlas)
 {
-    const auto filename = temp_filename();
+    auto jroot = json{json::value_t::object};
 
+    write_info_header(jroot, atlas.header);
+    write_all_frames(jroot, atlas.frames);
+
+    for (const auto [name_, dir] : wall_atlas::directions)
+    {
+        std::string_view name = name_;
+        auto i = (size_t)dir;
+        if (atlas.directions[i])
+            write_direction_metadata(jroot[name], atlas.directions[i]);
+    }
+
+    const auto filename = temp_filename();
+    json_helper::to_json_(jroot, filename);
 }
 
 } // namespace
@@ -147,7 +161,20 @@ void write_to_temp_file()
 void floormat::test_app::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
-    test_read_header("wall-atlas-01_header.json"_s);
-    test_read_empty_direction("wall-atlas-01_header.json"_s);
-    test_read_groups("wall-atlas-02_groups.json"_s);
+    constexpr auto S_01_header_json = "wall-atlas-01_header.json"_s,
+                   S_02_groups_json = "wall-atlas-02_groups.json"_s;
+
+    { test_read_header(S_01_header_json);
+      test_read_empty_directions(S_01_header_json);
+    }
+
+    { test_read_header(S_02_groups_json);
+      test_read_groups(S_02_groups_json);
+    }
+
+    { auto a = read_from_file(Path::join(json_path(), S_02_groups_json));
+      write_to_temp_file(a);
+      auto b = read_from_file(temp_filename());
+      fm_assert(a == b);
+    }
 }
