@@ -9,6 +9,7 @@
 #include "serialize/corrade-string.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 #include <vector>
@@ -21,6 +22,8 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView filename)
 {
+    auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
+    auto tex = texture(""_s, filename);
     using namespace floormat::Wall;
     using namespace floormat::Wall::detail;
 

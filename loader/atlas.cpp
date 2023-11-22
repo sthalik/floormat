@@ -79,14 +79,8 @@ ArrayView<const String> loader_impl::anim_atlas_list()
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
     fm_soft_assert(dir && dir[dir.size()-1] == '/');
-    char path_buf[FILENAME_MAX];
-    name = Path::splitExtension(name).first();
-    const auto dirsiz = dir.size(), namesiz = name.size();
-    fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
-    std::memcpy(path_buf, dir.data(), dirsiz);
-    std::memcpy(&path_buf[dirsiz], name.data(), namesiz);
-    path_buf[dirsiz + namesiz] = '\0';
-    const StringView path = path_buf;
+    char buf[FILENAME_MAX];
+    auto path = make_atlas_path(buf, dir, name);
 
     if (auto it = anim_atlas_map.find(path); it != anim_atlas_map.end())
         return it->second;
