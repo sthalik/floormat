@@ -19,7 +19,7 @@ namespace floormat {
 
 using nlohmann::json;
 
-static void from_json(const json& j, wall_info& val)
+[[maybe_unused]] static void from_json(const json& j, wall_info& val)
 {
     val = {};
     val.name = j["name"];
@@ -28,7 +28,7 @@ static void from_json(const json& j, wall_info& val)
         val.descr = j["descr"];
 }
 
-static void to_json(json& j, const wall_info& val)
+[[maybe_unused]] static void to_json(json& j, const wall_info& val)
 {
     j["name"] = val.name;
     if (val.descr)
@@ -44,19 +44,20 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     auto def = wall_atlas_def::deserialize(""_s.join({path, ".json"_s}));
     auto tex = texture(""_s, path);
 
+    fm_soft_assert(name == def.header.name);
     auto atlas = std::make_shared<class wall_atlas>(std::move(def), path, tex);
     return atlas;
 }
 
-const wall_info& loader_impl::wall_atlas(StringView name, StringView dir)
+const wall_info& loader_impl::wall_atlas(StringView name)
 {
     fm_soft_assert(check_atlas_name(name));
     char buf[FILENAME_MAX];
-    auto path = make_atlas_path(buf, dir, name);
+    auto path = make_atlas_path(buf, loader.WALL_TILESET_PATH, name);
 
-    auto it = wall_atlas_map.find(path);
+    auto it = wall_atlas_map.find(name);
     if (it == wall_atlas_map.end())
-        fm_throw("no such wall atlas '{}'"_cf, path);
+        fm_throw("no such wall atlas '{}'"_cf, name);
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
         it->second->atlas = get_wall_atlas(it->second->name, path);
