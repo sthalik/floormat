@@ -270,7 +270,7 @@ endfunction()
 
 function(fm_install_assets)
     set(CMAKE_INSTALL_MESSAGE NEVER)
-    foreach(subdir images anim scenery vobj wall-tilesets)
+    foreach(subdir images anim scenery vobj walls)
         fm_install_kill_directory("${subdir}")
         install(DIRECTORY "${subdir}" DESTINATION "share/floormat")
     endforeach()
