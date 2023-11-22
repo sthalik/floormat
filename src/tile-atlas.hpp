@@ -15,6 +15,7 @@ struct tile_atlas final
     using quad = std::array<Vector3, 4>;
     using texcoords = std::array<Vector2, 4>;
 
+    // todo remove Optional when wall atlases are fully implemented -sh 20231122
     tile_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
     texcoords texcoords_for_id(size_t id) const;
@@ -24,9 +25,9 @@ struct tile_atlas final
     Vector2ub num_tiles2() const { return dims_; }
     GL::Texture2D& texture() { return tex_; }
     StringView name() const { return name_; }
-    Optional<enum pass_mode> pass_mode() const;
+    Optional<enum pass_mode> pass_mode() const; // todo remove later
     enum pass_mode pass_mode(enum pass_mode p) const;
-    void set_pass_mode(enum pass_mode p);
+    void set_pass_mode(enum pass_mode p); // todo remove later
 
 private:
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);

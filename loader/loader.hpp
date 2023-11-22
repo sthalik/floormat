@@ -26,6 +26,7 @@ struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
+    // todo remove Optional when wall_atlas is fully implemented -sh 20231122
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) = 0;
     virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
