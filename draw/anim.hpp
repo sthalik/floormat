@@ -17,7 +17,7 @@
 namespace floormat {
 
 struct tile_shader;
-struct anim_atlas;
+class anim_atlas;
 struct chunk;
 struct clickable;
 struct object;

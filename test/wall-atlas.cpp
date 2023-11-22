@@ -3,6 +3,7 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
+#include "compat/exception.hpp"
 #include <Corrade/Containers/StringStl.h>
 #include <Corrade/Utility/Path.h>
 
@@ -37,21 +38,6 @@ void test_read_header(StringView filename)
     fm_assert(info.depth == 42);
 }
 
-void test_read_empty_directions(StringView filename)
-{
-    const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
-    test_read_header(filename);
-    fm_assert(!jroot.empty());
-
-    fm_assert( jroot.contains("n") );
-    fm_assert(!jroot.contains("e") );
-    fm_assert(!jroot.contains("s") );
-    fm_assert( jroot.contains("w") );
-
-    fm_assert(jroot["n"].is_object() && jroot["n"].empty());
-    fm_assert(jroot["w"].is_object() && jroot["w"].empty());
-}
-
 void test_read_groups(StringView filename)
 {
     constexpr Group group_defaults;
@@ -60,16 +46,15 @@ void test_read_groups(StringView filename)
     auto info = read_info_header(jroot);
     fm_assert(info.name == "foo"_s);
     fm_assert(info.depth == 42);
-    fm_assert(info.description == ""_s);
 
     fm_assert(jroot["depth"] == 42);
     fm_assert( jroot.contains("n") );
     fm_assert(!jroot.contains("e") );
     fm_assert(!jroot.contains("s") );
     fm_assert( jroot.contains("w") );
-    fm_assert(jroot["n"].is_object() && jroot["n"].empty());
+    fm_assert(jroot["n"].is_object() && !jroot["n"].empty());
     fm_assert(jroot["w"].is_object() && !jroot["w"].empty());
-    fm_assert(read_direction_metadata(jroot, Direction_::N).is_empty());
+    fm_assert(!read_direction_metadata(jroot, Direction_::N).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::E).is_empty());
     fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
 
@@ -87,89 +72,33 @@ void test_read_groups(StringView filename)
     fm_assert(dir.overlay.mirrored   == true                               );
 }
 
-struct wall_atlas_
+[[nodiscard]] wall_atlas_def read_and_check(StringView filename)
 {
-    bool operator==(const wall_atlas_&) const noexcept;
+    auto atlas = wall_atlas_def::deserialize(filename);
 
-    Info header;
-    std::array<Direction, 4> directions = {};
-    Array<Frame> frames;
-};
+    const Info header_defaults;
+    fm_assert(atlas.header.name != header_defaults.name);
+    fm_assert(atlas.header.depth != header_defaults.depth);
 
-[[nodiscard]] wall_atlas_ read_from_file(StringView filename, bool do_checks = true)
-{
-    wall_atlas_ atlas;
+    constexpr Frame frame_defaults;
+    constexpr Group group_defaults;
 
-    const auto jroot = json_helper::from_json_(filename);
-    atlas.header = read_info_header(jroot);
-
-    if (do_checks)
-    {
-        const Info header_defaults;
-        fm_assert(atlas.header.name != header_defaults.name);
-        fm_assert(atlas.header.depth != header_defaults.depth);
-    }
-
-    bool got_any_directions = false;
-    for (const auto& [_, curdir] : wall_atlas::directions)
-    {
-        auto i = (size_t)curdir;
-        atlas.directions[i] = read_direction_metadata(jroot, curdir);
-        got_any_directions = got_any_directions || atlas.directions[i];
-    }
-    if (do_checks)
-        fm_assert(got_any_directions);
-
-    atlas.frames = read_all_frames(jroot);
-
-    if (do_checks)
-    {
-        constexpr Frame frame_defaults;
-        constexpr Group group_defaults;
-
-        fm_assert(!atlas.frames.isEmpty());
-        fm_assert(atlas.frames[0].offset != frame_defaults.offset);
-        const auto& dir = atlas.directions[(size_t)Direction_::W];
-        fm_assert(dir.side.pixel_size != group_defaults.pixel_size);
-        fm_assert(dir.side.from_rotation == group_defaults.from_rotation);
-        fm_assert(dir.corner_L.from_rotation != group_defaults.from_rotation);
-        fm_assert(dir.corner_L.from_rotation == (uint8_t)Direction_::N);
-    }
+    fm_assert(!atlas.frames.isEmpty());
+    fm_assert(atlas.frames[0].offset != frame_defaults.offset);
+    auto dir_index = atlas.direction_to_Direction_array_index[(size_t)Direction_::W];
+    fm_assert(dir_index);
+    const auto& dir = atlas.direction_array[dir_index.val];
+    fm_assert(dir.side.pixel_size != group_defaults.pixel_size);
+    fm_assert(dir.side.from_rotation == group_defaults.from_rotation);
+    fm_assert(dir.corner_L.from_rotation != group_defaults.from_rotation);
+    fm_assert(dir.corner_L.from_rotation == (uint8_t)Direction_::N);
 
     return atlas;
 }
 
-void write_to_temp_file(const wall_atlas_& atlas)
+void write_to_temp_file(const wall_atlas_def& atlas)
 {
-    auto jroot = json{};
-
-    write_info_header(jroot, atlas.header);
-    write_all_frames(jroot, atlas.frames);
-
-    for (const auto [name_, dir] : wall_atlas::directions)
-    {
-        std::string_view name = {name_.data(), name_.size()};
-        auto i = (size_t)dir;
-        if (atlas.directions[i])
-            write_direction_metadata(jroot[name], atlas.directions[i]);
-    }
-
-    const auto filename = temp_filename();
-    json_helper::to_json_(jroot, filename);
-}
-
-bool wall_atlas_::operator==(const wall_atlas_& other) const noexcept
-{
-    if (header != other.header)
-        return false;
-    if (directions != other.directions)
-        return false;
-    if (frames.size() != other.frames.size())
-        return false;
-    for (auto i = 0uz; i < frames.size(); i++)
-        if (frames[i] != other.frames[i])
-            return false;
-    return true;
+    atlas.serialize(temp_filename());
 }
 
 } // namespace
@@ -182,17 +111,15 @@ void floormat::test_app::test_wall_atlas()
     constexpr auto S_01_header_json = "wall-atlas-01_header.json"_s,
                    S_02_groups_json = "wall-atlas-02_groups.json"_s;
 
-    { test_read_header(S_01_header_json);
-      test_read_empty_directions(S_01_header_json);
-    }
+    test_read_header(S_01_header_json);
 
     { test_read_header(S_02_groups_json);
       test_read_groups(S_02_groups_json);
     }
 
-    { auto a = read_from_file(Path::join(json_path(), S_02_groups_json));
-      write_to_temp_file(a);
-      auto b = read_from_file(temp_filename());
+    { auto a = read_and_check(Path::join(json_path(), S_02_groups_json));
+      a.serialize(temp_filename());
+      auto b = read_and_check(temp_filename());
       fm_assert(a == b);
     }
 }

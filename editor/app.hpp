@@ -21,10 +21,10 @@ namespace floormat {
 
 struct chunk;
 struct floormat_main;
-struct tile_atlas;
+class tile_atlas;
 struct tile_editor;
 struct fm_settings;
-struct anim_atlas;
+class anim_atlas;
 struct critter;
 struct point;
 

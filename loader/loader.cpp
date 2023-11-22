@@ -32,6 +32,8 @@ StringView loader_::strip_prefix(StringView name)
         return name.exceptPrefix(SCENERY_PATH.size());
     if (name.hasPrefix(VOBJ_PATH))
         return name.exceptPrefix(VOBJ_PATH.size());
+    if (name.hasPrefix(WALL_TILESET_PATH))
+        return name.exceptPrefix(WALL_TILESET_PATH.size());
     return name;
 }
 

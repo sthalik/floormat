@@ -29,7 +29,7 @@ namespace floormat {
 
 struct floormat_app;
 struct scenery;
-struct anim_atlas;
+class anim_atlas;
 struct clickable;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main

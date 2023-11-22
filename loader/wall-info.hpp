@@ -4,12 +4,12 @@
 
 namespace floormat {
 
-class anim_atlas;
+class wall_atlas;
 
-struct vobj_info final
+struct wall_info
 {
     String name, descr;
-    std::shared_ptr<anim_atlas> atlas;
+    std::shared_ptr<wall_atlas> atlas;
 };
 
 } // namespace floormat

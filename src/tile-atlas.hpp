@@ -1,5 +1,6 @@
 #pragma once
 #include "src/pass-mode.hpp"
+#include "src/quads.hpp"
 #include <array>
 #include <memory>
 #include <Corrade/Containers/Optional.h>
@@ -10,11 +11,22 @@
 
 namespace floormat {
 
-struct tile_atlas final
+class tile_atlas final
 {
     using quad = std::array<Vector3, 4>;
     using texcoords = std::array<Vector2, 4>;
 
+    static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
+    static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i);
+
+    std::unique_ptr<const texcoords[]> texcoords_;
+    GL::Texture2D tex_;
+    String path_, name_;
+    Vector2ui size_;
+    Vector2ub dims_;
+    Optional<enum pass_mode> passability;
+
+public:
     // todo remove Optional when wall atlases are fully implemented -sh 20231122
     tile_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, Optional<enum pass_mode> pass_mode);
 
@@ -28,17 +40,6 @@ struct tile_atlas final
     Optional<enum pass_mode> pass_mode() const; // todo remove later
     enum pass_mode pass_mode(enum pass_mode p) const;
     void set_pass_mode(enum pass_mode p); // todo remove later
-
-private:
-    static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
-    static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i);
-
-    std::unique_ptr<const texcoords[]> texcoords_;
-    GL::Texture2D tex_;
-    String path_, name_;
-    Vector2ui size_;
-    Vector2ub dims_;
-    Optional<enum pass_mode> passability;
 };
 
 

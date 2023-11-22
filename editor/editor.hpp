@@ -15,8 +15,8 @@
 namespace floormat {
 
 struct world;
-struct anim_atlas;
-struct tile_atlas;
+class anim_atlas;
+class tile_atlas;
 struct app;
 
 struct editor final

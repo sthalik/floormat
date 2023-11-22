@@ -2,6 +2,7 @@
 #include "compat/defs.hpp"
 #include "rotation.hpp"
 #include "anim.hpp"
+#include "src/quads.hpp"
 #include <array>
 #include <Corrade/Containers/BitArray.h>
 #include <Corrade/Containers/String.h>
@@ -11,11 +12,23 @@
 
 namespace floormat {
 
-struct anim_atlas final
+class anim_atlas final
 {
-    using texcoords = std::array<Vector2, 4>;
-    using quad = std::array<Vector3, 4>;
+    using texcoords = Quads::texcoords;
+    using quad = Quads::quad;
 
+    String _name;
+    BitArray _bitmask;
+    anim_def _info;
+    std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    };
+    GL::Texture2D _tex;
+
+    static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
+    static uint8_t rotation_to_index(StringView name);
+
+public:
     anim_atlas() noexcept;
     anim_atlas(String name, const ImageView2D& tex, anim_def info);
     ~anim_atlas() noexcept;
@@ -43,18 +56,6 @@ struct anim_atlas final
 
     static void make_bitmask_(const ImageView2D& tex, BitArray& array);
     static BitArray make_bitmask(const ImageView2D& tex);
-
-private:
-    String _name;
-    BitArray _bitmask;
-    anim_def _info;
-    std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
-        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-    };
-    GL::Texture2D _tex;
-
-    static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
-    static uint8_t rotation_to_index(StringView name);
 };
 
 } // namespace floormat

@@ -3,7 +3,7 @@
 
 namespace floormat {
 
-struct tile_atlas;
+class tile_atlas;
 
 using variant_t = uint8_t;
 

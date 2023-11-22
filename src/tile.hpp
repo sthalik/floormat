@@ -4,7 +4,7 @@
 namespace floormat {
 
 struct chunk;
-struct anim_atlas;
+class anim_atlas;
 
 struct tile_proto final
 {

@@ -11,7 +11,7 @@
 
 namespace floormat {
 
-struct anim_atlas;
+class anim_atlas;
 struct object;
 struct object_proto;
 class tile_iterator;

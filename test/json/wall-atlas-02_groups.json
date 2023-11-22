@@ -18,6 +18,10 @@
         }
     ],
     "n": {
+        "wall": {
+            "offset": 0,
+            "count": 1
+        }
     },
     "w": {
         "pass-mode": "shoot-through",

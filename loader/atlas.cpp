@@ -55,12 +55,12 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
     char buf[FILENAME_MAX];
     auto path = make_atlas_path(buf, IMAGE_PATH, name);
 
-    auto atlas = std::make_shared<struct tile_atlas>(path, name, texture(""_s, path), size, pass);
+    auto atlas = std::make_shared<class tile_atlas>(path, name, texture(""_s, path), size, pass);
     tile_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
 
-std::shared_ptr<struct tile_atlas> loader_impl::tile_atlas(StringView filename) noexcept(false)
+std::shared_ptr<class tile_atlas> loader_impl::tile_atlas(StringView filename) noexcept(false)
 {
     fm_assert(!tile_atlas_map.empty());
     auto it = tile_atlas_map.find(filename);
@@ -120,7 +120,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
         const auto width = size[1], height = size[0];
         fm_soft_assert(anim_info.pixel_size[0] == width && anim_info.pixel_size[1] == height);
 
-        auto atlas = std::make_shared<struct anim_atlas>(path, tex, std::move(anim_info));
+        auto atlas = std::make_shared<class anim_atlas>(path, tex, std::move(anim_info));
         return anim_atlas_map[atlas->name()] = atlas;
     }
 }
@@ -132,11 +132,13 @@ void loader_impl::get_anim_atlas_list()
     constexpr auto flags = f::SkipDirectories | f::SkipDotAndDotDot | f::SkipSpecial | f::SortAscending;
     if (const auto list = Path::list(ANIM_PATH, flags); list)
     {
-        anim_atlases.reserve(list->size()*2);
+        anim_atlases.reserve(list->size());
         for (StringView str : *list)
             if (str.hasSuffix(".json"))
                 anim_atlases.emplace_back(str.exceptSuffix(std::size(".json")-1));
     }
+    anim_atlases.shrink_to_fit();
+    fm_assert(!anim_atlases.empty());
 }
 
 } // namespace floormat::loader_detail

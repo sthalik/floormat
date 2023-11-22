@@ -29,6 +29,7 @@ void loader_impl::get_scenery_list()
             fm_abort("duplicate scenery name '%s'", s.name.data());
         sceneries_map[s.name] = &s;
     }
+    fm_assert(!sceneries_map.empty());
 }
 
 const std::vector<serialized_scenery>& loader_impl::sceneries()
@@ -53,9 +54,9 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
 
 namespace floormat {
 
-std::vector<std::shared_ptr<struct tile_atlas>> loader_::tile_atlases(StringView filename, pass_mode p)
+std::vector<std::shared_ptr<class tile_atlas>> loader_::tile_atlases(StringView filename, pass_mode p)
 {
-    auto vec = json_helper::from_json<std::vector<std::shared_ptr<struct tile_atlas>>>(
+    auto vec = json_helper::from_json<std::vector<std::shared_ptr<class tile_atlas>>>(
         Path::join(loader_::IMAGE_PATH, filename));
     for (auto& x : vec)
         if (!x->pass_mode())

@@ -10,7 +10,7 @@ namespace floormat {
 struct world;
 struct global_coords;
 struct object;
-struct anim_atlas;
+class anim_atlas;
 struct vobj_info;
 struct app;
 

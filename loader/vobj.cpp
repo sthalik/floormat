@@ -48,7 +48,7 @@ namespace floormat::loader_detail {
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
-std::shared_ptr<struct anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
+std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
     auto tex = texture(VOBJ_PATH, image_filename);
     anim_def def;
@@ -65,7 +65,7 @@ std::shared_ptr<struct anim_atlas> loader_impl::make_vobj_anim_atlas(StringView 
             .size = def.pixel_size
         }}
     }};
-    auto atlas = std::make_shared<struct anim_atlas>(name, tex, std::move(def));
+    auto atlas = std::make_shared<class anim_atlas>(name, tex, std::move(def));
     return atlas;
 }
 
@@ -87,6 +87,8 @@ void loader_impl::get_vobj_list()
         const auto& x = vobjs.back();
         vobj_atlas_map[x.atlas->name()] = &x;
     }
+
+    fm_assert(!vobjs.empty());
 }
 
 ArrayView<const vobj_info> loader_impl::vobj_list()

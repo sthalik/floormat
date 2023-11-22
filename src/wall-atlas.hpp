@@ -67,7 +67,7 @@ struct Direction
 
 struct Info
 {
-    String name = "(unnamed)"_s, description = {};
+    String name;
     unsigned depth = 0;
 
     bool operator==(const Info&) const noexcept;
@@ -75,7 +75,7 @@ struct Info
 
 struct DirArrayIndex {
     std::uint8_t val = (uint8_t)-1;
-    operator bool() const { return val == (uint8_t)-1; }
+    operator bool() const { return val != (uint8_t)-1; }
 
     bool operator==(const DirArrayIndex&) const noexcept;
 };
@@ -83,6 +83,19 @@ struct DirArrayIndex {
 } // namespace floormat::Wall
 
 namespace floormat {
+
+struct wall_atlas_def final
+{
+    bool operator==(const wall_atlas_def&) const noexcept;
+
+    Wall::Info header;
+    Array<Wall::Frame> frames;
+    Array<Wall::Direction> direction_array;
+    std::array<Wall::DirArrayIndex, 4> direction_to_Direction_array_index;
+
+    static wall_atlas_def deserialize(StringView filename);
+    void serialize(StringView filename) const;
+};
 
 class wall_atlas final
 {
@@ -97,6 +110,7 @@ class wall_atlas final
     Array<Direction> _dir_array;
     Array<Frame> _frame_array;
     Info _info;
+    String _path;
     GL::Texture2D _texture{NoCreate};
     std::array<DirArrayIndex, 4> _direction_to_Direction_array_index;
 
@@ -106,19 +120,21 @@ public:
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(wall_atlas);
     wall_atlas() noexcept;
     ~wall_atlas() noexcept;
-    wall_atlas(Info info, const ImageView2D& img,
-               Array<Frame> frames, Array<Direction> directions,
-               std::array<DirArrayIndex, 4> direction_to_DirArrayIndex);
-    StringView name() const;
-    uint8_t direction_count() const;
+    wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);
+    void serialize(StringView filename) const;
 
     const Group* group(size_t dir, Tag tag) const;
     const Group* group(const Direction& dir, Tag tag) const;
     const Group* group(const Direction* dir, Tag tag) const;
     const Direction* direction(size_t dir) const;
+    uint8_t direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> raw_frame_array() const;
-    const Info& info() const;
+
+    const Info& info() const { return _info; }
+    StringView name() const { return _info.name; }
+    //StringView path() const { return _path; }
+
     GL::Texture2D& texture();
 
     static size_t enum_to_index(enum rotation x);

@@ -17,23 +17,28 @@ using ImageData2D = ImageData<2>;
 
 namespace floormat {
 
-struct tile_atlas;
-struct anim_atlas;
+class tile_atlas;
+class anim_atlas;
+class wall_atlas;
 struct scenery_proto;
 struct vobj_info;
+struct wall_info;
 
 struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     // todo remove Optional when wall_atlas is fully implemented -sh 20231122
-    virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) = 0;
-    virtual std::shared_ptr<struct tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
+    virtual std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) = 0;
+    virtual std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
-    virtual std::shared_ptr<struct anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
+    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
+    virtual const wall_info& wall_atlas(StringView name, StringView dir = WALL_TILESET_PATH) = 0;
+    virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
-    static std::vector<std::shared_ptr<struct tile_atlas>> tile_atlases(StringView filename, pass_mode p);
+    // todo move to ArrayView later, make non-static, and remove pass_mode
+    static std::vector<std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename, pass_mode p);
     virtual const std::vector<serialized_scenery>& sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;

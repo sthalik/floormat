@@ -6,7 +6,7 @@
 
 namespace floormat {
 
-struct anim_atlas;
+class anim_atlas;
 struct global_coords;
 struct world;
 struct app;

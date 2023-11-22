@@ -5,6 +5,7 @@
 #include "compat/exception.hpp"
 #include "loader/loader.hpp"
 #include "pass-mode.hpp"
+#include "json-helper.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/PairStl.h>
@@ -14,6 +15,79 @@
 #include <nlohmann/json.hpp>
 
 // todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
+
+namespace floormat {
+
+using namespace floormat::Wall::detail;
+
+bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
+{
+    if (header != other.header)
+        return false;
+    if (direction_array.size() != other.direction_array.size())
+        return false;
+    for (uint8_t i = 0; i < std::size(direction_to_Direction_array_index); i++)
+    {
+        auto i1 = direction_to_Direction_array_index[i],
+             i2 = other.direction_to_Direction_array_index[i];
+        if (!i1 != !i2)
+            return false;
+        if (i1)
+        {
+            fm_assert(i1.val < direction_array.size());
+            fm_assert(i2.val < other.direction_array.size());
+            if (direction_array[i1.val] != other.direction_array[i2.val])
+                return false;
+        }
+    }
+    if (frames.size() != other.frames.size())
+        return false;
+    for (auto i = 0uz; i < frames.size(); i++)
+        if (frames[i] != other.frames[i])
+            return false;
+    return true;
+}
+
+wall_atlas_def wall_atlas_def::deserialize(StringView filename)
+{
+    wall_atlas_def atlas;
+
+    const auto jroot = json_helper::from_json_(filename);
+    atlas.header = read_info_header(jroot);
+    atlas.frames = read_all_frames(jroot);
+    auto [dirs, dir_indexes] = read_all_directions(jroot);
+    fm_soft_assert(!dirs.isEmpty());
+    fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, 4>{});
+    atlas.direction_array = std::move(dirs);
+    atlas.direction_to_Direction_array_index = dir_indexes;
+
+    return atlas;
+}
+
+void wall_atlas_def::serialize(StringView filename) const
+{
+    auto jroot = json{};
+
+    write_info_header(jroot, header);
+    write_all_frames(jroot, frames);
+
+    for (const auto [name_, dir] : wall_atlas::directions)
+    {
+        if (auto idx = direction_to_Direction_array_index[(size_t)dir])
+        {
+            const auto& dir = direction_array[idx.val];
+            if (!dir.is_empty())
+            {
+                std::string_view name = {name_.data(), name_.size()};
+                write_direction_metadata(jroot[name], dir);
+            }
+        }
+    }
+
+    json_helper::to_json_(jroot, filename);
+}
+
+} // namespace floormat
 
 namespace floormat::Wall::detail {
 
@@ -141,10 +215,8 @@ Info read_info_header(const json& jroot)
 {
     fm_soft_assert(jroot.contains(("name")));
     fm_soft_assert(jroot.contains(("depth")));
-    Info val = {std::string{jroot["name"]}, {}, jroot["depth"]};
+    Info val = {std::string{jroot["name"]}, jroot["depth"]};
     fm_soft_assert(val.depth > 0);
-    if (jroot.contains("description"))
-        val.description = std::string{jroot["description"]};
     return val;
 }
 
@@ -214,9 +286,8 @@ void write_all_directions(json& jroot, const wall_atlas& a)
 }
 
 void write_info_header(json& jroot, const Info& info)
-{    jroot["name"] = info.name;
-    if (info.description)
-        jroot["description"] = info.description;
+{
+    jroot["name"] = info.name;
     jroot["depth"] = info.depth;
 }
 
@@ -225,38 +296,15 @@ void write_info_header(json& jroot, const Info& info)
 namespace floormat::Wall {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, description, depth)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, depth)
 
 } // namespace floormat::Wall
 
 namespace nlohmann {
 
-using namespace floormat;
-using namespace floormat::Wall;
-using namespace floormat::Wall::detail;
+using floormat::Wall::Frame;
 
 void adl_serializer<Frame>::to_json(nlohmann::json& j, const Frame& x) { using nlohmann::to_json; to_json(j, x); }
 void adl_serializer<Frame>::from_json(const json& j, Frame& x) { using nlohmann::from_json; from_json(j, x); }
-
-void adl_serializer<std::shared_ptr<wall_atlas>>::to_json(json& j, const std::shared_ptr<const wall_atlas>& x)
-{
-    fm_assert(x != nullptr);
-    write_info_header(j, x->info());
-    write_all_directions(j, *x);
-    write_all_frames(j, x->raw_frame_array());
-}
-
-void adl_serializer<std::shared_ptr<wall_atlas>>::from_json(const json& j, std::shared_ptr<wall_atlas>& x)
-{
-    auto info = read_info_header(j);
-    fm_assert(loader.check_atlas_name(info.name));
-    auto [dirs, map] = read_all_directions(j);
-    Array<Frame> frames;
-    auto img = loader.texture(loader.WALL_TILESET_PATH, info.name);
-    if (j.contains("frames"))
-        frames = read_all_frames(j);
-
-    x = std::make_shared<wall_atlas>(std::move(info), img, std::move(frames), std::move(dirs), map);
-}
 
 } // namespace nlohmann

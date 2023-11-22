@@ -15,7 +15,7 @@ struct tile_shader;
 struct lightmap_shader;
 struct world;
 struct scenery;
-struct anim_atlas;
+class anim_atlas;
 struct clickable;
 struct floor_mesh;
 struct wall_mesh;
