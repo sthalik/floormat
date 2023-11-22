@@ -7,18 +7,16 @@ namespace floormat {
 StringView get_error_string(ArrayView<char> buf)
 {
 #ifndef _WIN32
-    if constexpr(std::is_same_v<char*, std::decay_t<decltype(::strerror_r(errno, buf.data(), buf.size()))>>)
-    {
-        const char* str { ::strerror_r(errno, buf.data(), buf.size()) };
-        if (str)
-            return str;
-    }
-    else
-    {
-        const int status { ::strerror_r(errno, buf.data(), buf.size()) };
-        if (status == 0)
-            return buf;
-    }
+#if defined __GLIBC__ && !((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
+    char* str = ::strerror_r(errno, buf.data(), buf.size());
+    if (str)
+        return str;
+#else
+    int status { ::strerror_r(errno, buf.data(), buf.size()) };
+    if (status == 0)
+        return buf;
+#endif
+
 #else
     ::strerror_s(buf.data(), buf.size(), errno);
     if (buf[0])
