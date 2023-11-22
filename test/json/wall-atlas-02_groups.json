@@ -41,8 +41,6 @@
             "default-tint": false,
             "mirrored": true
         },
-        "corner-L": {
-            "overlay": { "from-rotation": "n" }
-        }
+        "corner-L": { "from-rotation": "n" }
     }
 }
