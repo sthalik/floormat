@@ -28,10 +28,9 @@ void tile_editor::load_atlases()
     const auto filename = _name + ".json";
     for (const auto& atlas : loader.tile_atlases(filename, default_pass_mode))
     {
-        const auto [name, _ext] = Path::splitExtension(atlas->name());
         auto& [_, vec] = _permutation;
         vec.reserve(atlas->num_tiles());
-        _atlases[name] = atlas;
+        _atlases[atlas->name()] = atlas;
     }
 }
 

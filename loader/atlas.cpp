@@ -18,11 +18,10 @@ namespace floormat {
 StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name)
 {
     fm_soft_assert(!dir || dir[dir.size()-1] == '/');
-    auto name_noext = Path::splitExtension(name).first();
-    const auto dirsiz = dir.size(), namesiz = name_noext.size();
+    const auto dirsiz = dir.size(), namesiz = name.size();
     fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
     std::memcpy(buf, dir.data(), dirsiz);
-    std::memcpy(&buf[dirsiz], name_noext.data(), namesiz);
+    std::memcpy(&buf[dirsiz], name.data(), namesiz);
     buf[dirsiz + namesiz] = '\0';
     return StringView{buf};
 }
