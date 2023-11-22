@@ -33,6 +33,8 @@ using Corrade::Utility::Error;
 using Corrade::Utility::Debug;
 using floormat::Serialize::anim_atlas_;
 
+namespace {
+
 struct options
 {
     String input_dir, input_file, output_dir;
@@ -41,7 +43,7 @@ struct options
 };
 
 [[nodiscard]]
-static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) noexcept
+std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) noexcept
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
     for (int y = 0; y < mat.rows; y++)
@@ -66,7 +68,7 @@ static std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b&
 }
 
 [[nodiscard]]
-static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView filename)
+bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView filename)
 {
     auto mat = fm_begin(
         cv::Mat mat = cv::imread(filename, cv::IMREAD_UNCHANGED);
@@ -126,7 +128,7 @@ static bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, Stri
 }
 
 [[nodiscard]]
-static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
+bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
 {
     if (!group.mirror_from.isEmpty())
         return true;
@@ -181,9 +183,19 @@ static bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
     return true;
 }
 
+inline String fixsep(String str)
+{
+#ifdef _WIN32
+    for (char& c : str)
+        if (c == '\\')
+            c = '/';
+#endif
+    return str;
+}
+
 using Corrade::Utility::Arguments;
 
-static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
+std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output").setHelp("output", "", "DIR")
@@ -202,8 +214,8 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     else if (!args.value<StringView>("scale").isEmpty())
         opts.scale = anim_scale::ratio{args.value<float>("scale")};
 
-    opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
-    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
+    opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
+    opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
     opts.input_dir = Path::split(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())
@@ -212,11 +224,13 @@ static std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* 
     return { Utility::move(opts), Utility::move(args), true };
 }
 
-[[nodiscard]] static int usage(const Arguments& args) noexcept
+[[nodiscard]] int usage(const Arguments& args) noexcept
 {
     Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
     return EX_USAGE;
 }
+
+} // namespace
 
 int main(int argc, char** argv)
 {

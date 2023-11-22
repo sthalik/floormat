@@ -42,6 +42,16 @@ std::shared_ptr<wall_atlas> read_from_file(StringView filename)
     return {};
 }
 
+inline String fixsep(String str)
+{
+#ifdef _WIN32
+    for (char& c : str)
+        if (c == '\\')
+            c = '/';
+#endif
+    return str;
+}
+
 Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
@@ -50,8 +60,8 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     args.parse(argc, argv);
     options opts;
 
-    opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
-    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
+    opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
+    opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
     opts.input_dir = Path::split(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())
