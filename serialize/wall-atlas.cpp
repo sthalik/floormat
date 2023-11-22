@@ -28,8 +28,7 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
         return false;
     for (uint8_t i = 0; i < std::size(direction_map); i++)
     {
-        auto i1 = direction_map[i],
-             i2 = other.direction_map[i];
+        auto i1 = direction_map[i], i2 = other.direction_map[i];
         if (!i1 != !i2)
             return false;
         if (i1)
@@ -75,17 +74,12 @@ void wall_atlas_def::serialize(StringView filename,
     write_all_frames(jroot, frames);
 
     for (const auto [name_, dir] : wall_atlas::directions)
-    {
         if (auto idx = direction_map[(size_t)dir])
-        {
-            const auto& dir = direction_array[idx.val];
-            if (!dir.is_empty())
+            if (const auto& dir = direction_array[idx.val])
             {
                 std::string_view name = {name_.data(), name_.size()};
                 write_direction_metadata(jroot[name], dir);
             }
-        }
-    }
 
     json_helper::to_json_(jroot, filename);
 }
