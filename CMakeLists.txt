@@ -257,7 +257,25 @@ if(TARGET benchmark::benchmark OR TARGET benchmark)
     add_subdirectory(bench)
 endif()
 
-install(DIRECTORY images anim scenery vobj wall-tilesets DESTINATION "share/floormat")
+function(fm_escape_string var str)
+    string(REGEX REPLACE "([^_A-Za-z0-9./:-])" "\\\\\\1" str "${str}")
+    set(${var} "${str}" PARENT_SCOPE)
+endfunction()
+
+function(fm_install_kill_directory dir)
+    fm_escape_string(quoted-dir "${CMAKE_INSTALL_PREFIX}/share/floormat/${dir}")
+    #install(CODE "message(FATAL_ERROR \"foo ${quoted-dir}\")")
+    install(CODE "file(REMOVE_RECURSE \"${quoted-dir}\")")
+endfunction()
+
+function(fm_install_assets)
+    set(CMAKE_INSTALL_MESSAGE NEVER)
+    foreach(subdir images anim scenery vobj wall-tilesets)
+        fm_install_kill_directory("${subdir}")
+        install(DIRECTORY "${subdir}" DESTINATION "share/floormat")
+    endforeach()
+endfunction()
+fm_install_assets()
 
 fm_run_hook(fm-userconfig-post)
 
