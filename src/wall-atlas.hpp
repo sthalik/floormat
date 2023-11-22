@@ -86,20 +86,19 @@ namespace floormat {
 
 struct wall_atlas_def final
 {
+private:
     using Frame = Wall::Frame;
-    using Group = Wall::Group;
-    using Direction_ = Wall::Direction_;
     using Direction = Wall::Direction;
     using Info = Wall::Info;
-    using Tag = Wall::Tag;
     using DirArrayIndex = Wall::DirArrayIndex;
 
+public:
     bool operator==(const wall_atlas_def&) const noexcept;
 
-    Wall::Info header;
-    Array<Wall::Frame> frames;
-    Array<Wall::Direction> direction_array;
-    std::array<Wall::DirArrayIndex, 4> direction_map;
+    Info header;
+    Array<Frame> frames;
+    Array<Direction> direction_array;
+    std::array<DirArrayIndex, 4> direction_map;
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
