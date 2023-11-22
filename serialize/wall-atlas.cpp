@@ -53,6 +53,7 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
 
     const auto jroot = json_helper::from_json_(filename);
     atlas.header = read_info_header(jroot);
+    fm_soft_assert(loader.check_atlas_name(atlas.header.name));
     atlas.frames = read_all_frames(jroot);
     auto [dirs, dir_indexes] = read_all_directions(jroot);
     fm_soft_assert(!dirs.isEmpty());
@@ -158,9 +159,9 @@ Group read_group_metadata(const json& jgroup)
     if (jgroup.contains("pixel-size"))
         val.pixel_size = jgroup["pixel-size"];
     if (jgroup.contains("tint-mult"))
-        val.tint_mult = Vector4(jgroup["tint-mult"]);
+        val.tint_mult = static_cast<Vector4>(jgroup["tint-mult"]);
     if (jgroup.contains("tint-add"))
-        val.tint_add = Vector3(jgroup["tint-add"]);
+        val.tint_add = static_cast<Vector3>(jgroup["tint-add"]);
     if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"] });
     if (jgroup.contains("mirrored"))
@@ -249,8 +250,8 @@ void write_group_metadata(json& jgroup, const Group& val)
 
     jgroup["count"] = val.count;
     jgroup["pixel-size"] = val.pixel_size;
-    jgroup["tint-mult"] = Vector4(val.tint_mult);
-    jgroup["tint-add"] = Vector3(val.tint_add);
+    jgroup["tint-mult"] = static_cast<Vector4>(val.tint_mult);
+    jgroup["tint-add"] = static_cast<Vector3>(val.tint_add);
     if (val.from_rotation != group_defaults.from_rotation)
         jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
     else

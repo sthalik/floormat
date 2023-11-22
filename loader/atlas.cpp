@@ -28,7 +28,9 @@ StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, St
 
 bool loader_::check_atlas_name(StringView str) noexcept
 {
-    if (!str || str[0] == '.' || str[0] == '/')
+    constexpr auto first_char =
+        "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"_s;
+    if (!str || !first_char.find(str[0]))
         return false;
     if (str.findAny("\\\"'\n\r\t\a\033\0|$!%{}#^*?<>&;:^"_s) || str.find("/."_s))
         return false;

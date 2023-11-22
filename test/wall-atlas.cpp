@@ -107,6 +107,11 @@ void test_read_groups(StringView filename)
 void test_expected_size()
 {
     fm_assert_equal(Vector2i{64, 192}, wall_atlas::expected_size(42, Tag::wall));
+    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Tag::side));
+    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Tag::corner_L));
+    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Tag::corner_R));
+    // swapped in atlas.json during reading and writing, rotated in atlas image file
+    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Tag::top));
 }
 
 } // namespace

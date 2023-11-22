@@ -33,6 +33,7 @@ struct options
 std::shared_ptr<wall_atlas> read_from_file(StringView filename)
 {
     using namespace floormat::Wall::detail;
+    auto def = wall_atlas_def::deserialize(filename);
 
     const auto jroot = json_helper::from_json_(filename);
     auto header = read_info_header(jroot);
