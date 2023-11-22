@@ -128,7 +128,11 @@ struct wall_atlas_
 
         fm_assert(!atlas.frames.isEmpty());
         fm_assert(atlas.frames[0].offset != frame_defaults.offset);
-        fm_assert(atlas.directions[(size_t)Direction_::W].side.pixel_size != group_defaults.pixel_size);
+        const auto& dir = atlas.directions[(size_t)Direction_::W];
+        fm_assert(dir.side.pixel_size != group_defaults.pixel_size);
+        fm_assert(dir.side.from_rotation == group_defaults.from_rotation);
+        fm_assert(dir.corner_L.from_rotation != group_defaults.from_rotation);
+        fm_assert(dir.corner_L.from_rotation == (uint8_t)Direction_::N);
     }
 
     return atlas;
