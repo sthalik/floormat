@@ -26,10 +26,10 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
         return false;
     if (direction_array.size() != other.direction_array.size())
         return false;
-    for (uint8_t i = 0; i < std::size(direction_to_Direction_array_index); i++)
+    for (uint8_t i = 0; i < std::size(direction_map); i++)
     {
-        auto i1 = direction_to_Direction_array_index[i],
-             i2 = other.direction_to_Direction_array_index[i];
+        auto i1 = direction_map[i],
+             i2 = other.direction_map[i];
         if (!i1 != !i2)
             return false;
         if (i1)
@@ -59,12 +59,15 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     fm_soft_assert(!dirs.isEmpty());
     fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, 4>{});
     atlas.direction_array = std::move(dirs);
-    atlas.direction_to_Direction_array_index = dir_indexes;
+    atlas.direction_map = dir_indexes;
 
     return atlas;
 }
 
-void wall_atlas_def::serialize(StringView filename) const
+void wall_atlas_def::serialize(StringView filename,
+                               const Info& header, ArrayView<const Frame> frames,
+                               ArrayView<const Direction> direction_array,
+                               std::array<DirArrayIndex, 4> direction_map)
 {
     auto jroot = json{};
 
@@ -73,7 +76,7 @@ void wall_atlas_def::serialize(StringView filename) const
 
     for (const auto [name_, dir] : wall_atlas::directions)
     {
-        if (auto idx = direction_to_Direction_array_index[(size_t)dir])
+        if (auto idx = direction_map[(size_t)dir])
         {
             const auto& dir = direction_array[idx.val];
             if (!dir.is_empty())
@@ -85,6 +88,17 @@ void wall_atlas_def::serialize(StringView filename) const
     }
 
     json_helper::to_json_(jroot, filename);
+}
+
+void wall_atlas_def::serialize(StringView filename) const
+{
+    serialize(filename, header, frames, direction_array, direction_map);
+}
+
+void wall_atlas::serialize(StringView filename) const
+{
+    return wall_atlas_def::serialize(filename, _info, _frame_array,
+                                     _dir_array, _direction_map);
 }
 
 } // namespace floormat

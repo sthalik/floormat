@@ -74,7 +74,7 @@ void test_read_groups(StringView filename)
 
     const auto atlas2 = wall_atlas_def::deserialize(path);
     fm_assert(atlas2.header == info);
-    auto idx2 = atlas2.direction_to_Direction_array_index[(size_t)Direction_::W];
+    auto idx2 = atlas2.direction_map[(size_t)Direction_::W];
     fm_assert(idx2);
     const auto& dir2 = atlas2.direction_array[idx2.val];
     fm_assert(dir == dir2);
@@ -93,7 +93,7 @@ void test_read_groups(StringView filename)
 
     fm_assert(!atlas.frames.isEmpty());
     fm_assert(atlas.frames[0].offset != frame_defaults.offset);
-    auto dir_index = atlas.direction_to_Direction_array_index[(size_t)Direction_::W];
+    auto dir_index = atlas.direction_map[(size_t)Direction_::W];
     fm_assert(dir_index);
     const auto& dir = atlas.direction_array[dir_index.val];
     fm_assert(dir.side.pixel_size != group_defaults.pixel_size);

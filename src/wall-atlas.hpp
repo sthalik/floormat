@@ -86,15 +86,27 @@ namespace floormat {
 
 struct wall_atlas_def final
 {
+    using Frame = Wall::Frame;
+    using Group = Wall::Group;
+    using Direction_ = Wall::Direction_;
+    using Direction = Wall::Direction;
+    using Info = Wall::Info;
+    using Tag = Wall::Tag;
+    using DirArrayIndex = Wall::DirArrayIndex;
+
     bool operator==(const wall_atlas_def&) const noexcept;
 
     Wall::Info header;
     Array<Wall::Frame> frames;
     Array<Wall::Direction> direction_array;
-    std::array<Wall::DirArrayIndex, 4> direction_to_Direction_array_index;
+    std::array<Wall::DirArrayIndex, 4> direction_map;
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
+    static void serialize(StringView filename,
+                          const Info& header, ArrayView<const Frame> frames,
+                          ArrayView<const Direction> direction_array,
+                          std::array<DirArrayIndex, 4> direction_map);
 };
 
 class wall_atlas final
@@ -112,7 +124,7 @@ class wall_atlas final
     Info _info;
     String _path;
     GL::Texture2D _texture{NoCreate};
-    std::array<DirArrayIndex, 4> _direction_to_Direction_array_index;
+    std::array<DirArrayIndex, 4> _direction_map;
 
     Direction* get_Direction(Direction_ num) const;
 

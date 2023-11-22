@@ -74,7 +74,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     : _dir_array{std::move(def.direction_array)},
       _frame_array{std::move(def.frames)},
       _info{std::move(def.header)}, _path{std::move(path)},
-      _direction_to_Direction_array_index{def.direction_to_Direction_array_index}
+      _direction_map{def.direction_map }
 {
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
@@ -93,7 +93,7 @@ auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
 
     if (_dir_array.isEmpty()) [[unlikely]]
         return {};
-    else if (auto DAI = _direction_to_Direction_array_index[(uint8_t)num]; DAI != default_DAI) [[likely]]
+    else if (auto DAI = _direction_map[(uint8_t)num]; DAI != default_DAI) [[likely]]
         return const_cast<Direction*>(&_dir_array[DAI.val]);
     else
         return {};
