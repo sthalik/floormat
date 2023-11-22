@@ -23,29 +23,30 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     fm_soft_assert(check_atlas_name(filename_));
     fm_soft_assert(tga_importer);
 
-    char filename[FILENAME_MAX];
-    if (N > 0)
-        std::memcpy(filename, prefix.data(), N);
-    std::memcpy(filename + N, filename_.data(), filename_.size());
-    size_t len =  filename_.size() + N;
+    char buf[FILENAME_MAX];
+    const auto path_no_ext = make_atlas_path(buf, prefix, filename_);
+    const auto len = path_no_ext.size();
 
-    for (const auto& extension : std::initializer_list<StringView>{ ".tga", ".png", ".webp", })
+    for (auto extension : { ".tga"_s, ".png"_s, ".webp"_s, })
     {
-        std::memcpy(filename + len, extension.data(), extension.size());
-        filename[len + extension.size()] = '\0';
-        auto& importer = extension == StringView(".tga") ? tga_importer : image_importer;
-        if (Path::exists(filename) && importer->openFile(filename))
+        fm_soft_assert(len + extension.size() < std::size(buf));
+        std::memcpy(buf + len, extension.data(), extension.size());
+        buf[len + extension.size()] = '\0';
+        auto path = StringView{buf, len + extension.size()};
+        fm_debug_assert(path.size() < std::size(buf));
+        auto& importer = extension == ".tga"_s ? tga_importer : image_importer;
+        if (Path::exists(path) && importer->openFile(path))
         {
             auto img = importer->image2D(0);
             if (!img)
-                fm_abort("can't allocate image for '%s'", filename);
+                fm_abort("can't allocate image for '%s'", buf);
             auto ret = std::move(*img);
             return ret;
         }
     }
     const auto path = Path::currentDirectory();
-    filename[len] = '\0';
-    fm_throw("can't open image '{}' (cwd '{}')"_cf, filename, path ? StringView{*path} : "(null)"_s);
+    buf[len] = '\0';
+    fm_throw("can't open image '{}' (cwd '{}')"_cf, buf, path ? StringView{*path} : "(null)"_s);
 }
 
 } // namespace floormat::loader_detail
