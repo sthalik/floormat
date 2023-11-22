@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "compat/math.hpp"
+#include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
@@ -10,7 +10,7 @@ constexpr bool test_double_sqrt()
     using F = double;
     constexpr auto eps = F(1e-11);
 
-    static_assert(math::abs(math::sqrt((F)3)    - (F)1.73205080757) < eps);
+    static_assert(Math::abs(Math::sqrt((F)3)    - (F)1.73205080757) < eps);
     return true;
 }
 
@@ -21,22 +21,22 @@ bool test_sqrt()
     constexpr auto test = [](double x)
     {
         auto x_ = (F)x;
-        auto y1 = math::sqrt(x_);
+        auto y1 = Math::sqrt(x_);
         auto y2 = std::sqrt(x_);
-        return math::abs(y1 - y2) < eps;
+        return Math::abs(y1 - y2) < eps;
     };
 
-    static_assert(math::abs(math::sqrt((F)0)    - (F)0) < eps);
-    static_assert(math::abs(math::sqrt((F)0.5)  - (F)0.70710678118) < eps);
-    static_assert(math::abs(math::sqrt((F)1e-8) - (F)0.0001)        < eps);
-    static_assert(math::abs(math::sqrt((F)2)    - (F)1.41421356237) < eps);
-    static_assert(math::abs(math::sqrt((F)3)    - (F)1.73205080757) < (F)1e-6);
+    static_assert(Math::abs(Math::sqrt((F)0)    - (F)0) < eps);
+    static_assert(Math::abs(Math::sqrt((F)0.5)  - (F)0.70710678118) < eps);
+    static_assert(Math::abs(Math::sqrt((F)1e-8) - (F)0.0001)        < eps);
+    static_assert(Math::abs(Math::sqrt((F)2)    - (F)1.41421356237) < eps);
+    static_assert(Math::abs(Math::sqrt((F)3)    - (F)1.73205080757) < (F)1e-6);
 
-    static_assert(math::sqrt((F)0)  == (F)0);
-    static_assert(math::sqrt((F)1)  == (F)1);
-    static_assert(math::sqrt((F)4)  == (F)2);
-    static_assert(math::sqrt((F)9)  == (F)3);
-    static_assert(math::sqrt((F)36) == (F)6);
+    static_assert(Math::sqrt((F)0)  == (F)0);
+    static_assert(Math::sqrt((F)1)  == (F)1);
+    static_assert(Math::sqrt((F)4)  == (F)2);
+    static_assert(Math::sqrt((F)9)  == (F)3);
+    static_assert(Math::sqrt((F)36) == (F)6);
 
     fm_assert(test(0));
     fm_assert(test(0.5));
@@ -60,15 +60,15 @@ bool test_sqrt()
 template<typename F>
 constexpr bool test_floor()
 {
-    fm_assert(math::floor((F)-1.5) == -2);
-    fm_assert(math::floor((F)0) == 0);
-    fm_assert(math::floor((F)1) == 1);
-    fm_assert(math::floor((F)-1) == -1);
-    fm_assert(math::floor((F)-2) == -2);
-    fm_assert(math::floor((F)1.0000001) == 1);
-    fm_assert(math::floor((F)-1.000001) == -2);
-    fm_assert(math::floor((F)1e-8) == 0);
-    fm_assert(math::floor((F)-1e-8) == -1);
+    fm_assert(Math::floor((F)-1.5) == -2);
+    fm_assert(Math::floor((F)0) == 0);
+    fm_assert(Math::floor((F)1) == 1);
+    fm_assert(Math::floor((F)-1) == -1);
+    fm_assert(Math::floor((F)-2) == -2);
+    fm_assert(Math::floor((F)1.0000001) == 1);
+    fm_assert(Math::floor((F)-1.000001) == -2);
+    fm_assert(Math::floor((F)1e-8) == 0);
+    fm_assert(Math::floor((F)-1e-8) == -1);
 
     return true;
 }
@@ -76,15 +76,15 @@ constexpr bool test_floor()
 template<typename F>
 constexpr bool test_ceil()
 {
-    fm_assert(math::ceil((F)-1.5) == -1);
-    fm_assert(math::ceil((F)0) == 0);
-    fm_assert(math::ceil((F)1) == 1);
-    fm_assert(math::ceil((F)-1) == -1);
-    fm_assert(math::ceil((F)-2) == -2);
-    fm_assert(math::ceil((F)1.0000001) == 2);
-    fm_assert(math::ceil((F)-1.000001) == -1);
-    fm_assert(math::ceil((F)1e-8) == 1);
-    fm_assert(math::ceil((F)-1e-8) == 0);
+    fm_assert(Math::ceil((F)-1.5) == -1);
+    fm_assert(Math::ceil((F)0) == 0);
+    fm_assert(Math::ceil((F)1) == 1);
+    fm_assert(Math::ceil((F)-1) == -1);
+    fm_assert(Math::ceil((F)-2) == -2);
+    fm_assert(Math::ceil((F)1.0000001) == 2);
+    fm_assert(Math::ceil((F)-1.000001) == -1);
+    fm_assert(Math::ceil((F)1e-8) == 1);
+    fm_assert(Math::ceil((F)-1e-8) == 0);
 
     return true;
 }

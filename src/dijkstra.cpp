@@ -2,7 +2,6 @@
 #include "compat/format.hpp"
 #include "object.hpp"
 #include "point.hpp"
-#include "compat/math.hpp"
 #include <cstdio>
 #include <Corrade/Containers/StaticArray.h>
 #include <Magnum/Math/Vector2.h>
@@ -87,7 +86,7 @@ inline uint32_t distance(point a, point b)
     Vector2i dist;
     dist += (a.coord() - b.coord())*iTILE_SIZE2;
     dist += Vector2i(a.offset()) - Vector2i(b.offset());
-    return (uint32_t)Math::ceil(Math::sqrt(dist.dot()));
+    return (uint32_t)Math::ceil(Math::sqrt(Vector2(dist).dot()));
 }
 
 inline uint32_t distance_l2(point a, point b)

@@ -104,11 +104,6 @@ void test_read_groups(StringView filename)
     return atlas;
 }
 
-void write_to_temp_file(const wall_atlas_def& atlas)
-{
-    atlas.serialize(temp_filename());
-}
-
 } // namespace
 
 } // namespace floormat::Wall::detail

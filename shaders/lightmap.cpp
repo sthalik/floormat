@@ -1,6 +1,5 @@
 #include "shaders/lightmap.hpp"
 #include "compat/assert.hpp"
-#include "compat/math.hpp"
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
@@ -12,6 +11,7 @@
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/Iterable.h>
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <Magnum/Math/Functions.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
@@ -30,7 +30,7 @@ constexpr float fuzz_pixels = 4;
 constexpr float shadow_wall_depth = 8;
 constexpr float real_image_size = 1024;
 
-constexpr auto half_neighbors = (int)math::ceil(neighbor_count/2.f);
+constexpr auto half_neighbors = (int)Math::ceil(neighbor_count/2.f);
 
 constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
 constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;

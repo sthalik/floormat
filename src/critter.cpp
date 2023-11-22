@@ -5,7 +5,6 @@
 #include "src/object.hpp"
 #include "shaders/shader.hpp"
 #include "compat/exception.hpp"
-#include "compat/math.hpp"
 #include <cmath>
 #include <utility>
 #include <algorithm>
