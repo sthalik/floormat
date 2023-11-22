@@ -63,10 +63,8 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     return atlas;
 }
 
-void wall_atlas_def::serialize(StringView filename,
-                               const Info& header, ArrayView<const Frame> frames,
-                               ArrayView<const Direction> direction_array,
-                               std::array<DirArrayIndex, 4> direction_map)
+void wall_atlas_def::serialize(StringView filename, const Info& header, ArrayView<const Frame> frames,
+                               ArrayView<const Direction> dir_array, std::array<DirArrayIndex, 4> dir_map)
 {
     auto jroot = json{};
 
@@ -74,8 +72,8 @@ void wall_atlas_def::serialize(StringView filename,
     write_all_frames(jroot, frames);
 
     for (const auto [name_, dir] : wall_atlas::directions)
-        if (auto idx = direction_map[(size_t)dir])
-            if (const auto& dir = direction_array[idx.val])
+        if (auto idx = dir_map[(size_t)dir])
+            if (const auto& dir = dir_array[idx.val])
             {
                 std::string_view name = {name_.data(), name_.size()};
                 write_direction_metadata(jroot[name], dir);

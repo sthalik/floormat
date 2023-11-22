@@ -102,10 +102,8 @@ public:
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
-    static void serialize(StringView filename,
-                          const Info& header, ArrayView<const Frame> frames,
-                          ArrayView<const Direction> direction_array,
-                          std::array<DirArrayIndex, 4> direction_map);
+    static void serialize(StringView filename, const Info& header, ArrayView<const Frame> frames,
+                          ArrayView<const Direction> dir_array, std::array<DirArrayIndex, 4> dir_map);
 };
 
 class wall_atlas final
