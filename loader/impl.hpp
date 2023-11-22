@@ -45,7 +45,7 @@ struct loader_impl final : loader_
 
     // >-----> walls >----->
     struct wall_index { uint32_t val = (uint32_t)-1; };
-    tsl::robin_map<StringView, const wall_info*> wall_atlas_map;
+    tsl::robin_map<StringView, wall_info*> wall_atlas_map;
     std::vector<wall_info> wall_atlas_array;
 
     const wall_info& wall_atlas(StringView name, StringView dir) override;

@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "src/tile-atlas.hpp"
+#include "loader/wall-info.hpp"
 
 namespace floormat {
 
@@ -14,6 +15,8 @@ void test_app::test_loader()
     loader.sceneries();
     for (StringView name : loader.anim_atlas_list())
         loader.anim_atlas(name);
+    for (const auto& info : loader.wall_atlas_list())
+        (void)loader.wall_atlas(info.name);
 }
 
 } // namespace floormat

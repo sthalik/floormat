@@ -10,6 +10,8 @@ namespace floormat {
 
 namespace {
 
+using nlohmann::json;
+
 void Loader_json(benchmark::State& state)
 {
     loader.destroy();
@@ -17,7 +19,7 @@ void Loader_json(benchmark::State& state)
     // warmup
     {   for (const auto& x : loader.anim_atlas_list())
             json_helper::from_json<anim_def>(Path::join(loader.ANIM_PATH, ""_s.join({x, ".json"})));
-        json_helper::from_json<std::vector<nlohmann::json>>(Path::join(loader.VOBJ_PATH, "vobj.json"));
+        json_helper::from_json<std::vector<json>>(Path::join(loader.VOBJ_PATH, "vobj.json"));
     }
 
     for (auto _ : state)
@@ -25,7 +27,7 @@ void Loader_json(benchmark::State& state)
         {
             for (const auto& x : loader.anim_atlas_list())
                 json_helper::from_json<anim_def>(Path::join(loader.ANIM_PATH, ""_s.join({x, ".json"})));
-            json_helper::from_json<std::vector<nlohmann::json>>(Path::join(loader.VOBJ_PATH, "vobj.json"));
+            json_helper::from_json<std::vector<json>>(Path::join(loader.VOBJ_PATH, "vobj.json"));
         }
 }
 

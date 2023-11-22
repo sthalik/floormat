@@ -16,7 +16,25 @@
 #include <vector>
 
 namespace floormat {
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(wall_info, name, descr)
+
+using nlohmann::json;
+
+static void from_json(const json& j, wall_info& val)
+{
+    val = {};
+    val.name = j["name"];
+    fm_soft_assert(loader.check_atlas_name(val.name));
+    if (j.contains("descr"))
+        val.descr = j["descr"];
+}
+
+static void to_json(json& j, const wall_info& val)
+{
+    j["name"] = val.name;
+    if (val.descr)
+        j["descr"] = val.descr;
+}
+
 } // namespace floormat
 
 namespace floormat::loader_detail {
@@ -41,9 +59,7 @@ const wall_info& loader_impl::wall_atlas(StringView name, StringView dir)
         fm_throw("no such wall atlas '{}'"_cf, path);
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
-    {
-        const_cast<wall_info*>(it->second)->atlas = get_wall_atlas(it->second->name, path);
-    }
+        it->second->atlas = get_wall_atlas(it->second->name, path);
     return *it->second;
 }
 
@@ -54,7 +70,7 @@ void loader_impl::get_wall_atlas_list()
     wall_atlas_map.clear();
     wall_atlas_map.reserve(wall_atlas_array.size()*2);
 
-    for (const auto& x : wall_atlas_array)
+    for (auto& x : wall_atlas_array)
     {
         fm_soft_assert(check_atlas_name(x.name));
         StringView name = x.name;

@@ -309,7 +309,7 @@ namespace nlohmann {
 
 using floormat::Wall::Frame;
 
-void adl_serializer<Frame>::to_json(nlohmann::json& j, const Frame& x) { using nlohmann::to_json; to_json(j, x); }
+void adl_serializer<Frame>::to_json(json& j, const Frame& x) { using nlohmann::to_json; to_json(j, x); }
 void adl_serializer<Frame>::from_json(const json& j, Frame& x) { using nlohmann::from_json; from_json(j, x); }
 
 } // namespace nlohmann

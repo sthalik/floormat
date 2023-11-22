@@ -11,7 +11,9 @@ namespace floormat {
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_group, name, frames, ground, offset)
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(anim_def, object_name, anim_name, pixel_size, nframes, actionframe, fps, groups, scale)
 
-static void to_json(nlohmann::json& j, const anim_frame& val)
+using nlohmann::json;
+
+static void to_json(json& j, const anim_frame& val)
 {
     constexpr anim_frame def;
 
@@ -23,7 +25,7 @@ static void to_json(nlohmann::json& j, const anim_frame& val)
         j["size"] = val.size;
 }
 
-static void from_json(const nlohmann::json& j, anim_frame& val)
+static void from_json(const json& j, anim_frame& val)
 {
     val = {};
     if (j.contains("ground"))
@@ -34,7 +36,7 @@ static void from_json(const nlohmann::json& j, anim_frame& val)
         val.size = j["size"];
 }
 
-static void to_json(nlohmann::json& j, const anim_group& val)
+static void to_json(json& j, const anim_group& val)
 {
     const anim_group def{};
 
@@ -53,7 +55,7 @@ static void to_json(nlohmann::json& j, const anim_group& val)
         j["depth-offset"] = val.depth_offset;
 }
 
-static void from_json(const nlohmann::json& j, anim_group& val)
+static void from_json(const json& j, anim_group& val)
 {
     val = {};
     val.name = j["name"];
@@ -75,7 +77,7 @@ static void from_json(const nlohmann::json& j, anim_group& val)
         val.depth_offset = j["depth-offset"];
 }
 
-static void to_json(nlohmann::json& j, const anim_def& val)
+static void to_json(json& j, const anim_def& val)
 {
     const anim_def def{};
 
@@ -96,7 +98,7 @@ static void to_json(nlohmann::json& j, const anim_def& val)
     j["scale"] = val.scale;
 }
 
-static void from_json(const nlohmann::json& j, anim_def& val)
+static void from_json(const json& j, anim_def& val)
 {
     val = {};
     val.object_name = j["object_name"];

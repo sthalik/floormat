@@ -7,10 +7,12 @@
 
 namespace floormat {
 
+using nlohmann::json;
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile_image_proto, atlas, variant)
 
-inline void to_json(nlohmann::json& j, const tile_image_ref& val) { j = tile_image_proto(val); }
-inline void from_json(const nlohmann::json& j, tile_image_ref& val) { val = tile_image_proto(j); }
+inline void to_json(json& j, const tile_image_ref& val) { j = tile_image_proto(val); }
+inline void from_json(const json& j, tile_image_ref& val) { val = tile_image_proto(j); }
 
 struct local_coords_ final {
     uint8_t x, y;
@@ -20,8 +22,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords_, x, y)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords_, x, y, z)
 
-inline void to_json(nlohmann::json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, int8_t>{ coord.chunk(), coord.local(), coord.z() }; }
-inline void from_json(const nlohmann::json& j, global_coords& coord) { std::tuple<chunk_coords, local_coords, int8_t> t = j; auto [ch, pos, z] = t; coord = { ch, pos, z }; }
+inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, int8_t>{ coord.chunk(), coord.local(), coord.z() }; }
+inline void from_json(const json& j, global_coords& coord) { std::tuple<chunk_coords, local_coords, int8_t> t = j; auto [ch, pos, z] = t; coord = { ch, pos, z }; }
 
 } // namespace floormat
 

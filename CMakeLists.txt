@@ -257,7 +257,7 @@ if(TARGET benchmark::benchmark OR TARGET benchmark)
     add_subdirectory(bench)
 endif()
 
-install(DIRECTORY images anim scenery vobj DESTINATION "share/floormat")
+install(DIRECTORY images anim scenery vobj wall-tilesets DESTINATION "share/floormat")
 
 fm_run_hook(fm-userconfig-post)
 
