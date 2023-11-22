@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "src/rotation.hpp"
+#include "src/pass-mode.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
@@ -49,6 +50,7 @@ struct Direction
 
     Group wall, overlay, side, top;
     Group corner_L, corner_R;
+    pass_mode passability = pass_mode::blocked;
 
     static constexpr inline member_tuple groups[] = {
         { "wall"_s,     &Direction::wall,     Tag::wall      },

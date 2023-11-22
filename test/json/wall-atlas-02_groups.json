@@ -20,6 +20,7 @@
     "n": {
     },
     "w": {
+        "pass-mode": "shoot-through",
         "wall": {
             "default-tint": false,
             "offset": 0,

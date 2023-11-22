@@ -74,6 +74,7 @@ void test_read_groups(StringView filename)
     fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
+    fm_assert(dir.passability        == pass_mode::shoot_through);
     fm_assert(dir.wall.pixel_size    == Vector2ui{}                        );
     fm_assert(dir.wall.default_tint  == false                              );
     fm_assert(dir.wall.mirrored      == group_defaults.mirrored            );

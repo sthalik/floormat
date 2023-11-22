@@ -4,6 +4,7 @@
 #include "corrade-string.hpp"
 #include "compat/exception.hpp"
 #include "loader/loader.hpp"
+#include "pass-mode.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/PairStl.h>
@@ -113,6 +114,9 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
     val.top.pixel_size = val.top.pixel_size.flipped();
 
+    if (jdir.contains("pass-mode"))
+        val.passability = jdir["pass-mode"];
+
     return val;
 }
 
@@ -180,6 +184,8 @@ void write_group_metadata(json& jgroup, const Group& val)
 
 void write_direction_metadata(json& jdir, const Direction& dir)
 {
+    jdir["pass-mode"] = dir.passability;
+
     for (auto [s_, memfn, tag] : Direction::groups)
     {
         std::string_view s = {s_.data(), s_.size()};
