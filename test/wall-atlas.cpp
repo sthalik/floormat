@@ -41,7 +41,8 @@ void test_read_header(StringView filename)
 void test_read_groups(StringView filename)
 {
     constexpr Group group_defaults;
-    const auto jroot = json_helper::from_json_(Path::join(json_path(), filename));
+    const auto path = Path::join(json_path(), filename);
+    const auto jroot = json_helper::from_json_(path);
 
     auto info = read_info_header(jroot);
     fm_assert(info.name == "foo"_s);
@@ -70,6 +71,13 @@ void test_read_groups(StringView filename)
     fm_assert(dir.overlay.tint_mult  == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
     fm_assert(dir.overlay.tint_add   == Vector3{1, 2, 3}                   );
     fm_assert(dir.overlay.mirrored   == true                               );
+
+    const auto atlas2 = wall_atlas_def::deserialize(path);
+    fm_assert(atlas2.header == info);
+    auto idx2 = atlas2.direction_to_Direction_array_index[(size_t)Direction_::W];
+    fm_assert(idx2);
+    const auto& dir2 = atlas2.direction_array[idx2.val];
+    fm_assert(dir == dir2);
 }
 
 [[nodiscard]] wall_atlas_def read_and_check(StringView filename)
