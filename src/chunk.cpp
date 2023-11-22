@@ -1,6 +1,5 @@
 #include "chunk.hpp"
-#include "src/tile-atlas.hpp"
-#include "anim-atlas.hpp"
+#include "object.hpp"
 #include "tile-iterator.hpp"
 #include <algorithm>
 #include <Magnum/GL/Context.h>

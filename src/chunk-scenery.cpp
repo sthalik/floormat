@@ -2,12 +2,14 @@
 #include "shaders/shader.hpp"
 #include "object.hpp"
 #include "anim-atlas.hpp"
-#include "tile-atlas.hpp"
+#include "quads.hpp"
 #include <bit>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>
 
 namespace floormat {
+
+using namespace floormat::Quads;
 
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
@@ -164,7 +166,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
             for (auto j = 0uz; j < 4; j++)
                 scenery_vertexes[i][j] = { quad[j], texcoords[j], depth };
-            scenery_indexes[i] = tile_atlas::indices(i);
+            scenery_indexes[i] = quad_indexes(i);
             i++;
         }
 

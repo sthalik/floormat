@@ -72,7 +72,6 @@ private:
 
     static Framebuffer make_framebuffer(Vector2i size);
     GL::Mesh make_occlusion_mesh();
-    static std::array<UnsignedShort, 6> quad_indexes(size_t N);
 
     void add_objects(Vector2 neighbor_offset, chunk& c);
     void add_geometry(Vector2 neighbor_offset, chunk& c);

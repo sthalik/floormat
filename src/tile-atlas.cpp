@@ -1,5 +1,5 @@
-
 #include "tile-atlas.hpp"
+#include "quads.hpp"
 #include "compat/assert.hpp"
 #include "tile-image.hpp"
 #include "compat/exception.hpp"
@@ -9,6 +9,8 @@
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
+
+using namespace floormat::Quads;
 
 tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, Optional<enum pass_mode> p) :
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
@@ -32,19 +34,6 @@ std::array<Vector2, 4> tile_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
     return texcoords_[i];
-}
-
-auto tile_atlas::texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_) -> texcoords
-{
-    auto pos = Vector2(pos_), size = Vector2(size_), image_size = Vector2(image_size_);
-    auto offset = pos + Vector2(.5f), end = offset + size - Vector2(1);
-    auto x0 = offset / image_size, x1 = end / image_size;
-    return {{
-        { x1.x(), 1.f - x1.y() }, // bottom right
-        { x1.x(), 1.f - x0.y() }, // top right
-        { x0.x(), 1.f - x1.y() }, // bottom left
-        { x0.x(), 1.f - x0.y() }, // top left
-    }};
 }
 
 auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords

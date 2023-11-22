@@ -1,5 +1,6 @@
 #include "chunk.hpp"
 #include "tile-atlas.hpp"
+#include "quads.hpp"
 #include "shaders/shader.hpp"
 #include "compat/defs.hpp"
 #include <algorithm>
@@ -8,12 +9,14 @@
 
 namespace floormat {
 
+using namespace floormat::Quads;
+
 template<size_t N = 1>
 static auto make_index_array(size_t max)
 {
     std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (auto i = 0uz; i < max; i++)
-        array[i] = tile_atlas::indices(i);
+        array[i] = quad_indexes(i);
     return array;
 }
 
@@ -56,7 +59,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         const uint8_t i = _ground->ground_indexes[k];
         const auto& atlas = _ground->_ground_atlases[i];
         const local_coords pos{i};
-        const auto quad = atlas->floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
+        const auto quad = floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
         const auto texcoords = atlas->texcoords_for_id(_ground->_ground_variants[i]);
         const float depth = tile_shader::depth_value(pos, tile_shader::ground_depth_offset + hack_offset);
         auto& v = vertexes[k];
@@ -89,7 +92,7 @@ GL::Mesh chunk::make_wall_mesh(size_t count)
         const auto& variant = _walls->_wall_variants[i];
         const local_coords pos{i / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
-        const auto quad = i & 1 ? atlas->wall_quad_W(center, TILE_SIZE) : atlas->wall_quad_N(center, TILE_SIZE);
+        const auto quad = i & 1 ? wall_quad_W(center, TILE_SIZE) : wall_quad_N(center, TILE_SIZE);
         const float depth = tile_shader::depth_value(pos, tile_shader::wall_depth_offset);
         const auto texcoords = atlas->texcoords_for_id(variant);
         auto& v = vertexes[k];

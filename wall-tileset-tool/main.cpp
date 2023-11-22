@@ -2,6 +2,8 @@
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "src/wall-atlas.hpp"
+#include "serialize/wall-atlas.hpp"
+#include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include <utility>
 #include <tuple>
@@ -28,6 +30,18 @@ struct options
     String input_dir, input_file, output_dir;
 };
 
+std::shared_ptr<wall_atlas> read_from_file(StringView filename)
+{
+    using namespace floormat::Wall::detail;
+
+    const auto jroot = json_helper::from_json_(filename);
+    auto header = read_info_header(jroot);
+    if (!loader.check_atlas_name(header.name))
+        fm_abort("bad atlas name '%s'!", header.name.data());
+
+    return {};
+}
+
 Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
@@ -35,7 +49,6 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     args.addArgument("input.json"s);
     args.parse(argc, argv);
     options opts;
-    //Path::exists(args.value<StringView>());
 
     opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
     opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
@@ -44,7 +57,16 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    return { std::move(opts), std::move(args), false };
+    if (!Path::exists(opts.input_file))
+        Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";
+    else if (!Path::isDirectory(opts.output_dir))
+        Error{Error::Flag::NoSpace} << "fatal: output directory '" << opts.output_dir << "' doesn't exist";
+    else if (Path::isDirectory(opts.input_file))
+        Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' is a directory";
+    else
+        return { std::move(opts), std::move(args), true };
+
+    return {};
 }
 
 [[nodiscard]] static int usage(const Arguments& args) noexcept

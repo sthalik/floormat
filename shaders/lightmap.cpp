@@ -5,6 +5,7 @@
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/tile-atlas.hpp"
+#include "src/quads.hpp"
 #include "src/object.hpp"
 #include "loader/loader.hpp"
 #include <utility>
@@ -19,6 +20,8 @@
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
+
+using namespace floormat::Quads;
 
 namespace {
 
@@ -210,11 +213,6 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
     setUniformBlockBinding(uniformBlockIndex("Lightmap"_s), BlockUniform);
     block_uniform_buf.setData({&block, 1});
     block_uniform_buf.bind(GL::Buffer::Target::Uniform, BlockUniform);
-}
-
-std::array<UnsignedShort, 6> lightmap_shader::quad_indexes(size_t N)
-{
-    return tile_atlas::indices(N);
 }
 
 void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
