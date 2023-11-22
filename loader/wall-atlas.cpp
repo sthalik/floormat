@@ -12,6 +12,7 @@
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
+#include <Magnum/ImageView.h>
 #include <vector>
 
 namespace floormat {
@@ -20,40 +21,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(wall_info, name, descr)
 
 namespace floormat::loader_detail {
 
-std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView filename)
+std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView path)
 {
-    auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
-    auto tex = texture(""_s, filename);
-    using namespace floormat::Wall;
-    using namespace floormat::Wall::detail;
+    auto def = wall_atlas_def::deserialize(""_s.join({path, ".json"_s}));
+    auto tex = texture(""_s, path);
 
-    const auto jroot = json_helper::from_json_(filename);
-    auto header = read_info_header(jroot);
-    auto frames = read_all_frames(jroot);
-
-    size_t direction_count = 0;
-    for (const auto& [str, curdir] : wall_atlas::directions)
-        if (jroot.contains(std::string_view{str.data(), str.size()}))
-            direction_count++;
-    fm_soft_assert(direction_count > 0);
-    fm_debug_assert(direction_count <= (size_t)Direction_::COUNT);
-
-    auto directions = Array<Direction>{direction_count};
-    std::array<DirArrayIndex, 4> dir_array_indexes{};
-
-    uint8_t dir_idx = 0;
-    for (const auto& [str, curdir] : wall_atlas::directions)
-    {
-        if (!jroot.contains(std::string_view{str.data(), str.size()}))
-            continue;
-        auto i = (size_t)curdir;
-        fm_debug_assert(dir_idx < direction_count);
-        dir_array_indexes[i] = { .val = dir_idx };
-        directions[dir_idx++] = read_direction_metadata(jroot, curdir);
-    }
-    fm_debug_assert(dir_idx == direction_count);
-
-    auto atlas = std::make_shared<class wall_atlas>();
+    auto atlas = std::make_shared<class wall_atlas>(std::move(def), path, tex);
     return atlas;
 }
 
@@ -69,7 +42,7 @@ const wall_info& loader_impl::wall_atlas(StringView name, StringView dir)
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
     {
-        const_cast<wall_info*>(it->second)->atlas = get_wall_atlas(path);
+        const_cast<wall_info*>(it->second)->atlas = get_wall_atlas(it->second->name, path);
     }
     return *it->second;
 }

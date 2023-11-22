@@ -51,7 +51,7 @@ struct loader_impl final : loader_
     const wall_info& wall_atlas(StringView name, StringView dir) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
-    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView pathname);
+    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name, StringView path);
 
     // >-----> tile >----->
     tsl::robin_map<StringView, std::shared_ptr<class tile_atlas>> tile_atlas_map;
