@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/defs.hpp"
+#include "compat/strerror.hpp"
 #include <cstring>
 #include <cstdio>
 #include <Corrade/Containers/StringStlView.h>
@@ -46,7 +47,8 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     }
     const auto path = Path::currentDirectory();
     buf[len] = '\0';
-    fm_throw("can't open image '{}' (cwd '{}')"_cf, buf, path ? StringView{*path} : "(null)"_s);
+    char errbuf[128];
+    fm_throw("can't open image '{}' (cwd '{}'): {}"_cf, buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
 }
 
 } // namespace floormat::loader_detail

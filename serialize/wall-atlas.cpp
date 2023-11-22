@@ -89,8 +89,7 @@ void wall_atlas_def::serialize(StringView filename) const
 
 void wall_atlas::serialize(StringView filename) const
 {
-    return wall_atlas_def::serialize(filename, _info, _frame_array,
-                                     _dir_array, _direction_map);
+    return wall_atlas_def::serialize(filename, _info, _frame_array, _dir_array, _direction_map);
 }
 
 } // namespace floormat
@@ -105,7 +104,7 @@ uint8_t direction_index_from_name(StringView s)
         else
             i++;
 
-    fm_throw("bad rotation name '{}'"_cf, fmt::string_view{s.data(), s.size()});
+    fm_throw("bad rotation name '{}'"_cf, s);
 }
 
 StringView direction_index_to_name(size_t i)

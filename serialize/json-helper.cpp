@@ -1,47 +1,54 @@
 #include "json-helper.hpp"
 #include "compat/exception.hpp"
-#include <cerrno>
-#include <cstring>
+#include "compat/strerror.hpp"
+#include <concepts>
 #include <fstream>
 #include <Corrade/Containers/StringStlView.h>
 
 namespace floormat {
 
-template<typename T, std::ios_base::openmode mode>
-static T open_stream(StringView filename)
+namespace {
+
+template<std::derived_from<std::basic_ios<char>> T, std::ios_base::openmode mode>
+T open_stream(StringView filename)
 {
     T s;
-    s.exceptions(std::ios_base::failbit | std::ios_base::badbit);
+    errno = 0;
     s.open(filename.data(), mode);
-    if (!s)
+    if (!s.good())
     {
+        const auto mode_str = (mode & std::ios_base::out) == std::ios_base::out ? "writing"_s : "reading"_s;
         char errbuf[128];
-        constexpr auto get_error_string = []<size_t N> (char (&buf)[N])
-        {
-            buf[0] = '\0';
-#ifndef _WIN32
-            (void)::strerror_r(errno, buf, std::size(buf));
-#else
-            (void)::strerror_s(buf, std::size(buf), errno);
-#endif
-        };
-        const char* mode_str = (mode & std::ios_base::out) == std::ios_base::out ? "writing" : "reading";
-        (void)get_error_string(errbuf);
-        fm_throw("can't open file '{}' for {}: {}"_cf, filename, mode_str, errbuf);
+        fm_throw("can't open file '{}' for {}: {}"_cf, filename, mode_str, get_error_string(errbuf));
     }
     return s;
 }
 
+} // namespace
+
 auto json_helper::from_json_(StringView filename) noexcept(false) -> json
 {
     json j;
-    open_stream<std::ifstream, std::ios_base::in>(filename) >> j;
+    auto s = open_stream<std::ifstream, std::ios_base::in>(filename);
+    s >> j;
+    if (s.bad() || !s.eof() && s.fail())
+    {
+        char errbuf[128];
+        fm_throw("input/output error while {} '{}': {}"_cf, filename, "reading"_s, get_error_string(errbuf));
+    }
     return j;
 }
 
 void json_helper::to_json_(const json& j, StringView filename) noexcept(false)
 {
-    (open_stream<std::ofstream, std::ios_base::out>(filename) << j.dump(2, ' ') << '\n').flush();
+    auto s = open_stream<std::ofstream, std::ios_base::out>(filename);
+    s << j.dump(2, ' ') << "\n";
+    s.flush();
+    if (!s.good())
+    {
+        char errbuf[128];
+        fm_throw("input/output error while {} '{}': {}"_cf, filename, "writing"_s, get_error_string(errbuf));
+    }
 }
 
 } // namespace floormat

@@ -38,7 +38,7 @@ const wall_info& loader_impl::wall_atlas(StringView name, StringView dir)
 
     auto it = wall_atlas_map.find(path);
     if (it == wall_atlas_map.end())
-        fm_throw("no such wall atlas '{}'"_cf, fmt::string_view{path.data(), path.size()});
+        fm_throw("no such wall atlas '{}'"_cf, path);
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
     {

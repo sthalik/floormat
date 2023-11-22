@@ -10,6 +10,7 @@
 #include "src/tile-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/chunk-scenery.hpp"
+#include "compat/strerror.hpp"
 #include <cstring>
 #include <memory>
 
@@ -469,15 +470,6 @@ namespace floormat {
 world world::deserialize(StringView filename)
 {
     char errbuf[128];
-    constexpr auto get_error_string = []<size_t N> (char (&buf)[N]) -> const char* {
-        buf[0] = '\0';
-#ifndef _WIN32
-        (void)::strerror_r(errno, buf, std::size(buf));
-#else
-        (void)::strerror_s(buf, std::size(buf), errno);
-#endif
-        return buf;
-    };
     fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)

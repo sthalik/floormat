@@ -13,6 +13,7 @@
 #include "loader/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/light.hpp"
+#include "compat/strerror.hpp"
 #include <concepts>
 #include <cstring>
 #include <vector>
@@ -624,27 +625,18 @@ void world::serialize(StringView filename)
 {
     collect(true);
     char errbuf[128];
-    constexpr auto get_error_string = []<size_t N> (char (&buf)[N]) -> const char* {
-        buf[0] = '\0';
-#ifndef _WIN32
-        (void)::strerror_r(errno, buf, std::size(buf));
-#else
-        (void)::strerror_s(buf, std::size(buf), errno);
-#endif
-        return buf;
-    };
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
     FILE_raii file = ::fopen(filename.data(), "wb");
     if (!file)
-        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf));
+        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf).data());
     writer_state s{*this};
     const auto array = s.serialize_world();
     if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
-        fm_abort("fwrite: %s", get_error_string(errbuf));
+        fm_abort("fwrite: %s", get_error_string(errbuf).data());
     if (int ret = ::fflush(file); ret != 0)
-        fm_abort("fflush: %s", get_error_string(errbuf));
+        fm_abort("fflush: %s", get_error_string(errbuf).data());
 }
 
 } // namespace floormat
