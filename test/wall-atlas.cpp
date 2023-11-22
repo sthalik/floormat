@@ -104,6 +104,11 @@ void test_read_groups(StringView filename)
     return atlas;
 }
 
+void test_expected_size()
+{
+    fm_assert_equal(Vector2i{64, 192}, wall_atlas::expected_size(42, Tag::wall));
+}
+
 } // namespace
 
 } // namespace floormat::Wall::detail
@@ -111,18 +116,25 @@ void test_read_groups(StringView filename)
 void floormat::test_app::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
-    constexpr auto S_01_header_json = "wall-atlas-01_header.json"_s,
-                   S_02_groups_json = "wall-atlas-02_groups.json"_s;
 
-    test_read_header(S_01_header_json);
-
-    { test_read_header(S_02_groups_json);
-      test_read_groups(S_02_groups_json);
+    {
+        test_expected_size();
     }
 
-    { auto a = read_and_check(Path::join(json_path(), S_02_groups_json));
-      a.serialize(temp_filename());
-      auto b = read_and_check(temp_filename());
-      fm_assert(a == b);
+    {
+        constexpr auto S_01_header_json = "wall-atlas-01_header.json"_s,
+                       S_02_groups_json = "wall-atlas-02_groups.json"_s;
+
+        test_read_header(S_01_header_json);
+
+        { test_read_header(S_02_groups_json);
+          test_read_groups(S_02_groups_json);
+        }
+
+        { auto a = read_and_check(Path::join(json_path(), S_02_groups_json));
+          a.serialize(temp_filename());
+          auto b = read_and_check(temp_filename());
+          fm_assert(a == b);
+        }
     }
 }
