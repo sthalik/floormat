@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "scenery.hpp"
+#include "rotation.hpp"
 #include "anim.hpp"
 #include <array>
 #include <Corrade/Containers/BitArray.h>

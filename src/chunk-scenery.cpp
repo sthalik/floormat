@@ -2,6 +2,7 @@
 #include "shaders/shader.hpp"
 #include "object.hpp"
 #include "anim-atlas.hpp"
+#include "scenery.hpp"
 #include "quads.hpp"
 #include <bit>
 #include <Corrade/Containers/ArrayViewStl.h>

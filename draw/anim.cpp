@@ -4,6 +4,7 @@
 #include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "src/chunk-scenery.hpp"
+#include "src/scenery.hpp"
 #include <cstdio>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
