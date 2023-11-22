@@ -15,6 +15,7 @@ void test_app::test_loader()
     loader.sceneries();
     for (StringView name : loader.anim_atlas_list())
         loader.anim_atlas(name);
+    (void)loader.wall_atlas_list();
 #if 0
     for (const auto& info : loader.wall_atlas_list())
         (void)loader.wall_atlas(info.name);
