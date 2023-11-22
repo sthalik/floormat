@@ -8,10 +8,6 @@
 
 namespace floormat {
 
-namespace Wall {
-
-} // namespace Wall
-
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
