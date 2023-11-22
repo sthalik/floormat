@@ -97,8 +97,8 @@
                         << "fatal:"                                     \
                         << Debug::resetColor                            \
                         << " assertion failed: " << #__VA_ARGS__;       \
-            DBG_nospace << "    expected: " << b;                       \
-            DBG_nospace << "      actual: " << a;                       \
+            DBG_nospace << "    expected: " << a;                       \
+            DBG_nospace << "      actual: " << b;                       \
             fm_EMIT_ABORT();                                            \
         }                                                               \
     })(__VA_ARGS__)
