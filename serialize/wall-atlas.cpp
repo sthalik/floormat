@@ -6,7 +6,6 @@
 #include "loader/loader.hpp"
 #include "pass-mode.hpp"
 #include "json-helper.hpp"
-#include "magnum-color.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/PairStl.h>
