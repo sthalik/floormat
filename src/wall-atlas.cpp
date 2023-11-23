@@ -22,8 +22,8 @@ void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(
     for (const auto& frame : a.raw_frame_array())
     {
         fm_soft_assert(frame.offset < Vector2ui{(unsigned)width, (unsigned)height});
-        fm_soft_assert(frame.offset.y() + iTILE_SIZE.z() <= height);
-        fm_soft_assert(frame.offset.x() < iTILE_SIZE2.x());
+        fm_soft_assert((int)frame.offset.y() + iTILE_SIZE.z() <= (int)height);
+        fm_soft_assert((int)frame.offset.x() < iTILE_SIZE2.x());
         // todo check frame offset + size based on wall_atlas::expected_size()
     }
 
