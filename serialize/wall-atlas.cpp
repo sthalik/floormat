@@ -1,6 +1,5 @@
 #include "wall-atlas.hpp"
 #include "magnum-vector.hpp"
-#include "magnum-color.hpp"
 #include "corrade-string.hpp"
 #include "compat/exception.hpp"
 #include "loader/loader.hpp"

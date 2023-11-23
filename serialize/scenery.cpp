@@ -6,7 +6,7 @@
 #include "serialize/corrade-string.hpp"
 #include "loader/scenery.hpp"
 #include "serialize/pass-mode.hpp"
-#include "serialize/magnum-vector2i.hpp"
+#include "serialize/magnum-vector.hpp"
 #include <Corrade/Containers/StringStlView.h>
 #include <nlohmann/json.hpp>
 

@@ -4,7 +4,7 @@
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "loader/loader.hpp"
-#include "serialize/magnum-vector2i.hpp"
+#include "serialize/magnum-vector.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 

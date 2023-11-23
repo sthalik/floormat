@@ -1,5 +1,4 @@
 #include "serialize/magnum-vector.hpp"
-#include "serialize/magnum-vector2i.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"

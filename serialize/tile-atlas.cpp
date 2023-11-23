@@ -1,7 +1,7 @@
 #include "src/tile-atlas.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "serialize/corrade-string.hpp"
-#include "serialize/magnum-vector2i.hpp"
+#include "serialize/magnum-vector.hpp"
 #include "loader/loader.hpp"
 #include "serialize/pass-mode.hpp"
 #include "compat/exception.hpp"

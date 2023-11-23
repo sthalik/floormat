@@ -37,6 +37,7 @@ struct vec_serializer
         using nlohmann::to_json;
         to_json(j, array);
     }
+
     static void from_json(const json& j, Math::Vector<N, T>& val)
     {
         std::array<T, N> array{};
