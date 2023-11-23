@@ -3,7 +3,8 @@
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
 #include <array>
-#include <Corrade/Containers/Array.h>
+#include <bitset>
+#include <vector>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
@@ -36,14 +37,14 @@ struct Group
     bool operator==(const Group&) const noexcept;
 };
 
-enum class Tag : uint8_t { wall, overlay, side, top, corner_L, corner_R, COUNT };
+enum class Group_ : uint8_t { wall, overlay, side, top, corner_L, corner_R, COUNT };
 
 enum class Direction_ : uint8_t { N, E, S, W, COUNT };
 
 struct Direction
 {
     using memfn_ptr = Group Direction::*;
-    struct member_tuple { StringView str; memfn_ptr member; Tag tag; };
+    struct member_tuple { StringView str; memfn_ptr member; Group_ tag; };
 
     explicit operator bool() const noexcept { return !is_empty(); }
     bool is_empty() const noexcept;
@@ -52,15 +53,20 @@ struct Direction
     Group corner_L, corner_R;
     pass_mode passability = pass_mode::blocked;
 
+    const Group& group(Group_ i) const;
+    const Group& group(size_t i) const;
+    Group& group(Group_ i);
+    Group& group(size_t i);
+
     static constexpr inline member_tuple groups[] = {
-        { "wall"_s,     &Direction::wall,     Tag::wall      },
-        { "overlay"_s,  &Direction::overlay,  Tag::overlay   },
-        { "side"_s,     &Direction::side,     Tag::side      },
-        { "top"_s,      &Direction::top,      Tag::top       },
-        { "corner-L"_s, &Direction::corner_L, Tag::corner_L, },
-        { "corner-R"_s, &Direction::corner_R, Tag::corner_R, },
+        { "wall"_s,     &Direction::wall,     Group_::wall      },
+        { "overlay"_s,  &Direction::overlay,  Group_::overlay   },
+        { "side"_s,     &Direction::side,     Group_::side      },
+        { "top"_s,      &Direction::top,      Group_::top       },
+        { "corner-L"_s, &Direction::corner_L, Group_::corner_L, },
+        { "corner-R"_s, &Direction::corner_R, Group_::corner_R, },
     };
-    static_assert(arraySize(groups) == (size_t)Tag::COUNT);
+    static_assert(std::size(groups) == (size_t)Group_::COUNT);
 
     bool operator==(const Direction&) const noexcept;
 };
@@ -96,9 +102,10 @@ public:
     bool operator==(const wall_atlas_def&) const noexcept;
 
     Info header;
-    Array<Frame> frames;
-    Array<Direction> direction_array;
+    std::vector<Frame> frames;
+    std::vector<Direction> direction_array;
     std::array<DirArrayIndex, 4> direction_map;
+    std::bitset<(size_t)Wall::Direction_::COUNT> direction_mask{0};
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
@@ -113,11 +120,11 @@ class wall_atlas final
     using Direction_ = Wall::Direction_;
     using Direction = Wall::Direction;
     using Info = Wall::Info;
-    using Tag = Wall::Tag;
+    using Group_ = Wall::Group_;
     using DirArrayIndex = Wall::DirArrayIndex;
 
-    Array<Direction> _dir_array;
-    Array<Frame> _frame_array;
+    std::vector<Direction> _dir_array;
+    std::vector<Frame> _frame_array;
     Info _info;
     String _path;
     GL::Texture2D _texture{NoCreate};
@@ -132,9 +139,11 @@ public:
     wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);
     void serialize(StringView filename) const;
 
-    const Group* group(size_t dir, Tag tag) const;
-    const Group* group(const Direction& dir, Tag tag) const;
-    const Group* group(const Direction* dir, Tag tag) const;
+    const Group* group(Direction_ d, Group_ tag) const;
+    const Group* group(size_t dir, size_t group) const;
+    const Group* group(size_t dir, Group_ tag) const;
+    const Group* group(const Direction& dir, Group_ tag) const;
+    const Group* group(const Direction* dir, Group_ tag) const;
     const Direction* direction(size_t dir) const;
     uint8_t direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
@@ -147,8 +156,8 @@ public:
     GL::Texture2D& texture();
 
     static size_t enum_to_index(enum rotation x);
-    static void validate(const wall_atlas& a, const ImageView2D& img) noexcept(false);
-    static Vector2i expected_size(int depth, Tag group);
+    //static void validate(const wall_atlas& a, const ImageView2D& img) noexcept(false);
+    static Vector2i expected_size(unsigned depth, Group_ group);
 
     struct dir_tuple
     {

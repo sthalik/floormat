@@ -7,6 +7,7 @@
 #include "json-helper.hpp"
 #include <utility>
 #include <string_view>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/StringStl.h>
 #include <Magnum/ImageView.h>
@@ -55,10 +56,11 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     fm_soft_assert(loader.check_atlas_name(atlas.header.name));
     atlas.frames = read_all_frames(jroot);
     auto [dirs, dir_indexes] = read_all_directions(jroot);
-    fm_soft_assert(!dirs.isEmpty());
+    fm_soft_assert(!dirs.empty());
     fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, 4>{});
     atlas.direction_array = std::move(dirs);
     atlas.direction_map = dir_indexes;
+    atlas.direction_mask = get_existing_directions(jroot);
 
     return atlas;
 }
@@ -113,16 +115,16 @@ StringView direction_index_to_name(size_t i)
     return wall_atlas::directions[i].name;
 }
 
-Array<Frame> read_all_frames(const json& jroot)
+std::vector<Frame> read_all_frames(const json& jroot)
 {
     fm_assert(jroot.contains("frames"));
 
-    Array<Frame> frames;
+    std::vector<Frame> frames;
     const auto& jframes = jroot["frames"];
 
     fm_assert(jframes.is_array());
     const auto sz = jframes.size();
-    frames = Array<Frame>{sz};
+    frames = std::vector<Frame>{sz};
 
     for (auto i = 0uz; i < sz; i++)
     {
@@ -199,13 +201,22 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
     return val;
 }
 
-Pair<Array<Direction>, std::array<DirArrayIndex, 4>> read_all_directions(const json& jroot)
+[[nodiscard]] std::bitset<(size_t)Direction_::COUNT> get_existing_directions(const json& jroot)
+{
+    std::bitset<(size_t)Direction_::COUNT> array{0};
+    for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
+        if (jroot.contains(str))
+            array[i] = true;
+    return array;
+}
+
+Pair<std::vector<Direction>, std::array<DirArrayIndex, 4>> read_all_directions(const json& jroot)
 {
     size_t count = 0;
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
-    Array<Direction> array{count};
+    std::vector<Direction> array{count};
     std::array<DirArrayIndex, 4> map = {};
     for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
         if (jroot.contains(str))

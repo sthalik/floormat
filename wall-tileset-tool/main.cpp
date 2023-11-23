@@ -7,13 +7,14 @@
 #include "loader/loader.hpp"
 #include <utility>
 #include <tuple>
-#include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
 #include <Corrade/Containers/TripleStl.h>
 #include <Corrade/Utility/Path.h>
+#include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Arguments.h>
-#include <nlohmann/json.hpp>
+#include <Magnum/Math/Functions.h>
+//#include <nlohmann/json.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
@@ -22,6 +23,7 @@ namespace floormat {
 
 using Corrade::Utility::Arguments;
 using namespace std::string_literals;
+using namespace floormat::Wall;
 
 namespace {
 
@@ -53,6 +55,60 @@ inline String fixsep(String str)
     return str;
 }
 
+#if 0
+bool make_buffer(cv::Mat4b& buf, const wall_atlas& a, Direction_ dir, Group_ group)
+{
+    if (const auto* p = a.group(dir, group))
+    {
+        auto size = a.expected_size(a.info().depth, group);
+        fm_assert(size >= Vector2i{0} && size < Vector2i{1<<16});
+        if (buf.cols < size.x() || buf.rows < size.y())
+        {
+            auto size_ = Vector2i{std::max(size.x(), buf.cols), std::max(size.y(), buf.rows)};
+            buf.create(cv::Size{size_.x(), size_.y()});
+            fm_debug_assert(size_ >= Vector2i{0} && size_ < Vector2i{1<<16});
+            fm_debug_assert(Vector2i{buf.cols, buf.rows} >= size);
+        }
+        return true;
+    }
+    return false;
+}
+#endif
+
+Vector2i get_buffer_size(const wall_atlas_def& a)
+{
+    Vector2i size;
+
+    for (auto i = 0uz; i < (size_t)Direction_::COUNT; i++)
+    {
+        auto idx = a.direction_map[i];
+        if (!idx)
+            continue;
+        const auto& dir = a.direction_array[idx.val];
+        for (auto j = 0uz; j < (size_t)Group_::COUNT; j++)
+        {
+            const auto& group = (dir.*(Direction::groups[j].member));
+            if (group.is_empty())
+                continue;
+            auto val = wall_atlas::expected_size(a.header.depth, (Group_)j);
+            size = Math::max(size, val);
+        }
+    }
+
+    if (!(size > Vector2i{0}))
+        fm_abort("fatal: atlas '%s' has no defined groups", a.header.name.data());
+
+    return size;
+}
+
+struct state
+{
+    options opts;
+    cv::Mat4b buffer;
+    const wall_atlas_def atlas;
+    wall_atlas_def new_atlas = atlas;
+};
+
 Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
@@ -75,7 +131,12 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     else if (Path::isDirectory(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' is a directory";
     else
+    {
+        fm_assert(opts.output_dir);
+        fm_assert(opts.input_file);
+        fm_assert(opts.input_dir);
         return { std::move(opts), std::move(args), true };
+    }
 
     return {};
 }
@@ -96,6 +157,13 @@ int main(int argc, char** argv)
 {
     argv[0] = fix_argv0(argv[0]);
     auto [opts, args, opts_ok] = parse_cmdline(argc, argv);
+    auto a = wall_atlas_def::deserialize(opts.input_file);
+    auto buf_size = get_buffer_size(a);
+    auto st = state {
+        .opts = std::move(opts),
+        .buffer = cv::Mat4b{cv::Size{buf_size.x(), buf_size.y()}},
+        .atlas = std::move(a)
+    };
 
     return 0;
 }

@@ -2,6 +2,7 @@
 #include "compat/exception.hpp"
 #include "src/tile-defs.hpp"
 #include <utility>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
@@ -11,8 +12,11 @@ namespace floormat {
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
+#if 0
 void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(false)
 {
+    // todo
+
     const auto pixels = img.pixels();
     const auto size   = pixels.size();
     const auto width = size[1], height = size[0];
@@ -48,13 +52,17 @@ void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(
     }
     fm_soft_assert(got_group);
 }
+#endif
 
-Vector2i wall_atlas::expected_size(int depth, Tag group)
+Vector2i wall_atlas::expected_size(unsigned depth, Group_ group)
 {
     static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
     constexpr int half_tile = iTILE_SIZE2.x()/2;
-    CORRADE_ASSUME(group < Tag::COUNT);
-    using enum Tag;
+
+    fm_assert(depth > 0 && depth < 1<<16);
+    CORRADE_ASSUME(group < Group_::COUNT);
+
+    using enum Group_;
     switch (group)
     {
     case overlay:
@@ -62,7 +70,7 @@ Vector2i wall_atlas::expected_size(int depth, Tag group)
         return { iTILE_SIZE.x(), iTILE_SIZE.z() };
     case top:
     case side:
-        return { depth, iTILE_SIZE.z() };
+        return { (int)depth, iTILE_SIZE.z() };
     case corner_L:
         return { half_tile, iTILE_SIZE.z() };
     case corner_R:
@@ -93,7 +101,7 @@ auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
     constexpr DirArrayIndex default_DAI;
     fm_debug_assert(num < Direction_::COUNT);
 
-    if (_dir_array.isEmpty()) [[unlikely]]
+    if (_dir_array.empty()) [[unlikely]]
         return {};
     else if (auto DAI = _direction_map[(uint8_t)num]; DAI != default_DAI) [[likely]]
         return const_cast<Direction*>(&_dir_array[DAI.val]);
@@ -103,7 +111,7 @@ auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
 
 auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
 {
-    if (_frame_array.isEmpty()) [[unlikely]]
+    if (_frame_array.empty()) [[unlikely]]
         return {};
     const auto size = _frame_array.size(); (void)size;
     const auto index = group.index, count = group.count;
@@ -111,9 +119,12 @@ auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
     return { &_frame_array[index], count };
 }
 
-auto wall_atlas::group(size_t dir, Tag tag) const -> const Group*
+auto wall_atlas::group(Direction_ d, Group_ tag) const -> const Group* { return group((size_t)d, tag); }
+auto wall_atlas::group(size_t d, size_t tag) const -> const Group* { return group(d, (Group_)tag); }
+
+auto wall_atlas::group(size_t dir, Group_ tag) const -> const Group*
 {
-    fm_assert(tag < Tag::COUNT);
+    fm_assert(tag < Group_::COUNT);
     const auto* const set_ = direction(dir);
     if (!set_)
         return {};
@@ -126,9 +137,9 @@ auto wall_atlas::group(size_t dir, Tag tag) const -> const Group*
     return &ret;
 }
 
-auto wall_atlas::group(const Direction& dir, Tag tag) const -> const Group*
+auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
 {
-    fm_assert(tag < Tag::COUNT);
+    fm_assert(tag < Group_::COUNT);
     const auto memfn = dir.groups[(size_t)tag].member;
     const Group& ret = dir.*memfn;
     if (ret.is_empty())
@@ -136,7 +147,7 @@ auto wall_atlas::group(const Direction& dir, Tag tag) const -> const Group*
     return &ret;
 }
 
-auto wall_atlas::group(const Direction* dir, Tag tag) const -> const Group*
+auto wall_atlas::group(const Direction* dir, Group_ tag) const -> const Group*
 {
     fm_debug_assert(dir != nullptr);
     return group(*dir, tag);
@@ -171,6 +182,17 @@ bool Direction::is_empty() const noexcept
         if (const auto& val = this->*member; !val.is_empty())
             return false;
     return true;
+}
+
+const Group& Direction::group(Group_ i) const { return const_cast<Direction&>(*this).group((size_t)i); }
+const Group& Direction::group(size_t i) const { return const_cast<Direction&>(*this).group(i); }
+Group& Direction::group(Group_ i) { return group((size_t)i); }
+
+Group& Direction::group(size_t i)
+{
+    fm_assert(i < (size_t)Group_::COUNT);
+    auto ptr = groups[i].member;
+    return this->*ptr;
 }
 
 bool Frame::operator==(const Frame&) const noexcept = default;

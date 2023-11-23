@@ -91,7 +91,7 @@ void test_read_groups(StringView filename)
     constexpr Frame frame_defaults;
     constexpr Group group_defaults;
 
-    fm_assert(!atlas.frames.isEmpty());
+    fm_assert(!atlas.frames.empty());
     fm_assert(atlas.frames[0].offset != frame_defaults.offset);
     auto dir_index = atlas.direction_map[(size_t)Direction_::W];
     fm_assert(dir_index);
@@ -106,12 +106,12 @@ void test_read_groups(StringView filename)
 
 void test_expected_size()
 {
-    fm_assert_equal(Vector2i{64, 192}, wall_atlas::expected_size(42, Tag::wall));
-    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Tag::side));
-    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Tag::corner_L));
-    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Tag::corner_R));
+    fm_assert_equal(Vector2i{64, 192}, wall_atlas::expected_size(42, Group_::wall));
+    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Group_::side));
+    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Group_::corner_L));
+    fm_assert_equal(Vector2i{32, 192}, wall_atlas::expected_size(42, Group_::corner_R));
     // swapped in atlas.json during reading and writing, rotated counter-clockwise in atlas image file
-    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Tag::top));
+    fm_assert_equal(Vector2i{42, 192}, wall_atlas::expected_size(42, Group_::top));
 }
 
 } // namespace
