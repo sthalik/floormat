@@ -74,7 +74,7 @@ struct Info
 };
 
 struct DirArrayIndex {
-    std::uint8_t val = (uint8_t)-1;
+    uint8_t val = (uint8_t)-1;
     operator bool() const { return val != (uint8_t)-1; }
 
     bool operator==(const DirArrayIndex&) const noexcept;
