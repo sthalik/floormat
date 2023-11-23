@@ -6,6 +6,7 @@
 #include "loader/loader.hpp"
 #include "pass-mode.hpp"
 #include "json-helper.hpp"
+#include "magnum-color.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/PairStl.h>
@@ -159,9 +160,9 @@ Group read_group_metadata(const json& jgroup)
     if (jgroup.contains("pixel-size"))
         val.pixel_size = jgroup["pixel-size"];
     if (jgroup.contains("tint-mult"))
-        val.tint_mult = static_cast<Vector4>(jgroup["tint-mult"]);
+        val.tint_mult = jgroup["tint-mult"];
     if (jgroup.contains("tint-add"))
-        val.tint_add = static_cast<Vector3>(jgroup["tint-add"]);
+        val.tint_add = jgroup["tint-add"];
     if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"] });
     if (jgroup.contains("mirrored"))
@@ -250,8 +251,8 @@ void write_group_metadata(json& jgroup, const Group& val)
 
     jgroup["count"] = val.count;
     jgroup["pixel-size"] = val.pixel_size;
-    jgroup["tint-mult"] = static_cast<Vector4>(val.tint_mult);
-    jgroup["tint-add"] = static_cast<Vector3>(val.tint_add);
+    jgroup["tint-mult"] = val.tint_mult;
+    jgroup["tint-add"] = val.tint_add;
     if (val.from_rotation != group_defaults.from_rotation)
         jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
     else
@@ -272,9 +273,8 @@ void write_direction_metadata(json& jdir, const Direction& dir)
     }
     if (jdir.contains("top"))
     {
-        auto& top = jdir["top"];
-        if (top.contains("pixel-size"))
-            top["pixel-size"] = Vector2i{top["pixel-size"]}.flipped();
+        json& top = jdir["top"];
+        top["pixel-size"] = Math::Vector<2, Int>(top["pixel-size"]).flipped();
     }
 }
 
