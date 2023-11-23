@@ -3,6 +3,7 @@
 #include "serialize/corrade-string.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
+#include <nlohmann/json.hpp>
 #include <tuple>
 
 namespace floormat {

@@ -1,7 +1,7 @@
 #include "app.hpp"
+#include "serialize/tile.hpp"
 #include "serialize/tile-atlas.hpp"
 #include "serialize/magnum-vector.hpp"
-#include "serialize/tile.hpp"
 #include "serialize/json-helper.hpp"
 #include "compat/assert.hpp"
 #include "src/tile-atlas.hpp"
