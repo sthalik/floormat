@@ -92,16 +92,16 @@
     {                                                                   \
         if (a != b) [[unlikely]]                                        \
         {                                                               \
-            FATAL_nospace << Debug::color(Debug::Color::Magenta)        \
-                          << "fatal:"                                   \
-                          << Debug::resetColor << " "                   \
-                          << "Equality assertion failed at "            \
-                          << __FILE__ << ":" << __LINE__;               \
-            FATAL_nospace << #__VA_ARGS__;                              \
-            FATAL_nospace << "    expected: " << a;                     \
-            FATAL_nospace << "      actual: " << b;                     \
-            fm_EMIT_ABORT();                                            \
-        }                                                               \
+            WARN_nospace << Debug::color(Debug::Color::Magenta)        \
+                         << "fatal:"                                   \
+                         << Debug::resetColor << " "                   \
+                         << "Equality assertion failed at "            \
+                         << __FILE__ << ":" << __LINE__;               \
+            WARN_nospace << #__VA_ARGS__;                              \
+            WARN_nospace << "    expected: " << a;                     \
+            WARN_nospace << "      actual: " << b;                     \
+            fm_EMIT_ABORT();                                           \
+        }                                                              \
     })(__VA_ARGS__)
 
 #ifdef __GNUG__

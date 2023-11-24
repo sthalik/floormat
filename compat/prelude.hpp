@@ -6,14 +6,12 @@
 #include <Magnum/Magnum.h>
 
 #define DBG_nospace (::Corrade::Utility::Debug{::Corrade::Utility::Debug::Flag::NoSpace})
-#define WARNING_nospace (::Corrade::Utility::Warning{::Corrade::Utility::Debug::Flag::NoSpace})
-#define ERROR_nospace (::Corrade::Utility::Error{::Corrade::Utility::Debug::Flag::NoSpace})
-#define FATAL_nospace (::Corrade::Utility::Fatal{::Corrade::Utility::Debug::Flag::NoSpace})
+#define WARN_nospace (::Corrade::Utility::Warning{::Corrade::Utility::Debug::Flag::NoSpace})
+#define ERR_nospace (::Corrade::Utility::Error{::Corrade::Utility::Debug::Flag::NoSpace})
 
 #define DBG (::Corrade::Utility::Debug{})
-#define WARNING (::Corrade::Utility::Warning{})
-#define ERROR (::Corrade::Utility::Error{})
-#define FATAL (::Corrade::Utility::Fatal{})
+#define WARN (::Corrade::Utility::Warning{})
+#define ERR (::Corrade::Utility::Error{})
 
 #if !(defined __cpp_size_t_suffix || defined _MSC_VER && _MSVC_LANG < 202004)
 #ifdef _MSC_VER

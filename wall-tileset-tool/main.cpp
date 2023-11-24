@@ -77,15 +77,14 @@ bool do_direction(state& st, Direction_ i)
     {
         char errbuf[128];
         auto error = get_error_string(errbuf);
-        Fatal{Fatal::Flag::NoSpace} << "fatal: direction '" << name
-                                    << "' has missing directory '" << dir
-                                    << "': " << error;
+        WARN_nospace << "fatal: direction '" << name
+                     << "' has missing directory '" << dir
+                     << "': " << error;
         return false;
     }
 
     auto dir_count = st.old_atlas.direction_mask.count();
     st.new_atlas.direction_array = std::vector<Direction>{dir_count};
-
 
     return true;
 }
