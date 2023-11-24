@@ -6,15 +6,15 @@ namespace floormat {
 
 namespace {
 
-template<typename T> struct fnvhash_params;
+template<size_t N> struct fnvhash_params;
 
-template<> struct fnvhash_params<uint32_t> { uint32_t a = 0x811c9dc5u, b = 0x01000193u; };
-template<> struct fnvhash_params<uint64_t> { uint64_t a = 0xcbf29ce484222325u, b = 0x100000001b3u; };
+template<> struct fnvhash_params<32> { uint32_t a = 0x811c9dc5u, b = 0x01000193u; };
+template<> struct fnvhash_params<64> { uint64_t a = 0xcbf29ce484222325u, b = 0x100000001b3u; };
 
 [[maybe_unused]]
 CORRADE_ALWAYS_INLINE size_t fnvhash_uint_32(uint32_t x)
 {
-    constexpr auto params = fnvhash_params<std::common_type_t<size_t>>{};
+    constexpr auto params = fnvhash_params<sizeof(size_t)*8>{};
     constexpr auto a = params.a, b = params.b;
     auto hash = a;
     const auto* str = (const char*)&x;
@@ -29,7 +29,7 @@ CORRADE_ALWAYS_INLINE size_t fnvhash_uint_32(uint32_t x)
 
 CORRADE_ALWAYS_INLINE size_t fnvhash_uint_64(uint64_t x)
 {
-    constexpr auto params = fnvhash_params<std::common_type_t<size_t>>{};
+    constexpr auto params = fnvhash_params<sizeof(std::common_type_t<size_t>)*8>{};
     constexpr auto a = params.a, b = params.b;
     auto hash = a;
     const auto* str = (const char*)&x;
@@ -50,7 +50,7 @@ CORRADE_ALWAYS_INLINE size_t fnvhash_uint_64(uint64_t x)
 
 uint32_t hash_32(const void* buf, size_t size) noexcept
 {
-    constexpr auto params = fnvhash_params<std::common_type_t<uint32_t>>{};
+    constexpr auto params = fnvhash_params<32>{};
     constexpr auto a = params.a, b = params.b;
     auto hash = a;
     const auto *str = (const char*)buf, *const end = str + size;
@@ -66,7 +66,7 @@ fm_UNROLL_4
 
 uint64_t hash_64(const void* buf, size_t size) noexcept
 {
-    constexpr auto params = fnvhash_params<std::common_type_t<size_t>>{};
+    constexpr auto params = fnvhash_params<sizeof(size_t)*8>{};
     constexpr auto a = params.a, b = params.b;
     auto hash = a;
     const auto *str = (const char*)buf, *const end = str + size;
