@@ -18,6 +18,7 @@
 
 namespace floormat {
 
+using namespace floormat::Wall;
 using namespace floormat::Wall::detail;
 
 bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
@@ -57,7 +58,7 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     atlas.frames = read_all_frames(jroot);
     auto [dirs, dir_indexes] = read_all_directions(jroot);
     fm_soft_assert(!dirs.empty());
-    fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, 4>{});
+    fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, Direction_COUNT>{});
     atlas.direction_array = std::move(dirs);
     atlas.direction_map = dir_indexes;
     atlas.direction_mask = get_existing_directions(jroot);
@@ -66,7 +67,8 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
 }
 
 void wall_atlas_def::serialize(StringView filename, const Info& header, ArrayView<const Frame> frames,
-                               ArrayView<const Direction> dir_array, std::array<DirArrayIndex, 4> dir_map)
+                               ArrayView<const Direction> dir_array,
+                               std::array<DirArrayIndex, Direction_COUNT> dir_map)
 {
     auto jroot = json{};
 
@@ -201,23 +203,23 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
     return val;
 }
 
-[[nodiscard]] std::bitset<(size_t)Direction_::COUNT> get_existing_directions(const json& jroot)
+[[nodiscard]] std::bitset<Direction_COUNT> get_existing_directions(const json& jroot)
 {
-    std::bitset<(size_t)Direction_::COUNT> array{0};
+    std::bitset<Direction_COUNT> array{0};
     for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
         if (jroot.contains(str))
             array[i] = true;
     return array;
 }
 
-Pair<std::vector<Direction>, std::array<DirArrayIndex, 4>> read_all_directions(const json& jroot)
+Pair<std::vector<Direction>, std::array<DirArrayIndex, Direction_COUNT>> read_all_directions(const json& jroot)
 {
     size_t count = 0;
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
     std::vector<Direction> array{count};
-    std::array<DirArrayIndex, 4> map = {};
+    std::array<DirArrayIndex, Direction_COUNT> map = {};
     for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
         if (jroot.contains(str))
         {
@@ -283,7 +285,8 @@ void write_direction_metadata(json& jdir, const Direction& dir)
     if (jdir.contains("top"))
     {
         json& top = jdir["top"];
-        top["pixel-size"] = Math::Vector<2, Int>(top["pixel-size"]).flipped();
+        Vector2i vec = top["pixel-size"];
+        top["pixel-size"] = vec.flipped();
     }
 }
 

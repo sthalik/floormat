@@ -90,27 +90,23 @@ struct DirArrayIndex {
 
 namespace floormat {
 
+constexpr inline auto Direction_COUNT = (size_t)Wall::Direction_::COUNT;
+
 struct wall_atlas_def final
 {
-private:
-    using Frame = Wall::Frame;
-    using Direction = Wall::Direction;
-    using Info = Wall::Info;
-    using DirArrayIndex = Wall::DirArrayIndex;
-
-public:
     bool operator==(const wall_atlas_def&) const noexcept;
 
-    Info header;
-    std::vector<Frame> frames;
-    std::vector<Direction> direction_array;
-    std::array<DirArrayIndex, 4> direction_map;
-    std::bitset<(size_t)Wall::Direction_::COUNT> direction_mask{0};
+    Wall::Info header;
+    std::vector<Wall::Frame> frames;
+    std::vector<Wall::Direction> direction_array;
+    std::array<Wall::DirArrayIndex, Direction_COUNT> direction_map;
+    std::bitset<Direction_COUNT> direction_mask{0};
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
-    static void serialize(StringView filename, const Info& header, ArrayView<const Frame> frames,
-                          ArrayView<const Direction> dir_array, std::array<DirArrayIndex, 4> dir_map);
+    static void serialize(StringView filename, const Wall::Info& header, ArrayView<const Wall::Frame> frames,
+                          ArrayView<const Wall::Direction> dir_array,
+                          std::array<Wall::DirArrayIndex, Direction_COUNT> dir_map);
 };
 
 class wall_atlas final

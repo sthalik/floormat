@@ -1,6 +1,7 @@
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
+#include "compat/strerror.hpp"
 #include "src/wall-atlas.hpp"
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
@@ -27,59 +28,11 @@ using namespace floormat::Wall;
 
 namespace {
 
-struct options
-{
-    String input_dir, input_file, output_dir;
-};
-
-std::shared_ptr<wall_atlas> read_from_file(StringView filename)
-{
-    using namespace floormat::Wall::detail;
-    auto def = wall_atlas_def::deserialize(filename);
-
-    const auto jroot = json_helper::from_json_(filename);
-    auto header = read_info_header(jroot);
-    if (!loader.check_atlas_name(header.name))
-        fm_abort("bad atlas name '%s'!", header.name.data());
-
-    return {};
-}
-
-inline String fixsep(String str)
-{
-#ifdef _WIN32
-    for (char& c : str)
-        if (c == '\\')
-            c = '/';
-#endif
-    return str;
-}
-
-#if 0
-bool make_buffer(cv::Mat4b& buf, const wall_atlas& a, Direction_ dir, Group_ group)
-{
-    if (const auto* p = a.group(dir, group))
-    {
-        auto size = a.expected_size(a.info().depth, group);
-        fm_assert(size >= Vector2i{0} && size < Vector2i{1<<16});
-        if (buf.cols < size.x() || buf.rows < size.y())
-        {
-            auto size_ = Vector2i{std::max(size.x(), buf.cols), std::max(size.y(), buf.rows)};
-            buf.create(cv::Size{size_.x(), size_.y()});
-            fm_debug_assert(size_ >= Vector2i{0} && size_ < Vector2i{1<<16});
-            fm_debug_assert(Vector2i{buf.cols, buf.rows} >= size);
-        }
-        return true;
-    }
-    return false;
-}
-#endif
-
 Vector2i get_buffer_size(const wall_atlas_def& a)
 {
     Vector2i size;
 
-    for (auto i = 0uz; i < (size_t)Direction_::COUNT; i++)
+    for (auto i = 0uz; i < Direction_COUNT; i++)
     {
         auto idx = a.direction_map[i];
         if (!idx)
@@ -101,13 +54,72 @@ Vector2i get_buffer_size(const wall_atlas_def& a)
     return size;
 }
 
+struct options
+{
+    String input_dir, input_file, output_dir;
+};
+
 struct state
 {
-    options opts;
-    cv::Mat4b buffer;
-    const wall_atlas_def atlas;
-    wall_atlas_def new_atlas = atlas;
+    options& opts;
+    cv::Mat4b& buffer;
+    const wall_atlas_def& old_atlas;
+    wall_atlas_def& new_atlas;
+    int& error;
 };
+
+bool do_direction(state& st, Direction_ i)
+{
+    const auto& name = wall_atlas::directions[(size_t)i].name;
+    DBG_nospace << "  direction '" << name << "'";
+    auto dir = Path::join(st.opts.input_dir, name);
+    if (!Path::isDirectory(dir))
+    {
+        char errbuf[128];
+        auto error = get_error_string(errbuf);
+        Fatal{Fatal::Flag::NoSpace} << "fatal: direction '" << name
+                                    << "' has missing directory '" << dir
+                                    << "': " << error;
+        return false;
+    }
+
+    auto dir_count = st.old_atlas.direction_mask.count();
+    st.new_atlas.direction_array = std::vector<Direction>{dir_count};
+
+
+    return true;
+}
+
+bool do_input_file(state& st)
+{
+    DBG_nospace << "input-file '" << st.old_atlas.header.name << "'";
+
+    fm_assert(!st.buffer.empty());
+    fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
+    fm_assert(st.old_atlas.direction_mask.any());
+
+    st.new_atlas.header = std::move(const_cast<wall_atlas_def&>(st.old_atlas).header);
+
+    for (auto i = 0uz; i < Direction_COUNT; i++)
+    {
+        if (!st.old_atlas.direction_mask[i])
+            continue;
+        if (!do_direction(st, (Direction_)i))
+            return false;
+    }
+
+    return true;
+}
+
+inline String fixsep(String str)
+{
+#ifdef _WIN32
+    for (char& c : str)
+        if (c == '\\')
+            c = '/';
+#endif
+    return str;
+}
 
 Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
@@ -123,6 +135,9 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
 
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
+
+    DBG_nospace << "input-dir" << opts.input_dir;
+    DBG_nospace << "output-dir" << opts.output_dir;
 
     if (!Path::exists(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";
@@ -141,7 +156,7 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     return {};
 }
 
-[[nodiscard]] static int usage(const Arguments& args) noexcept
+[[nodiscard]] int usage(const Arguments& args) noexcept
 {
     Error{Error::Flag::NoNewlineAtTheEnd} << args.usage();
     return EX_USAGE;
@@ -157,13 +172,27 @@ int main(int argc, char** argv)
 {
     argv[0] = fix_argv0(argv[0]);
     auto [opts, args, opts_ok] = parse_cmdline(argc, argv);
+    if (!opts_ok)
+        return usage(args);
+
     auto a = wall_atlas_def::deserialize(opts.input_file);
     auto buf_size = get_buffer_size(a);
+    auto mat = cv::Mat4b{cv::Size{buf_size.x(), buf_size.y()}};
+    auto new_atlas = wall_atlas_def{};
+    auto error = EX_DATAERR;
+
     auto st = state {
-        .opts = std::move(opts),
-        .buffer = cv::Mat4b{cv::Size{buf_size.x(), buf_size.y()}},
-        .atlas = std::move(a)
+        .opts = opts,
+        .buffer = mat,
+        .old_atlas = a,
+        .new_atlas = new_atlas,
+        .error = error,
     };
+    if (!do_input_file(st))
+    {
+        fm_assert(error);
+        return error;
+    }
 
     return 0;
 }
