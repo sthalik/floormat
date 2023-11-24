@@ -98,14 +98,11 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
 
 auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
 {
-    constexpr DirArrayIndex default_DAI;
     fm_debug_assert(num < Direction_::COUNT);
 
-    if (_dir_array.empty()) [[unlikely]]
-        return {};
-    else if (auto DAI = _direction_map[(uint8_t)num]; DAI != default_DAI) [[likely]]
+    if (auto DAI = _direction_map[(uint8_t)num])
         return const_cast<Direction*>(&_dir_array[DAI.val]);
-    else
+    else [[unlikely]]
         return {};
 }
 
