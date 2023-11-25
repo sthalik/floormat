@@ -25,20 +25,21 @@ namespace {
 
 struct direction_triple
 {
-    std::vector<Direction> dirs;
+    std::vector<Direction> array;
     std::array<DirArrayIndex, Direction_COUNT> map;
     std::bitset<Direction_COUNT> mask;
 };
 
 direction_triple read_all_directions(const json& jroot)
 {
-    std::bitset<Direction_COUNT> mask{0};
     size_t count = 0;
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
-    std::vector<Direction> array{count};
-    std::array<DirArrayIndex, Direction_COUNT> map = {};
+    direction_triple ret = { std::vector<Direction>{count},
+                             std::array<DirArrayIndex, Direction_COUNT>{},
+                             std::bitset<Direction_COUNT>{0}, };
+    auto& [array, map, mask] = ret;
     for (uint8_t i = 0, pos = 0; i < std::size(wall_atlas::directions); i++)
     {
         auto [str, dir] = wall_atlas::directions[i];
@@ -49,7 +50,7 @@ direction_triple read_all_directions(const json& jroot)
             array[pos++] = read_direction_metadata(jroot, dir);
         }
     }
-    return { std::move(array), std::move(map), mask };
+    return ret;
 }
 
 } // namespace
