@@ -21,4 +21,4 @@ else()
 endif()
 
 target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat)
-fm_add_install_executable(${self})
+fm_install_executable(${self})

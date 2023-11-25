@@ -217,7 +217,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
 endif()
 
-function(fm_add_install_executable self)
+function(fm_install_executable self)
     if(NOT MSVC AND NOT APPLE)
         if(CMAKE_RUNTIME_OUTPUT_DIRECTORY STREQUAL "")
             message(FATAL_ERROR "")

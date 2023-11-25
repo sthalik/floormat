@@ -31,4 +31,4 @@ if (FLOORMAT_ASAN)
 endif()
 target_link_libraries(${self} PRIVATE ${self}_o floormat-main floormat-serialize floormat-draw floormat)
 
-fm_add_install_executable(${self})
+fm_install_executable(${self})

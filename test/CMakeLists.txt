@@ -18,7 +18,7 @@ if (FLOORMAT_ASAN)
     set_target_properties(${self} PROPERTIES OUTPUT_NAME "floormat-test-asan")
 endif()
 
-fm_add_install_executable(${self})
+fm_install_executable(${self})
 
 file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat" CONFIGURE_ARGS)
 foreach(file ${files})
