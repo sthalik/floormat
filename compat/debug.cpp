@@ -1,7 +1,21 @@
 #include "debug.hpp"
 #include "compat/strerror.hpp"
+#include <cerrno>
+#include <Corrade/Containers/StringView.h>
+
+// Error{} << "error" << colon() << "can't open file" << colon() << quoted("foo") << error_string(EINVAL);
+// ===> "error: can't open file 'foo': Invalid argument"
 
 namespace floormat::detail::corrade_debug {
+
+Debug& operator<<(Debug& dbg, Colon)
+{
+    auto flags = dbg.flags();
+    dbg.setFlags(flags | Debug::Flag::NoSpace);
+    dbg << ":";
+    dbg.setFlags(flags);
+    return dbg;
+}
 
 Debug& operator<<(Debug& dbg, ErrorString box)
 {
@@ -14,9 +28,7 @@ Debug& operator<<(Debug& dbg, ErrorString box)
     return dbg;
 }
 
-template struct Quoted<StringView>;
-
-Debug::Flags debug1(Debug& dbg, char c)
+Debug::Flags quoted_begin(Debug& dbg, char c)
 {
     auto flags = dbg.flags();
     dbg << "";
@@ -26,7 +38,7 @@ Debug::Flags debug1(Debug& dbg, char c)
     return flags;
 }
 
-Debug& debug2(Debug& dbg, Debug::Flags flags, char c)
+Debug& quoted_end(Debug& dbg, Debug::Flags flags, char c)
 {
     char buf[2] { c, '\0' };
     dbg << buf;
@@ -34,10 +46,16 @@ Debug& debug2(Debug& dbg, Debug::Flags flags, char c)
     return dbg;
 }
 
+template struct Quoted<StringView>;
+
 } // namespace floormat::detail::corrade_debug
 
 namespace floormat {
 
-floormat::detail::corrade_debug::ErrorString error_string(int error) { return { error }; }
+using namespace floormat::detail::corrade_debug;
+
+Colon colon() { return Colon{}; }
+ErrorString error_string(int error) { return { error }; }
+ErrorString error_string() { return { errno }; }
 
 } // namespace floormat

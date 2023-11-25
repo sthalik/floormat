@@ -1,6 +1,7 @@
 #include "strerror.hpp"
 #include <cerrno>
 #include <string.h>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 
@@ -19,7 +20,6 @@ StringView get_error_string(ArrayView<char> buf, int error)
     if (status == 0)
         return { buf.data() };
 #endif
-
     return "Unknown error"_s;
 };
 

@@ -1,6 +1,5 @@
 #pragma once
 #include <Corrade/Containers/ArrayView.h>
-#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 

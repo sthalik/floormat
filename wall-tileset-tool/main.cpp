@@ -60,6 +60,7 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
     fm_assert(atlas.direction_mask[i]);
     auto idx = atlas.direction_map[i];
     fm_assert(idx);
+    fm_assert(idx < atlas.direction_array.size());
     return atlas.direction_array[idx.val];
 }
 
@@ -68,10 +69,12 @@ Direction& get_direction(wall_atlas_def& atlas, size_t i)
     return const_cast<Direction&>(get_direction(const_cast<const wall_atlas_def&>(atlas), i));
 }
 
-bool do_group(state& st, size_t i, size_t j)
+bool do_group(state st, size_t i, size_t j)
 {
-    const auto& old_dir = get_direction(st.old_atlas, i);
-    auto& new_dir = get_direction(st.new_atlas, i);
+    const wall_atlas_def& old_atlas = st.old_atlas;
+    wall_atlas_def& new_atlas = st.new_atlas;
+    const auto& old_dir = get_direction(old_atlas, (size_t)i);
+    //auto& new_dir = get_direction(new_atlas, (size_t)i);
 
     return true;
 }
@@ -84,22 +87,6 @@ bool do_direction(state& st, size_t i)
 
     const auto& old_dir = get_direction(st.old_atlas, i);
 
-#if 0
-    // todo from_rotation
-    auto path = Path::join(st.opts.input_dir, name);
-    if (!Path::isDirectory(path))
-    {
-        char errbuf[128];
-        auto error = errno;
-        auto errstr = get_error_string(errbuf, error);
-        auto dbg = WARN_nospace;
-        dbg << "error: direction \"" << name << "\" needs directory '" << path << "'";
-        if (error)
-            dbg << ": " << errstr;
-        return false;
-    }
-#endif
-
     fm_assert(!atlas.direction_mask[i]);
     fm_assert(!atlas.direction_map[i]);
     const auto dir_idx = atlas.direction_array.size();
@@ -111,6 +98,12 @@ bool do_direction(state& st, size_t i)
     auto dir = Direction {
         .passability = old_dir.passability,
     };
+
+    for (auto [_str, _ptr, tag] : Direction::groups)
+    {
+        if (!do_group(st, i, (size_t)tag))
+            return false;
+    }
 
     st.new_atlas.direction_array.push_back(std::move(dir));
 
@@ -169,8 +162,8 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    DBG << "input-dir" << quoted(opts.input_dir);
-    DBG << "output-dir" << quoted(opts.output_dir);
+    DBG << "input-dir" << colon() << quoted(opts.input_dir);
+    DBG << "output-dir" << colon() << quoted(opts.output_dir);
 
     if (!Path::exists(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";

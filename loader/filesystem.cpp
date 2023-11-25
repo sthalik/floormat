@@ -1,10 +1,9 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include "compat/debug.hpp"
 #include <cerrno>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/String.h>
-#include <Corrade/Utility/Debug.h>
-#include <Corrade/Utility/Implementation/ErrorString.h>
 #include <Corrade/Utility/Path.h>
 #ifdef _WIN32
 #include <Corrade/Containers/Array.h>
@@ -31,10 +30,8 @@ bool loader_impl::chdir(StringView pathname)
 #endif
     if (ret)
     {
-        auto error = errno;
-        Error err;
-        err << "chdir: can't change directory to" << pathname << Error::nospace << ":";
-        Corrade::Utility::Implementation::printErrnoErrorString(err, error);
+        auto err = error_string();
+        ERR << "chdir: can't change directory to" << quoted(pathname) << err;
     }
     return !ret;
 }
@@ -55,8 +52,8 @@ void loader_impl::set_application_working_directory()
         original_working_directory = std::move(*loc);
     else
     {
-        Error err; err << "can't get original working directory:";
-        Corrade::Utility::Implementation::printErrnoErrorString(err, errno);
+        auto err = error_string();
+        ERR << "can't get original working directory" << err;
         original_working_directory = "."_s;
     }
     if (const auto loc = Path::executableLocation())
