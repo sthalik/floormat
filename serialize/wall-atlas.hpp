@@ -20,8 +20,6 @@ StringView direction_index_to_name(size_t i);
 [[nodiscard]] std::vector<Frame> read_all_frames(const json& jroot);
 [[nodiscard]] Group read_group_metadata(const json& jgroup);
 [[nodiscard]] Direction read_direction_metadata(const json& jroot, Direction_ dir);
-[[nodiscard]] std::bitset<Direction_COUNT> get_existing_directions(const json& jroot);
-Pair<std::vector<Direction>, std::array<DirArrayIndex, Direction_COUNT>> read_all_directions(const json& jroot);
 Info read_info_header(const json& jroot);
 
 void write_all_frames(json& jroot, ArrayView<const Frame> array);

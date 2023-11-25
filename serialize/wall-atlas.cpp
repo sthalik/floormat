@@ -8,8 +8,8 @@
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/PairStl.h>
 #include <Corrade/Containers/StringStl.h>
+#include <Corrade/Containers/TripleStl.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/ImageData.h>
 #include <nlohmann/json.hpp>
@@ -20,6 +20,39 @@ namespace floormat {
 
 using namespace floormat::Wall;
 using namespace floormat::Wall::detail;
+
+namespace {
+
+struct direction_triple
+{
+    std::vector<Direction> dirs;
+    std::array<DirArrayIndex, Direction_COUNT> map;
+    std::bitset<Direction_COUNT> mask;
+};
+
+direction_triple read_all_directions(const json& jroot)
+{
+    std::bitset<Direction_COUNT> mask{0};
+    size_t count = 0;
+    for (auto [str, _] : wall_atlas::directions)
+        if (jroot.contains(str))
+            count++;
+    std::vector<Direction> array{count};
+    std::array<DirArrayIndex, Direction_COUNT> map = {};
+    for (uint8_t i = 0, pos = 0; i < std::size(wall_atlas::directions); i++)
+    {
+        auto [str, dir] = wall_atlas::directions[i];
+        if (jroot.contains(str))
+        {
+            mask[i] = true;
+            map[i] = {.val = pos};
+            array[pos++] = read_direction_metadata(jroot, dir);
+        }
+    }
+    return { std::move(array), std::move(map), mask };
+}
+
+} // namespace
 
 bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
 {
@@ -56,12 +89,12 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     atlas.header = read_info_header(jroot);
     fm_soft_assert(loader.check_atlas_name(atlas.header.name));
     atlas.frames = read_all_frames(jroot);
-    auto [dirs, dir_indexes] = read_all_directions(jroot);
+    auto [dirs, dir_indexes, mask] = read_all_directions(jroot);
     fm_soft_assert(!dirs.empty());
     fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, Direction_COUNT>{});
     atlas.direction_array = std::move(dirs);
     atlas.direction_map = dir_indexes;
-    atlas.direction_mask = get_existing_directions(jroot);
+    atlas.direction_mask = mask;
 
     return atlas;
 }
@@ -201,32 +234,6 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
         val.passability = jdir["pass-mode"];
 
     return val;
-}
-
-[[nodiscard]] std::bitset<Direction_COUNT> get_existing_directions(const json& jroot)
-{
-    std::bitset<Direction_COUNT> array{0};
-    for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
-        if (jroot.contains(str))
-            array[i] = true;
-    return array;
-}
-
-Pair<std::vector<Direction>, std::array<DirArrayIndex, Direction_COUNT>> read_all_directions(const json& jroot)
-{
-    size_t count = 0;
-    for (auto [str, _] : wall_atlas::directions)
-        if (jroot.contains(str))
-            count++;
-    std::vector<Direction> array{count};
-    std::array<DirArrayIndex, Direction_COUNT> map = {};
-    for (uint8_t i = 0; auto [str, dir] : wall_atlas::directions)
-        if (jroot.contains(str))
-        {
-            map[(size_t)dir] = {.val = i};
-            array[i++] = read_direction_metadata(jroot, dir);
-        }
-    return { std::move(array), std::move(map) };
 }
 
 Info read_info_header(const json& jroot)
