@@ -2,6 +2,7 @@
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "compat/strerror.hpp"
+#include "compat/format.hpp"
 #include "src/wall-atlas.hpp"
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
@@ -68,23 +69,38 @@ struct state
     int& error;
 };
 
-bool do_direction(state& st, Direction_ i)
+bool do_direction(state& st, size_t i)
 {
-    const auto& name = wall_atlas::directions[(size_t)i].name;
-    DBG_nospace << "  direction '" << name << "'";
-    auto dir = Path::join(st.opts.input_dir, name);
-    if (!Path::isDirectory(dir))
+    const auto name = wall_atlas::directions[i].name;
+    auto& atlas = st.new_atlas;
+    DBG << "-" << name;
+
+    auto path = Path::join(st.opts.input_dir, name);
+    if (!Path::isDirectory(path))
     {
         char errbuf[128];
-        auto error = get_error_string(errbuf);
-        WARN_nospace << "fatal: direction '" << name
-                     << "' has missing directory '" << dir
-                     << "': " << error;
+        auto error = errno;
+        auto errstr = get_error_string(errbuf, error);
+        auto dbg = WARN_nospace;
+        dbg << "error: direction '" << name << "' needs directory '" << path << "'";
+        if (error)
+            dbg << ": " << errstr;
         return false;
     }
 
-    auto dir_count = st.old_atlas.direction_mask.count();
-    st.new_atlas.direction_array = std::vector<Direction>{dir_count};
+    const auto dir_idx = atlas.direction_array.size();
+    fm_assert(dir_idx == (uint8_t)dir_idx);
+
+    fm_assert(!atlas.direction_mask[i]);
+    atlas.direction_mask[i] = 1;
+    fm_assert(!atlas.direction_map[i]);
+    atlas.direction_map[i] = DirArrayIndex{(uint8_t)dir_idx};
+
+    auto dir = Direction{
+
+    };
+
+    st.new_atlas.direction_array.push_back(std::move(dir));
 
     return true;
 }
@@ -97,13 +113,19 @@ bool do_input_file(state& st)
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
     fm_assert(st.old_atlas.direction_mask.any());
 
-    st.new_atlas.header = std::move(const_cast<wall_atlas_def&>(st.old_atlas).header);
+    auto& atlas = st.new_atlas;
+    atlas.header = std::move(const_cast<wall_atlas_def&>(st.old_atlas).header);
+
+    fm_assert(!atlas.frames.size());
+    fm_assert(!atlas.direction_mask.any());
+    fm_assert(atlas.direction_map == std::array<Wall::DirArrayIndex, Direction_COUNT>{});
+    fm_assert(atlas.direction_array.empty());
 
     for (auto i = 0uz; i < Direction_COUNT; i++)
     {
         if (!st.old_atlas.direction_mask[i])
             continue;
-        if (!do_direction(st, (Direction_)i))
+        if (!do_direction(st, i))
             return false;
     }
 

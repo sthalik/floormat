@@ -1,6 +1,7 @@
 #include "atlas.hpp"
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
+#include "compat/strerror.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "loader/loader.hpp"
@@ -270,8 +271,9 @@ int main(int argc, char** argv)
                              : anim_info.object_name;
 
     if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
-        Error{} << "error: failed writing image to" << pathname << ":"
-                << std::strerror(errno); // NOLINT(concurrency-mt-unsafe)
+        char errbuf[128];
+        auto errstr = get_error_string(errbuf);
+        ERR_nospace << "error: failed writing image to '" << pathname << "': " << errstr;
         return EX_CANTCREAT;
     }
     anim_info.pixel_size = Vector2ui(atlas.size());

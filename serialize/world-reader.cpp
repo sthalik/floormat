@@ -11,6 +11,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/chunk-scenery.hpp"
 #include "compat/strerror.hpp"
+#include <cerrno>
 #include <cstring>
 #include <memory>
 
@@ -473,9 +474,7 @@ world world::deserialize(StringView filename)
     fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
     FILE_raii f = ::fopen(filename.data(), "rb");
     if (!f)
-    {
         fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
-    }
     if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
         fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
     size_t len;

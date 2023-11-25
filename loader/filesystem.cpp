@@ -31,9 +31,10 @@ bool loader_impl::chdir(StringView pathname)
 #endif
     if (ret)
     {
+        auto error = errno;
         Error err;
         err << "chdir: can't change directory to" << pathname << Error::nospace << ":";
-        Corrade::Utility::Implementation::printErrnoErrorString(err, errno);
+        Corrade::Utility::Implementation::printErrnoErrorString(err, error);
     }
     return !ret;
 }

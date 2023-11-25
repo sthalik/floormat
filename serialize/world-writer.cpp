@@ -14,8 +14,9 @@
 #include "src/anim-atlas.hpp"
 #include "src/light.hpp"
 #include "compat/strerror.hpp"
-#include <concepts>
+#include <cerrno>
 #include <cstring>
+#include <concepts>
 #include <vector>
 #include <algorithm>
 #include <string_view>
@@ -630,13 +631,22 @@ void world::serialize(StringView filename)
         Path::remove(filename);
     FILE_raii file = ::fopen(filename.data(), "wb");
     if (!file)
-        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf).data());
+    {
+        int error = errno;
+        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf, error).data());
+    }
     writer_state s{*this};
     const auto array = s.serialize_world();
     if (auto len = ::fwrite(array.data(), array.size(), 1, file); len != 1)
-        fm_abort("fwrite: %s", get_error_string(errbuf).data());
+    {
+        int error = errno;
+        fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
+    }
     if (int ret = ::fflush(file); ret != 0)
-        fm_abort("fflush: %s", get_error_string(errbuf).data());
+    {
+        int error = errno;
+        fm_abort("fflush: %s", get_error_string(errbuf, error).data());
+    }
 }
 
 } // namespace floormat

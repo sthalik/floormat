@@ -5,6 +5,7 @@
 #include <Corrade/Utility/Macros.h>
 #include <Magnum/Magnum.h>
 
+// todo add colors prefix thing
 #define DBG_nospace (::Corrade::Utility::Debug{::Corrade::Utility::Debug::Flag::NoSpace})
 #define WARN_nospace (::Corrade::Utility::Warning{::Corrade::Utility::Debug::Flag::NoSpace})
 #define ERR_nospace (::Corrade::Utility::Error{::Corrade::Utility::Debug::Flag::NoSpace})
