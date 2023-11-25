@@ -169,8 +169,8 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    DBG_nospace << "input-dir '" << opts.input_dir << "'";
-    DBG_nospace << "output-dir '" << opts.output_dir << "'";
+    DBG << "input-dir" << quoted(opts.input_dir);
+    DBG << "output-dir" << quoted(opts.output_dir);
 
     if (!Path::exists(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";

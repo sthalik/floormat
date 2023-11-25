@@ -1,26 +1,31 @@
 #pragma once
 #include <Corrade/Utility/Debug.h>
 #include <Corrade/Utility/Move.h>
+#include <Corrade/Containers/Containers.h>
 
 namespace floormat::detail::corrade_debug {
 
+struct ErrorString final { int value; };
+Debug& operator<<(Debug& dbg, ErrorString box);
+
 template<typename T> struct Quoted final { const T& value; };
+Debug::Flags debug1(Debug& dbg, char c);
+Debug& debug2(Debug& dbg, Debug::Flags flags, char c);
 
-#ifndef FM_NO_CORRADE_DEBUG_EXTERN_TEMPLATE_QUOTED
-extern template struct Quoted<StringView>;
-#endif
-
-Debug::Flags debug1(Debug& dbg);
-Debug& debug2(Debug& dbg, Debug::Flags flags);
-
-template<typename T>
-Debug& operator<<(Debug& dbg, detail::corrade_debug::Quoted<T> box)
+template<typename T> Debug& operator<<(Debug& dbg, Quoted<T> box)
 {
-    Debug::Flags flags = detail::corrade_debug::debug1(dbg);
+    Debug::Flags flags = debug1(dbg, '\'');
     dbg << box.value;
-    return debug2(dbg, flags);
+    return debug2(dbg, flags, '\'');
 }
+
+extern template struct Quoted<StringView>;
 
 } // namespace floormat::detail::corrade_debug
 
+namespace floormat {
+
+floormat::detail::corrade_debug::ErrorString error_string(int error);
 template<typename T> floormat::detail::corrade_debug::Quoted<T> quoted(const T& value) { return { value }; }
+
+} // namespace floormat

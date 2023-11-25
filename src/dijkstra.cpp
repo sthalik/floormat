@@ -1,5 +1,6 @@
 #include "path-search.hpp"
 #include "compat/format.hpp"
+#include "compat/debug.hpp"
 #include "object.hpp"
 #include "point.hpp"
 #include <cstdio>
