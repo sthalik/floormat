@@ -116,18 +116,18 @@ auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
     return { &_frame_array[index], count };
 }
 
-auto wall_atlas::group(Direction_ d, Group_ tag) const -> const Group* { return group((size_t)d, tag); }
-auto wall_atlas::group(size_t d, size_t tag) const -> const Group* { return group(d, (Group_)tag); }
+auto wall_atlas::group(Direction_ dir, Group_ gr) const -> const Group* { return group((size_t)dir, (size_t)gr); }
+auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return group(dir, (size_t)gr); }
 
-auto wall_atlas::group(size_t dir, Group_ tag) const -> const Group*
+auto wall_atlas::group(size_t dir, size_t group) const -> const Group*
 {
-    fm_assert(tag < Group_::COUNT);
+    fm_assert((Group_)group < Group_::COUNT);
     const auto* const set_ = direction(dir);
     if (!set_)
         return {};
     const auto& set = *set_;
 
-    const auto memfn = set.groups[(size_t)tag].member;
+    const auto memfn = set.groups[group].member;
     const Group& ret = set.*memfn;
     if (ret.is_empty())
         return {};

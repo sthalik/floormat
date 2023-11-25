@@ -135,10 +135,10 @@ public:
     wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);
     void serialize(StringView filename) const;
 
-    const Group* group(Direction_ d, Group_ tag) const;
+    const Group* group(Direction_ dir, Group_ group) const;
     const Group* group(size_t dir, size_t group) const;
     const Group* group(size_t dir, Group_ tag) const;
-    const Group* group(const Direction& dir, Group_ tag) const;
+    const Group* group(const Direction& dir, Group_ group) const;
     const Direction* direction(size_t dir) const;
     uint8_t direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
