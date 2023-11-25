@@ -8,11 +8,11 @@
 
 namespace floormat::detail::corrade_debug {
 
-Debug& operator<<(Debug& dbg, Colon)
+Debug& operator<<(Debug& dbg, Colon box)
 {
     auto flags = dbg.flags();
     dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << ":";
+    dbg << StringView{&box.c, 1};
     dbg.setFlags(flags);
     return dbg;
 }
@@ -33,15 +33,13 @@ Debug::Flags quoted_begin(Debug& dbg, char c)
     auto flags = dbg.flags();
     dbg << "";
     dbg.setFlags(flags | Debug::Flag::NoSpace);
-    char buf[2] { c, '\0' };
-    dbg << buf;
+    dbg << StringView{&c, 1};
     return flags;
 }
 
 Debug& quoted_end(Debug& dbg, Debug::Flags flags, char c)
 {
-    char buf[2] { c, '\0' };
-    dbg << buf;
+    dbg << StringView{&c, 1};
     dbg.setFlags(flags);
     return dbg;
 }
@@ -54,7 +52,7 @@ namespace floormat {
 
 using namespace floormat::detail::corrade_debug;
 
-Colon colon() { return Colon{}; }
+Colon colon(char c) { return Colon{c}; }
 ErrorString error_string(int error) { return { error }; }
 ErrorString error_string() { return { errno }; }
 

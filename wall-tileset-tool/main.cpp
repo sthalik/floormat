@@ -69,12 +69,14 @@ Direction& get_direction(wall_atlas_def& atlas, size_t i)
     return const_cast<Direction&>(get_direction(const_cast<const wall_atlas_def&>(atlas), i));
 }
 
-bool do_group(state st, size_t i, size_t j)
+bool do_group(state st, size_t i, size_t j, Group& new_dir)
 {
     const wall_atlas_def& old_atlas = st.old_atlas;
     wall_atlas_def& new_atlas = st.new_atlas;
     const auto& old_dir = get_direction(old_atlas, (size_t)i);
     //auto& new_dir = get_direction(new_atlas, (size_t)i);
+
+    DBG << "    group" << quoted2(Direction::groups[j].str);
 
     return true;
 }
@@ -83,7 +85,7 @@ bool do_direction(state& st, size_t i)
 {
     const auto name = wall_atlas::directions[i].name;
     auto& atlas = st.new_atlas;
-    DBG << "-" << name;
+    DBG << "  direction" << quoted2(name);
 
     const auto& old_dir = get_direction(st.old_atlas, i);
 
@@ -99,9 +101,9 @@ bool do_direction(state& st, size_t i)
         .passability = old_dir.passability,
     };
 
-    for (auto [_str, _ptr, tag] : Direction::groups)
+    for (auto [_str, ptr, tag] : Direction::groups)
     {
-        if (!do_group(st, i, (size_t)tag))
+        if (!do_group(st, i, (size_t)tag, dir.*ptr))
             return false;
     }
 
@@ -112,7 +114,7 @@ bool do_direction(state& st, size_t i)
 
 bool do_input_file(state& st)
 {
-    DBG << "input-file" << quoted(st.old_atlas.header.name);
+    DBG << "input" << quoted(st.old_atlas.header.name) << colon(',') << quoted(st.opts.input_file);
 
     fm_assert(!st.buffer.empty());
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
@@ -150,20 +152,23 @@ inline String fixsep(String str)
 Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
-    args.addOption('o', "output"s).setHelp("output"s, ""s, "DIR"s);
+    args.addOption('o', "output"s, "\0"_s).setHelp("output"s, ""_s, "DIR"s);
     args.addArgument("input.json"s);
     args.parse(argc, argv);
     options opts;
 
-    opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
     opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
     opts.input_dir = Path::split(opts.input_file).first();
+    if (auto val = args.value<StringView>("output"); val != "\0"_s)
+        opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
+    else
+        opts.output_dir = opts.input_dir;
 
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    DBG << "input-dir" << colon() << quoted(opts.input_dir);
-    DBG << "output-dir" << colon() << quoted(opts.output_dir);
+    //DBG << "input-dir" << opts.input_dir;
+    //DBG << "output-dir" << opts.output_dir;
 
     if (!Path::exists(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";
