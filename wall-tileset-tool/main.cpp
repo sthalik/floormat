@@ -3,7 +3,8 @@
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "compat/strerror.hpp"
-#include "compat/format.hpp"
+//#include "compat/format.hpp"
+#include "compat/debug.hpp"
 #include "src/wall-atlas.hpp"
 //#include "serialize/wall-atlas.hpp"
 //#include "serialize/json-helper.hpp"
@@ -118,7 +119,7 @@ bool do_direction(state& st, size_t i)
 
 bool do_input_file(state& st)
 {
-    DBG_nospace << "input-file '" << st.old_atlas.header.name << "'";
+    DBG << "input-file" << quoted(st.old_atlas.header.name);
 
     fm_assert(!st.buffer.empty());
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
@@ -168,8 +169,8 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    DBG_nospace << "input-dir" << opts.input_dir;
-    DBG_nospace << "output-dir" << opts.output_dir;
+    DBG_nospace << "input-dir '" << opts.input_dir << "'";
+    DBG_nospace << "output-dir '" << opts.output_dir << "'";
 
     if (!Path::exists(opts.input_file))
         Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";
