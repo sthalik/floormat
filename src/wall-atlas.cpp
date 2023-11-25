@@ -144,12 +144,6 @@ auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
     return &ret;
 }
 
-auto wall_atlas::group(const Direction* dir, Group_ tag) const -> const Group*
-{
-    fm_debug_assert(dir != nullptr);
-    return group(*dir, tag);
-}
-
 auto wall_atlas::direction(size_t dir) const -> const Direction*
 {
     return get_Direction(Direction_(dir));
