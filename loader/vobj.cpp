@@ -44,10 +44,6 @@ void nlohmann::adl_serializer<vobj>::from_json(const json& j, vobj& val)
 
 namespace floormat::loader_detail {
 
-#if defined __GNUG__ && !defined __clang__
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-
 std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
     auto tex = texture(VOBJ_PATH, image_filename);

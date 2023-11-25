@@ -1,14 +1,14 @@
+#include "main.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "compat/strerror.hpp"
 #include "compat/format.hpp"
 #include "src/wall-atlas.hpp"
-#include "serialize/wall-atlas.hpp"
-#include "serialize/json-helper.hpp"
+//#include "serialize/wall-atlas.hpp"
+//#include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include <utility>
-#include <tuple>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
 #include <Corrade/Containers/TripleStl.h>
@@ -16,12 +16,11 @@
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Magnum/Math/Functions.h>
-//#include <nlohmann/json.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
 
-namespace floormat {
+namespace floormat::wall_tool {
 
 using Corrade::Utility::Arguments;
 using namespace std::string_literals;
@@ -55,19 +54,26 @@ Vector2i get_buffer_size(const wall_atlas_def& a)
     return size;
 }
 
-struct options
+const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
 {
-    String input_dir, input_file, output_dir;
-};
+    fm_assert(atlas.direction_mask[i]);
+    auto idx = atlas.direction_map[i];
+    fm_assert(idx);
+    return atlas.direction_array[idx.val];
+}
 
-struct state
+Direction& get_direction(wall_atlas_def& atlas, size_t i)
 {
-    options& opts;
-    cv::Mat4b& buffer;
-    const wall_atlas_def& old_atlas;
-    wall_atlas_def& new_atlas;
-    int& error;
-};
+    return const_cast<Direction&>(get_direction(const_cast<const wall_atlas_def&>(atlas), i));
+}
+
+bool do_group(state& st, size_t i, size_t j)
+{
+    const auto& old_dir = get_direction(st.old_atlas, i);
+    auto& new_dir = get_direction(st.new_atlas, i);
+
+    return true;
+}
 
 bool do_direction(state& st, size_t i)
 {
@@ -75,6 +81,10 @@ bool do_direction(state& st, size_t i)
     auto& atlas = st.new_atlas;
     DBG << "-" << name;
 
+    const auto& old_dir = get_direction(st.old_atlas, i);
+
+#if 0
+    // todo from_rotation
     auto path = Path::join(st.opts.input_dir, name);
     if (!Path::isDirectory(path))
     {
@@ -82,22 +92,23 @@ bool do_direction(state& st, size_t i)
         auto error = errno;
         auto errstr = get_error_string(errbuf, error);
         auto dbg = WARN_nospace;
-        dbg << "error: direction '" << name << "' needs directory '" << path << "'";
+        dbg << "error: direction \"" << name << "\" needs directory '" << path << "'";
         if (error)
             dbg << ": " << errstr;
         return false;
     }
+#endif
 
+    fm_assert(!atlas.direction_mask[i]);
+    fm_assert(!atlas.direction_map[i]);
     const auto dir_idx = atlas.direction_array.size();
     fm_assert(dir_idx == (uint8_t)dir_idx);
 
-    fm_assert(!atlas.direction_mask[i]);
     atlas.direction_mask[i] = 1;
-    fm_assert(!atlas.direction_map[i]);
     atlas.direction_map[i] = DirArrayIndex{(uint8_t)dir_idx};
 
-    auto dir = Direction{
-
+    auto dir = Direction {
+        .passability = old_dir.passability,
     };
 
     st.new_atlas.direction_array.push_back(std::move(dir));
@@ -185,9 +196,10 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
 
 } // namespace
 
-} // namespace floormat
+} // namespace floormat::wall_tool
 
 using namespace floormat;
+using namespace floormat::wall_tool;
 
 int main(int argc, char** argv)
 {

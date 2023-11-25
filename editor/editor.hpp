@@ -8,7 +8,6 @@
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 
-#include <map>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 

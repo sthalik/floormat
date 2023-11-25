@@ -28,8 +28,8 @@ struct Group
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add;
     uint8_t from_rotation = (uint8_t)-1; // applies only to images
-    bool mirrored                : 1 = false,
-         default_tint            : 1 = true;
+    bool mirrored     : 1 = false,
+         default_tint : 1 = true;
 
     explicit operator bool() const noexcept { return !is_empty(); }
     bool is_empty() const noexcept { return count == 0; }
@@ -49,8 +49,8 @@ struct Direction
     explicit operator bool() const noexcept { return !is_empty(); }
     bool is_empty() const noexcept;
 
-    Group wall, overlay, side, top;
-    Group corner_L, corner_R;
+    Group wall{}, overlay{}, side{}, top{};
+    Group corner_L{}, corner_R{};
     pass_mode passability = pass_mode::blocked;
 
     const Group& group(Group_ i) const;
