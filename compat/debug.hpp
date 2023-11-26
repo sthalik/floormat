@@ -1,6 +1,7 @@
 #pragma once
 #include <Corrade/Utility/Debug.h>
-#include <Corrade/Containers/Containers.h>
+#include <Corrade/Utility/Move.h>
+#include <Corrade/Containers/StringView.h>
 #include <concepts>
 
 namespace floormat {
@@ -23,7 +24,12 @@ struct ErrorString { int value; };
 Debug& operator<<(Debug& dbg, ErrorString box);
 
 // ***** quoted *****
-template<typename T> struct Quoted { const T& value; char c; };
+template<typename T> struct Quoted
+{
+    using type = T;
+    T value; char c;
+};
+
 Debug::Flags quoted_begin(Debug& dbg, char c);
 Debug& quoted_end(Debug& dbg, Debug::Flags flags, char c);
 
@@ -46,7 +52,17 @@ floormat::detail::corrade_debug::Colon colon(char c = ':');
 floormat::detail::corrade_debug::ErrorString error_string(int error);
 floormat::detail::corrade_debug::ErrorString error_string();
 
-template<DebugPrintable T> floormat::detail::corrade_debug::Quoted<T> quoted(const T& value, char c = '\'') { return { value, c }; }
-template<DebugPrintable T> floormat::detail::corrade_debug::Quoted<T> quoted2(const T& value) { return { value, '"' }; }
+template<DebugPrintable T>
+auto quoted(T&& value, char c = '\'')
+{
+    using U = std::remove_cvref_t<T>;
+    using floormat::detail::corrade_debug::Quoted;
+    if constexpr(std::is_rvalue_reference_v<decltype(value)>)
+        return Quoted<U>{ .value = Utility::move(value), .c = c };
+    else
+        return Quoted<const U&>{ .value = value, .c = c };
+}
+
+template<DebugPrintable T> auto quoted2(T&& value) { return quoted(Utility::forward<T>(value), '"'); }
 
 } // namespace floormat
