@@ -182,9 +182,9 @@ bool is_direction_defined(const Direction& dir)
     {
         const auto& group = dir.*ptr;
         if (group.is_defined)
-            return false;
+            return true;
     }
-    return true;
+    return false;
 }
 
 Group read_group_metadata(const json& jgroup)
