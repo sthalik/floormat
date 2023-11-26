@@ -100,7 +100,8 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     return atlas;
 }
 
-void wall_atlas_def::serialize(StringView filename, const Info& header, ArrayView<const Frame> frames,
+void wall_atlas_def::serialize(StringView filename, const Info& header,
+                               ArrayView<const Frame> frames,
                                ArrayView<const Direction> dir_array,
                                std::array<DirArrayIndex, Direction_COUNT> dir_map)
 {
@@ -111,11 +112,14 @@ void wall_atlas_def::serialize(StringView filename, const Info& header, ArrayVie
 
     for (const auto [name_, dir] : wall_atlas::directions)
         if (auto idx = dir_map[(size_t)dir])
-            if (const auto& dir = dir_array[idx.val])
+        {
+            const auto& dir = dir_array[idx.val];
+            if (is_direction_defined(dir))
             {
                 std::string_view name = {name_.data(), name_.size()};
                 write_direction_metadata(jroot[name], dir);
             }
+        }
 
     json_helper::to_json_(jroot, filename);
 }
@@ -172,6 +176,17 @@ std::vector<Frame> read_all_frames(const json& jroot)
     return frames;
 }
 
+bool is_direction_defined(const Direction& dir)
+{
+    for (auto [str, ptr, tag] : Direction::groups)
+    {
+        const auto& group = dir.*ptr;
+        if (group.is_defined)
+            return false;
+    }
+    return true;
+}
+
 Group read_group_metadata(const json& jgroup)
 {
     fm_assert(jgroup.is_object());
@@ -206,6 +221,7 @@ Group read_group_metadata(const json& jgroup)
     if (jgroup.contains("default-tint"))
         val.default_tint = !!jgroup["default-tint"];
 
+    val.is_defined = true;
     return val;
 }
 
@@ -262,6 +278,7 @@ void write_group_metadata(json& jgroup, const Group& val)
     constexpr Group group_defaults;
 
     fm_assert(jgroup.is_null());
+    fm_assert(val.is_defined);
 
     if (val.index != (uint32_t)-1)
         jgroup["offset"] = val.index;
@@ -286,8 +303,10 @@ void write_direction_metadata(json& jdir, const Direction& dir)
 
     for (auto [s_, memfn, tag] : Direction::groups)
     {
-        std::string_view s = {s_.data(), s_.size()};
         const auto& group = dir.*memfn;
+        if (!group.is_defined)
+            continue;
+        std::string_view s = {s_.data(), s_.size()};
         write_group_metadata(jdir[s], group);
     }
     if (jdir.contains("top"))

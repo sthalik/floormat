@@ -129,8 +129,10 @@ auto wall_atlas::group(size_t dir, size_t group) const -> const Group*
 
     const auto memfn = set.groups[group].member;
     const Group& ret = set.*memfn;
+#if 0
     if (ret.is_empty())
         return {};
+#endif
     return &ret;
 }
 
@@ -139,8 +141,10 @@ auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
     fm_assert(tag < Group_::COUNT);
     const auto memfn = dir.groups[(size_t)tag].member;
     const Group& ret = dir.*memfn;
+#if 0
     if (ret.is_empty())
         return {};
+#endif
     return &ret;
 }
 
@@ -166,14 +170,6 @@ size_t wall_atlas::enum_to_index(enum rotation r)
 } // namespace floormat
 
 namespace floormat::Wall {
-
-bool Direction::is_empty() const noexcept
-{
-    for (auto [str, member, tag] : Direction::groups)
-        if (const auto& val = this->*member; !val.is_empty())
-            return false;
-    return true;
-}
 
 const Group& Direction::group(Group_ i) const { return const_cast<Direction&>(*this).group((size_t)i); }
 const Group& Direction::group(size_t i) const { return const_cast<Direction&>(*this).group(i); }

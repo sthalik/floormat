@@ -4,7 +4,10 @@
 namespace cv {
 template<typename T> class Mat_;
 template<typename T, int cn> class Vec;
+typedef Vec<unsigned char, 3> Vec3b;
 typedef Vec<unsigned char, 4> Vec4b;
+typedef Mat_<unsigned char> Mat1b;
+typedef Mat_<Vec3b> Mat3b;
 typedef Mat_<Vec4b> Mat4b;
 } // namespace cv
 

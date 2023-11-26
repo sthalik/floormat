@@ -55,9 +55,9 @@ void test_read_groups(StringView filename)
     fm_assert( jroot.contains("w") );
     fm_assert(jroot["n"].is_object() && !jroot["n"].empty());
     fm_assert(jroot["w"].is_object() && !jroot["w"].empty());
-    fm_assert(!read_direction_metadata(jroot, Direction_::N).is_empty());
-    fm_assert(read_direction_metadata(jroot, Direction_::E).is_empty());
-    fm_assert(read_direction_metadata(jroot, Direction_::S).is_empty());
+    fm_assert(is_direction_defined(read_direction_metadata(jroot, Direction_::N)));
+    fm_assert(!is_direction_defined(read_direction_metadata(jroot, Direction_::E)));
+    fm_assert(!is_direction_defined(read_direction_metadata(jroot, Direction_::S)));
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
     fm_assert(dir.passability        == pass_mode::shoot_through);

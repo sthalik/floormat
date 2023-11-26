@@ -2,7 +2,6 @@
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
-#include "compat/strerror.hpp"
 //#include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "src/wall-atlas.hpp"
@@ -42,7 +41,7 @@ Vector2i get_buffer_size(const wall_atlas_def& a)
         for (auto j = 0uz; j < (size_t)Group_::COUNT; j++)
         {
             const auto& group = (dir.*(Direction::groups[j].member));
-            if (group.is_empty())
+            if (!group.is_defined)
                 continue;
             auto val = wall_atlas::expected_size(a.header.depth, (Group_)j);
             size = Math::max(size, val);
@@ -202,6 +201,11 @@ using namespace floormat::wall_tool;
 
 int main(int argc, char** argv)
 {
+    auto s = "foo"_s;
+    static_assert(std::is_same_v<decltype(quoted(StringView{"foo"}))::type, StringView>);
+    static_assert(std::is_same_v<decltype(quoted(String{"foo"}))::type, String>);
+    static_assert(std::is_same_v<decltype(quoted(s))::type, const StringView&>);
+
     argv[0] = fix_argv0(argv[0]);
     auto [opts, args, opts_ok] = parse_cmdline(argc, argv);
     if (!opts_ok)
