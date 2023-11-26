@@ -60,6 +60,7 @@ void test_read_groups(StringView filename)
     fm_assert(!is_direction_defined(read_direction_metadata(jroot, Direction_::S)));
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
+    fm_assert(is_direction_defined(dir));
     fm_assert(dir.passability        == pass_mode::shoot_through);
     fm_assert(dir.wall.pixel_size    == Vector2ui{}                        );
     fm_assert(dir.wall.default_tint  == false                              );

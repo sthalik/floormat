@@ -102,6 +102,9 @@ bool do_direction(state& st, size_t i)
 
     for (auto [_str, ptr, tag] : Direction::groups)
     {
+        const auto& old_group = old_dir.*ptr;
+        if (!old_group.is_defined)
+            continue;
         if (!do_group(st, i, (size_t)tag, dir.*ptr))
             return false;
     }
