@@ -2,7 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
-//#include "compat/format.hpp"
+#include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "src/wall-atlas.hpp"
 //#include "serialize/wall-atlas.hpp"
@@ -11,6 +11,7 @@
 #include <utility>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
+#include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Containers/TripleStl.h>
 #include <Corrade/Utility/Path.h>
 #include <Corrade/Utility/DebugStl.h>
@@ -68,14 +69,47 @@ Direction& get_direction(wall_atlas_def& atlas, size_t i)
     return const_cast<Direction&>(get_direction(const_cast<const wall_atlas_def&>(atlas), i));
 }
 
+template<typename Fmt, typename... Xs>
+auto asformat(Fmt&& fmt, Xs&&... args)
+{
+    auto result = fmt::format_to_n((char*)nullptr, 0, std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
+    std::string ret;
+    ret.resize(result.size);
+    auto result2 = fmt::format_to_n(ret.data(), ret.size(), std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
+    fm_assert(result2.size == result.size);
+    return ret;
+}
+
 bool do_group(state st, size_t i, size_t j, Group& new_dir)
 {
     const wall_atlas_def& old_atlas = st.old_atlas;
     wall_atlas_def& new_atlas = st.new_atlas;
     const auto& old_dir = get_direction(old_atlas, (size_t)i);
     //auto& new_dir = get_direction(new_atlas, (size_t)i);
+    const auto group_name = Direction::groups[j].name;
+    const auto dir_name = wall_atlas::directions[i].name;
 
-    DBG << "    group" << quoted2(Direction::groups[j].str);
+    DBG << "    group" << quoted2(group_name);
+    size_t fileno = 1;
+    const auto path = Path::join({ st.opts.input_dir, dir_name, group_name });
+
+    for (;;)
+    {
+        auto filename = asformat("{}/{:04}.png"_cf, path, fileno++);
+        auto str = StringView{filename.data(), filename.size(), StringViewFlag::NullTerminated};
+        Debug{} << str;
+        if (!Path::exists(filename))
+        {
+            Debug{} << "end";
+            break;
+        }
+        if (Path::isDirectory(filename))
+        {
+            ERR << "fatal: file" << quoted(filename) << "is a directory";
+            return false;
+        }
+        cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()});
+    }
 
     return true;
 }
@@ -118,7 +152,6 @@ bool do_input_file(state& st)
 {
     DBG << "input" << quoted(st.old_atlas.header.name) << colon(',') << quoted(st.opts.input_file);
 
-    fm_assert(!st.buffer.empty());
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
     fm_assert(st.old_atlas.direction_mask.any());
 
@@ -151,7 +184,14 @@ inline String fixsep(String str)
     return str;
 }
 
-Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
+struct argument_tuple
+{
+    options opts{};
+    Arguments args{};
+    bool ok = false;
+};
+
+argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output"s, "\0"_s).setHelp("output"s, ""_s, "DIR"s);
@@ -183,7 +223,7 @@ Triple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv
         fm_assert(opts.output_dir);
         fm_assert(opts.input_file);
         fm_assert(opts.input_dir);
-        return { std::move(opts), std::move(args), true };
+        return { .opts = std::move(opts), .args = std::move(args), .ok = true };
     }
 
     return {};
@@ -204,11 +244,6 @@ using namespace floormat::wall_tool;
 
 int main(int argc, char** argv)
 {
-    auto s = "foo"_s;
-    static_assert(std::is_same_v<decltype(quoted(StringView{"foo"}))::type, StringView>);
-    static_assert(std::is_same_v<decltype(quoted(String{"foo"}))::type, String>);
-    static_assert(std::is_same_v<decltype(quoted(s))::type, const StringView&>);
-
     argv[0] = fix_argv0(argv[0]);
     auto [opts, args, opts_ok] = parse_cmdline(argc, argv);
     if (!opts_ok)

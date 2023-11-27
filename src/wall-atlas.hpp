@@ -44,7 +44,7 @@ enum class Direction_ : uint8_t { N, E, S, W, COUNT };
 struct Direction
 {
     using memfn_ptr = Group Direction::*;
-    struct member_tuple { StringView str; memfn_ptr member; Group_ tag; };
+    struct member_tuple { StringView name; memfn_ptr member; Group_ tag; };
 
     Group wall{}, overlay{}, side{}, top{};
     Group corner_L{}, corner_R{};

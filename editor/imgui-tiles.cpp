@@ -36,6 +36,7 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
             text(" (selected)");
         }
         const auto len = snformat(buf, "{:d}"_cf, N);
+        fm_assert(len < std::size(buf));
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi[0]);
         text({buf, len});
     };

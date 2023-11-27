@@ -346,6 +346,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         }
         if (len)
         {
+            len = Math::min(len, std::size(buf)-1);
             std::fwrite(buf, len, 1, stdout);
             std::fflush(stdout);
         }
