@@ -1,15 +1,7 @@
 #pragma once
 #include "src/wall-atlas.hpp"
-
-namespace cv {
-template<typename T> class Mat_;
-template<typename T, int cn> class Vec;
-typedef Vec<unsigned char, 3> Vec3b;
-typedef Vec<unsigned char, 4> Vec4b;
-typedef Mat_<unsigned char> Mat1b;
-typedef Mat_<Vec3b> Mat3b;
-typedef Mat_<Vec4b> Mat4b;
-} // namespace cv
+#include <vector>
+#include <opencv2/core/mat.hpp>
 
 namespace floormat::wall_tool {
 
@@ -18,12 +10,18 @@ struct options
     String input_dir, input_file, output_dir;
 };
 
+struct frame
+{
+    Vector2ui size;
+    cv::Mat4b mat;
+};
+
 struct state
 {
     options& opts;
-    cv::Mat4b& buffer;
     const wall_atlas_def& old_atlas;
     wall_atlas_def& new_atlas;
+    std::vector<frame>& frames;
     int& error;
 };
 

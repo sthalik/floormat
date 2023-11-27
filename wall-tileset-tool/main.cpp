@@ -9,6 +9,7 @@
 //#include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include <utility>
+#include <tuple>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
 #include <Corrade/Containers/StringIterable.h>
@@ -28,32 +29,6 @@ using namespace std::string_literals;
 using namespace floormat::Wall;
 
 namespace {
-
-Vector2i get_buffer_size(const wall_atlas_def& a)
-{
-    Vector2i size;
-
-    for (auto i = 0uz; i < Direction_COUNT; i++)
-    {
-        auto idx = a.direction_map[i];
-        if (!idx)
-            continue;
-        const auto& dir = a.direction_array[idx.val];
-        for (auto j = 0uz; j < (size_t)Group_::COUNT; j++)
-        {
-            const auto& group = (dir.*(Direction::groups[j].member));
-            if (!group.is_defined)
-                continue;
-            auto val = wall_atlas::expected_size(a.header.depth, (Group_)j);
-            size = Math::max(size, val);
-        }
-    }
-
-    if (!(size > Vector2i{0}))
-        fm_abort("fatal: atlas '%s' has no defined groups", a.header.name.data());
-
-    return size;
-}
 
 const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
 {
@@ -80,35 +55,116 @@ auto asformat(Fmt&& fmt, Xs&&... args)
     return ret;
 }
 
-bool do_group(state st, size_t i, size_t j, Group& new_dir)
+struct resolution : Vector2i { using Vector2i::Vector2i; };
+
+Debug& operator<<(Debug& dbg, resolution res)
 {
+    return dbg << res.x() << colon('x') << res.y() << colon(',');
+}
+
+constexpr inline int max_image_dimension = 4096;
+
+bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
+{
+    fm_assert(dest.empty() || dest.size == src.size);
+    auto ch = src.channels(), tp = src.type();
+
+    switch (auto type = src.type())
+    {
+    default:
+        return false;
+    case CV_8U:
+        cv::cvtColor(src, dest, cv::COLOR_GRAY2BGRA);
+        return true;
+    case CV_8UC3:
+        cv::cvtColor(src, dest, cv::COLOR_BGR2BGRA);
+        return true;
+    case CV_8UC4:
+        src.copyTo(dest);
+        return true;
+    }
+}
+
+bool do_group(state st, size_t i, size_t j, Group& new_group)
+{
+    const auto group_name = Direction::groups[j].name;
     const wall_atlas_def& old_atlas = st.old_atlas;
     wall_atlas_def& new_atlas = st.new_atlas;
     const auto& old_dir = get_direction(old_atlas, (size_t)i);
+    const auto& old_group = old_dir.group(j);
     //auto& new_dir = get_direction(new_atlas, (size_t)i);
-    const auto group_name = Direction::groups[j].name;
     const auto dir_name = wall_atlas::directions[i].name;
+    std::vector<frame> frames; frames.reserve(64);
+
+    const auto path = Path::join({ st.opts.input_dir, dir_name, group_name });
+    const auto expected_size = wall_atlas::expected_size(new_atlas.header.depth, (Group_)j);
 
     DBG << "    group" << quoted2(group_name);
-    size_t fileno = 1;
-    const auto path = Path::join({ st.opts.input_dir, dir_name, group_name });
+    fm_debug_assert(expected_size > Vector2ui{0});
+    fm_assert(Math::max(expected_size.x(), expected_size.y()) < max_image_dimension);
 
-    for (;;)
+    uint32_t count = 0, start = (uint32_t)st.frames.size();
+    new_group = old_group;
+    new_group.is_defined = true;
+    new_group.pixel_size = Vector2ui(expected_size);
+
+    if (old_group.from_rotation == (uint8_t)-1)
     {
-        auto filename = asformat("{}/{:04}.png"_cf, path, fileno++);
-        auto str = StringView{filename.data(), filename.size(), StringViewFlag::NullTerminated};
-        Debug{} << str;
-        if (!Path::exists(filename))
+        for (;;)
         {
-            Debug{} << "end";
-            break;
+            auto filename = asformat("{}/{:04}.png"_cf, path, count+1);
+            if (!Path::exists(filename))
+                break;
+            count++;
+            if (Path::isDirectory(filename)) [[unlikely]]
+            {
+                ERR << "fatal: path" << quoted(filename) << "is a directory!";
+                return false;
+            }
+
+            cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()}), mat2;
+            if ((Group_)j == Group_::top)
+            {
+                cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
+                using std::swap;
+                swap(mat, mat2);
+            }
+
+            if (Vector2ui((unsigned)mat.cols, (unsigned)mat.rows) != expected_size) [[unlikely]]
+            {
+                ERR << "fatal: wrong image size, expected size"
+                    << resolution{expected_size} << colon(',')
+                                                 << "actual size" << resolution{}
+                                                                  << "-- file" << filename;
+                return false;
+            }
+
+            cv::Mat4b buf;
+            if (!convert_to_bgra32(mat, buf)) [[unlikely]]
+            {
+                ERR << "fatal: unknown image pixel format:"
+                    << "channels" << mat.channels() << colon(',')
+                    << "depth" << cv::depthToString(mat.depth()) << colon(',')
+                    << "type" << cv::typeToString(mat.type()) << colon(',')
+                    << "for" << quoted(filename);
+                return false;
+            }
         }
-        if (Path::isDirectory(filename))
+
+        if (count == 0)
         {
-            ERR << "fatal: file" << quoted(filename) << "is a directory";
+            ERR << "fatal: no files found for" << quoted2(dir_name) << "/" << quoted2(group_name);
             return false;
         }
-        cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()});
+
+        fm_assert(start + count == st.frames.size());
+        new_group.count = count;
+        new_group.index = start;
+    }
+    else
+    {
+        new_group.count = 0;
+        new_group.index = (uint32_t)-1;
     }
 
     return true;
@@ -249,17 +305,16 @@ int main(int argc, char** argv)
     if (!opts_ok)
         return usage(args);
 
-    auto a = wall_atlas_def::deserialize(opts.input_file);
-    auto buf_size = get_buffer_size(a);
-    auto mat = cv::Mat4b{cv::Size{buf_size.x(), buf_size.y()}};
+    auto old_atlas = wall_atlas_def::deserialize(opts.input_file);
     auto new_atlas = wall_atlas_def{};
+    auto frames = std::vector<frame>{}; frames.reserve(64);
     auto error = EX_DATAERR;
 
     auto st = state {
         .opts = opts,
-        .buffer = mat,
-        .old_atlas = a,
+        .old_atlas = old_atlas,
         .new_atlas = new_atlas,
+        .frames = frames,
         .error = error,
     };
     if (!do_input_file(st))

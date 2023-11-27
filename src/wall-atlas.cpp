@@ -54,27 +54,28 @@ void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(
 }
 #endif
 
-Vector2i wall_atlas::expected_size(unsigned depth, Group_ group)
+Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
 {
-    static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
-    constexpr int half_tile = iTILE_SIZE2.x()/2;
+    constexpr auto size = Vector3ui{iTILE_SIZE};
+    constexpr auto half_tile = size.x()/2u;
+    static_assert(size.x() == size.y());
 
-    fm_assert(depth > 0 && depth < 1<<16);
+    fm_assert(depth > 0 && depth < 1<<15);
     CORRADE_ASSUME(group < Group_::COUNT);
 
-    using enum Group_;
     switch (group)
     {
+    using enum Group_;
     case overlay:
     case wall:
-        return { iTILE_SIZE.x(), iTILE_SIZE.z() };
+        return { size.x(), size.z() };
     case top:
     case side:
-        return { (int)depth, iTILE_SIZE.z() };
+        return { depth, size.z() };
     case corner_L:
-        return { half_tile, iTILE_SIZE.z() };
+        return { half_tile, size.z() };
     case corner_R:
-        return { iTILE_SIZE2.x() - half_tile, iTILE_SIZE.z() };
+        return { size.x() - half_tile, size.z() };
     default:
         fm_assert(false);
     }

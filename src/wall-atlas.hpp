@@ -149,7 +149,7 @@ public:
 
     static size_t enum_to_index(enum rotation x);
     //static void validate(const wall_atlas& a, const ImageView2D& img) noexcept(false);
-    static Vector2i expected_size(unsigned depth, Group_ group);
+    static Vector2ui expected_size(unsigned depth, Group_ group);
 
     struct dir_tuple
     {

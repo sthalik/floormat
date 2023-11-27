@@ -237,9 +237,9 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
     Direction val;
 
-    for (auto [s_, memfn, tag] : Direction::groups)
+    for (auto [name, memfn, tag] : Direction::groups)
     {
-        std::string_view s = {s_.data(), s_.size()};
+        std::string_view s = {name.data(), name.size()};
         if (!jdir.contains(s))
             continue;
         val.*memfn = read_group_metadata(jdir[s]);
@@ -301,12 +301,12 @@ void write_direction_metadata(json& jdir, const Direction& dir)
 {
     jdir["pass-mode"] = dir.passability;
 
-    for (auto [s_, memfn, tag] : Direction::groups)
+    for (auto [name, memfn, tag] : Direction::groups)
     {
         const auto& group = dir.*memfn;
         if (!group.is_defined)
             continue;
-        std::string_view s = {s_.data(), s_.size()};
+        std::string_view s = {name.data(), name.size()};
         write_group_metadata(jdir[s], group);
     }
     if (jdir.contains("top"))
