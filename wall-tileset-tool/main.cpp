@@ -35,7 +35,7 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
     fm_assert(atlas.direction_mask[i]);
     auto idx = atlas.direction_map[i];
     fm_assert(idx);
-    fm_assert(idx < atlas.direction_array.size());
+    fm_assert(idx.val < atlas.direction_array.size());
     return atlas.direction_array[idx.val];
 }
 
@@ -59,7 +59,12 @@ struct resolution : Vector2i { using Vector2i::Vector2i; };
 
 Debug& operator<<(Debug& dbg, resolution res)
 {
-    return dbg << res.x() << colon('x') << res.y() << colon(',');
+    auto flags = dbg.flags();
+    dbg << "";
+    dbg.setFlags(flags | Debug::Flag::NoSpace);
+    dbg << res.x() << "x"_s << res.y();
+    dbg.setFlags(flags);
+    return dbg;
 }
 
 constexpr inline int max_image_dimension = 4096;
@@ -94,7 +99,6 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     const auto& old_group = old_dir.group(j);
     //auto& new_dir = get_direction(new_atlas, (size_t)i);
     const auto dir_name = wall_atlas::directions[i].name;
-    std::vector<frame> frames; frames.reserve(64);
 
     const auto path = Path::join({ st.opts.input_dir, dir_name, group_name });
     const auto expected_size = wall_atlas::expected_size(new_atlas.header.depth, (Group_)j);
@@ -130,12 +134,14 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                 swap(mat, mat2);
             }
 
-            if (Vector2ui{(unsigned)mat.cols, (unsigned)mat.rows} != expected_size) [[unlikely]]
+            const auto size = Vector2ui{(unsigned)mat.cols, (unsigned)mat.rows};
+
+            if (size != expected_size) [[unlikely]]
             {
-                ERR << "fatal: wrong image size, expected size"
+                ERR << "fatal: wrong image size, expected"
                     << resolution{expected_size} << colon(',')
-                                                 << "actual size" << resolution{}
-                                                                  << "-- file" << filename;
+                    << "actual" << resolution{size}
+                    << "-- file" << filename;
                 return false;
             }
 
@@ -149,6 +155,8 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                     << "for" << quoted(filename);
                 return false;
             }
+
+            st.frames.push_back({.size = size, .mat = std::move(buf)});
         }
 
         if (count == 0)

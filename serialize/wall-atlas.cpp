@@ -157,7 +157,8 @@ StringView direction_index_to_name(size_t i)
 
 std::vector<Frame> read_all_frames(const json& jroot)
 {
-    fm_assert(jroot.contains("frames"));
+    if (!jroot.contains("frames"))
+        return {};
 
     std::vector<Frame> frames;
     const auto& jframes = jroot["frames"];
