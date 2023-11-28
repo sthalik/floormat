@@ -190,7 +190,6 @@ bool is_direction_defined(const Direction& dir)
 Group read_group_metadata(const json& jgroup)
 {
     fm_assert(jgroup.is_object());
-
     Group val;
 
     {
@@ -208,18 +207,24 @@ Group read_group_metadata(const json& jgroup)
         // todo check index within range
     }
 
+    val.default_tint = true;
+    if (jgroup.contains("tint-mult"))
+    {
+        val.tint_mult = jgroup["tint-mult"];
+        val.default_tint = false;
+    }
+    if (jgroup.contains("tint-add"))
+    {
+        val.tint_add = jgroup["tint-add"];
+        val.default_tint = false;
+    }
+
     if (jgroup.contains("pixel-size"))
         val.pixel_size = jgroup["pixel-size"];
-    if (jgroup.contains("tint-mult"))
-        val.tint_mult = jgroup["tint-mult"];
-    if (jgroup.contains("tint-add"))
-        val.tint_add = jgroup["tint-add"];
     if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
         val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"] });
     if (jgroup.contains("mirrored"))
         val.mirrored = !!jgroup["mirrored"];
-    if (jgroup.contains("default-tint"))
-        val.default_tint = !!jgroup["default-tint"];
 
     val.is_defined = true;
     return val;
@@ -287,14 +292,16 @@ void write_group_metadata(json& jgroup, const Group& val)
 
     jgroup["count"] = val.count;
     jgroup["pixel-size"] = val.pixel_size;
-    jgroup["tint-mult"] = val.tint_mult;
-    jgroup["tint-add"] = val.tint_add;
+    if (!val.default_tint)
+    {
+        jgroup["tint-mult"] = val.tint_mult;
+        jgroup["tint-add"] = val.tint_add;
+    }
     if (val.from_rotation != group_defaults.from_rotation)
         jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
     else
         jgroup["from-rotation"] = nullptr;
     jgroup["mirrored"] = val.mirrored;
-    jgroup["default-tint"] = val.default_tint;
 }
 
 void write_direction_metadata(json& jdir, const Direction& dir)

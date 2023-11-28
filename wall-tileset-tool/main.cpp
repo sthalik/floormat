@@ -122,7 +122,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                 return false;
             }
 
-            cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()}), mat2;
+            cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()}, cv::IMREAD_ANYCOLOR), mat2;
             if ((Group_)j == Group_::top)
             {
                 cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
@@ -130,7 +130,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                 swap(mat, mat2);
             }
 
-            if (Vector2ui((unsigned)mat.cols, (unsigned)mat.rows) != expected_size) [[unlikely]]
+            if (Vector2ui{(unsigned)mat.cols, (unsigned)mat.rows} != expected_size) [[unlikely]]
             {
                 ERR << "fatal: wrong image size, expected size"
                     << resolution{expected_size} << colon(',')

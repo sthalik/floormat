@@ -26,11 +26,13 @@
     "w": {
         "pass-mode": "shoot-through",
         "wall": {
+            "default-tint": false,
             "offset": 0,
             "count": 1
         },
         "side": {
-            "pixel-size": "42 x 192"
+            "pixel-size": "42 x 192",
+            "default-tint": true
         },
         "top": {
             "pixel-size": "192 x 42",
@@ -41,6 +43,7 @@
             "pixel-size": "42 x 192",
             "tint-mult": [ 0.125, 0.25, 0.5, 1 ],
             "tint-add": [ 1, 2, 3 ],
+            "default-tint": false,
             "mirrored": true
         },
         "corner-L": { "from-rotation": "n" }
