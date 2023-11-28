@@ -88,6 +88,7 @@ struct DirArrayIndex {
 namespace floormat {
 
 constexpr inline auto Direction_COUNT = (size_t)Wall::Direction_::COUNT;
+constexpr inline auto Group_COUNT = (size_t)Wall::Group_::COUNT;
 
 struct wall_atlas_def final
 {

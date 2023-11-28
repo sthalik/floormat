@@ -72,7 +72,6 @@ constexpr inline int max_image_dimension = 4096;
 bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
 {
     fm_assert(dest.empty() || dest.size == src.size);
-    auto ch = src.channels(), tp = src.type();
 
     switch (auto type = src.type())
     {
@@ -164,6 +163,12 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
             ERR << "fatal: no files found for" << quoted2(dir_name) << "/" << quoted2(group_name);
             return false;
         }
+
+        DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
+
+        for (auto i = 0uz; i < count; i++)
+            for (auto j = i+1; j < count; j++)
+                fm_assert(st.frames[i].size.y() == st.frames[j].size.y());
 
         fm_assert(start + count == st.frames.size());
         new_group.count = count;
