@@ -124,7 +124,14 @@ bool save_image(state st)
         src.copyTo(st.dest(rect));
     }
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".png"_s});
-    cv::imwrite(filename, st.dest);
+    if (!st.opts.use_alpha)
+    {
+        cv::Mat3b img;
+        cv::cvtColor(st.dest, img, cv::COLOR_BGRA2BGR);
+        cv::imwrite(filename, img);
+    }
+    else
+        cv::imwrite(filename, st.dest);
     return true;
 }
 
@@ -196,6 +203,8 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
             }
 
             cv::Mat4b buf;
+            if (mat.channels() == 4)
+                st.opts.use_alpha = true;
             if (!convert_to_bgra32(mat, buf)) [[unlikely]]
             {
                 ERR << "fatal: unknown image pixel format:"

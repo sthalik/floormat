@@ -8,6 +8,7 @@ namespace floormat::wall_tool {
 struct options
 {
     String input_dir, input_file, output_dir;
+    bool use_alpha = false;
 };
 
 struct frame
