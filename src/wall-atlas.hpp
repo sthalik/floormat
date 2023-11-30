@@ -16,7 +16,7 @@ namespace floormat::Wall {
 
 struct Frame
 {
-    Vector2ui offset = { (unsigned)-1, (unsigned)-1 };
+    Vector2ui offset = { (unsigned)-1, (unsigned)-1 }, size;
 
     bool operator==(const Frame&) const noexcept;
 };

@@ -74,7 +74,7 @@ bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
 {
     fm_assert(dest.empty() || dest.size == src.size);
 
-    switch (auto type = src.type())
+    switch (src.type())
     {
     default:
         return false;
@@ -122,6 +122,7 @@ bool save_image(state st)
         auto rect = cv::Rect{(int)xpos, 0, (int)x.size.x(), (int)x.size.y()};
         xpos += x.size.x();
         src.copyTo(st.dest(rect));
+        st.new_atlas.frames.push_back({.offset = x.offset, .size = x.size});
     }
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".png"_s});
     if (!st.opts.use_alpha)
@@ -138,10 +139,6 @@ bool save_image(state st)
 bool save_json(state st)
 {
     using namespace floormat::Wall::detail;
-    std::vector<Frame> frames; frames.reserve(st.frames.size());
-    for (const auto& x : st.frames)
-        frames.push_back({.offset = x.offset});
-    st.new_atlas.frames = std::move(frames);
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".json"_s});
     st.new_atlas.serialize(filename);
     return true;

@@ -348,7 +348,7 @@ void write_info_header(json& jroot, const Info& info)
 
 namespace floormat::Wall {
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset, size)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, depth)
 
 } // namespace floormat::Wall

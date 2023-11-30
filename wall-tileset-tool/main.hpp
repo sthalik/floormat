@@ -13,8 +13,8 @@ struct options
 
 struct frame
 {
-    cv::Mat4b mat;
-    Vector2ui offset, size;
+    cv::Mat4b mat{};
+    Vector2ui offset{}, size{};
 };
 
 struct state
