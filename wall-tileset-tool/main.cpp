@@ -5,16 +5,17 @@
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "src/wall-atlas.hpp"
-//#include "serialize/wall-atlas.hpp"
+#include "serialize/wall-atlas.hpp"
 //#include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include <utility>
 #include <tuple>
 #include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/String.h>
+#include <Corrade/Containers/StringStl.h>
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Containers/TripleStl.h>
 #include <Corrade/Utility/Path.h>
+#include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Magnum/Math/Functions.h>
@@ -89,6 +90,56 @@ bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
     }
 }
 
+Vector2ui mat_size(const cv::Mat& mat)
+{
+    return { (unsigned)mat.cols, (unsigned)mat.rows };
+}
+
+bool save_image(state st)
+{
+    const auto count = st.frames.size();
+    fm_assert(count);
+
+    for (auto i = 1uz; i < count; i++)
+        fm_assert(mat_size(st.frames[i].mat).y() == mat_size(st.frames[0].mat).y());
+
+    size_t total_width = 0;
+    for (const auto& x : st.frames)
+        total_width += mat_size(x.mat).x();
+    size_t num_rows = (total_width + max_image_dimension - 1) / max_image_dimension;
+    fm_assert(num_rows > 0);
+    fm_assert(num_rows == 1); // todo
+
+    st.dest.create((int)mat_size(st.frames[0].mat).y(), (int)total_width);
+    st.dest.setTo(cv::Scalar{0, 0, 0, 0});
+
+    unsigned xpos = 0;
+    for (auto& x : st.frames)
+    {
+        const auto& src = x.mat;
+        x.size = mat_size(src);
+        x.offset = {(unsigned)xpos, 0};
+        auto rect = cv::Rect{(int)xpos, 0, (int)x.size.x(), (int)x.size.y()};
+        xpos += x.size.x();
+        src.copyTo(st.dest(rect));
+    }
+    auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".png"_s});
+    cv::imwrite(filename, st.dest);
+    return true;
+}
+
+bool save_json(state st)
+{
+    using namespace floormat::Wall::detail;
+    std::vector<Frame> frames; frames.reserve(st.frames.size());
+    for (const auto& x : st.frames)
+        frames.push_back({.offset = x.offset});
+    st.new_atlas.frames = std::move(frames);
+    auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".json"_s});
+    st.new_atlas.serialize(filename);
+    return true;
+}
+
 bool do_group(state st, size_t i, size_t j, Group& new_group)
 {
     const auto group_name = Direction::groups[j].name;
@@ -125,7 +176,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                 return false;
             }
 
-            cv::Mat mat = cv::imread(cv::String{filename.data(), filename.size()}, cv::IMREAD_ANYCOLOR), mat2;
+            cv::Mat mat = cv::imread(filename, cv::IMREAD_ANYCOLOR), mat2;
             if ((Group_)j == Group_::top)
             {
                 cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
@@ -155,7 +206,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
                 return false;
             }
 
-            st.frames.push_back({.size = size, .mat = std::move(buf)});
+            st.frames.push_back({.mat = std::move(buf)});
         }
 
         if (count == 0)
@@ -165,10 +216,6 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
         }
 
         DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
-
-        for (auto i = 0uz; i < count; i++)
-            for (auto j = i+1; j < count; j++)
-                fm_assert(st.frames[i].size.y() == st.frames[j].size.y());
 
         fm_assert(start + count == st.frames.size());
         new_group.count = count;
@@ -321,6 +368,7 @@ int main(int argc, char** argv)
     auto old_atlas = wall_atlas_def::deserialize(opts.input_file);
     auto new_atlas = wall_atlas_def{};
     auto frames = std::vector<frame>{}; frames.reserve(64);
+    auto dest = cv::Mat4b{};
     auto error = EX_DATAERR;
 
     auto st = state {
@@ -328,9 +376,10 @@ int main(int argc, char** argv)
         .old_atlas = old_atlas,
         .new_atlas = new_atlas,
         .frames = frames,
+        .dest = dest,
         .error = error,
     };
-    if (!do_input_file(st))
+    if (!do_input_file(st) || !save_image(st) || !save_json(st))
     {
         fm_assert(error);
         return error;

@@ -12,8 +12,8 @@ struct options
 
 struct frame
 {
-    Vector2ui size;
     cv::Mat4b mat;
+    Vector2ui offset, size;
 };
 
 struct state
@@ -22,6 +22,7 @@ struct state
     const wall_atlas_def& old_atlas;
     wall_atlas_def& new_atlas;
     std::vector<frame>& frames;
+    cv::Mat4b& dest;
     int& error;
 };
 
