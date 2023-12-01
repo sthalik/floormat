@@ -113,7 +113,7 @@ endif()
 if(NOT APPLE AND NOT WIN32)
     add_compile_options(-fno-plt)
     add_link_options(-Wl,-z,relro,-z,now)
-    add_link_options(-Wl,-z,nodlopen -Wl,-z,noexecstack)
+    add_link_options(-Wl,-z,noexecstack)
 endif()
 
 add_definitions(
