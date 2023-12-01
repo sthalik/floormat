@@ -19,8 +19,7 @@ set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-gcc/install" CACHE PATH ""
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
     add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
-    # todo recompile opencv
-    #add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG_BACKTRACE)
+    add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG_BACKTRACE)
 endif()
 
 set(FLOORMAT_SUBMODULE-SDL2 1)
