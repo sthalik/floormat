@@ -12,48 +12,6 @@ namespace floormat {
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
-#if 0
-void wall_atlas::validate(const wall_atlas& a, const ImageView2D& img) noexcept(false)
-{
-    // todo
-
-    const auto pixels = img.pixels();
-    const auto size   = pixels.size();
-    const auto width = size[1], height = size[0];
-
-    fm_soft_assert(width * height > 0);
-
-    for (const auto& frame : a.raw_frame_array())
-    {
-        fm_soft_assert(frame.offset < Vector2ui{(unsigned)width, (unsigned)height});
-        fm_soft_assert((int)frame.offset.y() + iTILE_SIZE.z() <= (int)height);
-        fm_soft_assert((int)frame.offset.x() < iTILE_SIZE2.x());
-        // todo check frame offset + size based on wall_atlas::expected_size()
-    }
-
-    const auto frame_count = a.raw_frame_array().size();
-    bool got_group = false;
-
-    for (auto [_str, _group, tag] : Direction::groups)
-    {
-        const auto* dir = a.direction((size_t)tag);
-        if (!dir)
-            continue;
-        const auto* g = a.group(dir, tag);
-        if (!g)
-            continue;
-        got_group = true;
-        fm_soft_assert(g->count > 0 == g->index < (uint32_t)-1);
-        if (g->count > 0)
-        {
-            fm_soft_assert(g->index < frame_count);
-            fm_soft_assert(g->index + g->count <= frame_count);
-        }
-    }
-    fm_soft_assert(got_group);
-}
-#endif
-
 Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
 {
     constexpr auto size = Vector3ui{iTILE_SIZE};

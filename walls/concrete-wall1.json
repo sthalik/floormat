@@ -1,0 +1,50 @@
+{
+  "depth": 20,
+  "frames": [
+    {
+      "offset": "0 x 0",
+      "size": "64 x 192"
+    },
+    {
+      "offset": "64 x 0",
+      "size": "64 x 192"
+    },
+    {
+      "offset": "128 x 0",
+      "size": "64 x 192"
+    },
+    {
+      "offset": "192 x 0",
+      "size": "20 x 192"
+    },
+    {
+      "offset": "212 x 0",
+      "size": "20 x 192"
+    }
+  ],
+  "n": {
+    "pass-mode": "blocked",
+    "side": {
+      "count": 1,
+      "from-rotation": null,
+      "mirrored": false,
+      "offset": 3,
+      "pixel-size": "20 x 192"
+    },
+    "top": {
+      "count": 1,
+      "from-rotation": null,
+      "mirrored": false,
+      "offset": 4,
+      "pixel-size": "192 x 20"
+    },
+    "wall": {
+      "count": 3,
+      "from-rotation": null,
+      "mirrored": false,
+      "offset": 0,
+      "pixel-size": "64 x 192"
+    }
+  },
+  "name": "concrete-wall1"
+}
