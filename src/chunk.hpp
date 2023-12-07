@@ -119,6 +119,7 @@ struct chunk final
 private:
     struct ground_stuff
     {
+        // todo remove "_ground" prefix
         std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
         std::array<uint8_t, TILE_COUNT> ground_indexes = {};
         std::array<variant_t, TILE_COUNT> _ground_variants = {};
@@ -128,7 +129,7 @@ private:
     {
         std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-        std::array<uint8_t, TILE_COUNT> indexes_N, indexes_W;
+        std::array<uint_fast16_t, 2*TILE_COUNT> indexes;
         size_t count_N = 0, count_W = 0;
 
         bool empty() const { return count_N == 0 && count_W == 0; }
@@ -162,12 +163,15 @@ private:
 
         bool operator==(const bbox& other) const noexcept;
     };
+
     static bool _bbox_for_scenery(const object& s, bbox& value) noexcept;
     static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
     GL::Mesh make_wall_mesh(size_t count);
+
+    template<size_t N> static std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> make_index_array(size_t max);
 };
 
 } // namespace floormat

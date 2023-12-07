@@ -38,14 +38,18 @@ tile_image_proto tile_ref::ground() const noexcept
 
 wall_image_proto tile_ref::wall_north() const noexcept
 {
-    _chunk->ensure_alloc_walls();
-    return { _chunk->_walls->atlases[i*2+0], _chunk->_walls->variants[i*2+0] };
+    if (!_chunk->_walls) [[unlikely]]
+        return {};
+    else
+        return { _chunk->_walls->atlases[i*2+0], _chunk->_walls->variants[i*2+0] };
 }
 
 wall_image_proto tile_ref::wall_west() const noexcept
 {
-    _chunk->ensure_alloc_walls();
-    return { _chunk->_walls->atlases[i*2+1],  _chunk->_walls->variants[i*2+1] };
+    if (!_chunk->_walls) [[unlikely]]
+        return {};
+    else
+        return { _chunk->_walls->atlases[i*2+1],  _chunk->_walls->variants[i*2+1] };
 }
 
 tile_ref::operator tile_proto() const noexcept
