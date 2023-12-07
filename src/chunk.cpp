@@ -26,7 +26,7 @@ bool chunk::empty(bool force) const noexcept
     if (!force && !_maybe_empty)
         return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (!_objects.empty() || _ground && _ground->_ground_atlases[i] || _walls && (_walls->_wall_atlases[i*2+0] || _walls->_wall_atlases[i*2+1]))
+        if (!_objects.empty() || _ground && _ground->_ground_atlases[i] || _walls && _walls->empty())
             return _maybe_empty = false;
     if (!_objects.empty())
         return false;
@@ -34,7 +34,6 @@ bool chunk::empty(bool force) const noexcept
 }
 
 tile_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->_ground_atlases[i].get() : nullptr; }
-tile_atlas* chunk::wall_atlas_at(size_t i) const noexcept { return _walls ? _walls->_wall_atlases[i].get() : nullptr; }
 
 tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
 tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), uint8_t(idx) }); }

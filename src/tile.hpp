@@ -8,12 +8,13 @@ class anim_atlas;
 
 struct tile_proto final
 {
-    std::shared_ptr<tile_atlas> ground_atlas, wall_north_atlas, wall_west_atlas;
+    std::shared_ptr<tile_atlas> ground_atlas;
+    std::shared_ptr<wall_atlas> wall_north_atlas, wall_west_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
 
     tile_image_proto ground() const noexcept;
-    tile_image_proto wall_north() const noexcept;
-    tile_image_proto wall_west() const noexcept;
+    wall_image_proto wall_north() const noexcept;
+    wall_image_proto wall_west() const noexcept;
 
     friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
 };
@@ -23,20 +24,20 @@ struct tile_ref final
     tile_ref(struct chunk& c, uint8_t i) noexcept;
 
     tile_image_ref ground() noexcept;
-    tile_image_ref wall_north() noexcept;
-    tile_image_ref wall_west() noexcept;
+    wall_image_ref wall_north() noexcept;
+    wall_image_ref wall_west() noexcept;
 
     tile_image_proto ground() const noexcept;
-    tile_image_proto wall_north() const noexcept;
-    tile_image_proto wall_west() const noexcept;
+    wall_image_proto wall_north() const noexcept;
+    wall_image_proto wall_west() const noexcept;
 
     std::shared_ptr<tile_atlas> ground_atlas() noexcept;
-    std::shared_ptr<tile_atlas> wall_north_atlas() noexcept;
-    std::shared_ptr<tile_atlas> wall_west_atlas() noexcept;
+    std::shared_ptr<wall_atlas> wall_north_atlas() noexcept;
+    std::shared_ptr<wall_atlas> wall_west_atlas() noexcept;
 
     std::shared_ptr<const tile_atlas> ground_atlas() const noexcept;
-    std::shared_ptr<const tile_atlas> wall_north_atlas() const noexcept;
-    std::shared_ptr<const tile_atlas> wall_west_atlas() const noexcept;
+    std::shared_ptr<const wall_atlas> wall_north_atlas() const noexcept;
+    std::shared_ptr<const wall_atlas> wall_west_atlas() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 

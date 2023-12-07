@@ -2,6 +2,7 @@
 #include "compat/defs.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
+#include "wall-defs.hpp"
 #include <array>
 #include <bitset>
 #include <vector>
@@ -27,7 +28,7 @@ struct Group
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add;
-    uint8_t from_rotation = (uint8_t)-1; // applies only to images
+    uint8_t from_rotation = (uint8_t)-1; // applies only to images; todo remove it?
     bool mirrored     : 1 = false,
          default_tint : 1 = true,
          is_defined   : 1 = false;
@@ -36,10 +37,6 @@ struct Group
 
     bool operator==(const Group&) const noexcept;
 };
-
-enum class Group_ : uint8_t { wall, overlay, side, top, corner_L, corner_R, COUNT };
-
-enum class Direction_ : uint8_t { N, E, S, W, COUNT };
 
 struct Direction
 {
@@ -86,9 +83,6 @@ struct DirArrayIndex {
 } // namespace floormat::Wall
 
 namespace floormat {
-
-constexpr inline auto Direction_COUNT = (size_t)Wall::Direction_::COUNT;
-constexpr inline auto Group_COUNT = (size_t)Wall::Group_::COUNT;
 
 struct wall_atlas_def final
 {

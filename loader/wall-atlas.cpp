@@ -24,15 +24,15 @@ using nlohmann::json;
     val = {};
     val.name = j["name"];
     fm_soft_assert(loader.check_atlas_name(val.name));
-    if (j.contains("descr"))
-        val.descr = j["descr"];
+    if (j.contains("description"))
+        val.descr = j["description"];
 }
 
 [[maybe_unused]] static void to_json(json& j, const wall_info& val)
 {
     j["name"] = val.name;
     if (val.descr)
-        j["descr"] = val.descr;
+        j["description"] = val.descr;
 }
 
 } // namespace floormat

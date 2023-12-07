@@ -371,8 +371,7 @@ struct astar::chunk_cache
     }();
     static constexpr size_t rank = sizeof(dimensions)/sizeof(dimensions[0]);
 
-    struct index { uint32_t value = (uint32_t)value; };
-
+    struct index { uint32_t value = 0; };
     std::array<index, size> indexes = {};
     std::bitset<size> exists{false};
 };

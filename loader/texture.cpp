@@ -12,7 +12,7 @@
 namespace floormat::loader_detail {
 
 fm_noinline
-Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_) noexcept(false)
+Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_, bool fail_ok) noexcept(false)
 {
     ensure_plugins();
 
@@ -48,7 +48,10 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     const auto path = Path::currentDirectory();
     buf[len] = '\0';
     char errbuf[128];
-    fm_throw("can't open image '{}' (cwd '{}'): {}"_cf, buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
+    if (!fail_ok)
+        fm_throw("can't open image '{}' (cwd '{}'): {}"_cf, buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
+    else
+        return make_error_texture();
 }
 
 } // namespace floormat::loader_detail

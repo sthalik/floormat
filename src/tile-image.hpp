@@ -4,28 +4,37 @@
 namespace floormat {
 
 class tile_atlas;
+class wall_atlas;
 
 using variant_t = uint8_t;
 
-struct tile_image_proto final
+template<typename Atlas>
+struct image_proto_
 {
-    std::shared_ptr<tile_atlas> atlas;
+    std::shared_ptr<Atlas> atlas;
     variant_t variant = 0;
 
-    friend bool operator==(const tile_image_proto& a, const tile_image_proto& b) noexcept;
+    bool operator==(const image_proto_<Atlas>& b) const noexcept;
     operator bool() const noexcept;
 };
 
-struct tile_image_ref final
+template<typename Atlas, typename Proto>
+struct image_ref_ final
 {
-    std::shared_ptr<tile_atlas>& atlas;
+    std::shared_ptr<Atlas>& atlas;
     variant_t& variant;
 
-    tile_image_ref(std::shared_ptr<tile_atlas>& atlas, variant_t& variant) noexcept;
-    tile_image_ref(const tile_image_ref&) noexcept;
-    tile_image_ref& operator=(const tile_image_proto& tile_image_proto) noexcept;
-    operator tile_image_proto() const noexcept;
+    image_ref_(std::shared_ptr<Atlas>& atlas, variant_t& variant) noexcept;
+    image_ref_(const image_ref_&) noexcept;
+    image_ref_& operator=(const Proto& proto) noexcept;
+    operator Proto() const noexcept;
     operator bool() const noexcept;
 };
+
+using tile_image_proto = image_proto_<tile_atlas>;
+using tile_image_ref = image_ref_<tile_atlas, tile_image_proto>;
+
+using wall_image_proto = image_proto_<wall_atlas>;
+using wall_image_ref = image_ref_<wall_atlas, wall_image_proto>;
 
 } // namespace floormat

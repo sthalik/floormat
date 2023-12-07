@@ -2,32 +2,43 @@
 
 namespace floormat {
 
-bool operator==(const tile_image_proto& a, const tile_image_proto& b) noexcept
+template<typename Atlas> bool image_proto_<Atlas>::operator==(const image_proto_<Atlas>& b) const noexcept = default;
+template<typename Atlas> image_proto_<Atlas>::operator bool() const noexcept { return atlas != nullptr; }
+
+template<typename Atlas, typename Proto>
+image_ref_<Atlas, Proto>::operator bool() const noexcept
 {
-    return a.atlas == b.atlas && a.variant == b.variant;
+    return atlas != nullptr;
 }
 
-tile_image_proto::operator bool() const noexcept { return atlas != nullptr; }
+template<typename Atlas, typename Proto>
+image_ref_<Atlas, Proto>::image_ref_(const image_ref_<Atlas, Proto>& o) noexcept
+    : atlas{o.atlas}, variant{o.variant}
+{}
 
-tile_image_ref::tile_image_ref(std::shared_ptr<tile_atlas>& atlas, variant_t& variant) noexcept :
-    atlas{atlas}, variant{variant}
+template<typename Atlas, typename Proto>
+image_ref_<Atlas, Proto>::image_ref_(std::shared_ptr<Atlas>& atlas, variant_t& variant) noexcept
+    : atlas{atlas}, variant{variant}
+{}
+
+template<typename Atlas, typename Proto>
+image_ref_<Atlas, Proto>::operator Proto() const noexcept
 {
+    return { atlas, variant };
 }
 
-tile_image_ref& tile_image_ref::operator=(const tile_image_proto& proto) noexcept
+template<typename Atlas, typename Proto>
+image_ref_<Atlas, Proto>& image_ref_<Atlas, Proto>::operator=(const Proto& proto) noexcept
 {
     atlas = proto.atlas;
     variant = proto.variant;
     return *this;
 }
 
-tile_image_ref::tile_image_ref(const tile_image_ref&) noexcept = default;
+template struct image_proto_<tile_atlas>;
+template struct image_ref_<tile_atlas, tile_image_proto>;
 
-tile_image_ref::operator tile_image_proto() const noexcept
-{
-    return { atlas, variant };
-}
-
-tile_image_ref::operator bool() const noexcept { return atlas != nullptr; }
+template struct image_proto_<wall_atlas>;
+template struct image_ref_<wall_atlas, wall_image_proto>;
 
 } // namespace floormat

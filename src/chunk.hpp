@@ -4,6 +4,7 @@
 #include "local-coords.hpp"
 #include "src/RTree.h"
 #include "global-coords.hpp"
+#include "wall-defs.hpp"
 #include <type_traits>
 #include <array>
 #include <Corrade/Containers/Pointer.h>
@@ -12,6 +13,7 @@
 namespace floormat {
 
 class anim_atlas;
+class wall_atlas;
 struct object;
 struct object_proto;
 class tile_iterator;
@@ -98,7 +100,6 @@ struct chunk final
     ground_mesh_tuple ensure_ground_mesh() noexcept;
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
-    tile_atlas* wall_atlas_at(size_t i) const noexcept;
 
     scenery_mesh_tuple ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept;
     scenery_mesh_tuple ensure_scenery_mesh() noexcept;
@@ -116,17 +117,24 @@ struct chunk final
     const std::vector<std::shared_ptr<object>>& objects() const;
 
 private:
-    struct ground_stuff {
+    struct ground_stuff
+    {
         std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
         std::array<uint8_t, TILE_COUNT> ground_indexes = {};
         std::array<variant_t, TILE_COUNT> _ground_variants = {};
     };
 
-    struct wall_stuff {
-        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT*2> _wall_atlases; // todo make into vector
-        std::array<uint16_t, TILE_COUNT*2> wall_indexes = {};
-        std::array<variant_t, TILE_COUNT*2> _wall_variants = {};
+    struct wall_stuff
+    {
+        std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
+        std::array<variant_t, 2*TILE_COUNT> variants;
+        std::array<uint8_t, TILE_COUNT> indexes_N, indexes_W;
+        size_t count_N = 0, count_W = 0;
+
+        bool empty() const { return count_N == 0 && count_W == 0; }
     };
+
+    template<Wall::Group_ G, bool IsWest> static vertex make_wall_vertex_data(size_t tile, float depth);
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
@@ -142,7 +150,7 @@ private:
                  _scenery_modified       : 1 = true,
                  _pass_modified          : 1 = true,
                  _teardown               : 1 = false,
-                 _objects_sorted        : 1 = true;
+                 _objects_sorted         : 1 = true;
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
     static topo_sort_data make_topo_sort_data(object& e, uint32_t mesh_idx);
