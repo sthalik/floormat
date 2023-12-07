@@ -17,6 +17,13 @@ namespace floormat {
 using namespace floormat::Quads;
 using Wall::Group_;
 
+namespace {
+
+constexpr Vector2 half_tile = TILE_SIZE2*.5f;
+constexpr float hx = half_tile.x(), hy = half_tile.y();
+constexpr float tile_height = TILE_SIZE.z();
+
+} // namespace
 
 void chunk::ensure_alloc_walls()
 {
@@ -27,7 +34,13 @@ void chunk::ensure_alloc_walls()
 // -----------------------
 
 // wall north
-template<> auto chunk::make_wall_vertex_data<Group_::wall, false>(size_t tile, float depth) -> vertex
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, false>(Vector2 center, float depth)
+{
+    auto quad = wall_quad_N(Vector3(center, tile_height), TILE_SIZE);
+}
+
+// wall west
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, true>(Vector2 center, float depth)
 {
 }
 

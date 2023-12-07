@@ -91,14 +91,14 @@ struct wall_atlas_def final
     Wall::Info header;
     std::vector<Wall::Frame> frames;
     std::vector<Wall::Direction> direction_array;
-    std::array<Wall::DirArrayIndex, Direction_COUNT> direction_map;
-    std::bitset<Direction_COUNT> direction_mask{0};
+    std::array<Wall::DirArrayIndex, Wall::Direction_COUNT> direction_map;
+    std::bitset<Wall::Direction_COUNT> direction_mask{0};
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;
     static void serialize(StringView filename, const Wall::Info& header, ArrayView<const Wall::Frame> frames,
                           ArrayView<const Wall::Direction> dir_array,
-                          std::array<Wall::DirArrayIndex, Direction_COUNT> dir_map);
+                          std::array<Wall::DirArrayIndex, Wall::Direction_COUNT> dir_map);
 };
 
 class wall_atlas final
