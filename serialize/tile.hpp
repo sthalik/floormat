@@ -1,9 +1,9 @@
 #pragma once
+#include "src/tile-image.hpp"
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat {
 
-struct tile_image_ref;
 struct local_coords;
 struct chunk_coords;
 struct chunk_coords_;
