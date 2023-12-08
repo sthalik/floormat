@@ -1,8 +1,9 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "rotation.hpp"
-#include <Corrade/Containers/PairStl.h>
-#include <Corrade/Containers/TripleStl.h>
+#include <Corrade/Containers/StructuredBindings.h>
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/Triple.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 

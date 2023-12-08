@@ -7,7 +7,8 @@
 #include "shaders/shader.hpp"
 #include <cmath>
 #include <algorithm>
-#include <Corrade/Containers/PairStl.h>
+#include <Corrade/Containers/StructuredBindings.h>
+#include <Corrade/Containers/Pair.h>
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {

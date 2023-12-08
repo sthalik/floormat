@@ -5,7 +5,8 @@
 #include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
 #include <bit>
-#include <Corrade/Containers/PairStl.h>
+#include <Corrade/Containers/StructuredBindings.h>
+#include <Corrade/Containers/Pair.h>
 
 namespace floormat {
 
