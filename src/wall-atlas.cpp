@@ -45,6 +45,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _info{std::move(def.header)}, _path{std::move(path)},
       _direction_map{def.direction_map}
 {
+    // todo resolve `from_rotation` here
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)

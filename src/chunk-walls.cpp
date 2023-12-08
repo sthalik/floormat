@@ -119,26 +119,32 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, tru
 // top north
 template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, false>(float depth)
 {
-    auto top_right    = Vector2{X ,             Y - depth        },
+    auto top_right    = Vector2{X,              Y - depth        },
          bottom_right = Vector2{top_right.x(),  Y                },
          top_left     = Vector2{-X,             top_right.y()    },
          bottom_left  = Vector2{top_left.x(),   bottom_right.y() };
-    // br tr
-    // tr tl
-    // bl br
-    // tl bl
     return {{
-        { top_right.x(),    top_right.y(),    Z },
-        { top_left.x(),     top_left.y(),     Z },
-        { bottom_right.x(), bottom_right.y(), Z },
-        { bottom_left.x(),  bottom_left.y(),  Z }
+        { top_right.x(),    top_right.y(),    Z }, // br tr
+        { top_left.x(),     top_left.y(),     Z }, // tr tl
+        { bottom_right.x(), bottom_right.y(), Z }, // bl br
+        { bottom_left.x(),  bottom_left.y(),  Z }, // tl bl
     }};
 }
 
 // top west
 template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, true>(float depth)
 {
+    auto top_right    = Vector2{-X,                       -Y               },
+         top_left     = Vector2{top_right.x() - depth,    top_right.y()    },
+         bottom_right = Vector2{-X,                       Y                },
+         bottom_left  = Vector2{bottom_right.x() - depth, bottom_right.y() };
 
+    return {{
+        { bottom_right.x(), bottom_right.y(), Z },
+        { top_right.x(),    top_right.y(),    Z },
+        { bottom_left.x(),  bottom_left.y(),  Z },
+        { top_left.x(),     top_left.y(),     Z },
+    }};
 }
 
 // -----------------------
