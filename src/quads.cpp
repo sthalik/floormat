@@ -2,7 +2,7 @@
 
 namespace floormat::Quads {
 
-indexes quad_indexes(size_t N)
+std::array<UnsignedShort, 6> quad_indexes(size_t N)
 {
     using u16 = UnsignedShort;
     return {                                        /* 3--1  1 */

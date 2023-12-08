@@ -20,7 +20,6 @@ using Wall::Group_;
 namespace {
 
 constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-constexpr float hx = half_tile.x(), hy = half_tile.y();
 constexpr float tile_height = TILE_SIZE.z();
 
 } // namespace
@@ -33,15 +32,73 @@ void chunk::ensure_alloc_walls()
 
 // -----------------------
 
+// overlay north
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::overlay, false>(Vector2 center, float depth)
+{
+    return wall_quad_N(Vector3(center, tile_height), TILE_SIZE);
+}
+
+// overlay west
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::overlay, true>(Vector2 center, float depth)
+{
+    return wall_quad_W(Vector3(center, tile_height), TILE_SIZE);
+}
+
+// corner left
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_L, false>(Vector2 center, float depth)
+{
+    constexpr float x = half_tile.x(), y = half_tile.y(), z = tile_height;
+    constexpr float x_offset = (float)(int)x;
+    return {{
+        {             x + center.x(), -y + center.y(), z + 0 },
+        {             x + center.x(), -y + center.y(),     0 },
+        { x_offset + -x + center.x(), -y + center.y(), z + 0 },
+        { x_offset + -x + center.x(), -y + center.y(),     0 },
+    }};
+}
+
+// corner right
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_R, true>(Vector2 center, float depth)
+{
+    constexpr float x = half_tile.x(), y = half_tile.y(), z = tile_height;
+    return {{
+        {-x + center.x(),  y + center.y(), z + 0 },
+        {-x + center.x(),  y + center.y(),     0 },
+        {-x + center.x(), -y + center.y(), z + 0 },
+        {-x + center.x(), -y + center.y(),     0 },
+    }};
+}
+
 // wall north
 template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, false>(Vector2 center, float depth)
 {
-    auto quad = wall_quad_N(Vector3(center, tile_height), TILE_SIZE);
+    return wall_quad_N(Vector3(center, tile_height), TILE_SIZE);
 }
 
 // wall west
 template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, true>(Vector2 center, float depth)
 {
+    return wall_quad_W(Vector3(center, tile_height), TILE_SIZE);
+}
+
+// side north
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, false>(Vector2 center, float depth)
+{
+    constexpr float x = half_tile.x(), y = half_tile.y(), z = tile_height;
+    auto left  = Vector2{x + center.x(), -y + center.y()  },
+         right = Vector2{left.x(),       left.y() - depth };
+    return {{
+        { right.x(), right.y(), z + 0 },
+        { right.x(), right.y(),     0 },
+        { left.x(),  left.y(),  z + 0 },
+        { left.x(),  left.y(),      0 },
+    }};
+}
+
+// side west
+template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, true>(Vector2 center, float depth)
+{
+    constexpr float x = half_tile.x(), y = half_tile.y(), z = tile_height;
 }
 
 // -----------------------
