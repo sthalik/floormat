@@ -1,6 +1,7 @@
 #include "path-search.hpp"
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
+#include "compat/heap.hpp"
 #include "object.hpp"
 #include "point.hpp"
 #include <cstdio>
@@ -143,12 +144,12 @@ void astar::clear()
 void astar::add_to_heap(uint32_t id)
 {
     Q.push_back(id);
-    std::push_heap(Q.begin(), Q.end(), heap_comparator{nodes});
+    Heap::push_heap(Q.begin(), Q.end(), heap_comparator{nodes});
 }
 
 uint32_t astar::pop_from_heap()
 {
-    std::pop_heap(Q.begin(), Q.end(), heap_comparator{nodes});
+    Heap::pop_heap(Q.begin(), Q.end(), heap_comparator{nodes});
     const auto id = Q.back();
     Q.pop_back();
     return id;
