@@ -37,10 +37,10 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_L,
 {
     constexpr float x_offset = (float)((unsigned)X)/2u;
     return {{
-        {             X, -Y, Z },
-        {             X, -Y, 0 },
-        { x_offset + -X, -Y, Z },
-        { x_offset + -X, -Y, 0 },
+        { -X + x_offset, -Y, Z },
+        { -X + x_offset, -Y, 0 },
+        { -X, -Y, Z },
+        { -X, -Y, 0 },
     }};
 }
 
@@ -106,7 +106,7 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, fal
 // side west
 template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, true>(float depth)
 {
-    auto right = Vector2{ X,                 Y         };
+    auto right = Vector2{ -X,                Y         };
     auto left  = Vector2{ right.x() - depth, right.y() };
     return {{
         { right.x(), right.y(), Z },
