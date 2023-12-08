@@ -135,7 +135,7 @@ private:
         bool empty() const { return count_N == 0 && count_W == 0; }
     };
 
-    template<Wall::Group_ G, bool IsWest> static std::array<Vector3, 4> make_wall_vertex_data(Vector2 center, float depth);
+    template<Wall::Group_ G, bool IsWest> static std::array<Vector3, 4> make_wall_vertex_data(float depth);
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;

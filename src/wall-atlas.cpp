@@ -43,7 +43,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     : _dir_array{std::move(def.direction_array)},
       _frame_array{std::move(def.frames)},
       _info{std::move(def.header)}, _path{std::move(path)},
-      _direction_map{def.direction_map }
+      _direction_map{def.direction_map}
 {
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
