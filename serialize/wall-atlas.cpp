@@ -222,8 +222,6 @@ Group read_group_metadata(const json& jgroup)
 
     if (jgroup.contains("pixel-size"))
         val.pixel_size = jgroup["pixel-size"];
-    if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
-        val.from_rotation = (uint8_t)direction_index_from_name(std::string{ jgroup["from-rotation"] });
     if (jgroup.contains("mirrored"))
         val.mirrored = !!jgroup["mirrored"];
 
@@ -298,10 +296,6 @@ void write_group_metadata(json& jgroup, const Group& val)
         jgroup["tint-mult"] = val.tint_mult;
         jgroup["tint-add"] = val.tint_add;
     }
-    if (val.from_rotation != group_defaults.from_rotation)
-        jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
-    else
-        jgroup["from-rotation"] = nullptr;
     jgroup["mirrored"] = val.mirrored;
 }
 

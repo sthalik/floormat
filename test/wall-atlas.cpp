@@ -65,7 +65,6 @@ void test_read_groups(StringView filename)
     fm_assert(dir.wall.pixel_size      == Vector2ui{}                        );
     fm_assert(dir.overlay.default_tint == false                              );
     fm_assert(dir.wall.mirrored        == false                              );
-    fm_assert(dir.wall.from_rotation   == (uint8_t)-1                        );
     fm_assert(dir.side.pixel_size      == Vector2ui{42, 192}                 );
     fm_assert(dir.side.default_tint    == true                               );
     fm_assert(dir.top.default_tint     == true                               );
@@ -98,9 +97,6 @@ void test_read_groups(StringView filename)
     fm_assert(dir_index);
     const auto& dir = atlas.direction_array[dir_index.val];
     fm_assert(dir.side.pixel_size != group_defaults.pixel_size);
-    fm_assert(dir.side.from_rotation == group_defaults.from_rotation);
-    fm_assert(dir.corner_L.from_rotation != group_defaults.from_rotation);
-    fm_assert(dir.corner_L.from_rotation == (uint8_t)Direction_::N);
 
     return atlas;
 }

@@ -1,5 +1,6 @@
 #include "wall-atlas.hpp"
-#include "compat/exception.hpp"
+#include "compat/assert.hpp"
+//#include "compat/exception.hpp"
 #include "src/tile-defs.hpp"
 #include <utility>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -24,7 +25,6 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     switch (group)
     {
     using enum Group_;
-    case overlay:
     case wall:
         return { size.x(), size.z() };
     case top:
@@ -45,7 +45,6 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _info{std::move(def.header)}, _path{std::move(path)},
       _direction_map{def.direction_map}
 {
-    // todo resolve `from_rotation` here
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
@@ -113,6 +112,28 @@ auto wall_atlas::direction(size_t dir) const -> const Direction*
     return get_Direction(Direction_(dir));
 }
 
+auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
+{
+    if (auto dai = _direction_map[(size_t)dir])
+        return _dir_array[dai.val];
+    CORRADE_ASSUME(dir < Direction_::COUNT);
+    switch (dir)
+    {
+    case Direction_::N:
+        if (auto dai = _direction_map[(size_t)Direction_::W])
+            return _dir_array[dai.val];
+        break;
+    case Direction_::W:
+        if (auto dai = _direction_map[(size_t)Direction_::N])
+            return _dir_array[dai.val];
+        break;
+    case Direction_::COUNT:
+        std::unreachable();
+        break;
+    }
+    fm_abort("wall_atlas: can't find direction '%d'", (int)dir);
+}
+
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
 GL::Texture2D& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
@@ -154,7 +175,6 @@ bool Group::operator==(const Group& other) const noexcept
 {
     bool ret = index == other.index && count == other.count &&
                pixel_size == other.pixel_size &&
-               from_rotation == other.from_rotation &&
                mirrored == other.mirrored && default_tint == other.default_tint;
 
     if (!ret)

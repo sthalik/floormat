@@ -3,7 +3,7 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "shaders/shader.hpp"
-#include <Corrade/Containers/ArrayView.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/PairStl.h>
 #include <algorithm>
 
@@ -13,6 +13,14 @@ void chunk::ensure_alloc_walls()
 {
     if (!_walls) [[unlikely]]
         _walls = Pointer<wall_stuff>{InPlaceInit};
+}
+
+wall_atlas* chunk::wall_atlas_at(size_t i) const noexcept
+{
+    if (!_walls) [[unlikely]]
+        return {};
+    fm_debug_assert(i < TILE_COUNT*2);
+    return _walls->atlases[i].get();
 }
 
 namespace {
@@ -28,7 +36,7 @@ template<Group_ G, bool IsWest> constexpr std::array<Vector3, 4> make_wall_verte
 // -----------------------
 
 // corner left
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner_L, false>(float)
+template<> quad constexpr make_wall_vertex_data<Group_::corner_L, false>(float)
 {
     constexpr float x_offset = (float)(unsigned)X;
     return {{
@@ -40,7 +48,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner
 }
 
 // corner right
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner_R, true>(float)
+template<> quad constexpr make_wall_vertex_data<Group_::corner_R, true>(float)
 {
     constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
     return {{
@@ -52,7 +60,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner
 }
 
 // wall north
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, false>(float)
+template<> quad constexpr make_wall_vertex_data<Group_::wall, false>(float)
 {
     return {{
         { X, -Y, Z },
@@ -63,7 +71,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, 
 }
 
 // wall west
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, true>(float)
+template<> quad constexpr make_wall_vertex_data<Group_::wall, true>(float)
 {
     return {{
         {-X, -Y, Z },
@@ -73,20 +81,8 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, 
     }};
 }
 
-// overlay north
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::overlay, false>(float depth)
-{
-    return make_wall_vertex_data<Wall::Group_::wall, false>(depth);
-}
-
-// overlay west
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::overlay, true>(float depth)
-{
-    return make_wall_vertex_data<Wall::Group_::wall, true>(depth);
-}
-
 // side north
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, false>(float depth)
+template<> quad constexpr make_wall_vertex_data<Group_::side, false>(float depth)
 {
     auto left  = Vector2{X,        -Y               },
          right = Vector2{left.x(), left.y() - depth };
@@ -99,7 +95,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, 
 }
 
 // side west
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, true>(float depth)
+template<> quad constexpr make_wall_vertex_data<Group_::side, true>(float depth)
 {
     auto right = Vector2{ -X,                Y         };
     auto left  = Vector2{ right.x() - depth, right.y() };
@@ -112,7 +108,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, 
 }
 
 // top north
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, false>(float depth)
+template<> quad constexpr make_wall_vertex_data<Group_::top, false>(float depth)
 {
     auto top_right    = Vector2{X,              Y - depth        },
          bottom_right = Vector2{top_right.x(),  Y                },
@@ -127,7 +123,7 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, f
 }
 
 // top west
-template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, true>(float depth)
+template<> quad constexpr make_wall_vertex_data<Group_::top, true>(float depth)
 {
     auto top_right    = Vector2{-X,                    -Y               },
          top_left     = Vector2{top_right.x() - depth, top_right.y()    },
@@ -144,32 +140,58 @@ template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, t
 
 // -----------------------
 
+Array<Quads::indexes> make_indexes_()
+{
+    auto array = Array<Quads::indexes>{NoInit, chunk::max_wall_mesh_size};
+    for (auto i = 0uz; i < chunk::max_wall_mesh_size; i++)
+        array[i] = quad_indexes(i);
+    return array;
+}
+
+ArrayView<const Quads::indexes> make_indexes(size_t max)
+{
+    static const auto indexes = make_indexes_();
+    fm_assert(max < chunk::max_wall_mesh_size);
+    return indexes.prefix(max);
+}
+
 } // namespace
 
-fm_noinline
 GL::Mesh chunk::make_wall_mesh(size_t count)
 {
     fm_debug_assert(_walls);
+    fm_debug_assert(count > 0);
     //std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
-    vertex vertexes[TILE_COUNT*2][4];
+    //vertex vertexes[TILE_COUNT*2][4];
+    uint32_t i = 0, N = 0;
+
+    static auto vertexes = Array<vertex>{NoInit, max_wall_mesh_size};
+
     for (auto k = 0uz; k < count; k++)
     {
-        const uint16_t i = _walls->indexes[k];
+        const uint_fast16_t i = _walls->mesh_indexes[k];
         const auto& atlas = _walls->atlases[i];
-        const auto& variant = _walls->variants[i];
+        fm_assert(atlas != nullptr);
+        const auto variant = _walls->variants[i];
         const local_coords pos{i / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
-        const auto quad = i & 1 ? wall_quad_W(center, TILE_SIZE) : wall_quad_N(center, TILE_SIZE);
+        const auto& dir = atlas->calc_direction(i & 1 ? Wall::Direction_::W : Wall::Direction_::N);
+        // ...
+
+        //const auto quad = i & 1 ? wall_quad_W(center, TILE_SIZE) : wall_quad_N(center, TILE_SIZE);
         const float depth = tile_shader::depth_value(pos, tile_shader::wall_depth_offset);
-        const auto texcoords = atlas->texcoords_for_id(variant);
+        //const auto texcoords = atlas->texcoords_for_id(variant);
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth, };
     }
 
-    auto indexes = make_index_array<2>(count);
-    const auto vertex_view = ArrayView{&vertexes[0], count};
-    const auto vert_index_view = ArrayView{indexes.data(), count};
+    auto vertex_view = vertexes.prefix(N);
+    auto index_view = make_indexes(i);
+
+    //auto indexes = make_index_array<2>(count);
+    //const auto vertex_view = ArrayView{&vertexes[0], count};
+    //const auto vert_index_view = ArrayView{indexes.data(), count};
 
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
@@ -184,21 +206,24 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
         return {wall_mesh, {}, 0};
 
     if (!_walls_modified)
-        return { wall_mesh, _walls->wall_indexes, size_t(wall_mesh.count()/6) };
+        return { wall_mesh, _walls->mesh_indexes, size_t(wall_mesh.count()/6) };
     _walls_modified = false;
 
     size_t count = 0;
     for (auto i = 0uz; i < TILE_COUNT*2; i++)
-        if (_walls->_wall_atlases[i])
-            _walls->wall_indexes[count++] = uint16_t(i);
+        if (_walls->atlases[i])
+            _walls->mesh_indexes[count++] = uint16_t(i);
 
-    std::sort(_walls->wall_indexes.data(), _walls->wall_indexes.data() + (ptrdiff_t)count,
+    if (count == 0)
+        return {wall_mesh, {}, 0};
+
+    std::sort(_walls->mesh_indexes.data(), _walls->mesh_indexes.data() + (ptrdiff_t)count,
               [this](uint16_t a, uint16_t b) {
-                  return _walls->_wall_atlases[a] < _walls->_wall_atlases[b];
+                  return _walls->atlases[a] < _walls->atlases[b];
               });
 
     wall_mesh = make_wall_mesh(count);
-    return { wall_mesh, _walls->wall_indexes, count };
+    return { wall_mesh, _walls->mesh_indexes, count };
 }
 
 } // namespace floormat

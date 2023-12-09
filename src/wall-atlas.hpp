@@ -28,7 +28,6 @@ struct Group
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add{};
-    uint8_t from_rotation = (uint8_t)-1; // applies only to images; todo remove it?
     bool mirrored     : 1 = false,
          default_tint : 1 = true,
          is_defined   : 1 = false;
@@ -54,7 +53,6 @@ struct Direction
 
     static constexpr inline member_tuple groups[] = {
         { "wall"_s,     &Direction::wall,     Group_::wall      },
-        { "overlay"_s,  &Direction::overlay,  Group_::overlay   },
         { "side"_s,     &Direction::side,     Group_::side      },
         { "top"_s,      &Direction::top,      Group_::top       },
         { "corner-L"_s, &Direction::corner_L, Group_::corner_L, },
@@ -116,7 +114,7 @@ class wall_atlas final
     Info _info;
     String _path;
     GL::Texture2D _texture{NoCreate};
-    std::array<DirArrayIndex, 4> _direction_map;
+    std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
     Direction* get_Direction(Direction_ num) const;
 
@@ -132,6 +130,7 @@ public:
     const Group* group(size_t dir, Group_ tag) const;
     const Group* group(const Direction& dir, Group_ group) const;
     const Direction* direction(size_t dir) const;
+    const Direction& calc_direction(Direction_ dir) const;
     uint8_t direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> raw_frame_array() const;
@@ -153,8 +152,6 @@ public:
 
     static constexpr dir_tuple directions[] = {
         { "n"_s, Direction_::N },
-        { "e"_s, Direction_::E },
-        { "s"_s, Direction_::S },
         { "w"_s, Direction_::W },
     };
 };

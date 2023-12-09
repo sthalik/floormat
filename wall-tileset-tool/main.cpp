@@ -166,72 +166,64 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     new_group.is_defined = true;
     new_group.pixel_size = Vector2ui(expected_size);
 
-    if (old_group.from_rotation == (uint8_t)-1)
+    for (;;)
     {
-        for (;;)
+        auto filename = asformat("{}/{:04}.png"_cf, path, count+1);
+        if (!Path::exists(filename))
+            break;
+        count++;
+        if (Path::isDirectory(filename)) [[unlikely]]
         {
-            auto filename = asformat("{}/{:04}.png"_cf, path, count+1);
-            if (!Path::exists(filename))
-                break;
-            count++;
-            if (Path::isDirectory(filename)) [[unlikely]]
-            {
-                ERR << "fatal: path" << quoted(filename) << "is a directory!";
-                return false;
-            }
-
-            cv::Mat mat = cv::imread(filename, cv::IMREAD_ANYCOLOR), mat2;
-            if ((Group_)j == Group_::top)
-            {
-                cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
-                using std::swap;
-                swap(mat, mat2);
-            }
-
-            const auto size = Vector2ui{(unsigned)mat.cols, (unsigned)mat.rows};
-
-            if (size != expected_size) [[unlikely]]
-            {
-                ERR << "fatal: wrong image size, expected"
-                    << resolution{expected_size} << colon(',')
-                    << "actual" << resolution{size}
-                    << "-- file" << filename;
-                return false;
-            }
-
-            cv::Mat4b buf;
-            if (mat.channels() == 4)
-                st.opts.use_alpha = true;
-            if (!convert_to_bgra32(mat, buf)) [[unlikely]]
-            {
-                ERR << "fatal: unknown image pixel format:"
-                    << "channels" << mat.channels() << colon(',')
-                    << "depth" << cv::depthToString(mat.depth()) << colon(',')
-                    << "type" << cv::typeToString(mat.type()) << colon(',')
-                    << "for" << quoted(filename);
-                return false;
-            }
-
-            st.frames.push_back({.mat = std::move(buf)});
-        }
-
-        if (count == 0)
-        {
-            ERR << "fatal: no files found for" << quoted2(dir_name) << "/" << quoted2(group_name);
+            ERR << "fatal: path" << quoted(filename) << "is a directory!";
             return false;
         }
 
-        DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
+        cv::Mat mat = cv::imread(filename, cv::IMREAD_ANYCOLOR), mat2;
+        if ((Group_)j == Group_::top)
+        {
+            cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
+            using std::swap;
+            swap(mat, mat2);
+        }
 
-        fm_assert(start + count == st.frames.size());
-        new_group.count = count;
-        new_group.index = start;
+        const auto size = Vector2ui{(unsigned)mat.cols, (unsigned)mat.rows};
+
+        if (size != expected_size) [[unlikely]]
+        {
+            ERR << "fatal: wrong image size, expected"
+                << resolution{expected_size} << colon(',')
+                << "actual" << resolution{size}
+                << "-- file" << filename;
+            return false;
+        }
+
+        cv::Mat4b buf;
+        if (mat.channels() == 4)
+            st.opts.use_alpha = true;
+        if (!convert_to_bgra32(mat, buf)) [[unlikely]]
+        {
+            ERR << "fatal: unknown image pixel format:"
+                << "channels" << mat.channels() << colon(',')
+                << "depth" << cv::depthToString(mat.depth()) << colon(',')
+                << "type" << cv::typeToString(mat.type()) << colon(',')
+                << "for" << quoted(filename);
+            return false;
+        }
+
+        st.frames.push_back({.mat = std::move(buf)});
     }
-    else
+
+    if (count == 0)
     {
-        new_group.count = 0;
-        new_group.index = (uint32_t)-1;
+        ERR << "fatal: no files found for" << quoted2(dir_name) << "/" << quoted2(group_name);
+        return false;
     }
+
+    DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
+
+    fm_assert(start + count == st.frames.size());
+    new_group.count = count;
+    new_group.index = start;
 
     return true;
 }

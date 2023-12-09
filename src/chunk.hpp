@@ -79,7 +79,7 @@ struct chunk final
     };
     struct wall_mesh_tuple final {
         GL::Mesh& mesh;
-        const ArrayView<const uint16_t> ids;
+        const ArrayView<const uint_fast16_t> ids;
         const size_t size;
     };
     struct topo_sort_data;
@@ -99,6 +99,7 @@ struct chunk final
     void ensure_alloc_walls();
     ground_mesh_tuple ensure_ground_mesh() noexcept;
     tile_atlas* ground_atlas_at(size_t i) const noexcept;
+    wall_atlas* wall_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
 
     scenery_mesh_tuple ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept;
@@ -116,6 +117,9 @@ struct chunk final
     void remove_object(size_t i);
     const std::vector<std::shared_ptr<object>>& objects() const;
 
+    // for drawing only
+    static constexpr size_t max_wall_mesh_size = TILE_COUNT*Wall::Direction_COUNT*Wall::Group_COUNT;
+
 private:
     struct ground_stuff
     {
@@ -129,10 +133,9 @@ private:
     {
         std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-        std::array<uint_fast16_t, 2*TILE_COUNT> indexes;
-        size_t count_N = 0, count_W = 0;
 
-        bool empty() const { return count_N == 0 && count_W == 0; }
+        std::array<uint_fast16_t, max_wall_mesh_size> mesh_indexes;
+        uint32_t mesh_quad_count = 0;
     };
 
     Pointer<ground_stuff> _ground;
