@@ -10,8 +10,6 @@ using texcoords = std::array<Vector2, 4>;
 using indexes = std::array<UnsignedShort, 6>;
 
 quad floor_quad(Vector3 center, Vector2 size);
-quad wall_quad_N(Vector3 center, Vector3 size);
-quad wall_quad_W(Vector3 center, Vector3 size);
 indexes quad_indexes(size_t N);
 texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size);
 

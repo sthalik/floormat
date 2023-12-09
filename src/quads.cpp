@@ -22,28 +22,6 @@ quad floor_quad(const Vector3 center, const Vector2 size)
     }};
 }
 
-quad wall_quad_W(const Vector3 center, const Vector3 size)
-{
-    float x = size.x()*.5f, y = size.y()*.5f, z = size.z();
-    return {{
-        {-x + center.x(), -y + center.y(), z + center.z() },
-        {-x + center.x(), -y + center.y(),     center.z() },
-        {-x + center.x(),  y + center.y(), z + center.z() },
-        {-x + center.x(),  y + center.y(),     center.z() },
-    }};
-}
-
-quad wall_quad_N(const Vector3 center, const Vector3 size)
-{
-    float x = size.x()*.5f, y = size.y()*.5f, z = size.z();
-    return {{
-        { x + center.x(), -y + center.y(), z + center.z() },
-        { x + center.x(), -y + center.y(),     center.z() },
-        {-x + center.x(), -y + center.y(), z + center.z() },
-        {-x + center.x(), -y + center.y(),     center.z() },
-    }};
-}
-
 texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_)
 {
     auto pos = Vector2(pos_), size = Vector2(size_), image_size = Vector2(image_size_);
