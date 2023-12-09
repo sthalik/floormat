@@ -6,8 +6,11 @@
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/PairStl.h>
 #include <algorithm>
+#include <ranges>
 
 namespace floormat {
+
+namespace ranges = std::ranges;
 
 void chunk::ensure_alloc_walls()
 {
@@ -30,13 +33,14 @@ constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
 
 using namespace floormat::Quads;
 using Wall::Group_;
+using Wall::Direction_;
 
-template<Group_ G, bool IsWest> constexpr std::array<Vector3, 4> make_wall_vertex_data(float depth);
+template<Group_ G, bool IsWest> constexpr std::array<Vector3, 4> make_vertex_data(float depth);
 
 // -----------------------
 
 // corner left
-template<> quad constexpr make_wall_vertex_data<Group_::corner_L, false>(float)
+template<> quad constexpr make_vertex_data<Group_::corner_L, false>(float)
 {
     constexpr float x_offset = (float)(unsigned)X;
     return {{
@@ -48,7 +52,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::corner_L, false>(float)
 }
 
 // corner right
-template<> quad constexpr make_wall_vertex_data<Group_::corner_R, true>(float)
+template<> quad constexpr make_vertex_data<Group_::corner_R, true>(float)
 {
     constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
     return {{
@@ -60,7 +64,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::corner_R, true>(float)
 }
 
 // wall north
-template<> quad constexpr make_wall_vertex_data<Group_::wall, false>(float)
+template<> quad constexpr make_vertex_data<Group_::wall, false>(float)
 {
     return {{
         { X, -Y, Z },
@@ -71,7 +75,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::wall, false>(float)
 }
 
 // wall west
-template<> quad constexpr make_wall_vertex_data<Group_::wall, true>(float)
+template<> quad constexpr make_vertex_data<Group_::wall, true>(float)
 {
     return {{
         {-X, -Y, Z },
@@ -82,7 +86,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::wall, true>(float)
 }
 
 // side north
-template<> quad constexpr make_wall_vertex_data<Group_::side, false>(float depth)
+template<> quad constexpr make_vertex_data<Group_::side, false>(float depth)
 {
     auto left  = Vector2{X,        -Y               },
          right = Vector2{left.x(), left.y() - depth };
@@ -95,7 +99,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::side, false>(float depth
 }
 
 // side west
-template<> quad constexpr make_wall_vertex_data<Group_::side, true>(float depth)
+template<> quad constexpr make_vertex_data<Group_::side, true>(float depth)
 {
     auto right = Vector2{ -X,                Y         };
     auto left  = Vector2{ right.x() - depth, right.y() };
@@ -108,7 +112,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::side, true>(float depth)
 }
 
 // top north
-template<> quad constexpr make_wall_vertex_data<Group_::top, false>(float depth)
+template<> quad constexpr make_vertex_data<Group_::top, false>(float depth)
 {
     auto top_right    = Vector2{X,              Y - depth        },
          bottom_right = Vector2{top_right.x(),  Y                },
@@ -123,7 +127,7 @@ template<> quad constexpr make_wall_vertex_data<Group_::top, false>(float depth)
 }
 
 // top west
-template<> quad constexpr make_wall_vertex_data<Group_::top, true>(float depth)
+template<> quad constexpr make_vertex_data<Group_::top, true>(float depth)
 {
     auto top_right    = Vector2{-X,                    -Y               },
          top_left     = Vector2{top_right.x() - depth, top_right.y()    },
@@ -136,6 +140,44 @@ template<> quad constexpr make_wall_vertex_data<Group_::top, true>(float depth)
         { bottom_left.x(),  bottom_left.y(),  Z },
         { top_left.x(),     top_left.y(),     Z },
     }};
+}
+
+#define FM_WALL_MAKE_CASE(name) \
+    case name: return make_vertex_data<name, IsWest>(depth)
+
+#define FM_WALL_MAKE_CASES() \
+    do {                                                        \
+        switch (G)                                              \
+        {                                                       \
+            FM_WALL_MAKE_CASE(Group_::wall);                    \
+            FM_WALL_MAKE_CASE(Group_::side);                    \
+            FM_WALL_MAKE_CASE(Group_::top);                     \
+            FM_WALL_MAKE_CASE(Group_::corner_L);                \
+            FM_WALL_MAKE_CASE(Group_::corner_R);                \
+            case Group_::COUNT:                                 \
+                fm_abort("invalid wall group '%d'", (int)G);    \
+        }                                                       \
+    } while (false)
+
+quad get_vertex_data(Direction_ D, Group_ G, float depth)
+{
+    CORRADE_ASSUME(G < Group_::COUNT);
+    CORRADE_ASSUME(D < Direction_::COUNT);
+
+    switch (D)
+    {
+    case Direction_::COUNT:
+        fm_abort("invalid wall direction '%d'", (int)D);
+    case Direction_::N: {
+        constexpr auto IsWest = false;
+        FM_WALL_MAKE_CASES();
+        break;
+    }
+    case Direction_::W: {
+        constexpr auto IsWest = true;
+        FM_WALL_MAKE_CASES();
+    }
+    }
 }
 
 // -----------------------
@@ -169,25 +211,32 @@ GL::Mesh chunk::make_wall_mesh(size_t count)
 
     for (auto k = 0uz; k < count; k++)
     {
-        const uint_fast16_t i = _walls->mesh_indexes[k];
+        const auto i = _walls->mesh_indexes[k];
         const auto& atlas = _walls->atlases[i];
         fm_assert(atlas != nullptr);
         const auto variant = _walls->variants[i];
         const local_coords pos{i / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto& dir = atlas->calc_direction(i & 1 ? Wall::Direction_::W : Wall::Direction_::N);
+        for (auto [_, member, group] : Wall::Direction::groups)
+        {
+            const auto& G = dir.*member;
+            if (!G.is_defined)
+                continue;
+
+        }
         // ...
 
         //const auto quad = i & 1 ? wall_quad_W(center, TILE_SIZE) : wall_quad_N(center, TILE_SIZE);
         const float depth = tile_shader::depth_value(pos, tile_shader::wall_depth_offset);
         //const auto texcoords = atlas->texcoords_for_id(variant);
-        auto& v = vertexes[k];
+        auto& v = vertexes[N++];
         for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth, };
     }
 
     auto vertex_view = vertexes.prefix(N);
-    auto index_view = make_indexes(i);
+    auto index_view = make_indexes(N);
 
     //auto indexes = make_index_array<2>(count);
     //const auto vertex_view = ArrayView{&vertexes[0], count};

@@ -1,6 +1,5 @@
 #include "wall-atlas.hpp"
-#include "compat/assert.hpp"
-//#include "compat/exception.hpp"
+#include "compat/exception.hpp"
 #include "src/tile-defs.hpp"
 #include <utility>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -45,6 +44,27 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _info{std::move(def.header)}, _path{std::move(path)},
       _direction_map{def.direction_map}
 {
+    {
+        bool found = false;
+        for (auto [_, dir] : wall_atlas::directions)
+        {
+            const auto* D = direction((size_t)dir);
+            if (!D)
+                continue;
+            for (auto [_, gmemb, gr] : Direction::groups)
+            {
+                const auto& G = group(dir, gr);
+                if (!G->is_defined)
+                    continue;
+                found = true;
+                if (G->count ==  0) [[unlikely]]
+                    fm_throw("wall_atlas '{}' defined group {}/{} has no frames!"_cf, _path, (int)dir, (int)gr);
+            }
+        }
+        if (!found) [[unlikely]]
+            fm_throw("wall_atlas '{}' is empty!"_cf, _path);
+    }
+
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
@@ -80,7 +100,7 @@ auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return gro
 
 auto wall_atlas::group(size_t dir, size_t group) const -> const Group*
 {
-    fm_assert((Group_)group < Group_::COUNT);
+    fm_assert(group < (size_t)Group_::COUNT);
     const auto* const set_ = direction(dir);
     if (!set_)
         return {};
@@ -158,7 +178,7 @@ Group& Direction::group(Group_ i) { return group((size_t)i); }
 
 Group& Direction::group(size_t i)
 {
-    fm_assert(i < (size_t)Group_::COUNT);
+    fm_assert(i < Group_COUNT);
     auto ptr = groups[i].member;
     return this->*ptr;
 }
