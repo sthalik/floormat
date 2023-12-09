@@ -7,22 +7,7 @@
 #include <Corrade/Containers/PairStl.h>
 #include <algorithm>
 
-// +x +y +z
-// +x +y -z
-// -x -y +z
-// -x +y -z
-
 namespace floormat {
-
-using namespace floormat::Quads;
-using Wall::Group_;
-
-namespace {
-
-constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-
-} // namespace
 
 void chunk::ensure_alloc_walls()
 {
@@ -30,12 +15,22 @@ void chunk::ensure_alloc_walls()
         _walls = Pointer<wall_stuff>{InPlaceInit};
 }
 
+namespace {
+
+constexpr Vector2 half_tile = TILE_SIZE2*.5f;
+constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
+
+using namespace floormat::Quads;
+using Wall::Group_;
+
+template<Group_ G, bool IsWest> constexpr std::array<Vector3, 4> make_wall_vertex_data(float depth);
+
 // -----------------------
 
 // corner left
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_L, false>(float)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner_L, false>(float)
 {
-    constexpr float x_offset = (float)((unsigned)X)/2u;
+    constexpr float x_offset = (float)(unsigned)X;
     return {{
         { -X + x_offset, -Y, Z },
         { -X + x_offset, -Y, 0 },
@@ -45,9 +40,9 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_L,
 }
 
 // corner right
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_R, true>(float)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::corner_R, true>(float)
 {
-    constexpr float y_offset = Y - (float)((unsigned)Y)/2u;
+    constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
     return {{
         {-X,  -Y, Z },
         {-X,  -Y, 0 },
@@ -57,7 +52,7 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::corner_R,
 }
 
 // wall north
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, false>(float)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, false>(float)
 {
     return {{
         { X, -Y, Z },
@@ -68,30 +63,30 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, fal
 }
 
 // wall west
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::wall, true>(float)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::wall, true>(float)
 {
     return {{
-        {-X,  Y, Z },
-        {-X,  Y, 0 },
         {-X, -Y, Z },
         {-X, -Y, 0 },
+        {-X,  Y, Z },
+        {-X,  Y, 0 },
     }};
 }
 
 // overlay north
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::overlay, false>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::overlay, false>(float depth)
 {
     return make_wall_vertex_data<Wall::Group_::wall, false>(depth);
 }
 
 // overlay west
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::overlay, true>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::overlay, true>(float depth)
 {
     return make_wall_vertex_data<Wall::Group_::wall, true>(depth);
 }
 
 // side north
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, false>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, false>(float depth)
 {
     auto left  = Vector2{X,        -Y               },
          right = Vector2{left.x(), left.y() - depth };
@@ -104,7 +99,7 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, fal
 }
 
 // side west
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, true>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::side, true>(float depth)
 {
     auto right = Vector2{ -X,                Y         };
     auto left  = Vector2{ right.x() - depth, right.y() };
@@ -117,7 +112,7 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::side, tru
 }
 
 // top north
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, false>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, false>(float depth)
 {
     auto top_right    = Vector2{X,              Y - depth        },
          bottom_right = Vector2{top_right.x(),  Y                },
@@ -132,12 +127,12 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, fals
 }
 
 // top west
-template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, true>(float depth)
+template<> std::array<Vector3, 4> constexpr make_wall_vertex_data<Group_::top, true>(float depth)
 {
-    auto top_right    = Vector2{-X,                       -Y               },
-         top_left     = Vector2{top_right.x() - depth,    top_right.y()    },
-         bottom_right = Vector2{-X,                       Y                },
-         bottom_left  = Vector2{bottom_right.x() - depth, bottom_right.y() };
+    auto top_right    = Vector2{-X,                    -Y               },
+         top_left     = Vector2{top_right.x() - depth, top_right.y()    },
+         bottom_right = Vector2{top_right.x(),         Y                },
+         bottom_left  = Vector2{top_left.x(),          bottom_right.y() };
 
     return {{
         { bottom_right.x(), bottom_right.y(), Z },
@@ -148,6 +143,8 @@ template<> std::array<Vector3, 4> chunk::make_wall_vertex_data<Group_::top, true
 }
 
 // -----------------------
+
+} // namespace
 
 fm_noinline
 GL::Mesh chunk::make_wall_mesh(size_t count)

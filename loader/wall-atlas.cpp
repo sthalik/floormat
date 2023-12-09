@@ -7,6 +7,7 @@
 #include "wall-info.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
+#include "src/tile-defs.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringIterable.h>
@@ -49,7 +50,28 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     return atlas;
 }
 
-const wall_info& loader_impl::wall_atlas(StringView name)
+const wall_info& loader_impl::make_invalid_wall_atlas()
+{
+    if (invalid_wall_atlas) [[likely]]
+        return *invalid_wall_atlas;
+
+    constexpr auto name = "<invalid>"_s;
+    constexpr auto size = Vector3ui{iTILE_SIZE};
+    constexpr auto frame_size = Vector2ui{size.x(), size.z()};
+
+    auto a = std::make_shared<class wall_atlas>(
+        wall_atlas_def {
+            {.name = name, .depth = 8},
+            { {{}, frame_size},},
+            { { {.index = 0, .count = 1, .pixel_size = frame_size, } } },
+            {{ {.val = 0}, {}, {}, {} }},
+            {1u},
+    }, name, make_error_texture());
+    invalid_wall_atlas = Pointer<wall_info>{InPlaceInit, wall_info{ .name = name, .atlas = a } };
+    return *invalid_wall_atlas;
+}
+
+const wall_info& loader_impl::wall_atlas(StringView name, bool fail_ok)
 {
     fm_soft_assert(check_atlas_name(name));
     char buf[FILENAME_MAX];
@@ -57,7 +79,12 @@ const wall_info& loader_impl::wall_atlas(StringView name)
 
     auto it = wall_atlas_map.find(name);
     if (it == wall_atlas_map.end())
-        fm_throw("no such wall atlas '{}'"_cf, name);
+    {
+        if (!fail_ok)
+            fm_throw("no such wall atlas '{}'"_cf, name);
+        else
+            return make_invalid_wall_atlas();
+    }
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
         it->second->atlas = get_wall_atlas(it->second->name, path);

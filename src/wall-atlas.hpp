@@ -27,7 +27,7 @@ struct Group
     uint32_t index = (uint32_t)-1, count = 0;
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
-    Color3 tint_add;
+    Color3 tint_add{};
     uint8_t from_rotation = (uint8_t)-1; // applies only to images; todo remove it?
     bool mirrored     : 1 = false,
          default_tint : 1 = true,

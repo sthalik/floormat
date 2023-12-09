@@ -49,9 +49,12 @@ struct loader_impl final : loader_
     tsl::robin_map<StringView, wall_info*> wall_atlas_map;
     std::vector<wall_info> wall_atlas_array;
 
-    const wall_info& wall_atlas(StringView name) override;
+    Pointer<wall_info> invalid_wall_atlas;
+
+    const wall_info& wall_atlas(StringView name, bool fail_ok = true) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
+    const wall_info& make_invalid_wall_atlas();
     std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name, StringView path);
 
     // >-----> tile >----->
