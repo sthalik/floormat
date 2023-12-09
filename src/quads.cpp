@@ -13,34 +13,34 @@ std::array<UnsignedShort, 6> quad_indexes(size_t N)
 
 quad floor_quad(const Vector3 center, const Vector2 size)
 {
-    float x = size[0]*.5f, y = size[1]*.5f;
+    float x = size.x()*.5f, y = size.y()*.5f;
     return {{
-        { x + center[0], -y + center[1], center[2]},
-        { x + center[0],  y + center[1], center[2]},
-        {-x + center[0], -y + center[1], center[2]},
-        {-x + center[0],  y + center[1], center[2]},
+        { x + center.x(), -y + center.y(), center.z()},
+        { x + center.x(),  y + center.y(), center.z()},
+        {-x + center.x(), -y + center.y(), center.z()},
+        {-x + center.x(),  y + center.y(), center.z()},
     }};
 }
 
 quad wall_quad_W(const Vector3 center, const Vector3 size)
 {
-    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    float x = size.x()*.5f, y = size.y()*.5f, z = size.z();
     return {{
-        {-x + center[0],  y + center[1], z + center[2] },
-        {-x + center[0],  y + center[1],     center[2] },
-        {-x + center[0], -y + center[1], z + center[2] },
-        {-x + center[0], -y + center[1],     center[2] },
+        {-x + center.x(), -y + center.y(), z + center.z() },
+        {-x + center.x(), -y + center.y(),     center.z() },
+        {-x + center.x(),  y + center.y(), z + center.z() },
+        {-x + center.x(),  y + center.y(),     center.z() },
     }};
 }
 
 quad wall_quad_N(const Vector3 center, const Vector3 size)
 {
-    float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
+    float x = size.x()*.5f, y = size.y()*.5f, z = size.z();
     return {{
-        { x + center[0], -y + center[1], z + center[2] },
-        { x + center[0], -y + center[1],     center[2] },
-        {-x + center[0], -y + center[1], z + center[2] },
-        {-x + center[0], -y + center[1],     center[2] },
+        { x + center.x(), -y + center.y(), z + center.z() },
+        { x + center.x(), -y + center.y(),     center.z() },
+        {-x + center.x(), -y + center.y(), z + center.z() },
+        {-x + center.x(), -y + center.y(),     center.z() },
     }};
 }
 
