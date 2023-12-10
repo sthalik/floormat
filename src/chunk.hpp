@@ -118,7 +118,8 @@ struct chunk final
     const std::vector<std::shared_ptr<object>>& objects() const;
 
     // for drawing only
-    static constexpr size_t max_wall_mesh_size = TILE_COUNT*Wall::Direction_COUNT*Wall::Group_COUNT;
+    static constexpr size_t max_wall_quad_count =
+        TILE_COUNT*Wall::Direction_COUNT*Wall::Group_COUNT;
 
 private:
     struct ground_stuff
@@ -133,8 +134,7 @@ private:
     {
         std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-
-        std::array<uint16_t, max_wall_mesh_size> mesh_indexes;
+        std::array<uint16_t, max_wall_quad_count> mesh_indexes;
     };
 
     Pointer<ground_stuff> _ground;
@@ -169,7 +169,7 @@ private:
     void _remove_bbox(const bbox& x);
     void _add_bbox(const bbox& x);
     void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
-    GL::Mesh make_wall_mesh(size_t count);
+    GL::Mesh make_wall_mesh();
 
     template<size_t N> static std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> make_index_array(size_t max);
 };

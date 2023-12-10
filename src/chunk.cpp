@@ -23,10 +23,12 @@ bool is_log_quiet()
 
 bool chunk::empty(bool force) const noexcept
 {
-    if (!force && !_maybe_empty)
+    if (!force && !_maybe_empty) [[likely]]
         return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (!_objects.empty() || _ground && _ground->_ground_atlases[i] || _walls && _walls->empty())
+        if (!_objects.empty() ||
+            _ground && _ground->_ground_atlases[i] ||
+            _walls && _walls->atlases[i])
             return _maybe_empty = false;
     if (!_objects.empty())
         return false;

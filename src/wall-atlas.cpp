@@ -9,6 +9,19 @@
 
 namespace floormat {
 
+namespace {
+
+Vector2ui get_image_size(const ImageView2D& img)
+{
+    const Size<3> size = img.pixels().size();
+    const auto width = size[1], height = size[0];
+    fm_soft_assert(size[2] >= 3 && size[2] <= 4);
+    fm_soft_assert(width > 0 && height > 0);
+    return { (unsigned)width, (unsigned)height };
+}
+
+} // namespace
+
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
@@ -42,23 +55,25 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     : _dir_array{std::move(def.direction_array)},
       _frame_array{std::move(def.frames)},
       _info{std::move(def.header)}, _path{std::move(path)},
+      _image_size{get_image_size(img)},
       _direction_map{def.direction_map}
 {
     {
         bool found = false;
-        for (auto [_, dir] : wall_atlas::directions)
+        for (auto [dir_name, dir] : wall_atlas::directions)
         {
             const auto* D = direction((size_t)dir);
             if (!D)
                 continue;
-            for (auto [_, gmemb, gr] : Direction::groups)
+            for (auto [group_name, gmemb, gr] : Direction::groups)
             {
-                const auto& G = group(dir, gr);
-                if (!G->is_defined)
+                const auto& G = D->*gmemb;
+                if (!G.is_defined)
                     continue;
                 found = true;
-                if (G->count ==  0) [[unlikely]]
-                    fm_throw("wall_atlas '{}' defined group {}/{} has no frames!"_cf, _path, (int)dir, (int)gr);
+                if (G.count ==  0) [[unlikely]]
+                    fm_throw("wall_atlas '{}' defined group {}/{} has no frames!"_cf,
+                             _path, dir_name, group_name);
             }
         }
         if (!found) [[unlikely]]
@@ -157,6 +172,7 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
 GL::Texture2D& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
+Vector2ui wall_atlas::image_size() const { return _image_size; }
 
 size_t wall_atlas::enum_to_index(enum rotation r)
 {

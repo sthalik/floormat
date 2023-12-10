@@ -113,6 +113,7 @@ class wall_atlas final
     std::vector<Frame> _frame_array;
     Info _info;
     String _path;
+    Vector2ui _image_size;
     GL::Texture2D _texture{NoCreate};
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
@@ -140,6 +141,7 @@ public:
     //StringView path() const { return _path; }
 
     GL::Texture2D& texture();
+    Vector2ui image_size() const;
 
     static size_t enum_to_index(enum rotation x);
     static Vector2ui expected_size(unsigned depth, Group_ group);
