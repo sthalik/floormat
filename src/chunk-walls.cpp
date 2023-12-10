@@ -190,9 +190,19 @@ GL::Mesh chunk::make_wall_mesh()
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
-            if (G == Group_::corner_L && D != Direction_::N ||
-                G == Group_::corner_R && D != Direction_::W) [[unlikely]]
-                continue;
+            switch (G)
+            {
+            case Wall::Group_::corner_L:
+                if (D != Direction_::N || !_walls->atlases[k+1])
+                    continue;
+                break;
+            case Wall::Group_::corner_R:
+                if (D != Direction_::W || !_walls->atlases[k-1])
+                    continue;
+                break;
+            default:
+                break;
+            }
 
             const auto& group = dir.*member;
             if (!group.is_defined)
@@ -225,7 +235,8 @@ GL::Mesh chunk::make_wall_mesh()
     auto index_view = make_indexes(N);
 
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+    mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0,
+                         tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(int32_t(6 * N));
     fm_debug_assert((size_t)mesh.count() == N*6);

@@ -4,6 +4,7 @@
 #include "src/RTree-search.hpp"
 #include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
+#include "src/wall-atlas.hpp"
 #include <bit>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
@@ -53,13 +54,13 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = tile.wall_north_atlas().get())
         {
             auto [min, max] = wall_north(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), TILE_COUNT+i+1);
+            auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto [min, max] = wall_west(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::blocked), TILE_COUNT*2+i+1);
+            auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
     }

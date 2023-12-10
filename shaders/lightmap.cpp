@@ -4,6 +4,7 @@
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/tile-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "src/quads.hpp"
 #include "src/object.hpp"
 #include "loader/loader.hpp"
@@ -373,7 +374,7 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
                 add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
             }
         if (auto atlas = t.wall_north_atlas())
-            if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
+            if (atlas->info().passability == pass_mode::blocked)
             {
                 auto start = tile_start(i);
                 auto min = start - Vector2(0, shadow_wall_depth),
@@ -382,7 +383,7 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
                 add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
             }
         if (auto atlas = t.wall_west_atlas())
-            if (atlas->pass_mode(pass_mode::blocked) == pass_mode::blocked)
+            if (atlas->info().passability == pass_mode::blocked)
             {
                 auto start = tile_start(i);
                 auto min = start - Vector2(shadow_wall_depth, 0),

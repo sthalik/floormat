@@ -1,9 +1,9 @@
 #include "wall.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
-#include "src/tile-image.hpp"
-#include "src/anim-atlas.hpp"
+//#include "src/tile-image.hpp"
+//#include "src/anim-atlas.hpp"
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/MeshView.h>
 
@@ -16,12 +16,12 @@ wall_mesh::wall_mesh() = default;
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
     const auto [mesh_, ids, size] = c.ensure_wall_mesh();
-    struct { tile_atlas* atlas = nullptr; size_t pos = 0; } last;
+    struct { wall_atlas* atlas = nullptr; size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] size_t draw_count = 0;
     fm_debug_assert(size_t(mesh_.count()) == size*quad_index_count);
 
-    const auto do_draw = [&](size_t i, tile_atlas* atlas, uint32_t max_index) {
+    const auto do_draw = [&](size_t i, wall_atlas* atlas, uint32_t max_index) {
         if (atlas == last.atlas)
             return;
         if (auto len = i - last.pos; last.atlas && len > 0)

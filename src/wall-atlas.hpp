@@ -120,7 +120,7 @@ class wall_atlas final
     Direction* get_Direction(Direction_ num) const;
 
 public:
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(wall_atlas);
+    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(wall_atlas);
     wall_atlas() noexcept;
     ~wall_atlas() noexcept;
     wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);

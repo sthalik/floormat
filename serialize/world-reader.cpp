@@ -223,10 +223,13 @@ void reader_state::read_chunks(reader_t& s)
             //t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
                 t.ground() = make_atlas();
+            // todo!
+#if 0
             if (flags & meta_wall_n)
                 t.wall_north() = make_atlas();
             if (flags & meta_wall_w)
                 t.wall_west() = make_atlas();
+#endif
             if (PROTO >= 3 && PROTO < 8) [[unlikely]]
                 if (flags & meta_scenery_)
                     read_old_scenery(s, ch, i);

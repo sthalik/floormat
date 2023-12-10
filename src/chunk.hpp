@@ -79,7 +79,7 @@ struct chunk final
     };
     struct wall_mesh_tuple final {
         GL::Mesh& mesh;
-        const ArrayView<const uint16_t> ids;
+        const ArrayView<const uint_fast16_t> indexes;
         const size_t size;
     };
     struct topo_sort_data;
@@ -134,7 +134,7 @@ private:
     {
         std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-        std::array<uint16_t, max_wall_quad_count> mesh_indexes;
+        std::array<uint_fast16_t, max_wall_quad_count> mesh_indexes;
     };
 
     Pointer<ground_stuff> _ground;

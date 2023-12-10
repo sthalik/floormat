@@ -458,14 +458,17 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         const tile_proto x = c[i];
-        const auto ground = x.ground(), wall_north = x.wall_north(), wall_west = x.wall_west();
+        const auto ground = x.ground();
+        const auto wall_north = x.wall_north(), wall_west = x.wall_west();
         //const auto scenery = x.scenery_frame;
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
         auto img_g = maybe_intern_atlas(ground);
-        auto img_n = maybe_intern_atlas(wall_north);
-        auto img_w = maybe_intern_atlas(wall_west);
+        //auto img_n = maybe_intern_atlas(wall_north);
+        //auto img_w = maybe_intern_atlas(wall_west);
+        // todo!
+        auto img_n = null_atlas, img_w = null_atlas;
 
         if (img_g == null_atlas && img_n == null_atlas && img_w == null_atlas)
         {
@@ -495,8 +498,9 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
             fm_assert(!x.atlas || x.variant < x.atlas->num_tiles());
         };
         check_atlas(ground);
-        check_atlas(wall_north);
-        check_atlas(wall_west);
+        // todo!
+        //check_atlas(wall_north);
+        //check_atlas(wall_west);
 
         if (img_g != null_atlas)
         {
