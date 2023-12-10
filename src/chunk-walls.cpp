@@ -29,26 +29,17 @@ wall_atlas* chunk::wall_atlas_at(size_t i) const noexcept
 
 namespace {
 
-constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-
-using namespace floormat::Quads;
 using Wall::Group_;
 using Wall::Direction_;
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wundefined-internal"
-#endif
-
-constexpr quad get_quad(Direction_ D, Group_ G, float depth);
-
 // -----------------------
 
-constexpr quad get_quad(Direction_ D, Group_ G, float depth)
+constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
 {
     CORRADE_ASSUME(D < Direction_::COUNT);
     CORRADE_ASSUME(G < Group_::COUNT);
-
+    constexpr Vector2 half_tile = TILE_SIZE2*.5f;
+    constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
     const bool is_west = D == Wall::Direction_::W;
 
     switch (G)
@@ -150,7 +141,7 @@ Array<Quads::indexes> make_indexes_()
 {
     auto array = Array<Quads::indexes>{NoInit, chunk::max_wall_quad_count };
     for (auto i = 0uz; i < chunk::max_wall_quad_count; i++)
-        array[i] = quad_indexes(i);
+        array[i] = Quads::quad_indexes(i);
     return array;
 }
 
