@@ -251,9 +251,6 @@ Direction read_direction_metadata(const json& jroot, Direction_ dir)
 
     val.top.pixel_size = val.top.pixel_size.flipped();
 
-    if (jdir.contains("pass-mode"))
-        val.passability = jdir["pass-mode"];
-
     return val;
 }
 
@@ -263,6 +260,8 @@ Info read_info_header(const json& jroot)
     fm_soft_assert(jroot.contains(("depth")));
     Info val = {std::string{jroot["name"]}, jroot["depth"]};
     fm_soft_assert(val.depth > 0);
+    if (jroot.contains("pass-mode"))
+        val.passability = jroot["pass-mode"];
     return val;
 }
 
@@ -301,8 +300,6 @@ void write_group_metadata(json& jgroup, const Group& val)
 
 void write_direction_metadata(json& jdir, const Direction& dir)
 {
-    jdir["pass-mode"] = dir.passability;
-
     for (auto [name, memfn, tag] : Direction::groups)
     {
         const auto& group = dir.*memfn;
@@ -336,6 +333,7 @@ void write_info_header(json& jroot, const Info& info)
 {
     jroot["name"] = info.name;
     jroot["depth"] = info.depth;
+    jroot["pass-mode"] = info.passability;
 }
 
 } // namespace floormat::Wall::detail

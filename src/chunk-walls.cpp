@@ -5,6 +5,7 @@
 #include "shaders/shader.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/PairStl.h>
+#include <utility>
 #include <algorithm>
 #include <ranges>
 
@@ -39,155 +40,111 @@ using Wall::Direction_;
 #pragma clang diagnostic ignored "-Wundefined-internal"
 #endif
 
-template<Group_ G, bool IsWest> constexpr quad get_quad(float depth);
 constexpr quad get_quad(Direction_ D, Group_ G, float depth);
 
 // -----------------------
 
-// corner left
-template<> quad constexpr get_quad<Group_::corner_L, false>(float)
+constexpr quad get_quad(Direction_ D, Group_ G, float depth)
 {
-    constexpr float x_offset = (float)(unsigned)X;
-    return {{
-        { -X + x_offset, -Y, Z },
-        { -X + x_offset, -Y, 0 },
-        { -X, -Y, Z },
-        { -X, -Y, 0 },
-    }};
-}
+    CORRADE_ASSUME(D < Direction_::COUNT);
+    CORRADE_ASSUME(G < Group_::COUNT);
 
-// corner right
-template<> quad constexpr get_quad<Group_::corner_R, true>(float)
-{
-    constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
-    return {{
-        {-X,  -Y, Z },
-        {-X,  -Y, 0 },
-        {-X,  -Y + y_offset, Z },
-        {-X,  -Y + y_offset, 0 },
-    }};
-}
+    const bool is_west = D == Wall::Direction_::W;
 
-// wall north
-template<> quad constexpr get_quad<Group_::wall, false>(float)
-{
-    return {{
-        { X, -Y, Z },
-        { X, -Y, 0 },
-        {-X, -Y, Z },
-        {-X, -Y, 0 },
-    }};
-}
-
-// wall west
-template<> quad constexpr get_quad<Group_::wall, true>(float)
-{
-    return {{
-        {-X, -Y, Z },
-        {-X, -Y, 0 },
-        {-X,  Y, Z },
-        {-X,  Y, 0 },
-    }};
-}
-
-// side north
-template<> quad constexpr get_quad<Group_::side, false>(float depth)
-{
-    auto left  = Vector2{X,        -Y               },
-         right = Vector2{left.x(), left.y() - depth };
-    return {{
-        { right.x(), right.y(), Z },
-        { right.x(), right.y(), 0 },
-        { left.x(),  left.y(),  Z },
-        { left.x(),  left.y(),  0 },
-    }};
-}
-
-// side west
-template<> quad constexpr get_quad<Group_::side, true>(float depth)
-{
-    auto right = Vector2{ -X,                Y         };
-    auto left  = Vector2{ right.x() - depth, right.y() };
-    return {{
-        { right.x(), right.y(), Z },
-        { right.x(), right.y(), 0 },
-        { left.x(),  left.y(),  Z },
-        { left.x(),  left.y(),  0 },
-    }};
-}
-
-// top north
-template<> quad constexpr get_quad<Group_::top, false>(float depth)
-{
-    auto top_right    = Vector2{X,              Y - depth        },
-         bottom_right = Vector2{top_right.x(),  Y                },
-         top_left     = Vector2{-X,             top_right.y()    },
-         bottom_left  = Vector2{top_left.x(),   bottom_right.y() };
-    return {{
-        { top_right.x(),    top_right.y(),    Z }, // br tr
-        { top_left.x(),     top_left.y(),     Z }, // tr tl
-        { bottom_right.x(), bottom_right.y(), Z }, // bl br
-        { bottom_left.x(),  bottom_left.y(),  Z }, // tl bl
-    }};
-}
-
-// top west
-template<> quad constexpr get_quad<Group_::top, true>(float depth)
-{
-    auto top_right    = Vector2{-X,                    -Y               },
-         top_left     = Vector2{top_right.x() - depth, top_right.y()    },
-         bottom_right = Vector2{top_right.x(),         Y                },
-         bottom_left  = Vector2{top_left.x(),          bottom_right.y() };
-
-    return {{
-        { bottom_right.x(), bottom_right.y(), Z },
-        { top_right.x(),    top_right.y(),    Z },
-        { bottom_left.x(),  bottom_left.y(),  Z },
-        { top_left.x(),     top_left.y(),     Z },
-    }};
+    switch (G)
+    {
+    using enum Group_;
+    case COUNT:
+        std::unreachable();
+    case wall:
+        if (!is_west)
+            return {{
+                { X, -Y, Z },
+                { X, -Y, 0 },
+                {-X, -Y, Z },
+                {-X, -Y, 0 },
+            }};
+        else
+            return {{
+                {-X, -Y, Z },
+                {-X, -Y, 0 },
+                {-X,  Y, Z },
+                {-X,  Y, 0 },
+            }};
+    case corner_L: {
+            constexpr float x_offset = (float)(unsigned)X;
+            return {{
+                { -X + x_offset, -Y, Z },
+                { -X + x_offset, -Y, 0 },
+                { -X, -Y, Z },
+                { -X, -Y, 0 },
+            }};
+        }
+        case corner_R: {
+            constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
+            return {{
+                {-X,  -Y, Z },
+                {-X,  -Y, 0 },
+                {-X,  -Y + y_offset, Z },
+                {-X,  -Y + y_offset, 0 },
+            }};
+        }
+    case side:
+        if (!is_west)
+        {
+            auto left  = Vector2{X,        -Y               },
+                 right = Vector2{left.x(), left.y() - depth };
+            return {{
+                        { right.x(), right.y(), Z },
+                        { right.x(), right.y(), 0 },
+                        { left.x(),  left.y(),  Z },
+                        { left.x(),  left.y(),  0 },
+                    }};
+        }
+        else
+        {
+            auto right = Vector2{ -X,                Y         };
+            auto left  = Vector2{ right.x() - depth, right.y() };
+            return {{
+                        { right.x(), right.y(), Z },
+                        { right.x(), right.y(), 0 },
+                        { left.x(),  left.y(),  Z },
+                        { left.x(),  left.y(),  0 },
+          }};
+      }
+    case top:
+        if (!is_west)
+        {
+            auto top_right    = Vector2{X,              Y - depth        },
+                 bottom_right = Vector2{top_right.x(),  Y                },
+                 top_left     = Vector2{-X,             top_right.y()    },
+                 bottom_left  = Vector2{top_left.x(),   bottom_right.y() };
+            return {{
+                { top_right.x(),    top_right.y(),    Z }, // br tr
+                { top_left.x(),     top_left.y(),     Z }, // tr tl
+                { bottom_right.x(), bottom_right.y(), Z }, // bl br
+                { bottom_left.x(),  bottom_left.y(),  Z }, // tl bl
+            }};
+        }
+        else
+        {
+            auto top_right    = Vector2{-X,                    -Y               },
+                 top_left     = Vector2{top_right.x() - depth, top_right.y()    },
+                 bottom_right = Vector2{top_right.x(),         Y                },
+                 bottom_left  = Vector2{top_left.x(),          bottom_right.y() };
+            return {{
+                { bottom_right.x(), bottom_right.y(), Z },
+                { top_right.x(),    top_right.y(),    Z },
+                { bottom_left.x(),  bottom_left.y(),  Z },
+                { top_left.x(),     top_left.y(),     Z },
+            }};
+        }
+    }
 }
 
 // -----------------------
 
-#define FM_WALL_MAKE_CASE(name) \
-    case name: return get_quad<name, IsWest>(depth)
 
-#define FM_WALL_MAKE_CASES() \
-    do {                                                        \
-        switch (G)                                              \
-        {                                                       \
-            FM_WALL_MAKE_CASE(Group_::wall);                    \
-            FM_WALL_MAKE_CASE(Group_::side);                    \
-            FM_WALL_MAKE_CASE(Group_::top);                     \
-            FM_WALL_MAKE_CASE(Group_::corner_L);                \
-            FM_WALL_MAKE_CASE(Group_::corner_R);                \
-            case Group_::COUNT:                                 \
-                fm_abort("invalid wall group '%d'", (int)G);    \
-        }                                                       \
-    } while (false)
-
-constexpr quad get_quad(Direction_ D, Group_ G, float depth)
-{
-    CORRADE_ASSUME(G < Group_::COUNT);
-    CORRADE_ASSUME(D < Direction_::COUNT);
-
-    switch (D)
-    {
-    case Direction_::COUNT:
-        fm_abort("invalid wall direction '%d'", (int)D);
-    case Direction_::N: {
-        constexpr auto IsWest = false;
-        FM_WALL_MAKE_CASES();
-        break;
-    }
-    case Direction_::W: {
-        constexpr auto IsWest = true;
-        FM_WALL_MAKE_CASES();
-    }
-    }
-}
-#undef FM_WALL_MAKE_CASES
-#undef FM_WALL_MAKE_CASE
 
 Array<Quads::indexes> make_indexes_()
 {
@@ -222,24 +179,28 @@ constexpr auto depth_offset_for_group(Group_ G)
 GL::Mesh chunk::make_wall_mesh()
 {
     fm_debug_assert(_walls);
-    //std::array<std::array<vertex, 4>, TILE_COUNT*2> vertexes;
-    //vertex vertexes[TILE_COUNT*2][4];
     uint32_t N = 0;
 
     static auto vertexes = Array<std::array<vertex, 4>>{NoInit, max_wall_quad_count };
 
     for (uint32_t k = 0; k < 2*TILE_COUNT; k++)
     {
+        const auto D = k & 1 ? Wall::Direction_::W : Wall::Direction_::N;
         const auto& atlas = _walls->atlases[k];
         fm_assert(atlas != nullptr);
         const auto variant = _walls->variants[k];
         const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
-        const auto D = k & 1 ? Wall::Direction_::W : Wall::Direction_::N;
         const auto& dir = atlas->calc_direction(D);
+
         for (auto [_, member, G] : Wall::Direction::groups)
         {
             CORRADE_ASSUME(G < Group_::COUNT);
+
+            if (G == Group_::corner_L && D != Direction_::N ||
+                G == Group_::corner_R && D != Direction_::W) [[unlikely]]
+                continue;
+
             const auto& group = dir.*member;
             if (!group.is_defined)
                 continue;
@@ -248,10 +209,11 @@ GL::Mesh chunk::make_wall_mesh()
             for (auto& v : quad)
                 v += center;
 
-            fm_debug_assert(N + quad.size() <= max_wall_quad_count);
             const auto i = N++;
+            fm_debug_assert(i < max_wall_quad_count);
             _walls->mesh_indexes[i] = (uint16_t)k;
-            const auto& frame = atlas->frames(group)[variant];
+            const auto frames = atlas->frames(group);
+            const auto& frame = frames[variant];
             const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
             const auto depth = tile_shader::depth_value(pos, depth_offset);
             auto& v = vertexes[i];
@@ -260,12 +222,11 @@ GL::Mesh chunk::make_wall_mesh()
         }
     }
 
-    const auto* __restrict const atlases = _walls->atlases.data();
-    ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes), [=](const auto& a, const auto& b) {
-        const auto& [a_v, a_i] = a;
-        const auto& [b_v, b_i] = b;
-        return atlases[a_i].get() < atlases[b_i].get();
-    });
+    const auto comp = [&atlases = _walls->atlases](const auto& a, const auto& b) {
+        return atlases[a.second] < atlases[b.second];
+    };
+
+    ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes), comp);
 
     auto vertex_view = std::as_const(vertexes).prefix(N);
     auto index_view = make_indexes(N);

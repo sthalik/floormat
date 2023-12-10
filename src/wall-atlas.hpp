@@ -44,7 +44,6 @@ struct Direction
 
     Group wall{}, overlay{}, side{}, top{};
     Group corner_L{}, corner_R{};
-    pass_mode passability = pass_mode::blocked;
 
     const Group& group(Group_ i) const;
     const Group& group(size_t i) const;
@@ -67,6 +66,7 @@ struct Info
 {
     String name;
     unsigned depth = 0;
+    pass_mode passability = pass_mode::blocked;
 
     bool operator==(const Info&) const noexcept;
 };

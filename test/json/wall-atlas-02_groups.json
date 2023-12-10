@@ -1,6 +1,7 @@
 {
     "name": "foo",
     "depth": 42,
+    "pass-mode": "shoot-through",
     "frames": [
         {
             "offset": "0 x 0",
@@ -24,7 +25,6 @@
         }
     },
     "w": {
-        "pass-mode": "shoot-through",
         "wall": {
             "offset": 0,
             "count": 1
