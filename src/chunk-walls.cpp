@@ -131,6 +131,8 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
             }};
         }
     }
+    std::unreachable();
+    fm_abort("invalid wall_atlas group '%d'", (int)G);
 }
 
 // -----------------------

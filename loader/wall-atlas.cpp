@@ -56,17 +56,16 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
         return *invalid_wall_atlas;
 
     constexpr auto name = "<invalid>"_s;
-    constexpr auto size = Vector3ui{iTILE_SIZE};
-    constexpr auto frame_size = Vector2ui{size.x(), size.z()};
+    constexpr auto frame_size = Vector2ui{iTILE_SIZE.x(), iTILE_SIZE.z()};
 
     auto a = std::make_shared<class wall_atlas>(
         wall_atlas_def {
-            {.name = name, .depth = 8},
-            { {{}, frame_size},},
-            { { {.index = 0, .count = 1, .pixel_size = frame_size, } } },
-            {{ {.val = 0}, {}, {}, {} }},
+            Wall::Info{.name = name, .depth = 8},
+            {{ {}, frame_size}, },
+            {{ {.index = 0, .count = 1, .pixel_size = frame_size, } }},
+            {{ {.val = 0}, {}, }},
             {1u},
-    }, name, make_error_texture());
+        }, name, make_error_texture());
     invalid_wall_atlas = Pointer<wall_info>{InPlaceInit, wall_info{ .name = name, .atlas = a } };
     return *invalid_wall_atlas;
 }

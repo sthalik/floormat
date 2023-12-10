@@ -47,21 +47,17 @@ void test_read_groups(StringView filename)
     auto info = read_info_header(jroot);
     fm_assert(info.name == "foo"_s);
     fm_assert(info.depth == 42);
+    fm_assert(info.passability == pass_mode::shoot_through);
 
     fm_assert(jroot["depth"] == 42);
     fm_assert( jroot.contains("n") );
-    fm_assert(!jroot.contains("e") );
-    fm_assert(!jroot.contains("s") );
     fm_assert( jroot.contains("w") );
     fm_assert(jroot["n"].is_object() && !jroot["n"].empty());
     fm_assert(jroot["w"].is_object() && !jroot["w"].empty());
     fm_assert(is_direction_defined(read_direction_metadata(jroot, Direction_::N)));
-    fm_assert(!is_direction_defined(read_direction_metadata(jroot, Direction_::E)));
-    fm_assert(!is_direction_defined(read_direction_metadata(jroot, Direction_::S)));
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
     fm_assert(is_direction_defined(dir));
-    fm_assert(dir.passability          == pass_mode::shoot_through);
     fm_assert(dir.wall.pixel_size      == Vector2ui{}                        );
     fm_assert(dir.overlay.default_tint == false                              );
     fm_assert(dir.wall.mirrored        == false                              );
