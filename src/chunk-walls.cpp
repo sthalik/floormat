@@ -35,6 +35,10 @@ using namespace floormat::Quads;
 using Wall::Group_;
 using Wall::Direction_;
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wundefined-internal"
+#endif
+
 template<Group_ G, bool IsWest> constexpr quad get_quad(float depth);
 constexpr quad get_quad(Direction_ D, Group_ G, float depth);
 
@@ -143,6 +147,8 @@ template<> quad constexpr get_quad<Group_::top, true>(float depth)
     }};
 }
 
+// -----------------------
+
 #define FM_WALL_MAKE_CASE(name) \
     case name: return get_quad<name, IsWest>(depth)
 
@@ -182,8 +188,6 @@ constexpr quad get_quad(Direction_ D, Group_ G, float depth)
 }
 #undef FM_WALL_MAKE_CASES
 #undef FM_WALL_MAKE_CASE
-
-// -----------------------
 
 Array<Quads::indexes> make_indexes_()
 {
@@ -229,7 +233,7 @@ GL::Mesh chunk::make_wall_mesh()
         const auto& atlas = _walls->atlases[k];
         fm_assert(atlas != nullptr);
         const auto variant = _walls->variants[k];
-        const local_coords pos{k / 2u};
+        const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto D = k & 1 ? Wall::Direction_::W : Wall::Direction_::N;
         const auto& dir = atlas->calc_direction(D);
@@ -246,39 +250,31 @@ GL::Mesh chunk::make_wall_mesh()
 
             fm_debug_assert(N + quad.size() <= max_wall_quad_count);
             const auto i = N++;
-            auto& v = vertexes[i];
             _walls->mesh_indexes[i] = (uint16_t)k;
             const auto& frame = atlas->frames(group)[variant];
             const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
-            const float depth = tile_shader::depth_value(pos, depth_offset);
+            const auto depth = tile_shader::depth_value(pos, depth_offset);
+            auto& v = vertexes[i];
+            for (uint8_t j = 0; j < 4; j++)
+                v[j] = { quad[j], texcoords[j], depth };
         }
     }
 
-    for (auto k = 0uz; k < count; k++)
-    {
-
-        // ...
-
-        //const auto quad = i & 1 ? wall_quad_W(center, TILE_SIZE) : wall_quad_N(center, TILE_SIZE);
-        const float depth = tile_shader::depth_value(pos, tile_shader::wall_depth_offset);
-        //const auto texcoords = atlas->texcoords_for_id(variant);
-        auto& v = vertexes[N++];
-        for (auto j = 0uz; j < 4; j++)
-            v[j] = { quad[j], texcoords[j], depth, };
-    }
+    const auto* __restrict const atlases = _walls->atlases.data();
+    ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes), [=](const auto& a, const auto& b) {
+        const auto& [a_v, a_i] = a;
+        const auto& [b_v, b_i] = b;
+        return atlases[a_i].get() < atlases[b_i].get();
+    });
 
     auto vertex_view = std::as_const(vertexes).prefix(N);
     auto index_view = make_indexes(N);
 
-    //auto indexes = make_index_array<2>(count);
-    //const auto vertex_view = ArrayView{&vertexes[0], count};
-    //const auto vert_index_view = ArrayView{indexes.data(), count};
-
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-        .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(int32_t(6 * count));
-    fm_assert((size_t)mesh.count() == N*6);
+        .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
+        .setCount(int32_t(6 * N));
+    fm_debug_assert((size_t)mesh.count() == N*6);
     return mesh;
 }
 
@@ -306,8 +302,8 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
               });
 #endif
 
-    wall_mesh = make_wall_mesh(count);
-    return { wall_mesh, _walls->mesh_indexes, count };
+    wall_mesh = make_wall_mesh();
+    return { wall_mesh, _walls->mesh_indexes, (size_t)wall_mesh.count()/6u };
 }
 
 } // namespace floormat

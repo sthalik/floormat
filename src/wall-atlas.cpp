@@ -149,7 +149,7 @@ auto wall_atlas::direction(size_t dir) const -> const Direction*
 
 auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 {
-    if (auto dai = _direction_map[(size_t)dir])
+    if (auto dai = _direction_map[(size_t)dir]) [[likely]]
         return _dir_array[dai.val];
     CORRADE_ASSUME(dir < Direction_::COUNT);
     switch (dir)
