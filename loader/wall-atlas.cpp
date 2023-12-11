@@ -46,6 +46,7 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     auto tex = texture(""_s, path);
 
     fm_soft_assert(name == def.header.name);
+    fm_soft_assert(!def.frames.empty());
     auto atlas = std::make_shared<class wall_atlas>(std::move(def), path, tex);
     return atlas;
 }
@@ -70,7 +71,7 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
     return *invalid_wall_atlas;
 }
 
-const wall_info& loader_impl::wall_atlas(StringView name, bool fail_ok)
+std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok)
 {
     fm_soft_assert(check_atlas_name(name));
     char buf[FILENAME_MAX];
@@ -82,12 +83,12 @@ const wall_info& loader_impl::wall_atlas(StringView name, bool fail_ok)
         if (!fail_ok)
             fm_throw("no such wall atlas '{}'"_cf, name);
         else
-            return make_invalid_wall_atlas();
+            return make_invalid_wall_atlas().atlas;
     }
     fm_assert(it->second != nullptr);
     if (!it->second->atlas)
         it->second->atlas = get_wall_atlas(it->second->name, path);
-    return *it->second;
+    return it->second->atlas;
 }
 
 void loader_impl::get_wall_atlas_list()

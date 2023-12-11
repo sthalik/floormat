@@ -114,7 +114,7 @@ class wall_atlas final
     Info _info;
     String _path;
     Vector2ui _image_size;
-    GL::Texture2D _texture{NoCreate};
+    GL::Texture2D _texture;
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
     Direction* get_Direction(Direction_ num) const;

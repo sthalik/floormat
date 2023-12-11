@@ -367,7 +367,7 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
     {
         auto t = c[i];
         if (auto atlas = t.ground_atlas())
-            if (atlas->pass_mode(pass_mode::pass) == pass_mode::blocked)
+            if (atlas->pass_mode() == pass_mode::blocked)
             {
                 auto [min, max] = whole_tile(i);
                 constexpr auto fuzz = Vector2(fuzz_pixels, fuzz_pixels), fuzz2 = fuzz*2;

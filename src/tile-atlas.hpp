@@ -37,6 +37,8 @@ public:
     GL::Texture2D& texture() { return tex_; }
     StringView name() const { return name_; }
     enum pass_mode pass_mode() const;
+
+    static constexpr enum pass_mode default_pass_mode = pass_mode::pass;
 };
 
 

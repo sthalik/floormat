@@ -57,7 +57,7 @@ private:
 
     app* _app;
 
-    tile_editor _floor{ editor_mode::floor, "floor"_s };
+    tile_editor _floor;
     wall_editor _wall;
     scenery_editor _scenery;
     vobj_editor _vobj;

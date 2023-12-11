@@ -51,7 +51,7 @@ struct loader_impl final : loader_
 
     Pointer<wall_info> invalid_wall_atlas;
 
-    const wall_info& wall_atlas(StringView name, bool fail_ok = true) override;
+    std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
     const wall_info& make_invalid_wall_atlas();
@@ -60,7 +60,7 @@ struct loader_impl final : loader_
     // >-----> tile >----->
     tsl::robin_map<StringView, std::shared_ptr<class tile_atlas>> tile_atlas_map;
 
-    std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, Optional<pass_mode> pass) noexcept(false) override;
+    std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) override;
     std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) override;
 
     // >-----> anim >----->

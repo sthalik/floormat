@@ -17,16 +17,8 @@ tile_editor::tile_editor()
 
 void tile_editor::load_atlases()
 {
-    pass_mode default_pass_mode;
-    switch (_mode)
-    {
-    case editor_mode::floor: default_pass_mode = pass_mode::pass; break;
-    case editor_mode::walls: default_pass_mode = pass_mode::blocked; break;
-    default: default_pass_mode = pass_mode::see_through; break;
-    }
-
     const auto filename = _name + ".json";
-    for (const auto& atlas : loader.tile_atlases(filename, default_pass_mode))
+    for (const auto& atlas : loader.tile_atlases(filename))
     {
         auto& [_, vec] = _permutation;
         vec.reserve(atlas->num_tiles());
@@ -154,92 +146,23 @@ tile_image_proto tile_editor::get_selected()
 void tile_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
 {
     auto [c, t] = world[pos];
-    switch (_mode)
-    {
-    case editor_mode::none:
-        break;
-    case editor_mode::floor:
-        c.mark_ground_modified();
-        t.ground() = img;
-        break;
-    case editor_mode::walls:
-        c.mark_walls_modified();
-        switch (_rotation)
-        {
-        case editor_wall_rotation::N:
-            t.wall_north() = img;
-            break;
-        case editor_wall_rotation::W:
-            t.wall_west()  = img;
-            break;
-        }
-        break;
-    default:
-        fm_warn_once("wrong editor mode '%d' for place_tile()", (int)_mode);
-        break;
-    }
-}
-
-void tile_editor::toggle_rotation()
-{
-    if (_mode != editor_mode::walls)
-        _rotation = editor_wall_rotation::N;
-    else if (_rotation == editor_wall_rotation::W)
-        _rotation = editor_wall_rotation::N;
-    else
-        _rotation = editor_wall_rotation::W;
-}
-
-void tile_editor::set_rotation(editor_wall_rotation r)
-{
-    switch (r)
-    {
-    default:
-        fm_warn_once("invalid rotation '0x%hhx", (char)r);
-        return;
-    case editor_wall_rotation::W:
-    case editor_wall_rotation::N:
-        if (_mode == editor_mode::walls)
-            _rotation = r;
-        else
-            _rotation = editor_wall_rotation::N;
-        break;
-    }
+    c.mark_ground_modified();
+    t.ground() = img;
 }
 
 auto tile_editor::check_snap(int mods) const -> editor_snap_mode
 {
     const bool ctrl = mods & kmod_ctrl, shift = mods & kmod_shift;
 
+    // todo show on cursor while held
     if (!(ctrl | shift))
         return editor_snap_mode::none;
 
-    switch (_mode)
-    {
-    default:
-    case editor_mode::none:
-        return editor_snap_mode::none;
-    case editor_mode::walls:
-        switch (_rotation)
-        {
-        case editor_wall_rotation::N:
-            return editor_snap_mode::horizontal;
-        case editor_wall_rotation::W:
-            return editor_snap_mode::vertical;
-        default: return editor_snap_mode::none;
-        }
-    case editor_mode::floor:
-        if (shift)
-            return editor_snap_mode::horizontal;
-        if (ctrl)
-            return editor_snap_mode::vertical;
-        return editor_snap_mode::none;
-    }
-}
-
-bool tile_editor::can_rotate() const
-{
-    return _mode == editor_mode::walls;
+    if (shift)
+        return editor_snap_mode::horizontal;
+    if (ctrl)
+        return editor_snap_mode::vertical;
+    return editor_snap_mode::none;
 }
 
 } // namespace floormat

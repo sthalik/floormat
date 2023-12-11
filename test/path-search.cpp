@@ -170,7 +170,7 @@ void test_bbox()
         return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
     };
 
-    const auto metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked);
+    const auto metal2 = loader.wall_atlas("concrete1", false);
     const auto table  = loader.scenery("table1");
 
     {

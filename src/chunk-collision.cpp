@@ -44,7 +44,7 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = ground_atlas_at(i))
         {
             auto [min, max] = whole_tile(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(pass_mode::pass), i+1);
+            auto id = make_id(collision_type::geometry, atlas->pass_mode(), i+1);
             _rtree.Insert(min.data(), max.data(), id);
         }
     }
