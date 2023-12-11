@@ -109,6 +109,8 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
         y0 = std::min(y0, p.y);
         y1 = std::max(y1, p.y);
     }
+    // todo test this with the default viewport size using --magnum-dpi-scaling=1
+    x0 -= 1; y0 -= 1; x1 += 1; y1 += 1;
 
     constexpr int16_t mx = tile_shader::max_screen_tiles.x()/(int16_t)2,
                       my = tile_shader::max_screen_tiles.y()/(int16_t)2;

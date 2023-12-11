@@ -49,6 +49,7 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     case corner_R:
         return { size.x() - half_tile, size.z() };
     default:
+        std::unreachable();
         fm_assert(false);
     }
 }
@@ -136,35 +137,23 @@ auto wall_atlas::frames(Direction_ dir, Group_ gr) const -> ArrayView<const Fram
 auto wall_atlas::group(Direction_ dir, Group_ gr) const -> const Group* { return group((size_t)dir, (size_t)gr); }
 auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return group(dir, (size_t)gr); }
 
-auto wall_atlas::group(size_t dir, size_t group) const -> const Group*
+auto wall_atlas::group(size_t dir, size_t tag) const -> const Group*
 {
-    fm_assert(group < Group_COUNT);
-    const auto* const set_ = direction(dir);
-    if (!set_)
+    fm_assert(tag < Group_COUNT);
+    if (const auto* D = direction(dir))
+        return group(*D, (Group_)tag);
+    else
         return {};
-    const auto& set = *set_;
-
-    const auto memfn = set.groups[group].member;
-    const Group& ret = set.*memfn;
-#if 0
-    if (ret.is_empty())
-        return {};
-#endif
-    return &ret;
 }
 
 auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
 {
     fm_assert(tag < Group_::COUNT);
     const auto memfn = dir.groups[(size_t)tag].member;
-    const Group& ret = dir.*memfn;
-    if (!ret.is_defined)
+    if (const Group& ret = dir.*memfn; ret.is_defined)
+        return &ret;
+    else
         return {};
-#if 0
-    if (ret.is_empty())
-        return {};
-#endif
-    return &ret;
 }
 
 auto wall_atlas::direction(size_t dir) const -> const Direction* { return get_Direction(Direction_(dir)); }
