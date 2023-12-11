@@ -83,7 +83,10 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 fm_soft_assert(G.index < frame_count && G.index + G.count <= frame_count);
                 const auto size = expected_size(_info.depth, gr);
                 for (const auto& frame : ArrayView { &_frame_array[G.index], G.count })
+                {
                     fm_soft_assert(frame.size == size);
+                    fm_soft_assert(frame.offset + frame.size <= _image_size);
+                }
             }
         }
         if (!found) [[unlikely]]
