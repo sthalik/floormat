@@ -9,6 +9,8 @@
 
 namespace floormat {
 
+using namespace floormat::Wall;
+
 namespace {
 
 Vector2ui get_image_size(const ImageView2D& img)
@@ -136,7 +138,7 @@ auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return gro
 
 auto wall_atlas::group(size_t dir, size_t group) const -> const Group*
 {
-    fm_assert(group < (size_t)Group_::COUNT);
+    fm_assert(group < Group_COUNT);
     const auto* const set_ = direction(dir);
     if (!set_)
         return {};
@@ -222,8 +224,8 @@ Group& Direction::group(size_t i)
 
 bool Frame::operator==(const Frame&) const noexcept = default;
 bool Direction::operator==(const Direction&) const noexcept = default;
-bool Info::operator==(const floormat::Wall::Info&) const noexcept = default;
-bool DirArrayIndex::operator==(const floormat::Wall::DirArrayIndex&) const noexcept = default;
+bool Info::operator==(const Info&) const noexcept = default;
+bool DirArrayIndex::operator==(const DirArrayIndex&) const noexcept = default;
 
 #if 1
 bool Group::operator==(const Group&) const noexcept = default;
