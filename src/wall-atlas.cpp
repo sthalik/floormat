@@ -77,9 +77,6 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 if (!G.is_defined)
                     continue;
                 found = true;
-                if (G.count ==  0) [[unlikely]]
-                    fm_throw("wall_atlas '{}' defined group {}/{} has no frames!"_cf,
-                             _path, dir_name, group_name);
                 fm_soft_assert(G.index < frame_count && G.index + G.count <= frame_count);
                 const auto size = expected_size(_info.depth, gr);
                 for (const auto& frame : ArrayView { &_frame_array[G.index], G.count })

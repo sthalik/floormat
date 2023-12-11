@@ -21,6 +21,7 @@ void test_app::test_wall_atlas2()
     fm_assert(&a.calc_direction(W) == a.direction(N));
     fm_assert(&a.calc_direction(N) == a.direction(N));
     fm_assert(a.frames(N, Wall::Group_::wall).size() >= 3);
+    fm_assert(a.group(N, Wall::Group_::top)->is_defined);
     Debug{} << "test_wall2: end";
 }
 
