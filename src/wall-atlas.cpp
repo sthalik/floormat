@@ -69,7 +69,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
         for (auto [dir_name, dir] : wall_atlas::directions)
         {
             const auto* D = direction((size_t)dir);
-            fm_soft_assert(def.direction_mask[(size_t)dir] == !!D);
+            fm_soft_assert(!!D == def.direction_mask[(size_t)dir]);
             if (!D)
                 continue;
             for (auto [group_name, gmemb, gr] : Direction::groups)
