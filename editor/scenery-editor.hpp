@@ -11,8 +11,9 @@ struct global_coords;
 struct world;
 struct app;
 
-struct scenery_editor final
+class scenery_editor final
 {
+public:
     struct scenery_ final {
         String name, descr;
         scenery_proto proto;
@@ -22,7 +23,7 @@ struct scenery_editor final
     scenery_editor() noexcept;
 
     void set_rotation(enum rotation r);
-    enum rotation rotation() const;
+    //enum rotation rotation() const;
     void next_rotation();
     void prev_rotation();
 

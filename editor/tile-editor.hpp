@@ -12,9 +12,8 @@ namespace floormat {
 
 struct world;
 
-struct tile_editor final
+class tile_editor final
 {
-private:
     enum selection_mode : unsigned char {
         sel_none, sel_tile, sel_perm,
     };
@@ -29,14 +28,12 @@ private:
     tile_image_proto _selected_tile;
     tuple _permutation;
     selection_mode _selection_mode = sel_none;
-    editor_mode _mode;
-    editor_wall_rotation _rotation = editor_wall_rotation::N;
 
     void load_atlases();
     tile_image_proto get_selected_perm();
 
 public:
-    tile_editor(editor_mode mode, StringView name);
+    tile_editor(StringView name);
     std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
     std::shared_ptr<tile_atlas> atlas(StringView str);
     auto cbegin() const noexcept { return _atlases.cbegin(); }
@@ -44,8 +41,6 @@ public:
     auto begin() const noexcept { return _atlases.cbegin(); }
     auto end() const noexcept { return _atlases.cend(); }
     StringView name() const noexcept;
-    editor_mode mode() const noexcept { return _mode; }
-    editor_wall_rotation rotation() const noexcept { return _rotation; }
 
     void clear_selection();
     void select_tile(const std::shared_ptr<tile_atlas>& atlas, size_t variant);
@@ -56,10 +51,7 @@ public:
     bool is_anything_selected() const;
     tile_image_proto get_selected();
     void place_tile(world& world, global_coords pos, const tile_image_proto& img);
-    void toggle_rotation();
-    void set_rotation(editor_wall_rotation r);
     editor_snap_mode check_snap(int mods) const;
-    bool can_rotate() const;
 };
 
 } // namespace floormat

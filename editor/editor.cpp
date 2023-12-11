@@ -171,7 +171,7 @@ void editor::set_mode(editor_mode mode)
     on_release();
 }
 
-const tile_editor* editor::current_tile_editor() const noexcept
+const tile_editor* editor::current_ground_editor() const noexcept
 {
     switch (_mode)
     {
@@ -200,9 +200,9 @@ const vobj_editor* editor::current_vobj_editor() const noexcept
         return nullptr;
 }
 
-tile_editor* editor::current_tile_editor() noexcept
+tile_editor* editor::current_ground_editor() noexcept
 {
-    return const_cast<tile_editor*>(static_cast<const editor&>(*this).current_tile_editor());
+    return const_cast<tile_editor*>(static_cast<const editor&>(*this).current_ground_editor());
 }
 
 scenery_editor* editor::current_scenery_editor() noexcept

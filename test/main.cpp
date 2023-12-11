@@ -33,6 +33,7 @@ int test_app::exec()
     test_math();
     test_hash();
     test_wall_atlas();
+    test_wall_atlas2();
 
     test_scenery();
     test_path_search_node_pool();

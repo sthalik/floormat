@@ -22,7 +22,7 @@ namespace floormat {
 struct chunk;
 struct floormat_main;
 class tile_atlas;
-struct tile_editor;
+class tile_editor;
 struct fm_settings;
 class anim_atlas;
 struct critter;

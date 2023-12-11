@@ -10,7 +10,7 @@
 
 namespace floormat {
 
-tile_editor::tile_editor(editor_mode mode, StringView name) : _name{name}, _mode{ mode}
+tile_editor::tile_editor(StringView name) : _name{name}
 {
     load_atlases();
 }

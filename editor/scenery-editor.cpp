@@ -31,10 +31,12 @@ void scenery_editor::set_rotation(enum rotation r)
     s.r = r;
 }
 
+#if 0
 enum rotation scenery_editor::rotation() const
 {
     return _selected.proto.r;
 }
+#endif
 
 void scenery_editor::next_rotation()
 {

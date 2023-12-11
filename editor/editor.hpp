@@ -5,6 +5,7 @@
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
 #include "tile-editor.hpp"
+#include "wall-editor.hpp"
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 
@@ -25,8 +26,8 @@ struct editor final
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor* current_tile_editor() noexcept;
-    const tile_editor* current_tile_editor() const noexcept;
+    tile_editor* current_ground_editor() noexcept;
+    const tile_editor* current_ground_editor() const noexcept;
     scenery_editor* current_scenery_editor() noexcept;
     const scenery_editor* current_scenery_editor() const noexcept;
     vobj_editor* current_vobj_editor() noexcept;
@@ -57,7 +58,7 @@ private:
     app* _app;
 
     tile_editor _floor{ editor_mode::floor, "floor"_s };
-    tile_editor _wall { editor_mode::walls, "wall"_s  };
+    wall_editor _wall;
     scenery_editor _scenery;
     vobj_editor _vobj;
 
