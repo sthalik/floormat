@@ -137,7 +137,7 @@ void editor::on_click_(world& world, global_coords pos, button b)
             {
             default: break;
             case button::place:
-                if (const auto& sel = mode->get_selected())
+                if (const auto* sel = mode->get_selected())
                     mode->place_tile(world, pos, sel, *_app);
                 break;
             case button::remove:

@@ -61,10 +61,9 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _image_size{get_image_size(img)},
       _direction_map{def.direction_map}
 {
-    fm_soft_assert(!_frame_array.empty());
-
     {
         const auto frame_count = _frame_array.size();
+        fm_soft_assert(frame_count > 0);
         bool found = false;
         for (auto [dir_name, dir] : wall_atlas::directions)
         {

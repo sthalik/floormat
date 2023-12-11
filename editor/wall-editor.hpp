@@ -22,11 +22,11 @@ public:
     wall_editor();
     StringView name() const;
 
-    enum rotation rotation() const { return _r; }
+    enum rotation rotation() const;
     void set_rotation(enum rotation r);
     void toggle_rotation();
 
-    std::shared_ptr<wall_atlas> get_selected() const { return _selected_atlas; }
+    const wall_atlas* get_selected() const;
     void select_atlas(const std::shared_ptr<wall_atlas>& atlas);
     void clear_selection();
     bool is_atlas_selected(const std::shared_ptr<wall_atlas>& atlas) const;
