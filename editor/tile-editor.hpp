@@ -33,7 +33,7 @@ class tile_editor final
     tile_image_proto get_selected_perm();
 
 public:
-    tile_editor(StringView name);
+    tile_editor();
     std::shared_ptr<tile_atlas> maybe_atlas(StringView str);
     std::shared_ptr<tile_atlas> atlas(StringView str);
     auto cbegin() const noexcept { return _atlases.cbegin(); }

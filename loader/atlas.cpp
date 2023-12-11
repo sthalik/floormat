@@ -74,6 +74,7 @@ ArrayView<const String> loader_impl::anim_atlas_list()
 {
     if (anim_atlases.empty())
         get_anim_atlas_list();
+    fm_assert(!anim_atlases.empty());
     return anim_atlases;
 }
 

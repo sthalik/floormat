@@ -12,9 +12,9 @@ namespace floormat {
 
 using namespace floormat::Quads;
 
-tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, Optional<enum pass_mode> p) :
+tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, enum pass_mode p) :
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
-    path_{path}, name_{name}, size_{image.size()}, dims_{tile_count}, passability{std::move(p)}
+    path_{path}, name_{name}, size_{image.size()}, dims_{tile_count}, passability{p}
 {
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
@@ -54,13 +54,6 @@ auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count
 }
 
 size_t tile_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
-Optional<enum pass_mode> tile_atlas::pass_mode() const { return passability; }
-enum pass_mode tile_atlas::pass_mode(enum pass_mode p) const { return passability ? *passability : p; }
-
-void tile_atlas::set_pass_mode(enum pass_mode p)
-{
-    fm_assert(!passability || passability == p);
-    passability = { InPlaceInit, p };
-}
+enum pass_mode tile_atlas::pass_mode() const { return passability; }
 
 } // namespace floormat

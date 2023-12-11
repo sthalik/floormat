@@ -38,7 +38,7 @@ struct loader_
     static void destroy();
     static loader_& default_loader() noexcept;
     // todo move to ArrayView later, make non-static, and remove pass_mode
-    static std::vector<std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename, pass_mode p);
+    static std::vector<std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename);
     virtual const std::vector<serialized_scenery>& sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;

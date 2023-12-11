@@ -54,13 +54,10 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
 
 namespace floormat {
 
-std::vector<std::shared_ptr<class tile_atlas>> loader_::tile_atlases(StringView filename, pass_mode p)
+std::vector<std::shared_ptr<class tile_atlas>> loader_::tile_atlases(StringView filename)
 {
     auto vec = json_helper::from_json<std::vector<std::shared_ptr<class tile_atlas>>>(
         Path::join(loader_::IMAGE_PATH, filename));
-    for (auto& x : vec)
-        if (!x->pass_mode())
-            x->set_pass_mode(p);
     return vec;
 }
 

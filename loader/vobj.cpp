@@ -91,6 +91,7 @@ ArrayView<const vobj_info> loader_impl::vobj_list()
 {
     if (vobjs.empty())
         get_vobj_list();
+    fm_assert(!vobjs.empty());
     return vobjs;
 }
 

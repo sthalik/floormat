@@ -10,7 +10,7 @@
 
 namespace floormat {
 
-tile_editor::tile_editor(StringView name) : _name{name}
+tile_editor::tile_editor()
 {
     load_atlases();
 }
@@ -50,7 +50,7 @@ std::shared_ptr<tile_atlas> tile_editor::atlas(StringView str)
         fm_throw("no such atlas: {}"_cf, str);
 }
 
-StringView tile_editor::name() const noexcept { return _name; }
+StringView tile_editor::name() const noexcept { return "floor"_s; }
 
 void tile_editor::clear_selection()
 {
