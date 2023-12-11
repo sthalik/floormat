@@ -27,7 +27,11 @@
     "w": {
         "wall": {
             "offset": 0,
-            "count": 1
+            "count": 1,
+            "pixel-size": "42 x 192",
+            "tint-mult": [ 0.125, 0.25, 0.5, 1 ],
+            "tint-add": [ 1, 2, 3 ],
+            "mirrored": true
         },
         "side": {
             "pixel-size": "42 x 192"
@@ -36,12 +40,6 @@
             "pixel-size": "192 x 42",
             "offset": 1,
             "count": 2
-        },
-        "overlay": {
-            "pixel-size": "42 x 192",
-            "tint-mult": [ 0.125, 0.25, 0.5, 1 ],
-            "tint-add": [ 1, 2, 3 ],
-            "mirrored": true
         },
         "corner-L": { "from-rotation": "n" }
     }

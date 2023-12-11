@@ -42,7 +42,7 @@ struct Direction
     using memfn_ptr = Group Direction::*;
     struct member_tuple { StringView name; memfn_ptr member; Group_ tag; };
 
-    Group wall{}, overlay{}, side{}, top{};
+    Group wall{}, side{}, top{};
     Group corner_L{}, corner_R{};
 
     const Group& group(Group_ i) const;

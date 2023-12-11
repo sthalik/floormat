@@ -40,7 +40,6 @@ void test_read_header(StringView filename)
 
 void test_read_groups(StringView filename)
 {
-    constexpr Group group_defaults;
     const auto path = Path::join(json_path(), filename);
     const auto jroot = json_helper::from_json_(path);
 
@@ -58,15 +57,13 @@ void test_read_groups(StringView filename)
 
     const auto dir = read_direction_metadata(jroot, Direction_::W);
     fm_assert(is_direction_defined(dir));
-    fm_assert(dir.wall.pixel_size      == Vector2ui{}                        );
-    fm_assert(dir.overlay.default_tint == false                              );
-    fm_assert(dir.wall.mirrored        == false                              );
-    fm_assert(dir.side.pixel_size      == Vector2ui{42, 192}                 );
-    fm_assert(dir.side.default_tint    == true                               );
-    fm_assert(dir.top.default_tint     == true                               );
-    fm_assert(dir.overlay.tint_mult    == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
-    fm_assert(dir.overlay.tint_add     == Vector3{1, 2, 3}                   );
-    fm_assert(dir.overlay.mirrored     == true                               );
+    fm_assert(dir.wall.pixel_size   == Vector2ui{42, 192}                 );
+    fm_assert(dir.wall.tint_mult    == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
+    fm_assert(dir.wall.tint_add     == Vector3{1, 2, 3}                   );
+    fm_assert(dir.wall.mirrored     == true                               );
+    fm_assert(dir.side.pixel_size   == Vector2ui{42, 192}                 );
+    fm_assert(dir.side.default_tint == true                               );
+    fm_assert(dir.top.default_tint  == true                               );
 
     const auto atlas2 = wall_atlas_def::deserialize(path);
     fm_assert(atlas2.header == info);
