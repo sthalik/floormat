@@ -61,6 +61,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     fm_soft_assert(!_frame_array.empty());
 
     {
+        const auto frame_count = _frame_array.size();
         bool found = false;
         for (auto [dir_name, dir] : wall_atlas::directions)
         {
@@ -71,12 +72,15 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             for (auto [group_name, gmemb, gr] : Direction::groups)
             {
                 const auto& G = D->*gmemb;
+                fm_soft_assert(!G.is_defined == !G.count);
+                fm_soft_assert(G.is_defined == (G.index != (uint32_t)-1));
                 if (!G.is_defined)
                     continue;
                 found = true;
                 if (G.count ==  0) [[unlikely]]
                     fm_throw("wall_atlas '{}' defined group {}/{} has no frames!"_cf,
                              _path, dir_name, group_name);
+                fm_soft_assert(G.index < frame_count && G.index + G.count <= frame_count);
             }
         }
         if (!found) [[unlikely]]
@@ -113,6 +117,17 @@ auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
     return { &_frame_array[index], count };
 }
 
+auto wall_atlas::frames(Direction_ dir, Group_ gr) const -> ArrayView<const Frame>
+{
+    const auto* D = get_Direction(dir);
+    if (!D) [[unlikely]]
+        fm_throw("no such direction: {}"_cf, (int)dir);
+    const auto* G = group(*D, gr);
+    if (!G) [[unlikely]]
+        fm_throw("no such group {} for direction {}"_cf, (int)gr, (int)dir);
+    return { _frame_array.data() + G->index, G->count };
+}
+
 auto wall_atlas::group(Direction_ dir, Group_ gr) const -> const Group* { return group((size_t)dir, (size_t)gr); }
 auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return group(dir, (size_t)gr); }
 
@@ -138,6 +153,8 @@ auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
     fm_assert(tag < Group_::COUNT);
     const auto memfn = dir.groups[(size_t)tag].member;
     const Group& ret = dir.*memfn;
+    if (!ret.is_defined)
+        return {};
 #if 0
     if (ret.is_empty())
         return {};
@@ -145,10 +162,8 @@ auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
     return &ret;
 }
 
-auto wall_atlas::direction(size_t dir) const -> const Direction*
-{
-    return get_Direction(Direction_(dir));
-}
+auto wall_atlas::direction(size_t dir) const -> const Direction* { return get_Direction(Direction_(dir)); }
+auto wall_atlas::direction(Direction_ dir) const -> const Direction* { return get_Direction(dir); }
 
 auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 {

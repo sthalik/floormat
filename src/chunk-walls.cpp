@@ -181,7 +181,7 @@ GL::Mesh chunk::make_wall_mesh()
         const auto D = k & 1 ? Wall::Direction_::W : Wall::Direction_::N;
         const auto& atlas = _walls->atlases[k];
         fm_assert(atlas != nullptr);
-        const auto variant = _walls->variants[k];
+        const auto variant_ = _walls->variants[k];
         const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto& dir = atlas->calc_direction(D);
@@ -216,6 +216,7 @@ GL::Mesh chunk::make_wall_mesh()
             fm_debug_assert(i < max_wall_quad_count);
             _walls->mesh_indexes[i] = (uint16_t)k;
             const auto frames = atlas->frames(group);
+            const auto variant = variant_ % frames.size();
             const auto& frame = frames[variant];
             const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
             const auto depth = tile_shader::depth_value(pos, depth_offset);
@@ -225,8 +226,8 @@ GL::Mesh chunk::make_wall_mesh()
         }
     }
 
-    const auto comp = [&atlases = _walls->atlases](const auto& a, const auto& b) {
-        return atlases[a.second] < atlases[b.second];
+    const auto comp = [&A = _walls->atlases](const auto& a, const auto& b) {
+        return A[a.second] < A[b.second];
     };
 
     ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes), comp);

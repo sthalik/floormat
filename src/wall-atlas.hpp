@@ -131,9 +131,11 @@ public:
     const Group* group(size_t dir, Group_ tag) const;
     const Group* group(const Direction& dir, Group_ group) const;
     const Direction* direction(size_t dir) const;
+    const Direction* direction(Direction_ dir) const;
     const Direction& calc_direction(Direction_ dir) const;
     uint8_t direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
+    ArrayView<const Frame> frames(Direction_ dir, Group_ g) const noexcept(false);
     ArrayView<const Frame> raw_frame_array() const;
 
     const Info& info() const { return _info; }
