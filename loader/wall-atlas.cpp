@@ -86,7 +86,7 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool 
             return make_invalid_wall_atlas().atlas;
     }
     fm_assert(it->second != nullptr);
-    if (!it->second->atlas)
+    if (!it->second->atlas) [[unlikely]]
         it->second->atlas = get_wall_atlas(it->second->name, path);
     return it->second->atlas;
 }

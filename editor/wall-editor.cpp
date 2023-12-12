@@ -77,6 +77,7 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     {
     case rotation::N: t.wall_north() = { atlas, (uint8_t)-1 }; break;
     case rotation::W: t.wall_west() = { atlas, (uint8_t)-1 }; break;
+    default: CORRADE_ASSUME(false);
     }
 }
 

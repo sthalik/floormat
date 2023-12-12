@@ -248,7 +248,7 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
         return {wall_mesh, {}, 0};
 
     if (!_walls_modified)
-        return { wall_mesh, _walls->mesh_indexes, size_t(wall_mesh.count()/6) };
+        return { wall_mesh, _walls->mesh_indexes, (size_t)wall_mesh.count()/6u };
     _walls_modified = false;
 
     wall_mesh = make_wall_mesh();
