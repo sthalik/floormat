@@ -1,6 +1,7 @@
 #include "wall-editor.hpp"
 #include "src/wall-defs.hpp"
 #include "src/wall-atlas.hpp"
+#include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-info.hpp"
 #include <Corrade/Containers/ArrayView.h>
@@ -68,5 +69,15 @@ void wall_editor::select_atlas(const std::shared_ptr<wall_atlas>& atlas) { _sele
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
 bool wall_editor::is_atlas_selected(const std::shared_ptr<wall_atlas>& atlas) const { return _selected_atlas == atlas; }
 bool wall_editor::is_anything_selected() const { return _selected_atlas != nullptr; }
+
+void wall_editor::place_tile(world& w, global_coords coords, const std::shared_ptr<wall_atlas>& atlas)
+{
+    auto [c, t] = w[coords];
+    switch (_r)
+    {
+    case rotation::N: t.wall_north() = { atlas, (uint8_t)-1 }; break;
+    case rotation::W: t.wall_west() = { atlas, (uint8_t)-1 }; break;
+    }
+}
 
 } // namespace floormat

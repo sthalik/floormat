@@ -80,8 +80,8 @@ constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
 
 struct global_coords final
 {
-    struct raw_coords final { uint32_t &x, &y; }; // NOLINT
-    struct raw_coords_ final { uint32_t x, y; };
+    struct raw_coords { uint32_t &x, &y; operator Vector2ui() const { return {x, y}; } }; // NOLINT
+    struct raw_coords_ { uint32_t x, y; operator Vector2ui() const { return {x, y}; } };
 
 private:
     using u0 = std::integral_constant<uint32_t, (1<<15)>;

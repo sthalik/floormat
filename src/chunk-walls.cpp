@@ -185,6 +185,7 @@ GL::Mesh chunk::make_wall_mesh()
         const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto& dir = atlas->calc_direction(D);
+        const auto vpos = (uint8_t)Vector2ui(global_coords{_coord, pos}.raw()).sum();
 
         for (auto [_, member, G] : Wall::Direction::groups)
         {
@@ -216,7 +217,7 @@ GL::Mesh chunk::make_wall_mesh()
             fm_debug_assert(i < max_wall_quad_count);
             _walls->mesh_indexes[i] = (uint16_t)k;
             const auto frames = atlas->frames(group);
-            const auto variant = variant_ % frames.size();
+            const auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos) % frames.size();
             const auto& frame = frames[variant];
             const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
             const auto depth = tile_shader::depth_value(pos, depth_offset);
@@ -226,11 +227,8 @@ GL::Mesh chunk::make_wall_mesh()
         }
     }
 
-    const auto comp = [&A = _walls->atlases](const auto& a, const auto& b) {
-        return A[a.second] < A[b.second];
-    };
-
-    ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes), comp);
+    ranges::sort(ranges::zip_view(vertexes, _walls->mesh_indexes),
+                 [&A = _walls->atlases](const auto& a, const auto& b) { return A[a.second] < A[b.second]; });
 
     auto vertex_view = std::as_const(vertexes).prefix(N);
     auto index_view = make_indexes(N);
@@ -252,21 +250,6 @@ auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
     if (!_walls_modified)
         return { wall_mesh, _walls->mesh_indexes, size_t(wall_mesh.count()/6) };
     _walls_modified = false;
-
-#if 0
-    size_t count = 0;
-    for (auto i = 0uz; i < TILE_COUNT*2; i++)
-        if (_walls->atlases[i])
-            _walls->mesh_indexes[count++] = uint16_t(i);
-
-    if (count == 0)
-        return {wall_mesh, {}, 0};
-
-    std::sort(_walls->mesh_indexes.data(), _walls->mesh_indexes.data() + (ptrdiff_t)count,
-              [this](uint16_t a, uint16_t b) {
-                  return _walls->atlases[a] < _walls->atlases[b];
-              });
-#endif
 
     wall_mesh = make_wall_mesh();
     return { wall_mesh, _walls->mesh_indexes, (size_t)wall_mesh.count()/6u };
