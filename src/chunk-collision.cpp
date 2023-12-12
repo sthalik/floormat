@@ -115,7 +115,7 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
     case 0 << 1 | 0 << 0:
         return;
     }
-    CORRADE_ASSUME(false);
+    std::unreachable();
 }
 
 bool chunk::can_place_object(const object_proto& proto, local_coords pos)
