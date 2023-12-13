@@ -175,7 +175,6 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
         break;
     case Direction_::COUNT:
         std::unreachable();
-        break;
     }
     fm_abort("wall_atlas: can't find direction '%d'", (int)dir);
 }

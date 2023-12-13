@@ -244,9 +244,7 @@ bool do_direction(state& st, size_t i)
     atlas.direction_mask[i] = 1;
     atlas.direction_map[i] = DirArrayIndex{(uint8_t)dir_idx};
 
-    auto dir = Direction {
-        .passability = old_dir.passability,
-    };
+    auto dir = Direction{};
 
     for (auto [_str, ptr, tag] : Direction::groups)
     {
