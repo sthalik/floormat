@@ -43,6 +43,7 @@ sets(STRING
      CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
 )
 
+add_compile_options(-fansi-escape-codes)
 add_compile_options(-Xclang -fcolor-diagnostics -fdiagnostics-color=always)
 if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)
