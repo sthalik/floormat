@@ -6,10 +6,6 @@ enum class editor_mode : unsigned char {
     none, floor, walls, scenery, vobj, tests,
 };
 
-enum class editor_wall_rotation : unsigned char {
-    N, W,
-};
-
 enum class editor_snap_mode : unsigned char {
     none       = 0,
     horizontal = 1 << 0,

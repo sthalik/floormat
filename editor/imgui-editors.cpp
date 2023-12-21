@@ -147,7 +147,8 @@ void app::draw_editor_vobj_pane(vobj_editor& ed)
 
 void app::draw_editor_pane(float main_menu_height)
 {
-    auto* ed = _editor.current_tile_editor();
+    auto* ed = _editor.current_ground_editor();
+    auto* wa = _editor.current_wall_editor(); // todo
     auto* sc = _editor.current_scenery_editor();
     auto* vo = _editor.current_vobj_editor();
 

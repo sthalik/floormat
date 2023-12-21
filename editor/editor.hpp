@@ -28,6 +28,8 @@ struct editor final
 
     tile_editor* current_ground_editor() noexcept;
     const tile_editor* current_ground_editor() const noexcept;
+    wall_editor* current_wall_editor() noexcept;
+    const wall_editor* current_wall_editor() const noexcept;
     scenery_editor* current_scenery_editor() noexcept;
     const scenery_editor* current_scenery_editor() const noexcept;
     vobj_editor* current_vobj_editor() noexcept;
@@ -47,8 +49,6 @@ struct editor final
     editor& operator=(editor&&) noexcept = default;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
 
-    static constexpr inline auto rotation_N = editor_wall_rotation::N;
-    static constexpr inline auto rotation_W = editor_wall_rotation::W;
     using snap_mode = editor_snap_mode;
 
 private:

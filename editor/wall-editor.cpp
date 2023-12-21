@@ -50,8 +50,8 @@ static_assert(next_rot(rotation::W) == rotation::N);
 void wall_editor::load_atlases()
 {
     fm_assert(_atlases.empty());
-    for (const auto& [name, _, atlas] : loader.wall_atlas_list())
-        _atlases[name] = atlas;
+    for (const auto& wa : loader.wall_atlas_list())
+        _atlases[wa.name] = wa;
     fm_assert(!_atlases.empty());
 }
 
@@ -64,7 +64,7 @@ StringView wall_editor::name() const { return "wall"_s; }
 enum rotation wall_editor::rotation() const { return _r; }
 void wall_editor::set_rotation(enum rotation r) { _r = r; }
 void wall_editor::toggle_rotation() { _r = next_rot(_r); }
-const wall_atlas* wall_editor::get_selected() const { return _selected_atlas.get(); }
+std::shared_ptr<wall_atlas> wall_editor::get_selected() const { return _selected_atlas; }
 void wall_editor::select_atlas(const std::shared_ptr<wall_atlas>& atlas) { _selected_atlas = atlas; }
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
 bool wall_editor::is_atlas_selected(const std::shared_ptr<wall_atlas>& atlas) const { return _selected_atlas == atlas; }
@@ -79,6 +79,18 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     case rotation::W: t.wall_west() = { atlas, (uint8_t)-1 }; break;
     default: std::unreachable();
     }
+}
+
+editor_snap_mode wall_editor::check_snap(int mods) const
+{
+    if (!is_anything_selected())
+        return editor_snap_mode::none;
+    if (_r == rotation::N)
+        return editor_snap_mode::horizontal;
+    else if (_r == rotation::W)
+        return editor_snap_mode::vertical;
+    else
+        std::unreachable();
 }
 
 } // namespace floormat

@@ -124,7 +124,7 @@ void app::do_mouse_scroll(int offset)
 
 void app::do_rotate(bool backward)
 {
-    if (auto* ed = _editor.current_tile_editor())
+    if (auto* ed = _editor.current_wall_editor())
         ed->toggle_rotation();
     else if (auto* ed = _editor.current_scenery_editor())
     {
@@ -149,7 +149,9 @@ void app::do_set_mode(editor_mode mode)
 
 void app::do_escape()
 {
-    if (auto* ed = _editor.current_tile_editor())
+    if (auto* ed = _editor.current_ground_editor())
+        ed->clear_selection();
+    if (auto* ed = _editor.current_wall_editor())
         ed->clear_selection();
     if (auto* sc = _editor.current_scenery_editor())
         sc->clear_selection();

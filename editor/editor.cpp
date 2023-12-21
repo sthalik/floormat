@@ -15,7 +15,7 @@ void editor::on_release()
 
 void editor::clear_selection()
 {
-    if (auto* ed = current_tile_editor())
+    if (auto* ed = current_ground_editor())
         ed->clear_selection();
     else if (auto* ed = current_scenery_editor())
         ed->clear_selection();
@@ -26,7 +26,9 @@ void editor::clear_selection()
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 {
 
-    if (const auto* mode = current_tile_editor(); mode != nullptr)
+    if (const auto* mode = current_ground_editor())
+        return mode->check_snap(mods);
+    else if (const auto* mode = current_wall_editor())
         return mode->check_snap(mods);
     else if (snap != snap_mode::none)
         return snap;
@@ -53,7 +55,7 @@ global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mod
 
 void editor::on_mouse_move(world& world, global_coords& pos, int mods)
 {
-    if ([[maybe_unused]] auto* mode = current_tile_editor())
+    if (current_ground_editor() || current_wall_editor())
     {
         if (_last_pos && _last_pos->btn != button::none)
         {
@@ -99,7 +101,19 @@ Optional<global_coords> editor::mouse_drag_pos()
 void editor::on_click_(world& world, global_coords pos, button b)
 {
     // todo make template
-    if (auto* mode = current_tile_editor(); mode != nullptr)
+    if (auto* mode = current_ground_editor(); mode != nullptr)
+    {
+        if (auto opt = mode->get_selected(); opt || b == button::remove)
+        {
+            switch (b)
+            {
+            case button::place: return mode->place_tile(world, pos, opt);
+            case button::remove: return mode->place_tile(world, pos, {});
+            default: break;
+            }
+        }
+    }
+    else if (auto* mode = current_wall_editor(); mode != nullptr)
     {
         if (auto opt = mode->get_selected(); opt || b == button::remove)
         {
@@ -151,7 +165,12 @@ void editor::on_click_(world& world, global_coords pos, button b)
 
 void editor::on_click(world& world, global_coords pos, int mods, button b)
 {
-    if (auto* mode = current_tile_editor())
+    if (auto* mode = current_ground_editor())
+    {
+        _last_pos = { InPlaceInit, pos, pos, mode->check_snap(mods), b };
+        on_click_(world, pos, b);
+    }
+    else if (auto* mode = current_wall_editor())
     {
         _last_pos = { InPlaceInit, pos, pos, mode->check_snap(mods), b };
         on_click_(world, pos, b);
@@ -177,6 +196,15 @@ const tile_editor* editor::current_ground_editor() const noexcept
     {
     case editor_mode::floor:
         return &_floor;
+    default:
+        return nullptr;
+    }
+}
+
+const wall_editor* editor::current_wall_editor() const noexcept
+{
+    switch (_mode)
+    {
     case editor_mode::walls:
         return &_wall;
     default:
@@ -203,6 +231,11 @@ const vobj_editor* editor::current_vobj_editor() const noexcept
 tile_editor* editor::current_ground_editor() noexcept
 {
     return const_cast<tile_editor*>(static_cast<const editor&>(*this).current_ground_editor());
+}
+
+wall_editor* editor::current_wall_editor() noexcept
+{
+    return const_cast<wall_editor*>(static_cast<const editor&>(*this).current_wall_editor());
 }
 
 scenery_editor* editor::current_scenery_editor() noexcept

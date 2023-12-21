@@ -56,9 +56,11 @@ float app::draw_main_menu()
             auto mode = _editor.mode();
             using m = editor_mode;
             const auto* ed_sc = _editor.current_scenery_editor();
-            const auto* ed_w = _editor.current_tile_editor();
+            const auto* ed_gr = _editor.current_ground_editor();
+            const auto* ed_wa = _editor.current_wall_editor();
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
-                                  mode == editor_mode::walls && ed_w;
+                                  ed_gr && ed_gr->is_anything_selected() ||
+                                  ed_wa && ed_wa->is_anything_selected();
 
             bool m_none    = mode == m::none, m_floor = mode == m::floor, m_walls = mode == m::walls,
                  m_scenery = mode == m::scenery, m_vobjs = mode == m::vobj, m_tests = mode == m::tests,
@@ -122,7 +124,8 @@ void app::draw_ui()
 
     draw_lightmap_test(main_menu_height);
 
-    if (_editor.current_tile_editor() || _editor.current_scenery_editor() ||
+    if (_editor.current_ground_editor() || _editor.current_wall_editor() ||
+        _editor.current_scenery_editor() ||
         _editor.current_vobj_editor() || _editor.mode() == editor_mode::tests)
         draw_editor_pane(main_menu_height);
     draw_fps();

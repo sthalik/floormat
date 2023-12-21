@@ -42,18 +42,22 @@ void app::draw_cursor()
 
         shader.set_tint({1, 0, 0, 1});
 
-        if (const auto* ed = _editor.current_tile_editor())
+        if (const auto* ed = _editor.current_ground_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
-            if (ed->mode() == editor_mode::walls)
-                switch (ed->rotation())
-                {
-                case editor_wall_rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
-                case editor_wall_rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
-                }
-            else if (ed->mode() == editor_mode::floor)
-                draw(_wireframe_quad, TILE_SIZE2);
+            draw(_wireframe_quad, TILE_SIZE2);
+        }
+        else if (const auto* ed = _editor.current_wall_editor())
+        {
+            if (!ed->is_anything_selected())
+                shader.set_tint(inactive_color);
+            switch (ed->rotation())
+            {
+            case rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
+            case rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
+            default: std::unreachable();
+            }
         }
         else if (const auto* ed = _editor.current_scenery_editor())
         {
@@ -196,7 +200,7 @@ void app::draw()
     do_lightmap_test();
     if (_render_bboxes)
         draw_collision_boxes();
-    if (_editor.current_tile_editor() ||
+    if (_editor.current_ground_editor() || _editor.current_wall_editor() ||
         _editor.current_scenery_editor() && _editor.current_scenery_editor()->is_anything_selected() ||
         _editor.current_vobj_editor() && _editor.current_vobj_editor()->is_anything_selected())
         draw_cursor();
