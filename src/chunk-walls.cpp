@@ -83,51 +83,39 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
     case side:
         if (!is_west)
         {
-            auto left  = Vector2{X,        -Y               },
-                 right = Vector2{left.x(), left.y() - depth };
             return {{
-                        { right.x(), right.y(), Z },
-                        { right.x(), right.y(), 0 },
-                        { left.x(),  left.y(),  Z },
-                        { left.x(),  left.y(),  0 },
-                    }};
-        }
-        else
-        {
-            auto right = Vector2{ -X,                Y         };
-            auto left  = Vector2{ right.x() - depth, right.y() };
-            return {{
-                        { right.x(), right.y(), Z },
-                        { right.x(), right.y(), 0 },
-                        { left.x(),  left.y(),  Z },
-                        { left.x(),  left.y(),  0 },
-          }};
-      }
-    case top:
-        if (!is_west)
-        {
-            auto top_right    = Vector2{X,              Y - depth        },
-                 bottom_right = Vector2{top_right.x(),  Y                },
-                 top_left     = Vector2{-X,             top_right.y()    },
-                 bottom_left  = Vector2{top_left.x(),   bottom_right.y() };
-            return {{
-                { top_right.x(),    top_right.y(),    Z }, // br tr
-                { top_left.x(),     top_left.y(),     Z }, // tr tl
-                { bottom_right.x(), bottom_right.y(), Z }, // bl br
-                { bottom_left.x(),  bottom_left.y(),  Z }, // tl bl
+                { X, -Y - depth, Z },
+                { X, -Y - depth, 0 },
+                { X, -Y, Z },
+                { X, -Y, 0 },
             }};
         }
         else
         {
-            auto top_right    = Vector2{-X,                    -Y               },
-                 top_left     = Vector2{top_right.x() - depth, top_right.y()    },
-                 bottom_right = Vector2{top_right.x(),         Y                },
-                 bottom_left  = Vector2{top_left.x(),          bottom_right.y() };
             return {{
-                { bottom_right.x(), bottom_right.y(), Z },
-                { top_right.x(),    top_right.y(),    Z },
-                { bottom_left.x(),  bottom_left.y(),  Z },
-                { top_left.x(),     top_left.y(),     Z },
+                { -X, Y, Z },
+                { -X, Y, 0 },
+                { -X - depth, Y, Z },
+                { -X - depth, Y, 0 },
+            }};
+      }
+    case top:
+        if (!is_west)
+        {
+            return {{
+                { -X, -Y - depth, Z },
+                {  X, -Y - depth, Z },
+                { -X, -Y, Z },
+                {  X, -Y, Z }
+            }};
+        }
+        else
+        {
+            return {{
+                { -X - depth, -Y, Z },
+                { -X, -Y, Z },
+                { -X - depth, Y, Z },
+                { -X, Y, Z }
             }};
         }
     }
@@ -136,8 +124,6 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
 }
 
 // -----------------------
-
-
 
 Array<Quads::indexes> make_indexes_()
 {
