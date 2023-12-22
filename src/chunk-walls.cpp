@@ -147,6 +147,8 @@ constexpr auto depth_offset_for_group(Group_ G)
     {
     default:
         return tile_shader::wall_depth_offset;
+    case Wall::Group_::side:
+        return tile_shader::wall_side_offset;
     case Wall::Group_::corner_L:
     case Wall::Group_::corner_R:
         return tile_shader::wall_overlay_depth_offset;
