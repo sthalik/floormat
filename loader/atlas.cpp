@@ -29,7 +29,7 @@ StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, St
 bool loader_::check_atlas_name(StringView str) noexcept
 {
     constexpr auto first_char =
-        "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"_s;
+        "@_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"_s;
     if (str == "<invalid>"_s)
         return true;
     if (!str || !first_char.find(str[0]))
