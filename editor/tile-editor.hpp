@@ -23,7 +23,6 @@ class tile_editor final
         std::vector<decltype(tile_image_proto::variant)> variant;
     };
 
-    String _name;
     std::map<StringView, std::shared_ptr<tile_atlas>> _atlases;
     tile_image_proto _selected_tile;
     tuple _permutation;

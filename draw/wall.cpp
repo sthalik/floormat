@@ -38,7 +38,8 @@ void wall_mesh::draw(tile_shader& shader, chunk& c)
     size_t k;
     for (k = 0; k < size; k++)
         do_draw(k, c.wall_atlas_at(ids[k]), max_index);
-    do_draw(size, nullptr, max_index);
+    if (size)
+        do_draw(size, nullptr, max_index);
 
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT

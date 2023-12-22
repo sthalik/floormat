@@ -58,6 +58,7 @@ void wall_editor::load_atlases()
 wall_editor::wall_editor()
 {
     load_atlases();
+    _selected_atlas = _atlases.begin()->second.atlas; // todo
 }
 
 StringView wall_editor::name() const { return "wall"_s; }
@@ -79,6 +80,7 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     case rotation::W: t.wall_west() = { atlas, (uint8_t)-1 }; break;
     default: std::unreachable();
     }
+    c.mark_walls_modified();
 }
 
 editor_snap_mode wall_editor::check_snap(int mods) const

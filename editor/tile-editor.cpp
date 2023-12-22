@@ -17,8 +17,7 @@ tile_editor::tile_editor()
 
 void tile_editor::load_atlases()
 {
-    const auto filename = _name + ".json";
-    for (const auto& atlas : loader.tile_atlases(filename))
+    for (const auto& atlas : loader.tile_atlases("floor.json"_s))
     {
         auto& [_, vec] = _permutation;
         vec.reserve(atlas->num_tiles());

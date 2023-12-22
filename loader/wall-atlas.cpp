@@ -19,6 +19,7 @@
 namespace floormat {
 
 using nlohmann::json;
+using loader_detail::loader_impl;
 
 [[maybe_unused]] static void from_json(const json& j, wall_info& val)
 {
@@ -42,8 +43,9 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView path)
 {
-    auto def = wall_atlas_def::deserialize(""_s.join({path, ".json"_s}));
-    auto tex = texture(""_s, path);
+    auto filename = Path::join(path, name);
+    auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
+    auto tex = texture(""_s, filename, false);
 
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.empty());
@@ -101,6 +103,7 @@ void loader_impl::get_wall_atlas_list()
     for (auto& x : wall_atlas_array)
     {
         fm_soft_assert(check_atlas_name(x.name));
+        x.atlas = get_wall_atlas(x.name, WALL_TILESET_PATH);
         StringView name = x.name;
         wall_atlas_map[name] = &x;
         fm_debug_assert(name.data() == wall_atlas_map[name]->name.data());
