@@ -27,7 +27,7 @@ struct reader_state final {
 private:
     using reader_t = binary_reader<decltype(ArrayView<const char>{}.cbegin())>;
 
-    const std::shared_ptr<tile_atlas>& lookup_atlas(atlasid id);
+    StringView lookup_atlas(atlasid id);
     const scenery_proto& lookup_scenery(atlasid id);
     StringView lookup_string(uint32_t idx);
     void read_atlases(reader_t& reader);
@@ -38,7 +38,7 @@ private:
 
     std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
-    std::vector<std::shared_ptr<tile_atlas>> atlases;
+    std::vector<String> atlases;
     world* _world;
     uint16_t PROTO = proto_version;
 
@@ -59,9 +59,7 @@ void reader_state::read_atlases(reader_t& s)
         size[0] << s;
         size[1] << s;
         const auto& [buf, len] = s.read_asciiz_string<atlas_name_max>();
-        auto atlas = loader.tile_atlas({buf, len});
-        fm_soft_assert(size <= atlas->num_tiles2());
-        atlases.push_back(std::move(atlas));
+        atlases.push_back({buf, len});
     }
 }
 
@@ -136,7 +134,7 @@ void reader_state::read_strings(reader_t& s)
     }
 }
 
-const std::shared_ptr<tile_atlas>& reader_state::lookup_atlas(atlasid id)
+StringView reader_state::lookup_atlas(atlasid id)
 {
     if (id < atlases.size())
         return atlases[id];
@@ -202,7 +200,7 @@ void reader_state::read_chunks(reader_t& s)
 
             tile_ref t = c[i];
             using uchar = uint8_t;
-            const auto make_atlas = [&]() -> tile_image_proto {
+            const auto make_atlas = [&]<typename T>() -> image_proto_<T> {
                 atlasid id;
                 if (PROTO < 8) [[unlikely]]
                     id = flags & meta_short_atlasid_ ? atlasid{s.read<uchar>()} : s.read<atlasid>();
@@ -215,21 +213,29 @@ void reader_state::read_chunks(reader_t& s)
                     v = flags & meta_short_variant_
                         ? s.read<uint8_t>()
                         : uint8_t(s.read<uint16_t>());
-                auto atlas = lookup_atlas(id);
-                fm_soft_assert(v < atlas->num_tiles());
-                return { atlas, v };
+                auto name = lookup_atlas(id);
+                if constexpr(std::is_same_v<tile_atlas, T>)
+                {
+                    auto atlas = loader.tile_atlas(name);
+                    fm_soft_assert(v < atlas->num_tiles());
+                    return { atlas, v };
+                }
+                else if (std::is_same_v<wall_atlas, T>)
+                {
+                    auto atlas = loader.wall_atlas(name, true);
+                    return { atlas, v };
+                }
+                else
+                    std::unreachable();
             };
             SET_CHUNK_SIZE();
             //t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
-                t.ground() = make_atlas();
-            // todo!
-#if 0
+                t.ground() = make_atlas.operator()<tile_atlas>();
             if (flags & meta_wall_n)
-                t.wall_north() = make_atlas();
+                t.wall_north() = make_atlas.operator()<wall_atlas>();
             if (flags & meta_wall_w)
-                t.wall_west() = make_atlas();
-#endif
+                t.wall_west() = make_atlas.operator()<wall_atlas>();
             if (PROTO >= 3 && PROTO < 8) [[unlikely]]
                 if (flags & meta_scenery_)
                     read_old_scenery(s, ch, i);

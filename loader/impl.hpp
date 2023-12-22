@@ -41,7 +41,7 @@ struct loader_impl final : loader_
     Optional<Utility::Resource> shader_res;
     StringView shader(StringView filename) noexcept override;
 
-    Trade::ImageData2D make_error_texture();
+    Trade::ImageData2D make_error_texture(Vector2ui size);
     Trade::ImageData2D texture(StringView prefix, StringView filename, bool fail_ok = true) noexcept(false) override;
 
     // >-----> walls >----->

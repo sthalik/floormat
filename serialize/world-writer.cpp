@@ -1,7 +1,7 @@
 #define FM_SERIALIZE_WORLD_IMPL
 #include "world-impl.hpp"
-
 #include "src/tile-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "binary-writer.inl"
 #include "src/global-coords.hpp"
 #include "src/chunk.hpp"
@@ -30,8 +30,9 @@ using namespace floormat::Serialize;
 namespace {
 
 struct interned_atlas final {
-    const tile_atlas* img;
+    StringView name;
     atlasid index;
+    Vector2ub num_tiles;
 };
 
 struct interned_scenery {
@@ -55,8 +56,7 @@ struct writer_state final {
 private:
     using writer_t = binary_writer<decltype(std::vector<char>{}.begin())>;
 
-    atlasid intern_atlas(const tile_image_proto& img);
-    atlasid maybe_intern_atlas(const tile_image_proto& img);
+    atlasid intern_atlas(const void* ptr, StringView name, Vector2ub num_tiles);
     scenery_pair intern_scenery(const scenery& sc, bool create);
     uint32_t intern_string(StringView name);
 
@@ -97,17 +97,17 @@ uint32_t writer_state::intern_string(StringView name)
     return kv->second;
 }
 
-atlasid writer_state::intern_atlas(const tile_image_proto& img)
+atlasid writer_state::intern_atlas(const void* ptr, StringView name, Vector2ub num_tiles)
 {
-    const void* const ptr = img.atlas.get();
     fm_debug_assert(ptr != nullptr);
-    emplacer e{[&]() -> interned_atlas { return { &*img.atlas, (atlasid)tile_images.size() }; }};
-    return tile_images.try_emplace(ptr, e).first->second.index;
-}
-
-atlasid writer_state::maybe_intern_atlas(const tile_image_proto& img)
-{
-    return img ? intern_atlas(img) : null_atlas;
+    if (auto it = tile_images.find(ptr); it != tile_images.end())
+        return it->second.index;
+    else
+    {
+        auto aid = (atlasid)tile_images.size();
+        tile_images[ptr] = { name, aid, num_tiles };
+        return aid;
+    }
 }
 
 void writer_state::load_scenery_1(const serialized_scenery& s)
@@ -227,14 +227,12 @@ void writer_state::serialize_atlases()
         return a.index < b.index;
     });
 
-    for (const auto& [atlas, _] : atlases)
+    for (const auto& [name, aid, num_tiles] : atlases)
     {
-        const auto name = atlas->name();
         const auto namesiz = name.size();
         fm_debug_assert(s.bytes_written() + namesiz < atlasbuf_size);
         fm_assert(namesiz < atlas_name_max);
-        const auto sz2 = atlas->num_tiles2();
-        s << sz2[0]; s << sz2[1];
+        s << num_tiles[0]; s << num_tiles[1];
         s.write_asciiz_string(name);
     }
     atlas_buf.resize(s.bytes_written());
@@ -464,11 +462,11 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
 
         fm_debug_assert(s.bytes_written() + tile_size <= chunkbuf_size);
 
-        auto img_g = maybe_intern_atlas(ground);
-        //auto img_n = maybe_intern_atlas(wall_north);
-        //auto img_w = maybe_intern_atlas(wall_west);
-        // todo!
-        auto img_n = null_atlas, img_w = null_atlas;
+        auto img_g = ground.atlas ? intern_atlas(&*ground.atlas, ground.atlas->name(), ground.atlas->num_tiles2()) : null_atlas;
+        auto img_n = wall_north   ? intern_atlas(&*wall_north.atlas, wall_north.atlas->name(), {0xff, 0xff}) : null_atlas;
+        auto img_w = wall_west    ? intern_atlas(&*wall_west.atlas, wall_west.atlas->name(), {0xff, 0xff}) : null_atlas;
+
+        fm_assert(!ground.atlas || ground.variant < ground.atlas->num_tiles());
 
         if (img_g == null_atlas && img_n == null_atlas && img_w == null_atlas)
         {
@@ -493,14 +491,6 @@ void writer_state::serialize_chunk(const chunk& c, chunk_coords_ coord)
         flags |= meta_wall_n  * (img_n != null_atlas);
         flags |= meta_wall_w  * (img_w != null_atlas);
         s << flags;
-
-        constexpr auto check_atlas = [](const tile_image_proto& x) {
-            fm_assert(!x.atlas || x.variant < x.atlas->num_tiles());
-        };
-        check_atlas(ground);
-        // todo!
-        //check_atlas(wall_north);
-        //check_atlas(wall_west);
 
         if (img_g != null_atlas)
         {

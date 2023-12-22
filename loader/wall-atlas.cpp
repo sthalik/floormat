@@ -65,10 +65,10 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
         wall_atlas_def {
             Wall::Info{.name = name, .depth = 8},
             {{ {}, frame_size}, },
-            {{ {.index = 0, .count = 1, .pixel_size = frame_size, } } },
+            {{ {.index = 0, .count = 1, .pixel_size = frame_size, .is_defined = true, } } },
             {{ {.val = 0}, {}, }},
             {1u},
-        }, name, make_error_texture());
+        }, name, make_error_texture(frame_size));
     invalid_wall_atlas = Pointer<wall_info>{InPlaceInit, wall_info{ .name = name, .atlas = std::move(a) } };
     return *invalid_wall_atlas;
 }
