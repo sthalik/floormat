@@ -85,7 +85,10 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool 
         if (!fail_ok)
             fm_throw("no such wall atlas '{}'"_cf, name);
         else
+        {
+            DBG_nospace << "wall_atlas '" << name << "'doesn't exist";
             return make_invalid_wall_atlas().atlas;
+        }
     }
     fm_assert(it->second != nullptr);
     if (!it->second->atlas) [[unlikely]]
