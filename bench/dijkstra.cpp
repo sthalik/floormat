@@ -15,6 +15,7 @@ bool first_run = false;
 
 void Dijkstra(benchmark::State& state)
 {
+    (void)loader.wall_atlas_list();
     auto w = world();
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
