@@ -28,7 +28,7 @@ bool chunk::empty(bool force) const noexcept
     for (auto i = 0uz; i < TILE_COUNT; i++)
         if (!_objects.empty() ||
             _ground && _ground->_ground_atlases[i] ||
-            _walls && _walls->atlases[i])
+            _walls && (_walls->atlases[i*2+0] || _walls->atlases[i*2+1]))
             return _maybe_empty = false;
     if (!_objects.empty())
         return false;

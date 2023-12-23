@@ -17,7 +17,7 @@ struct raii_wrapper final
     raii_wrapper& operator=(const raii_wrapper&) = delete;
     raii_wrapper& operator=(raii_wrapper&&) noexcept;
     raii_wrapper(raii_wrapper&& other) noexcept;
-    operator bool() const noexcept;
+    explicit operator bool() const noexcept;
 
 private:
     F dtor = nullptr;

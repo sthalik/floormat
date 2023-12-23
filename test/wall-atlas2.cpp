@@ -11,7 +11,6 @@ void test_app::test_wall_atlas2()
 {
     using enum Wall::Direction_;
 
-    Debug{} << "test_wall2: start";
     static constexpr auto name = "concrete1"_s;
     auto& a = *loader.wall_atlas(name, false);
     fm_assert(a.name() == name);
@@ -24,7 +23,6 @@ void test_app::test_wall_atlas2()
     fm_assert(a.frames(N, Wall::Group_::wall).size() >= 3);
     fm_assert(a.group(N, Wall::Group_::top)->is_defined);
     fm_assert(a.frames(N, Wall::Group_::wall)[0].size == Vector2ui(Vector2i{iTILE_SIZE.x(), iTILE_SIZE.z()}));
-    Debug{} << "test_wall2: end";
 }
 
 } // namespace floormat

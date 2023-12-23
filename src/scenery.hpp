@@ -31,7 +31,7 @@ struct scenery_proto : object_proto
     ~scenery_proto() noexcept override;
     scenery_proto& operator=(const scenery_proto&);
     bool operator==(const object_proto& proto) const override;
-    operator bool() const;
+    explicit operator bool() const;
 };
 
 struct scenery final : object

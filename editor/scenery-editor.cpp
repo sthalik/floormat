@@ -14,7 +14,7 @@ using rotation_t = std::underlying_type_t<enum rotation>;
 
 scenery_editor::scenery_::operator bool() const noexcept
 {
-    return proto;
+    return !!proto;
 }
 
 scenery_editor::scenery_editor() noexcept

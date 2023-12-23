@@ -47,7 +47,7 @@ void resolve_wall_rotations(std::vector<Wall::Direction>& array, const std::arra
                              dir_name, group_name, direction_index_to_name(G.from_rotation));
                 const auto& D2 = array[DAI2.val];
                 const auto& G2 = D2.*ptr;
-                if (!G2.is_defined)
+                if (!G2.is_defined || G2.from_rotation != (uint8_t)-1)
                     fm_throw("from_rotation for '{}/{}' points to empty group '{}/{}'"_cf,
                              dir_name, group_name, direction_index_to_name(G.from_rotation), group_name);
                 G.from_rotation = DAI2.val;
@@ -127,6 +127,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 const auto& G = D->*gmemb;
                 fm_soft_assert(G.is_defined == !!G.count);
                 fm_soft_assert(G.is_defined == (G.index != (uint32_t)-1));
+                fm_soft_assert(G.from_rotation == (uint8_t)-1 || G.is_defined);
                 if (!G.is_defined)
                     continue;
                 found = true;

@@ -15,7 +15,7 @@ struct image_proto_
     variant_t variant = 0;
 
     bool operator==(const image_proto_<Atlas>& b) const noexcept;
-    operator bool() const noexcept;
+    explicit operator bool() const noexcept;
 };
 
 template<typename Atlas, typename Proto>
@@ -28,7 +28,7 @@ struct image_ref_ final
     image_ref_(const image_ref_&) noexcept;
     image_ref_& operator=(const Proto& proto) noexcept;
     operator Proto() const noexcept;
-    operator bool() const noexcept;
+    explicit operator bool() const noexcept;
 };
 
 using tile_image_proto = image_proto_<tile_atlas>;
