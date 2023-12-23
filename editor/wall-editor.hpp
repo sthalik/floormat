@@ -15,7 +15,7 @@ class wall_editor
 {
     std::map<StringView, wall_info> _atlases;
     std::shared_ptr<wall_atlas> _selected_atlas;
-    rotation _r = rotation::N;
+    enum rotation _r = rotation::N;
 
     void load_atlases();
 
