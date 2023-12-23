@@ -47,7 +47,6 @@ struct Direction
     struct member_tuple { StringView name; memfn_ptr member; Group_ tag; };
 
     Group wall{}, side{}, top{};
-    Group corner_L{}, corner_R{};
 
     const Group& group(Group_ i) const;
     const Group& group(size_t i) const;
@@ -58,8 +57,6 @@ struct Direction
         { "wall"_s,     &Direction::wall,     Group_::wall      },
         { "side"_s,     &Direction::side,     Group_::side      },
         { "top"_s,      &Direction::top,      Group_::top       },
-        { "corner-L"_s, &Direction::corner_L, Group_::corner_L, },
-        { "corner-R"_s, &Direction::corner_R, Group_::corner_R, },
     };
     static_assert(std::size(groups) == (size_t)Group_::COUNT);
 

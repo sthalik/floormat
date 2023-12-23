@@ -76,8 +76,8 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     auto [c, t] = w[coords];
     switch (_r)
     {
-    case rotation::N: t.wall_north() = { atlas, (uint8_t)-1 }; break;
-    case rotation::W: t.wall_west() = { atlas, (uint8_t)-1 }; break;
+    case rotation::N: t.wall_north() = { atlas, (variant_t)-1 }; break;
+    case rotation::W: t.wall_west() = { atlas, (variant_t)-1 }; break;
     default: std::unreachable();
     }
     c.mark_walls_modified();

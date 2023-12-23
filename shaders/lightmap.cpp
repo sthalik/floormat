@@ -135,7 +135,7 @@ void lightmap_shader::end_occlusion()
     }
 }
 
-std::array<Vector3, 4>& lightmap_shader::alloc_rect()
+quad& lightmap_shader::alloc_rect()
 {
     if (count == capacity)
     {
@@ -192,7 +192,7 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
 
     framebuffer = make_framebuffer(Vector2i((int)real_image_size));
 
-    auto blend_vertexes = std::array<Vector3, 4>{{
+    auto blend_vertexes = quad {{
         {  1, -1, 0 }, /* 3--1  1 */
         {  1,  1, 0 }, /* | /  /| */
         { -1, -1, 0 }, /* |/  / | */

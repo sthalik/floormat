@@ -1,12 +1,11 @@
 #pragma once
+#include "tile-defs.hpp"
 #include <memory>
 
 namespace floormat {
 
 class tile_atlas;
 class wall_atlas;
-
-using variant_t = uint8_t;
 
 template<typename Atlas>
 struct image_proto_

@@ -13,7 +13,7 @@ namespace floormat {
 
 class tile_atlas final
 {
-    using quad = std::array<Vector3, 4>;
+    using quad = Quads::quad;
     using texcoords = std::array<Vector2, 4>;
 
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);

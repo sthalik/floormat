@@ -85,17 +85,11 @@ void test_from_rotation(StringView filename)
     const auto& D_w = atlas.direction_array[DAI_w.val];
     constexpr auto null = (uint8_t)-1;
     resolve_wall_rotations(atlas.direction_array, atlas.direction_map);
-    fm_assert(!D_n.corner_R.is_defined && D_n.corner_R.from_rotation == null);
     fm_assert(D_n.top.is_defined);
     fm_assert(D_n.top.from_rotation != null);
     fm_assert(D_n.top.from_rotation != null);
     fm_assert(D_w.top.from_rotation == null);
     fm_assert(D_w.top.is_defined);
-    fm_assert(D_n.corner_L.is_defined);
-    fm_assert(D_n.corner_L.from_rotation == null);
-    fm_assert(D_w.corner_L.is_defined);
-    fm_assert(D_w.corner_L.from_rotation == DAI_n.val);
-    fm_assert(atlas.direction_array[D_w.corner_L.from_rotation].corner_L.count == 11);
     fm_assert(atlas.direction_array[D_n.top.from_rotation].top.count == 12);
 }
 
@@ -124,8 +118,6 @@ void test_expected_size()
 {
     fm_assert_equal(Vector2ui{64, 192}, wall_atlas::expected_size(42, Group_::wall));
     fm_assert_equal(Vector2ui{42, 192}, wall_atlas::expected_size(42, Group_::side));
-    fm_assert_equal(Vector2ui{32, 192}, wall_atlas::expected_size(42, Group_::corner_L));
-    fm_assert_equal(Vector2ui{32, 192}, wall_atlas::expected_size(42, Group_::corner_R));
     // swapped in atlas.json during reading and writing, rotated counter-clockwise in atlas image file
     fm_assert_equal(Vector2ui{42, 192}, wall_atlas::expected_size(42, Group_::top));
 }

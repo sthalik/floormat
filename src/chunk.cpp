@@ -1,5 +1,6 @@
 #include "chunk.hpp"
 #include "object.hpp"
+#include "world.hpp"
 #include "tile-iterator.hpp"
 #include <algorithm>
 #include <Magnum/GL/Context.h>
@@ -41,6 +42,34 @@ tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }
 tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), uint8_t(idx) }); }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
 tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
+
+tile_ref chunk::at_offset(local_coords pos, Vector2i off)
+{
+    const auto coord = global_coords{_coord, pos};
+    const auto coord2 = coord + off;
+    if (coord.chunk() == coord2.chunk()) [[likely]]
+        return operator[](coord2.local());
+    else
+        return (*_world)[coord2].t;
+}
+
+Optional<tile_ref> chunk::at_offset_(local_coords pos, Vector2i off)
+{
+    const auto coord = global_coords{_coord, pos};
+    const auto coord2 = coord + off;
+    if (coord.chunk() == coord2.chunk()) [[likely]]
+        return operator[](coord2.local());
+    else
+    {
+        if (auto* ch = _world->at({coord2}))
+            return (*ch)[coord2.local()];
+        else
+            return NullOpt;
+    }
+}
+
+tile_ref chunk::at_offset(tile_ref r, Vector2i off) { return at_offset(local_coords{r.index()}, off); }
+Optional<tile_ref> chunk::at_offset_(tile_ref r, Vector2i off) { return at_offset_(local_coords{r.index()}, off); }
 
 auto chunk::begin() noexcept -> iterator { return iterator { *this, 0 }; }
 auto chunk::end() noexcept -> iterator { return iterator { *this, TILE_COUNT }; }

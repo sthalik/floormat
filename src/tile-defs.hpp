@@ -4,6 +4,8 @@
 
 namespace floormat {
 
+using variant_t = uint8_t;
+
 constexpr inline uint32_t TILE_MAX_DIM = 16;
 constexpr inline size_t TILE_COUNT = size_t{TILE_MAX_DIM}*size_t{TILE_MAX_DIM};
 

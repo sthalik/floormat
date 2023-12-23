@@ -62,24 +62,6 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 {-X,  Y, Z },
                 {-X,  Y, 0 },
             }};
-    case corner_L: {
-            constexpr float x_offset = (float)(unsigned)X;
-            return {{
-                { -X + x_offset, -Y, Z },
-                { -X + x_offset, -Y, 0 },
-                { -X, -Y, Z },
-                { -X, -Y, 0 },
-            }};
-        }
-        case corner_R: {
-            constexpr float y_offset = TILE_SIZE.y() - (float)(unsigned)Y;
-            return {{
-                {-X,  -Y, Z },
-                {-X,  -Y, 0 },
-                {-X,  -Y + y_offset, Z },
-                {-X,  -Y + y_offset, 0 },
-            }};
-        }
     case side:
         if (!is_west)
         {
@@ -149,9 +131,9 @@ constexpr auto depth_offset_for_group(Group_ G)
         return tile_shader::wall_depth_offset;
     case Wall::Group_::side:
         return tile_shader::wall_side_offset;
-    case Wall::Group_::corner_L:
-    case Wall::Group_::corner_R:
-        return tile_shader::wall_overlay_depth_offset;
+        // // todo
+        // case corner:
+        // return tile_shader::wall_overlay_depth_offset
     }
 }
 
@@ -179,20 +161,6 @@ GL::Mesh chunk::make_wall_mesh()
         for (auto [_, member, G] : Wall::Direction::groups)
         {
             CORRADE_ASSUME(G < Group_::COUNT);
-
-            switch (G)
-            {
-            case Wall::Group_::corner_L:
-                if (D != Direction_::N || !_walls->atlases[k+1])
-                    continue;
-                break;
-            case Wall::Group_::corner_R:
-                if (D != Direction_::W || !_walls->atlases[k-1])
-                    continue;
-                break;
-            default:
-                break;
-            }
 
             const auto& group = dir.*member;
             if (!group.is_defined)

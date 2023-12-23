@@ -97,17 +97,17 @@ auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const no
     const auto size = _info.pixel_size;
     if (!mirror)
         return {{
-            { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
-            { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top right
-            {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
-            {      x0 / size[0], 1 -      y0 / size[1]  }, // top left
+            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y()  }, // bottom right
+            { (x0+x1) / size.x(), 1 -      y0 / size.y()  }, // top right
+            {      x0 / size.x(), 1 - (y0+y1) / size.y()  }, // bottom left
+            {      x0 / size.x(), 1 -      y0 / size.y()  }, // top left
         }};
     else
         return {{
-            {      x0 / size[0], 1 - (y0+y1) / size[1]  }, // bottom right
-            {      x0 / size[0], 1 -      y0 / size[1]  }, // top right
-            { (x0+x1) / size[0], 1 - (y0+y1) / size[1]  }, // bottom left
-            { (x0+x1) / size[0], 1 -      y0 / size[1]  }, // top left
+            {      x0 / size.x(), 1 - (y0+y1) / size.y() }, // bottom right
+            {      x0 / size.x(), 1 -      y0 / size.y() }, // top right
+            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y() }, // bottom left
+            { (x0+x1) / size.x(), 1 -      y0 / size.y() }, // top left
         }};
 }
 

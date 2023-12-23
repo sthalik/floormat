@@ -44,6 +44,11 @@ struct chunk final
     tile_ref operator[](local_coords xy) noexcept;
     tile_proto operator[](local_coords xy) const noexcept;
 
+    tile_ref at_offset(local_coords pos, Vector2i off);
+    tile_ref at_offset(tile_ref r, Vector2i off);
+    Optional<tile_ref> at_offset_(local_coords pos, Vector2i off);
+    Optional<tile_ref> at_offset_(tile_ref r, Vector2i off);
+
     using iterator = tile_iterator;
     using const_iterator = tile_const_iterator;
 

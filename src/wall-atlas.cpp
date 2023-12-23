@@ -81,7 +81,6 @@ wall_atlas::~wall_atlas() noexcept = default;
 Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
 {
     constexpr auto size = Vector3ui{iTILE_SIZE};
-    constexpr auto half_tile = size.x()/2u;
     static_assert(size.x() == size.y());
 
     fm_assert(depth > 0 && depth < 1<<15);
@@ -95,10 +94,6 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     case top:
     case side:
         return { depth, size.z() };
-    case corner_L:
-        return { half_tile, size.z() };
-    case corner_R:
-        return { size.x() - half_tile, size.z() };
     default:
         std::unreachable();
         fm_assert(false);
