@@ -33,7 +33,7 @@ struct loader_
     virtual std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
-    virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) = 0;
+    virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) noexcept(false) = 0;
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     static void destroy();
     static loader_& default_loader() noexcept;

@@ -74,6 +74,31 @@ void test_read_groups(StringView filename)
     fm_assert(dir == dir2);
 }
 
+void test_from_rotation(StringView filename)
+{
+    const auto path = Path::join(json_path(), filename);
+    auto atlas = wall_atlas_def::deserialize(path);
+    auto DAI_n = atlas.direction_map[(size_t)Direction_::N];
+    auto DAI_w = atlas.direction_map[(size_t)Direction_::W];
+    fm_assert(DAI_n); fm_assert(DAI_w);
+    const auto& D_n = atlas.direction_array[DAI_n.val];
+    const auto& D_w = atlas.direction_array[DAI_w.val];
+    constexpr auto null = (uint8_t)-1;
+    resolve_wall_rotations(atlas.direction_array, atlas.direction_map);
+    fm_assert(!D_n.corner_R.is_defined && D_n.corner_R.from_rotation == null);
+    fm_assert(D_n.top.is_defined);
+    fm_assert(D_n.top.from_rotation != null);
+    fm_assert(D_n.top.from_rotation != null);
+    fm_assert(D_w.top.from_rotation == null);
+    fm_assert(D_w.top.is_defined);
+    fm_assert(D_n.corner_L.is_defined);
+    fm_assert(D_n.corner_L.from_rotation == null);
+    fm_assert(D_w.corner_L.is_defined);
+    fm_assert(D_w.corner_L.from_rotation == DAI_n.val);
+    fm_assert(atlas.direction_array[D_w.corner_L.from_rotation].corner_L.count == 11);
+    fm_assert(atlas.direction_array[D_n.top.from_rotation].top.count == 12);
+}
+
 [[nodiscard]] wall_atlas_def read_and_check(StringView filename)
 {
     auto atlas = wall_atlas_def::deserialize(filename);
@@ -112,6 +137,7 @@ void test_expected_size()
 void floormat::test_app::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
+    using namespace floormat::Wall;
 
     {
         test_expected_size();
@@ -125,6 +151,7 @@ void floormat::test_app::test_wall_atlas()
 
         { test_read_header(S_02_groups_json);
           test_read_groups(S_02_groups_json);
+          test_from_rotation(S_02_groups_json);
         }
 
         { auto a = read_and_check(Path::join(json_path(), S_02_groups_json));

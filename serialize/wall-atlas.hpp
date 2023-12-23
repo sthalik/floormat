@@ -14,9 +14,6 @@ namespace floormat::Wall::detail {
 
 using nlohmann::json;
 
-uint8_t direction_index_from_name(StringView s);
-StringView direction_index_to_name(size_t i);
-
 [[nodiscard]] std::vector<Frame> read_all_frames(const json& jroot);
 [[nodiscard]] Group read_group_metadata(const json& jgroup);
 [[nodiscard]] Direction read_direction_metadata(const json& jroot, Direction_ dir);

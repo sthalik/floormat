@@ -22,6 +22,13 @@
         "wall": {
             "offset": 0,
             "count": 1
+        },
+        "corner-L": {
+            "offset": 0,
+            "count": 11
+        },
+        "top": {
+            "from-rotation": "w"
         }
     },
     "w": {
@@ -40,7 +47,7 @@
         "top": {
             "pixel-size": "192 x 42",
             "offset": 1,
-            "count": 2
+            "count": 12
         },
         "corner-L": { "from-rotation": "n" }
     }

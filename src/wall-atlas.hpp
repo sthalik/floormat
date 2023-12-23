@@ -15,6 +15,9 @@ namespace floormat { class wall_atlas; }
 
 namespace floormat::Wall {
 
+uint8_t direction_index_from_name(StringView s) noexcept(false);
+StringView direction_index_to_name(size_t i) noexcept(false);
+
 struct Frame
 {
     Vector2ui offset = { (unsigned)-1, (unsigned)-1 }, size;
@@ -28,6 +31,7 @@ struct Group
     Vector2ui pixel_size;
     Color4 tint_mult{1,1,1,1};
     Color3 tint_add{};
+    uint8_t from_rotation = (uint8_t)-1;
     bool mirrored     : 1 = false,
          default_tint : 1 = true,
          is_defined   : 1 = false;
@@ -73,10 +77,12 @@ struct Info
 
 struct DirArrayIndex {
     uint8_t val = (uint8_t)-1;
-    operator bool() const { return val != (uint8_t)-1; }
+    explicit operator bool() const { return val != (uint8_t)-1; }
 
     bool operator==(const DirArrayIndex&) const noexcept;
 };
+
+void resolve_wall_rotations(std::vector<Wall::Direction>& dirs, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false);
 
 } // namespace floormat::Wall
 

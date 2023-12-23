@@ -7,6 +7,57 @@
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
 
+namespace floormat::Wall {
+
+uint8_t direction_index_from_name(StringView s) noexcept(false)
+{
+    for (uint8_t i = 0; auto [n, _] : wall_atlas::directions)
+        if (n == s)
+            return i;
+        else
+            i++;
+
+    fm_throw("bad rotation name '{}'"_cf, s);
+}
+
+StringView direction_index_to_name(size_t i) noexcept(false)
+{
+    fm_soft_assert(i < arraySize(wall_atlas::directions));
+    return wall_atlas::directions[i].name;
+}
+
+void resolve_wall_rotations(std::vector<Wall::Direction>& array, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false)
+{
+    for (auto [dir_name, dir] : wall_atlas::directions)
+    {
+        auto DAI = map[(size_t)dir];
+        if (!DAI)
+            continue;
+        auto& D = array[DAI.val];
+        for (auto [group_name, ptr, gr] : Direction::groups)
+        {
+            auto& G = D.*ptr;
+            if (!G.is_defined)
+                continue;
+            if (G.from_rotation != (uint8_t)-1)
+            {
+                const auto& DAI2 = map[G.from_rotation];
+                if (!DAI2)
+                    fm_throw("from_rotation for '{}/{}' points to nonexistent rotation {}"_cf,
+                             dir_name, group_name, direction_index_to_name(G.from_rotation));
+                const auto& D2 = array[DAI2.val];
+                const auto& G2 = D2.*ptr;
+                if (!G2.is_defined)
+                    fm_throw("from_rotation for '{}/{}' points to empty group '{}/{}'"_cf,
+                             dir_name, group_name, direction_index_to_name(G.from_rotation), group_name);
+                G.from_rotation = DAI2.val;
+            }
+        }
+    }
+}
+
+} // namespace floormat::Wall
+
 namespace floormat {
 
 using namespace floormat::Wall;
@@ -74,7 +125,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             for (auto [group_name, gmemb, gr] : Direction::groups)
             {
                 const auto& G = D->*gmemb;
-                fm_soft_assert(!G.is_defined == !G.count);
+                fm_soft_assert(G.is_defined == !!G.count);
                 fm_soft_assert(G.is_defined == (G.index != (uint32_t)-1));
                 if (!G.is_defined)
                     continue;
@@ -91,6 +142,8 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
         if (!found) [[unlikely]]
             fm_throw("wall_atlas '{}' is empty!"_cf, _path);
     }
+
+    resolve_wall_rotations(_dir_array, _direction_map);
 
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)

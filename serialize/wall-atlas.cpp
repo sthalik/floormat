@@ -138,23 +138,6 @@ void wall_atlas::serialize(StringView filename) const
 
 namespace floormat::Wall::detail {
 
-uint8_t direction_index_from_name(StringView s)
-{
-    for (uint8_t i = 0; auto [n, _] : wall_atlas::directions)
-        if (n == s)
-            return i;
-        else
-            i++;
-
-    fm_throw("bad rotation name '{}'"_cf, s);
-}
-
-StringView direction_index_to_name(size_t i)
-{
-    fm_soft_assert(i < arraySize(wall_atlas::directions));
-    return wall_atlas::directions[i].name;
-}
-
 std::vector<Frame> read_all_frames(const json& jroot)
 {
     if (!jroot.contains("frames"))
@@ -224,6 +207,8 @@ Group read_group_metadata(const json& jgroup)
         val.pixel_size = jgroup["pixel-size"];
     if (jgroup.contains("mirrored"))
         val.mirrored = !!jgroup["mirrored"];
+    if (jgroup.contains("from-rotation") && !jgroup["from-rotation"].is_null())
+        val.from_rotation = direction_index_from_name(jgroup["from-rotation"]);
 
     val.is_defined = true;
     return val;
@@ -278,8 +263,6 @@ void write_all_frames(json& jroot, ArrayView<const Frame> array)
 
 void write_group_metadata(json& jgroup, const Group& val)
 {
-    constexpr Group group_defaults;
-
     fm_assert(jgroup.is_null());
     fm_assert(val.is_defined);
 
@@ -296,6 +279,8 @@ void write_group_metadata(json& jgroup, const Group& val)
         jgroup["tint-add"] = val.tint_add;
     }
     jgroup["mirrored"] = val.mirrored;
+    if (val.from_rotation != (uint8_t )-1)
+        jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
 }
 
 void write_direction_metadata(json& jdir, const Direction& dir)

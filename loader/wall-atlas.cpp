@@ -73,7 +73,7 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
     return *invalid_wall_atlas;
 }
 
-std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok)
+std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok) noexcept(false)
 {
     fm_soft_assert(check_atlas_name(name));
     char buf[FILENAME_MAX];
