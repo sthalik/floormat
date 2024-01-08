@@ -24,6 +24,7 @@ StringView loader_impl::shader(StringView filename) noexcept
 
 loader_impl::loader_impl()
 {
+    missing_wall_atlases.reserve(32);
     system_init();
     set_application_working_directory();
 }

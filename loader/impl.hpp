@@ -48,6 +48,7 @@ struct loader_impl final : loader_
     struct wall_index { uint32_t val = (uint32_t)-1; };
     tsl::robin_map<StringView, wall_info*> wall_atlas_map;
     std::vector<wall_info> wall_atlas_array;
+    std::vector<String> missing_wall_atlases;
 
     Pointer<wall_info> invalid_wall_atlas;
 

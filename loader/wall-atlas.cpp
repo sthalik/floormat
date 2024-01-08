@@ -3,8 +3,6 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/wall-atlas.hpp"
-#include "serialize/wall-atlas.hpp"
-#include "wall-info.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
 #include "src/tile-defs.hpp"
@@ -14,7 +12,6 @@
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
-#include <vector>
 
 namespace floormat {
 
@@ -43,6 +40,7 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView path)
 {
+    fm_assert(name != "<invalid>"_s);
     auto filename = Path::join(path, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
     auto tex = texture(""_s, filename, false);
@@ -76,25 +74,50 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
 std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok) noexcept(false)
 {
     fm_soft_assert(check_atlas_name(name));
-    char buf[FILENAME_MAX];
-    auto path = make_atlas_path(buf, loader.WALL_TILESET_PATH, name);
 
     auto it = wall_atlas_map.find(name);
-    if (it == wall_atlas_map.end())
+
+    if (it != wall_atlas_map.end()) [[likely]]
     {
-        if (!fail_ok)
-            fm_throw("no such wall atlas '{}'"_cf, name);
-        else
+        if (it->second == (wall_info*)-1) [[unlikely]]
         {
-            if (name != "<invalid>"_s)
-                DBG_nospace << "wall_atlas '" << name << "' doesn't exist";
-            return make_invalid_wall_atlas().atlas;
+           if (fail_ok) [[likely]]
+                goto missing_ok;
+            else
+                goto error;
         }
+        else if (!it->second->atlas)
+            return it->second->atlas = get_wall_atlas(name, loader.WALL_TILESET_PATH);
+        else
+            return it->second->atlas;
     }
-    fm_assert(it->second != nullptr);
-    if (!it->second->atlas) [[unlikely]]
-        it->second->atlas = get_wall_atlas(it->second->name, path);
-    return it->second->atlas;
+    else
+    {
+        if (fail_ok) [[likely]]
+            goto missing;
+        else
+            goto error;
+    }
+
+    std::unreachable();
+    fm_assert(false);
+
+missing:
+    {
+        // todo allocate wall_info instead
+        missing_wall_atlases.push_back(String { AllocatedInit, name });
+        auto string_view = StringView{missing_wall_atlases.back()};
+        wall_atlas_map[string_view] = (wall_info*)-1;
+    }
+
+    if (name != "<invalid>")
+        DBG_nospace << "wall_atlas '" << name << "' doesn't exist";
+
+missing_ok:
+    return make_invalid_wall_atlas().atlas;
+
+error:
+    fm_throw("no such wall atlas '{}'"_cf, name);
 }
 
 void loader_impl::get_wall_atlas_list()
@@ -106,8 +129,9 @@ void loader_impl::get_wall_atlas_list()
 
     for (auto& x : wall_atlas_array)
     {
+        fm_soft_assert(x.name != "<invalid>"_s);
         fm_soft_assert(check_atlas_name(x.name));
-        x.atlas = get_wall_atlas(x.name, WALL_TILESET_PATH);
+        //x.atlas = get_wall_atlas(x.name, WALL_TILESET_PATH);
         StringView name = x.name;
         wall_atlas_map[name] = &x;
         fm_debug_assert(name.data() == wall_atlas_map[name]->name.data());

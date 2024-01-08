@@ -17,9 +17,9 @@ constexpr auto map0(const std::array<T, N>& array, const F& fun, std::index_sequ
 template<typename T, typename F>
 [[deprecated("zero-length array!")]]
 CORRADE_ALWAYS_INLINE
-constexpr auto map0(const std::array<T, 0>&, const F& fun, std::index_sequence<>)
+constexpr auto map0(const std::array<T, 0>&, const F&, std::index_sequence<>)
 {
-    return std::array<std::decay_t<decltype( fun(std::declval<const T&>()) )> , 0>{};
+    return std::array<std::decay_t<std::invoke_result_t<std::decay_t<F>, const std::remove_cvref_t<T>&>>, 0>{};
 }
 
 } // namespace floormat::detail::map
