@@ -34,7 +34,7 @@ bool loader_::check_atlas_name(StringView str) noexcept
         return true;
     if (!str || !first_char.find(str[0]))
         return false;
-    if (str.findAny("\\\"'\n\r\t\a\033\0|$!%{}^*?<>&;:^"_s) || str.find("/."_s))
+    if (str.findAny("\\\"'\n\r\t\a\033\0|$!%{}^*?<>&;:^"_s) || str.find("/."_s) || str.find("//"_s))
         return false;
 
     return true;

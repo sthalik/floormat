@@ -58,7 +58,7 @@ void wall_editor::load_atlases()
 wall_editor::wall_editor()
 {
     load_atlases();
-    _selected_atlas = _atlases.begin()->second.atlas; // todo
+    _selected_atlas = loader.wall_atlas("concrete1"_s, false); // todo
 }
 
 StringView wall_editor::name() const { return "wall"_s; }
@@ -85,6 +85,7 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
 
 editor_snap_mode wall_editor::check_snap(int mods) const
 {
+    (void)mods;
     if (!is_anything_selected())
         return editor_snap_mode::none;
     if (_r == rotation::N)
