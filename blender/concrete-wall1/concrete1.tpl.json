@@ -10,6 +10,9 @@
             "pixel-size": "20 x 192"
 
         },
+        "corner": {
+            "pixel-size": "20 x 192"
+        },
         "top": {
             "pixel-size": "192 x 20"
         }
