@@ -51,7 +51,7 @@ void wall_editor::load_atlases()
 {
     fm_assert(_atlases.empty());
     for (const auto& wa : loader.wall_atlas_list())
-        _atlases[wa.name] = wa;
+        _atlases[wa.name] = &wa;
     fm_assert(!_atlases.empty());
 }
 

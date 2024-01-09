@@ -1,6 +1,8 @@
 #include "app.hpp"
+#include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/tile-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>
@@ -11,7 +13,12 @@ using namespace floormat::imgui;
 
 namespace {
 
-StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
+template<typename T> constexpr inline bool do_group_column = false;
+template<> constexpr inline bool do_group_column<scenery_editor> = true;
+using scenery_ = scenery_editor::scenery_;
+using vobj_ = vobj_editor::vobj_;
+
+StringView scenery_type_to_string(const scenery_& sc)
 {
     switch (sc.proto.sc_type)
     {
@@ -22,35 +29,85 @@ StringView scenery_type_to_string(const scenery_editor::scenery_& sc)
     }
 }
 
-std::shared_ptr<anim_atlas> get_atlas(const scenery_editor::scenery_& sc)
-{
-    return sc.proto.atlas;
-}
-
-StringView scenery_name(StringView name, const scenery_editor::scenery_&)
-{
-    return name;
-}
-
-template<typename T> constexpr inline bool do_group_column = false;
-template<> constexpr inline bool do_group_column<scenery_editor> = true;
-
-StringView scenery_type_to_string(const vobj_editor::vobj_& vobj)
-{
-    return vobj.name;
-}
-
-std::shared_ptr<anim_atlas> get_atlas(const vobj_editor::vobj_& vobj)
-{
-    return vobj.factory->atlas();
-}
-
-StringView scenery_name(StringView, const vobj_editor::vobj_& vobj)
-{
-    return vobj.descr;
-}
+std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
+StringView scenery_name(StringView name, const scenery_&) { return name; }
+StringView scenery_type_to_string(const vobj_& vobj) { return vobj.name; }
+std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
+StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
 
 } // namespace
+
+void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
+{
+    const auto b = push_id("tile-pane");
+
+    const auto dpi = M->dpi_scale();
+    constexpr Color4 color_perm_selected{1, 1, 1, .7f},
+                     color_selected{1, 0.843f, 0, .8f},
+                     color_hover{0, .8f, 1, .7f};
+    const float window_width = ImGui::GetWindowWidth() - 32 * dpi[0];
+    char buf[128];
+    const auto& style = ImGui::GetStyle();
+    const auto N = atlas->num_tiles();
+
+    const auto click_event = [&] {
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            ed.select_tile_permutation(atlas);
+        else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
+            ed.clear_selection();
+    };
+    const auto do_caption = [&] {
+        click_event();
+        if (ed.is_atlas_selected(atlas))
+        {
+            ImGui::SameLine();
+            text(" (selected)");
+        }
+        const auto len = snformat(buf, "{:d}"_cf, N);
+        fm_assert(len < std::size(buf));
+        ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi[0]);
+        text({buf, len});
+    };
+    if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
+        auto b = tree_node(name.data(), flags))
+    {
+        do_caption();
+        [[maybe_unused]] const raii_wrapper vars[] = {
+            push_style_var(ImGuiStyleVar_FramePadding, {2*dpi[0], 2*dpi[1]}),
+            push_style_color(ImGuiCol_ButtonHovered, color_hover),
+        };
+        const bool perm_selected = ed.is_permutation_selected(atlas);
+        constexpr size_t per_row = 8;
+        for (auto i = 0uz; i < N; i++)
+        {
+            const bool selected = ed.is_tile_selected(atlas, i);
+            if (i > 0 && i % per_row == 0)
+                ImGui::NewLine();
+
+            [[maybe_unused]] const raii_wrapper vars[] = {
+                selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
+                selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
+                perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
+                perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
+            };
+
+            snformat(buf, "##item_{}"_cf, i);
+            const auto uv = atlas->texcoords_for_id(i);
+            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
+            ImGui::ImageButton(buf, (void*)&atlas->texture(), ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
+                               { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                ed.select_tile(atlas, i);
+            else
+                click_event();
+            ImGui::SameLine();
+        }
+        ImGui::NewLine();
+    }
+    else
+        do_caption();
+}
+
 
 template<typename T>
 static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
