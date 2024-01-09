@@ -12,9 +12,9 @@ namespace {
 constexpr bool test1()
 {
     constexpr auto array = std::array{0, 1, 2, 3, 4};
-    auto array2 = map(array, [](int x) constexpr {
+    auto array2 = map([](int x) constexpr {
         return (unsigned)(x - 1);
-    });
+    }, array);
     constexpr auto array3 = std::array{(unsigned)-1, 0u, 1u, 2u, 3u};
     fm_assert(array2.size() == array.size());
     fm_assert(array3.size() == array.size());
@@ -25,7 +25,7 @@ constexpr bool test1()
 
 constexpr bool test2()
 {
-    fm_assert(map(std::array<int, 0>{}, [](int x) constexpr { return x;}).size() == 0);
+    fm_assert(map([](int x) constexpr { return x; }, std::array<int, 0>{}).size() == 0);
     return true;
 }
 
