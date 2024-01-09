@@ -210,11 +210,7 @@ GL::Mesh chunk::make_wall_mesh()
                                 pillar_ok = true;
                     if (!pillar_ok) [[likely]]
                     {
-                        if (auto t2 = at_offset_(pos, {1, 0}); t2 && t2->wall_west_atlas())
-                            continue;
-                        else if (auto t2 = at_offset_(pos, {1, -1}); t2 && t2->wall_west_atlas())
-                            continue;
-                        else if (auto t2 = at_offset_(pos, {-1, 0}); !t2 || !t2->wall_north_atlas())
+                        if (auto t2 = at_offset_(pos, {-1, 0}); !t2 || !t2->wall_north_atlas())
                             if (auto t2 = at_offset_(pos, {0, -1}); t2 && t2->wall_west_atlas())
                                 corner_ok = true;
                     }
@@ -230,8 +226,6 @@ GL::Mesh chunk::make_wall_mesh()
                 case Wall::Group_::side:
                     if (auto t2 = at_offset_(pos, {0, 1}); t2 && t2->wall_north_atlas())
                         continue;
-                    else if (auto t2 = at_offset_(pos, {-1, 1}); t2 && t2->wall_north_atlas())
-                        continue;
                     else if (auto t2 = at_offset_(pos, {0, -1}); !t2 || !t2->wall_west_atlas())
                         if (auto t2 = at_offset_(pos, {-1, 0}); t2 && t2->wall_north_atlas())
                             corner_ok = true;
@@ -239,7 +233,7 @@ GL::Mesh chunk::make_wall_mesh()
                 }
             }
 
-            if (pillar_ok)
+            if (pillar_ok) [[unlikely]]
             {
                 if (dir.top.is_defined)
                 {
@@ -272,7 +266,7 @@ GL::Mesh chunk::make_wall_mesh()
                         v[j] = { quad[j], texcoords[j], depth };
                 }
             }
-            if (corner_ok)
+            if (corner_ok) [[unlikely]]
             {
                 if (dir.corner.is_defined)
                 {
@@ -310,7 +304,7 @@ GL::Mesh chunk::make_wall_mesh()
                     const auto depth_offset = depth_offset_for_group(Group_::corner);
                     const auto depth = tile_shader::depth_value(pos, depth_offset);
                     auto& v = vertexes[i];
-                    auto quad = get_corner(D, G, Depth);
+                    auto quad = get_quad(D, Group_::corner, Depth);
                     for (auto& v : quad)
                         v += center;
                     for (uint8_t j = 0; j < 4; j++)
@@ -318,24 +312,26 @@ GL::Mesh chunk::make_wall_mesh()
                 }
             }
 
-            const auto& group = dir.*member;
-            const auto frames = atlas->frames(group);
+            {
+                const auto& group = dir.*member;
+                const auto frames = atlas->frames(group);
 
-            const auto i = N++;
-            fm_assert(i < vertexes.size());
-            _walls->mesh_indexes[i] = (uint16_t)k;
+                const auto i = N++;
+                fm_assert(i < vertexes.size());
+                _walls->mesh_indexes[i] = (uint16_t)k;
 
-            const auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos) % frames.size();
-            const auto& frame = frames[variant];
-            const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
-            const auto depth_offset = depth_offset_for_group(G);
-            const auto depth = tile_shader::depth_value(pos, depth_offset);
-            auto quad = get_quad(D, G, Depth);
-            for (auto& v : quad)
-                v += center;
-            auto& v = vertexes[i];
-            for (uint8_t j = 0; j < 4; j++)
-                v[j] = { quad[j], texcoords[j], depth };
+                const auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos) % frames.size();
+                const auto& frame = frames[variant];
+                const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
+                const auto depth_offset = depth_offset_for_group(G);
+                const auto depth = tile_shader::depth_value(pos, depth_offset);
+                auto quad = get_quad(D, G, Depth);
+                for (auto& v : quad)
+                    v += center;
+                auto& v = vertexes[i];
+                for (uint8_t j = 0; j < 4; j++)
+                    v[j] = { quad[j], texcoords[j], depth };
+            }
         }
     }
 
