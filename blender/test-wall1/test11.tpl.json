@@ -1,0 +1,19 @@
+{
+    "name": "test1",
+    "depth": 32,
+    "n": {
+        "pass-mode": "blocked",
+        "wall": {
+            "pixel-size": "64 x 192"
+        },
+        "side": {
+            "pixel-size": "32 x 192"
+        },
+        "corner": {
+            "pixel-size": "32 x 192"
+        },
+        "top": {
+            "pixel-size": "192 x 32"
+        }
+    }
+}
