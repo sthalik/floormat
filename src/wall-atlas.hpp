@@ -46,21 +46,28 @@ struct Direction
     using memfn_ptr = Group Direction::*;
     struct member_tuple { StringView name; memfn_ptr member; Group_ tag; };
 
-    Group wall{}, side{}, top{};
+    Group wall{}, side{}, top{}, corner{};
 
     const Group& group(Group_ i) const;
     const Group& group(size_t i) const;
     Group& group(Group_ i);
     Group& group(size_t i);
 
+    bool operator==(const Direction&) const noexcept;
+
     static constexpr inline member_tuple groups[] = {
         { "wall"_s,     &Direction::wall,     Group_::wall      },
         { "side"_s,     &Direction::side,     Group_::side      },
         { "top"_s,      &Direction::top,      Group_::top       },
+        { "corner"_s,   &Direction::corner,   Group_::corner    },
     };
     static_assert(std::size(groups) == (size_t)Group_::COUNT);
 
-    bool operator==(const Direction&) const noexcept;
+    static constexpr inline member_tuple groups_for_draw[] = {
+        { "wall"_s,     &Direction::wall,     Group_::wall      },
+        { "side"_s,     &Direction::side,     Group_::side      },
+        { "top"_s,      &Direction::top,      Group_::top       },
+    };
 };
 
 struct Info

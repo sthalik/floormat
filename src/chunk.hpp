@@ -124,7 +124,7 @@ struct chunk final
 
     // for drawing only
     static constexpr size_t max_wall_quad_count =
-        TILE_COUNT*Wall::Direction_COUNT*Wall::Group_COUNT;
+        TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
 
 private:
     struct ground_stuff

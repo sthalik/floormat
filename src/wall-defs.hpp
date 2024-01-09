@@ -3,7 +3,7 @@
 
 namespace floormat::Wall {
 
-enum class Group_ : uint8_t { wall, side, top, COUNT };
+enum class Group_ : uint8_t { wall, side, top, corner, COUNT };
 
 enum class Direction_ : uint8_t { N, W, COUNT };
 

@@ -80,7 +80,11 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     case rotation::W: t.wall_west() = { atlas, (variant_t)-1 }; break;
     default: std::unreachable();
     }
-    c.mark_walls_modified();
+    //c.mark_walls_modified();
+    for (int y = -1; y <= 1; y++)
+        for (int x = -1; x <= 1; x++)
+            if (auto* ch = w.at(coords + Vector2i(x, y)))
+                ch->mark_walls_modified();
 }
 
 editor_snap_mode wall_editor::check_snap(int mods) const

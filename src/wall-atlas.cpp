@@ -93,6 +93,7 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
         return { size.x(), size.z() };
     case top:
     case side:
+    case corner:
         return { depth, size.z() };
     default:
         std::unreachable();

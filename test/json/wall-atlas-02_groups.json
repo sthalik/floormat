@@ -23,10 +23,6 @@
             "offset": 0,
             "count": 1
         },
-        "corner-L": {
-            "offset": 0,
-            "count": 11
-        },
         "top": {
             "from-rotation": "w"
         }
@@ -49,6 +45,10 @@
             "offset": 1,
             "count": 12
         },
-        "corner-L": { "from-rotation": "n" }
+        "corner": {
+            "pixel-size": "42 x 192",
+            "offset": 2,
+            "count": 1
+        }
     }
 }

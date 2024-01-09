@@ -65,6 +65,8 @@ void test_read_groups(StringView filename)
     fm_assert(dir.side.pixel_size   == Vector2ui{42, 192}                 );
     fm_assert(dir.side.default_tint == true                               );
     fm_assert(dir.top.default_tint  == true                               );
+    fm_assert(dir.corner.index == 2);
+    fm_assert(dir.corner.count == 1);
 
     const auto atlas2 = wall_atlas_def::deserialize(path);
     fm_assert(atlas2.header == info);
@@ -88,8 +90,10 @@ void test_from_rotation(StringView filename)
     fm_assert(D_n.top.is_defined);
     fm_assert(D_n.top.from_rotation != null);
     fm_assert(D_n.top.from_rotation != null);
+    fm_assert(!D_n.corner.is_defined);
     fm_assert(D_w.top.from_rotation == null);
     fm_assert(D_w.top.is_defined);
+    fm_assert(D_w.corner.is_defined);
     fm_assert(atlas.direction_array[D_n.top.from_rotation].top.count == 12);
 }
 
