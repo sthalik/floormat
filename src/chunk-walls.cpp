@@ -192,7 +192,7 @@ GL::Mesh chunk::make_wall_mesh()
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
-            bool corner_ok = false, pillar_ok = false;
+            bool corner_ok = false, pillar_ok = false, side_ok = true;
 
             if (!(dir.*member).is_defined)
                 continue;
@@ -204,16 +204,15 @@ GL::Mesh chunk::make_wall_mesh()
                 default:
                     break;
                 case Wall::Group_::side:
-                    if (_walls->atlases[k+1]) // west on same tile
-                        if (auto t2 = at_offset_(pos, {-1, 0}); !t2 || !t2->wall_north_atlas())
-                            if (auto t2 = at_offset_(pos, {0, -1}); !t2 || !t2->wall_west_atlas())
-                                pillar_ok = true;
-                    if (!pillar_ok) [[likely]]
+                    if (auto t = at_offset_(pos, {-1, 0}); !(t && t->wall_north_atlas()))
                     {
-                        if (auto t2 = at_offset_(pos, {-1, 0}); !t2 || !t2->wall_north_atlas())
-                            if (auto t2 = at_offset_(pos, {0, -1}); t2 && t2->wall_west_atlas())
-                                corner_ok = true;
+                        if (_walls->atlases[k+1]) // west on same tile
+                            pillar_ok = true;
+                        if (auto t = at_offset_(pos, {0, -1}); t && t->wall_west_atlas())
+                            corner_ok = true;
                     }
+                    if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
+                        side_ok = false;
                     break;
                 }
             }
@@ -224,11 +223,11 @@ GL::Mesh chunk::make_wall_mesh()
                 default:
                     break;
                 case Wall::Group_::side:
-                    if (auto t2 = at_offset_(pos, {0, 1}); t2 && t2->wall_north_atlas())
-                        continue;
-                    else if (auto t2 = at_offset_(pos, {0, -1}); !t2 || !t2->wall_west_atlas())
-                        if (auto t2 = at_offset_(pos, {-1, 0}); t2 && t2->wall_north_atlas())
+                    if (auto t = at_offset_(pos, {0, -1}); !(t && t->wall_west_atlas()))
+                        if (auto t = at_offset_(pos, {-1, 0}); t && t->wall_north_atlas())
                             corner_ok = true;
+                    if (auto t = at_offset_(pos, {-1, 1}); t && t->wall_north_atlas())
+                        side_ok = false;
                     break;
                 }
             }
@@ -312,6 +311,7 @@ GL::Mesh chunk::make_wall_mesh()
                 }
             }
 
+            if (G != Wall::Group_::side || side_ok) [[likely]]
             {
                 const auto& group = dir.*member;
                 const auto frames = atlas->frames(group);

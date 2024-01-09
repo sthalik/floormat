@@ -61,7 +61,7 @@ Optional<tile_ref> chunk::at_offset_(local_coords pos, Vector2i off)
         return operator[](coord2.local());
     else
     {
-        if (auto* ch = _world->at({coord2}))
+        if (auto* ch = _world->at(coord2.chunk3()))
             return (*ch)[coord2.local()];
         else
             return NullOpt;
