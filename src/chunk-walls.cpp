@@ -145,7 +145,7 @@ Array<Quads::indexes> make_indexes_()
 ArrayView<const Quads::indexes> make_indexes(size_t max)
 {
     static const auto indexes = make_indexes_();
-    fm_assert(max < chunk::max_wall_quad_count);
+    fm_assert(max <= chunk::max_wall_quad_count);
     return indexes.prefix(max);
 }
 
