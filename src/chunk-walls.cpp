@@ -192,18 +192,17 @@ GL::Mesh chunk::make_wall_mesh()
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
-            bool corner_ok = false, pillar_ok = false, side_ok = true;
+            bool side_ok = true;
 
             if (!(dir.*member).is_defined)
                 continue;
 
-            if (!is_west)
+            if (G == Wall::Group_::side) [[unlikely]]
             {
-                switch (G)
+                bool corner_ok = false, pillar_ok = false;
+
+                if (!is_west)
                 {
-                default:
-                    break;
-                case Wall::Group_::side:
                     if (auto t = at_offset_(pos, {-1, 0}); !(t && t->wall_north_atlas()))
                     {
                         if (_walls->atlases[k+1]) // west on same tile
@@ -213,101 +212,93 @@ GL::Mesh chunk::make_wall_mesh()
                     }
                     if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
                         side_ok = false;
-                    break;
                 }
-            }
-            else
-            {
-                switch (G)
+                else
                 {
-                default:
-                    break;
-                case Wall::Group_::side:
                     if (auto t = at_offset_(pos, {0, -1}); !(t && t->wall_west_atlas()))
                         if (auto t = at_offset_(pos, {-1, 0}); t && t->wall_north_atlas())
                             corner_ok = true;
                     if (auto t = at_offset_(pos, {-1, 1}); t && t->wall_north_atlas())
                         side_ok = false;
-                    break;
                 }
-            }
 
-            if (pillar_ok) [[unlikely]]
-            {
-                if (dir.top.is_defined)
+                if (pillar_ok) [[unlikely]]
                 {
-                    const auto frames = atlas->frames(dir.top);
-                    auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
-                    variant += !is_west ? frames.size() - 1 : 1;
-                    variant = variant % frames.size();
-                    constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-                    constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-                    Quads::quad quad = {{
-                        { -X - Depth, -Y - Depth, Z },
-                        { -X,         -Y - Depth, Z },
-                        { -X - Depth, -Y, Z },
-                        { -X,         -Y, Z }
-                    }};
-                    const auto& frame = frames[variant];
-                    fm_assert(frame.size.x() == Depth);
-                    fm_assert(frame.size.y() >= Depth);
-                    auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
-                    const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, atlas->image_size());
-                    const auto i = N++;
-                    fm_assert(i < vertexes.size());
-                    _walls->mesh_indexes[i] = (uint16_t)k;
-                    const auto depth_offset = depth_offset_for_group(Group_::top);
-                    const auto depth = tile_shader::depth_value(pos, depth_offset);
-                    auto& v = vertexes[i];
-                    for (auto& v : quad)
-                        v += center;
-                    for (uint8_t j = 0; j < 4; j++)
-                        v[j] = { quad[j], texcoords[j], depth };
+                    if (dir.top.is_defined)
+                    {
+                        const auto frames = atlas->frames(dir.top);
+                        auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
+                        variant += !is_west ? frames.size() - 1 : 1;
+                        variant = variant % frames.size();
+                        constexpr Vector2 half_tile = TILE_SIZE2*.5f;
+                        constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
+                        Quads::quad quad = {{
+                            { -X - Depth, -Y - Depth, Z },
+                            { -X,         -Y - Depth, Z },
+                            { -X - Depth, -Y, Z },
+                            { -X,         -Y, Z }
+                        }};
+                        const auto& frame = frames[variant];
+                        fm_assert(frame.size.x() == Depth);
+                        fm_assert(frame.size.y() >= Depth);
+                        auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
+                        const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, atlas->image_size());
+                        const auto i = N++;
+                        fm_assert(i < vertexes.size());
+                        _walls->mesh_indexes[i] = (uint16_t)k;
+                        const auto depth_offset = depth_offset_for_group(Group_::top);
+                        const auto depth = tile_shader::depth_value(pos, depth_offset);
+                        auto& v = vertexes[i];
+                        for (auto& v : quad)
+                            v += center;
+                        for (uint8_t j = 0; j < 4; j++)
+                            v[j] = { quad[j], texcoords[j], depth };
+                    }
                 }
-            }
-            if (corner_ok) [[unlikely]]
-            {
-                if (dir.corner.is_defined)
+                if (corner_ok) [[unlikely]]
                 {
-                    const auto frames = atlas->frames(dir.corner);
-                    auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
-                    variant += !is_west ? frames.size() - 1 : 1;
-                    variant = variant % frames.size();
-                    const auto& frame = frames[variant];
-                    const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
-                    const auto i = N++;
-                    fm_assert(i < vertexes.size());
-                    _walls->mesh_indexes[i] = (uint16_t)k;
-                    const auto depth_offset = depth_offset_for_group(Group_::corner);
-                    const auto depth = tile_shader::depth_value(pos, depth_offset);
-                    auto& v = vertexes[i];
-                    auto quad = get_quad(D, Group_::corner, Depth);
-                    for (auto& v : quad)
-                        v += center;
-                    for (uint8_t j = 0; j < 4; j++)
-                        v[j] = { quad[j], texcoords[j], depth };
-                }
-                else if (dir.wall.is_defined) [[likely]]
-                {
-                    const auto frames = atlas->frames(dir.wall);
-                    auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
-                    variant += !is_west ? frames.size() - 1 : 1;
-                    variant %= frames.size();
-                    const auto& frame = frames[variant];
-                    fm_assert(frame.size.x() > Depth);
-                    auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
-                    const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, atlas->image_size());
-                    const auto i = N++;
-                    fm_assert(i < vertexes.size());
-                    _walls->mesh_indexes[i] = (uint16_t)k;
-                    const auto depth_offset = depth_offset_for_group(Group_::corner);
-                    const auto depth = tile_shader::depth_value(pos, depth_offset);
-                    auto& v = vertexes[i];
-                    auto quad = get_quad(D, Group_::corner, Depth);
-                    for (auto& v : quad)
-                        v += center;
-                    for (uint8_t j = 0; j < 4; j++)
-                        v[j] = { quad[j], texcoords[j], depth };
+                    if (dir.corner.is_defined)
+                    {
+                        const auto frames = atlas->frames(dir.corner);
+                        auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
+                        variant += !is_west ? frames.size() - 1 : 1;
+                        variant = variant % frames.size();
+                        const auto& frame = frames[variant];
+                        const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
+                        const auto i = N++;
+                        fm_assert(i < vertexes.size());
+                        _walls->mesh_indexes[i] = (uint16_t)k;
+                        const auto depth_offset = depth_offset_for_group(Group_::corner);
+                        const auto depth = tile_shader::depth_value(pos, depth_offset);
+                        auto& v = vertexes[i];
+                        auto quad = get_quad(D, Group_::corner, Depth);
+                        for (auto& v : quad)
+                            v += center;
+                        for (uint8_t j = 0; j < 4; j++)
+                            v[j] = { quad[j], texcoords[j], depth };
+                    }
+                    else if (dir.wall.is_defined) [[likely]]
+                    {
+                        const auto frames = atlas->frames(dir.wall);
+                        auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
+                        variant += !is_west ? frames.size() - 1 : 1;
+                        variant %= frames.size();
+                        const auto& frame = frames[variant];
+                        fm_assert(frame.size.x() > Depth);
+                        auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
+                        const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, atlas->image_size());
+                        const auto i = N++;
+                        fm_assert(i < vertexes.size());
+                        _walls->mesh_indexes[i] = (uint16_t)k;
+                        const auto depth_offset = depth_offset_for_group(Group_::corner);
+                        const auto depth = tile_shader::depth_value(pos, depth_offset);
+                        auto& v = vertexes[i];
+                        auto quad = get_quad(D, Group_::corner, Depth);
+                        for (auto& v : quad)
+                            v += center;
+                        for (uint8_t j = 0; j < 4; j++)
+                            v[j] = { quad[j], texcoords[j], depth };
+                    }
                 }
             }
 
