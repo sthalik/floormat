@@ -239,10 +239,6 @@ GL::Mesh chunk::make_wall_mesh()
                 }
             }
 
-            auto quad = get_quad(D, G, Depth);
-            for (auto& v : quad)
-                v += center;
-
             if (pillar_ok)
             {
                 if (dir.top.is_defined)
@@ -276,7 +272,7 @@ GL::Mesh chunk::make_wall_mesh()
                         v[j] = { quad[j], texcoords[j], depth };
                 }
             }
-            else if (corner_ok)
+            if (corner_ok)
             {
                 if (dir.corner.is_defined)
                 {
@@ -334,6 +330,9 @@ GL::Mesh chunk::make_wall_mesh()
             const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
             const auto depth_offset = depth_offset_for_group(G);
             const auto depth = tile_shader::depth_value(pos, depth_offset);
+            auto quad = get_quad(D, G, Depth);
+            for (auto& v : quad)
+                v += center;
             auto& v = vertexes[i];
             for (uint8_t j = 0; j < 4; j++)
                 v[j] = { quad[j], texcoords[j], depth };
