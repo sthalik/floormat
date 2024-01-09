@@ -33,32 +33,6 @@ namespace {
 using Wall::Group_;
 using Wall::Direction_;
 
-// -----------------------
-
-constexpr Quads::quad get_corner(Direction_ D, Group_ G, float depth)
-{
-    CORRADE_ASSUME(D < Direction_::COUNT);
-    CORRADE_ASSUME(G < Group_::COUNT);
-    constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-    constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-    const bool is_west = D == Wall::Direction_::W;
-
-    if (!is_west)
-        return {{
-            {-X, -Y, 0 },
-            {-X, -Y, Z },
-            {-X - depth, -Y, 0 },
-            {-X - depth, -Y, Z },
-        }};
-    else
-        return {{
-            {-X, -Y - depth, 0 },
-            {-X, -Y - depth, Z },
-            {-X, -Y, 0 },
-            {-X, -Y, Z },
-        }};
-}
-
 constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
 {
     CORRADE_ASSUME(D < Direction_::COUNT);
@@ -126,13 +100,24 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
             }};
         }
     case corner:
-        return get_corner(D, G, depth);
+        if (!is_west)
+            return {{
+                {-X, -Y, 0 },
+                {-X, -Y, Z },
+                {-X - depth, -Y, 0 },
+                {-X - depth, -Y, Z },
+            }};
+        else
+            return {{
+                {-X, -Y - depth, 0 },
+                {-X, -Y - depth, Z },
+                {-X, -Y, 0 },
+                {-X, -Y, Z },
+            }};
     }
     std::unreachable();
     fm_abort("invalid wall_atlas group '%d'", (int)G);
 }
-
-// -----------------------
 
 Array<Quads::indexes> make_indexes_()
 {

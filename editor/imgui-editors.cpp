@@ -35,13 +35,10 @@ StringView scenery_type_to_string(const vobj_& vobj) { return vobj.name; }
 std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
 StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
 
-} // namespace
-
-void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas)
+void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas, Vector2 dpi)
 {
     const auto b = push_id("tile-pane");
 
-    const auto dpi = M->dpi_scale();
     constexpr Color4 color_perm_selected{1, 1, 1, .7f},
                      color_selected{1, 0.843f, 0, .8f},
                      color_hover{0, .8f, 1, .7f};
@@ -108,9 +105,8 @@ void app::draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const st
         do_caption();
 }
 
-
 template<typename T>
-static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
+void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 {
     const auto b1 = push_id("scenery-pane");
 
@@ -192,6 +188,8 @@ static void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 template void impl_draw_editor_scenery_pane(scenery_editor&, Vector2);
 template void impl_draw_editor_scenery_pane(vobj_editor&, Vector2);
 
+} // namespace
+
 void app::draw_editor_scenery_pane(scenery_editor& ed)
 {
     impl_draw_editor_scenery_pane<scenery_editor>(ed, M->dpi_scale());
@@ -243,7 +241,7 @@ void app::draw_editor_pane(float main_menu_height)
             {
                 if (ed)
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*ed, k, v);
+                        draw_editor_tile_pane_atlas(*ed, k, v, dpi);
                 else if (sc)
                     draw_editor_scenery_pane(*sc);
                 else if (vo)

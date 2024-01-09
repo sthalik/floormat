@@ -127,7 +127,6 @@ private:
     void draw_inspector();
     static void entity_inspector_name(char* buf, size_t len, object_id id);
     bool check_inspector_exists(const popup_target& p);
-    void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas);
     void draw_editor_scenery_pane(scenery_editor& ed);
     void draw_editor_vobj_pane(vobj_editor& ed);
     void set_cursor_from_imgui();
