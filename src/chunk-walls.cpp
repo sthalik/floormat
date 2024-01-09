@@ -50,35 +50,35 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
     case wall:
         if (!is_west)
             return {{
-                { X, -Y, Z },
                 { X, -Y, 0 },
-                {-X, -Y, Z },
+                { X, -Y, Z },
                 {-X, -Y, 0 },
+                {-X, -Y, Z },
             }};
         else
             return {{
-                {-X, -Y, Z },
                 {-X, -Y, 0 },
-                {-X,  Y, Z },
+                {-X, -Y, Z },
                 {-X,  Y, 0 },
+                {-X,  Y, Z },
             }};
     case side:
         if (!is_west)
         {
             return {{
-                { X, -Y - depth, Z },
                 { X, -Y - depth, 0 },
-                { X, -Y, Z },
+                { X, -Y - depth, Z },
                 { X, -Y, 0 },
+                { X, -Y, Z },
             }};
         }
         else
         {
             return {{
-                { -X, Y, Z },
                 { -X, Y, 0 },
-                { -X - depth, Y, Z },
+                { -X, Y, Z },
                 { -X - depth, Y, 0 },
+                { -X - depth, Y, Z },
             }};
       }
     case top:
