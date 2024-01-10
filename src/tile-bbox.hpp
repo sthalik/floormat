@@ -7,10 +7,6 @@
 
 namespace floormat {
 
-namespace {
-constexpr float wall_depth = 8, wall_depth_2 = wall_depth*.5f;
-} // namespace
-
 constexpr Vector2 tile_start(size_t k)
 {
     constexpr auto half_tile = Vector2(TILE_SIZE2)/2;
@@ -32,16 +28,16 @@ constexpr Pair<Vector2, Vector2> whole_tile(size_t k)
     return { min, min + TILE_SIZE2, };
 }
 
-constexpr Pair<Vector2, Vector2> wall_north(size_t k)
+constexpr Pair<Vector2, Vector2> wall_north(size_t k, float wall_depth)
 {
-    auto min = tile_start(k) - Vector2(0, wall_depth_2);
-    return { min, min + Vector2(TILE_SIZE2[0], wall_depth), };
+    auto min = tile_start(k) - Vector2{0, wall_depth};
+    return { min, min + Vector2{TILE_SIZE2.x(), wall_depth}, };
 }
 
-constexpr Pair<Vector2, Vector2> wall_west(size_t k)
+constexpr Pair<Vector2, Vector2> wall_west(size_t k, float wall_depth)
 {
-    auto min = tile_start(k) - Vector2(wall_depth_2, 0);
-    return { min, min + Vector2(wall_depth, TILE_SIZE2[1]), };
+    auto min = tile_start(k) - Vector2{wall_depth, 0};
+    return { min, min + Vector2{wall_depth, TILE_SIZE2.y()}, };
 }
 
 } // namespace floormat

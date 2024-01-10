@@ -130,8 +130,10 @@ void app::draw_collision_boxes()
                     const auto* rtree = c.rtree();
                     rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+#if 1
                         if (x.tag == (uint64_t)collision_type::geometry)
                             return true;
+#endif
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = (end - start);
                         auto center = Vector3(start + size*.5f, 0.f);
