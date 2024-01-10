@@ -189,7 +189,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
         fm_abort("can't find ground '%d'", (int)j);
     }();
 
-    auto count = 0uz, start = st.n_frames;
+    uint32_t count = 0, start = st.n_frames;
     new_group = old_group;
     new_group.is_defined = true;
     new_group.pixel_size = Vector2ui(expected_size);
@@ -398,7 +398,7 @@ int main(int argc, char** argv)
     auto new_atlas = wall_atlas_def{};
     auto dest = cv::Mat4b{};
     auto error = EX_DATAERR;
-    size_t n_frames = 0;
+    uint32_t n_frames = 0;
 
     auto groups = std::vector<group>{};
     groups.reserve(std::size(Wall::Direction::groups));

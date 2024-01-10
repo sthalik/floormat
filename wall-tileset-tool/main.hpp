@@ -29,7 +29,7 @@ struct state
     const wall_atlas_def& old_atlas;
     wall_atlas_def& new_atlas;
     std::vector<group>& groups;
-    size_t& n_frames;
+    uint32_t& n_frames;
     cv::Mat4b& dest;
     int& error;
 };
