@@ -19,7 +19,7 @@
     },
     {
       "offset": "192 x 0",
-      "size": "32 x 192"
+      "size": "32 x 64"
     },
     {
       "offset": "224 x 0",
@@ -47,7 +47,7 @@
       "count": 1,
       "mirrored": false,
       "offset": 4,
-      "pixel-size": "192 x 32"
+      "pixel-size": "64 x 32"
     },
     "wall": {
       "count": 2,

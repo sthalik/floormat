@@ -5,6 +5,7 @@
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "src/wall-atlas.hpp"
+#include "src/tile-defs.hpp"
 #include "serialize/wall-atlas.hpp"
 //#include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
@@ -38,11 +39,6 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
     fm_assert(idx);
     fm_assert(idx.val < atlas.direction_array.size());
     return atlas.direction_array[idx.val];
-}
-
-Direction& get_direction(wall_atlas_def& atlas, size_t i)
-{
-    return const_cast<Direction&>(get_direction(const_cast<const wall_atlas_def&>(atlas), i));
 }
 
 template<typename Fmt, typename... Xs>
@@ -90,40 +86,62 @@ bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
     }
 }
 
-Vector2ui mat_size(const cv::Mat& mat)
-{
-    return { (unsigned)mat.cols, (unsigned)mat.rows };
-}
-
 bool save_image(state st)
 {
-    const auto count = st.frames.size();
-    fm_assert(count);
-
-    for (auto i = 1uz; i < count; i++)
-        fm_assert(mat_size(st.frames[i].mat).y() == mat_size(st.frames[0].mat).y());
-
-    size_t total_width = 0;
-    for (const auto& x : st.frames)
-        total_width += mat_size(x.mat).x();
-    size_t num_rows = (total_width + max_image_dimension - 1) / max_image_dimension;
-    fm_assert(num_rows > 0);
-    fm_assert(num_rows == 1); // todo
-
-    st.dest.create((int)mat_size(st.frames[0].mat).y(), (int)total_width);
-    st.dest.setTo(cv::Scalar{0, 0, 0, 0});
-
-    unsigned xpos = 0;
-    for (auto& x : st.frames)
+    fm_assert(st.new_atlas.frames.empty());
+    uint32_t max_height = 0;
+    for (const auto& group : st.groups)
     {
-        const auto& src = x.mat;
-        x.size = mat_size(src);
-        x.offset = {(unsigned)xpos, 0};
-        auto rect = cv::Rect{(int)xpos, 0, (int)x.size.x(), (int)x.size.y()};
-        xpos += x.size.x();
-        src.copyTo(st.dest(rect));
-        st.new_atlas.frames.push_back({.offset = x.offset, .size = x.size});
+        const auto expected_size = wall_atlas::expected_size(st.new_atlas.header.depth, group.G);
+        max_height = std::max(max_height, expected_size.y());
     }
+    fm_assert(max_height > 0);
+    fm_assert(max_height == (uint32_t)iTILE_SIZE.z()); // todo?
+
+    uint32_t xpos = 0;
+    Vector2ui max;
+    for (auto& group : st.groups)
+    {
+        const auto size = wall_atlas::expected_size(st.new_atlas.header.depth, group.G);
+        const auto width = size.x(), height = size.y();
+        uint32_t ypos = 0;
+        bool started = false;
+        for (auto& frame : group.frames)
+        {
+            frame.offset = {xpos, ypos};
+            max = Math::max(max, frame.offset + size);
+            started = true;
+            fm_assert(max <= Vector2ui{(unsigned)max_image_dimension});
+            fm_assert(frame.size == size);
+            if (ypos + height*2 <= max_height)
+                ypos += height;
+            else
+            {
+                ypos = 0;
+                xpos += width;
+                started = false;
+            }
+        }
+        if (started)
+            xpos += width;
+    }
+    fm_assert(max.product() > 0);
+
+    st.dest.create((int)max.y(), (int)max.x());
+    st.dest.setTo(cv::Scalar{255, 0, 255, 0});
+
+    for (const auto& group : st.groups)
+    {
+        for (const auto& frame : group.frames)
+        {
+            //Debug{} << "g" << (int)group.G << frame.offset << frame.size;
+            auto rect = cv::Rect{(int)frame.offset.x(), (int)frame.offset.y(),
+                                 (int)frame.size.x(), (int)frame.size.y()};
+            frame.mat.copyTo(st.dest(rect));
+            st.new_atlas.frames.push_back({.offset = frame.offset, .size = frame.size});
+        }
+    }
+
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".png"_s});
     if (!st.opts.use_alpha)
     {
@@ -139,6 +157,8 @@ bool save_image(state st)
 bool save_json(state st)
 {
     using namespace floormat::Wall::detail;
+    fm_assert(!st.new_atlas.frames.empty());
+    fm_assert(st.new_atlas.header.depth > 0);
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".json"_s});
     st.new_atlas.serialize(filename);
     return true;
@@ -160,8 +180,16 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     DBG << "    group" << quoted2(group_name);
     fm_debug_assert(expected_size > Vector2ui{0});
     fm_assert(Math::max(expected_size.x(), expected_size.y()) < max_image_dimension);
+    fm_assert((size_t)st.groups.at(j).G == j);
 
-    uint32_t count = 0, start = (uint32_t)st.frames.size();
+    auto& frames = [&] -> auto&& {
+        for (auto& g : st.groups)
+            if ((size_t)g.G == j)
+                return g.frames;
+        fm_abort("can't find ground '%d'", (int)j);
+    }();
+
+    auto count = 0uz, start = st.n_frames;
     new_group = old_group;
     new_group.is_defined = true;
     new_group.pixel_size = Vector2ui(expected_size);
@@ -171,12 +199,14 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
         auto filename = asformat("{}/{:04}.png"_cf, path, count+1);
         if (!Path::exists(filename))
             break;
-        count++;
         if (Path::isDirectory(filename)) [[unlikely]]
         {
             ERR << "fatal: path" << quoted(filename) << "is a directory!";
             return false;
         }
+
+        count++;
+        st.n_frames++;
 
         cv::Mat mat = cv::imread(filename, cv::IMREAD_ANYCOLOR), mat2;
         if ((Group_)j == Group_::top)
@@ -210,7 +240,10 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
             return false;
         }
 
-        st.frames.push_back({.mat = std::move(buf)});
+        frames.push_back({
+            .mat = std::move(buf),
+            .size = {(unsigned)mat.cols, (unsigned)mat.rows},
+        });
     }
 
     if (count == 0)
@@ -221,7 +254,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
 
     DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
 
-    fm_assert(start + count == st.frames.size());
+    fm_assert(start + count == st.n_frames);
     new_group.count = count;
     new_group.index = start;
 
@@ -363,15 +396,27 @@ int main(int argc, char** argv)
 
     auto old_atlas = wall_atlas_def::deserialize(opts.input_file);
     auto new_atlas = wall_atlas_def{};
-    auto frames = std::vector<frame>{}; frames.reserve(64);
     auto dest = cv::Mat4b{};
     auto error = EX_DATAERR;
+    size_t n_frames = 0;
+
+    auto groups = std::vector<group>{};
+    groups.reserve(std::size(Wall::Direction::groups));
+
+    for (auto [name, ptr, val] : Wall::Direction::groups)
+    {
+        groups.push_back({
+            .frames = std::vector<frame>{},
+            .G = val,
+        });
+    }
 
     auto st = state {
         .opts = opts,
         .old_atlas = old_atlas,
         .new_atlas = new_atlas,
-        .frames = frames,
+        .groups = groups,
+        .n_frames = n_frames,
         .dest = dest,
         .error = error,
     };

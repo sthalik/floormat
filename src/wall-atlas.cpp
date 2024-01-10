@@ -92,6 +92,7 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     case wall:
         return { size.x(), size.z() };
     case top:
+        return { depth, size.x() };
     case side:
     case corner:
         return { depth, size.z() };

@@ -123,7 +123,7 @@ void test_expected_size()
     fm_assert_equal(Vector2ui{64, 192}, wall_atlas::expected_size(42, Group_::wall));
     fm_assert_equal(Vector2ui{42, 192}, wall_atlas::expected_size(42, Group_::side));
     // swapped in atlas.json during reading and writing, rotated counter-clockwise in atlas image file
-    fm_assert_equal(Vector2ui{42, 192}, wall_atlas::expected_size(42, Group_::top));
+    fm_assert_equal(Vector2ui{42, 64}, wall_atlas::expected_size(42, Group_::top));
 }
 
 } // namespace

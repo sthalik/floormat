@@ -93,10 +93,10 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
         else
         {
             return {{
-                { -X - depth, Y, Z },
-                { -X, Y, Z },
-                { -X - depth, -Y, Z },
                 { -X, -Y, Z },
+                { -X,  Y, Z },
+                { -X - depth, -Y, Z },
+                { -X - depth,  Y, Z },
             }};
         }
     case corner:
