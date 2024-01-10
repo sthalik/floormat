@@ -82,7 +82,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 { -X, -Y - depth, Z },
                 {  X, -Y - depth, Z },
                 { -X, -Y, Z },
-                {  X, -Y, Z }
+                {  X, -Y, Z },
             }};
         else
             return {{
