@@ -25,6 +25,8 @@ using loader_detail::loader_impl;
     fm_soft_assert(loader.check_atlas_name(val.name));
     if (j.contains("descr"))
         val.descr = j["descr"];
+    else
+        val.descr = Path::split(val.name).second();
 }
 
 [[maybe_unused]] static void to_json(json& j, const wall_info& val)
@@ -41,7 +43,8 @@ namespace floormat::loader_detail {
 std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView path)
 {
     fm_assert(name != "<invalid>"_s);
-    auto filename = Path::join(path, name);
+    char buf[FILENAME_MAX];
+    auto filename = make_atlas_path(buf, path, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
     auto tex = texture(""_s, filename, false);
 
@@ -98,9 +101,6 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool 
         else
             goto error;
     }
-
-    std::unreachable();
-    fm_assert(false);
 
 missing:
     {

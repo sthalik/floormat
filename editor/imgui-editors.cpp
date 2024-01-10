@@ -36,7 +36,7 @@ StringView scenery_type_to_string(const scenery_& sc)
 StringView scenery_path(const wall_info* wa) { return wa->atlas->name(); }
 StringView scenery_name(StringView name, const scenery_& sc) { return name; }
 StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
-StringView scenery_name(StringView, const wall_info* w) { return w->name; }
+StringView scenery_name(StringView, const wall_info* w) { return w->descr; }
 std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
 std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
 std::shared_ptr<wall_atlas> get_atlas(const wall_info* w) { return loader.wall_atlas(w->name); }
