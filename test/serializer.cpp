@@ -17,7 +17,7 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
-    auto metal2 = loader.wall_atlas("concrete1", false);
+    auto metal2 = loader.wall_atlas("empty", false);
     auto tiles  = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c)

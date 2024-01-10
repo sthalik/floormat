@@ -1,0 +1,19 @@
+{
+  "depth": 8,
+  "frames": [
+    {
+      "offset": "0 x 0",
+      "size": "64 x 192"
+    }
+  ],
+  "n": {
+    "wall": {
+      "count": 1,
+      "mirrored": false,
+      "offset": 0,
+      "pixel-size": "64 x 192"
+    }
+  },
+  "name": "empty",
+  "pass-mode": "blocked"
+}

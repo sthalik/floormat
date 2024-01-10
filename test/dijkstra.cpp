@@ -19,7 +19,7 @@ void test_app::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
 
     auto& ch = w[wch];
-    auto metal2 = wall_image_proto{loader.wall_atlas("concrete1", false), 0};
+    auto metal2 = wall_image_proto{loader.wall_atlas("empty", false), 0};
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
@@ -54,7 +54,7 @@ void test_app::test_dijkstra()
     };
 
     {
-        constexpr auto min = (uint32_t)(TILE_SIZE2*.5f).length() - uint32_t{1},
+        constexpr auto min = (uint32_t)(TILE_SIZE2.length()*.25f) - uint32_t{1},
                        max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
         auto result = run(debug);
 

@@ -1,0 +1,10 @@
+{
+    "name": "empty",
+    "depth": 8,
+    "n": {
+        "pass-mode": "blocked",
+        "wall": {
+            "pixel-size": "64 x 192"
+        }
+    }
+}

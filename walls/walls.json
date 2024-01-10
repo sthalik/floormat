@@ -1,4 +1,5 @@
 [
     { "name": "concrete1" },
-    { "name": "test1" }
+    { "name": "test1" },
+    { "name": "empty" }
 ]
