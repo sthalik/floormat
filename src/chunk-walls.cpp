@@ -170,7 +170,7 @@ GL::Mesh chunk::make_wall_mesh()
         const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto& dir = atlas->calc_direction(D);
-        const auto vpos = (uint8_t)Vector2ui(global_coords{_coord, pos}.raw()).sum();
+        const auto vpos = (uint8_t)(Vector2ui(global_coords{_coord, pos}.raw()).sum() + is_west);
         const auto Depth = atlas->info().depth;
 
         for (auto [_, member, G] : Wall::Direction::groups_for_draw)

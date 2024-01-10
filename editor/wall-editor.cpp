@@ -58,7 +58,6 @@ void wall_editor::load_atlases()
 wall_editor::wall_editor()
 {
     load_atlases();
-    _selected_atlas = loader.wall_atlas("concrete1"_s, false); // todo
 }
 
 StringView wall_editor::name() const { return "wall"_s; }
