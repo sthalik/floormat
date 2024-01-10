@@ -35,6 +35,7 @@ private:
     void read_strings(reader_t& reader);
     void read_chunks(reader_t& reader);
     void read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i);
+    void preload_chunks();
 
     std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
@@ -391,10 +392,19 @@ void reader_state::read_chunks(reader_t& s)
         fm_assert(c.is_scenery_modified());
         fm_assert(c.is_passability_modified());
         c.sort_objects();
-        c.ensure_ground_mesh();
-        c.ensure_wall_mesh();
-        c.ensure_scenery_mesh({ draw_array, draw_vertexes, draw_indexes });
-        c.ensure_passability();
+    }
+}
+
+void reader_state::preload_chunks()
+{
+    for (auto& [coord, _] : _world->chunks())
+    {
+        auto* c = _world->at(coord);
+        fm_assert(c);
+        c->ensure_ground_mesh();
+        c->ensure_wall_mesh();
+        c->ensure_scenery_mesh({ draw_array, draw_vertexes, draw_indexes });
+        c->ensure_passability();
     }
 }
 
@@ -470,6 +480,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf)
         _world->set_object_counter(object_counter);
     else if (PROTO >= 8) [[likely]]
         _world->set_object_counter(std::max(world::object_counter_init, object_counter));
+    preload_chunks();
     _world = nullptr;
 }
 
