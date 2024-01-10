@@ -3,6 +3,7 @@
 #include "imgui-raii.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>
@@ -15,6 +16,9 @@ namespace {
 
 template<typename T> constexpr inline bool do_group_column = false;
 template<> constexpr inline bool do_group_column<scenery_editor> = true;
+template<typename T> constexpr inline bool do_path_column = false;
+template<> constexpr inline bool do_path_column<wall_editor> = true;
+
 using scenery_ = scenery_editor::scenery_;
 using vobj_ = vobj_editor::vobj_;
 
@@ -29,11 +33,23 @@ StringView scenery_type_to_string(const scenery_& sc)
     }
 }
 
-std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
-StringView scenery_name(StringView name, const scenery_&) { return name; }
-StringView scenery_type_to_string(const vobj_& vobj) { return vobj.name; }
-std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
+StringView scenery_path(const wall_info* wa) { return wa->atlas->name(); }
+StringView scenery_name(StringView name, const scenery_& sc) { return name; }
 StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
+StringView scenery_name(StringView, const wall_info* w) { return w->name; }
+std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
+std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
+std::shared_ptr<wall_atlas> get_atlas(const wall_info* w) { return loader.wall_atlas(w->name); }
+Vector2ui get_size(const auto&, anim_atlas& atlas) { return atlas.frame(atlas.first_rotation(), 0).size; }
+Vector2ui get_size(const auto&, wall_atlas& atlas) { auto sz = atlas.image_size(); return { std::max(1u, std::min(sz.y()*3/2, sz.x())), sz.y() }; }
+bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }
+bool is_selected(const vobj_editor& vo, const vobj_& sc) { return vo.is_item_selected(sc); }
+bool is_selected(const wall_editor& wa, const wall_info* sc) {  return wa.is_atlas_selected(sc->atlas); }
+void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
+void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
+void select_tile(wall_editor& wa, const wall_info* sc) { wa.select_atlas(sc->atlas); }
+auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
+auto get_texcoords(const wall_info* w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); };
 
 void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas, Vector2 dpi)
 {
@@ -112,7 +128,7 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 
     const auto& style = ImGui::GetStyle();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    constexpr int ncolumns = do_group_column<T> ? 4 : 2;
+    constexpr int ncolumns = do_group_column<T> ? 4 : do_path_column<T> ? 3 : 2;
     const auto size = ImGui::GetWindowSize();
     auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
@@ -129,6 +145,11 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
         ImGui::TableSetupColumn("Type", colflags, colwidth_type);
         ImGui::TableSetupColumn("Group", colflags, colwidth_group);
     }
+    else if constexpr(do_path_column<T>)
+    {
+        const auto colwidth_path = ImGui::CalcTextSize("/MMMMMMMMMMMMMMM").x;
+        ImGui::TableSetupColumn("Path", colflags, colwidth_path);
+    }
     ImGui::TableHeadersRow();
 
     const auto click_event = [&] {
@@ -144,12 +165,11 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 
         if (ImGui::TableSetColumnIndex(0))
         {
-            auto& atlas = *get_atlas(scenery);
-            const auto r = atlas.first_rotation();
-            const auto& frame = atlas.frame(r, 0);
-            const auto size = Vector2(frame.size);
+            auto atlas_ = get_atlas(scenery);
+            auto& atlas = *atlas_;
+            const auto size = Vector2(get_size(scenery, atlas));
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
-            const auto texcoords = atlas.texcoords_for_frame(r, 0, !atlas.group(r).mirror_from.isEmpty());
+            const auto texcoords = get_texcoords(scenery, atlas);
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
             const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
@@ -160,45 +180,52 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
         if (ImGui::TableSetColumnIndex(1))
         {
             constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
-            bool selected = ed.is_item_selected(scenery);
+            bool selected = is_selected(ed, scenery);
             auto name_ = scenery_name(name, scenery);
             if (ImGui::Selectable(name_.data(), &selected, flags, {0, row_height}) && selected)
-                ed.select_tile(scenery);
+                select_tile(ed, scenery);
             click_event();
         }
-        if (do_group_column<T> && ImGui::TableSetColumnIndex(2))
+
+        if constexpr(do_group_column<T>)
         {
-            text(scenery_type_to_string(scenery));
-            click_event();
+            if (ImGui::TableSetColumnIndex(2))
+            {
+                text(scenery_type_to_string(scenery));
+                click_event();
+            }
         }
-        if (do_group_column<T> && ImGui::TableSetColumnIndex(3))
+        else if constexpr (do_path_column<T>)
         {
-            auto& atlas = *get_atlas(scenery);
-            StringView name = loader.strip_prefix(atlas.name());
-            if (auto last = name.findLast('/'))
-                name = name.prefix(last.data());
-            else
-                name = {};
-            text(name);
-            click_event();
+            if (ImGui::TableSetColumnIndex(2))
+            {
+                text(scenery_path(scenery));
+                click_event();
+            }
+        }
+
+        if constexpr(do_group_column<T>)
+        {
+            if (ImGui::TableSetColumnIndex(3))
+            {
+                auto& atlas = *get_atlas(scenery);
+                StringView name = loader.strip_prefix(atlas.name());
+                if (auto last = name.findLast('/'))
+                    name = name.prefix(last.data());
+                else
+                    name = {};
+                text(name);
+                click_event();
+            }
         }
     }
 }
 
 template void impl_draw_editor_scenery_pane(scenery_editor&, Vector2);
 template void impl_draw_editor_scenery_pane(vobj_editor&, Vector2);
+template void impl_draw_editor_scenery_pane(wall_editor&, Vector2);
 
 } // namespace
-
-void app::draw_editor_scenery_pane(scenery_editor& ed)
-{
-    impl_draw_editor_scenery_pane<scenery_editor>(ed, M->dpi_scale());
-}
-
-void app::draw_editor_vobj_pane(vobj_editor& ed)
-{
-    impl_draw_editor_scenery_pane<vobj_editor>(ed, M->dpi_scale());
-}
 
 void app::draw_editor_pane(float main_menu_height)
 {
@@ -243,9 +270,11 @@ void app::draw_editor_pane(float main_menu_height)
                     for (const auto& [k, v] : *ed)
                         draw_editor_tile_pane_atlas(*ed, k, v, dpi);
                 else if (sc)
-                    draw_editor_scenery_pane(*sc);
+                    impl_draw_editor_scenery_pane<scenery_editor>(*sc, dpi);
                 else if (vo)
-                    draw_editor_vobj_pane(*vo);
+                    impl_draw_editor_scenery_pane<vobj_editor>(*vo, dpi);
+                else if (wa)
+                    impl_draw_editor_scenery_pane<wall_editor>(*wa, dpi);
                 else if (_editor.mode() == editor_mode::tests)
                     draw_tests_pane();
             }
