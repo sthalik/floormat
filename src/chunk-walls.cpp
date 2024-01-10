@@ -169,7 +169,7 @@ GL::Mesh chunk::make_wall_mesh()
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
-            bool side_ok = true;
+            bool side_ok = G == Wall::Group_::side;
 
             if (!(dir.*member).is_defined)
                 continue;
@@ -187,16 +187,21 @@ GL::Mesh chunk::make_wall_mesh()
                         if (auto t = at_offset_(pos, {0, -1}); t && t->wall_west_atlas())
                             corner_ok = true;
                     }
-                    if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
-                        side_ok = false;
+                    if (side_ok)
+                        if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
+                            side_ok = false;
+                    if (side_ok)
+                        if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
+                            side_ok = false;
                 }
                 else
                 {
                     if (auto t = at_offset_(pos, {0, -1}); !(t && t->wall_west_atlas()))
                         if (auto t = at_offset_(pos, {-1, 0}); t && t->wall_north_atlas())
                             corner_ok = true;
-                    if (auto t = at_offset_(pos, {-1, 1}); t && t->wall_north_atlas())
-                        side_ok = false;
+                    if (side_ok)
+                        if (auto t = at_offset_(pos, {-1, 1}); t && t->wall_north_atlas())
+                            side_ok = false;
                 }
 
                 if (pillar_ok) [[unlikely]]
