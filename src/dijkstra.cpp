@@ -185,8 +185,6 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (!path_search::is_passable(w, to.coord(), to.offset(), own_size, own_id, p))
         return {};
 
-    cache.allocate(from, max_dist);
-
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
 
     for (int8_t y = div_min; y <= div_max; y++)
