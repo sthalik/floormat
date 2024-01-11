@@ -6,7 +6,7 @@
 
 namespace floormat::wireframe {
 
-struct box final
+struct box
 {
     box(Vector3 center, Vector3 size, float line_width);
 

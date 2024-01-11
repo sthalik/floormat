@@ -22,7 +22,7 @@ struct chunk;
 struct clickable;
 struct object;
 
-struct anim_mesh final
+struct anim_mesh
 {
     anim_mesh();
 
@@ -36,7 +36,8 @@ struct anim_mesh final
 private:
     static std::array<UnsignedShort, 6> make_index_array();
 
-    struct vertex_data final {
+    struct vertex_data
+    {
         Vector3 position;
         Vector2 texcoords;
         float depth = -1;

@@ -174,7 +174,8 @@ void app::clear_non_repeated_keys() { clear_keys(key_NO_REPEAT, key_COUNT); }
 void app::on_key_up_down(const key_event& event, bool is_down) noexcept
 {
     using KeyEvent = Platform::Sdl2Application::KeyEvent;
-    struct Ev final {
+    struct Ev
+    {
         using Key = KeyEvent::Key;
         using Modifier = KeyEvent::Modifier;
         using Modifiers = KeyEvent::Modifiers;

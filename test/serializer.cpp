@@ -66,7 +66,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         case object_type::critter: {
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
-            const auto p1 =critter_proto(e1), p2 =critter_proto(e2);
+            const auto p1 = critter_proto(e1), p2 = critter_proto(e2);
             fm_assert(p1 == p2);
             break;
         }
@@ -102,11 +102,13 @@ void test_serializer(StringView input, StringView tmp)
     {
         coord = {1, 1, 0};
         w = world();
-        test_app::make_test_chunk(w, coord);
+        auto& c = test_app::make_test_chunk(w, coord);
+        fm_assert(!c.empty(true));
     }
     w.serialize(tmp);
     auto w2 = world::deserialize(tmp);
     auto& c2 = w2[coord];
+    fm_assert(!c2.empty(true));
     assert_chunks_equal(w[coord], c2);
 }
 

@@ -333,7 +333,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         const auto& e = *e_;
         fm_assert(s.bytes_written() + object_size <= chunk_buf.size());
         object_id oid = e.id;
-        fm_assert((oid & lowbits<60, object_id>) == e.id);
+        fm_assert((oid & lowbits<collision_data_BITS, object_id>) == e.id);
         const auto type = e.type();
         const auto type_ = (object_type_i)type;
         fm_assert(type_ == (type_ & lowbits<object_type_BITS, object_type_i>));

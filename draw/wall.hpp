@@ -5,7 +5,7 @@ namespace floormat {
 struct tile_shader;
 struct chunk;
 
-struct wall_mesh final
+struct wall_mesh
 {
     wall_mesh();
 

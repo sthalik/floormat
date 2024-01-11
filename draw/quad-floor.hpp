@@ -8,7 +8,7 @@
 
 namespace floormat::wireframe {
 
-struct quad_floor final
+struct quad_floor
 {
     quad_floor(Vector3 center, Vector2 size, float line_width);
 

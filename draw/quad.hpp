@@ -6,7 +6,7 @@
 
 namespace floormat::wireframe {
 
-struct quad final
+struct quad
 {
     quad(Vector3 start, Vector2 size, float line_width);
 

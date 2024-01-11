@@ -7,7 +7,7 @@
 
 namespace floormat::wireframe {
 
-struct quad_wall_w final
+struct quad_wall_w
 {
     quad_wall_w(Vector3 center, Vector3 size, float line_width);
 

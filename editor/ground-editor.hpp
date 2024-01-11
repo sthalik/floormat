@@ -19,7 +19,8 @@ class ground_editor final
         sel_none, sel_tile, sel_perm,
     };
 
-    struct tuple final {
+    struct tuple
+    {
         std::shared_ptr<ground_atlas> atlas;
         std::vector<decltype(tile_image_proto::variant)> variant;
     };
