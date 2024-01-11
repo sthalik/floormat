@@ -8,8 +8,8 @@ class anim_atlas;
 
 struct tile_proto final
 {
-    std::shared_ptr<ground_atlas> ground_atlas;
-    std::shared_ptr<wall_atlas> wall_north_atlas, wall_west_atlas;
+    std::shared_ptr<class ground_atlas> ground_atlas;
+    std::shared_ptr<class wall_atlas> wall_north_atlas, wall_west_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
 
     tile_image_proto ground() const noexcept;
