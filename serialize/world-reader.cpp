@@ -217,7 +217,7 @@ void reader_state::read_chunks(reader_t& s)
                 auto name = lookup_atlas(id);
                 if constexpr(std::is_same_v<ground_atlas, T>)
                 {
-                    auto atlas = loader.ground_atlas(name);
+                    auto atlas = loader.ground_atlas(name, true);
                     fm_soft_assert(v < atlas->num_tiles());
                     return { atlas, v };
                 }
