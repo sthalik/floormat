@@ -182,7 +182,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     fm_assert(Math::max(expected_size.x(), expected_size.y()) < max_image_dimension);
     fm_assert((size_t)st.groups.at(j).G == j);
 
-    auto& frames = [&] -> auto&& {
+    auto& frames = [&]() -> auto&& {
         for (auto& g : st.groups)
             if ((size_t)g.G == j)
                 return g.frames;
