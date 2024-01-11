@@ -23,7 +23,7 @@ static_assert(data_nbytes == 128);
 
 void bitmask_test()
 {
-    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
+    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s, false);
     auto bitmask = anim_atlas::make_bitmask(img);
     fm_assert(img.pixelSize() == 4 && (size_t)img.size().product() >= data_nbytes);
 #ifdef DO_GENERATE

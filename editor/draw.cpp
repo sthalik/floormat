@@ -68,7 +68,7 @@ void app::draw_cursor()
             if (ed->is_anything_selected())
             {
                 shader.set_tint({1, 1, 1, 0.75f});
-                auto [_f, _w, anim_mesh] = M->meshes();
+                auto [_g, _w, anim_mesh] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
                 const auto pos = Vector3i(tile)*iTILE_SIZE + offset;
                 auto [ch, t] = w[tile];
@@ -86,7 +86,7 @@ void app::draw_cursor()
                 const auto& atlas = vo->get_selected()->factory->atlas();
                 draw(_wireframe_quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
-                auto [_f, _w, anim_mesh] = M->meshes();
+                auto [_g, _w, anim_mesh] = M->meshes();
                 const auto pos = Vector3i(tile)*iTILE_SIZE;
                 anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
             }

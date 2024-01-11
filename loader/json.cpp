@@ -58,7 +58,7 @@ ArrayView<const std::shared_ptr<class ground_atlas>> loader_impl::ground_atlases
     if (!ground_atlas_array.empty()) [[likely]]
         return ground_atlas_array;
     ground_atlas_array = json_helper::from_json<std::vector<std::shared_ptr<class ground_atlas>>>(
-        Path::join(loader_::IMAGE_PATH, filename));
+        Path::join(loader_::GROUND_TILESET_PATH, filename));
     fm_assert(!ground_atlas_array.empty());
     return ground_atlas_array;
 }

@@ -5,9 +5,9 @@ namespace floormat {
 struct tile_shader;
 struct chunk;
 
-struct floor_mesh final
+struct ground_mesh final
 {
-    floor_mesh();
+    ground_mesh();
 
     void draw(tile_shader& shader, chunk& c);
 };

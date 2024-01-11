@@ -56,9 +56,9 @@ std::shared_ptr<ground_atlas> loader_impl::ground_atlas(StringView name, Vector2
     fm_soft_assert(check_atlas_name(name));
 
     char buf[FILENAME_MAX];
-    auto path = make_atlas_path(buf, IMAGE_PATH, name);
+    auto path = make_atlas_path(buf, GROUND_TILESET_PATH, name);
 
-    auto atlas = std::make_shared<class ground_atlas>(path, name, texture(""_s, path), size, pass);
+    auto atlas = std::make_shared<class ground_atlas>(path, name, texture(""_s, path, false), size, pass);
     ground_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
@@ -107,7 +107,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
             }
         }
 
-        auto tex = texture(""_s, path);
+        auto tex = texture(""_s, path, false);
 
         fm_soft_assert(!anim_info.object_name.isEmpty());
         fm_soft_assert(anim_info.pixel_size.product() > 0);

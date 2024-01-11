@@ -17,7 +17,7 @@ namespace floormat {
 
 void app::maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c)
 {
-    auto floor1 = loader.ground_atlas("floor-tiles", { 44, 4 }, pass_mode::pass);
+    auto floor1 = loader.ground_atlas("ground-tiles", { 44, 4 }, pass_mode::pass);
     auto floor2 = loader.ground_atlas("metal1", { 2, 2 }, pass_mode::pass);
     auto wall1  = loader.ground_atlas("wood2", { 2, 1 }, pass_mode::blocked);
     auto wall2  = loader.ground_atlas("wood1", { 2, 1 }, pass_mode::blocked);

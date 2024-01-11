@@ -12,7 +12,7 @@ namespace {
 
 [[maybe_unused]] void Bitmask(benchmark::State& state)
 {
-    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
+    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s, false);
     auto bitmask = anim_atlas::make_bitmask(img);
     anim_atlas::make_bitmask_(img, bitmask);
 

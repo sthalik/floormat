@@ -8,7 +8,7 @@ namespace floormat {
 
 void test_app::test_loader()
 {
-    (void)loader.ground_atlases("floor.json");
+    (void)loader.ground_atlases("ground.json");
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
     loader.sceneries();

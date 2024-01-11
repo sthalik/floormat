@@ -1,4 +1,4 @@
-#include "floor.hpp"
+#include "ground.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
 #include "src/ground-atlas.hpp"
@@ -7,9 +7,9 @@
 
 namespace floormat {
 
-floor_mesh::floor_mesh() = default;
+ground_mesh::ground_mesh() = default;
 
-void floor_mesh::draw(tile_shader& shader, chunk& c)
+void ground_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr int quad_index_count = 6;
     const auto [mesh_, ids, size] = c.ensure_ground_mesh();
@@ -42,7 +42,7 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
 //#define FM_DEBUG_DRAW_COUNT
 #ifdef FM_DEBUG_DRAW_COUNT
     if (draw_count)
-        fm_debug("floor draws: %zu", draw_count);
+        fm_debug("ground draws: %zu", draw_count);
 #endif
 }
 

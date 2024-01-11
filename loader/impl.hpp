@@ -42,7 +42,7 @@ struct loader_impl final : loader_
     StringView shader(StringView filename) noexcept override;
 
     Trade::ImageData2D make_error_texture(Vector2ui size);
-    Trade::ImageData2D texture(StringView prefix, StringView filename, bool fail_ok = true) noexcept(false) override;
+    Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
 
     // >-----> walls >----->
     struct wall_index { uint32_t val = (uint32_t)-1; };
@@ -55,7 +55,7 @@ struct loader_impl final : loader_
     std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
-    const wall_info& make_invalid_wall_atlas();
+    const wall_info& make_invalid_wall_atlas() noexcept override;
     std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name, StringView path);
 
     // >-----> tile >----->
@@ -64,7 +64,7 @@ struct loader_impl final : loader_
 
     ArrayView<const std::shared_ptr<class ground_atlas>> ground_atlases(StringView filename) noexcept(false) override;
     std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) override;
-    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename) noexcept(false) override;
+    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, bool fail_ok) noexcept(false) override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;

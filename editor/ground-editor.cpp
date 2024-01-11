@@ -17,7 +17,7 @@ ground_editor::ground_editor()
 
 void ground_editor::load_atlases()
 {
-    for (const auto& atlas : loader.ground_atlases("floor.json"_s))
+    for (const auto& atlas : loader.ground_atlases("ground.json"_s))
     {
         auto& [_, vec] = _permutation;
         vec.reserve(atlas->num_tiles());
@@ -41,7 +41,7 @@ std::shared_ptr<ground_atlas> ground_editor::atlas(StringView str)
         fm_throw("no such atlas: {}"_cf, str);
 }
 
-StringView ground_editor::name() const noexcept { return "floor"_s; }
+StringView ground_editor::name() const noexcept { return "ground"_s; }
 
 void ground_editor::clear_selection()
 {

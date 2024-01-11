@@ -23,11 +23,12 @@ struct wall_info;
 struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
-    virtual Trade::ImageData2D texture(StringView prefix, StringView filename, bool fail_ok = true) noexcept(false) = 0;
+    virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) = 0;
-    virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename) noexcept(false) = 0;
+    virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, bool fail_ok = false) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
+    virtual const wall_info& make_invalid_wall_atlas() noexcept = 0;
     virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) noexcept(false) = 0;
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     static void destroy();
@@ -47,11 +48,12 @@ struct loader_
 
     virtual ~loader_() noexcept;
 
-    static const StringView IMAGE_PATH;
+    static const StringView IMAGE_PATH_;
     static const StringView ANIM_PATH;
     static const StringView SCENERY_PATH;
     static const StringView TEMP_PATH;
     static const StringView VOBJ_PATH;
+    static const StringView GROUND_TILESET_PATH;
     static const StringView WALL_TILESET_PATH;
 
 protected:

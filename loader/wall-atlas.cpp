@@ -46,7 +46,7 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     char buf[FILENAME_MAX];
     auto filename = make_atlas_path(buf, path, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
-    auto tex = texture(""_s, filename, false);
+    auto tex = texture(""_s, filename);
 
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.empty());
@@ -54,7 +54,7 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     return atlas;
 }
 
-const wall_info& loader_impl::make_invalid_wall_atlas()
+const wall_info& loader_impl::make_invalid_wall_atlas() noexcept
 {
     if (invalid_wall_atlas) [[likely]]
         return *invalid_wall_atlas;

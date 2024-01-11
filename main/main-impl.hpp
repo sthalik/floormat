@@ -2,7 +2,7 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
-#include "draw/floor.hpp"
+#include "draw/ground.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
 #include "shaders/texture-unit-cache.hpp"
@@ -111,7 +111,7 @@ private:
     struct world _world{};
     Magnum::Timeline timeline;
     uint32_t _mouse_cursor = (uint32_t)-1;
-    floor_mesh _floor_mesh;
+    ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
 #ifdef FM_USE_DEPTH32

@@ -17,7 +17,7 @@ struct world;
 struct scenery;
 class anim_atlas;
 struct clickable;
-struct floor_mesh;
+struct ground_mesh;
 struct wall_mesh;
 struct anim_mesh;
 struct texture_unit_cache;
@@ -28,7 +28,7 @@ struct floormat_main
 {
     struct draw_bounds final { int16_t minx, maxx, miny, maxy; };
     struct meshes final {
-        floor_mesh& floor;
+        ground_mesh& ground;
         wall_mesh& wall;
         anim_mesh& anim;
     };

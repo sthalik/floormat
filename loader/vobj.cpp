@@ -46,7 +46,7 @@ namespace floormat::loader_detail {
 
 std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
-    auto tex = texture(VOBJ_PATH, image_filename);
+    auto tex = texture(VOBJ_PATH, image_filename, false);
     anim_def def;
     def.object_name = name;
     const auto size = tex.pixels().size();
