@@ -100,7 +100,6 @@ Optional<global_coords> editor::mouse_drag_pos()
 
 void editor::on_click_(world& world, global_coords pos, button b)
 {
-    // todo make template
     if (auto* mode = current_ground_editor(); mode != nullptr)
     {
         if (auto opt = mode->get_selected(); opt || b == button::remove)

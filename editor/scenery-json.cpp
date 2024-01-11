@@ -2,6 +2,7 @@
 #include "serialize/scenery.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
+#include <Corrade/Containers/ArrayView.h>
 
 namespace floormat {
 

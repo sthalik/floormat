@@ -21,7 +21,7 @@ constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #endif
 
-// todo try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
+// todo rewrite using bitwise ops. try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
 {
@@ -141,7 +141,6 @@ void object::rotate(size_t, rotation new_r)
     const_cast<rotation&>(r) = new_r;
 }
 
-// todo rewrite using bitwise ops
 point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
 {
     auto [cx, ox] = normalize_coord<iTILE_SIZE2.x()>(cur.x(), new_off.x());

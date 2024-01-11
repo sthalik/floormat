@@ -104,7 +104,6 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool 
 
 missing:
     {
-        // todo allocate wall_info instead
         missing_wall_atlases.push_back(String { AllocatedInit, name });
         auto string_view = StringView{missing_wall_atlases.back()};
         wall_atlas_map[string_view] = (wall_info*)-1;

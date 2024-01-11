@@ -16,7 +16,6 @@ uniform Lightmap {
 layout (location = 0) in vec3 position;
 
 void main() {
-    // todo add interface blocks
     vec2 pos = position.xy;
     if (mode == 0)
     {

@@ -129,10 +129,9 @@ struct chunk final
 private:
     struct ground_stuff
     {
-        // todo remove "_ground" prefix
-        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> _ground_atlases;
-        std::array<uint8_t, TILE_COUNT> ground_indexes = {};
-        std::array<variant_t, TILE_COUNT> _ground_variants = {};
+        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> atlases;
+        std::array<uint8_t, TILE_COUNT> indexes = {};
+        std::array<variant_t, TILE_COUNT> variants = {};
     };
 
     struct wall_stuff

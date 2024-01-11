@@ -7,6 +7,7 @@
 #include "serialize/tile-atlas.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 
@@ -32,10 +33,11 @@ void loader_impl::get_scenery_list()
     fm_assert(!sceneries_map.empty());
 }
 
-const std::vector<serialized_scenery>& loader_impl::sceneries()
+ArrayView<const serialized_scenery> loader_impl::sceneries()
 {
-    if (sceneries_array.empty())
+    if (sceneries_array.empty()) [[likely]]
         get_scenery_list();
+    fm_assert(!sceneries_array.empty());
     return sceneries_array;
 }
 
@@ -44,21 +46,21 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
     fm_soft_assert(check_atlas_name(name));
     if (sceneries_array.empty())
         get_scenery_list();
+    fm_assert(!sceneries_array.empty());
     auto it = sceneries_map.find(name);
     if (it == sceneries_map.end())
         fm_throw("no such scenery: '{}'"_cf, name);
     return it->second->proto;
 }
 
-} // namespace floormat::loader_detail
-
-namespace floormat {
-
-std::vector<std::shared_ptr<class tile_atlas>> loader_::tile_atlases(StringView filename)
+ArrayView<const std::shared_ptr<class tile_atlas>> loader_impl::tile_atlases(StringView filename)
 {
-    auto vec = json_helper::from_json<std::vector<std::shared_ptr<class tile_atlas>>>(
+    if (!tile_atlas_array.empty()) [[likely]]
+        return tile_atlas_array;
+    tile_atlas_array = json_helper::from_json<std::vector<std::shared_ptr<class tile_atlas>>>(
         Path::join(loader_::IMAGE_PATH, filename));
-    return vec;
+    fm_assert(!tile_atlas_array.empty());
+    return tile_atlas_array;
 }
 
-} // namespace floormat
+} // namespace floormat::loader_detail

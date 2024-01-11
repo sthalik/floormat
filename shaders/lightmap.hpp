@@ -87,7 +87,7 @@ private:
     size_t count = 0, capacity = 0;
     Framebuffer framebuffer;
     GL::Mesh occlusion_mesh{NoCreate};
-    static constexpr auto starting_capacity = 1; // todo
+    static constexpr auto starting_capacity = 32;
 
     GL::Buffer light_vertex_buf{NoCreate};
     GL::Mesh light_mesh{NoCreate};

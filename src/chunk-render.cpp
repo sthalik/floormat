@@ -36,17 +36,17 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         return { ground_mesh, {}, 0 };
 
     if (!_ground_modified)
-        return { ground_mesh, _ground->ground_indexes, size_t(ground_mesh.count()/6) };
+        return { ground_mesh, _ground->indexes, size_t(ground_mesh.count()/6) };
     _ground_modified = false;
 
     size_t count = 0;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (_ground->_ground_atlases[i])
-            _ground->ground_indexes[count++] = uint8_t(i);
+        if (_ground->atlases[i])
+            _ground->indexes[count++] = uint8_t(i);
 
-    std::sort(_ground->ground_indexes.begin(), _ground->ground_indexes.begin() + count,
+    std::sort(_ground->indexes.begin(), _ground->indexes.begin() + count,
               [this](uint8_t a, uint8_t b) {
-                  return _ground->_ground_atlases[a] < _ground->_ground_atlases[b];
+                  return _ground->atlases[a] < _ground->atlases[b];
               });
 
     float hack_offset = _coord.z <= 0 ? -16 : 0; // XXX hack
@@ -54,11 +54,11 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (auto k = 0uz; k < count; k++)
     {
-        const uint8_t i = _ground->ground_indexes[k];
-        const auto& atlas = _ground->_ground_atlases[i];
+        const uint8_t i = _ground->indexes[k];
+        const auto& atlas = _ground->atlases[i];
         const local_coords pos{i};
         const auto quad = floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
-        const auto texcoords = atlas->texcoords_for_id(_ground->_ground_variants[i]);
+        const auto texcoords = atlas->texcoords_for_id(_ground->variants[i]);
         const float depth = tile_shader::depth_value(pos, tile_shader::ground_depth_offset + hack_offset);
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)
@@ -74,7 +74,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(int32_t(6 * count));
     ground_mesh = Utility::move(mesh);
-    return { ground_mesh, _ground->ground_indexes, count };
+    return { ground_mesh, _ground->indexes, count };
 }
 
 

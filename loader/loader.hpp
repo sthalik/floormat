@@ -2,7 +2,6 @@
 #include "src/pass-mode.hpp"
 #include <stdio.h>
 #include <memory>
-#include <vector>
 #include <Corrade/Containers/StringView.h>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
@@ -25,7 +24,6 @@ struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename, bool fail_ok = true) noexcept(false) = 0;
-    // todo remove Optional when wall_atlas is fully implemented -sh 20231122
     virtual std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     virtual std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
@@ -34,9 +32,8 @@ struct loader_
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
-    // todo move to ArrayView later, make non-static, and remove pass_mode
-    static std::vector<std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename);
-    virtual const std::vector<serialized_scenery>& sceneries() = 0;
+    virtual ArrayView<const std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename) noexcept(false) = 0;
+    virtual ArrayView<const serialized_scenery> sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);

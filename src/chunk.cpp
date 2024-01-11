@@ -28,7 +28,7 @@ bool chunk::empty(bool force) const noexcept
         return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
         if (!_objects.empty() ||
-            _ground && _ground->_ground_atlases[i] ||
+            _ground && _ground->atlases[i] ||
             _walls && (_walls->atlases[i*2+0] || _walls->atlases[i*2+1]))
             return _maybe_empty = false;
     if (!_objects.empty())
@@ -36,7 +36,7 @@ bool chunk::empty(bool force) const noexcept
     return true;
 }
 
-tile_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->_ground_atlases[i].get() : nullptr; }
+tile_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
 
 tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
 tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), uint8_t(idx) }); }
@@ -86,7 +86,6 @@ void chunk::mark_ground_modified() noexcept
     mark_passability_modified();
 }
 
-// todo this can use _replace_bbox too
 void chunk::mark_walls_modified() noexcept
 {
     if (!_walls_modified && !is_log_quiet())

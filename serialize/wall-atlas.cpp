@@ -188,7 +188,6 @@ Group read_group_metadata(const json& jgroup)
             val.index = (uint32_t)index;
             val.count = (uint32_t)count;
         }
-        // todo check index within range
     }
 
     val.default_tint = true;

@@ -377,7 +377,7 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
             if (atlas->info().passability == pass_mode::blocked)
             {
                 auto start = tile_start(i);
-                auto min = start - Vector2(0, shadow_wall_depth),
+                auto min = start - Vector2(0, shadow_wall_depth), // todo wall depth
                      max = start + Vector2(TILE_SIZE2[0], 0);
                 constexpr auto fuzz = Vector2(fuzz_pixels, 0), fuzz2 = fuzz*2;
                 add_rect(neighbor_offset, {min-fuzz, max+fuzz2});
@@ -386,7 +386,7 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
             if (atlas->info().passability == pass_mode::blocked)
             {
                 auto start = tile_start(i);
-                auto min = start - Vector2(shadow_wall_depth, 0),
+                auto min = start - Vector2(shadow_wall_depth, 0), // todo wall depth
                      max = start + Vector2(0, TILE_SIZE[1]);
                 constexpr auto fuzz = Vector2(0, fuzz_pixels), fuzz2 = fuzz*2;
                 add_rect(neighbor_offset, {min-fuzz, max+fuzz2});

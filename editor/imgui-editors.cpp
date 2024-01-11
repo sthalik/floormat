@@ -230,7 +230,7 @@ template void impl_draw_editor_scenery_pane(wall_editor&, Vector2);
 void app::draw_editor_pane(float main_menu_height)
 {
     auto* ed = _editor.current_ground_editor();
-    auto* wa = _editor.current_wall_editor(); // todo
+    auto* wa = _editor.current_wall_editor();
     auto* sc = _editor.current_scenery_editor();
     auto* vo = _editor.current_vobj_editor();
 

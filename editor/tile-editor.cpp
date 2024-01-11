@@ -153,7 +153,6 @@ auto tile_editor::check_snap(int mods) const -> editor_snap_mode
 {
     const bool ctrl = mods & kmod_ctrl, shift = mods & kmod_shift;
 
-    // todo show on cursor while held
     if (!(ctrl | shift))
         return editor_snap_mode::none;
 

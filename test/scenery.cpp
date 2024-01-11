@@ -8,7 +8,7 @@ namespace {
 
 void test_loading()
 {
-    fm_assert(!loader.sceneries().empty());
+    fm_assert(!loader.sceneries().isEmpty());
 
     for (const auto& [name, descr, proto] : loader.sceneries())
         fm_assert(proto.sc_type != scenery_type::none);

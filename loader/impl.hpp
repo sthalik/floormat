@@ -60,7 +60,9 @@ struct loader_impl final : loader_
 
     // >-----> tile >----->
     tsl::robin_map<StringView, std::shared_ptr<class tile_atlas>> tile_atlas_map;
+    std::vector<std::shared_ptr<class tile_atlas>> tile_atlas_array;
 
+    ArrayView<const std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename) noexcept(false) override;
     std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) override;
     std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) override;
 
@@ -77,7 +79,7 @@ struct loader_impl final : loader_
     std::vector<serialized_scenery> sceneries_array;
     tsl::robin_map<StringView, const serialized_scenery*> sceneries_map;
 
-    const std::vector<serialized_scenery>& sceneries() override;
+    ArrayView<const serialized_scenery> sceneries() override;
     const scenery_proto& scenery(StringView name) noexcept(false) override;
     void get_scenery_list();
 
