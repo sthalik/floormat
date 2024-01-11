@@ -4,24 +4,15 @@
 #include "compat/exception.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
+#include "serialize/ground-atlas.hpp"
+#include "src/tile-defs.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
 
 namespace floormat {
-
-using nlohmann::json;
 using loader_detail::loader_impl;
-
-[[maybe_unused]] static void from_json(const json& j, ground_info& val)
-{
-}
-
-[[maybe_unused]] static void to_json(json& j, const ground_info& val)
-{
-}
-
 } // namespace floormat
 
 namespace floormat::loader_detail {
@@ -103,10 +94,28 @@ void loader_impl::get_ground_atlas_list()
 
     for (auto& x : ground_atlas_array)
     {
-
+        fm_soft_assert(x.name != "<invalid>"_s);
+        fm_soft_assert(check_atlas_name(x.name));
+        StringView name = x.name;
+        ground_atlas_map[name] = &x;
+        fm_debug_assert(name.data() == ground_atlas_map[name]->name.data());
     }
 
     fm_assert(!ground_atlas_map.empty());
+}
+
+const ground_info& loader_impl::make_invalid_ground_atlas()
+{
+    if (invalid_ground_atlas) [[likely]]
+        return *invalid_ground_atlas;
+
+    auto atlas = std::make_shared<class ground_atlas>(
+        ""_s, loader.INVALID, make_error_texture(Vector2ui(iTILE_SIZE2)),
+        Vector2ub{1,1}, pass_mode::pass);
+    invalid_ground_atlas = Pointer<ground_info>{
+        InPlaceInit, atlas->name(),
+        atlas, atlas->num_tiles2(), atlas->pass_mode()};
+    return *invalid_ground_atlas;
 }
 
 } // namespace floormat::loader_detail

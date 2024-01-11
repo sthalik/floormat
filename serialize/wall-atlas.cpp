@@ -13,7 +13,25 @@
 #include <Magnum/Trade/ImageData.h>
 #include <nlohmann/json.hpp>
 
-// todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
+namespace floormat::Wall {
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset, size)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, depth)
+} // namespace floormat::Wall
+
+namespace nlohmann {
+
+using floormat::Wall::Frame;
+
+template<>
+struct adl_serializer<floormat::Wall::Frame> {
+    static void to_json(json& j, const Frame& val);
+    static void from_json(const json& j, Frame& val);
+};
+
+void adl_serializer<Frame>::to_json(json& j, const Frame& x) { using nlohmann::to_json; to_json(j, x); }
+void adl_serializer<Frame>::from_json(const json& j, Frame& x) { using nlohmann::from_json; from_json(j, x); }
+
+} // namespace nlohmann
 
 namespace floormat {
 
@@ -170,6 +188,8 @@ bool is_direction_defined(const Direction& dir)
     return false;
 }
 
+// todo add test on dummy files that generates 100% coverage on the j.contains() blocks!
+
 Group read_group_metadata(const json& jgroup)
 {
     fm_assert(jgroup.is_object());
@@ -312,19 +332,3 @@ void write_info_header(json& jroot, const Info& info)
 }
 
 } // namespace floormat::Wall::detail
-
-namespace floormat::Wall {
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset, size)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, depth)
-
-} // namespace floormat::Wall
-
-namespace nlohmann {
-
-using floormat::Wall::Frame;
-
-void adl_serializer<Frame>::to_json(json& j, const Frame& x) { using nlohmann::to_json; to_json(j, x); }
-void adl_serializer<Frame>::from_json(const json& j, Frame& x) { using nlohmann::from_json; from_json(j, x); }
-
-} // namespace nlohmann

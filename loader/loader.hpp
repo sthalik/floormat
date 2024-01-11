@@ -48,6 +48,7 @@ struct loader_
 
     virtual ~loader_() noexcept;
 
+    static const StringView INVALID;
     static const StringView IMAGE_PATH_;
     static const StringView ANIM_PATH;
     static const StringView SCENERY_PATH;

@@ -39,6 +39,7 @@ StringView loader_::strip_prefix(StringView name)
     return name;
 }
 
+const StringView loader_::INVALID = "<invalid>"_s; // todo use it
 const StringView loader_::IMAGE_PATH_ = "images/"_s;
 const StringView loader_::ANIM_PATH = "anim/"_s;
 const StringView loader_::SCENERY_PATH = "scenery/"_s;

@@ -4,12 +4,6 @@
 #include <memory>
 #include <nlohmann/json_fwd.hpp>
 
-template<>
-struct nlohmann::adl_serializer<floormat::Wall::Frame> {
-    static void to_json(json& j, const floormat::Wall::Frame& val);
-    static void from_json(const json& j, floormat::Wall::Frame& val);
-};
-
 namespace floormat::Wall::detail {
 
 using nlohmann::json;

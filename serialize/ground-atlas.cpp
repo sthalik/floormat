@@ -1,13 +1,9 @@
 #include "ground-atlas.hpp"
-#include "src/ground-atlas.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/magnum-vector.hpp"
-#include "loader/loader.hpp"
 #include "serialize/pass-mode.hpp"
-#include "compat/exception.hpp"
+#include "loader/ground-info.hpp"
 #include <tuple>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
 
 namespace floormat {

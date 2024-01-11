@@ -8,7 +8,7 @@ class wall_atlas;
 
 struct wall_info
 {
-    String name, descr{};
+    String name;
     std::shared_ptr<wall_atlas> atlas;
 };
 

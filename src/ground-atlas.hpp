@@ -28,9 +28,7 @@ class ground_atlas final
 
 public:
     ground_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, enum pass_mode pass_mode);
-
     texcoords texcoords_for_id(size_t id) const;
-
     [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
     size_t num_tiles() const;
     Vector2ub num_tiles2() const { return dims_; }

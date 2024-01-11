@@ -23,17 +23,11 @@ using loader_detail::loader_impl;
     val = {};
     val.name = j["name"];
     fm_soft_assert(loader.check_atlas_name(val.name));
-    if (j.contains("descr"))
-        val.descr = j["descr"];
-    else
-        val.descr = Path::split(val.name).second();
 }
 
 [[maybe_unused]] static void to_json(json& j, const wall_info& val)
 {
     j["name"] = val.name;
-    if (val.descr)
-        j["descr"] = val.descr;
 }
 
 } // namespace floormat
@@ -132,7 +126,6 @@ void loader_impl::get_wall_atlas_list()
     {
         fm_soft_assert(x.name != "<invalid>"_s);
         fm_soft_assert(check_atlas_name(x.name));
-        //x.atlas = get_wall_atlas(x.name, WALL_TILESET_PATH);
         StringView name = x.name;
         wall_atlas_map[name] = &x;
         fm_debug_assert(name.data() == wall_atlas_map[name]->name.data());

@@ -10,7 +10,7 @@ class ground_atlas;
 
 struct ground_info
 {
-    String name; // todo add descr?
+    String name;
     std::shared_ptr<ground_atlas> atlas;
     Vector2ub size;
     pass_mode pass;
