@@ -6,7 +6,7 @@ namespace floormat {
 
 struct serialized_scenery final
 {
-    String name, descr;
+    String name;
     scenery_proto proto;
 };
 

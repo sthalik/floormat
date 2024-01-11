@@ -15,7 +15,7 @@ class scenery_editor final
 {
 public:
     struct scenery_ final {
-        String name, descr;
+        String name;
         scenery_proto proto;
         explicit operator bool() const noexcept;
     };

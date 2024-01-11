@@ -170,7 +170,6 @@ void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scene
     j = val.proto;
     const auto name = !val.name.isEmpty() ? StringView{val.name} : val.proto.atlas->name();
     j["name"] = name;
-    j["description"] = val.descr;
 }
 
 void adl_serializer<serialized_scenery>::from_json(const json& j, serialized_scenery& val)
@@ -178,8 +177,6 @@ void adl_serializer<serialized_scenery>::from_json(const json& j, serialized_sce
     val = {};
     val.proto = j;
     val.name = j["name"];
-    if (j.contains("description"))
-        val.descr = j["description"];
 }
 
 } // namespace nlohmann
