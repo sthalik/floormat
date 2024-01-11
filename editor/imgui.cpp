@@ -368,7 +368,7 @@ void app::do_popup_menu()
         }
         if (bool b_testing = tested_light_chunk == chunk_coords_(e.coord);
             e.type() == object_type::light)
-            if (ImGui::MenuItem("Test", nullptr, b_testing))
+            if (ImGui::MenuItem("Lightmap test", nullptr, b_testing))
                 tested_light_chunk = e.coord.chunk3();
         ImGui::SeparatorText("Modify");
         if (auto next_rot = e.atlas->next_rotation_from(e.r);
