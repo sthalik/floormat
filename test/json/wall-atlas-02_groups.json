@@ -32,8 +32,7 @@
             "offset": 0,
             "count": 1,
             "pixel-size": "42 x 192",
-            "tint-mult": [ 0.125, 0.25, 0.5, 1 ],
-            "tint-add": [ 1, 2, 3 ],
+            "tint": [ 0.125, 0.25, 0.5, 1 ],
             "mirrored": true,
             "default-tint": false
         },

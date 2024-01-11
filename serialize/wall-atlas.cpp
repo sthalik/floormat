@@ -191,14 +191,9 @@ Group read_group_metadata(const json& jgroup)
     }
 
     val.default_tint = true;
-    if (jgroup.contains("tint-mult"))
+    if (jgroup.contains("tint"))
     {
-        val.tint_mult = jgroup["tint-mult"];
-        val.default_tint = false;
-    }
-    if (jgroup.contains("tint-add"))
-    {
-        val.tint_add = jgroup["tint-add"];
+        val.tint_mult = jgroup["tint"];
         val.default_tint = false;
     }
 
@@ -273,10 +268,7 @@ void write_group_metadata(json& jgroup, const Group& val)
     jgroup["count"] = val.count;
     jgroup["pixel-size"] = val.pixel_size;
     if (!val.default_tint)
-    {
-        jgroup["tint-mult"] = val.tint_mult;
-        jgroup["tint-add"] = val.tint_add;
-    }
+        jgroup["tint"] = val.tint_mult;
     jgroup["mirrored"] = val.mirrored;
     if (val.from_rotation != (uint8_t )-1)
         jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
