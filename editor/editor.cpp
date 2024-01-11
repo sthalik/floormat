@@ -17,6 +17,8 @@ void editor::clear_selection()
 {
     if (auto* ed = current_ground_editor())
         ed->clear_selection();
+    else if (auto* wa = current_wall_editor())
+        wa->clear_selection();
     else if (auto* ed = current_scenery_editor())
         ed->clear_selection();
     else if (auto* vo = current_vobj_editor())
@@ -100,7 +102,7 @@ Optional<global_coords> editor::mouse_drag_pos()
 
 void editor::on_click_(world& world, global_coords pos, button b)
 {
-    if (auto* mode = current_ground_editor(); mode != nullptr)
+    if (auto* mode = current_ground_editor())
     {
         if (auto opt = mode->get_selected(); opt || b == button::remove)
         {
@@ -112,7 +114,7 @@ void editor::on_click_(world& world, global_coords pos, button b)
             }
         }
     }
-    else if (auto* mode = current_wall_editor(); mode != nullptr)
+    else if (auto* mode = current_wall_editor())
     {
         if (auto opt = mode->get_selected(); opt || b == button::remove)
         {
