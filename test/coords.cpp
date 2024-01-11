@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "src/object.hpp"
-#include "bench.hpp"
 
 namespace floormat {
 
