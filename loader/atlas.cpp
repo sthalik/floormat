@@ -131,9 +131,10 @@ void loader_impl::get_anim_atlas_list()
     if (const auto list = Path::list(ANIM_PATH, flags); list)
     {
         anim_atlases.reserve(list->size());
+        constexpr auto suffix = ".json"_s;
         for (StringView str : *list)
-            if (str.hasSuffix(".json"))
-                anim_atlases.emplace_back(str.exceptSuffix(std::size(".json")-1));
+            if (str.hasSuffix(suffix))
+                anim_atlases.emplace_back(str.exceptSuffix(suffix.size()));
     }
     anim_atlases.shrink_to_fit();
     fm_assert(!anim_atlases.empty());
