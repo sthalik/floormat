@@ -33,7 +33,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_,
         fm_soft_assert(len + extension.size() < std::size(buf));
         std::memcpy(buf + len, extension.data(), extension.size());
         buf[len + extension.size()] = '\0';
-        auto path = StringView{buf, len + extension.size()};
+        auto path = StringView{buf, len + extension.size(), StringViewFlag::NullTerminated};
         fm_debug_assert(path.size() < std::size(buf));
         auto& importer = extension == ".tga"_s ? tga_importer : image_importer;
         if (Path::exists(path) && importer->openFile(path))

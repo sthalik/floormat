@@ -22,8 +22,9 @@ StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, St
     fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
     std::memcpy(buf, dir.data(), dirsiz);
     std::memcpy(&buf[dirsiz], name.data(), namesiz);
-    buf[dirsiz + namesiz] = '\0';
-    return StringView{buf};
+    auto len = dirsiz + namesiz;
+    buf[len] = '\0';
+    return StringView{buf, len, StringViewFlag::NullTerminated};
 }
 
 bool loader_::check_atlas_name(StringView str) noexcept
