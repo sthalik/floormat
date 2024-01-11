@@ -1,7 +1,7 @@
 #include "floor.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
 #include <Magnum/GL/MeshView.h>
 
@@ -13,13 +13,14 @@ void floor_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr int quad_index_count = 6;
     const auto [mesh_, ids, size] = c.ensure_ground_mesh();
-    struct { tile_atlas* atlas = nullptr; size_t pos = 0; } last;
+    struct {
+        ground_atlas* atlas = nullptr; size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
 
     [[maybe_unused]] size_t draw_count = 0;
     fm_debug_assert(size_t(mesh_.count()) == size*quad_index_count);
 
-    const auto do_draw = [&](size_t i, tile_atlas* atlas, uint32_t max_index) {
+    const auto do_draw = [&](size_t i, ground_atlas* atlas, uint32_t max_index) {
         if (atlas == last.atlas)
             return;
         if (auto len = i - last.pos; last.atlas && len > 0)

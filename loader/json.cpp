@@ -1,10 +1,10 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include "serialize/tile-atlas.hpp"
+#include "serialize/ground-atlas.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -53,14 +53,14 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
     return it->second->proto;
 }
 
-ArrayView<const std::shared_ptr<class tile_atlas>> loader_impl::tile_atlases(StringView filename)
+ArrayView<const std::shared_ptr<class ground_atlas>> loader_impl::ground_atlases(StringView filename) noexcept(false)
 {
-    if (!tile_atlas_array.empty()) [[likely]]
-        return tile_atlas_array;
-    tile_atlas_array = json_helper::from_json<std::vector<std::shared_ptr<class tile_atlas>>>(
+    if (!ground_atlas_array.empty()) [[likely]]
+        return ground_atlas_array;
+    ground_atlas_array = json_helper::from_json<std::vector<std::shared_ptr<class ground_atlas>>>(
         Path::join(loader_::IMAGE_PATH, filename));
-    fm_assert(!tile_atlas_array.empty());
-    return tile_atlas_array;
+    fm_assert(!ground_atlas_array.empty());
+    return ground_atlas_array;
 }
 
 } // namespace floormat::loader_detail

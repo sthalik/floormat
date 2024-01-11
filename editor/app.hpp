@@ -21,7 +21,7 @@ namespace floormat {
 
 struct chunk;
 struct floormat_main;
-class tile_atlas;
+class ground_atlas;
 struct fm_settings;
 class anim_atlas;
 struct critter;

@@ -191,7 +191,7 @@ void editor::set_mode(editor_mode mode)
     on_release();
 }
 
-const tile_editor* editor::current_ground_editor() const noexcept
+const ground_editor* editor::current_ground_editor() const noexcept
 {
     switch (_mode)
     {
@@ -229,9 +229,9 @@ const vobj_editor* editor::current_vobj_editor() const noexcept
         return nullptr;
 }
 
-tile_editor* editor::current_ground_editor() noexcept
+ground_editor* editor::current_ground_editor() noexcept
 {
-    return const_cast<tile_editor*>(static_cast<const editor&>(*this).current_ground_editor());
+    return const_cast<ground_editor*>(static_cast<const editor&>(*this).current_ground_editor());
 }
 
 wall_editor* editor::current_wall_editor() noexcept

@@ -2,7 +2,7 @@
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
@@ -51,7 +51,7 @@ void select_tile(wall_editor& wa, const wall_info* sc) { wa.select_atlas(sc->atl
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
 auto get_texcoords(const wall_info* w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); };
 
-void draw_editor_tile_pane_atlas(tile_editor& ed, StringView name, const std::shared_ptr<tile_atlas>& atlas, Vector2 dpi)
+void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const std::shared_ptr<ground_atlas>& atlas, Vector2 dpi)
 {
     const auto b = push_id("tile-pane");
 

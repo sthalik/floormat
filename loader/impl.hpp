@@ -59,12 +59,12 @@ struct loader_impl final : loader_
     std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name, StringView path);
 
     // >-----> tile >----->
-    tsl::robin_map<StringView, std::shared_ptr<class tile_atlas>> tile_atlas_map;
-    std::vector<std::shared_ptr<class tile_atlas>> tile_atlas_array;
+    tsl::robin_map<StringView, std::shared_ptr<class ground_atlas>> ground_atlas_map;
+    std::vector<std::shared_ptr<class ground_atlas>> ground_atlas_array;
 
-    ArrayView<const std::shared_ptr<class tile_atlas>> tile_atlases(StringView filename) noexcept(false) override;
-    std::shared_ptr<class tile_atlas> tile_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) override;
-    std::shared_ptr<class tile_atlas> tile_atlas(StringView filename) noexcept(false) override;
+    ArrayView<const std::shared_ptr<class ground_atlas>> ground_atlases(StringView filename) noexcept(false) override;
+    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) override;
+    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename) noexcept(false) override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;

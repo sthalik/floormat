@@ -35,8 +35,8 @@ image_ref_<Atlas, Proto>& image_ref_<Atlas, Proto>::operator=(const Proto& proto
     return *this;
 }
 
-template struct image_proto_<tile_atlas>;
-template struct image_ref_<tile_atlas, tile_image_proto>;
+template struct image_proto_<ground_atlas>;
+template struct image_ref_<ground_atlas, tile_image_proto>;
 
 template struct image_proto_<wall_atlas>;
 template struct image_ref_<wall_atlas, wall_image_proto>;

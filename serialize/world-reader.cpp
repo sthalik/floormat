@@ -7,7 +7,7 @@
 #include "src/light.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/chunk-scenery.hpp"
 #include "compat/strerror.hpp"
@@ -215,9 +215,9 @@ void reader_state::read_chunks(reader_t& s)
                         ? s.read<uint8_t>()
                         : uint8_t(s.read<uint16_t>());
                 auto name = lookup_atlas(id);
-                if constexpr(std::is_same_v<tile_atlas, T>)
+                if constexpr(std::is_same_v<ground_atlas, T>)
                 {
-                    auto atlas = loader.tile_atlas(name);
+                    auto atlas = loader.ground_atlas(name);
                     fm_soft_assert(v < atlas->num_tiles());
                     return { atlas, v };
                 }
@@ -232,7 +232,7 @@ void reader_state::read_chunks(reader_t& s)
             SET_CHUNK_SIZE();
             //t.passability() = pass_mode(flags & pass_mask);
             if (flags & meta_ground)
-                t.ground() = make_atlas.operator()<tile_atlas>();
+                t.ground() = make_atlas.operator()<ground_atlas>();
             if (flags & meta_wall_n)
                 t.wall_north() = make_atlas.operator()<wall_atlas>();
             if (flags & meta_wall_w)

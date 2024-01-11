@@ -11,7 +11,7 @@
 
 namespace floormat {
 
-class tile_atlas final
+class ground_atlas final
 {
     using quad = Quads::quad;
     using texcoords = std::array<Vector2, 4>;
@@ -27,7 +27,7 @@ class tile_atlas final
     enum pass_mode passability;
 
 public:
-    tile_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, enum pass_mode pass_mode);
+    ground_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, enum pass_mode pass_mode);
 
     texcoords texcoords_for_id(size_t id) const;
 

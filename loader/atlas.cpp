@@ -2,7 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/emplacer.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include <cstdio>
 #include <algorithm>
@@ -45,9 +45,9 @@ bool loader_::check_atlas_name(StringView str) noexcept
 
 namespace floormat::loader_detail {
 
-std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
+std::shared_ptr<ground_atlas> loader_impl::ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
-    if (auto it = tile_atlas_map.find(name); it != tile_atlas_map.end())
+    if (auto it = ground_atlas_map.find(name); it != ground_atlas_map.end())
     {
         fm_assert(it->second->pass_mode() == pass);
         return it->second;
@@ -58,16 +58,16 @@ std::shared_ptr<tile_atlas> loader_impl::tile_atlas(StringView name, Vector2ub s
     char buf[FILENAME_MAX];
     auto path = make_atlas_path(buf, IMAGE_PATH, name);
 
-    auto atlas = std::make_shared<class tile_atlas>(path, name, texture(""_s, path), size, pass);
-    tile_atlas_map[atlas->name()] = atlas;
+    auto atlas = std::make_shared<class ground_atlas>(path, name, texture(""_s, path), size, pass);
+    ground_atlas_map[atlas->name()] = atlas;
     return atlas;
 }
 
-std::shared_ptr<class tile_atlas> loader_impl::tile_atlas(StringView filename) noexcept(false)
+std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView filename) noexcept(false)
 {
-    fm_assert(!tile_atlas_map.empty());
-    auto it = tile_atlas_map.find(filename);
-    if (it == tile_atlas_map.end())
+    fm_assert(!ground_atlas_map.empty());
+    auto it = ground_atlas_map.find(filename);
+    if (it == ground_atlas_map.end())
         fm_throw("no such tile atlas '{}'"_cf, filename);
     return it->second;
 }

@@ -1,8 +1,8 @@
 #include "serialize/tile.hpp"
 #include "src/tile.hpp"
 #include "src/global-coords.hpp"
-#include "serialize/tile-atlas.hpp"
-#include "src/tile-atlas.hpp"
+#include "serialize/ground-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include <tuple>
 #include <nlohmann/json.hpp>
 

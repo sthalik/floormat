@@ -1,5 +1,5 @@
 #include "chunk.hpp"
-#include "tile-atlas.hpp"
+#include "ground-atlas.hpp"
 #include "object.hpp"
 #include "src/RTree-search.hpp"
 #include "src/chunk-scenery.hpp"

@@ -1,6 +1,6 @@
 #define FM_SERIALIZE_WORLD_IMPL
 #include "world-impl.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "binary-writer.inl"
 #include "src/global-coords.hpp"

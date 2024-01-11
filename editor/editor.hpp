@@ -4,7 +4,7 @@
 #include "src/tile-image.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
-#include "tile-editor.hpp"
+#include "ground-editor.hpp"
 #include "wall-editor.hpp"
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
@@ -16,7 +16,7 @@ namespace floormat {
 
 struct world;
 class anim_atlas;
-class tile_atlas;
+class ground_atlas;
 struct app;
 
 struct editor final
@@ -26,8 +26,8 @@ struct editor final
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
-    tile_editor* current_ground_editor() noexcept;
-    const tile_editor* current_ground_editor() const noexcept;
+    ground_editor* current_ground_editor() noexcept;
+    const ground_editor* current_ground_editor() const noexcept;
     wall_editor* current_wall_editor() noexcept;
     const wall_editor* current_wall_editor() const noexcept;
     scenery_editor* current_scenery_editor() noexcept;
@@ -57,7 +57,7 @@ private:
 
     app* _app;
 
-    tile_editor _floor;
+    ground_editor _floor;
     wall_editor _wall;
     scenery_editor _scenery;
     vobj_editor _vobj;

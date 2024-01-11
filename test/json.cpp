@@ -1,10 +1,10 @@
 #include "app.hpp"
 #include "serialize/tile.hpp"
-#include "serialize/tile-atlas.hpp"
+#include "serialize/ground-atlas.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "serialize/json-helper.hpp"
 #include "compat/assert.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/tile.hpp"
 #include "src/tile-iterator.hpp"
 #include "src/chunk.hpp"
@@ -18,9 +18,9 @@ namespace floormat {
 #if 0
 static chunk make_test_chunk()
 {
-    auto metal1 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass),
-         metal2 = loader.tile_atlas("metal2", {2, 2}, pass_mode::blocked),
-         tiles = loader.tile_atlas("tiles", {8, 5}, pass_mode::pass);
+    auto metal1 = loader.ground_atlas("metal1", {2, 2}, pass_mode::pass),
+         metal2 = loader.ground_atlas("metal2", {2, 2}, pass_mode::blocked),
+         tiles = loader.ground_atlas("tiles", {8, 5}, pass_mode::pass);
     constexpr auto N = TILE_MAX_DIM;
     world w;
     chunk c{w, {}};
@@ -41,7 +41,7 @@ void test_app::test_json() // NOLINT(readability-convert-member-functions-to-sta
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
     {
-        auto atlas = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass);
+        auto atlas = loader.ground_atlas("metal1", { 2, 2 }, pass_mode::pass);
         json_helper::to_json(atlas, Path::join(output_dir, "atlas.json"));
     }
     {

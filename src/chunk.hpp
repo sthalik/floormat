@@ -103,7 +103,7 @@ struct chunk final
     void ensure_alloc_ground();
     void ensure_alloc_walls();
     ground_mesh_tuple ensure_ground_mesh() noexcept;
-    tile_atlas* ground_atlas_at(size_t i) const noexcept;
+    ground_atlas* ground_atlas_at(size_t i) const noexcept;
     wall_atlas* wall_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
 
@@ -129,7 +129,7 @@ struct chunk final
 private:
     struct ground_stuff
     {
-        std::array<std::shared_ptr<tile_atlas>, TILE_COUNT> atlases;
+        std::array<std::shared_ptr<ground_atlas>, TILE_COUNT> atlases;
         std::array<uint8_t, TILE_COUNT> indexes = {};
         std::array<variant_t, TILE_COUNT> variants = {};
     };

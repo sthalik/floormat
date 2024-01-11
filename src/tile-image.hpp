@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-class tile_atlas;
+class ground_atlas;
 class wall_atlas;
 
 template<typename Atlas>
@@ -30,8 +30,8 @@ struct image_ref_ final
     explicit operator bool() const noexcept;
 };
 
-using tile_image_proto = image_proto_<tile_atlas>;
-using tile_image_ref = image_ref_<tile_atlas, tile_image_proto>;
+using tile_image_proto = image_proto_<ground_atlas>;
+using tile_image_ref = image_ref_<ground_atlas, tile_image_proto>;
 
 using wall_image_proto = image_proto_<wall_atlas>;
 using wall_image_ref = image_ref_<wall_atlas, wall_image_proto>;

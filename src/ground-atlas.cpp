@@ -1,4 +1,4 @@
-#include "tile-atlas.hpp"
+#include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "compat/assert.hpp"
 #include "tile-image.hpp"
@@ -12,7 +12,7 @@ namespace floormat {
 
 using namespace floormat::Quads;
 
-tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, enum pass_mode p) :
+ground_atlas::ground_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, enum pass_mode p) :
     texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
     path_{path}, name_{name}, size_{image.size()}, dims_{tile_count}, passability{p}
 {
@@ -30,13 +30,13 @@ tile_atlas::tile_atlas(StringView path, StringView name, const ImageView2D& imag
         .setSubImage(0, {}, image);
 }
 
-std::array<Vector2, 4> tile_atlas::texcoords_for_id(size_t i) const
+std::array<Vector2, 4> ground_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
     return texcoords_[i];
 }
 
-auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
+auto ground_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
 {
     const auto sz = pixel_size/Vector2ui{tile_count};
     const auto id = Vector2ui{ uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
@@ -44,7 +44,7 @@ auto tile_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size
     return texcoords_at(p0, sz, pixel_size);
 }
 
-auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> std::unique_ptr<const texcoords[]>
+auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> std::unique_ptr<const texcoords[]>
 {
     const size_t N = Vector2ui{tile_count}.product();
     auto ptr = std::make_unique<std::array<Vector2, 4>[]>(N);
@@ -53,7 +53,7 @@ auto tile_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count
     return ptr;
 }
 
-size_t tile_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
-enum pass_mode tile_atlas::pass_mode() const { return passability; }
+size_t ground_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
+enum pass_mode ground_atlas::pass_mode() const { return passability; }
 
 } // namespace floormat

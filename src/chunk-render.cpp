@@ -1,5 +1,5 @@
 #include "chunk.hpp"
-#include "tile-atlas.hpp"
+#include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "shaders/shader.hpp"
 #include "compat/defs.hpp"

@@ -3,7 +3,7 @@
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/quads.hpp"
 #include "src/object.hpp"

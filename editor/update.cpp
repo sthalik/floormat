@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "src/world.hpp"
-#include "src/tile-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
@@ -17,10 +17,10 @@ namespace floormat {
 
 void app::maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c)
 {
-    auto floor1 = loader.tile_atlas("floor-tiles", {44, 4}, pass_mode::pass);
-    auto floor2 = loader.tile_atlas("metal1", {2, 2}, pass_mode::pass);
-    auto wall1  = loader.tile_atlas("wood2", {2, 1}, pass_mode::blocked);
-    auto wall2  = loader.tile_atlas("wood1", {2, 1}, pass_mode::blocked);
+    auto floor1 = loader.ground_atlas("floor-tiles", { 44, 4 }, pass_mode::pass);
+    auto floor2 = loader.ground_atlas("metal1", { 2, 2 }, pass_mode::pass);
+    auto wall1  = loader.ground_atlas("wood2", { 2, 1 }, pass_mode::blocked);
+    auto wall2  = loader.ground_atlas("wood1", { 2, 1 }, pass_mode::blocked);
     auto door   = loader.anim_atlas("door-close", loader.SCENERY_PATH);
     auto table  = loader.anim_atlas("table", loader.SCENERY_PATH);
     auto control_panel = loader.anim_atlas("control-panel", loader.SCENERY_PATH);
