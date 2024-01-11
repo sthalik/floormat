@@ -12,14 +12,14 @@ namespace floormat {
 
 using namespace floormat::Quads;
 
-ground_atlas::ground_atlas(StringView path, StringView name, const ImageView2D& image, Vector2ub tile_count, enum pass_mode p) :
-    texcoords_{make_texcoords_array(Vector2ui(image.size()), tile_count)},
-    path_{path}, name_{name}, size_{image.size()}, dims_{tile_count}, passability{p}
+ground_atlas::ground_atlas(ground_def info, String path, const ImageView2D& image) :
+    texcoords_{make_texcoords_array(Vector2ui(image.size()), info.size)},
+    path_{std::move(path)}, name_{std::move(info.name)}, size_{image.size()}, dims_{info.size}, passability{info.pass}
 {
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(dims_[0] > 0 && dims_[1] > 0);
-    fm_soft_assert(size_ % Vector2ui{tile_count} == Vector2ui());
+    fm_soft_assert(size_ % Vector2ui{info.size} == Vector2ui());
     tex_.setLabel(path_)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)

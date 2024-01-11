@@ -2,8 +2,8 @@
 #include "compat/assert.hpp"
 #include "loader/scenery.hpp"
 #include "loader/vobj-info.hpp"
-#include "loader/ground-info.hpp"
 #include "loader/wall-info.hpp"
+#include "src/ground-atlas.hpp"
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Trade/ImageData.h>
 

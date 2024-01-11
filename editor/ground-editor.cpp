@@ -2,6 +2,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
 #include "src/random.hpp"
+#include "loader/ground-info.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/exception.hpp"
@@ -17,18 +18,16 @@ ground_editor::ground_editor()
 
 void ground_editor::load_atlases()
 {
-    for (const auto& atlas : loader.ground_atlases("ground.json"_s))
-    {
-        auto& [_, vec] = _permutation;
-        vec.reserve(atlas->num_tiles());
-        _atlases[atlas->name()] = atlas;
-    }
+    fm_assert(_atlases.empty());
+    for (const auto& g : loader.ground_atlas_list())
+        _atlases[g.name] = &g;
+    fm_assert(!_atlases.empty());
 }
 
 std::shared_ptr<ground_atlas> ground_editor::maybe_atlas(StringView str)
 {
     if (auto it = _atlases.find(str); it != _atlases.end())
-        return it->second;
+        return it->second->atlas;
     else
         return nullptr;
 }

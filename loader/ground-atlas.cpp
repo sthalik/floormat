@@ -1,5 +1,4 @@
 #include "impl.hpp"
-#include "ground-info.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/exception.hpp"
 #include "serialize/json-helper.hpp"
@@ -17,15 +16,16 @@ using loader_detail::loader_impl;
 
 namespace floormat::loader_detail {
 
-std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, StringView dir, Vector2ub size, pass_mode pass)
+std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass)
 {
     fm_assert(name != "<invalid>"_s);
 
     char buf[FILENAME_MAX];
-    auto filename = make_atlas_path(buf, dir, name);
+    auto filename = make_atlas_path(buf, loader.GROUND_TILESET_PATH, name);
     auto tex = texture(""_s, filename);
 
-    auto atlas = std::make_shared<class ground_atlas>(filename, name, tex, size, pass);
+    auto info = ground_info{name, {}, size, pass};
+    auto atlas = std::make_shared<class ground_atlas>(info, filename, tex);
     return atlas;
 }
 
@@ -45,7 +45,7 @@ std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, b
                 goto error;
         }
         else if (!it->second->atlas)
-            return it->second->atlas = get_ground_atlas(name, loader.GROUND_TILESET_PATH, it->second->size, it->second->pass);
+            return it->second->atlas = get_ground_atlas(name, it->second->size, it->second->pass);
         else
             return it->second->atlas;
     }
@@ -110,8 +110,8 @@ const ground_info& loader_impl::make_invalid_ground_atlas()
         return *invalid_ground_atlas;
 
     auto atlas = std::make_shared<class ground_atlas>(
-        ""_s, loader.INVALID, make_error_texture(Vector2ui(iTILE_SIZE2)),
-        Vector2ub{1,1}, pass_mode::pass);
+        ground_info{loader.INVALID, {}, Vector2ub{1,1}, pass_mode::pass},
+        ""_s, make_error_texture(Vector2ui(iTILE_SIZE2)));
     invalid_ground_atlas = Pointer<ground_info>{
         InPlaceInit, atlas->name(),
         atlas, atlas->num_tiles2(), atlas->pass_mode()};

@@ -11,6 +11,7 @@
 namespace floormat {
 
 struct world;
+struct ground_info;
 
 class ground_editor final
 {
@@ -23,7 +24,7 @@ class ground_editor final
         std::vector<decltype(tile_image_proto::variant)> variant;
     };
 
-    std::map<StringView, std::shared_ptr<ground_atlas>> _atlases;
+    std::map<StringView, const ground_info*> _atlases;
     tile_image_proto _selected_tile;
     tuple _permutation;
     selection_mode _selection_mode = sel_none;

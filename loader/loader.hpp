@@ -25,7 +25,7 @@ struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
-    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, StringView path, Vector2ub size, pass_mode pass) noexcept(false) = 0;
+    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, bool fail_ok = false) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;

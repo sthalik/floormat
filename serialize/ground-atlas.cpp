@@ -2,7 +2,7 @@
 #include "serialize/corrade-string.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "serialize/pass-mode.hpp"
-#include "loader/ground-info.hpp"
+#include "loader/loader.hpp"
 #include <tuple>
 #include <nlohmann/json.hpp>
 
@@ -14,21 +14,32 @@ using namespace floormat;
 
 namespace nlohmann {
 
-#if 0
-void adl_serializer<ground_info>::to_json(json& j, const ground_info& x)
+void adl_serializer<ground_def>::to_json(json& j, const ground_def& x)
 {
     using nlohmann::to_json;
     j = std::tuple<StringView, Vector2ub, pass_mode>{x.name, x.size, x.pass};
 }
-#endif
 
-void adl_serializer<ground_info>::from_json(const json& j, ground_info& val)
+void adl_serializer<ground_def>::from_json(const json& j, ground_def& val)
 {
     using nlohmann::from_json;
     val.name = j["name"];
     val.size = j["size"];
     if (j.contains("pass-mode"))
         val.pass = j["pass-mode"];
+}
+
+void adl_serializer<std::shared_ptr<ground_atlas>>::to_json(json& j, const std::shared_ptr<const ground_atlas>& x)
+{
+    j = std::tuple<StringView, Vector2ub, pass_mode>{x->name(), x->num_tiles2(), x->pass_mode()};
+}
+
+void adl_serializer<std::shared_ptr<ground_atlas>>::from_json(const json& j, std::shared_ptr<ground_atlas>& val)
+{
+    char buf[FILENAME_MAX];
+    ground_def info = j;
+    auto path = loader.make_atlas_path(buf, loader.GROUND_TILESET_PATH, info.name);
+    val = std::make_shared<ground_atlas>(std::move(info), path, loader.texture(""_s, path));
 }
 
 } // namespace nlohmann

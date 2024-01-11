@@ -1,6 +1,7 @@
 #pragma once
 #include "src/pass-mode.hpp"
 #include "src/quads.hpp"
+#include "loader/ground-info.hpp"
 #include <array>
 #include <memory>
 #include <Corrade/Containers/Optional.h>
@@ -10,6 +11,15 @@
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
+
+struct ground_def
+{
+    String name;
+    Vector2ub size;
+    pass_mode pass;
+};
+
+class ground_atlas;
 
 class ground_atlas final
 {
@@ -27,7 +37,7 @@ class ground_atlas final
     enum pass_mode passability;
 
 public:
-    ground_atlas(StringView path, StringView name, const ImageView2D& img, Vector2ub tile_count, enum pass_mode pass_mode);
+    ground_atlas(ground_def info, String path, const ImageView2D& img);
     texcoords texcoords_for_id(size_t id) const;
     [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
     size_t num_tiles() const;
@@ -38,7 +48,5 @@ public:
 
     static constexpr enum pass_mode default_pass_mode = pass_mode::pass;
 };
-
-
 
 } // namespace floormat
