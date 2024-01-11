@@ -241,6 +241,8 @@ GL::Mesh chunk::make_wall_mesh()
                     {
                         const auto frames = atlas->frames(dir.corner);
                         auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
+                        const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
+                        const auto depth = tile_shader::depth_value(!is_west ? (float)pos.x : (float)pos.x - 1, depth_offset);
                         variant += !is_west ? frames.size() - 1 : 1;
                         variant = variant % frames.size();
                         const auto& frame = frames[variant];
@@ -248,8 +250,6 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto i = N++;
                         fm_assert(i < vertexes.size());
                         _walls->mesh_indexes[i] = (uint16_t)k;
-                        const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
-                        const auto depth = tile_shader::depth_value(pos, depth_offset);
                         auto& v = vertexes[i];
                         auto quad = get_quad(D, Group_::corner, Depth);
                         for (auto& v : quad)
@@ -261,6 +261,8 @@ GL::Mesh chunk::make_wall_mesh()
                     {
                         const auto frames = atlas->frames(dir.wall);
                         auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
+                        const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
+                        const auto depth = tile_shader::depth_value(!is_west ? (float)pos.x : (float)pos.x - 1, depth_offset);
                         variant += !is_west ? frames.size() - 1 : 1;
                         variant %= frames.size();
                         const auto& frame = frames[variant];
@@ -270,8 +272,6 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto i = N++;
                         fm_assert(i < vertexes.size());
                         _walls->mesh_indexes[i] = (uint16_t)k;
-                        const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
-                        const auto depth = tile_shader::depth_value(pos, depth_offset);
                         auto& v = vertexes[i];
                         auto quad = get_quad(D, Group_::corner, Depth);
                         for (auto& v : quad)

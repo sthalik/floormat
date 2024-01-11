@@ -98,7 +98,12 @@ void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member
 
 float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
 {
-    return ((float)xy.x + (float)xy.y + offset) * depth_tile_size;
+    return depth_value((float)xy.x, (float)xy.y, offset);
+}
+
+float tile_shader::depth_value(float x, float y, float offset) noexcept
+{
+    return (x + y + offset) * depth_tile_size;
 }
 
 } // namespace floormat

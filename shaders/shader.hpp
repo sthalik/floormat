@@ -31,6 +31,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     tile_shader& set_tint(const Vector4& tint);
     float depth_offset() const { return _depth_offset; }
     static float depth_value(const local_coords& xy, float offset = 0) noexcept;
+    static float depth_value(float x, float y, float offset = 0) noexcept;
     bool is_lightmap_enabled() const { return _enable_lightmap; }
     tile_shader& set_lightmap_enabled(bool value);
 
