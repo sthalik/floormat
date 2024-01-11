@@ -9,7 +9,6 @@
 #include <string_view>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringStl.h>
-#include <Corrade/Containers/TripleStl.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/ImageData.h>
 #include <nlohmann/json.hpp>

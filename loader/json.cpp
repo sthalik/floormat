@@ -4,7 +4,6 @@
 #include "src/ground-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include "serialize/ground-atlas.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -51,16 +50,6 @@ const scenery_proto& loader_impl::scenery(StringView name) noexcept(false)
     if (it == sceneries_map.end())
         fm_throw("no such scenery: '{}'"_cf, name);
     return it->second->proto;
-}
-
-ArrayView<const std::shared_ptr<class ground_atlas>> loader_impl::ground_atlases(StringView filename) noexcept(false)
-{
-    if (!ground_atlas_array.empty()) [[likely]]
-        return ground_atlas_array;
-    ground_atlas_array = json_helper::from_json<std::vector<std::shared_ptr<class ground_atlas>>>(
-        Path::join(loader_::GROUND_TILESET_PATH, filename));
-    fm_assert(!ground_atlas_array.empty());
-    return ground_atlas_array;
 }
 
 } // namespace floormat::loader_detail

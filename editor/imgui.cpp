@@ -70,7 +70,7 @@ float app::draw_main_menu()
             ImGui::SeparatorText("Mode");
             if (ImGui::MenuItem("Select",  "1", m_none))
                 do_key(key_mode_none);
-            if (ImGui::MenuItem("Floor",   "2", m_floor))
+            if (ImGui::MenuItem("Floor",   "2", m_floor)) // todo rename to 'ground'
                 do_key(key_mode_floor);
             if (ImGui::MenuItem("Walls",   "3", m_walls))
                 do_key(key_mode_walls);

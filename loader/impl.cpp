@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "loader/scenery.hpp"
 #include "loader/vobj-info.hpp"
+#include "loader/ground-info.hpp"
 #include "loader/wall-info.hpp"
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Trade/ImageData.h>
@@ -24,6 +25,7 @@ StringView loader_impl::shader(StringView filename) noexcept
 
 loader_impl::loader_impl()
 {
+    missing_ground_atlases.reserve(32);
     missing_wall_atlases.reserve(32);
     system_init();
     set_application_working_directory();

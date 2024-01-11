@@ -40,21 +40,21 @@ using loader_detail::loader_impl;
 
 namespace floormat::loader_detail {
 
-std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView path)
+std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView dir)
 {
     fm_assert(name != "<invalid>"_s);
     char buf[FILENAME_MAX];
-    auto filename = make_atlas_path(buf, path, name);
+    auto filename = make_atlas_path(buf, dir, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
     auto tex = texture(""_s, filename);
 
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.empty());
-    auto atlas = std::make_shared<class wall_atlas>(std::move(def), path, tex);
+    auto atlas = std::make_shared<class wall_atlas>(std::move(def), dir, tex);
     return atlas;
 }
 
-const wall_info& loader_impl::make_invalid_wall_atlas() noexcept
+const wall_info& loader_impl::make_invalid_wall_atlas()
 {
     if (invalid_wall_atlas) [[likely]]
         return *invalid_wall_atlas;
@@ -121,6 +121,8 @@ error:
 
 void loader_impl::get_wall_atlas_list()
 {
+    fm_assert(wall_atlas_map.empty());
+
     wall_atlas_array = json_helper::from_json<std::vector<wall_info>>(Path::join(WALL_TILESET_PATH, "walls.json"_s));
     wall_atlas_array.shrink_to_fit();
     wall_atlas_map.clear();

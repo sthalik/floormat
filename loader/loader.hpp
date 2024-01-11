@@ -13,27 +13,27 @@ using ImageData2D = ImageData<2>;
 
 namespace floormat {
 
-class ground_atlas;
 class anim_atlas;
-class wall_atlas;
 struct scenery_proto;
 struct vobj_info;
+class ground_atlas;
+struct ground_info;
 struct wall_info;
+class wall_atlas;
 
 struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
-    virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, Vector2ub size, pass_mode pass) noexcept(false) = 0;
+    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, StringView path, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, bool fail_ok = false) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
-    virtual const wall_info& make_invalid_wall_atlas() noexcept = 0;
-    virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) noexcept(false) = 0;
+    virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = false) noexcept(false) = 0;
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     static void destroy();
     static loader_& default_loader() noexcept;
-    virtual ArrayView<const std::shared_ptr<class ground_atlas>> ground_atlases(StringView filename) noexcept(false) = 0;
+    virtual ArrayView<const ground_info> ground_atlas_list() noexcept(false) = 0;
     virtual ArrayView<const serialized_scenery> sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;

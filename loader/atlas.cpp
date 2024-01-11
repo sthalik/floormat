@@ -2,7 +2,6 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/emplacer.hpp"
-#include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include <cstdio>
 #include <algorithm>
@@ -12,6 +11,8 @@
 #include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
+
+// todo rename file to 'scenery.cpp'
 
 namespace floormat {
 
@@ -44,33 +45,6 @@ bool loader_::check_atlas_name(StringView str) noexcept
 } // namespace floormat
 
 namespace floormat::loader_detail {
-
-std::shared_ptr<ground_atlas> loader_impl::ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
-{
-    if (auto it = ground_atlas_map.find(name); it != ground_atlas_map.end())
-    {
-        fm_assert(it->second->pass_mode() == pass);
-        return it->second;
-    }
-
-    fm_soft_assert(check_atlas_name(name));
-
-    char buf[FILENAME_MAX];
-    auto path = make_atlas_path(buf, GROUND_TILESET_PATH, name);
-
-    auto atlas = std::make_shared<class ground_atlas>(path, name, texture(""_s, path, false), size, pass);
-    ground_atlas_map[atlas->name()] = atlas;
-    return atlas;
-}
-
-std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView filename) noexcept(false)
-{
-    fm_assert(!ground_atlas_map.empty());
-    auto it = ground_atlas_map.find(filename);
-    if (it == ground_atlas_map.end())
-        fm_throw("no such tile atlas '{}'"_cf, filename);
-    return it->second;
-}
 
 ArrayView<const String> loader_impl::anim_atlas_list()
 {
@@ -107,7 +81,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
             }
         }
 
-        auto tex = texture(""_s, path, false);
+        auto tex = texture(""_s, path);
 
         fm_soft_assert(!anim_info.object_name.isEmpty());
         fm_soft_assert(anim_info.pixel_size.product() > 0);
