@@ -1,12 +1,9 @@
 #pragma once
 #include "src/pass-mode.hpp"
+#include <stdio.h>
 #include <memory>
 #include <vector>
 #include <Corrade/Containers/StringView.h>
-
-#if defined _WIN32 && !defined FILENAME_MAX
-#define FILENAME_MAX 260
-#endif
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat { struct serialized_scenery; }
