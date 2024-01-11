@@ -14,8 +14,8 @@ namespace floormat {
 
 namespace {
 
-constexpr float framerate = 96 * 3, move_speed = TILE_SIZE2.length() * 4.25f;
-constexpr float frame_time = 1/framerate;
+constexpr double framerate = 96 * 3, move_speed = Vector2d(TILE_SIZE2).length() * 4.25;
+constexpr double frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
@@ -106,18 +106,19 @@ bool critter_proto::operator==(const object_proto& e0) const
 
 int critter::allocate_frame_time(float dt)
 {
-    int d = int(delta) + int(65535 * dt);
-    constexpr auto framerate_ = (int)(65535/framerate);
-    static_assert(framerate_ > 0);
-    auto ret = d / framerate_;
-    delta = (uint16_t)std::clamp(d - ret*65535LL, 0LL, 65535LL);
+    auto d = (double)delta / 65535. + (double)dt;
+    d = std::min(1., d);
+    auto ret = (int)(d / frame_time);
+    d -= ret;
+    d = std::max(0., d);
+    delta = (uint16_t)(d * 65535);
     return ret;
 }
 
 constexpr Vector2 move_vec(Vector2i vec)
 {
     const int left_right = vec[0], top_bottom = vec[1];
-    constexpr auto c = move_speed * frame_time;
+    constexpr auto c = (float)move_speed * (float)frame_time;
     auto dir = Vector2((float)Math::sign(left_right), (float)Math::sign(top_bottom));
     auto inv_norm = 1.f/dir.length();
     return c * dir * inv_norm;
