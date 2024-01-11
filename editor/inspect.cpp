@@ -50,10 +50,10 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
 {
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
     {
-        auto* my_str = reinterpret_cast<String*>(data->UserData);
-        fm_assert(my_str->begin() == data->Buf);
-        *my_str = String{ValueInit, (size_t)data->BufSize};
-        data->Buf = my_str->begin();
+        auto& str = *reinterpret_cast<String*>(data->UserData);
+        fm_assert(str.data() == data->Buf);
+        str = String{ValueInit, (size_t)data->BufSize};
+        data->Buf = str.data();
     }
     return 0;
 }
