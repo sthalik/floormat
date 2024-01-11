@@ -1,5 +1,6 @@
 #include "tile.hpp"
 #include "chunk.hpp"
+#include "src/ground-atlas.hpp"
 
 namespace floormat {
 
@@ -7,9 +8,13 @@ namespace floormat {
 static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
 
 bool operator==(const tile_proto& a, const tile_proto& b) noexcept {
-    return a.ground()     == b.ground() &&
-           a.wall_north() == b.wall_north() &&
-           a.wall_west()  == b.wall_west();
+    if (const auto &A = a.ground(), &B = b.ground(); A != B)
+        return false;
+    if (const auto &A = a.wall_north(), &B = b.wall_north(); A != B)
+        return false;
+    if (const auto &A = a.wall_west(), &B = b.wall_west(); A != B)
+        return false;
+    return true;
 };
 
 tile_image_proto tile_proto::ground() const noexcept     { return { ground_atlas, ground_variant         }; }

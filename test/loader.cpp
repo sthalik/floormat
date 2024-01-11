@@ -8,17 +8,23 @@ namespace floormat {
 
 void test_app::test_loader()
 {
-    (void)loader.ground_atlases("ground.json");
+    for (const auto& x : loader.ground_atlas_list())
+        (void)loader.ground_atlas(x.name);
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
     loader.sceneries();
     for (StringView name : loader.anim_atlas_list())
         loader.anim_atlas(name);
-    (void)loader.wall_atlas_list();
-#if 0
+
+    {   auto walls = loader.wall_atlas_list();
+        fm_assert(!walls.isEmpty());
+        fm_assert(loader.wall_atlas("test1"_s));
+        fm_assert(loader.wall_atlas(loader.INVALID, true));
+        fm_assert(loader.wall_atlas("test1"_s) == loader.wall_atlas("test1"_s));
+        fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, true));
+    }
     for (const auto& info : loader.wall_atlas_list())
-        (void)loader.wall_atlas(info.name);
-#endif
+        fm_assert(loader.wall_atlas(info.name));
 }
 
 } // namespace floormat

@@ -16,7 +16,7 @@ struct ground_def
 {
     String name;
     Vector2ub size;
-    pass_mode pass;
+    pass_mode pass = pass_mode::pass;
 };
 
 class ground_atlas;

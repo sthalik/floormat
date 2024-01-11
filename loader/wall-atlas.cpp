@@ -70,6 +70,7 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
 
 std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok) noexcept(false)
 {
+    fm_assert(fail_ok || name != INVALID);
     fm_soft_assert(check_atlas_name(name));
 
     auto it = wall_atlas_map.find(name);

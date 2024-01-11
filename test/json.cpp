@@ -41,7 +41,7 @@ void test_app::test_json() // NOLINT(readability-convert-member-functions-to-sta
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
     {
-        auto atlas = loader.get_ground_atlas("metal1", { 2, 2 }, pass_mode::pass);
+        auto atlas = loader.ground_atlas("metal1");
         json_helper::to_json(atlas, Path::join(output_dir, "atlas.json"));
     }
     {

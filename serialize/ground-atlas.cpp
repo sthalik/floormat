@@ -3,6 +3,8 @@
 #include "serialize/magnum-vector.hpp"
 #include "serialize/pass-mode.hpp"
 #include "loader/loader.hpp"
+#include <Magnum/Trade/ImageData.h>
+#include <Magnum/ImageView.h>
 #include <tuple>
 #include <nlohmann/json.hpp>
 

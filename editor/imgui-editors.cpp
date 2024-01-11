@@ -268,7 +268,7 @@ void app::draw_editor_pane(float main_menu_height)
             {
                 if (ed)
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*ed, k, v, dpi);
+                        draw_editor_tile_pane_atlas(*ed, k, v->atlas, dpi);
                 else if (sc)
                     impl_draw_editor_scenery_pane<scenery_editor>(*sc, dpi);
                 else if (vo)

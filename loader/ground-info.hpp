@@ -13,7 +13,7 @@ struct ground_info
     String name;
     std::shared_ptr<ground_atlas> atlas;
     Vector2ub size;
-    pass_mode pass;
+    pass_mode pass = pass_mode::pass;
 };
 
 } // namespace floormat

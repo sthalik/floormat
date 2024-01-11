@@ -24,7 +24,7 @@ std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vec
     auto filename = make_atlas_path(buf, loader.GROUND_TILESET_PATH, name);
     auto tex = texture(""_s, filename);
 
-    auto info = ground_info{name, {}, size, pass};
+    auto info = ground_def{name, size, pass};
     auto atlas = std::make_shared<class ground_atlas>(info, filename, tex);
     return atlas;
 }
@@ -32,6 +32,8 @@ std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vec
 // todo copypasta from wall-atlas.cpp
 std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, bool fail_ok) noexcept(false)
 {
+    (void)ground_atlas_list();
+    fm_assert(fail_ok || name != INVALID);
     fm_soft_assert(check_atlas_name(name));
     auto it = ground_atlas_map.find(name);
 
@@ -86,8 +88,14 @@ void loader_impl::get_ground_atlas_list()
 {
     fm_assert(ground_atlas_map.empty());
 
-    ground_atlas_array = json_helper::from_json<std::vector<ground_info>>(
-        Path::join(loader_::GROUND_TILESET_PATH, "ground.json"_s));
+    auto defs = json_helper::from_json<std::vector<ground_def>>(Path::join(loader_::GROUND_TILESET_PATH, "ground.json"_s));
+    std::vector<ground_info> infos;
+    infos.reserve(defs.size());
+
+    for (auto& x : defs)
+        infos.push_back(ground_info{std::move(x.name), {}, x.size, x.pass});
+
+    ground_atlas_array = infos;
     ground_atlas_array.shrink_to_fit();
     ground_atlas_map.clear();
     ground_atlas_map.reserve(ground_atlas_array.size()*2);
@@ -110,7 +118,7 @@ const ground_info& loader_impl::make_invalid_ground_atlas()
         return *invalid_ground_atlas;
 
     auto atlas = std::make_shared<class ground_atlas>(
-        ground_info{loader.INVALID, {}, Vector2ub{1,1}, pass_mode::pass},
+        ground_def{loader.INVALID, Vector2ub{1,1}, pass_mode::pass},
         ""_s, make_error_texture(Vector2ui(iTILE_SIZE2)));
     invalid_ground_atlas = Pointer<ground_info>{
         InPlaceInit, atlas->name(),
