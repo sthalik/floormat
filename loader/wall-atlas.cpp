@@ -138,8 +138,10 @@ void loader_impl::get_wall_atlas_list()
 ArrayView<const wall_info> loader_impl::wall_atlas_list()
 {
     if (wall_atlas_map.empty()) [[unlikely]]
+    {
         get_wall_atlas_list();
-    fm_assert(!wall_atlas_map.empty());
+        fm_assert(!wall_atlas_map.empty());
+    }
     return wall_atlas_array;
 }
 

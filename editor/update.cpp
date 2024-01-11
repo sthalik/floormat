@@ -15,37 +15,12 @@ namespace floormat {
 
 //#define FM_NO_BINDINGS
 
-void app::maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c)
+void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
 {
-    auto floor1 = loader.ground_atlas("ground-tiles");
-    auto floor2 = loader.ground_atlas("metal1");
-    auto wall1  = loader.ground_atlas("wood2");
-    auto wall2  = loader.ground_atlas("wood1");
-    auto door   = loader.anim_atlas("door-close", loader.SCENERY_PATH);
-    auto table  = loader.anim_atlas("table", loader.SCENERY_PATH);
-    auto control_panel = loader.anim_atlas("control-panel", loader.SCENERY_PATH);
+    auto floor1 = loader.ground_atlas("floor-tiles");
 
-    (void)pos; (void)c;
-
-    [[maybe_unused]] constexpr auto N = TILE_MAX_DIM;
-    for (auto [x, k, pt] : c) {
-#if 1
-        const auto& atlas = floor1;
-#else
-        const auto& atlas = pt.x == N/2 || pt.y == N/2 ? _floor2 : _floor1;
-#endif
-        x.ground() = { atlas, variant_t(k % atlas->num_tiles()) };
-    }
-#if 0
-    constexpr auto K = N/2;
-    c[{K,   K  }].wall_north() = { _wall1, 0 };
-    c[{K,   K  }].wall_west()  = { _wall2, 0 };
-    c[{K,   K+1}].wall_north() = { _wall1, 0 };
-    c[{K+1, K  }].wall_west()  = { _wall2, 0 };
-    c[{K+3, K+1}].scenery()    = { scenery::door, _door, rotation::N, };
-    c[{ 3,   4 }].scenery()    = { scenery::generic, _table, rotation::W, };
-    c[{K,   K+1}].scenery()    = { scenery::generic, _control_panel, rotation::N, scenery::frame_t{0}, pass_mode::pass };
-#endif
+    for (auto [x, k, pt] : c)
+        x.ground() = { floor1, variant_t(k % floor1->num_tiles()) };
     c.mark_modified();
 }
 

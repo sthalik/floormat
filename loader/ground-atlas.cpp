@@ -79,8 +79,10 @@ error:
 ArrayView<const ground_info> loader_impl::ground_atlas_list() noexcept(false)
 {
     if (ground_atlas_map.empty()) [[unlikely]]
+    {
         get_ground_atlas_list();
-    fm_assert(!ground_atlas_map.empty());
+        fm_assert(!ground_atlas_map.empty());
+    }
     return ground_atlas_array;
 }
 
