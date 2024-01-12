@@ -20,6 +20,11 @@ namespace {
 using namespace floormat;
 using namespace floormat::Serialize;
 
+constexpr inline atlasid meta_short_scenery_bit_ = highbits<atlasid, 1, 0>;
+constexpr inline atlasid meta_rotation_bits_ = highbits<atlasid, rotation_BITS, 1>;
+constexpr inline atlasid scenery_id_flag_mask_ = meta_short_scenery_bit_ | meta_rotation_bits_;
+constexpr inline atlasid scenery_id_max_ = int_max<atlasid> & ~scenery_id_flag_mask_;
+
 struct reader_state final {
     explicit reader_state(world& world) noexcept;
     void deserialize_world(ArrayView<const char> buf);
@@ -330,9 +335,20 @@ void reader_state::read_chunks(reader_t& s)
             }
             case object_type::scenery: {
                 atlasid id; id << s;
-                const bool exact = id & meta_short_scenery_bit_;
-                const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
-                id &= ~scenery_id_flag_mask_;
+                bool exact;
+                rotation r;
+                if (PROTO >= 19) [[likely]]
+                {
+                    uint8_t bits; bits << s;
+                    exact = bits & meta_short_scenery_bit;
+                    r = rotation(bits >> sizeof(bits)*8-1-rotation_BITS & rotation_MASK);
+                }
+                else
+                {
+                    exact = id & meta_short_scenery_bit_;
+                    r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+                    id &= ~scenery_id_flag_mask_;
+                }
                 auto sc = lookup_scenery(id);
                 sc.offset = offset;
                 (void)sc.atlas->group(r);

@@ -50,7 +50,7 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 
 #define file_magic ".floormat.save"
 
-constexpr inline proto_t proto_version = 18;
+constexpr inline proto_t proto_version = 19;
 
 constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
@@ -70,10 +70,10 @@ constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 template<size_t N, typename T = uint8_t>
 constexpr T lowbits = T((T{1} << N)-T{1});
 
-constexpr inline atlasid meta_short_scenery_bit_ = highbits<atlasid, 1, 0>;
-constexpr inline atlasid meta_rotation_bits_ = highbits<atlasid, rotation_BITS, 1>;
-constexpr inline atlasid scenery_id_flag_mask_ = meta_short_scenery_bit_ | meta_rotation_bits_;
-constexpr inline atlasid scenery_id_max_ = int_max<atlasid> & ~scenery_id_flag_mask_;
+constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
+constexpr inline uint8_t meta_rotation_bits = highbits<uint8_t, rotation_BITS, 1>;
+constexpr inline uint8_t scenery_id_flag_mask = meta_short_scenery_bit | meta_rotation_bits;
+constexpr inline uint8_t scenery_id_max = int_max<uint8_t> & ~scenery_id_flag_mask;
 
 } // namespace
 
