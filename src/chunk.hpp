@@ -7,6 +7,7 @@
 #include "wall-defs.hpp"
 #include <type_traits>
 #include <array>
+#include <vector>
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/GL/Mesh.h>
 
