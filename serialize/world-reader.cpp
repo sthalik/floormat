@@ -95,7 +95,7 @@ void reader_state::read_sceneries(reader_t& s)
     if (magic != scenery_magic)
         fm_throw("bad scenery magic"_cf);
     atlasid sz; sz << s;
-    fm_soft_assert(sz < scenery_id_max);
+    fm_soft_assert(sz < scenery_id_max_);
     sceneries.resize(sz);
 
     auto i = 0uz;
@@ -297,7 +297,7 @@ void reader_state::read_chunks(reader_t& s)
                 offset_frac[1] << s;
                 if (PROTO < 17) [[unlikely]]
                     offset_frac = {};
-                const bool exact = id & meta_short_scenery_bit;
+                const bool exact = id & meta_short_scenery_bit_;
                 SET_CHUNK_SIZE();
 
                 if (PROTO >= 9) [[likely]]
@@ -330,9 +330,9 @@ void reader_state::read_chunks(reader_t& s)
             }
             case object_type::scenery: {
                 atlasid id; id << s;
-                const bool exact = id & meta_short_scenery_bit;
+                const bool exact = id & meta_short_scenery_bit_;
                 const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
-                id &= ~scenery_id_flag_mask;
+                id &= ~scenery_id_flag_mask_;
                 auto sc = lookup_scenery(id);
                 sc.offset = offset;
                 (void)sc.atlas->group(r);
@@ -423,9 +423,9 @@ void reader_state::preload_chunks()
 void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
 {
     atlasid id; id << s;
-    const bool exact = id & meta_short_scenery_bit;
+    const bool exact = id & meta_short_scenery_bit_;
     const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
-    id &= ~scenery_id_flag_mask;
+    id &= ~scenery_id_flag_mask_;
     auto sc = lookup_scenery(id);
     (void)sc.atlas->group(r);
     sc.r = r;

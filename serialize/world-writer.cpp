@@ -244,7 +244,7 @@ constexpr auto atlasbuf_size1 = sizeof(uint8_t) + atlasbuf_size0*int_max<uint8_t
 
 void writer_state::serialize_scenery_names()
 {
-    fm_assert(scenery_map_size < scenery_id_max);
+    fm_assert(scenery_map_size < scenery_id_max_);
     const size_t sz = scenery_map_size;
     std::vector<interned_scenery> vec; vec.reserve(scenery_map_size);
     for (const auto& x : scenery_map)
@@ -269,7 +269,7 @@ void writer_state::serialize_scenery_names()
     auto s = binary_writer{scenery_buf.begin()};
 
     s << uint16_t{scenery_magic};
-    fm_assert(sz < scenery_id_max);
+    fm_assert(sz < scenery_id_max_);
     s << (atlasid)sz;
 
     StringView last;
@@ -358,7 +358,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             const auto sc_exact =
                 C.bbox_offset.isZero() &&
                 C.bbox_size == def_char_bbox_size;
-            id |= meta_short_scenery_bit * sc_exact;
+            id |= meta_short_scenery_bit_ * sc_exact;
             id |= static_cast<decltype(id)>(C.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
             write_object_flags(s, C);
@@ -387,7 +387,7 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
             atlasid id = img_s;
             static_assert(rotation_BITS == 3);
             fm_assert(id == (id & lowbits<16-3-1, atlasid>));
-            id |= meta_short_scenery_bit * sc_exact;
+            id |= meta_short_scenery_bit_ * sc_exact;
             id |= static_cast<decltype(id)>(sc.r) << sizeof(id)*8-1-rotation_BITS;
             s << id;
             if (!sc_exact)
