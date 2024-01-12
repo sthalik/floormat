@@ -17,11 +17,10 @@ enum class scenery_type : unsigned char {
     none, generic,
     door, // todo remove it
 };
-constexpr inline size_t scenery_type_BITS = 3;
 
 struct scenery_proto : object_proto
 {
-    scenery_type sc_type : scenery_type_BITS = scenery_type::none;
+    scenery_type sc_type = scenery_type::none;
     unsigned char active      : 1 = false;
     unsigned char closing     : 1 = false;
     unsigned char interactive : 1 = false;

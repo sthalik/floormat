@@ -50,7 +50,7 @@ template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
 
 #define file_magic ".floormat.save"
 
-constexpr inline proto_t proto_version = 17;
+constexpr inline proto_t proto_version = 18;
 
 constexpr inline size_t atlas_name_max = 128;
 constexpr inline auto null_atlas = (atlasid)-1LL;
@@ -62,9 +62,7 @@ constexpr inline proto_t min_proto_version = 1;
 constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
 constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
 
-using pass_mode_i = std::underlying_type_t<pass_mode>;
-constexpr inline pass_mode_i pass_mask = (1 << pass_mode_BITS)-1;
-using object_type_i = std::underlying_type_t<object_type>;
+constexpr inline auto pass_mask = (1 << pass_mode_BITS)-1;
 
 template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;

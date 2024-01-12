@@ -185,7 +185,7 @@ template<typename T, object_subtype U>
 void write_object_flags(binary_writer<T>& s, const U& e)
 {
     uint8_t flags = 0;
-    auto pass = (pass_mode_i)e.pass;
+    auto pass = std::to_underlying(e.pass);
     fm_assert((pass & pass_mask) == pass);
     flags |= pass;
     constexpr auto tag = object_type_<U>::value;
@@ -335,10 +335,8 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
         object_id oid = e.id;
         fm_assert((oid & lowbits<collision_data_BITS, object_id>) == e.id);
         const auto type = e.type();
-        const auto type_ = (object_type_i)type;
-        fm_assert(type_ == (type_ & lowbits<object_type_BITS, object_type_i>));
-        oid |= (object_id)type << 64 - object_type_BITS;
         s << oid;
+        s << std::to_underlying(type);
         const auto local = e.coord.local();
         s << local.to_index();
         s << e.offset[0];

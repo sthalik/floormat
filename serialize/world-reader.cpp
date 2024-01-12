@@ -250,10 +250,22 @@ void reader_state::read_chunks(reader_t& s)
 
         for (auto i = 0uz; i < object_count; i++)
         {
-            object_id _id; _id << s;
-            const auto oid = _id & lowbits<60, object_id>;
-            fm_soft_assert(oid != 0);
-            const auto type = object_type(_id >> 61);
+            object_id oid;
+            object_type type;
+            if (PROTO >= 18) [[likely]]
+            {
+                oid << s;
+                fm_soft_assert((oid & lowbits<collision_data_BITS, object_id>) == oid);
+                type = object_type(s.read<std::underlying_type_t<object_type>>());
+                fm_soft_assert(type < object_type::COUNT);
+            }
+            else
+            {
+                object_id _id; _id << s;
+                oid = _id & lowbits<60, object_id>;
+                fm_soft_assert(oid != 0);
+                type = object_type(_id >> 61);
+            }
             const auto local = local_coords{s.read<uint8_t>()};
 
             Vector2b offset;
