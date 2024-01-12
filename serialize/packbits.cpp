@@ -48,6 +48,11 @@ using foo5 = ibits<20>;
 using bar5 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3, foo4, foo5>;
 static_assert(!bar5::result);
 static_assert(bar5::size == 37);
+
+using foo6 = ibits<40>;
+using bar6 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3, foo4, foo6>;
+static_assert(!bar6::result);
+static_assert(bar6::size == 57);
 } // namespace test2
 
 } // namespace
