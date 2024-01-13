@@ -7,6 +7,8 @@ using namespace floormat::detail_Pack;
 
 namespace {
 
+static_assert(!Storage<uint8_t, 0>{42}.check_zero());
+
 constexpr bool test1()
 {
     constexpr size_t bits[] = { 5, 2, 1 };

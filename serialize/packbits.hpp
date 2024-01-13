@@ -78,8 +78,8 @@ struct Storage<T, 0>
 
     template<size_t N> struct next
     {
-        static_assert(!std::is_same_v<T, void>, "reading past the end");
-        static_assert( std::is_same_v<T, void>, "reading past the end");
+        static_assert(N == 0, "reading past the end");
+        static_assert(N != 0, "reading past the end");
     };
 };
 
