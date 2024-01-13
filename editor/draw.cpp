@@ -12,10 +12,9 @@
 #include "src/critter.hpp"
 #include "src/rotation.inl"
 #include "src/RTree-search.hpp"
-
+#include <bit>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
-#include <Magnum/GL/Renderer.h>
 
 namespace floormat {
 
