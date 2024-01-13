@@ -43,7 +43,8 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         auto& p = *w.make_object<critter>(w.make_id(), global_coords{ch, {coord.x(), coord.y()}}, cproto);
         p.frame = (uint16_t)coord.x();
     };
-    add_player("Player 1", {13, 11}, true);
+    add_player("Player 1", {12, 11}, true); // duplicate
+    add_player("Player 1", {13, 11}, true); // duplicate
     add_player("Player 2", {14, 11}, false);
     add_player("Player 3", {15, 11}, true);
 
