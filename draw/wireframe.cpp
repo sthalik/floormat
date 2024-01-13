@@ -1,4 +1,3 @@
-#include "compat/defs.hpp"
 #include "wireframe.hpp"
 #include "shaders/shader.hpp"
 #include <Corrade/Containers/Array.h>

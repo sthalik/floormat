@@ -2,20 +2,26 @@
 #include "compat/defs.hpp"
 #include "compat/enum-bitset.hpp"
 #include "editor.hpp"
-#include "draw/wireframe.hpp"
-#include "draw/quad-floor.hpp"
-#include "draw/quad-wall-n.hpp"
-#include "draw/quad-wall-w.hpp"
-#include "draw/quad.hpp"
-#include "draw/box.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
 #include "src/object-id.hpp"
 #include "tests.hpp"
 #include <memory>
+#include <array>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
-#include <Magnum/ImGuiIntegration/Context.h>
+
+namespace Magnum::GL {
+template<UnsignedInt dimensions> class Texture;
+typedef Texture<2> Texture2D;
+} // namespace Magnum::GL
+
+namespace Magnum::ImGuiIntegration { class Context; }
+
+namespace floormat::wireframe {
+GL::Texture2D make_constant_texture();
+struct meshes;
+} // namespace floormat::wireframe
 
 namespace floormat {
 
@@ -69,8 +75,6 @@ struct app final : floormat_app
     std::shared_ptr<critter> ensure_player_character(world& w);
 
 private:
-    using key_set = enum_bitset<key, key_COUNT>;
-
     app(fm_settings&& opts);
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
@@ -109,9 +113,6 @@ private:
     void do_mouse_up_down(uint8_t button, bool is_down, int modifiers);
     void do_mouse_scroll(int offset);
 
-    void do_camera(float dt, const key_set& cmds, int mods);
-    void reset_camera_offset();
-
     void do_quicksave();
     void do_quickload();
     void do_new_file();
@@ -139,6 +140,7 @@ private:
     void kill_popups(bool hard);
     void render_menu();
 
+    using key_set = enum_bitset<key, key_COUNT>;
     void do_key(key k, int mods);
     void do_key(key k);
     void do_set_mode(editor_mode mode);
@@ -149,6 +151,9 @@ private:
     void clear_keys();
     void clear_non_global_keys();
     void clear_non_repeated_keys();
+
+    void do_camera(float dt, const key_set& cmds, int mods);
+    void reset_camera_offset();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
@@ -161,14 +166,10 @@ private:
     tests_data& tests();
 
     Pointer<floormat_main> M;
+    Pointer<floormat::wireframe::meshes> _wireframe;
+    Pointer<ImGuiIntegration::Context> _imgui;
     Pointer<tests_data_> _tests;
-    ImGuiIntegration::Context _imgui{NoCreate};
-    GL::Texture2D _wireframe_texture = wireframe::make_constant_texture();
-    wireframe_mesh<wireframe::quad_floor>  _wireframe_quad   {_wireframe_texture};
-    wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n {_wireframe_texture};
-    wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w {_wireframe_texture};
-    wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
-    wireframe_mesh<wireframe::quad>        _wireframe_rect   {_wireframe_texture};
+
     editor _editor{this};
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};

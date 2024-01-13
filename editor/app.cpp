@@ -1,19 +1,20 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
-#include "floormat/main.hpp"
-#include "floormat/settings.hpp"
-#include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
-#include <cerrno>
+#include "floormat/main.hpp"
+#include "floormat/settings.hpp"
+#include "loader/loader.hpp"
+#include "draw/wireframe-meshes.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Move.h>
+#include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
@@ -30,6 +31,7 @@ const cursor_state& app::cursor_state() { return cursor; }
 
 app::app(fm_settings&& opts) :
     M{floormat_main::create(*this, Utility::move(opts))},
+    _wireframe{InPlaceInit},
     _tests{tests_data_::make()}
 {
     reset_world();
@@ -43,7 +45,6 @@ app::app(fm_settings&& opts) :
 
 app::~app()
 {
-
 }
 
 void app::reset_world()

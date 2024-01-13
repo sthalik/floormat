@@ -1,29 +1,18 @@
 #pragma once
-
 #include "src/tile-defs.hpp"
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
 #include "Magnum/GL/Texture.h"
 
-namespace floormat {
+namespace floormat { struct tile_shader; }
 
-struct tile_shader;
-
-namespace wireframe {
-
-template<typename T>
-concept traits = requires (const T& x) {
-    {T::num_vertices} -> std::convertible_to<size_t>;
-    {T::num_indexes} -> std::convertible_to<size_t>;
-    {x.primitive} -> std::convertible_to<GL::MeshPrimitive>;
-    {x.make_vertex_array() } -> std::convertible_to<ArrayView<const void>>;
-    {T::make_index_array() } -> std::convertible_to<ArrayView<const void>>;
-    {x.on_draw()} -> std::same_as<void>;
-};
+namespace floormat::wireframe {
 
 GL::Texture2D make_constant_texture();
 
-struct mesh_base {
+struct mesh_base
+{
     static void set_line_width(float width);
 
 protected:
@@ -37,22 +26,20 @@ protected:
     void set_subdata(ArrayView<const void> array);
 };
 
-} // namespace wireframe
-
-template<wireframe::traits T>
+template<typename T>
 struct wireframe_mesh final : private wireframe::mesh_base
 {
     wireframe_mesh(GL::Texture2D& constant_texture);
     void draw(tile_shader& shader, T traits);
 };
 
-template<wireframe::traits T>
+template<typename T>
 wireframe_mesh<T>::wireframe_mesh(GL::Texture2D& constant_texture) :
     wireframe::mesh_base{T::primitive, T::make_index_array(), T::num_vertices, T::num_indexes, &constant_texture}
 {
 }
 
-template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
+template <typename T> void wireframe_mesh<T>::draw(tile_shader& shader, T x)
 {
     //_texcoord_buffer.setData({nullptr, sizeof(Vector3) * T::num_vertices}, GL::BufferUsage::DynamicDraw); // orphan the buffer
     set_subdata(x.make_vertex_array());
@@ -60,4 +47,4 @@ template <wireframe::traits T> void wireframe_mesh<T>::draw(tile_shader& shader,
     mesh_base::draw(shader);
 }
 
-} // namespace floormat
+} // namespace floormat::wireframe

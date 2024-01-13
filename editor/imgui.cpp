@@ -9,6 +9,7 @@
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/ImGuiIntegration/Context.h>
 #include <imgui.h>
 
 namespace floormat {
@@ -19,8 +20,11 @@ bool popup_target::operator==(const popup_target&) const = default;
 
 void app::init_imgui(Vector2i size)
 {
-    if (!_imgui.context())
+    if (!_imgui) [[unlikely]]
+    {
         _imgui = ImGuiIntegration::Context(Vector2{size}, size, size);
+        fm_assert(_imgui.context());
+    }
     else
         _imgui.relayout(Vector2{size}, size, size);
 }
