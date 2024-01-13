@@ -11,33 +11,30 @@ constexpr bool test1()
 {
     constexpr size_t left[] = { 8, 3, 2, 1, 0 };
     constexpr size_t rest[] = { 0, 5, 6, 7, 8 };
-    constexpr size_t bits[] = {    5, 2, 1, 1 };
+    constexpr size_t bits[] = {    5, 2, 1, 0 };
     constexpr size_t vals[] = {    8, 3, 1, 0 };
-    constexpr auto S0 = Storage<uint8_t, left[0]>{0b10111011uz};
-    constexpr auto S1 = Storage<uint8_t, left[1]>{0b00000101uz};
-    constexpr auto S2 = Storage<uint8_t, left[2]>{0b00000010uz};
-    constexpr auto S3 = Storage<uint8_t, left[3]>{0b00000001uz};
-    constexpr auto S4 = Storage<uint8_t, left[4]>{0b00000000uz};
-    static_assert(S0.Capacity == 8 - rest[0]);
-    static_assert(S1.Capacity == 8 - rest[1]);
-    static_assert(S2.Capacity == 8 - rest[2]);
-    static_assert(S3.Capacity == 8 - rest[3]);
-    static_assert(S4.Capacity == 8 - rest[4]);
-    static_assert(S0.advance<left[0] - left[1]>() == S1.value);
-    static_assert(S1.advance<left[1] - left[2]>() == S2.value);
-    static_assert(S2.advance<left[2] - left[3]>() == S3.value);
-    static_assert(S3.advance<left[3] - left[4]>() == S4.value);
+
+    constexpr auto S0 = Storage<uint8_t,       8>{0b10111011uz};
+    constexpr auto S1 = Storage<uint8_t, bits[0]>{0b00000101uz};
+    constexpr auto S2 = Storage<uint8_t, bits[1]>{0b00000001uz};
+    constexpr auto S3 = Storage<uint8_t, bits[2]>{0b00000000uz};
+
     using P0 = std::decay_t<decltype(S0)>;
     using P1 = P0::next<bits[0]>;
     using P2 = P1::next<bits[1]>;
     using P3 = P2::next<bits[2]>;
-    static_assert(P0::Capacity == vals[0]);
-    static_assert(P1::Capacity == vals[1]);
-    static_assert(P2::Capacity == vals[2]);
-    static_assert(P3::Capacity == vals[3]);
+
     static_assert(std::is_same_v<P1, Storage<uint8_t, vals[1]>>);
     static_assert(std::is_same_v<P2, Storage<uint8_t, vals[2]>>);
     static_assert(std::is_same_v<P3, Storage<uint8_t, vals[3]>>);
+
+    static_assert(S0.advance<5>() == S1.value);
+    static_assert(S1.advance<2>() == S2.value);
+    static_assert(S2.advance<1>() == S3.value);
+
+    static_assert(S0.get<bits[0]>() == (S0.value & (1<<bits[0])-1));
+    static_assert(S1.get<bits[1]>() == (S1.value & (1<<bits[1])-1));
+    static_assert(S2.get<bits[2]>() == (S2.value & (1<<bits[2])-1));
 
     return true;
 }
