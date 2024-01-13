@@ -17,14 +17,16 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
+
     auto metal2 = loader.wall_atlas("empty", false);
     auto tiles  = loader.ground_atlas("tiles");
+    auto door = loader.scenery("door1");
+    auto table = loader.scenery("table1");
+    auto control_panel = loader.scenery("control panel (wall) 1");
+
     constexpr auto N = TILE_MAX_DIM;
     for (auto [x, k, pt] : c)
         x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
-    auto door = loader.scenery("door1"),
-         table = loader.scenery("table1"),
-         control_panel = loader.scenery("control panel (wall) 1");
     control_panel.r = rotation::W;
     constexpr auto K = N/2;
     c[{K,   K  }].wall_north() = { metal2, 0 };
@@ -33,13 +35,30 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
     w.make_object<scenery>(w.make_id(), {ch, {3, 4}}, table);
     w.make_object<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
+
+    const auto add_player = [&](StringView name, Vector2i coord, bool playable) {
+        critter_proto cproto;
+        cproto.name = name;
+        cproto.playable = playable;
+        w.make_object<critter>(w.make_id(), global_coords{ch, {coord.x(), coord.y()}}, cproto);
+    };
+
+    add_player("Player 1", {10, 9}, true);
+    add_player("Player 2", {10, 9}, false);
+    add_player("Player 3", {10, 9}, true);
+
     {
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
+        fm_assert(e.frame == e.atlas->info().nframes-1);
         auto i = e.index();
-        e.activate(i);
-        e.update(i, 1.f/60);
+        e.activate();
         fm_assert(e.active);
         fm_assert(e.frame != 0 && e.frame != e.atlas->info().nframes - 1);
+        const auto frame0 = e.frame;
+        e.update(i, 1.f/10);
+        fm_assert(e.frame != frame0);
+        for (int i = 0; i < 100; i++)
+            e.update(i, 1.f/10);
     }
     return c;
 }
