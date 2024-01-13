@@ -22,16 +22,16 @@ void app::init_imgui(Vector2i size)
 {
     if (!_imgui) [[unlikely]]
     {
-        _imgui = ImGuiIntegration::Context(Vector2{size}, size, size);
-        fm_assert(_imgui.context());
+        _imgui = Pointer<ImGuiIntegration::Context>{InPlaceInit, Vector2{size}, size, size};
+        fm_assert(_imgui->context());
     }
     else
-        _imgui.relayout(Vector2{size}, size, size);
+        _imgui->relayout(Vector2{size}, size, size);
 }
 
 void app::render_menu()
 {
-    _imgui.drawFrame();
+    _imgui->drawFrame();
 }
 
 float app::draw_main_menu()
@@ -114,7 +114,7 @@ void app::draw_ui()
     style.ScaleAllSizes(dpi);
 
     ImGui::GetIO().IniFilename = nullptr;
-    _imgui.newFrame();
+    _imgui->newFrame();
 
     if (_render_clickables)
         draw_clickables();
@@ -387,7 +387,7 @@ void app::do_popup_menu()
 
 void app::kill_popups(bool hard)
 {
-    const bool imgui = _imgui.context() != nullptr;
+    const bool imgui = _imgui->context() != nullptr;
 
     _pending_popup = false;
     _popup_target = {};

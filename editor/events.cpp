@@ -58,7 +58,7 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
         accessor(Vector2i, position)
     } e = {event.position};
 
-    if ((cursor.in_imgui = _imgui.handleMouseMoveEvent(e)))
+    if ((cursor.in_imgui = _imgui->handleMouseMoveEvent(e)))
         void();
     else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_move(event))
         void();
@@ -81,7 +81,7 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
         accessor(Button, button)
     } e = {event.position, ev::Button(event.button)};
 
-    if ((cursor.in_imgui = is_down ? _imgui.handleMousePressEvent(e) : _imgui.handleMouseReleaseEvent(e)))
+    if ((cursor.in_imgui = is_down ? _imgui->handleMousePressEvent(e) : _imgui->handleMouseReleaseEvent(e)))
         void();
     else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event, is_down))
         void();
@@ -99,7 +99,7 @@ void app::on_mouse_scroll(const mouse_scroll_event& event) noexcept
         accessor(Vector2i, position)
     } e = {event.offset, event.position};
 
-    if (!(cursor.in_imgui = _imgui.handleMouseScrollEvent(e)))
+    if (!(cursor.in_imgui = _imgui->handleMouseScrollEvent(e)))
         do_mouse_scroll((int)e.offset()[1]);
 }
 
@@ -186,7 +186,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
-    if (x == key_COUNT && (is_down ? _imgui.handleKeyPressEvent(e) : _imgui.handleKeyReleaseEvent(e)) ||
+    if (x == key_COUNT && (is_down ? _imgui->handleKeyPressEvent(e) : _imgui->handleKeyReleaseEvent(e)) ||
         (x == key_COUNT || x == key_escape) && _editor.mode() == editor_mode::tests && tests_handle_key(event, is_down))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
@@ -203,7 +203,7 @@ void app::on_text_input_event(const text_input_event& event) noexcept
     struct {
         accessor(Containers::StringView, text)
     } e = {event.text};
-    if (_imgui.handleTextInputEvent(e))
+    if (_imgui->handleTextInputEvent(e))
         clear_non_global_keys();
 }
 
@@ -235,7 +235,7 @@ int app::get_key_modifiers()
 
 void app::set_cursor_from_imgui()
 {
-    _imgui.updateApplicationCursor(M->application());
+    _imgui->updateApplicationCursor(M->application());
 }
 
 } // namespace floormat

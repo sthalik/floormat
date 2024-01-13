@@ -16,9 +16,17 @@ struct vobj {
 };
 } // namespace floormat::loader_detail
 
+namespace nlohmann {
+
 using floormat::loader_detail::vobj;
 
-void nlohmann::adl_serializer<vobj>::to_json(json& j, const vobj& val)
+template<>
+struct adl_serializer<vobj> {
+    static void to_json(json& j, const vobj& val);
+    static void from_json(const json& j, vobj& val);
+};
+
+void adl_serializer<vobj>::to_json(json& j, const vobj& val)
 {
     j["name"] = val.name;
     if (val.descr)
@@ -26,7 +34,7 @@ void nlohmann::adl_serializer<vobj>::to_json(json& j, const vobj& val)
     j["image"] = val.image_filename;
 }
 
-void nlohmann::adl_serializer<vobj>::from_json(const json& j, vobj& val)
+void adl_serializer<vobj>::from_json(const json& j, vobj& val)
 {
     val.name = j["name"];
     if (j.contains("description"))
@@ -35,6 +43,8 @@ void nlohmann::adl_serializer<vobj>::from_json(const json& j, vobj& val)
         val.descr = val.name;
     val.image_filename = j["image"];
 }
+
+} // namespace nlohmann
 
 namespace floormat::loader_detail {
 

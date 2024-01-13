@@ -166,8 +166,8 @@ private:
     tests_data& tests();
 
     Pointer<floormat_main> M;
-    Pointer<floormat::wireframe::meshes> _wireframe;
     Pointer<ImGuiIntegration::Context> _imgui;
+    Pointer<floormat::wireframe::meshes> _wireframe;
     Pointer<tests_data_> _tests;
 
     editor _editor{this};

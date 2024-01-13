@@ -19,11 +19,11 @@ struct meshes final
     meshes();
 
     GL::Texture2D _wireframe_texture;
-    wireframe_mesh<wireframe::quad_floor>  _wireframe_quad   {_wireframe_texture};
-    wireframe_mesh<wireframe::quad_wall_n> _wireframe_wall_n {_wireframe_texture};
-    wireframe_mesh<wireframe::quad_wall_w> _wireframe_wall_w {_wireframe_texture};
-    wireframe_mesh<wireframe::box>         _wireframe_box    {_wireframe_texture};
-    wireframe_mesh<wireframe::quad>        _wireframe_rect   {_wireframe_texture};
+    wireframe_mesh<struct wireframe::quad_floor>  quad;
+    wireframe_mesh<struct wireframe::quad_wall_n> wall_n;
+    wireframe_mesh<struct wireframe::quad_wall_w> wall_w;
+    wireframe_mesh<struct wireframe::box>         box;
+    wireframe_mesh<struct wireframe::quad>        rect;
 };
 
 } // namespace floormat::wireframe

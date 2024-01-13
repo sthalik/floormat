@@ -5,10 +5,10 @@
 #include "main/clickable.hpp"
 #include "src/anim-atlas.hpp"
 #include "draw/anim.hpp"
+#include "draw/wireframe-meshes.hpp"
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-
 #include "src/rotation.inl"
 #include "src/RTree-search.hpp"
 
@@ -46,7 +46,7 @@ void app::draw_cursor()
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
-            draw(_wireframe_quad, TILE_SIZE2);
+            draw(_wireframe->quad, TILE_SIZE2);
         }
         else if (const auto* ed = _editor.current_wall_editor())
         {
@@ -54,8 +54,8 @@ void app::draw_cursor()
                 shader.set_tint(inactive_color);
             switch (ed->rotation())
             {
-            case rotation::N: draw(_wireframe_wall_n, TILE_SIZE); break;
-            case rotation::W: draw(_wireframe_wall_w, TILE_SIZE); break;
+            case rotation::N: draw(_wireframe->wall_n, TILE_SIZE); break;
+            case rotation::W: draw(_wireframe->wall_w, TILE_SIZE); break;
             default: std::unreachable();
             }
         }
@@ -64,7 +64,7 @@ void app::draw_cursor()
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
             const auto& sel = ed->get_selected().proto;
-            draw(_wireframe_quad, TILE_SIZE2);
+            draw(_wireframe->quad, TILE_SIZE2);
             if (ed->is_anything_selected())
             {
                 shader.set_tint({1, 1, 1, 0.75f});
@@ -84,7 +84,7 @@ void app::draw_cursor()
             if (vo->is_anything_selected())
             {
                 const auto& atlas = vo->get_selected()->factory->atlas();
-                draw(_wireframe_quad, TILE_SIZE2);
+                draw(_wireframe->quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_g, _w, anim_mesh] = M->meshes();
                 const auto pos = Vector3i(tile)*iTILE_SIZE;
@@ -138,7 +138,7 @@ void app::draw_collision_boxes()
                         auto size = (end - start);
                         auto center = Vector3(start + size*.5f, 0.f);
                         shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
-                        _wireframe_rect.draw(shader, { center, size, 3 });
+                        _wireframe->rect.draw(shader, { center, size, 3 });
                         return true;
                     });
                 }
@@ -187,7 +187,7 @@ void app::draw_collision_boxes()
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = end - start;
                         auto center = Vector3(start + size*.5f, 0.f);
-                        _wireframe_rect.draw(shader, { center, size, 3 });
+                        _wireframe->rect.draw(shader, { center, size, 3 });
                         return true;
                     });
                 }
