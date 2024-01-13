@@ -2,7 +2,7 @@
 #include "src/pass-mode.hpp"
 #include <stdio.h>
 #include <memory>
-#include <Corrade/Containers/StringView.h>
+#include <Corrade/Containers/String.h>
 
 namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace floormat { struct serialized_scenery; }
@@ -20,6 +20,12 @@ class ground_atlas;
 struct ground_info;
 struct wall_info;
 class wall_atlas;
+
+struct vobj_info final
+{
+    String name, descr;
+    std::shared_ptr<anim_atlas> atlas;
+};
 
 struct loader_
 {

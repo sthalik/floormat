@@ -1,5 +1,4 @@
 #include "vobj-editor.hpp"
-#include "loader/vobj-info.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/light.hpp"

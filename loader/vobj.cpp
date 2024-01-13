@@ -1,5 +1,4 @@
 #include "impl.hpp"
-#include "loader/vobj-info.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
 #include "src/anim-atlas.hpp"

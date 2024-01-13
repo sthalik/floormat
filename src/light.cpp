@@ -1,7 +1,6 @@
 #include "light.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
-#include "loader/vobj-info.hpp"
 #include <cmath>
 
 namespace floormat {
