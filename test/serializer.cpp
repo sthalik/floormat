@@ -36,17 +36,16 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     w.make_object<scenery>(w.make_id(), {ch, {3, 4}}, table);
     w.make_object<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
 
-#if 0
     const auto add_player = [&](StringView name, Vector2i coord, bool playable) {
         critter_proto cproto;
         cproto.name = name;
         cproto.playable = playable;
-        w.make_object<critter>(w.make_id(), global_coords{ch, {coord.x(), coord.y()}}, cproto);
+        auto& p = *w.make_object<critter>(w.make_id(), global_coords{ch, {coord.x(), coord.y()}}, cproto);
+        p.frame = (uint16_t)coord.x();
     };
-    add_player("Player 1", {10, 9}, true);
-    add_player("Player 2", {10, 9}, false);
-    add_player("Player 3", {10, 9}, true);
-#endif
+    add_player("Player 1", {13, 11}, true);
+    add_player("Player 2", {14, 11}, false);
+    add_player("Player 3", {15, 11}, true);
 
     {
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
@@ -62,7 +61,6 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
             e.update(index, 1.f/60);
         fm_assert(e.frame == 0);
         fm_assert(!e.active);
-
     }
     return c;
 }
