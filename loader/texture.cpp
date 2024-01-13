@@ -5,7 +5,6 @@
 #include "compat/strerror.hpp"
 #include <cstring>
 #include <cstdio>
-#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 

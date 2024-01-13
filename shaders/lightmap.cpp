@@ -10,11 +10,12 @@
 #include "loader/loader.hpp"
 #include <utility>
 #include <Corrade/Containers/StructuredBindings.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/Iterable.h>
-#include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/GL/Context.h>
+#include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>

@@ -4,10 +4,6 @@
 #include "pass-mode.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
-#include <Corrade/Containers/PairStl.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Math/Range.h>
-#include <Magnum/Math/BitVector.h>
 
 namespace floormat {
 

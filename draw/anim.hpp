@@ -4,7 +4,7 @@
 #include "src/chunk.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -49,8 +49,7 @@ private:
     Array<std::array<chunk::vertex, 4>> _draw_vertexes;
 
     GL::Mesh _mesh;
-    GL::Buffer _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
-               _index_buffer{make_index_array()};
+    GL::Buffer _vertex_buffer, _index_buffer;
 };
 
 } // namespace floormat

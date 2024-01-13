@@ -94,6 +94,4 @@ struct Bits_ final
     static constexpr auto bits = N;
 };
 
-
-
 } // namespace floormat::Pack

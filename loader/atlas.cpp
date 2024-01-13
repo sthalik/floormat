@@ -5,10 +5,10 @@
 #include "src/anim-atlas.hpp"
 #include <cstdio>
 #include <algorithm>
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StridedArrayView.h>
-#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/String.h>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 
@@ -51,7 +51,7 @@ ArrayView<const String> loader_impl::anim_atlas_list()
     if (anim_atlases.empty())
         get_anim_atlas_list();
     fm_assert(!anim_atlases.empty());
-    return anim_atlases;
+    return { anim_atlases.data(), anim_atlases.size() };
 }
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)

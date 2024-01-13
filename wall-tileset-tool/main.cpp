@@ -12,11 +12,9 @@
 #include <utility>
 #include <tuple>
 #include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/StringStl.h>
+#include <Corrade/Containers/String.h>
 #include <Corrade/Containers/StringIterable.h>
-#include <Corrade/Containers/TripleStl.h>
 #include <Corrade/Utility/Path.h>
-#include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Magnum/Math/Functions.h>

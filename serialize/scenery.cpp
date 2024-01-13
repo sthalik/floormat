@@ -7,7 +7,7 @@
 #include "loader/scenery.hpp"
 #include "serialize/pass-mode.hpp"
 #include "serialize/magnum-vector.hpp"
-#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
 
 namespace {

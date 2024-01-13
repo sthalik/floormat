@@ -18,12 +18,6 @@ struct vobj {
 
 using floormat::loader_detail::vobj;
 
-template<>
-struct nlohmann::adl_serializer<vobj> {
-    static void to_json(json& j, const vobj& val);
-    static void from_json(const json& j, vobj& val);
-};
-
 void nlohmann::adl_serializer<vobj>::to_json(json& j, const vobj& val)
 {
     j["name"] = val.name;

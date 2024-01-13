@@ -2,7 +2,6 @@
 #include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "shaders/shader.hpp"
-#include "compat/defs.hpp"
 #include <algorithm>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>

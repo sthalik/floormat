@@ -9,7 +9,7 @@
 #include "src/critter.hpp"
 
 #include "src/light.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/ArrayView.h>
 #include <imgui.h>
 
 namespace floormat::entities {

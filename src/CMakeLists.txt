@@ -10,3 +10,5 @@ target_link_libraries(
     fmt::fmt
     tsl::robin_map
 )
+
+#target_precompile_headers(${self} PUBLIC precomp.hpp)

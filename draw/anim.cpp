@@ -6,13 +6,16 @@
 #include "src/chunk-scenery.hpp"
 #include "src/scenery.hpp"
 #include <cstdio>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
 
-anim_mesh::anim_mesh()
+anim_mesh::anim_mesh() :
+    _vertex_buffer{quad_data{}, Magnum::GL::BufferUsage::DynamicDraw},
+    _index_buffer{make_index_array()}
 {
     _mesh.setCount(6)
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})

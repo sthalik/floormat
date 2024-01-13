@@ -3,7 +3,7 @@
 #include "compat/strerror.hpp"
 #include <concepts>
 #include <fstream>
-#include <Corrade/Containers/StringStlView.h>
+#include <Corrade/Containers/StringView.h>
 
 namespace floormat {
 

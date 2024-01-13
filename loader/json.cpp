@@ -7,7 +7,6 @@
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/StringStlView.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat::loader_detail {

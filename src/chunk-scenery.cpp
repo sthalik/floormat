@@ -5,7 +5,7 @@
 #include "scenery.hpp"
 #include "quads.hpp"
 #include <bit>
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/Buffer.h>
 
 namespace floormat {

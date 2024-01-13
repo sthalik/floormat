@@ -6,7 +6,6 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/exception.hpp"
-#include <Corrade/Containers/PairStl.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
