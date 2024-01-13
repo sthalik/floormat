@@ -19,7 +19,11 @@ void ground_editor::load_atlases()
 {
     fm_assert(_atlases.empty());
     for (const auto& g : loader.ground_atlas_list())
+    {
+        (void)loader.ground_atlas(g.name);
+        fm_assert(g.atlas);
         _atlases[g.name] = &g;
+    }
     fm_assert(!_atlases.empty());
 }
 
