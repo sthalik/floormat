@@ -30,7 +30,7 @@ namespace floormat {
 
 struct fm_settings;
 struct floormat_main;
-struct world;
+class world;
 struct chunk;
 class ground_atlas;
 class anim_atlas;
@@ -97,7 +97,7 @@ private:
     void maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c);
     void update_character(float dt);
     void reset_world();
-    void reset_world(struct world&& w);
+    void reset_world(class world&& w);
 
     void draw() override;
 

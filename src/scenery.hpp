@@ -11,7 +11,7 @@ namespace floormat {
 
 struct chunk;
 class anim_atlas;
-struct world;
+class world;
 
 enum class scenery_type : unsigned char {
     none, generic,
@@ -50,7 +50,7 @@ struct scenery final : object
     explicit operator scenery_proto() const;
 
 private:
-    friend struct world;
+    friend class world;
     scenery(object_id id, struct chunk& c, const scenery_proto& proto);
 };
 

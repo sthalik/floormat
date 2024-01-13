@@ -119,7 +119,7 @@ void chunk::mark_modified() noexcept
     mark_passability_modified();
 }
 
-chunk::chunk(struct world& w, chunk_coords_ ch) noexcept : _world{&w}, _coord{ch}
+chunk::chunk(class world& w, chunk_coords_ ch) noexcept : _world{&w}, _coord{ch}
 {
 }
 

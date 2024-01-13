@@ -14,7 +14,7 @@
 
 namespace floormat {
 
-struct world;
+class world;
 class anim_atlas;
 class ground_atlas;
 struct app;

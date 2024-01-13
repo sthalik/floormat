@@ -17,7 +17,7 @@
 
 namespace floormat {
 
-struct world;
+class world;
 struct object;
 struct chunk;
 

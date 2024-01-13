@@ -8,7 +8,7 @@
 
 namespace floormat {
 
-struct world;
+class world;
 class wall_atlas;
 
 class wall_editor

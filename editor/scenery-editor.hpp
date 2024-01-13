@@ -8,7 +8,7 @@ namespace floormat {
 
 class anim_atlas;
 struct global_coords;
-struct world;
+class world;
 struct app;
 
 class scenery_editor final

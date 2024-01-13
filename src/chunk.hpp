@@ -40,7 +40,7 @@ struct chunk final
 {
     friend struct tile_ref;
     friend struct object;
-    friend struct world;
+    friend class world;
 
     tile_ref operator[](size_t idx) noexcept;
     tile_proto operator[](size_t idx) const noexcept;
@@ -64,7 +64,7 @@ struct chunk final
 
     bool empty(bool force = false) const noexcept;
 
-    explicit chunk(struct world& w, chunk_coords_ ch) noexcept;
+    explicit chunk(class world& w, chunk_coords_ ch) noexcept;
     ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
@@ -115,7 +115,7 @@ struct chunk final
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
-    struct world& world() noexcept { return *_world; }
+    class world& world() noexcept { return *_world; }
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
 
@@ -147,7 +147,7 @@ private:
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
     std::vector<std::shared_ptr<object>> _objects;
-    struct world* _world;
+    class world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
     RTree _rtree;
     chunk_coords_ _coord;

@@ -97,7 +97,7 @@ std::shared_ptr<critter> app::ensure_player_character(world& w)
     return ret;
 }
 
-void app::reset_world(struct world&& w_)
+void app::reset_world(class world&& w_)
 {
     if (!M)
         return;

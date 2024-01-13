@@ -53,9 +53,9 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     struct lightmap_shader& lightmap_shader() noexcept override;
 
-    struct world& world() noexcept override;
-    struct world& reset_world() noexcept override;
-    struct world& reset_world(struct world&& w) noexcept override;
+    class world& world() noexcept override;
+    class world& reset_world() noexcept override;
+    class world& reset_world(class world&& w) noexcept override;
     SDL_Window* window() noexcept override;
 
     fm_settings& settings() noexcept override;
@@ -108,7 +108,7 @@ private:
     tile_shader _shader;
     struct lightmap_shader _lightmap_shader{_tuc};
     std::vector<clickable> _clickable_scenery;
-    struct world _world{};
+    class world _world{};
     Magnum::Timeline timeline;
     uint32_t _mouse_cursor = (uint32_t)-1;
     ground_mesh _ground_mesh;

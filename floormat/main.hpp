@@ -13,7 +13,7 @@ struct fm_settings;
 struct floormat_app;
 struct tile_shader;
 struct lightmap_shader;
-struct world;
+class world;
 struct scenery;
 class anim_atlas;
 struct clickable;
@@ -69,9 +69,9 @@ struct floormat_main
     [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
     virtual struct meshes meshes() noexcept = 0;
 
-    virtual struct world& world() noexcept = 0;
-    virtual struct world& reset_world() noexcept = 0;
-    virtual struct world& reset_world(struct world&& w) noexcept = 0;
+    virtual class world& world() noexcept = 0;
+    virtual class world& reset_world() noexcept = 0;
+    virtual class world& reset_world(class world&& w) noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
     Vector2 dpi_scale() const noexcept { return _dpi_scale; }
     static int get_mods() noexcept;

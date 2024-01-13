@@ -9,7 +9,7 @@ namespace floormat {
 struct chunk_coords;
 struct chunk_coords_;
 struct chunk;
-struct world;
+class world;
 
 struct test_app final : private FM_APPLICATION
 {

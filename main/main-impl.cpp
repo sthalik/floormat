@@ -15,7 +15,7 @@ main_impl::~main_impl() noexcept
 }
 
 void main_impl::quit(int status) { Platform::Sdl2Application::exit(status); }
-struct world& main_impl::world() noexcept { return _world; }
+class world& main_impl::world() noexcept { return _world; }
 SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
 fm_settings& main_impl::settings() noexcept { return s; }
 const fm_settings& main_impl::settings() const noexcept { return s; }

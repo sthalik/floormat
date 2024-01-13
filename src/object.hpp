@@ -13,7 +13,7 @@ namespace floormat {
 
 template<typename T> struct object_type_;
 class anim_atlas;
-struct world;
+class world;
 struct chunk;
 
 struct object_proto

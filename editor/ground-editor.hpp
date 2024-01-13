@@ -10,7 +10,7 @@
 
 namespace floormat {
 
-struct world;
+class world;
 struct ground_info;
 
 class ground_editor final

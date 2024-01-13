@@ -39,7 +39,7 @@ struct light final : object
 
     explicit operator light_proto() const;
 
-    friend struct world;
+    friend class world;
 };
 
 template<> struct object_type_<struct light> : std::integral_constant<object_type, object_type::light> {};

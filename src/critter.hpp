@@ -7,7 +7,7 @@
 namespace floormat {
 
 class anim_atlas;
-struct world;
+class world;
 
 struct critter_proto : object_proto
 {
@@ -39,7 +39,7 @@ struct critter final : object
 private:
     int allocate_frame_time(float dt);
 
-    friend struct world;
+    friend class world;
     critter(object_id id, struct chunk& c, const critter_proto& proto);
 };
 
