@@ -15,11 +15,13 @@ template<typename T> struct object_type_;
 
 class world final
 {
+public:
     static constexpr object_id object_counter_init = 1024;
     static constexpr size_t initial_capacity = 4096;
     static constexpr float max_load_factor = .25;
     static constexpr size_t initial_collect_every = 64;
 
+private:
     struct chunk_tuple final {
         static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_z_min };
         chunk* c = nullptr;
