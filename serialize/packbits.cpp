@@ -9,8 +9,6 @@ namespace {
 
 constexpr bool test1()
 {
-    constexpr size_t left[] = { 8, 3, 2, 1, 0 };
-    constexpr size_t rest[] = { 0, 5, 6, 7, 8 };
     constexpr size_t bits[] = {    5, 2, 1, 0 };
     constexpr size_t vals[] = {    8, 3, 1, 0 };
 
