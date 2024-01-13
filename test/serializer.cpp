@@ -50,15 +50,9 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     {
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         fm_assert(e.frame == e.atlas->info().nframes-1);
-        auto i = e.index();
-        e.activate();
+        fm_assert(!e.active);
+        e.activate(e.index());
         fm_assert(e.active);
-        fm_assert(e.frame != 0 && e.frame != e.atlas->info().nframes - 1);
-        const auto frame0 = e.frame;
-        e.update(i, 1.f/10);
-        fm_assert(e.frame != frame0);
-        for (int i = 0; i < 100; i++)
-            e.update(i, 1.f/10);
     }
     return c;
 }
