@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/assert.hpp"
 #include <type_traits>
 #include <concepts>
 
@@ -29,14 +28,15 @@ struct check_size_overflow<T, Sum>
     static constexpr bool result = Sum <= sizeof(T)*8;
 };
 
-template<std::unsigned_integral T, size_t Capacity>
+template<std::unsigned_integral T, size_t CAPACITY>
 struct Storage
 {
-    static_assert(Capacity <= sizeof(T)*8);
+    static_assert(CAPACITY <= sizeof(T)*8);
+    static constexpr size_t Capacity = CAPACITY;
     T value;
 
     template<size_t N>
-    constexpr T get()
+    constexpr T get() const
     {
         static_assert(N <= sizeof(T)*8);
         static_assert(N <= Capacity);
@@ -44,37 +44,38 @@ struct Storage
     }
 
     template<size_t N>
-    constexpr T advance()
+    constexpr T advance() const
     {
         static_assert(N <= sizeof(T)*8);
         static_assert(N <= Capacity);
         return T(value >> N);
     }
 
-    template<size_t N> [[maybe_unused]] constexpr bool check_zero() = delete;
+    constexpr bool operator==(const Storage&) const noexcept = default;
+    constexpr bool check_zero() const = delete;
 
-    template<size_t N>
-    using next = Storage<T, Capacity - N>;
+    template<size_t N> using next = Storage<T, Capacity - N>;
 };
 
 template<std::unsigned_integral T>
 struct Storage<T, 0>
 {
+    static constexpr size_t Capacity = 0;
     T value;
 
-    template<size_t N> [[maybe_unused]] constexpr T get() = delete;
-    template<size_t N> [[maybe_unused]] constexpr T advance() = delete;
+    template<size_t N> [[maybe_unused]] constexpr T get() const = delete;
+    template<size_t N> [[maybe_unused]] constexpr T advance() const = delete;
+    constexpr bool operator==(const Storage&) const noexcept = default;
 
-    template<size_t N> constexpr inline bool check_zero()
+    [[nodiscard]] constexpr inline bool check_zero() const
     {
-        fm_assert(value == T(0));
-        return true;
+        return value == T(0);
     }
 
     template<size_t N> struct next
     {
         static_assert(!std::is_same_v<T, void>, "reading past the end");
-        static_assert( std::is_same_v<T, void>, "can't happen!");
+        static_assert( std::is_same_v<T, void>, "reading past the end");
     };
 };
 
