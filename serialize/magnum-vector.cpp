@@ -110,8 +110,6 @@ void adl_serializer<Vector<N, T>>::from_json(const json& j, Vector<N, T>& val)
     template struct adl_serializer< Vector<N, Type>>;   \
     template struct adl_serializer< Vector##N<Type>>
 
-#define FM_INST_VEC_SERIALIZER_F(Type) \
-
 #define FM_INST_VEC_SERIALIZER(Type)                    \
     FM_INST_VEC_SERIALIZER_1(Type,    float);           \
     FM_INST_VEC_SERIALIZER_1(Type,   double);           \
