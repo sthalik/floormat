@@ -38,6 +38,7 @@ struct Storage
     template<size_t N>
     constexpr T get() const
     {
+        static_assert(N > 0);
         static_assert(N <= sizeof(T)*8);
         static_assert(N <= Capacity);
         return T(value & (T(1) << N) - T(1));

@@ -12,10 +12,10 @@ constexpr bool test1()
     constexpr size_t bits[] = { 5, 2, 1, 0 };
     constexpr size_t vals[] = { 8, 3, 1, 0 };
 
-    constexpr auto S0 = Storage<uint8_t,       8>{0b10111011};
-    constexpr auto S1 = Storage<uint8_t, bits[0]>{0b00000101};
-    constexpr auto S2 = Storage<uint8_t, bits[1]>{0b00000001};
-    constexpr auto S3 = Storage<uint8_t, bits[2]>{0b00000000};
+    constexpr auto S0 = Storage<uint8_t,       vals[0]>{0b10111011};
+    constexpr auto S1 = Storage<uint8_t,       vals[1]>{0b00000101};
+    constexpr auto S2 = Storage<uint8_t,       vals[2]>{0b00000001};
+    constexpr auto S3 = Storage<uint8_t,       vals[3]>{0b00000000};
 
     using P0 = std::decay_t<decltype(S0)>;
     using P1 = P0::next<bits[0]>;
@@ -28,6 +28,7 @@ constexpr bool test1()
     static_assert(std::is_same_v<P2, Storage<uint8_t, vals[2]>>);
     static_assert(std::is_same_v<P3, Storage<uint8_t, vals[3]>>);
 
+    static_assert(S0.advance<0>() == S0.value);
     static_assert(S0.advance<5>() == S1.value);
     static_assert(S1.advance<2>() == S2.value);
     static_assert(S2.advance<1>() == S3.value);
@@ -35,6 +36,7 @@ constexpr bool test1()
     static_assert(S0.get<bits[0]>() == (S0.value & (1<<bits[0])-1));
     static_assert(S1.get<bits[1]>() == (S1.value & (1<<bits[1])-1));
     static_assert(S2.get<bits[2]>() == (S2.value & (1<<bits[2])-1));
+    static_assert(S3.check_zero());
 
     return true;
 }
