@@ -10,7 +10,7 @@ namespace {
 constexpr bool test1()
 {
     constexpr size_t bits[] = { 5, 2, 1, 0 };
-    constexpr size_t vals[] = {    3, 1, 0 };
+    constexpr size_t vals[] = { 8, 3, 1, 0 };
 
     constexpr auto S0 = Storage<uint8_t,       8>{0b10111011};
     constexpr auto S1 = Storage<uint8_t, bits[0]>{0b00000101};
@@ -21,10 +21,12 @@ constexpr bool test1()
     using P1 = P0::next<bits[0]>;
     using P2 = P1::next<bits[1]>;
     using P3 = P2::next<bits[2]>;
+    using P4 = P2::next<bits[3]>;
 
-    static_assert(std::is_same_v<P1, Storage<uint8_t, vals[0]>>);
-    static_assert(std::is_same_v<P2, Storage<uint8_t, vals[1]>>);
-    static_assert(std::is_same_v<P3, Storage<uint8_t, vals[2]>>);
+    static_assert(std::is_same_v<P0, Storage<uint8_t, vals[0]>>);
+    static_assert(std::is_same_v<P1, Storage<uint8_t, vals[1]>>);
+    static_assert(std::is_same_v<P2, Storage<uint8_t, vals[2]>>);
+    static_assert(std::is_same_v<P3, Storage<uint8_t, vals[3]>>);
 
     static_assert(S0.advance<5>() == S1.value);
     static_assert(S1.advance<2>() == S2.value);
