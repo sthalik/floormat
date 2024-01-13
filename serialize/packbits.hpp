@@ -32,6 +32,8 @@ template<std::unsigned_integral T, size_t CAPACITY>
 struct Storage
 {
     static_assert(CAPACITY <= sizeof(T)*8);
+
+    using Type = T;
     static constexpr size_t Capacity = CAPACITY;
     T value;
 
@@ -61,6 +63,7 @@ struct Storage
 template<std::unsigned_integral T>
 struct Storage<T, 0>
 {
+    using Type = T;
     static constexpr size_t Capacity = 0;
     T value;
 
