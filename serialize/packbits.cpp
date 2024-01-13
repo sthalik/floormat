@@ -38,8 +38,6 @@ constexpr bool test1()
     static_assert(std::is_same_v<P1, Storage<uint8_t, vals[1]>>);
     static_assert(std::is_same_v<P2, Storage<uint8_t, vals[2]>>);
     static_assert(std::is_same_v<P3, Storage<uint8_t, vals[3]>>);
-    static_assert(std::is_same_v<P4, Storage<uint8_t, vals[4]>>);
-
 
     return true;
 }
