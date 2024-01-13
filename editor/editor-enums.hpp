@@ -12,4 +12,6 @@ enum class editor_snap_mode : unsigned char {
     vertical   = 1 << 1,
 };
 
+enum class editor_button : unsigned char { none, place, remove, };
+
 } // namespace floormat

@@ -8,6 +8,8 @@
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
 #include "draw/wireframe-meshes.hpp"
+#include "editor.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -32,7 +34,8 @@ const cursor_state& app::cursor_state() { return cursor; }
 app::app(fm_settings&& opts) :
     M{floormat_main::create(*this, Utility::move(opts))},
     _wireframe{InPlaceInit},
-    _tests{tests_data_::make()}
+    _tests{tests_data_::make()},
+    _editor{InPlaceInit, this}
 {
     reset_world();
     auto& w = M->world();
@@ -99,8 +102,8 @@ void app::reset_world(struct world&& w_)
     if (!M)
         return;
 
-    _editor.on_release();
-    _editor.clear_selection();
+    _editor->on_release();
+    _editor->clear_selection();
     kill_popups(true);
     tested_light_chunk = {};
     tests_reset_mode();

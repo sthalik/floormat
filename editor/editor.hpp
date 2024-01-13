@@ -19,8 +19,33 @@ class anim_atlas;
 class ground_atlas;
 struct app;
 
-struct editor final
+class editor final
 {
+    editor_snap_mode get_snap_value(editor_snap_mode snap, int mods) const;
+    static global_coords apply_snap(global_coords pos, global_coords last, editor_snap_mode snap) noexcept;
+
+    app* _app;
+
+    ground_editor _floor;
+    wall_editor _wall;
+    scenery_editor _scenery;
+    vobj_editor _vobj;
+
+    struct drag_pos final {
+        global_coords coord, draw_coord;
+        editor_snap_mode snap = editor_snap_mode::none;
+        editor_button btn;
+    };
+    Optional<drag_pos> _last_pos;
+    editor_mode _mode = editor_mode::none;
+    bool _dirty = false;
+
+public:
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
+    editor(app* a);
+    editor(editor&&) noexcept = default;
+    editor& operator=(editor&&) noexcept = default;
+
     [[nodiscard]] bool dirty() const noexcept { return _dirty; }
     void set_dirty(bool value) noexcept { _dirty = value; }
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
@@ -35,41 +60,15 @@ struct editor final
     vobj_editor* current_vobj_editor() noexcept;
     const vobj_editor* current_vobj_editor() const noexcept;
 
-    enum class button : unsigned char { none, place, remove, };
-
-    void on_click(world& world, global_coords pos, int mods, button b);
-    void on_click_(world& world, global_coords pos, button b);
+    void on_click(world& world, global_coords pos, int mods, editor_button b);
+    void on_click_(world& world, global_coords pos, editor_button b);
     void on_mouse_move(world& world, global_coords& pos, int modifiers);
     void on_release();
     void clear_selection();
     Optional<global_coords> mouse_drag_pos();
 
-    editor(app* a);
-    editor(editor&&) noexcept = default;
-    editor& operator=(editor&&) noexcept = default;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
-
     using snap_mode = editor_snap_mode;
-
-private:
-    snap_mode get_snap_value(snap_mode snap, int mods) const;
-    static global_coords apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept;
-
-    app* _app;
-
-    ground_editor _floor;
-    wall_editor _wall;
-    scenery_editor _scenery;
-    vobj_editor _vobj;
-
-    struct drag_pos final {
-        global_coords coord, draw_coord;
-        snap_mode snap = snap_mode::none;
-        button btn;
-    };
-    Optional<drag_pos> _last_pos;
-    editor_mode _mode = editor_mode::none;
-    bool _dirty = false;
+    using button = enum editor_button;
 };
 
 } // namespace floormat

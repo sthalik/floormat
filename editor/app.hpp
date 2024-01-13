@@ -1,15 +1,18 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "compat/enum-bitset.hpp"
-#include "editor.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
+#include "src/global-coords.hpp"
 #include "src/object-id.hpp"
+#include "editor-enums.hpp"
 #include "tests.hpp"
 #include <memory>
 #include <array>
+#include <vector> // todo try removing?
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
+#include <Magnum/Math/Vector2.h>
 
 namespace Magnum::GL {
 template<UnsignedInt dimensions> class Texture;
@@ -25,15 +28,18 @@ struct meshes;
 
 namespace floormat {
 
-struct chunk;
-struct floormat_main;
-class ground_atlas;
 struct fm_settings;
+struct floormat_main;
+struct world;
+struct chunk;
+class ground_atlas;
 class anim_atlas;
 struct critter;
 struct point;
+class editor;
 
-struct cursor_state final {
+struct cursor_state final
+{
     Optional<Vector2i> pixel;
     Optional<global_coords> tile;
     Optional<Vector2b> subpixel;
@@ -169,8 +175,8 @@ private:
     Pointer<ImGuiIntegration::Context> _imgui;
     Pointer<floormat::wireframe::meshes> _wireframe;
     Pointer<tests_data_> _tests;
+    Pointer<editor> _editor;
 
-    editor _editor{this};
     key_set keys;
     std::array<int, key_set::COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;

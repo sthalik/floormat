@@ -3,6 +3,7 @@
 #include "shaders/shader.hpp"
 #include "floormat/main.hpp"
 #include "src/RTree-search.hpp"
+#include "src/object.hpp"
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
 #include <algorithm>

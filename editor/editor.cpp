@@ -27,7 +27,6 @@ void editor::clear_selection()
 
 auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 {
-
     if (const auto* mode = current_ground_editor())
         return mode->check_snap(mods);
     else if (const auto* mode = current_wall_editor())
