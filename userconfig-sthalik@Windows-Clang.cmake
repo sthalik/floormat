@@ -12,7 +12,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
             -fcoverage-mapping
         )
     endif()
-    add_compile_options(-ftime-trace)
+    #add_compile_options(-ftime-trace)
 else()
     add_compile_options(-march=native -mavx2)
     add_compile_options(-emit-llvm)
