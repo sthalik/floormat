@@ -10,8 +10,7 @@
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Trade/ImageData.h>
 
-namespace floormat::wireframe
-{
+namespace floormat::wireframe {
 
 GL::Texture2D make_constant_texture()
 {
