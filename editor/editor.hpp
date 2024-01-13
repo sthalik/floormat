@@ -68,7 +68,7 @@ public:
     Optional<global_coords> mouse_drag_pos();
 
     using snap_mode = editor_snap_mode;
-    using button = enum editor_button;
+    using button = editor_button;
 };
 
 } // namespace floormat

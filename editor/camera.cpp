@@ -6,6 +6,7 @@
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
+#include <bit>
 #include <algorithm>
 
 namespace floormat {
