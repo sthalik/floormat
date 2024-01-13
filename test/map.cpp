@@ -2,6 +2,10 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996) // zero-length array
+#endif
+
 #include "compat/map.hpp"
 #include "compat/assert.hpp"
 

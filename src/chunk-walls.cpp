@@ -208,7 +208,7 @@ GL::Mesh chunk::make_wall_mesh()
                     {
                         const auto frames = atlas->frames(dir.top);
                         auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
-                        variant += !is_west ? frames.size() - 1 : 1;
+                        variant += (uint8_t)(!is_west ? frames.size() - 1 : 1);
                         variant = variant % frames.size();
                         constexpr Vector2 half_tile = TILE_SIZE2*.5f;
                         constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
@@ -274,7 +274,7 @@ GL::Mesh chunk::make_wall_mesh()
                         fm_assert(i < vertexes.size());
                         _walls->mesh_indexes[i] = (uint16_t)k;
                         auto& v = vertexes[i];
-                        auto quad = get_quad(D, Group_::corner, Depth);
+                        auto quad = get_quad(D, Group_::corner, (float)Depth);
                         for (auto& v : quad)
                             v += center;
                         for (uint8_t j = 0; j < 4; j++)
