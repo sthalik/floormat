@@ -5,6 +5,7 @@
 #include "src/anim-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
+#include "editor.hpp"
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
@@ -61,11 +62,11 @@ float app::draw_main_menu()
         }
         if (auto b = begin_menu("Editor"))
         {
-            auto mode = _editor.mode();
+            auto mode = _editor->mode();
             using m = editor_mode;
-            const auto* ed_sc = _editor.current_scenery_editor();
-            const auto* ed_gr = _editor.current_ground_editor();
-            const auto* ed_wa = _editor.current_wall_editor();
+            const auto* ed_sc = _editor->current_scenery_editor();
+            const auto* ed_gr = _editor->current_ground_editor();
+            const auto* ed_wa = _editor->current_wall_editor();
             const bool b_rotate = ed_sc && ed_sc->is_anything_selected() ||
                                   ed_gr && ed_gr->is_anything_selected() ||
                                   ed_wa && ed_wa->is_anything_selected();
@@ -124,7 +125,7 @@ void app::draw_ui()
         draw_clickables();
     if (_render_vobjs)
         draw_light_info();
-    if (_editor.mode() == editor_mode::tests)
+    if (_editor->mode() == editor_mode::tests)
         draw_tests_overlay();
     const float main_menu_height = draw_main_menu();
 
@@ -132,14 +133,14 @@ void app::draw_ui()
 
     draw_lightmap_test(main_menu_height);
 
-    if (_editor.current_ground_editor() || _editor.current_wall_editor() ||
-        _editor.current_scenery_editor() ||
-        _editor.current_vobj_editor() || _editor.mode() == editor_mode::tests)
+    if (_editor->current_ground_editor() || _editor->current_wall_editor() ||
+        _editor->current_scenery_editor() ||
+        _editor->current_vobj_editor() || _editor->mode() == editor_mode::tests)
         draw_editor_pane(main_menu_height);
     draw_fps();
 
     draw_tile_under_cursor();
-    if (_editor.mode() == editor_mode::none)
+    if (_editor->mode() == editor_mode::none)
         draw_inspector();
     draw_z_level();
     do_popup_menu();

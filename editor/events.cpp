@@ -4,6 +4,7 @@
 #include "floormat/events.hpp"
 #include "src/world.hpp"
 #include "keys.hpp"
+#include "editor.hpp"
 #include <tuple>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
@@ -60,7 +61,7 @@ void app::on_mouse_move(const mouse_move_event& event) noexcept
 
     if ((cursor.in_imgui = _imgui->handleMouseMoveEvent(e)))
         void();
-    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_move(event))
+    else if (_editor->mode() == editor_mode::tests && tests_handle_mouse_move(event))
         void();
     update_cursor_tile(event.position);
     do_mouse_move(fixup_mods(event.mods));
@@ -83,7 +84,7 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down) noexce
 
     if ((cursor.in_imgui = is_down ? _imgui->handleMousePressEvent(e) : _imgui->handleMouseReleaseEvent(e)))
         void();
-    else if (_editor.mode() == editor_mode::tests && tests_handle_mouse_click(event, is_down))
+    else if (_editor->mode() == editor_mode::tests && tests_handle_mouse_click(event, is_down))
         void();
     else
         do_mouse_up_down(event.button, is_down, fixup_mods(event.mods));
@@ -187,7 +188,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
     if (x == key_COUNT && (is_down ? _imgui->handleKeyPressEvent(e) : _imgui->handleKeyReleaseEvent(e)) ||
-        (x == key_COUNT || x == key_escape) && _editor.mode() == editor_mode::tests && tests_handle_key(event, is_down))
+        (x == key_COUNT || x == key_escape) && _editor->mode() == editor_mode::tests && tests_handle_key(event, is_down))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
         is_down && !event.is_repeated ? do_key(x, mods) : void();

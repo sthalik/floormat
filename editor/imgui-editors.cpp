@@ -4,6 +4,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
+#include "editor.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>
@@ -229,10 +230,10 @@ template void impl_draw_editor_scenery_pane(wall_editor&, Vector2);
 
 void app::draw_editor_pane(float main_menu_height)
 {
-    auto* ed = _editor.current_ground_editor();
-    auto* wa = _editor.current_wall_editor();
-    auto* sc = _editor.current_scenery_editor();
-    auto* vo = _editor.current_vobj_editor();
+    auto* ed = _editor->current_ground_editor();
+    auto* wa = _editor->current_wall_editor();
+    auto* sc = _editor->current_scenery_editor();
+    auto* vo = _editor->current_vobj_editor();
 
     const auto window_size = M->window_size();
     const auto dpi = M->dpi_scale();
@@ -275,7 +276,7 @@ void app::draw_editor_pane(float main_menu_height)
                     impl_draw_editor_scenery_pane<vobj_editor>(*vo, dpi);
                 else if (wa)
                     impl_draw_editor_scenery_pane<wall_editor>(*wa, dpi);
-                else if (_editor.mode() == editor_mode::tests)
+                else if (_editor->mode() == editor_mode::tests)
                     draw_tests_pane();
             }
         }

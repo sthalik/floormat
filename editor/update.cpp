@@ -3,6 +3,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
+#include "editor.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "src/critter.hpp"
@@ -32,7 +33,7 @@ void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords_& pos, [[ma
 void app::do_mouse_move(int mods)
 {
     if (cursor.tile && !cursor.in_imgui)
-        _editor.on_mouse_move(M->world(), *cursor.tile, mods);
+        _editor->on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
 void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
@@ -45,7 +46,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
 
     if (is_down && cursor.tile && !cursor.in_imgui)
     {
-        switch (_editor.mode())
+        switch (_editor->mode())
         {
         default:
             break;
@@ -75,17 +76,17 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
             switch (button)
             {
             case mouse_button_left:
-                return _editor.on_click(w, pos, mods, editor::button::place);
+                return _editor->on_click(w, pos, mods, editor::button::place);
             case mouse_button_middle:
-                return _editor.on_click(w, pos, mods, editor::button::remove);
+                return _editor->on_click(w, pos, mods, editor::button::remove);
             case mouse_button_right:
-                return _editor.clear_selection();
+                return _editor->clear_selection();
             default: break;
             }
             break;
         }
     }
-    _editor.on_release();
+    _editor->on_release();
 }
 
 void app::do_mouse_scroll(int offset)
@@ -99,9 +100,9 @@ void app::do_mouse_scroll(int offset)
 
 void app::do_rotate(bool backward)
 {
-    if (auto* ed = _editor.current_wall_editor())
+    if (auto* ed = _editor->current_wall_editor())
         ed->toggle_rotation();
-    else if (auto* ed = _editor.current_scenery_editor())
+    else if (auto* ed = _editor->current_scenery_editor())
     {
         if (ed->is_anything_selected())
             backward ? ed->prev_rotation() : ed->next_rotation();
@@ -117,20 +118,20 @@ void app::do_rotate(bool backward)
 
 void app::do_set_mode(editor_mode mode)
 {
-    if (mode != _editor.mode())
+    if (mode != _editor->mode())
         kill_popups(false);
-    _editor.set_mode(mode);
+    _editor->set_mode(mode);
 }
 
 void app::do_escape()
 {
-    if (auto* ed = _editor.current_ground_editor())
+    if (auto* ed = _editor->current_ground_editor())
         ed->clear_selection();
-    if (auto* ed = _editor.current_wall_editor())
+    if (auto* ed = _editor->current_wall_editor())
         ed->clear_selection();
-    if (auto* sc = _editor.current_scenery_editor())
+    if (auto* sc = _editor->current_scenery_editor())
         sc->clear_selection();
-    if (auto* vo = _editor.current_vobj_editor())
+    if (auto* vo = _editor->current_vobj_editor())
         vo->clear_selection();
     kill_popups(false);
 }

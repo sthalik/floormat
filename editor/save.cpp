@@ -2,6 +2,7 @@
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include <Corrade/Containers/String.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {

@@ -3,6 +3,7 @@
 #include "floormat/settings.hpp"
 #include "shaders/shader.hpp"
 #include "main/clickable.hpp"
+#include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "draw/anim.hpp"
 #include "draw/wireframe-meshes.hpp"
@@ -26,7 +27,7 @@ void app::draw_cursor()
     const auto inactive_color = 0xff00ffff_rgbaf;
 
     global_coords tile;
-    if (auto pos = _editor.mouse_drag_pos())
+    if (auto pos = _editor->mouse_drag_pos())
         tile = *pos;
     else if (cursor.tile)
         tile = *cursor.tile;
@@ -42,13 +43,13 @@ void app::draw_cursor()
 
         shader.set_tint({1, 0, 0, 1});
 
-        if (const auto* ed = _editor.current_ground_editor())
+        if (const auto* ed = _editor->current_ground_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
             draw(_wireframe->quad, TILE_SIZE2);
         }
-        else if (const auto* ed = _editor.current_wall_editor())
+        else if (const auto* ed = _editor->current_wall_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
@@ -59,7 +60,7 @@ void app::draw_cursor()
             default: std::unreachable();
             }
         }
-        else if (const auto* ed = _editor.current_scenery_editor())
+        else if (const auto* ed = _editor->current_scenery_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
@@ -77,7 +78,7 @@ void app::draw_cursor()
                 anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
             }
         }
-        else if (const auto* vo = _editor.current_vobj_editor())
+        else if (const auto* vo = _editor->current_vobj_editor())
         {
             if (!vo->is_anything_selected())
                 shader.set_tint(inactive_color);
@@ -202,10 +203,10 @@ void app::draw()
     do_lightmap_test();
     if (_render_bboxes)
         draw_collision_boxes();
-    if (_editor.current_ground_editor() && _editor.current_ground_editor()->is_anything_selected() ||
-        _editor.current_wall_editor() && _editor.current_wall_editor()->is_anything_selected() ||
-        _editor.current_scenery_editor() && _editor.current_scenery_editor()->is_anything_selected() ||
-        _editor.current_vobj_editor() && _editor.current_vobj_editor()->is_anything_selected())
+    if (_editor->current_ground_editor() && _editor->current_ground_editor()->is_anything_selected() ||
+        _editor->current_wall_editor() && _editor->current_wall_editor()->is_anything_selected() ||
+        _editor->current_scenery_editor() && _editor->current_scenery_editor()->is_anything_selected() ||
+        _editor->current_vobj_editor() && _editor->current_vobj_editor()->is_anything_selected())
         draw_cursor();
     draw_ui();
     render_menu();
@@ -215,7 +216,7 @@ void app::draw()
 
 clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
 {
-    if (!pixel || _editor.mode() != editor_mode::none)
+    if (!pixel || _editor->mode() != editor_mode::none)
         return nullptr;
 
     clickable* item = nullptr;

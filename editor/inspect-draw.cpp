@@ -4,6 +4,7 @@
 #include "main/clickable.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
+#include "src/object.hpp"
 #include "src/anim-atlas.hpp"
 #include "imgui-raii.hpp"
 #include "loader/loader.hpp"
