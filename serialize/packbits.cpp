@@ -21,7 +21,6 @@ constexpr bool test1()
     using P1 = P0::next<bits[0]>;
     using P2 = P1::next<bits[1]>;
     using P3 = P2::next<bits[2]>;
-    using P4 = P2::next<bits[3]>;
 
     static_assert(std::is_same_v<P0, Storage<uint8_t, vals[0]>>);
     static_assert(std::is_same_v<P1, Storage<uint8_t, vals[1]>>);
