@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <string_view>
 #include <tsl/robin_map.h>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/StringStlHash.h>
 #include <Corrade/Utility/Path.h>
 
@@ -303,15 +304,20 @@ void writer_state::serialize_strings()
 {
     static_assert(critter_name_max <= string_max);
     auto len = 0uz;
-    for (const auto& [k, v] : string_map)
+
+    Array<StringView> sorted_strings{string_map.size()};
+    for (auto [s, i] : string_map)
+        sorted_strings[i] = s;
+
+    for (const auto& k : sorted_strings)
     {
         fm_assert(k.size()+1 < string_max);
         len += k.size()+1;
     }
     string_buf.resize(sizeof(uint32_t) + len);
     auto s = binary_writer{string_buf.begin()};
-    s << (uint32_t)string_map.size();
-    for (const auto& [k, v] : string_map)
+    s << (uint32_t)sorted_strings.size();
+    for (const auto& k : sorted_strings)
     {
         fm_assert(k.size() < string_max);
         s.write_asciiz_string(k);
