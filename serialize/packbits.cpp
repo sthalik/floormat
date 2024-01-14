@@ -7,6 +7,8 @@ using namespace floormat::detail_Pack;
 
 namespace {
 
+template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} << N)-T{1};
+
 template<size_t Val> using us_bits = Bits_<uint16_t, Val>;
 
 static_assert(!Storage<uint32_t, 3>{65535}.check_zero());
@@ -110,7 +112,30 @@ static_assert(std::is_same_v< make_tuple_type<uint8_t, 3>,  std::tuple<uint8_t, 
 
 constexpr bool test4()
 {
-    auto t = std::tuple<unsigned, unsigned, unsigned>();
+    using Tuple = std::tuple<uint32_t, uint32_t, uint32_t>;
+    Tuple tuple{};
+    assign_tuple2(tuple, Storage<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{},
+                  Bits_<uint32_t, 17>{}, Bits_<uint32_t, 14>{}, Bits_<uint32_t, 1>{});
+    auto [a, b, c] = tuple;
+
+    static_assert(lowbits<uint32_t, 17> != 0);
+    fm_assert(a == lowbits<uint32_t, 17>);
+    fm_assert(b == lowbits<uint32_t, 14>);
+    fm_assert(c & 1);
+
+    //Assign::do_tuple(tuple, Storage<uint32_t, 32>{(uint32_t)-1});
+
+    return true;
+}
+static_assert(test4());
+
+constexpr bool test5()
+{
+    auto st = Storage<uint32_t, 32>{0xB16B00B5};
+    uint32_t a, b, c;
+    using Tuple = std::tuple<uint32_t&, uint32_t&, uint32_t&>;
+    auto t = Tuple{a, b, c};
+    //assign_tuple<uint32_t, std::make_index_sequence<3>, Tuple,
 
     return true;
 }
