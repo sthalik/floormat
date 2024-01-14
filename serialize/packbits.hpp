@@ -11,24 +11,7 @@ template<std::unsigned_integral T, size_t N> struct Bits_;
 namespace floormat::detail_Pack {
 
 using namespace floormat::Pack;
-template<std::unsigned_integral T, size_t Sum, typename... Xs> struct check_size_overflow;
 
-template<std::unsigned_integral T, std::unsigned_integral U, size_t Sum, size_t N, typename... Xs>
-struct check_size_overflow<T, Sum, Bits_<U, N>, Xs...>
-{
-    static_assert(std::is_same_v<T, U>);
-    static constexpr auto acc = Sum + size_t{N};
-    using next_check = check_size_overflow<T, acc, Xs...>;
-    static constexpr auto size = next_check::size;
-    static constexpr bool result = next_check::result;
-};
-
-template<std::unsigned_integral T, size_t Sum>
-struct check_size_overflow<T, Sum>
-{
-    static constexpr size_t size = Sum;
-    static constexpr bool result = Sum <= sizeof(T)*8;
-};
 
 template<std::unsigned_integral T, size_t CAPACITY>
 struct Storage

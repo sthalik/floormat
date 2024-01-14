@@ -7,6 +7,25 @@ using namespace floormat::detail_Pack;
 
 namespace {
 
+template<std::unsigned_integral T, size_t Sum, typename... Xs> struct check_size_overflow;
+
+template<std::unsigned_integral T, std::unsigned_integral U, size_t Sum, size_t N, typename... Xs>
+struct check_size_overflow<T, Sum, Bits_<U, N>, Xs...>
+{
+    static_assert(std::is_same_v<T, U>);
+    static constexpr auto acc = Sum + size_t{N};
+    using next_check = check_size_overflow<T, acc, Xs...>;
+    static constexpr auto size = next_check::size;
+    static constexpr bool result = next_check::result;
+};
+
+template<std::unsigned_integral T, size_t Sum>
+struct check_size_overflow<T, Sum>
+{
+    static constexpr size_t size = Sum;
+    static constexpr bool result = Sum <= sizeof(T)*8;
+};
+
 template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} << N)-T{1};
 
 template<size_t Val> using us_bits = Bits_<uint16_t, Val>;
