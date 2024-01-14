@@ -9,7 +9,13 @@ namespace {
 
 template<size_t Val> using us_bits = Bits_<uint16_t, Val>;
 
-static_assert(!Storage<uint8_t, 0>{42}.check_zero());
+static_assert(!Storage<uint32_t, 3>{65535}.check_zero());
+static_assert(Storage<uint32_t, 30>{65535}.advance<16>() == 0);
+
+static_assert(Storage<uint32_t, 30>::next<16>{
+    Storage<uint32_t, 30>{65535}.advance<16>()
+}.check_zero());
+static_assert(Storage<uint32_t, 30>::next<16>{}.Capacity == 14);
 
 constexpr bool test1()
 {
@@ -99,6 +105,16 @@ constexpr bool test3()
     return true;
 }
 static_assert(test3());
+
+static_assert(std::is_same_v< make_tuple_type<uint8_t, 3>,  std::tuple<uint8_t, uint8_t, uint8_t> >);
+
+constexpr bool test4()
+{
+    auto t = std::tuple<unsigned, unsigned, unsigned>();
+
+    return true;
+}
+static_assert(test4());
 
 } // namespace
 
