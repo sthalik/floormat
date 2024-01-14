@@ -4,13 +4,18 @@
 #include <tuple>
 #include "compat/assert.hpp"
 
-namespace floormat::Pack {
-template<std::unsigned_integral T, size_t N> struct Bits;
-} // namespace floormat::Pack
-
 namespace floormat::detail_Pack {
 
-using namespace floormat::Pack;
+template<std::unsigned_integral T, size_t N>
+struct Bits final
+{
+    static_assert(std::is_fundamental_v<T>);
+    static_assert(N > 0);
+    static_assert(N < sizeof(T)*8);
+
+    using type = T;
+    static constexpr auto bits = N;
+};
 
 template<std::unsigned_integral T, size_t CAPACITY>
 struct Storage
@@ -77,8 +82,11 @@ struct make_tuple_type_
 };
 template<std::unsigned_integral T, size_t N> using make_tuple_type = typename make_tuple_type_<T, N>::Seq;
 
-template<typename T, typename Place, size_t Left, size_t I, size_t... Is, size_t Size, typename... Sizes>
-constexpr void assign_tuple(Place& p, Storage<T, Left> st, std::index_sequence<I, Is...>, Bits<T, Size>, Sizes... sizes)
+template<typename... Ts> struct pack_tuple {};
+
+template<std::unsigned_integral T, typename Place, size_t Left, size_t I, size_t... Is, size_t Size, typename... Sizes>
+requires requires() { sizeof...(Is) == sizeof...(Sizes); }
+constexpr void assign_tuple(Place& p, Storage<T, Left> st, std::index_sequence<I, Is...>, pack_tuple<Bits<T, Size>, Sizes...>)
 {
     static_assert(Size <= Left, "too many bits requested");
     static_assert(I < std::tuple_size_v<Place>, "too few tuple members");
@@ -86,32 +94,25 @@ constexpr void assign_tuple(Place& p, Storage<T, Left> st, std::index_sequence<I
     using next_type = typename S::template next<Size>;
     get<I>(p) = st.template get<Size>();
     T next_value = st.template advance<Size>();
-    assign_tuple(p, next_type{next_value}, std::index_sequence<Is...>{}, sizes...);
+    assign_tuple(p, next_type{next_value}, std::index_sequence<Is...>{}, pack_tuple<Sizes...>{});
 }
 
-template<typename T, typename Place, size_t Left>
-constexpr void assign_tuple(Place&, Storage<T, Left> st, std::index_sequence<>)
+template<std::unsigned_integral T, typename Place, size_t Left>
+constexpr void assign_tuple(Place&, Storage<T, Left> st, std::index_sequence<>, pack_tuple<>)
 {
     fm_assert(st.check_zero());
 }
 
-template<typename T, typename Place, size_t Left, size_t... Is, typename... Sizes>
+template<std::unsigned_integral T, typename Place, size_t Left, size_t... Is, typename... Sizes>
 requires(sizeof...(Is) != sizeof...(Sizes))
-constexpr void assign_tuple(Place&, Storage<T, Left>, std::index_sequence<Is...>, Sizes...) = delete;
+constexpr void assign_tuple(Place&, Storage<T, Left>, std::index_sequence<Is...>, pack_tuple<Sizes...>) = delete;
+
+template<std::unsigned_integral T, size_t... Ns> using make_pack = pack_tuple<Bits<T, Ns>...>;
 
 } // namespace floormat::detail_Pack
 
 namespace floormat::Pack {
 
-template<std::unsigned_integral T, size_t N>
-struct Bits final
-{
-    static_assert(std::is_fundamental_v<T>);
-    static_assert(N > 0);
-    static_assert(N < sizeof(T)*8);
 
-    using type = T;
-    static constexpr auto bits = N;
-};
 
 } // namespace floormat::Pack

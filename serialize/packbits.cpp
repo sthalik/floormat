@@ -140,7 +140,7 @@ constexpr bool test4()
     {
         Tuple_u32 tuple{};
         static_assert(lowbits<uint32_t, 17> == 0x1ffffU);
-        assign_tuple(tuple, Storage<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, Bits<uint32_t, 17>{}, Bits<uint32_t, 14>{}, Bits<uint32_t, 1>{});
+        assign_tuple(tuple, Storage<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, make_pack<uint32_t, 17, 14, 1>{});
         auto [a, b, c] = tuple;
         fm_assert(a == lowbits<uint32_t, 17>);
         fm_assert(b == lowbits<uint32_t, 14>);
@@ -148,7 +148,7 @@ constexpr bool test4()
     }
     {
         Tuple_u8 tuple{};
-        assign_tuple(tuple, Storage<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, Bits<uint8_t, 1>{}, Bits<uint8_t, 3>{}, Bits<uint8_t, 2>{});
+        assign_tuple(tuple, Storage<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, make_pack<uint8_t, 1, 3, 2>{});
         auto [a, b, c] = tuple;
         fm_assert(a == 0b1);
         fm_assert(b == 0b101);
@@ -156,13 +156,13 @@ constexpr bool test4()
     }
     {
         std::tuple<> empty_tuple;
-        assign_tuple(empty_tuple, Storage<uint8_t, 8>{0}, std::index_sequence<>{});
+        assign_tuple(empty_tuple, Storage<uint8_t, 8>{0}, std::index_sequence<>{}, make_pack<uint8_t>{});
         Tuple_u8 tuple{}; (void)tuple;
-        // assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{});
-        // assign_tuple(tuple, Storage<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, Bits<uint8_t, 2>{}, Bits<uint8_t, 2>{}, Bits<uint8_t, 2>{});
-        // (void)Storage<uint8_t, 9>{};
-        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{}, std::index_sequence<0>{}, Bits<uint8_t, 1>{});
-        // assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{}, Bits<uint8_t, 1>{});
+        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t>{});
+        //assign_tuple(tuple, Storage<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, make_tuple<uint8_t, 2, 2, 2>{});
+        //(void)Storage<uint8_t, 9>{};
+        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{}, std::index_sequence<0>{}, make_tuple<uint8_t, 1>{});
+        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t, 1>{});
     }
 
     return true;
