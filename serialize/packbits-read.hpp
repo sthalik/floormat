@@ -89,7 +89,7 @@ struct input<T, 0>
 };
 
 template<std::unsigned_integral T, typename Place, size_t Left, size_t I, size_t... Is, size_t Size, typename... Sizes>
-constexpr void read(Place& p, input<T, Left> st, std::index_sequence<I, Is...>, empty_pack_tuple<input_bits<T, Size>, Sizes...>)
+constexpr void read_(Place& p, input<T, Left> st, std::index_sequence<I, Is...>, empty_pack_tuple<input_bits<T, Size>, Sizes...>)
 {
     static_assert(sizeof...(Is) == sizeof...(Sizes));
     static_assert(Size <= Left, "data type too small");
@@ -98,18 +98,18 @@ constexpr void read(Place& p, input<T, Left> st, std::index_sequence<I, Is...>, 
     using next_type = typename S::template next<Size>;
     get<I>(p) = st.template get<Size>();
     T next_value = st.template advance<Size>();
-    read(p, next_type{ next_value }, std::index_sequence<Is...>{}, empty_pack_tuple<Sizes...>{});
+    read_(p, next_type{ next_value }, std::index_sequence<Is...>{}, empty_pack_tuple<Sizes...>{});
 }
 
 template<std::unsigned_integral T, typename Place, size_t Left>
-constexpr void read(Place&, input<T, Left> st, std::index_sequence<>, empty_pack_tuple<>)
+constexpr void read_(Place&, input<T, Left> st, std::index_sequence<>, empty_pack_tuple<>)
 {
     fm_assert(st.check_zero());
 }
 
 template<std::unsigned_integral T, typename Place, size_t Left, size_t... Is, typename... Sizes>
 requires(sizeof...(Is) != sizeof...(Sizes))
-constexpr void read(Place&, input<T, Left>, std::index_sequence<Is...>, empty_pack_tuple<Sizes...>) = delete;
+constexpr void read_(Place&, input<T, Left>, std::index_sequence<Is...>, empty_pack_tuple<Sizes...>) = delete;
 
 template<std::unsigned_integral T, size_t... Ns> using make_pack = empty_pack_tuple<input_bits<T, Ns>...>;
 

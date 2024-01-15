@@ -1,5 +1,4 @@
 #include "packbits-read.hpp"
-#include "packbits-write.hpp"
 #include "compat/assert.hpp"
 
 namespace floormat {
@@ -13,8 +12,7 @@ template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} 
 static_assert(!input<uint32_t, 3>{65535}.check_zero());
 static_assert(input<uint32_t, 30>{65535}.advance<16>() == 0);
 
-static_assert(input<uint32_t, 30>::next<16>{ input<uint32_t, 30>{65535}.advance<16>()
-}.check_zero());
+static_assert(input<uint32_t, 30>::next<16>{ input<uint32_t, 30>{65535}.advance<16>() }.check_zero());
 static_assert(input<uint32_t, 30>::next<16>{}.Capacity == 14);
 
 constexpr bool test1()
@@ -80,7 +78,7 @@ constexpr bool test4()
     {
         Tuple_u32 tuple{};
         static_assert(lowbits<uint32_t, 17> == 0x1ffffU);
-        read(tuple, input<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, make_pack<uint32_t, 17, 14, 1>{});
+        read_(tuple, input<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, make_pack<uint32_t, 17, 14, 1>{});
         auto [a, b, c] = tuple;
         fm_assert(a == lowbits<uint32_t, 17>);
         fm_assert(b == lowbits<uint32_t, 14>);
@@ -88,7 +86,7 @@ constexpr bool test4()
     }
     {
         Tuple_u8 tuple{};
-        read(tuple, input<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, make_pack<uint8_t, 1, 3, 2>{});
+        read_(tuple, input<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, make_pack<uint8_t, 1, 3, 2>{});
         auto [a, b, c] = tuple;
         fm_assert(a == 0b1);
         fm_assert(b == 0b101);
@@ -96,13 +94,13 @@ constexpr bool test4()
     }
     {
         std::tuple<> empty_tuple;
-        read(empty_tuple, input<uint8_t, 8>{0}, std::index_sequence<>{}, make_pack<uint8_t>{});
+        read_(empty_tuple, input<uint8_t, 8>{0}, std::index_sequence<>{}, make_pack<uint8_t>{});
         Tuple_u8 tuple{}; (void)tuple;
-        //read(empty_tuple, input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t>{});
-        //read(tuple, input<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, make_tuple<uint8_t, 2, 2, 2>{});
+        //read_(empty_tuple, input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t>{});
+        //read_(tuple, input<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, make_tuple<uint8_t, 2, 2, 2>{});
         //(void)input<uint8_t, 9>{};
-        //read(empty_tuple, input<uint8_t, 8>{}, std::index_sequence<0>{}, make_tuple<uint8_t, 1>{});
-        //read(empty_tuple, input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t, 1>{});
+        //read_(empty_tuple, input<uint8_t, 8>{}, std::index_sequence<0>{}, make_tuple<uint8_t, 1>{});
+        //read_(empty_tuple, input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t, 1>{});
     }
 
     return true;
