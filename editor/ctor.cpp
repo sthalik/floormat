@@ -21,7 +21,7 @@ app::app(fm_settings&& opts) :
     maybe_initialize_chunk_(coord, w[coord]);
     reset_camera_offset();
     M->set_render_vobjs(_render_vobjs);
-    inspectors.reserve(16);
+    reserve_inspector_array();
 }
 
 app::~app()

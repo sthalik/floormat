@@ -8,8 +8,8 @@
 #include "editor-enums.hpp"
 #include "tests.hpp"
 #include <memory>
-#include <array>
-#include <vector> // todo try removing?
+#include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/StaticArray.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Vector2.h>
@@ -171,14 +171,19 @@ private:
     void tests_reset_mode();
     tests_data& tests();
 
+    void reserve_inspector_array();
+    void add_inspector(popup_target p);
+    void erase_inspector(size_t index, ptrdiff_t count = 1);
+    void kill_inspectors();
+
     Pointer<floormat_main> M;
     Pointer<ImGuiIntegration::Context> _imgui;
     Pointer<floormat::wireframe::meshes> _wireframe;
     Pointer<tests_data_> _tests;
     Pointer<editor> _editor;
     Pointer<key_set> keys_;
-    std::array<int, key_COUNT> key_modifiers = {};
-    std::vector<popup_target> inspectors;
+    StaticArray<key_COUNT, int> key_modifiers{ValueInit};
+    Array<popup_target> inspectors;
     object_id _character_id = 0;
     struct cursor_state cursor;
     popup_target _popup_target;

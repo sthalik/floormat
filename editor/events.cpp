@@ -49,7 +49,7 @@ void app::clear_keys(key min_inclusive, key max_exclusive)
 void app::clear_keys()
 {
     keys_->reset();
-    key_modifiers = {};
+    key_modifiers = StaticArray<key_COUNT, int>{ValueInit};
 }
 
 void app::on_mouse_move(const mouse_move_event& event) noexcept

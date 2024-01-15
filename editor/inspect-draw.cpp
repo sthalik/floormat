@@ -17,14 +17,6 @@ void app::draw_inspector()
 {
     auto b = push_id("inspector");
 
-    constexpr auto max_inspectors = 10;
-    if (auto size = inspectors.size(); size > max_inspectors)
-    {
-        auto end = inspectors.begin() + (ptrdiff_t)size - max_inspectors;
-        inspectors.erase(inspectors.begin(), end);
-        fm_assert(inspectors.size() <= max_inspectors);
-    }
-
     const auto dpi = M->dpi_scale();
     auto& w = M->world();
 
@@ -34,7 +26,7 @@ void app::draw_inspector()
         auto e_ = w.find_object(id);
         if (!e_)
         {
-            inspectors.erase(inspectors.begin() + ptrdiff_t(i));
+            erase_inspector(i);
             continue;
         }
         auto& e = *e_;
@@ -61,7 +53,7 @@ auto z = e.coord.z();
             (void)ret;
         }
         if (!is_open)
-            inspectors.erase(inspectors.begin() + (ptrdiff_t)i);
+            erase_inspector(i);
     }
 }
 

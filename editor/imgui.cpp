@@ -366,7 +366,7 @@ void app::do_popup_menu()
             ImGui::MenuItem("Inspect", nullptr, exists))
         {
             if (!exists)
-                inspectors.push_back(std::exchange(_popup_target, {}));
+                add_inspector(std::exchange(_popup_target, {}));
             else
             {
                 char buf[32];
@@ -407,7 +407,7 @@ void app::kill_popups(bool hard)
         ImGui::CloseCurrentPopup();
 
     if (hard)
-        inspectors.clear();
+        kill_inspectors();
 
     if (_imgui)
         ImGui::FocusWindow(nullptr);
