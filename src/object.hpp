@@ -7,7 +7,6 @@
 #include "src/object-id.hpp"
 #include "src/point.hpp"
 #include <memory>
-#include <vector>
 
 namespace floormat {
 

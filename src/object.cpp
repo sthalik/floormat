@@ -7,6 +7,7 @@
 #include "shaders/shader.hpp"
 #include <cmath>
 #include <algorithm>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Math/Functions.h>
@@ -257,7 +258,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
         const_cast<rotation&>(r) = new_r;
         const_cast<struct chunk*&>(c) = &c2;
         i = (size_t)std::distance(es.cbegin(), it);
-        es.insert(it, std::move(e_));
+        arrayInsert(es, i, std::move(e_));
     }
 }
 

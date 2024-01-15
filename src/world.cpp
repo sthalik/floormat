@@ -3,6 +3,7 @@
 #include "object.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
+#include <Corrade/Containers/GrowableArray.h>
 
 using namespace floormat;
 
@@ -65,7 +66,7 @@ world::~world() noexcept
         v.mark_scenery_modified();
         v.mark_passability_modified();
         _last_chunk = {};
-        v._objects.clear();
+        arrayResize(v._objects, 0);
     }
     _last_chunk = {};
     _chunks.clear();

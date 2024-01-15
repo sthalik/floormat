@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <array>
 #include <vector>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/GL/Mesh.h>
 
@@ -123,7 +124,7 @@ struct chunk final
     void add_object_unsorted(const std::shared_ptr<object>& e);
     void sort_objects();
     void remove_object(size_t i);
-    const std::vector<std::shared_ptr<object>>& objects() const;
+    ArrayView<const std::shared_ptr<object>> objects() const;
 
     // for drawing only
     static constexpr size_t max_wall_quad_count =
@@ -146,7 +147,7 @@ private:
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
-    std::vector<std::shared_ptr<object>> _objects;
+    Array<std::shared_ptr<object>> _objects;
     class world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
     RTree _rtree;

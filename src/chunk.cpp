@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "tile-iterator.hpp"
 #include <algorithm>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/GL/Context.h>
 
 namespace floormat {
@@ -27,11 +28,11 @@ bool chunk::empty(bool force) const noexcept
     if (!force && !_maybe_empty) [[likely]]
         return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (!_objects.empty() ||
+        if (!_objects.isEmpty() ||
             _ground && _ground->atlases[i] ||
             _walls && (_walls->atlases[i*2+0] || _walls->atlases[i*2+1]))
             return _maybe_empty = false;
-    if (!_objects.empty())
+    if (!_objects.isEmpty())
         return false;
     return true;
 }
@@ -126,7 +127,8 @@ chunk::chunk(class world& w, chunk_coords_ ch) noexcept : _world{&w}, _coord{ch}
 chunk::~chunk() noexcept
 {
     _teardown = true;
-    _objects.clear();
+    arrayResize(_objects, 0);
+    arrayShrink(_objects);
     _rtree.RemoveAll();
 }
 
@@ -142,7 +144,7 @@ void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
-    _objects.push_back(e);
+    arrayAppend(_objects, e);
 }
 
 void chunk::sort_objects()
@@ -166,9 +168,8 @@ void chunk::add_object(const std::shared_ptr<object>& e)
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
     auto& es = _objects;
-    es.reserve(es.size() + 1);
     auto it = std::lower_bound(es.cbegin(), es.cend(), e, object_id_lessp);
-    _objects.insert(it, e);
+    arrayInsert(es, (size_t)std::distance(es.cbegin(), it), e);
 }
 
 void chunk::remove_object(size_t i)
@@ -181,10 +182,10 @@ void chunk::remove_object(size_t i)
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _remove_bbox(bb);
-    es.erase(es.cbegin() + ptrdiff_t(i));
+    arrayRemove(es, i);
 }
 
-const std::vector<std::shared_ptr<object>>& chunk::objects() const
+ArrayView<const std::shared_ptr<object>> chunk::objects() const
 {
     fm_assert(_objects_sorted);
     return _objects;
