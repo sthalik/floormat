@@ -1,6 +1,5 @@
-#ifndef RTREE_H
-#define RTREE_H
-
+#pragma once
+#include "RTree-fwd.h"
 // NOTE This file compiles under MSVC 6 SP5 and MSVC .Net 2003 it may not work on other compilers without modification.
 
 // NOTE These next few lines may be win32 specific, you may need to modify them to compile on other platform
@@ -10,8 +9,6 @@
 #ifdef RTREE_STDIO
 #include <stdio.h>
 #endif
-
-#include <vector>
 
 //
 // RTree.h
@@ -71,10 +68,9 @@ private:
 ///        array similar to MFC CArray or STL Vector for returning search query result.
 ///
 template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
-         class ELEMTYPEREAL = ELEMTYPE, int TMAXNODES = 8, int TMINNODES = TMAXNODES / 2>
+         class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
 class RTree final
 {
-
 public:
 
   struct Node;  // Fwd decl.  Used by other internal structs and iterator
@@ -87,8 +83,6 @@ public:
     MAXNODES = TMAXNODES,                         ///< Max elements in node
     MINNODES = TMINNODES,                         ///< Min elements in node
   };
-
-public:
 
   RTree();
   RTree(const RTree& other);
@@ -302,9 +296,11 @@ protected:
   Node* m_root;                                    ///< Root of tree
   ELEMTYPEREAL m_unitSphereVolume;                 ///< Unit sphere constant for required number of dimensions
 
+  template<typename T> using Array = ::Corrade::Containers::Array<T>;
+
 public:
   // return all the AABBs that form the RTree
-  void ListTree(std::vector<Rect>& vec, std::vector<Node*>& temp) const;
+  void ListTree(Array<Rect>& vec, Array<Node*>& temp) const;
 };
 
 
@@ -315,5 +311,3 @@ extern template class RTree<floormat::uint64_t, float, 2, float>;
 #endif
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL
-
-#endif //RTREE_H

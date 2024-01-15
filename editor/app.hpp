@@ -1,13 +1,13 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "compat/enum-bitset-fwd.hpp"
+#include "compat/safe-ptr.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
 #include "src/global-coords.hpp"
 #include "src/object-id.hpp"
 #include "editor-enums.hpp"
 #include "tests.hpp"
-#include <memory>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/StaticArray.h>
 #include <Corrade/Containers/Pointer.h>
@@ -37,6 +37,7 @@ class anim_atlas;
 struct critter;
 struct point;
 class editor;
+template<typename T> struct shared_ptr_wrapper;
 
 struct cursor_state final
 {
@@ -78,7 +79,7 @@ struct app final : floormat_app
     floormat_main& main();
     const struct cursor_state& cursor_state();
     clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
-    std::shared_ptr<critter> ensure_player_character(world& w);
+    shared_ptr_wrapper<critter> ensure_player_character(world& w);
 
 private:
     app(fm_settings&& opts);
@@ -176,12 +177,12 @@ private:
     void erase_inspector(size_t index, ptrdiff_t count = 1);
     void kill_inspectors();
 
-    Pointer<floormat_main> M;
-    Pointer<ImGuiIntegration::Context> _imgui;
-    Pointer<floormat::wireframe::meshes> _wireframe;
-    Pointer<tests_data_> _tests;
-    Pointer<editor> _editor;
-    Pointer<key_set> keys_;
+    floormat_main* M;
+    safe_ptr<ImGuiIntegration::Context> _imgui;
+    safe_ptr<floormat::wireframe::meshes> _wireframe;
+    safe_ptr<tests_data_> _tests;
+    safe_ptr<editor> _editor;
+    safe_ptr<key_set> keys_;
     StaticArray<key_COUNT, int> key_modifiers{ValueInit};
     Array<popup_target> inspectors;
     object_id _character_id = 0;

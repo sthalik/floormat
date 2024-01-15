@@ -13,6 +13,7 @@ sets(STRING
 list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 add_compile_options(-fdiagnostics-color=always)
 set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
 

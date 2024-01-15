@@ -9,6 +9,7 @@ namespace Magnum::Platform { class Sdl2Application; }
 
 namespace floormat {
 
+template<typename T> class safe_ptr;
 struct fm_settings;
 struct floormat_app;
 struct tile_shader;

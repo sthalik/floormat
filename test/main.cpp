@@ -16,7 +16,7 @@ test_app::test_app(const Arguments& arguments):
 
 test_app::~test_app()
 {
-    loader_::destroy();
+    loader.destroy();
 }
 
 int test_app::exec()

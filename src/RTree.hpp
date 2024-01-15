@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <algorithm>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Utility/Math.h>
 
 #ifdef __GNUG__
@@ -1247,29 +1248,31 @@ void RTREE_QUAL::ReInsert(Node* a_node, ListNode** a_listNode)
 
 
 RTREE_TEMPLATE
-void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVisit) const
+void RTREE_QUAL::ListTree(Array<Rect>& treeList, Array<Node*>& toVisit) const
 {
   fm_assert(m_root);
   fm_assert(m_root->m_level >= 0);
 
+  using namespace ::Corrade::Containers;
+
   std::size_t count = (std::size_t)Count();
-  treeList.clear();
-  treeList.reserve(count);
-  toVisit.clear();
-  toVisit.reserve(count);
+  arrayResize(treeList, 0);
+  arrayResize(toVisit, 0);
+  arrayReserve(treeList, count);
+  arrayReserve(toVisit, count);
 
-  toVisit.push_back(m_root);
+  arrayAppend(toVisit, m_root);
 
-  while (!toVisit.empty()) {
+  while (!toVisit.isEmpty()) {
     Node* a_node = toVisit.back();
-    toVisit.pop_back();
+    arrayRemove(toVisit, toVisit.size()-1);
     if(a_node->IsInternalNode())
     {
       // This is an internal node in the tree
       for(int index=0; index < a_node->m_count; ++index)
       {
-        treeList.push_back(a_node->m_branch[index].m_rect);
-        toVisit.push_back(a_node->m_branch[index].m_child);
+        arrayAppend(treeList, a_node->m_branch[index].m_rect);
+        arrayAppend(toVisit, a_node->m_branch[index].m_child);
       }
     }
     else
@@ -1277,12 +1280,12 @@ void RTREE_QUAL::ListTree(std::vector<Rect>& treeList, std::vector<Node*>& toVis
       // This is a leaf node
       for(int index=0; index < a_node->m_count; ++index)
       {
-        treeList.push_back(a_node->m_branch[index].m_rect);
+        arrayAppend(treeList, a_node->m_branch[index].m_rect);
       }
     }
   }
 
-  toVisit.clear();
+  arrayResize(toVisit, 0);
 }
 
 RTREE_TEMPLATE

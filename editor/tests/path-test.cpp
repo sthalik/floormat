@@ -1,5 +1,6 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
+#include "compat/shared-ptr-wrapper.hpp"
 #include "floormat/main.hpp"
 #include "src/path-search.hpp"
 #include "src/critter.hpp"
@@ -26,7 +27,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
     case mouse_button_left: {
         auto& M = a.main();
         auto& w = M.world();
-        auto C = a.ensure_player_character(w);
+        auto C = a.ensure_player_character(w).ptr;
         if (auto pt = a.cursor_state().point())
         {
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;

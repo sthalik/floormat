@@ -21,9 +21,9 @@ bool popup_target::operator==(const popup_target&) const = default;
 
 void app::init_imgui(Vector2i size)
 {
-    if (!_imgui) [[unlikely]]
+    if (!_imgui->context()) [[unlikely]]
     {
-        _imgui = Pointer<ImGuiIntegration::Context>{InPlaceInit, NoCreate};
+        _imgui = safe_ptr<ImGuiIntegration::Context>{InPlaceInit, NoCreate};
         *_imgui = ImGuiIntegration::Context{Vector2{size}, size, size};
         fm_assert(_imgui->context());
     }
@@ -392,7 +392,7 @@ void app::do_popup_menu()
 
 void app::kill_popups(bool hard)
 {
-    const bool imgui = _imgui != nullptr;
+    const bool imgui = _imgui->context() != nullptr;
 
     if (imgui)
         fm_assert(_imgui->context());
@@ -403,13 +403,13 @@ void app::kill_popups(bool hard)
     if (hard)
         tested_light_chunk = {};
 
-    if (_imgui)
+    if (_imgui->context())
         ImGui::CloseCurrentPopup();
 
     if (hard)
         kill_inspectors();
 
-    if (_imgui)
+    if (_imgui->context())
         ImGui::FocusWindow(nullptr);
 }
 

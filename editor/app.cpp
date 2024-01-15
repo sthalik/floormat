@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
+#include "compat/shared-ptr-wrapper.hpp"
 #include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
@@ -28,16 +29,22 @@ floormat_main& app::main() { return *M; }
 const cursor_state& app::cursor_state() { return cursor; }
 
 
-std::shared_ptr<critter> app::ensure_player_character(world& w)
+shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
 {
     if (_character_id)
+    {
+        std::shared_ptr<critter> tmp;
         if (auto C = w.find_object(_character_id); C && C->type() == object_type::critter)
-            return std::static_pointer_cast<critter>(C);
+        {
+            auto ptr = std::static_pointer_cast<critter>(C);
+            return {ptr};
+        }
+    }
     _character_id = 0;
 
     auto id = (object_id)-1;
 
-    std::shared_ptr<critter> ret;
+    shared_ptr_wrapper<critter> ret;
 
     for (const auto& [coord, c] : w.chunks())
     {
@@ -50,7 +57,7 @@ std::shared_ptr<critter> app::ensure_player_character(world& w)
                 if (C.playable)
                 {
                     id = std::min(id, C.id);
-                    ret = std::static_pointer_cast<critter>(e_);
+                    ret.ptr = std::static_pointer_cast<critter>(e_);
                 }
             }
         }
@@ -63,11 +70,11 @@ std::shared_ptr<critter> app::ensure_player_character(world& w)
         critter_proto cproto;
         cproto.name = "Player"_s;
         cproto.playable = true;
-        ret = w.make_object<critter>(w.make_id(), global_coords{}, cproto);
-        _character_id = ret->id;
+        ret.ptr = w.make_object<critter>(w.make_id(), global_coords{}, cproto);
+        _character_id = ret.ptr->id;
     }
-    fm_debug_assert(ret);
-    return ret;
+    fm_debug_assert(ret.ptr);
+    return shared_ptr_wrapper<critter>{ret};
 }
 
 void app::reset_world(class world&& w_)
@@ -176,15 +183,13 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     opts.argv = argv;
     opts.argc = argc;
 
-    Pointer<struct floormat_main> main;
-    Pointer<struct app> app_ptr{new app{Utility::move(opts)}};
-    auto& app = *app_ptr;
-    {
-        ret = app.exec();
-        main = Utility::move(app.M);
-        (void)main;
-    }
-    loader_::destroy();
+    struct app* A = new app{Utility::move(opts)};
+    floormat_main* M = A->M;
+    fm_assert(M != nullptr);
+    ret = A->exec();
+    loader.destroy();
+    delete A;
+    delete M;
     return ret;
 }
 

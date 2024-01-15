@@ -1,14 +1,35 @@
 #include "impl.hpp"
+#include "ground-info.hpp"
+#include "wall-info.hpp"
+#include "scenery.hpp"
+
+namespace floormat::loader_detail {
+
+void loader_impl::destroy()
+{
+    wall_atlas_map.clear();
+    wall_atlas_array.clear();
+    invalid_wall_atlas = nullptr;
+    missing_wall_atlases.clear();
+
+    ground_atlas_map.clear();
+    ground_atlas_array.clear();
+    invalid_ground_atlas = nullptr;
+    missing_ground_atlases.clear();
+
+    anim_atlas_map.clear();
+    anim_atlases.clear();
+    sceneries_map.clear();
+    sceneries_array.clear();
+    vobj_atlas_map.clear();
+    vobjs.clear();
+}
+
+} // namespace floormat::loader_detail
 
 namespace floormat {
 
 using loader_detail::loader_impl;
-
-void loader_::destroy()
-{
-    loader.~loader_();
-    new (&loader) loader_impl();
-}
 
 loader_& loader_::default_loader() noexcept
 {

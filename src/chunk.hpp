@@ -2,7 +2,7 @@
 #include "object-id.hpp"
 #include "tile.hpp"
 #include "local-coords.hpp"
-#include "src/RTree.h"
+#include "src/RTree-fwd.h"
 #include "global-coords.hpp"
 #include "wall-defs.hpp"
 #include <type_traits>
@@ -150,7 +150,7 @@ private:
     Array<std::shared_ptr<object>> _objects;
     class world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
-    RTree _rtree;
+    Pointer<RTree> _rtree;
     chunk_coords_ _coord;
 
     mutable bool _maybe_empty            : 1 = true,

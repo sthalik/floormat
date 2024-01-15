@@ -1,4 +1,5 @@
 #include "tests-private.hpp"
+#include "compat/safe-ptr.hpp"
 #include "app.hpp"
 #include "floormat/events.hpp"
 #include "imgui-raii.hpp"
@@ -31,9 +32,9 @@ void tests_data::switch_to(size_t i)
     }
 }
 
-Pointer<tests_data_> tests_data_::make()
+safe_ptr<tests_data_> tests_data_::make()
 {
-    return Pointer<tests_data>{InPlaceInit};
+    return safe_ptr<tests_data_>{new tests_data};
 }
 
 void app::tests_pre_update()

@@ -22,7 +22,7 @@ struct bench_app final : private FM_APPLICATION
     int argc;
     char** argv;
 };
-bench_app::~bench_app() { loader_::destroy(); }
+bench_app::~bench_app() { loader.destroy(); }
 
 int argc_ = 0; // NOLINT
 
@@ -52,6 +52,6 @@ int main(int argc, char** argv)
     {   auto app = bench_app{argc, argv};
         status = app.exec();
     }
-    loader_::destroy();
+    loader.destroy();
     return status;
 }

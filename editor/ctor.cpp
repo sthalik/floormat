@@ -10,10 +10,11 @@ namespace floormat {
 
 app::app(fm_settings&& opts) :
     M{floormat_main::create(*this, Utility::move(opts))},
+    _imgui{InPlaceInit, NoCreate},
     _wireframe{InPlaceInit},
     _tests{tests_data_::make()},
     _editor{InPlaceInit, this},
-    keys_{InPlaceInit, 0}
+    keys_{InPlaceInit, 0u}
 {
     reset_world();
     auto& w = M->world();

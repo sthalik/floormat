@@ -22,13 +22,13 @@ struct loader_impl final : loader_
 {
     explicit loader_impl();
     ~loader_impl() override;
-
     // >-----> system >----->
     String original_working_directory;
 
     void set_application_working_directory();
     StringView startup_directory() noexcept override;
     static void system_init();
+    void destroy() override;
     static bool chdir(StringView pathname);
 
     // >-----> plugins >----->

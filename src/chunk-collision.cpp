@@ -11,7 +11,7 @@
 
 namespace floormat {
 
-chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &_rtree; }
+chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 
 namespace {
 
@@ -30,7 +30,7 @@ void chunk::ensure_passability() noexcept
         return;
     _pass_modified = false;
 
-    _rtree.RemoveAll();
+    _rtree->RemoveAll();
 
     for (const std::shared_ptr<object>& s : objects())
     {
@@ -45,7 +45,7 @@ void chunk::ensure_passability() noexcept
         {
             auto [min, max] = whole_tile(i);
             auto id = make_id(collision_type::geometry, atlas->pass_mode(), i+1);
-            _rtree.Insert(min.data(), max.data(), id);
+            _rtree->Insert(min.data(), max.data(), id);
         }
     }
     for (auto i = 0uz; i < TILE_COUNT; i++)
@@ -55,13 +55,13 @@ void chunk::ensure_passability() noexcept
         {
             auto [min, max] = wall_north(i, atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
-            _rtree.Insert(min.data(), max.data(), id);
+            _rtree->Insert(min.data(), max.data(), id);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto [min, max] = wall_west(i, atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            _rtree.Insert(min.data(), max.data(), id);
+            _rtree->Insert(min.data(), max.data(), id);
         }
     }
 }
@@ -82,13 +82,13 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
 void chunk::_remove_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
-    _rtree.Remove(start.data(), end.data(), x.id);
+    _rtree->Remove(start.data(), end.data(), x.id);
 }
 
 void chunk::_add_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
-    _rtree.Insert(start.data(), end.data(), x.id);
+    _rtree->Insert(start.data(), end.data(), x.id);
 }
 
 void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
@@ -144,7 +144,7 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
                min = center - Vector2(bbox_size)*.5f, max = min + Vector2(bbox_size);
     bool ret = true;
-    _rtree.Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
+    _rtree->Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
           [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
           if (x.pass == (uint64_t)pass_mode::pass || x.pass == (uint64_t)pass_mode::shoot_through)
               return true;

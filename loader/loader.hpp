@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/defs.hpp"
 #include "src/pass-mode.hpp"
 #include <stdio.h>
 #include <memory>
@@ -37,7 +38,7 @@ struct loader_
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
     virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = false) noexcept(false) = 0;
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
-    static void destroy();
+    virtual void destroy() = 0;
     static loader_& default_loader() noexcept;
     virtual ArrayView<const ground_info> ground_atlas_list() noexcept(false) = 0;
     virtual ArrayView<const serialized_scenery> sceneries() = 0;
@@ -49,10 +50,9 @@ struct loader_
     static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
-    loader_(const loader_&) = delete;
-    loader_& operator=(const loader_&) = delete;
-
     virtual ~loader_() noexcept;
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(loader_);
 
     static const StringView INVALID;
     static const StringView IMAGE_PATH_;

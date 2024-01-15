@@ -2,6 +2,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "tile-iterator.hpp"
+#include "RTree.h"
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/GL/Context.h>
@@ -120,7 +121,10 @@ void chunk::mark_modified() noexcept
     mark_passability_modified();
 }
 
-chunk::chunk(class world& w, chunk_coords_ ch) noexcept : _world{&w}, _coord{ch}
+chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
+    _world{&w},
+    _rtree{InPlaceInit},
+    _coord{ch}
 {
 }
 
@@ -129,7 +133,7 @@ chunk::~chunk() noexcept
     _teardown = true;
     arrayResize(_objects, 0);
     arrayShrink(_objects);
-    _rtree.RemoveAll();
+    _rtree->RemoveAll();
 }
 
 chunk::chunk(chunk&&) noexcept = default;
