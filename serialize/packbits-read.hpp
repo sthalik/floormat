@@ -11,8 +11,6 @@ template<std::unsigned_integral T, size_t CAPACITY>
 struct input
 {
     static_assert(CAPACITY <= sizeof(T)*8);
-
-    using Type = T;
     static constexpr size_t Capacity = CAPACITY;
     T value;
 
@@ -36,7 +34,13 @@ struct input
     constexpr bool operator==(const input&) const noexcept = default;
     [[nodiscard]] constexpr inline bool check_zero() const { return value == T(0); }
 
-    template<size_t N> using next = input<T, Capacity - N>;
+    template<size_t N>
+    struct next_
+    {
+        static_assert(N <= Capacity);
+        using type = input<T, Capacity - N>;
+    };
+    template<size_t N> using next = typename next_<N>::type;
 };
 
 template<std::unsigned_integral T>
@@ -85,8 +89,8 @@ template<std::unsigned_integral T, size_t... Ns> using make_pack = empty_pack_tu
 
 } // namespace floormat::detail_Pack
 
-namespace floormat::Pack {
+namespace floormat::pack {
 
 
 
-} // namespace floormat::Pack
+} // namespace floormat::pack

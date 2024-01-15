@@ -1,4 +1,5 @@
 #include "packbits-read.hpp"
+#include "packbits-write.hpp"
 #include "compat/assert.hpp"
 
 namespace floormat {
@@ -8,7 +9,6 @@ using namespace floormat::detail_Pack;
 namespace {
 
 template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} << N)-T{1};
-template<size_t Val> using us_bits = bits<uint16_t, Val>;
 
 static_assert(!input<uint32_t, 3>{65535}.check_zero());
 static_assert(input<uint32_t, 30>{65535}.advance<16>() == 0);

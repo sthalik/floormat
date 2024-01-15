@@ -32,8 +32,8 @@ template<typename... Ts> struct empty_pack_tuple {};
 
 } // namespace floormat::detail_Pack
 
-namespace floormat::Pack {
+namespace floormat::pack {
 
 
 
-} // namespace floormat::Pack
+} // namespace floormat::pack
