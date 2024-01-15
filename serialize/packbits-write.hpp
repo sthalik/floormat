@@ -27,6 +27,7 @@ struct output
     template<size_t N>
     struct next_
     {
+        static_assert(N <= sizeof(T)*8);
         static_assert(N > 0);
         static_assert(N <= CAPACITY);
         using type = output<T, CAPACITY - N>;
@@ -40,7 +41,7 @@ struct output
         static_assert(N > 0);
         T value_{value};
         if constexpr(CAPACITY != sizeof(T)*8)
-            value_ <<= CAPACITY;
+            value_ <<= N;
         auto x_ = T(x & (T{1}<<N)-T{1});
         fm_assert(x_ == x);
         value_ |= x_;
@@ -55,12 +56,28 @@ struct output_field
     static constexpr size_t Length = LENGTH;
 };
 
-template<typename T, size_t Left, size_t F, typename... Fields>
-constexpr T write_(output<T, Left> st, output_field<T, F> field, Fields... fields)
+template<std::unsigned_integral Type, typename Tuple> struct count_bits;
+
+
+template<std::unsigned_integral Int, size_t N, typename... Ts> struct count_bits<Int, std::tuple<output_field<Int, N>, Ts...>>
 {
-    T value = st.set(field.value, output_bits<F>{});
+    static constexpr size_t length = N + count_bits<Int, std::tuple<Ts...>>::length;
+    static_assert(length <= sizeof(T)*8);
+};
+
+template<std::unsigned_integral Int> struct count_bits<Int, std::tuple<>>
+{
+    static constexpr size_t length = 0;
+};
+
+#if 0
+template<typename T, size_t Left, typename Fields, size_t... Is>
+constexpr T write_(output<T, Left> st, std::tuple<Fields..., output_field<T, F>> fields)
+{
+    T value0 = fields.get< std::tuple_size_v<std::tuple<Fields..., output_field<T, F>>>-1 >(fields).value;
+    T value = st.set(value0, output_bits<F>{});
     using next = typename output<T, Left>::template next<F>;
-    return write_(next{value}, fields...);
+    return write_(next{value}, );
 }
 
 template<typename T, size_t Left>
@@ -68,5 +85,6 @@ constexpr T write_(output<T, Left> st)
 {
     return st.value;
 }
+#endif
 
 } // namespace floormat::detail_Pack_output
