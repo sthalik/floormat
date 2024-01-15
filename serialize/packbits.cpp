@@ -7,57 +7,36 @@ using namespace floormat::detail_Pack;
 
 namespace {
 
-#if 0
-template<std::unsigned_integral T, size_t Sum, typename... Xs> struct check_size_overflow;
-
-template<std::unsigned_integral T, std::unsigned_integral U, size_t Sum, size_t N, typename... Xs>
-struct check_size_overflow<T, Sum, Bits<U, N>, Xs...>
-{
-    static_assert(std::is_same_v<T, U>);
-    static constexpr auto acc = Sum + size_t{N};
-    using next_check = check_size_overflow<T, acc, Xs...>;
-    static constexpr auto size = next_check::size;
-    static constexpr bool result = next_check::result;
-};
-
-template<std::unsigned_integral T, size_t Sum>
-struct check_size_overflow<T, Sum>
-{
-    static constexpr size_t size = Sum;
-    static constexpr bool result = Sum <= sizeof(T)*8;
-};
-#endif
-
 template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} << N)-T{1};
 template<size_t Val> using us_bits = Bits<uint16_t, Val>;
 
-static_assert(!Storage<uint32_t, 3>{65535}.check_zero());
-static_assert(Storage<uint32_t, 30>{65535}.advance<16>() == 0);
+static_assert(!pack_input<uint32_t, 3>{65535}.check_zero());
+static_assert(pack_input<uint32_t, 30>{65535}.advance<16>() == 0);
 
-static_assert(Storage<uint32_t, 30>::next<16>{
-    Storage<uint32_t, 30>{65535}.advance<16>()
+static_assert(pack_input<uint32_t, 30>::next<16>{
+    pack_input<uint32_t, 30>{65535}.advance<16>()
 }.check_zero());
-static_assert(Storage<uint32_t, 30>::next<16>{}.Capacity == 14);
+static_assert(pack_input<uint32_t, 30>::next<16>{}.Capacity == 14);
 
 constexpr bool test1()
 {
     constexpr size_t bits[] = { 5, 2, 1 };
     constexpr size_t vals[] = { 8, 3, 1, 0 };
 
-    constexpr auto S0 = Storage<uint8_t, vals[0]>{0b10111011};
-    constexpr auto S1 = Storage<uint8_t, vals[1]>{0b00000101};
-    constexpr auto S2 = Storage<uint8_t, vals[2]>{0b00000001};
-    constexpr auto S3 = Storage<uint8_t, vals[3]>{0b00000000};
+    constexpr auto S0 = pack_input<uint8_t, vals[0]>{0b10111011};
+    constexpr auto S1 = pack_input<uint8_t, vals[1]>{0b00000101};
+    constexpr auto S2 = pack_input<uint8_t, vals[2]>{0b00000001};
+    constexpr auto S3 = pack_input<uint8_t, vals[3]>{0b00000000};
 
     using P0 = std::decay_t<decltype(S0)>;
     using P1 = P0::next<bits[0]>;
     using P2 = P1::next<bits[1]>;
     using P3 = P2::next<bits[2]>;
 
-    static_assert(std::is_same_v<P0, Storage<uint8_t, vals[0]>>);
-    static_assert(std::is_same_v<P1, Storage<uint8_t, vals[1]>>);
-    static_assert(std::is_same_v<P2, Storage<uint8_t, vals[2]>>);
-    static_assert(std::is_same_v<P3, Storage<uint8_t, vals[3]>>);
+    static_assert(std::is_same_v<P0, pack_input<uint8_t, vals[0]>>);
+    static_assert(std::is_same_v<P1, pack_input<uint8_t, vals[1]>>);
+    static_assert(std::is_same_v<P2, pack_input<uint8_t, vals[2]>>);
+    static_assert(std::is_same_v<P3, pack_input<uint8_t, vals[3]>>);
 
     static_assert(S0.advance<      0>() == S0.value);
     static_assert(S0.advance<bits[0]>() == S1.value);
@@ -73,49 +52,11 @@ constexpr bool test1()
 }
 static_assert(test1());
 
-#if 0
-constexpr bool test2()
-{
-    using foo1 = us_bits<2>;
-    using foo2 = us_bits<10>;
-    using foo3 = us_bits<4>;
-    using bar1 = check_size_overflow<uint16_t, 0, foo1, foo2>;
-    static_assert(bar1::result);
-    static_assert(bar1::size == 12);
-
-    using bar2 = check_size_overflow<uint16_t, 0, foo2>;
-    static_assert(bar2::result);
-    static_assert(bar2::size == 10);
-
-    using bar3 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3>;
-    static_assert(bar3::result);
-    static_assert(bar3::size == 16);
-
-    using foo4 = us_bits<1>;
-    using bar4 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3, foo4>;
-    static_assert(!bar4::result);
-    static_assert(bar4::size == 17);
-
-    using foo5 = us_bits<20>;
-    using bar5 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3, foo4, foo5>;
-    static_assert(!bar5::result);
-    static_assert(bar5::size == 37);
-
-    using foo6 = us_bits<40>;
-    using bar6 = check_size_overflow<uint16_t, 0, foo1, foo2, foo3, foo4, foo6>;
-    static_assert(!bar6::result);
-    static_assert(bar6::size == 57);
-
-    return true;
-}
-static_assert(test2());
-#endif
-
 constexpr bool test3()
 {
-    constexpr auto S0 = Storage<uint16_t, 16>{0b1110100110001011};
-    constexpr auto S1 = Storage<uint16_t,  4>{0b1110};
-    constexpr auto S2 = Storage<uint16_t,  1>{0b1};
+    constexpr auto S0 = pack_input<uint16_t, 16>{0b1110100110001011};
+    constexpr auto S1 = pack_input<uint16_t,  4>{0b1110};
+    constexpr auto S2 = pack_input<uint16_t,  1>{0b1};
 
     static_assert(S0.get<12>() == 0b100110001011);
     static_assert(S0.advance<12>() == S1.value);
@@ -140,7 +81,7 @@ constexpr bool test4()
     {
         Tuple_u32 tuple{};
         static_assert(lowbits<uint32_t, 17> == 0x1ffffU);
-        assign_tuple(tuple, Storage<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, make_pack<uint32_t, 17, 14, 1>{});
+        read_pack(tuple, pack_input<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{}, make_pack<uint32_t, 17, 14, 1>{});
         auto [a, b, c] = tuple;
         fm_assert(a == lowbits<uint32_t, 17>);
         fm_assert(b == lowbits<uint32_t, 14>);
@@ -148,7 +89,7 @@ constexpr bool test4()
     }
     {
         Tuple_u8 tuple{};
-        assign_tuple(tuple, Storage<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, make_pack<uint8_t, 1, 3, 2>{});
+        read_pack(tuple, pack_input<uint8_t, 8>{0b101011}, std::make_index_sequence<3>{}, make_pack<uint8_t, 1, 3, 2>{});
         auto [a, b, c] = tuple;
         fm_assert(a == 0b1);
         fm_assert(b == 0b101);
@@ -156,13 +97,13 @@ constexpr bool test4()
     }
     {
         std::tuple<> empty_tuple;
-        assign_tuple(empty_tuple, Storage<uint8_t, 8>{0}, std::index_sequence<>{}, make_pack<uint8_t>{});
+        read_pack(empty_tuple, pack_input<uint8_t, 8>{0}, std::index_sequence<>{}, make_pack<uint8_t>{});
         Tuple_u8 tuple{}; (void)tuple;
-        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t>{});
-        //assign_tuple(tuple, Storage<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, make_tuple<uint8_t, 2, 2, 2>{});
-        //(void)Storage<uint8_t, 9>{};
-        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{}, std::index_sequence<0>{}, make_tuple<uint8_t, 1>{});
-        //assign_tuple(empty_tuple, Storage<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t, 1>{});
+        //read_pack(empty_tuple, pack_input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t>{});
+        //read_pack(tuple, pack_input<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{}, make_tuple<uint8_t, 2, 2, 2>{});
+        //(void)pack_input<uint8_t, 9>{};
+        //read_pack(empty_tuple, pack_input<uint8_t, 8>{}, std::index_sequence<0>{}, make_tuple<uint8_t, 1>{});
+        //read_pack(empty_tuple, pack_input<uint8_t, 8>{1}, std::index_sequence<>{}, make_tuple<uint8_t, 1>{});
     }
 
     return true;

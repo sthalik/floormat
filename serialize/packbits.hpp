@@ -18,7 +18,7 @@ struct Bits final
 };
 
 template<std::unsigned_integral T, size_t CAPACITY>
-struct Storage
+struct pack_input
 {
     static_assert(CAPACITY <= sizeof(T)*8);
 
@@ -43,14 +43,14 @@ struct Storage
         return T(value >> N);
     }
 
-    constexpr bool operator==(const Storage&) const noexcept = default;
+    constexpr bool operator==(const pack_input&) const noexcept = default;
     [[nodiscard]] constexpr inline bool check_zero() const { return value == T(0); }
 
-    template<size_t N> using next = Storage<T, Capacity - N>;
+    template<size_t N> using next = pack_input<T, Capacity - N>;
 };
 
 template<std::unsigned_integral T>
-struct Storage<T, 0>
+struct pack_input<T, 0>
 {
     using Type = T;
     static constexpr size_t Capacity = 0;
@@ -58,7 +58,7 @@ struct Storage<T, 0>
 
     template<size_t N> [[maybe_unused]] constexpr T get() const = delete;
     template<size_t N> [[maybe_unused]] constexpr T advance() const = delete;
-    constexpr bool operator==(const Storage&) const noexcept = default;
+    constexpr bool operator==(const pack_input&) const noexcept = default;
     [[nodiscard]] constexpr inline bool check_zero() const { return true; }
 
     template<size_t N> struct next
@@ -82,32 +82,32 @@ struct make_tuple_type_
 };
 template<std::unsigned_integral T, size_t N> using make_tuple_type = typename make_tuple_type_<T, N>::Seq;
 
-template<typename... Ts> struct pack_tuple {};
+template<typename... Ts> struct empty_pack_tuple {};
 
 template<std::unsigned_integral T, typename Place, size_t Left, size_t I, size_t... Is, size_t Size, typename... Sizes>
 requires requires() { sizeof...(Is) == sizeof...(Sizes); }
-constexpr void assign_tuple(Place& p, Storage<T, Left> st, std::index_sequence<I, Is...>, pack_tuple<Bits<T, Size>, Sizes...>)
+constexpr void read_pack(Place& p, pack_input<T, Left> st, std::index_sequence<I, Is...>, empty_pack_tuple<Bits<T, Size>, Sizes...>)
 {
     static_assert(Size <= Left, "too many bits requested");
     static_assert(I < std::tuple_size_v<Place>, "too few tuple members");
-    using S = Storage<T, Left>;
+    using S = pack_input<T, Left>;
     using next_type = typename S::template next<Size>;
     get<I>(p) = st.template get<Size>();
     T next_value = st.template advance<Size>();
-    assign_tuple(p, next_type{next_value}, std::index_sequence<Is...>{}, pack_tuple<Sizes...>{});
+    read_pack(p, next_type{next_value}, std::index_sequence<Is...>{}, empty_pack_tuple<Sizes...>{});
 }
 
 template<std::unsigned_integral T, typename Place, size_t Left>
-constexpr void assign_tuple(Place&, Storage<T, Left> st, std::index_sequence<>, pack_tuple<>)
+constexpr void read_pack(Place&, pack_input<T, Left> st, std::index_sequence<>, empty_pack_tuple<>)
 {
     fm_assert(st.check_zero());
 }
 
 template<std::unsigned_integral T, typename Place, size_t Left, size_t... Is, typename... Sizes>
 requires(sizeof...(Is) != sizeof...(Sizes))
-constexpr void assign_tuple(Place&, Storage<T, Left>, std::index_sequence<Is...>, pack_tuple<Sizes...>) = delete;
+constexpr void read_pack(Place&, pack_input<T, Left>, std::index_sequence<Is...>, empty_pack_tuple<Sizes...>) = delete;
 
-template<std::unsigned_integral T, size_t... Ns> using make_pack = pack_tuple<Bits<T, Ns>...>;
+template<std::unsigned_integral T, size_t... Ns> using make_pack = empty_pack_tuple<Bits<T, Ns>...>;
 
 } // namespace floormat::detail_Pack
 
