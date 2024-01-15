@@ -62,7 +62,7 @@ template<std::unsigned_integral Type, typename Tuple> struct count_bits;
 template<std::unsigned_integral Int, size_t N, typename... Ts> struct count_bits<Int, std::tuple<output_field<Int, N>, Ts...>>
 {
     static constexpr size_t length = N + count_bits<Int, std::tuple<Ts...>>::length;
-    static_assert(length <= sizeof(T)*8);
+    static_assert(length <= sizeof(Int)*8);
 };
 
 template<std::unsigned_integral Int> struct count_bits<Int, std::tuple<>>
@@ -70,21 +70,28 @@ template<std::unsigned_integral Int> struct count_bits<Int, std::tuple<>>
     static constexpr size_t length = 0;
 };
 
-#if 0
-template<typename T, size_t Left, typename Fields, size_t... Is>
-constexpr T write_(output<T, Left> st, std::tuple<Fields..., output_field<T, F>> fields)
+template <std::size_t ... Is>
+constexpr std::index_sequence<sizeof...(Is)-1uz-Is...> reverse_index_sequence(std::index_sequence<Is...> const&);
+
+template <std::size_t N>
+using make_reverse_index_sequence = decltype(reverse_index_sequence(std::make_index_sequence<N>{}));
+
+template<typename T, size_t Left, size_t I, size_t... Is, typename Tuple>
+constexpr T write_(output<T, Left> st, std::index_sequence<I, Is...>, const Tuple& tuple)
 {
-    T value0 = fields.get< std::tuple_size_v<std::tuple<Fields..., output_field<T, F>>>-1 >(fields).value;
-    T value = st.set(value0, output_bits<F>{});
-    using next = typename output<T, Left>::template next<F>;
-    return write_(next{value}, );
+    constexpr size_t N = std::tuple_element_t<I, Tuple>::Length;
+    if constexpr(Left != sizeof(T)*8)
+        st.value <<= N;
+    T x = std::get<I>(tuple).value;
+    T value = st.set(x, output_bits<N>{});
+    using next = typename output<T, Left>::template next<N>;
+    return write_(next{value}, std::index_sequence<Is...>{}, tuple);
 }
 
-template<typename T, size_t Left>
-constexpr T write_(output<T, Left> st)
+template<typename T, size_t Left, typename Tuple>
+constexpr T write_(output<T, Left> st, std::index_sequence<>, const Tuple&)
 {
     return st.value;
 }
-#endif
 
 } // namespace floormat::detail_Pack_output
