@@ -10,6 +10,7 @@
 #include "src/tile-iterator.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
+#include "compat/enum-bitset.hpp"
 #include <cmath>
 
 namespace floormat {
@@ -211,6 +212,7 @@ void app::update_world(float dt)
 
 void app::update_character([[maybe_unused]] float dt)
 {
+    auto& keys = *keys_;
     if (_character_id)
     {
         auto& w = M->world();
@@ -242,10 +244,10 @@ void app::update(float dt)
 {
     update_cursor_tile(cursor.pixel);
     tests_pre_update();
-    apply_commands(keys);
+    apply_commands(*keys_);
     update_character(dt);
     update_world(dt);
-    do_camera(dt, keys, get_key_modifiers());
+    do_camera(dt, *keys_, get_key_modifiers());
     clear_non_repeated_keys();
     set_cursor();
     tests_post_update();

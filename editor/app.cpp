@@ -1,22 +1,18 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
-#include "src/world.hpp"
+#include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
+#include "src/world.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
-#include "draw/wireframe-meshes.hpp"
-#include "editor.hpp"
-
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/Move.h>
-#include <Magnum/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
@@ -31,29 +27,6 @@ Optional<struct point> cursor_state::point() const
 floormat_main& app::main() { return *M; }
 const cursor_state& app::cursor_state() { return cursor; }
 
-app::app(fm_settings&& opts) :
-    M{floormat_main::create(*this, Utility::move(opts))},
-    _wireframe{InPlaceInit},
-    _tests{tests_data_::make()},
-    _editor{InPlaceInit, this}
-{
-    reset_world();
-    auto& w = M->world();
-    constexpr chunk_coords_ coord{0, 0, 0};
-    maybe_initialize_chunk_(coord, w[coord]);
-    reset_camera_offset();
-    M->set_render_vobjs(_render_vobjs);
-    inspectors.reserve(16);
-}
-
-app::~app()
-{
-}
-
-void app::reset_world()
-{
-    reset_world(world{});
-}
 
 std::shared_ptr<critter> app::ensure_player_character(world& w)
 {

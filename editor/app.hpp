@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/enum-bitset.hpp"
+#include "compat/enum-bitset-fwd.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
 #include "src/global-coords.hpp"
@@ -176,9 +176,8 @@ private:
     Pointer<floormat::wireframe::meshes> _wireframe;
     Pointer<tests_data_> _tests;
     Pointer<editor> _editor;
-
-    key_set keys;
-    std::array<int, key_set::COUNT> key_modifiers = {};
+    Pointer<key_set> keys_;
+    std::array<int, key_COUNT> key_modifiers = {};
     std::vector<popup_target> inspectors;
     object_id _character_id = 0;
     struct cursor_state cursor;

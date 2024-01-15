@@ -5,6 +5,7 @@
 #include "src/world.hpp"
 #include "keys.hpp"
 #include "editor.hpp"
+#include "compat/enum-bitset.hpp"
 #include <tuple>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
@@ -35,7 +36,8 @@ static constexpr int fixup_mods(int mods)
 
 void app::clear_keys(key min_inclusive, key max_exclusive)
 {
-    using key_type = decltype(keys)::value_type;
+    auto& keys = *keys_;
+    using key_type = std::decay_t<decltype(keys)>::value_type;
     for (key_type i = key_type(min_inclusive); i < key_type(max_exclusive); i++)
     {
         const auto idx = key(i);
@@ -46,7 +48,7 @@ void app::clear_keys(key min_inclusive, key max_exclusive)
 
 void app::clear_keys()
 {
-    keys.reset();
+    keys_->reset();
     key_modifiers = {};
 }
 
@@ -194,7 +196,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
         is_down && !event.is_repeated ? do_key(x, mods) : void();
     else
     {
-        keys[x] = is_down;
+        (*keys_)[x] = is_down;
         key_modifiers[size_t(x)] = mods;
     }
 }
