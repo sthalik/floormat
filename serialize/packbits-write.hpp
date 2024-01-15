@@ -1,28 +1,28 @@
 #pragma once
-#include "packbits.hpp"
+#include <concepts>
 
-namespace floormat::detail_Pack {
+namespace floormat::detail_Pack_output {
 
-template<std::unsigned_integral T, size_t CAPACITY>
+template<std::unsigned_integral T>
 struct output
 {
-    static_assert(CAPACITY <= sizeof(T)*8);
-    static constexpr size_t Capacity = CAPACITY;
-    T value;
+    T value = 0;
+    uint8_t capacity = sizeof(T)*8;
 
-    template<size_t N>
-    constexpr void set(T x) const
+    constexpr inline output next(T x, uint8_t bits) const
     {
-        static_assert(N > 0);
-        static_assert(N <= sizeof(T)*8);
-        static_assert(N <= Capacity);
-        if constexpr(CAPACITY < sizeof(T)*8)
-            value <<= CAPACITY;
-        T x_ = T(x & (1 << N)-1);
+        fm_assert(bits > 0 && bits <= capacity);
+        auto val = value;
+        val <<= bits;
+        T x_ = T(x & (T{1} << bits)- T{1});
         fm_assert(x_ == x);
-        value |= x;
+        val |= x_;
+        return { val | x_, capacity - bits };
     }
-    template<size_t N> using next = output<T, CAPACITY - N>;
 };
 
-} // namespace floormat::detail_Pack
+
+
+
+
+} // namespace floormat::detail_Pack_output

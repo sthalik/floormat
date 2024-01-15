@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-using namespace floormat::detail_Pack;
+using namespace floormat::detail_Pack_input;
 
 namespace {
 

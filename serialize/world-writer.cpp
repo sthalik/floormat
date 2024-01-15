@@ -417,8 +417,8 @@ void writer_state::serialize_scenery(const chunk& c, writer_t& s)
                 fm_assert(L.falloff < light_falloff_COUNT);
                 uint8_t flags = 0;
                 flags |= (uint8_t)exact;                                            // 1 bit
-                flags |= ((uint8_t)L.r       & lowbits<rotation_BITS>)      << 1;   // 3 bits
-                flags |= ((uint8_t)L.falloff & lowbits<light_falloff_BITS>) << 4;   // 2 bits
+                flags |= ((uint8_t)L.r       & lowbits<rotation_BITS>)      << 1;   // 3 input_bits
+                flags |= ((uint8_t)L.falloff & lowbits<light_falloff_BITS>) << 4;   // 2 input_bits
                 flags |= (uint8_t)!!L.enabled                               << 7;   // 1 bit
                 s << flags;
             }
