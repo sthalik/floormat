@@ -38,7 +38,16 @@ struct input
 {
     static_assert(CAPACITY <= sizeof(T)*8);
     static constexpr size_t Capacity = CAPACITY;
+
     T value;
+
+    template<size_t N>
+    struct next_
+    {
+        static_assert(N <= Capacity);
+        using type = input<T, Capacity - N>;
+    };
+    template<size_t N> using next = typename next_<N>::type;
 
     template<size_t N>
     constexpr T get() const
@@ -46,7 +55,7 @@ struct input
         static_assert(N > 0);
         static_assert(N <= sizeof(T)*8);
         static_assert(N <= Capacity);
-        return T(value & (T(1) << N) - T(1));
+        return T(value & (T{1} << N) - T{1});
     }
 
     template<size_t N>
@@ -58,15 +67,7 @@ struct input
     }
 
     constexpr bool operator==(const input&) const noexcept = default;
-    [[nodiscard]] constexpr inline bool check_zero() const { return value == T(0); }
-
-    template<size_t N>
-    struct next_
-    {
-        static_assert(N <= Capacity);
-        using type = input<T, Capacity - N>;
-    };
-    template<size_t N> using next = typename next_<N>::type;
+    [[nodiscard]] constexpr inline bool check_zero() const { return value == T{0}; }
 };
 
 template<std::unsigned_integral T>

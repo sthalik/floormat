@@ -25,6 +25,15 @@ struct output
     T value{0};
 
     template<size_t N>
+    struct next_
+    {
+        static_assert(N > 0);
+        static_assert(N <= CAPACITY);
+        using type = output<T, CAPACITY - N>;
+    };
+    template<size_t N> using next = typename next_<N>::type;
+
+    template<size_t N>
     constexpr T set(T x, output_bits<N>) const
     {
         static_assert(N <= CAPACITY, "data type too small");
@@ -37,27 +46,19 @@ struct output
         value_ |= x_;
         return value_;
     }
-
-    template<size_t N>
-    struct next_
-    {
-        static_assert(N > 0);
-        static_assert(N <= CAPACITY);
-        using type = output<T, CAPACITY - N>;
-    };
-
-    template<size_t N> using next = typename next_<N>::type;
 };
 
-template<typename T, size_t N>
-using output_field = std::pair<T, output_bits<N>>;
-
-template<typename... Ts> struct empty_pack_tuple {}; // todo copypasta
+template<typename T, size_t LENGTH>
+struct output_field
+{
+    T value;
+    static constexpr size_t Length = LENGTH;
+};
 
 template<typename T, size_t Left, size_t F, typename... Fields>
 constexpr T write_(output<T, Left> st, output_field<T, F> field, Fields... fields)
 {
-    T value = st.set(field.first, field.second);
+    T value = st.set(field.value, output_bits<F>{});
     using next = typename output<T, Left>::template next<F>;
     return write_(next{value}, fields...);
 }
