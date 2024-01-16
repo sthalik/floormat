@@ -13,7 +13,8 @@ static_assert(count_bits<u8, std::tuple<>> == 0);
 //static_assert(count_bits<u8, std::tuple< f8<9> >> == 0);
 //static_assert(count_bits<u8, std::tuple< f8<7>, f8<2> >> == 9);
 
-template u32 write_(output<u32, 32>, std::index_sequence<0>, const std::tuple<f32<1>>&);
+template u32 write_(const std::tuple<f32<1>>&, output<u32, 32>, output_bits<32>, std::index_sequence<0>);
+static_assert(write_(std::tuple<output_field<u32, 13>>{4242}, output<u32, 32>{0}, output_bits<32>{}, std::index_sequence<0>{}) == 4242);
 
 static_assert(output<u32, 32>::next<1>::Capacity == 31);
 static_assert(output<u32, 32>::next<1>::next<2>::Capacity == 29);

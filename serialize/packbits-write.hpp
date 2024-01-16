@@ -58,8 +58,8 @@ struct output_field
 
 template<std::unsigned_integral Type, typename Tuple> struct count_bits_;
 
-
-template<std::unsigned_integral Int, size_t N, typename... Ts> struct count_bits_<Int, std::tuple<output_field<Int, N>, Ts...>>
+template<std::unsigned_integral Int, size_t N, typename... Ts>
+struct count_bits_<Int, std::tuple<output_field<Int, N>, Ts...>>
 {
     static constexpr size_t length = N + count_bits_<Int, std::tuple<Ts...>>::length;
     static_assert(length <= sizeof(Int)*8);
@@ -78,20 +78,20 @@ constexpr std::index_sequence<sizeof...(Is)-1uz-Is...> reverse_index_sequence(st
 template <std::size_t N>
 using make_reverse_index_sequence = decltype(reverse_index_sequence(std::make_index_sequence<N>{}));
 
-template<typename T, size_t Left, size_t I, size_t... Is, typename Tuple>
-constexpr T write_(output<T, Left> st, std::index_sequence<I, Is...>, const Tuple& tuple)
+template<typename T, size_t Capacity, size_t Left, size_t I, size_t... Is, typename Tuple>
+constexpr T write_(const Tuple& tuple, output<T, Left> st, output_bits<Capacity>, std::index_sequence<I, Is...>)
 {
     constexpr size_t N = std::tuple_element_t<I, Tuple>::Length;
-    if constexpr(Left != sizeof(T)*8)
-        st.value <<= N;
+    static_assert(Capacity <= sizeof(T)*8);
+    static_assert(Left <= Capacity);
     T x = std::get<I>(tuple).value;
     T value = st.set(x, output_bits<N>{});
     using next = typename output<T, Left>::template next<N>;
-    return write_(next{value}, std::index_sequence<Is...>{}, tuple);
+    return write_(tuple, next{value}, std::index_sequence<Is...>{});
 }
 
 template<typename T, size_t Left, typename Tuple>
-constexpr T write_(output<T, Left> st, std::index_sequence<>, const Tuple&)
+constexpr T write_(const Tuple&, output<T, Left> st, std::index_sequence<>)
 {
     return st.value;
 }
