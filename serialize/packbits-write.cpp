@@ -23,11 +23,10 @@ static_assert(write_(
     std::make_index_sequence<3>{}
 ) == (1 << 6) - 1);
 
-#if 0
-static_assert(write_(output<u32, 32>{0},
-                     f32<2>{0b10},
-                     f32<3>{0b011},
-                     f32<3>{0b001}) == 0b000101110);
-#endif
+static_assert(write_(
+    std::tuple{f32<2>{0b10}, f32<3>{0b011}, f32<3>{0b001}},
+    output<u32, 32>{0},
+    output_bits<32>{},
+    make_reverse_index_sequence<3>{}) == 0b000101110);
 
 } // namespace floormat::detail_Pack_output

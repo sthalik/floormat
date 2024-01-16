@@ -34,20 +34,6 @@ struct output_field
 
 template<std::unsigned_integral Type, typename Tuple> struct count_bits_;
 
-template<std::unsigned_integral Int, size_t N, typename... Ts>
-struct count_bits_<Int, std::tuple<output_field<Int, N>, Ts...>>
-{
-    static constexpr size_t length = N + count_bits_<Int, std::tuple<Ts...>>::length;
-    static_assert(length <= sizeof(Int)*8);
-};
-
-template<std::unsigned_integral Int> struct count_bits_<Int, std::tuple<>>
-{
-    static constexpr size_t length = 0;
-};
-
-template<typename T, typename Tuple> constexpr inline size_t count_bits = count_bits_<T, Tuple>::length;
-
 template <std::size_t ... Is>
 constexpr std::index_sequence<sizeof...(Is)-1uz-Is...> reverse_index_sequence(std::index_sequence<Is...> const&);
 
