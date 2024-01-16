@@ -76,7 +76,7 @@ constexpr T lowbits = N == sizeof(T)*8 ? (T)-1 : T((T{1} << N)-T{1});
 constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
 constexpr inline uint8_t meta_rotation_bits = highbits<uint8_t, rotation_BITS, 1>;
 constexpr inline uint8_t scenery_id_flag_mask = meta_short_scenery_bit | meta_rotation_bits;
-constexpr inline uint8_t scenery_id_max = int_max<uint8_t> & ~scenery_id_flag_mask;
+constexpr inline uint8_t scenery_id_max = int_traits<uint8_t>::max & ~scenery_id_flag_mask;
 
 } // namespace
 
