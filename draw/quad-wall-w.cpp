@@ -1,6 +1,5 @@
 #include "quad-wall-w.hpp"
 #include "wireframe.hpp"
-#include <Magnum/GL/Renderer.h>
 
 namespace floormat::wireframe {
 

@@ -6,7 +6,6 @@
 #include "quad-wall-n.hpp"
 #include "quad-wall-w.hpp"
 #include "quad.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat::wireframe {

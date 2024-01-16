@@ -3,11 +3,11 @@
 
 namespace floormat {
 
-using namespace floormat::detail_Pack_input;
+using namespace floormat::Pack;
 
 namespace {
 
-template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = (T{1} << N)-T{1};
+template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = N == sizeof(T)*8 ? (T)-1 : (T{1} << N)-T{1};
 
 static_assert(!input<uint32_t, 3>{65535}.check_zero());
 static_assert(input<uint32_t, 30>{65535}.advance<16>() == 0);

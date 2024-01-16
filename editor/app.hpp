@@ -7,7 +7,6 @@
 #include "src/global-coords.hpp"
 #include "src/object-id.hpp"
 #include "editor-enums.hpp"
-#include "tests.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/StaticArray.h>
 #include <Corrade/Containers/Pointer.h>
@@ -38,6 +37,8 @@ struct critter;
 struct point;
 class editor;
 template<typename T> struct shared_ptr_wrapper;
+struct tests_data;
+struct tests_data_;
 
 struct cursor_state final
 {

@@ -1,6 +1,10 @@
 #include "packbits-write.hpp"
 
-namespace floormat::detail_Pack_output {
+namespace floormat {
+
+namespace {
+
+using namespace floormat::Pack;
 
 using u32 = uint32_t;
 using u16 = uint16_t;
@@ -22,18 +26,21 @@ static_assert(write_(
     output<u32, 32, 32>{0},
     make_reverse_index_sequence<3>{}) == 0b000101110);
 
-static_assert(write(std::tuple{f32<2>{0b10}, f32<3>{0b011}, f32<3>{0b01}}) == 0b00101110);
-//static_assert(write(std::tuple{f32<2>{0b10}, f32<3>{0b1011}, f32<3>{0b001}}) == 0b000101110);
-static_assert(write(std::tuple{f8<2>{0b10}, f8<3>{0b011}, f8<3>{0b01}}) == 0b00101110);
-//static_assert(write(std::tuple{f8<2>{0b10}, f8<3>{0b011}, f8<4>{0b01}}) == 0b00101110);
-//static_assert(write(std::tuple{}) == 0);
+static_assert(pack_write(std::tuple{f32<2>{0b10}, f32<3>{0b011}, f32<3>{0b01}}) == 0b00101110);
+//static_assert(pack_write(std::tuple{f32<2>{0b10}, f32<3>{0b1011}, f32<3>{0b001}}) == 0b000101110);
+static_assert(pack_write(std::tuple{f8<2>{0b10}, f8<3>{0b011}, f8<3>{0b01}}) == 0b00101110);
+//static_assert(pack_write(std::tuple{f8<2>{0b10}, f8<3>{0b011}, f8<4>{0b01}}) == 0b00101110);
+//static_assert(pack_write(std::tuple{}) == 0);
+static_assert(pack_write(std::tuple{f8<1>{0b1}, f8<3>{0b101}, f8<2>{0b10}}) == 0b101011);
 
 #if 0 // check disasembly
 u32 foo1(u32 a, u32 b, u32 c);
 u32 foo1(u32 a, u32 b, u32 c)
 {
-    return write(std::tuple{f32<2>{a}, f32<3>{b}, f32<3>{c}});
+    return pack_write(std::tuple{f32<2>{a}, f32<3>{b}, f32<3>{c}});
 }
 #endif
 
-} // namespace floormat::detail_Pack_output
+} // namespace
+
+} // namespace floormat

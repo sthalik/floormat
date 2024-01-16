@@ -2,6 +2,7 @@
 #include "compat/enum-bitset.hpp"
 #include "src/world.hpp"
 #include "editor.hpp"
+#include "tests.hpp"
 #include "draw/wireframe-meshes.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/ImGuiIntegration/Context.h>

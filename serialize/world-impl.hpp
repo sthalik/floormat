@@ -9,7 +9,7 @@
 #include "src/object-type.hpp"
 #include <bit>
 #include <cstdio>
-#include <limits>
+#include <concepts>
 
 /* protocol changelog:
  *  1) Initial version.
@@ -44,9 +44,12 @@ using atlasid  = uint16_t;
 using chunksiz = uint16_t;
 using proto_t  = uint16_t;
 
-namespace {
+template<typename T> struct int_traits;
 
-template<typename T> constexpr inline T int_max = std::numeric_limits<T>::max();
+template<std::unsigned_integral T> struct int_traits<T> { static constexpr T max = T(-1); };
+template<std::signed_integral T> struct int_traits<T> { static constexpr T max = T(-1)&~(T(1) << sizeof(T)*8-1); };
+
+namespace {
 
 #define file_magic ".floormat.save"
 
@@ -67,8 +70,8 @@ constexpr inline auto pass_mask = (1 << pass_mode_BITS)-1;
 template<typename T, size_t N, size_t off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
-template<size_t N, typename T = uint8_t>
-constexpr T lowbits = T((T{1} << N)-T{1});
+template<size_t N, std::unsigned_integral T = uint8_t>
+constexpr T lowbits = N == sizeof(T)*8 ? (T)-1 : T((T{1} << N)-T{1});
 
 constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
 constexpr inline uint8_t meta_rotation_bits = highbits<uint8_t, rotation_BITS, 1>;

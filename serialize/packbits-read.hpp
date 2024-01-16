@@ -5,7 +5,7 @@
 #include <utility>
 #include "compat/assert.hpp"
 
-namespace floormat::detail_Pack_input {
+namespace floormat::Pack {
 
 template<std::unsigned_integral T, size_t N>
 struct input_bits final
@@ -114,10 +114,17 @@ constexpr void read_(Place&, input<T, Left>, std::index_sequence<Is...>, empty_p
 
 template<std::unsigned_integral T, size_t... Ns> using make_pack = empty_pack_tuple<input_bits<T, Ns>...>;
 
-} // namespace floormat::detail_Pack_input
+} // namespace floormat::Pack
 
-namespace floormat::pack {
+namespace floormat {
 
+template<std::unsigned_integral T, size_t... Sizes>
+constexpr T pack_write(const std::tuple<Pack::output_field<T, Sizes>...>& tuple)
+{
+    constexpr size_t nbits = sizeof(T)*8;
+    return Pack::write_(tuple, Pack::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});
+}
 
+constexpr uint8_t pack_write(const std::tuple<>&) = delete;
 
-} // namespace floormat::pack
+} // namespace floormat
