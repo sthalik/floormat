@@ -111,7 +111,10 @@ static const char* const false_values[] = { "0", "false", "no", "n", "N", "off",
 
 template<typename T, typename U>
 static inline bool find_arg(const T& list, const U& value) {
-    return std::find_if(std::cbegin(list), std::cend(list), [&](const auto& x) { return x == value; }) != std::cend(list);
+    for (const auto& x : list)
+        if (x == value)
+            return true;
+    return false;
 }
 
 static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
