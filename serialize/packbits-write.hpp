@@ -1,12 +1,12 @@
 #pragma once
-#include "compat/assert.hpp"
+#include "packbits-impl.hpp"
 #include "compat/reverse-index-sequence.hpp"
 #include <type_traits>
 #include <bit>
 #include <concepts>
 #include <tuple>
 
-namespace floormat::Pack {
+namespace floormat::Pack_impl {
 
 template<std::unsigned_integral T, size_t CAPACITY, size_t LEFT>
 struct output
@@ -42,7 +42,9 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple& tuple, output<T, Capacity,
     static_assert(N <= Left);
 
     T x = std::get<I>(tuple).value;
-    fm_assert((size_t)std::bit_width(x) <= N);
+
+    if (!((size_t)std::bit_width(x) <= N)) [[unlikely]]
+        throw_on_write_input_bit_overflow();
     T value = T(T(st.value << N) | x);
     return write_(tuple, output<T, Capacity, Left - N>{value}, std::index_sequence<Is...>{});
 }
@@ -53,15 +55,15 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple&, output<T, Capacity, Left>
     return st.value;
 }
 
-} // namespace floormat::Pack
+} // namespace floormat::Pack_impl
 
 namespace floormat {
 
 template<std::unsigned_integral T, size_t... Sizes>
-constexpr T pack_write(const std::tuple<Pack::output_field<T, Sizes>...>& tuple)
+constexpr T pack_write(const std::tuple<Pack_impl::output_field<T, Sizes>...>& tuple)
 {
     constexpr size_t nbits = sizeof(T)*8;
-    return Pack::write_(tuple, Pack::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});
+    return Pack_impl::write_(tuple, Pack_impl::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});
 }
 
 constexpr uint8_t pack_write(const std::tuple<>&) = delete;

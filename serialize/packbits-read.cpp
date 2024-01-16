@@ -1,11 +1,28 @@
 #include "packbits-read.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
+
+namespace floormat::Pack_impl {
+
+void throw_on_read_nonzero() noexcept(false)
+{
+    throw std::runtime_error{"extra bits in pack_read()"};
+}
+
+} // namespace floormat::Pack_impl
 
 namespace floormat {
 
-using namespace floormat::Pack;
+using namespace floormat::Pack_impl;
 
 namespace {
+
+static_assert(sum<1, 2, 3, 4, 5> == 6*(6-1)/2);
+static_assert(sum<5, 10, 15> == 30);
+
+using u32 = uint32_t;
+using u16 = uint16_t;
+using u8 = uint8_t;
 
 template<std::unsigned_integral T, size_t N> constexpr inline T lowbits = N == sizeof(T)*8 ? (T)-1 : (T{1} << N)-T{1};
 

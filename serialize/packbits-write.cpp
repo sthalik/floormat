@@ -4,7 +4,7 @@ namespace floormat {
 
 namespace {
 
-using namespace floormat::Pack;
+using namespace floormat::Pack_impl;
 
 using u32 = uint32_t;
 using u16 = uint16_t;

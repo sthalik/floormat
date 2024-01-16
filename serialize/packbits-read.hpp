@@ -1,11 +1,13 @@
 #pragma once
+#include "packbits-impl.hpp"
+#include "compat/reverse-index-sequence.hpp"
 #include <type_traits>
 #include <concepts>
 #include <tuple>
 #include <utility>
 #include "compat/assert.hpp"
 
-namespace floormat::Pack {
+namespace floormat::Pack_impl {
 
 template<std::unsigned_integral T, size_t N>
 struct input_bits final
@@ -105,7 +107,8 @@ constexpr void read_(Place& p, input<T, Left> st, std::index_sequence<I, Is...>,
 template<std::unsigned_integral T, typename Place, size_t Left>
 constexpr void read_(Place&, input<T, Left> st, std::index_sequence<>, empty_pack_tuple<>)
 {
-    fm_assert(st.check_zero());
+    if (!st.check_zero()) [[unlikely]]
+        throw_on_read_nonzero();
 }
 
 template<std::unsigned_integral T, typename Place, size_t Left, size_t... Is, typename... Sizes>
@@ -114,17 +117,10 @@ constexpr void read_(Place&, input<T, Left>, std::index_sequence<Is...>, empty_p
 
 template<std::unsigned_integral T, size_t... Ns> using make_pack = empty_pack_tuple<input_bits<T, Ns>...>;
 
-} // namespace floormat::Pack
+} // namespace floormat::Pack_impl
 
 namespace floormat {
 
-template<std::unsigned_integral T, size_t... Sizes>
-constexpr T pack_write(const std::tuple<Pack::output_field<T, Sizes>...>& tuple)
-{
-    constexpr size_t nbits = sizeof(T)*8;
-    return Pack::write_(tuple, Pack::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});
-}
 
-constexpr uint8_t pack_write(const std::tuple<>&) = delete;
 
 } // namespace floormat
