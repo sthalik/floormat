@@ -27,10 +27,10 @@ class editor final
 
     app* _app;
 
-    safe_ptr<ground_editor> _floor{};
-    safe_ptr<wall_editor> _wall{};
-    safe_ptr<scenery_editor> _scenery{};
-    safe_ptr<vobj_editor> _vobj{};
+    safe_ptr<ground_editor> _floor;
+    safe_ptr<wall_editor> _wall;
+    safe_ptr<scenery_editor> _scenery;
+    safe_ptr<vobj_editor> _vobj;
 
     struct drag_pos final {
         global_coords coord, draw_coord;
