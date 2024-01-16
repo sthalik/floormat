@@ -1,11 +1,10 @@
 #pragma once
-#include "compat/defs.hpp"
+#include "compat/safe-ptr.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include <memory>
 #include <unordered_map>
-#include <tsl/robin_map.h>
 #include <Corrade/Utility/Move.h>
 
 namespace floormat {
@@ -22,23 +21,19 @@ public:
     static constexpr size_t initial_collect_every = 64;
 
 private:
-    struct chunk_tuple final {
+    struct chunk_tuple
+    {
         static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_z_min };
         chunk* c = nullptr;
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
 
-    struct object_id_hasher
-    {
-        size_t operator()(object_id id) const noexcept;
-    };
-
-    struct chunk_coords_hasher {
-        size_t operator()(const chunk_coords_& coord) const noexcept;
-    };
+    struct object_id_hasher { size_t operator()(object_id id) const noexcept; };
+    struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };
+    struct robin_map_wrapper;
 
     std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
-    tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher> _objects;
+    safe_ptr<robin_map_wrapper> _objects;
     size_t _last_collection = 0;
     size_t _collect_every = initial_collect_every;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
@@ -109,8 +104,6 @@ public:
 
     world& operator=(world&& w) noexcept;
     world(world&& w) noexcept;
-
-    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(world);
 };
 
 template<typename T>

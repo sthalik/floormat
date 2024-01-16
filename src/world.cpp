@@ -4,6 +4,7 @@
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/GrowableArray.h>
+#include <tsl/robin_map.h>
 
 using namespace floormat;
 
@@ -19,6 +20,11 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
 }
 
 namespace floormat {
+
+struct world::robin_map_wrapper final : tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher>
+{
+    using tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher>::robin_map;
+};
 
 world::world(world&& w) noexcept = default;
 
@@ -70,15 +76,15 @@ world::~world() noexcept
     }
     _last_chunk = {};
     _chunks.clear();
-    _objects.clear();
+    _objects->clear();
 }
 
 world::world(size_t capacity) : _chunks{capacity}
 {
     _chunks.max_load_factor(max_load_factor);
     _chunks.reserve(initial_capacity);
-    _objects.max_load_factor(max_load_factor);
-    _objects.reserve(initial_capacity);
+    _objects->max_load_factor(max_load_factor);
+    _objects->reserve(initial_capacity);
 }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
@@ -117,8 +123,8 @@ void world::clear()
     _last_collection = 0;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
-    _objects.clear();
-    _objects.rehash(initial_capacity);
+    _objects->clear();
+    _objects->rehash(initial_capacity);
     _collect_every = initial_collect_every;
     _object_counter = object_counter_init;
     auto& [c, pos] = _last_chunk;
@@ -157,10 +163,10 @@ void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, 
 {
     fm_assert(e->id > 0);
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
-    fm_assert(!_objects.contains(e->id));
+    fm_assert(!_objects->contains(e->id));
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
-    _objects[e->id] = e;
+    (*_objects)[e->id] = e;
     if (sorted)
         e->c->add_object(e);
     else
@@ -170,14 +176,14 @@ void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, 
 void world::do_kill_object(object_id id)
 {
     fm_debug_assert(id > 0);
-    auto cnt = _objects.erase(id);
+    auto cnt = _objects->erase(id);
     fm_debug_assert(cnt > 0);
 }
 
 std::shared_ptr<object> world::find_object_(object_id id)
 {
-    auto it = _objects.find(id);
-    auto ret = it == _objects.end() ? nullptr : it->second.lock();
+    auto it = _objects->find(id);
+    auto ret = it == _objects->end() ? nullptr : it->second.lock();
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }
