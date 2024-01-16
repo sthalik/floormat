@@ -1,19 +1,29 @@
 #include "ground-editor.hpp"
+#include "compat/assert.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
 #include "src/random.hpp"
-#include "loader/ground-info.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/exception.hpp"
+#include <memory>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
+
+struct ground_editor::tuple
+{
+    std::shared_ptr<ground_atlas> atlas;
+    Array<decltype(tile_image_proto::variant)> variant;
+};
 
 ground_editor::ground_editor()
 {
     load_atlases();
 }
+
+ground_editor::~ground_editor() noexcept = default;
 
 void ground_editor::load_atlases()
 {
@@ -48,7 +58,7 @@ StringView ground_editor::name() const noexcept { return "ground"_s; }
 void ground_editor::clear_selection()
 {
     _selected_tile = {};
-    _permutation = {};
+    *_permutation = {};
     _selection_mode = sel_none;
 }
 
@@ -65,7 +75,7 @@ void ground_editor::select_tile_permutation(const std::shared_ptr<ground_atlas>&
     fm_assert(atlas);
     clear_selection();
     _selection_mode = sel_perm;
-    _permutation = { atlas, {} };
+    *_permutation = { atlas, {} };
 }
 
 bool ground_editor::is_tile_selected(const std::shared_ptr<const ground_atlas>& atlas, size_t variant) const
@@ -76,7 +86,7 @@ bool ground_editor::is_tile_selected(const std::shared_ptr<const ground_atlas>& 
 
 bool ground_editor::is_permutation_selected(const std::shared_ptr<const ground_atlas>& atlas) const
 {
-    const auto& [perm, _] = _permutation;
+    const auto& [perm, _] = *_permutation;
     return atlas && _selection_mode == sel_perm && perm == atlas;
 }
 
@@ -113,18 +123,22 @@ void fisher_yates(T begin, T end)
 
 tile_image_proto ground_editor::get_selected_perm()
 {
-    auto& [atlas, vec] = _permutation;
-    const auto N = (variant_t)atlas->num_tiles();
+    auto& [atlas, vec] = *_permutation;
+    static_assert(sizeof(uint32_t) >= sizeof(variant_t));
+    const auto N = (uint32_t)atlas->num_tiles();
+    fm_assert(N == (uint32_t)(variant_t)N);
     if (N == 0)
         return {};
-    if (vec.empty())
+    arrayReserve(vec, N);
+    if (vec.isEmpty())
     {
-        for (variant_t i = 0; i < N; i++)
-            vec.push_back(i);
+        arrayResize(vec, NoInit, N);
+        for (uint32_t i = 0; i < N; i++)
+            vec[i] = (variant_t)i;
         fisher_yates(vec.begin(), vec.end());
     }
     const auto idx = vec.back();
-    vec.pop_back();
+    arrayRemoveSuffix(vec);
     return {atlas, idx};
 }
 

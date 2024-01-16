@@ -1,11 +1,10 @@
 #pragma once
-
+#include "compat/safe-ptr.hpp"
 #include "editor-enums.hpp"
 #include "src/tile-image.hpp"
 #include "src/global-coords.hpp"
-#include <vector>
 #include <map>
-#include <memory>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 
 namespace floormat {
@@ -15,19 +14,12 @@ struct ground_info;
 
 class ground_editor final
 {
-    enum selection_mode : unsigned char {
-        sel_none, sel_tile, sel_perm,
-    };
-
-    struct tuple
-    {
-        std::shared_ptr<ground_atlas> atlas;
-        std::vector<decltype(tile_image_proto::variant)> variant;
-    };
+    enum selection_mode : unsigned char { sel_none, sel_tile, sel_perm, };
+    struct tuple;
 
     std::map<StringView, const ground_info*> _atlases;
     tile_image_proto _selected_tile;
-    tuple _permutation;
+    safe_ptr<tuple> _permutation;
     selection_mode _selection_mode = sel_none;
 
     void load_atlases();
@@ -35,6 +27,7 @@ class ground_editor final
 
 public:
     ground_editor();
+    ~ground_editor() noexcept;
     std::shared_ptr<ground_atlas> maybe_atlas(StringView str);
     std::shared_ptr<ground_atlas> atlas(StringView str);
     auto cbegin() const noexcept { return _atlases.cbegin(); }
