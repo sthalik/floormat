@@ -37,25 +37,25 @@ world::world(std::unordered_map<chunk_coords_, chunk>&& chunks) :
 
 world& world::operator=(world&& w) noexcept
 {
-    if (&w != this) [[likely]]
-    {
-        fm_assert(!w._teardown);
-        fm_assert(!_teardown);
-        _last_collection = w._last_collection;
-        _collect_every = w._collect_every;
-        _unique_id = std::move(w._unique_id);
-        fm_assert(_unique_id);
-        fm_debug_assert(w._unique_id == nullptr);
-        _last_chunk = {};
-        _chunks = std::move(w._chunks);
-        _objects = std::move(w._objects);
-        _object_counter = w._object_counter;
-        _current_frame = w._current_frame;
-        w._object_counter = 0;
+    fm_debug_assert(&w != this);
+    fm_assert(!w._teardown);
+    fm_assert(!_teardown);
+    fm_assert(w._unique_id);
+    _last_chunk = {};
+    _chunks = std::move(w._chunks);
+    _objects = std::move(w._objects);
+    w._objects = safe_ptr<robin_map_wrapper>{};
+    _last_collection = w._last_collection;
+    _collect_every = w._collect_every;
+    _unique_id = std::move(w._unique_id);
+    fm_debug_assert(_unique_id);
+    fm_debug_assert(w._unique_id == nullptr);
+    _object_counter = w._object_counter;
+    w._object_counter = 0;
+    _current_frame = w._current_frame;
 
-        for (auto& [id, c] : _chunks)
-            c._world = this;
-    }
+    for (auto& [id, c] : _chunks)
+        c._world = this;
     return *this;
 }
 
