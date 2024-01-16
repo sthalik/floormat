@@ -1,4 +1,5 @@
 #include "main-impl.hpp"
+#include "src/path-search.hpp"
 #include <Corrade/Utility/Move.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
@@ -63,7 +64,7 @@ uint32_t main_impl::cursor() const noexcept
 }
 
 struct texture_unit_cache& main_impl::texture_unit_cache() { return _tuc; }
-path_search& main_impl::search() { return _search; }
+path_search& main_impl::search() { return *_search; }
 astar& main_impl::astar() { return _astar; }
 
 } // namespace floormat

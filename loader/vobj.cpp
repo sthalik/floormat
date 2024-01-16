@@ -57,13 +57,19 @@ std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView n
     def.pixel_size = { width, height };
     def.nframes = 1;
     def.fps = 0;
-    def.groups = {{
-        .name = "n"_s,
-        .frames = {{
-            .ground = Vector2i(def.pixel_size/2),
-            .size = def.pixel_size
-        }}
-    }};
+    {
+        auto group = anim_group {
+            .name = "n"_s,
+            .frames = { InPlaceInit, {
+                anim_frame {
+                    .ground = Vector2i(def.pixel_size/2),
+                    .size = def.pixel_size,
+                }},
+            },
+        };
+        def.groups = Array<anim_group>{1};
+        def.groups[0] = std::move(group);
+    }
     auto atlas = std::make_shared<class anim_atlas>(name, tex, std::move(def));
     return atlas;
 }

@@ -14,6 +14,7 @@
 #include <cerrno>
 #include <cstring>
 #include <memory>
+#include <vector>
 
 namespace {
 

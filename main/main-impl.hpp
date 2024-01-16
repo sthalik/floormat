@@ -31,6 +31,8 @@ struct floormat_app;
 struct scenery;
 class anim_atlas;
 struct clickable;
+class path_search;
+class astar;
 
 struct main_impl final : Platform::Sdl2Application, floormat_main
 {
@@ -98,7 +100,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
     struct texture_unit_cache& texture_unit_cache() override;
     path_search& search() override;
-    struct astar& astar() override;
+    class astar& astar() override;
 
 private:
     struct texture_unit_cache _tuc;
@@ -117,8 +119,8 @@ private:
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
 #endif
-    path_search _search;
-    struct astar _astar;
+    safe_ptr<path_search> _search;
+    class astar _astar;
 
     struct {
         float value = 0;

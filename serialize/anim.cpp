@@ -1,7 +1,10 @@
 #include "serialize/magnum-vector.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/anim.hpp"
+#include "serialize/corrade-array.hpp"
 #include "compat/exception.hpp"
+#include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/ArrayViewStl.h>
 #include <nlohmann/json.hpp>
 #include <tuple>
 
@@ -115,8 +118,9 @@ static void from_json(const json& j, anim_def& val)
         val.action_frame2 = j["action-frame-2"];
     if (j.contains("fps"))
         val.fps = j["fps"];
+
     val.groups = j["groups"];
-    fm_soft_assert(!val.groups.empty());
+    fm_soft_assert(!val.groups.isEmpty());
     val.scale = j["scale"];
     fm_soft_assert(val.scale.type != anim_scale_type::invalid);
 }

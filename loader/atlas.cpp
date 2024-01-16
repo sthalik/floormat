@@ -75,7 +75,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
                                        [&](const anim_group& x) { return x.name == group.mirror_from; });
                 if (it == anim_info.groups.cend())
                     fm_throw("can't find group '{}' to mirror from '{}'"_cf, group.mirror_from, group.name);
-                group.frames = it->frames;
+                group.frames = array(arrayView(it->frames));
                 for (anim_frame& f : group.frames)
                     f.ground = Vector2i((Int)f.size[0] - f.ground[0], f.ground[1]);
             }
@@ -85,7 +85,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
 
         fm_soft_assert(!anim_info.object_name.isEmpty());
         fm_soft_assert(anim_info.pixel_size.product() > 0);
-        fm_soft_assert(!anim_info.groups.empty());
+        fm_soft_assert(!anim_info.groups.isEmpty());
         fm_soft_assert(anim_info.nframes > 0);
         fm_soft_assert(anim_info.nframes == 1 || anim_info.fps > 0);
         const auto size = tex.pixels().size();

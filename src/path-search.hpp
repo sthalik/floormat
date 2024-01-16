@@ -65,8 +65,9 @@ public:
     static bool is_passable(world& w, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p = never_continue());
 };
 
-struct astar
+class astar
 {
+public:
     struct visited
     {
         uint32_t dist = (uint32_t)-1;

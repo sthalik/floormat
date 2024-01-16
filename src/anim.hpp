@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector> // todo use <Corrade/Containers/GrowableArray.h>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
@@ -23,7 +23,7 @@ enum class anim_direction : unsigned char
 struct anim_group final
 {
     String name{}, mirror_from{};
-    std::vector<anim_frame> frames{};
+    Array<anim_frame> frames{};
     Vector2ui ground{}; // for use in anim-crop-tool only
     Vector2s z_offset{}, depth_offset{};
     Vector3b offset{};
@@ -54,7 +54,7 @@ struct anim_scale final
 struct anim_def final
 {
     String object_name{}, anim_name{};
-    std::vector<anim_group> groups{};
+    Array<anim_group> groups{};
     Vector2ui pixel_size{};
     anim_scale scale = anim_scale::ratio{1};
     size_t nframes = 0, fps = 0, action_frame = 0, action_frame2 = 0;

@@ -23,7 +23,7 @@ struct wall_mesh;
 struct anim_mesh;
 struct texture_unit_cache;
 class path_search;
-struct astar;
+class astar;
 
 struct floormat_main
 {
@@ -82,7 +82,7 @@ struct floormat_main
 
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
     virtual path_search& search() = 0;
-    virtual struct astar& astar() = 0;
+    virtual class astar& astar() = 0;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
     [[maybe_unused]] static void debug_break();

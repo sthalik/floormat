@@ -9,12 +9,10 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 
-#include <cerrno>
-#include <cmath>
-#include <cstring>
-#include <algorithm>
 #include <tuple>
+#include <algorithm>
 
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
@@ -23,6 +21,8 @@
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Move.h>
 #include <Corrade/Utility/Path.h>
+
+#include <Magnum/Math/Functions.h>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -43,8 +43,14 @@ struct options
     anim_scale scale;
 };
 
+struct image_bounds_tuple
+{
+    cv::Vec2i start, end;
+    bool ret;
+};
+
 [[nodiscard]]
-std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) noexcept
+image_bounds_tuple find_image_bounds(const cv::Mat4b& mat) noexcept
 {
     cv::Vec2i start{mat.cols, mat.rows}, end{0, 0};
     for (int y = 0; y < mat.rows; y++)
@@ -55,10 +61,10 @@ std::tuple<cv::Vec2i, cv::Vec2i, bool> find_image_bounds(const cv::Mat4b& mat) n
             enum {R, G, B, A};
             if (cv::Vec4b px = ptr[x]; px[A] != 0)
             {
-                start[0] = std::min(x, start[0]);
-                start[1] = std::min(y, start[1]);
-                end[0] = std::max(x+1, end[0]);
-                end[1] = std::max(y+1, end[1]);
+                start[0] = Math::min(x, start[0]);
+                start[1] = Math::min(y, start[1]);
+                end[0] = Math::max(x+1, end[0]);
+                end[1] = Math::max(y+1, end[1]);
             }
         }
     }
@@ -117,13 +123,13 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
     cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
 
     const Vector2i ground = {
-        (int)std::round(((int)group.ground[0] - start[0]) * factor),
-        (int)std::round(((int)group.ground[1] - start[1]) * factor),
+        (int)Math::round(((int)group.ground[0] - start[0]) * factor),
+        (int)Math::round(((int)group.ground[1] - start[1]) * factor),
     };
 
     const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
 
-    group.frames.push_back({ground, atlas.offset(), dest_size_});
+    arrayAppend(group.frames, {ground, atlas.offset(), dest_size_});
     atlas.add_entry({&group.frames.back(), Utility::move(resized)});
     return true;
 }
@@ -166,11 +172,10 @@ bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
         return false;
     }
 
-    group.frames.clear();
+    arrayReserve(group.frames, (size_t)max-1);
+    arrayResize(group.frames, 0);
     // atlas stores its entries through a pointer.
-    // vector::reserve() is necessary to avoid use-after-free.
-    group.frames.reserve((size_t)max-1);
-
+    // arrayReserve() is necessary to avoid use-after-free.
     for (unsigned i = 1; i < max; i++)
     {
         char filename[9];
@@ -196,7 +201,14 @@ inline String fixsep(String str)
 
 using Corrade::Utility::Arguments;
 
-std::tuple<options, Arguments, bool> parse_cmdline(int argc, const char* const* argv) noexcept
+struct arg_tuple
+{
+    options opts;
+    Arguments args;
+    bool ret;
+};
+
+arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
 {
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output").setHelp("output", "", "DIR")

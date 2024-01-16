@@ -40,7 +40,7 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
     _name{std::move(name)}, _bitmask{make_bitmask(image)},
     _info{std::move(info)}, _group_indices{make_group_indices(_info)}
 {
-    fm_soft_assert(!_info.groups.empty());
+    fm_soft_assert(!_info.groups.isEmpty());
 
     const Size<3> size = image.pixels().size();
     fm_soft_assert(size[0]*size[1] == _info.pixel_size.product());
