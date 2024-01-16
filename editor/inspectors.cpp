@@ -4,7 +4,7 @@
 namespace floormat {
 
 namespace {
-constexpr inline size_t max_inspectors = 2;
+constexpr inline size_t max_inspectors = 8;
 } // namespace
 
 void app::reserve_inspector_array()
@@ -15,8 +15,7 @@ void app::reserve_inspector_array()
 void app::add_inspector(popup_target p)
 {
     if (inspectors.size() >= max_inspectors)
-        arrayRemove(inspectors, 1 + inspectors.size() - max_inspectors);
-
+        arrayRemove(inspectors, 0, 1 + inspectors.size() - max_inspectors);
     arrayAppend(inspectors, p);
 }
 
