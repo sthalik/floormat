@@ -26,7 +26,7 @@ StringView direction_index_to_name(size_t i) noexcept(false)
     return wall_atlas::directions[i].name;
 }
 
-void resolve_wall_rotations(std::vector<Wall::Direction>& array, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false)
+void resolve_wall_rotations(Array<Wall::Direction>& array, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false)
 {
     for (auto [dir_name, dir] : wall_atlas::directions)
     {
@@ -165,7 +165,7 @@ auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
 
 auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
 {
-    if (_frame_array.empty()) [[unlikely]]
+    if (_frame_array.isEmpty()) [[unlikely]]
         return {};
     const auto size = _frame_array.size(); (void)size;
     const auto index = group.index, count = group.count;

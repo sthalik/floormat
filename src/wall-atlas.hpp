@@ -5,7 +5,7 @@
 #include "wall-defs.hpp"
 #include <array>
 #include <bitset>
-#include <vector>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
@@ -85,7 +85,7 @@ struct DirArrayIndex {
     bool operator==(const DirArrayIndex&) const noexcept;
 };
 
-void resolve_wall_rotations(std::vector<Wall::Direction>& dirs, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false);
+void resolve_wall_rotations(Array<Wall::Direction>& dirs, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false);
 
 } // namespace floormat::Wall
 
@@ -96,8 +96,8 @@ struct wall_atlas_def final
     bool operator==(const wall_atlas_def&) const noexcept;
 
     Wall::Info header;
-    std::vector<Wall::Frame> frames;
-    std::vector<Wall::Direction> direction_array;
+    Array<Wall::Frame> frames;
+    Array<Wall::Direction> direction_array;
     std::array<Wall::DirArrayIndex, Wall::Direction_COUNT> direction_map;
     std::bitset<Wall::Direction_COUNT> direction_mask{0};
 
@@ -118,8 +118,8 @@ class wall_atlas final
     using Group_ = Wall::Group_;
     using DirArrayIndex = Wall::DirArrayIndex;
 
-    std::vector<Direction> _dir_array;
-    std::vector<Frame> _frame_array;
+    Array<Direction> _dir_array;
+    Array<Frame> _frame_array;
     Info _info;
     String _path;
     Vector2ui _image_size;

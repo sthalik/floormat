@@ -43,7 +43,7 @@ std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringV
     auto tex = texture(""_s, filename);
 
     fm_soft_assert(name == def.header.name);
-    fm_soft_assert(!def.frames.empty());
+    fm_soft_assert(!def.frames.isEmpty());
     auto atlas = std::make_shared<class wall_atlas>(std::move(def), dir, tex);
     return atlas;
 }
