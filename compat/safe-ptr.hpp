@@ -31,13 +31,17 @@ public:
     {
         if (ptr) [[likely]]
             delete ptr;
-        ptr = (T*)-0xbadbabe;
+        ptr = (T*)0xbadcafedeadbabe;
     }
 
     explicit safe_ptr(safe_ptr&& other) noexcept: ptr{other.ptr}
     {
         other.ptr = nullptr;
     }
+
+    explicit safe_ptr() noexcept:
+        ptr{new T{}}
+    {}
 
     safe_ptr& operator=(safe_ptr&& other) noexcept
     {

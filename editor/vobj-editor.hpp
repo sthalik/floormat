@@ -14,11 +14,6 @@ class anim_atlas;
 struct vobj_info;
 struct app;
 
-#if defined __clang__ || defined __CLION_IDE__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-vtables"
-#endif
-
 struct vobj_factory
 {
     vobj_factory();
@@ -32,12 +27,9 @@ struct vobj_factory
     std::shared_ptr<anim_atlas> atlas() const;
 };
 
-#if defined __clang__ || defined __CLION_IDE__
-#pragma clang diagnostic pop
-#endif
-
-struct vobj_editor final
+class vobj_editor final
 {
+public:
     struct vobj_ final {
         StringView name, descr;
         std::unique_ptr<vobj_factory> factory;

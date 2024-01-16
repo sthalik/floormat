@@ -1,8 +1,10 @@
 #include "editor.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
-#include "keys.hpp"
-
+#include "ground-editor.hpp"
+#include "wall-editor.hpp"
+#include "scenery-editor.hpp"
+#include "vobj-editor.hpp"
 #include <algorithm>
 #include <Corrade/Containers/StringView.h>
 
@@ -183,6 +185,9 @@ void editor::on_click(world& world, global_coords pos, int mods, button b)
 }
 
 editor::editor(app* a) : _app{a} {}
+editor::editor(editor&&) noexcept = default;
+editor& editor::operator=(editor&&) noexcept = default;
+editor::~editor() noexcept = default;
 
 void editor::set_mode(editor_mode mode)
 {
@@ -195,7 +200,7 @@ const ground_editor* editor::current_ground_editor() const noexcept
     switch (_mode)
     {
     case editor_mode::floor:
-        return &_floor;
+        return &*_floor;
     default:
         return nullptr;
     }
@@ -206,7 +211,7 @@ const wall_editor* editor::current_wall_editor() const noexcept
     switch (_mode)
     {
     case editor_mode::walls:
-        return &_wall;
+        return &*_wall;
     default:
         return nullptr;
     }
@@ -215,7 +220,7 @@ const wall_editor* editor::current_wall_editor() const noexcept
 const scenery_editor* editor::current_scenery_editor() const noexcept
 {
     if (_mode == editor_mode::scenery)
-        return &_scenery;
+        return &*_scenery;
     else
         return nullptr;
 }
@@ -223,7 +228,7 @@ const scenery_editor* editor::current_scenery_editor() const noexcept
 const vobj_editor* editor::current_vobj_editor() const noexcept
 {
     if (_mode == editor_mode::vobj)
-        return &_vobj;
+        return &*_vobj;
     else
         return nullptr;
 }

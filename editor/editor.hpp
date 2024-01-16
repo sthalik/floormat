@@ -1,14 +1,10 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/safe-ptr.hpp"
 #include "src/global-coords.hpp"
 #include "src/tile-image.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
-#include "ground-editor.hpp"
-#include "wall-editor.hpp"
-#include "scenery-editor.hpp"
-#include "vobj-editor.hpp"
-
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
 
@@ -19,6 +15,11 @@ class anim_atlas;
 class ground_atlas;
 struct app;
 
+class ground_editor;
+class wall_editor;
+class scenery_editor;
+class vobj_editor;
+
 class editor final
 {
     editor_snap_mode get_snap_value(editor_snap_mode snap, int mods) const;
@@ -26,10 +27,10 @@ class editor final
 
     app* _app;
 
-    ground_editor _floor;
-    wall_editor _wall;
-    scenery_editor _scenery;
-    vobj_editor _vobj;
+    safe_ptr<ground_editor> _floor{};
+    safe_ptr<wall_editor> _wall{};
+    safe_ptr<scenery_editor> _scenery{};
+    safe_ptr<vobj_editor> _vobj{};
 
     struct drag_pos final {
         global_coords coord, draw_coord;
@@ -43,8 +44,9 @@ class editor final
 public:
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
     editor(app* a);
-    editor(editor&&) noexcept = default;
-    editor& operator=(editor&&) noexcept = default;
+    editor(editor&&) noexcept;
+    editor& operator=(editor&&) noexcept;
+    ~editor() noexcept;
 
     [[nodiscard]] bool dirty() const noexcept { return _dirty; }
     void set_dirty(bool value) noexcept { _dirty = value; }
