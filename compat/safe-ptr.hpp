@@ -29,7 +29,7 @@ public:
 
     ~safe_ptr() noexcept
     {
-        if (ptr)
+        if (ptr) [[likely]]
             delete ptr;
         ptr = (T*)-0xbadbabe;
     }
@@ -42,7 +42,7 @@ public:
     safe_ptr& operator=(safe_ptr&& other) noexcept
     {
         fm_assert(this != &other);
-        if (ptr)
+        if (ptr) [[likely]]
             delete ptr;
         ptr = other.ptr;
         other.ptr = nullptr;
