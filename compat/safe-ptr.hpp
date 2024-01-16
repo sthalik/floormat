@@ -24,6 +24,7 @@ public:
     explicit safe_ptr(T*&& ptr) noexcept: ptr{ptr}
     {
         fm_assert(ptr != nullptr);
+        ptr = nullptr;
     }
 
     ~safe_ptr() noexcept

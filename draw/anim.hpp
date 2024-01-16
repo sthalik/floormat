@@ -3,6 +3,7 @@
 #include "src/rotation.hpp"
 #include "src/chunk.hpp"
 #include <array>
+#include <vector>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/Magnum.h>
