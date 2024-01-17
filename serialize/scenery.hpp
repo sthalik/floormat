@@ -1,6 +1,5 @@
 #pragma once
 #include "src/scenery.hpp"
-#include <vector>
 #include <Corrade/Containers/String.h>
 #include <nlohmann/json_fwd.hpp>
 

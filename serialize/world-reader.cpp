@@ -24,7 +24,7 @@ using namespace floormat::Serialize;
 constexpr inline atlasid meta_short_scenery_bit_ = highbits<atlasid, 1, 0>;
 constexpr inline atlasid meta_rotation_bits_ = highbits<atlasid, rotation_BITS, 1>;
 constexpr inline atlasid scenery_id_flag_mask_ = meta_short_scenery_bit_ | meta_rotation_bits_;
-constexpr inline atlasid scenery_id_max_ = int_max<atlasid> & ~scenery_id_flag_mask_;
+constexpr inline atlasid scenery_id_max_ = int_traits<atlasid>::max & ~scenery_id_flag_mask_;
 
 struct reader_state final {
     explicit reader_state(world& world) noexcept;

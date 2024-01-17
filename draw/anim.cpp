@@ -5,7 +5,7 @@
 #include "main/clickable.hpp"
 #include "src/chunk-scenery.hpp"
 #include "src/scenery.hpp"
-#include <cstdio>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/GL/MeshView.h>
@@ -33,7 +33,7 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
 
 void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
                               object* s_, const chunk::topo_sort_data& data,
-                              std::vector<clickable>& list)
+                              Array<clickable>& list)
 {
     const auto& s = *s_;
     const auto& a = *s.atlas;
@@ -55,11 +55,11 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
             .stride = a.info().pixel_size[0],
             .mirrored = !g.mirror_from.isEmpty(),
         };
-        list.push_back(item);
+        arrayAppend(list, item);
     }
 }
 
-void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, std::vector<clickable>& list, bool draw_vobjs)
+void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Array<clickable>& list, bool draw_vobjs)
 {
     constexpr auto quad_index_count = 6;
 

@@ -107,7 +107,7 @@ void test_from_rotation(StringView filename)
     constexpr Frame frame_defaults;
     constexpr Group group_defaults;
 
-    fm_assert(!atlas.frames.empty());
+    fm_assert(!atlas.frames.isEmpty());
     fm_assert(atlas.frames[0].offset != frame_defaults.offset);
     auto dir_index = atlas.direction_map[(size_t)Direction_::W];
     fm_assert(dir_index);

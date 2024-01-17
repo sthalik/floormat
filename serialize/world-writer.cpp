@@ -6,7 +6,6 @@
 #include "src/global-coords.hpp"
 #include "src/chunk.hpp"
 #include "src/world.hpp"
-#include "src/emplacer.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
@@ -15,7 +14,6 @@
 #include "src/light.hpp"
 #include "compat/strerror.hpp"
 #include <cerrno>
-#include <cstring>
 #include <concepts>
 #include <vector>
 #include <algorithm>
@@ -210,12 +208,12 @@ void write_object_flags(binary_writer<T>& s, const U& e)
 
 void writer_state::serialize_atlases()
 {
-    fm_assert(tile_images.size() < int_max<atlasid>);
+    fm_assert(tile_images.size() < int_traits<atlasid>::max);
     const auto sz = (atlasid)tile_images.size();
     const auto atlasbuf_size = sizeof(sz) + atlas_name_max*sz;
     atlas_buf.resize(atlasbuf_size);
     auto s = binary_writer{atlas_buf.begin()};
-    fm_assert(sz <= int_max<atlasid>);
+    fm_assert(sz <= int_traits<atlasid>::max);
 
     s << sz;
 
@@ -241,7 +239,7 @@ void writer_state::serialize_atlases()
 }
 
 constexpr auto atlasbuf_size0 = sizeof(atlasid) + sizeof(scenery);
-constexpr auto atlasbuf_size1 = sizeof(uint8_t) + atlasbuf_size0*int_max<uint8_t> + atlas_name_max;
+constexpr auto atlasbuf_size1 = sizeof(uint8_t) + atlasbuf_size0*int_traits<uint8_t>::max + atlas_name_max;
 
 void writer_state::serialize_scenery_names()
 {
@@ -284,7 +282,7 @@ void writer_state::serialize_scenery_names()
             auto num = 1uz;
             for (auto j = i+1; j < sz && vec[j].s->name == sc->name; j++)
                 num++;
-            fm_assert(num < int_max<uint8_t>);
+            fm_assert(num < int_traits<uint8_t>::max);
             s << (uint8_t)num;
             fm_assert(sc->name.size() < atlas_name_max);
             s.write_asciiz_string(sc->name);
@@ -564,7 +562,7 @@ ArrayView<const char> writer_state::serialize_world()
     serialize_strings();
 
     using proto_t = std::decay_t<decltype(proto_version)>;
-    fm_assert(_world->size() <= int_max<chunksiz>);
+    fm_assert(_world->size() <= int_traits<chunksiz>::max);
 
     const auto len = fm_begin(
         auto len = 0uz;

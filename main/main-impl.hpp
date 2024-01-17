@@ -9,8 +9,7 @@
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
-#include "src/path-search.hpp"
-#include <vector>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Timeline.h>
 #include <Magnum/Math/Range.h>
@@ -109,7 +108,7 @@ private:
     floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
     tile_shader _shader;
     struct lightmap_shader _lightmap_shader{_tuc};
-    std::vector<clickable> _clickable_scenery;
+    Array<clickable> _clickable_scenery;
     class world _world{};
     Magnum::Timeline timeline;
     uint32_t _mouse_cursor = (uint32_t)-1;
@@ -120,7 +119,7 @@ private:
     Framebuffer framebuffer;
 #endif
     safe_ptr<path_search> _search;
-    class astar _astar;
+    safe_ptr<class astar> _astar;
 
     struct {
         float value = 0;

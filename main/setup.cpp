@@ -1,29 +1,9 @@
 #include "main-impl.hpp"
-#include "compat/fpu.hpp"
 #include <algorithm>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/StringIterable.h>
 
 namespace floormat {
-
-main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv) noexcept :
-    Platform::Sdl2Application{Arguments{argc, argv},
-                              make_conf(se), make_gl_conf(se)},
-    s{std::move(se)}, app{app}, _shader{_tuc}
-{
-    if (s.vsync)
-    {
-        (void)setSwapInterval(1);
-        if (const auto list = GL::Context::current().extensionStrings();
-            std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cend())
-            (void)setSwapInterval(-1);
-    }
-    else
-        (void)setSwapInterval(0);
-    set_fp_mask();
-    _clickable_scenery.reserve(128);
-    timeline.start();
-}
 
 auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::WindowFlags
 {
@@ -106,13 +86,6 @@ auto main_impl::meshes() noexcept -> struct meshes
 class world& main_impl::reset_world() noexcept
 {
     return reset_world(floormat::world{});
-}
-
-class world& main_impl::reset_world(class world&& w) noexcept
-{
-    _clickable_scenery.clear();
-    _world = std::move(w);
-    return _world;
 }
 
 } // namespace floormat

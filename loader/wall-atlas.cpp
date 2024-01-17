@@ -59,8 +59,8 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
     auto a = std::make_shared<class wall_atlas>(
         wall_atlas_def {
             Wall::Info{.name = name, .depth = 8},
-            {{ {}, frame_size}, },
-            {{ {.index = 0, .count = 1, .pixel_size = frame_size, .is_defined = true, } } },
+            array<Wall::Frame>({{ {}, frame_size}, }),
+            array<Wall::Direction>({{ {.index = 0, .count = 1, .pixel_size = frame_size, .is_defined = true, } } }),
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, make_error_texture(frame_size));

@@ -4,6 +4,7 @@
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "src/light.hpp"
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
@@ -134,7 +135,7 @@ void main_impl::draw_world() noexcept
     fm_debug_assert(1 + maxx - minx <= 8);
     fm_debug_assert(1 + maxy - miny <= 8);
 
-    _clickable_scenery.clear();
+    arrayResize(_clickable_scenery, 0);
 #ifdef FM_USE_DEPTH32
         framebuffer.fb.clearDepth(0);
 #else

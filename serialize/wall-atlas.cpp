@@ -5,6 +5,7 @@
 #include "loader/loader.hpp"
 #include "pass-mode.hpp"
 #include "json-helper.hpp"
+#include "corrade-array.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -42,7 +43,7 @@ namespace {
 
 struct direction_triple
 {
-    std::vector<Direction> array;
+    Array<Direction> array;
     std::array<DirArrayIndex, Direction_COUNT> map;
     std::bitset<Direction_COUNT> mask;
 };
@@ -53,7 +54,7 @@ direction_triple read_all_directions(const json& jroot)
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
-    direction_triple ret = { std::vector<Direction>{count},
+    direction_triple ret = { Array<Direction>{count},
                              std::array<DirArrayIndex, Direction_COUNT>{},
                              std::bitset<Direction_COUNT>{0}, };
     auto& [array, map, mask] = ret;
@@ -108,7 +109,7 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     fm_soft_assert(loader.check_atlas_name(atlas.header.name));
     atlas.frames = read_all_frames(jroot);
     auto [dirs, dir_indexes, mask] = read_all_directions(jroot);
-    fm_soft_assert(!dirs.empty());
+    fm_soft_assert(!dirs.isEmpty());
     fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, Direction_COUNT>{});
     atlas.direction_array = std::move(dirs);
     atlas.direction_map = dir_indexes;
@@ -155,17 +156,17 @@ void wall_atlas::serialize(StringView filename) const
 
 namespace floormat::Wall::detail {
 
-std::vector<Frame> read_all_frames(const json& jroot)
+Array<Frame> read_all_frames(const json& jroot)
 {
     if (!jroot.contains("frames"))
         return {};
 
-    std::vector<Frame> frames;
+    Array<Frame> frames;
     const auto& jframes = jroot["frames"];
 
     fm_assert(jframes.is_array());
     const auto sz = jframes.size();
-    frames = std::vector<Frame>{sz};
+    frames = Array<Frame>{sz};
 
     for (auto i = 0uz; i < sz; i++)
     {

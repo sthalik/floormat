@@ -33,7 +33,7 @@ static_assert(pack_write(std::tuple{f8<2>{0b10}, f8<3>{0b011}, f8<3>{0b01}}) == 
 //static_assert(pack_write(std::tuple{}) == 0);
 static_assert(pack_write(std::tuple{f8<1>{0b1}, f8<3>{0b101}, f8<2>{0b10}}) == 0b101011);
 
-#if 0 // check disasembly
+#if 0 // check disassembly
 u32 foo1(u32 a, u32 b, u32 c);
 u32 foo1(u32 a, u32 b, u32 c)
 {

@@ -12,7 +12,6 @@ namespace {
 auto A = astar();
 bool first_run = false;
 
-
 void Dijkstra(benchmark::State& state)
 {
     (void)loader.wall_atlas_list();

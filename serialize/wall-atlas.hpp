@@ -2,13 +2,14 @@
 #include "src/wall-atlas.hpp"
 #include <bitset>
 #include <memory>
+#include <Corrade/Containers/Array.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat::Wall::detail {
 
 using nlohmann::json;
 
-[[nodiscard]] std::vector<Frame> read_all_frames(const json& jroot);
+[[nodiscard]] Array<Frame> read_all_frames(const json& jroot);
 [[nodiscard]] Group read_group_metadata(const json& jgroup);
 [[nodiscard]] Direction read_direction_metadata(const json& jroot, Direction_ dir);
 Info read_info_header(const json& jroot);

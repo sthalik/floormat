@@ -147,6 +147,7 @@ public:
     ArrayView<const Frame> frames(Direction_ dir, Group_ g) const noexcept(false);
     ArrayView<const Frame> raw_frame_array() const;
 
+    unsigned depth() const { return _info.depth; } // todo use it in more places
     const Info& info() const { return _info; }
     StringView name() const { return _info.name; }
     //StringView path() const { return _path; }

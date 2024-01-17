@@ -11,6 +11,7 @@
 #include "loader/loader.hpp"
 #include <utility>
 #include <tuple>
+#include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
 #include <Corrade/Containers/StringIterable.h>
@@ -86,7 +87,9 @@ bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
 
 bool save_image(state st)
 {
-    fm_assert(st.new_atlas.frames.empty());
+    fm_assert(st.new_atlas.frames.isEmpty());
+    arrayReserve(st.new_atlas.frames, 64);
+
     uint32_t max_height = 0;
     for (const auto& group : st.groups)
     {
@@ -136,7 +139,9 @@ bool save_image(state st)
             auto rect = cv::Rect{(int)frame.offset.x(), (int)frame.offset.y(),
                                  (int)frame.size.x(), (int)frame.size.y()};
             frame.mat.copyTo(st.dest(rect));
-            st.new_atlas.frames.push_back({.offset = frame.offset, .size = frame.size});
+            arrayAppend(st.new_atlas.frames, Wall::Frame {
+                .offset = frame.offset, .size = frame.size
+            });
         }
     }
 
@@ -155,7 +160,7 @@ bool save_image(state st)
 bool save_json(state st)
 {
     using namespace floormat::Wall::detail;
-    fm_assert(!st.new_atlas.frames.empty());
+    fm_assert(!st.new_atlas.frames.isEmpty());
     fm_assert(st.new_atlas.header.depth > 0);
     auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".json"_s});
     st.new_atlas.serialize(filename);
@@ -286,7 +291,7 @@ bool do_direction(state& st, size_t i)
             return false;
     }
 
-    st.new_atlas.direction_array.push_back(std::move(dir));
+    arrayAppend(st.new_atlas.direction_array, std::move(dir));
 
     return true;
 }
@@ -304,7 +309,8 @@ bool do_input_file(state& st)
     fm_assert(!atlas.frames.size());
     fm_assert(!atlas.direction_mask.any());
     fm_assert(atlas.direction_map == std::array<Wall::DirArrayIndex, Direction_COUNT>{});
-    fm_assert(atlas.direction_array.empty());
+    fm_assert(atlas.direction_array.isEmpty());
+    arrayReserve(atlas.direction_array, Direction_COUNT);
 
     for (auto i = 0uz; i < Direction_COUNT; i++)
     {
@@ -399,7 +405,7 @@ int main(int argc, char** argv)
     uint32_t n_frames = 0;
 
     auto groups = std::vector<group>{};
-    groups.reserve(std::size(Wall::Direction::groups));
+    groups.reserve(Wall::Group_COUNT);
 
     for (auto [name, ptr, val] : Wall::Direction::groups)
     {
