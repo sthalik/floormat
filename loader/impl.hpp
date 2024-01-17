@@ -61,7 +61,7 @@ struct loader_impl final : loader_
     std::vector<ground_info> ground_atlas_array;
     std::vector<String> missing_ground_atlases;
     Pointer<ground_info> invalid_ground_atlas;
-    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, bool fail_ok) noexcept(false) override;
+    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_info> ground_atlas_list() noexcept(false) override;
     void get_ground_atlas_list();
     const ground_info& make_invalid_ground_atlas();

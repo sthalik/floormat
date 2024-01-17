@@ -30,10 +30,22 @@ std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vec
 }
 
 // todo copypasta from wall-atlas.cpp
-std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, bool fail_ok) noexcept(false)
+std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, loader_policy policy) noexcept(false)
 {
     (void)ground_atlas_list();
-    fm_assert(fail_ok || name != INVALID);
+
+    switch (policy)
+    {
+    case loader_policy::error:
+        fm_assert(name != INVALID);
+        break;
+    case loader_policy::ignore:
+    case loader_policy::warn:
+        break;
+    default:
+        fm_abort("invalid loader_policy");
+    }
+
     fm_soft_assert(check_atlas_name(name));
     auto it = ground_atlas_map.find(name);
 
@@ -41,10 +53,15 @@ std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, b
     {
         if (it->second == (ground_info*)-1) [[unlikely]]
         {
-           if (fail_ok) [[likely]]
-                goto missing_ok;
-            else
+            switch (policy)
+            {
+            case loader_policy::error:
                 goto error;
+            case loader_policy::warn:
+            case loader_policy::ignore:
+                goto missing_ok;
+            }
+            std::unreachable();
         }
         else if (!it->second->atlas)
             return it->second->atlas = get_ground_atlas(name, it->second->size, it->second->pass);
@@ -53,13 +70,19 @@ std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, b
     }
     else
     {
-        if (fail_ok) [[likely]]
-            goto missing;
-        else
+        switch (policy)
+        {
+        case loader_policy::error:
             goto error;
+        case loader_policy::warn:
+            goto missing_warn;
+        case loader_policy::ignore:
+            goto missing_ok;
+        }
+        std::unreachable();
     }
 
-missing:
+missing_warn:
     {
         missing_ground_atlases.push_back(String { AllocatedInit, name });
         auto string_view = StringView{missing_ground_atlases.back()};
