@@ -11,10 +11,20 @@ namespace {
 
 void test_empty_wall()
 {
-    using enum Wall::Direction_;
-
-    const auto& wall = *loader.wall_atlas("empty"_s);
     constexpr auto wall_size = Vector2ui(Vector2i{iTILE_SIZE.x(), iTILE_SIZE.z()});
+    using enum Wall::Direction_;
+    const auto& wall = *loader.wall_atlas("empty"_s);
+
+#define assert_for_group(dir, g, x)                 \
+    do {                                            \
+        fm_assert(!g.is_defined);                   \
+        fm_assert(g == Wall::Group{});              \
+        fm_assert(g.count == 0);                    \
+        fm_assert(g.index == (uint32_t)-1);         \
+        fm_assert(g == Wall::Group{});              \
+        fm_assert(!wall.group(dir, x));             \
+    } while (false)
+
     fm_assert(wall_atlas::expected_size(wall.info().depth, Wall::Group_::wall) == wall_size);
     fm_assert(wall.depth() == 8);
     fm_assert(wall.direction_count() == 1);
@@ -24,10 +34,14 @@ void test_empty_wall()
     fm_assert(wall.direction(W) == nullptr);
     fm_assert(&wall.calc_direction(N) == wall.direction(N));
     fm_assert(&wall.calc_direction(W) == wall.direction(N));
-    fm_assert(n.side == Wall::Group{});
-    fm_assert(n.top == Wall::Group{});
-    fm_assert(n.corner == Wall::Group{});
+    assert_for_group(N, n.side, Wall::Group_::side);
+    assert_for_group(N, n.top, Wall::Group_::top);
+    assert_for_group(N, n.corner, Wall::Group_::corner);
+    fm_assert(n.wall.is_defined);
+    fm_assert(n.wall != Wall::Group{});
     fm_assert(!n.wall.mirrored);
+    fm_assert(n.wall.count > 0);
+    fm_assert(n.wall.index != (uint32_t)-1);
     fm_assert(n.wall.pixel_size == wall_size);
     fm_assert(wall.raw_frame_array()[0].offset.isZero());
     fm_assert(wall.raw_frame_array()[0].size == wall_atlas::expected_size(wall.info().depth, Wall::Group_::wall));
@@ -49,7 +63,11 @@ void test_concrete_wall()
     fm_assert(&wall.calc_direction(W) == wall.direction(N));
     fm_assert(&wall.calc_direction(N) == wall.direction(N));
     fm_assert(wall.frames(N, Wall::Group_::wall).size() >= 3);
-    fm_assert(wall.group(N, Wall::Group_::top)->is_defined);
+    fm_assert(wall.group(N, Wall::Group_::corner)->count > 0);
+    fm_assert(wall.group(N, Wall::Group_::side)->count > 0);
+    fm_assert(wall.group(N, Wall::Group_::top)->count > 0);
+    fm_assert(wall.group(N, Wall::Group_::wall)->count > 1);
+    fm_assert(wall.group(N, Wall::Group_::corner)->is_defined);
     fm_assert(wall.frames(N, Wall::Group_::wall)[0].size == Vector2ui(Vector2i{iTILE_SIZE.x(), iTILE_SIZE.z()}));
     fm_assert(&wall.calc_direction(N) == wall.direction(N));
     fm_assert(&wall.calc_direction(W) == wall.direction(N));
