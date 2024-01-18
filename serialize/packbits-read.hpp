@@ -1,11 +1,10 @@
 #pragma once
 #include "packbits-impl.hpp"
-#include "compat/reverse-index-sequence.hpp"
+#include "compat/assert.hpp"
 #include <type_traits>
 #include <concepts>
 #include <tuple>
-#include <utility>
-#include "compat/assert.hpp"
+#include <Corrade/Utility/Move.h>
 
 namespace floormat::Pack_impl {
 
@@ -84,18 +83,18 @@ template<std::unsigned_integral T, typename Tuple, size_t Left, size_t I, size_t
 constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is...>)
 {
     using U = std::decay_t<Tuple>;
-    static_assert(Left <= sizeof(T)*8);
-    static_assert(Left > 0);
-    static_assert(std::tuple_size_v<U> >= sizeof...(Is)+1);
+    static_assert(Left <= sizeof(T)*8, "too few bits to read into tuple");
+    static_assert(Left > 0, "too few bytes in datatype");
+    static_assert(std::tuple_size_v<U> >= sizeof...(Is)+1, "index count larger than tuple element count");
     static_assert(I < std::tuple_size_v<U>, "too few tuple elements");
     using Field = std::decay_t<std::tuple_element_t<I, U>>;
-    static_assert(is_input_field<Field>::value);
+    static_assert(is_input_field<Field>::value, "tuple element must be input<T, N>");
     constexpr size_t Size = Field::Length;
     static_assert(Size <= Left, "data type too small");
     using next_type = typename input<T, Left>::template next<Size>;
     std::get<I>(tuple).value = st.template get<Size>();
     T next_value = st.template advance<Size>();
-    read_(tuple, next_type{ next_value }, std::index_sequence<Is...>{});
+    read_(Utility::forward<Tuple>(tuple), next_type{ next_value }, std::index_sequence<Is...>{});
 }
 
 template<std::unsigned_integral T, typename Tuple, size_t Left>
@@ -114,7 +113,7 @@ constexpr void pack_read(Tuple&& tuple, T value)
 {
     constexpr size_t nbits = sizeof(T)*8,
                      tuple_size = std::tuple_size_v<std::decay_t<Tuple>>;
-    Pack_impl::read_(std::forward<Tuple>(tuple),
+    Pack_impl::read_(Utility::forward<Tuple>(tuple),
                      Pack_impl::input<T, nbits>{value},
                      std::make_index_sequence<tuple_size>{});
 }
