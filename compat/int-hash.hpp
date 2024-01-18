@@ -1,12 +1,16 @@
 #pragma once
 
-namespace floormat::impl_hash {
+namespace floormat::Hash {
 
-template<size_t N> size_t hash_buf(const void* buf, size_t size) noexcept = delete;
+template<size_t N = sizeof nullptr * 4> struct fnvhash_params;
+template<> struct fnvhash_params<32> { static constexpr uint32_t a = 0x811c9dc5u, b = 0x01000193u; };
+template<> struct fnvhash_params<64> { static constexpr uint64_t a = 0xcbf29ce484222325u, b = 0x100000001b3u; };
 
-} // namespace floormat::impl_hash
+size_t fnvhash_buf(const void* __restrict buf, size_t size, size_t seed = fnvhash_params<>::a) noexcept;
 
-namespace floormat {
+} // namespace floormat::Hash
+
+namespace floormat { // todo
 
 uint64_t hash_64(const void* buf, size_t size) noexcept;
 uint32_t hash_32(const void* buf, size_t size) noexcept;

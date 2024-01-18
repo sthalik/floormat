@@ -139,7 +139,7 @@ if(MSVC)
         -wd4197  # warning C4197: 'volatile int': top-level volatile in cast is ignored
     )
     add_definitions(-utf-8)
-    if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
+    if(CMAKE_SIZEOF_VOID_P GREATER 4)
         add_link_options(-HIGHENTROPYVA)
     endif()
 else()

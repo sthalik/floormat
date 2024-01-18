@@ -74,7 +74,7 @@
 #define fm_UNROLL_2 _Pragma("GCC unroll 2")
 #define fm_UNROLL_4 _Pragma("GCC unroll 4")
 #define fm_UNROLL_8 _Pragma("GCC unroll 8")
-#if __SIZEOF_POINTER__ >= 8
+#if __SIZEOF_POINTER__ > 4
 #define fm_UNROLL _Pragma("GCC unroll 8")
 #else
 #define fm_UNROLL _Pragma("GCC unroll 4")
