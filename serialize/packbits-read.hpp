@@ -71,13 +71,22 @@ struct input<T, 0>
 
     template<size_t N> struct next
     {
-        static_assert(N == (size_t)-1, "reading past the end");
-        static_assert(N != (size_t)-1);
+        static_assert(!N, "reading past the end");
+        static_assert( N, "reading past the end");
     };
 };
 
 template<typename T> struct is_input_field : std::bool_constant<false> {};
 template<std::unsigned_integral T, size_t N> struct is_input_field<input_field<T, N>> : std::bool_constant<true> { static_assert(N > 0); };
+
+template<typename Field>
+requires requires (Field& x)
+{
+    { size_t{Field::Length} > 0 };
+    sizeof(std::decay_t<decltype(x.value)>);
+    std::unsigned_integral<std::decay_t<decltype(x.value)>>;
+}
+struct is_input_field<Field> : std::bool_constant<true> {};
 
 template<std::unsigned_integral T, typename Tuple, size_t Left, size_t I, size_t... Is>
 constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is...>)
@@ -88,7 +97,7 @@ constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std
     static_assert(std::tuple_size_v<U> >= sizeof...(Is)+1, "index count larger than tuple element count");
     static_assert(I < std::tuple_size_v<U>, "too few tuple elements");
     using Field = std::decay_t<std::tuple_element_t<I, U>>;
-    static_assert(is_input_field<Field>::value, "tuple element must be input<T, N>");
+    static_assert(is_input_field<Field>{}, "tuple element must be input_field<T, N>");
     constexpr size_t Size = Field::Length;
     static_assert(Size <= Left, "data type too small");
     using next_type = typename input<T, Left>::template next<Size>;
@@ -108,8 +117,7 @@ constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&&, input<T, Left> st, std::inde
 
 namespace floormat {
 
-template<std::unsigned_integral T, typename Tuple>
-constexpr void pack_read(Tuple&& tuple, T value)
+template<std::unsigned_integral T, typename Tuple> constexpr void pack_read(Tuple&& tuple, T value)
 {
     constexpr size_t nbits = sizeof(T)*8,
                      tuple_size = std::tuple_size_v<std::decay_t<Tuple>>;

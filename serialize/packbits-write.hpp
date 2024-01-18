@@ -11,7 +11,6 @@ namespace floormat::Pack_impl {
 template<std::unsigned_integral T, size_t CAPACITY, size_t LEFT>
 struct output
 {
-    static_assert(std::is_fundamental_v<T>);
     static_assert(LEFT >= 0);
     static_assert(LEFT <= CAPACITY);
     static_assert(CAPACITY <= sizeof(T)*8);
@@ -31,6 +30,14 @@ struct output_field
 template<typename T> struct is_output_field : std::bool_constant<false> {};
 template<std::unsigned_integral T, size_t N> struct is_output_field<output_field<T, N>> : std::bool_constant<true> { static_assert(N > 0); };
 
+template<typename Field>
+requires requires (const Field& x) {
+    { size_t{Field::Length} > 0 };
+    sizeof(std::decay_t<decltype(x.value)>);
+    std::unsigned_integral<std::decay_t<decltype(x.value)>>;
+}
+struct is_output_field<Field> : std::bool_constant<true> {};
+
 template<std::unsigned_integral T, size_t Capacity, size_t Left, size_t I, size_t... Is, typename Tuple>
 constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple& tuple, output<T, Capacity, Left> st, std::index_sequence<I, Is...>)
 {
@@ -39,7 +46,8 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple& tuple, output<T, Capacity,
     static_assert(Left > 0, "too many bits to write");
     static_assert(Left <= Capacity, "too many bits to write");
     static_assert(I < std::tuple_size_v<Tuple>, "too few tuple elements");
-    static_assert(is_output_field<std::decay_t<decltype(std::get<I>(tuple))>>{}, "tuple element must be output<T,N>");
+    static_assert(is_output_field<std::decay_t<std::tuple_element_t<0, Tuple>>>{},
+                  "tuple element must be output_field<T,N>");
     constexpr size_t N = std::tuple_element_t<I, Tuple>::Length;
     static_assert(N <= Left, "too many bits to write");
 
@@ -61,11 +69,20 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple&, output<T, Capacity, Left>
 
 namespace floormat {
 
-template<std::unsigned_integral T, size_t... Sizes>
-[[nodiscard]] constexpr T pack_write(const std::tuple<Pack_impl::output_field<T, Sizes>...>& tuple)
+template<typename Tuple>
+requires requires (const Tuple& tuple) {
+    std::tuple_size_v<Tuple> > size_t{0};
+    Pack_impl::is_output_field<std::decay_t<decltype(std::get<0>(tuple))>>::value;
+}
+[[nodiscard]] constexpr auto pack_write(const Tuple& tuple)
 {
-    constexpr size_t nbits = sizeof(T)*8;
-    return Pack_impl::write_(tuple, Pack_impl::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});
+    using Field = std::decay_t<std::tuple_element_t<0, Tuple>>;
+    static_assert(Pack_impl::is_output_field<Field>{});
+    using T = std::decay_t<decltype(std::declval<Field>().value)>;
+    constexpr size_t nbits = sizeof(T)*8, tuple_size = std::tuple_size_v<Tuple>;
+    return Pack_impl::write_(tuple,
+                             Pack_impl::output<T, nbits, nbits>{T{0}},
+                             make_reverse_index_sequence<tuple_size>{});
 }
 
 constexpr uint8_t pack_write(const std::tuple<>&) = delete;
