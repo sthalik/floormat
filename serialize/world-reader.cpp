@@ -89,7 +89,10 @@ bool read_object_flags(binary_reader<T>& s, U& e)
         e.playable    = !!(flags & 1 << 2);
     }
     else
+    {
         static_assert(tag == object_type::none);
+        static_assert(tag != object_type::none);
+    }
     return flags & 1 << 7;
 }
 
