@@ -38,7 +38,7 @@ struct input
     template<size_t N> using next = typename next_<N>::type;
 
     template<size_t N>
-    constexpr T get() const
+    constexpr CORRADE_ALWAYS_INLINE T get() const
     {
         static_assert(N > 0);
         static_assert(N <= sizeof(T)*8);
@@ -81,7 +81,7 @@ template<typename T> struct is_input_field : std::bool_constant<false> {};
 template<std::unsigned_integral T, size_t N> struct is_input_field<input_field<T, N>> : std::bool_constant<true> { static_assert(N > 0); };
 
 template<std::unsigned_integral T, typename Tuple, size_t Left, size_t I, size_t... Is>
-constexpr void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is...>)
+constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is...>)
 {
     using U = std::decay_t<Tuple>;
     static_assert(Left <= sizeof(T)*8);
@@ -99,7 +99,7 @@ constexpr void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is
 }
 
 template<std::unsigned_integral T, typename Tuple, size_t Left>
-constexpr void read_(Tuple&&, input<T, Left> st, std::index_sequence<>)
+constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&&, input<T, Left> st, std::index_sequence<>)
 {
     if (!st.check_zero()) [[unlikely]]
         throw_on_read_nonzero();
@@ -109,6 +109,14 @@ constexpr void read_(Tuple&&, input<T, Left> st, std::index_sequence<>)
 
 namespace floormat {
 
-
+template<std::unsigned_integral T, typename Tuple>
+constexpr void pack_read(Tuple&& tuple, T value)
+{
+    constexpr size_t nbits = sizeof(T)*8,
+                     tuple_size = std::tuple_size_v<std::decay_t<Tuple>>;
+    Pack_impl::read_(std::forward<Tuple>(tuple),
+                     Pack_impl::input<T, nbits>{value},
+                     std::make_index_sequence<tuple_size>{});
+}
 
 } // namespace floormat

@@ -62,7 +62,7 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple&, output<T, Capacity, Left>
 namespace floormat {
 
 template<std::unsigned_integral T, size_t... Sizes>
-constexpr T pack_write(const std::tuple<Pack_impl::output_field<T, Sizes>...>& tuple)
+[[nodiscard]] constexpr T pack_write(const std::tuple<Pack_impl::output_field<T, Sizes>...>& tuple)
 {
     constexpr size_t nbits = sizeof(T)*8;
     return Pack_impl::write_(tuple, Pack_impl::output<T, nbits, nbits>{T{0}}, make_reverse_index_sequence<sizeof...(Sizes)>{});

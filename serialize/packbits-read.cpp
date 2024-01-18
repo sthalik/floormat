@@ -84,10 +84,8 @@ constexpr bool test4()
 
     {
         static_assert(lowbits<uint32_t, 17> == 0x1ffffU);
-        f32<17> a;
-        f32<14> b;
-        f32< 1> c;
         //auto tuple = std::tuple<f32<17>&, f32<14>&, f32<1>&>{a, b, c};
+        f32<17> a; f32<14> b; f32< 1> c;
         auto tuple = std::tie(a, b, c);
         read_(tuple, input<uint32_t, 32>{(uint32_t)-1}, std::make_index_sequence<3>{});
         fm_assert(a == lowbits<uint32_t, 17>);
@@ -111,6 +109,13 @@ constexpr bool test4()
         //(void)input<uint8_t, 9>{};
         //read_(std::tie(a), input<uint8_t, 8>{3}, std::index_sequence<0>{}); fm_assert(a == 3);
         //f8<1> d; read_(std::tie(d), input<uint8_t, 8>{1}, std::index_sequence<>{});
+    }
+    {
+        f8<1> a; f8<3> b; f8<2> c;
+        pack_read(std::tie(a, b, c), uint8_t{0b101011});
+        fm_assert(a == 0b1);
+        fm_assert(b == 0b101);
+        fm_assert(c == 0b10);
     }
 
     return true;
