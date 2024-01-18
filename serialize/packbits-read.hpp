@@ -84,7 +84,7 @@ requires requires (Field& x)
 {
     { size_t{Field::Length} > 0 };
     sizeof(std::decay_t<decltype(x.value)>);
-    std::unsigned_integral<std::decay_t<decltype(x.value)>>;
+    requires std::unsigned_integral<std::decay_t<decltype(x.value)>>;
 }
 struct is_input_field<Field> : std::bool_constant<true> {};
 
@@ -118,6 +118,10 @@ constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&&, input<T, Left> st, std::inde
 namespace floormat {
 
 template<std::unsigned_integral T, typename Tuple> constexpr void pack_read(Tuple&& tuple, T value)
+requires requires (const Tuple& tuple) {
+    std::tuple_size_v<Tuple> > 0uz;
+    Pack_impl::is_input_field<std::decay_t<decltype(std::get<0>(tuple))>>::value;
+}
 {
     constexpr size_t nbits = sizeof(T)*8,
                      tuple_size = std::tuple_size_v<std::decay_t<Tuple>>;

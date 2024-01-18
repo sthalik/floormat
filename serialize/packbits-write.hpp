@@ -71,7 +71,7 @@ namespace floormat {
 
 template<typename Tuple>
 requires requires (const Tuple& tuple) {
-    std::tuple_size_v<Tuple> > size_t{0};
+    std::tuple_size_v<Tuple> > 0uz;
     Pack_impl::is_output_field<std::decay_t<decltype(std::get<0>(tuple))>>::value;
 }
 [[nodiscard]] constexpr auto pack_write(const Tuple& tuple)

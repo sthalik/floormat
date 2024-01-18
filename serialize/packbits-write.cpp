@@ -43,4 +43,11 @@ u32 foo1(u32 a, u32 b, u32 c)
 
 } // namespace
 
+#if 0
+[[maybe_unused]] uint8_t test1(uint8_t a, uint8_t b, uint8_t c)
+{
+    return pack_write(std::tuple{f8<2>{a}, f8<3>{b}, f8<3>{c}});
+}
+#endif
+
 } // namespace floormat
