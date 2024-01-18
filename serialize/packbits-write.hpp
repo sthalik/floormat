@@ -35,13 +35,13 @@ template<std::unsigned_integral T, size_t Capacity, size_t Left, size_t I, size_
 constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple& tuple, output<T, Capacity, Left> st, std::index_sequence<I, Is...>)
 {
     static_assert(Capacity > 0);
-    static_assert(Left > 0);
     static_assert(Capacity <= sizeof(T)*8);
-    static_assert(Left <= Capacity);
+    static_assert(Left > 0, "too many bits to write");
+    static_assert(Left <= Capacity, "too many bits to write");
     static_assert(I < std::tuple_size_v<Tuple>, "too few tuple elements");
-    static_assert(is_output_field<std::decay_t<decltype(std::get<I>(tuple))>>{});
+    static_assert(is_output_field<std::decay_t<decltype(std::get<I>(tuple))>>{}, "tuple element must be output<T,N>");
     constexpr size_t N = std::tuple_element_t<I, Tuple>::Length;
-    static_assert(N <= Left);
+    static_assert(N <= Left, "too many bits to write");
 
     T x = std::get<I>(tuple).value;
 

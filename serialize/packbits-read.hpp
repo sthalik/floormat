@@ -83,8 +83,8 @@ template<std::unsigned_integral T, typename Tuple, size_t Left, size_t I, size_t
 constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std::index_sequence<I, Is...>)
 {
     using U = std::decay_t<Tuple>;
-    static_assert(Left <= sizeof(T)*8, "too few bits to read into tuple");
-    static_assert(Left > 0, "too few bytes in datatype");
+    static_assert(Left <= sizeof(T)*8, "bits to read count too large");
+    static_assert(Left > 0, "too many bits to write");
     static_assert(std::tuple_size_v<U> >= sizeof...(Is)+1, "index count larger than tuple element count");
     static_assert(I < std::tuple_size_v<U>, "too few tuple elements");
     using Field = std::decay_t<std::tuple_element_t<I, U>>;
