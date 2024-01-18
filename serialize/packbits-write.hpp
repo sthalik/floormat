@@ -12,9 +12,9 @@ template<std::unsigned_integral T, size_t CAPACITY, size_t LEFT>
 struct output
 {
     static_assert(std::is_fundamental_v<T>);
-    static_assert(CAPACITY > 0);
-    static_assert(CAPACITY <= sizeof(T)*8);
+    static_assert(LEFT >= 0);
     static_assert(LEFT <= CAPACITY);
+    static_assert(CAPACITY <= sizeof(T)*8);
     static constexpr size_t Capacity = CAPACITY, Left = LEFT;
     T value{0};
 };
@@ -23,6 +23,7 @@ template<std::unsigned_integral T, size_t LENGTH>
 struct output_field
 {
     static_assert(LENGTH > 0);
+    static_assert(LENGTH <= sizeof(T)*8);
     static constexpr size_t Length = LENGTH;
     T value;
 };
@@ -37,6 +38,7 @@ constexpr CORRADE_ALWAYS_INLINE T write_(const Tuple& tuple, output<T, Capacity,
     static_assert(Left > 0);
     static_assert(Capacity <= sizeof(T)*8);
     static_assert(Left <= Capacity);
+    static_assert(I < std::tuple_size_v<Tuple>, "too few tuple elements");
     static_assert(is_output_field<std::decay_t<decltype(std::get<I>(tuple))>>{});
     constexpr size_t N = std::tuple_element_t<I, Tuple>::Length;
     static_assert(N <= Left);
