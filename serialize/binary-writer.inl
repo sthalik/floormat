@@ -8,14 +8,19 @@
 namespace floormat::Serialize {
 
 template<std::output_iterator<char> It>
-constexpr binary_writer<It>::binary_writer(It it) noexcept : it{it}, _bytes_written{0} {}
+constexpr binary_writer<It>::binary_writer(It it, size_t bytes_allocated) noexcept :
+      it{it},
+      _bytes_written{0},
+      _bytes_allocated{bytes_allocated}
+{}
 
 template<std::output_iterator<char> It>
 template<serializable T>
 constexpr void binary_writer<It>::write(T x) noexcept
 {
-    _bytes_written += sizeof(T);
     constexpr size_t N = sizeof(T);
+    _bytes_written += N;
+    fm_assert(_bytes_written <= _bytes_allocated);
     const auto buf = std::bit_cast<std::array<char, N>, T>(maybe_byteswap(x));
     for (auto i = 0uz; i < N; i++)
         *it++ = buf[i];
@@ -32,9 +37,10 @@ template<std::output_iterator<char> It>
 constexpr void binary_writer<It>::write_asciiz_string(StringView str) noexcept
 {
     //fm_debug_assert(str.flags() & StringViewFlag::NullTerminated);
-    fm_debug_assert(!str.find('\0'));
+    fm_assert(!str.find('\0'));
     const auto sz = str.size();
     _bytes_written += sz + 1;
+    fm_assert(_bytes_written <= _bytes_allocated);
     for (auto i = 0uz; i < sz; i++)
         *it++ = str[i];
     *it++ = '\0';

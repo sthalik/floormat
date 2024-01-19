@@ -114,6 +114,7 @@ function(fm-userconfig-src)
         -Wno-zero-length-array
         -Wno-unsafe-buffer-usage
         -Wno-bitwise-op-parentheses
+        -Wno-weak-vtables
     )
     add_compile_options(
         -Werror

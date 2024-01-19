@@ -2,11 +2,13 @@
 
 namespace floormat::Hash {
 
-template<size_t N = sizeof nullptr * 4> struct fnvhash_params;
+template<size_t N = sizeof nullptr * 8> struct fnvhash_params;
 template<> struct fnvhash_params<32> { static constexpr uint32_t a = 0x811c9dc5u, b = 0x01000193u; };
 template<> struct fnvhash_params<64> { static constexpr uint64_t a = 0xcbf29ce484222325u, b = 0x100000001b3u; };
 
-size_t fnvhash_buf(const void* __restrict buf, size_t size, size_t seed = fnvhash_params<>::a) noexcept;
+constexpr inline size_t fnvhash_seed = fnvhash_params<>::a;
+
+size_t fnvhash_buf(const void* __restrict buf, size_t size, size_t seed = fnvhash_seed) noexcept;
 
 } // namespace floormat::Hash
 

@@ -45,6 +45,8 @@ tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
 tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
+chunk_coords_ chunk::coord() const noexcept { return _coord; }
+
 tile_ref chunk::at_offset(local_coords pos, Vector2i off)
 {
     const auto coord = global_coords{_coord, pos};

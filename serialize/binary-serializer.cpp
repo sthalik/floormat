@@ -36,7 +36,7 @@ static_assert(std::is_same_v<test4&, decltype( std::declval<test4&>() << int() )
 constexpr bool test5()
 {
     std::array<char, 4> bytes = {};
-    auto w = binary_writer(bytes.begin());
+    auto w = binary_writer(bytes.begin(), bytes.size());
     w << (char)0;
     w << (char)1;
     w << (char)2;

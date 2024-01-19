@@ -1,7 +1,8 @@
 #define FM_SERIALIZE_WORLD_IMPL
 #include "world-impl.hpp"
-#include "binary-reader.inl"
 #include "src/world.hpp"
+#if 0
+#include "binary-reader.inl"
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
@@ -78,7 +79,12 @@ bool read_object_flags(binary_reader<T>& s, U& e)
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
          fm_throw("invalid object type '{}'"_cf, (int)e.type);
-    if constexpr(tag == object_type::scenery)
+    if constexpr(tag == object_type::generic_scenery)
+    {
+        e.active      = !!(flags & 1 << 2);
+        e.interactive = !!(flags & 1 << 4);
+    }
+    else if constexpr(tag == object_type::door)
     {
         e.active      = !!(flags & 1 << 2);
         e.closing     = !!(flags & 1 << 3);
@@ -292,6 +298,9 @@ void reader_state::read_chunks(reader_t& s)
             SET_CHUNK_SIZE();
             switch (type)
             {
+            case object_type::door {
+                ...; // todo
+            }
             case object_type::critter: {
                 critter_proto proto;
                 proto.offset = offset;
@@ -337,7 +346,7 @@ void reader_state::read_chunks(reader_t& s)
                 (void)e;
                 break;
             }
-            case object_type::scenery: {
+            case object_type::generic_scenery: {
                 atlasid id; id << s;
                 bool exact;
                 rotation r;
@@ -545,6 +554,17 @@ world world::deserialize(StringView filename)
     reader_state s{w};
     s.deserialize_world({buf_.get(), len});
     return w;
+}
+
+} // namespace floormat
+
+#endif
+
+namespace floormat {
+
+class world world::deserialize(StringView filename)
+{
+    fm_assert("todo" && false);
 }
 
 } // namespace floormat
