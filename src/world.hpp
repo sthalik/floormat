@@ -69,7 +69,7 @@ public:
     const auto& chunks() const noexcept { return _chunks; }
 
     void serialize(StringView filename);
-    static world deserialize(StringView filename);
+    static world deserialize(StringView filename) noexcept(false);
     void set_collect_threshold(size_t value) { _collect_every = value; }
     size_t collect_threshold() const noexcept { return _collect_every; }
     auto frame_no() const { return _current_frame; }

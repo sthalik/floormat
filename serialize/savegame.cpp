@@ -2,8 +2,10 @@
 #include "compat/defs.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
-#include "loader/loader.hpp"
+#include "compat/exception.hpp"
+
 #include "src/world.hpp"
+#include "loader/loader.hpp"
 
 #include "atlas-type.hpp"
 #include "src/anim-atlas.hpp"
@@ -33,18 +35,6 @@ namespace floormat::Serialize {
 
 namespace {
 
-using tilemeta = uint8_t;
-using atlasid  = uint32_t;
-using chunksiz = uint32_t;
-using proto_t  = uint32_t;
-
-constexpr inline proto_t proto_version      = 20;
-constexpr inline auto file_magic            = ".floormat.save"_s;
-constexpr inline auto chunk_magic           = (uint16_t)0xdead;
-constexpr inline auto object_magic          = (uint16_t)0xb00b;
-constexpr inline auto atlas_magic           = (uint16_t)0xbeef;
-constexpr inline auto null_atlas            = (atlasid)-1;
-
 struct FILE_raii final
 {
     FILE_raii(FILE* s) noexcept : s{s} {}
@@ -57,12 +47,18 @@ private:
 
 using floormat::Hash::fnvhash_buf;
 
+struct string_hasher
+{
+    inline size_t operator()(StringView s) const
+    {
+        return fnvhash_buf(s.data(), s.size());
+    }
+};
+
 template<typename T> T& non_const(const T& value) { return const_cast<T&>(value); }
 template<typename T> T& non_const(T& value) = delete;
 template<typename T> T& non_const(T&& value) = delete;
 template<typename T> T& non_const(const T&& value) = delete;
-
-constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
 
 struct buffer
 {
@@ -97,6 +93,18 @@ struct serialized_chunk
 template<typename Derived>
 struct visitor_
 {
+    using tilemeta = uint8_t;
+    using atlasid  = uint32_t;
+    using chunksiz = uint32_t;
+    using proto_t  = uint32_t;
+
+    static constexpr inline proto_t proto_version      = 20;
+    static constexpr inline auto file_magic            = ".floormat.save"_s;
+    static constexpr inline auto chunk_magic           = (uint16_t)0xdead;
+    static constexpr inline auto object_magic          = (uint16_t)0xb00b;
+    static constexpr inline auto atlas_magic           = (uint16_t)0xbeef;
+    static constexpr inline auto null_atlas            = (atlasid)-1;
+
     template<typename T, typename F>
     CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
     {
@@ -172,13 +180,7 @@ struct visitor_
     }
 };
 
-struct string_hasher
-{
-    inline size_t operator()(StringView s) const
-    {
-        return fnvhash_buf(s.data(), s.size());
-    }
-};
+constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
 
 struct writer final : visitor_<writer>
 {
@@ -269,7 +271,7 @@ struct writer final : visitor_<writer>
         case atlas_type::none: break;
         }
         fm_abort("invalid atlas type '%d'", (int)type);
-        
+
 ok:
         do_visit(intern_string(name), f);
     }
@@ -464,6 +466,12 @@ ok:
     }
 };
 
+struct reader final : visitor_<reader>
+{
+    class world& w;
+    reader(class world& w) : w{w} {}
+};
+
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
     auto len = ::fwrite(&buf.data[0], buf.size, 1, f);
@@ -528,10 +536,39 @@ void world::serialize(StringView filename)
     }
 }
 
-class world world::deserialize(StringView filename)
+class world world::deserialize(StringView filename) noexcept(false)
 {
-    (void)filename;
+    char errbuf[128];
+    buffer buf;
+
+    fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
+    FILE_raii f = ::fopen(filename.data(), "rb");
+    {
+        if (!f)
+            fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
+        if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
+            fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
+        size_t len;
+        if (auto len_ = ::ftell(f); len_ >= 0)
+            len = (size_t)len_;
+        else
+            fm_throw("ftell: {}"_cf, get_error_string(errbuf));
+        if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
+            fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
+        auto buf_ = std::make_unique<char[]>(len+1);
+        if (auto ret = ::fread(&buf_[0], 1, len+1, f); ret != len)
+            fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
+
+        buf.data = std::move(buf_);
+        buf.size = len;
+    }
+
+    class world w;
+    struct reader reader(w);
+    r.deserialize_world(buf);
+
     fm_assert("todo" && false);
+    return w;
 }
 
 } // namespace floormat
