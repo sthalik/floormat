@@ -527,4 +527,10 @@ void world::serialize(StringView filename)
     }
 }
 
+class world world::deserialize(StringView filename)
+{
+    (void)filename;
+    fm_assert("todo" && false);
+}
+
 } // namespace floormat
