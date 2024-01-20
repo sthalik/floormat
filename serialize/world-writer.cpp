@@ -22,7 +22,7 @@
 #include <Corrade/Utility/Path.h>
 #include <tsl/robin_map.h>
 
-#if 1
+#if 0
 #ifdef __CLION_IDE__
 #undef fm_assert
 #define fm_assert(...) (void)(__VA_ARGS__)
@@ -32,19 +32,38 @@
 namespace floormat::Serialize {
 
 namespace {
-    struct string_container
-    {
-        StringView str;
-        bool operator==(const string_container&) const = default;
 
-        friend void swap(string_container& a, string_container& b)
-        {
-            auto tmp = a.str;
-            a.str = b.str;
-            b.str = tmp;
-        }
-    };
-}
+constexpr inline proto_t proto_version      = 20;
+constexpr inline auto file_magic            = ".floormat.save"_s;
+constexpr inline auto chunk_magic           = (uint16_t)0xdead;
+constexpr inline auto object_magic          = (uint16_t)0xb00b;
+constexpr inline auto atlas_magic           = (uint16_t)0xbeef;
+constexpr inline auto null_atlas            = (atlasid)-1;
+
+struct string_container
+{
+    StringView str;
+    bool operator==(const string_container&) const = default;
+
+    friend void swap(string_container& a, string_container& b)
+    {
+        auto tmp = a.str;
+        a.str = b.str;
+        b.str = tmp;
+    }
+};
+
+struct FILE_raii final
+{
+    FILE_raii(FILE* s) noexcept : s{s} {}
+    ~FILE_raii() noexcept { close(); }
+    operator FILE*() noexcept { return s; }
+    void close() noexcept { if (s) std::fclose(s); s = nullptr; }
+private:
+    FILE* s;
+};
+
+} // namespace
 
 } // namespace floormat::Serialize
 
@@ -89,7 +108,9 @@ struct buffer
         data{std::make_unique<char[]>(len)},
         size{len}
     {
+#if !(defined __has_feature && __has_feature(address_sanitizer))
         std::memset(&data[0], 0xfe, size);
+#endif
     }
 };
 
