@@ -1,5 +1,6 @@
 #include "world-impl.hpp"
 #include "binary-writer.inl"
+#include "compat/defs.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
 #include "loader/loader.hpp"
@@ -22,7 +23,7 @@
 #include <Corrade/Utility/Path.h>
 #include <tsl/robin_map.h>
 
-#if 0
+#if 1
 #ifdef __CLION_IDE__
 #undef fm_assert
 #define fm_assert(...) (void)(__VA_ARGS__)
@@ -108,7 +109,7 @@ struct buffer
         data{std::make_unique<char[]>(len)},
         size{len}
     {
-#if !(defined __has_feature && __has_feature(address_sanitizer))
+#if !fm_ASAN
         std::memset(&data[0], 0xfe, size);
 #endif
     }
@@ -388,27 +389,23 @@ ok:     do_visit(intern_string(name), f);
     void serialize_chunk_(chunk& c, buffer& buf)
     {
         size_t len = 0;
-        {
-            auto ctr = size_counter{len};
-            do_visit(chunk_magic, ctr);
-            do_visit(c.coord(), ctr);
-            fm_assert(len > 0);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_(c[i], ctr);
-            serialize_objects_(c, ctr);
-        }
+        auto ctr = size_counter{len};
+        do_visit(chunk_magic, ctr);
+        do_visit(c.coord(), ctr);
+        fm_assert(len > 0);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            serialize_tile_(c[i], ctr);
+        serialize_objects_(c, ctr);
 
         buf = buffer{len};
-        {
-            binary_writer<char*> s{&buf.data[0], buf.size};
-            byte_writer b{s};
-            do_visit(chunk_magic, b);
-            do_visit(c.coord(), b);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_(c[i], b);
-            serialize_objects_(c, b);
-            fm_assert(s.bytes_written() == s.bytes_allocated());
-        }
+        binary_writer<char*> s{&buf.data[0], buf.size};
+        byte_writer b{s};
+        do_visit(chunk_magic, b);
+        do_visit(c.coord(), b);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            serialize_tile_(c[i], b);
+        serialize_objects_(c, b);
+        fm_assert(s.bytes_written() == s.bytes_allocated());
     }
 
     template<typename F> void serialize_header_(F&& f)
@@ -462,7 +459,6 @@ ok:     do_visit(intern_string(name), f);
 
         {
             size_t len = 0;
-            fm_assert(header_buf.empty());
             serialize_header_(size_counter{len});
             fm_assert(len > 0);
 
@@ -545,6 +541,7 @@ void world::serialize(StringView filename)
             fm_assert(!writer.chunk_array.empty());
         }
         my_fwrite(file, writer.header_buf, errbuf);
+        my_fwrite(file, writer.string_buf, errbuf);
         for (const auto& x : writer.atlas_array)
         {
             fm_assert(!x.buf.empty());
