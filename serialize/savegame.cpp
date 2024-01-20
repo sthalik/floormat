@@ -45,21 +45,6 @@ constexpr inline auto object_magic          = (uint16_t)0xb00b;
 constexpr inline auto atlas_magic           = (uint16_t)0xbeef;
 constexpr inline auto null_atlas            = (atlasid)-1;
 
-struct string_container
-{
-    StringView str;
-    bool operator==(const string_container&) const = default;
-
-#if 0
-    friend void swap(string_container& a, string_container& b)
-    {
-        auto tmp = a.str;
-        a.str = b.str;
-        b.str = tmp;
-    }
-#endif
-};
-
 struct FILE_raii final
 {
     FILE_raii(FILE* s) noexcept : s{s} {}
@@ -187,18 +172,20 @@ struct visitor_
     }
 };
 
+struct string_hasher
+{
+    inline size_t operator()(StringView s) const
+    {
+        return fnvhash_buf(s.data(), s.size());
+    }
+};
+
 struct writer final : visitor_<writer>
 {
-    using string_hasher = decltype(
-        [](const string_container& x) {
-            return fnvhash_buf(x.str.data(), x.str.size());
-        }
-    );
-
     const world& w;
 
     std::vector<StringView> string_array{};
-    tsl::robin_map<string_container, uint32_t, string_hasher> string_map{hash_initial_size};
+    tsl::robin_map<StringView, uint32_t, string_hasher> string_map{hash_initial_size};
 
     std::vector<serialized_atlas> atlas_array{};
     tsl::robin_map<const void*, uint32_t> atlas_map{hash_initial_size};
