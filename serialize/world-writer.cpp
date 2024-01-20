@@ -404,7 +404,7 @@ ok:     do_visit(intern_string(name), f);
         do_visit(nchunks, f);
     }
 
-    template<typename F> void serialize_strings_(F&& f)
+    void serialize_strings_()
     {
         fm_assert(string_buf.empty());
         size_t len = 0;
@@ -413,8 +413,10 @@ ok:     do_visit(intern_string(name), f);
             len += s.size() + 1;
         buffer buf{len};
         binary_writer b{&buf.data[0], buf.size};
+        b << (uint32_t)string_array.size();
         for (const auto& s : string_array)
             b.write_asciiz_string(s);
+        fm_assert(b.bytes_written() == b.bytes_allocated());
         string_buf = std::move(buf);
     }
 
@@ -424,9 +426,10 @@ ok:     do_visit(intern_string(name), f);
         fm_assert(atlas_array.empty());
         fm_assert(chunk_array.empty());
         fm_assert(header_buf.empty());
+        fm_assert(string_buf.empty());
 
         for (auto& [coord, c] : non_const(w.chunks()))
-            chunk_array.push_back(serialized_chunk{.c = &c });
+            chunk_array.push_back({.c = &c });
 
         std::sort(chunk_array.begin(), chunk_array.end(), [](const auto& c1, const auto& c2) {
             auto a = c1.c->coord(), b = c2.c->coord();
@@ -436,19 +439,20 @@ ok:     do_visit(intern_string(name), f);
         for (uint32_t i = 0; auto& [coord, c] : chunk_array)
             serialize_chunk_(*c, chunk_array[i++].buf);
 
-        size_t len = 0;
         {
+            size_t len = 0;
             fm_assert(header_buf.empty());
             serialize_header_(size_counter{len});
             fm_assert(len > 0);
-        }
-        buffer hdr{len};
-        {
-            binary_writer<char*> s{&hdr.data[0], hdr.size};
+
+            buffer hdr{len};
+            binary_writer s{&hdr.data[0], hdr.size};
             serialize_header_(byte_writer{s});
             fm_assert(s.bytes_written() == s.bytes_allocated());
+            header_buf = std::move(hdr);
         }
-        header_buf = std::move(hdr);
+
+        serialize_strings_();
     }
 
     template<typename F>
