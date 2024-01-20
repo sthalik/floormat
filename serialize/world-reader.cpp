@@ -1,6 +1,6 @@
-#define FM_SERIALIZE_WORLD_IMPL
-#include "world-impl.hpp"
+#include "compat/assert.hpp"
 #include "src/world.hpp"
+#include <Corrade/Containers/StringView.h>
 #if 0
 #include "binary-reader.inl"
 #include "src/scenery.hpp"
@@ -564,6 +564,7 @@ namespace floormat {
 
 class world world::deserialize(StringView filename)
 {
+    (void)filename;
     fm_assert("todo" && false);
 }
 

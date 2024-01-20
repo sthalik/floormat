@@ -1,4 +1,3 @@
-#include "world-impl.hpp"
 #include "binary-writer.inl"
 #include "compat/defs.hpp"
 #include "compat/strerror.hpp"
@@ -33,6 +32,11 @@
 namespace floormat::Serialize {
 
 namespace {
+
+using tilemeta = uint8_t;
+using atlasid  = uint32_t;
+using chunksiz = uint32_t;
+using proto_t  = uint32_t;
 
 constexpr inline proto_t proto_version      = 20;
 constexpr inline auto file_magic            = ".floormat.save"_s;
