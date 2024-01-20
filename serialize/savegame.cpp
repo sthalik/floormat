@@ -50,12 +50,14 @@ struct string_container
     StringView str;
     bool operator==(const string_container&) const = default;
 
+#if 0
     friend void swap(string_container& a, string_container& b)
     {
         auto tmp = a.str;
         a.str = b.str;
         b.str = tmp;
     }
+#endif
 };
 
 struct FILE_raii final
@@ -68,25 +70,7 @@ private:
     FILE* s;
 };
 
-} // namespace
-
-} // namespace floormat::Serialize
-
-using floormat::Serialize::string_container;
 using floormat::Hash::fnvhash_buf;
-
-template<> struct std::hash<string_container>
-{
-    size_t operator()(const string_container& x) const noexcept
-    {
-        return fnvhash_buf(x.str.data(), x.str.size());
-    }
-};
-
-
-namespace floormat::Serialize {
-
-namespace {
 
 template<typename T> T& non_const(const T& value) { return const_cast<T&>(value); }
 template<typename T> T& non_const(T& value) = delete;
@@ -94,13 +78,6 @@ template<typename T> T& non_const(T&& value) = delete;
 template<typename T> T& non_const(const T&& value) = delete;
 
 constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
-
-template<typename T>
-struct magic
-{
-    using type = T;
-    uint16_t magic;
-};
 
 struct buffer
 {
@@ -149,7 +126,7 @@ struct visitor_
 
     template<typename T, typename F>
     requires (std::is_arithmetic_v<T> && std::is_fundamental_v<T>)
-    void visit(T& x, F&& f)
+    static void visit(T& x, F&& f)
     {
         f(x);
     }
@@ -160,14 +137,6 @@ struct visitor_
         for (uint32_t i = 0; i < N; i++)
             do_visit(x.data()[i], f);
     }
-
-#if 0
-    template<typename F>
-    void visit(StringView str, F&& f)
-    {
-        f(str);
-    }
-#endif
 
     template<typename E, typename F>
     requires std::is_enum_v<E>
@@ -220,10 +189,16 @@ struct visitor_
 
 struct writer final : visitor_<writer>
 {
+    using string_hasher = decltype(
+        [](const string_container& x) {
+            return fnvhash_buf(x.str.data(), x.str.size());
+        }
+    );
+
     const world& w;
 
     std::vector<StringView> string_array{};
-    tsl::robin_map<string_container, uint32_t> string_map{hash_initial_size};
+    tsl::robin_map<string_container, uint32_t, string_hasher> string_map{hash_initial_size};
 
     std::vector<serialized_atlas> atlas_array{};
     tsl::robin_map<const void*, uint32_t> atlas_map{hash_initial_size};
@@ -232,7 +207,7 @@ struct writer final : visitor_<writer>
 
     buffer header_buf{}, string_buf{};
 
-    writer(const world& w) : w{w} { } // added to avoid spurious warning until GCC 14: warning: missing initializer for member writer::<anonymous>
+    writer(const world& w) : w{w} { } // added to avoid spurious warning until GCC 14: warning: missing initializer for member ::<anonymous>
 
     struct size_counter
     {
@@ -392,23 +367,23 @@ ok:     do_visit(intern_string(name), f);
 
     void serialize_chunk_(chunk& c, buffer& buf)
     {
+        const auto fn = [this](chunk& c, auto&& f) {
+            do_visit(chunk_magic, f);
+            do_visit(c.coord(), f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_(c[i], f);
+            serialize_objects_(c, f);
+        };
+
         size_t len = 0;
         auto ctr = size_counter{len};
-        do_visit(chunk_magic, ctr);
-        do_visit(c.coord(), ctr);
+        fn(c, ctr);
         fm_assert(len > 0);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            serialize_tile_(c[i], ctr);
-        serialize_objects_(c, ctr);
 
         buf = buffer{len};
         binary_writer<char*> s{&buf.data[0], buf.size};
         byte_writer b{s};
-        do_visit(chunk_magic, b);
-        do_visit(c.coord(), b);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            serialize_tile_(c[i], b);
-        serialize_objects_(c, b);
+        fn(c, b);
         fm_assert(s.bytes_written() == s.bytes_allocated());
     }
 
