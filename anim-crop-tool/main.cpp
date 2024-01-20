@@ -77,7 +77,7 @@ image_bounds_tuple find_image_bounds(const cv::Mat4b& mat) noexcept
 [[nodiscard]]
 bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView filename)
 {
-    auto mat = fm_begin(
+    auto mat = [&]{
         cv::Mat mat = cv::imread(filename, cv::IMREAD_UNCHANGED);
         if (mat.empty() || mat.type() != CV_8UC4)
         {
@@ -85,7 +85,7 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
             return cv::Mat4b{};
         }
         return cv::Mat4b(Utility::move(mat));
-    );
+    }();
 
     if (mat.empty())
         return false;

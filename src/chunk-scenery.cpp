@@ -140,12 +140,12 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     {
         _scenery_modified = false;
 
-        const auto count = fm_begin(
+        const auto count = [&] {
             size_t ret = 0;
             for (const auto& e : _objects)
                 ret += !e->is_dynamic();
             return ret;
-        );
+        }();
 
         auto& scenery_vertexes = buffers.scenery_vertexes;
         auto& scenery_indexes = buffers.scenery_indexes;

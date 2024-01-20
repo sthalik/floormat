@@ -18,7 +18,7 @@ void app::draw_fps()
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 #if 0
-    static auto timer = fm_begin( Timeline t; t.start(); return t; );
+    static auto timer = []{ Timeline t; t.start(); return t; }();
     if (timer.currentFrameDuration() >= 2)
     {
         timer.start();

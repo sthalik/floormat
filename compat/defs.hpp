@@ -6,8 +6,6 @@
 #   define fm_FUNCTION_NAME __PRETTY_FUNCTION__
 #endif
 
-#define fm_begin(...) [&]{__VA_ARGS__}()
-
 #define fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(type)                                 \
     [[deprecated, maybe_unused]] type(const type&) noexcept = default;              \
     [[deprecated, maybe_unused]] type& operator=(const type&) noexcept = default
