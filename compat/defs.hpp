@@ -80,3 +80,14 @@
 #define fm_UNROLL _Pragma("GCC unroll 4")
 #endif
 #endif
+
+#ifdef __SANITIZE_ADDRESS__
+#define fm_ASAN 1
+#elif defined __has_feature
+#if __has_feature(address_sanitizer)
+#define fm_ASAN 1
+#endif
+#endif
+#ifndef fm_ASAN
+#define fm_ASAN 0
+#endif
