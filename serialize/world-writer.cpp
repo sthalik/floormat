@@ -14,6 +14,7 @@
 #include "src/critter.hpp"
 #include "src/light.hpp"
 
+#include <cstring>
 #include <compare>
 #include <memory>
 #include <vector>
@@ -102,7 +103,7 @@ struct serialized_atlas
 struct serialized_chunk
 {
     buffer buf{};
-    const chunk* c;
+    chunk* c;
 };
 
 template<typename Derived>
@@ -153,8 +154,10 @@ struct visitor_
     template<typename F>
     void visit(object& obj, F&& f)
     {
+        auto type = obj.type();
+
         do_visit(obj.id, f);
-        do_visit(obj.type, f);
+        do_visit(type, f);
         fm_assert(obj.atlas);
         do_visit(*obj.atlas, f);
         //do_visit(*obj.c, f);
@@ -167,17 +170,17 @@ struct visitor_
         do_visit_nonconst(obj.r, f);
         do_visit_nonconst(obj.pass, f);
 
-        switch (obj.type)
+        switch (type)
         {
-        case object_type::critter:          do_visit(static_cast<critter&>(obj), f); return;
-        case object_type::generic_scenery:  do_visit(static_cast<scenery&>(obj), f); return;
-        case object_type::light:            do_visit(static_cast<light&>(obj), f); return;
-        case object_type::door:             do_visit(static_cast<door&>(obj), f); return;
+        case object_type::critter: do_visit(static_cast<critter&>(obj), f); return;
+        case object_type::scenery: do_visit(static_cast<scenery&>(obj), f); return;
+        case object_type::light:   do_visit(static_cast<light&>(obj), f); return;
+        //case object_type::door:   do_visit(static_cast<door&>(obj), f); return;
         case object_type::COUNT:
         case object_type::none:
             break;
         }
-        fm_abort("invalid object type '%d'", (int)obj.type);
+        fm_abort("invalid object type '%d'", (int)obj.type());
     }
 
     template<typename F>
@@ -199,9 +202,11 @@ struct writer final : visitor_<writer>
     std::vector<serialized_atlas> atlas_array{};
     tsl::robin_map<const void*, uint32_t> atlas_map{hash_initial_size};
 
-    std::vector<serialized_chunk> chunk_array{vector_initial_size};
+    std::vector<serialized_chunk> chunk_array{};
 
-    buffer header_buf{};
+    buffer header_buf{}, string_buf{};
+
+    writer(const world& w) : w{w} { } // added to avoid spurious warning until GCC 14: warning: missing initializer for member writer::<anonymous>
 
     struct size_counter
     {
@@ -225,6 +230,40 @@ struct writer final : visitor_<writer>
     };
 
     using visitor_<writer>::visit;
+
+    template<typename F>
+    void visit(critter& obj, F&& f)
+    {
+        uint8_t flags = 0;
+        flags |= (1 << 0) * obj.playable;
+        do_visit(flags, f);
+        do_visit(obj.name, f);
+        do_visit(obj.offset_frac, f);
+    }
+
+    template<typename F>
+    void visit(scenery& obj, F&& f)
+    {
+        auto sc_type = obj.sc_type;
+        do_visit(sc_type, f);
+        uint8_t flags = 0;
+        flags |= obj.active      * (1 << 0);
+        flags |= obj.closing     * (1 << 1);
+        flags |= obj.interactive * (1 << 2);
+        do_visit(flags, f);
+    }
+
+    template<typename F>
+    void visit(light& obj, F&& f)
+    {
+        do_visit(obj.max_distance, f);
+        do_visit(obj.color, f);
+        auto falloff = obj.falloff;
+        do_visit(falloff, f);
+        uint8_t flags = 0;
+        flags |= obj.enabled * (1 << 0);
+        do_visit(flags, f);
+    }
 
     template<typename F>
     void intern_atlas_(void* atlas, atlas_type type, F&& f)
@@ -325,7 +364,7 @@ ok:     do_visit(intern_string(name), f);
         if (w != null_atlas) do_visit(t.wall_west().variant, f);
     }
 
-    void serialize_chunk_(chunk& c)
+    void serialize_chunk_(chunk& c, buffer& buf)
     {
         size_t len = 0;
         {
@@ -338,7 +377,7 @@ ok:     do_visit(intern_string(name), f);
             serialize_objects_(c, ctr);
         }
 
-        buffer buf{len};
+        buf = buffer{len};
         {
             binary_writer<char*> s{&buf.data[0], buf.size};
             byte_writer b{s};
@@ -349,21 +388,34 @@ ok:     do_visit(intern_string(name), f);
             serialize_objects_(c, b);
             fm_assert(s.bytes_written() == s.bytes_allocated());
         }
-        chunk_array.emplace_back(std::move(buf), &c);
     }
 
-    template<typename F>
-    void serialize_header_(F&& f)
+    template<typename F> void serialize_header_(F&& f)
     {
         fm_assert(header_buf.empty());
         for (char c : file_magic)
             f(c);
+        f(proto_version);
         auto nstrings = (uint32_t)string_array.size(),
              natlases = (uint32_t)atlas_array.size(),
-             nchunks = (uint32_t)chunk_array.size();
+             nchunks  = (uint32_t)chunk_array.size();
         do_visit(nstrings, f);
         do_visit(natlases, f);
         do_visit(nchunks, f);
+    }
+
+    template<typename F> void serialize_strings_(F&& f)
+    {
+        fm_assert(string_buf.empty());
+        size_t len = 0;
+        len += sizeof uint32_t{};
+        for (const auto& s : string_array)
+            len += s.size() + 1;
+        buffer buf{len};
+        binary_writer b{&buf.data[0], buf.size};
+        for (const auto& s : string_array)
+            b.write_asciiz_string(s);
+        string_buf = std::move(buf);
     }
 
     void serialize_world()
@@ -373,19 +425,16 @@ ok:     do_visit(intern_string(name), f);
         fm_assert(chunk_array.empty());
         fm_assert(header_buf.empty());
 
-        struct pair { chunk_coords_ coord; chunk* c; };
-        std::vector<pair> chunks;
-        chunks.reserve(w.chunks().size());
+        for (auto& [coord, c] : non_const(w.chunks()))
+            chunk_array.push_back(serialized_chunk{.c = &c });
 
-        for (auto& [coord, c] : w.chunks())
-            chunks.push_back(pair{coord, &non_const(c)});
-        std::sort(chunks.begin(), chunks.end(), [](const auto& at, const auto& bt) {
-            auto a = at.coord, b = bt.coord;
+        std::sort(chunk_array.begin(), chunk_array.end(), [](const auto& c1, const auto& c2) {
+            auto a = c1.c->coord(), b = c2.c->coord();
             return std::tuple{a.z, a.y, a.x} <=> std::tuple{b.z, b.y, b.x} == std::strong_ordering::less;
         });
 
-        for (auto [coord, c] : chunks)
-            serialize_chunk_(*c);
+        for (uint32_t i = 0; auto& [coord, c] : chunk_array)
+            serialize_chunk_(*c, chunk_array[i++].buf);
 
         size_t len = 0;
         {
@@ -420,6 +469,11 @@ ok:     do_visit(intern_string(name), f);
     {
         f(pt.to_index());
     }
+
+    template<typename F> void visit(StringView name, F&& f)
+    {
+        f(intern_string(name));
+    }
 };
 
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
@@ -452,20 +506,30 @@ void world::serialize(StringView filename)
         fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf, error).data());
     }
     {
-        struct writer writer{.w = *this};
+        struct writer writer{*this};
         const bool is_empty = chunks().empty();
         writer.serialize_world();
+        fm_assert(!writer.header_buf.empty());
         if (!is_empty)
         {
-            fm_assert(!writer.header_buf.empty());
-            fm_assert(!writer.atlas_array.empty());
-            fm_assert(!writer.atlas_map.empty());
+            fm_assert(!writer.string_buf.empty());
             fm_assert(!writer.string_array.empty());
             fm_assert(!writer.string_map.empty());
+            fm_assert(!writer.atlas_array.empty());
+            fm_assert(!writer.atlas_map.empty());
             fm_assert(!writer.chunk_array.empty());
         }
         my_fwrite(file, writer.header_buf, errbuf);
-
+        for (const auto& x : writer.atlas_array)
+        {
+            fm_assert(!x.buf.empty());
+            my_fwrite(file, x.buf, errbuf);
+        }
+        for (const auto& x : writer.chunk_array)
+        {
+            fm_assert(!x.buf.empty());
+            my_fwrite(file, x.buf, errbuf);
+        }
     }
 
     if (int ret = ::fflush(file); ret != 0)
