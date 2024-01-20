@@ -269,8 +269,9 @@ struct writer final : visitor_<writer>
         case atlas_type::none: break;
         }
         fm_abort("invalid atlas type '%d'", (int)type);
+        
 ok:
-    do_visit(intern_string(name), f);
+        do_visit(intern_string(name), f);
     }
 
     [[nodiscard]] atlasid intern_atlas(void* atlas, atlas_type type)
@@ -477,10 +478,10 @@ void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 
 namespace floormat {
 
+using namespace floormat::Serialize;
+
 void world::serialize(StringView filename)
 {
-    using namespace floormat::Serialize;
-
     collect(true);
     char errbuf[128];
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
