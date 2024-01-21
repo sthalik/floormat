@@ -17,6 +17,7 @@
 #include "src/light.hpp"
 
 #include <cstring>
+#include <cstdio>
 #include <compare>
 #include <memory>
 #include <vector>
@@ -495,7 +496,7 @@ void world::serialize(StringView filename)
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
-    FILE_raii file = ::fopen(filename.data(), "wb");
+    FILE_raii file = std::fopen(filename.data(), "wb");
     if (!file)
     {
         int error = errno;
@@ -529,7 +530,7 @@ void world::serialize(StringView filename)
         }
     }
 
-    if (int ret = ::fflush(file); ret != 0)
+    if (int ret = std::fflush(file); ret != 0)
     {
         int error = errno;
         fm_abort("fflush: %s", get_error_string(errbuf, error).data());
@@ -542,21 +543,21 @@ class world world::deserialize(StringView filename) noexcept(false)
     buffer buf;
 
     fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
-    FILE_raii f = ::fopen(filename.data(), "rb");
+    FILE_raii f = std::fopen(filename.data(), "rb");
     {
         if (!f)
             fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
-        if (int ret = ::fseek(f, 0, SEEK_END); ret != 0)
+        if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
             fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
-        size_t len;
-        if (auto len_ = ::ftell(f); len_ >= 0)
+        size_t len = std::ftell(f);
+        if (auto len_ = std::ftell(f); len_ >= 0)
             len = (size_t)len_;
         else
             fm_throw("ftell: {}"_cf, get_error_string(errbuf));
-        if (int ret = ::fseek(f, 0, SEEK_SET); ret != 0)
+        if (int ret = std::fseek(f, 0, SEEK_SET); ret != 0)
             fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
         auto buf_ = std::make_unique<char[]>(len+1);
-        if (auto ret = ::fread(&buf_[0], 1, len+1, f); ret != len)
+        if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
             fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
 
         buf.data = std::move(buf_);
