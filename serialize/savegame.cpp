@@ -549,8 +549,8 @@ class world world::deserialize(StringView filename) noexcept(false)
             fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
             fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
-        size_t len = std::ftell(f);
-        if (auto len_ = std::ftell(f); len_ >= 0)
+        size_t len;
+        if (auto len_ = ::ftell(f); len_ >= 0)
             len = (size_t)len_;
         else
             fm_throw("ftell: {}"_cf, get_error_string(errbuf));
