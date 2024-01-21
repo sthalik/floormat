@@ -1,4 +1,5 @@
 #include "binary-writer.inl"
+#include "binary-reader.inl"
 #include "compat/defs.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
@@ -66,6 +67,7 @@ struct buffer
     std::unique_ptr<char[]> data;
     size_t size;
 
+    operator ArrayView<const char>() const { return {&data[0], size}; }
     bool empty() const { return size == 0; }
     buffer() : data{nullptr}, size{0} {}
     buffer(size_t len) : // todo use allocator
@@ -97,14 +99,16 @@ struct visitor_
     using tilemeta = uint8_t;
     using atlasid  = uint32_t;
     using chunksiz = uint32_t;
-    using proto_t  = uint32_t;
+    using proto_t  = uint16_t;
+
+    template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
+    template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
     static constexpr inline proto_t proto_version      = 20;
+    static constexpr inline proto_t proto_version_min  = 20;
     static constexpr inline auto file_magic            = ".floormat.save"_s;
-    static constexpr inline auto chunk_magic           = (uint16_t)0xdead;
-    static constexpr inline auto object_magic          = (uint16_t)0xb00b;
-    static constexpr inline auto atlas_magic           = (uint16_t)0xbeef;
-    static constexpr inline auto null_atlas            = (atlasid)-1;
+    static constexpr inline auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
+    static constexpr inline auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
 
     template<typename T, typename F>
     CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
@@ -197,7 +201,7 @@ struct writer final : visitor_<writer>
 
     buffer header_buf{}, string_buf{};
 
-    writer(const world& w) : w{w} { } // added to avoid spurious warning until GCC 14: warning: missing initializer for member ::<anonymous>
+    writer(const world& w) : w{w} {} // avoid spurious warning until GCC 14: warning: missing initializer for member ::<anonymous>
 
     struct size_counter
     {
@@ -257,9 +261,32 @@ struct writer final : visitor_<writer>
     }
 
     template<typename F>
-    void intern_atlas_(void* atlas, atlas_type type, F&& f)
+    void visit(anim_atlas& a, F&& f)
     {
-        do_visit(atlas_magic, f);
+        atlasid id = intern_atlas(&a, atlas_type::object);
+        do_visit(id, f);
+    }
+
+    template<typename F> void visit(const chunk_coords_& coord, F&& f)
+    {
+        f(coord.x);
+        f(coord.y);
+        f(coord.z);
+    }
+
+    template<typename F> void visit(const local_coords& pt, F&& f)
+    {
+        f(pt.to_index());
+    }
+
+    template<typename F> void visit(StringView name, F&& f)
+    {
+        f(intern_string(name));
+    }
+
+    template<typename F>
+    void intern_atlas_(const void* atlas, atlas_type type, F&& f)
+    {
         do_visit(type, f);
 
         StringView name;
@@ -277,7 +304,7 @@ ok:
         do_visit(intern_string(name), f);
     }
 
-    [[nodiscard]] atlasid intern_atlas(void* atlas, atlas_type type)
+    [[nodiscard]] atlasid intern_atlas(const void* atlas, atlas_type type)
     {
         atlas_array.reserve(vector_initial_size);
         fm_assert(atlas != nullptr);
@@ -300,15 +327,15 @@ ok:
             fm_assert(s.bytes_written() == s.bytes_allocated());
             atlas_array.emplace_back(std::move(buf), atlas, type);
             kv.value() = id;
-            fm_assert(id != null_atlas);
+            fm_assert(id < null<atlasid>);
             return atlasid{id};
         }
     }
 
-    atlasid maybe_intern_atlas(void* atlas, atlas_type type)
+    atlasid maybe_intern_atlas(const void* atlas, atlas_type type)
     {
         if (!atlas)
-            return null_atlas;
+            return null<atlasid>;
         else
             return intern_atlas(atlas, type);
     }
@@ -324,7 +351,7 @@ ok:
             auto id = (uint32_t)string_array.size();
             string_array.emplace_back(str);
             kv.value() = id;
-            fm_assert(id != null_atlas);
+            fm_assert(id != null<atlasid>);
             return atlasid{id};
         }
     }
@@ -342,27 +369,73 @@ ok:
         }
     }
 
-    template<typename F>
-    void serialize_tile_(tile_ref t, F&& f)
+    void serialize_tile_(auto&& g, uint32_t& i, auto&& f)
     {
-        auto g = maybe_intern_atlas(t.ground_atlas().get(), atlas_type::ground),
-             n = maybe_intern_atlas(t.wall_north_atlas().get(), atlas_type::wall),
-             w = maybe_intern_atlas(t.wall_west_atlas().get(), atlas_type::wall);
-        do_visit(g, f);
-        do_visit(n, f);
-        do_visit(w, f);
-        if (g != null_atlas) do_visit(t.ground().variant, f);
-        if (n != null_atlas) do_visit(t.wall_north().variant, f);
-        if (w != null_atlas) do_visit(t.wall_west().variant, f);
+        using INT = std::decay_t<decltype(g(i))>;
+        static_assert(std::is_unsigned_v<INT>);
+        constexpr auto highbit = writer::highbit<INT>;
+        constexpr auto null = writer::null<INT>;
+        const auto a = INT{ g(i) };
+        fm_assert(a == null || a < null);
+        uint_fast16_t num_idempotent = 0;
+
+        for (uint32_t j = i+1; j < TILE_COUNT; j++)
+            if (a != g(j))
+                break;
+            else if ((size_t)num_idempotent + 1uz == (size_t)null)
+                break;
+            else
+                num_idempotent++;
+
+        if (num_idempotent)
+        {
+            INT num = highbit | INT(num_idempotent);
+            do_visit(num, f);
+        }
+
+        if (a != null)
+            do_visit(a, f);
+        else
+            do_visit(null, f);
+
+        i += num_idempotent;
+        fm_debug_assert(i <= TILE_COUNT);
     }
 
     void serialize_chunk_(chunk& c, buffer& buf)
     {
-        const auto fn = [this](chunk& c, auto&& f) {
+        const auto fn = [this](chunk& c, auto&& f)
+        {
+            static_assert(null<uint8_t> == 127 && highbit<uint8_t> == 128);
+            static_assert(null<uint32_t> == 0x7fffffff && highbit<uint32_t> == 0x80000000);
             do_visit(chunk_magic, f);
             do_visit(c.coord(), f);
+            // todo do atlases and variants separately
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_(c[i], f);
+                serialize_tile_([&](uint32_t i) {
+                    return maybe_intern_atlas(c[i].ground_atlas().get(), atlas_type::ground);
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](uint32_t i) {
+                    return maybe_intern_atlas(c[i].wall_north_atlas().get(), atlas_type::wall);
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](uint32_t i) {
+                    return maybe_intern_atlas(c[i].wall_west_atlas().get(), atlas_type::wall);
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](uint32_t i) {
+                    auto v = c[i].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&c](uint32_t i) {
+                    auto v = c[i].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&c](uint32_t i) {
+                    auto v = c[i].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                }, i, f);
+
             serialize_objects_(c, f);
         };
 
@@ -411,10 +484,10 @@ ok:
     void serialize_world()
     {
         fm_assert(string_array.empty());
-        fm_assert(atlas_array.empty());
-        fm_assert(chunk_array.empty());
         fm_assert(header_buf.empty());
         fm_assert(string_buf.empty());
+        fm_assert(atlas_array.empty());
+        fm_assert(chunk_array.empty());
 
         for (auto& [coord, c] : non_const(w.chunks()))
             chunk_array.push_back({.c = &c });
@@ -441,41 +514,35 @@ ok:
 
         serialize_strings_();
     }
-
-    template<typename F>
-    void visit(anim_atlas& a, F&& f)
-    {
-        atlasid id = intern_atlas(&a, atlas_type::object);
-        do_visit(id, f);
-    }
-
-    template<typename F> void visit(const chunk_coords_& coord, F&& f)
-    {
-        f(coord.x);
-        f(coord.y);
-        f(coord.z);
-    }
-
-    template<typename F> void visit(const local_coords& pt, F&& f)
-    {
-        f(pt.to_index());
-    }
-
-    template<typename F> void visit(StringView name, F&& f)
-    {
-        f(intern_string(name));
-    }
 };
 
 struct reader final : visitor_<reader>
 {
+    proto_t PROTO = (proto_t)-1;
+
     class world& w;
     reader(class world& w) : w{w} {}
+
+    void deserialize_header_(binary_reader<const char*>& s)
+    {
+        fm_assert(PROTO == (proto_t)-1);
+        auto magic = s.read<file_magic.size()>();
+        fm_soft_assert(StringView{magic.data(), magic.size()} == file_magic);
+        PROTO << s;
+        fm_soft_assert(PROTO >= proto_version_min);
+        fm_soft_assert(PROTO <= proto_version);
+    }
+
+    void deserialize_world(ArrayView<const char> buf)
+    {
+        binary_reader s{buf.data(), buf.data() + buf.size()};
+        deserialize_header_(s);
+    }
 };
 
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
-    auto len = ::fwrite(&buf.data[0], buf.size, 1, f);
+    auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
     int error = errno;
     if (len != 1)
         fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
@@ -550,7 +617,7 @@ class world world::deserialize(StringView filename) noexcept(false)
         if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
             fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
         size_t len;
-        if (auto len_ = ::ftell(f); len_ >= 0)
+        if (auto len_ = std::ftell(f); len_ >= 0)
             len = (size_t)len_;
         else
             fm_throw("ftell: {}"_cf, get_error_string(errbuf));
@@ -565,7 +632,7 @@ class world world::deserialize(StringView filename) noexcept(false)
     }
 
     class world w;
-    struct reader reader(w);
+    struct reader r{w};
     r.deserialize_world(buf);
 
     fm_assert("todo" && false);
