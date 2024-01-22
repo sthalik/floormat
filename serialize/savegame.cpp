@@ -198,14 +198,33 @@ struct visitor_
     {
         auto sc_type = obj.sc_type;
         do_visit(sc_type, f);
+        obj.sc_type = sc_type;
+
+        constexpr struct {
+            uint8_t bits;
+            bool(*getter)(const scenery&);
+            void(*setter)(scenery&, bool);
+        } pairs[] = {
+            { 1 << 0,
+              [](const scenery& sc) { return !!sc.active; },
+              [](scenery& sc, bool value) { sc.active = value; }
+            },
+            { 1 << 1,
+              [](const scenery& sc) { return !!sc.closing; },
+              [](scenery& sc, bool value) { sc.closing = value; }
+            },
+            { 1 << 2,
+              [](const scenery& sc) { return !!sc.interactive; },
+              [](scenery& sc, bool value) { sc.interactive = value; }
+            },
+        };
+
         uint8_t flags = 0;
-        flags |= obj.active      * (1 << 0);
-        flags |= obj.closing     * (1 << 1);
-        flags |= obj.interactive * (1 << 2);
+        for (auto [bits, getter, setter] : pairs)
+            flags |= bits * getter(obj);
         do_visit(flags, f);
-        obj.active      = flags & (1 << 0);
-        obj.closing     = flags & (1 << 1);
-        obj.interactive = flags & (1 << 2);
+        for (auto [bits, getter, setter] : pairs)
+            setter(obj, flags & bits);
     }
 
     template<typename F> void visit(light& obj, F&& f)
