@@ -1,6 +1,7 @@
 #include "binary-writer.inl"
 #include "binary-reader.inl"
 #include "compat/defs.hpp"
+#include "compat/debug.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
@@ -137,17 +138,15 @@ struct visitor_
     }
 
     template<typename F>
-    void visit_object_internal(object& obj, F&& f, object_id id, object_type type)
+    void visit_object_internal(object& obj, F&& f, object_id id, object_type type, chunk_coords_ ch)
     {
         non_const(obj.id) = id;
         do_visit_nonconst(obj.atlas, f);
         //do_visit(*obj.c, f);
-        {
-            chunk_coords_ ch = obj.coord.chunk3();
-            local_coords pt = obj.coord.local();
-            do_visit(pt, f);
-            non_const(obj.coord) = {ch, pt};
-        }
+
+        auto pt = obj.coord.local();
+        do_visit(pt, f);
+        non_const(obj.coord) = {ch, pt};
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
@@ -295,14 +294,14 @@ struct writer final : visitor_<writer>
     }
 
     template<typename F>
-    void visit(object& obj, F&& f)
+    void visit(object& obj, F&& f, chunk_coords_ ch)
     {
         auto type = obj.type();
 
         do_visit_nonconst(obj.id, f);
         do_visit(type, f);
 
-        visit_object_internal(obj, f, obj.id, obj.type());
+        visit_object_internal(obj, f, obj.id, obj.type(), ch);
     }
 
     template<typename F>
@@ -381,7 +380,7 @@ ok:
         {
             fm_assert(obj != nullptr);
             do_visit(object_magic, f); // todo move before all objects
-            do_visit(*obj, f);
+            visit(*obj, f, c.coord());
         }
     }
 
@@ -649,7 +648,7 @@ struct reader final : visitor_<reader>
     }
 
     template<typename F>
-    void visit(std::shared_ptr<object>& obj, F&& f)
+    void visit(std::shared_ptr<object>& obj, F&& f, chunk_coords_ ch)
     {
         object_id id;
         do_visit(id, f);
@@ -668,7 +667,7 @@ struct reader final : visitor_<reader>
         }
         fm_throw("invalid object type {}"_cf, type_);
 ok:
-        visit_object_internal(*obj, f, id, object_type(type));
+        visit_object_internal(*obj, f, id, object_type(type), ch);
     }
 
     void deserialize_header_(binary_reader<const char*>& s)
@@ -727,7 +726,6 @@ ok:
             }
             fm_throw("invalid atlas_type {}"_cf, (size_t)type);
 ok:
-            DBG << str << (int)type;
             atlases.push_back({.atlas = atlas, .type = type });
         }
     }
@@ -769,10 +767,17 @@ ok:
             fm_soft_assert(magic == object_magic);
 
             std::shared_ptr<object> obj;
-            do_visit(obj, r);
-            w.do_make_object(std::move(obj), obj->position().coord(), false);
+            visit(obj, r, c.coord());
+            non_const(obj->coord) = {c.coord(), obj->coord.local()};
+            non_const(obj->c) = &c;
+            auto ch = c.coord();
+            auto pos = obj->coord.local();
+            auto coord = global_coords { ch, pos };
+            w.do_make_object(obj, coord, false);
         }
+
         c.sort_objects();
+        fm_assert(count == c.objects().size());
     }
 
     void deserialize_chunk_(binary_reader<const char*>& s)
@@ -828,11 +833,8 @@ ok:
         deserialize_strings_(s);
         deserialize_atlases(s);
         for (uint32_t i = 0; i < nchunks; i++)
-        {
             deserialize_chunk_(s);
-            fm_assert(false && "todo");
-        }
-        // assert end
+        s.assert_end();
     }
 };
 
@@ -869,7 +871,7 @@ class world world::deserialize(StringView filename) noexcept(false)
     struct reader r{w};
     r.deserialize_world(buf);
 
-    fm_assert("todo" && false);
+    //fm_assert("todo" && false);
     return w;
 }
 
