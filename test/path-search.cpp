@@ -170,7 +170,7 @@ void test_bbox()
         return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
     };
 
-    const auto metal2 = loader.wall_atlas("empty", false);
+    const auto metal2 = loader.wall_atlas("empty", loader_policy::warn);
     const auto table  = loader.scenery("table1");
 
     {

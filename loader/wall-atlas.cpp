@@ -68,21 +68,38 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
     return *invalid_wall_atlas;
 }
 
-std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool fail_ok) noexcept(false)
+std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, loader_policy policy) noexcept(false)
 {
-    fm_assert(fail_ok || name != INVALID);
-    fm_soft_assert(check_atlas_name(name));
+    (void)wall_atlas_list();
 
+    switch (policy)
+    {
+    case loader_policy::error:
+        fm_assert(name != INVALID);
+        break;
+    case loader_policy::ignore:
+    case loader_policy::warn:
+        break;
+    default:
+        fm_abort("invalid loader_policy");
+    }
+
+    fm_soft_assert(check_atlas_name(name));
     auto it = wall_atlas_map.find(name);
 
     if (it != wall_atlas_map.end()) [[likely]]
     {
         if (it->second == (wall_info*)-1) [[unlikely]]
         {
-           if (fail_ok) [[likely]]
-                goto missing_ok;
-            else
+            switch (policy)
+            {
+            case loader_policy::error:
                 goto error;
+            case loader_policy::warn:
+            case loader_policy::ignore:
+                goto missing_ok;
+            }
+            std::unreachable();
         }
         else if (!it->second->atlas)
             return it->second->atlas = get_wall_atlas(name, loader.WALL_TILESET_PATH);
@@ -91,13 +108,19 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, bool 
     }
     else
     {
-        if (fail_ok) [[likely]]
-            goto missing;
-        else
+        switch (policy)
+        {
+        case loader_policy::error:
             goto error;
+        case loader_policy::warn:
+            goto missing_warn;
+        case loader_policy::ignore:
+            goto missing_ok;
+        }
+        std::unreachable();
     }
 
-missing:
+missing_warn:
     {
         missing_wall_atlases.push_back(String { AllocatedInit, name });
         auto string_view = StringView{missing_wall_atlases.back()};

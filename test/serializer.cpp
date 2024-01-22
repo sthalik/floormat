@@ -18,7 +18,7 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     chunk& c = w[ch];
     c.mark_modified();
 
-    auto metal2 = loader.wall_atlas("empty", false);
+    auto metal2 = loader.wall_atlas("empty", loader_policy::warn);
     auto tiles  = loader.ground_atlas("tiles");
     auto door = loader.scenery("door1");
     auto table = loader.scenery("table1");

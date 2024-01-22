@@ -19,9 +19,9 @@ void test_app::test_loader()
     {   auto walls = loader.wall_atlas_list();
         fm_assert(!walls.isEmpty());
         fm_assert(loader.wall_atlas("test1"_s));
-        fm_assert(loader.wall_atlas(loader.INVALID, true));
+        fm_assert(loader.wall_atlas(loader.INVALID, loader_policy::ignore));
         fm_assert(loader.wall_atlas("test1"_s) == loader.wall_atlas("test1"_s));
-        fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, true));
+        fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, loader_policy::ignore));
     }
     for (const auto& info : loader.wall_atlas_list())
         fm_assert(loader.wall_atlas(info.name));

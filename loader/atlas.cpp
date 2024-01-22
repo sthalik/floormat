@@ -56,7 +56,7 @@ ArrayView<const String> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir) noexcept(false)
 {
-    fm_soft_assert(dir && dir[dir.size()-1] == '/');
+    fm_soft_assert(!dir || dir[dir.size()-1] == '/');
     char buf[FILENAME_MAX];
     auto path = make_atlas_path(buf, dir, name);
 

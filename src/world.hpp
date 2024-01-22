@@ -43,7 +43,6 @@ private:
 
     explicit world(size_t capacity);
 
-    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted);
     void do_kill_object(object_id id);
     std::shared_ptr<object> find_object_(object_id id);
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
@@ -85,6 +84,12 @@ public:
         auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), Utility::forward<Xs>(xs)...});
         do_make_object(static_pointer_cast<object>(ret), pos, sorted);
         return ret;
+    }
+    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted);
+
+    template<typename T, typename... Xs> std::shared_ptr<object> make_unconnected_object(Xs&&... xs)
+    {
+        return std::shared_ptr<T>(new T{0, operator[](chunk_coords_{}), {}, Utility::forward<Xs>(xs)...});
     }
 
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);

@@ -84,19 +84,6 @@ struct buffer
     }
 };
 
-struct serialized_atlas
-{
-    buffer buf;
-    const void* atlas;
-    atlas_type type;
-};
-
-struct serialized_chunk
-{
-    buffer buf{};
-    chunk* c;
-};
-
 template<typename Derived>
 struct visitor_
 {
@@ -150,16 +137,17 @@ struct visitor_
     }
 
     template<typename F>
-    void visit(object& obj, F&& f)
+    void visit_object_internal(object& obj, F&& f, object_id id, object_type type)
     {
-        auto type = obj.type();
-
-        do_visit(obj.id, f);
-        do_visit(type, f);
-        fm_assert(obj.atlas);
-        do_visit(*obj.atlas, f);
+        non_const(obj.id) = id;
+        do_visit_nonconst(obj.atlas, f);
         //do_visit(*obj.c, f);
-        do_visit(obj.coord.local(), f);
+        {
+            chunk_coords_ ch = obj.coord.chunk3();
+            local_coords pt = obj.coord.local();
+            do_visit(pt, f);
+            non_const(obj.coord) = {ch, pt};
+        }
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
@@ -178,7 +166,7 @@ struct visitor_
         case object_type::none:
             break;
         }
-        fm_abort("invalid object type '%d'", (int)obj.type());
+        fm_abort("invalid object type '%d'", (int)type);
     }
 
     template<typename F>
@@ -188,6 +176,51 @@ struct visitor_
         do_visit(c.wall_north(), f);
         do_visit(c.wall_west(), f);
     }
+
+    template<typename F> void visit(chunk_coords_& coord, F&& f)
+    {
+        f(coord.x);
+        f(coord.y);
+        f(coord.z);
+    }
+
+    template<typename F>
+    void visit(critter& obj, F&& f)
+    {
+        uint8_t flags = 0;
+        flags |= (1 << 0) * obj.playable;
+        do_visit(flags, f);
+        obj.playable = flags & (1 << 0);
+        do_visit(obj.name, f);
+        do_visit(obj.offset_frac, f);
+    }
+
+    template<typename F> void visit(scenery& obj, F&& f)
+    {
+        auto sc_type = obj.sc_type;
+        do_visit(sc_type, f);
+        uint8_t flags = 0;
+        flags |= obj.active      * (1 << 0);
+        flags |= obj.closing     * (1 << 1);
+        flags |= obj.interactive * (1 << 2);
+        do_visit(flags, f);
+        obj.active      = flags & (1 << 0);
+        obj.closing     = flags & (1 << 1);
+        obj.interactive = flags & (1 << 2);
+    }
+
+    template<typename F> void visit(light& obj, F&& f)
+    {
+        do_visit(obj.max_distance, f);
+        do_visit(obj.color, f);
+        auto falloff = obj.falloff;
+        do_visit(falloff, f);
+        obj.falloff = falloff;
+        uint8_t flags = 0;
+        flags |= obj.enabled * (1 << 0);
+        do_visit(flags, f);
+        obj.enabled = flags & (1 << 0);
+    }
 };
 
 constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
@@ -195,6 +228,19 @@ constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_s
 struct writer final : visitor_<writer>
 {
     const world& w;
+
+    struct serialized_atlas
+    {
+        buffer buf;
+        const void* atlas;
+        atlas_type type;
+    };
+
+    struct serialized_chunk
+    {
+        buffer buf{};
+        chunk* c;
+    };
 
     std::vector<StringView> string_array{};
     tsl::robin_map<StringView, uint32_t, string_hasher> string_map{hash_initial_size};
@@ -232,51 +278,10 @@ struct writer final : visitor_<writer>
     using visitor_<writer>::visit;
 
     template<typename F>
-    void visit(critter& obj, F&& f)
+    void visit(std::shared_ptr<anim_atlas>& a, F&& f)
     {
-        uint8_t flags = 0;
-        flags |= (1 << 0) * obj.playable;
-        do_visit(flags, f);
-        do_visit(obj.name, f);
-        do_visit(obj.offset_frac, f);
-    }
-
-    template<typename F>
-    void visit(scenery& obj, F&& f)
-    {
-        auto sc_type = obj.sc_type;
-        do_visit(sc_type, f);
-        uint8_t flags = 0;
-        flags |= obj.active      * (1 << 0);
-        flags |= obj.closing     * (1 << 1);
-        flags |= obj.interactive * (1 << 2);
-        do_visit(flags, f);
-    }
-
-    template<typename F>
-    void visit(light& obj, F&& f)
-    {
-        do_visit(obj.max_distance, f);
-        do_visit(obj.color, f);
-        auto falloff = obj.falloff;
-        do_visit(falloff, f);
-        uint8_t flags = 0;
-        flags |= obj.enabled * (1 << 0);
-        do_visit(flags, f);
-    }
-
-    template<typename F>
-    void visit(anim_atlas& a, F&& f)
-    {
-        atlasid id = intern_atlas(&a, atlas_type::object);
+        atlasid id = intern_atlas(a, atlas_type::object);
         do_visit(id, f);
-    }
-
-    template<typename F> void visit(const chunk_coords_& coord, F&& f)
-    {
-        f(coord.x);
-        f(coord.y);
-        f(coord.z);
     }
 
     template<typename F> void visit(const local_coords& pt, F&& f)
@@ -287,6 +292,17 @@ struct writer final : visitor_<writer>
     template<typename F> void visit(StringView name, F&& f)
     {
         f(intern_string(name));
+    }
+
+    template<typename F>
+    void visit(object& obj, F&& f)
+    {
+        auto type = obj.type();
+
+        do_visit_nonconst(obj.id, f);
+        do_visit(type, f);
+
+        visit_object_internal(obj, f, obj.id, obj.type());
     }
 
     template<typename F>
@@ -309,8 +325,9 @@ ok:
         do_visit(intern_string(name), f);
     }
 
-    [[nodiscard]] atlasid intern_atlas(const void* atlas, atlas_type type)
+    template<typename T> [[nodiscard]] atlasid intern_atlas(const std::shared_ptr<T>& atlas_, atlas_type type)
     {
+        const void* atlas = atlas_.get();
         atlas_array.reserve(vector_initial_size);
         fm_assert(atlas != nullptr);
         auto [kv, fresh] = atlas_map.try_emplace(atlas, (uint32_t)-1);
@@ -337,7 +354,7 @@ ok:
         }
     }
 
-    atlasid maybe_intern_atlas(const void* atlas, atlas_type type)
+    template<typename T> atlasid maybe_intern_atlas(const std::shared_ptr<T>& atlas, atlas_type type)
     {
         if (!atlas)
             return null<atlasid>;
@@ -363,7 +380,7 @@ ok:
         for (const std::shared_ptr<object>& obj : c.objects())
         {
             fm_assert(obj != nullptr);
-            do_visit(object_magic, f); // todo remove this
+            do_visit(object_magic, f); // todo move before all objects
             do_visit(*obj, f);
         }
     }
@@ -392,10 +409,7 @@ ok:
             do_visit(num, f);
         }
 
-        if (a != null)
-            do_visit(a, f);
-        else
-            do_visit(null, f);
+        do_visit(a, f);
 
         i += num_idempotent;
         fm_debug_assert(i <= TILE_COUNT);
@@ -412,15 +426,15 @@ ok:
             // todo do atlases and variants separately
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].ground_atlas().get(), atlas_type::ground);
+                    return maybe_intern_atlas(c[i].ground_atlas(), atlas_type::ground);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].wall_north_atlas().get(), atlas_type::wall);
+                    return maybe_intern_atlas(c[i].wall_north_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].wall_west_atlas().get(), atlas_type::wall);
+                    return maybe_intern_atlas(c[i].wall_west_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t i) {
@@ -576,14 +590,86 @@ void world::serialize(StringView filename)
 
 namespace {
 
+template<atlas_type Type> struct atlas_from_type;
+template<> struct atlas_from_type<atlas_type::ground> { using Type = ground_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
+template<> struct atlas_from_type<atlas_type::wall> { using Type = wall_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }};
+template<> struct atlas_from_type<atlas_type::object> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
+
 struct reader final : visitor_<reader>
 {
+    struct atlas_pair
+    {
+        void* atlas;
+        atlas_type type;
+    };
+
     std::vector<StringView> strings;
+    std::vector<atlas_pair> atlases;
     proto_t PROTO = (proto_t)-1;
     uint32_t nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
     reader(class world& w) : w{w} {}
+
+    using visitor_<reader>::visit;
+
+    struct byte_reader
+    {
+        binary_reader<const char*>& s;
+
+        template<typename T>
+        requires (std::is_fundamental_v<T> && std::is_arithmetic_v<T>)
+        void operator()(T& value)
+        {
+            value << s;
+        }
+    };
+
+    template<typename F>
+    void visit(String& str, F&& f)
+    {
+        atlasid id;
+        f(id);
+        str = get_string(id);
+    }
+
+    template<typename F> void visit(local_coords& pt, F&& f)
+    {
+        uint8_t i;
+        f(i);
+        pt = local_coords{i};
+    }
+
+    template<typename F>
+    void visit(std::shared_ptr<anim_atlas>& a, F&& f)
+    {
+        atlasid id = (atlasid)-1;
+        f(id);
+        a = loader.anim_atlas(get_atlas<atlas_type::object>(id), {});
+    }
+
+    template<typename F>
+    void visit(std::shared_ptr<object>& obj, F&& f)
+    {
+        object_id id;
+        do_visit(id, f);
+        std::underlying_type_t<object_type> type_;
+        do_visit(type_, f);
+        auto type = object_type(type_);
+
+        switch (type)
+        {
+        case object_type::none:
+        case object_type::COUNT:
+            break;
+        case object_type::light: obj = w.make_unconnected_object<light>(); goto ok;
+        case object_type::critter: obj = w.make_unconnected_object<critter>(); goto ok;
+        case object_type::scenery: obj = w.make_unconnected_object<scenery>(); goto ok;
+        }
+        fm_throw("invalid object type {}"_cf, type_);
+ok:
+        visit_object_internal(*obj, f, id, object_type(type));
+    }
 
     void deserialize_header_(binary_reader<const char*>& s)
     {
@@ -604,6 +690,15 @@ struct reader final : visitor_<reader>
         return strings[id];
     }
 
+    template<atlas_type Type>
+    StringView get_atlas(atlasid id)
+    {
+        fm_soft_assert(id < atlases.size());
+        auto a = atlases[id];
+        fm_soft_assert(a.type == Type);
+        return atlas_from_type<Type>::name(a.atlas);
+    }
+
     void deserialize_strings_(binary_reader<const char*>& s)
     {
         fm_assert(strings.empty());
@@ -615,13 +710,128 @@ struct reader final : visitor_<reader>
         }
     }
 
+    void deserialize_atlases(binary_reader<const char*>& s)
+    {
+        for (uint32_t i = 0; i < natlases; i++)
+        {
+            atlas_type type = (atlas_type)s.read<std::underlying_type_t<atlas_type>>();
+            atlasid id; id << s;
+            auto str = get_string(id);
+            void* atlas = nullptr;
+            switch (type)
+            {
+            case atlas_type::none: break;
+            case atlas_type::ground: atlas = loader.ground_atlas(str, loader_policy::warn).get(); goto ok;
+            case atlas_type::wall: atlas = loader.wall_atlas(str, loader_policy::warn).get(); goto ok;
+            case atlas_type::object: atlas = loader.anim_atlas(str, {}).get(); goto ok;
+            }
+            fm_throw("invalid atlas_type {}"_cf, (size_t)type);
+ok:
+            DBG << str << (int)type;
+            atlases.push_back({.atlas = atlas, .type = type });
+        }
+    }
+
+    template<typename INT>
+    void deserialize_tile_part(auto&& g, uint32_t& i, byte_reader& r)
+    {
+        constexpr auto highbit = reader::highbit<INT>;
+        constexpr auto null = reader::null<INT>;
+
+        INT num;
+        uint32_t num_idempotent = 0;
+
+        do_visit(num, r);
+
+        if (num & highbit)
+        {
+            num_idempotent = num & ~highbit;
+            do_visit(num, r);
+        }
+
+        if (num != null)
+            for (uint32_t j = 0; j <= num_idempotent; j++)
+                g(i+j, num);
+
+        i += num_idempotent;
+    }
+
+    void deserialize_objects_(chunk& c, byte_reader& r)
+    {
+        uint32_t count;
+        do_visit(count, r);
+
+        for (uint32_t i = 0; i < count; i++)
+        {
+            using magic_type = std::decay_t<decltype(object_magic)>;
+            magic_type magic;
+            r(magic);
+            fm_soft_assert(magic == object_magic);
+
+            std::shared_ptr<object> obj;
+            do_visit(obj, r);
+            w.do_make_object(std::move(obj), obj->position().coord(), false);
+        }
+        c.sort_objects();
+    }
+
+    void deserialize_chunk_(binary_reader<const char*>& s)
+    {
+        auto r = byte_reader{s};
+
+        using magic_type = std::decay_t<decltype(chunk_magic)>;
+        magic_type magic; magic << s;
+        fm_soft_assert(magic == chunk_magic);
+
+        chunk_coords_ coord;
+        do_visit(coord, r);
+        auto& c = w[coord];
+
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+                auto name = get_atlas<atlas_type::ground>(id);
+                auto a = loader.ground_atlas(name, loader_policy::warn);
+                c[i].ground() = { std::move(a), (variant_t)-1 };
+            }, i, r);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+                auto name = get_atlas<atlas_type::wall>(id);
+                auto a = loader.wall_atlas(name, loader_policy::warn);
+                c[i].wall_north() = { std::move(a), (variant_t)-1 };
+            }, i, r);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+                auto name = get_atlas<atlas_type::wall>(id);
+                auto a = loader.wall_atlas(name, loader_policy::warn);
+                c[i].wall_west() = { std::move(a), (variant_t)-1 };
+            }, i, r);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
+                c[i].ground().variant = id;
+            }, i, r);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
+                c[i].wall_north().variant = id;
+            }, i, r);
+        for (uint32_t i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
+                c[i].wall_west().variant = id;
+            }, i, r);
+
+        deserialize_objects_(c, r);
+    }
+
     void deserialize_world(ArrayView<const char> buf)
     {
         binary_reader s{buf.data(), buf.data() + buf.size()};
         deserialize_header_(s);
         deserialize_strings_(s);
-        // atlases
-        // chunks
+        deserialize_atlases(s);
+        for (uint32_t i = 0; i < nchunks; i++)
+        {
+            deserialize_chunk_(s);
+            fm_assert(false && "todo");
+        }
         // assert end
     }
 };

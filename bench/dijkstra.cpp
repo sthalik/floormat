@@ -24,7 +24,7 @@ void Dijkstra(benchmark::State& state)
     constexpr auto wpos = global_coords{wch, wt};
 
     auto& ch = w[wch];
-    auto metal2 = wall_image_proto{loader.wall_atlas("empty", false), 0};
+    auto metal2 = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)

@@ -50,7 +50,7 @@ struct loader_impl final : loader_
     std::vector<wall_info> wall_atlas_array;
     std::vector<String> missing_wall_atlases;
     Pointer<wall_info> invalid_wall_atlas;
-    std::shared_ptr<class wall_atlas> wall_atlas(StringView name, bool fail_ok = true) override;
+    std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
     const wall_info& make_invalid_wall_atlas();

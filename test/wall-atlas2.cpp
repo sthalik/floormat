@@ -54,7 +54,7 @@ void test_concrete_wall()
     using enum Wall::Direction_;
     constexpr auto name = "concrete1"_s;
 
-    auto& wall = *loader.wall_atlas(name, false);
+    auto& wall = *loader.wall_atlas(name);
     fm_assert(wall.name() == name);
     fm_assert(wall.info().depth == 20);
     fm_assert(wall.raw_frame_array().size() >= 3);
