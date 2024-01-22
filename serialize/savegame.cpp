@@ -33,7 +33,13 @@
 #endif
 #endif
 
-namespace floormat::Serialize {
+namespace floormat {
+
+using floormat::Serialize::binary_reader;
+using floormat::Serialize::binary_writer;
+using floormat::Serialize::atlas_type;
+using floormat::Serialize::maybe_byteswap;
+using floormat::Hash::fnvhash_buf;
 
 namespace {
 
@@ -46,8 +52,6 @@ struct FILE_raii final
 private:
     FILE* s;
 };
-
-using floormat::Hash::fnvhash_buf;
 
 struct string_hasher
 {
@@ -512,6 +516,66 @@ ok:
     }
 };
 
+void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
+{
+    auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
+    int error = errno;
+    if (len != 1)
+        fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
+}
+
+} // namespace
+
+void world::serialize(StringView filename)
+{
+    collect(true);
+    char errbuf[128];
+    fm_assert(filename.flags() & StringViewFlag::NullTerminated);
+    if (Path::exists(filename))
+        Path::remove(filename);
+    FILE_raii file = std::fopen(filename.data(), "wb");
+    if (!file)
+    {
+        int error = errno;
+        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf, error).data());
+    }
+    {
+        struct writer writer{*this};
+        const bool is_empty = chunks().empty();
+        writer.serialize_world();
+        fm_assert(!writer.header_buf.empty());
+        if (!is_empty)
+        {
+            fm_assert(!writer.string_buf.empty());
+            fm_assert(!writer.string_array.empty());
+            fm_assert(!writer.string_map.empty());
+            fm_assert(!writer.atlas_array.empty());
+            fm_assert(!writer.atlas_map.empty());
+            fm_assert(!writer.chunk_array.empty());
+        }
+        my_fwrite(file, writer.header_buf, errbuf);
+        my_fwrite(file, writer.string_buf, errbuf);
+        for (const auto& x : writer.atlas_array)
+        {
+            fm_assert(!x.buf.empty());
+            my_fwrite(file, x.buf, errbuf);
+        }
+        for (const auto& x : writer.chunk_array)
+        {
+            fm_assert(!x.buf.empty());
+            my_fwrite(file, x.buf, errbuf);
+        }
+    }
+
+    if (int ret = std::fflush(file); ret != 0)
+    {
+        int error = errno;
+        fm_abort("fflush: %s", get_error_string(errbuf, error).data());
+    }
+}
+
+namespace {
+
 struct reader final : visitor_<reader>
 {
     std::vector<StringView> strings;
@@ -562,69 +626,7 @@ struct reader final : visitor_<reader>
     }
 };
 
-void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
-{
-    auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
-    int error = errno;
-    if (len != 1)
-        fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
-}
-
 } // namespace
-
-} // namespace floormat::Serialize
-
-namespace floormat {
-
-using namespace floormat::Serialize;
-
-void world::serialize(StringView filename)
-{
-    collect(true);
-    char errbuf[128];
-    fm_assert(filename.flags() & StringViewFlag::NullTerminated);
-    if (Path::exists(filename))
-        Path::remove(filename);
-    FILE_raii file = std::fopen(filename.data(), "wb");
-    if (!file)
-    {
-        int error = errno;
-        fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf, error).data());
-    }
-    {
-        struct writer writer{*this};
-        const bool is_empty = chunks().empty();
-        writer.serialize_world();
-        fm_assert(!writer.header_buf.empty());
-        if (!is_empty)
-        {
-            fm_assert(!writer.string_buf.empty());
-            fm_assert(!writer.string_array.empty());
-            fm_assert(!writer.string_map.empty());
-            fm_assert(!writer.atlas_array.empty());
-            fm_assert(!writer.atlas_map.empty());
-            fm_assert(!writer.chunk_array.empty());
-        }
-        my_fwrite(file, writer.header_buf, errbuf);
-        my_fwrite(file, writer.string_buf, errbuf);
-        for (const auto& x : writer.atlas_array)
-        {
-            fm_assert(!x.buf.empty());
-            my_fwrite(file, x.buf, errbuf);
-        }
-        for (const auto& x : writer.chunk_array)
-        {
-            fm_assert(!x.buf.empty());
-            my_fwrite(file, x.buf, errbuf);
-        }
-    }
-
-    if (int ret = std::fflush(file); ret != 0)
-    {
-        int error = errno;
-        fm_abort("fflush: %s", get_error_string(errbuf, error).data());
-    }
-}
 
 class world world::deserialize(StringView filename) noexcept(false)
 {
