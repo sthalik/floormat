@@ -344,6 +344,7 @@ ok:
     atlasid intern_string(StringView str)
     {
         string_array.reserve(vector_initial_size);
+        fm_assert(!str.find('\0'));
         auto [pair, fresh] = string_map.try_emplace(str, (uint32_t)string_array.size());
         if (fresh)
             string_array.emplace_back(str);
@@ -533,6 +534,12 @@ struct reader final : visitor_<reader>
         nchunks << s;
     }
 
+    StringView get_string(atlasid id)
+    {
+        fm_soft_assert(id < strings.size());
+        return strings[id];
+    }
+
     void deserialize_strings_(binary_reader<const char*>& s)
     {
         fm_assert(strings.empty());
@@ -540,7 +547,6 @@ struct reader final : visitor_<reader>
         for (uint32_t i = 0; i < nstrings; i++)
         {
             auto str = s.read_asciiz_string_();
-            Debug{} << "in" << str << str.size();
             strings.emplace_back(str);
         }
     }
