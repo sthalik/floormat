@@ -104,6 +104,7 @@ struct visitor_
     template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
     template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
+    static constexpr inline size_t string_max          = 512;
     static constexpr inline proto_t proto_version      = 20;
     static constexpr inline proto_t proto_version_min  = 20;
     static constexpr inline auto file_magic            = ".floormat.save"_s;
@@ -343,17 +344,10 @@ ok:
     atlasid intern_string(StringView str)
     {
         string_array.reserve(vector_initial_size);
-        auto [kv, found] = string_map.try_emplace({str}, (uint32_t)-1);
-        if (found)
-            return kv.value();
-        else
-        {
-            auto id = (uint32_t)string_array.size();
+        auto [pair, fresh] = string_map.try_emplace(str, (uint32_t)string_array.size());
+        if (fresh)
             string_array.emplace_back(str);
-            kv.value() = id;
-            fm_assert(id != null<atlasid>);
-            return atlasid{id};
-        }
+        return pair->second;
     }
 
     template<typename F>
@@ -364,7 +358,7 @@ ok:
         for (const std::shared_ptr<object>& obj : c.objects())
         {
             fm_assert(obj != nullptr);
-            do_visit(object_magic, f);
+            do_visit(object_magic, f); // todo remove this
             do_visit(*obj, f);
         }
     }
@@ -469,14 +463,15 @@ ok:
     {
         fm_assert(string_buf.empty());
         size_t len = 0;
-        len += sizeof uint32_t{};
         for (const auto& s : string_array)
             len += s.size() + 1;
         buffer buf{len};
         binary_writer b{&buf.data[0], buf.size};
-        b << (uint32_t)string_array.size();
         for (const auto& s : string_array)
+        {
+            fm_assert(s.size() < string_max);
             b.write_asciiz_string(s);
+        }
         fm_assert(b.bytes_written() == b.bytes_allocated());
         string_buf = std::move(buf);
     }
@@ -518,7 +513,9 @@ ok:
 
 struct reader final : visitor_<reader>
 {
+    std::vector<StringView> strings;
     proto_t PROTO = (proto_t)-1;
+    uint32_t nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
     reader(class world& w) : w{w} {}
@@ -531,12 +528,31 @@ struct reader final : visitor_<reader>
         PROTO << s;
         fm_soft_assert(PROTO >= proto_version_min);
         fm_soft_assert(PROTO <= proto_version);
+        nstrings << s;
+        natlases << s;
+        nchunks << s;
+    }
+
+    void deserialize_strings_(binary_reader<const char*>& s)
+    {
+        fm_assert(strings.empty());
+        strings.reserve(nstrings);
+        for (uint32_t i = 0; i < nstrings; i++)
+        {
+            auto str = s.read_asciiz_string_();
+            Debug{} << "in" << str << str.size();
+            strings.emplace_back(str);
+        }
     }
 
     void deserialize_world(ArrayView<const char> buf)
     {
         binary_reader s{buf.data(), buf.data() + buf.size()};
         deserialize_header_(s);
+        deserialize_strings_(s);
+        // atlases
+        // chunks
+        // assert end
     }
 };
 

@@ -88,6 +88,19 @@ constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
 }
 
 template<string_input_iterator It>
+constexpr StringView binary_reader<It>::read_asciiz_string_() noexcept(false)
+{
+    It start = it;
+    while (it != end)
+    {
+        num_bytes_read++;
+        if (*it++ == '\0')
+            return StringView{&*start, (size_t)std::distance(start, it) - 1, StringViewFlag::NullTerminated};
+    }
+    fm_throw("can't find string terminator"_cf);
+}
+
+template<string_input_iterator It>
 constexpr char binary_reader<It>::peek() const
 {
     fm_soft_assert(it != end);

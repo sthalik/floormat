@@ -32,6 +32,7 @@ struct binary_reader final {
     template<serializable T> constexpr T read() noexcept(false);
     template<size_t N> constexpr std::array<char, N> read() noexcept(false);
     template<size_t Max> constexpr auto read_asciiz_string() noexcept(false);
+    constexpr StringView read_asciiz_string_() noexcept(false);
 
     binary_reader(binary_reader&&) noexcept = default;
     binary_reader& operator=(binary_reader&&) noexcept = default;
