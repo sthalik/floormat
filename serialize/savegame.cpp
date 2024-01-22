@@ -186,12 +186,26 @@ struct visitor_
     template<typename F>
     void visit(critter& obj, F&& f)
     {
-        uint8_t flags = 0;
-        flags |= (1 << 0) * obj.playable;
-        do_visit(flags, f);
-        obj.playable = flags & (1 << 0);
         do_visit(obj.name, f);
         do_visit(obj.offset_frac, f);
+
+        constexpr struct {
+            uint8_t bits;
+            bool(*getter)(const critter&);
+            void(*setter)(critter&, bool);
+        } pairs[] = {
+            { 1 << 0,
+              [](const critter& sc) { return !!sc.playable; },
+              [](critter& sc, bool value) { sc.playable = value; }
+            },
+        };
+
+        uint8_t flags = 0;
+        for (auto [bits, getter, setter] : pairs)
+            flags |= bits * getter(obj);
+        do_visit(flags, f);
+        for (auto [bits, getter, setter] : pairs)
+            setter(obj, flags & bits);
     }
 
     template<typename F> void visit(scenery& obj, F&& f)
@@ -234,10 +248,24 @@ struct visitor_
         auto falloff = obj.falloff;
         do_visit(falloff, f);
         obj.falloff = falloff;
+
+        constexpr struct {
+            uint8_t bits;
+            bool(*getter)(const light&);
+            void(*setter)(light&, bool);
+        } pairs[] = {
+            { 1 << 0,
+              [](const light& sc) { return !!sc.enabled; },
+              [](light& sc, bool value) { sc.enabled = value; }
+            },
+        };
+
         uint8_t flags = 0;
-        flags |= obj.enabled * (1 << 0);
+        for (auto [bits, getter, setter] : pairs)
+            flags |= bits * getter(obj);
         do_visit(flags, f);
-        obj.enabled = flags & (1 << 0);
+        for (auto [bits, getter, setter] : pairs)
+            setter(obj, flags & bits);
     }
 };
 
