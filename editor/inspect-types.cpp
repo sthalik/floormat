@@ -93,7 +93,7 @@ struct entity_accessors<scenery, inspect_intent_t> {
                                   return std::visit(overloaded {
                                       [&](const door_scenery&) { return st::enabled; },
                                       [&](const generic_scenery&) { return st::enabled; },
-                                      [](auto&&) { return st::hidden; },
+                                      //[](auto&&) { return st::hidden; },
                                   }, x.subtype);
                                 },
             },
