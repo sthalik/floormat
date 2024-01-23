@@ -209,7 +209,8 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto frames = atlas->frames(dir.top);
                         auto variant = (variant_ != (uint8_t)-1 ? variant_ : vpos);
                         variant += (uint8_t)(!is_west ? frames.size() - 1 : 1);
-                        variant = variant % frames.size();
+                        fm_assert((size_t)(variant_t)frames.size() == frames.size());
+                        variant = variant % (variant_t)frames.size();
                         constexpr Vector2 half_tile = TILE_SIZE2*.5f;
                         constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
                         Quads::quad quad = {{
@@ -245,7 +246,8 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto pos_x = !is_west ? (float)pos.x : (float)pos.x - 1;
                         const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
                         variant += !is_west ? frames.size() - 1 : 1;
-                        variant = variant % frames.size();
+                        fm_assert((size_t)(variant_t)frames.size() == frames.size());
+                        variant = variant % (variant_t)frames.size();
                         const auto& frame = frames[variant];
                         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
                         const auto i = N++;
