@@ -14,7 +14,6 @@
 #include "src/rotation.hpp"
 #include "src/object-type.hpp"
 #include <bit>
-#include <cstdio>
 #include <cerrno>
 #include <cstring>
 #include <concepts>
@@ -62,12 +61,9 @@ template<std::signed_integral T> struct int_traits<T> { static constexpr T max =
 
 namespace {
 
-#define file_magic ".floormat.save"
-
 constexpr inline proto_t proto_version = 19;
 
 constexpr inline size_t atlas_name_max = 128;
-constexpr inline auto null_atlas = (atlasid)-1LL;
 
 constexpr inline size_t critter_name_max = 128;
 constexpr inline size_t string_max = 512;
@@ -85,9 +81,6 @@ template<size_t N, std::unsigned_integral T = uint8_t>
 constexpr T lowbits = N == sizeof(T)*8 ? (T)-1 : T((T{1} << N)-T{1});
 
 constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
-constexpr inline uint8_t meta_rotation_bits = highbits<uint8_t, rotation_BITS, 1>;
-constexpr inline uint8_t scenery_id_flag_mask = meta_short_scenery_bit | meta_rotation_bits;
-constexpr inline uint8_t scenery_id_max = int_traits<uint8_t>::max & ~scenery_id_flag_mask;
 
 } // namespace
 
@@ -109,15 +102,6 @@ enum : tilemeta {
 namespace floormat {
 
 namespace {
-
-struct FILE_raii final {
-    FILE_raii(FILE* s) noexcept : s{s} {}
-    ~FILE_raii() noexcept { close(); }
-    operator FILE*() noexcept { return s; }
-    void close() noexcept { if (s) ::fclose(s); s = nullptr; }
-private:
-    FILE* s;
-};
 
 } // namespace
 
