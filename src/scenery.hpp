@@ -4,6 +4,8 @@
 #include "rotation.hpp"
 #include "object.hpp"
 #include <type_traits>
+#include <variant>
+#include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Magnum.h>
 
@@ -18,12 +20,28 @@ enum class scenery_type : unsigned char {
     door, // todo remove it
 };
 
+struct generic_scenery_proto
+{
+    unsigned char active      : 1 = false;
+    unsigned char interactive : 1 = false;
+
+    bool operator==(const generic_scenery_proto& p) const;
+};
+
+struct door_scenery_proto
+{
+    unsigned char active      : 1 = false;
+    unsigned char interactive : 1 = false;
+    unsigned char closing     : 1 = false;
+
+    bool operator==(const door_scenery_proto& p) const;
+};
+
+using scenery_proto_variants = std::variant<generic_scenery_proto, door_scenery_proto>;
+
 struct scenery_proto : object_proto
 {
-    scenery_type sc_type = scenery_type::none;
-    unsigned char active      : 1 = false;
-    unsigned char closing     : 1 = false;
-    unsigned char interactive : 1 = false;
+    scenery_proto_variants subtype;
 
     scenery_proto();
     scenery_proto(const scenery_proto&);
@@ -33,12 +51,48 @@ struct scenery_proto : object_proto
     explicit operator bool() const;
 };
 
+struct scenery;
+
+struct generic_scenery
+{
+    unsigned char active      : 1 = false;
+    unsigned char interactive : 1 = false;
+
+    void update(scenery& sc, size_t i, float dt);
+    Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
+    bool can_activate(const scenery& sc, size_t i) const;
+    bool activate(scenery& sc, size_t i);
+
+    object_type type() const noexcept;
+    enum scenery_type scenery_type() const;
+    explicit operator generic_scenery_proto() const;
+
+    generic_scenery(object_id id, struct chunk& c, const generic_scenery_proto& p);
+};
+
+struct door_scenery
+{
+    unsigned char closing     : 1 = false;
+    unsigned char active      : 1 = false;
+    unsigned char interactive : 1 = false;
+
+    void update(scenery& sc, size_t i, float dt);
+    Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
+    bool can_activate(const scenery& sc, size_t i) const;
+    bool activate(scenery& sc, size_t i);
+
+    object_type type() const noexcept;
+    enum scenery_type scenery_type() const;
+    explicit operator door_scenery_proto() const;
+
+    door_scenery(object_id id, struct chunk& c, const door_scenery_proto& p);
+};
+
+using scenery_variants = std::variant<generic_scenery, door_scenery>;
+
 struct scenery final : object
 {
-    scenery_type sc_type      : 3 = scenery_type::none;
-    unsigned char active      : 1 = false;
-    unsigned char closing     : 1 = false;
-    unsigned char interactive : 1 = false;
+    scenery_variants subtype;
 
     void update(size_t i, float dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
@@ -48,6 +102,10 @@ struct scenery final : object
 
     object_type type() const noexcept override;
     explicit operator scenery_proto() const;
+    enum scenery_type scenery_type() const;
+
+    static scenery_variants subtype_from_proto(object_id id, struct chunk& c,
+                                               const scenery_proto_variants& variants);
 
 private:
     friend class world;

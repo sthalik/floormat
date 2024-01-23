@@ -9,83 +9,135 @@
 
 namespace floormat {
 
-scenery_proto::scenery_proto()
-{
-    type = object_type::scenery;
-}
+namespace {
+
+template<typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+template<typename T> struct proto_to_scenery_;
+template<> struct proto_to_scenery_<generic_scenery_proto> { using type = generic_scenery; };
+template<> struct proto_to_scenery_<door_scenery_proto> { using type = door_scenery; };
+template<typename T> using proto_to_scenery = typename proto_to_scenery_<T>::type;
+
+template<typename T> struct scenery_to_proto_;
+template<> struct scenery_to_proto_<generic_scenery> { using type = generic_scenery_proto; };
+template<> struct scenery_to_proto_<door_scenery> { using type = door_scenery_proto; };
+template<typename T> using scenery_to_proto = typename scenery_to_proto_<T>::type;
+
+} // namespace
+
+scenery_proto::scenery_proto() { type = object_type::scenery; }
 
 scenery_proto& scenery_proto::operator=(const scenery_proto&) = default;
 scenery_proto::scenery_proto(const scenery_proto&) = default;
 scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 
-bool scenery::can_activate(size_t) const
+bool generic_scenery_proto::operator==(const generic_scenery_proto& p) const = default;
+bool door_scenery_proto::operator==(const door_scenery_proto& p) const = default;
+void generic_scenery::update(scenery&, size_t, float) {}
+Vector2 generic_scenery::ordinal_offset(const scenery&, Vector2b offset) const { return Vector2(offset); }
+bool generic_scenery::can_activate(const scenery&, size_t) const { return interactive; }
+bool generic_scenery::activate(floormat::scenery&, size_t) { return false; }
+object_type generic_scenery::type() const noexcept { return object_type::scenery; }
+generic_scenery::operator generic_scenery_proto() const { return { .active = active, .interactive = interactive, }; }
+
+generic_scenery::generic_scenery(object_id, struct chunk&, const generic_scenery_proto& p) :
+    active{p.active}, interactive{p.interactive}
+{}
+
+door_scenery::door_scenery(object_id, struct chunk&, const door_scenery_proto& p) :
+    closing{p.closing}, active{p.active}, interactive{p.interactive}
+{}
+
+void door_scenery::update(scenery& s, size_t, float dt)
 {
-    return atlas && interactive;
+    if (!s.atlas || active)
+        return;
+
+    fm_assert(s.atlas);
+    auto& anim = *s.atlas;
+    const auto hz = uint8_t(s.atlas->info().fps);
+    const auto nframes = (int)anim.info().nframes;
+    fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
+
+    auto delta_ = int(s.delta) + int(65535u * dt);
+    delta_ = std::min(65535, delta_);
+    const auto frame_time = int(1.f/hz * 65535);
+    const auto n = (uint8_t)std::clamp(delta_ / frame_time, 0, 255);
+    s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
+    fm_debug_assert(s.delta >= 0);
+    if (n == 0)
+        return;
+    const int8_t dir = closing ? 1 : -1;
+    const int fr = s.frame + dir*n;
+    active = fr > 0 && fr < nframes-1;
+    pass_mode p;
+    if (fr <= 0)
+        p = pass_mode::pass;
+    else if (fr >= nframes-1)
+        p = pass_mode::blocked;
+    else
+        p = pass_mode::see_through;
+    s.set_bbox(s.offset, s.bbox_offset, s.bbox_size, p);
+    const auto new_frame = (uint16_t)std::clamp(fr, 0, nframes-1);
+    //Debug{} << "frame" << new_frame << nframes-1;
+    s.frame = new_frame;
+    if (!active)
+        s.delta = closing = 0;
+    //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (s.frame == 0 ? "-1" : "1");
 }
 
-void scenery::update(size_t, float dt)
+Vector2 door_scenery::ordinal_offset(const scenery& s, Vector2b offset) const
 {
-    auto& s = *this;
-    if (!s.active)
-        return;
+    constexpr auto bTILE_SIZE = Vector2b(iTILE_SIZE2);
 
-    switch (s.sc_type)
-    {
-    default:
-    case scenery_type::none:
-    case scenery_type::generic:
-        return;
-    case scenery_type::door: {
-        fm_assert(atlas);
-        auto& anim = *atlas;
-        const auto hz = uint8_t(atlas->info().fps);
-        const auto nframes = (int)anim.info().nframes;
-        fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
+    constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
+    constexpr auto off_opened_ = Vector2b(-bTILE_SIZE[0]+2, -bTILE_SIZE[1]/2+2);
+    const auto off_closed = rotate_point(off_closed_, rotation::N, s.r);
+    const auto off_opened = rotate_point(off_opened_, rotation::N, s.r);
+    const auto vec = s.frame == s.atlas->info().nframes-1 ? off_closed : off_opened;
+    return Vector2(offset) + Vector2(vec);
+}
 
-        auto delta_ = int(s.delta) + int(65535u * dt);
-        delta_ = std::min(65535, delta_);
-        const auto frame_time = int(1.f/hz * 65535);
-        const auto n = (uint8_t)std::clamp(delta_ / frame_time, 0, 255);
-        s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
-        fm_debug_assert(s.delta >= 0);
-        if (n == 0)
-            return;
-        const int8_t dir = s.closing ? 1 : -1;
-        const int fr = s.frame + dir*n;
-        s.active = fr > 0 && fr < nframes-1;
-        pass_mode p;
-        if (fr <= 0)
-            p = pass_mode::pass;
-        else if (fr >= nframes-1)
-            p = pass_mode::blocked;
-        else
-            p = pass_mode::see_through;
-        set_bbox(offset, bbox_offset, bbox_size, p);
-        const auto new_frame = (uint16_t)std::clamp(fr, 0, nframes-1);
-        //Debug{} << "frame" << new_frame << nframes-1;
-        s.frame = new_frame;
-        if (!s.active)
-            s.delta = s.closing = 0;
-        //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (s.frame == 0 ? "-1" : "1");
-    }
-    }
+bool door_scenery::can_activate(const scenery&, size_t) const { return interactive; }
+
+bool door_scenery::activate(scenery& s, size_t)
+{
+    if (active)
+        return false;
+    fm_assert(s.frame == 0 || s.frame == s.atlas->info().nframes-1);
+    closing = s.frame == 0;
+    s.frame += closing ? 1 : -1;
+    active = true;
+    return true;
+}
+
+bool scenery::can_activate(size_t i) const
+{
+    if (!atlas)
+        return false;
+
+    return std::visit(
+        [&]<typename T>(const T& sc) { return sc.can_activate(*this, i); },
+        subtype
+    );
+}
+
+void scenery::update(size_t i, float dt)
+{
+    return std::visit(
+        [&]<typename T>(T& sc) { sc.update(*this, i, dt); },
+        subtype
+    );
 }
 
 Vector2 scenery::ordinal_offset(Vector2b offset) const
 {
-    constexpr auto bTILE_SIZE = Vector2b(iTILE_SIZE2);
-
-    if (sc_type == scenery_type::door)
-    {
-        constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
-        constexpr auto off_opened_ = Vector2b(-bTILE_SIZE[0]+2, -bTILE_SIZE[1]/2+2);
-        const auto off_closed = rotate_point(off_closed_, rotation::N, r);
-        const auto off_opened = rotate_point(off_opened_, rotation::N, r);
-        const auto vec = frame == atlas->info().nframes-1 ? off_closed : off_opened;
-        return Vector2(offset) + Vector2(vec);
-    }
-    return Vector2(offset);
+    return std::visit(
+        [&]<typename T>(const T& sc) { return sc.ordinal_offset(*this, offset); },
+        subtype
+    );
 }
 
 float scenery::depth_offset() const
@@ -100,26 +152,12 @@ float scenery::depth_offset() const
     return ret;
 }
 
-bool scenery::activate(size_t)
+bool scenery::activate(size_t i)
 {
-    auto& s = *this;
-    if (s.active)
-        return false;
-
-    switch (s.sc_type)
-    {
-    default:
-    case scenery_type::none:
-    case scenery_type::generic:
-        break;
-    case scenery_type::door:
-        fm_assert(s.frame == 0 || s.frame == atlas->info().nframes-1);
-        s.closing = s.frame == 0;
-        s.frame += s.closing ? 1 : -1;
-        s.active = true;
-        return true;
-    }
-    return false;
+    return std::visit(
+        [&]<typename T>(T& sc) { return sc.activate(*this, i); },
+        subtype
+    );
 }
 
 bool scenery_proto::operator==(const object_proto& e0) const
@@ -130,9 +168,23 @@ bool scenery_proto::operator==(const object_proto& e0) const
     if (!object_proto::operator==(e0))
         return false;
 
-    const auto& s0 = static_cast<const scenery_proto&>(e0);
-    return sc_type == s0.sc_type && active == s0.active &&
-           closing == s0.closing && interactive == s0.interactive;
+    const auto& sc = static_cast<const scenery_proto&>(e0);
+
+    if (subtype.index() != sc.subtype.index())
+        return false;
+
+    return std::visit(
+        [](const auto& a, const auto& b) {
+            if constexpr(std::is_same_v< std::decay_t<decltype(a)>, std::decay_t<decltype(b)> >)
+                return a == b;
+            else
+            {
+                std::unreachable();
+                return false;
+            }
+        },
+        subtype, sc.subtype
+    );
 }
 
 object_type scenery::type() const noexcept { return object_type::scenery; }
@@ -141,16 +193,25 @@ scenery::operator scenery_proto() const
 {
     scenery_proto ret;
     static_cast<object_proto&>(ret) = object::operator object_proto();
-    ret.sc_type = sc_type;
-    ret.active = active;
-    ret.closing = closing;
-    ret.interactive = interactive;
+    std::visit(
+        [&]<typename T>(const T& s) { ret.subtype = scenery_to_proto<T>(s); },
+        subtype
+    );
     return ret;
 }
 
+scenery_variants scenery::subtype_from_proto(object_id id, struct chunk& c, const scenery_proto_variants& variant)
+{
+    return std::visit(
+        [&]<typename T>(const T& p) {
+            return scenery_variants { std::in_place_type_t<proto_to_scenery<T>>{}, id, c, p };
+        },
+        variant
+    );
+}
+
 scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :
-    object{id, c, proto}, sc_type{proto.sc_type}, active{proto.active},
-    closing{proto.closing}, interactive{proto.interactive}
+    object{id, c, proto}, subtype{ subtype_from_proto(id, c, proto.subtype) }
 {
 #ifndef FM_NO_DEBUG
     if (id != 0)
