@@ -128,9 +128,6 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
             value = j[s];
     };
 
-    const generic_scenery_proto G;
-    const door_scenery_proto D;
-
     StringView atlas_name = j["atlas-name"];
     fm_soft_assert(!atlas_name.isEmpty());
     f = {};
@@ -139,8 +136,6 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     auto frame       = f.frame;                     get("frame", frame);
     auto r           = f.atlas->first_rotation();   get("rotation", r);
     pass_mode pass   = f.pass;                      get("pass-mode", pass);
-    bool active      = G.active;                    get("active", active);
-    bool interactive = G.interactive;               get("interactive", interactive);
     auto offset      = Vector2i(f.offset);          get("offset", offset);
     auto bbox_offset = Vector2i(f.bbox_offset);     get("bbox-offset", bbox_offset);
     auto bbox_size   = Vector2ui(f.bbox_size);      get("bbox-size", bbox_size);
@@ -153,32 +148,34 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     default:
         fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
     case scenery_type::generic: {
-        auto s = generic_scenery_proto{};
+        constexpr generic_scenery_proto G;
+        auto s = G;
         f.type = object_type::scenery;
         f.r = r;
         f.frame = frame;
         f.pass = pass;
-        s.active = active;
-        s.interactive = interactive;
         f.offset = Vector2b(offset);
         f.bbox_offset = Vector2b(bbox_offset);
         f.bbox_size = Vector2ub(bbox_size);
+        { bool interactive = G.interactive; get("interactive", interactive); s.interactive = interactive; }
+        { bool active = G.active; get("active", active); s.active = active; }
         f.subtype = s;
         break;
     }
     case scenery_type::door: {
         fm_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
-        auto s = door_scenery_proto{};
+        constexpr door_scenery_proto D;
+        auto s = D;
         f.type = object_type::scenery;
         f.r = r;
         f.frame = uint16_t(f.atlas->group(r).frames.size()-1);
         f.pass = pass_mode::blocked;
-        s.active = false;
-        s.interactive = true;
         s.closing = false;
         f.offset = Vector2b(offset);
         f.bbox_offset = Vector2b(bbox_offset);
         f.bbox_size = Vector2ub(bbox_size);
+        { bool interactive = D.interactive; get("interactive", interactive); s.interactive = interactive; }
+        { bool active = D.active; get("active", active); s.active = active; }
         f.subtype = s;
         break;
     }

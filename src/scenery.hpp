@@ -34,7 +34,7 @@ struct generic_scenery_proto
 struct door_scenery_proto
 {
     unsigned char active      : 1 = false;
-    unsigned char interactive : 1 = false;
+    unsigned char interactive : 1 = true;
     unsigned char closing     : 1 = false;
 
     bool operator==(const door_scenery_proto& p) const;
@@ -68,7 +68,6 @@ struct generic_scenery
     bool can_activate(const scenery& sc, size_t i) const;
     bool activate(scenery& sc, size_t i);
 
-    object_type type() const noexcept;
     enum scenery_type scenery_type() const;
     explicit operator generic_scenery_proto() const;
 
@@ -86,7 +85,6 @@ struct door_scenery
     bool can_activate(const scenery& sc, size_t i) const;
     bool activate(scenery& sc, size_t i);
 
-    object_type type() const noexcept;
     enum scenery_type scenery_type() const;
     explicit operator door_scenery_proto() const;
 
@@ -109,8 +107,7 @@ struct scenery final : object
     explicit operator scenery_proto() const;
     enum scenery_type scenery_type() const;
 
-    static scenery_variants subtype_from_proto(object_id id, struct chunk& c,
-                                               const scenery_proto_variants& variants);
+    static scenery_variants subtype_from_proto(object_id id, struct chunk& c, const scenery_proto_variants& variants);
     static scenery_variants subtype_from_scenery_type(object_id id, struct chunk& c, enum scenery_type type);
 
 private:

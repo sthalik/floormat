@@ -41,7 +41,6 @@ void generic_scenery::update(scenery&, size_t, float) {}
 Vector2 generic_scenery::ordinal_offset(const scenery&, Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(const scenery&, size_t) const { return interactive; }
 bool generic_scenery::activate(floormat::scenery&, size_t) { return false; }
-object_type generic_scenery::type() const noexcept { return object_type::scenery; }
 enum scenery_type generic_scenery::scenery_type() const { return scenery_type::generic; }
 
 enum scenery_type scenery_proto::scenery_type() const
