@@ -221,6 +221,12 @@ struct visitor_
             setter(obj, flags & bits);
     }
 
+    enum object_flags : uint8_t {
+        flag_active      = 1 << 0,
+        flag_closing     = 1 << 1,
+        flag_interactive = 1 << 2,
+    };
+
     template<typename F> void visit(generic_scenery& s, F&& f)
     {
         constexpr struct {
@@ -228,11 +234,11 @@ struct visitor_
             bool(*getter)(const generic_scenery&);
             void(*setter)(generic_scenery&, bool);
         } pairs[] = {
-            { 1 << 0,
+            { flag_active,
                 [](const auto& sc) { return !!sc.active; },
                 [](auto& sc, bool value) { sc.active = value; }
             },
-            { 1 << 2,
+            { flag_interactive,
                 [](const auto& sc) { return !!sc.interactive; },
                 [](auto& sc, bool value) { sc.interactive = value; }
             },
@@ -253,15 +259,15 @@ struct visitor_
             bool(*getter)(const door_scenery&);
             void(*setter)(door_scenery&, bool);
         } pairs[] = {
-            { 1 << 0,
+            { flag_active,
               [](const auto& sc) { return !!sc.active; },
               [](auto& sc, bool value) { sc.active = value; }
             },
-            { 1 << 1,
+            { flag_closing,
               [](const auto& sc) { return !!sc.closing; },
               [](auto& sc, bool value) { sc.closing = value; }
             },
-            { 1 << 2,
+            { flag_interactive,
               [](const auto& sc) { return !!sc.interactive; },
               [](auto& sc, bool value) { sc.interactive = value; }
             },
