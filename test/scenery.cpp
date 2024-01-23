@@ -9,9 +9,6 @@ namespace {
 void test_loading()
 {
     fm_assert(!loader.sceneries().isEmpty());
-
-    for (const auto& [name, proto] : loader.sceneries())
-        fm_assert(proto.sc_type != scenery_type::none);
 }
 
 } // namespace

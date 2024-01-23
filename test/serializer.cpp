@@ -53,15 +53,17 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         const auto index = e.index();
         const auto end = e.atlas->info().nframes-1;
         fm_assert(e.frame == end);
-        fm_assert(!e.active);
-        e.activate(e.index());
-        fm_assert(e.active);
-        e.update(index, 1.f/60);
-        fm_assert(e.frame != end);
-        for (int i = 0; i < 60*3; i++)
+        {   auto& x = std::get<door_scenery>(e.subtype);
+            fm_assert(!x.active);
+            e.activate(e.index());
+            fm_assert(x.active);
             e.update(index, 1.f/60);
-        fm_assert(e.frame == 0);
-        fm_assert(!e.active);
+            fm_assert(e.frame != end);
+            for (int i = 0; i < 60*3; i++)
+                e.update(index, 1.f/60);
+            fm_assert(e.frame == 0);
+            fm_assert(!x.active);
+        }
     }
     return c;
 }

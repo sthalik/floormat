@@ -66,6 +66,9 @@ struct entity_accessors<object, inspect_intent_t> {
     }
 };
 
+template<typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 template<>
 struct entity_accessors<scenery, inspect_intent_t> {
     static constexpr auto accessors()
@@ -74,8 +77,25 @@ struct entity_accessors<scenery, inspect_intent_t> {
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
             E::type<bool>::field{"interactive"_s,
-                [](const scenery& x) { return x.interactive; },
-                [](scenery& x, bool value) { x.interactive = value; }
+                                 [](const scenery& x) {
+                                   return std::visit(overloaded {
+                                       [&](const door_scenery& s) { return s.interactive; },
+                                       [&](const generic_scenery& s) { return s.interactive; },
+                                   }, x.subtype);
+                                 },
+                                 [](scenery& x, bool b) {
+                                   return std::visit(overloaded {
+                                       [&](door_scenery& s) { s.interactive = b; },
+                                       [&](generic_scenery& s) { s.interactive = b; },
+                                   }, x.subtype);
+                                 },
+                                [](const scenery& x) {
+                                  return std::visit(overloaded {
+                                      [&](door_scenery&) { return st::enabled; },
+                                      [&](generic_scenery&) { return st::enabled; },
+                                      [](auto&&) { return st::hidden; },
+                                  }, x.subtype);
+                                },
             },
         };
         return std::tuple_cat(tuple0, tuple);

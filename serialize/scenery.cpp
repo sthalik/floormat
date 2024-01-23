@@ -84,6 +84,8 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
 {
     fm_assert(f.atlas);
     const scenery_proto default_scenery;
+    const generic_scenery_proto default_generic_scenery;
+    const door_scenery_proto default_door_scenery;
     if (f.type != default_scenery.type)
         j["type"] = f.type;
     j["atlas-name"] = f.atlas->name();
@@ -93,10 +95,22 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
         j["rotation"] = f.r;
     if (f.pass != default_scenery.pass)
         j["pass-mode"] = f.pass;
-    if (f.active != default_scenery.active)
-        j["active"] = f.active;
-    if (f.interactive != default_scenery.interactive)
-        j["interactive"] = f.interactive;
+    std::visit(overloaded {
+        [&](const generic_scenery_proto& x) {
+          if (x.active != default_generic_scenery.active)
+              j["active"] = x.active;
+          if (x.interactive != default_generic_scenery.interactive)
+              j["interactive"] = x.interactive;
+        },
+        [&](const door_scenery_proto& x) {
+          if (x.active != default_door_scenery.active)
+              j["active"] = x.active;
+          if (x.interactive != default_door_scenery.interactive)
+              j["interactive"] = x.interactive;
+          if (x.closing != default_door_scenery.closing)
+              j["closing"] = x.closing;
+        },
+    }, f.subtype);
     if (f.offset != default_scenery.offset)
         j["offset"] = Vector2i(f.offset);
     if (f.bbox_offset != default_scenery.bbox_offset)
@@ -114,17 +128,19 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
             value = j[s];
     };
 
+    const generic_scenery_proto G;
+    const door_scenery_proto D;
+
     StringView atlas_name = j["atlas-name"];
     fm_soft_assert(!atlas_name.isEmpty());
     f = {};
     f.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
-
     auto type = scenery_type::generic;              get("type", type);
     auto frame       = f.frame;                     get("frame", frame);
     auto r           = f.atlas->first_rotation();   get("rotation", r);
     pass_mode pass   = f.pass;                      get("pass-mode", pass);
-    bool active      = f.active;                    get("active", active);
-    bool interactive = f.interactive;               get("interactive", interactive);
+    bool active      = G.active;                    get("active", active);
+    bool interactive = G.interactive;               get("interactive", interactive);
     auto offset      = Vector2i(f.offset);          get("offset", offset);
     auto bbox_offset = Vector2i(f.bbox_offset);     get("bbox-offset", bbox_offset);
     auto bbox_size   = Vector2ui(f.bbox_size);      get("bbox-size", bbox_size);
@@ -136,31 +152,36 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     {
     default:
         fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
-    case scenery_type::generic:
+    case scenery_type::generic: {
+        auto s = generic_scenery_proto{};
         f.type = object_type::scenery;
-        f.sc_type = scenery_type::generic;
         f.r = r;
         f.frame = frame;
         f.pass = pass;
-        f.active = active;
-        f.interactive = interactive;
+        s.active = active;
+        s.interactive = interactive;
         f.offset = Vector2b(offset);
         f.bbox_offset = Vector2b(bbox_offset);
         f.bbox_size = Vector2ub(bbox_size);
+        f.subtype = s;
         break;
-    case scenery_type::door:
+    }
+    case scenery_type::door: {
         fm_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
+        auto s = door_scenery_proto{};
         f.type = object_type::scenery;
-        f.sc_type = scenery_type::door;
         f.r = r;
         f.frame = uint16_t(f.atlas->group(r).frames.size()-1);
         f.pass = pass_mode::blocked;
-        f.interactive = true;
-        f.closing = false;
+        s.active = false;
+        s.interactive = true;
+        s.closing = false;
         f.offset = Vector2b(offset);
         f.bbox_offset = Vector2b(bbox_offset);
         f.bbox_size = Vector2ub(bbox_size);
+        f.subtype = s;
         break;
+    }
     }
 }
 

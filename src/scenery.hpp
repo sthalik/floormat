@@ -11,13 +11,15 @@
 
 namespace floormat {
 
+template<typename... Ts> struct [[maybe_unused]] overloaded : Ts... { using Ts::operator()...; };
+template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 struct chunk;
 class anim_atlas;
 class world;
 
 enum class scenery_type : unsigned char {
-    none, generic,
-    door, // todo remove it
+    none, generic, door,
 };
 
 struct generic_scenery_proto
@@ -26,6 +28,7 @@ struct generic_scenery_proto
     unsigned char interactive : 1 = false;
 
     bool operator==(const generic_scenery_proto& p) const;
+    enum scenery_type scenery_type() const;
 };
 
 struct door_scenery_proto
@@ -35,6 +38,7 @@ struct door_scenery_proto
     unsigned char closing     : 1 = false;
 
     bool operator==(const door_scenery_proto& p) const;
+    enum scenery_type scenery_type() const;
 };
 
 using scenery_proto_variants = std::variant<generic_scenery_proto, door_scenery_proto>;
@@ -49,6 +53,7 @@ struct scenery_proto : object_proto
     scenery_proto& operator=(const scenery_proto&);
     bool operator==(const object_proto& proto) const override;
     explicit operator bool() const;
+    enum scenery_type scenery_type() const;
 };
 
 struct scenery;
@@ -106,6 +111,7 @@ struct scenery final : object
 
     static scenery_variants subtype_from_proto(object_id id, struct chunk& c,
                                                const scenery_proto_variants& variants);
+    static scenery_variants subtype_from_scenery_type(object_id id, struct chunk& c, enum scenery_type type);
 
 private:
     friend class world;

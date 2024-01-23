@@ -171,9 +171,17 @@ bool read_object_flags(binary_reader<T>& s, U& e)
          fm_throw("invalid object type '{}'"_cf, (int)e.type);
     if constexpr(tag == object_type::scenery)
     {
-        e.active      = !!(flags & 1 << 2);
-        e.closing     = !!(flags & 1 << 3);
-        e.interactive = !!(flags & 1 << 4);
+        if (auto* val = std::get_if<generic_scenery_proto>(&e.subtype))
+        {
+            val->active      = !!(flags & 1 << 2);
+            val->interactive = !!(flags & 1 << 4);
+        }
+        else if (auto* val = std::get_if<door_scenery_proto>(&e.subtype))
+        {
+            val->active      = !!(flags & 1 << 2);
+            val->closing     = !!(flags & 1 << 3);
+            val->interactive = !!(flags & 1 << 4);
+        }
     }
     else if constexpr(tag == object_type::critter)
     {
@@ -461,8 +469,16 @@ void reader_state::read_chunks(reader_t& s)
                         s >> sc.offset[1];
                     }
                     read_bbox(s, sc);
-                    if (sc.active)
-                        sc.delta << s;
+                    if (const auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
+                    {
+                        if (val->active)
+                            sc.delta << s;
+                    }
+                    else if (const auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
+                    {
+                        if (val->active)
+                            sc.delta << s;
+                    }
                 }
                 auto e = _world->make_object<scenery, false>(oid, {ch, local}, sc);
                 (void)e;
@@ -561,12 +577,25 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             sc.bbox_offset[0] << s;
             sc.bbox_offset[1] << s;
         }
-        if (sc.active)
+        if (auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
         {
-            if (PROTO >= 4) [[likely]]
-                sc.delta << s;
-            else
-                sc.delta = (uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+            if (val->active)
+            {
+                if (PROTO >= 4) [[likely]]
+                    sc.delta << s;
+                else
+                    sc.delta = (uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+            }
+        }
+        else if (auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
+        {
+            if (val->active)
+            {
+                if (PROTO >= 4) [[likely]]
+                    sc.delta << s;
+                else
+                    sc.delta = (uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+            }
         }
     }
     global_coords coord{ch, local_coords{i}};

@@ -5,13 +5,14 @@
 #include "world.hpp"
 #include "shaders/shader.hpp"
 #include "src/rotation.inl"
+#include "compat/exception.hpp"
 #include <algorithm>
 
 namespace floormat {
 
 namespace {
 
-template<typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<typename... Ts> struct [[maybe_unused]] overloaded : Ts... { using Ts::operator()...; };
 template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template<typename T> struct proto_to_scenery_;
@@ -34,17 +35,34 @@ scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 
 bool generic_scenery_proto::operator==(const generic_scenery_proto& p) const = default;
-bool door_scenery_proto::operator==(const door_scenery_proto& p) const = default;
+enum scenery_type generic_scenery_proto::scenery_type() const { return scenery_type::generic; }
+
 void generic_scenery::update(scenery&, size_t, float) {}
 Vector2 generic_scenery::ordinal_offset(const scenery&, Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(const scenery&, size_t) const { return interactive; }
 bool generic_scenery::activate(floormat::scenery&, size_t) { return false; }
 object_type generic_scenery::type() const noexcept { return object_type::scenery; }
+enum scenery_type generic_scenery::scenery_type() const { return scenery_type::generic; }
+
+enum scenery_type scenery_proto::scenery_type() const
+{
+    return std::visit(
+        [&]<typename T>(const T& x) { return x.scenery_type(); },
+        subtype
+    );
+}
+
 generic_scenery::operator generic_scenery_proto() const { return { .active = active, .interactive = interactive, }; }
 
 generic_scenery::generic_scenery(object_id, struct chunk&, const generic_scenery_proto& p) :
     active{p.active}, interactive{p.interactive}
 {}
+
+bool door_scenery_proto::operator==(const door_scenery_proto& p) const = default;
+enum scenery_type door_scenery_proto::scenery_type() const { return scenery_type::door; }
+
+enum scenery_type door_scenery::scenery_type() const { return scenery_type::door; }
+door_scenery::operator door_scenery_proto() const { return { .active = active, .interactive = interactive, .closing = closing, }; }
 
 door_scenery::door_scenery(object_id, struct chunk&, const door_scenery_proto& p) :
     closing{p.closing}, active{p.active}, interactive{p.interactive}
@@ -52,7 +70,7 @@ door_scenery::door_scenery(object_id, struct chunk&, const door_scenery_proto& p
 
 void door_scenery::update(scenery& s, size_t, float dt)
 {
-    if (!s.atlas || active)
+    if (!s.atlas || !active)
         return;
 
     fm_assert(s.atlas);
@@ -200,6 +218,14 @@ scenery::operator scenery_proto() const
     return ret;
 }
 
+enum scenery_type scenery::scenery_type() const
+{
+    return std::visit(
+        [&]<typename T>(const T& sc) { return sc.scenery_type(); },
+        subtype
+    );
+}
+
 scenery_variants scenery::subtype_from_proto(object_id id, struct chunk& c, const scenery_proto_variants& variant)
 {
     return std::visit(
@@ -208,6 +234,20 @@ scenery_variants scenery::subtype_from_proto(object_id id, struct chunk& c, cons
         },
         variant
     );
+}
+
+scenery_variants scenery::subtype_from_scenery_type(object_id id, struct chunk& c, enum scenery_type type)
+{
+    switch (type)
+    {
+    case scenery_type::generic:
+        return generic_scenery{id, c, {}};
+    case scenery_type::door:
+        return door_scenery{id, c, {}};
+    case scenery_type::none:
+        break;
+    }
+    fm_throw("invalid scenery type"_cf, (int)type);
 }
 
 scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :

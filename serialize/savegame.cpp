@@ -148,7 +148,6 @@ struct visitor_
             break;
         case object_type::scenery:
         case object_type::critter:
-        case object_type::door_new:
             static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::anim, f);
             break;
         case object_type::none:
@@ -172,11 +171,9 @@ struct visitor_
 
         switch (type)
         {
-        case object_type::door_new: fm_assert(false && "todo");
         case object_type::critter: do_visit(static_cast<critter&>(obj), f); return;
         case object_type::scenery: do_visit(static_cast<scenery&>(obj), f); return;
         case object_type::light:   do_visit(static_cast<light&>(obj), f); return;
-        //case object_type::door:   do_visit(static_cast<door&>(obj), f); return;
         case object_type::COUNT:
         case object_type::none:
             break;
@@ -224,37 +221,71 @@ struct visitor_
             setter(obj, flags & bits);
     }
 
-    template<typename F> void visit(scenery& obj, F&& f)
+    template<typename F> void visit(generic_scenery& s, F&& f)
     {
-        auto sc_type = obj.sc_type;
-        do_visit(sc_type, f);
-        obj.sc_type = sc_type;
-
         constexpr struct {
             uint8_t bits;
-            bool(*getter)(const scenery&);
-            void(*setter)(scenery&, bool);
+            bool(*getter)(const generic_scenery&);
+            void(*setter)(generic_scenery&, bool);
         } pairs[] = {
             { 1 << 0,
-              [](const scenery& sc) { return !!sc.active; },
-              [](scenery& sc, bool value) { sc.active = value; }
-            },
-            { 1 << 1,
-              [](const scenery& sc) { return !!sc.closing; },
-              [](scenery& sc, bool value) { sc.closing = value; }
+                [](const auto& sc) { return !!sc.active; },
+                [](auto& sc, bool value) { sc.active = value; }
             },
             { 1 << 2,
-              [](const scenery& sc) { return !!sc.interactive; },
-              [](scenery& sc, bool value) { sc.interactive = value; }
+                [](const auto& sc) { return !!sc.interactive; },
+                [](auto& sc, bool value) { sc.interactive = value; }
             },
         };
 
         uint8_t flags = 0;
         for (auto [bits, getter, setter] : pairs)
-            flags |= bits * getter(obj);
+            flags |= bits * getter(s);
         do_visit(flags, f);
         for (auto [bits, getter, setter] : pairs)
-            setter(obj, flags & bits);
+            setter(s, flags & bits);
+    }
+
+    template<typename F> void visit(door_scenery& s, F&& f)
+    {
+        constexpr struct {
+            uint8_t bits;
+            bool(*getter)(const door_scenery&);
+            void(*setter)(door_scenery&, bool);
+        } pairs[] = {
+            { 1 << 0,
+              [](const auto& sc) { return !!sc.active; },
+              [](auto& sc, bool value) { sc.active = value; }
+            },
+            { 1 << 1,
+              [](const auto& sc) { return !!sc.closing; },
+              [](auto& sc, bool value) { sc.closing = value; }
+            },
+            { 1 << 2,
+              [](const auto& sc) { return !!sc.interactive; },
+              [](auto& sc, bool value) { sc.interactive = value; }
+            },
+        };
+
+        uint8_t flags = 0;
+        for (auto [bits, getter, setter] : pairs)
+            flags |= bits * getter(s);
+        do_visit(flags, f);
+        for (auto [bits, getter, setter] : pairs)
+            setter(s, flags & bits);
+    }
+
+    template<typename F> void visit(scenery& obj, F&& f)
+    {
+        auto sc_type = obj.scenery_type();
+        do_visit(sc_type, f);
+        if (sc_type != obj.scenery_type())
+            obj.subtype = scenery::subtype_from_scenery_type(obj.id, *obj.c, sc_type);
+
+        std::visit(
+            [&]<typename T>(T& x) { return do_visit(x, f); },
+            obj.subtype
+        );
     }
 
     template<typename F> void visit(light& obj, F&& f)
@@ -738,8 +769,6 @@ struct reader final : visitor_<reader>
         case object_type::none:
         case object_type::COUNT:
             break;
-        case object_type::door_new:
-            fm_assert(false && "todo");
         case object_type::light:
             obj = w.make_unconnected_object<light>(); goto ok;
         case object_type::critter:

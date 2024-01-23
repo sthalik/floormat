@@ -29,7 +29,7 @@ using vobj_ = vobj_editor::vobj_;
 
 StringView scenery_type_to_string(const scenery_& sc)
 {
-    switch (sc.proto.sc_type)
+    switch (sc.proto.scenery_type())
     {
     case scenery_type::none:    return "none"_s;
     case scenery_type::generic: return "generic"_s;
