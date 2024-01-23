@@ -146,10 +146,17 @@ struct visitor_
         case object_type::light:
             static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::vobj, f);
             break;
-        default:
+        case object_type::scenery:
+        case object_type::critter:
+        case object_type::door_new:
             static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::anim, f);
             break;
+        case object_type::none:
+        case object_type::COUNT:
+            break;
         }
+        if (!obj.atlas)
+            fm_throw("invalid object type {}"_cf, (int)type);
         //do_visit(*obj.c, f);
 
         auto pt = obj.coord.local();
@@ -165,6 +172,7 @@ struct visitor_
 
         switch (type)
         {
+        case object_type::door_new: fm_assert(false && "todo");
         case object_type::critter: do_visit(static_cast<critter&>(obj), f); return;
         case object_type::scenery: do_visit(static_cast<scenery&>(obj), f); return;
         case object_type::light:   do_visit(static_cast<light&>(obj), f); return;
@@ -730,6 +738,8 @@ struct reader final : visitor_<reader>
         case object_type::none:
         case object_type::COUNT:
             break;
+        case object_type::door_new:
+            fm_assert(false && "todo");
         case object_type::light:
             obj = w.make_unconnected_object<light>(); goto ok;
         case object_type::critter:
