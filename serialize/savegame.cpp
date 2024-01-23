@@ -141,7 +141,15 @@ struct visitor_
     void visit_object_internal(object& obj, F&& f, object_id id, object_type type, chunk_coords_ ch)
     {
         non_const(obj.id) = id;
-        do_visit_nonconst(obj.atlas, f);
+        switch (type)
+        {
+        case object_type::light:
+            static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::vobj, f);
+            break;
+        default:
+            static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::anim, f);
+            break;
+        }
         //do_visit(*obj.c, f);
 
         auto pt = obj.coord.local();
@@ -324,9 +332,9 @@ struct writer final : visitor_<writer>
     using visitor_<writer>::visit;
 
     template<typename F>
-    void visit(std::shared_ptr<anim_atlas>& a, F&& f)
+    void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
     {
-        atlasid id = intern_atlas(a, atlas_type::object);
+        atlasid id = intern_atlas(a, type);
         do_visit(id, f);
     }
 
@@ -362,8 +370,12 @@ struct writer final : visitor_<writer>
         {
         case atlas_type::ground: name = reinterpret_cast<const ground_atlas*>(atlas)->name(); goto ok;
         case atlas_type::wall:   name = reinterpret_cast<const wall_atlas*>(atlas)->name(); goto ok;
-        case atlas_type::object: name = reinterpret_cast<const anim_atlas*>(atlas)->name(); goto ok;
-        case atlas_type::none: break;
+        case atlas_type::vobj:
+        case atlas_type::anim:
+            name = reinterpret_cast<const anim_atlas*>(atlas)->name();
+            goto ok;
+        case atlas_type::none:
+            break;
         }
         fm_abort("invalid atlas type '%d'", (int)type);
 
@@ -639,7 +651,8 @@ namespace {
 template<atlas_type Type> struct atlas_from_type;
 template<> struct atlas_from_type<atlas_type::ground> { using Type = ground_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
 template<> struct atlas_from_type<atlas_type::wall> { using Type = wall_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }};
-template<> struct atlas_from_type<atlas_type::object> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
+template<> struct atlas_from_type<atlas_type::anim> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
+template<> struct atlas_from_type<atlas_type::vobj> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
 
 struct reader final : visitor_<reader>
 {
@@ -687,11 +700,20 @@ struct reader final : visitor_<reader>
     }
 
     template<typename F>
-    void visit(std::shared_ptr<anim_atlas>& a, F&& f)
+    void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
     {
         atlasid id = (atlasid)-1;
         f(id);
-        a = loader.anim_atlas(get_atlas<atlas_type::object>(id), {});
+        switch (type)
+        {
+        case atlas_type::anim: a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}); return;
+        case atlas_type::vobj: a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas; return;
+        case atlas_type::ground:
+        case atlas_type::wall:
+        case atlas_type::none:
+            break;
+        }
+        fm_throw("invalid atlas type {}"_cf, (int)type);
     }
 
     template<typename F>
@@ -708,26 +730,38 @@ struct reader final : visitor_<reader>
         case object_type::none:
         case object_type::COUNT:
             break;
-        case object_type::light: obj = w.make_unconnected_object<light>(); goto ok;
-        case object_type::critter: obj = w.make_unconnected_object<critter>(); goto ok;
-        case object_type::scenery: obj = w.make_unconnected_object<scenery>(); goto ok;
+        case object_type::light:
+            obj = w.make_unconnected_object<light>(); goto ok;
+        case object_type::critter:
+            obj = w.make_unconnected_object<critter>(); goto ok;
+        case object_type::scenery:
+            obj = w.make_unconnected_object<scenery>(); goto ok;
         }
         fm_throw("invalid object type {}"_cf, type_);
 ok:
         visit_object_internal(*obj, f, id, object_type(type), ch);
     }
 
-    void deserialize_header_(binary_reader<const char*>& s)
+    bool deserialize_header_(binary_reader<const char*>& s, ArrayView<const char> buf)
     {
         fm_assert(PROTO == (proto_t)-1);
         auto magic = s.read<file_magic.size()>();
         fm_soft_assert(StringView{magic.data(), magic.size()} == file_magic);
         PROTO << s;
-        fm_soft_assert(PROTO >= proto_version_min);
-        fm_soft_assert(PROTO <= proto_version);
-        nstrings << s;
-        natlases << s;
-        nchunks << s;
+        if (PROTO < proto_version_min && PROTO > 0)
+        {
+            w.deserialize_old(w, buf.exceptPrefix(s.bytes_read()), PROTO);
+            return true;
+        }
+        else
+        {
+            fm_soft_assert(PROTO >= proto_version_min);
+            fm_soft_assert(PROTO <= proto_version);
+            nstrings << s;
+            natlases << s;
+            nchunks << s;
+            return false;
+        }
     }
 
     StringView get_string(atlasid id)
@@ -767,9 +801,18 @@ ok:
             switch (type)
             {
             case atlas_type::none: break;
-            case atlas_type::ground: atlas = loader.ground_atlas(str, loader_policy::warn).get(); goto ok;
-            case atlas_type::wall: atlas = loader.wall_atlas(str, loader_policy::warn).get(); goto ok;
-            case atlas_type::object: atlas = loader.anim_atlas(str, {}).get(); goto ok;
+            case atlas_type::ground:
+                atlas = loader.ground_atlas(str, loader_policy::warn).get();
+                goto ok;
+            case atlas_type::wall:
+                atlas = loader.wall_atlas(str, loader_policy::warn).get();
+                goto ok;
+            case atlas_type::anim:
+                atlas = loader.anim_atlas(str, {}).get();
+                goto ok;
+            case atlas_type::vobj:
+                atlas = loader.vobj(str).atlas.get();
+                goto ok;
             }
             fm_throw("invalid atlas_type {}"_cf, (size_t)type);
 ok:
@@ -876,7 +919,8 @@ ok:
     void deserialize_world(ArrayView<const char> buf)
     {
         binary_reader s{buf.data(), buf.data() + buf.size()};
-        deserialize_header_(s);
+        if (deserialize_header_(s, buf))
+            return;
         deserialize_strings_(s);
         deserialize_atlases(s);
         for (uint32_t i = 0; i < nchunks; i++)

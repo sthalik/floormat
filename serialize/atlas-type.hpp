@@ -3,6 +3,6 @@
 namespace floormat::Serialize {
     enum class atlas_type : uint8_t
     {
-        none, ground, wall, object,
+        none, ground, wall, anim, vobj,
     };
 } // namespace floormat::Serialize
