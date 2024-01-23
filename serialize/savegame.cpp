@@ -196,6 +196,10 @@ struct visitor_
         f(coord.z);
     }
 
+    enum : uint8_t {
+        flag_playable = 1 << 0,
+    };
+
     template<typename F>
     void visit(critter& obj, F&& f)
     {
@@ -207,7 +211,7 @@ struct visitor_
             bool(*getter)(const critter&);
             void(*setter)(critter&, bool);
         } pairs[] = {
-            { 1 << 0,
+            { flag_playable,
               [](const critter& sc) { return !!sc.playable; },
               [](critter& sc, bool value) { sc.playable = value; }
             },
@@ -221,7 +225,7 @@ struct visitor_
             setter(obj, flags & bits);
     }
 
-    enum object_flags : uint8_t {
+    enum : uint8_t {
         flag_active      = 1 << 0,
         flag_closing     = 1 << 1,
         flag_interactive = 1 << 2,
