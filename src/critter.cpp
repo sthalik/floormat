@@ -40,8 +40,9 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case D: return SE;
     case R: return NE;
     case U: return NW;
-    default: std::unreachable();
     }
+    std::unreachable();
+    fm_assert(false);
 }
 
 constexpr Vector2i rotation_to_vec(rotation r)
@@ -58,8 +59,9 @@ constexpr Vector2i rotation_to_vec(rotation r)
     case SW: return { -1,  1 };
     case W:  return { -1,  0 };
     case NW: return { -1, -1 };
-    default: std::unreachable();
     }
+    std::unreachable();
+    fm_assert(false);
 }
 
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
@@ -78,6 +80,7 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     case NW: return { NW,  W,  N };
     }
     std::unreachable();
+    fm_assert(false);
 }
 
 } // namespace
@@ -177,6 +180,7 @@ void critter::update(size_t i, float dt)
 
     constexpr auto move_vecs_ = make_move_vecs(std::make_index_sequence<(size_t)rotation_COUNT>{});
     const auto& move_vecs = move_vecs_[(size_t)r];
+    size_t nvecs = (int)new_r & 1 ? 3 : 1;
 
     if (r != new_r)
         if (is_dynamic())
@@ -186,7 +190,7 @@ void critter::update(size_t i, float dt)
 
     for (int k = 0; k < nframes; k++)
     {
-        for (auto j = 0uz; j < 3; j++)
+        for (auto j = 0uz; j < nvecs; j++)
         {
             auto vec = move_vecs[j];
             constexpr auto frac = 65535u;
@@ -203,16 +207,8 @@ void critter::update(size_t i, float dt)
                     ++frame %= atlas->info().nframes;
                     goto done;
                 }
-                else
-                {
-                    offset_frac = {};
-                    delta = 0;
-                    return;
-                }
             }
         }
-        delta = 0;
-        break;
 done:
         (void)0;
     }
