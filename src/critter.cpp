@@ -195,9 +195,10 @@ void critter::update(size_t i, float dt)
             auto vec = move_vecs[j];
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
-            const auto sign_vec = Vector2(Math::sign(vec[0]), Math::sign(vec[1]));
+            const auto sign_vec = Vector2(Math::sign(vec.x()), Math::sign(vec.y()));
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
-            offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_[0], 1.f)), std::fabs(std::fmod(offset_[1], 1.f))) * frac);
+            offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_.x(), 1.f)),
+                                            std::fabs(std::fmod(offset_.y(), 1.f))) * frac);
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
