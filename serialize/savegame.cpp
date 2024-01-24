@@ -698,10 +698,22 @@ void world::serialize(StringView filename)
 namespace {
 
 template<atlas_type Type> struct atlas_from_type;
-template<> struct atlas_from_type<atlas_type::ground> { using Type = ground_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
-template<> struct atlas_from_type<atlas_type::wall> { using Type = wall_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }};
-template<> struct atlas_from_type<atlas_type::anim> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
-template<> struct atlas_from_type<atlas_type::vobj> { using Type = anim_atlas; static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); } };
+template<> struct atlas_from_type<atlas_type::ground> {
+    using Type = ground_atlas;
+    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
+};
+template<> struct atlas_from_type<atlas_type::wall> {
+    using Type = wall_atlas;
+    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
+};
+template<> struct atlas_from_type<atlas_type::anim> {
+    using Type = anim_atlas;
+    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
+};
+template<> struct atlas_from_type<atlas_type::vobj> {
+    using Type = anim_atlas;
+    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
+};
 
 struct reader final : visitor_<reader>
 {
