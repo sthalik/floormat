@@ -698,22 +698,10 @@ void world::serialize(StringView filename)
 namespace {
 
 template<atlas_type Type> struct atlas_from_type;
-template<> struct atlas_from_type<atlas_type::ground> {
-    using Type = ground_atlas;
-    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
-};
-template<> struct atlas_from_type<atlas_type::wall> {
-    using Type = wall_atlas;
-    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
-};
-template<> struct atlas_from_type<atlas_type::anim> {
-    using Type = anim_atlas;
-    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
-};
-template<> struct atlas_from_type<atlas_type::vobj> {
-    using Type = anim_atlas;
-    static StringView name(void* ptr) { return reinterpret_cast<Type*>(ptr)->name(); }
-};
+template<> struct atlas_from_type<atlas_type::ground> { using Type = ground_atlas; };
+template<> struct atlas_from_type<atlas_type::wall> { using Type = wall_atlas; };
+template<> struct atlas_from_type<atlas_type::anim> { using Type = anim_atlas; };
+template<> struct atlas_from_type<atlas_type::vobj> { using Type = anim_atlas; };
 
 struct reader final : visitor_<reader>
 {
@@ -837,7 +825,9 @@ ok:
         fm_soft_assert(id < atlases.size());
         auto a = atlases[id];
         fm_soft_assert(a.type == Type);
-        return atlas_from_type<Type>::name(a.atlas);
+        using atlas_type = typename atlas_from_type<Type>::Type;
+        const auto* atlas = reinterpret_cast<const atlas_type*>(a.atlas);
+        return atlas->name();
     }
 
     void deserialize_strings_(binary_reader<const char*>& s)
