@@ -236,6 +236,10 @@ void path_test::draw_ui(app& a, float width)
         do_column("length");
         std::snprintf(buf, std::size(buf), "%d", (int)res.path.size());
         text(buf);
+
+        do_column("time");
+        std::snprintf(buf, std::size(buf), "%.1f ms", (double)(1000 * res.time));
+        text(buf);
     }
 }
 
