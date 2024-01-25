@@ -34,7 +34,7 @@ path_search_result::path_search_result()
 
 path_search_result::~path_search_result() noexcept
 {
-    if (_node) [[likely]]
+    if (_node && _node->vec.capacity() > 0) [[likely]]
     {
         _node->vec.clear();
         _node->_next = std::move(_pool);

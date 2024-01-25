@@ -108,7 +108,7 @@ void set_result_from_idx(path_search_result& result, const std::vector<visited>&
     path.clear();
 
     const auto& to_node = nodes[idx];
-    if (to != to_node.pt)
+    if (result.is_found() && to != to_node.pt)
         path.push_back(to);
     result.set_cost(to_node.dist);
 

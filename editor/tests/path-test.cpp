@@ -8,8 +8,42 @@
 #include "../imgui-raii.hpp"
 #include "src/camera-offset.hpp"
 #include <Magnum/Math/Functions.h>
+#include <magnum/Math/Color.h>
 
 namespace floormat::tests {
+
+using namespace floormat::imgui;
+
+struct path_test : base_test
+{
+    bool handle_key(app& a, const key_event& e, bool is_down) override;
+    bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
+    bool handle_mouse_move(app& a, const mouse_move_event& e) override;
+    void draw_overlay(app& a) override;
+    void draw_ui(app& a, float width) override;
+    void update_pre(app& a) override;
+    void update_post(app& a) override;
+
+    struct pending_s
+    {
+        point from, to;
+        object_id own_id;
+        uint32_t max_dist;
+        Vector2ub own_size;
+    } pending = {};
+
+    struct result_s
+    {
+        point from, to;
+        std::vector<point> path;
+        float time;
+        uint32_t cost, distance;
+        bool found : 1;
+    } result;
+
+    bool has_result : 1 = false, has_pending : 1 = false;
+};
+
 
 bool path_test::handle_key(app& a, const key_event& e, bool is_down)
 {
@@ -116,8 +150,15 @@ void path_test::update_pre(app& a)
     if (res)
     {
         has_result = true;
-        result.from = pending.from;
-        result.path = res.path();
+        result = {
+            .from = pending.from,
+            .to = pending.to,
+            .path = std::move(res.path()),
+            .time = res.time(),
+            .cost = res.cost(),
+            .distance = res.distance(),
+            .found = res.is_found(),
+        };
     }
 }
 
@@ -128,9 +169,76 @@ void path_test::update_post(app& a)
 
 void path_test::draw_ui(app& a, float width)
 {
-    static uint32_t val;
-    label_left("foo", 100);
-    ImGui::InputScalar("##foo", ImGuiDataType_U32, &val);
+    constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
+    constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
+    constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
+
+    char buf[128];
+    const auto& res = result;
+
+    if (!has_result)
+        return;
+
+    auto from_c = Vector3i(res.from.chunk3()), to_c = Vector3i(res.to.chunk3());
+    auto from_l = Vector2i(res.from.local()), to_l = Vector2i(res.to.local());
+    auto from_p = Vector2i(res.from.offset()), to_p = Vector2i(res.to.offset());
+
+    constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
+    {
+        std::snprintf(buf, std::size(buf), "(%dx%d) <%dx%d> {%dx%d}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+    };
+
+    constexpr auto do_column = [](StringView name)
+    {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        text(name);
+        ImGui::TableNextColumn();
+    };
+
+    if (auto b1 = begin_table("##search_results", 2, table_flags))
+    {
+        ImGui::TableSetupColumn("##name", colflags_0);
+        ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
+
+        do_column("from");
+        print_coord(buf, from_c, from_l, from_p);
+        text(buf);
+
+        do_column("to");
+        print_coord(buf, to_c, to_l, to_p);
+        text(buf);
+
+        do_column("found?");
+        if (res.found)
+        {
+            auto b = push_style_color(ImGuiCol_Text, 0x00ff00ff_rgbaf);
+            text("yes");
+        }
+        else
+        {
+            {
+                auto b = push_style_color(ImGuiCol_Text, 0xff0000ff_rgbaf);
+                text("no");
+            }
+            {
+                auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
+                do_column("dist");
+                std::snprintf(buf, std::size(buf), "%d", (int)res.distance);
+                text(buf);
+            }
+        }
+
+        do_column("cost");
+        std::snprintf(buf, std::size(buf), "%d", (int)res.cost);
+        text(buf);
+
+        do_column("length");
+        std::snprintf(buf, std::size(buf), "%d", (int)res.path.size());
+        text(buf);
+    }
 }
+
+std::unique_ptr<base_test> tests_data::make_test_path() { return std::make_unique<path_test>(); }
 
 } // namespace floormat::tests

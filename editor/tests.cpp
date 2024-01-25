@@ -18,6 +18,8 @@ void label_left(StringView label, float width)
     ImGui::SetNextItemWidth(-1);
 }
 
+std::unique_ptr<base_test> tests_data::make_test_none() { return {}; }
+
 } // namespace floormat::tests
 
 namespace floormat {
@@ -28,18 +30,25 @@ tests_data_::~tests_data_() noexcept = default;
 tests_data_::tests_data_() = default;
 
 tests_data::~tests_data() noexcept = default;
-tests_data::tests_data() = default;
 
 base_test::~base_test() noexcept = default;
 base_test::base_test() = default;
 
 using namespace floormat::imgui;
 
-void tests_data::switch_to(size_t i)
+void tests_data::switch_to(Test i)
 {
-    fm_assert(i < std::size(fields));
-    const auto& [str, index, ctor] = fields[i];
-    *this = ctor();
+    fm_assert((size_t)i < std::size(fields));
+    current_index = Test::none;
+    current_test = make_test_none();
+    switch (i)
+    {
+    default: break;
+    case Test::none: current_test = make_test_none(); break;
+    case Test::path: current_test = make_test_path(); break;
+    }
+    if (current_test)
+        current_index = i;
 }
 
 safe_ptr<tests_data_> tests_data_::make()
@@ -49,51 +58,40 @@ safe_ptr<tests_data_> tests_data_::make()
 
 void app::tests_pre_update()
 {
-    std::visit(overloaded {
-        [](std::monostate) {},
-        [&](base_test& x) { return x.update_pre(*this); }
-    }, tests());
+    if (const auto& x = tests().current_test)
+        x->update_pre(*this);
 }
 
 void app::tests_post_update()
 {
-    std::visit(overloaded {
-        [](std::monostate) {},
-        [&](base_test& x) { return x.update_post(*this); }
-    }, tests());
+    if (const auto& x = tests().current_test)
+        x->update_post(*this);
 }
 
 bool app::tests_handle_mouse_click(const mouse_button_event& e, bool is_down)
 {
     update_cursor_tile(cursor.pixel);
 
-    return std::visit(overloaded {
-        [](std::monostate) { return false; },
-        [&](base_test& x) { return x.handle_mouse_click(*this, e, is_down); }
-    }, tests());
+    if (const auto& x = tests().current_test)
+        return x->handle_mouse_click(*this, e, is_down);
+    else
+        return false;
 }
 
 bool app::tests_handle_key(const key_event& e, bool is_down)
 {
-    switch (e.key)
-    {
-    case SDLK_ESCAPE:
-        tests().switch_to(0);
-        return true;
-    default:
-        return std::visit(overloaded {
-            [](std::monostate) { return false; },
-            [&](base_test& x) { return x.handle_key(*this, e, is_down); }
-        }, tests());
-    }
+    if (const auto& x = tests().current_test)
+        return x->handle_key(*this, e, is_down);
+    else
+        return false;
 }
 
 bool app::tests_handle_mouse_move(const mouse_move_event& e)
 {
-    return std::visit(overloaded {
-        [](std::monostate) { return false; },
-        [&](base_test& x) { return x.handle_mouse_move(*this, e); }
-    }, tests());
+    if (const auto& x = tests().current_test)
+        return x->handle_mouse_move(*this, e);
+    else
+        return false;
 }
 
 tests_data& app::tests()
@@ -103,39 +101,35 @@ tests_data& app::tests()
 
 void app::tests_reset_mode()
 {
-    if (!std::holds_alternative<std::monostate>(tests()))
-        tests() = std::monostate{};
+    tests().switch_to(Test::none);
 }
 
 void app::draw_tests_pane(float width)
 {
     ImGui::SeparatorText("Functional tests");
+    auto& t = tests();
 
     constexpr int selectable_flags = ImGuiSelectableFlags_SpanAvailWidth;
-    for (auto [str, i, ctor] : tests_data::fields)
-        if (ImGui::Selectable(str.data(), i == tests().index(), selectable_flags))
-            tests().switch_to(i);
 
-    std::visit(overloaded {
-        [](std::monostate) {},
-        [&](base_test& x) {
-            auto dpi = M->dpi_scale();
-            ImGui::NewLine();
-            ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 2*dpi.y());
-            auto b = push_id("###test-data");
-            return x.draw_ui(*this, width);
-        }
-    }, tests());
+    for (auto [str, id, ctor] : tests_data::fields)
+        if (ImGui::Selectable(str.data(), id == t.current_index, selectable_flags))
+            if (t.current_index != id)
+                t.switch_to(id);
+
+    if (t.current_test)
+    {
+        auto dpi = M->dpi_scale();
+        ImGui::NewLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 2*dpi.y());
+        auto b = push_id("###test-data");
+        t.current_test->draw_ui(*this, width);
+    }
 }
 
 void app::draw_tests_overlay()
 {
-    std::visit(overloaded {
-        [](std::monostate) {},
-        [&](base_test& x) {
-          return x.draw_overlay(*this);
-        }
-    }, tests());
+    if (const auto& x = tests().current_test)
+        x->draw_overlay(*this);
 }
 
 } // namespace floormat

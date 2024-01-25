@@ -25,6 +25,8 @@ GL::Texture2D make_constant_texture();
 struct meshes;
 } // namespace floormat::wireframe
 
+namespace floormat::tests { struct tests_data; }
+
 namespace floormat {
 
 struct fm_settings;
@@ -37,7 +39,6 @@ struct critter;
 struct point;
 class editor;
 template<typename T> struct shared_ptr_wrapper;
-struct tests_data;
 struct tests_data_;
 
 struct cursor_state final
@@ -171,7 +172,7 @@ private:
     void draw_tests_pane(float width);
     void draw_tests_overlay();
     void tests_reset_mode();
-    tests_data& tests();
+    tests::tests_data& tests();
 
     void reserve_inspector_array();
     void add_inspector(popup_target p);
