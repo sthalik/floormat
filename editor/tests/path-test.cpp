@@ -8,7 +8,7 @@
 #include "../imgui-raii.hpp"
 #include "src/camera-offset.hpp"
 #include <Magnum/Math/Functions.h>
-#include <magnum/Math/Color.h>
+#include <Magnum/Math/Color.h>
 
 namespace floormat::tests {
 
