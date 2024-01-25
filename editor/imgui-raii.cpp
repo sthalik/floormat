@@ -153,4 +153,10 @@ raii_wrapper begin_window(Containers::StringView name, bool* p_open, ImGuiWindow
         return {};
 }
 
+raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int window_flags)
+{
+    ImGui::BeginChild(name.data(), size, flags, window_flags);
+    return {&ImGui::EndChild};
+}
+
 } // namespace floormat::imgui

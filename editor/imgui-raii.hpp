@@ -24,6 +24,7 @@ private:
 };
 
 [[nodiscard]] raii_wrapper begin_window(StringView name = {}, bool* p_open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
+[[nodiscard]] raii_wrapper begin_child(StringView name, const ImVec2& size, int flags = ImGuiChildFlags_None, int window_flags = ImGuiWindowFlags_None);
 [[nodiscard]] raii_wrapper begin_main_menu();
 [[nodiscard]] raii_wrapper begin_menu(StringView name, bool enabled = true);
 [[nodiscard]] raii_wrapper begin_list_box(StringView name, ImVec2 size = {});

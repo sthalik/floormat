@@ -126,4 +126,11 @@ void path_test::update_post(app& a)
     (void)a;
 }
 
+void path_test::draw_ui(app& a, float width)
+{
+    static uint32_t val;
+    label_left("foo", 100);
+    ImGui::InputScalar("##foo", ImGuiDataType_U32, &val);
+}
+
 } // namespace floormat::tests

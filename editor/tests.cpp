@@ -1,10 +1,24 @@
 #include "tests-private.hpp"
 #include "compat/safe-ptr.hpp"
 #include "app.hpp"
+#include "floormat/main.hpp"
 #include "floormat/events.hpp"
 #include "imgui-raii.hpp"
 #define HAVE_LIBC 1
 #include <SDL_keycode.h>
+
+namespace floormat::tests {
+
+void label_left(StringView label, float width)
+{
+    float x = ImGui::GetCursorPosX();
+    ImGui::TextEx(label.data(), label.data() + label.size());
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
+    ImGui::SetNextItemWidth(-1);
+}
+
+} // namespace floormat::tests
 
 namespace floormat {
 
@@ -23,13 +37,9 @@ using namespace floormat::imgui;
 
 void tests_data::switch_to(size_t i)
 {
-    constexpr auto size = std::variant_size_v<tests::variant>;
-    fm_assert(i < size);
-    switch (i)
-    {
-    case 0: *this = std::monostate{}; break;
-    case 1: *this = path_test{}; break;
-    }
+    fm_assert(i < std::size(fields));
+    const auto& [str, index, ctor] = fields[i];
+    *this = ctor();
 }
 
 safe_ptr<tests_data_> tests_data_::make()
@@ -97,21 +107,34 @@ void app::tests_reset_mode()
         tests() = std::monostate{};
 }
 
-void app::draw_tests_pane()
+void app::draw_tests_pane(float width)
 {
     ImGui::SeparatorText("Functional tests");
 
     constexpr int selectable_flags = ImGuiSelectableFlags_SpanAvailWidth;
-    for (auto [str, i] : tests_data::fields)
+    for (auto [str, i, ctor] : tests_data::fields)
         if (ImGui::Selectable(str.data(), i == tests().index(), selectable_flags))
             tests().switch_to(i);
+
+    std::visit(overloaded {
+        [](std::monostate) {},
+        [&](base_test& x) {
+            auto dpi = M->dpi_scale();
+            ImGui::NewLine();
+            ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, 2*dpi.y());
+            auto b = push_id("###test-data");
+            return x.draw_ui(*this, width);
+        }
+    }, tests());
 }
 
 void app::draw_tests_overlay()
 {
     std::visit(overloaded {
         [](std::monostate) {},
-        [&](base_test& x) { return x.draw_overlay(*this); }
+        [&](base_test& x) {
+          return x.draw_overlay(*this);
+        }
     }, tests());
 }
 

@@ -263,9 +263,11 @@ void app::draw_editor_pane(float main_menu_height)
                                                 ImGuiWindowFlags_NoSavedSettings);
         const auto b = push_id("editor");
 
+        float width = 425 * dpi.x();
+
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         ImGui::SetNextFrameWantCaptureKeyboard(false);
-        ImGui::SetNextWindowSize({425 * dpi[0], window_size[1]-main_menu_height - style.WindowPadding.y});
+        ImGui::SetNextWindowSize({width, window_size.y()-main_menu_height - style.WindowPadding.y});
         if (auto b = begin_window({}, nullptr, igwf))
         {
             const auto b2 = push_id("editor-pane");
@@ -281,7 +283,7 @@ void app::draw_editor_pane(float main_menu_height)
                 else if (wa)
                     impl_draw_editor_scenery_pane<wall_editor>(*wa, dpi);
                 else if (_editor->mode() == editor_mode::tests)
-                    draw_tests_pane();
+                    draw_tests_pane(width);
             }
         }
     }

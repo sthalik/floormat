@@ -22,7 +22,7 @@ const char* label_left(StringView label, char(&buf)[N], size_t width)
 {
     std::snprintf(buf, N, "##%s", label.data());
     float x = ImGui::GetCursorPosX();
-    ImGui::Text("%s", label.data());
+    ImGui::TextEx(label.data(), label.data() + label.size());
     ImGui::SameLine();
     ImGui::SetCursorPosX(x + (float)width + ImGui::GetStyle().ItemInnerSpacing.x);
     ImGui::SetNextItemWidth(-1);

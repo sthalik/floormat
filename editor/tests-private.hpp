@@ -24,6 +24,7 @@ struct base_test
     virtual bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) = 0;
     virtual bool handle_mouse_move(app& a, const mouse_move_event& e) = 0;
     virtual void draw_overlay(app& a) = 0;
+    virtual void draw_ui(app& a, float width) = 0;
     virtual void update_pre(app& a) = 0;
     virtual void update_post(app& a) = 0;
 
@@ -39,6 +40,7 @@ struct path_test : base_test
     bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
     bool handle_mouse_move(app& a, const mouse_move_event& e) override;
     void draw_overlay(app& a) override;
+    void draw_ui(app& a, float width) override;
     void update_pre(app& a) override;
     void update_post(app& a) override;
 
@@ -59,6 +61,8 @@ struct path_test : base_test
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
+void label_left(StringView label, float width);
+
 using variant = std::variant<std::monostate, tests::path_test>;
 
 } // namespace floormat::tests
@@ -72,11 +76,16 @@ struct tests_data final : tests_data_, tests::variant
     ~tests_data() noexcept override;
     using tests::variant::operator=;
 
-    struct pair { StringView str; size_t index; };
+    struct pair
+    {
+        StringView str;
+        size_t index;
+        tests::variant(*ctor)();
+    };
 
     static constexpr inline pair fields[] = {
-        { "None"_s, 0 },
-        { "Path"_s, 1 },
+        { "None"_s, 0, [] -> tests::variant { return std::monostate{}; } },
+        { "Path"_s, 1, [] -> tests::variant { return tests::path_test{}; } },
     };
 
     void switch_to(size_t i);
