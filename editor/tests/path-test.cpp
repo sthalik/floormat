@@ -243,6 +243,6 @@ void path_test::draw_ui(app& a, float width)
     }
 }
 
-std::unique_ptr<base_test> tests_data::make_test_path() { return std::make_unique<path_test>(); }
+Pointer<base_test> tests_data::make_test_path() { return Pointer<path_test>{InPlaceInit}; }
 
 } // namespace floormat::tests

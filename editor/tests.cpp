@@ -9,6 +9,8 @@
 
 namespace floormat::tests {
 
+static_assert(arraySize(tests_data::fields) == (size_t)Test::COUNT);
+
 void label_left(StringView label, float width)
 {
     float x = ImGui::GetCursorPosX();
@@ -18,7 +20,7 @@ void label_left(StringView label, float width)
     ImGui::SetNextItemWidth(-1);
 }
 
-std::unique_ptr<base_test> tests_data::make_test_none() { return {}; }
+Pointer<base_test> tests_data::make_test_none() { return {}; }
 
 } // namespace floormat::tests
 
@@ -38,7 +40,7 @@ using namespace floormat::imgui;
 
 void tests_data::switch_to(Test i)
 {
-    fm_assert((size_t)i < std::size(fields));
+    fm_assert((size_t)i < arraySize(fields));
     current_index = Test::none;
     current_test = make_test_none();
     switch (i)
@@ -58,13 +60,13 @@ safe_ptr<tests_data_> tests_data_::make()
 
 void app::tests_pre_update()
 {
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         x->update_pre(*this);
 }
 
 void app::tests_post_update()
 {
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         x->update_post(*this);
 }
 
@@ -72,7 +74,7 @@ bool app::tests_handle_mouse_click(const mouse_button_event& e, bool is_down)
 {
     update_cursor_tile(cursor.pixel);
 
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         return x->handle_mouse_click(*this, e, is_down);
     else
         return false;
@@ -80,7 +82,7 @@ bool app::tests_handle_mouse_click(const mouse_button_event& e, bool is_down)
 
 bool app::tests_handle_key(const key_event& e, bool is_down)
 {
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         return x->handle_key(*this, e, is_down);
     else
         return false;
@@ -88,7 +90,7 @@ bool app::tests_handle_key(const key_event& e, bool is_down)
 
 bool app::tests_handle_mouse_move(const mouse_move_event& e)
 {
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         return x->handle_mouse_move(*this, e);
     else
         return false;
@@ -128,7 +130,7 @@ void app::draw_tests_pane(float width)
 
 void app::draw_tests_overlay()
 {
-    if (const auto& x = tests().current_test)
+    if (auto& x = tests().current_test)
         x->draw_overlay(*this);
 }
 
