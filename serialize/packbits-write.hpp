@@ -34,7 +34,7 @@ template<typename Field>
 requires requires (const Field& x) {
     { size_t{Field::Length} > 0 };
     sizeof(std::decay_t<decltype(x.value)>);
-    std::unsigned_integral<std::decay_t<decltype(x.value)>>;
+    requires std::unsigned_integral<std::decay_t<decltype(x.value)>>;
 }
 struct is_output_field<Field> : std::bool_constant<true> {};
 
