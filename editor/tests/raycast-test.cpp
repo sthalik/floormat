@@ -10,7 +10,6 @@ namespace {
 struct aabb_result
 {
     Vector2 ts;
-    float tmin, tmax;
     bool result;
 };
 
@@ -22,8 +21,21 @@ std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm)
     return { signs[0], signs[1] };
 }
 
+Vector2 dir_to_inv_norm(Vector2 ray_dir)
+{
+    constexpr float eps = 1e-6f;
+    auto dir = ray_dir.normalized();
+    Vector2 inv_dir{NoInit};
+    for (unsigned i = 0; i < 2; i++)
+        if (Math::abs(dir[i]) < eps)
+            inv_dir[i] = 0;
+        else
+            inv_dir[i] = 1 / dir[i];
+    return inv_dir;
+}
+
 // https://tavianator.com/2022/ray_box_boundary.html
-//
+// https://www.researchgate.net/figure/The-slab-method-for-ray-intersection-detection-15_fig3_283515372
 aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
                                   std::array<Vector2, 2> box_minmax, std::array<uint8_t, 2> signs)
 {
@@ -46,7 +58,7 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
         tmax = min(dmax, tmax);
     }
 
-    return { {ts[0], ts[1] }, tmin, tmax, tmin < tmax };
+    return { {ts[0], ts[1] }, tmin < tmax };
 }
 
 } // namespace
