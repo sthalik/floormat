@@ -48,6 +48,7 @@ void tests_data::switch_to(Test i)
     default: break;
     case Test::none: current_test = make_test_none(); break;
     case Test::path: current_test = make_test_path(); break;
+    case Test::raycast: current_test = make_test_raycast(); break;
     }
     if (current_test)
         current_index = i;
