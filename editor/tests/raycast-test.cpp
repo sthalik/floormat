@@ -173,7 +173,7 @@ struct raycast_test : base_test
     void do_raycasting(app& a, point from, point to)
     {
         constexpr auto tile_size = Vector2d{iTILE_SIZE2};
-        constexpr auto chunk_size = Vector2d{TILE_MAX_DIM};
+        constexpr auto chunk_size = Vector2d{TILE_MAX_DIM} * tile_size;
         constexpr double eps = 1e-6;
         constexpr double inv_eps = 1/eps;
         constexpr double sqrt_2 = Math::sqrt(2.);
@@ -182,7 +182,7 @@ struct raycast_test : base_test
         result.has_result = false;
 
         auto vec = Vector2d{};
-        vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size * tile_size;
+        vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
         vec += (Vector2d(to.local()) - Vector2d(from.local())) * tile_size;
         vec += (Vector2d(to.offset()) - Vector2d(from.offset()));
 
@@ -209,37 +209,51 @@ struct raycast_test : base_test
         }
 
         if (Math::abs(dir[short_axis]) < eps)
-            step = chunk_size[short_axis] * .5;
+            step = chunk_size.x() * .5;
         else
         {
-            step = Math::abs(inv_sqrt_2 / dir[short_axis]);
-            step = Math::clamp(step, 1., TILE_MAX_DIM*.5);
+            constexpr double numer = inv_sqrt_2 * tile_size.x();
+            step = Math::abs(numer / dir[short_axis]);
+            step = Math::clamp(step, 1., chunk_size.x()*.5);
             //Debug{} << "step" << step;
         }
-        auto nsteps = (uint32_t)Math::ceil(vec.length() / step);
+
+        Vector2d v;
+        v[long_axis] = std::copysign(step, vec[long_axis]);
+        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size.x(), Math::abs(vec[short_axis]))), vec[short_axis]);
+        auto size = Vector2ui(Math::abs(v));
+        const auto half = Vector2i(v*.5);
+
+        auto nsteps = (uint32_t)Math::ceil(Math::abs(vec[long_axis] / step));
 
         result.path.clear();
         result.path.reserve(nsteps);
         result.has_result = true;
 
         {
-            Debug{} << "vec" << vec;
-            auto c = object::normalize_coords(from, Vector2i(vec*.5));
-            auto size = Vector2ui(Math::ceil(Math::abs(vec)));
-            Debug{} << "c" << c << "size" << size;
+            //Debug{} << "vec" << vec;
+            auto c = object::normalize_coords(from, half);
+            //Debug{} << "c" << c << "size" << size;
             result.path.push_back(bbox{c, size});
         }
+
+        size[short_axis] += 2;
+
+        for (auto i = 1u; i < nsteps; i++)
+        {
+            auto u = Vector2i(vec * i/(double)nsteps);
+            u[short_axis] -= 1;
+            auto pt = object::normalize_coords(from, half + u);
+            result.path.push_back(bbox{pt, size});
+        }
+
+        //Debug{} << "path len" << result.path.size();
 
         auto dir_inv_norm = Vector2d{
             Math::abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1. / dir.x(),
             Math::abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1. / dir.y(),
         };
         auto signs = ray_aabb_signs(dir_inv_norm);
-
-        for (auto i = 1u; i < nsteps; i++)
-        {
-
-        }
     }
 };
 
