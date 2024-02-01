@@ -124,12 +124,19 @@ struct raycast_test : base_test
         const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
-        for (const auto& p : result.path)
+        for (auto [center, size] : result.path)
         {
-            auto p0 = object::normalize_coords(p.center, -Vector2i(p.size/2));
-            auto p1 = object::normalize_coords(p.center, Vector2i(p.size));
-            auto r0 = a.point_screen_pos(p0), r1 = a.point_screen_pos(p1);
-            draw.AddRect({r0.x(), r0.y()}, {r1.x(), r1.y()}, color);
+            //auto c = a.point_screen_pos(center);
+            //draw.AddCircleFilled({c.x(), c.y()}, 3, color);
+            const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
+            auto p00 = a.point_screen_pos(object::normalize_coords(center, {-hx, -hy})),
+                 p10 = a.point_screen_pos(object::normalize_coords(center, {hx, -hy})),
+                 p01 = a.point_screen_pos(object::normalize_coords(center, {-hx, hy})),
+                 p11 = a.point_screen_pos(object::normalize_coords(center, {hx, hy}));
+            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, 2);
+            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 2);
+            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 2);
+            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, 2);
         }
     }
 
@@ -165,7 +172,7 @@ struct raycast_test : base_test
 
     void do_raycasting(app& a, point from, point to)
     {
-        constexpr auto inv_tile_size = 1. / Vector2d(iTILE_SIZE2);
+        constexpr auto tile_size = Vector2d{iTILE_SIZE2};
         constexpr auto chunk_size = Vector2d{TILE_MAX_DIM};
         constexpr double eps = 1e-6;
         constexpr double inv_eps = 1/eps;
@@ -175,9 +182,9 @@ struct raycast_test : base_test
         result.has_result = false;
 
         auto vec = Vector2d{};
-        vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
-        vec += Vector2d(to.local()) - Vector2d(from.local());
-        vec += (Vector2d(to.offset()) - Vector2d(from.offset())) * inv_tile_size;
+        vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size * tile_size;
+        vec += (Vector2d(to.local()) - Vector2d(from.local())) * tile_size;
+        vec += (Vector2d(to.offset()) - Vector2d(from.offset()));
 
         auto dir = vec.normalized();
 
@@ -207,7 +214,7 @@ struct raycast_test : base_test
         {
             step = Math::abs(inv_sqrt_2 / dir[short_axis]);
             step = Math::clamp(step, 1., TILE_MAX_DIM*.5);
-            Debug{} << "step" << step;
+            //Debug{} << "step" << step;
         }
         auto nsteps = (uint32_t)Math::ceil(vec.length() / step);
 
@@ -216,15 +223,12 @@ struct raycast_test : base_test
         result.has_result = true;
 
         {
-            auto center = object::normalize_coords(from, Vector2i(dir * .5));
-            Vector2d size;
-            size[short_axis] = (double)iTILE_SIZE2[short_axis];
-            size[long_axis] = step * (double)iTILE_SIZE2[long_axis];
-            Debug{} << "size" << size;
-            result.path.push_back(bbox{center, Vector2ui(size)});
+            Debug{} << "vec" << vec;
+            auto c = object::normalize_coords(from, Vector2i(vec*.5));
+            auto size = Vector2ui(Math::ceil(Math::abs(vec)));
+            Debug{} << "c" << c << "size" << size;
+            result.path.push_back(bbox{c, size});
         }
-
-
 
         auto dir_inv_norm = Vector2d{
             Math::abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1. / dir.x(),
