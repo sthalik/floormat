@@ -3,6 +3,7 @@
 #include "floormat/main.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "src/critter.hpp"
+#include "../imgui-raii.hpp"
 #include <memory>
 #include <array>
 #include <vector>
@@ -12,6 +13,8 @@
 namespace floormat::tests {
 
 namespace {
+
+using namespace imgui;
 
 struct aabb_result
 {
@@ -59,7 +62,7 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 struct bbox
 {
     point center;
-    Vector2ub size;
+    Vector2ui size;
 };
 
 struct result_s
@@ -115,7 +118,19 @@ struct raycast_test : base_test
 
     void draw_overlay(app& a) override
     {
+        if (!result.has_result)
+            return;
 
+        const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
+        ImDrawList& draw = *ImGui::GetForegroundDrawList();
+
+        for (const auto& p : result.path)
+        {
+            auto p0 = object::normalize_coords(p.center, -Vector2i(p.size/2));
+            auto p1 = object::normalize_coords(p.center, Vector2i(p.size));
+            auto r0 = a.point_screen_pos(p0), r1 = a.point_screen_pos(p1);
+            draw.AddRect({r0.x(), r0.y()}, {r1.x(), r1.y()}, color);
+        }
     }
 
     void draw_ui(app& a, float width) override
@@ -144,17 +159,20 @@ struct raycast_test : base_test
                 return;
             }
 
-            do_raycasting(pending.from, pending.to);
+            do_raycasting(a, pending.from, pending.to);
         }
     }
 
-    void do_raycasting(point from, point to)
+    void do_raycasting(app& a, point from, point to)
     {
         constexpr auto inv_tile_size = 1. / Vector2d(iTILE_SIZE2);
         constexpr auto chunk_size = Vector2d{TILE_MAX_DIM};
-        constexpr double eps = 1e-8;
+        constexpr double eps = 1e-6;
+        constexpr double inv_eps = 1/eps;
         constexpr double sqrt_2 = Math::sqrt(2.);
         constexpr double inv_sqrt_2 = 1. / sqrt_2;
+
+        result.has_result = false;
 
         auto vec = Vector2d{};
         vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
@@ -188,15 +206,36 @@ struct raycast_test : base_test
         else
         {
             step = Math::abs(inv_sqrt_2 / dir[short_axis]);
+            step = Math::clamp(step, 1., TILE_MAX_DIM*.5);
             Debug{} << "step" << step;
-            step = Math::clamp(step, 1., chunk_size[short_axis] * .5);
+        }
+        auto nsteps = (uint32_t)Math::ceil(vec.length() / step);
+
+        result.path.clear();
+        result.path.reserve(nsteps);
+        result.has_result = true;
+
+        {
+            auto center = object::normalize_coords(from, Vector2i(dir * .5));
+            Vector2d size;
+            size[short_axis] = (double)iTILE_SIZE2[short_axis];
+            size[long_axis] = step * (double)iTILE_SIZE2[long_axis];
+            Debug{} << "size" << size;
+            result.path.push_back(bbox{center, Vector2ui(size)});
         }
 
+
+
         auto dir_inv_norm = Vector2d{
-            Math::abs(dir.x()) < eps ? 0. : 1. / dir.x(),
-            Math::abs(dir.y()) < eps ? 0. : 1. / dir.y(),
+            Math::abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1. / dir.x(),
+            Math::abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1. / dir.y(),
         };
         auto signs = ray_aabb_signs(dir_inv_norm);
+
+        for (auto i = 1u; i < nsteps; i++)
+        {
+
+        }
     }
 };
 

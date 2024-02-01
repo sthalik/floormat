@@ -107,27 +107,17 @@ void path_test::draw_overlay(app& a)
     if (!has_result)
         return;
 
-    const auto win_size = a.main().window_size();
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
     constexpr float line_thickness = 3, dot_radius = 5;
-    auto& shader = a.main().shader();
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
-    constexpr auto get_screen_pos = [](tile_shader& shader, point pt, Vector2i win_size) {
-        auto c3 = pt.chunk3();
-        auto c2 = pt.chunk();
-        with_shifted_camera_offset co{shader, c3, c2, c2 };
-        auto world_pos = TILE_SIZE20 * Vector3(pt.local()) + Vector3(Vector2(pt.offset()), 0);
-        return Vector2(shader.camera_offset()) + Vector2(win_size)*.5f + shader.project(world_pos);
-    };
-
-    auto last = get_screen_pos(shader, result.from, win_size);
+    auto last = a.point_screen_pos(result.from);
     draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
 
     for (auto pt : result.path)
     {
-        auto pos = get_screen_pos(shader, pt, win_size);
+        auto pos = a.point_screen_pos(pt);
         draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, line_color, line_thickness);
         draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
         last = pos;

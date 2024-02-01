@@ -158,4 +158,15 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     }
 }
 
+Vector2 app::point_screen_pos(point pt)
+{
+    auto& shader = M->shader();
+    auto win_size = M->window_size();
+    auto c3 = pt.chunk3();
+    auto c2 = pt.chunk();
+    with_shifted_camera_offset co{shader, c3, c2, c2 };
+    auto world_pos = TILE_SIZE20 * Vector3(pt.local()) + Vector3(Vector2(pt.offset()), 0);
+    return Vector2(shader.camera_offset()) + Vector2(win_size)*.5f + shader.project(world_pos);
+}
+
 } // namespace floormat
