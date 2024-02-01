@@ -178,6 +178,7 @@ struct raycast_test : base_test
         constexpr double inv_eps = 1/eps;
         constexpr double sqrt_2 = Math::sqrt(2.);
         constexpr double inv_sqrt_2 = 1. / sqrt_2;
+        constexpr int fuzz = 2;
 
         result.has_result = false;
 
@@ -213,7 +214,7 @@ struct raycast_test : base_test
         else
         {
             constexpr double numer = inv_sqrt_2 * tile_size.x();
-            step = Math::abs(numer / dir[short_axis]);
+            step = Math::round(Math::abs(numer / dir[short_axis]));
             step = Math::clamp(step, 1., chunk_size.x()*.5);
             //Debug{} << "step" << step;
         }
@@ -221,7 +222,7 @@ struct raycast_test : base_test
         Vector2d v;
         v[long_axis] = std::copysign(step, vec[long_axis]);
         v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size.x(), Math::abs(vec[short_axis]))), vec[short_axis]);
-        auto size = Vector2ui(Math::abs(v));
+        auto size = Vector2ui(Math::round(Math::abs(v)));
         const auto half = Vector2i(v*.5);
 
         auto nsteps = (uint32_t)Math::ceil(Math::abs(vec[long_axis] / step));
@@ -230,19 +231,16 @@ struct raycast_test : base_test
         result.path.reserve(nsteps);
         result.has_result = true;
 
-        {
-            //Debug{} << "vec" << vec;
-            auto c = object::normalize_coords(from, half);
-            //Debug{} << "c" << c << "size" << size;
-            result.path.push_back(bbox{c, size});
-        }
+        size[short_axis] += (unsigned)(fuzz * 2);
 
-        size[short_axis] += 2;
-
-        for (auto i = 1u; i < nsteps; i++)
+        for (auto i = 0u; i < nsteps; i++)
         {
-            auto u = Vector2i(vec * i/(double)nsteps);
-            u[short_axis] -= 1;
+            //auto u = Vector2i(vec * i/(double)nsteps);
+            //auto u = Vector2i(v * i);
+            Vector2i u;
+            u[short_axis] = (Int)Math::round(vec[short_axis] * i/(double)nsteps);
+            u[long_axis] = (Int)Math::round(v[long_axis] * i);
+            u[short_axis] -= fuzz;
             auto pt = object::normalize_coords(from, half + u);
             result.path.push_back(bbox{pt, size});
         }
