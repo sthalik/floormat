@@ -132,6 +132,12 @@ struct raycast_test : base_test
         const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
+        {
+            auto p0 = a.point_screen_pos(result.from);
+            auto p1 = a.point_screen_pos(object::normalize_coords(result.from, Vector2i(result.diag.vec)));
+            draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color, 1);
+        }
+
         for (auto [center, size] : result.path)
         {
             //auto c = a.point_screen_pos(center);
@@ -247,12 +253,12 @@ struct raycast_test : base_test
 
         result.has_result = false;
 
-        auto vec = Vector2d{};
-        vec += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
-        vec += (Vector2d(to.local()) - Vector2d(from.local())) * tile_size;
-        vec += (Vector2d(to.offset()) - Vector2d(from.offset()));
+        auto V = Vector2d{};
+        V += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
+        V += (Vector2d(to.local()) - Vector2d(from.local())) * tile_size;
+        V += (Vector2d(to.offset()) - Vector2d(from.offset()));
 
-        auto dir = vec.normalized();
+        auto dir = V.normalized();
 
         if (Math::abs(dir.x()) < eps && Math::abs(dir.y()) < eps)
         {
@@ -285,18 +291,22 @@ struct raycast_test : base_test
         }
 
         Vector2d v;
-        v[long_axis] = std::copysign(step, vec[long_axis]);
-        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size.x(), Math::abs(vec[short_axis]))), vec[short_axis]);
-        auto size = Vector2ui(Math::round(Math::abs(v)));
-        const auto half = Vector2i(v*.5);
+        v[long_axis] = std::copysign(step, V[long_axis]);
+        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size.x(), Math::abs(V[short_axis]))), V[short_axis]);
 
-        auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(vec[long_axis] / step)));
+        auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(V[long_axis] / step)));
+
+        //auto size = Vector2ui(Math::round(Math::abs(v)));
+        auto size = Vector2ui{};
+        size[long_axis] = (unsigned)Math::ceil(step);
+        size[short_axis] = (unsigned)Math::ceil(Math::abs(v[short_axis]));
+        const auto half = Vector2i(v*.5);
 
         result = {
             .from = from,
             .to = to,
             .diag = {
-                .vec = vec,
+                .vec = V,
                 .v = v,
                 .step = step,
             },
@@ -314,8 +324,8 @@ struct raycast_test : base_test
             //auto u = Vector2i(vec * i/(double)nsteps);
             //auto u = Vector2i(v * i);
             Vector2i u;
-            u[short_axis] = (Int)Math::round(vec[short_axis] * i/(double)nsteps);
-            u[long_axis] = (Int)Math::round(v[long_axis] * i);
+            u[short_axis] = (Int)Math::round(V[short_axis] * i/(double)nsteps);
+            u[long_axis] = (Int)Math::round(V[long_axis] * i/(double)nsteps);
             u[short_axis] -= fuzz;
             auto pt = object::normalize_coords(from, half + u);
             result.path.push_back(bbox{pt, size});
