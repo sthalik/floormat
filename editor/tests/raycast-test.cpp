@@ -156,12 +156,12 @@ struct raycast_test : base_test
 
         constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
         {
-          std::snprintf(buf, std::size(buf), "(%dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+          std::snprintf(buf, std::size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
         };
 
         constexpr auto print_vec2 = [](auto&& buf, Vector2d vec)
         {
-          std::snprintf(buf, std::size(buf), "(%.2fx%.2f)", vec.x(), vec.y());
+          std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", vec.x(), vec.y());
         };
 
         constexpr auto do_column = [](StringView name)
@@ -205,7 +205,7 @@ struct raycast_test : base_test
             text(buf);
 
             do_column("step");
-            std::snprintf(buf, std::size(buf), "%.3f", result.diag.step);
+            std::snprintf(buf, std::size(buf), "%f", result.diag.step);
             text(buf);
         }
     }
