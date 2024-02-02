@@ -209,8 +209,8 @@ void app::update_world(float dt)
                 auto& c = *c_;
                 const auto& es = c.objects();
                 const auto size = es.size();
-                for (auto i = size-1; i != (size_t)-1; i--)
-                    es[i]->update(i, dt);
+                for (auto i = (int)(size-1); i >= 0; i--)
+                    es[i]->update((unsigned)i, dt);
             }
 }
 

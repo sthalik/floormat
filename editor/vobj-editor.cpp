@@ -47,11 +47,11 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
         const auto& es = c.objects();
 start:  while (auto id = a.get_object_colliding_with_cursor())
         {
-            for (auto i = es.size()-1; i != (size_t)-1; i--)
+            for (auto i = (int)(es.size()-1); i >= 0; i--)
             {
                 if (es[i]->id == id)
                 {
-                    c.remove_object(i);
+                    c.remove_object((unsigned)i);
                     goto start;
                 }
             }

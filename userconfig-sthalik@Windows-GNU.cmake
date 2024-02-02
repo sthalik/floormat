@@ -1,7 +1,7 @@
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -march=core2 -mtune=native -mavx -flto -fipa-pta -static"
+     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=core2 -mtune=native -mavx -flto -fipa-pta -static"
 )
 
 sets(STRING
@@ -16,11 +16,15 @@ list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 add_compile_options(-fdiagnostics-color=always)
 set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
+add_compile_options(-fstack-usage -Wstack-usage=8192)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
     add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_DEBUG_BACKTRACE)
+    add_definitions(-D_FORTIFY_SOURCE=3)
+else()
+    add_definitions(-D_FORTIFY_SOURCE=2)
 endif()
 
 set(FLOORMAT_SUBMODULE-SDL2 1)
@@ -59,13 +63,16 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
         )
     endif()
-
 endfunction()
 
 # for floormat sources only
 function(fm-userconfig-src)
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
+        -Wstringop-overflow -Wstringop-truncation
+        -Wswitch-enum -Wlarger-than=8192
+        -Wlogical-op
+        -Wunsafe-loop-optimizations
         #-fconcepts-diagnostics-depth=2
     )
     #add_compile_options(-Wuseless-cast)

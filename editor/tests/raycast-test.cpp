@@ -225,7 +225,7 @@ struct raycast_test : base_test
         auto size = Vector2ui(Math::round(Math::abs(v)));
         const auto half = Vector2i(v*.5);
 
-        auto nsteps = (uint32_t)Math::ceil(Math::abs(vec[long_axis] / step));
+        auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(vec[long_axis] / step)));
 
         result.path.clear();
         result.path.reserve(nsteps);

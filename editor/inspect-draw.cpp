@@ -20,13 +20,13 @@ void app::draw_inspector()
     const auto dpi = M->dpi_scale();
     auto& w = M->world();
 
-    for (auto i = inspectors.size()-1; i != -1uz; i--)
+    for (auto i = (int)(inspectors.size()-1); i >= 0; i--)
     {
         auto [id, target] = inspectors[i];
         auto e_ = w.find_object(id);
         if (!e_)
         {
-            erase_inspector(i);
+            erase_inspector((unsigned)i);
             continue;
         }
         auto& e = *e_;
@@ -53,7 +53,7 @@ auto z = e.coord.z();
             (void)ret;
         }
         if (!is_open)
-            erase_inspector(i);
+            erase_inspector((unsigned)i);
     }
 }
 
