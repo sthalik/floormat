@@ -2,9 +2,10 @@
 #include "editor/app.hpp"
 #include "floormat/main.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
-#include "src/critter.hpp"
 #include "../imgui-raii.hpp"
-#include <memory>
+#include "src/critter.hpp"
+#include "src/world.hpp"
+#include "src/RTree-search.hpp"
 #include <array>
 #include <vector>
 #include <Magnum/Math/Functions.h>
@@ -16,6 +17,18 @@ namespace {
 
 using namespace imgui;
 
+template<typename T> constexpr inline auto tile_size = Math::Vector2<T>{iTILE_SIZE2};
+template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MAX_DIM} * tile_size<T>;
+
+constexpr Vector2d pt_to_vec(point from, point pt)
+{
+    auto V = Vector2d{};
+    V += (Vector2d(pt.chunk()) - Vector2d(from.chunk())) * chunk_size<double>;
+    V += (Vector2d(pt.local()) - Vector2d(from.local())) * tile_size<double>;
+    V += (Vector2d(pt.offset()) - Vector2d(from.offset()));
+    return V;
+}
+
 struct aabb_result
 {
     Vector2 ts;
@@ -23,7 +36,6 @@ struct aabb_result
 };
 
 template<typename T>
-requires std::is_arithmetic_v<T>
 std::array<uint8_t, 2> ray_aabb_signs(Math::Vector2<T> ray_dir_inv_norm)
 {
     bool signs[2];
@@ -34,7 +46,7 @@ std::array<uint8_t, 2> ray_aabb_signs(Math::Vector2<T> ray_dir_inv_norm)
 
 // https://tavianator.com/2022/ray_box_boundary.html
 // https://www.researchgate.net/figure/The-slab-method-for-ray-intersection-detection-15_fig3_283515372
-aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
+aabb_result ray_aabb_intersection(Vector2 ray_dir_inv_norm,
                                   std::array<Vector2, 2> box_minmax, std::array<uint8_t, 2> signs)
 {
     using Math::min;
@@ -45,11 +57,10 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 
     for (unsigned d = 0; d < 2; ++d)
     {
-        float bmin = box_minmax[signs[d]][d];
-        float bmax = box_minmax[!signs[d]][d];
-
-        float dmin = (bmin - ray_origin[d]) * ray_dir_inv_norm[d];
-        float dmax = (bmax - ray_origin[d]) * ray_dir_inv_norm[d];
+        auto bmin = box_minmax[signs[d]][d];
+        auto bmax = box_minmax[!signs[d]][d];
+        auto dmin = bmin * ray_dir_inv_norm[d];
+        auto dmax = bmax * ray_dir_inv_norm[d];
 
         ts[d] = dmin;
         tmin = max(dmin, tmin);
@@ -85,6 +96,49 @@ struct pending_s
     bool exists : 1 = false;
 };
 
+struct chunk_neighbors
+{
+    chunk* array[3][3];
+};
+
+auto get_chunk_neighbors(class world& w, chunk_coords_ ch)
+{
+    chunk_neighbors nbs;
+    for (int j = 0; j < 3; j++)
+        for (int i = 0; i < 3; i++)
+            nbs.array[i][j] = w.at(ch - Vector2i(i - 1, j - 1));
+    return nbs;
+}
+
+constexpr Vector2i chunk_offsets[3][3] = {
+    {
+        { -chunk_size<int>.x(), -chunk_size<int>.y()    },
+        { -chunk_size<int>.x(),  0                      },
+        { -chunk_size<int>.x(),  chunk_size<int>.y()    },
+    },
+    {
+        { 0,                    -chunk_size<int>.y()    },
+        { 0,                     0                      },
+        { 0,                     chunk_size<int>.y()    },
+    },
+    {
+        {  chunk_size<int>.x(), -chunk_size<int>.y()    },
+        {  chunk_size<int>.x(),  0                      },
+        {  chunk_size<int>.x(),  chunk_size<int>.y()    },
+    },
+};
+
+template<typename T>
+constexpr bool within_chunk_bounds(Math::Vector2<T> vec)
+{
+    constexpr auto max_bb_size = Math::Vector2<T>{T{0xff}, T{0xff}};
+    return vec.x() >= -max_bb_size.x() && vec.x() < chunk_size<T>.x() + max_bb_size.x() &&
+           vec.y() >= -max_bb_size.y() && vec.y() < chunk_size<T>.y() + max_bb_size.y();
+}
+
+//static_assert(chunk_offsets[0][0] == Vector2i(-1024, -1024));
+//static_assert(chunk_offsets[2][0] == Vector2i(1024, -1024));
+
 } // namespace
 
 struct raycast_test : base_test
@@ -94,7 +148,7 @@ struct raycast_test : base_test
 
     ~raycast_test() noexcept override;
 
-    bool handle_key(app& a, const key_event& e, bool is_down) override
+    bool handle_key(app&, const key_event&, bool) override
     {
         return false;
     }
@@ -129,13 +183,14 @@ struct raycast_test : base_test
         if (!result.has_result)
             return;
 
-        const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
+        const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1}),
+                   color2 = ImGui::ColorConvertFloat4ToU32({1, 0, 0.75, 1});
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
         {
-            auto p0 = a.point_screen_pos(result.from);
-            auto p1 = a.point_screen_pos(object::normalize_coords(result.from, Vector2i(result.diag.vec)));
-            draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color, 1);
+            auto p0 = a.point_screen_pos(result.from),
+                 p1 = a.point_screen_pos(object::normalize_coords(result.from, Vector2i(result.diag.vec)));
+            draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
 
         for (auto [center, size] : result.path)
@@ -154,7 +209,7 @@ struct raycast_test : base_test
         }
     }
 
-    void draw_ui(app& a, float width) override
+    void draw_ui(app&, float) override
     {
         constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
         constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
@@ -216,7 +271,7 @@ struct raycast_test : base_test
         }
     }
 
-    void update_pre(app& a) override
+    void update_pre(app&) override
     {
 
     }
@@ -243,8 +298,6 @@ struct raycast_test : base_test
 
     void do_raycasting(app& a, point from, point to)
     {
-        constexpr auto tile_size = Vector2d{iTILE_SIZE2};
-        constexpr auto chunk_size = Vector2d{TILE_MAX_DIM} * tile_size;
         constexpr double eps = 1e-6;
         constexpr double inv_eps = 1/eps;
         constexpr double sqrt_2 = Math::sqrt(2.);
@@ -253,11 +306,8 @@ struct raycast_test : base_test
 
         result.has_result = false;
 
-        auto V = Vector2d{};
-        V += (Vector2d(to.chunk()) - Vector2d(from.chunk())) * chunk_size;
-        V += (Vector2d(to.local()) - Vector2d(from.local())) * tile_size;
-        V += (Vector2d(to.offset()) - Vector2d(from.offset()));
-
+        auto& w = a.main().world();
+        auto V = pt_to_vec(from, to);
         auto dir = V.normalized();
 
         if (Math::abs(dir.x()) < eps && Math::abs(dir.y()) < eps)
@@ -281,18 +331,18 @@ struct raycast_test : base_test
         }
 
         if (Math::abs(dir[short_axis]) < eps)
-            step = chunk_size.x() * .5;
+            step = chunk_size<double>.x() * .5;
         else
         {
-            constexpr double numer = inv_sqrt_2 * tile_size.x();
+            constexpr double numer = inv_sqrt_2 * tile_size<double>.x();
             step = Math::round(Math::abs(numer / dir[short_axis]));
-            step = Math::clamp(step, 1., chunk_size.x()*.5);
+            step = Math::clamp(step, 1., chunk_size<double>.x()*.5);
             //Debug{} << "step" << step;
         }
 
         Vector2d v;
         v[long_axis] = std::copysign(step, V[long_axis]);
-        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size.x(), Math::abs(V[short_axis]))), V[short_axis]);
+        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size<double>.x(), Math::abs(V[short_axis]))), V[short_axis]);
 
         auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(V[long_axis] / step)));
 
@@ -318,26 +368,63 @@ struct raycast_test : base_test
         result.path.reserve(nsteps);
 
         size[short_axis] += (unsigned)(fuzz * 2);
+        auto half_size = Vector2i(size/2);
+
+        auto dir_inv_norm = Vector2(Vector2d{
+            Math::abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1. / dir.x(),
+            Math::abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1. / dir.y(),
+        });
+
+        auto signs = ray_aabb_signs(dir_inv_norm);
+
+        auto last_ch = from.chunk3();
+        auto nbs = get_chunk_neighbors(w, from.chunk3());
 
         for (auto i = 0u; i < nsteps; i++)
         {
-            //auto u = Vector2i(vec * i/(double)nsteps);
-            //auto u = Vector2i(v * i);
-            Vector2i u;
-            u[short_axis] = (Int)Math::round(V[short_axis] * i/(double)nsteps);
-            u[long_axis] = (Int)Math::round(V[long_axis] * i/(double)nsteps);
+            auto u = Vector2i(Math::round(V * i/(double)nsteps));
             u[short_axis] -= fuzz;
             auto pt = object::normalize_coords(from, half + u);
             result.path.push_back(bbox{pt, size});
+
+            if (pt.chunk3() != last_ch)
+            {
+                last_ch = pt.chunk3();
+                nbs = get_chunk_neighbors(w, pt.chunk3());
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    auto* c = nbs.array[i][j];
+                    if (!c)
+                        continue;
+                    auto off = chunk_offsets[i][j];
+                    auto center = Vector2i(pt.local()) * tile_size<int> + Vector2i(pt.offset()) - off;
+                    if (!within_chunk_bounds(center))
+                        continue;
+                    auto* r = c->rtree();
+                    auto pt0 = center - Vector2i(half_size),
+                         pt1 = pt0 + Vector2i(size) - half_size;
+                    auto f0 = Vector2(pt0), f1 = Vector2(pt1);
+                    bool result = true;
+                    r->Search(f0.data(), f1.data(), [&](uint64_t data, auto&&) {
+                        auto x = std::bit_cast<collision_data>(data);
+                        if (x.pass == (uint64_t)pass_mode::pass)
+                            return true;
+                        auto ret = ray_aabb_intersection(dir_inv_norm, {f0, f1}, signs);
+                        if (ret.result)
+                            return result = false;
+                        return true;
+                    });
+                    if (!result)
+                        goto last;
+                }
+            }
         }
-
-        //Debug{} << "path len" << result.path.size();
-
-        auto dir_inv_norm = Vector2d{
-            Math::abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1. / dir.x(),
-            Math::abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1. / dir.y(),
-        };
-        auto signs = ray_aabb_signs(dir_inv_norm);
+last:
+        void();
     }
 };
 
