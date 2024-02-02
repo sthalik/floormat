@@ -65,10 +65,16 @@ struct bbox
     Vector2ui size;
 };
 
+struct diag_s
+{
+    Vector2d vec, v;
+    double step;
+};
+
 struct result_s
 {
     point from, to;
-    Vector3d vec;
+    diag_s diag;
     std::vector<bbox> path;
     bool has_result : 1 = false;
 };
@@ -113,7 +119,9 @@ struct raycast_test : base_test
 
     bool handle_mouse_move(app& a, const mouse_move_event& e) override
     {
-        return false;
+        if (e.buttons & mouse_button_left)
+            return handle_mouse_click(a, {e.position, e.mods, mouse_button_left, 1}, true);
+        return true;
     }
 
     void draw_overlay(app& a) override
@@ -142,7 +150,64 @@ struct raycast_test : base_test
 
     void draw_ui(app& a, float width) override
     {
+        constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
+        constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
+        constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
 
+        constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
+        {
+          std::snprintf(buf, std::size(buf), "(%dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+        };
+
+        constexpr auto print_vec2 = [](auto&& buf, Vector2d vec)
+        {
+          std::snprintf(buf, std::size(buf), "(%.2fx%.2f)", vec.x(), vec.y());
+        };
+
+        constexpr auto do_column = [](StringView name)
+        {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
+          text(name);
+          ImGui::TableNextColumn();
+        };
+
+        if (!result.has_result)
+            return;
+
+        if (auto b1 = begin_table("##raycast-results", 2, table_flags))
+        {
+            ImGui::TableSetupColumn("##name", colflags_0);
+            ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
+
+            char buf[128];
+            auto from_c = Vector3i(result.from.chunk3()), to_c = Vector3i(result.to.chunk3());
+            auto from_l = Vector2i(result.from.local()), to_l = Vector2i(result.to.local());
+            auto from_p = Vector2i(result.from.offset()), to_p = Vector2i(result.to.offset());
+
+            do_column("from");
+            print_coord(buf, from_c, from_l, from_p);
+            text(buf);
+
+            do_column("to");
+            print_coord(buf, to_c, to_l, to_p);
+            text(buf);
+
+            do_column("length");
+            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
+
+            do_column("vec");
+            print_vec2(buf, result.diag.vec);
+            text(buf);
+
+            do_column("v");
+            print_vec2(buf, result.diag.v);
+            text(buf);
+
+            do_column("step");
+            std::snprintf(buf, std::size(buf), "%.3f", result.diag.step);
+            text(buf);
+        }
     }
 
     void update_pre(app& a) override
@@ -227,9 +292,20 @@ struct raycast_test : base_test
 
         auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(vec[long_axis] / step)));
 
-        result.path.clear();
+        result = {
+            .from = from,
+            .to = to,
+            .diag = {
+                .vec = vec,
+                .v = v,
+                .step = step,
+            },
+            .path = {},
+            .has_result = true,
+        };
+
+        //result.path.clear();
         result.path.reserve(nsteps);
-        result.has_result = true;
 
         size[short_axis] += (unsigned)(fuzz * 2);
 

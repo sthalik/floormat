@@ -175,7 +175,7 @@ void path_test::draw_ui(app& a, float width)
 
     constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
     {
-        std::snprintf(buf, std::size(buf), "(%dx%d) <%dx%d> {%dx%d}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+        std::snprintf(buf, std::size(buf), "(%dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
     };
 
     constexpr auto do_column = [](StringView name)
