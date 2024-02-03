@@ -307,7 +307,7 @@ struct raycast_test : base_test
         constexpr double inv_eps = 1/eps;
         constexpr double sqrt_2 = Math::sqrt(2.);
         constexpr double inv_sqrt_2 = 1. / sqrt_2;
-        constexpr int fuzz = 0;
+        constexpr int fuzz = 2;
 
         result.has_result = false;
 
@@ -351,7 +351,6 @@ struct raycast_test : base_test
 
         auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(V[long_axis] / step)));
 
-        //auto size = Vector2ui(Math::round(Math::abs(v)));
         auto size = Vector2ui{};
         size[long_axis] = (unsigned)Math::ceil(step);
         size[short_axis] = (unsigned)Math::ceil(Math::abs(v[short_axis]));
@@ -384,7 +383,6 @@ struct raycast_test : base_test
         );
         auto signs = ray_aabb_signs(dir_inv_norm);
 
-        Debug{} << "-----";
         for (auto k = 0u; k < nsteps; k++)
         {
             auto u = Vector2i(Math::round(V * k/(double)nsteps));
@@ -408,10 +406,10 @@ struct raycast_test : base_test
                     if (!c)
                         continue;
                     auto off = chunk_offsets[i][j];
-                    //if (!within_chunk_bounds(center)) continue;
+                    if (!within_chunk_bounds(center - off))
+                        continue;
                     auto* r = c->rtree();
-                    auto pt0 = center - Vector2i(half_size) - tile_size<int>,
-                         pt1 = pt0 + Vector2i(size) - half_size + tile_size<int>;
+                    auto pt0 = center - Vector2i(half_size), pt1 = pt0 + Vector2i(size);
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0 - off), Vector2(pt1 - off));
                     bool result = true;
                     auto ch_off = (chunk_coords(last_ch) - from.chunk()) * chunk_size<int>;
@@ -420,15 +418,12 @@ struct raycast_test : base_test
                         auto x = std::bit_cast<collision_data>(data);
                         if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
                             return true;
-                        Debug{} << "item" << Vector2(origin) << Vector2(r.m_min[0], r.m_min[1]);
+                        //Debug{} << "item" << Vector2(origin) << Vector2(r.m_min[0], r.m_min[1]);
                         auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                                          {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
                                                          signs);
                         if (ret.result)
-                        {
-                            Debug{} << "fail";
                             return result = false;
-                        }
                         return true;
                     });
                     if (!result)
