@@ -11,15 +11,6 @@ namespace floormat::tests {
 
 static_assert(arraySize(tests_data::fields) == (size_t)Test::COUNT);
 
-void label_left(StringView label, float width) // copy-pasted from inspect.cpp
-{
-    float x = ImGui::GetCursorPosX();
-    ImGui::TextEx(label.data(), label.data() + label.size());
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
-    ImGui::SetNextItemWidth(-1);
-}
-
 Pointer<base_test> tests_data::make_test_none() { return {}; }
 
 } // namespace floormat::tests

@@ -30,8 +30,6 @@ protected:
     base_test();
 };
 
-void label_left(StringView label, float width);
-
 enum class Test : uint32_t {
     none, path, raycast, COUNT,
 };
