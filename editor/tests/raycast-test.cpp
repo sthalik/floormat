@@ -273,31 +273,23 @@ struct raycast_test : base_test
 
             if (result.success)
             {
-                do_column("collider");
-                text("-");
                 do_column("collision");
+                text("-");
+                do_column("collider");
                 text("-");
             }
             else
             {
-                StringView type;
+                const char* type;
 
                 switch ((collision_type)result.collider.tag)
                 {
                 using enum collision_type;
-                default: type = "unknown?!"_s; break;
-                case none: type = "none?!"_s; break;
-                case object: type = "object"_s; break;
-                case scenery: type = "scenery"_s; break;
-                case geometry: type = "geometry"_s; break;
-                }
-
-                {
-                    do_column("collider");
-                    std::snprintf(buf, std::size(buf), "%s @ %" PRIu64,
-                                  type.data(), (uint64_t)result.collider.data);
-                    auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
-                    text(buf);
+                default: type = "unknown?!"; break;
+                case none: type = "none?!"; break;
+                case object: type = "object"; break;
+                case scenery: type = "scenery"; break;
+                case geometry: type = "geometry"; break;
                 }
 
                 do_column("collision");
@@ -305,7 +297,16 @@ struct raycast_test : base_test
                 auto C_l = Vector2i(result.from.local());
                 auto C_p = Vector2i(result.from.offset());
                 print_coord(buf, C_c, C_l, C_p);
-                text(buf);
+                { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
+                  text(buf);
+                }
+
+                do_column("collider");
+                std::snprintf(buf, std::size(buf), "%s @ %" PRIu64,
+                              type, uint64_t{result.collider.data});
+                { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
+                  text(buf);
+                }
             }
 
             do_column("num-steps");
