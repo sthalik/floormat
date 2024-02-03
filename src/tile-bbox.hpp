@@ -30,14 +30,16 @@ constexpr Pair<Vector2, Vector2> whole_tile(size_t k)
 
 constexpr Pair<Vector2, Vector2> wall_north(size_t k, float wall_depth)
 {
-    auto min = tile_start(k) - Vector2{0, wall_depth};
-    return { min, min + Vector2{TILE_SIZE2.x(), wall_depth}, };
+    constexpr auto eps = Vector2(1e-6f);
+    auto min = tile_start(k) - Vector2{0, wall_depth} - eps;
+    return { min, min + Vector2{TILE_SIZE2.x(), wall_depth} + eps, };
 }
 
 constexpr Pair<Vector2, Vector2> wall_west(size_t k, float wall_depth)
 {
-    auto min = tile_start(k) - Vector2{wall_depth, 0};
-    return { min, min + Vector2{wall_depth, TILE_SIZE2.y()}, };
+    constexpr auto eps = Vector2(1e-6f);
+    auto min = tile_start(k) - Vector2{wall_depth, 0} - eps;
+    return { min, min + Vector2{wall_depth, TILE_SIZE2.y()} + eps, };
 }
 
 } // namespace floormat
