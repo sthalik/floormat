@@ -31,12 +31,12 @@ template<class T> constexpr inline T sign_(auto&& x) {
     return T(x > zero) - T(x < zero);
 }
 
-constexpr Vector2d pt_to_vec(point from, point pt)
+constexpr Vector2 pt_to_vec(point from, point pt)
 {
-    auto V = Vector2d{};
-    V += (Vector2d(pt.chunk()) - Vector2d(from.chunk())) * chunk_size<double>;
-    V += (Vector2d(pt.local()) - Vector2d(from.local())) * tile_size<double>;
-    V += (Vector2d(pt.offset()) - Vector2d(from.offset()));
+    auto V = Vector2{};
+    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<float>;
+    V += (Vector2(pt.local()) - Vector2(from.local())) * tile_size<float>;
+    V += (Vector2(pt.offset()) - Vector2(from.offset()));
     return V;
 }
 
@@ -87,7 +87,7 @@ struct bbox
 
 struct diag_s
 {
-    Vector2d V;
+    Vector2 V;
     Vector2ui size;
     unsigned short_steps, long_steps;
     unsigned nsteps;
@@ -166,9 +166,9 @@ void print_coord_(auto&& buf, point pt)
     print_coord(buf, C_c, C_l, C_p);
 }
 
-void print_vec2(auto&& buf, Vector2d vec)
+void print_vec2(auto&& buf, Vector2 vec)
 {
-    std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", vec.x(), vec.y());
+    std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", (double)vec.x(), (double)vec.y());
 }
 
 void do_column(StringView name)
@@ -370,8 +370,8 @@ struct raycast_test : base_test
 
     void do_raycasting(app& a, point from, point to, object_id self)
     {
-        constexpr double eps = 1e-6;
-        constexpr double inv_eps = 1/eps;
+        constexpr float eps = 1e-6f;
+        constexpr float  inv_eps = 1/eps;
         constexpr int fuzz = 2;
 
         result.path.clear();
@@ -401,14 +401,18 @@ struct raycast_test : base_test
             short_axis = 1;
         }
 
-        double long_len  = Math::abs(V[long_axis]), short_len = Math::abs(V[short_axis]);
-        auto short_steps = Math::max(1u, (unsigned)(Math::ceil((short_len + tile_size<double>.x()) / iTILE_SIZE2.x())));
-        auto long_steps  = Math::max(1u, (unsigned)(Math::ceil(long_len)/tile_size<double>.x()));
+        auto long_len  = (unsigned)Math::ceil(Math::abs(V[long_axis])),
+             short_len = (unsigned)Math::ceil(Math::abs(V[short_axis]));
+        auto short_steps = (short_len + tile_size<unsigned>.x()*2-1) / tile_size<unsigned>.x();
+        auto long_steps  = (long_len+tile_size<unsigned>.x()-1)/tile_size<unsigned>.x();
+
+        short_steps = Math::max(1u, short_steps);
+        long_steps  = Math::max(1u, long_steps);
         auto nsteps = Math::min(short_steps, long_steps)+1u;
 
         auto size_ = Vector2ui{NoInit};
-        size_[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)Math::ceil(long_len / nsteps));
-        size_[short_axis] = Math::min(tile_size<unsigned>.x(), (unsigned)Math::ceil(short_len * 1.5 / nsteps)+2u);
+        size_[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)long_len / nsteps);
+        size_[short_axis] = Math::min(tile_size<unsigned>.x(), (unsigned)short_len * 3/2 / nsteps)+2u;
 
         result = {
             .from = from,
@@ -435,7 +439,7 @@ struct raycast_test : base_test
         //Debug{} << "------";
         for (unsigned k = 0; k <= nsteps; k++)
         {
-            auto pos_ = Math::ceil(Math::abs(V * (double)k / (double)nsteps));
+            auto pos_ = Math::ceil(Math::abs(V * (float)k/(float)nsteps));
             auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
             auto size = size_;
 
@@ -490,7 +494,7 @@ struct raycast_test : base_test
             if (ret.tmin < min_tmin) [[likely]]
             {
                 min_tmin = ret.tmin;
-                result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
+                result.collision = object::normalize_coords(from, Vector2i(dir * (float)ret.tmin));
                 result.collider = x;
                 b = false;
             }
@@ -518,8 +522,7 @@ struct raycast_test : base_test
                     auto off = chunk_offsets[i][j];
                     auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                     auto pt0_ = pt0 - off, pt1_ = pt1 - off;
-                    if (!within_chunk_bounds(pt0_) && !within_chunk_bounds(pt1_))
-                        continue;
+                    if (!within_chunk_bounds(pt0_) && !within_chunk_bounds(pt1_)) continue;
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0 - off), Vector2(pt1 - off));
                     auto ch_off = (chunk_coords(last_ch) - from.chunk()) * chunk_size<int>;
                     origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
