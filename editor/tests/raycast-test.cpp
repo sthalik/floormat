@@ -316,12 +316,8 @@ struct raycast_test : base_test
             print_vec2(buf, result.diag.vec);
             text(buf);
 
-            do_column("step-vector");
+            do_column("step");
             print_vec2(buf, result.diag.v);
-            text(buf);
-
-            do_column("step-size");
-            std::snprintf(buf, std::size(buf), "%f", result.diag.step);
             text(buf);
         }
     }
