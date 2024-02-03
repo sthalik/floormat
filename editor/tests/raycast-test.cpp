@@ -6,11 +6,13 @@
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/RTree-search.hpp"
+#include <cinttypes>
 #include <array>
 #include <vector>
+#include <Corrade/Containers/StructuredBindings.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Math/Vector2.h>
-#include <Corrade/Containers/StructuredBindings.h>
+#include <Magnum/Math/Color.h>
 
 namespace floormat::tests {
 
@@ -35,7 +37,7 @@ constexpr Vector2d pt_to_vec(point from, point pt)
 
 struct aabb_result
 {
-    Vector2 ts;
+    float tmin;
     bool result;
 };
 
@@ -56,7 +58,6 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
     using Math::min;
     using Math::max;
 
-    float ts[2];
     float tmin = 0, tmax = 16777216;
 
     for (unsigned d = 0; d < 2; ++d)
@@ -66,12 +67,11 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
         float dmin = (bmin - ray_origin[d]) * ray_dir_inv_norm[d];
         float dmax = (bmax - ray_origin[d]) * ray_dir_inv_norm[d];
 
-        ts[d] = dmin;
         tmin = max(dmin, tmin);
         tmax = min(dmax, tmax);
     }
 
-    return { {ts[0], ts[1] }, tmin < tmax };
+    return { tmin, tmin < tmax };
 }
 
 struct bbox
@@ -88,10 +88,12 @@ struct diag_s
 
 struct result_s
 {
-    point from, to;
+    point from, to, collision;
+    collision_data collider;
     diag_s diag;
     std::vector<bbox> path;
-    bool has_result : 1 = false;
+    bool has_result : 1 = false,
+         success    : 1 = false;
 };
 
 struct pending_s
@@ -189,12 +191,15 @@ struct raycast_test : base_test
             return;
 
         const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1}),
-                   color2 = ImGui::ColorConvertFloat4ToU32({1, 0, 0.75, 1});
+                   color2 = ImGui::ColorConvertFloat4ToU32({1, 0, 0.75, 1}),
+                   color3 = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
         {
             auto p0 = a.point_screen_pos(result.from),
-                 p1 = a.point_screen_pos(object::normalize_coords(result.from, Vector2i(result.diag.vec)));
+                 p1 = a.point_screen_pos(result.success
+                                         ? object::normalize_coords(result.from, Vector2i(result.diag.vec))
+                                         : result.collision);
             draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
 
@@ -211,6 +216,13 @@ struct raycast_test : base_test
             draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 2);
             draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 2);
             draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, 2);
+        }
+
+        if (!result.success)
+        {
+            auto p = a.point_screen_pos(result.collision);
+            draw.AddCircleFilled({p.x(), p.y()}, 10, color3);
+            draw.AddCircleFilled({p.x(), p.y()}, 7, color);
         }
     }
 
@@ -259,18 +271,56 @@ struct raycast_test : base_test
             print_coord(buf, to_c, to_l, to_p);
             text(buf);
 
-            do_column("length");
-            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
+            if (result.success)
+            {
+                do_column("collider");
+                text("-");
+                do_column("collision");
+                text("-");
+            }
+            else
+            {
+                StringView type;
 
-            do_column("vec");
+                switch ((collision_type)result.collider.tag)
+                {
+                using enum collision_type;
+                default: type = "unknown?!"_s; break;
+                case none: type = "none?!"_s; break;
+                case object: type = "object"_s; break;
+                case scenery: type = "scenery"_s; break;
+                case geometry: type = "geometry"_s; break;
+                }
+
+                {
+                    do_column("collider");
+                    std::snprintf(buf, std::size(buf), "%s @ %" PRIu64,
+                                  type.data(), (uint64_t)result.collider.data);
+                    auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
+                    text(buf);
+                }
+
+                do_column("collision");
+                auto C_c = Vector3i(result.from.chunk3());
+                auto C_l = Vector2i(result.from.local());
+                auto C_p = Vector2i(result.from.offset());
+                print_coord(buf, C_c, C_l, C_p);
+                text(buf);
+            }
+
+            do_column("num-steps");
+            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
+            text(buf);
+
+            do_column("vector");
             print_vec2(buf, result.diag.vec);
             text(buf);
 
-            do_column("v");
+            do_column("step-vector");
             print_vec2(buf, result.diag.v);
             text(buf);
 
-            do_column("step");
+            do_column("step-size");
             std::snprintf(buf, std::size(buf), "%f", result.diag.step);
             text(buf);
         }
@@ -359,13 +409,20 @@ struct raycast_test : base_test
         result = {
             .from = from,
             .to = to,
+            .collision = {},
+            .collider = {
+                .tag  = (uint64_t)collision_type::none,
+                .pass = (uint64_t)pass_mode::pass,
+                .data = ((uint64_t)1 << collision_data_BITS)-1,
+            },
             .diag = {
-                .vec = V,
-                .v = v,
+                .vec  = V,
+                .v    = v,
                 .step = step,
             },
             .path = {},
             .has_result = true,
+            .success = false,
         };
 
         //result.path.clear();
@@ -388,7 +445,6 @@ struct raycast_test : base_test
             auto u = Vector2i(Math::round(V * k/(double)nsteps));
             u[short_axis] -= fuzz;
             auto pt = object::normalize_coords(from, half + u);
-            result.path.push_back(bbox{pt, size});
 
             if (pt.chunk3() != last_ch)
             {
@@ -411,7 +467,7 @@ struct raycast_test : base_test
                     auto* r = c->rtree();
                     auto pt0 = center - Vector2i(half_size), pt1 = pt0 + Vector2i(size);
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0 - off), Vector2(pt1 - off));
-                    bool result = true;
+                    bool b = true;
                     auto ch_off = (chunk_coords(last_ch) - from.chunk()) * chunk_size<int>;
                     auto origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                     r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
@@ -423,14 +479,21 @@ struct raycast_test : base_test
                                                          {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
                                                          signs);
                         if (ret.result)
-                            return result = false;
+                        {
+                            result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
+                            result.collider = x;
+                            return b = false;
+                        }
                         return true;
                     });
-                    if (!result)
+                    if (!b)
                         goto last;
                 }
             }
+            result.path.push_back(bbox{pt, size});
         }
+        result.success = true;
+        return;
 last:
         void();
     }
