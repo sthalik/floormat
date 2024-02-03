@@ -361,6 +361,7 @@ struct raycast_test : base_test
 
         auto& w = a.main().world();
         auto V = pt_to_vec(from, to);
+        auto ray_len = (float)V.length();
         auto dir = V.normalized();
 
         if (Math::abs(dir.x()) < eps && Math::abs(dir.y()) < eps)
@@ -442,18 +443,16 @@ struct raycast_test : base_test
         {
             auto x = std::bit_cast<collision_data>(data);
             if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
-              return true;
+                return true;
             //Debug{} << "item" << Vector2(origin) << Vector2(r.m_min[0], r.m_min[1]);
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                            {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
                                            signs);
-            if (ret.result)
-            {
-              result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
-              result.collider = x;
-              return b = false;
-            }
-            return true;
+            if (!ret.result || ret.tmin > ray_len)
+                return true;
+            result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
+            result.collider = x;
+            return b = false;
         };
 
         for (auto k = 0u; k < nsteps; k++)
