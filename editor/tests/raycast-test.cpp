@@ -26,6 +26,11 @@ template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MA
 using RTree = std::decay_t<decltype(*std::declval<struct chunk>().rtree())>;
 using Rect = typename RTree::Rect;
 
+template<class T> constexpr inline T sign_(auto&& x) {
+    constexpr auto zero = std::decay_t<decltype(x)>{0};
+    return T(x > zero) - T(x < zero);
+}
+
 constexpr Vector2d pt_to_vec(point from, point pt)
 {
     auto V = Vector2d{};
@@ -416,14 +421,16 @@ struct raycast_test : base_test
 
             if (k == 0)
             {
-                pos[long_axis] += (int)(size[long_axis]/4) * (V[long_axis] < 0 ? -1 : 1);
+                auto sign_long = sign_<int>(V[long_axis]), sign_short = sign_<int>(V[short_axis]);
+                pos[long_axis] += (int)(size[long_axis]/4) * sign_long;
                 size[long_axis] -= size[long_axis]/2;
-                pos[short_axis] += (int)(size[short_axis]/4) * (V[short_axis] < 0 ? -1 : 1);
+                pos[short_axis] += (int)(size[short_axis]/4) * sign_short;
                 size[short_axis] -= size[short_axis]/2;
             }
             else if (k == nsteps)
             {
-                pos[long_axis] -= (int)(size[long_axis]/4) * (V[long_axis] < 0 ? -1 : 1);
+                auto sign_long = sign_<int>(V[long_axis]);
+                pos[long_axis] -= (int)(size[long_axis]/4) * sign_long;
                 size[long_axis] -= size[long_axis]/2;
                 size[long_axis] += (unsigned)iTILE_SIZE2.x() / 2;
             }
