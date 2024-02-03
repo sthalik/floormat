@@ -87,8 +87,11 @@ struct bbox
 
 struct diag_s
 {
-    Vector2d vec, v;
-    double step;
+    Vector2d V;
+    Vector2ui size;
+    unsigned short_steps, long_steps;
+    unsigned nsteps;
+    float tmin;
 };
 
 struct result_s
@@ -203,7 +206,7 @@ struct raycast_test : base_test
         {
             auto p0 = a.point_screen_pos(result.from),
                  p1 = a.point_screen_pos(result.success
-                                         ? object::normalize_coords(result.from, Vector2i(result.diag.vec))
+                                         ? object::normalize_coords(result.from, Vector2i(result.diag.V))
                                          : result.collision);
             draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
@@ -283,6 +286,8 @@ struct raycast_test : base_test
                 text("-");
                 do_column("collider");
                 text("-");
+                do_column("tmin");
+                text("-");
             }
             else
             {
@@ -313,18 +318,26 @@ struct raycast_test : base_test
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }
+
+                do_column("tmin");
+                std::snprintf(buf, std::size(buf), "%f", (double)result.diag.tmin);
+                text(buf);
             }
 
-            do_column("num-steps");
+            do_column("path-len");
             std::snprintf(buf, std::size(buf), "%zu", result.path.size());
             text(buf);
 
             do_column("vector");
-            print_vec2(buf, result.diag.vec);
+            print_vec2(buf, result.diag.V);
             text(buf);
 
-            do_column("step");
-            print_vec2(buf, result.diag.v);
+            do_column("num-steps");
+            std::snprintf(buf, std::size(buf), "%u", result.diag.nsteps);
+            text(buf);
+
+            do_column("bbox-size");
+            std::snprintf(buf, std::size(buf), "(%u x %u)", result.diag.size.x(), result.diag.size.y());
             text(buf);
         }
     }
@@ -360,6 +373,7 @@ struct raycast_test : base_test
         constexpr double inv_eps = 1/eps;
         constexpr int fuzz = 2;
 
+        result.path.clear();
         result.has_result = false;
 
         auto& w = a.main().world();
@@ -391,6 +405,10 @@ struct raycast_test : base_test
         auto long_steps  = Math::max(1u, (unsigned)(Math::ceil(long_len)/tile_size<double>.x()));
         auto nsteps = Math::min(short_steps, long_steps)+1u;
 
+        auto size_ = Vector2ui{NoInit};
+        size_[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)Math::ceil(long_len / nsteps));
+        size_[short_axis] = (unsigned)Math::ceil(short_len / nsteps)+2u;
+
         result = {
             .from = from,
             .to = to,
@@ -401,9 +419,12 @@ struct raycast_test : base_test
                 .data = ((uint64_t)1 << collision_data_BITS)-1,
             },
             .diag = {
-                .vec  = V,
-                .v    = {},
-                .step = 0,
+                .V = V,
+                .size = size_,
+                .short_steps = short_steps,
+                .long_steps = long_steps,
+                .nsteps = nsteps,
+                .tmin = 0,
             },
             .path = {},
             .has_result = true,
@@ -415,9 +436,7 @@ struct raycast_test : base_test
         {
             auto pos_ = Math::ceil(Math::abs(V * (double)k / (double)nsteps));
             auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
-            auto size = Vector2ui(iTILE_SIZE2);
-            size[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)Math::ceil(long_len / nsteps));
-            size[short_axis] = (unsigned)Math::ceil(short_len / nsteps)+2u;
+            auto size = size_;
 
             if (k == 0)
             {
@@ -477,9 +496,8 @@ struct raycast_test : base_test
             return true;
         };
 
-        for (unsigned i = 0; i < result.path.size(); i++)
+        for (auto [center, size] : result.path)
         {
-            auto [center, size] = result.path[i];
             if (center.chunk3() != last_ch) [[unlikely]]
             {
                 last_ch = center.chunk3();
@@ -510,7 +528,7 @@ struct raycast_test : base_test
                 }
             }
         }
-
+        result.diag.tmin = b ? 0 : min_tmin;
         result.success = b;
     }
 };
