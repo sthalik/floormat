@@ -157,7 +157,7 @@ void path_test::update_post(app& a)
     (void)a;
 }
 
-void path_test::draw_ui(app& a, float width)
+void path_test::draw_ui(app&, float)
 {
     constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;

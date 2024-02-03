@@ -189,7 +189,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
-    if (x == key_COUNT && (is_down ? _imgui->handleKeyPressEvent(e) : _imgui->handleKeyReleaseEvent(e)) ||
+    if ((x == key_COUNT || x < key_GLOBAL) && (is_down ? _imgui->handleKeyPressEvent(e) : _imgui->handleKeyReleaseEvent(e)) ||
         (x == key_COUNT || x == key_escape) && _editor->mode() == editor_mode::tests && tests_handle_key(event, is_down))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)

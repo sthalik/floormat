@@ -438,6 +438,24 @@ struct raycast_test : base_test
         );
         auto signs = ray_aabb_signs(dir_inv_norm);
 
+        const auto do_check_collider = [&](Vector2 origin, uint64_t data, const Rect& r, bool& b)
+        {
+            auto x = std::bit_cast<collision_data>(data);
+            if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
+              return true;
+            //Debug{} << "item" << Vector2(origin) << Vector2(r.m_min[0], r.m_min[1]);
+            auto ret = ray_aabb_intersection(origin, dir_inv_norm,
+                                           {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
+                                           signs);
+            if (ret.result)
+            {
+              result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
+              result.collider = x;
+              return b = false;
+            }
+            return true;
+        };
+
         for (auto k = 0u; k < nsteps; k++)
         {
             auto u = Vector2i(Math::round(V * k/(double)nsteps));
@@ -469,20 +487,7 @@ struct raycast_test : base_test
                     auto ch_off = (chunk_coords(last_ch) - from.chunk()) * chunk_size<int>;
                     auto origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                     r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
-                        auto x = std::bit_cast<collision_data>(data);
-                        if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
-                            return true;
-                        //Debug{} << "item" << Vector2(origin) << Vector2(r.m_min[0], r.m_min[1]);
-                        auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                                         {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
-                                                         signs);
-                        if (ret.result)
-                        {
-                            result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
-                            result.collider = x;
-                            return b = false;
-                        }
-                        return true;
+                        return do_check_collider(origin, data, r, b);
                     });
                     if (!b)
                         goto last;

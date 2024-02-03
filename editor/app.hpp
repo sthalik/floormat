@@ -35,6 +35,7 @@ class world;
 struct chunk;
 class ground_atlas;
 class anim_atlas;
+struct object;
 struct critter;
 struct point;
 class editor;
@@ -137,6 +138,7 @@ private:
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
     static void entity_inspector_name(char* buf, size_t len, object_id id);
+    static void entity_friendly_name(char* buf, size_t len, const object& obj);
     bool check_inspector_exists(const popup_target& p);
     void set_cursor_from_imgui();
     void draw_cursor();
