@@ -353,8 +353,6 @@ struct raycast_test : base_test
     {
         constexpr double eps = 1e-6;
         constexpr double inv_eps = 1/eps;
-        constexpr double sqrt_2 = Math::sqrt(2.);
-        constexpr double inv_sqrt_2 = 1. / sqrt_2;
         constexpr int fuzz = 2;
 
         result.has_result = false;
@@ -414,6 +412,7 @@ struct raycast_test : base_test
             auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
             auto size = Vector2ui(iTILE_SIZE2);
             size[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)Math::ceil(long_len / nsteps));
+            size[short_axis] = (unsigned)Math::ceil(short_len / nsteps)+2u;
 
             if (k == 0)
             {
@@ -421,6 +420,12 @@ struct raycast_test : base_test
                 size[long_axis] -= size[long_axis]/2;
                 pos[short_axis] += (int)(size[short_axis]/4) * (V[short_axis] < 0 ? -1 : 1);
                 size[short_axis] -= size[short_axis]/2;
+            }
+            else if (k == nsteps)
+            {
+                pos[long_axis] -= (int)(size[long_axis]/4) * (V[long_axis] < 0 ? -1 : 1);
+                size[long_axis] -= size[long_axis]/2;
+                size[long_axis] += (unsigned)iTILE_SIZE2.x() / 2;
             }
 
             pos -= Vector2i(fuzz);
@@ -451,9 +456,11 @@ struct raycast_test : base_test
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                            {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
                                            signs);
-            if (!ret.result || ret.tmin > ray_len)
+            if (!ret.result)
                 return true;
-            if (ret.tmin < min_tmin)
+            if (ret.tmin > ray_len) [[unlikely]]
+                return true;
+            if (ret.tmin < min_tmin) [[likely]]
             {
                 min_tmin = ret.tmin;
                 result.collision = object::normalize_coords(from, Vector2i(dir * (double)ret.tmin));
@@ -466,7 +473,7 @@ struct raycast_test : base_test
         for (unsigned i = 0; i < result.path.size(); i++)
         {
             auto [center, size] = result.path[i];
-            if (center.chunk3() != last_ch)
+            if (center.chunk3() != last_ch) [[unlikely]]
             {
                 last_ch = center.chunk3();
                 nbs = get_chunk_neighbors(w, center.chunk3());
