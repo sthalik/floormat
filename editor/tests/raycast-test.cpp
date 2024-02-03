@@ -142,6 +142,8 @@ constexpr Vector2i chunk_offsets[3][3] = {
         {  chunk_size<int>.x(),  chunk_size<int>.y()    },
     },
 };
+//static_assert(chunk_offsets[0][0] == Vector2i(-1024, -1024));
+//static_assert(chunk_offsets[2][0] == Vector2i(1024, -1024));
 
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> vec)
@@ -151,8 +153,31 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> vec)
            vec.y() >= -max_bb_size.y() && vec.y() < chunk_size<T>.y() + max_bb_size.y();
 }
 
-//static_assert(chunk_offsets[0][0] == Vector2i(-1024, -1024));
-//static_assert(chunk_offsets[2][0] == Vector2i(1024, -1024));
+void print_coord(auto&& buf, Vector3i c, Vector2i l, Vector2i p)
+{
+    std::snprintf(buf, std::size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+}
+
+void print_coord_(auto&& buf, point pt)
+{
+    auto C_c = Vector3i(pt.chunk3());
+    auto C_l = Vector2i(pt.local());
+    auto C_p = Vector2i(pt.offset());
+    print_coord(buf, C_c, C_l, C_p);
+}
+
+void print_vec2(auto&& buf, Vector2d vec)
+{
+    std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", vec.x(), vec.y());
+}
+
+void do_column(StringView name)
+{
+  ImGui::TableNextRow();
+  ImGui::TableNextColumn();
+  text(name);
+  ImGui::TableNextColumn();
+}
 
 } // namespace
 
@@ -241,24 +266,6 @@ struct raycast_test : base_test
                                     ImGuiTableColumnFlags_NoSort;
         constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
 
-        constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
-        {
-          std::snprintf(buf, std::size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
-        };
-
-        constexpr auto print_vec2 = [](auto&& buf, Vector2d vec)
-        {
-          std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", vec.x(), vec.y());
-        };
-
-        constexpr auto do_column = [](StringView name)
-        {
-          ImGui::TableNextRow();
-          ImGui::TableNextColumn();
-          text(name);
-          ImGui::TableNextColumn();
-        };
-
         if (!result.has_result)
             return;
 
@@ -268,16 +275,13 @@ struct raycast_test : base_test
             ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
 
             char buf[128];
-            auto from_c = Vector3i(result.from.chunk3()), to_c = Vector3i(result.to.chunk3());
-            auto from_l = Vector2i(result.from.local()), to_l = Vector2i(result.to.local());
-            auto from_p = Vector2i(result.from.offset()), to_p = Vector2i(result.to.offset());
 
             do_column("from");
-            print_coord(buf, from_c, from_l, from_p);
+            print_coord_(buf, result.from);
             text(buf);
 
             do_column("to");
-            print_coord(buf, to_c, to_l, to_p);
+            print_coord_(buf, result.to);
             text(buf);
 
             if (result.success)
@@ -304,10 +308,7 @@ struct raycast_test : base_test
                 }
 
                 do_column("collision");
-                auto C_c = Vector3i(result.from.chunk3());
-                auto C_l = Vector2i(result.from.local());
-                auto C_p = Vector2i(result.from.offset());
-                print_coord(buf, C_c, C_l, C_p);
+                print_coord_(buf, result.from);
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }
