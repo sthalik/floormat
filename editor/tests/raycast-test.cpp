@@ -408,7 +408,7 @@ struct raycast_test : base_test
 
         auto size_ = Vector2ui{NoInit};
         size_[long_axis] = Math::max(tile_size<unsigned>.x(), (unsigned)Math::ceil(long_len / nsteps));
-        size_[short_axis] = (unsigned)Math::ceil(short_len / nsteps)+2u;
+        size_[short_axis] = Math::clamp((unsigned)Math::ceil(short_len / nsteps)+2u, 1u, tile_size<unsigned>.x());
 
         result = {
             .from = from,
