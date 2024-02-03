@@ -229,7 +229,8 @@ struct raycast_test : base_test
     void draw_ui(app&, float) override
     {
         constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-        constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
+        constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder |
+                                    ImGuiTableColumnFlags_NoSort;
         constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
 
         constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
@@ -394,7 +395,7 @@ struct raycast_test : base_test
 
         Vector2d v;
         v[long_axis] = std::copysign(step, V[long_axis]);
-        v[short_axis] = std::copysign(Math::max(1., Math::min(tile_size<double>.x(), Math::abs(V[short_axis]))), V[short_axis]);
+        v[short_axis] = std::copysign(Math::clamp(Math::abs(V[short_axis]), 1., tile_size<double>.x()), V[short_axis]);
 
         auto nsteps = (uint32_t)Math::max(1., Math::ceil(Math::abs(V[long_axis] / step)));
 
