@@ -1,7 +1,6 @@
 #pragma once
 #include "local-coords.hpp"
 #include "compat/assert.hpp"
-#include <concepts>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -39,33 +38,44 @@ struct chunk_coords_ final {
     constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
 
-    template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept
+    {
         return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), z };
     }
-    template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector2<T> off) const noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator-(Math::Vector2<T> off) const noexcept
+    {
         return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), z };
     }
-    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept
+    {
         x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); return *this;
     }
-    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept
+    {
         x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); return *this;
     }
 
-    template<std::integral T> constexpr chunk_coords_ operator+(Math::Vector3<T> off) const noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator+(Math::Vector3<T> off) const noexcept
+    {
         return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), int8_t(z + int{off.z()}) };
     }
-    template<std::integral T> constexpr chunk_coords_ operator-(Math::Vector3<T> off) const noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator-(Math::Vector3<T> off) const noexcept
+    {
         return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), int8_t(z - int{off.z()}) };
     }
-    template<std::integral T> constexpr chunk_coords_& operator+=(Math::Vector3<T> off) noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator+=(Math::Vector3<T> off) noexcept
+    {
         x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
     }
-    template<std::integral T> constexpr chunk_coords_& operator-=(Math::Vector3<T> off) noexcept {
+    template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator-=(Math::Vector3<T> off) noexcept
+    {
         x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
     }
 
-    constexpr Vector3i operator-(chunk_coords_ other) const noexcept { return Vector3i{x - other.x, y - other.y, z - other.z}; }
+    constexpr Vector3i operator-(chunk_coords_ other) const noexcept
+    {
+        return Vector3i{x - other.x, y - other.y, z - other.z};
+    }
 
     explicit constexpr inline operator chunk_coords() const noexcept { return chunk_coords{x, y}; }
 
