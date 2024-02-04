@@ -385,6 +385,11 @@ struct raycast_test : base_test
 
     void do_raycasting(app& a, point from, point to, object_id self)
     {
+        using Math::max;
+        using Math::min;
+        using Math::abs;
+        using Math::ceil;
+
         constexpr float eps = 1e-6f;
         constexpr float inv_eps = 1/eps;
         constexpr int fuzz = 2;
@@ -397,7 +402,7 @@ struct raycast_test : base_test
         auto ray_len = (float)V.length();
         auto dir = V.normalized();
 
-        if (Math::abs(dir.x()) < eps && Math::abs(dir.y()) < eps)
+        if (abs(dir.x()) < eps && abs(dir.y()) < eps)
         {
             fm_error("raycast: bad dir? {%f, %f}", dir.x(), dir.y());
             return;
@@ -405,7 +410,7 @@ struct raycast_test : base_test
 
         unsigned long_axis, short_axis;
 
-        if (Math::abs(dir.y()) > Math::abs(dir.x()))
+        if (abs(dir.y()) > abs(dir.x()))
         {
             long_axis = 1;
             short_axis = 0;
@@ -416,17 +421,18 @@ struct raycast_test : base_test
             short_axis = 1;
         }
 
-        auto long_len  = (unsigned)Math::ceil(Math::abs(V[long_axis])),
-             short_len = (unsigned)Math::ceil(Math::abs(V[short_axis]));
-        auto nsteps = Math::max(1u, (Math::max(long_len, short_len) + tile_size<unsigned>.x()-1) / tile_size<unsigned>.x());
-        //auto size_ = tile_size<unsigned>;
+        auto long_len  = max(1u, (unsigned)ceil(abs(V[long_axis]))),
+             short_len = max(1u, (unsigned)ceil(abs(V[short_axis])));
+        auto nsteps = 1u;
+        nsteps = max(nsteps, (short_len+tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
+        nsteps = max(nsteps, (long_len+chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
         auto size_ = Vector2ui{};
-        size_[long_axis] = Math::max(long_len / nsteps, tile_size<unsigned>.x());
-        size_[short_axis] = Math::max(short_len / nsteps, tile_size<unsigned>.x()/4);
+        size_[short_axis] = (short_len+nsteps*2-1) / nsteps;
+        size_[long_axis]  = (long_len+nsteps-1) / nsteps;
 
         auto dir_inv_norm = Vector2(
-            Math::abs(dir.x()) < eps ? (float)std::copysign(inv_eps, dir.x()) : 1 / (float)dir.x(),
-            Math::abs(dir.y()) < eps ? (float)std::copysign(inv_eps, dir.y()) : 1 / (float)dir.y()
+            abs(dir.x()) < eps ? (float)std::copysign(inv_eps, dir.x()) : 1 / (float)dir.x(),
+            abs(dir.y()) < eps ? (float)std::copysign(inv_eps, dir.y()) : 1 / (float)dir.y()
         );
         auto signs = ray_aabb_signs(dir_inv_norm);
 
@@ -457,9 +463,9 @@ struct raycast_test : base_test
         };
 
         //Debug{} << "------";
-        for (unsigned k = 0; k <= nsteps+2; k++)
+        for (unsigned k = 0; k <= nsteps; k++)
         {
-            auto pos_ = Math::ceil(Math::abs(V * (float)k/(float)nsteps));
+            auto pos_ = ceil(abs(V * (float)k/(float)nsteps));
             auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
             auto size = size_;
 
@@ -471,7 +477,6 @@ struct raycast_test : base_test
                 pos[short_axis] += (int)(size[short_axis]/4) * sign_short;
                 size[short_axis] -= size[short_axis]/2;
             }
-#if 0
             else if (k == nsteps)
             {
                 auto sign_long = sign_<int>(V[long_axis]);
@@ -479,7 +484,6 @@ struct raycast_test : base_test
                 size[long_axis] -= size[long_axis]/2;
                 size[long_axis] += tile_size<unsigned>.x() / 2;
             }
-#endif
 
             pos -= Vector2i(fuzz);
             size += Vector2ui(fuzz)*2;
