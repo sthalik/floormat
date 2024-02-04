@@ -5,7 +5,7 @@ namespace floormat {
 
 namespace {
 
-#warning TODO!
+#pragma message("TODO!")
 
 [[maybe_unused]] void Raycast(benchmark::State& state)
 {

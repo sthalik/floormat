@@ -6,7 +6,7 @@ namespace floormat {
 
 namespace {
 
-#warning TODO!
+#pragma message("TODO!")
 
 void test1()
 {
