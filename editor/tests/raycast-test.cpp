@@ -146,12 +146,15 @@ constexpr Vector2i chunk_offsets[3][3] = {
 //static_assert(chunk_offsets[2][0] == Vector2i(1024, -1024));
 
 template<typename T>
-constexpr bool within_chunk_bounds(Math::Vector2<T> vec)
+constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
     constexpr auto max_bb_size = Math::Vector2<T>{T{0xff}, T{0xff}};
-    return vec.x() >= -max_bb_size.x() && vec.x() < chunk_size<T>.x() + max_bb_size.x() &&
-           vec.y() >= -max_bb_size.y() && vec.y() < chunk_size<T>.y() + max_bb_size.y();
+    constexpr auto start = -max_bb_size, end = chunk_size<T> + max_bb_size;
+
+    return !(start.x() > p1.x() || end.x() < p0.x() ||
+             start.y() > p1.y() || end.y() < p0.y());
 }
+template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int> p1);
 
 void print_coord(auto&& buf, Vector3i c, Vector2i l, Vector2i p)
 {
@@ -545,7 +548,7 @@ struct raycast_test : base_test
                     auto off = chunk_offsets[i][j];
                     auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                     auto pt0_ = pt0 - off, pt1_ = pt1 - off;
-                    //if (!within_chunk_bounds(pt0_) && !within_chunk_bounds(pt1_)) continue;
+                    if (!within_chunk_bounds(pt0_, pt1_)) continue;
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
                     auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
                     //Debug{} << ch_off << off << Vector2i(center.chunk()) + Vector2i(i-1, j-1);
