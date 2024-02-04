@@ -294,15 +294,7 @@ struct raycast_test : base_test
             print_coord_(buf, result.to);
             text(buf);
 
-            do_column("dir");
-            std::snprintf(buf, std::size(buf), "%.2f x %.2f", (double)result.diag.dir.x(), (double)result.diag.dir.y());
-            text(buf);
-
-            do_column("||dir^-1||");
-            std::snprintf(buf, std::size(buf), "%f x %f",
-                          (double)result.diag.dir_inv_norm.x(),
-                          (double)result.diag.dir_inv_norm.y());
-            text(buf);
+            ImGui::NewLine();
 
             if (result.success)
             {
@@ -310,8 +302,7 @@ struct raycast_test : base_test
                 text("-");
                 do_column("collider");
                 text("-");
-                do_column("tmin");
-                text("-");
+
             }
             else
             {
@@ -339,28 +330,46 @@ struct raycast_test : base_test
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }
+            }
 
+            ImGui::NewLine();
+
+            do_column("dir");
+            std::snprintf(buf, std::size(buf), "%.4f x %.4f", (double)result.diag.dir.x(), (double)result.diag.dir.y());
+            text(buf);
+
+            if (!result.success)
+            {
                 do_column("tmin");
                 std::snprintf(buf, std::size(buf), "%f / %f",
                               (double)result.diag.tmin,
                               (double)(result.diag.tmin / result.diag.V.length()));
                 text(buf);
             }
-
-            do_column("path-len");
-            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
-            text(buf);
+            else
+            {
+                do_column("tmin");
+                text("-");
+            }
 
             do_column("vector");
             print_vec2(buf, result.diag.V);
             text(buf);
 
-            do_column("num-steps");
-            std::snprintf(buf, std::size(buf), "%u", result.diag.nsteps);
+            do_column("||dir^-1||");
+            std::snprintf(buf, std::size(buf), "%f x %f",
+                          (double)result.diag.dir_inv_norm.x(),
+                          (double)result.diag.dir_inv_norm.y());
             text(buf);
+
+            ImGui::NewLine();
 
             do_column("bbox-size");
             std::snprintf(buf, std::size(buf), "(%u x %u)", result.diag.size.x(), result.diag.size.y());
+            text(buf);
+
+            do_column("path-len");
+            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
             text(buf);
         }
     }
@@ -406,10 +415,10 @@ struct raycast_test : base_test
 
         auto& w = a.main().world();
         auto V = pt_to_vec(from, to);
-        auto ray_len = (float)V.length();
+        auto ray_len = V.length();
         auto dir = V.normalized();
 
-        if (abs(dir.x()) < eps && abs(dir.y()) < eps)
+        if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
         {
             fm_error("raycast: bad dir? {%f, %f}", dir.x(), dir.y());
             return;
@@ -438,8 +447,8 @@ struct raycast_test : base_test
         size_[long_axis]  = (long_len+nsteps-1) / nsteps;
 
         auto dir_inv_norm = Vector2(
-            abs(dir.x()) < eps ? (float)std::copysign(inv_eps, dir.x()) : 1 / (float)dir.x(),
-            abs(dir.y()) < eps ? (float)std::copysign(inv_eps, dir.y()) : 1 / (float)dir.y()
+            abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1 / dir.x(),
+            abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1 / dir.y()
         );
         auto signs = ray_aabb_signs(dir_inv_norm);
 
@@ -457,10 +466,6 @@ struct raycast_test : base_test
                 .dir = dir,
                 .dir_inv_norm = dir_inv_norm,
                 .size = size_,
-#if 0
-                .short_steps = short_steps,
-                .long_steps = long_steps,
-#endif
                 .nsteps = nsteps,
                 .tmin = 0,
             },
@@ -478,11 +483,12 @@ struct raycast_test : base_test
 
             if (k == 0)
             {
-                auto sign_long = sign_<int>(V[long_axis]), sign_short = sign_<int>(V[short_axis]);
-                pos[long_axis] += (int)(size[long_axis]/4) * sign_long;
-                size[long_axis] -= size[long_axis]/2;
-                pos[short_axis] += (int)(size[short_axis]/4) * sign_short;
-                size[short_axis] -= size[short_axis]/2;
+                for (auto axis : { long_axis, short_axis })
+                {
+                    auto sign = sign_<int>(V[axis]);
+                    pos[axis] += (int)(size[axis]/4) * sign;
+                    size[axis] -= size[axis]/2;
+                }
             }
             else if (k == nsteps)
             {
