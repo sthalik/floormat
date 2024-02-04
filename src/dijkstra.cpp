@@ -401,7 +401,10 @@ void cache::allocate(point from, uint32_t max_dist)
         array = Array<chunk_cache>{ValueInit, len};
     else
         for (auto i = 0uz; i < len; i++)
+        {
+            array[i].chunk = {};
             array[i].exists = {};
+        }
 }
 
 size_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
