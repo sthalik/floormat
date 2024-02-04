@@ -5,7 +5,8 @@
 #include "object.hpp"
 #include "point.hpp"
 #include <cstdio>
-#include <Corrade/Containers/StaticArray.h>
+#include <Corrade/Containers/GrowableArray.h>
+#include <Corrade/Containers/StaticArray.h> // todo remove
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Timeline.h>
@@ -79,8 +80,8 @@ constexpr auto directions = []() constexpr
 
 struct heap_comparator
 {
-    const std::vector<visited>& nodes; // NOLINT
-    inline heap_comparator(const std::vector<visited>& nodes) : nodes{nodes} {}
+    const Array<visited>& nodes; // NOLINT
+    inline heap_comparator(const Array<visited>& nodes) : nodes{nodes} {}
     inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
 };
 
@@ -100,7 +101,7 @@ inline uint32_t distance_l2(point a, point b)
     return (uint32_t)Math::abs(dist).sum();
 }
 
-void set_result_from_idx(path_search_result& result, const std::vector<visited>& nodes,
+void set_result_from_idx(path_search_result& result, const Array<visited>& nodes,
                          point to, const uint32_t idx)
 {
     fm_debug_assert(idx != (uint32_t)-1);
@@ -132,19 +133,19 @@ astar::astar()
 
 void astar::reserve(size_t capacity)
 {
-    nodes.reserve(capacity);
-    Q.reserve(capacity);
+    arrayReserve(nodes, capacity);
+    arrayReserve(Q, capacity);
 }
 
 void astar::clear()
 {
-    nodes.clear();
-    Q.clear();
+    arrayResize(nodes, 0);
+    arrayResize(Q, 0);
 }
 
 void astar::add_to_heap(uint32_t id)
 {
-    Q.push_back(id);
+    arrayAppend(Q, id);
     Heap::push_heap(Q.begin(), Q.end(), heap_comparator{nodes});
 }
 
@@ -152,7 +153,7 @@ uint32_t astar::pop_from_heap()
 {
     Heap::pop_heap(Q.begin(), Q.end(), heap_comparator{nodes});
     const auto id = Q.back();
-    Q.pop_back();
+    arrayRemoveSuffix(Q);
     return id;
 }
 
@@ -200,7 +201,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             {
                 auto idx = (uint32_t)nodes.size();
                 cache.add_index(pt, idx);
-                nodes.push_back({.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+                arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
                 add_to_heap(idx);
             }
         }
@@ -209,7 +210,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
 
-    while (!Q.empty())
+    while (!Q.isEmpty())
     {
         const auto cur_idx = pop_from_heap();
         point cur_pt;
@@ -277,7 +278,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                     .dist = dist, .prev = cur_idx,
                     .pt = new_pt,
                 };
-                nodes.push_back(new_node);
+                arrayAppend(nodes, new_node);
             }
             else
             {

@@ -9,7 +9,6 @@
 #include "point.hpp"
 #include <bit>
 #include <array>
-#include <vector>
 #include <bitset>
 #include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
@@ -124,8 +123,8 @@ private:
     uint32_t pop_from_heap();
 
     struct detail_astar::cache cache;
-    std::vector<visited> nodes;
-    std::vector<uint32_t> Q;
+    Array<visited> nodes;
+    Array<uint32_t> Q;
 };
 
 } // namespace floormat

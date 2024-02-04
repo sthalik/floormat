@@ -1,8 +1,8 @@
 #pragma once
 #include "src/global-coords.hpp"
 #include "compat/defs.hpp"
-#include <memory>
 #include <vector>
+#include <Corrade/Containers/Pointer.h>
 
 namespace floormat {
 
@@ -48,12 +48,12 @@ private:
         std::vector<point> vec;
 
     private:
-        std::unique_ptr<node> _next;
+        Pointer<node> _next;
     };
 
-    static std::unique_ptr<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
+    static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
 
-    std::unique_ptr<node> _node;
+    Pointer<node> _node;
     float _time = 0;
     uint32_t _cost = 0, _distance = (uint32_t)-1;
     bool _found : 1 = false;

@@ -13,7 +13,7 @@ constexpr size_t min_length = TILE_MAX_DIM*2;
 
 } // namespace
 
-std::unique_ptr<path_search_result::node> path_search_result::_pool; // NOLINT
+Pointer<path_search_result::node> path_search_result::_pool; // NOLINT
 
 path_search_result::path_search_result()
 {
@@ -27,7 +27,7 @@ path_search_result::path_search_result()
     }
     else
     {
-        _node = std::make_unique<node>();
+        _node = Pointer<node>{InPlaceInit};
         _node->vec.reserve(min_length);
     }
 }
