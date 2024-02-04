@@ -3,12 +3,19 @@
 #include "quads.hpp"
 #include "shaders/shader.hpp"
 #include <algorithm>
+#include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Magnum/GL/Buffer.h>
 
 namespace floormat {
 
 using namespace floormat::Quads;
+
+namespace {
+
+static Array<std::array<chunk::vertex, 4>> static_vertexes{NoInit, TILE_COUNT};
+
+} // namespace
 
 template<size_t N>
 std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT>
@@ -49,8 +56,8 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
               });
 
     float hack_offset = _coord.z <= 0 ? -16 : 0; // XXX hack
+    auto& vertexes = static_vertexes;
 
-    std::array<std::array<vertex, 4>, TILE_COUNT> vertexes;
     for (auto k = 0uz; k < count; k++)
     {
         const uint8_t i = _ground->indexes[k];
