@@ -78,6 +78,11 @@ struct raycast_test : base_test
                 return true;
             }
         }
+        else if (e.button == mouse_button_right && is_down)
+        {
+            result.has_result = false;
+            pending.exists = false;
+        }
         return false;
     }
 
