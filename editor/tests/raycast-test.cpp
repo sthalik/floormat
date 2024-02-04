@@ -259,6 +259,9 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
             .tmin = 0,
         };
 
+    float min_tmin = FLT_MAX;
+    bool b = true;
+
     //Debug{} << "------";
     for (unsigned k = 0; k <= nsteps; k++)
     {
@@ -292,51 +295,45 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
         pos -= Vector2i(fuzz);
         size += Vector2ui(fuzz)*2;
 
-        auto pt = object::normalize_coords(from, pos);
-        result.path.push_back(bbox{pt, size});
-    }
+        Vector2 origin;
+        min_tmin = FLT_MAX;
+        b = true;
 
-    auto last_ch = from.chunk3();
-    auto nbs = get_chunk_neighbors(w, from.chunk3());
-
-    Vector2 origin;
-    float min_tmin = FLT_MAX;
-    bool b = true;
-
-    const auto do_check_collider = [&](uint64_t data, const Rect& r)
-    {
-        auto x = std::bit_cast<collision_data>(data);
-        if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
-            return true;
-        //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
-        constexpr float fuzz = 0;
-        auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                         {{{r.m_min[0]-fuzz, r.m_min[1]-fuzz},
-                                           {r.m_max[0]+fuzz, r.m_max[1]+fuzz}}},
-                                         signs);
-        if (!ret.result)
+        const auto do_check_collider = [&](uint64_t data, const Rect& r)
         {
+            auto x = std::bit_cast<collision_data>(data);
+            if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
+                return true;
+            //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
+            constexpr float fuzz = 0;
+            auto ret = ray_aabb_intersection(origin, dir_inv_norm,
+                                             {{{r.m_min[0]-fuzz, r.m_min[1]-fuzz},
+                                               {r.m_max[0]+fuzz, r.m_max[1]+fuzz}}},
+                                             signs);
+            if (!ret.result)
+            {
+                return true;
+            }
+            if (ret.tmin > ray_len) [[unlikely]]
+            {
+                return true;
+            }
+            if (ret.tmin < min_tmin) [[likely]]
+            {
+                min_tmin = ret.tmin;
+                result.collision = object::normalize_coords(from, Vector2i(dir * min_tmin));
+                result.collider = x;
+                b = false;
+            }
             return true;
-        }
-        if (ret.tmin > ray_len) [[unlikely]]
-        {
-            return true;
-        }
-        if (ret.tmin < min_tmin) [[likely]]
-        {
-            min_tmin = ret.tmin;
-            result.collision = object::normalize_coords(from, Vector2i(dir * min_tmin));
-            result.collider = x;
-            b = false;
-        }
-        return true;
-    };
+        };
 
-    const auto path_len = (unsigned)result.path.size();
-    for (auto k = 0u; k < path_len; k++)
-    {
-        auto [center, size] = result.path[k];
-        //Debug{} << "--";
+        auto center = object::normalize_coords(from, pos);
+        result.path.push_back(bbox{center, size});
+
+        auto last_ch = from.chunk3();
+        auto nbs = get_chunk_neighbors(w, from.chunk3());
+
         if (center.chunk3() != last_ch) [[unlikely]]
         {
             last_ch = center.chunk3();
