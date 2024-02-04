@@ -321,7 +321,7 @@ struct raycast_test : base_test
                 }
 
                 do_column("collision");
-                print_coord_(buf, result.from);
+                print_coord_(buf, result.collision);
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }
