@@ -19,7 +19,7 @@ namespace floormat {
 
 class world;
 struct object;
-struct chunk;
+class chunk;
 
 // todo add pathfinding sub-namespace
 

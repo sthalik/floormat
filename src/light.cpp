@@ -17,7 +17,7 @@ light_proto& light_proto::operator=(const light_proto&) = default;
 light_proto::~light_proto() noexcept = default;
 bool light_proto::operator==(const light_proto&) const = default;
 
-light::light(object_id id, struct chunk& c, const light_proto& proto) :
+light::light(object_id id, class chunk& c, const light_proto& proto) :
     object{id, c, proto},
     max_distance{proto.max_distance},
     color{proto.color},

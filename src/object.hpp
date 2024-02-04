@@ -13,7 +13,7 @@ namespace floormat {
 template<typename T> struct object_type_;
 class anim_atlas;
 class world;
-struct chunk;
+class chunk;
 
 struct object_proto
 {
@@ -41,7 +41,7 @@ struct object
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);
 
     const object_id id = 0;
-    struct chunk* const c;
+    class chunk* const c;
     const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
     const Vector2b offset, bbox_offset;
@@ -57,7 +57,7 @@ struct object
     virtual float depth_offset() const = 0;
     float ordinal() const;
     float ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const;
-    struct chunk& chunk() const;
+    class chunk& chunk() const;
     size_t index() const;
     virtual bool is_virtual() const;
     point position() const;
@@ -84,7 +84,7 @@ struct object
     void move_to(Vector2i delta);
 
 protected:
-    object(object_id id, struct chunk& c, const object_proto& proto);
+    object(object_id id, class chunk& c, const object_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 };
 

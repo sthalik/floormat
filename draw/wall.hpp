@@ -3,7 +3,7 @@
 namespace floormat {
 
 struct tile_shader;
-struct chunk;
+class chunk;
 
 struct wall_mesh
 {

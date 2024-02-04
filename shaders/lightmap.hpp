@@ -30,7 +30,7 @@ struct light_s final
     bool operator==(const light_s&) const noexcept;
 };
 
-struct chunk;
+class chunk;
 
 struct lightmap_shader final : GL::AbstractShaderProgram
 {

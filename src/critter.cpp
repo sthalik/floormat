@@ -226,7 +226,7 @@ critter::operator critter_proto() const
     return ret;
 }
 
-critter::critter(object_id id, struct chunk& c, const critter_proto& proto) :
+critter::critter(object_id id, class chunk& c, const critter_proto& proto) :
     object{id, c, proto},
     name{proto.name},
     playable{proto.playable}

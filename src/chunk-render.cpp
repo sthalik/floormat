@@ -55,7 +55,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
                   return _ground->atlases[a] < _ground->atlases[b];
               });
 
-    float hack_offset = _coord.z <= 0 ? -16 : 0; // XXX hack
+    float hack_offset = _coord.z <= 0 ? -16.f : 0.f; // XXX hack
     auto& vertexes = static_vertexes;
 
     for (auto k = 0uz; k < count; k++)

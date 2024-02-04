@@ -21,8 +21,9 @@ struct object_proto;
 class tile_iterator;
 class tile_const_iterator;
 
-struct chunk final
+class chunk final
 {
+public:
     friend struct tile_ref;
     friend struct object;
     friend class world;

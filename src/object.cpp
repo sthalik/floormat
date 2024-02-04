@@ -49,7 +49,7 @@ object_proto::object_proto() = default;
 object_proto::object_proto(const object_proto&) = default;
 object_type object_proto::type_of() const noexcept { return type; }
 
-object::object(object_id id, struct chunk& c, const object_proto& proto) :
+object::object(object_id id, class chunk& c, const object_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
     bbox_size{proto.bbox_size}, delta{proto.delta},
@@ -87,7 +87,7 @@ float object::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
     return vec[0] + vec[1] + Vector2(z_offset).sum();
 }
 
-struct chunk& object::chunk() const
+class chunk& object::chunk() const
 {
     return *c;
 }
@@ -159,7 +159,7 @@ point object::normalize_coords(const point& pt, Vector2i delta)
 }
 
 template<bool neighbor = true>
-static bool do_search(struct chunk* c, chunk_coords_ coord,
+static bool do_search(class chunk* c, chunk_coords_ coord,
                       object_id id, Vector2 min, Vector2 max, Vector2b off = {})
 {
     if constexpr(neighbor)
@@ -259,7 +259,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
-        const_cast<struct chunk*&>(c) = &c2;
+        const_cast<class chunk*&>(c) = &c2;
         i = (size_t)std::distance(es.cbegin(), it);
         arrayInsert(es, i, std::move(e_));
     }

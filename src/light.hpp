@@ -28,7 +28,7 @@ struct light final : object
     light_falloff falloff : 2;
     uint8_t enabled : 1;
 
-    light(object_id id, struct chunk& c, const light_proto& proto);
+    light(object_id id, class chunk& c, const light_proto& proto);
 
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;

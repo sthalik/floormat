@@ -65,7 +65,7 @@ enum scenery_type scenery_proto::scenery_type() const
 
 generic_scenery::operator generic_scenery_proto() const { return { .active = active, .interactive = interactive, }; }
 
-generic_scenery::generic_scenery(object_id, struct chunk&, const generic_scenery_proto& p) :
+generic_scenery::generic_scenery(object_id, class chunk&, const generic_scenery_proto& p) :
     active{p.active}, interactive{p.interactive}
 {}
 
@@ -75,7 +75,7 @@ enum scenery_type door_scenery_proto::scenery_type() const { return scenery_type
 enum scenery_type door_scenery::scenery_type() const { return scenery_type::door; }
 door_scenery::operator door_scenery_proto() const { return { .active = active, .interactive = interactive, .closing = closing, }; }
 
-door_scenery::door_scenery(object_id, struct chunk&, const door_scenery_proto& p) :
+door_scenery::door_scenery(object_id, class chunk&, const door_scenery_proto& p) :
     closing{p.closing}, active{p.active}, interactive{p.interactive}
 {}
 
@@ -237,7 +237,7 @@ enum scenery_type scenery::scenery_type() const
     );
 }
 
-scenery_variants scenery::subtype_from_proto(object_id id, struct chunk& c, const scenery_proto_variants& variant)
+scenery_variants scenery::subtype_from_proto(object_id id, class chunk& c, const scenery_proto_variants& variant)
 {
     return std::visit(
         [&]<typename T>(const T& p) {
@@ -247,7 +247,7 @@ scenery_variants scenery::subtype_from_proto(object_id id, struct chunk& c, cons
     );
 }
 
-scenery_variants scenery::subtype_from_scenery_type(object_id id, struct chunk& c, enum scenery_type type)
+scenery_variants scenery::subtype_from_scenery_type(object_id id, class chunk& c, enum scenery_type type)
 {
     switch (type)
     {
@@ -261,7 +261,7 @@ scenery_variants scenery::subtype_from_scenery_type(object_id id, struct chunk& 
     fm_throw("invalid scenery type"_cf, (int)type);
 }
 
-scenery::scenery(object_id id, struct chunk& c, const scenery_proto& proto) :
+scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
     object{id, c, proto}, subtype{ subtype_from_proto(id, c, proto.subtype) }
 {
 #ifndef FM_NO_DEBUG

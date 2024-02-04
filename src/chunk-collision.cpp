@@ -53,13 +53,13 @@ void chunk::ensure_passability() noexcept
         auto tile = operator[](i);
         if (const auto* atlas = tile.wall_north_atlas().get())
         {
-            auto [min, max] = wall_north(i, atlas->info().depth);
+            auto [min, max] = wall_north(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
             _rtree->Insert(min.data(), max.data(), id);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
-            auto [min, max] = wall_west(i, atlas->info().depth);
+            auto [min, max] = wall_west(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
             _rtree->Insert(min.data(), max.data(), id);
         }

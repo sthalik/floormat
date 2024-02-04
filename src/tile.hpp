@@ -3,7 +3,7 @@
 
 namespace floormat {
 
-struct chunk;
+class chunk;
 class anim_atlas;
 
 struct tile_proto final
@@ -21,7 +21,7 @@ struct tile_proto final
 
 struct tile_ref final
 {
-    tile_ref(struct chunk& c, uint8_t i) noexcept;
+    tile_ref(class chunk& c, uint8_t i) noexcept;
 
     tile_image_ref ground() noexcept;
     wall_image_ref wall_north() noexcept;
@@ -41,14 +41,14 @@ struct tile_ref final
 
     explicit operator tile_proto() const noexcept;
 
-    struct chunk& chunk() noexcept { return *_chunk; }
-    const struct chunk& chunk() const noexcept { return *_chunk; }
+    class chunk& chunk() noexcept { return *_chunk; }
+    const class chunk& chunk() const noexcept { return *_chunk; }
     size_t index() const noexcept { return i; }
 
     friend bool operator==(const tile_ref& a, const tile_ref& b) noexcept;
 
 private:
-    struct chunk* _chunk;
+    class chunk* _chunk;
     uint8_t i;
 };
 

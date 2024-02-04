@@ -14,7 +14,7 @@ union any_event;
 
 struct chunk_coords;
 struct chunk_coords_;
-struct chunk;
+class chunk;
 
 struct floormat_app
 {

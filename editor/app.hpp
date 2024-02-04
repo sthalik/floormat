@@ -32,7 +32,7 @@ namespace floormat {
 struct fm_settings;
 struct floormat_main;
 class world;
-struct chunk;
+class chunk;
 class ground_atlas;
 class anim_atlas;
 struct object;

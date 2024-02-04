@@ -4,6 +4,7 @@
 #include "src/object.hpp"
 #include "src/RTree-search.hpp"
 #include <cfloat>
+#include <bit>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Functions.h>
@@ -17,7 +18,7 @@ template<typename T> constexpr inline auto tile_size = Math::Vector2<T>{iTILE_SI
 template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MAX_DIM} * tile_size<T>;
 
 using floormat::detail_rc::bbox;
-using RTree = std::decay_t<decltype(*std::declval<struct chunk>().rtree())>;
+using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = typename RTree::Rect;
 
 template<class T> constexpr inline T sign_(auto&& x) {
