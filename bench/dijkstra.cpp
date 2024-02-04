@@ -14,7 +14,7 @@ void Dijkstra(benchmark::State& state)
     (void)loader.wall_atlas_list();
     auto w = world();
     auto A = astar();
-    static bool first_run = false;
+    bool first_run = false;
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
     constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
