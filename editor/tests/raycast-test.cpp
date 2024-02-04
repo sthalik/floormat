@@ -479,10 +479,16 @@ struct raycast_test : base_test
             }
             else if (k == nsteps)
             {
-                auto sign_long = sign_<int>(V[long_axis]);
-                pos[long_axis] -= (int)(size[long_axis]/4) * sign_long;
-                size[long_axis] -= size[long_axis]/2;
-                size[long_axis] += tile_size<unsigned>.x() / 2;
+                constexpr auto add = (tile_size<unsigned>.x()+1)/2,
+                               min_size = tile_size<unsigned>.x() + add;
+                if (size[long_axis] > min_size)
+                {
+                    auto sign = sign_<int>(V[long_axis]);
+                    auto off = (int)(size[long_axis]/2) - (int)add;
+                    fm_debug_assert(off >= 0);
+                    pos[long_axis] -= off/2 * sign;
+                    size[long_axis] -= (unsigned)off;
+                }
             }
 
             pos -= Vector2i(fuzz);
