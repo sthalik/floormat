@@ -123,6 +123,25 @@ void path_test::draw_overlay(app& a)
         draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
         last = pos;
     }
+
+    if (!result.found && !result.path.empty())
+    {
+        auto pos = a.point_screen_pos(result.path.back());
+        constexpr float spacing = 12, size1 = 7, size2 = 3, spacing2 = spacing + size2;
+
+        draw.AddLine({pos.x() - spacing2, pos.y() - spacing2},
+                     {pos.x() + spacing2, pos.y() + spacing2},
+                     line_color, size1);
+        draw.AddLine({pos.x() + spacing2, pos.y() - spacing2},
+                     {pos.x() - spacing2, pos.y() + spacing2},
+                     line_color, size1);
+        draw.AddLine({pos.x() + spacing,  pos.y() - spacing},
+                     {pos.x() - spacing,  pos.y() + spacing},
+                     dot_color, size2);
+        draw.AddLine({pos.x() - spacing,  pos.y() - spacing},
+                     {pos.x() + spacing,  pos.y() + spacing},
+                     dot_color, size2);
+    }
 }
 
 void path_test::update_pre(app& a)
