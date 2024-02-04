@@ -21,6 +21,8 @@ using floormat::detail_rc::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = typename RTree::Rect;
 
+static_assert(tile_size<int>.x() == tile_size<int>.y());
+
 template<class T> constexpr inline T sign_(auto&& x) {
     constexpr auto zero = std::decay_t<decltype(x)>{0};
     return T(x > zero) - T(x < zero);
