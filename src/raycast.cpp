@@ -191,6 +191,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     float min_tmin = FLT_MAX;
     bool b = true;
 
+    auto last_ch = from.chunk3();
+    std::array<std::array<chunk*, 3>, 3> nbs = {};
+
     //Debug{} << "------";
     for (unsigned k = 0; b && k <= nsteps; k++)
     {
@@ -255,9 +258,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
         if constexpr(EnableDiagnostics)
             arrayAppend(diag.path, bbox{center, size});
-
-        auto last_ch = from.chunk3();
-        std::array<std::array<chunk*, 3>, 3> nbs = {};
 
         if (center.chunk3() != last_ch) [[unlikely]]
         {
