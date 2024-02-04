@@ -260,6 +260,13 @@ struct raycast_test : base_test
             draw.AddCircleFilled({p.x(), p.y()}, 10, color3);
             draw.AddCircleFilled({p.x(), p.y()}, 7, color);
         }
+        else
+        {
+            auto color4 = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1});
+            auto p = a.point_screen_pos(result.to);
+            draw.AddCircleFilled({p.x(), p.y()}, 10, color3);
+            draw.AddCircleFilled({p.x(), p.y()}, 7, color4);
+        }
     }
 
     void draw_ui(app&, float) override
