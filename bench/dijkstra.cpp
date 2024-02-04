@@ -14,7 +14,7 @@ void Dijkstra(benchmark::State& state)
     (void)loader.wall_atlas_list();
     auto w = world();
     auto A = astar();
-    bool first_run = false;
+    static bool first_run = false;
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
     constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
@@ -50,14 +50,22 @@ void Dijkstra(benchmark::State& state)
         }
 
     auto run = [&] {
-        A.Dijkstra(w,
-                 {{0,0,0}, {11,9}},    // from
-                 {wpos, {wox, woy}},   // to
-                 0, max_dist, {16,16}, // size
-                 first_run ? 1 : 0);
+      return A.Dijkstra(w,
+                        {{0,0,0}, {11,9}},    // from
+                        {wpos, {wox, woy}},   // to
+                        0, max_dist, {16,16}, // size
+                        first_run ? 1 : 0);
     };
 
-    run();
+    {
+        auto res = run();
+        fm_assert(!res.is_found());
+        fm_assert(res.distance() < 128);
+        fm_assert(res.distance() > 8);
+        fm_assert(res.cost() > 1800);
+        fm_assert(res.cost() < 3000);
+    }
+
     first_run = false;
     for (auto _ : state)
         run();
