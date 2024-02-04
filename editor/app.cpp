@@ -83,7 +83,7 @@ void app::reset_world(class world&& w_)
         return;
 
     _editor->on_release();
-    _editor->clear_selection();
+    //_editor->clear_selection();
     kill_popups(true);
     tested_light_chunk = {};
     tests_reset_mode();

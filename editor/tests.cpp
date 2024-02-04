@@ -95,7 +95,9 @@ tests_data& app::tests()
 
 void app::tests_reset_mode()
 {
+    auto mode = tests().current_index;
     tests().switch_to(Test::none);
+    tests().switch_to(mode);
 }
 
 void app::draw_tests_pane(float width)
