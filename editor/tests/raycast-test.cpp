@@ -570,7 +570,7 @@ struct raycast_test : base_test
                     auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                     auto pt0_ = pt0 - off, pt1_ = pt1 - off;
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
-                    //if (!within_chunk_bounds(fmin, fmax)) continue;
+                    if (!within_chunk_bounds(fmin, fmax)) continue;
                     auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
                     origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                     //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
