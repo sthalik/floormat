@@ -9,12 +9,11 @@
 
 namespace floormat {
 
-namespace {
-
+using namespace floormat::detail_astar;
 template<typename T> using bbox = path_search::bbox<T>;
 using pred = path_search::pred;
-constexpr auto div_factor = path_search::div_factor;
-constexpr auto min_size = path_search::min_size;
+
+namespace {
 
 constexpr bbox<int> get_value(Vector2i sz, Vector2ui div, rotation r)
 {
@@ -55,9 +54,14 @@ constexpr bbox<int> get_value(Vector2i sz, Vector2ui div, rotation r)
     }
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4189)
+#endif
+
 constexpr bool test_offsets()
 {
-    constexpr auto sz = Vector2i(path_search::min_size);
+    constexpr auto sz = Vector2i(min_size);
     constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
 
     [[maybe_unused]] constexpr auto N = get_value(sz, {1,1}, rotation::N);
@@ -82,6 +86,10 @@ constexpr bool test_offsets()
 
     return true;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 constexpr bool test_offsets2()
 {
@@ -127,7 +135,7 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
-    size = Math::max(size, path_search::div_size);
+    size = Math::max(size, div_size);
 
     neighbors ns;
 
@@ -145,7 +153,7 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
     for (auto [off, r] : nbs)
     {
         auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
-        if (path_search::is_passable(w, ch, min, max, own_id, p))
+        if (path_search::is_passable(w, ch, {min, max}, own_id, p))
             ns.data[ns.size++] = { coord + off, {} };
     }
 
@@ -159,7 +167,7 @@ void test_bbox()
     };
 
     static constexpr auto is_passable = [](world& w, chunk_coords_ ch, bbox<float> bb) {
-        return path_search::is_passable(w, ch, bb.min, bb.max, (object_id)-1);
+        return path_search::is_passable(w, ch, bb, (object_id)-1);
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {

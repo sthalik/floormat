@@ -7,11 +7,12 @@
 
 namespace floormat {
 
+using namespace detail_astar;
+
 namespace {
 
-constexpr auto div = path_search::div_factor;
 constexpr int div_BITS = 2;
-static_assert(1 << div_BITS == div);
+static_assert(1 << div_BITS == div_factor);
 
 constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = path_search::pred{never_continue_1};
@@ -84,31 +85,32 @@ bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair,
     return true;
 }
 
-bool path_search::is_passable(world& w, chunk_coords_ ch0, Vector2 min, Vector2 max, object_id own_id, const pred& p)
-{
-    auto* c = w.at(ch0);
-    auto neighbors = w.neighbors(ch0);
-    return is_passable_(c, neighbors, min, max, own_id, p);
-}
-
 bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ui size_,
                               object_id own_id, const pred& p)
 {
     auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
     auto size = Vector2(size_);
     auto min = Vector2(center) - size*.5f, max = min + size;
-    return is_passable(w, coord, min, max, own_id, p);
-}
-
-bool path_search::is_passable(world& w, global_coords coord, Vector2b offset, Vector2ub size,
-                              object_id own_id, const pred& p)
-{
-    return is_passable(w, coord, offset, Vector2ui(size), own_id, p);
+    return is_passable(w, coord, {min, max}, own_id, p);
 }
 
 bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb, object_id own_id, const pred& p)
 {
-    return is_passable(w, ch, bb.min, bb.max, own_id, p);
+    auto* c = w.at(ch);
+    auto neighbors = w.neighbors(ch);
+    return is_passable_(c, neighbors, bb.min, bb.max, own_id, p);
+}
+
+bool path_search::is_passable(world& w, struct detail_astar::cache& cache, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p)
+{
+    fm_debug_assert(!cache.size.isZero());
+    std::array<world::neighbor_pair, 8> neighbors;
+    for (auto i = 0uz; const auto& x : world::neighbor_offsets)
+    {
+        auto ch = ch0 + x;
+        neighbors[i++] = { cache.try_get_chunk(w, ch), ch0 };
+    }
+    return is_passable_(cache.try_get_chunk(w, ch0), neighbors, bb.min, bb.max, own_id, p);
 }
 
 } // namespace floormat
