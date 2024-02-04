@@ -87,6 +87,7 @@ struct bbox
 
 struct diag_s
 {
+    std::vector<bbox> path{};
     Vector2 V, dir, dir_inv_norm;
     Vector2ui size;
     //unsigned short_steps, long_steps;
@@ -97,7 +98,6 @@ struct result_s
 {
     point from, to, collision;
     collision_data collider;
-    std::vector<bbox> path;
     bool has_result : 1 = false,
          success    : 1 = false;
 };
@@ -181,9 +181,12 @@ void do_column(StringView name)
 }
 
 template<bool EnableDiagnostics>
-void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to, object_id self)
+void do_raycasting(result_s& result,
+                   std::conditional_t<EnableDiagnostics, diag_s*, std::nullptr_t> diag,
+                   app& a, point from, point to, object_id self)
 {
-    fm_assert(!!diag == EnableDiagnostics);
+    if constexpr(EnableDiagnostics)
+        fm_assert(diag != nullptr);
 
     using Math::max;
     using Math::min;
@@ -193,8 +196,8 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
     constexpr float eps = 1e-6f;
     constexpr float inv_eps = 1/eps;
     constexpr int fuzz = 2;
+    constexpr auto fuzz2 = 0.5f;
 
-    result.path.clear();
     result.has_result = false;
 
     auto& w = a.main().world();
@@ -246,11 +249,11 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
             .pass = (uint64_t)pass_mode::pass,
             .data = ((uint64_t)1 << collision_data_BITS)-1,
         },
-        .path = {},
         .has_result = true,
         .success = false,
     };
     if constexpr(EnableDiagnostics)
+    {
         *diag = {
             .V = V,
             .dir = dir,
@@ -258,6 +261,9 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
             .size = size_,
             .tmin = 0,
         };
+        diag->path.clear();
+        diag->path.reserve(nsteps+1);
+    }
 
     float min_tmin = FLT_MAX;
     bool b = true;
@@ -305,10 +311,9 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
             if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
                 return true;
             //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
-            constexpr float fuzz = 0;
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                             {{{r.m_min[0]-fuzz, r.m_min[1]-fuzz},
-                                               {r.m_max[0]+fuzz, r.m_max[1]+fuzz}}},
+                                             {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
+                                               {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
                                              signs);
             if (!ret.result)
             {
@@ -329,7 +334,9 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
         };
 
         auto center = object::normalize_coords(from, pos);
-        result.path.push_back(bbox{center, size});
+
+        if constexpr(EnableDiagnostics)
+            diag->path.push_back(bbox{center, size});
 
         auto last_ch = from.chunk3();
         auto nbs = get_chunk_neighbors(w, from.chunk3());
@@ -353,7 +360,7 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
                 auto off = chunk_offsets[i][j];
                 auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                 auto pt0_ = pt0 - off, pt1_ = pt1 - off;
-                auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
+                auto [fmin, fmax] = Math::minmax(Vector2(pt0_)-Vector2(fuzz2), Vector2(pt1_)+Vector2(fuzz2));
                 if (!within_chunk_bounds(fmin, fmax)) continue;
                 auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
                 origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
@@ -365,7 +372,8 @@ void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to,
         }
         if (!b)
         {
-            result.path.resize(k+1);
+            if constexpr(EnableDiagnostics)
+                diag->path.resize(k+1);
             break;
         }
     }
@@ -432,7 +440,7 @@ struct raycast_test : base_test
             draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
 
-        for (auto [center, size] : result.path)
+        for (auto [center, size] : diag.path)
         {
             //auto c = a.point_screen_pos(center);
             //draw.AddCircleFilled({c.x(), c.y()}, 3, color);
@@ -562,7 +570,7 @@ struct raycast_test : base_test
             text(buf);
 
             do_column("path-len");
-            std::snprintf(buf, std::size(buf), "%zu", result.path.size());
+            std::snprintf(buf, std::size(buf), "%zu", diag.path.size());
             text(buf);
         }
     }
