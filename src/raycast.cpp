@@ -3,7 +3,7 @@
 #include "src/world.hpp"
 #include "src/object.hpp"
 #include "src/RTree-search.hpp"
-#include <float.h>
+#include <cfloat>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Functions.h>
@@ -73,20 +73,6 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
     return { tmin, tmin < tmax };
 }
 
-struct chunk_neighbors
-{
-    chunk* array[3][3];
-};
-
-auto get_chunk_neighbors(class world& w, chunk_coords_ ch)
-{
-    chunk_neighbors nbs;
-    for (int j = 0; j < 3; j++)
-        for (int i = 0; i < 3; i++)
-            nbs.array[i][j] = w.at(ch + Vector2i(i - 1, j - 1));
-    return nbs;
-}
-
 constexpr Vector2i chunk_offsets[3][3] = {
     {
         { -chunk_size<int>.x(), -chunk_size<int>.y()    },
@@ -117,6 +103,7 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
     return !(start.x() > p1.x() || end.x() < p0.x() ||
              start.y() > p1.y() || end.y() < p0.y());
 }
+
 template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int> p1);
 
 template<bool EnableDiagnostics>
@@ -267,12 +254,12 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             arrayAppend(diag.path, bbox{center, size});
 
         auto last_ch = from.chunk3();
-        auto nbs = get_chunk_neighbors(w, from.chunk3());
+        std::array<std::array<chunk*, 3>, 3> nbs = {};
 
         if (center.chunk3() != last_ch) [[unlikely]]
         {
             last_ch = center.chunk3();
-            nbs = get_chunk_neighbors(w, center.chunk3());
+            nbs = {};
         }
 
         auto pt = Vector2i(center.local()) * tile_size<int> + Vector2i(center.offset());
@@ -281,18 +268,29 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         {
             for (int j = 0; j < 3; j++)
             {
-                auto* c = nbs.array[i][j];
-                if (!c)
+                auto*& c = nbs[(unsigned)i][(unsigned)j];
+                if (c == (chunk*)-1) [[unlikely]]
                     continue;
-                auto* r = c->rtree();
                 auto off = chunk_offsets[i][j];
                 auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                 auto pt0_ = pt0 - off, pt1_ = pt1 - off;
                 auto [fmin, fmax] = Math::minmax(Vector2(pt0_)-Vector2(fuzz2), Vector2(pt1_)+Vector2(fuzz2));
-                if (!within_chunk_bounds(fmin, fmax)) continue;
+                if (!within_chunk_bounds(fmin, fmax))
+                    continue;
+                if (!c)
+                {
+                    c = w.at({last_ch + Vector2i{i - 1, j - 1}});
+                    if (!c)
+                    {
+                        c = (chunk*)-1;
+                        continue;
+                    }
+                }
+
                 auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
                 origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                 //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
+                auto* r = c->rtree();
                 r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
                     do_check_collider(data, r);
                     return true;
