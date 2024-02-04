@@ -146,8 +146,9 @@ constexpr Vector2i chunk_offsets[3][3] = {
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
-    constexpr auto max_bb_size = Math::Vector2<T>{T{0xff+1}, T{0xff+1}};
-    constexpr auto start = -max_bb_size/2, end = chunk_size<T> + max_bb_size/2;
+    constexpr auto max_bb_size = Math::Vector2<T>{T{0xff}, T{0xff}};
+    constexpr auto half_bb = (max_bb_size + Math::Vector2{T{1}}) / T{2};
+    constexpr auto start = -half_bb, end = chunk_size<T> + half_bb;
 
     return !(start.x() > p1.x() || end.x() < p0.x() ||
              start.y() > p1.y() || end.y() < p0.y());
@@ -206,11 +207,7 @@ void do_raycasting(result_s& result,
     auto dir = V.normalized();
 
     if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
-    {
         dir = {eps, eps};
-        //fm_error("raycast: bad dir? {%f, %f}", dir.x(), dir.y());
-        //return;
-    }
 
     unsigned long_axis, short_axis;
 
