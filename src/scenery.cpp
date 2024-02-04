@@ -13,7 +13,7 @@ namespace floormat {
 namespace {
 
 template<typename... Ts> struct [[maybe_unused]] overloaded : Ts... { using Ts::operator()...; };
-template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+template<typename... Ts> [[maybe_unused]] overloaded(Ts...) -> overloaded<Ts...>;
 
 template<typename T> struct proto_to_scenery_;
 template<> struct proto_to_scenery_<generic_scenery_proto> { using type = generic_scenery; };
