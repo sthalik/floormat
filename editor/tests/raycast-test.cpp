@@ -221,7 +221,9 @@ struct raycast_test : base_test
             else
             {
                 do_column("tmin");
-                text("-");
+                std::snprintf(buf, std::size(buf), "%f / %f",
+                              (double)diag.V.length(), 1.0);
+                text(buf);
             }
 
             do_column("vector");
