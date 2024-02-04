@@ -14,7 +14,9 @@ namespace floormat {
 
 template<typename T> using bbox = path_search::bbox<T>;
 using visited = astar::visited;
-using namespace floormat::detail_astar;
+using detail_astar::div_size;
+using detail_astar::div_factor;
+using detail_astar::min_size;
 
 namespace {
 
@@ -177,10 +179,10 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (from.coord().z() != 0) [[unlikely]]
         return {};
 
-    if (!path_search::is_passable(w, from.coord(), from.offset(), own_size, own_id, p))
+    if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size, own_id, p))
         return {};
 
-    if (!path_search::is_passable(w, to.coord(), to.offset(), own_size, own_id, p))
+    if (!path_search::is_passable(w, cache, to.coord(), to.offset(), own_size, own_id, p))
         return {};
 
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
@@ -353,7 +355,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     return result;
 }
 
-struct detail_astar::chunk_cache
+} // namespace floormat
+
+namespace floormat::detail_astar {
+
+struct chunk_cache
 {
     static constexpr size_t dimensions[] = {
         TILE_COUNT,
@@ -373,9 +379,9 @@ struct detail_astar::chunk_cache
     std::bitset<size> exists{false};
 };
 
-detail_astar::cache::cache() = default;
+cache::cache() = default;
 
-Vector2ui detail_astar::cache::get_size_to_allocate(uint32_t max_dist)
+Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
 {
     constexpr auto chunk_size = Vector2ui(iTILE_SIZE2) * TILE_MAX_DIM;
     constexpr auto rounding   = chunk_size - Vector2ui(1);
@@ -383,7 +389,7 @@ Vector2ui detail_astar::cache::get_size_to_allocate(uint32_t max_dist)
     return nchunks + Vector2ui(3);
 }
 
-void detail_astar::cache::allocate(point from, uint32_t max_dist)
+void cache::allocate(point from, uint32_t max_dist)
 {
     auto off = get_size_to_allocate(max_dist);
     start = Vector2i(from.chunk()) - Vector2i(off);
@@ -396,7 +402,7 @@ void detail_astar::cache::allocate(point from, uint32_t max_dist)
             array[i].exists = {};
 }
 
-size_t detail_astar::cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
+size_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 {
     auto off = Vector2ui(coord - start);
     fm_assert(off < size);
@@ -405,9 +411,9 @@ size_t detail_astar::cache::get_chunk_index(Vector2i start, Vector2ui size, Vect
     return index;
 }
 
-size_t detail_astar::cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
+size_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
 
-size_t detail_astar::cache::get_tile_index(Vector2i pos, Vector2b offset_)
+size_t cache::get_tile_index(Vector2i pos, Vector2b offset_)
 {
     Vector2i offset{offset_};
     constexpr auto tile_start = div_size * div_factor/-2;
@@ -430,7 +436,7 @@ size_t detail_astar::cache::get_tile_index(Vector2i pos, Vector2b offset_)
     return index;
 }
 
-void detail_astar::cache::add_index(size_t chunk_index, size_t tile_index, uint32_t index)
+void cache::add_index(size_t chunk_index, size_t tile_index, uint32_t index)
 {
     fm_debug_assert(index != (uint32_t)-1);
     auto& c = array[chunk_index];
@@ -439,7 +445,7 @@ void detail_astar::cache::add_index(size_t chunk_index, size_t tile_index, uint3
     c.indexes[tile_index] = {index};
 }
 
-void detail_astar::cache::add_index(point pt, uint32_t index)
+void cache::add_index(point pt, uint32_t index)
 {
     auto ch = get_chunk_index(Vector2i(pt.chunk()));
     auto tile = get_tile_index(Vector2i(pt.local()), pt.offset());
@@ -448,7 +454,7 @@ void detail_astar::cache::add_index(point pt, uint32_t index)
     array[ch].indexes[tile] = {index};
 }
 
-uint32_t detail_astar::cache::lookup_index(size_t chunk_index, size_t tile_index)
+uint32_t cache::lookup_index(size_t chunk_index, size_t tile_index)
 {
     auto& c = array[chunk_index];
     if (c.exists[tile_index])
@@ -457,7 +463,7 @@ uint32_t detail_astar::cache::lookup_index(size_t chunk_index, size_t tile_index
         return (uint32_t)-1;
 }
 
-chunk* detail_astar::cache::try_get_chunk(world& w, floormat::chunk_coords_ ch)
+chunk* cache::try_get_chunk(world& w, floormat::chunk_coords_ ch)
 {
     auto idx = get_chunk_index({ch.x, ch.y});
     auto& page = array[idx];
@@ -477,4 +483,16 @@ chunk* detail_astar::cache::try_get_chunk(world& w, floormat::chunk_coords_ ch)
         return page.chunk;
 }
 
-} // namespace floormat
+std::array<world::neighbor_pair, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
+{
+    fm_debug_assert(!size.isZero());
+    std::array<world::neighbor_pair, 8> neighbors;
+    for (auto i = 0uz; const auto& x : world::neighbor_offsets)
+    {
+        auto ch = ch0 + x;
+        neighbors[i++] = { try_get_chunk(w, ch), ch0 };
+    }
+    return neighbors;
+}
+
+} // namespace floormat::detail_astar
