@@ -331,7 +331,9 @@ struct raycast_test : base_test
                 }
 
                 do_column("tmin");
-                std::snprintf(buf, std::size(buf), "%f", (double)result.diag.tmin);
+                std::snprintf(buf, std::size(buf), "%f / %f",
+                              (double)result.diag.tmin,
+                              (double)(result.diag.tmin / result.diag.V.length()));
                 text(buf);
             }
 
@@ -380,9 +382,9 @@ struct raycast_test : base_test
 
     void do_raycasting(app& a, point from, point to, object_id self)
     {
-        constexpr float eps = 1e-3f;
+        constexpr float eps = 1e-6f;
         constexpr float inv_eps = 1/eps;
-        constexpr int fuzz = tile_size<int>.x()/4;
+        constexpr int fuzz = 2;
 
         result.path.clear();
         result.has_result = false;
@@ -413,13 +415,13 @@ struct raycast_test : base_test
 
         auto long_len  = (unsigned)Math::ceil(Math::abs(V[long_axis])),
              short_len = (unsigned)Math::ceil(Math::abs(V[short_axis]));
-        auto nsteps = Math::max(1u, (Math::max(long_len, short_len) + tile_size<unsigned>.x()/2-1) / (tile_size<unsigned>.x()));
-#if 1
-        auto size_ = tile_size<unsigned>;
+        auto nsteps = Math::max(1u, (long_len + tile_size<unsigned>.x()-1) / tile_size<unsigned>.x());
+#if 0
+        auto size_ = tile_size<unsigned>*2;
 #else
         auto size_ = Vector2ui{};
-        size_[long_axis] = tile_size<unsigned>.x();
-        size_[short_axis] = Math::min(tile_size<unsigned>.x(), (unsigned)short_len * 3/2 / nsteps)+2u;
+        size_[long_axis] = tile_size<unsigned>.x()*2;
+        size_[short_axis] = Math::clamp((unsigned)short_len / nsteps, tile_size<unsigned>.x()/8, tile_size<unsigned>.x());
 #endif
 
         auto dir_inv_norm = Vector2(
@@ -475,7 +477,7 @@ struct raycast_test : base_test
                 auto sign_long = sign_<int>(V[long_axis]);
                 pos[long_axis] -= (int)(size[long_axis]/4) * sign_long;
                 size[long_axis] -= size[long_axis]/2;
-                size[long_axis] += (unsigned)iTILE_SIZE2.x() / 2;
+                size[long_axis] += tile_size<unsigned>.x() / 2;
             }
 #endif
 
@@ -498,7 +500,8 @@ struct raycast_test : base_test
             auto x = std::bit_cast<collision_data>(data);
             if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
                 return true;
-            Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]);
+            Debug{} << "item" << x.data
+                    << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                            {{{r.m_min[0], r.m_min[1]},{r.m_max[0], r.m_max[1]}}},
                                            signs);
@@ -520,7 +523,7 @@ struct raycast_test : base_test
             return true;
         };
 
-        for (auto [center, size] : result.path)
+        for (unsigned k = 0; auto [center, size] : result.path)
         {
             Debug{} << "--";
             if (center.chunk3() != last_ch) [[unlikely]]
@@ -542,16 +545,18 @@ struct raycast_test : base_test
                     auto off = chunk_offsets[i][j];
                     auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                     auto pt0_ = pt0 - off, pt1_ = pt1 - off;
-                    if (!within_chunk_bounds(pt0_) && !within_chunk_bounds(pt1_)) continue;
+                    //if (!within_chunk_bounds(pt0_) && !within_chunk_bounds(pt1_)) continue;
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
-                    auto ch_off = (chunk_coords(last_ch) - from.chunk()) * chunk_size<int>;
+                    auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
+                    //Debug{} << ch_off << off << Vector2i(center.chunk()) + Vector2i(i-1, j-1);
                     origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
-                    //Debug{} << "search" << fmin << fmax << Vector2i(chunk_coords(last_ch) - from.chunk());
+                    //Debug{} << "search" << fmin << fmax << Vector2i(center.chunk());
                     r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
                         return do_check_collider(data, r);
                     });
                 }
             }
+            k++;
         }
         result.diag.tmin = b ? 0 : min_tmin;
         result.success = b;
