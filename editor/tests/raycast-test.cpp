@@ -182,10 +182,10 @@ void do_column(StringView name)
 }
 
 template<bool EnableDiagnostics>
-void do_raycasting(result_s& result,
-                   std::conditional_t<EnableDiagnostics, diag_s*, std::nullptr_t> diag,
-                   app& a, point from, point to, object_id self)
+result_s do_raycasting(std::conditional_t<EnableDiagnostics, diag_s*, std::nullptr_t> diag,
+                       app& a, point from, point to, object_id self)
 {
+    result_s result;
     if constexpr(EnableDiagnostics)
         fm_assert(diag != nullptr);
     fm_assert(from.chunk3().z == to.chunk3().z);
@@ -267,7 +267,7 @@ void do_raycasting(result_s& result,
     bool b = true;
 
     //Debug{} << "------";
-    for (unsigned k = 0; k <= nsteps; k++)
+    for (unsigned k = 0; b && k <= nsteps; k++)
     {
         auto pos_ = ceil(abs(V * (float)k/(float)nsteps));
         auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
@@ -307,20 +307,16 @@ void do_raycasting(result_s& result,
         {
             auto x = std::bit_cast<collision_data>(data);
             if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
-                return true;
+                return;
             //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                              {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
                                                {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
                                              signs);
             if (!ret.result)
-            {
-                return true;
-            }
+                return;
             if (ret.tmin > ray_len) [[unlikely]]
-            {
-                return true;
-            }
+                return;
             if (ret.tmin < min_tmin) [[likely]]
             {
                 min_tmin = ret.tmin;
@@ -328,7 +324,6 @@ void do_raycasting(result_s& result,
                 result.collider = x;
                 b = false;
             }
-            return true;
         };
 
         auto center = object::normalize_coords(from, pos);
@@ -364,20 +359,16 @@ void do_raycasting(result_s& result,
                 origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                 //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
                 r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
-                    return do_check_collider(data, r);
+                    do_check_collider(data, r);
+                    return true;
                 });
             }
-        }
-        if (!b)
-        {
-            if constexpr(EnableDiagnostics)
-                diag->path.resize(k+1);
-            break;
         }
     }
     if constexpr(EnableDiagnostics)
         diag->tmin = b ? 0 : min_tmin;
     result.success = b;
+    return result;
 }
 
 } // namespace
@@ -588,7 +579,7 @@ struct raycast_test : base_test
                 fm_warn("raycast: wrong Z value");
                 return;
             }
-            do_raycasting<true>(result, &diag, a, pending.from, pending.to, pending.self);
+            result = do_raycasting<true>(&diag, a, pending.from, pending.to, pending.self);
         }
     }
 };
