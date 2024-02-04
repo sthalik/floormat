@@ -45,8 +45,6 @@ world& world::operator=(world&& w) noexcept
     _chunks = std::move(w._chunks);
     _objects = std::move(w._objects);
     w._objects = safe_ptr<robin_map_wrapper>{};
-    _last_collection = w._last_collection;
-    _collect_every = w._collect_every;
     _unique_id = std::move(w._unique_id);
     fm_debug_assert(_unique_id);
     fm_debug_assert(w._unique_id == nullptr);
@@ -120,22 +118,14 @@ bool world::contains(chunk_coords_ c) const noexcept
 void world::clear()
 {
     fm_assert(!_teardown);
-    _last_collection = 0;
     _chunks.clear();
     _chunks.rehash(initial_capacity);
     _objects->clear();
     _objects->rehash(initial_capacity);
-    _collect_every = initial_collect_every;
     _object_counter = object_counter_init;
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
-}
-
-void world::maybe_collect()
-{
-    if (_chunks.size() > _last_collection + _collect_every)
-        collect();
 }
 
 void world::collect(bool force)
@@ -150,7 +140,6 @@ void world::collect(bool force)
             ++it;
     }
 
-    _last_collection = _chunks.size();
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;

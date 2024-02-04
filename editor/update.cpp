@@ -246,6 +246,9 @@ auto app::get_z_bounds() -> z_bounds
 
 void app::update(float dt)
 {
+    //M->world().collect();
+    M->world().collect(true);
+
     update_cursor_tile(cursor.pixel);
     tests_pre_update();
     apply_commands(*keys_);
@@ -255,7 +258,6 @@ void app::update(float dt)
     clear_non_repeated_keys();
     set_cursor();
     tests_post_update();
-    M->world().maybe_collect();
 }
 
 } // namespace floormat

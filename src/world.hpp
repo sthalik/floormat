@@ -34,8 +34,6 @@ private:
 
     std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     safe_ptr<robin_map_wrapper> _objects;
-    size_t _last_collection = 0;
-    size_t _collect_every = initial_collect_every;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
     object_id _object_counter = object_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct object
@@ -62,7 +60,6 @@ public:
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false);
-    void maybe_collect();
     size_t size() const noexcept { return _chunks.size(); }
 
     const auto& chunks() const noexcept { return _chunks; }
@@ -70,8 +67,6 @@ public:
     void serialize(StringView filename);
     static class world deserialize(StringView filename) noexcept(false);
     static void deserialize_old(class world& w, ArrayView<const char> buf, uint16_t proto) noexcept(false);
-    void set_collect_threshold(size_t value) { _collect_every = value; }
-    size_t collect_threshold() const noexcept { return _collect_every; }
     auto frame_no() const { return _current_frame; }
     auto increment_frame_no() { return _current_frame++; }
 
