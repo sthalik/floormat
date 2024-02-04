@@ -97,7 +97,6 @@ struct result_s
 {
     point from, to, collision;
     collision_data collider;
-    diag_s diag;
     std::vector<bbox> path;
     bool has_result : 1 = false,
          success    : 1 = false;
@@ -181,12 +180,210 @@ void do_column(StringView name)
   ImGui::TableNextColumn();
 }
 
+template<bool EnableDiagnostics>
+void do_raycasting(result_s& result, diag_s* diag, app& a, point from, point to, object_id self)
+{
+    fm_assert(!!diag == EnableDiagnostics);
+
+    using Math::max;
+    using Math::min;
+    using Math::abs;
+    using Math::ceil;
+
+    constexpr float eps = 1e-6f;
+    constexpr float inv_eps = 1/eps;
+    constexpr int fuzz = 2;
+
+    result.path.clear();
+    result.has_result = false;
+
+    auto& w = a.main().world();
+    auto V = pt_to_vec(from, to);
+    auto ray_len = V.length();
+    auto dir = V.normalized();
+
+    if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
+    {
+        dir = {eps, eps};
+        //fm_error("raycast: bad dir? {%f, %f}", dir.x(), dir.y());
+        //return;
+    }
+
+    unsigned long_axis, short_axis;
+
+    if (abs(dir.y()) > abs(dir.x()))
+    {
+        long_axis = 1;
+        short_axis = 0;
+    }
+    else
+    {
+        long_axis = 0;
+        short_axis = 1;
+    }
+
+    auto long_len  = max(1u, (unsigned)ceil(abs(V[long_axis]))),
+         short_len = max(1u, (unsigned)ceil(abs(V[short_axis])));
+    auto nsteps = 1u;
+    nsteps = max(nsteps, (short_len+tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
+    nsteps = max(nsteps, (long_len+chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
+    auto size_ = Vector2ui{};
+    size_[short_axis] = (short_len+nsteps*2-1) / nsteps;
+    size_[long_axis]  = (long_len+nsteps-1) / nsteps;
+
+    auto dir_inv_norm = Vector2(
+        abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1 / dir.x(),
+        abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1 / dir.y()
+    );
+    auto signs = ray_aabb_signs(dir_inv_norm);
+
+    result = {
+        .from = from,
+        .to = to,
+        .collision = {},
+        .collider = {
+            .tag  = (uint64_t)collision_type::none,
+            .pass = (uint64_t)pass_mode::pass,
+            .data = ((uint64_t)1 << collision_data_BITS)-1,
+        },
+        .path = {},
+        .has_result = true,
+        .success = false,
+    };
+    if constexpr(EnableDiagnostics)
+        *diag = {
+            .V = V,
+            .dir = dir,
+            .dir_inv_norm = dir_inv_norm,
+            .size = size_,
+            .tmin = 0,
+        };
+
+    //Debug{} << "------";
+    for (unsigned k = 0; k <= nsteps; k++)
+    {
+        auto pos_ = ceil(abs(V * (float)k/(float)nsteps));
+        auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
+        auto size = size_;
+
+        if (k == 0)
+        {
+            for (auto axis : { long_axis, short_axis })
+            {
+                auto sign = sign_<int>(V[axis]);
+                pos[axis] += (int)(size[axis]/4) * sign;
+                size[axis] -= size[axis]/2;
+            }
+        }
+        else if (k == nsteps)
+        {
+            constexpr auto add = (tile_size<unsigned>.x()+1)/2,
+                           min_size = tile_size<unsigned>.x() + add;
+            if (size[long_axis] > min_size)
+            {
+                auto sign = sign_<int>(V[long_axis]);
+                auto off = (int)(size[long_axis]/2) - (int)add;
+                fm_debug_assert(off >= 0);
+                pos[long_axis] -= off/2 * sign;
+                size[long_axis] -= (unsigned)off;
+            }
+        }
+
+        pos -= Vector2i(fuzz);
+        size += Vector2ui(fuzz)*2;
+
+        auto pt = object::normalize_coords(from, pos);
+        result.path.push_back(bbox{pt, size});
+    }
+
+    auto last_ch = from.chunk3();
+    auto nbs = get_chunk_neighbors(w, from.chunk3());
+
+    Vector2 origin;
+    float min_tmin = FLT_MAX;
+    bool b = true;
+
+    const auto do_check_collider = [&](uint64_t data, const Rect& r)
+    {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
+            return true;
+        //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
+        constexpr float fuzz = 0;
+        auto ret = ray_aabb_intersection(origin, dir_inv_norm,
+                                         {{{r.m_min[0]-fuzz, r.m_min[1]-fuzz},
+                                           {r.m_max[0]+fuzz, r.m_max[1]+fuzz}}},
+                                         signs);
+        if (!ret.result)
+        {
+            return true;
+        }
+        if (ret.tmin > ray_len) [[unlikely]]
+        {
+            return true;
+        }
+        if (ret.tmin < min_tmin) [[likely]]
+        {
+            min_tmin = ret.tmin;
+            result.collision = object::normalize_coords(from, Vector2i(dir * min_tmin));
+            result.collider = x;
+            b = false;
+        }
+        return true;
+    };
+
+    const auto path_len = (unsigned)result.path.size();
+    for (auto k = 0u; k < path_len; k++)
+    {
+        auto [center, size] = result.path[k];
+        //Debug{} << "--";
+        if (center.chunk3() != last_ch) [[unlikely]]
+        {
+            last_ch = center.chunk3();
+            nbs = get_chunk_neighbors(w, center.chunk3());
+        }
+
+        auto pt = Vector2i(center.local()) * tile_size<int> + Vector2i(center.offset());
+
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                auto* c = nbs.array[i][j];
+                if (!c)
+                    continue;
+                auto* r = c->rtree();
+                auto off = chunk_offsets[i][j];
+                auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
+                auto pt0_ = pt0 - off, pt1_ = pt1 - off;
+                auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
+                if (!within_chunk_bounds(fmin, fmax)) continue;
+                auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
+                origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
+                //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
+                r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
+                    return do_check_collider(data, r);
+                });
+            }
+        }
+        if (!b)
+        {
+            result.path.resize(k+1);
+            break;
+        }
+    }
+    if constexpr(EnableDiagnostics)
+        diag->tmin = b ? 0 : min_tmin;
+    result.success = b;
+}
+
 } // namespace
 
 struct raycast_test : base_test
 {
     result_s result;
     pending_s pending;
+    diag_s diag;
 
     ~raycast_test() noexcept override;
 
@@ -233,7 +430,7 @@ struct raycast_test : base_test
         {
             auto p0 = a.point_screen_pos(result.from),
                  p1 = a.point_screen_pos(result.success
-                                         ? object::normalize_coords(result.from, Vector2i(result.diag.V))
+                                         ? object::normalize_coords(result.from, Vector2i(diag.V))
                                          : result.collision);
             draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
@@ -334,15 +531,15 @@ struct raycast_test : base_test
             ImGui::NewLine();
 
             do_column("dir");
-            std::snprintf(buf, std::size(buf), "%.4f x %.4f", (double)result.diag.dir.x(), (double)result.diag.dir.y());
+            std::snprintf(buf, std::size(buf), "%.4f x %.4f", (double)diag.dir.x(), (double)diag.dir.y());
             text(buf);
 
             if (!result.success)
             {
                 do_column("tmin");
                 std::snprintf(buf, std::size(buf), "%f / %f",
-                              (double)result.diag.tmin,
-                              (double)(result.diag.tmin / result.diag.V.length()));
+                              (double)diag.tmin,
+                              (double)(diag.tmin / diag.V.length()));
                 text(buf);
             }
             else
@@ -352,19 +549,19 @@ struct raycast_test : base_test
             }
 
             do_column("vector");
-            print_vec2(buf, result.diag.V);
+            print_vec2(buf, diag.V);
             text(buf);
 
             do_column("||dir^-1||");
             std::snprintf(buf, std::size(buf), "%f x %f",
-                          (double)result.diag.dir_inv_norm.x(),
-                          (double)result.diag.dir_inv_norm.y());
+                          (double)diag.dir_inv_norm.x(),
+                          (double)diag.dir_inv_norm.y());
             text(buf);
 
             ImGui::NewLine();
 
             do_column("bbox-size");
-            std::snprintf(buf, std::size(buf), "(%u x %u)", result.diag.size.x(), result.diag.size.y());
+            std::snprintf(buf, std::size(buf), "(%u x %u)", diag.size.x(), diag.size.y());
             text(buf);
 
             do_column("path-len");
@@ -394,199 +591,8 @@ struct raycast_test : base_test
                 return;
             }
 
-            do_raycasting(a, pending.from, pending.to, pending.self);
+            do_raycasting<true>(result, &diag, a, pending.from, pending.to, pending.self);
         }
-    }
-
-    void do_raycasting(app& a, point from, point to, object_id self)
-    {
-        using Math::max;
-        using Math::min;
-        using Math::abs;
-        using Math::ceil;
-
-        constexpr float eps = 1e-6f;
-        constexpr float inv_eps = 1/eps;
-        constexpr int fuzz = 2;
-
-        result.path.clear();
-        result.has_result = false;
-
-        auto& w = a.main().world();
-        auto V = pt_to_vec(from, to);
-        auto ray_len = V.length();
-        auto dir = V.normalized();
-
-        if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
-        {
-            fm_error("raycast: bad dir? {%f, %f}", dir.x(), dir.y());
-            return;
-        }
-
-        unsigned long_axis, short_axis;
-
-        if (abs(dir.y()) > abs(dir.x()))
-        {
-            long_axis = 1;
-            short_axis = 0;
-        }
-        else
-        {
-            long_axis = 0;
-            short_axis = 1;
-        }
-
-        auto long_len  = max(1u, (unsigned)ceil(abs(V[long_axis]))),
-             short_len = max(1u, (unsigned)ceil(abs(V[short_axis])));
-        auto nsteps = 1u;
-        nsteps = max(nsteps, (short_len+tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
-        nsteps = max(nsteps, (long_len+chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
-        auto size_ = Vector2ui{};
-        size_[short_axis] = (short_len+nsteps*2-1) / nsteps;
-        size_[long_axis]  = (long_len+nsteps-1) / nsteps;
-
-        auto dir_inv_norm = Vector2(
-            abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1 / dir.x(),
-            abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1 / dir.y()
-        );
-        auto signs = ray_aabb_signs(dir_inv_norm);
-
-        result = {
-            .from = from,
-            .to = to,
-            .collision = {},
-            .collider = {
-                .tag  = (uint64_t)collision_type::none,
-                .pass = (uint64_t)pass_mode::pass,
-                .data = ((uint64_t)1 << collision_data_BITS)-1,
-            },
-            .diag = {
-                .V = V,
-                .dir = dir,
-                .dir_inv_norm = dir_inv_norm,
-                .size = size_,
-                .tmin = 0,
-            },
-            .path = {},
-            .has_result = true,
-            .success = false,
-        };
-
-        //Debug{} << "------";
-        for (unsigned k = 0; k <= nsteps; k++)
-        {
-            auto pos_ = ceil(abs(V * (float)k/(float)nsteps));
-            auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
-            auto size = size_;
-
-            if (k == 0)
-            {
-                for (auto axis : { long_axis, short_axis })
-                {
-                    auto sign = sign_<int>(V[axis]);
-                    pos[axis] += (int)(size[axis]/4) * sign;
-                    size[axis] -= size[axis]/2;
-                }
-            }
-            else if (k == nsteps)
-            {
-                constexpr auto add = (tile_size<unsigned>.x()+1)/2,
-                               min_size = tile_size<unsigned>.x() + add;
-                if (size[long_axis] > min_size)
-                {
-                    auto sign = sign_<int>(V[long_axis]);
-                    auto off = (int)(size[long_axis]/2) - (int)add;
-                    fm_debug_assert(off >= 0);
-                    pos[long_axis] -= off/2 * sign;
-                    size[long_axis] -= (unsigned)off;
-                }
-            }
-
-            pos -= Vector2i(fuzz);
-            size += Vector2ui(fuzz)*2;
-
-            auto pt = object::normalize_coords(from, pos);
-            result.path.push_back(bbox{pt, size});
-        }
-
-        auto last_ch = from.chunk3();
-        auto nbs = get_chunk_neighbors(w, from.chunk3());
-
-        Vector2 origin;
-        float min_tmin = FLT_MAX;
-        bool b = true;
-
-        const auto do_check_collider = [&](uint64_t data, const Rect& r)
-        {
-            auto x = std::bit_cast<collision_data>(data);
-            if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
-                return true;
-            //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
-            constexpr float fuzz = 0;
-            auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                             {{{r.m_min[0]-fuzz, r.m_min[1]-fuzz},
-                                               {r.m_max[0]+fuzz, r.m_max[1]+fuzz}}},
-                                             signs);
-            if (!ret.result)
-            {
-                return true;
-            }
-            if (ret.tmin > ray_len) [[unlikely]]
-            {
-                return true;
-            }
-            if (ret.tmin < min_tmin) [[likely]]
-            {
-                min_tmin = ret.tmin;
-                result.collision = object::normalize_coords(from, Vector2i(dir * min_tmin));
-                result.collider = x;
-                b = false;
-            }
-            return true;
-        };
-
-        const auto path_len = (unsigned)result.path.size();
-        for (auto k = 0u; k < path_len; k++)
-        {
-            auto [center, size] = result.path[k];
-            //Debug{} << "--";
-            if (center.chunk3() != last_ch) [[unlikely]]
-            {
-                last_ch = center.chunk3();
-                nbs = get_chunk_neighbors(w, center.chunk3());
-            }
-
-            auto pt = Vector2i(center.local()) * tile_size<int> + Vector2i(center.offset());
-
-            for (int i = 0; i < 3; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    auto* c = nbs.array[i][j];
-                    if (!c)
-                        continue;
-                    auto* r = c->rtree();
-                    auto off = chunk_offsets[i][j];
-                    auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
-                    auto pt0_ = pt0 - off, pt1_ = pt1 - off;
-                    auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
-                    if (!within_chunk_bounds(fmin, fmax)) continue;
-                    auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
-                    origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
-                    //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
-                    r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
-                        return do_check_collider(data, r);
-                    });
-                }
-            }
-            if (!b)
-            {
-                result.path.resize(k+1);
-                break;
-            }
-        }
-        result.diag.tmin = b ? 0 : min_tmin;
-        result.success = b;
     }
 };
 
