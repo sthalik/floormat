@@ -121,7 +121,7 @@ auto get_chunk_neighbors(class world& w, chunk_coords_ ch)
     chunk_neighbors nbs;
     for (int j = 0; j < 3; j++)
         for (int i = 0; i < 3; i++)
-            nbs.array[i][j] = w.at(ch - Vector2i(i - 1, j - 1));
+            nbs.array[i][j] = w.at(ch + Vector2i(i - 1, j - 1));
     return nbs;
 }
 
