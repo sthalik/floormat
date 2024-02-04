@@ -206,8 +206,7 @@ void app::draw()
     do_lightmap_test();
     if (_render_bboxes)
         draw_collision_boxes();
-    if (_editor->current_ground_editor() && _editor->current_ground_editor()->is_anything_selected() ||
-        _editor->current_wall_editor() && _editor->current_wall_editor()->is_anything_selected() ||
+    if (_editor->current_ground_editor() || _editor->current_wall_editor() ||
         _editor->current_scenery_editor() && _editor->current_scenery_editor()->is_anything_selected() ||
         _editor->current_vobj_editor() && _editor->current_vobj_editor()->is_anything_selected())
         draw_cursor();
