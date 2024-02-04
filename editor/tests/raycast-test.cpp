@@ -90,7 +90,6 @@ struct diag_s
     Vector2 V, dir, dir_inv_norm;
     Vector2ui size;
     //unsigned short_steps, long_steps;
-    unsigned nsteps;
     float tmin;
 };
 
@@ -466,7 +465,6 @@ struct raycast_test : base_test
                 .dir = dir,
                 .dir_inv_norm = dir_inv_norm,
                 .size = size_,
-                .nsteps = nsteps,
                 .tmin = 0,
             },
             .path = {},
@@ -508,8 +506,6 @@ struct raycast_test : base_test
             size += Vector2ui(fuzz)*2;
 
             auto pt = object::normalize_coords(from, pos);
-            //if (Vector2i(pt.chunk()) != Vector2i(0, 3) && Vector2i(pt.chunk()) != Vector2i(1, 3)) continue;
-            //if (Vector2i(pt.chunk()) != Vector2i(1, 3)) continue;
             result.path.push_back(bbox{pt, size});
         }
 
@@ -533,15 +529,12 @@ struct raycast_test : base_test
                                              signs);
             if (!ret.result)
             {
-                //Debug{} << "miss";
                 return true;
             }
             if (ret.tmin > ray_len) [[unlikely]]
             {
-                //Debug{} << "too long!";
                 return true;
             }
-            //Debug{} << "found!";
             if (ret.tmin < min_tmin) [[likely]]
             {
                 min_tmin = ret.tmin;
@@ -579,7 +572,6 @@ struct raycast_test : base_test
                     auto [fmin, fmax] = Math::minmax(Vector2(pt0_), Vector2(pt1_));
                     //if (!within_chunk_bounds(fmin, fmax)) continue;
                     auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
-                    //Debug{} << ch_off << off << Vector2i(center.chunk()) + Vector2i(i-1, j-1);
                     origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
                     //Debug{} << "search" << fmin << fmax << Vector3i(c->coord());
                     r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
