@@ -188,6 +188,7 @@ void do_raycasting(result_s& result,
 {
     if constexpr(EnableDiagnostics)
         fm_assert(diag != nullptr);
+    fm_assert(from.chunk3().z == to.chunk3().z);
 
     using Math::max;
     using Math::min;
@@ -587,12 +588,6 @@ struct raycast_test : base_test
                 fm_warn("raycast: wrong Z value");
                 return;
             }
-            if (pending.from == pending.to)
-            {
-                fm_warn("raycast: from == to");
-                return;
-            }
-
             do_raycasting<true>(result, &diag, a, pending.from, pending.to, pending.self);
         }
     }
