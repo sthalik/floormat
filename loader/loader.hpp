@@ -14,6 +14,7 @@ using ImageData2D = ImageData<2>;
 
 namespace floormat {
 
+struct anim_def;
 class anim_atlas;
 struct scenery_proto;
 struct vobj_info;
@@ -37,7 +38,6 @@ struct loader_
 {
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
-    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
@@ -55,6 +55,10 @@ struct loader_
     static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
+    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false);
+    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false);
+    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false);
+
     virtual ~loader_() noexcept;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(loader_);
@@ -69,6 +73,8 @@ struct loader_
     static const StringView WALL_TILESET_PATH;
 
 protected:
+    static anim_def deserialize_anim_def(StringView filename) noexcept(false);
+
     loader_();
 };
 

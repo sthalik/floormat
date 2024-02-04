@@ -9,12 +9,16 @@
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Utility/Path.h>
 
-namespace floormat::loader_detail {
+namespace floormat {
 
-anim_def loader_impl::deserialize_anim(StringView filename)
+anim_def loader_::deserialize_anim_def(StringView filename) noexcept(false)
 {
     return json_helper::from_json<anim_def>(filename);
 }
+
+} // namespace floormat
+
+namespace floormat::loader_detail {
 
 void loader_impl::get_scenery_list()
 {

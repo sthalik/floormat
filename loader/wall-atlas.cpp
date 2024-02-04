@@ -30,23 +30,23 @@ using loader_detail::loader_impl;
     j["name"] = val.name;
 }
 
-} // namespace floormat
-
-namespace floormat::loader_detail {
-
-std::shared_ptr<wall_atlas> loader_impl::get_wall_atlas(StringView name, StringView dir)
+std::shared_ptr<wall_atlas> loader_::get_wall_atlas(StringView name) noexcept(false)
 {
     fm_assert(name != "<invalid>"_s);
     char buf[FILENAME_MAX];
-    auto filename = make_atlas_path(buf, dir, name);
+    auto filename = make_atlas_path(buf, loader.WALL_TILESET_PATH, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
     auto tex = texture(""_s, filename);
 
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
-    auto atlas = std::make_shared<class wall_atlas>(std::move(def), dir, tex);
+    auto atlas = std::make_shared<class wall_atlas>(std::move(def), loader.WALL_TILESET_PATH, tex);
     return atlas;
 }
+
+} // namespace floormat
+
+namespace floormat::loader_detail {
 
 const wall_info& loader_impl::make_invalid_wall_atlas()
 {
@@ -102,7 +102,7 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, loade
             std::unreachable();
         }
         else if (!it->second->atlas)
-            return it->second->atlas = get_wall_atlas(name, loader.WALL_TILESET_PATH);
+            return it->second->atlas = get_wall_atlas(name);
         else
             return it->second->atlas;
     }

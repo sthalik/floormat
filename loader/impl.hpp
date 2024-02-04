@@ -54,7 +54,6 @@ struct loader_impl final : loader_
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
     const wall_info& make_invalid_wall_atlas();
-    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name, StringView dir);
 
     // >-----> tile >----->
     tsl::robin_map<StringView, ground_info*> ground_atlas_map;
@@ -65,7 +64,6 @@ struct loader_impl final : loader_
     ArrayView<const ground_info> ground_atlas_list() noexcept(false) override;
     void get_ground_atlas_list();
     const ground_info& make_invalid_ground_atlas();
-    std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;

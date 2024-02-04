@@ -12,11 +12,9 @@
 
 namespace floormat {
 using loader_detail::loader_impl;
-} // namespace floormat
 
-namespace floormat::loader_detail {
-
-std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass)
+std::shared_ptr<ground_atlas>
+loader_::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
     fm_assert(name != "<invalid>"_s);
 
@@ -28,6 +26,10 @@ std::shared_ptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vec
     auto atlas = std::make_shared<class ground_atlas>(info, filename, tex);
     return atlas;
 }
+
+} // namespace floormat
+
+namespace floormat::loader_detail {
 
 // todo copypasta from wall-atlas.cpp
 std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, loader_policy policy) noexcept(false)
