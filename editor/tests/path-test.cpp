@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
+#include "compat/vector-wrapper.hpp"
 #include "floormat/main.hpp"
 #include "src/path-search.hpp"
 #include "src/critter.hpp"
@@ -137,19 +138,16 @@ void path_test::update_pre(app& a)
     auto& astar = M.astar();
 
     auto res = astar.Dijkstra(w, pending.from, pending.to, pending.own_id, pending.max_dist, pending.own_size, 1);
-    if (res)
-    {
-        has_result = true;
-        result = {
-            .from = pending.from,
-            .to = pending.to,
-            .path = std::move(res.path()),
-            .time = res.time(),
-            .cost = res.cost(),
-            .distance = res.distance(),
-            .found = res.is_found(),
-        };
-    }
+    has_result = !!res;
+    result = {
+        .from = pending.from,
+        .to = pending.to,
+        .path = std::move(res.raw_path().vec),
+        .time = res.time(),
+        .cost = res.cost(),
+        .distance = res.distance(),
+        .found = res.is_found(),
+    };
 }
 
 void path_test::update_post(app& a)

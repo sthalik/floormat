@@ -1,6 +1,7 @@
 #include "path-search.hpp"
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
+#include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"
 #include "object.hpp"
 #include "point.hpp"
@@ -106,7 +107,7 @@ void set_result_from_idx(path_search_result& result, const Array<visited>& nodes
 {
     fm_debug_assert(idx != (uint32_t)-1);
 
-    auto& path = result.path();
+    auto& path = result.raw_path().vec;
     path.clear();
 
     const auto& to_node = nodes[idx];

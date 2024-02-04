@@ -59,7 +59,7 @@ void test_app::test_dijkstra()
         auto result = run(debug);
 
         fm_assert(!result.is_found());
-        fm_assert(!result.path().empty());
+        fm_assert(!result.path().isEmpty());
         fm_assert(result.size() > 4);
         fm_assert(result.cost() > 1000);
         fm_assert(result.cost() < 3000);
@@ -74,7 +74,7 @@ void test_app::test_dijkstra()
         auto result = run(debug);
 
         fm_assert(result.is_found());
-        fm_assert(!result.path().empty());
+        fm_assert(!result.path().isEmpty());
         fm_assert(result.size() > 4);
         fm_assert(result.cost() > 1000);
         fm_assert(result.cost() < 3000);

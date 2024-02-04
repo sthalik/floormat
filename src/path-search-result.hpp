@@ -1,11 +1,11 @@
 #pragma once
 #include "src/global-coords.hpp"
 #include "compat/defs.hpp"
-#include <vector>
 #include <Corrade/Containers/Pointer.h>
 
 namespace floormat {
 
+template<typename T> struct vector_wrapper;
 struct point;
 
 struct path_search_result final
@@ -24,32 +24,20 @@ struct path_search_result final
     uint32_t distance() const;
     void set_distance(uint32_t dist);
 
-    std::vector<point>& path();
-    const std::vector<point>& path() const;
+    vector_wrapper<point> raw_path();
+    ArrayView<const point> path() const;
     explicit operator ArrayView<const point>() const;
     explicit operator bool() const;
 
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(path_search_result);
+    path_search_result();
     path_search_result(const path_search_result& x) noexcept;
     path_search_result& operator=(const path_search_result& x) noexcept;
-    path_search_result();
+    path_search_result(path_search_result&&) noexcept;
+    path_search_result& operator=(path_search_result&&) noexcept;
     ~path_search_result() noexcept;
 
 private:
-    struct node
-    {
-        friend struct path_search_result;
-        friend struct test_app;
-
-        node() noexcept;
-        fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
-        fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
-
-        std::vector<point> vec;
-
-    private:
-        Pointer<node> _next;
-    };
+    struct node;
 
     static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
 
