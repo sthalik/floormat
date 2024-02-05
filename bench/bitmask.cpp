@@ -10,7 +10,7 @@ namespace floormat {
 
 namespace {
 
-[[maybe_unused]] void Bitmask(benchmark::State& state)
+void Bitmask(benchmark::State& state)
 {
     auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
     auto bitmask = anim_atlas::make_bitmask(img);

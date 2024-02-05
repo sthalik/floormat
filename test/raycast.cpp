@@ -23,4 +23,4 @@ void test_app::test_raycast()
 
 }
 
-} // namespace floormat::test_app
+} // namespace floormat

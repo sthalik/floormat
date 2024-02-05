@@ -2,7 +2,6 @@
 #include "compat/exception.hpp"
 #include "src/tile-defs.hpp"
 #include <utility>
-#include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>

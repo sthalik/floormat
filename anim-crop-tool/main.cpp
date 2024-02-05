@@ -30,8 +30,6 @@
 
 using namespace floormat;
 
-using Corrade::Utility::Error;
-using Corrade::Utility::Debug;
 using floormat::Serialize::anim_atlas_;
 
 namespace {

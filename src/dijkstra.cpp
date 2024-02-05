@@ -373,7 +373,7 @@ struct chunk_cache
             x *= i;
         return x;
     }();
-    static constexpr size_t rank = sizeof(dimensions)/sizeof(dimensions[0]);
+    static constexpr size_t rank = arraySize(dimensions);
 
     struct index { uint32_t value = 0; };
     class chunk* chunk = nullptr;

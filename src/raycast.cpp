@@ -111,7 +111,7 @@ template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int>
 
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
-                       world& w, point from, point to, object_id self)
+                               world& w, point from, point to, object_id self)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);

@@ -5,7 +5,6 @@
 #include "serialize/anim.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StringIterable.h>
-#include <Corrade/Utility/Path.h>
 #include <benchmark/benchmark.h>
 
 namespace floormat {

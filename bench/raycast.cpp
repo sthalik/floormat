@@ -79,7 +79,7 @@ auto run(point from, point to, world& w, bool b, float len)
     return true;
 }
 
-[[maybe_unused]] void Raycast(benchmark::State& state)
+void Raycast(benchmark::State& state)
 {
     auto w = make_world();
 

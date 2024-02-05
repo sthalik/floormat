@@ -126,7 +126,7 @@ ArrayView<const Quads::indexes> make_indexes(size_t max)
     return indexes.prefix(max);
 }
 
-constexpr auto depth_offset_for_group(Group_ G, bool is_west)
+constexpr float depth_offset_for_group(Group_ G, bool is_west)
 {
     CORRADE_ASSUME(G < Group_::COUNT);
     float p = is_west ? tile_shader::wall_west_offset : 0;
