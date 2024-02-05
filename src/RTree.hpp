@@ -5,9 +5,10 @@
 
 #include <cmath>
 #include <cstddef>
-#include <algorithm>
+#include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Utility/Math.h>
+#include <Corrade/Utility/Algorithms.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -348,13 +349,11 @@ void RTREE_QUAL::CopyRec(Node* current, Node* other)
       Branch* currentBranch = &current->m_branch[index];
       Branch* otherBranch = &other->m_branch[index];
 
-      std::copy(otherBranch->m_rect.m_min,
-                otherBranch->m_rect.m_min + NUMDIMS,
-                currentBranch->m_rect.m_min);
+      Corrade::Utility::copy({otherBranch->m_rect.m_min, NUMDIMS},
+                             currentBranch->m_rect.m_min);
 
-      std::copy(otherBranch->m_rect.m_max,
-                otherBranch->m_rect.m_max + NUMDIMS,
-                currentBranch->m_rect.m_max);
+      Corrade::Utility::copy({otherBranch->m_rect.m_max, NUMDIMS},
+                             currentBranch->m_rect.m_max);
 
       currentBranch->m_child = AllocNode();
       CopyRec(currentBranch->m_child, otherBranch->m_child);
@@ -367,13 +366,11 @@ void RTREE_QUAL::CopyRec(Node* current, Node* other)
       Branch* currentBranch = &current->m_branch[index];
       Branch* otherBranch = &other->m_branch[index];
 
-      std::copy(otherBranch->m_rect.m_min,
-                otherBranch->m_rect.m_min + NUMDIMS,
-                currentBranch->m_rect.m_min);
+      Corrade::Utility::copy({otherBranch->m_rect.m_min, NUMDIMS},
+                             currentBranch->m_rect.m_min);
 
-      std::copy(otherBranch->m_rect.m_max,
-                otherBranch->m_rect.m_max + NUMDIMS,
-                currentBranch->m_rect.m_max);
+      Corrade::Utility::copy({otherBranch->m_rect.m_max, NUMDIMS},
+                             currentBranch->m_rect.m_max);
 
       currentBranch->m_data = otherBranch->m_data;
     }
