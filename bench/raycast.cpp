@@ -27,66 +27,84 @@ world make_world()
     w[global_coords{{0, 1, 0}, { 8, 11}}].t.wall_west()  = wall2;
     w[global_coords{{0, 1, 0}, { 8, 10}}].t.wall_west()  = wall2;
     w[global_coords{{0, 1, 0}, { 7, 10}}].t.wall_north() = wall2;
+    w[global_coords{{0, 1, 0}, { 6, 10}}].t.wall_north() = wall2;
 
-    w[global_coords{{0, 1, 0}, { 8,  8}}].t.wall_north() = wall1;
+    w[global_coords{{0, 1, 0}, { 9,  8}}].t.wall_north() = wall1;
     w[global_coords{{0, 1, 0}, {10,  8}}].t.wall_north() = wall1;
-    w[global_coords{{0, 1, 0}, {12,  8}}].t.wall_west()  = wall1;
+    w[global_coords{{0, 1, 0}, {11,  8}}].t.wall_west()  = wall1;
 
     w[global_coords{{0, 2, 0}, { 9,  0}}].t.wall_north() = wall1;
     w[global_coords{{0, 2, 0}, {10,  0}}].t.wall_north() = wall1;
 
-    for (int16_t i = -10; i <= 10; i++)
-        for (int16_t j = -10; j <= 10; j++)
+    for (int16_t k = -5; k <= -1; k++)
+    {
+        auto& ch = w[chunk_coords_{-5, -5, 0}];
+        for (unsigned i = 0; i < TILE_MAX_DIM; i++)
+        {
+            ch[{(uint8_t)i, 0}].wall_west()  = wall1;
+            ch[{(uint8_t)i, 1}].wall_north() = wall1;
+            ch[{(uint8_t)i, 2}].wall_north() = wall2;
+            ch[{(uint8_t)i, 2}].wall_west()  = wall2;
+        }
+    }
+
+    for (int16_t i = -15; i <= 15; i++)
+        for (int16_t j = -15; j <= 15; j++)
             w[{{i, j}, 0}].mark_modified();
 
     return w;
 }
 
-[[maybe_unused]] void Raycast(benchmark::State& state)
+auto run(point from, point to, world& w, bool b, float len)
 {
-    constexpr auto run1 = [](world& w, point to, bool b, float len = 0)
+    constexpr float fuzz = iTILE_SIZE2.x();
+    auto diag = rc::raycast_diag_s{};
+    auto res = raycast_with_diag(diag, w, from, to, 0);
+    if (res.success != b)
     {
-        constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
-        constexpr float fuzz = iTILE_SIZE2.x();
-        auto diag = rc::raycast_diag_s{};
-        auto res = raycast_with_diag(diag, w, from, to, 0);
-        if (res.success != b)
+        fm_error("success != %s", b ? "true" : "false");
+        return false;
+    }
+    if (len != 0.f)
+    {
+        auto tmin = res.success ? diag.V.length() : diag.tmin;
+        auto diff = Math::abs(tmin - len);
+        if (diff > fuzz)
         {
-            fm_error("success != %s", b ? "true" : "false");
+            fm_error("|tmin=%f - len=%f| > %f",
+                     (double)tmin, (double)len, (double)fuzz);
             return false;
         }
-        if (len > 0)
-        {
-            auto tmin = res.success ? diag.V.length() : diag.tmin;
-            fm_assert(len > 1e-6f);
-            auto diff = Math::abs(tmin - len);
-            if (diff > fuzz)
-            {
-                fm_error("|tmin=%f - len=%f| > %f",
-                         (double)tmin, (double)len, (double)fuzz);
-                return false;
-            }
-        }
-        return true;
-    };
-
-    auto w = make_world();
-
-    const auto run = [&] {
-        fm_assert(run1(w, point{{ 1,  3, 0}, { 0,  1}, {-21,  23}}, false,  2288));
-        fm_assert(run1(w, point{{ 1,  3, 0}, { 8, 10}, {- 9, -13}}, true,   3075));
-        fm_assert(run1(w, point{{ 0,  3, 0}, {14,  4}, {  3,  15}}, true,   2614));
-        fm_assert(run1(w, point{{ 0,  1, 0}, { 8, 12}, {-27, -19}}, false,   752));
-        //fm_assert(run1(w, point{{ 0,  1, 0}, { 7, 11}, {- 8, -21}}, false,   908));
-        fm_assert(run1(w, point{{ 2, 33, 0}, {15, 11}, {- 4,  29}}, true,  33809));
-    };
-
-    run();
-    for (auto _ : state)
-        run();
+    }
+    return true;
 }
 
-BENCHMARK(Raycast)->Unit(benchmark::kMicrosecond);
+[[maybe_unused]] void Raycast(benchmark::State& state)
+{
+    auto w = make_world();
+
+    const auto test = [&] {
+      { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
+        fm_assert(run(from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
+        fm_assert(run(from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
+        fm_assert(run(from, point{{  0,   3, 0}, {14,  4}, {  3,  15}}, w, true,   2614));
+        fm_assert(run(from, point{{  0,   1, 0}, { 8, 12}, {-27, -19}}, w, false,   752));
+        fm_assert(run(from, point{{  2,  33, 0}, {15, 11}, {- 4,  29}}, w, true,  33809));
+        fm_assert(run(from, point{{  0,   1, 0}, { 6, 13}, {- 3, -11}}, w, false,   913));
+      }
+      { fm_assert(run(      point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
+                            point{{  0, - 7, 0}, { 1, 15}, {-11,   5}}, w, true,   6220));
+      }
+    };
+
+    for (int i = 0; i < 50; i++)
+        test();
+    for (auto _ : state)
+        for (int i = 0; i < 1000; i++)
+            test();
+}
+
+BENCHMARK(Raycast)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
