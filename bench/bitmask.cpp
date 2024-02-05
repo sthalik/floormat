@@ -17,10 +17,11 @@ void Bitmask(benchmark::State& state)
     anim_atlas::make_bitmask_(img, bitmask);
 
     for (auto _ : state)
-        anim_atlas::make_bitmask_(img, bitmask);
+        for (int i = 0; i < 10; i++)
+            anim_atlas::make_bitmask_(img, bitmask);
 }
 
-BENCHMARK(Bitmask)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Bitmask)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
