@@ -140,6 +140,15 @@ constexpr float depth_offset_for_group(Group_ G, bool is_west)
     }
 }
 
+Wall::Frame variant_from_frame(ArrayView<const Wall::Frame> frames, global_coords coord, variant_t variant, bool is_west)
+{
+    auto sz = (unsigned)frames.size();
+    if (variant == (variant_t)-1)
+        variant = (variant_t)(Vector2ui(coord.raw()).sum() + is_west);
+    variant %= sz;
+    return frames[(variant_t)variant];
+}
+
 } // namespace
 
 GL::Mesh chunk::make_wall_mesh()
@@ -156,14 +165,14 @@ GL::Mesh chunk::make_wall_mesh()
         const auto& atlas = _walls->atlases[k];
         if (!atlas)
             continue;
-        const auto variant_ = _walls->variants[k];
+        const auto variant_2 = _walls->variants[k];
         const auto pos = local_coords{k / 2u};
         const auto center = Vector3(pos) * TILE_SIZE;
         const auto& dir = atlas->calc_direction(D);
-        const auto vpos = (variant_t)(Vector2ui(global_coords{_coord, pos}.raw()).sum() + is_west);
+        const auto coord = global_coords{_coord, pos};
         const auto Depth = atlas->info().depth;
 
-        for (auto [_, member, G] : Wall::Direction::groups_for_draw)
+        for (auto [s, member, G] : Wall::Direction::groups_for_draw)
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
@@ -207,10 +216,7 @@ GL::Mesh chunk::make_wall_mesh()
                     if (dir.top.is_defined)
                     {
                         const auto frames = atlas->frames(dir.top);
-                        auto variant = (variant_ != (variant_t)-1 ? variant_ : vpos);
-                        variant += (variant_t)(!is_west ? frames.size() - 1 : 1);
-                        fm_assert((size_t)(variant_t)frames.size() == frames.size());
-                        variant = variant % (variant_t)frames.size();
+                        const auto frame = variant_from_frame(frames, coord, variant_2, is_west);
                         constexpr Vector2 half_tile = TILE_SIZE2*.5f;
                         constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
                         Quads::quad quad = {{
@@ -219,7 +225,6 @@ GL::Mesh chunk::make_wall_mesh()
                             { -X - Depth, -Y, Z },
                             { -X,         -Y, Z }
                         }};
-                        const auto& frame = frames[variant];
                         fm_assert(frame.size.x() == Depth);
                         fm_assert(frame.size.y() >= Depth);
                         auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
@@ -241,14 +246,10 @@ GL::Mesh chunk::make_wall_mesh()
                     if (dir.corner.is_defined)
                     {
                         const auto frames = atlas->frames(dir.corner);
-                        auto variant = (variant_ != (variant_t)-1 ? variant_ : vpos);
                         const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
                         const auto pos_x = !is_west ? (float)pos.x : (float)pos.x - 1;
                         const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
-                        variant += variant_t(!is_west ? frames.size() - 1 : 1);
-                        fm_assert((size_t)(variant_t)frames.size() == frames.size());
-                        variant = variant % (variant_t)frames.size();
-                        const auto& frame = frames[variant];
+                        const auto& frame = variant_from_frame(frames, coord, variant_2, is_west);
                         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
                         const auto i = N++;
                         fm_assert(i < vertexes.size());
@@ -263,12 +264,9 @@ GL::Mesh chunk::make_wall_mesh()
                     else if (dir.wall.is_defined) [[likely]]
                     {
                         const auto frames = atlas->frames(dir.wall);
-                        auto variant = (variant_ != (variant_t)-1 ? variant_ : vpos);
                         const auto depth_offset = depth_offset_for_group(Group_::corner, is_west);
                         const auto depth = tile_shader::depth_value(!is_west ? (float)pos.x : (float)pos.x - 1, depth_offset);
-                        variant += variant_t(!is_west ? frames.size() - 1 : 1);
-                        variant %= frames.size();
-                        const auto& frame = frames[variant];
+                        const auto frame = variant_from_frame(frames, coord, variant_2, is_west);
                         fm_assert(frame.size.x() > Depth);
                         auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
                         const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, atlas->image_size());
@@ -293,13 +291,7 @@ GL::Mesh chunk::make_wall_mesh()
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 _walls->mesh_indexes[i] = (uint16_t)k;
-
-                const auto variant = (variant_ != (variant_t)-1 ? variant_ : vpos) % frames.size();
-                if (G == Wall::Group_::wall)
-                {
-                    Debug{} << s << (k&1 ? "w":"n") << k/2 << "--" << "variant" << variant << "frames" << frames.size() << "v1" << variant_ << "v2" << vpos;
-                }
-                const auto& frame = frames[variant];
+                const auto frame = variant_from_frame(frames, coord, variant_2, is_west);
                 const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, atlas->image_size());
                 const auto depth_offset = depth_offset_for_group(G, is_west);
                 const auto depth = tile_shader::depth_value(pos, depth_offset);
