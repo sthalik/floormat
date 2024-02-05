@@ -12,14 +12,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
             -fcoverage-mapping
         )
     endif()
-    #add_compile_options(-ftime-trace)
 else()
     add_compile_options(-march=native -mavx2)
     add_compile_options(-emit-llvm)
     add_compile_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
-    #add_compile_options(-ftime-trace)
 endif()
 
 if(FLOORMAT_ASAN)
@@ -134,4 +132,7 @@ function(fm-userconfig-src)
         -Wno-error=weak-vtables
         -Wno-error=unreachable-code
     )
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+        add_compile_options(-ftime-trace)
+    endif()
 endfunction()
