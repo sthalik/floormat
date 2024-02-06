@@ -28,6 +28,7 @@ int test_app::exec()
     test_entity();
     test_math();
     test_hash();
+    test_intrusive_ptr();
     test_loader();
     test_bitmask();
     test_wall_atlas();

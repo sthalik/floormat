@@ -39,6 +39,7 @@ struct test_app final : private FM_APPLICATION
     static void test_wall_atlas();
     static void test_wall_atlas2();
     static void test_raycast();
+    static void test_intrusive_ptr();
     static void zzz_test_misc();
 };
 } // namespace floormat
