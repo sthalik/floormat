@@ -717,7 +717,9 @@ struct reader final : visitor_<reader>
     uint32_t nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
-    reader(class world& w) : w{w} {}
+    loader_policy asset_policy;
+
+    reader(class world& w, loader_policy asset_policy) : w{w}, asset_policy{asset_policy} {}
 
     using visitor_<reader>::visit;
 
@@ -799,7 +801,7 @@ ok:
         PROTO << s;
         if (PROTO < proto_version_min && PROTO > 0)
         {
-            w.deserialize_old(w, buf.exceptPrefix(s.bytes_read()), PROTO);
+            w.deserialize_old(w, buf.exceptPrefix(s.bytes_read()), PROTO, asset_policy);
             return true;
         }
         else
@@ -982,7 +984,7 @@ ok:
 
 } // namespace
 
-class world world::deserialize(StringView filename) noexcept(false)
+class world world::deserialize(StringView filename, loader_policy asset_policy) noexcept(false)
 {
     char errbuf[128];
     buffer buf;
@@ -1010,7 +1012,7 @@ class world world::deserialize(StringView filename) noexcept(false)
     }
 
     class world w;
-    struct reader r{w};
+    struct reader r{w, asset_policy};
     r.deserialize_world(buf);
 
     //fm_assert("todo" && false);

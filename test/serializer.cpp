@@ -121,7 +121,7 @@ void test_serializer(StringView input, StringView tmp)
     chunk_coords_ coord{};
     world w;
     if (input)
-        w = world::deserialize(input);
+        w = world::deserialize(input, loader_policy::ignore);
     else
     {
         coord = {1, 1, 0};
@@ -130,7 +130,7 @@ void test_serializer(StringView input, StringView tmp)
         fm_assert(!c.empty(true));
     }
     w.serialize(tmp);
-    auto w2 = world::deserialize(tmp);
+    auto w2 = world::deserialize(tmp, loader_policy::ignore);
     auto& c2 = w2[coord];
     fm_assert(!c2.empty(true));
     assert_chunks_equal(w[coord], c2);

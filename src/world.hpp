@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
+#include "loader/policy.hpp"
 #include <memory>
 #include <unordered_map>
 #include <Corrade/Utility/Move.h>
@@ -65,8 +66,8 @@ public:
     const auto& chunks() const noexcept { return _chunks; }
 
     void serialize(StringView filename);
-    static class world deserialize(StringView filename) noexcept(false);
-    static void deserialize_old(class world& w, ArrayView<const char> buf, uint16_t proto) noexcept(false);
+    static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);
+    static void deserialize_old(class world& w, ArrayView<const char> buf, uint16_t proto, enum loader_policy asset_policy) noexcept(false);
     auto frame_no() const { return _current_frame; }
     auto increment_frame_no() { return _current_frame++; }
 

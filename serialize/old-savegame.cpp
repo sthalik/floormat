@@ -118,7 +118,7 @@ constexpr inline atlasid scenery_id_flag_mask_ = meta_short_scenery_bit_ | meta_
 constexpr inline atlasid scenery_id_max_ = int_traits<atlasid>::max & ~scenery_id_flag_mask_;
 
 struct reader_state final {
-    explicit reader_state(world& world) noexcept;
+    explicit reader_state(world& world, loader_policy policy) noexcept;
     void deserialize_world(ArrayView<const char> buf, proto_t proto);
 
 private:
@@ -139,13 +139,14 @@ private:
     std::vector<String> atlases;
     world* _world;
     uint16_t PROTO = proto_version;
+    loader_policy asset_policy;
 
     Array<chunk::object_draw_order> draw_array;
     Array<std::array<chunk::vertex, 4>> draw_vertexes;
     Array<std::array<UnsignedShort, 6>> draw_indexes;
 };
 
-reader_state::reader_state(world& world) noexcept : _world{&world} {}
+reader_state::reader_state(world& world, loader_policy p) noexcept : _world{&world}, asset_policy{p} {}
 
 void reader_state::read_atlases(reader_t& s)
 {
@@ -325,13 +326,13 @@ void reader_state::read_chunks(reader_t& s)
                 auto name = lookup_atlas(id);
                 if constexpr(std::is_same_v<ground_atlas, T>)
                 {
-                    auto atlas = loader.ground_atlas(name, loader_policy::warn);
+                    auto atlas = loader.ground_atlas(name, asset_policy);
                     fm_soft_assert(v < atlas->num_tiles());
                     return { atlas, v };
                 }
                 else if (std::is_same_v<wall_atlas, T>)
                 {
-                    auto atlas = loader.wall_atlas(name, loader_policy::warn);
+                    auto atlas = loader.wall_atlas(name, asset_policy);
                     return { atlas, v };
                 }
                 else
@@ -636,9 +637,9 @@ void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)
 
 namespace floormat {
 
-void world::deserialize_old(class world& w, ArrayView<const char> buf, proto_t proto)
+void world::deserialize_old(class world& w, ArrayView<const char> buf, proto_t proto, loader_policy asset_policy)
 {
-    reader_state s{w};
+    reader_state s{w, asset_policy};
     s.deserialize_world(buf, proto);
 }
 

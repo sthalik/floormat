@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "src/pass-mode.hpp"
+#include "loader/policy.hpp"
 #include <stdio.h>
 #include <memory>
 #include <Corrade/Containers/String.h>
@@ -27,11 +28,6 @@ struct vobj_info final
 {
     String name, descr;
     std::shared_ptr<anim_atlas> atlas;
-};
-
-enum class loader_policy : uint8_t
-{
-    error, warn, ignore, DEFAULT = error,
 };
 
 struct loader_

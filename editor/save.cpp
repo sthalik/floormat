@@ -53,7 +53,7 @@ void app::do_quickload()
         return;
     }
     fputs("quickload... ", stderr); fflush(stderr);
-    reset_world(world::deserialize(file));
+    reset_world(world::deserialize(file, loader_policy::warn));
     fputs("done\n", stderr); fflush(stderr);
 }
 
