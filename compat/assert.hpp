@@ -61,7 +61,7 @@
 
 #define fm_assert(...)                                                  \
     do {                                                                \
-        if (!(__VA_ARGS__)) [[unlikely]] {                              \
+        if (!(__VA_ARGS__)) /*NOLINT(*-simplify-boolean-expr)*/ [[unlikely]] { \
             fm_EMIT_DEBUG("", "assertion failed: %s in %s:%d",          \
                           #__VA_ARGS__, __FILE__, __LINE__);            \
             fm_EMIT_ABORT();                                            \

@@ -31,7 +31,7 @@ exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 
 #define fm_soft_assert(...)                                                         \
     do {                                                                            \
-        if (!(__VA_ARGS__))                                                         \
+        if (!(__VA_ARGS__)) /*NOLINT(*-simplify-boolean-expr)*/                     \
         {                                                                           \
             if (std::is_constant_evaluated())                                       \
                 throw ::floormat::base_exception{};                                 \
