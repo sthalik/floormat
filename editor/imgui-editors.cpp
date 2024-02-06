@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "src/tile-constants.hpp"
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include "ground-editor.hpp"

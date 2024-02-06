@@ -1,4 +1,5 @@
 #include "chunk-scenery.hpp"
+#include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "object.hpp"
 #include "anim-atlas.hpp"

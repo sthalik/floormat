@@ -1,4 +1,5 @@
 #include "critter.hpp"
+#include "tile-constants.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"

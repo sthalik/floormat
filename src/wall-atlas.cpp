@@ -1,6 +1,6 @@
 #include "wall-atlas.hpp"
+#include "tile-constants.hpp"
 #include "compat/exception.hpp"
-#include "src/tile-defs.hpp"
 #include <utility>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>

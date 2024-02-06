@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "src/tile-constants.hpp"
 #include "src/global-coords.hpp"
 #include "shaders/shader.hpp"
 #include "floormat/main.hpp"

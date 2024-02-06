@@ -1,4 +1,5 @@
 #include "loader/impl.hpp"
+#include "src/tile-constants.hpp"
 #include "wall-info.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"

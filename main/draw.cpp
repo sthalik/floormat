@@ -1,4 +1,5 @@
 #include "main-impl.hpp"
+#include "src/tile-constants.hpp"
 #include "floormat/app.hpp"
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"

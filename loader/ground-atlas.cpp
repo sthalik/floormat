@@ -1,4 +1,5 @@
 #include "impl.hpp"
+#include "src/tile-constants.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/exception.hpp"
 #include "serialize/json-helper.hpp"

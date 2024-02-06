@@ -1,4 +1,5 @@
 #include "chunk.hpp"
+#include "tile-constants.hpp"
 #include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "shaders/shader.hpp"

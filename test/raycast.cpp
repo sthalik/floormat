@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"

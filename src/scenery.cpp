@@ -1,4 +1,5 @@
 #include "scenery.hpp"
+#include "tile-constants.hpp"
 #include "anim-atlas.hpp"
 #include "chunk.hpp"
 #include "compat/assert.hpp"

@@ -1,4 +1,5 @@
 #include "raycast-diag.hpp"
+#include "tile-constants.hpp"
 #include "pass-mode.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"

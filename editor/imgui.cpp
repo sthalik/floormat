@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "src/tile-constants.hpp"
 #include "compat/format.hpp"
 #include "editor.hpp"
 #include "ground-editor.hpp"

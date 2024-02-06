@@ -1,4 +1,5 @@
 #pragma once
+#include "tile-constants.hpp"
 #include "global-coords.hpp"
 #include "object-id.hpp"
 #include "rotation.hpp"

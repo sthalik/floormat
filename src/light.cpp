@@ -1,4 +1,5 @@
 #include "light.hpp"
+#include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include <cmath>

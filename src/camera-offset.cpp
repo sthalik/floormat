@@ -1,5 +1,5 @@
 #include "camera-offset.hpp"
-#include "tile-defs.hpp"
+#include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 
 namespace floormat {

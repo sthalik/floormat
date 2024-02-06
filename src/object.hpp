@@ -19,7 +19,7 @@ struct object_proto
 {
     std::shared_ptr<anim_atlas> atlas;
     Vector2b offset, bbox_offset;
-    Vector2ub bbox_size = Vector2ub(iTILE_SIZE2);
+    Vector2ub bbox_size = Vector2ub(tile_size_xy);
     uint16_t delta = 0, frame = 0;
     object_type type : 3              = object_type::none;
     rotation r       : rotation_BITS  = rotation::N;

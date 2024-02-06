@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "src/tile-defs.hpp"
+#include "src/tile-constants.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-info.hpp"

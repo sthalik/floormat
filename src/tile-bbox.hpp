@@ -1,5 +1,5 @@
 #pragma once
-#include "src/tile-defs.hpp"
+#include "tile-constants.hpp"
 #include "src/local-coords.hpp"
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Magnum.h>
@@ -9,7 +9,7 @@ namespace floormat {
 
 constexpr Vector2 tile_start(size_t k)
 {
-    constexpr auto half_tile = Vector2(TILE_SIZE2)/2;
+    constexpr auto half_tile = Vector2(tile_size_xy)/2;
     const local_coords coord{k};
     return TILE_SIZE2 * Vector2(coord) - half_tile;
 }

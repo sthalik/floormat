@@ -1,4 +1,5 @@
 #include "object.hpp"
+#include "tile-constants.hpp"
 #include "world.hpp"
 #include "rotation.inl"
 #include "anim-atlas.hpp"

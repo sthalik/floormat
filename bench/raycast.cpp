@@ -1,4 +1,5 @@
 #include "src/raycast-diag.hpp"
+#include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"

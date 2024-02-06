@@ -1,4 +1,5 @@
 #include "anim.hpp"
+#include "src/tile-constants.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/chunk.hpp"
 #include "shaders/shader.hpp"
