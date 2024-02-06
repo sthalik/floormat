@@ -15,6 +15,7 @@ constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id
 
 size_t _reload_no_ = 0; // NOLINT
 
+[[maybe_unused]]
 bool is_log_quiet()
 {
     using GLCCF = GL::Implementation::ContextConfigurationFlag;
@@ -29,6 +30,7 @@ bool is_log_verbose()
     return !!(flags & GLCCF::VerboseLog);
 }
 
+[[maybe_unused]]
 bool is_log_standard()
 {
     using GLCCF = GL::Implementation::ContextConfigurationFlag;

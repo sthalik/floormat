@@ -27,11 +27,11 @@
 #include <Corrade/Utility/Path.h>
 #include <tsl/robin_map.h>
 
-#if 1
 #ifdef __CLION_IDE__
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma ide diagnostic ignored "cppcoreguidelines-missing-std-forward"
 #undef fm_assert
-#define fm_assert(...) (void)(__VA_ARGS__)
-#endif
+#define fm_assert(...) void(bool((__VA_ARGS__)))
 #endif
 
 namespace floormat {

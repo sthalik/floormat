@@ -1,6 +1,5 @@
 #include "path-search.hpp"
 #include "compat/format.hpp"
-#include "compat/debug.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"
 #include "object.hpp"

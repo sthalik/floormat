@@ -1,8 +1,9 @@
 #pragma once
 #include "integer-types.hpp"
 #include <type_traits>
-#include <Corrade/Containers/Containers.h>
+#include <Corrade/Tags.h>
 #include <Corrade/Utility/Macros.h>
+#include <Corrade/Containers/Containers.h>
 #include <Magnum/Magnum.h>
 
 // todo add colors prefix thing
@@ -41,4 +42,5 @@ namespace floormat {
     using Debug [[maybe_unused]] = ::Corrade::Utility::Debug;
     using Error [[maybe_unused]] = ::Corrade::Utility::Error;
     namespace Path = Corrade::Utility::Path; // NOLINT(misc-unused-alias-decls)
+    constexpr inline InPlaceInitT InPlace = InPlaceInit;
 } // namespace floormat

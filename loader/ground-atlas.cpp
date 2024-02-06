@@ -63,6 +63,7 @@ std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, l
             case loader_policy::ignore:
                 goto missing_ok;
             }
+            fm_assert(false);
             std::unreachable();
         }
         else if (!it->second->atlas)
@@ -81,6 +82,7 @@ std::shared_ptr<class ground_atlas> loader_impl::ground_atlas(StringView name, l
         case loader_policy::ignore:
             goto missing_ok;
         }
+        fm_assert(false);
         std::unreachable();
     }
 
