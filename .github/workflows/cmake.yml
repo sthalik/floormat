@@ -21,7 +21,7 @@ jobs:
         - os: ubuntu-22.04
           cmake: /usr/bin/env CC=gcc-13 CXX=g++-13 cmake
         #- os: macos-12
-        #  cmake: /usr/bin/env CC="$(brew --prefix llvm@15)/bin/clang" CXX="$(brew --prefix llvm@15)/bin/clang++" cmake
+        #  cmake: /usr/bin/env CC="$(brew --prefix llvm@16)/bin/clang" CXX="$(brew --prefix llvm@16)/bin/clang++" cmake
         #- os: windows-latest
         #  cmake: .\.github\workflows\build-windows.bat cmake
 
@@ -46,7 +46,7 @@ jobs:
 
     - name: Install OSX dependencies
       run: |
-        brew install SDL2 llvm@15
+        brew install SDL2 llvm@16
       if: matrix.os == 'macos-12'
 
     - name: Configure
