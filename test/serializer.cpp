@@ -138,14 +138,14 @@ void test_serializer(StringView input, StringView tmp)
 
 } // namespace
 
-void test_app::test_serializer_1()
+void test_app::test_serializer1()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer1.dat"_s);
     test_serializer({}, tmp_filename);
 }
 
-void test_app::test_serializer_2()
+void test_app::test_serializer2()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer2.dat"_s);
