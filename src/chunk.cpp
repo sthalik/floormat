@@ -22,6 +22,20 @@ bool is_log_quiet()
     return !!(flags & GLCCF::QuietLog);
 }
 
+bool is_log_verbose()
+{
+    using GLCCF = GL::Implementation::ContextConfigurationFlag;
+    auto flags = GL::Context::current().configurationFlags();
+    return !!(flags & GLCCF::VerboseLog);
+}
+
+bool is_log_standard()
+{
+    using GLCCF = GL::Implementation::ContextConfigurationFlag;
+    auto flags = GL::Context::current().configurationFlags();
+    return !(flags & (GLCCF::VerboseLog|GLCCF::QuietLog));
+}
+
 } // namespace
 
 bool chunk::empty(bool force) const noexcept
@@ -84,7 +98,7 @@ auto chunk::end() const noexcept -> const_iterator { return cend(); }
 
 void chunk::mark_ground_modified() noexcept
 {
-    if (!_ground_modified && !is_log_quiet())
+    if (!_ground_modified && is_log_verbose()) [[unlikely]]
         fm_debug("ground reload %zu", ++_reload_no_);
     _ground_modified = true;
     mark_passability_modified();
@@ -92,7 +106,7 @@ void chunk::mark_ground_modified() noexcept
 
 void chunk::mark_walls_modified() noexcept
 {
-    if (!_walls_modified && !is_log_quiet())
+    if (!_walls_modified && is_log_verbose()) [[unlikely]]
         fm_debug("wall reload %zu", ++_reload_no_);
     _walls_modified = true;
     mark_passability_modified();
@@ -100,14 +114,14 @@ void chunk::mark_walls_modified() noexcept
 
 void chunk::mark_scenery_modified() noexcept
 {
-    if (!_scenery_modified && !is_log_quiet())
+    if (!_scenery_modified && is_log_verbose()) [[unlikely]]
         fm_debug("scenery reload %zu", ++_reload_no_);
     _scenery_modified = true;
 }
 
 void chunk::mark_passability_modified() noexcept
 {
-    if (!_pass_modified && !is_log_quiet())
+    if (!_pass_modified && is_log_verbose()) [[unlikely]]
         fm_debug("pass reload %zu", ++_reload_no_);
     _pass_modified = true;
 }
