@@ -89,3 +89,5 @@
 #ifndef fm_ASAN
 #define fm_ASAN 0
 #endif
+
+#define fm_FILENAME_MAX 260

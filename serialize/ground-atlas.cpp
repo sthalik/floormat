@@ -38,10 +38,8 @@ void adl_serializer<std::shared_ptr<ground_atlas>>::to_json(json& j, const std::
 
 void adl_serializer<std::shared_ptr<ground_atlas>>::from_json(const json& j, std::shared_ptr<ground_atlas>& val)
 {
-    char buf[FILENAME_MAX];
-    ground_def info = j;
-    auto path = loader.make_atlas_path(buf, loader.GROUND_TILESET_PATH, info.name);
-    val = std::make_shared<ground_atlas>(std::move(info), path, loader.texture(""_s, path));
+    ground_def def = j;
+    val = std::make_shared<ground_atlas>(std::move(def), loader.texture(loader.GROUND_TILESET_PATH, def.name));
 }
 
 } // namespace nlohmann

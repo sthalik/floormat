@@ -2,7 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/wall-cell.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/path-search.hpp"

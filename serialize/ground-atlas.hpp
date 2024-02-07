@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-struct ground_info;
+struct ground_cell;
 
 } // namespace floormat
 

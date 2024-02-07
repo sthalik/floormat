@@ -1,5 +1,7 @@
 #pragma once
 
+// todo rename to hash-fnv.hpp
+
 namespace floormat::Hash {
 
 template<size_t N = sizeof nullptr * 8> struct fnvhash_params;
@@ -19,5 +21,7 @@ uint32_t hash_32(const void* buf, size_t size) noexcept;
 
 size_t hash_int(uint32_t x) noexcept;
 size_t hash_int(uint64_t x) noexcept;
+
+struct hash_string_view { size_t operator()(StringView str) const noexcept; };
 
 } // namespace floormat

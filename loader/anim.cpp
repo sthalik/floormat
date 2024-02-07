@@ -1,5 +1,5 @@
 #include "impl.hpp"
-#include "loader/anim-info.hpp"
+#include "loader/anim-cell.hpp"
 #include "compat/exception.hpp"
 #include "src/anim-atlas.hpp"
 #include <Corrade/Containers/Array.h>
@@ -58,9 +58,10 @@ ArrayView<const String> loader_impl::anim_atlas_list()
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false)
 {
     if (name == INVALID) return make_invalid_anim_atlas().atlas; // todo! hack
+
     fm_soft_assert(check_atlas_name(name));
     fm_soft_assert(!dir || dir[dir.size()-1] == '/');
-    char buf[FILENAME_MAX];
+    char buf[fm_FILENAME_MAX];
     auto path = make_atlas_path(buf, dir, name);
 
     if (auto it = anim_atlas_map.find(path); it != anim_atlas_map.end())
@@ -89,7 +90,7 @@ void loader_impl::get_anim_atlas_list()
     fm_assert(!anim_atlases.empty());
 }
 
-const anim_info& loader_impl::make_invalid_anim_atlas()
+const anim_cell& loader_impl::make_invalid_anim_atlas()
 {
     if (invalid_anim_atlas) [[likely]]
         return *invalid_anim_atlas;
@@ -115,11 +116,11 @@ const anim_info& loader_impl::make_invalid_anim_atlas()
         .nframes = 1,
     };
     auto atlas = std::make_shared<class anim_atlas>(INVALID, make_error_texture(size), std::move(def));
-    auto info = anim_info {
+    auto info = anim_cell{
         .name = INVALID,
         .atlas = atlas,
     };
-    invalid_anim_atlas = Pointer<anim_info>{ InPlace, std::move(info) };
+    invalid_anim_atlas = Pointer<anim_cell>{ InPlace, std::move(info) };
     return *invalid_anim_atlas;
 }
 

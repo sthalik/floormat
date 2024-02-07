@@ -3,7 +3,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/wall-cell.hpp"
 #include <Corrade/Containers/ArrayView.h>
 
 namespace floormat {

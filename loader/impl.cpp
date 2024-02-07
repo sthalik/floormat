@@ -1,15 +1,23 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
-#include "loader/scenery.hpp"
-#include "loader/wall-info.hpp"
-#include "loader/anim-info.hpp"
-#include "src/ground-atlas.hpp"
+#include "scenery.hpp"
+#include "wall-cell.hpp"
+#include "anim-cell.hpp"
+#include "ground-cell.hpp"
+#include "ground-traits.hpp"
+#include "atlas-loader.hpp"
+#include "atlas-loader-storage.hpp"
+
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Trade/ImageData.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic ignored "-Walloca"
 #endif
+
+namespace floormat {
+
+} // namespace floormat
 
 namespace floormat::loader_detail {
 
@@ -23,9 +31,9 @@ StringView loader_impl::shader(StringView filename) noexcept
     return ret;
 }
 
-loader_impl::loader_impl()
+loader_impl::loader_impl() :
+     _ground_loader{ make_ground_atlas_loader() }
 {
-    missing_ground_atlases.reserve(32);
     missing_wall_atlases.reserve(32);
     system_init();
     set_application_working_directory();
@@ -45,5 +53,23 @@ void loader_impl::ensure_plugins()
     fm_assert(image_importer);
     fm_assert(tga_importer);
 }
+
+void loader_impl::destroy()
+{
+    wall_atlas_map.clear();
+    wall_atlas_array.clear();
+    invalid_wall_atlas = nullptr;
+    missing_wall_atlases.clear();
+    _ground_loader = {InPlace};
+    anim_atlas_map.clear();
+    anim_atlases.clear();
+    invalid_anim_atlas = nullptr;
+    sceneries_map.clear();
+    sceneries_array.clear();
+
+    vobj_atlas_map.clear();
+    vobjs.clear();
+}
+
 
 } // namespace floormat::loader_detail

@@ -1,7 +1,7 @@
 #pragma once
 #include "src/pass-mode.hpp"
 #include "src/quads.hpp"
-#include "loader/ground-info.hpp"
+#include "loader/ground-cell.hpp"
 #include <array>
 #include <memory>
 #include <Corrade/Containers/Optional.h>
@@ -12,13 +12,6 @@
 
 namespace floormat {
 
-struct ground_def
-{
-    String name;
-    Vector2ub size;
-    pass_mode pass = pass_mode::pass;
-};
-
 class ground_atlas;
 
 class ground_atlas final
@@ -28,25 +21,23 @@ class ground_atlas final
 
     static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
     static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i);
+    static String make_path(StringView name);
 
-    std::unique_ptr<const texcoords[]> texcoords_;
-    GL::Texture2D tex_;
-    String path_, name_;
-    Vector2ui size_;
-    Vector2ub dims_;
-    enum pass_mode passability;
+    ground_def _def;
+    String _path;
+    std::unique_ptr<const texcoords[]> _texcoords;
+    GL::Texture2D _tex;
+    Vector2ui _pixel_size;
 
 public:
-    ground_atlas(ground_def info, String path, const ImageView2D& img);
+    ground_atlas(ground_def info, const ImageView2D& img);
     texcoords texcoords_for_id(size_t id) const;
-    [[maybe_unused]] Vector2ui pixel_size() const { return size_; }
+    [[maybe_unused]] Vector2ui pixel_size() const { return _pixel_size; }
     size_t num_tiles() const;
-    Vector2ub num_tiles2() const { return dims_; }
-    GL::Texture2D& texture() { return tex_; }
-    StringView name() const { return name_; }
+    Vector2ub num_tiles2() const { return _def.size; }
+    GL::Texture2D& texture() { return _tex; }
+    StringView name() const { return _def.name; }
     enum pass_mode pass_mode() const;
-
-    static constexpr enum pass_mode default_pass_mode = pass_mode::pass;
 };
 
 } // namespace floormat

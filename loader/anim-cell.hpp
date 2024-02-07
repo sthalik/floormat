@@ -4,12 +4,12 @@
 
 namespace floormat {
 
-class wall_atlas;
+class anim_atlas;
 
-struct wall_info
+struct anim_cell
 {
     String name;
-    std::shared_ptr<wall_atlas> atlas;
+    std::shared_ptr<anim_atlas> atlas;
 };
 
 } // namespace floormat

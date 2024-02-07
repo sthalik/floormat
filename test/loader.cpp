@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/wall-cell.hpp"
 #include "src/ground-atlas.hpp"
 
 namespace floormat {
@@ -53,6 +53,7 @@ void test_app::test_loader()
         (void)loader.get_wall_atlas(name);
 
     for (const auto& x : loader.ground_atlas_list())
+        if (x.name != loader.INVALID) // todo!
         (void)loader.ground_atlas(x.name);
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);

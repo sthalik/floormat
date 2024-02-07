@@ -1,5 +1,6 @@
 #include "compat/defs.hpp"
 #include "int-hash.hpp"
+#include <Corrade/Containers/StringView.h>
 #include <bit>
 
 namespace floormat {
@@ -78,15 +79,9 @@ fm_UNROLL_8
     return hash;
 }
 
-size_t hash_int(uint32_t x) noexcept
-{
-    return fnvhash_uint_32(x);
-}
-
-size_t hash_int(uint64_t x) noexcept
-{
-    return fnvhash_uint_64(x);
-}
+size_t hash_int(uint32_t x) noexcept { return fnvhash_uint_32(x); }
+size_t hash_int(uint64_t x) noexcept { return fnvhash_uint_64(x); }
+size_t hash_string_view::operator()(StringView s) const noexcept { return Hash::fnvhash_buf(s.data(), s.size()); }
 
 } // namespace floormat
 

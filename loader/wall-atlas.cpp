@@ -1,12 +1,11 @@
 #include "loader/impl.hpp"
 #include "src/tile-constants.hpp"
-#include "wall-info.hpp"
+#include "loader/wall-cell.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
-#include "src/tile-defs.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringIterable.h>
@@ -19,14 +18,14 @@ namespace floormat {
 using nlohmann::json;
 using loader_detail::loader_impl;
 
-[[maybe_unused]] static void from_json(const json& j, wall_info& val)
+[[maybe_unused]] static void from_json(const json& j, wall_cell& val)
 {
     val = {};
     val.name = j["name"];
     fm_soft_assert(loader.check_atlas_name(val.name));
 }
 
-[[maybe_unused]] static void to_json(json& j, const wall_info& val)
+[[maybe_unused]] static void to_json(json& j, const wall_cell& val)
 {
     j["name"] = val.name;
 }
@@ -34,7 +33,7 @@ using loader_detail::loader_impl;
 std::shared_ptr<wall_atlas> loader_::get_wall_atlas(StringView name) noexcept(false)
 {
     fm_assert(name != "<invalid>"_s);
-    char buf[FILENAME_MAX];
+    char buf[fm_FILENAME_MAX];
     auto filename = make_atlas_path(buf, loader.WALL_TILESET_PATH, name);
     auto def = wall_atlas_def::deserialize(""_s.join({filename, ".json"_s}));
     auto tex = texture(""_s, filename);
@@ -49,7 +48,7 @@ std::shared_ptr<wall_atlas> loader_::get_wall_atlas(StringView name) noexcept(fa
 
 namespace floormat::loader_detail {
 
-const wall_info& loader_impl::make_invalid_wall_atlas()
+const wall_cell& loader_impl::make_invalid_wall_atlas()
 {
     if (invalid_wall_atlas) [[likely]]
         return *invalid_wall_atlas;
@@ -65,7 +64,7 @@ const wall_info& loader_impl::make_invalid_wall_atlas()
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, make_error_texture(frame_size));
-    invalid_wall_atlas = Pointer<wall_info>{InPlaceInit, wall_info{ .name = name, .atlas = std::move(a) } };
+    invalid_wall_atlas = Pointer<wall_cell>{InPlaceInit, wall_cell{ .name = name, .atlas = std::move(a) } };
     return *invalid_wall_atlas;
 }
 
@@ -90,7 +89,7 @@ std::shared_ptr<class wall_atlas> loader_impl::wall_atlas(StringView name, loade
 
     if (it != wall_atlas_map.end()) [[likely]]
     {
-        if (it->second == (wall_info*)-1) [[unlikely]]
+        if (it->second == (wall_cell*)-1) [[unlikely]]
         {
             switch (policy)
             {
@@ -125,7 +124,7 @@ missing_warn:
     {
         missing_wall_atlases.push_back(String { AllocatedInit, name });
         auto string_view = StringView{missing_wall_atlases.back()};
-        wall_atlas_map[string_view] = (wall_info*)-1;
+        wall_atlas_map[string_view] = (wall_cell*)-1;
     }
 
     if (name != "<invalid>")
@@ -142,7 +141,7 @@ void loader_impl::get_wall_atlas_list()
 {
     fm_assert(wall_atlas_map.empty());
 
-    wall_atlas_array = json_helper::from_json<std::vector<wall_info>>(Path::join(WALL_TILESET_PATH, "walls.json"_s));
+    wall_atlas_array = json_helper::from_json<std::vector<wall_cell>>(Path::join(WALL_TILESET_PATH, "walls.json"_s));
     wall_atlas_array.shrink_to_fit();
     wall_atlas_map.clear();
     wall_atlas_map.reserve(wall_atlas_array.size()*2);
@@ -159,7 +158,7 @@ void loader_impl::get_wall_atlas_list()
     fm_assert(!wall_atlas_map.empty());
 }
 
-ArrayView<const wall_info> loader_impl::wall_atlas_list()
+ArrayView<const wall_cell> loader_impl::wall_atlas_list()
 {
     if (wall_atlas_map.empty()) [[unlikely]]
     {

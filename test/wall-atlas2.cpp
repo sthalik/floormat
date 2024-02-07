@@ -3,7 +3,7 @@
 #include "src/tile-constants.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/wall-cell.hpp"
 
 namespace floormat {
 

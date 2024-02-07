@@ -1,5 +1,7 @@
 #pragma once
+#include "compat/safe-ptr.hpp"
 #include "loader/loader.hpp"
+#include "atlas-loader-fwd.hpp"
 #include <tsl/robin_map.h>
 #include <memory>
 #include <vector>
@@ -11,6 +13,9 @@
 #include <Magnum/Trade/AbstractImporter.h>
 
 namespace floormat::loader_detail {
+
+
+
 
 struct loader_impl final : loader_
 {
@@ -36,37 +41,34 @@ struct loader_impl final : loader_
     Optional<Utility::Resource> shader_res;
     StringView shader(StringView filename) noexcept override;
 
-    Trade::ImageData2D make_error_texture(Vector2ui size);
+    Trade::ImageData2D make_error_texture(Vector2ui size) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
 
     // >-----> walls >----->
-    tsl::robin_map<StringView, wall_info*> wall_atlas_map;
-    std::vector<wall_info> wall_atlas_array;
+    tsl::robin_map<StringView, wall_cell*> wall_atlas_map;
+    std::vector<wall_cell> wall_atlas_array;
     std::vector<String> missing_wall_atlases;
-    Pointer<wall_info> invalid_wall_atlas;
+    Pointer<wall_cell> invalid_wall_atlas;
     std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy) override;
-    ArrayView<const wall_info> wall_atlas_list() override;
+    ArrayView<const wall_cell> wall_atlas_list() override;
     void get_wall_atlas_list();
-    const wall_info& make_invalid_wall_atlas() override;
+    const wall_cell& make_invalid_wall_atlas() override;
 
     // >-----> ground >----->
-    tsl::robin_map<StringView, ground_info*> ground_atlas_map;
-    std::vector<ground_info> ground_atlas_array;
-    std::vector<String> missing_ground_atlases;
-    Pointer<ground_info> invalid_ground_atlas;
-    std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
-    ArrayView<const ground_info> ground_atlas_list() noexcept(false) override;
-    void get_ground_atlas_list();
-    const ground_info& make_invalid_ground_atlas() override;
+    static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
+    safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{make_ground_atlas_loader()};
+    const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
+    ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
+    const ground_cell& make_invalid_ground_atlas() override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
-    Pointer<anim_info> invalid_anim_atlas;
+    Pointer<anim_cell> invalid_anim_atlas;
     ArrayView<const String> anim_atlas_list() override;
     std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     void get_anim_atlas_list();
-    const anim_info& make_invalid_anim_atlas() override;
+    const anim_cell& make_invalid_anim_atlas() override;
 
     // >-----> scenery >----->
     std::vector<serialized_scenery> sceneries_array;

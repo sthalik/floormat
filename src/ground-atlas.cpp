@@ -3,6 +3,7 @@
 #include "compat/assert.hpp"
 #include "tile-image.hpp"
 #include "compat/exception.hpp"
+#include "loader/loader.hpp"
 #include <limits>
 #include <Magnum/Math/Color.h>
 #include <Magnum/ImageView.h>
@@ -12,15 +13,16 @@ namespace floormat {
 
 using namespace floormat::Quads;
 
-ground_atlas::ground_atlas(ground_def info, String path, const ImageView2D& image) :
-    texcoords_{make_texcoords_array(Vector2ui(image.size()), info.size)},
-    path_{std::move(path)}, name_{std::move(info.name)}, size_{image.size()}, dims_{info.size}, passability{info.pass}
+ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
+    _def{std::move(info)}, _path{make_path(_def.name)},
+    _texcoords{make_texcoords_array(Vector2ui(image.size()), _def.size)},
+    _pixel_size{image.size()}
 {
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
-    fm_soft_assert(dims_[0] > 0 && dims_[1] > 0);
-    fm_soft_assert(size_ % Vector2ui{info.size} == Vector2ui());
-    tex_.setLabel(path_)
+    fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);
+    fm_soft_assert(_pixel_size % Vector2ui{_def.size} == Vector2ui());
+    _tex.setLabel(_path)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
@@ -33,7 +35,7 @@ ground_atlas::ground_atlas(ground_def info, String path, const ImageView2D& imag
 std::array<Vector2, 4> ground_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
-    return texcoords_[i];
+    return _texcoords[i];
 }
 
 auto ground_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
@@ -53,7 +55,14 @@ auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_cou
     return ptr;
 }
 
-size_t ground_atlas::num_tiles() const { return Vector2ui{dims_}.product(); }
-enum pass_mode ground_atlas::pass_mode() const { return passability; }
+size_t ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
+enum pass_mode ground_atlas::pass_mode() const { return _def.pass; }
+
+String ground_atlas::make_path(StringView name)
+{
+    char buf[fm_FILENAME_MAX];
+    auto sv = loader.make_atlas_path(buf, loader.GROUND_TILESET_PATH, name);
+    return String{sv};
+}
 
 } // namespace floormat

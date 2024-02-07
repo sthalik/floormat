@@ -1,6 +1,7 @@
 #include "impl.hpp"
 //#include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "loader/loader.hpp"
 //#include "src/emplacer.hpp"
 //#include "src/anim-atlas.hpp"
 #include <cstring>
@@ -13,11 +14,11 @@
 
 namespace floormat {
 
-StringView loader_::make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name)
+StringView loader_::make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name)
 {
     fm_soft_assert(!dir || dir[dir.size()-1] == '/');
     const auto dirsiz = dir.size(), namesiz = name.size();
-    fm_soft_assert(dirsiz + namesiz + 1 < FILENAME_MAX);
+    fm_soft_assert(dirsiz + namesiz + 1 < fm_FILENAME_MAX);
     std::memcpy(buf, dir.data(), dirsiz);
     std::memcpy(&buf[dirsiz], name.data(), namesiz);
     auto len = dirsiz + namesiz;

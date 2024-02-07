@@ -3,7 +3,7 @@
 #include "src/raycast-diag.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/wall-cell.hpp"
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {

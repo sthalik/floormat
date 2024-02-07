@@ -44,7 +44,7 @@ world& world::operator=(world&& w) noexcept
     _last_chunk = {};
     _chunks = std::move(w._chunks);
     _objects = std::move(w._objects);
-    w._objects = safe_ptr<robin_map_wrapper>{};
+    w._objects = {};
     _unique_id = std::move(w._unique_id);
     fm_debug_assert(_unique_id);
     fm_debug_assert(w._unique_id == nullptr);

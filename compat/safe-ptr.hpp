@@ -13,41 +13,26 @@ class safe_ptr final
     T* ptr;
 
 public:
-    template<typename... Ts>
-    requires requires (Ts&&... xs) {
-        new T{Utility::forward<Ts>(xs)...};
-    }
-    safe_ptr(InPlaceInitT, Ts&&... args) noexcept:
-        ptr{new T{Utility::forward<Ts>(args)...}}
-    {}
-
-    explicit safe_ptr(T*&& ptr) noexcept: ptr{ptr}
-    {
-        fm_assert(ptr != nullptr);
-        ptr = nullptr;
-    }
-
     ~safe_ptr() noexcept
     {
-        if (ptr) [[likely]]
-            delete ptr;
+        delete ptr;
         ptr = (T*)0xbadcafedeadbabe;
     }
 
-    explicit safe_ptr(safe_ptr&& other) noexcept: ptr{other.ptr}
-    {
-        other.ptr = nullptr;
-    }
+    safe_ptr(std::nullptr_t) = delete;
+    safe_ptr(T* ptr) noexcept: ptr{ptr} { fm_assert(ptr != nullptr); }
+    safe_ptr(safe_ptr&& other) noexcept: ptr{other.ptr} { other.ptr = nullptr; }
 
-    explicit safe_ptr() noexcept:
-        ptr{new T{}}
+    safe_ptr() noexcept: safe_ptr{InPlaceInit} {}
+
+    template<typename... Ts> safe_ptr(InPlaceInitT, Ts&&... args) noexcept:
+        ptr(new T{ Utility::forward<Ts>(args)... })
     {}
 
     safe_ptr& operator=(safe_ptr&& other) noexcept
     {
         fm_assert(this != &other);
-        if (ptr) [[likely]]
-            delete ptr;
+        delete ptr;
         ptr = other.ptr;
         other.ptr = nullptr;
         return *this;
@@ -57,6 +42,8 @@ public:
 
     //explicit operator bool() const noexcept { return ptr != nullptr; }
 
+    T* get() noexcept { return ptr; }
+    const T* get() const noexcept { return ptr; }
     const T& operator*() const noexcept { return *ptr; }
     T& operator*() noexcept { return *ptr; }
     const T* operator->() const noexcept { return ptr; }

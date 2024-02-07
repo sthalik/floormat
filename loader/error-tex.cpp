@@ -11,7 +11,7 @@ Trade::ImageData2D loader_impl::make_error_texture(Vector2ui size)
 {
     fm_assert(size.product() != 0);
     constexpr auto magenta = Vector4ub{255, 0, 255, 255};
-    auto array = Array<char>{NoInit, 4 * size.product()};
+    auto array = Array<char>{NoInit, 4uz * size.product()};
     auto data = array.data(), end = data + array.size();
     while (data != end)
     {

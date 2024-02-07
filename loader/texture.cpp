@@ -4,7 +4,7 @@
 #include "compat/defs.hpp"
 #include "compat/strerror.hpp"
 #include <cstring>
-#include <cstdio>
+//#include <cstdio>
 #include <Corrade/Utility/Path.h>
 #include <Magnum/Trade/ImageData.h>
 
@@ -19,11 +19,11 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     const auto N = prefix.size();
     if (N > 0) [[likely]]
         fm_assert(prefix[N-1] == '/');
-    fm_soft_assert(filename_.size() + prefix.size() + max_extension_length + 1 < FILENAME_MAX);
+    fm_soft_assert(filename_.size() + prefix.size() + max_extension_length + 1 < fm_FILENAME_MAX);
     fm_soft_assert(check_atlas_name(filename_));
     fm_soft_assert(tga_importer);
 
-    char buf[FILENAME_MAX];
+    char buf[fm_FILENAME_MAX];
     const auto path_no_ext = make_atlas_path(buf, prefix, filename_);
     const auto len = path_no_ext.size();
 

@@ -30,7 +30,10 @@ void ground_editor::load_atlases()
     fm_assert(_atlases.empty());
     for (const auto& g : loader.ground_atlas_list())
     {
-        (void)loader.ground_atlas(g.name);
+        if (g.name != loader.INVALID) [[likely]]
+            (void)loader.ground_atlas(g.name);
+        else
+            loader.make_invalid_ground_atlas();
         fm_assert(g.atlas);
         _atlases[g.name] = &g;
     }

@@ -1,6 +1,6 @@
 #include "loader/loader.hpp"
-#include "loader/ground-info.hpp"
-#include "loader/wall-info.hpp"
+#include "loader/ground-cell.hpp"
+#include "loader/wall-cell.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include <Corrade/Containers/ArrayView.h>

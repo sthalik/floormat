@@ -6,7 +6,7 @@
 #include "serialize/anim.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
-#include "loader/anim-info.hpp"
+#include "loader/anim-cell.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Utility/Path.h>
 
@@ -26,7 +26,7 @@ void loader_impl::get_scenery_list()
     sceneries_array.clear();
     sceneries_array = json_helper::from_json<std::vector<serialized_scenery>>(Path::join(SCENERY_PATH, "scenery.json"));
 
-    if constexpr(false)
+    if constexpr(true) // todo!
     {
         auto proto = scenery_proto{};
         proto.atlas = make_invalid_anim_atlas().atlas;

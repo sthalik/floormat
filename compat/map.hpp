@@ -32,7 +32,7 @@ constexpr auto map(const F& fun, const std::array<T, N>& array)
     using return_type = std::decay_t<decltype( fun(array[0]) )>;
     static_assert(!std::is_same_v<return_type, void>);
     static_assert(std::is_same_v<T, std::decay_t<T>>);
-    static_assert(sizeof(return_type) > 0);
+    static_assert(sizeof(return_type));
     using ::floormat::detail::map::map0;
     return map0(fun, array, std::make_index_sequence<N>{});
 }

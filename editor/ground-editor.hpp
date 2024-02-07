@@ -10,14 +10,14 @@
 namespace floormat {
 
 class world;
-struct ground_info;
+struct ground_cell;
 
 class ground_editor final
 {
     enum selection_mode : unsigned char { sel_none, sel_tile, sel_perm, };
     struct tuple;
 
-    std::map<StringView, const ground_info*> _atlases;
+    std::map<StringView, const ground_cell*> _atlases;
     tile_image_proto _selected_tile;
     safe_ptr<tuple> _permutation;
     selection_mode _selection_mode = sel_none;
