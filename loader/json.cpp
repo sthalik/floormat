@@ -6,6 +6,7 @@
 #include "serialize/anim.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/scenery.hpp"
+#include "loader/anim-info.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Utility/Path.h>
 
@@ -24,14 +25,26 @@ void loader_impl::get_scenery_list()
 {
     sceneries_array.clear();
     sceneries_array = json_helper::from_json<std::vector<serialized_scenery>>(Path::join(SCENERY_PATH, "scenery.json"));
+
+    if constexpr(false)
+    {
+        auto proto = scenery_proto{};
+        proto.atlas = make_invalid_anim_atlas().atlas;
+        proto.bbox_size = Vector2ub{20};
+        proto.subtype = generic_scenery_proto{false, true};
+        sceneries_array.push_back({ .name = INVALID, .proto = proto });
+    }
+
     sceneries_map.clear();
     sceneries_map.reserve(sceneries_array.size() * 2);
+
     for (const serialized_scenery& s : sceneries_array)
     {
         if (sceneries_map.contains(s.name))
             fm_abort("duplicate scenery name '%s'", s.name.data());
         sceneries_map[s.name] = &s;
     }
+
     fm_assert(!sceneries_map.empty());
 }
 

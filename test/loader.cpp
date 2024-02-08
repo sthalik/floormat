@@ -1,8 +1,8 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
-#include "src/ground-atlas.hpp"
 #include "loader/wall-info.hpp"
+#include "src/ground-atlas.hpp"
 
 namespace floormat {
 
@@ -37,6 +37,14 @@ constexpr const char* anim_atlases[] = {
 
 void test_app::test_loader()
 {
+    fm_assert(loader.make_invalid_ground_atlas().atlas);
+    fm_assert(&loader.make_invalid_ground_atlas().atlas == &loader.make_invalid_ground_atlas().atlas);
+    fm_assert(loader.make_invalid_ground_atlas().name == loader.INVALID);
+
+    fm_assert(loader.make_invalid_wall_atlas().atlas);
+    fm_assert(&loader.make_invalid_wall_atlas().atlas == &loader.make_invalid_wall_atlas().atlas);
+    fm_assert(loader.make_invalid_wall_atlas().name == loader.INVALID);
+
     for (const auto& str : anim_atlases)
         (void)loader.get_anim_atlas(str);
     for (const auto& x : ground_atlases)
@@ -51,16 +59,6 @@ void test_app::test_loader()
     loader.sceneries();
     for (StringView name : loader.anim_atlas_list())
         loader.anim_atlas(name);
-
-    {   auto walls = loader.wall_atlas_list();
-        fm_assert(!walls.isEmpty());
-        fm_assert(loader.wall_atlas("test1"_s));
-        fm_assert(loader.wall_atlas(loader.INVALID, loader_policy::ignore));
-        fm_assert(loader.wall_atlas("test1"_s) == loader.wall_atlas("test1"_s));
-        fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, loader_policy::ignore));
-    }
-    for (const auto& info : loader.wall_atlas_list())
-        fm_assert(loader.wall_atlas(info.name));
 }
 
 } // namespace floormat

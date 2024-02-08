@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
+#include "loader/wall-info.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/path-search.hpp"
@@ -178,7 +179,7 @@ void test_bbox()
         return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
     };
 
-    const auto metal2 = loader.wall_atlas("empty", loader_policy::warn);
+    const auto wall = loader.make_invalid_wall_atlas().atlas;
     const auto table  = loader.scenery("table1");
 
     {
@@ -190,7 +191,7 @@ void test_bbox()
             auto w = world();
             [[maybe_unused]] auto& c12 = w[coord2];
             [[maybe_unused]] auto& c11 = w[coord1];
-            c12[{0, 0}].wall_north() = {metal2, 0};
+            c12[{0, 0}].wall_north() = { wall, 0};
 
             fm_assert( !is_passable_1(c12, bbox({}, N)) );
             fm_assert(  is_passable_1(c12, bbox({}, E)) );
@@ -211,8 +212,8 @@ void test_bbox()
         auto w = world();
         auto& c = w[ch];
 
-        c[{8, 7}].wall_north() = {metal2,0};
-        c[{8, 9}].wall_north() = {metal2,0};
+        c[{8, 7}].wall_north() = { wall,0};
+        c[{8, 9}].wall_north() = { wall,0};
         fm_assert(  is_passable_1(c, bbox({8, 6}, N)) );
         fm_assert( !is_passable_1(c, bbox({8, 6}, S)) );
         fm_assert( !is_passable_1(c, bbox({8, 7}, N)) );
@@ -224,7 +225,7 @@ void test_bbox()
 
         fm_assert(neighbors(w, ch, {8, 8}).size == 3);
 
-        c[{8, 8}].wall_north() = {metal2,0};
+        c[{8, 8}].wall_north() = { wall,0};
         c.mark_passability_modified();
         fm_assert(  is_passable_1(c, bbox({8, 8}, C)) );
         fm_assert( !is_passable_1(c, bbox({8, 7}, S)) );

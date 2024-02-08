@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/path-search.hpp"
 #include "loader/loader.hpp"
+#include "loader/wall-info.hpp"
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
@@ -19,7 +20,7 @@ void test_app::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
 
     auto& ch = w[wch];
-    auto metal2 = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
+    auto wall = wall_image_proto{loader.make_invalid_wall_atlas().atlas, 0};
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
@@ -27,15 +28,15 @@ void test_app::test_dijkstra()
             auto &c = w[chunk_coords_{i, j, 0}];
             for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
             {
-                c[{ k, k }].wall_north() = metal2;
-                c[{ k, k }].wall_west() = metal2;
+                c[{ k, k }].wall_north() = wall;
+                c[{ k, k }].wall_west() = wall;
             }
         }
 
-    ch[{ wtx,   wty   }].wall_west()  = metal2;
-    ch[{ wtx,   wty   }].wall_north() = metal2;
-    ch[{ wtx+1, wty   }].wall_west()  = metal2;
-    ch[{ wtx,   wty +1}].wall_north() = metal2;
+    ch[{ wtx,   wty   }].wall_west()  = wall;
+    ch[{ wtx,   wty   }].wall_north() = wall;
+    ch[{ wtx+1, wty   }].wall_west()  = wall;
+    ch[{ wtx,   wty +1}].wall_north() = wall;
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)

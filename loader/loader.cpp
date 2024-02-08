@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "ground-info.hpp"
 #include "wall-info.hpp"
+#include "anim-info.hpp"
 #include "scenery.hpp"
 
 namespace floormat::loader_detail {
@@ -19,8 +20,10 @@ void loader_impl::destroy()
 
     anim_atlas_map.clear();
     anim_atlases.clear();
+    invalid_anim_atlas = nullptr;
     sceneries_map.clear();
     sceneries_array.clear();
+
     vobj_atlas_map.clear();
     vobjs.clear();
 }
@@ -45,8 +48,6 @@ loader_::~loader_() noexcept = default;
 
 StringView loader_::strip_prefix(StringView name)
 {
-    if (name.hasPrefix(IMAGE_PATH_))
-        return name.exceptPrefix(IMAGE_PATH_.size());
     if (name.hasPrefix(ANIM_PATH))
         return name.exceptPrefix(ANIM_PATH.size());
     if (name.hasPrefix(SCENERY_PATH))
@@ -60,8 +61,6 @@ StringView loader_::strip_prefix(StringView name)
     return name;
 }
 
-const StringView loader_::INVALID = "<invalid>"_s; // todo use it
-const StringView loader_::IMAGE_PATH_ = "images/"_s;
 const StringView loader_::ANIM_PATH = "anim/"_s;
 const StringView loader_::SCENERY_PATH = "scenery/"_s;
 const StringView loader_::TEMP_PATH = "../../../"_s;

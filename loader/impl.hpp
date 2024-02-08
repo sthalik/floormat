@@ -10,12 +10,6 @@
 #include <Corrade/PluginManager/PluginManager.h>
 #include <Magnum/Trade/AbstractImporter.h>
 
-namespace floormat {
-struct anim_def;
-struct wall_info;
-struct ground_info;
-}
-
 namespace floormat::loader_detail {
 
 struct loader_impl final : loader_
@@ -53,9 +47,9 @@ struct loader_impl final : loader_
     std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_info> wall_atlas_list() override;
     void get_wall_atlas_list();
-    const wall_info& make_invalid_wall_atlas();
+    const wall_info& make_invalid_wall_atlas() override;
 
-    // >-----> tile >----->
+    // >-----> ground >----->
     tsl::robin_map<StringView, ground_info*> ground_atlas_map;
     std::vector<ground_info> ground_atlas_array;
     std::vector<String> missing_ground_atlases;
@@ -63,15 +57,16 @@ struct loader_impl final : loader_
     std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_info> ground_atlas_list() noexcept(false) override;
     void get_ground_atlas_list();
-    const ground_info& make_invalid_ground_atlas();
+    const ground_info& make_invalid_ground_atlas() override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;
     std::vector<String> anim_atlases;
+    Pointer<anim_info> invalid_anim_atlas;
     ArrayView<const String> anim_atlas_list() override;
-    std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir) noexcept(false) override;
-    static anim_def deserialize_anim(StringView filename);
+    std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     void get_anim_atlas_list();
+    const anim_info& make_invalid_anim_atlas() override;
 
     // >-----> scenery >----->
     std::vector<serialized_scenery> sceneries_array;

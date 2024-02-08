@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "src/pass-mode.hpp"
 #include "loader/policy.hpp"
-#include <stdio.h>
+#include <stdio.h> // NOLINT(*-deprecated-headers)
 #include <memory>
 #include <Corrade/Containers/String.h>
 
@@ -17,12 +17,14 @@ namespace floormat {
 
 struct anim_def;
 class anim_atlas;
+struct anim_info;
 struct scenery_proto;
 struct vobj_info;
 class ground_atlas;
 struct ground_info;
 struct wall_info;
 class wall_atlas;
+struct scenery_proto;
 
 struct vobj_info final
 {
@@ -36,12 +38,12 @@ struct loader_
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual std::shared_ptr<class ground_atlas> ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
-    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH) noexcept(false) = 0;
+    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const wall_info> wall_atlas_list() = 0;
     virtual void destroy() = 0;
     static loader_& default_loader() noexcept;
-    virtual ArrayView<const ground_info> ground_atlas_list() noexcept(false) = 0;
+    virtual ArrayView<const ground_info> ground_atlas_list() noexcept(false) = 0; // todo maybe try returning
     virtual ArrayView<const serialized_scenery> sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
@@ -51,16 +53,22 @@ struct loader_
     static StringView make_atlas_path(char(&buf)[FILENAME_MAX], StringView dir, StringView name);
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
-    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false);
-    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false);
-    /** \deprecated{internal use only}*/ [[nodiscard]] std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false);
+    virtual const wall_info& make_invalid_wall_atlas() = 0;
+    virtual const ground_info& make_invalid_ground_atlas() = 0;
+    virtual const anim_info& make_invalid_anim_atlas() = 0;
+
+    /** \deprecated{internal use only}*/ [[nodiscard]]
+    std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false);
+    /** \deprecated{internal use only}*/ [[nodiscard]]
+    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false);
+    /** \deprecated{internal use only}*/ [[nodiscard]]
+    std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false);
 
     virtual ~loader_() noexcept;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(loader_);
 
-    static const StringView INVALID;
-    static const StringView IMAGE_PATH_;
+    static constexpr StringView INVALID = "<invalid>"_s;
     static const StringView ANIM_PATH;
     static const StringView SCENERY_PATH;
     static const StringView TEMP_PATH;

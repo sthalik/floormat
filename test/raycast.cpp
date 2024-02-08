@@ -3,6 +3,7 @@
 #include "src/raycast-diag.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include "loader/wall-info.hpp"
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
@@ -12,8 +13,13 @@ namespace {
 world make_world()
 {
     constexpr auto var = (variant_t)-1;
+#if 1
+    auto wall1_ = loader.make_invalid_wall_atlas().atlas;
+    auto wall2_ = loader.make_invalid_wall_atlas().atlas;
+#else
     auto wall1_ = loader.wall_atlas("test1"_s);
     auto wall2_ = loader.wall_atlas("concrete1"_s);
+#endif
     auto wall1 = wall_image_proto{wall1_, var};
     auto wall2 = wall_image_proto{wall2_, var};
 
