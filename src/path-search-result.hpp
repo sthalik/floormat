@@ -1,11 +1,11 @@
 #pragma once
-#include "src/global-coords.hpp"
 #include "compat/defs.hpp"
+#include "compat/vector-wrapper-fwd.hpp"
+#include "src/global-coords.hpp"
 #include <Corrade/Containers/Pointer.h>
 
 namespace floormat {
 
-template<typename T> struct vector_wrapper;
 struct point;
 
 struct path_search_result final
