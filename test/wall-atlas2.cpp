@@ -9,6 +9,19 @@ namespace floormat {
 
 namespace {
 
+void test_loading()
+{
+    { auto walls = loader.wall_atlas_list();
+      fm_assert(!walls.isEmpty());
+      fm_assert(loader.wall_atlas("test1"_s));
+      fm_assert(loader.wall_atlas(loader.INVALID, loader_policy::ignore));
+      fm_assert(loader.wall_atlas("test1"_s) == loader.wall_atlas("test1"_s));
+      fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, loader_policy::ignore));
+    }
+    for (const auto& info : loader.wall_atlas_list())
+        fm_assert(loader.wall_atlas(info.name));
+}
+
 void test_empty_wall()
 {
     constexpr auto wall_size = Vector2ui(Vector2i{iTILE_SIZE.x(), iTILE_SIZE.z()});
@@ -78,6 +91,7 @@ void test_concrete_wall()
 void test_app::test_wall_atlas2()
 {
     test_empty_wall();
+    test_loading();
     test_concrete_wall();
 }
 

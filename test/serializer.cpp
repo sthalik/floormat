@@ -145,7 +145,7 @@ void test_app::test_serializer1()
     test_serializer({}, tmp_filename);
 }
 
-void test_app::test_serializer2()
+void test_app::test_load_all()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer2.dat"_s);
