@@ -44,6 +44,11 @@ if(NOT GENERATOR_IS_MULTI_CONFIG)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "DEBUG;RELEASE;RELWITHDEBINFO")
 endif()
 
+if(NOT MSVC)
+    set(FLOORMAT_SPLIT-DEBUG-INFO ON CACHE BOOL
+        "whether to strip out debug info from foo.exe to foo.exe.debug")
+endif()
+
 if(CMAKE_INSTALL_PREFIX STREQUAL "" OR CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 endif()
@@ -221,7 +226,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 function(fm_install_executable self)
-    if(NOT MSVC AND NOT APPLE)
+    if(NOT MSVC AND NOT APPLE AND FLOORMAT_SPLIT-DEBUG-INFO)
         if(CMAKE_RUNTIME_OUTPUT_DIRECTORY STREQUAL "")
             message(FATAL_ERROR "")
         endif()
