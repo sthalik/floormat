@@ -3,9 +3,10 @@
 #include "loader/wall-cell.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/vector-wrapper.hpp"
 #include "src/wall-atlas.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/corrade-string.hpp"
+//#include "serialize/json-helper.hpp"
+//#include "serialize/corrade-string.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StringIterable.h>
@@ -14,20 +15,6 @@
 #include <Magnum/ImageView.h>
 
 namespace floormat {
-
-using nlohmann::json;
-
-[[maybe_unused]] static void from_json(const json& j, wall_cell& val)
-{
-    val = {};
-    val.name = j["name"];
-    fm_soft_assert(loader.check_atlas_name(val.name));
-}
-
-[[maybe_unused]] static void to_json(json& j, const wall_cell& val)
-{
-    j["name"] = val.name;
-}
 
 std::shared_ptr<wall_atlas> loader_::get_wall_atlas(StringView name) noexcept(false)
 {
@@ -140,7 +127,7 @@ void loader_impl::get_wall_atlas_list()
 {
     fm_assert(wall_atlas_map.empty());
 
-    wall_atlas_array = json_helper::from_json<std::vector<wall_cell>>(Path::join(WALL_TILESET_PATH, "walls.json"_s));
+    wall_atlas_array = wall_cell::load_atlases_from_json().vec;
     wall_atlas_array.shrink_to_fit();
     wall_atlas_map.clear();
     wall_atlas_map.reserve(wall_atlas_array.size()*2);
