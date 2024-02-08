@@ -1,7 +1,9 @@
 #include "wall-traits.hpp"
-#include "compat/assert.hpp"
+#include "compat/exception.hpp"
+#include "compat/vector-wrapper.hpp"
 #include "atlas-loader-storage.hpp"
 #include "wall-cell.hpp"
+#include "loader.hpp"
 #include "src/wall-atlas.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
@@ -20,24 +22,18 @@ void traits::ensure_atlases_loaded(Storage& st)
 {
     if (!st.cell_array.empty()) [[likely]]
         return;
+    fm_assert(st.name_map.empty());
 
-#if 0
-    wall_atlas_array = json_helper::from_json<std::vector<wall_cell>>(Path::join(WALL_TILESET_PATH, "walls.json"_s));
-    wall_atlas_array.shrink_to_fit();
-    wall_atlas_map.clear();
-    wall_atlas_map.reserve(wall_atlas_array.size()*2);
+    st.cell_array = wall_cell::load_atlases_from_json().vec;
+    st.name_map.reserve(st.cell_array.size());
 
-    for (auto& x : wall_atlas_array)
+    for (auto& x : st.cell_array)
     {
         fm_soft_assert(x.name != "<invalid>"_s);
-        fm_soft_assert(check_atlas_name(x.name));
+        fm_soft_assert(loader.check_atlas_name(x.name));
         StringView name = x.name;
-        wall_atlas_map[name] = &x;
-        fm_debug_assert(name.data() == wall_atlas_map[name]->name.data());
+        st.name_map[name] = &x;
     }
-#endif
-
-    fm_assert("todo" && false);
 
     fm_assert(!st.cell_array.empty());
 }
