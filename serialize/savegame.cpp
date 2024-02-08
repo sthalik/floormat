@@ -25,6 +25,7 @@
 #include <vector>
 #include <algorithm>
 #include <Corrade/Utility/Path.h>
+#include <Magnum/Math/Functions.h>
 #include <tsl/robin_map.h>
 
 #ifdef __CLION_IDE__
@@ -97,11 +98,18 @@ struct visitor_
     template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
     static constexpr inline size_t string_max          = 512;
-    static constexpr inline proto_t proto_version      = 20;
     static constexpr inline proto_t proto_version_min  = 20;
     static constexpr inline auto file_magic            = ".floormat.save"_s;
     static constexpr inline auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
     static constexpr inline auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
+
+    // ---------- proto versions ----------
+
+    // 19: see old-savegame.cpp
+    // 20: complete rewrite
+    // 21: oops, forgot the object counter
+
+    static constexpr inline proto_t proto_version      = 21;
 
     template<typename T, typename F>
     CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
@@ -577,6 +585,7 @@ ok:
         for (char c : file_magic)
             f(c);
         f(proto_version);
+        f(w.object_counter());
         auto nstrings = (uint32_t)string_array.size(),
              natlases = (uint32_t)atlas_array.size(),
              nchunks  = (uint32_t)chunk_array.size();
@@ -714,6 +723,7 @@ struct reader final : visitor_<reader>
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
     proto_t PROTO = (proto_t)-1;
+    object_id object_counter = world::object_counter_init;
     uint32_t nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
@@ -791,6 +801,12 @@ struct reader final : visitor_<reader>
         fm_throw("invalid object type {}"_cf, type_);
 ok:
         visit_object_internal(*obj, f, id, object_type(type), ch);
+
+        if (PROTO >= 21) [[likely]]
+            fm_soft_assert(object_counter >= id);
+
+        if (PROTO == 20) [[unlikely]]
+            object_counter = Math::max(object_counter, id);
     }
 
     bool deserialize_header_(binary_reader<const char*>& s, ArrayView<const char> buf)
@@ -808,6 +824,11 @@ ok:
         {
             fm_soft_assert(PROTO >= proto_version_min);
             fm_soft_assert(PROTO <= proto_version);
+            if (PROTO >= 21) [[likely]]
+            {
+                object_counter << s;
+                fm_soft_assert(object_counter >= world::object_counter_init);
+            }
             nstrings << s;
             natlases << s;
             nchunks << s;
@@ -978,6 +999,8 @@ ok:
         deserialize_atlases(s);
         for (uint32_t i = 0; i < nchunks; i++)
             deserialize_chunk_(s);
+        fm_soft_assert(object_counter);
+        w.set_object_counter(object_counter);
         s.assert_end();
     }
 };
