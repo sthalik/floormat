@@ -26,6 +26,8 @@ public:
 
     ArrayView<const Cell> ensure_atlas_list();
     const std::shared_ptr<Atlas>& get_atlas(StringView name, loader_policy p);
+    std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& cell);
+
     const Cell& get_invalid_atlas();
 };
 

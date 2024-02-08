@@ -1,42 +1,22 @@
 #include "impl.hpp"
-#include "atlas-loader-storage.hpp"
 #include "atlas-loader.inl"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
-#include "src/tile-constants.hpp"
-#include "src/ground-atlas.hpp"
-#include "compat/exception.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/ground-atlas.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Utility/Path.h>
-#include <Magnum/Trade/ImageData.h>
-#include <Magnum/ImageView.h>
+#include <Magnum/Math/Vector2.h>
 
 namespace floormat::loader_detail {
 
 template class atlas_loader<ground_atlas>;
 
-} // namespace floormat::loader_detail
-
-namespace floormat {
-
-using loader_detail::atlas_loader_traits;
-using ALT = atlas_loader_traits<ground_atlas>;
-
 std::shared_ptr<ground_atlas>
-loader_::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
+loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
     fm_assert(name != loader.INVALID);
-    auto tex = texture(loader.GROUND_TILESET_PATH, name);
-    auto info = ground_def{name, size, pass};
-    auto atlas = std::make_shared<class ground_atlas>(info, tex);
+    auto atlas = _ground_loader->make_atlas(name, {
+        .atlas = {}, .name = name, .size = size, .pass = pass,
+    });
     return atlas;
 }
-
-} // namespace floormat
-
-namespace floormat::loader_detail {
 
 atlas_loader<class ground_atlas>* loader_impl::make_ground_atlas_loader()
 {

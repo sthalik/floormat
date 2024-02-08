@@ -15,6 +15,7 @@ template<> struct atlas_loader_traits<ground_atlas>
 
     static StringView loader_name();
     static const std::shared_ptr<Atlas>& atlas_of(const Cell& x);
+    static std::shared_ptr<Atlas>& atlas_of(Cell& x);
     static StringView name_of(const Cell& x);
     static StringView name_of(const Atlas& x);
     static void ensure_atlases_loaded(Storage& st);

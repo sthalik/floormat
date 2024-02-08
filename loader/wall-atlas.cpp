@@ -16,7 +16,6 @@
 namespace floormat {
 
 using nlohmann::json;
-using loader_detail::loader_impl;
 
 [[maybe_unused]] static void from_json(const json& j, wall_cell& val)
 {

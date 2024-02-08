@@ -14,9 +14,6 @@
 
 namespace floormat::loader_detail {
 
-
-
-
 struct loader_impl final : loader_
 {
     explicit loader_impl();
@@ -60,6 +57,7 @@ struct loader_impl final : loader_
     const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& make_invalid_ground_atlas() override;
+    std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> anim >----->
     tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;

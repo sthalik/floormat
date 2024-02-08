@@ -4,6 +4,8 @@
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader/loader.hpp"
+#include <memory>
+#include <Corrade/Containers/ArrayView.h>
 
 namespace floormat::loader_detail {
 
@@ -38,7 +40,7 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
 
     switch (p)
     {
-        using enum loader_policy;
+    using enum loader_policy;
     case error:
     case ignore:
     case warn:
@@ -50,12 +52,12 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
     if (name == loader.INVALID) [[unlikely]]
         switch (p)
         {
-            using enum loader_policy;
+        using enum loader_policy;
         case error:
             goto error;
         case ignore:
         case warn:
-            return invalid_atlas->atlas;
+            return t.atlas_of(*invalid_atlas);
         }
 
     fm_soft_assert(loader.check_atlas_name(name));
@@ -66,29 +68,29 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         {
             switch (p)
             {
-                using enum loader_policy;
+            using enum loader_policy;
             case error:
                 goto error;
             case warn:
             case ignore:
-                return invalid_atlas->atlas;
+                return t.atlas_of(*invalid_atlas);
             }
         }
-        else if (!it->second->atlas)
-            return it->second->atlas = t.make_atlas(name, *it->second);
+        else if (const auto& atlas = t.atlas_of(*it->second))
+            return t.atlas_of(*it->second);
         else
-            return it->second->atlas;
+            return t.atlas_of(*it->second) = t.make_atlas(name, *it->second);
     }
     else
         switch (p)
         {
-            using enum loader_policy;
+        using enum loader_policy;
         case error:
             goto error;
         case warn:
             goto missing_warn;
         case ignore:
-            return invalid_atlas->atlas;
+            return t.atlas_of(*invalid_atlas);
         }
 
     std::unreachable();
@@ -102,11 +104,15 @@ missing_warn:
     s.name_map[ s.missing_atlas_names.back() ] = invalid_atlas;
 
     if (name != loader.INVALID)
-    {
         DBG_nospace << t.loader_name() << " '" << name << "' doesn't exist";
-    }
 
-    return invalid_atlas->atlas;
+    return t.atlas_of(*invalid_atlas);
+}
+
+template<typename ATLAS, typename TRAITS>
+auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& cell) -> std::shared_ptr<Atlas>
+{
+    return t.make_atlas(name, cell);
 }
 
 template<typename ATLAS, typename TRAITS>

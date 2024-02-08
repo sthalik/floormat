@@ -58,7 +58,7 @@ struct loader_
     virtual const anim_cell& make_invalid_anim_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false);
+    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
     std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false);
     /** \deprecated{internal use only}*/ [[nodiscard]]
