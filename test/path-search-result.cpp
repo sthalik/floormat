@@ -5,7 +5,7 @@
 
 namespace floormat {
 
-void test_app::test_path_search_pool()
+void test_app::test_astar_pool()
 {
     auto& pool = path_search_result::_pool;
     fm_assert(!pool);

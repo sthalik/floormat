@@ -341,7 +341,7 @@ void test_bbox()
 
 } // namespace
 
-void test_app::test_path_search()
+void test_app::test_astar()
 {
     test_bbox();
 }

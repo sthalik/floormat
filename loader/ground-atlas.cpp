@@ -17,7 +17,7 @@ using loader_detail::loader_impl;
 std::shared_ptr<ground_atlas>
 loader_::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
-    fm_assert(name != "<invalid>"_s);
+    fm_assert(name != loader.INVALID);
 
     char buf[FILENAME_MAX];
     auto filename = make_atlas_path(buf, loader.GROUND_TILESET_PATH, name);
@@ -94,7 +94,7 @@ missing_warn:
         ground_atlas_map[string_view] = (ground_info*)-1;
     }
 
-    if (name != "<invalid>")
+    if (name != loader.INVALID)
         DBG_nospace << "ground_atlas '" << name << "' doesn't exist";
 
 missing_ok:
@@ -132,7 +132,7 @@ void loader_impl::get_ground_atlas_list()
 
     for (auto& x : ground_atlas_array)
     {
-        fm_soft_assert(x.name != "<invalid>"_s);
+        fm_soft_assert(x.name != loader.INVALID);
         fm_soft_assert(check_atlas_name(x.name));
         StringView name = x.name;
         ground_atlas_map[name] = &x;

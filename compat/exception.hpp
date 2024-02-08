@@ -23,7 +23,7 @@ private:
 template<typename Fmt, typename... Ts>
 exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 {
-    fmt::format_to(std::back_inserter(buf), fmt, Corrade::Utility::forward<Ts>(args)...);
+    fmt::format_to(std::back_inserter(buf), fmt, Corrade::Utility::forward<Ts>(args)...); // todo remove <iterator>
     buf.push_back('\0');
 }
 

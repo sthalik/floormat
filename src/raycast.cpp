@@ -1,9 +1,9 @@
 #include "raycast-diag.hpp"
 #include "tile-constants.hpp"
 #include "pass-mode.hpp"
-#include "src/world.hpp"
-#include "src/object.hpp"
-#include "src/RTree-search.hpp"
+#include "world.hpp"
+#include "object.hpp"
+#include "RTree-search.hpp"
 #include <cfloat>
 #include <bit>
 #include <Corrade/Containers/StructuredBindings.h>

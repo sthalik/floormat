@@ -1,7 +1,7 @@
 #include "tile.hpp"
 #include "tile-constants.hpp"
 #include "chunk.hpp"
-#include "src/ground-atlas.hpp"
+#include "ground-atlas.hpp"
 
 namespace floormat {
 
