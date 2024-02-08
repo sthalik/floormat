@@ -1,6 +1,7 @@
 #pragma once
 #include "src/pass-mode.hpp"
 #include "src/quads.hpp"
+#include "src/ground-def.hpp"
 #include "loader/ground-cell.hpp"
 #include <array>
 #include <memory>

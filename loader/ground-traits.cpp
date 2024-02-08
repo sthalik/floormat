@@ -1,16 +1,14 @@
 #include "ground-traits.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "atlas-loader.hpp"
+#include "compat/vector-wrapper.hpp"
 #include "atlas-loader-storage.hpp"
 #include "ground-cell.hpp"
 #include "loader.hpp"
 #include "src/tile-defs.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/ground-atlas.hpp"
+#include "src/ground-atlas.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
-#include <Corrade/Utility/Path.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Trade/ImageData.h>
 
@@ -32,14 +30,7 @@ void traits::ensure_atlases_loaded(Storage& st)
     fm_assert(st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
-    auto defs = json_helper::from_json<std::vector<ground_def>>(Path::join(loader_::GROUND_TILESET_PATH, "ground.json"_s));
-    std::vector<ground_cell> infos;
-    infos.reserve(defs.size());
-
-    for (auto& x : defs)
-        infos.push_back(ground_cell{{}, std::move(x.name), x.size, x.pass});
-
-    st.cell_array = Utility::move(infos);
+    st.cell_array = ground_cell::load_atlases_from_json().vec;
     fm_assert(!st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
