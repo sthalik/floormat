@@ -8,6 +8,9 @@
 // wall
 #include "wall-traits.hpp"
 #include "wall-cell.hpp"
+// todo scenery_traits
+#include "anim-cell.hpp"
+#include "scenery.hpp"
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"

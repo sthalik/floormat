@@ -6,18 +6,17 @@
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
 
-#include "src/world.hpp"
-#include "loader/loader.hpp"
-
-#include "atlas-type.hpp"
-#include "src/anim-atlas.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
-
+#include "src/anim-atlas.hpp"
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
+#include "src/world.hpp"
+
+#include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
+#include "atlas-type.hpp"
 
 #include <cstring>
 #include <cstdio>

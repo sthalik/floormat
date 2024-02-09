@@ -50,8 +50,8 @@ struct loader_impl final : loader_
     const wall_cell& make_invalid_wall_atlas() override;
 
     // >-----> ground >----->
-    static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
-    safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{make_ground_atlas_loader()};
+    [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
+    safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{ make_ground_atlas_loader() };
     const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& make_invalid_ground_atlas() override;
