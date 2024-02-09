@@ -42,13 +42,11 @@ struct loader_impl final : loader_
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
 
     // >-----> walls >----->
-    tsl::robin_map<StringView, wall_cell*> wall_atlas_map;
-    std::vector<wall_cell> wall_atlas_array;
-    std::vector<String> missing_wall_atlases;
-    Pointer<wall_cell> invalid_wall_atlas;
-    std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy) override;
+    [[nodiscard]] static atlas_loader<class wall_atlas>* make_wall_atlas_loader(); // todo! reorder this block with ground_atlas
+    safe_ptr<atlas_loader<class wall_atlas>> _wall_loader{ make_wall_atlas_loader() };
+    const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_cell> wall_atlas_list() override;
-    void get_wall_atlas_list();
+    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
     const wall_cell& make_invalid_wall_atlas() override;
 
     // >-----> ground >----->

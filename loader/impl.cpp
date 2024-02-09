@@ -5,6 +5,9 @@
 #include "anim-cell.hpp"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
+// wall
+#include "wall-traits.hpp"
+#include "wall-cell.hpp"
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
@@ -31,7 +34,6 @@ StringView loader_impl::shader(StringView filename) noexcept
 
 loader_impl::loader_impl()
 {
-    missing_wall_atlases.reserve(32);
     system_init();
     set_application_working_directory();
 }
@@ -53,11 +55,8 @@ void loader_impl::ensure_plugins()
 
 void loader_impl::destroy()
 {
-    wall_atlas_map.clear();
-    wall_atlas_array.clear();
-    invalid_wall_atlas = nullptr;
-    missing_wall_atlases.clear();
     _ground_loader = {InPlace};
+    _wall_loader = {InPlace};
     anim_atlas_map.clear();
     anim_atlases.clear();
     invalid_anim_atlas = nullptr;

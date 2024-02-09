@@ -21,6 +21,8 @@ template<> struct atlas_loader_traits<wall_atlas>
     static void ensure_atlases_loaded(Storage& st);
     static const Cell& make_invalid_atlas(Storage& st);
     static std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& c);
+
+    static const Cell& make_placeholder_cell() noexcept;
 };
 
 } // namespace floormat::loader_detail

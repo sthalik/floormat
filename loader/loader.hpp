@@ -33,7 +33,7 @@ struct loader_
     virtual const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const String> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir = ANIM_PATH, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
-    virtual std::shared_ptr<class wall_atlas> wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const wall_cell> wall_atlas_list() = 0;
     virtual void destroy() = 0;
     static loader_& default_loader() noexcept;
@@ -54,7 +54,7 @@ struct loader_
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false);
+    virtual std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
     std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false);
 
