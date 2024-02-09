@@ -11,14 +11,14 @@ class world;
 struct global_coords;
 struct object;
 class anim_atlas;
-struct vobj_info;
+struct vobj_cell;
 struct app;
 
 struct vobj_factory
 {
     vobj_factory();
     virtual ~vobj_factory() noexcept;
-    virtual const vobj_info& info() const = 0;
+    virtual const vobj_cell& info() const = 0;
     virtual object_type type() const = 0;
     virtual std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const = 0;
 

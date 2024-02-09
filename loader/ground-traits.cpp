@@ -14,15 +14,15 @@
 
 namespace floormat::loader_detail {
 
-using traits = atlas_loader_traits<ground_atlas>;
+using ground_traits = atlas_loader_traits<ground_atlas>;
 
-StringView traits::loader_name() { return "ground_atlas"_s; }
-auto traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
-auto traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
-StringView traits::name_of(const Cell& x) { return x.name; }
-StringView traits::name_of(const Atlas& x) { return x.name(); }
+StringView ground_traits::loader_name() { return "ground_atlas"_s; }
+auto ground_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
+auto ground_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
+StringView ground_traits::name_of(const Cell& x) { return x.name; }
+StringView ground_traits::name_of(const Atlas& x) { return x.name(); }
 
-void traits::ensure_atlases_loaded(Storage& st)
+void ground_traits::ensure_atlases_loaded(Storage& st)
 {
     if (!st.is_empty()) [[likely]]
         return;
@@ -58,7 +58,7 @@ void traits::ensure_atlases_loaded(Storage& st)
     fm_debug_assert(!st.is_empty());
 }
 
-auto traits::make_invalid_atlas(Storage& s) -> const Cell&
+auto ground_traits::make_invalid_atlas(Storage& s) -> const Cell&
 {
     if (!s.invalid_atlas) [[unlikely]]
     {
@@ -70,9 +70,9 @@ auto traits::make_invalid_atlas(Storage& s) -> const Cell&
     return *s.invalid_atlas;
 }
 
-auto traits::make_atlas(StringView name, const Cell& cell) -> std::shared_ptr<Atlas>
+auto ground_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
 {
-    auto def = ground_def{name, cell.size, cell.pass};
+    auto def = ground_def{name, c.size, c.pass};
     auto tex = loader.texture(loader.GROUND_TILESET_PATH, name);
     auto atlas = std::make_shared<Atlas>(def, tex);
     return atlas;

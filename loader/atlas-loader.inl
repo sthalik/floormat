@@ -110,9 +110,12 @@ missing_warn:
 }
 
 template<typename ATLAS, typename TRAITS>
-auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& cell) -> std::shared_ptr<Atlas>
+auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
 {
-    return t.make_atlas(name, cell);
+    fm_assert(name != "<invalid>"_s);
+    fm_soft_assert(!c.name || t.name_of(c) == name);
+    fm_soft_assert(loader.check_atlas_name(name));
+    return t.make_atlas(name, c);
 }
 
 template<typename ATLAS, typename TRAITS>

@@ -17,6 +17,7 @@
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
+#include "loader/vobj-cell.hpp"
 
 #include <cstring>
 #include <cstdio>

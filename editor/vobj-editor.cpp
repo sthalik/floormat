@@ -1,7 +1,8 @@
 #include "vobj-editor.hpp"
-#include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/light.hpp"
+#include "loader/loader.hpp"
+#include "loader/vobj-cell.hpp"
 #include "app.hpp"
 #include <array>
 #include <utility>
@@ -68,23 +69,27 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
 
 struct light_factory final : vobj_factory
 {
-    object_type type() const override { return object_type::light; }
-
-    const vobj_info& info() const override
-    {
-        constexpr auto NAME = "light"_s;
-        static const vobj_info& ret = loader.vobj(NAME);
-        fm_debug_assert(ret.name == NAME);
-        fm_debug_assert(ret.atlas != nullptr);
-        return ret;
-    }
-
-    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override
-    {
-        auto ret = w.make_object<light>(id, pos, light_proto{});
-        return ret;
-    }
+    object_type type() const override;
+    const vobj_cell& info() const override;
+    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override;
 };
+
+object_type light_factory::type() const { return object_type::light; }
+
+const vobj_cell& light_factory::info() const
+{
+    constexpr auto NAME = "light"_s;
+    static const vobj_cell& ret = loader.vobj(NAME);
+    fm_debug_assert(ret.name == NAME);
+    fm_debug_assert(ret.atlas != nullptr);
+    return ret;
+}
+
+std::shared_ptr<object> light_factory::make(world& w, object_id id, global_coords pos) const
+{
+    auto ret = w.make_object<light>(id, pos, light_proto{});
+    return ret;
+}
 
 auto vobj_editor::make_vobj_type_map() -> std::map<StringView, vobj_>
 {

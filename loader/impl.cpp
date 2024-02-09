@@ -3,13 +3,11 @@
 #include "scenery.hpp"
 #include "wall-cell.hpp"
 #include "anim-cell.hpp"
-#include "ground-cell.hpp"
 #include "ground-traits.hpp"
+#include "ground-cell.hpp"
+#include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
-
-#include <Corrade/Containers/Pair.h>
-#include <Magnum/Trade/ImageData.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic ignored "-Walloca"
@@ -31,8 +29,7 @@ StringView loader_impl::shader(StringView filename) noexcept
     return ret;
 }
 
-loader_impl::loader_impl() :
-     _ground_loader{ make_ground_atlas_loader() }
+loader_impl::loader_impl()
 {
     missing_wall_atlases.reserve(32);
     system_init();

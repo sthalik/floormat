@@ -4,6 +4,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "compat/exception.hpp"
+#include "loader/vobj-cell.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Corrade/Utility/Path.h>
@@ -89,7 +90,7 @@ void loader_impl::get_vobj_list()
     for (const auto& [name, descr, img_name] : vec)
     {
         auto atlas = make_vobj_anim_atlas(name, img_name);
-        auto info = vobj_info{name, descr, atlas};
+        auto info = vobj_cell{name, descr, atlas};
         vobjs.push_back(std::move(info));
         const auto& x = vobjs.back();
         vobj_atlas_map[x.atlas->name()] = &x;
@@ -98,7 +99,7 @@ void loader_impl::get_vobj_list()
     fm_assert(!vobjs.empty());
 }
 
-ArrayView<const vobj_info> loader_impl::vobj_list()
+ArrayView<const vobj_cell> loader_impl::vobj_list()
 {
     if (vobjs.empty())
         get_vobj_list();
@@ -106,7 +107,7 @@ ArrayView<const vobj_info> loader_impl::vobj_list()
     return vobjs;
 }
 
-const struct vobj_info& loader_impl::vobj(StringView name)
+const struct vobj_cell& loader_impl::vobj(StringView name)
 {
     if (vobjs.empty())
         get_vobj_list();

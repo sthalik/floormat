@@ -76,11 +76,11 @@ struct loader_impl final : loader_
     void get_scenery_list();
 
     // >-----> vobjs >----->
-    tsl::robin_map<StringView, const struct vobj_info*> vobj_atlas_map;
-    std::vector<struct vobj_info> vobjs;
+    tsl::robin_map<StringView, const struct vobj_cell*> vobj_atlas_map;
+    std::vector<struct vobj_cell> vobjs;
     std::shared_ptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
-    const struct vobj_info& vobj(StringView name) override;
-    ArrayView<const struct vobj_info> vobj_list() override;
+    const struct vobj_cell& vobj(StringView name) override;
+    ArrayView<const struct vobj_cell> vobj_list() override;
     void get_vobj_list();
 };
 

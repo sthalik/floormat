@@ -18,18 +18,12 @@ struct anim_def;
 class anim_atlas;
 struct anim_cell;
 struct scenery_proto;
-struct vobj_info;
+struct vobj_cell;
 class ground_atlas;
 struct ground_cell;
 struct wall_cell;
 class wall_atlas;
 struct scenery_proto;
-
-struct vobj_info final
-{
-    String name, descr;
-    std::shared_ptr<anim_atlas> atlas;
-};
 
 struct loader_
 {
@@ -48,8 +42,8 @@ struct loader_
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);
-    virtual const vobj_info& vobj(StringView name) = 0;
-    virtual ArrayView<const struct vobj_info> vobj_list() = 0;
+    virtual const vobj_cell& vobj(StringView name) = 0;
+    virtual ArrayView<const struct vobj_cell> vobj_list() = 0;
     static StringView make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name);
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 

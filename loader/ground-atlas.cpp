@@ -11,9 +11,8 @@ template class atlas_loader<ground_atlas>;
 std::shared_ptr<ground_atlas>
 loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
-    fm_assert(name != loader.INVALID);
     auto atlas = _ground_loader->make_atlas(name, {
-        .atlas = {}, .name = name, .size = size, .pass = pass,
+        .atlas = {}, .name = {}, .size = size, .pass = pass,
     });
     return atlas;
 }

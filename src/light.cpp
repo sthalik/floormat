@@ -2,6 +2,7 @@
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
+#include "loader/vobj-cell.hpp"
 #include <cmath>
 
 namespace floormat {
