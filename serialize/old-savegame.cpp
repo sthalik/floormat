@@ -4,7 +4,7 @@
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "loader/loader.hpp"
-#include "loader/scenery.hpp"
+#include "loader/scenery-cell.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/chunk-scenery.hpp"

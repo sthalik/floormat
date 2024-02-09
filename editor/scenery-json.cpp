@@ -1,7 +1,7 @@
 #include "scenery-editor.hpp"
 #include "serialize/scenery.hpp"
 #include "loader/loader.hpp"
-#include "loader/scenery.hpp"
+#include "loader/scenery-cell.hpp"
 #include <Corrade/Containers/ArrayView.h>
 
 namespace floormat {

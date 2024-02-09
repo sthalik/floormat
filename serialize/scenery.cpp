@@ -4,7 +4,7 @@
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "serialize/corrade-string.hpp"
-#include "loader/scenery.hpp"
+#include "loader/scenery-cell.hpp"
 #include "serialize/pass-mode.hpp"
 #include "serialize/magnum-vector.hpp"
 #include <Corrade/Containers/String.h>
@@ -182,7 +182,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     }
 }
 
-void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scenery& val)
+void adl_serializer<scenery_cell>::to_json(json& j, const scenery_cell& val)
 {
     fm_soft_assert(val.proto.atlas);
     j = val.proto;
@@ -190,7 +190,7 @@ void adl_serializer<serialized_scenery>::to_json(json& j, const serialized_scene
     j["name"] = name;
 }
 
-void adl_serializer<serialized_scenery>::from_json(const json& j, serialized_scenery& val)
+void adl_serializer<scenery_cell>::from_json(const json& j, scenery_cell& val)
 {
     val = {};
     val.proto = j;

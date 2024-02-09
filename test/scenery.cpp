@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
-#include "loader/scenery.hpp"
+#include "loader/scenery-cell.hpp"
 
 namespace floormat {
 

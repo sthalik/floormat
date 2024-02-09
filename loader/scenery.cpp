@@ -5,7 +5,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "serialize/scenery.hpp"
-#include "loader/scenery.hpp"
+#include "scenery-cell.hpp"
 #include "loader/anim-cell.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Utility/Path.h>
@@ -24,7 +24,7 @@ namespace floormat::loader_detail {
 void loader_impl::get_scenery_list()
 {
     sceneries_array.clear();
-    sceneries_array = json_helper::from_json<std::vector<serialized_scenery>>(Path::join(SCENERY_PATH, "scenery.json"));
+    sceneries_array = json_helper::from_json<std::vector<scenery_cell>>(Path::join(SCENERY_PATH, "scenery.json"));
 
     if constexpr(true) // todo!
     {
@@ -38,7 +38,7 @@ void loader_impl::get_scenery_list()
     sceneries_map.clear();
     sceneries_map.reserve(sceneries_array.size() * 2);
 
-    for (const serialized_scenery& s : sceneries_array)
+    for (const scenery_cell& s : sceneries_array)
     {
         if (sceneries_map.contains(s.name))
             fm_abort("duplicate scenery name '%s'", s.name.data());
@@ -48,7 +48,7 @@ void loader_impl::get_scenery_list()
     fm_assert(!sceneries_map.empty());
 }
 
-ArrayView<const serialized_scenery> loader_impl::sceneries()
+ArrayView<const scenery_cell> loader_impl::sceneries()
 {
     if (sceneries_array.empty()) [[likely]]
         get_scenery_list();

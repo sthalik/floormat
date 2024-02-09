@@ -10,7 +10,7 @@ namespace Magnum::Trade { template<uint32_t> class ImageData; using ImageData2D 
 
 namespace floormat {
 
-struct serialized_scenery;
+struct scenery_cell;
 namespace loader_detail {}
 namespace Serialize {}
 
@@ -38,7 +38,7 @@ struct loader_
     virtual void destroy() = 0;
     static loader_& default_loader() noexcept;
     virtual ArrayView<const ground_cell> ground_atlas_list() noexcept(false) = 0; // todo maybe try returning
-    virtual ArrayView<const serialized_scenery> sceneries() = 0;
+    virtual ArrayView<const scenery_cell> sceneries() = 0;
     virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);

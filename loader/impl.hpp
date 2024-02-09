@@ -67,9 +67,9 @@ struct loader_impl final : loader_
     const anim_cell& make_invalid_anim_atlas() override;
 
     // >-----> scenery >----->
-    std::vector<serialized_scenery> sceneries_array;
-    tsl::robin_map<StringView, const serialized_scenery*> sceneries_map;
-    ArrayView<const serialized_scenery> sceneries() override;
+    std::vector<scenery_cell> sceneries_array;
+    tsl::robin_map<StringView, const scenery_cell*> sceneries_map;
+    ArrayView<const scenery_cell> sceneries() override;
     const scenery_proto& scenery(StringView name) noexcept(false) override;
     void get_scenery_list();
 
