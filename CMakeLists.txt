@@ -199,6 +199,7 @@ else()
 endif()
 
 include_directories(.)
+include_directories(include)
 
 #get_property(_fm-sdl2-include-dirs TARGET SDL2::SDL2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 get_property(_fm-json-include-dirs TARGET nlohmann_json::nlohmann_json PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
