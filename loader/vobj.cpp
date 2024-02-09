@@ -36,6 +36,7 @@ void adl_serializer<vobj>::to_json(json& j, const vobj& val)
 
 void adl_serializer<vobj>::from_json(const json& j, vobj& val)
 {
+    val = {};
     val.name = j["name"];
     if (j.contains("description"))
         val.descr = j["description"];

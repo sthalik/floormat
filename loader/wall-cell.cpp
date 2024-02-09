@@ -11,8 +11,7 @@ using nlohmann::json;
 
 [[maybe_unused]] static void from_json(const json& j, wall_cell& val)
 {
-    val = {};
-    val.name = j["name"];
+    val = { .atlas = {}, .name = j["name"], };
     fm_soft_assert(loader.check_atlas_name(val.name));
 }
 

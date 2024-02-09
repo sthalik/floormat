@@ -31,17 +31,18 @@ void ground_traits::ensure_atlases_loaded(Storage& st)
     fm_assert(st.name_map.empty());
 
     st.cell_array = ground_cell::load_atlases_from_json().vec;
+    st.name_map.reserve(st.cell_array.size());
     fm_assert(!st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
     constexpr bool add_invalid = true;
 
     if constexpr(add_invalid)
+    {
         for (auto& x : st.cell_array)
             fm_soft_assert(x.name != loader.INVALID);
-
-    if constexpr(true) // NOLINT(*-simplify-boolean-expr)
-        st.cell_array.push_back(make_invalid_atlas(st)); // add invalid atlas
+        st.cell_array.push_back(make_invalid_atlas(st));
+    }
 
     st.name_map.reserve(st.cell_array.size());
 

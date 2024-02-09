@@ -59,7 +59,7 @@ auto wall_traits::make_invalid_atlas(Storage& st) -> const Cell&
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, loader.make_error_texture(frame_size));
-    st.invalid_atlas = Pointer<wall_cell>{InPlaceInit, wall_cell{ .name = name, .atlas = std::move(a) } };
+    st.invalid_atlas = Pointer<wall_cell>{InPlaceInit, wall_cell{ .atlas = std::move(a), .name = name, } };
     return *st.invalid_atlas;
 }
 

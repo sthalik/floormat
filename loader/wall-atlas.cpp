@@ -1,5 +1,4 @@
 #include "loader/impl.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/wall-cell.hpp"
 #include "loader/wall-traits.hpp"

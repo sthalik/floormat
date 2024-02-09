@@ -26,6 +26,7 @@ void adl_serializer<ground_def>::to_json(json& j, const ground_def& x)
 void adl_serializer<ground_def>::from_json(const json& j, ground_def& val)
 {
     using nlohmann::from_json;
+    val = {};
     val.name = j["name"];
     val.size = j["size"];
     if (j.contains("pass-mode"))

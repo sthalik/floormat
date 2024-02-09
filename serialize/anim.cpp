@@ -152,6 +152,7 @@ void adl_serializer<anim_scale>::from_json(const json& j, anim_scale& val)
 {
     fm_soft_assert(j.is_array());
     fm_soft_assert(j.size() == 2);
+    val = {};
     StringView type = j[0];
     if (type == "factor"_s)
     {

@@ -1,6 +1,7 @@
 #include "magnum-vector.hpp"
 #include "compat/format.hpp"
 #include "compat/exception.hpp"
+#include "corrade-string.hpp"
 #include <Magnum/Math/Vector.h>
 #include <cstdio>
 #include <string>
@@ -10,12 +11,12 @@ namespace floormat::Serialize {
 
 namespace {
 
-[[noreturn]] void throw_failed_to_parse_vector2(const std::string& str)
+[[noreturn]] void throw_failed_to_parse_vector2(StringView str)
 {
     fm_throw("failed to parse Vector2 '{}'"_cf, str);
 }
 
-[[noreturn]] void throw_vector2_overflow(const std::string& str)
+[[noreturn]] void throw_vector2_overflow(StringView str)
 {
     fm_throw("numeric overflow in Vector2 '{}'"_cf, str);
 }
@@ -63,7 +64,7 @@ struct vec2_serializer
     static void from_json(const json& j, Vector<2, T>& val)
     {
         using namespace floormat;
-        std::string str = j;
+        StringView str = j;
         using type = std::conditional_t<std::is_signed_v<T>, intmax_t, uintmax_t>;
         constexpr auto format_string = std::is_signed_v<T> ? "%jd x %jd%n" : "%ju x %ju%n";
         type x = 0, y = 0;
