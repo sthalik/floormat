@@ -27,12 +27,24 @@ void wall_traits::ensure_atlases_loaded(Storage& st)
         return;
     fm_assert(st.name_map.empty());
 
+    constexpr bool add_invalid = true;
+
     st.cell_array = wall_cell::load_atlases_from_json().vec;
     st.name_map.reserve(st.cell_array.size());
+    fm_assert(!st.cell_array.empty());
+    fm_assert(st.name_map.empty());
+
+    if constexpr(add_invalid)
+    {
+        for (auto& x : st.cell_array)
+            fm_soft_assert(x.name != loader.INVALID);
+        st.cell_array.push_back(make_invalid_atlas(st));
+    }
 
     for (auto& c : st.cell_array)
     {
-        fm_soft_assert(c.name != "<invalid>"_s);
+        if constexpr(!add_invalid)
+            fm_soft_assert(c.name != "<invalid>"_s);
         fm_soft_assert(loader.check_atlas_name(c.name));
         StringView name = c.name;
         st.name_map[name] = &c;

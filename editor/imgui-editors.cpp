@@ -45,7 +45,7 @@ StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
 StringView scenery_name(StringView, const wall_cell* w) { return w->name; }
 std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
 std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
-std::shared_ptr<wall_atlas> get_atlas(const wall_cell* w) { return loader.wall_atlas(w->name); }
+std::shared_ptr<wall_atlas> get_atlas(const wall_cell* w) { return w->atlas; }
 Vector2ui get_size(const auto&, anim_atlas& atlas) { return atlas.frame(atlas.first_rotation(), 0).size; }
 Vector2ui get_size(const auto&, wall_atlas& atlas) { auto sz = atlas.image_size(); return { std::max(1u, std::min(sz.y()*3/2, sz.x())), sz.y() }; }
 bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }

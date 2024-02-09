@@ -51,7 +51,15 @@ void wall_editor::load_atlases()
 {
     fm_assert(_atlases.empty());
     for (const auto& wa : loader.wall_atlas_list())
+    {
+        if (wa.name != loader.INVALID) [[likely]]
+            (void)loader.wall_atlas(wa.name);
+        else
+            loader.make_invalid_wall_atlas();
+        fm_assert(wa.atlas);
         _atlases[wa.name] = &wa;
+    }
+
     fm_assert(!_atlases.empty());
 }
 
