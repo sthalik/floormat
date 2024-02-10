@@ -10,6 +10,9 @@
 #include <unistd.h>
 #define fm_os_access access
 #endif
+#ifndef F_OK
+#define F_OK 0
+#endif
 
 namespace floormat::fs {
 
