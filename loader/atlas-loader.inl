@@ -25,13 +25,37 @@ atlas_loader(TRAITS&& traits) noexcept -> atlas_loader<TRAITS, typename TRAITS::
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
 {
-    if (!s.cell_array.empty()) [[likely]]
+    if (!s.name_map.empty()) [[likely]]
         return { s.cell_array.data(), s.cell_array.size() };
+
     t.ensure_atlases_loaded(s);
+
     for (Cell& c : s.cell_array)
-        if (String& name{t.name_of(c)}; name.isSmall())
+    {
+        String& name{t.name_of(c)};
+        if (name.isSmall())
             name = String{AllocatedInit, name};
+        fm_soft_assert(name != loader.INVALID);
+        fm_soft_assert(loader.check_atlas_name(name));
+    }
+
+    s.name_map.max_load_factor(0.4f);
+    s.name_map.reserve(s.cell_array.size()*3/2 + 1);
+    for (auto i = 0uz; const auto& c : s.cell_array)
+        s.name_map[t.name_of(c)] = i++;
+
+    { const Cell& invalid_atlas{get_invalid_atlas()};
+      size_t sz{s.cell_array.size()};
+      s.cell_array.push_back(invalid_atlas);
+      s.name_map[loader.INVALID] = sz;
+    }
+
+    fm_assert(!s.name_map.empty());
     fm_assert(!s.cell_array.empty());
+
+    for (const auto& [name, index] : s.name_map)
+        fm_assert(index < s.cell_array.size() || index == -1uz);
+
     return { s.cell_array.data(), s.cell_array.size() };
 }
 
@@ -39,7 +63,7 @@ template<typename ATLAS, typename TRAITS>
 const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, loader_policy p)
 {
     ensure_atlas_list();
-    const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(t.make_invalid_atlas(s));
+    const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(get_invalid_atlas());
     fm_debug_assert(invalid_atlas);
 
     switch (p)
@@ -152,9 +176,13 @@ auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> 
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::get_invalid_atlas() -> const Cell&
 {
-    const auto& cell = t.make_invalid_atlas(s);
-    fm_assert(t.atlas_of(cell));
-    return cell;
+    if (s.invalid_atlas) [[likely]]
+        return *s.invalid_atlas;
+    s.invalid_atlas = t.make_invalid_atlas(s);
+    fm_assert(s.invalid_atlas);
+    fm_assert(t.atlas_of(*s.invalid_atlas));
+    fm_assert(t.name_of(*s.invalid_atlas) == loader.INVALID);
+    return *s.invalid_atlas;
 }
 
 } // namespace floormat::loader_detail

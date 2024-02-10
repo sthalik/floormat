@@ -22,35 +22,17 @@ StringView wall_traits::name_of(const Cell& x) { return x.name; }
 StringView wall_traits::name_of(const Atlas& x) { return x.name(); }
 String& wall_traits::name_of(Cell& x) { return x.name; }
 
-void wall_traits::ensure_atlases_loaded(Storage& st)
+void wall_traits::ensure_atlases_loaded(Storage& s)
 {
-    if (!st.name_map.empty()) [[likely]]
-        return;
+    fm_assert(s.name_map.empty());
 
-    st.cell_array = wall_cell::load_atlases_from_json().vec;
-    st.name_map.max_load_factor(0.4f);
-    st.name_map.reserve((st.cell_array.size()+1)*3/2);
-    st.name_map[loader.INVALID] = -1uz;
-
-    for (auto& c : st.cell_array)
-        if (c.name.isSmall())
-            c.name = String{AllocatedInit, c.name};
-
-    for (auto i = 0uz; const auto& c : st.cell_array)
-    {
-        fm_soft_assert(c.name != loader.INVALID);
-        fm_soft_assert(loader.check_atlas_name(c.name));
-        fm_soft_assert(!c.atlas);
-        fm_assert(!c.name.isSmall());
-        st.name_map[c.name] = i++;
-    }
+    s.cell_array = wall_cell::load_atlases_from_json().vec;
+    s.name_map[loader.INVALID] = -1uz;
 }
 
-auto wall_traits::make_invalid_atlas(Storage& st) -> const Cell&
+auto wall_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
 {
-    if (st.invalid_atlas) [[likely]]
-        return *st.invalid_atlas;
-
+    fm_assert(!s.invalid_atlas);
     constexpr auto name = loader_::INVALID;
     constexpr auto frame_size = Vector2ui{tile_size_xy, tile_size_z};
 
@@ -64,8 +46,7 @@ auto wall_traits::make_invalid_atlas(Storage& st) -> const Cell&
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, loader.make_error_texture(frame_size));
-    st.invalid_atlas = Pointer<wall_cell>{InPlaceInit, wall_cell{ .atlas = std::move(a), .name = name, } };
-    return *st.invalid_atlas;
+    return Pointer<wall_cell>{InPlaceInit, wall_cell{ .atlas = std::move(a), .name = name, } };
 }
 
 auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
