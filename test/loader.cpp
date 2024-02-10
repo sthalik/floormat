@@ -3,6 +3,8 @@
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include "src/ground-atlas.hpp"
+#include "src/wall-atlas.hpp"
+#include <mg/Texture.h>
 
 namespace floormat {
 
@@ -46,11 +48,20 @@ void test_app::test_loader()
     fm_assert(loader.make_invalid_wall_atlas().name == loader.INVALID);
 
     for (const auto& str : anim_atlases)
-        (void)loader.get_anim_atlas(str);
+        (void)loader.anim_atlas(str, {});
     for (const auto& x : ground_atlases)
-        (void)loader.get_ground_atlas(x.name, x.size, x.pass);
+    {
+        auto& A = *loader.ground_atlas(x.name);
+        fm_assert(A.num_tiles2() == x.size);
+        fm_assert(A.pass_mode() == x.pass);
+        fm_assert(A.texture().id());
+    }
     for (const auto& name : wall_atlases)
-        (void)loader.get_wall_atlas(name);
+    {
+        auto& A = *loader.wall_atlas(name);
+        fm_assert(!A.raw_frame_array().isEmpty());
+        fm_assert(A.texture().id());
+    }
 
     for (const auto& x : loader.ground_atlas_list())
     {
@@ -63,7 +74,6 @@ void test_app::test_loader()
         else
         {
             fm_assert(x.atlas);
-            fm_assert(loader.make_invalid_ground_atlas().atlas);
             fm_assert(x.atlas == loader.make_invalid_ground_atlas().atlas);
         }
     }
@@ -71,7 +81,7 @@ void test_app::test_loader()
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
     loader.sceneries();
     for (StringView name : loader.anim_atlas_list())
-        loader.anim_atlas(name);
+        loader.anim_atlas(name, loader.ANIM_PATH);
 }
 
 } // namespace floormat
