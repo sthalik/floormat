@@ -7,6 +7,7 @@
 #include "src/tile-defs.hpp"
 #include "src/wall-atlas.hpp"
 #include <cr/StringView.h>
+#include <cr/Optional.h>
 #include <cr/Pointer.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
@@ -15,22 +16,23 @@ namespace floormat::loader_detail {
 
 namespace { const auto placeholder_cell = wall_cell{}; }
 using wall_traits = atlas_loader_traits<wall_atlas>;
-StringView atlas_loader_traits<wall_atlas>::loader_name() { return "wall_atlas"_s; }
-auto atlas_loader_traits<wall_atlas>::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
-auto atlas_loader_traits<wall_atlas>::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
-StringView atlas_loader_traits<wall_atlas>::name_of(const Cell& x) { return x.name; }
-StringView atlas_loader_traits<wall_atlas>::name_of(const Atlas& x) { return x.name(); }
+StringView wall_traits::loader_name() { return "wall_atlas"_s; }
+auto wall_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
+auto wall_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
+StringView wall_traits::name_of(const Cell& x) { return x.name; }
+StringView wall_traits::name_of(const Atlas& x) { return x.name(); }
+String& wall_traits::name_of(Cell& x) { return x.name; }
 
 void wall_traits::ensure_atlases_loaded(Storage& st)
 {
-    if (!st.cell_array.empty()) [[likely]]
+    if (!st.name_map.empty()) [[likely]]
         return;
-    fm_assert(st.name_map.empty());
+    st.name_map.max_load_factor(0.4f);
 
     constexpr bool add_invalid = true;
 
     st.cell_array = wall_cell::load_atlases_from_json().vec;
-    st.name_map.reserve(st.cell_array.size());
+    st.name_map.reserve(st.cell_array.size()*2);
     fm_assert(!st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
@@ -89,5 +91,7 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     auto atlas = std::make_shared<class wall_atlas>(std::move(def), file, tex);
     return atlas;
 }
+
+auto wall_traits::make_cell(StringView) -> Optional<Cell> { return {}; }
 
 } // namespace floormat::loader_detail

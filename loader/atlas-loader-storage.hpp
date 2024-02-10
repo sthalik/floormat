@@ -14,10 +14,11 @@ struct atlas_storage
 
     tsl::robin_map<StringView, Cell*, hash_string_view> name_map;
     std::vector<Cell> cell_array;
+    std::vector<Pointer<Cell>> free_cells;
     std::vector<String> missing_atlas_names;
     Pointer<Cell> invalid_atlas;
 
-    bool is_empty() const { return cell_array.empty(); }
+    ~atlas_storage() noexcept = default;
 };
 
 } // namespace floormat::loader_detail

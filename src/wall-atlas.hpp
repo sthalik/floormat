@@ -35,8 +35,6 @@ struct Group
          default_tint : 1 = true,
          is_defined   : 1 = false;
 
-    //bool is_empty() const noexcept { return count == 0; }
-
     bool operator==(const Group&) const noexcept;
 };
 

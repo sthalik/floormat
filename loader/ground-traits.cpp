@@ -7,6 +7,7 @@
 #include "loader.hpp"
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
+#include <cr/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/ImageView.h>
@@ -21,17 +22,19 @@ auto ground_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { r
 auto ground_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
 StringView ground_traits::name_of(const Cell& x) { return x.name; }
 StringView ground_traits::name_of(const Atlas& x) { return x.name(); }
+String& ground_traits::name_of(Cell& x) { return x.name; }
 
 void ground_traits::ensure_atlases_loaded(Storage& st)
 {
-    if (!st.is_empty()) [[likely]]
+    if (!st.name_map.empty()) [[likely]]
         return;
+    st.name_map.max_load_factor(0.4f);
 
     fm_assert(st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
     st.cell_array = ground_cell::load_atlases_from_json().vec;
-    st.name_map.reserve(st.cell_array.size());
+    st.name_map.reserve(st.cell_array.size()*2);
     fm_assert(!st.cell_array.empty());
     fm_assert(st.name_map.empty());
 
@@ -44,8 +47,6 @@ void ground_traits::ensure_atlases_loaded(Storage& st)
         st.cell_array.push_back(make_invalid_atlas(st));
     }
 
-    st.name_map.reserve(st.cell_array.size());
-
     for (auto& x : st.cell_array)
     {
         if constexpr(!add_invalid)
@@ -56,7 +57,6 @@ void ground_traits::ensure_atlases_loaded(Storage& st)
 
     fm_assert(!st.cell_array.empty());
     fm_assert(!st.name_map.empty());
-    fm_debug_assert(!st.is_empty());
 }
 
 auto ground_traits::make_invalid_atlas(Storage& s) -> const Cell&
@@ -78,5 +78,7 @@ auto ground_traits::make_atlas(StringView name, const Cell& c) -> std::shared_pt
     auto atlas = std::make_shared<Atlas>(def, tex);
     return atlas;
 }
+
+auto ground_traits::make_cell(StringView) -> Optional<Cell> { return {}; }
 
 } // namespace floormat::loader_detail

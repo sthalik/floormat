@@ -1,11 +1,13 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/os-file.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader/loader.hpp"
 #include <memory>
-#include <Corrade/Containers/ArrayView.h>
+#include <cr/ArrayView.h>
+#include <cr/Optional.h>
 
 namespace floormat::loader_detail {
 
@@ -81,7 +83,23 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         else
             return t.atlas_of(*it->second) = t.make_atlas(name, *it->second);
     }
+    else if (Optional<Cell> c_{t.make_cell(name)})
+    {
+        s.free_cells.reserve(16);
+        Pointer<Cell> cptr{InPlace, std::move(*c_)};
+        { Cell& c{*cptr};
+          fm_assert(!t.name_of(c)); fm_assert(!t.atlas_of(c));
+          t.atlas_of(c) = t.make_atlas(name, c);
+          fm_assert(!t.name_of(c)); fm_assert(t.atlas_of(c));
+          t.name_of(c) = name;
+          fm_assert(t.name_of(*t.atlas_of(c)) == name);
+        }
+        s.free_cells.push_back(Utility::move(cptr));
+        Cell& back{*s.free_cells.back()};
+        s.name_map[StringView{t.name_of(back)}] = &back;
+    }
     else
+    {
         switch (p)
         {
         using enum loader_policy;
@@ -92,6 +110,7 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         case ignore:
             return t.atlas_of(*invalid_atlas);
         }
+    }
 
     std::unreachable();
     fm_assert(false);
