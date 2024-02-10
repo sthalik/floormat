@@ -99,10 +99,11 @@ int test_app::exec()
         {
             name = name.exceptPrefix(name_prefix);
             std::fwrite(name.data(), name.size(), 1, s);
+            if constexpr(!sep.isEmpty())
+                std::fwrite(sep.data(), sep.size(), 1, s);
+            auto num_tabs = max_tabs - get_tabs(name);
             std::fflush(stdout);
             auto ms = get_time(fun);
-            std::fwrite(sep.data(), sep.size(), 1, s);
-            auto num_tabs = max_tabs - get_tabs(name);
             fm_assert(num_tabs <= tab_limit);
             for (auto i = 0uz; i < num_tabs; i++)
                 std::fputc('\t', s);
