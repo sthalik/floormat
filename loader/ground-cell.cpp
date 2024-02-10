@@ -11,8 +11,7 @@ vector_wrapper<const ground_cell> ground_cell::load_atlases_from_json()
 {
     char buf[fm_FILENAME_MAX];
     auto s = loader.make_atlas_path(buf, loader.GROUND_TILESET_PATH, "ground.json"_s);
-    auto cells = json_helper::from_json<std::vector<ground_cell>>(s);
-    return {cells};
+    return {json_helper::from_json<std::vector<ground_cell>>(s)};
 }
 
 } // namespace floormat

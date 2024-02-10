@@ -12,9 +12,8 @@ struct atlas_storage
     using Traits = TRAITS;
     using Cell = typename TRAITS::Cell;
 
-    tsl::robin_map<StringView, Cell*, hash_string_view> name_map;
+    tsl::robin_map<StringView, size_t, hash_string_view> name_map;
     std::vector<Cell> cell_array;
-    std::vector<Pointer<Cell>> free_cells;
     std::vector<String> missing_atlas_names;
     Pointer<Cell> invalid_atlas;
 

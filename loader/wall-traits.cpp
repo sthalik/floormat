@@ -27,32 +27,24 @@ void wall_traits::ensure_atlases_loaded(Storage& st)
 {
     if (!st.name_map.empty()) [[likely]]
         return;
-    st.name_map.max_load_factor(0.4f);
-
-    constexpr bool add_invalid = true;
 
     st.cell_array = wall_cell::load_atlases_from_json().vec;
-    st.name_map.reserve(st.cell_array.size()*2);
-    fm_assert(!st.cell_array.empty());
-    fm_assert(st.name_map.empty());
-
-    if constexpr(add_invalid)
-    {
-        for (auto& x : st.cell_array)
-            fm_soft_assert(x.name != loader.INVALID);
-        st.cell_array.push_back(make_invalid_atlas(st));
-    }
+    st.name_map.max_load_factor(0.4f);
+    st.name_map.reserve((st.cell_array.size()+1)*3/2);
+    st.name_map[loader.INVALID] = -1uz;
 
     for (auto& c : st.cell_array)
-    {
-        if constexpr(!add_invalid)
-            fm_soft_assert(c.name != "<invalid>"_s);
-        fm_soft_assert(loader.check_atlas_name(c.name));
-        StringView name = c.name;
-        st.name_map[name] = &c;
-    }
+        if (c.name.isSmall())
+            c.name = String{AllocatedInit, c.name};
 
-    fm_assert(!st.cell_array.empty());
+    for (auto i = 0uz; const auto& c : st.cell_array)
+    {
+        fm_soft_assert(c.name != loader.INVALID);
+        fm_soft_assert(loader.check_atlas_name(c.name));
+        fm_soft_assert(!c.atlas);
+        fm_assert(!c.name.isSmall());
+        st.name_map[c.name] = i++;
+    }
 }
 
 auto wall_traits::make_invalid_atlas(Storage& st) -> const Cell&

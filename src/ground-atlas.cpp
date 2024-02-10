@@ -18,6 +18,7 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     _texcoords{make_texcoords_array(Vector2ui(image.size()), _def.size)},
     _pixel_size{image.size()}
 {
+    //Debug{} << "make ground_atlas" << _def.name;
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);

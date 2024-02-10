@@ -28,6 +28,9 @@ auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
     if (!s.cell_array.empty()) [[likely]]
         return { s.cell_array.data(), s.cell_array.size() };
     t.ensure_atlases_loaded(s);
+    for (Cell& c : s.cell_array)
+        if (String& name{t.name_of(c)}; name.isSmall())
+            name = String{AllocatedInit, name};
     fm_assert(!s.cell_array.empty());
     return { s.cell_array.data(), s.cell_array.size() };
 }
@@ -36,9 +39,8 @@ template<typename ATLAS, typename TRAITS>
 const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, loader_policy p)
 {
     ensure_atlas_list();
-    auto* const invalid_atlas = const_cast<Cell*>(&t.make_invalid_atlas(s));
+    const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(t.make_invalid_atlas(s));
     fm_debug_assert(invalid_atlas);
-    fm_debug_assert(t.atlas_of(*invalid_atlas));
 
     switch (p)
     {
@@ -59,14 +61,14 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
             goto error;
         case ignore:
         case warn:
-            return t.atlas_of(*invalid_atlas);
+            return invalid_atlas;
         }
 
     fm_soft_assert(loader.check_atlas_name(name));
 
     if (auto it = s.name_map.find(name); it != s.name_map.end()) [[likely]]
     {
-        if (it->second == invalid_atlas)
+        if (it->second == -1uz) [[unlikely]]
         {
             switch (p)
             {
@@ -75,28 +77,38 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
                 goto error;
             case warn:
             case ignore:
-                return t.atlas_of(*invalid_atlas);
+                return invalid_atlas;
             }
         }
-        else if (const auto& atlas = t.atlas_of(*it->second))
-            return t.atlas_of(*it->second);
         else
-            return t.atlas_of(*it->second) = t.make_atlas(name, *it->second);
-    }
-    else if (Optional<Cell> c_{t.make_cell(name)})
-    {
-        s.free_cells.reserve(16);
-        Pointer<Cell> cptr{InPlace, std::move(*c_)};
-        { Cell& c{*cptr};
-          fm_assert(!t.name_of(c)); fm_assert(!t.atlas_of(c));
-          t.atlas_of(c) = t.make_atlas(name, c);
-          fm_assert(!t.name_of(c)); fm_assert(t.atlas_of(c));
-          t.name_of(c) = name;
-          fm_assert(t.name_of(*t.atlas_of(c)) == name);
+        {
+            Cell& c = s.cell_array[it->second];
+            fm_assert(t.name_of(c));
+            std::shared_ptr<ATLAS>& atlas = t.atlas_of(c);
+            if (!atlas) [[unlikely]]
+            {
+                atlas = make_atlas(name, c);
+                fm_debug_assert(atlas);
+                return atlas;
+            }
+            else
+            {
+                fm_assert(t.name_of(c) == name);
+                return atlas;
+            }
         }
-        s.free_cells.push_back(Utility::move(cptr));
-        Cell& back{*s.free_cells.back()};
-        s.name_map[StringView{t.name_of(back)}] = &back;
+    }
+    else if (Optional<Cell> c_{t.make_cell(name)}) // todo!
+    {
+        size_t index = s.cell_array.size();
+        s.cell_array.emplace_back(Utility::move(*c_));
+        Cell& c = s.cell_array.back();
+        fm_debug_assert(!t.name_of(c)); fm_debug_assert(!t.atlas_of(c));
+        t.atlas_of(c) = make_atlas(name, c);
+        t.name_of(c) = String{AllocatedInit, name};
+        fm_debug_assert(t.name_of(c)); fm_debug_assert(t.atlas_of(c));
+        s.name_map[t.name_of(c)] = index;
+        return t.atlas_of(c);
     }
     else
     {
@@ -108,7 +120,7 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         case warn:
             goto missing_warn;
         case ignore:
-            return t.atlas_of(*invalid_atlas);
+            return invalid_atlas;
         }
     }
 
@@ -120,12 +132,12 @@ error:
 
 missing_warn:
     s.missing_atlas_names.push_back(String { AllocatedInit, name });
-    s.name_map[ s.missing_atlas_names.back() ] = invalid_atlas;
+    s.name_map[ s.missing_atlas_names.back() ] = -1uz;
 
     if (name != loader.INVALID)
         DBG_nospace << t.loader_name() << " '" << name << "' doesn't exist";
 
-    return t.atlas_of(*invalid_atlas);
+    return invalid_atlas;
 }
 
 template<typename ATLAS, typename TRAITS>

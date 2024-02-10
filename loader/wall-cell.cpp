@@ -24,7 +24,7 @@ vector_wrapper<const wall_cell> wall_cell::load_atlases_from_json()
 {
     char buf[fm_FILENAME_MAX];
     auto s = loader.make_atlas_path(buf, loader.WALL_TILESET_PATH, "walls.json"_s);
-    return { json_helper::from_json<std::vector<wall_cell>>(s) };
+    return {json_helper::from_json<std::vector<wall_cell>>(s)};
 }
 
 } // namespace floormat

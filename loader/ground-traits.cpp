@@ -28,38 +28,26 @@ void ground_traits::ensure_atlases_loaded(Storage& st)
 {
     if (!st.name_map.empty()) [[likely]]
         return;
-    st.name_map.max_load_factor(0.4f);
-
-    fm_assert(st.cell_array.empty());
-    fm_assert(st.name_map.empty());
 
     st.cell_array = ground_cell::load_atlases_from_json().vec;
-    st.name_map.reserve(st.cell_array.size()*2);
-    fm_assert(!st.cell_array.empty());
-    fm_assert(st.name_map.empty());
+    st.name_map.max_load_factor(0.4f);
+    st.name_map.reserve((st.cell_array.size()+1)*3/2);
+    st.name_map[loader.INVALID] = -1uz;
 
-    constexpr bool add_invalid = true;
+    for (auto& c : st.cell_array)
+        if (c.name.isSmall())
+            c.name = String{AllocatedInit, c.name};
 
-    if constexpr(add_invalid)
+    for (auto i = 0uz; const auto& c : st.cell_array)
     {
-        for (auto& x : st.cell_array)
-            fm_soft_assert(x.name != loader.INVALID);
-        st.cell_array.push_back(make_invalid_atlas(st));
+        fm_soft_assert(c.name != loader.INVALID);
+        fm_soft_assert(loader.check_atlas_name(c.name));
+        fm_soft_assert(!c.atlas);
+        st.name_map[c.name] = i++;
     }
-
-    for (auto& x : st.cell_array)
-    {
-        if constexpr(!add_invalid)
-            fm_soft_assert(x.name != loader.INVALID);
-        fm_soft_assert(loader.check_atlas_name(x.name));
-        st.name_map[x.name] = &x;
-    }
-
-    fm_assert(!st.cell_array.empty());
-    fm_assert(!st.name_map.empty());
 }
 
-auto ground_traits::make_invalid_atlas(Storage& s) -> const Cell&
+auto ground_traits::make_invalid_atlas(Storage& s) -> const Cell& // todo! store it in cell_array
 {
     if (!s.invalid_atlas) [[unlikely]]
     {

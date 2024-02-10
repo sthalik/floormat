@@ -108,6 +108,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _image_size{get_image_size(img)},
       _direction_map{def.direction_map}
 {
+    //Debug{} << "make wall_atlas" << _info.name;
     {
         const auto frame_count = _frame_array.size();
         fm_soft_assert(frame_count > 0);
