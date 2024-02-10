@@ -18,8 +18,20 @@ void test_loading()
       fm_assert(loader.wall_atlas("test1"_s) == loader.wall_atlas("test1"_s));
       fm_assert(loader.wall_atlas("test1"_s) != loader.wall_atlas(loader.INVALID, loader_policy::ignore));
     }
-    for (const auto& info : loader.wall_atlas_list())
-        fm_assert(loader.wall_atlas(info.name));
+    for (const auto& x : loader.wall_atlas_list())
+    {
+        if (x.name != loader.INVALID)
+        {
+            (void)loader.wall_atlas(x.name);
+            fm_assert(x.atlas);
+            fm_assert(x.atlas == loader.wall_atlas(x.name));
+        }
+        else
+        {
+            fm_assert(loader.make_invalid_wall_atlas().atlas);
+            fm_assert(x.atlas == loader.make_invalid_wall_atlas().atlas);
+        }
+    }
 }
 
 void test_empty_wall()

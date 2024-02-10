@@ -53,8 +53,20 @@ void test_app::test_loader()
         (void)loader.get_wall_atlas(name);
 
     for (const auto& x : loader.ground_atlas_list())
-        if (x.name != loader.INVALID) // todo!
-        (void)loader.ground_atlas(x.name);
+    {
+        if (x.name != loader.INVALID)
+        {
+            (void)loader.ground_atlas(x.name);
+            fm_assert(x.atlas);
+            fm_assert(x.atlas == loader.ground_atlas(x.name));
+        }
+        else
+        {
+            fm_assert(x.atlas);
+            fm_assert(loader.make_invalid_ground_atlas().atlas);
+            fm_assert(x.atlas == loader.make_invalid_ground_atlas().atlas);
+        }
+    }
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
     loader.sceneries();
