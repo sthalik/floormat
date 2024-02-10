@@ -15,10 +15,6 @@
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 
-#ifdef __GNUG__
-#pragma GCC diagnostic ignored "-Walloca"
-#endif
-
 namespace floormat {
 
 } // namespace floormat

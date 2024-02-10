@@ -1,11 +1,11 @@
 #include "wall-traits.hpp"
-#include "compat/exception.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "atlas-loader-storage.hpp"
 #include "wall-cell.hpp"
 #include "loader.hpp"
 #include "src/tile-defs.hpp"
 #include "src/wall-atlas.hpp"
+#include "compat/exception.hpp"
+#include "compat/vector-wrapper.hpp"
 #include <cr/StringView.h>
 #include <cr/Optional.h>
 #include <cr/Pointer.h>
@@ -14,7 +14,6 @@
 
 namespace floormat::loader_detail {
 
-namespace { const auto placeholder_cell = wall_cell{}; }
 using wall_traits = atlas_loader_traits<wall_atlas>;
 StringView wall_traits::loader_name() { return "wall_atlas"_s; }
 auto wall_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
@@ -77,9 +76,9 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     fm_soft_assert(json_size != 0 && (size_t)json_size <= std::size_t(json_buf));
     auto json_name = StringView{json_buf, (size_t)json_size};
     auto def = wall_atlas_def::deserialize(json_name);
-    auto tex = loader.texture(""_s, file);
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
+    auto tex = loader.texture(""_s, file);
     auto atlas = std::make_shared<class wall_atlas>(std::move(def), file, tex);
     return atlas;
 }

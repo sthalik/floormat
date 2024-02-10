@@ -1,12 +1,11 @@
 #include "ground-traits.hpp"
-#include "compat/assert.hpp"
-#include "compat/exception.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "atlas-loader-storage.hpp"
 #include "ground-cell.hpp"
 #include "loader.hpp"
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
+#include "compat/assert.hpp"
+#include "compat/vector-wrapper.hpp"
 #include <cr/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
@@ -16,7 +15,6 @@
 namespace floormat::loader_detail {
 
 using ground_traits = atlas_loader_traits<ground_atlas>;
-
 StringView ground_traits::loader_name() { return "ground_atlas"_s; }
 auto ground_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
 auto ground_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }

@@ -14,8 +14,7 @@ loader_& loader_::default_loader() noexcept
     return loader_singleton;
 }
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-loader_& loader = loader_::default_loader();
+loader_& loader = loader_::default_loader(); // NOLINT(*-avoid-non-const-global-variables)
 
 loader_::loader_() = default;
 loader_::~loader_() noexcept = default;

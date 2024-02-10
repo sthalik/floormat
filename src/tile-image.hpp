@@ -32,8 +32,12 @@ struct image_ref_ final
 
 using tile_image_proto = image_proto_<ground_atlas>;
 using tile_image_ref = image_ref_<ground_atlas, tile_image_proto>;
+extern template struct image_proto_<ground_atlas>;
+extern template struct image_ref_<ground_atlas, tile_image_proto>;
 
 using wall_image_proto = image_proto_<wall_atlas>;
 using wall_image_ref = image_ref_<wall_atlas, wall_image_proto>;
+extern template struct image_proto_<wall_atlas>;
+extern template struct image_ref_<wall_atlas, wall_image_proto>;
 
 } // namespace floormat
