@@ -21,7 +21,6 @@ struct test_app final : private FM_APPLICATION
 
     int exec() override;
 
-    static void test_anim_atlas();
     static void test_astar();
     static void test_astar_pool();
     static void test_bitmask();
@@ -33,8 +32,9 @@ struct test_app final : private FM_APPLICATION
     static void test_json();
     static void test_json2();
     static void test_json3();
-    static void test_load_all();
+    static void test_saves();
     static void test_loader();
+    static void test_loader2();
     static void test_magnum_math();
     static void test_math();
     static void test_raycast();

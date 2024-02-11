@@ -8,6 +8,7 @@
 #include <memory>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
+#include <cr/Move.h>
 
 namespace floormat::loader_detail {
 
@@ -28,7 +29,7 @@ auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
     if (!s.name_map.empty()) [[likely]]
         return { s.cell_array.data(), s.cell_array.size() };
 
-    t.ensure_atlases_loaded(s);
+    t.load_atlas_list(s);
 
     for (Cell& c : s.cell_array)
     {
@@ -188,6 +189,35 @@ auto atlas_loader<ATLAS, TRAITS>::get_invalid_atlas() -> const Cell&
     fm_assert(t.atlas_of(*s.invalid_atlas));
     fm_assert(t.name_of(*s.invalid_atlas) == loader.INVALID);
     return *s.invalid_atlas;
+}
+
+template<typename ATLAS, typename TRAITS>
+bool atlas_loader<ATLAS, TRAITS>::cell_exists(Corrade::Containers::StringView name)
+{
+    return s.name_map.contains(name);
+}
+
+template<typename ATLAS, typename TRAITS>
+auto atlas_loader<ATLAS, TRAITS>::get_cell(StringView name) -> const Cell&
+{
+    auto it = s.name_map.find(name);
+    fm_assert(it != s.name_map.end());
+    return s.cell_array[ it->second ];
+}
+
+template<typename ATLAS, typename TRAITS>
+void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
+{
+    String& name{t.name_of(c)};
+    if (name.isSmall())
+        name = String{AllocatedInit, name};
+    const std::shared_ptr<Atlas>& atlas{t.atlas_of(c)};
+    fm_assert(!s.name_map.contains(name));
+    fm_soft_assert(loader.check_atlas_name(name));
+    fm_assert(!atlas || t.name_of(*atlas) == name);
+    const size_t index{s.cell_array.size()};
+    s.cell_array.push_back(Utility::move(c));
+    s.name_map[ t.name_of(s.cell_array.back()) ] = index;
 }
 
 } // namespace floormat::loader_detail

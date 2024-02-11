@@ -60,12 +60,12 @@ int test_app::exec()
         FM_TEST(test_bitmask),
         FM_TEST(test_loader),
         FM_TEST(test_serializer1),
-        FM_TEST(test_anim_atlas),
+        FM_TEST(test_loader2),
         FM_TEST(test_scenery),
         FM_TEST(test_astar_pool),
         FM_TEST(test_astar),
-        FM_TEST(test_dijkstra), // todo add dummy atlases to avoid expensive loading
-        FM_TEST(test_load_all),
+        FM_TEST(test_dijkstra),
+        FM_TEST(test_saves),
         FM_TEST(test_zzz_misc),
     };
 
@@ -102,7 +102,8 @@ int test_app::exec()
             std::fwrite(name.data(), name.size(), 1, s);
             if constexpr(!sep.isEmpty())
                 std::fwrite(sep.data(), sep.size(), 1, s);
-            auto num_tabs = max_tabs - get_tabs(name);
+            auto num_tabs = max_tabs - get_tabs(name) - 1;
+            std::fputc('\t', s);
             std::fflush(stdout);
             auto ms = get_time(fun);
             fm_assert(num_tabs <= tab_limit);

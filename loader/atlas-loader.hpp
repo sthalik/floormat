@@ -28,6 +28,10 @@ public:
     const std::shared_ptr<Atlas>& get_atlas(StringView name, loader_policy p);
     std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& cell);
 
+    bool cell_exists(StringView name);
+    const Cell& get_cell(StringView name);
+    void register_cell(Cell&& c);
+
     const Cell& get_invalid_atlas();
 };
 

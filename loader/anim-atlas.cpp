@@ -3,7 +3,6 @@
 #include "anim-cell.hpp"
 #include "anim-traits.hpp"
 #include "compat/exception.hpp"
-//#include "src/anim-atlas.hpp"
 
 namespace floormat::loader_detail {
 
@@ -26,11 +25,8 @@ ArrayView<const anim_cell> loader_impl::anim_atlas_list()
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir, loader_policy p) noexcept(false)
 {
-    fm_soft_assert(check_atlas_name(name));
-
     char buf[fm_FILENAME_MAX];
     auto path = make_atlas_path(buf, dir, name);
-
     return _anim_loader->get_atlas(path, p);
 }
 

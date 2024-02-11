@@ -2,8 +2,10 @@
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
+#include "loader/anim-cell.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
+#include "src/anim-atlas.hpp"
 #include <mg/Texture.h>
 
 namespace floormat {
@@ -62,24 +64,54 @@ void test_app::test_loader()
         fm_assert(!A.raw_frame_array().isEmpty());
         fm_assert(A.texture().id());
     }
-
-    for (const auto& x : loader.ground_atlas_list())
-    {
-        if (x.name != loader.INVALID)
-        {
-            (void)loader.ground_atlas(x.name);
-            fm_assert(x.atlas);
-            fm_assert(x.atlas == loader.ground_atlas(x.name));
-        }
-        else
-        {
-            fm_assert(x.atlas);
-            fm_assert(x.atlas == loader.make_invalid_ground_atlas().atlas);
-        }
-    }
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
     loader.sceneries();
+}
+
+void test_app::test_loader2()
+{
+    for (const auto& x : loader.ground_atlas_list())
+    {
+        fm_assert(x.name);
+        if (x.name == loader.INVALID)
+            continue;
+        if (!x.atlas)
+        {
+            auto atlas = loader.ground_atlas(x.name, loader_policy::error);
+            fm_assert(atlas->name() == x.name);
+            fm_assert(atlas->texture().id());
+            fm_assert(!atlas->pixel_size().isZero());
+            fm_assert(Vector2ui{atlas->num_tiles2()}.product());
+        }
+    }
+    for (const auto& x : loader.wall_atlas_list())
+    {
+        fm_assert(x.name);
+        if (x.name == loader.INVALID)
+            continue;
+        if (!x.atlas)
+        {
+            auto atlas = loader.wall_atlas(x.name, loader_policy::error);
+            fm_assert(atlas->name() == x.name);
+            fm_assert(atlas->texture().id());
+            fm_assert(!atlas->raw_frame_array().isEmpty());
+            fm_assert(atlas->calc_direction(Wall::Direction_::N).wall.count);
+        }
+    }
+    for (const auto& x : loader.anim_atlas_list())
+    {
+        fm_assert(x.name);
+        if (x.name == loader.INVALID)
+            continue;
+        auto atlas_ = loader.anim_atlas(x.name, {}, loader_policy::error);
+        fm_assert(atlas_);
+        auto& atlas = *atlas_;
+        fm_assert(atlas.name() == x.name);
+        fm_assert(atlas.texture().id());
+        fm_assert(atlas.info().nframes > 0);
+    }
+    // todo scenery_cell
 }
 
 } // namespace floormat
