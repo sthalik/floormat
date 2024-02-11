@@ -8,8 +8,8 @@ class anim_atlas;
 
 struct anim_cell
 {
-    String name;
     std::shared_ptr<anim_atlas> atlas;
+    String name;
 };
 
 } // namespace floormat

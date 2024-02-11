@@ -116,9 +116,9 @@ const anim_cell& loader_impl::make_invalid_anim_atlas()
         .nframes = 1,
     };
     auto atlas = std::make_shared<class anim_atlas>(INVALID, make_error_texture(size), std::move(def));
-    auto info = anim_cell{
-        .name = INVALID,
+    auto info = anim_cell {
         .atlas = atlas,
+        .name = INVALID,
     };
     invalid_anim_atlas = Pointer<anim_cell>{ InPlace, std::move(info) };
     return *invalid_anim_atlas;

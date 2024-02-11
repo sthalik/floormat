@@ -26,7 +26,6 @@ void anim_traits::ensure_atlases_loaded(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = {};
-    s.cell_array.reserve(16);
     s.name_map[loader.INVALID] = -1uz;
 }
 
@@ -56,9 +55,9 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
         .nframes = 1,
     };
     auto atlas = std::make_shared<class anim_atlas>(loader.INVALID, loader.make_error_texture(size), std::move(def));
-    auto info = anim_cell{
-        .name = loader.INVALID,
+    auto info = anim_cell {
         .atlas = atlas,
+        .name = loader.INVALID,
     };
     return Pointer<anim_cell>{ InPlace, Utility::move(info) };
 }
@@ -70,7 +69,7 @@ auto anim_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<
 
 auto anim_traits::make_cell(StringView name) -> Optional<Cell>
 {
-    return {};
+    return { InPlace, Cell{ .atlas = {}, .name = name, } };
 }
 
 } // namespace floormat::loader_detail

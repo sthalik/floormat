@@ -107,27 +107,30 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         {
             Cell& c = s.cell_array[it->second];
             fm_assert(t.name_of(c));
-            std::shared_ptr<ATLAS>& atlas = t.atlas_of(c);
+            std::shared_ptr<ATLAS>& atlas{t.atlas_of(c)};
             if (!atlas) [[unlikely]]
             {
                 atlas = make_atlas(name, c);
-                fm_debug_assert(atlas);
+                fm_assert(atlas);
+                fm_assert(t.atlas_of(c) == atlas);
+                fm_assert(t.name_of(*atlas) == name);
                 return atlas;
             }
             else
             {
-                fm_assert(t.name_of(c) == name);
+                fm_debug_assert(t.name_of(c) == name);
                 return atlas;
             }
         }
     }
     else if (Optional<Cell> c_{t.make_cell(name)})
     {
-        fm_debug_assert(t.name_of(*c_));
-        fm_debug_assert(!t.atlas_of(*c_));
+        fm_assert(t.name_of(*c_));
+        fm_assert(!t.atlas_of(*c_));
+        fm_assert(t.name_of(*c_) == name);
         const size_t index{s.cell_array.size()};
-        if (t.name_of(c_).isSmall())
-            t.name_of(c_) = { AllocatedInit, t.name_of(c_) };
+        if (t.name_of(*c_).isSmall())
+            t.name_of(*c_) = String{ AllocatedInit, t.name_of(*c_) };
         s.cell_array.emplace_back(Utility::move(*c_));
         Cell& c{s.cell_array.back()};
         t.atlas_of(c) = make_atlas(name, c);
