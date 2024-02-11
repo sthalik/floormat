@@ -39,9 +39,9 @@ void test_app::test_json2()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
-    auto atlas1 = loader.make_invalid_ground_atlas().atlas;
+    auto atlas1 = loader.invalid_ground_atlas().atlas;
     json_helper::to_json(atlas1, Path::join(output_dir, "atlas1.json"));
-    auto atlas2 = loader.make_invalid_wall_atlas().atlas;
+    auto atlas2 = loader.invalid_wall_atlas().atlas;
     atlas2->serialize(Path::join(output_dir, "atlas2.json"));
 }
 

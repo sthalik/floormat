@@ -24,7 +24,7 @@ public:
     atlas_loader(TRAITS&& traits);
     atlas_loader() requires std::is_default_constructible_v<TRAITS>;
 
-    ArrayView<const Cell> ensure_atlas_list();
+    ArrayView<const Cell> atlas_list();
     const std::shared_ptr<Atlas>& get_atlas(StringView name, loader_policy p);
     std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& cell);
 

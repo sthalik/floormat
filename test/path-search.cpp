@@ -179,7 +179,7 @@ void test_bbox()
         return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
     };
 
-    const auto wall = loader.make_invalid_wall_atlas().atlas;
+    const auto wall = loader.invalid_wall_atlas().atlas;
     const auto table  = loader.scenery("table1");
 
     {

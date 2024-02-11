@@ -33,7 +33,7 @@ void ground_editor::load_atlases()
         if (g.name != loader.INVALID) [[likely]]
             (void)loader.ground_atlas(g.name);
         else
-            loader.make_invalid_ground_atlas();
+            loader.invalid_ground_atlas();
         fm_assert(g.atlas);
         _atlases[g.name] = &g;
     }

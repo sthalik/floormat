@@ -47,14 +47,14 @@ struct loader_impl final : loader_
     const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_cell> wall_atlas_list() override;
     std::shared_ptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
-    const wall_cell& make_invalid_wall_atlas() override;
+    const wall_cell& invalid_wall_atlas() override;
 
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
     safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{ make_ground_atlas_loader() };
     const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
-    const ground_cell& make_invalid_ground_atlas() override;
+    const ground_cell& invalid_ground_atlas() override;
     std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> anim >----->
@@ -62,7 +62,7 @@ struct loader_impl final : loader_
     safe_ptr<atlas_loader<class anim_atlas>> _anim_loader{ make_anim_atlas_loader() };
     ArrayView<const anim_cell> anim_atlas_list() override;
     std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
-    const anim_cell& make_invalid_anim_atlas() override;
+    const anim_cell& invalid_anim_atlas() override;
     std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->

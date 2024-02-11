@@ -20,7 +20,7 @@ void test_app::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
 
     auto& ch = w[wch];
-    auto wall = wall_image_proto{loader.make_invalid_wall_atlas().atlas, 0};
+    auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
 
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)

@@ -25,10 +25,10 @@ atlas_loader<class wall_atlas>* loader_impl::make_wall_atlas_loader()
 
 ArrayView<const wall_cell> loader_impl::wall_atlas_list() noexcept(false)
 {
-    return _wall_loader->ensure_atlas_list();
+    return _wall_loader->atlas_list();
 }
 
-const wall_cell& loader_impl::make_invalid_wall_atlas()
+const wall_cell& loader_impl::invalid_wall_atlas()
 {
     return _wall_loader->get_invalid_atlas();
 }

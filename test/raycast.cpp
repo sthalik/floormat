@@ -14,8 +14,8 @@ world make_world()
 {
     constexpr auto var = (variant_t)-1;
 #if 1
-    auto wall1_ = loader.make_invalid_wall_atlas().atlas;
-    auto wall2_ = loader.make_invalid_wall_atlas().atlas;
+    auto wall1_ = loader.invalid_wall_atlas().atlas;
+    auto wall2_ = loader.invalid_wall_atlas().atlas;
 #else
     auto wall1_ = loader.wall_atlas("test1"_s);
     auto wall2_ = loader.wall_atlas("concrete1"_s);

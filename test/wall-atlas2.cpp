@@ -28,8 +28,8 @@ void test_loading()
         }
         else
         {
-            fm_assert(loader.make_invalid_wall_atlas().atlas);
-            fm_assert(x.atlas == loader.make_invalid_wall_atlas().atlas);
+            fm_assert(loader.invalid_wall_atlas().atlas);
+            fm_assert(x.atlas == loader.invalid_wall_atlas().atlas);
         }
     }
 }

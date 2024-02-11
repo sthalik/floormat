@@ -22,7 +22,7 @@ StringView ground_traits::name_of(const Cell& x) { return x.name; }
 StringView ground_traits::name_of(const Atlas& x) { return x.name(); }
 String& ground_traits::name_of(Cell& x) { return x.name; }
 
-void ground_traits::load_atlas_list(Storage& s)
+void ground_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = ground_cell::load_atlases_from_json().vec;

@@ -23,10 +23,10 @@ atlas_loader<class ground_atlas>* loader_impl::make_ground_atlas_loader()
 
 auto loader_impl::ground_atlas_list() noexcept(false) -> ArrayView<const ground_cell>
 {
-    return _ground_loader->ensure_atlas_list();
+    return _ground_loader->atlas_list();
 }
 
-const ground_cell& loader_impl::make_invalid_ground_atlas()
+const ground_cell& loader_impl::invalid_ground_atlas()
 {
     return _ground_loader->get_invalid_atlas();
 }

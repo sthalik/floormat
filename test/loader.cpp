@@ -41,13 +41,13 @@ constexpr const char* anim_atlases[] = {
 
 void test_app::test_loader()
 {
-    fm_assert(loader.make_invalid_ground_atlas().atlas);
-    fm_assert(&loader.make_invalid_ground_atlas().atlas == &loader.make_invalid_ground_atlas().atlas);
-    fm_assert(loader.make_invalid_ground_atlas().name == loader.INVALID);
+    fm_assert(loader.invalid_ground_atlas().atlas);
+    fm_assert(&loader.invalid_ground_atlas().atlas == &loader.invalid_ground_atlas().atlas);
+    fm_assert(loader.invalid_ground_atlas().name == loader.INVALID);
 
-    fm_assert(loader.make_invalid_wall_atlas().atlas);
-    fm_assert(&loader.make_invalid_wall_atlas().atlas == &loader.make_invalid_wall_atlas().atlas);
-    fm_assert(loader.make_invalid_wall_atlas().name == loader.INVALID);
+    fm_assert(loader.invalid_wall_atlas().atlas);
+    fm_assert(&loader.invalid_wall_atlas().atlas == &loader.invalid_wall_atlas().atlas);
+    fm_assert(loader.invalid_wall_atlas().name == loader.INVALID);
 
     for (const auto& str : anim_atlases)
         (void)loader.anim_atlas(str, {});

@@ -19,7 +19,7 @@ template<> struct atlas_loader_traits<anim_atlas>
     static StringView name_of(const Cell& x);
     static StringView name_of(const Atlas& x);
     static String& name_of(Cell& x);
-    static void load_atlas_list(Storage& st);
+    static void atlas_list(Storage& st);
     static Pointer<Cell> make_invalid_atlas(Storage& st);
     static std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& c);
     static Optional<Cell> make_cell(StringView name);

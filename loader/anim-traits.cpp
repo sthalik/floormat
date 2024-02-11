@@ -26,7 +26,7 @@ StringView anim_traits::name_of(const Cell& x) { return x.name; }
 StringView anim_traits::name_of(const Atlas& x) { return x.name(); }
 String& anim_traits::name_of(Cell& x) { return x.name; }
 
-void anim_traits::load_atlas_list(Storage& s)
+void anim_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = {};

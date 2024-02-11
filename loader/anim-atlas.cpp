@@ -20,7 +20,7 @@ atlas_loader<class anim_atlas>* loader_impl::make_anim_atlas_loader()
 
 ArrayView<const anim_cell> loader_impl::anim_atlas_list()
 {
-    return _anim_loader->ensure_atlas_list();
+    return _anim_loader->atlas_list();
 }
 
 std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir, loader_policy p) noexcept(false)
@@ -30,7 +30,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
     return _anim_loader->get_atlas(path, p);
 }
 
-const anim_cell& loader_impl::make_invalid_anim_atlas()
+const anim_cell& loader_impl::invalid_anim_atlas()
 {
     return _anim_loader->get_invalid_atlas();
 }

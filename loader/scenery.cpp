@@ -29,7 +29,7 @@ void loader_impl::get_scenery_list()
     if constexpr(true) // todo!
     {
         auto proto = scenery_proto{};
-        proto.atlas = make_invalid_anim_atlas().atlas;
+        proto.atlas = invalid_anim_atlas().atlas;
         proto.bbox_size = Vector2ub{20};
         proto.subtype = generic_scenery_proto{false, true};
         sceneries_array.push_back({ .name = INVALID, .proto = proto });

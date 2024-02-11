@@ -47,9 +47,9 @@ struct loader_
     static StringView make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name, StringView extension = {});
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
-    virtual const wall_cell& make_invalid_wall_atlas() = 0;
-    virtual const ground_cell& make_invalid_ground_atlas() = 0;
-    virtual const anim_cell& make_invalid_anim_atlas() = 0;
+    virtual const wall_cell& invalid_wall_atlas() = 0;
+    virtual const ground_cell& invalid_ground_atlas() = 0;
+    virtual const anim_cell& invalid_anim_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;

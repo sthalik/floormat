@@ -24,12 +24,12 @@ template<typename TRAITS>
 atlas_loader(TRAITS&& traits) noexcept -> atlas_loader<TRAITS, typename TRAITS::Atlas>;
 
 template<typename ATLAS, typename TRAITS>
-auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
+auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
 {
     if (!s.name_map.empty()) [[likely]]
         return { s.cell_array.data(), s.cell_array.size() };
 
-    t.load_atlas_list(s);
+    t.atlas_list(s);
 
     for (Cell& c : s.cell_array)
     {
@@ -64,7 +64,7 @@ auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
 template<typename ATLAS, typename TRAITS>
 const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, loader_policy p)
 {
-    ensure_atlas_list();
+    atlas_list();
     const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(get_invalid_atlas());
 
     switch (p)
