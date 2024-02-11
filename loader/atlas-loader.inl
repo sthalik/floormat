@@ -40,7 +40,8 @@ auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
     }
 
     s.name_map.max_load_factor(0.4f);
-    s.name_map.reserve(s.cell_array.size()*3/2 + 1);
+    if (!s.cell_array.empty())
+        s.name_map.reserve(s.cell_array.size()*5/2 + 1);
     for (auto i = 0uz; const auto& c : s.cell_array)
         s.name_map[t.name_of(c)] = i++;
 
@@ -172,7 +173,7 @@ template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
 {
     fm_assert(name != "<invalid>"_s);
-    fm_soft_assert(!c.name || t.name_of(c) == name);
+    fm_soft_assert(!t.name_of(c) || t.name_of(c) == name);
     fm_soft_assert(loader.check_atlas_name(name));
     return t.make_atlas(name, c);
 }

@@ -31,7 +31,7 @@ struct loader_
     virtual Trade::ImageData2D make_error_texture(Vector2ui size) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
-    virtual ArrayView<const String> anim_atlas_list() = 0;
+    virtual ArrayView<const anim_cell> anim_atlas_list() = 0;
     virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual ArrayView<const wall_cell> wall_atlas_list() = 0;
@@ -56,7 +56,7 @@ struct loader_
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false);
+    virtual std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) = 0;
 
     virtual ~loader_() noexcept;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);

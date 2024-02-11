@@ -10,7 +10,10 @@ namespace floormat::loader_detail {
 template<typename ATLAS, typename TRAITS>
 struct atlas_storage
 {
+    static_assert(std::is_same_v<typename TRAITS::Atlas, ATLAS>);
+
     using Traits = TRAITS;
+    using Atlas = typename TRAITS::Atlas;
     using Cell = typename TRAITS::Cell;
 
     tsl::robin_map<StringView, size_t, hash_string_view> name_map;

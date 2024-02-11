@@ -58,13 +58,12 @@ struct loader_impl final : loader_
     std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> anim >----->
-    tsl::robin_map<StringView, std::shared_ptr<class anim_atlas>> anim_atlas_map;
-    std::vector<String> anim_atlases;
-    Pointer<anim_cell> invalid_anim_atlas;
-    ArrayView<const String> anim_atlas_list() override;
+    [[nodiscard]] static atlas_loader<class anim_atlas>* make_anim_atlas_loader();
+    safe_ptr<atlas_loader<class anim_atlas>> _anim_loader{ make_anim_atlas_loader() };
+    ArrayView<const anim_cell> anim_atlas_list() override;
     std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
-    void get_anim_atlas_list();
     const anim_cell& make_invalid_anim_atlas() override;
+    std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->
     std::vector<scenery_cell> sceneries_array;

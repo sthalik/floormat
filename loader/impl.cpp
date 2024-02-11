@@ -1,16 +1,13 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
-#include "scenery-cell.hpp"
-#include "wall-cell.hpp"
-#include "anim-cell.hpp"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
-// wall
 #include "wall-traits.hpp"
 #include "wall-cell.hpp"
-// todo scenery_traits
+#include "anim-traits.hpp"
 #include "anim-cell.hpp"
 #include "scenery-cell.hpp"
+// todo scenery_traits
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
@@ -56,9 +53,7 @@ void loader_impl::destroy()
 {
     _ground_loader = {InPlace};
     _wall_loader = {InPlace};
-    anim_atlas_map.clear();
-    anim_atlases.clear();
-    invalid_anim_atlas = nullptr;
+    _anim_loader = {InPlace};
     sceneries_map.clear();
     sceneries_array.clear();
 

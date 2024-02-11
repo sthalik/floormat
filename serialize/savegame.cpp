@@ -767,7 +767,7 @@ struct reader final : visitor_<reader>
         f(id);
         switch (type)
         {
-        case atlas_type::anim: a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}); return;
+        case atlas_type::anim: a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, loader_policy::warn); return;
         case atlas_type::vobj: a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas; return;
         case atlas_type::ground:
         case atlas_type::wall:
@@ -882,7 +882,7 @@ ok:
                 atlas = loader.wall_atlas(str, loader_policy::warn).get();
                 goto ok;
             case atlas_type::anim:
-                atlas = loader.anim_atlas(str, {}).get();
+                atlas = loader.anim_atlas(str, {}, loader_policy::warn).get();
                 goto ok;
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
