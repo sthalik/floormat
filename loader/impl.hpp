@@ -41,14 +41,6 @@ struct loader_impl final : loader_
     Trade::ImageData2D make_error_texture(Vector2ui size) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
 
-    // >-----> walls >----->
-    [[nodiscard]] static atlas_loader<class wall_atlas>* make_wall_atlas_loader(); // todo! reorder this block with ground_atlas
-    safe_ptr<atlas_loader<class wall_atlas>> _wall_loader{ make_wall_atlas_loader() };
-    const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
-    ArrayView<const wall_cell> wall_atlas_list() override;
-    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
-    const wall_cell& invalid_wall_atlas() override;
-
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
     safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{ make_ground_atlas_loader() };
@@ -56,6 +48,14 @@ struct loader_impl final : loader_
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& invalid_ground_atlas() override;
     std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
+
+    // >-----> walls >----->
+    [[nodiscard]] static atlas_loader<class wall_atlas>* make_wall_atlas_loader();
+    safe_ptr<atlas_loader<class wall_atlas>> _wall_loader{ make_wall_atlas_loader() };
+    const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
+    ArrayView<const wall_cell> wall_atlas_list() override;
+    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
+    const wall_cell& invalid_wall_atlas() override;
 
     // >-----> anim >----->
     [[nodiscard]] static atlas_loader<class anim_atlas>* make_anim_atlas_loader();
