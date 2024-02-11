@@ -64,7 +64,6 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
 {
     ensure_atlas_list();
     const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(get_invalid_atlas());
-    fm_debug_assert(invalid_atlas);
 
     switch (p)
     {
@@ -122,15 +121,17 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
             }
         }
     }
-    else if (Optional<Cell> c_{t.make_cell(name)}) // todo!
+    else if (Optional<Cell> c_{t.make_cell(name)})
     {
-        size_t index = s.cell_array.size();
+        fm_debug_assert(t.name_of(*c_));
+        fm_debug_assert(!t.atlas_of(*c_));
+        const size_t index{s.cell_array.size()};
+        if (t.name_of(c_).isSmall())
+            t.name_of(c_) = { AllocatedInit, t.name_of(c_) };
         s.cell_array.emplace_back(Utility::move(*c_));
-        Cell& c = s.cell_array.back();
-        fm_debug_assert(!t.name_of(c)); fm_debug_assert(!t.atlas_of(c));
+        Cell& c{s.cell_array.back()};
         t.atlas_of(c) = make_atlas(name, c);
-        t.name_of(c) = String{AllocatedInit, name};
-        fm_debug_assert(t.name_of(c)); fm_debug_assert(t.atlas_of(c));
+        fm_debug_assert(t.atlas_of(c));
         s.name_map[t.name_of(c)] = index;
         return t.atlas_of(c);
     }

@@ -24,15 +24,14 @@ String& wall_traits::name_of(Cell& x) { return x.name; }
 
 void wall_traits::ensure_atlases_loaded(Storage& s)
 {
-    fm_assert(s.name_map.empty());
-
+    fm_debug_assert(s.name_map.empty());
     s.cell_array = wall_cell::load_atlases_from_json().vec;
     s.name_map[loader.INVALID] = -1uz;
 }
 
 auto wall_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
 {
-    fm_assert(!s.invalid_atlas);
+    fm_debug_assert(!s.invalid_atlas);
     constexpr auto name = loader_::INVALID;
     constexpr auto frame_size = Vector2ui{tile_size_xy, tile_size_z};
 

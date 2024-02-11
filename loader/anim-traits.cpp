@@ -8,6 +8,7 @@
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
 #include <cr/Optional.h>
+#include <cr/Move.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 
@@ -23,7 +24,7 @@ String& anim_traits::name_of(Cell& x) { return x.name; }
 
 void anim_traits::ensure_atlases_loaded(Storage& s)
 {
-    fm_assert(s.name_map.empty());
+    fm_debug_assert(s.name_map.empty());
     s.cell_array = {};
     s.cell_array.reserve(16);
     s.name_map[loader.INVALID] = -1uz;
@@ -32,10 +33,12 @@ void anim_traits::ensure_atlases_loaded(Storage& s)
 auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
 {
     fm_debug_assert(!s.invalid_atlas);
-    constexpr auto size = Vector2ui{16};
+
+    constexpr auto size = Vector2ui{tile_size_xy*3/4};
+    constexpr auto ground = Vector2i(size/2);
 
     auto frame = anim_frame {
-        .ground = Vector2i(size/2),
+        .ground = ground,
         .offset = {},
         .size = size,
     };
@@ -57,15 +60,15 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
         .name = loader.INVALID,
         .atlas = atlas,
     };
-    return Pointer<anim_cell>{ InPlace, std::move(info) };
+    return Pointer<anim_cell>{ InPlace, Utility::move(info) };
 }
 
-auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
+auto anim_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
 {
     return {}; // todo
 }
 
-auto anim_traits::make_cell(StringView) -> Optional<Cell>
+auto anim_traits::make_cell(StringView name) -> Optional<Cell>
 {
     return {};
 }

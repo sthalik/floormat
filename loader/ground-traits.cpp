@@ -24,8 +24,7 @@ String& ground_traits::name_of(Cell& x) { return x.name; }
 
 void ground_traits::ensure_atlases_loaded(Storage& s)
 {
-    fm_assert(s.name_map.empty());
-
+    fm_debug_assert(s.name_map.empty());
     s.cell_array = ground_cell::load_atlases_from_json().vec;
     s.name_map[loader.INVALID] = -1uz;
 }
@@ -33,7 +32,6 @@ void ground_traits::ensure_atlases_loaded(Storage& s)
 auto ground_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
 {
     fm_debug_assert(!s.invalid_atlas);
-    fm_assert(!s.invalid_atlas);
     auto atlas = std::make_shared<Atlas>(
         ground_def{loader.INVALID, Vector2ub{1,1}, pass_mode::pass},
         loader.make_error_texture(Vector2ui(tile_size_xy)));
