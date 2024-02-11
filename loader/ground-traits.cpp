@@ -32,6 +32,7 @@ void ground_traits::ensure_atlases_loaded(Storage& s)
 
 auto ground_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
 {
+    fm_debug_assert(!s.invalid_atlas);
     fm_assert(!s.invalid_atlas);
     auto atlas = std::make_shared<Atlas>(
         ground_def{loader.INVALID, Vector2ub{1,1}, pass_mode::pass},

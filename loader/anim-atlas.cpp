@@ -60,6 +60,7 @@ std::shared_ptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView 
     if (name == INVALID) return make_invalid_anim_atlas().atlas; // todo! hack
 
     fm_soft_assert(check_atlas_name(name));
+    fm_soft_assert(!dir || dir[dir.size()-1] == '/');
     char buf[fm_FILENAME_MAX];
     auto path = make_atlas_path(buf, dir, name);
 

@@ -50,11 +50,11 @@ auto atlas_loader<ATLAS, TRAITS>::ensure_atlas_list() -> ArrayView<const Cell>
       s.name_map[loader.INVALID] = sz;
     }
 
-    fm_assert(!s.name_map.empty());
-    fm_assert(!s.cell_array.empty());
-
     for (const auto& [name, index] : s.name_map)
         fm_assert(index < s.cell_array.size() || index == -1uz);
+
+    fm_debug_assert(!s.name_map.empty());
+    fm_debug_assert(!s.cell_array.empty());
 
     return { s.cell_array.data(), s.cell_array.size() };
 }

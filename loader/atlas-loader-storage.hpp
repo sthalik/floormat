@@ -2,6 +2,7 @@
 #include "compat/int-hash.hpp"
 #include "atlas-loader-fwd.hpp"
 #include <vector>
+#include <cr/StringView.h>
 #include <tsl/robin_map.h>
 
 namespace floormat::loader_detail {
