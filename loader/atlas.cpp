@@ -14,14 +14,17 @@
 
 namespace floormat {
 
-StringView loader_::make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name)
+StringView loader_::make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name, StringView ext)
 {
     fm_soft_assert(!dir || dir[dir.size()-1] == '/');
-    const auto dirsiz = dir.size(), namesiz = name.size();
-    fm_soft_assert(dirsiz + namesiz + 1 < fm_FILENAME_MAX);
-    std::memcpy(buf, dir.data(), dirsiz);
-    std::memcpy(&buf[dirsiz], name.data(), namesiz);
-    auto len = dirsiz + namesiz;
+    fm_soft_assert(name);
+    fm_soft_assert(!ext || ext[0] == '.');
+    const auto dirsiz = dir.size(), namesiz = name.size(), extsiz = ext.size(),
+               len = dirsiz + namesiz + extsiz;
+    fm_soft_assert(len < fm_FILENAME_MAX);
+    std::memcpy(&buf[0],                dir.data(),  dirsiz );
+    std::memcpy(&buf[dirsiz],           name.data(), namesiz);
+    std::memcpy(&buf[dirsiz + namesiz], ext.data(),  extsiz );
     buf[len] = '\0';
     return StringView{buf, len, StringViewFlag::NullTerminated};
 }

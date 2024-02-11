@@ -4,11 +4,15 @@
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
 #include "loader.hpp"
+#include "serialize/json-helper.hpp"
+#include "serialize/anim.hpp"
 #include "compat/exception.hpp"
+#include <cr/Move.h>
 #include <cr/StringView.h>
+#include <cr/Array.h>
+#include <cr/StridedArrayView.h>
 #include <cr/Pointer.h>
 #include <cr/Optional.h>
-#include <cr/Move.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 
@@ -62,9 +66,39 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
     return Pointer<anim_cell>{ InPlace, Utility::move(info) };
 }
 
-auto anim_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
+auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
 {
-    return {}; // todo
+    char buf[fm_FILENAME_MAX];
+    auto json_path = loader.make_atlas_path(buf, {}, name, ".json"_s);
+    auto anim_info = json_helper::from_json<struct anim_def>(json_path);
+
+    for (anim_group& group : anim_info.groups)
+    {
+        if (!group.mirror_from.isEmpty())
+        {
+            const auto *begin = anim_info.groups.data(), *end = begin + anim_info.groups.size();
+            const auto* it = std::find_if(begin, end, [&](const anim_group& x) { return x.name == group.mirror_from; });
+            if (it == end)
+                fm_throw("can't find group '{}' to mirror from '{}'"_cf, group.mirror_from, group.name);
+            group.frames = array(ArrayView<const anim_frame>{it->frames.data(), it->frames.size()});
+            for (anim_frame& f : group.frames)
+                f.ground = Vector2i((Int)f.size[0] - f.ground[0], f.ground[1]);
+        }
+    }
+
+    auto tex = loader.texture(""_s, name);
+
+    fm_soft_assert(!anim_info.object_name.isEmpty());
+    fm_soft_assert(anim_info.pixel_size.product() > 0);
+    fm_soft_assert(!anim_info.groups.isEmpty());
+    fm_soft_assert(anim_info.nframes > 0);
+    fm_soft_assert(anim_info.nframes == 1 || anim_info.fps > 0);
+    const auto size = tex.pixels().size();
+    const auto width = size[1], height = size[0];
+    fm_soft_assert(anim_info.pixel_size[0] == width && anim_info.pixel_size[1] == height);
+
+    auto atlas = std::make_shared<class anim_atlas>(name, tex, std::move(anim_info));
+    return atlas;
 }
 
 auto anim_traits::make_cell(StringView name) -> Optional<Cell>

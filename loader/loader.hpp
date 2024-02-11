@@ -3,7 +3,7 @@
 #include "src/pass-mode.hpp"
 #include "loader/policy.hpp"
 #include <memory>
-#include <Corrade/Containers/String.h>
+#include <cr/StringView.h>
 
 //namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace Magnum::Trade { template<uint32_t> class ImageData; using ImageData2D = ImageData<2>; }
@@ -44,7 +44,7 @@ struct loader_
     static StringView strip_prefix(StringView name);
     virtual const vobj_cell& vobj(StringView name) = 0;
     virtual ArrayView<const struct vobj_cell> vobj_list() = 0;
-    static StringView make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name);
+    static StringView make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir, StringView name, StringView extension = {});
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
     virtual const wall_cell& make_invalid_wall_atlas() = 0;
