@@ -6,6 +6,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/scenery.hpp"
 #include <mg/Texture.h>
 
 namespace floormat {
@@ -33,8 +34,14 @@ constexpr const char* anim_atlases[] = {
     "anim/npc-walk",
     "anim/test-8x8",
     "scenery/door-close",
-    "scenery/control-panel",
-    "scenery/table",
+};
+
+constexpr const char* sceneries[] = {
+    "bench1",
+    "shelf6",
+    "door1",
+    "control panel (wall) 1",
+    "table0",
 };
 
 } // namespace
@@ -64,9 +71,14 @@ void test_app::test_loader()
         fm_assert(!A.raw_frame_array().isEmpty());
         fm_assert(A.texture().id());
     }
+    fm_assert(!loader.scenery_list().isEmpty());
+    for (const auto& name : sceneries)
+    {
+        const auto& S = loader.scenery(name);
+        fm_assert(S.atlas);
+    }
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
-    loader.sceneries();
 }
 
 void test_app::test_loader2()

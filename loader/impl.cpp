@@ -6,6 +6,7 @@
 #include "wall-cell.hpp"
 #include "anim-traits.hpp"
 #include "anim-cell.hpp"
+#include "scenery-traits.hpp"
 #include "scenery-cell.hpp"
 // todo scenery_traits
 #include "vobj-cell.hpp"
@@ -54,9 +55,7 @@ void loader_impl::destroy()
     _ground_loader = {InPlace};
     _wall_loader = {InPlace};
     _anim_loader = {InPlace};
-    sceneries_map.clear();
-    sceneries_array.clear();
-
+    _scenery_loader = {InPlace};
     vobj_atlas_map.clear();
     vobjs.clear();
 }

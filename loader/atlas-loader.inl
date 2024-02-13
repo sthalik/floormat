@@ -34,8 +34,6 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
     for (Cell& c : s.cell_array)
     {
         String& name{t.name_of(c)};
-        if (name.isSmall())
-            name = String{AllocatedInit, name};
         fm_soft_assert(name != loader.INVALID);
         fm_soft_assert(loader.check_atlas_name(name));
     }
@@ -136,8 +134,6 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         fm_assert(!t.atlas_of(*c_));
         fm_assert(t.name_of(*c_) == name);
         const size_t index{s.cell_array.size()};
-        if (t.name_of(*c_).isSmall())
-            t.name_of(*c_) = String{ AllocatedInit, t.name_of(*c_) };
         s.cell_array.emplace_back(Utility::move(*c_));
         Cell& c{s.cell_array.back()};
         t.atlas_of(c) = make_atlas(name, c);
@@ -166,7 +162,7 @@ error:
     fm_throw("no such atlas '{}'"_cf, name);
 
 missing_warn:
-    s.missing_atlas_names.push_back(String { AllocatedInit, name });
+    s.missing_atlas_names.push_back(name);
     s.name_map[ s.missing_atlas_names.back() ] = -1uz;
 
     if (name != loader.INVALID)
@@ -214,8 +210,6 @@ template<typename ATLAS, typename TRAITS>
 void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
 {
     String& name{t.name_of(c)};
-    if (name.isSmall())
-        name = String{AllocatedInit, name};
     fm_assert(!s.name_map.contains(name));
     fm_soft_assert(loader.check_atlas_name(name));
     const size_t index{s.cell_array.size()};

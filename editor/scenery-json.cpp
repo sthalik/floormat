@@ -9,8 +9,8 @@ namespace floormat {
 void scenery_editor::load_atlases()
 {
     _atlases.clear();
-    for (const auto& s : loader.sceneries())
-        _atlases[s.name] = scenery_{s.name, s.proto};
+    for (const auto& s : loader.scenery_list())
+        _atlases[s.name] = { s.name, loader.scenery(s.name) };
 }
 
 } // namespace floormat

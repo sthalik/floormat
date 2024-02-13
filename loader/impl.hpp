@@ -66,11 +66,12 @@ struct loader_impl final : loader_
     std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->
-    std::vector<scenery_cell> sceneries_array;
-    tsl::robin_map<StringView, const scenery_cell*> sceneries_map;
-    ArrayView<const scenery_cell> sceneries() override;
-    const scenery_proto& scenery(StringView name) noexcept(false) override;
-    void get_scenery_list();
+    [[nodiscard]] static atlas_loader<struct scenery_proto>* make_scenery_atlas_loader();
+    safe_ptr<atlas_loader<struct scenery_proto>> _scenery_loader{ make_scenery_atlas_loader() };
+    ArrayView<const scenery_cell> scenery_list() override;
+    const struct scenery_proto& scenery(StringView name, loader_policy policy) override;
+    const scenery_cell& invalid_scenery_atlas() override;
+    struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) override;
 
     // >-----> vobjs >----->
     tsl::robin_map<StringView, const struct vobj_cell*> vobj_atlas_map;

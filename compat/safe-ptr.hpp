@@ -29,6 +29,10 @@ public:
         ptr(new T{ Utility::forward<Ts>(args)... })
     {}
 
+    safe_ptr(const safe_ptr& other) noexcept:
+          ptr{new T{*other.ptr}}
+    {}
+
     safe_ptr& operator=(safe_ptr&& other) noexcept
     {
         fm_assert(this != &other);
@@ -38,7 +42,17 @@ public:
         return *this;
     }
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(safe_ptr);
+    safe_ptr& operator=(const safe_ptr& other) noexcept
+    {
+        if (ptr != other.ptr)
+        {
+            delete ptr;
+            ptr = nullptr;
+            if (other.ptr)
+                ptr = new T{*other.ptr};
+        }
+        return *this;
+    }
 
     //explicit operator bool() const noexcept { return ptr != nullptr; }
 

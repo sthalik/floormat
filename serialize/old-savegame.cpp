@@ -198,8 +198,6 @@ bool read_object_flags(binary_reader<T>& s, U& e)
 
 void reader_state::read_sceneries(reader_t& s)
 {
-    (void)loader.sceneries();
-
     uint16_t magic; magic << s;
     if (magic != scenery_magic)
         fm_throw("bad scenery magic"_cf);
@@ -213,7 +211,7 @@ void reader_state::read_sceneries(reader_t& s)
         uint8_t num; num << s;
         fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
-        auto sc = loader.scenery(str);
+        auto sc = loader.scenery(str, asset_policy);
         for (auto n = 0uz; n < num; n++)
         {
             atlasid id; id << s;

@@ -7,8 +7,26 @@
 #include "loader/scenery-cell.hpp"
 #include "serialize/pass-mode.hpp"
 #include "serialize/magnum-vector.hpp"
+#include "json-wrapper.hpp"
 #include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
+
+namespace floormat {
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-dtor"
+#endif
+
+scenery_cell::~scenery_cell() noexcept = default;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+auto scenery_cell::make_json_wrapper() -> json_wrapper* { return new json_wrapper; }
+
+} // namespace floormat
 
 namespace {
 
@@ -184,17 +202,19 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
 
 void adl_serializer<scenery_cell>::to_json(json& j, const scenery_cell& val)
 {
-    fm_soft_assert(val.proto.atlas);
-    j = val.proto;
-    const auto name = !val.name.isEmpty() ? StringView{val.name} : val.proto.atlas->name();
-    j["name"] = name;
+    j = val.data->j;
+    fm_assert(val.name);
+    j["name"] = val.name;
 }
 
 void adl_serializer<scenery_cell>::from_json(const json& j, scenery_cell& val)
 {
     val = {};
-    val.proto = j;
-    val.name = j["name"];
+    val.data->j = j;
+    if (j.contains("name"))
+        val.name = j["name"];
+    else
+        val.name = j["atlas-name"];
 }
 
 } // namespace nlohmann

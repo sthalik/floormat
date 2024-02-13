@@ -61,7 +61,6 @@ int test_app::exec()
         FM_TEST(test_loader),
         FM_TEST(test_serializer1),
         FM_TEST(test_loader2),
-        FM_TEST(test_scenery),
         FM_TEST(test_astar_pool),
         FM_TEST(test_astar),
         FM_TEST(test_dijkstra),

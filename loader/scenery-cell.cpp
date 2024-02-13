@@ -4,6 +4,7 @@
 #include "loader/loader.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/scenery.hpp"
+#include "serialize/json-wrapper.hpp"
 
 namespace floormat {
 

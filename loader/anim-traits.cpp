@@ -102,7 +102,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
 
 auto anim_traits::make_cell(StringView name) -> Optional<Cell>
 {
-    return { InPlace, Cell{ .atlas = {}, .name = name, } };
+    return { InPlace, Cell { .atlas = {}, .name = name } };
 }
 
 } // namespace floormat::loader_detail

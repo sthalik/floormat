@@ -24,22 +24,26 @@ struct ground_cell;
 struct wall_cell;
 class wall_atlas;
 struct scenery_proto;
+struct json_wrapper;
 
 struct loader_
 {
+    virtual void destroy() = 0;
+    static loader_& default_loader() noexcept;
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D make_error_texture(Vector2ui size) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
+
     virtual const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
-    virtual ArrayView<const anim_cell> anim_atlas_list() = 0;
-    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual const struct scenery_proto& scenery(StringView name, loader_policy policy = loader_policy::DEFAULT) = 0;
+
+    virtual ArrayView<const ground_cell> ground_atlas_list() noexcept(false) = 0;
     virtual ArrayView<const wall_cell> wall_atlas_list() = 0;
-    virtual void destroy() = 0;
-    static loader_& default_loader() noexcept;
-    virtual ArrayView<const ground_cell> ground_atlas_list() noexcept(false) = 0; // todo maybe try returning
-    virtual ArrayView<const scenery_cell> sceneries() = 0;
-    virtual const scenery_proto& scenery(StringView name) noexcept(false) = 0;
+    virtual ArrayView<const anim_cell> anim_atlas_list() = 0;
+    virtual ArrayView<const scenery_cell> scenery_list() = 0;
+
     virtual StringView startup_directory() noexcept = 0;
     static StringView strip_prefix(StringView name);
     virtual const vobj_cell& vobj(StringView name) = 0;
@@ -50,6 +54,7 @@ struct loader_
     virtual const wall_cell& invalid_wall_atlas() = 0;
     virtual const ground_cell& invalid_ground_atlas() = 0;
     virtual const anim_cell& invalid_anim_atlas() = 0;
+    virtual const scenery_cell& invalid_scenery_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
@@ -57,6 +62,8 @@ struct loader_
     virtual std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) = 0;
+    /** \deprecated{internal use only}*/ [[nodiscard]]
+    virtual struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) = 0;
 
     virtual ~loader_() noexcept;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);
