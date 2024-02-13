@@ -16,6 +16,7 @@ public:
     using Traits = TRAITS;
     using Atlas = ATLAS;
     using Cell = typename TRAITS::Cell;
+    using AtlasPtr = std::decay_t<decltype(t.atlas_of(std::declval<const Cell&>()))>;
 
     ~atlas_loader() noexcept = default;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(atlas_loader);
@@ -25,8 +26,8 @@ public:
     atlas_loader() requires std::is_default_constructible_v<TRAITS>;
 
     ArrayView<const Cell> atlas_list();
-    const std::shared_ptr<Atlas>& get_atlas(StringView name, loader_policy p);
-    std::shared_ptr<Atlas> make_atlas(StringView name, const Cell& cell);
+    const AtlasPtr& get_atlas(StringView name, loader_policy p);
+    AtlasPtr make_atlas(StringView name, const Cell& cell);
 
     bool cell_exists(StringView name);
     const Cell& get_cell(StringView name);

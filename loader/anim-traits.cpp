@@ -23,7 +23,6 @@ StringView anim_traits::loader_name() { return "anim_atlas"_s; }
 auto anim_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
 auto anim_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
 StringView anim_traits::name_of(const Cell& x) { return x.name; }
-StringView anim_traits::name_of(const Atlas& x) { return x.name(); }
 String& anim_traits::name_of(Cell& x) { return x.name; }
 
 void anim_traits::atlas_list(Storage& s)
@@ -33,7 +32,7 @@ void anim_traits::atlas_list(Storage& s)
     s.name_map[loader.INVALID] = -1uz;
 }
 
-auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
+auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
 
@@ -63,7 +62,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
         .atlas = atlas,
         .name = loader.INVALID,
     };
-    return Pointer<anim_cell>{ InPlace, Utility::move(info) };
+    return info;
 }
 
 auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>

@@ -19,7 +19,6 @@ StringView ground_traits::loader_name() { return "ground_atlas"_s; }
 auto ground_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
 auto ground_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
 StringView ground_traits::name_of(const Cell& x) { return x.name; }
-StringView ground_traits::name_of(const Atlas& x) { return x.name(); }
 String& ground_traits::name_of(Cell& x) { return x.name; }
 
 void ground_traits::atlas_list(Storage& s)
@@ -29,13 +28,13 @@ void ground_traits::atlas_list(Storage& s)
     s.name_map[loader.INVALID] = -1uz;
 }
 
-auto ground_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
+auto ground_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
     auto atlas = std::make_shared<Atlas>(
         ground_def{loader.INVALID, Vector2ub{1,1}, pass_mode::pass},
         loader.make_error_texture(Vector2ui(tile_size_xy)));
-    return Pointer<ground_cell>{ InPlaceInit, atlas, atlas->name(), atlas->num_tiles2(), atlas->pass_mode() };
+    return ground_cell{ atlas, atlas->name(), atlas->num_tiles2(), atlas->pass_mode() };
 }
 
 auto ground_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>

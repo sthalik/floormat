@@ -3,6 +3,7 @@
 #include "atlas-loader-fwd.hpp"
 #include <vector>
 #include <cr/StringView.h>
+#include <cr/Optional.h>
 #include <tsl/robin_map.h>
 
 namespace floormat::loader_detail {
@@ -19,7 +20,7 @@ struct atlas_storage
     tsl::robin_map<StringView, size_t, hash_string_view> name_map;
     std::vector<Cell> cell_array;
     std::vector<String> missing_atlas_names;
-    Pointer<Cell> invalid_atlas;
+    Optional<Cell> invalid_atlas;
 
     ~atlas_storage() noexcept = default;
 };

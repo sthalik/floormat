@@ -62,10 +62,10 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
 }
 
 template<typename ATLAS, typename TRAITS>
-const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, loader_policy p)
+auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy p) -> const AtlasPtr&
 {
     atlas_list();
-    const std::shared_ptr<Atlas>& invalid_atlas = t.atlas_of(get_invalid_atlas());
+    const AtlasPtr& invalid_atlas = t.atlas_of(get_invalid_atlas());
 
     switch (p)
     {
@@ -77,11 +77,14 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
     default:
         fm_abort("invalid loader_policy (%d)", (int)p);
     }
+    CORRADE_ASSUME(p <= loader_policy::ignore);
 
     if (name == loader.INVALID) [[unlikely]]
         switch (p)
         {
         using enum loader_policy;
+        default:
+            std::unreachable();
         case error:
             goto error;
         case ignore:
@@ -98,6 +101,8 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
             switch (p)
             {
             using enum loader_policy;
+            default:
+                std::unreachable();
             case error:
                 goto error;
             case warn:
@@ -109,13 +114,13 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         {
             Cell& c = s.cell_array[it->second];
             fm_assert(t.name_of(c));
-            std::shared_ptr<ATLAS>& atlas{t.atlas_of(c)};
+            AtlasPtr& atlas{t.atlas_of(c)};
             if (!atlas) [[unlikely]]
             {
                 atlas = make_atlas(name, c);
                 fm_assert(atlas);
                 fm_assert(t.atlas_of(c) == atlas);
-                fm_assert(t.name_of(*atlas) == name);
+                //fm_assert(t.name_of(*atlas) == name);
                 return atlas;
             }
             else
@@ -141,10 +146,11 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         return t.atlas_of(c);
     }
     else
-    {
         switch (p)
         {
         using enum loader_policy;
+        default:
+            std::unreachable();
         case error:
             goto error;
         case warn:
@@ -152,7 +158,6 @@ const std::shared_ptr<ATLAS>& atlas_loader<ATLAS, TRAITS>::get_atlas(StringView 
         case ignore:
             return invalid_atlas;
         }
-    }
 
     std::unreachable();
     fm_assert(false);
@@ -171,7 +176,7 @@ missing_warn:
 }
 
 template<typename ATLAS, typename TRAITS>
-auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
+auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> AtlasPtr
 {
     fm_assert(name != "<invalid>"_s);
     fm_soft_assert(!t.name_of(c) || t.name_of(c) == name);
@@ -187,7 +192,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_invalid_atlas() -> const Cell&
     s.invalid_atlas = t.make_invalid_atlas(s);
     fm_assert(s.invalid_atlas);
     fm_assert(t.atlas_of(*s.invalid_atlas));
-    fm_assert(t.name_of(*s.invalid_atlas) == loader.INVALID);
+    //fm_assert(t.name_of(*s.invalid_atlas) == loader.INVALID);
     return *s.invalid_atlas;
 }
 
@@ -211,10 +216,8 @@ void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
     String& name{t.name_of(c)};
     if (name.isSmall())
         name = String{AllocatedInit, name};
-    const std::shared_ptr<Atlas>& atlas{t.atlas_of(c)};
     fm_assert(!s.name_map.contains(name));
     fm_soft_assert(loader.check_atlas_name(name));
-    fm_assert(!atlas || t.name_of(*atlas) == name);
     const size_t index{s.cell_array.size()};
     s.cell_array.push_back(Utility::move(c));
     s.name_map[ t.name_of(s.cell_array.back()) ] = index;

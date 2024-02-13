@@ -8,7 +8,6 @@
 #include "compat/vector-wrapper.hpp"
 #include <cr/StringView.h>
 #include <cr/Optional.h>
-#include <cr/Pointer.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 
@@ -19,7 +18,6 @@ StringView wall_traits::loader_name() { return "wall_atlas"_s; }
 auto wall_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
 auto wall_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
 StringView wall_traits::name_of(const Cell& x) { return x.name; }
-StringView wall_traits::name_of(const Atlas& x) { return x.name(); }
 String& wall_traits::name_of(Cell& x) { return x.name; }
 
 void wall_traits::atlas_list(Storage& s)
@@ -29,7 +27,7 @@ void wall_traits::atlas_list(Storage& s)
     s.name_map[loader.INVALID] = -1uz;
 }
 
-auto wall_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
+auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
     constexpr auto name = loader_::INVALID;
@@ -45,7 +43,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Pointer<Cell>
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, loader.make_error_texture(frame_size));
-    return Pointer<wall_cell>{InPlaceInit, wall_cell{ .atlas = std::move(a), .name = name, } };
+    return { .atlas = std::move(a), .name = name, };
 }
 
 auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
