@@ -9,7 +9,7 @@
 #include "compat/exception.hpp"
 #include <cr/Move.h>
 #include <cr/StringView.h>
-#include <cr/Array.h>
+#include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <cr/Pointer.h>
 #include <cr/Optional.h>
@@ -29,6 +29,7 @@ void anim_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = {};
+    arrayReserve(s.cell_array, 16);
     s.name_map[loader.INVALID] = -1uz;
 }
 

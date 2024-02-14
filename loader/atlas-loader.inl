@@ -9,13 +9,16 @@
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
 #include <cr/Move.h>
+#include <cr/GrowableArray.h>
 
 namespace floormat::loader_detail {
 
 template<typename ATLAS, typename TRAITS>
 atlas_loader<ATLAS, TRAITS>::atlas_loader(TRAITS&& traits): // NOLINT(*-rvalue-reference-param-not-moved)
       t{Utility::move(traits)}
-{}
+{
+    arrayReserve(s.missing_atlas_names, 8);
+}
 
 template<typename ATLAS, typename TRAITS>
 atlas_loader<ATLAS, TRAITS>::atlas_loader() requires std::is_default_constructible_v<TRAITS>: atlas_loader{TRAITS{}} {}
@@ -36,17 +39,18 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
         String& name{t.name_of(c)};
         fm_soft_assert(name != loader.INVALID);
         fm_soft_assert(loader.check_atlas_name(name));
+        if (name.isSmall()) name = String{AllocatedInit, name};
     }
 
     s.name_map.max_load_factor(0.4f);
-    if (!s.cell_array.empty())
+    if (!s.cell_array.isEmpty())
         s.name_map.reserve(s.cell_array.size()*5/2 + 1);
     for (auto i = 0uz; const auto& c : s.cell_array)
         s.name_map[t.name_of(c)] = i++;
 
     { const Cell& invalid_atlas{get_invalid_atlas()};
       size_t sz{s.cell_array.size()};
-      s.cell_array.push_back(invalid_atlas);
+      arrayAppend(s.cell_array, invalid_atlas);
       s.name_map[loader.INVALID] = sz;
     }
 
@@ -54,7 +58,7 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
         fm_assert(index < s.cell_array.size() || index == -1uz);
 
     fm_debug_assert(!s.name_map.empty());
-    fm_debug_assert(!s.cell_array.empty());
+    fm_debug_assert(!s.cell_array.isEmpty());
 
     return { s.cell_array.data(), s.cell_array.size() };
 }
@@ -134,8 +138,10 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         fm_assert(!t.atlas_of(*c_));
         fm_assert(t.name_of(*c_) == name);
         const size_t index{s.cell_array.size()};
-        s.cell_array.emplace_back(Utility::move(*c_));
+        arrayAppend(s.cell_array, Utility::move(*c_));
         Cell& c{s.cell_array.back()};
+        String& name_{t.name_of(c)};
+        if (name_.isSmall()) name_ = String{AllocatedInit, name_};
         t.atlas_of(c) = make_atlas(name, c);
         fm_debug_assert(t.atlas_of(c));
         s.name_map[t.name_of(c)] = index;
@@ -162,8 +168,11 @@ error:
     fm_throw("no such atlas '{}'"_cf, name);
 
 missing_warn:
-    s.missing_atlas_names.push_back(name);
-    s.name_map[ s.missing_atlas_names.back() ] = -1uz;
+    arrayAppend(s.missing_atlas_names, name);
+    if (auto& back = s.missing_atlas_names.back(); back.isSmall()) back = String{AllocatedInit, back};
+    String& back{s.missing_atlas_names.back()};
+    if (back.isSmall()) back = String{AllocatedInit, back};
+    s.name_map[back] = -1uz;
 
     if (name != loader.INVALID)
         DBG_nospace << t.loader_name() << " '" << name << "' doesn't exist";
@@ -210,10 +219,12 @@ template<typename ATLAS, typename TRAITS>
 void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
 {
     String& name{t.name_of(c)};
+    if (name.isSmall()) name = String{AllocatedInit, name};
     fm_assert(!s.name_map.contains(name));
     fm_soft_assert(loader.check_atlas_name(name));
     const size_t index{s.cell_array.size()};
-    s.cell_array.push_back(Utility::move(c));
+    arrayAppend(s.cell_array, Utility::move(c));
+    if (String& name_ = t.name_of(s.cell_array.back()); name_.isSmall()) name_ = String{AllocatedInit, name_};
     s.name_map[ t.name_of(s.cell_array.back()) ] = index;
 }
 

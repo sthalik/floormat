@@ -40,10 +40,10 @@ template<typename T> using scenery_to_proto = typename scenery_to_proto_<T>::typ
 
 } // namespace
 
-scenery_proto::scenery_proto() { type = object_type::scenery; }
+scenery_proto::scenery_proto() noexcept { type = object_type::scenery; }
 
-scenery_proto& scenery_proto::operator=(const scenery_proto&) = default;
-scenery_proto::scenery_proto(const scenery_proto&) = default;
+scenery_proto& scenery_proto::operator=(const scenery_proto&) noexcept = default;
+scenery_proto::scenery_proto(const scenery_proto&) noexcept = default;
 scenery_proto::~scenery_proto() noexcept = default;
 scenery_proto::operator bool() const { return atlas != nullptr; }
 

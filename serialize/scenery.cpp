@@ -13,17 +13,6 @@
 
 namespace floormat {
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-dtor"
-#endif
-
-scenery_cell::~scenery_cell() noexcept = default;
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
 auto scenery_cell::make_json_wrapper() -> json_wrapper* { return new json_wrapper; }
 
 } // namespace floormat

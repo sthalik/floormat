@@ -5,7 +5,6 @@
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
-#include "compat/vector-wrapper.hpp"
 #include <cr/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
@@ -24,7 +23,7 @@ String& ground_traits::name_of(Cell& x) { return x.name; }
 void ground_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
-    s.cell_array = ground_cell::load_atlases_from_json().vec;
+    s.cell_array = ground_cell::load_atlases_from_json();
     s.name_map[loader.INVALID] = -1uz;
 }
 

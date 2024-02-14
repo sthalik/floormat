@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/int-hash.hpp"
 #include "atlas-loader-fwd.hpp"
-#include <vector>
 #include <cr/StringView.h>
+#include <cr/Array.h>
 #include <cr/Optional.h>
 #include <tsl/robin_map.h>
 
@@ -19,9 +19,9 @@ struct atlas_storage
     using Atlas = typename Traits::Atlas;
     using Cell = typename Traits::Cell;
 
-    tsl::robin_map<String, size_t, hash_string_view, string_equals> name_map;
-    std::vector<Cell> cell_array;
-    std::vector<String> missing_atlas_names;
+    tsl::robin_map<StringView, size_t, hash_string_view, string_equals> name_map;
+    Array<Cell> cell_array;
+    Array<String> missing_atlas_names;
     Optional<Cell> invalid_atlas;
 
     ~atlas_storage() noexcept = default;

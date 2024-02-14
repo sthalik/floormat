@@ -5,7 +5,6 @@
 #include "src/tile-defs.hpp"
 #include "src/wall-atlas.hpp"
 #include "compat/exception.hpp"
-#include "compat/vector-wrapper.hpp"
 #include <cr/StringView.h>
 #include <cr/Optional.h>
 #include <mg/ImageData.h>
@@ -23,7 +22,7 @@ String& wall_traits::name_of(Cell& x) { return x.name; }
 void wall_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
-    s.cell_array = wall_cell::load_atlases_from_json().vec;
+    s.cell_array = wall_cell::load_atlases_from_json();
     s.name_map[loader.INVALID] = -1uz;
 }
 

@@ -28,6 +28,7 @@ ground_editor::~ground_editor() noexcept = default;
 void ground_editor::load_atlases()
 {
     fm_assert(_atlases.empty());
+
     for (const auto& g : loader.ground_atlas_list())
     {
         if (g.name != loader.INVALID) [[likely]]

@@ -12,6 +12,7 @@
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
+#include "serialize/json-wrapper.hpp"
 
 namespace floormat {
 

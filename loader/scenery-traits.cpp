@@ -1,6 +1,5 @@
 #include "scenery-traits.hpp"
 #include "compat/assert.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "atlas-loader-storage.hpp"
 #include "scenery-cell.hpp"
 #include "loader.hpp"
@@ -27,7 +26,7 @@ String& scenery_traits::name_of(Cell& x) { return x.name; }
 void scenery_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
-    s.cell_array = scenery_cell::load_atlases_from_json().vec;
+    s.cell_array = scenery_cell::load_atlases_from_json();
     s.name_map[loader.INVALID] = -1uz;
 }
 
