@@ -14,6 +14,10 @@ struct exception : std::exception, base_exception
     template<typename Fmt, typename... Ts>
     exception(const Fmt& fmt, Ts&&... args) noexcept;
 
+    exception(exception&&) noexcept;
+    exception(const exception& other) noexcept;
+    exception& operator=(exception&&) noexcept;
+    exception& operator=(const exception& other) noexcept;
     const char* what() const noexcept override;
 
 private:
