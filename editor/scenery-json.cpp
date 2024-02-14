@@ -10,7 +10,10 @@ void scenery_editor::load_atlases()
 {
     _atlases.clear();
     for (const auto& s : loader.scenery_list())
-        _atlases[s.name] = { s.name, loader.scenery(s.name) };
+        _atlases[s.name] = {
+            .name = s.name,
+            .proto = loader.scenery(s.name, s.name == loader.INVALID ? loader_policy::ignore : loader_policy::error)
+        };
 }
 
 } // namespace floormat
