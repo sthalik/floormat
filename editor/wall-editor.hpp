@@ -13,7 +13,7 @@ class wall_atlas;
 
 class wall_editor
 {
-    std::map<String, wall_cell> _atlases;
+    std::map<StringView, wall_cell> _atlases;
     std::shared_ptr<wall_atlas> _selected_atlas;
     enum rotation _r = rotation::N;
 
