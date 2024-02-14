@@ -30,10 +30,8 @@ public:
     ~ground_editor() noexcept;
     std::shared_ptr<ground_atlas> maybe_atlas(StringView str);
     std::shared_ptr<ground_atlas> atlas(StringView str);
-    auto cbegin() const noexcept { return _atlases.cbegin(); }
-    auto cend() const noexcept { return _atlases.cend(); }
-    auto begin() const noexcept { return _atlases.cbegin(); }
-    auto end() const noexcept { return _atlases.cend(); }
+    typename std::map<StringView, ground_cell>::const_iterator begin() const noexcept;
+    typename std::map<StringView, ground_cell>::const_iterator end() const noexcept;
     StringView name() const noexcept;
 
     void clear_selection();

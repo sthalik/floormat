@@ -1,21 +1,25 @@
 #include "ground-editor.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
 #include "src/random.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
-#include "compat/exception.hpp"
+#include "loader/ground-cell.hpp"
 #include <memory>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
 
+typename std::map<StringView, ground_cell>::const_iterator ground_editor::begin() const noexcept { return _atlases.cbegin(); }
+typename std::map<StringView, ground_cell>::const_iterator ground_editor::end() const noexcept { return _atlases.cend(); }
+
 struct ground_editor::tuple
 {
     std::shared_ptr<ground_atlas> atlas;
-    Array<decltype(tile_image_proto::variant)> variant;
+    Array<variant_t> variant;
 };
 
 ground_editor::ground_editor()
