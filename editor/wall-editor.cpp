@@ -57,7 +57,7 @@ void wall_editor::load_atlases()
         else
             loader.invalid_wall_atlas();
         fm_assert(wa.atlas);
-        _atlases[wa.name] = &wa;
+        _atlases[wa.name] = wa;
     }
 
     fm_assert(!_atlases.empty());

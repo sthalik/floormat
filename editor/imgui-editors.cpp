@@ -39,23 +39,23 @@ StringView scenery_type_to_string(const scenery_& sc)
     }
 }
 
-StringView scenery_path(const wall_cell* wa) { return wa->atlas->name(); }
+StringView scenery_path(const wall_cell& wa) { return wa.atlas->name(); }
 StringView scenery_name(StringView, const scenery_& sc) { return sc.name; }
 StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
-StringView scenery_name(StringView, const wall_cell* w) { return w->name; }
+StringView scenery_name(StringView, const wall_cell& w) { return w.name; }
 std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
 std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
-std::shared_ptr<wall_atlas> get_atlas(const wall_cell* w) { return w->atlas; }
+std::shared_ptr<wall_atlas> get_atlas(const wall_cell& w) { return w.atlas; }
 Vector2ui get_size(const auto&, anim_atlas& atlas) { return atlas.frame(atlas.first_rotation(), 0).size; }
 Vector2ui get_size(const auto&, wall_atlas& atlas) { auto sz = atlas.image_size(); return { std::max(1u, std::min(sz.y()*3/2, sz.x())), sz.y() }; }
 bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }
 bool is_selected(const vobj_editor& vo, const vobj_& sc) { return vo.is_item_selected(sc); }
-bool is_selected(const wall_editor& wa, const wall_cell* sc) {  return wa.is_atlas_selected(sc->atlas); }
+bool is_selected(const wall_editor& wa, const wall_cell& sc) {  return wa.is_atlas_selected(sc.atlas); }
 void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
 void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
-void select_tile(wall_editor& wa, const wall_cell* sc) { wa.select_atlas(sc->atlas); }
+void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
-auto get_texcoords(const wall_cell* w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); }
+auto get_texcoords(const wall_cell& w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); }
 
 void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const std::shared_ptr<ground_atlas>& atlas, Vector2 dpi)
 {
@@ -276,7 +276,7 @@ void app::draw_editor_pane(float main_menu_height)
             {
                 if (ed)
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*ed, k, v->atlas, dpi);
+                        draw_editor_tile_pane_atlas(*ed, k, v.atlas, dpi);
                 else if (sc)
                     impl_draw_editor_scenery_pane<scenery_editor>(*sc, dpi);
                 else if (vo)

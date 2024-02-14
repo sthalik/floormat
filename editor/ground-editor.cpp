@@ -35,7 +35,7 @@ void ground_editor::load_atlases()
         else
             loader.invalid_ground_atlas();
         fm_assert(g.atlas);
-        _atlases[g.name] = &g;
+        _atlases[g.name] = g;
     }
     fm_assert(!_atlases.empty());
 }
@@ -43,7 +43,7 @@ void ground_editor::load_atlases()
 std::shared_ptr<ground_atlas> ground_editor::maybe_atlas(StringView str)
 {
     if (auto it = _atlases.find(str); it != _atlases.end())
-        return it->second->atlas;
+        return it->second.atlas;
     else
         return nullptr;
 }

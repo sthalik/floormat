@@ -3,7 +3,7 @@
 #include "src/object-id.hpp"
 #include <memory>
 #include <map>
-#include <Corrade/Containers/StringView.h>
+#include <cr/String.h>
 
 namespace floormat {
 
@@ -31,10 +31,9 @@ class vobj_editor final
 {
 public:
     struct vobj_ final {
-        StringView name, descr;
+        String name, descr;
         std::unique_ptr<vobj_factory> factory;
     };
-
     vobj_editor();
 
     void select_tile(const vobj_& type);
@@ -53,9 +52,9 @@ public:
     auto end() const noexcept { return _types.cend(); }
 
 private:
-    static std::map<StringView, vobj_> make_vobj_type_map();
+    static std::map<String, vobj_> make_vobj_type_map();
 
-    std::map<StringView, vobj_> _types = make_vobj_type_map();
+    std::map<String, vobj_> _types = make_vobj_type_map();
     const vobj_* _selected = nullptr;
 };
 
