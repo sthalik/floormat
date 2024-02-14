@@ -1,5 +1,4 @@
 #include "ground-cell.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "loader/loader.hpp"
 #include "serialize/json-helper.hpp"
 //#include "serialize/corrade-string.hpp"
