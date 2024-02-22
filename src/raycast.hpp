@@ -29,6 +29,5 @@ struct raycast_result_s
 namespace floormat {
 
 using floormat::rc::raycast;
-using floormat::rc::raycast_with_diag;
 
 } // namespace floormat

@@ -28,7 +28,6 @@ Optional<struct point> cursor_state::point() const
 floormat_main& app::main() { return *M; }
 const cursor_state& app::cursor_state() { return cursor; }
 
-
 shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
 {
     if (_character_id)
