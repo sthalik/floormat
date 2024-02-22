@@ -1,41 +1,41 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
+#include "src/chunk.hpp"
+#include "src/path-search.hpp"
 #include <bitset>
+#include <Magnum/Math/Vector2.h>
+#include <Magnum/Math/Functions.h>
 
 namespace floormat::tests {
 
 namespace {
 
-constexpr int div_factor = 4; // from path-search.hpp
-constexpr auto div_size = iTILE_SIZE2 / div_factor;
-constexpr uint32_t chunk_nbits = TILE_MAX_DIM*TILE_MAX_DIM*uint32_t{div_factor*div_factor};
+using detail_astar::div_factor;
+using detail_astar::div_size;
+template<typename T> using bbox = typename path_search::bbox<T>;
 
-template<typename T> constexpr inline auto tile_size = Math::Vector2<T>{iTILE_SIZE2};
-template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MAX_DIM} * tile_size<T>;
+constexpr uint32_t chunk_dim_nbits = TILE_MAX_DIM*uint32_t{div_factor},
+                   chunk_nbits = chunk_dim_nbits*chunk_dim_nbits;
+constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
 
-constexpr Vector2i chunk_offsets[3][3] = { // from src/raycast.cpp
-    {
-        { -chunk_size<int>.x(), -chunk_size<int>.y()    },
-        { -chunk_size<int>.x(),  0                      },
-        { -chunk_size<int>.x(),  chunk_size<int>.y()    },
-    },
-    {
-        { 0,                    -chunk_size<int>.y()    },
-        { 0,                     0                      },
-        { 0,                     chunk_size<int>.y()    },
-    },
-    {
-        {  chunk_size<int>.x(), -chunk_size<int>.y()    },
-        {  chunk_size<int>.x(),  0                      },
-        {  chunk_size<int>.x(),  chunk_size<int>.y()    },
-    },
-};
-//static_assert(chunk_offsets[0][0] == Vector2i(-1024, -1024));
-//static_assert(chunk_offsets[2][0] == Vector2i(1024, -1024));
-
-constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2; // from src/dijkstra.cpp
 //for (int8_t y = div_min; y <= div_max; y++)
 //    for (int8_t x = div_min; x <= div_max; x++)
+
+constexpr bbox<Int> bbox_from_pos1(Vector2i center, Vector2ui size) // from src/dijkstra.cpp
+{
+    auto top_left = center - Vector2i(size / 2);
+    auto bottom_right = top_left + Vector2i(size);
+    return { top_left, bottom_right };
+}
+
+constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from, Vector2ui size) // from src/dijkstra.cpp
+{
+    auto bb0 = bbox_from_pos1(from, size);
+    auto bb = bbox_from_pos1(pt, size);
+    auto min = Math::min(bb0.min, bb.min);
+    auto max = Math::max(bb0.max, bb.max);
+    return { min, max };
+}
 
 struct pending_s
 {
@@ -48,26 +48,24 @@ struct result_s
     std::bitset<chunk_nbits> is_passable;
 };
 
-#if 0
 struct region_test : base_test
 {
     result_s result;
     pending_s pending;
 
-    ~region_test() noexcept override;
+    ~region_test() noexcept override = default;
 
-    bool handle_key(app&, const key_event&, bool) override;
-    bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
-    bool handle_mouse_move(app& a, const mouse_move_event& e) override;
-    void draw_overlay(app& a) override;
-    void draw_ui(app&, float) override;
-    void update_pre(app&) override;
-    void update_post(app& a) override;
+    bool handle_key(app&, const key_event&, bool) override { return false; }
+    bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override { return false; }
+    bool handle_mouse_move(app& a, const mouse_move_event& e) override { return false; }
+    void draw_overlay(app& a) override {}
+    void draw_ui(app&, float) override {}
+    void update_pre(app&) override {}
+    void update_post(app& a) override {}
 };
-#endif
 
 } // namespace
 
-//Pointer<base_test> tests_data::make_test_region() { return Pointer<region_test>{InPlaceInit}; }
+Pointer<base_test> tests_data::make_test_region() { return Pointer<region_test>{InPlaceInit}; }
 
 } // namespace floormat::tests

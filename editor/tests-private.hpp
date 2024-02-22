@@ -31,7 +31,7 @@ protected:
 };
 
 enum class Test : uint32_t {
-    none, path, raycast, /*region,*/ COUNT,
+    none, path, raycast, region, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -59,7 +59,7 @@ struct tests_data final : tests_data_
         { "None"_s, Test::none, &tests_data::make_test_none, },
         { "Path"_s, Test::path, &tests_data::make_test_path, },
         { "Raycasting"_s, Test::raycast, &tests_data::make_test_raycast },
-        //{ "Region extraction"_s, Test::region, &tests_data::make_test_region },
+        { "Region extraction"_s, Test::region, &tests_data::make_test_region },
     };
 };
 
