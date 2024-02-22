@@ -487,15 +487,12 @@ chunk* cache::try_get_chunk(world& w, floormat::chunk_coords_ ch)
         return page.chunk;
 }
 
-std::array<world::neighbor_pair, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
+std::array<chunk*, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
 {
     fm_debug_assert(!size.isZero());
-    std::array<world::neighbor_pair, 8> neighbors;
-    for (auto i = 0uz; const auto& x : world::neighbor_offsets)
-    {
-        auto ch = ch0 + x;
-        neighbors[i++] = { try_get_chunk(w, ch), ch0 };
-    }
+    std::array<chunk*, 8> neighbors;
+    for (auto i = 0u; i < 8; i++)
+        neighbors[i] = try_get_chunk(w, ch0 + world::neighbor_offsets[i]);
     return neighbors;
 }
 

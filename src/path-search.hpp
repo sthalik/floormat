@@ -50,7 +50,7 @@ struct cache
     uint32_t lookup_index(size_t chunk_index, size_t tile_index);
     chunk* try_get_chunk(world& w, chunk_coords_ ch);
 
-    std::array<world::neighbor_pair, 8> get_neighbors(world& w, chunk_coords_ ch0);
+    std::array<chunk*, 8> get_neighbors(world& w, chunk_coords_ ch0);
 };
 } // namespace detail_astar
 struct path_search_result;
@@ -83,7 +83,7 @@ public:
     static const pred& always_continue() noexcept;
 
     static bool is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
-    static bool is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
+    static bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors,
                              Vector2 min, Vector2 max, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ui size, object_id own_id, const pred& p = never_continue());
     static bool is_passable(world& w, struct detail_astar::cache& cache, global_coords coord, Vector2b offset, Vector2ui size, object_id own_id, const pred& p = never_continue());

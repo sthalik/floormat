@@ -46,7 +46,7 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
     return is_passable;
 }
 
-bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair, 8>& neighbors,
+bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors,
                                Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
     fm_debug_assert(max >= min);
@@ -60,7 +60,7 @@ bool path_search::is_passable_(chunk* c0, const std::array<world::neighbor_pair,
     for (auto i = 0uz; i < 8; i++)
     {
         auto nb = world::neighbor_offsets[i];
-        auto* c2 = neighbors[i].c;
+        auto* c2 = neighbors[i];
 
         if (c2)
         {

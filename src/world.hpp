@@ -96,9 +96,7 @@ public:
     [[nodiscard]] object_id make_id() { return ++_object_counter; }
     void set_object_counter(object_id value);
 
-    struct neighbor_pair final { chunk* c = nullptr; chunk_coords_ coord; };
-
-    std::array<neighbor_pair, 8> neighbors(chunk_coords_ coord);
+    std::array<chunk*, 8> neighbors(chunk_coords_ coord);
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
         {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
