@@ -10,6 +10,7 @@
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
+#include <Magnum/Math/Color.h>
 
 namespace floormat::tests {
 
@@ -28,6 +29,8 @@ constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
 
 constexpr auto chunk_size = iTILE_SIZE2*Vector2i(TILE_MAX_DIM),
                div_count = chunk_size * div_factor;
+
+constexpr auto visited_bits = chunk_dim_nbits*chunk_dim_nbits*4*4;
 
 //for (int8_t y = div_min; y <= div_max; y++)
 //    for (int8_t x = div_min; x <= div_max; x++)
@@ -48,6 +51,19 @@ constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from, Vector2ui size) /
     return { min, max };
 }
 
+constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
+{
+    auto pos = div_min + div_size * ij;
+    auto pos0 = pos + from*div_size;
+    return bbox_from_pos2(pos, pos0, Vector2ui(div_size));
+}
+
+bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from)
+{
+    auto pos = make_pos(ij, from);
+    return path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0);
+}
+
 struct pending_s
 {
     chunk_coords_ c;
@@ -63,23 +79,34 @@ struct result_s
 
 struct node_s
 {
-    Vector2s bbox, from;
+    Vector2i pos;
 };
 
 struct tmp_s
 {
     Array<node_s> stack;
-    std::bitset<chunk_nbits> exists;
+    std::bitset<visited_bits> visited;
+    std::bitset<chunk_nbits> passable;
     std::array<chunk*, 8> neighbors = {};
 
-    void append(bbox<Int> bbox);
+    void append(Vector2i pos, int from);
     static Pointer<tmp_s> make();
     void clear();
 };
 
-void tmp_s::append(bbox<Int> bb)
+void tmp_s::append(Vector2i pos, int from)
 {
-    arrayAppend(stack, {Vector2s(bb.min), Vector2s(bb.max)});
+    auto i = (uint32_t)pos.y() * chunk_dim_nbits + (uint32_t)pos.x();
+    fm_debug_assert(i < passable.size());
+    if (passable[i])
+        return;
+    passable[i] = true;
+    auto v = i*4 + (uint32_t)from;
+    fm_debug_assert(v < visited.size());
+    if (visited[v])
+        return;
+    visited[v] = true;
+    arrayAppend(stack, {pos});
 }
 
 Pointer<tmp_s> tmp_s::make()
@@ -87,7 +114,8 @@ Pointer<tmp_s> tmp_s::make()
     auto ptr = Pointer<tmp_s>{InPlace};
     arrayResize(ptr->stack, 0);
     arrayReserve(ptr->stack, TILE_COUNT);
-    ptr->exists = {};
+    ptr->visited = {};
+    ptr->passable = {};
     ptr->neighbors = {};
     return ptr;
 }
@@ -95,7 +123,8 @@ Pointer<tmp_s> tmp_s::make()
 void tmp_s::clear()
 {
     arrayResize(stack, 0);
-    exists = {};
+    visited = {};
+    passable = {};
     neighbors = {};
 }
 
@@ -137,37 +166,42 @@ bool region_test::is_passable(chunk* c, const std::array<chunk*, 8>& neighbors, 
 
 void region_test::do_region_extraction(world& w, chunk_coords_ coord)
 {
-    if (auto* c = w.at(coord))
-    {
-        auto& tmp = get_tmp();
-        const auto nbs = w.neighbors(coord);
-
-        constexpr auto make_pos = [](Vector2i ij, Vector2i from) {
-            auto pos = div_min + div_size * ij;
-            auto pos0 = pos + from*div_size;
-            return bbox_from_pos2(pos, pos0, Vector2ui(div_size));
-        };
-
-        constexpr auto last = Vector2i(TILE_MAX_DIM-1);
-        static_assert(div_count.x() == div_count.y());
-
-        for (Int i = 0; i <= div_count.x(); i++)
-        {
-            auto pos_x1 = make_pos({i, last.y()}, {0, 1});  // bottom
-            auto pos_x0 = make_pos({i, 0}, {0, -1});        // top
-            auto pos_1y = make_pos({last.x(), i}, {1, 0});  // right
-            auto pos_0y = make_pos({0, i}, {-1, 0});        // left
-            tmp.append(pos_x1);
-            tmp.append(pos_x0);
-            tmp.append(pos_1y);
-            tmp.append(pos_0y);
-        }
-    }
-    else
+    auto* c = w.at(coord);
+    if (!c)
     {
         result.exists = false;
         pending.exists = false;
+        return;
     }
+
+    auto& tmp = get_tmp();
+    const auto nbs = w.neighbors(coord);
+
+    constexpr auto last = Vector2i(TILE_MAX_DIM-1);
+    static_assert(div_count.x() == div_count.y());
+    constexpr Vector2i fours[4] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
+
+    for (Int i = 0; i <= div_count.x(); i++)
+    {
+        if (Vector2i from{ 0,  1}, pos{i, last.y()}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 0); // bottom
+        if (Vector2i from{ 0, -1}, pos{i, 0};        check_pos(*c, nbs, pos, from)) tmp.append(pos, 1); // top
+        if (Vector2i from{ 1,  0}, pos{last.x(), i}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 2); // right
+        if (Vector2i from{-1,  0}, pos{0, i};        check_pos(*c, nbs, pos, from)) tmp.append(pos, 3); // left
+    }
+
+    while (!tmp.stack.isEmpty())
+    {
+        auto p = tmp.stack.back().pos;
+        arrayRemoveSuffix(tmp.stack);
+        for (int i = 0; i < 4; i++)
+        {
+            Vector2i from = fours[i];
+            if (Vector2i x{p - from}; check_pos(*c, nbs, x, from))
+                tmp.append(x, i);
+        }
+    }
+
+    Debug{} << "done!";
 }
 
 void region_test::draw_overlay(app& a)
