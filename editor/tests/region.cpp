@@ -23,24 +23,26 @@ template<typename T> using bbox = typename path_search::bbox<T>;
 
 constexpr auto div_min = -iTILE_SIZE2/2, div_max = TILE_MAX_DIM*iTILE_SIZE2 - iTILE_SIZE2/2;
 
-constexpr uint32_t chunk_dim_nbits = TILE_MAX_DIM*uint32_t{div_factor}+1,
-                   chunk_nbits = chunk_dim_nbits*chunk_dim_nbits;
-constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
+constexpr uint32_t chunk_dim = TILE_MAX_DIM*uint32_t{div_factor}+1,
+                   chunk_nbits = chunk_dim * chunk_dim;
+//constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
 constexpr auto chunk_size = iTILE_SIZE2*Vector2i(TILE_MAX_DIM);
-constexpr auto visited_bits = chunk_dim_nbits*chunk_dim_nbits*4*4;
+constexpr auto visited_bits = chunk_dim * chunk_dim *4*4;
 constexpr auto div_count = Vector2i{TILE_MAX_DIM * div_factor};
 
-constexpr bbox<Int> bbox_from_pos1(Vector2i center, Vector2ui size) // from src/dijkstra.cpp
+constexpr bbox<Int> bbox_from_pos1(Vector2i center/*, Vector2ui size*/) // from src/dijkstra.cpp
 {
-    auto top_left = center - Vector2i(size / 2);
-    auto bottom_right = top_left + Vector2i(size);
-    return { top_left, bottom_right };
+    //auto top_left = center - Vector2i(size / 2);
+    //auto bottom_right = top_left + Vector2i(size);
+    auto bottom_right = center + Vector2i(1);
+    //return { top_left, bottom_right };
+    return { center, bottom_right };
 }
 
-constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from, Vector2ui size) // from src/dijkstra.cpp
+constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from/*, Vector2ui size*/) // from src/dijkstra.cpp
 {
-    auto bb0 = bbox_from_pos1(from, size);
-    auto bb = bbox_from_pos1(pt, size);
+    auto bb0 = bbox_from_pos1(from/*, size*/);
+    auto bb = bbox_from_pos1(pt/*, size*/);
     auto min = Math::min(bb0.min, bb.min);
     auto max = Math::max(bb0.max, bb.max);
     return { min, max };
@@ -50,7 +52,7 @@ constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
 {
     auto pos = div_min + div_size * ij;
     auto pos0 = pos + from*div_size;
-    return bbox_from_pos2(pos, pos0, Vector2ui(div_size));
+    return bbox_from_pos2(pos, pos0/*, Vector2ui(div_size)*/);
 }
 
 bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from)
@@ -93,7 +95,7 @@ struct tmp_s
 
 void tmp_s::append(Vector2i pos, int from)
 {
-    auto i = (uint32_t)pos.y() * chunk_dim_nbits + (uint32_t)pos.x();
+    auto i = (uint32_t)pos.y() * chunk_dim + (uint32_t)pos.x();
     if (i >= passable.size())
         return;
     if (passable[i])
@@ -133,7 +135,6 @@ struct region_test : base_test
     Pointer<tmp_s> tmp;
 
     tmp_s& get_tmp();
-    static bool is_passable(chunk* c, const std::array<chunk*, 8>& neighbors, Vector2i pos);
     void do_region_extraction(world& w, chunk_coords_ coord);
 
     ~region_test() noexcept override = default;
@@ -154,12 +155,6 @@ tmp_s& region_test::get_tmp()
     else
         tmp = tmp_s::make();
     return *tmp;
-}
-
-bool region_test::is_passable(chunk* c, const std::array<chunk*, 8>& neighbors, Magnum::Vector2i pos)
-{
-    auto bb = bbox_from_pos1(pos, Vector2ui(bbox_size));
-    return path_search::is_passable_(c, neighbors, Vector2(bb.min), Vector2(bb.max), 0);
 }
 
 void region_test::do_region_extraction(world& w, chunk_coords_ coord)
@@ -195,11 +190,17 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
         for (int i = 0; i < 4; i++)
         {
             Vector2i from = fours[i], pos{p - from};
-            if ((uint32_t)pos.x() < chunk_dim_nbits && (uint32_t)pos.y() < chunk_dim_nbits)
+            if ((uint32_t)pos.x() < chunk_dim && (uint32_t)pos.y() < chunk_dim)
                 if (check_pos(*c, nbs, pos, from))
                     tmp.append(pos, i);
         }
     }
+
+    result = {
+        .is_passable = tmp.passable,
+        .c = coord,
+        .exists = true,
+    };
 
     Debug{} << "done!" << tmp.passable.count();
 }
