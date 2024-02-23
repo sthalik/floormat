@@ -26,14 +26,9 @@ constexpr auto div_min = -iTILE_SIZE2/2, div_max = TILE_MAX_DIM*iTILE_SIZE2 - iT
 constexpr uint32_t chunk_dim_nbits = TILE_MAX_DIM*uint32_t{div_factor}+1,
                    chunk_nbits = chunk_dim_nbits*chunk_dim_nbits;
 constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
-
-constexpr auto chunk_size = iTILE_SIZE2*Vector2i(TILE_MAX_DIM),
-               div_count = chunk_size * div_factor;
-
+constexpr auto chunk_size = iTILE_SIZE2*Vector2i(TILE_MAX_DIM);
 constexpr auto visited_bits = chunk_dim_nbits*chunk_dim_nbits*4*4;
-
-//for (int8_t y = div_min; y <= div_max; y++)
-//    for (int8_t x = div_min; x <= div_max; x++)
+constexpr auto div_count = Vector2i{TILE_MAX_DIM * div_factor};
 
 constexpr bbox<Int> bbox_from_pos1(Vector2i center, Vector2ui size) // from src/dijkstra.cpp
 {
@@ -61,7 +56,9 @@ constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
 bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from)
 {
     auto pos = make_pos(ij, from);
-    return path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0);
+    bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0);
+    //if (ret) Debug{} << "check" << ij << ij/div_factor << ij % div_factor << pos.min << pos.max << ret;
+    return ret;
 }
 
 struct pending_s
@@ -97,7 +94,8 @@ struct tmp_s
 void tmp_s::append(Vector2i pos, int from)
 {
     auto i = (uint32_t)pos.y() * chunk_dim_nbits + (uint32_t)pos.x();
-    fm_debug_assert(i < passable.size());
+    if (i >= passable.size())
+        return;
     if (passable[i])
         return;
     passable[i] = true;
@@ -177,31 +175,33 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
     auto& tmp = get_tmp();
     const auto nbs = w.neighbors(coord);
 
-    constexpr auto last = Vector2i(TILE_MAX_DIM-1);
     static_assert(div_count.x() == div_count.y());
+    constexpr auto last = div_count - Vector2i{1};
     constexpr Vector2i fours[4] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
 
-    for (Int i = 0; i <= div_count.x(); i++)
-    {
-        if (Vector2i from{ 0,  1}, pos{i, last.y()}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 0); // bottom
-        if (Vector2i from{ 0, -1}, pos{i, 0};        check_pos(*c, nbs, pos, from)) tmp.append(pos, 1); // top
-        if (Vector2i from{ 1,  0}, pos{last.x(), i}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 2); // right
-        if (Vector2i from{-1,  0}, pos{0, i};        check_pos(*c, nbs, pos, from)) tmp.append(pos, 3); // left
-    }
+    //if (Vector2i from{0, -1}, pos{0, 0}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 0); // bottom
 
+    for (Int i = 0; i < div_count.x(); i++)
+    {
+        if (Vector2i pos{i, last.y()}; check_pos(*c, nbs, pos, fours[0])) tmp.append(pos, 0); // bottom
+        if (Vector2i pos{i, 0};        check_pos(*c, nbs, pos, fours[1])) tmp.append(pos, 1); // top
+        if (Vector2i pos{last.x(), i}; check_pos(*c, nbs, pos, fours[2])) tmp.append(pos, 2); // right
+        if (Vector2i pos{0, i};        check_pos(*c, nbs, pos, fours[3])) tmp.append(pos, 3); // left
+    }
     while (!tmp.stack.isEmpty())
     {
         auto p = tmp.stack.back().pos;
         arrayRemoveSuffix(tmp.stack);
         for (int i = 0; i < 4; i++)
         {
-            Vector2i from = fours[i];
-            if (Vector2i x{p - from}; check_pos(*c, nbs, x, from))
-                tmp.append(x, i);
+            Vector2i from = fours[i], pos{p - from};
+            if ((uint32_t)pos.x() < chunk_dim_nbits && (uint32_t)pos.y() < chunk_dim_nbits)
+                if (check_pos(*c, nbs, pos, from))
+                    tmp.append(pos, i);
         }
     }
 
-    Debug{} << "done!";
+    Debug{} << "done!" << tmp.passable.count();
 }
 
 void region_test::draw_overlay(app& a)
@@ -239,7 +239,13 @@ bool region_test::handle_mouse_click(app& a, const mouse_button_event& e, bool i
 
 void region_test::update_post(app& a)
 {
-
+    if (pending.exists)
+    {
+        pending.exists = false;
+        auto& M = a.main();
+        auto& w = M.world();
+        do_region_extraction(w, pending.c);
+    }
 }
 
 } // namespace

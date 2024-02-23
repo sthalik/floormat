@@ -34,13 +34,8 @@ void tests_data::switch_to(Test i)
     fm_assert((size_t)i < arraySize(fields));
     current_index = Test::none;
     current_test = make_test_none();
-    switch (i)
-    {
-    default: break;
-    case Test::none: current_test = make_test_none(); break;
-    case Test::path: current_test = make_test_path(); break;
-    case Test::raycast: current_test = make_test_raycast(); break;
-    }
+    if (i < Test::COUNT)
+        current_test = tests_data::fields[(size_t)i].ctor();
     if (current_test)
         current_index = i;
 }
