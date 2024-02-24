@@ -48,6 +48,13 @@ constexpr const char* sceneries[] = {
 
 void test_app::test_loader()
 {
+    fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
+}
+
+void test_app::test_loader2()
+{
+    fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
+
     fm_assert(loader.invalid_ground_atlas().atlas);
     fm_assert(&loader.invalid_ground_atlas().atlas == &loader.invalid_ground_atlas().atlas);
     fm_assert(loader.invalid_ground_atlas().name == loader.INVALID);
@@ -77,11 +84,9 @@ void test_app::test_loader()
         const auto& S = loader.scenery(name);
         fm_assert(S.atlas);
     }
-    fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
-    fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
 }
 
-void test_app::test_loader2()
+void test_app::test_loader3()
 {
     for (const auto& x : loader.ground_atlas_list())
     {
