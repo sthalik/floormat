@@ -21,23 +21,20 @@ using namespace floormat::imgui;
 using detail_astar::div_factor;
 using detail_astar::div_size;
 template<typename T> using bbox = typename path_search::bbox<T>;
+static_assert((iTILE_SIZE2 % div_size).isZero());
 
-constexpr auto div_min = -iTILE_SIZE2/2, div_max = TILE_MAX_DIM*iTILE_SIZE2 - iTILE_SIZE2/2;
+constexpr auto div_count = iTILE_SIZE2 * TILE_MAX_DIM / div_size;
+constexpr auto chunk_bits = div_count.product(),
+               visited_bits = div_count.product()*4*4;
+constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2,
+               div_max = iTILE_SIZE2 * TILE_MAX_DIM - iTILE_SIZE2/2 - div_size + div_size/2;
+static_assert(div_count.x() == div_count.y());
 
-constexpr uint32_t chunk_dim = TILE_MAX_DIM*uint32_t{div_factor}+1,
-                   chunk_nbits = chunk_dim * chunk_dim;
-//constexpr auto bbox_size = Vector2ub(iTILE_SIZE2/2);
-constexpr auto chunk_size = iTILE_SIZE2*Vector2i(TILE_MAX_DIM);
-constexpr auto visited_bits = chunk_dim * chunk_dim *4*4;
-constexpr auto div_count = Vector2i{TILE_MAX_DIM * div_factor};
-
-constexpr bbox<Int> bbox_from_pos1(Vector2i center/*, Vector2ui size*/) // from src/dijkstra.cpp
+constexpr bbox<Int> bbox_from_pos1(Vector2i center)
 {
-    //auto top_left = center - Vector2i(size / 2);
-    //auto bottom_right = top_left + Vector2i(size);
-    auto bottom_right = center + Vector2i(1);
-    //return { top_left, bottom_right };
-    return { center, bottom_right };
+    constexpr auto half = div_size/2;
+    auto start = center - half;
+    return { start, start + div_size };
 }
 
 constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from/*, Vector2ui size*/) // from src/dijkstra.cpp
@@ -61,6 +58,7 @@ bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i
     auto pos = make_pos(ij, from);
     bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0);
     //if (ret) Debug{} << "check" << ij << ij/div_factor << ij % div_factor << pos.min << pos.max << ret;
+    //Debug{} << "check" << ij << pos.min << pos.max << ret;
     return ret;
 }
 
@@ -72,7 +70,7 @@ struct pending_s
 
 struct result_s
 {
-    std::bitset<chunk_nbits> is_passable;
+    std::bitset<chunk_bits> is_passable;
     chunk_coords_ c;
     bool exists : 1 = false;
 };
@@ -86,8 +84,7 @@ struct tmp_s
 {
     Array<node_s> stack;
     std::bitset<visited_bits> visited;
-    std::bitset<chunk_nbits> passable;
-    std::array<chunk*, 8> neighbors = {};
+    std::bitset<chunk_bits> passable;
 
     void append(Vector2i pos, int from);
     static Pointer<tmp_s> make();
@@ -96,9 +93,8 @@ struct tmp_s
 
 void tmp_s::append(Vector2i pos, int from)
 {
-    auto i = (uint32_t)pos.y() * chunk_dim + (uint32_t)pos.x();
-    if (i >= passable.size())
-        return;
+    auto i = (uint32_t)pos.y() * (uint32_t)div_count.x() + (uint32_t)pos.x();
+    fm_debug_assert(i < passable.size());
     if (passable[i])
         return;
     passable[i] = true;
@@ -117,7 +113,6 @@ Pointer<tmp_s> tmp_s::make()
     arrayReserve(ptr->stack, TILE_COUNT);
     ptr->visited = {};
     ptr->passable = {};
-    ptr->neighbors = {};
     return ptr;
 }
 
@@ -126,7 +121,6 @@ void tmp_s::clear()
     arrayResize(stack, 0);
     visited = {};
     passable = {};
-    neighbors = {};
 }
 
 void do_column(StringView name)
@@ -179,11 +173,9 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
     auto& tmp = get_tmp();
     const auto nbs = w.neighbors(coord);
 
-    static_assert(div_count.x() == div_count.y());
-    constexpr auto last = div_count - Vector2i{1};
     constexpr Vector2i fours[4] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
-
-    //if (Vector2i from{0, -1}, pos{0, 0}; check_pos(*c, nbs, pos, from)) tmp.append(pos, 0); // bottom
+    constexpr auto last = div_count - Vector2i{1};
+    //if (Vector2i pos{0, 0}; check_pos(*c, nbs, pos, fours[1])) tmp.append(pos, 1); // top
 
     for (Int i = 0; i < div_count.x(); i++)
     {
@@ -192,6 +184,7 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
         if (Vector2i pos{last.x(), i}; check_pos(*c, nbs, pos, fours[2])) tmp.append(pos, 2); // right
         if (Vector2i pos{0, i};        check_pos(*c, nbs, pos, fours[3])) tmp.append(pos, 3); // left
     }
+
     while (!tmp.stack.isEmpty())
     {
         auto p = tmp.stack.back().pos;
@@ -199,9 +192,10 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
         for (int i = 0; i < 4; i++)
         {
             Vector2i from = fours[i], pos{p - from};
-            if ((uint32_t)pos.x() < chunk_dim && (uint32_t)pos.y() < chunk_dim)
-                if (check_pos(*c, nbs, pos, from))
-                    tmp.append(pos, i);
+            if ((uint32_t)pos.x() >= div_count.x() || (uint32_t)pos.y() >= div_count.y()) [[unlikely]]
+                continue;
+            if (check_pos(*c, nbs, pos, from))
+                tmp.append(pos, i);
         }
     }
 
@@ -224,7 +218,7 @@ void region_test::draw_overlay(app& a)
         for (int j = 0; j < div_count.y(); j++)
             for (int i = 0; i < div_count.x(); i++)
             {
-                auto index = (uint32_t)j * chunk_dim + (uint32_t)i;
+                auto index = (uint32_t)j * div_count.x() + (uint32_t)i;
                 if (result.is_passable[index])
                     continue;
                 auto pos = div_min + div_size * Vector2i{i, j};
