@@ -131,6 +131,7 @@ auto chunk::get_pass_region() -> const pass_region*
         fm_debug_assert(_region != nullptr);
         return _region;
     }
+    _region_modified = false;
 
     if (!_region)
         _region = new pass_region;
