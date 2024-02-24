@@ -72,6 +72,7 @@ object::~object() noexcept
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);
     c->_world->do_kill_object(id);
+    c->mark_region_modified();
     const_cast<object_id&>(id) = 0;
 }
 
@@ -244,6 +245,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
     if (coord_.chunk() == coord.chunk())
     {
         c->_replace_bbox(bb0, bb1, b0, b1);
+        c->mark_region_modified();
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
@@ -255,6 +257,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);
         c->remove_object(i);
+        c->mark_region_modified();
         auto& es = c2._objects;
         auto it = std::lower_bound(es.cbegin(), es.cend(), e_, object_id_lessp);
         const_cast<global_coords&>(coord) = coord_;
@@ -306,6 +309,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     set_bbox_(offset_, bb_offset_, bb_size_, pass);
     const bool b = c->_bbox_for_scenery(*this, bb);
     c->_replace_bbox(bb0, bb, b0, b);
+    c->mark_region_modified();
 }
 
 bool object::can_activate(size_t) const { return false; }

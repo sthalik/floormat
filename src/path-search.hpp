@@ -20,9 +20,10 @@ namespace floormat::detail_astar {
 template<typename T> struct bbox;
 struct cache;
 struct chunk_cache;
-static constexpr int div_factor = 4;
-static constexpr auto div_size = iTILE_SIZE2 / div_factor;
-static constexpr auto min_size = Vector2ui(div_size * 2);
+constexpr inline int div_factor = 4;
+constexpr inline auto div_size = iTILE_SIZE2 / div_factor;
+constexpr inline auto min_size = Vector2ui(div_size * 2);
+constexpr inline auto div_count = iTILE_SIZE2 * TILE_MAX_DIM / detail_astar::div_size;
 
 } // namespace floormat::detail_astar
 

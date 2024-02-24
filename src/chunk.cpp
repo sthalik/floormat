@@ -152,6 +152,7 @@ chunk::~chunk() noexcept
     arrayResize(_objects, 0);
     arrayShrink(_objects);
     _rtree->RemoveAll();
+    delete_pass_region(_region);
 }
 
 chunk::chunk(chunk&&) noexcept = default;
@@ -162,10 +163,12 @@ bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
 void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
 {
     _objects_sorted = false;
+    _region_modified = true;
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
+    arrayReserve(_objects, 8);
     arrayAppend(_objects, e);
 }
 
@@ -173,10 +176,8 @@ void chunk::sort_objects()
 {
     if (_objects_sorted)
         return;
-
     _objects_sorted = true;
     mark_scenery_modified();
-
     std::sort(_objects.begin(), _objects.end(), [](const auto& a, const auto& b) {
         return a->id < b->id;
     });
@@ -185,10 +186,12 @@ void chunk::sort_objects()
 void chunk::add_object(const std::shared_ptr<object>& e)
 {
     fm_assert(_objects_sorted);
+    _region_modified = true;
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
         _add_bbox(bb);
+    arrayReserve(_objects, 8);
     auto& es = _objects;
     auto it = std::lower_bound(es.cbegin(), es.cend(), e, object_id_lessp);
     arrayInsert(es, (size_t)std::distance(es.cbegin(), it), e);
@@ -197,6 +200,7 @@ void chunk::add_object(const std::shared_ptr<object>& e)
 void chunk::remove_object(size_t i)
 {
     fm_assert(_objects_sorted);
+    _region_modified = true;
     auto& es = _objects;
     fm_debug_assert(i < es.size());
     const auto e = es[i];
