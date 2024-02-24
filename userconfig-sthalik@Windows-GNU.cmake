@@ -100,4 +100,7 @@ function(fm-userconfig-src)
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
     )
+    add_compile_options(
+        -Wdelete-incomplete -Werror=delete-incomplete
+    )
 endfunction()
