@@ -67,7 +67,6 @@ struct tmp_s
     static uint32_t get_index(Vector2i pos);
     void append(std::bitset<chunk_bits>& passable, Vector2i pos);
     [[nodiscard]] bool check_visited(std::bitset<chunk_bits>& passable, Vector2i pos, int from);
-    void clear();
 };
 
 uint32_t tmp_s::get_index(Vector2i pos)
@@ -94,12 +93,6 @@ bool tmp_s::check_visited(std::bitset<chunk_bits>& passable, Vector2i pos, int f
         return {};
     visited[v] = true;
     return true;
-}
-
-void tmp_s::clear()
-{
-    arrayResize(stack, 0);
-    visited = {};
 }
 
 tmp_s& get_tmp()

@@ -19,10 +19,6 @@ namespace {
 
 constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
 
-#if defined __GNUG__ && !defined __clang__
-#pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#endif
-
 // todo rewrite using bitwise ops. try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
@@ -34,8 +30,8 @@ constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int n
     auto a = Math::abs(x);
     auto s = Math::sign(x);
     bool b = x >= half_tile | x < -half_tile;
-    int tmask = -(volatile int)b;
-    int8_t xmask = -(volatile int8_t)b;
+    auto tmask = -(int)b;
+    auto xmask = (int8_t)-(int8_t)b;
     t += s & tmask;
     x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
     return { t, (int8_t)x };
