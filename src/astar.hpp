@@ -47,7 +47,6 @@ public:
     };
 
     using pred = path_search::pred;
-    template<typename T> using bbox = path_search::bbox<T>;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 

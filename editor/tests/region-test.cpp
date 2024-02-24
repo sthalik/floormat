@@ -1,8 +1,9 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk.hpp"
-#include "src/path-search.hpp"
+#include "src/path-search-bbox.hpp"
 #include "src/object.hpp"
+#include "src/world.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
@@ -20,7 +21,7 @@ namespace {
 using namespace floormat::imgui;
 using detail_astar::div_factor;
 using detail_astar::div_size;
-template<typename T> using bbox = typename path_search::bbox<T>;
+using detail_astar::bbox;
 static_assert((iTILE_SIZE2 % div_size).isZero());
 
 constexpr auto div_count = iTILE_SIZE2 * TILE_MAX_DIM / div_size;

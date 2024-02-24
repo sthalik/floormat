@@ -15,8 +15,8 @@
 
 namespace floormat {
 
-template<typename T> using bbox = path_search::bbox<T>;
 using visited = astar::visited;
+using detail_astar::bbox;
 using detail_astar::div_size;
 using detail_astar::div_factor;
 using detail_astar::min_size;
