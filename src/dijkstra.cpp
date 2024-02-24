@@ -1,8 +1,10 @@
 #include "astar.hpp"
+#include "path-search-bbox.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"
 #include "object.hpp"
+#include "world.hpp"
 #include "point.hpp"
 #include <cstdio>
 #include <Corrade/Containers/GrowableArray.h>

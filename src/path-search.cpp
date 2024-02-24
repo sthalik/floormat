@@ -1,4 +1,5 @@
 #include "path-search.hpp"
+#include "path-search-bbox.hpp"
 #include "astar.hpp"
 #include "global-coords.hpp"
 #include "world.hpp"

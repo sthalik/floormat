@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/astar.hpp"
+#include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include <Magnum/Math/Functions.h>

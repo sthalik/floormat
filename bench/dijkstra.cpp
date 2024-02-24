@@ -1,5 +1,6 @@
 #include "src/astar.hpp"
 #include "src/path-search-result.hpp"
+#include "src/world.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <Corrade/Containers/Optional.h>
