@@ -19,8 +19,7 @@ static_assert((iTILE_SIZE2 % div_size).isZero());
 
 constexpr auto chunk_bits = div_count.product(),
                visited_bits = div_count.product()*4*4;
-constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2,
-               div_max = iTILE_SIZE2 * TILE_MAX_DIM - iTILE_SIZE2/2 - div_size + div_size/2;
+constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;
 
 constexpr bbox<Int> bbox_from_pos1(Vector2i center)
 {
