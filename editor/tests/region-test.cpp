@@ -159,8 +159,11 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
     {
         chunk::pass_region r;
         c->make_pass_region(r);
-        result.is_passable = r.bits;
-        result.exists = true;
+        result = {
+            .is_passable = r.bits,
+            .c = coord,
+            .exists = true,
+        };
     }
 }
 
