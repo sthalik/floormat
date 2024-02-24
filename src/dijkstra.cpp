@@ -1,4 +1,4 @@
-#include "path-search.hpp"
+#include "astar.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"

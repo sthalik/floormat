@@ -1,6 +1,6 @@
 #include "main-impl.hpp"
 #include "compat/fpu.hpp"
-#include "src/path-search.hpp"
+#include "src/astar.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 
 namespace floormat {

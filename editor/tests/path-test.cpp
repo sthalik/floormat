@@ -3,7 +3,7 @@
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "floormat/main.hpp"
-#include "src/path-search.hpp"
+#include "src/astar.hpp"
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"

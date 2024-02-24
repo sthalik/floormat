@@ -1,4 +1,4 @@
-#include "src/path-search.hpp"
+#include "src/astar.hpp"
 #include "src/path-search-result.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>

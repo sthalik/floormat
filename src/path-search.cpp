@@ -1,4 +1,5 @@
 #include "path-search.hpp"
+#include "astar.hpp"
 #include "global-coords.hpp"
 #include "world.hpp"
 #include "pass-mode.hpp"
