@@ -1,6 +1,7 @@
 #include "chunk-region.hpp"
 #include "path-search-bbox.hpp"
 #include "world.hpp"
+#include <array>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Functions.h>
 
@@ -151,15 +152,25 @@ void chunk::make_pass_region(pass_region& ret)
     const auto nbs = _world->neighbors(_coord);
 
     constexpr Vector2i fours[4] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
-    constexpr auto last = div_count - Vector2i{1};
+
     //if (Vector2i pos{0, 0}; check_pos(*c, nbs, pos, fours[1])) tmp.append(pos, 1); // top
+
+    constexpr auto get_positions = [](int i) {
+        constexpr auto last = div_count - Vector2i{1};
+        return std::array<Vector2i, 4> {{
+            {i, last.y()}, // bottom
+            {i, 0},        // top
+            {last.x(), i}, // right
+            {0, i},        // left
+        }};
+    };
 
     for (int i = 0; i < div_count.x(); i++)
     {
-        if (Vector2i pos{i, last.y()}; check_pos(*this, nbs, pos, fours[0])) tmp.append(ret.bits, pos); // bottom
-        if (Vector2i pos{i, 0};        check_pos(*this, nbs, pos, fours[1])) tmp.append(ret.bits, pos); // top
-        if (Vector2i pos{last.x(), i}; check_pos(*this, nbs, pos, fours[2])) tmp.append(ret.bits, pos); // right
-        if (Vector2i pos{0, i};        check_pos(*this, nbs, pos, fours[3])) tmp.append(ret.bits, pos); // left
+        auto positions = get_positions(i);
+        for (auto i = 0u; i < 4; i++)
+            if (check_pos(*this, nbs, positions[i], fours[i]))
+                tmp.append(ret.bits, positions[i]);
     }
 
     while (!tmp.stack.isEmpty())
