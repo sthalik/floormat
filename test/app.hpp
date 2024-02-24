@@ -38,6 +38,7 @@ struct test_app final : private FM_APPLICATION
     static void test_magnum_math();
     static void test_math();
     static void test_raycast();
+    static void test_region();
     static void test_saves();
     static void test_serializer1();
     static void test_tile_iter();

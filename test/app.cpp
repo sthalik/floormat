@@ -54,6 +54,7 @@ int test_app::exec()
         FM_TEST(test_raycast),
         FM_TEST(test_json),
         FM_TEST(test_loader),
+        FM_TEST(test_region),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_json2),
         FM_TEST(test_wall_atlas2),
