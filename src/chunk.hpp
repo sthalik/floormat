@@ -162,9 +162,9 @@ private:
 
     static void delete_pass_region(pass_region*& ptr);
 
-    struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
+    struct bbox final
     {
-        object_id id; // todo change to collision_data
+        collision_data data;
         Vector2i start, end;
 
         bool operator==(const bbox& other) const noexcept;

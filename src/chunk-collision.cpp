@@ -11,13 +11,21 @@
 
 namespace floormat {
 
+bool collision_data::operator==(const collision_data&) const noexcept = default;
+bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
+
 chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 
 namespace {
 
+constexpr collision_data make_id_(collision_type type, pass_mode p, object_id id)
+{
+    return collision_data { (object_id)type, (object_id)p, id };
+}
+
 constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
 {
-    return std::bit_cast<object_id>(collision_data { (object_id)type, (object_id)p, id });
+    return std::bit_cast<object_id>(make_id_(type, p, id));
 }
 
 } // namespace
@@ -69,8 +77,8 @@ void chunk::ensure_passability() noexcept
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
 {
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
-    auto id = make_id(collision_type::scenery, s.pass, s.id);
-    value = { .id = id, .start = start, .end = end };
+    auto id = make_id_(collision_type::scenery, s.pass, s.id);
+    value = { .data = id, .start = start, .end = end };
     return s.atlas && !Vector2ui(s.bbox_size).isZero();
 }
 
@@ -82,13 +90,13 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
 void chunk::_remove_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
-    _rtree->Remove(start.data(), end.data(), x.id);
+    _rtree->Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
 }
 
 void chunk::_add_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
-    _rtree->Insert(start.data(), end.data(), x.id);
+    _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
 }
 
 void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
@@ -96,10 +104,10 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
     if (_pass_modified)
         return;
 
-    unsigned i = (unsigned)b1 << 1 | (unsigned)(b0 ? 1 : 0) << 0;
+    unsigned i = (unsigned)b1 << 1 | (unsigned)!!b0 << 0;
     CORRADE_ASSUME(i < 4u); (void)0;
 
-    switch (i) // NOLINT(hicpp-multiway-paths-covered)
+    switch (i)
     {
     case 1 << 1 | 1 << 0:
         if (x1 == x0)

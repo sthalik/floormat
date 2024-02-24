@@ -159,8 +159,6 @@ chunk::~chunk() noexcept
 chunk::chunk(chunk&&) noexcept = default;
 chunk& chunk::operator=(chunk&&) noexcept = default;
 
-bool chunk::bbox::operator==(const bbox& other) const noexcept = default;
-
 void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
 {
     _objects_sorted = false;
