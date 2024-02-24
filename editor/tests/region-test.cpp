@@ -1,7 +1,6 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
-#include "src/path-search-bbox.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "../app.hpp"
@@ -9,8 +8,6 @@
 #include "floormat/main.hpp"
 #include <bitset>
 #include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Math/Color.h>
 
 namespace floormat::tests {
 
@@ -18,9 +15,7 @@ namespace {
 
 using namespace floormat::imgui;
 using detail_astar::div_count;
-using detail_astar::div_factor;
 using detail_astar::div_size;
-using detail_astar::bbox;
 
 constexpr auto chunk_bits = div_count.product();
 constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;
