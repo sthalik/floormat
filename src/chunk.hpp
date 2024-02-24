@@ -119,7 +119,6 @@ public:
     static constexpr size_t max_wall_quad_count =
         TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
 
-    detail_astar::pred default_region_predicate() noexcept;
     const pass_region* get_pass_region();
     void make_pass_region(pass_region& ret);
     void make_pass_region(pass_region& ret, const detail_astar::pred& f);

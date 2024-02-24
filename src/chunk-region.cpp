@@ -111,6 +111,22 @@ tmp_s& get_tmp()
     return *tmp;
 }
 
+auto default_region_predicate(chunk& c) noexcept
+{
+    return [&c](collision_data data) {
+        auto x = std::bit_cast<collision_data>(data);
+        // XXX 'scenery' is used for all object types
+        if (x.tag == (uint64_t)collision_type::scenery)
+        {
+            auto& w = c.world();
+            auto obj = w.find_object(x.data);
+            if (obj->type() == object_type::critter)
+                return path_search_continue::pass;
+        }
+        return path_search_continue::blocked;
+    };
+}
+
 } // namespace
 
 void chunk::delete_pass_region(pass_region*& ptr)
@@ -120,22 +136,6 @@ void chunk::delete_pass_region(pass_region*& ptr)
         delete ptr;
         ptr = nullptr;
     }
-}
-
-pred chunk::default_region_predicate() noexcept
-{
-    return [this](collision_data data) {
-        auto x = std::bit_cast<collision_data>(data);
-        // XXX 'scenery' is used for all object types
-        if (x.tag == (uint64_t)collision_type::scenery)
-        {
-            auto& w = _world;
-            auto obj = w->find_object(x.data);
-            if (obj->type() == object_type::critter)
-                return path_search_continue::pass;
-        }
-        return path_search_continue::blocked;
-    };
 }
 
 auto chunk::get_pass_region() -> const pass_region*
@@ -161,7 +161,7 @@ void chunk::mark_region_modified() noexcept { _region_modified = true; }
 
 void chunk::make_pass_region(pass_region& ret)
 {
-    return make_pass_region(ret, default_region_predicate());
+    return make_pass_region(ret, default_region_predicate(*this));
 }
 
 void chunk::make_pass_region(pass_region& ret, const pred& f)
