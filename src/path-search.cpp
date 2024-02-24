@@ -5,6 +5,7 @@
 #include "pass-mode.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
+#include <bit>
 
 namespace floormat {
 
