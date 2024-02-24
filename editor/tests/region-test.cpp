@@ -2,6 +2,7 @@
 #include "src/tile-constants.hpp"
 #include "src/chunk.hpp"
 #include "src/path-search.hpp"
+#include "src/object.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
@@ -128,6 +129,14 @@ void tmp_s::clear()
     neighbors = {};
 }
 
+void do_column(StringView name)
+{
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    text(name);
+    ImGui::TableNextColumn();
+}
+
 struct region_test : base_test
 {
     result_s result;
@@ -201,18 +210,64 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
         .c = coord,
         .exists = true,
     };
-
-    Debug{} << "done!" << tmp.passable.count();
 }
 
 void region_test::draw_overlay(app& a)
 {
+    if (result.exists)
+    {
+        constexpr float dot_radius = 4;
+        const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1});
+        ImDrawList& draw = *ImGui::GetForegroundDrawList();
+        auto start = point{result.c, {0, 0}, {0, 0}};
 
+        for (int j = 0; j < div_count.y(); j++)
+            for (int i = 0; i < div_count.x(); i++)
+            {
+                auto index = (uint32_t)j * chunk_dim + (uint32_t)i;
+                if (result.is_passable[index])
+                    continue;
+                auto pos = div_min + div_size * Vector2i{i, j};
+                auto pt = object::normalize_coords(start, pos);
+                auto px = a.point_screen_pos(pt);
+                draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);
+            }
+    }
 }
 
-void region_test::draw_ui(app& a, float width)
+void region_test::draw_ui(app&, float)
 {
+    if (!result.exists)
+        return;
 
+    char buf[128];
+    constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
+    constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder |
+                                ImGuiTableColumnFlags_NoSort;
+    constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
+
+    if (auto b1 = begin_table("##region-results", 2, table_flags))
+    {
+        ImGui::TableSetupColumn("##name", colflags_0);
+        ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
+
+        do_column("chunk");
+        if (result.c.z != 0)
+            std::snprintf(buf, sizeof buf, "%d x %d x %d", (int)result.c.x, (int)result.c.y, (int)result.c.z);
+        else
+            std::snprintf(buf, sizeof buf, "%d x %d", (int)result.c.x, (int)result.c.y);
+        text(buf);
+
+        do_column("passable");
+        std::snprintf(buf, sizeof buf, "%zu", result.is_passable.count());
+        //{ auto b = push_style_color(ImGuiCol_Text, 0x00ff00ff_rgbaf); text(buf); }
+        text(buf);
+
+        do_column("blocked");
+        std::snprintf(buf, sizeof buf, "%zu", result.is_passable.size() - result.is_passable.count());
+        //{ auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf); text(buf); }
+        text(buf);
+    }
 }
 
 bool region_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
