@@ -126,6 +126,7 @@ void chunk::mark_passability_modified() noexcept
     if (!_pass_modified && is_log_verbose()) [[unlikely]]
         fm_debug("pass reload %zu", ++_reload_no_);
     _pass_modified = true;
+    _region_modified = true;
 }
 
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
