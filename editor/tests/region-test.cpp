@@ -56,7 +56,7 @@ struct region_test : base_test
 
     bool handle_key(app&, const key_event&, bool) override { return {}; }
     bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
-    bool handle_mouse_move(app& a, const mouse_move_event& e) override { return {}; }
+    bool handle_mouse_move(app&, const mouse_move_event&) override { return {}; }
     void draw_overlay(app& a) override;
     void draw_ui(app&, float) override;
     void update_pre(app&) override {}
