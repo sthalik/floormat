@@ -8,24 +8,24 @@
 #include "compat/function2.hpp"
 #include <bit>
 
+namespace floormat::detail_astar {
+
+namespace {
+constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
+constexpr auto never_continue_ = pred{never_continue_1};
+constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
+constexpr auto always_continue_ = pred{always_continue_1};
+} // namespace
+
+const pred& never_continue() noexcept { return never_continue_; }
+const pred& always_continue() noexcept { return always_continue_; }
+//static_assert(1 << 2 == div_factor);
+
+} // namespace floormat::detail_astar
+
 namespace floormat {
 
 using namespace detail_astar;
-
-namespace {
-
-constexpr int div_BITS = 2;
-static_assert(1 << div_BITS == div_factor);
-
-constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
-constexpr auto never_continue_ = path_search::pred{never_continue_1};
-constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
-constexpr auto always_continue_ = path_search::pred{always_continue_1};
-
-} // namespace
-
-auto path_search::never_continue() noexcept -> const pred& { return never_continue_; }
-auto path_search::always_continue() noexcept -> const pred& { return always_continue_; }
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {

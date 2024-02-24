@@ -1,6 +1,10 @@
 #include "chunk-region.hpp"
 #include "path-search-bbox.hpp"
 #include "world.hpp"
+#include "collision.hpp"
+#include "object.hpp"
+#include "compat/function2.hpp"
+#include <bit>
 #include <array>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Functions.h>
@@ -13,6 +17,7 @@ using detail_astar::bbox;
 using detail_astar::div_factor;
 using detail_astar::div_size;
 using detail_astar::div_count;
+using detail_astar::pred;
 
 static_assert(div_count.x() == div_count.y());
 static_assert((iTILE_SIZE2 % div_size).isZero());
@@ -44,11 +49,11 @@ constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
     return bbox_from_pos2(pos, pos0);
 }
 
-bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from)
+bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from, const pred& p)
 {
     auto pos = make_pos(ij, from);
-    bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0);
-    //if (ret) Debug{} << "check" << ij << ij/div_factor << ij % div_factor << pos.min << pos.max << ret;
+    bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0, p);
+    //if (ret) Debug{} << "check" << ij << pos.min << pos.max << ret;
     //Debug{} << "check" << ij << pos.min << pos.max << ret;
     return ret;
 }
@@ -117,6 +122,22 @@ void chunk::delete_pass_region(pass_region*& ptr)
     }
 }
 
+pred chunk::default_region_predicate() noexcept
+{
+    return [this](collision_data data) {
+        auto x = std::bit_cast<collision_data>(data);
+        // XXX 'scenery' is used for all object types
+        if (x.tag == (uint64_t)collision_type::scenery)
+        {
+            auto& w = _world;
+            auto obj = w->find_object(x.data);
+            if (obj->type() == object_type::critter)
+                return path_search_continue::pass;
+        }
+        return path_search_continue::blocked;
+    };
+}
+
 auto chunk::get_pass_region() -> const pass_region*
 {
     if (!_region_modified)
@@ -140,6 +161,12 @@ void chunk::mark_region_modified() noexcept { _region_modified = true; }
 
 void chunk::make_pass_region(pass_region& ret)
 {
+    return make_pass_region(ret, default_region_predicate());
+}
+
+void chunk::make_pass_region(pass_region& ret, const pred& f)
+{
+    ret = {};
     auto& tmp = get_tmp();
     const auto nbs = _world->neighbors(_coord);
 
@@ -161,7 +188,7 @@ void chunk::make_pass_region(pass_region& ret)
     {
         auto positions = get_positions(i);
         for (auto i = 0u; i < 4; i++)
-            if (check_pos(*this, nbs, positions[i], fours[i]))
+            if (check_pos(*this, nbs, positions[i], fours[i], f))
                 tmp.append(ret.bits, positions[i]);
     }
 
@@ -174,7 +201,7 @@ void chunk::make_pass_region(pass_region& ret)
             Vector2i from = fours[i], pos{p - from};
             if ((uint32_t)pos.x() >= div_count.x() || (uint32_t)pos.y() >= div_count.y()) [[unlikely]]
                 continue;
-            if (tmp.check_visited(ret.bits, pos, i) && check_pos(*this, nbs, pos, from))
+            if (tmp.check_visited(ret.bits, pos, i) && check_pos(*this, nbs, pos, from, f))
                 tmp.append(ret.bits, pos);
         }
     }

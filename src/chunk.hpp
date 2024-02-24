@@ -5,7 +5,7 @@
 #include "src/RTree-fwd.h"
 #include "global-coords.hpp"
 #include "wall-defs.hpp"
-#include "collision.hpp"
+#include "path-search-pred.hpp"
 #include <type_traits>
 #include <array>
 #include <Corrade/Containers/Array.h>
@@ -119,8 +119,10 @@ public:
     static constexpr size_t max_wall_quad_count =
         TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
 
+    detail_astar::pred default_region_predicate() noexcept;
     const pass_region* get_pass_region();
     void make_pass_region(pass_region& ret);
+    void make_pass_region(pass_region& ret, const detail_astar::pred& f);
 
 private:
     struct ground_stuff
@@ -162,7 +164,7 @@ private:
 
     struct bbox final // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
-        object_id id;
+        object_id id; // todo change to collision_data
         Vector2i start, end;
 
         bool operator==(const bbox& other) const noexcept;

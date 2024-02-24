@@ -11,7 +11,6 @@
 namespace floormat {
 
 using namespace floormat::detail_astar;
-using pred = path_search::pred;
 using detail_astar::bbox;
 
 namespace {
@@ -176,7 +175,7 @@ void test_bbox()
     };
 
     constexpr auto neighbors = [](world& w, chunk_coords_ ch, Vector2i pos) {
-        return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, path_search::never_continue());
+        return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, never_continue());
     };
 
     const auto wall = loader.invalid_wall_atlas().atlas;

@@ -46,7 +46,7 @@ public:
         point pt;
     };
 
-    using pred = path_search::pred;
+    using pred = detail_astar::pred;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
@@ -57,7 +57,7 @@ public:
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, point from, point to,
                                 object_id own_id, uint32_t max_dist, Vector2ub own_size,
-                                int debug = 0, const pred& p = path_search::never_continue());
+                                int debug = 0, const pred& p = detail_astar::never_continue());
 
 private:
     static constexpr auto initial_capacity = TILE_COUNT * 16 * detail_astar::div_factor*detail_astar::div_factor;
