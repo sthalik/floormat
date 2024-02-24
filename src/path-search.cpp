@@ -29,6 +29,14 @@ auto path_search::always_continue() noexcept -> const pred& { return always_cont
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
+    constexpr auto bbox_size = Vector2{0xff, 0xff};
+    constexpr auto chunk_bounds = bbox<float>{
+        -TILE_SIZE2/2 - bbox_size/2,
+        TILE_MAX_DIM*TILE_SIZE2 - TILE_SIZE2/2 + bbox_size,
+    };
+    if (!rect_intersects(min, max, chunk_bounds.min, chunk_bounds.max))
+        return true;
+
     auto& rt = *c.rtree();
     bool is_passable = true;
     rt.Search(min.data(), max.data(), [&](uint64_t data, const auto& r)
@@ -69,16 +77,8 @@ bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors
         {
             static_assert(std::size(world::neighbor_offsets) == 8);
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-            constexpr auto bbox_size = Vector2i(1 << sizeof(Vector2b::Type)*8);
-            constexpr auto chunk_max = chunk_size + bbox_size;
-
             const auto off = Vector2(nb)*Vector2(chunk_size);
             const auto min_ = min - off, max_ = max - off;
-
-            if (min_.x() > chunk_max.x() || min_.y() > chunk_max.y())
-                continue;
-            if (max_.x() < -bbox_size.x() || max_.y() < -bbox_size.y())
-                continue;
 
             if (!is_passable_1(*c2, min_, max_, own_id, p))
                 return false;
