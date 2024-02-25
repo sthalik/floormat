@@ -37,7 +37,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
 
-    constexpr auto size = Vector2ui{tile_size_xy*3/4};
+    constexpr auto size = Vector2ui{tile_size_xy/2};
     constexpr auto ground = Vector2i(size/2);
 
     auto frame = anim_frame {
