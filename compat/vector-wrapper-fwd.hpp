@@ -2,7 +2,7 @@
 
 namespace floormat {
 
-enum class vector_wrapper_repr : uint8_t // todo! use this
+enum class vector_wrapper_repr : uint8_t
 {
     invalid,
     lvalue_reference_to_vector,

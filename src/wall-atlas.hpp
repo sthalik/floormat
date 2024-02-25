@@ -4,7 +4,7 @@
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
 #include <array>
-#include <bitset>
+#include <bitset> // todo replace with array
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
