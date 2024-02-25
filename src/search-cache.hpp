@@ -1,11 +1,15 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "point.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
 
-namespace floormat { class world; class chunk; }
+namespace floormat {
+class world;
+class chunk;
+struct point;
+struct chunk_coords_;
+} // namespace floormat
 
 namespace floormat::Search {
 

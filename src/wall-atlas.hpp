@@ -4,7 +4,6 @@
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
 #include <array>
-#include <bitset> // todo replace with array
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
@@ -97,7 +96,7 @@ struct wall_atlas_def final
     Array<Wall::Frame> frames;
     Array<Wall::Direction> direction_array;
     std::array<Wall::DirArrayIndex, Wall::Direction_COUNT> direction_map;
-    std::bitset<Wall::Direction_COUNT> direction_mask{0};
+    std::array<bool, Wall::Direction_COUNT> direction_mask{};
 
     static wall_atlas_def deserialize(StringView filename);
     void serialize(StringView filename) const;

@@ -1,5 +1,6 @@
 #include "search-cache.hpp"
 #include "search-constants.hpp"
+#include "point.hpp"
 #include "world.hpp"
 #include <bitset>
 

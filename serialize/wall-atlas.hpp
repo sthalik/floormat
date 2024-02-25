@@ -1,6 +1,5 @@
 #pragma once
 #include "src/wall-atlas.hpp"
-#include <bitset>
 #include <memory>
 #include <Corrade/Containers/Array.h>
 #include <nlohmann/json_fwd.hpp>

@@ -45,7 +45,7 @@ struct direction_triple
 {
     Array<Direction> array;
     std::array<DirArrayIndex, Direction_COUNT> map;
-    std::bitset<Direction_COUNT> mask;
+    std::array<bool, Direction_COUNT> mask;
 };
 
 direction_triple read_all_directions(const json& jroot)
@@ -54,9 +54,7 @@ direction_triple read_all_directions(const json& jroot)
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
-    direction_triple ret = { Array<Direction>{count},
-                             std::array<DirArrayIndex, Direction_COUNT>{},
-                             std::bitset<Direction_COUNT>{0}, };
+    direction_triple ret = { Array<Direction>{count}, {}, {}, };
     auto& [array, map, mask] = ret;
     for (uint8_t i = 0, pos = 0; i < std::size(wall_atlas::directions); i++)
     {

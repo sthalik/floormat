@@ -30,6 +30,9 @@ using namespace floormat::Wall;
 
 namespace {
 
+struct resolution : Vector2i { using Vector2i::Vector2i; };
+constexpr inline int max_image_dimension = 4096;
+
 const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
 {
     fm_assert(atlas.direction_mask[i]);
@@ -50,8 +53,6 @@ auto asformat(Fmt&& fmt, Xs&&... args)
     return ret;
 }
 
-struct resolution : Vector2i { using Vector2i::Vector2i; };
-
 Debug& operator<<(Debug& dbg, resolution res)
 {
     auto flags = dbg.flags();
@@ -62,7 +63,13 @@ Debug& operator<<(Debug& dbg, resolution res)
     return dbg;
 }
 
-constexpr inline int max_image_dimension = 4096;
+template<size_t N> constexpr bool any_bit_of(const std::array<bool, N>& array)
+{
+    for (auto x : array)
+        if (x)
+            return true;
+    return false;
+}
 
 bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
 {
@@ -276,7 +283,7 @@ bool do_direction(state& st, size_t i)
     const auto dir_idx = atlas.direction_array.size();
     fm_assert(dir_idx == (uint8_t)dir_idx);
 
-    atlas.direction_mask[i] = 1;
+    atlas.direction_mask[i] = true;
     atlas.direction_map[i] = DirArrayIndex{(uint8_t)dir_idx};
 
     auto dir = Direction{};
@@ -300,13 +307,13 @@ bool do_input_file(state& st)
     DBG << "input" << quoted(st.old_atlas.header.name) << colon(',') << quoted(st.opts.input_file);
 
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
-    fm_assert(st.old_atlas.direction_mask.any());
+    fm_assert(any_bit_of(st.old_atlas.direction_mask));
 
     auto& atlas = st.new_atlas;
     atlas.header = std::move(const_cast<wall_atlas_def&>(st.old_atlas).header);
 
     fm_assert(!atlas.frames.size());
-    fm_assert(!atlas.direction_mask.any());
+    fm_assert(!any_bit_of(atlas.direction_mask));
     fm_assert(atlas.direction_map == std::array<Wall::DirArrayIndex, Direction_COUNT>{});
     fm_assert(atlas.direction_array.isEmpty());
     arrayReserve(atlas.direction_array, Direction_COUNT);
