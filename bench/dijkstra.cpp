@@ -1,5 +1,5 @@
-#include "src/search-astar.hpp"
 #include "src/search-result.hpp"
+#include "src/search-astar.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"

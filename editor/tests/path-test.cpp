@@ -4,10 +4,10 @@
 #include "compat/vector-wrapper.hpp"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
+#include "src/search-result.hpp"
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
-#include "src/camera-offset.hpp"
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Math/Color.h>
 

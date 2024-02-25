@@ -2,6 +2,7 @@
 #include "search-bbox.hpp"
 #include "search-constants.hpp"
 #include "search-cache.hpp"
+#include "search-result.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"

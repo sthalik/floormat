@@ -2,7 +2,6 @@
 #include "tile-constants.hpp"
 #include "global-coords.hpp"
 #include "object-id.hpp"
-#include "search-result.hpp"
 #include "search-pred.hpp"
 #include <array>
 

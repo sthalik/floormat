@@ -8,6 +8,8 @@ namespace floormat::Search { struct cache; }
 
 namespace floormat {
 
+struct point;
+
 class astar
 {
 public:
