@@ -93,7 +93,7 @@ const point& path_search_result::operator[](size_t index) const
     fm_debug_assert(index < _node->vec.size());
     return data()[index];
 }
-vector_wrapper<point, vector_wrapper_repr::lvalue_reference_to_vector> path_search_result::raw_path() { fm_assert(_node); return {_node->vec}; }
+vector_wrapper<point, vector_wrapper_repr::ref> path_search_result::raw_path() { fm_assert(_node); return {_node->vec}; }
 ArrayView<const point> path_search_result::path() const { fm_assert(_node); return {_node->vec.data(), _node->vec.size()}; }
 
 } // namespace floormat

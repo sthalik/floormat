@@ -14,7 +14,6 @@ namespace floormat {
 namespace {
 
 using Search::bbox;
-using Search::div_factor;
 using Search::div_size;
 using Search::div_count;
 using Search::pred;

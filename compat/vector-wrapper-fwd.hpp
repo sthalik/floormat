@@ -5,9 +5,9 @@ namespace floormat {
 enum class vector_wrapper_repr : uint8_t
 {
     invalid,
-    lvalue_reference_to_vector,
-    const_reference_to_vector,
-    vector,
+    ref,
+    const_ref,
+    value,
 };
 
 template<typename T, vector_wrapper_repr> struct vector_wrapper;

@@ -24,7 +24,7 @@ struct path_search_result final
     uint32_t distance() const;
     void set_distance(uint32_t dist);
 
-    vector_wrapper<point, vector_wrapper_repr::lvalue_reference_to_vector> raw_path();
+    vector_wrapper<point, vector_wrapper_repr::ref> raw_path();
     ArrayView<const point> path() const;
     explicit operator ArrayView<const point>() const;
     explicit operator bool() const;
