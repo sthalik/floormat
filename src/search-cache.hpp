@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "point.hpp"
+#include <array>
 #include <Corrade/Containers/Array.h>
 #include <Magnum/Math/Vector2.h>
 

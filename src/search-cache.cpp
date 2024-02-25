@@ -1,7 +1,6 @@
 #include "search-cache.hpp"
 #include "search-constants.hpp"
 #include "world.hpp"
-#include <array>
 #include <bitset>
 
 namespace floormat::Search {
