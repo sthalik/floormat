@@ -6,28 +6,16 @@
 #include "search-pred.hpp"
 #include <array>
 
-namespace floormat {
-class world;
-struct object;
-class chunk;
-} // namespace floormat
-
-// todo add pathfinding sub-namespace
-
 namespace floormat::Search {
-
 template<typename T> struct bbox;
 struct cache;
-struct chunk_cache;
-constexpr inline int div_factor = 4;
-constexpr inline auto div_size = iTILE_SIZE2 / div_factor;
-constexpr inline auto min_size = Vector2ui(div_size * 2);
-constexpr inline auto div_count = iTILE_SIZE2 * TILE_MAX_DIM / Search::div_size;
-
 } // namespace floormat::Search
 
 namespace floormat {
 
+class world;
+struct object;
+class chunk;
 struct path_search_result;
 
 class path_search final

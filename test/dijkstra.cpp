@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/search-astar.hpp"
+#include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"

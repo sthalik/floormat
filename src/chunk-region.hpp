@@ -1,6 +1,6 @@
 #pragma once
 #include "chunk.hpp"
-#include "search.hpp"
+#include "search-constants.hpp"
 #include <bitset>
 
 namespace floormat {

@@ -6,6 +6,7 @@
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/search-bbox.hpp"
+#include "src/search-constants.hpp"
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
