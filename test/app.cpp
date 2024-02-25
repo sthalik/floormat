@@ -110,7 +110,7 @@ int test_app::exec()
             fm_assert(num_tabs <= tab_limit);
             for (auto i = 0uz; i < num_tabs; i++)
                 std::fputc('\t', s);
-            std::fprintf(s, "% 9.3f ms\n", (double)ms);
+            std::fprintf(s, "% 12.3f ms\n", (double)ms);
             std::fflush(s);
         }
     }
