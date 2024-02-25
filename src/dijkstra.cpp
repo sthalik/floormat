@@ -1,4 +1,4 @@
-#include "astar.hpp"
+#include "search-astar.hpp"
 #include "search-bbox.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
