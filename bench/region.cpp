@@ -66,35 +66,34 @@ void Chunk_Region(benchmark::State& state)
     auto& c5 = make_chunk1(w[chunk_coords_{5, 0, 0}], false, true);
     auto& c6 = make_chunk1(w[chunk_coords_{6, 0, 0}], false, false);
     auto& c7 = make_chunk1(w[chunk_coords_{7, 0, 0}], true, true);
-    chunk::pass_region p;
 
     for (auto _ : state)
     {
-        { p = {}; c1.make_pass_region(p);
+        { auto p = c1.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt == p.bits.size());
         }
-        { p = {}; c2.make_pass_region(p);
+        { auto p = c2.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt != 0 && cnt != p.bits.size());
         }
-        { p = {}; c3.make_pass_region(p);
+        { auto p = c3.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt == 0);
         }
-        { p = {}; c4.make_pass_region(p);
+        { auto p = c4.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt != 0 && cnt < 100);
         }
-        { p = {}; c5.make_pass_region(p);
+        { auto p = c5.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt != 0 && cnt != p.bits.size());
         }
-        { p = {}; c6.make_pass_region(p);
+        { auto p = c6.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt != 0 && cnt != p.bits.size());
         }
-        { p = {}; c7.make_pass_region(p);
+        { auto p = c7.make_pass_region();
           auto cnt = p.bits.count();
           fm_assert(cnt != 0 && cnt != p.bits.size());
         }

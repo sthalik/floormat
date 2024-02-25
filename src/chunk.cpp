@@ -126,7 +126,6 @@ void chunk::mark_passability_modified() noexcept
     if (!_pass_modified && is_log_verbose()) [[unlikely]]
         fm_debug("pass reload %zu", ++_reload_no_);
     _pass_modified = true;
-    _region_modified = true;
 }
 
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
@@ -153,7 +152,6 @@ chunk::~chunk() noexcept
     arrayResize(_objects, 0);
     arrayShrink(_objects);
     _rtree->RemoveAll();
-    delete_pass_region(_region);
 }
 
 chunk::chunk(chunk&&) noexcept = default;
@@ -162,7 +160,6 @@ chunk& chunk::operator=(chunk&&) noexcept = default;
 void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
 {
     _objects_sorted = false;
-    _region_modified = true;
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
@@ -185,7 +182,6 @@ void chunk::sort_objects()
 void chunk::add_object(const std::shared_ptr<object>& e)
 {
     fm_assert(_objects_sorted);
-    _region_modified = true;
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
@@ -199,7 +195,6 @@ void chunk::add_object(const std::shared_ptr<object>& e)
 void chunk::remove_object(size_t i)
 {
     fm_assert(_objects_sorted);
-    _region_modified = true;
     auto& es = _objects;
     fm_debug_assert(i < es.size());
     const auto e = es[i];

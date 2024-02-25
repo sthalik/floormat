@@ -128,44 +128,14 @@ auto default_region_predicate(chunk& c) noexcept
 
 } // namespace
 
-void chunk::delete_pass_region(pass_region*& ptr)
+auto chunk::make_pass_region() -> pass_region
 {
-    if (ptr)
-    {
-        delete ptr;
-        ptr = nullptr;
-    }
+    return make_pass_region(default_region_predicate(*this));
 }
 
-auto chunk::get_pass_region() -> const pass_region*
+auto chunk::make_pass_region(const pred& f) -> pass_region
 {
-    if (!_region_modified)
-    {
-        fm_debug_assert(_region != nullptr);
-        return _region;
-    }
-    _region_modified = false;
-
-    if (!_region)
-        _region = new pass_region;
-    else
-        _region->bits = {};
-
-    make_pass_region(*_region);
-    return _region;
-}
-
-bool chunk::is_region_modified() const noexcept { return _region_modified; }
-void chunk::mark_region_modified() noexcept { _region_modified = true; }
-
-void chunk::make_pass_region(pass_region& ret)
-{
-    return make_pass_region(ret, default_region_predicate(*this));
-}
-
-void chunk::make_pass_region(pass_region& ret, const pred& f)
-{
-    ret = {};
+    pass_region ret;
     auto& tmp = get_tmp();
     const auto nbs = _world->neighbors(_coord);
 
@@ -204,6 +174,8 @@ void chunk::make_pass_region(pass_region& ret, const pred& f)
                 tmp.append(ret.bits, pos);
         }
     }
+
+    return ret;
 }
 
 } // namespace floormat

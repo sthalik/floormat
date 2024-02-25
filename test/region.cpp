@@ -49,16 +49,14 @@ void test1()
 {
     auto w = world();
     auto& c = make_chunk1(w[COORD], true, false);
-    auto p = chunk::pass_region{};
-    c.make_pass_region(p);
+    auto p = c.make_pass_region();
     const auto count = p.bits.count();
     fm_assert(count > 1000);
     fm_assert(p.bits.size() - count > 2000);
-    fm_assert(c.get_pass_region()->bits == p.bits);
+    fm_assert(c.make_pass_region().bits == p.bits);
     { auto w = world();
       auto& c = make_chunk1(w[COORD], true, true);
-      auto p2 = chunk::pass_region{};
-      c.make_pass_region(p2);
+      auto p2 = c.make_pass_region();
       fm_assert(p2.bits.count() == count);
     }
 }
@@ -67,15 +65,13 @@ void test2()
 {
     auto w = world();
     auto& c = make_chunk1(w[COORD], false, false);
-    auto p = chunk::pass_region{};
-    c.make_pass_region(p);
+    auto p = c.make_pass_region();
     const auto count = p.bits.count();
     fm_assert(count > 1000);
     fm_assert(p.bits.size() - count > 2000);
     { auto w = world();
       auto& c = make_chunk1(w[COORD], false, true);
-      auto p2 = chunk::pass_region{};
-      c.make_pass_region(p2);
+      auto p2 = c.make_pass_region();
       fm_assert(p2.bits.count() == count);
     }
 }
@@ -84,11 +80,10 @@ void test3()
 {
     auto w = world();
     auto& c = make_chunk1(w[COORD], true, false);
-    const auto bits = c.get_pass_region()->bits;
+    const auto bits = c.make_pass_region().bits;
     fm_assert(bits.count() > 1000);
 
-    { auto p2 = chunk::pass_region{};
-      c.make_pass_region(p2);
+    { auto p2 = c.make_pass_region();
       fm_assert(p2.bits == bits);
     }
 
@@ -96,10 +91,10 @@ void test3()
       fm_assert(c[{0, 0}].ground() != empty);
 
       c[{0, 0}].ground() = empty;
-      fm_assert(c.get_pass_region()->bits == bits);
+      fm_assert(c.make_pass_region().bits == bits);
 
       c.mark_passability_modified();
-      fm_assert(c.get_pass_region()->bits != bits);
+      fm_assert(c.make_pass_region().bits != bits);
     }
 }
 

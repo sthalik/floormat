@@ -27,7 +27,6 @@ public:
     friend struct tile_ref;
     friend struct object;
     friend class world;
-    struct pass_region;
 
     tile_ref operator[](size_t idx) noexcept;
     tile_proto operator[](size_t idx) const noexcept;
@@ -63,12 +62,10 @@ public:
     void mark_walls_modified() noexcept;
     void mark_scenery_modified() noexcept;
     void mark_passability_modified() noexcept;
-    void mark_region_modified() noexcept;
     void mark_modified() noexcept;
 
     bool is_passability_modified() const noexcept;
     bool is_scenery_modified() const noexcept;
-    bool is_region_modified() const noexcept;
 
     struct ground_mesh_tuple final {
         GL::Mesh& mesh;
@@ -84,6 +81,7 @@ public:
     struct object_draw_order;
     struct scenery_mesh_tuple;
     struct scenery_scratch_buffers;
+    struct pass_region;
 
     struct vertex {
         Vector3 position;
@@ -119,9 +117,8 @@ public:
     static constexpr size_t max_wall_quad_count =
         TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
 
-    const pass_region* get_pass_region();
-    void make_pass_region(pass_region& ret);
-    void make_pass_region(pass_region& ret, const Search::pred& f);
+    pass_region make_pass_region();
+    pass_region make_pass_region(const Search::pred& f);
 
 private:
     struct ground_stuff
@@ -140,7 +137,6 @@ private:
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
-    pass_region* _region = nullptr;
     Array<std::shared_ptr<object>> _objects;
     class world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
@@ -152,14 +148,11 @@ private:
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true,
-                 _region_modified  : 1 = true,
                  _teardown         : 1 = false,
                  _objects_sorted   : 1 = true;
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
     static topo_sort_data make_topo_sort_data(object& e, uint32_t mesh_idx);
-
-    static void delete_pass_region(pass_region*& ptr);
 
     struct bbox final
     {
