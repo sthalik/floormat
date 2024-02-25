@@ -1,5 +1,6 @@
 #include "main-impl.hpp"
 #include "src/search-astar.hpp"
+#include "src/search.hpp"
 #include <Corrade/Utility/Move.h>
 #include <Magnum/Platform/Sdl2Application.h>
 

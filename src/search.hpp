@@ -15,11 +15,9 @@ namespace floormat {
 class world;
 struct object;
 class chunk;
-struct path_search_result;
 
 class path_search final
 {
-    friend struct path_search_result;
     template<typename T> using bbox = Search::bbox<T>;
     using pred = Search::pred;
 

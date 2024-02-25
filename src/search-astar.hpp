@@ -1,14 +1,17 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
-#include "search.hpp"
 #include "search-constants.hpp"
+#include "search-pred.hpp"
+#include "object-id.hpp"
 #include <Corrade/Containers/Array.h>
 
 namespace floormat::Search { struct cache; }
 
 namespace floormat {
 
+class world;
 struct point;
+struct path_search_result;
 
 class astar
 {

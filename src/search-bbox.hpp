@@ -1,6 +1,5 @@
 #pragma once
 #include "search.hpp"
-#include <concepts>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
 
