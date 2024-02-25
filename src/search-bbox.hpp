@@ -1,10 +1,10 @@
 #pragma once
-#include "path-search.hpp"
+#include "search.hpp"
 #include <concepts>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/DimensionTraits.h>
 
-namespace floormat::detail_astar {
+namespace floormat::Search {
 
 template<typename T> struct bbox
 {
@@ -22,4 +22,4 @@ template<typename T> struct bbox
     }
 };
 
-} // namespace floormat::detail_astar
+} // namespace floormat::Search

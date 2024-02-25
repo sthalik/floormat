@@ -14,8 +14,8 @@ namespace floormat::tests {
 namespace {
 
 using namespace floormat::imgui;
-using detail_astar::div_count;
-using detail_astar::div_size;
+using Search::div_count;
+using Search::div_size;
 
 constexpr auto chunk_bits = div_count.product();
 constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;

@@ -5,13 +5,13 @@
 #include "loader/wall-cell.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
-#include "src/path-search-bbox.hpp"
+#include "src/search-bbox.hpp"
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
-using namespace floormat::detail_astar;
-using detail_astar::bbox;
+using namespace floormat::Search;
+using Search::bbox;
 
 namespace {
 

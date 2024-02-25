@@ -1,5 +1,5 @@
-#include "path-search.hpp"
-#include "path-search-bbox.hpp"
+#include "search.hpp"
+#include "search-bbox.hpp"
 #include "astar.hpp"
 #include "global-coords.hpp"
 #include "world.hpp"
@@ -8,7 +8,7 @@
 #include "compat/function2.hpp"
 #include <bit>
 
-namespace floormat::detail_astar {
+namespace floormat::Search {
 
 namespace {
 constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
@@ -21,11 +21,11 @@ const pred& never_continue() noexcept { return never_continue_; }
 const pred& always_continue() noexcept { return always_continue_; }
 //static_assert(1 << 2 == div_factor);
 
-} // namespace floormat::detail_astar
+} // namespace floormat::Search
 
 namespace floormat {
 
-using namespace detail_astar;
+using namespace Search;
 
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
@@ -98,7 +98,7 @@ bool path_search::is_passable(world& w, global_coords coord,
     return is_passable(w, coord, {min, max}, own_id, p);
 }
 
-bool path_search::is_passable(world& w, struct detail_astar::cache& cache, global_coords coord,
+bool path_search::is_passable(world& w, struct Search::cache& cache, global_coords coord,
                               Vector2b offset, Vector2ui size_,
                               object_id own_id, const pred& p)
 {
@@ -116,7 +116,7 @@ bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb,
     return is_passable_(c, neighbors, bb.min, bb.max, own_id, p);
 }
 
-bool path_search::is_passable(world& w, struct detail_astar::cache& cache, chunk_coords_ ch0,
+bool path_search::is_passable(world& w, struct Search::cache& cache, chunk_coords_ ch0,
                               const bbox<float>& bb, object_id own_id, const pred& p)
 {
     auto* c = cache.try_get_chunk(w, ch0);

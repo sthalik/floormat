@@ -1,10 +1,10 @@
 #pragma once
-#include "path-search.hpp"
+#include "search.hpp"
 #include "point.hpp"
 #include <bitset>
 #include <Corrade/Containers/Array.h>
 
-namespace floormat::detail_astar {
+namespace floormat::Search {
 
 struct cache;
 struct chunk_cache;
@@ -32,7 +32,7 @@ struct cache
     std::array<chunk*, 8> get_neighbors(world& w, chunk_coords_ ch0);
 };
 
-} // namespace floormat::detail_astar
+} // namespace floormat::Search
 
 namespace floormat {
 
@@ -46,7 +46,7 @@ public:
         point pt;
     };
 
-    using pred = detail_astar::pred;
+    using pred = Search::pred;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(astar);
 
@@ -57,17 +57,17 @@ public:
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, point from, point to,
                                 object_id own_id, uint32_t max_dist, Vector2ub own_size,
-                                int debug = 0, const pred& p = detail_astar::never_continue());
+                                int debug = 0, const pred& p = Search::never_continue());
 
 private:
-    static constexpr auto initial_capacity = TILE_COUNT * 16 * detail_astar::div_factor*detail_astar::div_factor;
+    static constexpr auto initial_capacity = TILE_COUNT * 16 * Search::div_factor*Search::div_factor;
 
     struct chunk_cache;
 
     void add_to_heap(uint32_t id);
     uint32_t pop_from_heap();
 
-    struct detail_astar::cache cache;
+    struct Search::cache cache;
     Array<visited> nodes;
     Array<uint32_t> Q;
 };

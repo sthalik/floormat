@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "path-search-result.hpp"
+#include "search-result.hpp"
 #include <vector>
 #include <Corrade/Containers/Pointer.h>
 

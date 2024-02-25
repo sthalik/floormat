@@ -5,7 +5,7 @@
 #include "src/RTree-fwd.h"
 #include "global-coords.hpp"
 #include "wall-defs.hpp"
-#include "path-search-pred.hpp"
+#include "search-pred.hpp"
 #include <type_traits>
 #include <array>
 #include <Corrade/Containers/Array.h>
@@ -121,7 +121,7 @@ public:
 
     const pass_region* get_pass_region();
     void make_pass_region(pass_region& ret);
-    void make_pass_region(pass_region& ret, const detail_astar::pred& f);
+    void make_pass_region(pass_region& ret, const Search::pred& f);
 
 private:
     struct ground_stuff

@@ -1,5 +1,5 @@
 #include "astar.hpp"
-#include "path-search-bbox.hpp"
+#include "search-bbox.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"
@@ -16,10 +16,10 @@
 namespace floormat {
 
 using visited = astar::visited;
-using detail_astar::bbox;
-using detail_astar::div_size;
-using detail_astar::div_factor;
-using detail_astar::min_size;
+using Search::bbox;
+using Search::div_size;
+using Search::div_factor;
+using Search::min_size;
 
 namespace {
 
@@ -360,7 +360,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 
 } // namespace floormat
 
-namespace floormat::detail_astar {
+namespace floormat::Search {
 
 struct chunk_cache
 {
@@ -498,4 +498,4 @@ std::array<chunk*, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
     return neighbors;
 }
 
-} // namespace floormat::detail_astar
+} // namespace floormat::Search

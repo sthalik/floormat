@@ -1,5 +1,5 @@
 #include "chunk-region.hpp"
-#include "path-search-bbox.hpp"
+#include "search-bbox.hpp"
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
@@ -13,11 +13,11 @@ namespace floormat {
 
 namespace {
 
-using detail_astar::bbox;
-using detail_astar::div_factor;
-using detail_astar::div_size;
-using detail_astar::div_count;
-using detail_astar::pred;
+using Search::bbox;
+using Search::div_factor;
+using Search::div_size;
+using Search::div_count;
+using Search::pred;
 
 static_assert(div_count.x() == div_count.y());
 static_assert((iTILE_SIZE2 % div_size).isZero());

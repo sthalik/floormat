@@ -1,8 +1,8 @@
-#include "path-search-result.hpp"
-//#include "path-search.hpp"
+#include "search-result.hpp"
+//#include "search.hpp"
 #include "compat/assert.hpp"
 #include "compat/vector-wrapper.hpp"
-#include "path-search-node.hpp"
+#include "search-node.hpp"
 #include "src/point.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <utility>
