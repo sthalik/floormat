@@ -182,7 +182,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     Timeline timeline; timeline.start();
 
     clear();
-    _cache->allocate(from, max_dist);
+    auto& cache = *_cache;
+    cache.allocate(from, max_dist);
 
     const auto own_size = Math::max(Vector2ui(own_size_), min_size);
     constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
@@ -194,10 +195,10 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (from.coord().z() != 0) [[unlikely]]
         return {};
 
-    if (!path_search::is_passable(w, *_cache, from.coord(), from.offset(), own_size, own_id, p))
+    if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size, own_id, p))
         return {};
 
-    if (!path_search::is_passable(w, *_cache, to.coord(), to.offset(), own_size, own_id, p))
+    if (!path_search::is_passable(w, cache, to.coord(), to.offset(), own_size, own_id, p))
         return {};
 
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
@@ -211,10 +212,10 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
             auto dist = distance(from, pt) + min_dist;
 
-            if (path_search::is_passable(w, *_cache, from.chunk3(), bb, own_id, p))
+            if (path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p))
             {
                 auto idx = (uint32_t)nodes.size();
-                _cache->add_index(pt, idx);
+                cache.add_index(pt, idx);
                 arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
                 add_to_heap(idx);
             }
@@ -254,7 +255,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         {
             auto dist = cur_dist + dist_to_goal;
             if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
-                path_search::is_passable(w, *_cache, to.chunk3(), bb, own_id, p))
+                path_search::is_passable(w, cache, to.chunk3(), bb, own_id, p))
             {
                 goal_idx = cur_idx;
                 max_dist = dist;
@@ -269,9 +270,9 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 continue;
 
             const auto new_pt = object::normalize_coords(cur_pt, vec);
-            auto chunk_idx = _cache->get_chunk_index(Vector2i(new_pt.chunk()));
-            auto tile_idx = _cache->get_tile_index(Vector2i(new_pt.local()), new_pt.offset());
-            auto new_idx = _cache->lookup_index(chunk_idx, tile_idx);
+            auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
+            auto tile_idx = cache.get_tile_index(Vector2i(new_pt.local()), new_pt.offset());
+            auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
             if (new_idx != (uint32_t)-1)
             {
@@ -280,14 +281,14 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             }
 
             if (auto bb = bbox<float>(bbox_from_pos2(new_pt, cur_pt, own_size));
-                !path_search::is_passable(w, *_cache, new_pt.chunk3(), bb, own_id, p))
+                !path_search::is_passable(w, cache, new_pt.chunk3(), bb, own_id, p))
                 continue;
 
             if (new_idx == (uint32_t)-1)
             {
                 const auto sz = nodes.size();
                 new_idx = (uint32_t)sz;
-                _cache->add_index(chunk_idx, tile_idx, new_idx);
+                cache.add_index(chunk_idx, tile_idx, new_idx);
                 auto new_node = visited {
                     .dist = dist, .prev = cur_idx,
                     .pt = new_pt,
