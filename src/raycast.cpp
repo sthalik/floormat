@@ -104,8 +104,8 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
     constexpr auto half_bb = (max_bb_size + Math::Vector2{T{1}}) / T{2};
     constexpr auto start = -half_bb, end = chunk_size<T> + half_bb;
 
-    return !(start.x() > p1.x() || end.x() < p0.x() ||
-             start.y() > p1.y() || end.y() < p0.y());
+    return start.x() <= p1.x() && end.x() >= p0.x() &&
+           start.y() <= p1.y() && end.y() >= p0.y();
 }
 
 template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int> p1);
