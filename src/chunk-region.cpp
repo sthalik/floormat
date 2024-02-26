@@ -46,7 +46,7 @@ constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from)
 constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
 {
     auto pos = div_min + div_size * ij;
-    auto pos0 = pos + from*div_size;
+    auto pos0 = pos - from*div_size;
     return bbox_from_pos2(pos, pos0);
 }
 
@@ -145,22 +145,25 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
     auto& tmp = get_tmp();
     const auto nbs = _world->neighbors(_coord);
 
-    constexpr Vector2i fours[4] = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };
+    constexpr Vector2i fours[4] = {
+        {-1, 0}, {1, 0},
+        {0, -1}, {0, 1},
+    };
 
     //if (Vector2i pos{0, 0}; check_pos(*c, nbs, pos, fours[1])) tmp.append(pos, 1); // top
 
-    constexpr auto get_positions = [](int i) {
-        constexpr auto last = div_count - Vector2i{1};
-        return std::array<Vector2i, 4> {{
-            {i, last.y()}, // bottom
-            {i, 0},        // top
-            {last.x(), i}, // right
-            {0, i},        // left
-        }};
-    };
-
     for (int i = 0; i < div_count.x(); i++)
     {
+        constexpr auto get_positions = [](int i) {
+            constexpr auto last = div_count - Vector2i{1};
+            return std::array<Vector2i, 4> {{
+                {0, i},        // left
+                {last.x(), i}, // right
+                {i, 0},        // top
+                {i, last.y()}, // bottom
+            }};
+        };
+
         auto positions = get_positions(i);
         for (auto i = 0u; i < 4; i++)
             if (check_pos(*this, nbs, positions[i], fours[i], f))
@@ -173,7 +176,7 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
         arrayRemoveSuffix(tmp.stack);
         for (int i = 0; i < 4; i++)
         {
-            Vector2i from = fours[i], pos{p - from};
+            Vector2i from = fours[i], pos{p + from};
             if ((uint32_t)pos.x() >= div_count.x() || (uint32_t)pos.y() >= div_count.y()) [[unlikely]]
                 continue;
             if (tmp.check_visited(ret.bits, pos, i) && check_pos(*this, nbs, pos, from, f))
