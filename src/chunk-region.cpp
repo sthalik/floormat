@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
+#include "compat/debug.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>
@@ -183,9 +184,7 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
     if (debug) [[unlikely]]
     {
         const auto time = timeline.currentFrameTime();
-        char buf[32];
-        std::snprintf(buf, sizeof buf, "%.3f", 1e3*(double)time);
-        DBG_nospace << "region: generating for " << _coord << " took " << buf << " ms";
+        DBG_nospace << "region: generating for " << _coord << " took " << fraction(1e3f*time, 3) << " ms";
     }
 
     return ret;

@@ -1,10 +1,15 @@
 #include "debug.hpp"
 #include "compat/strerror.hpp"
 #include <cerrno>
+#include <cstdio>
 #include <Corrade/Containers/StringView.h>
 
 // Error{} << "error" << colon() << "can't open file" << colon() << quoted("foo") << error_string(EINVAL);
 // ===> "error: can't open file 'foo': Invalid argument"
+
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 
 namespace floormat::detail::corrade_debug {
 
@@ -46,6 +51,15 @@ Debug& quoted_end(Debug& dbg, Debug::Flags flags, char c)
 
 template struct Quoted<StringView>;
 
+Debug& operator<<(Debug& dbg, Fraction f)
+{
+    char fmt[8], buf[56];
+    std::snprintf(fmt, sizeof fmt, "%%.%hhuf", f.decimal_points);
+    std::snprintf(buf, sizeof buf, fmt, (double)f.value);
+    dbg << buf;
+    return dbg;
+}
+
 } // namespace floormat::detail::corrade_debug
 
 namespace floormat {
@@ -55,5 +69,7 @@ using namespace floormat::detail::corrade_debug;
 Colon colon(char c) { return Colon{c}; }
 ErrorString error_string(int error) { return { error }; }
 ErrorString error_string() { return { errno }; }
+
+Fraction fraction(float value, uint8_t decimal_points) { return Fraction { value, decimal_points }; }
 
 } // namespace floormat
