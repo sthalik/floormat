@@ -66,7 +66,7 @@ struct node_s
 
 struct tmp_s
 {
-    Array<node_s> stack;
+    Array<node_s> stack{NoInit, 0};
     std::bitset<visited_bits> visited;
 
     static uint32_t get_index(Vector2i pos);
@@ -145,43 +145,42 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
     auto& tmp = get_tmp();
     const auto nbs = _world->neighbors(_coord);
 
-    constexpr Vector2i fours[4] = {
-        {-1, 0}, {1, 0},
-        {0, -1}, {0, 1},
-    };
-
     //if (Vector2i pos{0, 0}; check_pos(*c, nbs, pos, fours[1])) tmp.append(pos, 1); // top
 
-    for (int i = 0; i < div_count.x(); i++)
-    {
-        constexpr auto get_positions = [](int i) {
-            constexpr auto last = div_count - Vector2i{1};
-            return std::array<Vector2i, 4> {{
-                {0, i},        // left
-                {last.x(), i}, // right
-                {i, 0},        // top
-                {i, last.y()}, // bottom
-            }};
-        };
+    enum : uint8_t { L, R, U, D };
 
-        auto positions = get_positions(i);
-        for (auto i = 0u; i < 4; i++)
-            if (check_pos(*this, nbs, positions[i], fours[i], f))
-                tmp.append(ret.bits, positions[i]);
+    const auto do_pixel = [&]<int Dir, bool Edge>(const Vector2i pos0)
+    {
+        constexpr Vector2i fours[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1}, };
+        constexpr auto dir = fours[Dir];
+        const auto pos = pos0 + dir;
+        if constexpr(!Edge && (Dir == L || Dir == R))
+            if ((uint32_t)pos.x() >= div_count.x()) [[unlikely]]
+                return;
+        if constexpr(!Edge && (Dir == U || Dir == D))
+            if ((uint32_t)pos.y() >= div_count.y()) [[unlikely]]
+                return;
+        if (tmp.check_visited(ret.bits, pos, Dir) && check_pos(*this, nbs, pos, dir, f))
+            tmp.append(ret.bits, pos);
+    };
+
+    for (int i = 0; i < div_count.y(); i++)
+    {
+        do_pixel.operator()<L, true>(Vector2i(div_count.x(), i));
+        do_pixel.operator()<R, true>(Vector2i(-1, i));
+        do_pixel.operator()<U, true>(Vector2i(i, div_count.y()));
+        do_pixel.operator()<D, true>(Vector2i(i, -1));
     }
 
     while (!tmp.stack.isEmpty())
     {
         auto p = tmp.stack.back().pos;
         arrayRemoveSuffix(tmp.stack);
-        for (int i = 0; i < 4; i++)
-        {
-            Vector2i from = fours[i], pos{p + from};
-            if ((uint32_t)pos.x() >= div_count.x() || (uint32_t)pos.y() >= div_count.y()) [[unlikely]]
-                continue;
-            if (tmp.check_visited(ret.bits, pos, i) && check_pos(*this, nbs, pos, from, f))
-                tmp.append(ret.bits, pos);
-        }
+
+        do_pixel.operator()<L, false>(p);
+        do_pixel.operator()<R, false>(p);
+        do_pixel.operator()<U, false>(p);
+        do_pixel.operator()<D, false>(p);
     }
 
     if (debug) [[unlikely]]
