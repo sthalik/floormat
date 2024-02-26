@@ -11,6 +11,7 @@ struct chunk_coords final {
     int16_t x = 0, y = 0;
 
     constexpr bool operator==(const chunk_coords& other) const noexcept = default;
+    friend Debug& operator<<(Debug& dbg, const chunk_coords& pt);
 
     template<typename T>
     explicit constexpr operator Math::Vector2<T>() const noexcept
@@ -36,7 +37,9 @@ struct chunk_coords_ final {
     constexpr chunk_coords_() noexcept = default;
     constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z} {}
     constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
+
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
+    friend Debug& operator<<(Debug& dbg, const chunk_coords_& pt);
 
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept
     {

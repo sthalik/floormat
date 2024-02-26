@@ -185,12 +185,7 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
         const auto time = timeline.currentFrameTime();
         char buf[32];
         std::snprintf(buf, sizeof buf, "%.3f", 1e3*(double)time);
-        auto c = Vector3i(_coord);
-        auto dbg = DBG_nospace;
-        dbg << "region: generating for chunk{" << c.x() << "," << c.y();
-        if (c.z() != 0)
-            dbg << "," << c.z();
-         dbg << "} took " << buf << " ms";
+        DBG_nospace << "region: generating for " << _coord << " took " << buf << " ms";
     }
 
     return ret;

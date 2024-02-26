@@ -5,6 +5,33 @@
 
 namespace floormat {
 
+Debug& operator<<(Debug& dbg, const chunk_coords& c)
+{
+    dbg << "";
+    const auto flags = dbg.flags();
+
+    dbg.setFlags(flags | Debug::Flag::NoSpace);
+    dbg << "chunk{" << c.x << "," << c.y << "}";
+
+    dbg.setFlags(flags);
+    return dbg;
+}
+
+Debug& operator<<(Debug& dbg, const chunk_coords_& c)
+{
+    dbg << "";
+    const auto flags = dbg.flags();
+
+    dbg.setFlags(flags | Debug::Flag::NoSpace);
+    dbg << "chunk{" << c.x << "," << c.y;
+    if (c.z != 0)
+        dbg << "," << c.z;
+    dbg << "}";
+
+    dbg.setFlags(flags);
+    return dbg;
+}
+
 namespace {
 
 static_assert(sizeof(decltype(local_coords::x))*8 == 8);
