@@ -179,7 +179,9 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     (void)debug;
 #endif
 
-    Timeline timeline; timeline.start();
+    Timeline timeline;
+    if (debug > 0) [[unlikely]]
+        timeline.start();
 
     clear();
     auto& cache = *_cache;
@@ -341,11 +343,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         auto d0 = (uint32_t)d0_.length();
         char buf[128];
         size_t len = 0;
-        const auto time = (uint32_t)Math::ceil(result.time() * 1e3f);
+        const auto time = result.time() * 1e3f;
         if (goal_idx != (uint32_t)-1)
         {
             auto d = nodes[goal_idx].dist;
-            len = snformat(buf, "Dijkstra: found in {} ms "
+            len = snformat(buf, "Dijkstra: found in {:.1f} ms "
                                 "len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, d, d0,
                            d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
@@ -354,7 +356,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         {
             const auto& closest = nodes[closest_idx];
             fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
-            len = snformat(buf, "Dijkstra: no path found in {} ms "
+            len = snformat(buf, "Dijkstra: no path found in {:.1f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, closest_dist, closest.dist, d0,
                            d0 > 0 ? (float)closest.dist/(float)d0 : 1);
