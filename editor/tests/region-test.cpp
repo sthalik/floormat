@@ -153,7 +153,7 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
     if (auto* c = w.at(coord))
     {
         result = {
-            .is_passable = c->make_pass_region().bits,
+            .is_passable = c->make_pass_region(true).bits,
             .c = coord,
             .exists = true,
         };

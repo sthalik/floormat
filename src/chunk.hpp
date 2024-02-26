@@ -117,8 +117,8 @@ public:
     static constexpr size_t max_wall_quad_count =
         TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
 
-    pass_region make_pass_region();
-    pass_region make_pass_region(const Search::pred& f);
+    pass_region make_pass_region(bool debug = false);
+    pass_region make_pass_region(const Search::pred& f, bool debug = false);
 
 private:
     struct ground_stuff

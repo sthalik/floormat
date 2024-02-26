@@ -8,6 +8,7 @@
 #include <array>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Functions.h>
+#include <Magnum/Timeline.h>
 
 namespace floormat {
 
@@ -128,13 +129,17 @@ auto default_region_predicate(chunk& c) noexcept
 
 } // namespace
 
-auto chunk::make_pass_region() -> pass_region
+auto chunk::make_pass_region(bool debug) -> pass_region
 {
-    return make_pass_region(default_region_predicate(*this));
+    return make_pass_region(default_region_predicate(*this), debug);
 }
 
-auto chunk::make_pass_region(const pred& f) -> pass_region
+auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
 {
+    Timeline timeline;
+    if (debug) [[unlikely]]
+        timeline.start();
+
     pass_region ret;
     auto& tmp = get_tmp();
     const auto nbs = _world->neighbors(_coord);
@@ -173,6 +178,19 @@ auto chunk::make_pass_region(const pred& f) -> pass_region
             if (tmp.check_visited(ret.bits, pos, i) && check_pos(*this, nbs, pos, from, f))
                 tmp.append(ret.bits, pos);
         }
+    }
+
+    if (debug) [[unlikely]]
+    {
+        const auto time = timeline.currentFrameTime();
+        char buf[32];
+        std::snprintf(buf, sizeof buf, "%.3f", 1e3*(double)time);
+        auto c = Vector3i(_coord);
+        auto dbg = DBG_nospace;
+        dbg << "region: generating for chunk{" << c.x() << "," << c.y();
+        if (c.z() != 0)
+            dbg << "," << c.z();
+         dbg << "} took " << buf << " ms";
     }
 
     return ret;
