@@ -5,13 +5,12 @@
 #include "imgui-raii.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/String.h>
-#include <Corrade/Containers/StringIterable.h>
-#include <Magnum/Math/Vector.h>
+#include <Magnum/Math/Functions.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/Math/Color.h>
-#include <algorithm>
+#include <utility>
 
 namespace floormat::entities {
 
@@ -52,8 +51,12 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
     {
         auto& str = *reinterpret_cast<String*>(data->UserData);
         fm_assert(str.data() == data->Buf);
-        str = String{ValueInit, (size_t)data->BufSize};
-        data->Buf = str.data();
+        if ((size_t)data->BufSize > str.size()+1)
+        {
+            auto str2 = String{ValueInit, (size_t)data->BufSize};
+            str = std::move(str2);
+            data->Buf = str.data();
+        }
     }
     return 0;
 }
@@ -92,8 +95,16 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     else if constexpr(std::is_same_v<T, String>)
     {
         ret = ImGui::InputText(label, value.begin(), value.size()+1, ImGuiInputTextFlags_CallbackResize, corrade_string_resize_callback, &value);
-        if (auto max_len = accessor.get_max_length(datum); value.size() > max_len)
-            value = value.prefix(max_len);
+        if (ret)
+        {
+            auto size = value.size();
+            if (auto ptr = value.find('\0')) // XXX hack
+                size = Math::min(size, (size_t)(ptr.data() - value.data()));
+            if (auto max_len = accessor.get_max_length(datum); value.size() > max_len)
+                size = Math::min(size, max_len.value);
+            if (size != value.size())
+                value = value.prefix(size);
+        }
     }
     else if constexpr(std::is_same_v<T, bool>)
         ret = ImGui::Checkbox(label, &value);
@@ -145,7 +156,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             }
         }
         }
-        value = std::clamp(value, min, max);
+        value = Math::clamp(value, min, max);
     }
     else
     {
@@ -170,7 +181,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             break;
         }
         for (auto i = 0uz; i < T::Size; i++)
-            value[i] = std::clamp(value[i], min[i], max[i]);
+            value[i] = Math::clamp(value[i], min[i], max[i]);
     }
 
     if (ret && !should_disable && !eqv(value, orig))
