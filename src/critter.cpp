@@ -230,6 +230,7 @@ critter::operator critter_proto() const
 critter::critter(object_id id, class chunk& c, const critter_proto& proto) :
     object{id, c, proto},
     name{proto.name},
+    speed{proto.speed},
     playable{proto.playable}
 {
     if (!name)

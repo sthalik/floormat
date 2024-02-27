@@ -173,8 +173,6 @@ struct visitor_
           do_visit(pt, f);
           non_const(obj.coord) = {ch, pt};
         }
-        if (PROTO >= 22) [[likely]]
-            do_visit(obj.speed, f);
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
@@ -218,6 +216,8 @@ struct visitor_
     void visit(critter& obj, F&& f)
     {
         do_visit(obj.name, f);
+        if (PROTO >= 22) [[likely]]
+            do_visit(obj.speed, f);
         do_visit(obj.offset_frac, f);
 
         constexpr struct {

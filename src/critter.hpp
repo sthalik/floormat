@@ -11,6 +11,7 @@ class world;
 struct critter_proto : object_proto
 {
     String name;
+    float speed = 1;
     bool playable : 1 = false;
 
     critter_proto();
@@ -31,6 +32,7 @@ struct critter final : object
     float depth_offset() const override;
 
     String name;
+    float speed = 1;
     Vector2us offset_frac;
     bool b_L : 1 = false, b_R : 1 = false, b_U : 1 = false, b_D : 1 = false;
     bool playable : 1 = false;

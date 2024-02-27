@@ -18,7 +18,6 @@ class chunk;
 struct object_proto
 {
     std::shared_ptr<anim_atlas> atlas;
-    float speed = 1;
     Vector2b offset, bbox_offset;
     Vector2ub bbox_size = Vector2ub(tile_size_xy);
     uint16_t delta = 0, frame = 0;
@@ -45,7 +44,6 @@ struct object
     class chunk* const c;
     const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
-    float speed = 1;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
