@@ -49,6 +49,7 @@ struct object
     uint16_t delta = 0, frame = 0;
     const rotation r = rotation::N;
     const pass_mode pass = pass_mode::see_through;
+    bool ephemeral : 1 = false;
     //char _pad[4]; // got 4 bytes left
 
     virtual ~object() noexcept;

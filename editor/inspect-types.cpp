@@ -62,6 +62,10 @@ struct entity_accessors<object, inspect_intent_t> {
                 [](object& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
                 [](const object& x) { return x.pass == pass_mode::pass ? st::readonly : st::enabled; },
             },
+            E::type<bool>::field{"ephemeral"_s,
+                [](const object& x) { return x.ephemeral; },
+                [](object& x, bool value) { x.ephemeral = value; },
+            },
         };
     }
 };

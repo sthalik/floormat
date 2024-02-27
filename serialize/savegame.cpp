@@ -490,11 +490,20 @@ ok:
     template<typename F>
     void serialize_objects_(chunk& c, F&& f)
     {
-        f((uint32_t)c.objects().size());
+        uint32_t count = 0;
+        for (const std::shared_ptr<object>& obj : c.objects())
+        {
+            if (obj->ephemeral)
+                continue;
+            count++;
+        }
+        f((uint32_t)count);
 
         for (const std::shared_ptr<object>& obj : c.objects())
         {
             fm_assert(obj != nullptr);
+            if (obj->ephemeral)
+                continue;
             do_visit(object_magic, f); // todo move before all objects
             visit(*obj, f, c.coord());
         }
