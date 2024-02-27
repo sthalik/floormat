@@ -196,23 +196,27 @@ void critter::update(size_t i, float dt)
             auto vec = move_vecs[j];
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
-            const auto sign_vec = Vector2(Math::sign(vec.x()), Math::sign(vec.y()));
+            const auto sign_vec = Math::sign(vec);
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
-            offset_frac = Vector2us(Vector2(std::fabs(std::fmod(offset_.x(), 1.f)),
-                                            std::fabs(std::fmod(offset_.y(), 1.f))) * frac);
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
+                offset_frac =
+                    Vector2us(Vector2(Math::abs(std::fmod(offset_.x(), 1.f)),
+                                      Math::abs(std::fmod(offset_.y(), 1.f))) * frac);
                 if (can_move_to(off_i))
                 {
                     move_to(i, off_i, new_r);
                     ++frame %= atlas->info().nframes;
-                    goto done;
+                    break;
                 }
             }
+            else
+            {
+                offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
+                break;
+            }
         }
-done:
-        (void)0;
     }
 }
 
