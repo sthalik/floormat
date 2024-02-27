@@ -15,7 +15,7 @@ namespace floormat {
 
 namespace {
 
-constexpr double framerate = 96 * 3, move_speed = Vector2d(TILE_SIZE2).length() * 4.25;
+constexpr double framerate = 60, move_speed = 150;
 constexpr double frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
@@ -147,24 +147,6 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-constexpr auto make_move_vec(rotation r)
-{
-    auto [_0, _1, _2] = rotation_to_similar(r);
-    return std::array<Vector2, 3>{{
-        move_vec(rotation_to_vec(_0)),
-        move_vec(rotation_to_vec(_1)),
-        move_vec(rotation_to_vec(_2)),
-    }};
-}
-
-template<size_t... Index>
-constexpr auto make_move_vecs(std::index_sequence<Index...>)
-{
-    return std::array<std::array<Vector2, 3>, (size_t)rotation_COUNT>{{
-        make_move_vec((rotation)Index)...,
-    }};
-}
-
 void critter::update(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
@@ -175,13 +157,13 @@ void critter::update(size_t i, float dt)
         return;
     }
 
-    int nframes = allocate_frame_time(dt);
+    int nframes = allocate_frame_time(dt * speed);
     if (nframes == 0)
         return;
 
-    constexpr auto move_vecs_ = make_move_vecs(std::make_index_sequence<(size_t)rotation_COUNT>{});
-    const auto& move_vecs = move_vecs_[(size_t)r];
-    size_t nvecs = (int)new_r & 1 ? 3 : 1;
+    const auto rotations = rotation_to_similar(new_r);
+
+    const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
 
     if (r != new_r)
         if (is_dynamic())
@@ -191,9 +173,9 @@ void critter::update(size_t i, float dt)
 
     for (int k = 0; k < nframes; k++)
     {
-        for (auto j = 0uz; j < nvecs; j++)
+        for (unsigned j = 0; j < nvecs; j++)
         {
-            auto vec = move_vecs[j];
+            const auto vec = move_vec(rotation_to_vec(rotations[j]));
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
             const auto sign_vec = Math::sign(vec);

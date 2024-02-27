@@ -68,12 +68,13 @@ shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
     {
         critter_proto cproto;
         cproto.name = "Player"_s;
+        cproto.speed = 4;
         cproto.playable = true;
         ret.ptr = w.make_object<critter>(w.make_id(), global_coords{}, cproto);
         _character_id = ret.ptr->id;
     }
     fm_debug_assert(ret.ptr);
-    return shared_ptr_wrapper<critter>{ret};
+    return ret;
 }
 
 void app::reset_world(class world&& w_)
