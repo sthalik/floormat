@@ -52,6 +52,10 @@ struct entity_accessors<object, inspect_intent_t> {
                 [](const object& x) { return x.pass; },
                 [](object& x, pass_mode value) { x.set_bbox(x.offset, x.bbox_offset, x.bbox_size, value); },
             },
+            E::type<float>::field{"speed"_s,
+                [](const object& x) { return x.speed; },
+                [](object& x, float value) { x.speed = Math::clamp(value, 0.f, 1e6f); }
+            },
             E::type<Vector2b>::field{"bbox-offset"_s,
                 [](const object& x) { return x.bbox_offset; },
                 [](object& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
@@ -202,18 +206,19 @@ struct entity_accessors<critter, inspect_intent_t> {
     static constexpr auto accessors()
     {
         using E = Entity<critter>;
-        auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
-        auto tuple = std::tuple{
+        auto prev = entity_accessors<object, inspect_intent_t>::accessors();
+        auto t0 = std::tuple{
             E::type<String>::field{"name"_s,
-                                 [](const critter& x) { return x.name; },
-                                 [](critter& x, const String& value) { x.name = value; }},
-            E::type<bool>::field{"playable"_s,
-                                 [](const critter& x) { return x.playable; },
-                                 [](critter& x, bool value) { x.playable = value; },
-                                 constantly(constraints::max_length{128}),
-            },
+                [](const critter& x) { return x.name; },
+                [](critter& x, const String& value) { x.name = value; } },
         };
-        return std::tuple_cat(tuple0, tuple);
+        auto t1 = std::tuple{
+            E::type<bool>::field{"playable"_s,
+                [](const critter& x) { return x.playable; },
+                [](critter& x, bool value) { x.playable = value; },
+                constantly(constraints::max_length{ 128 }) },
+        };
+        return std::tuple_cat(t0, prev, t1);
     }
 };
 

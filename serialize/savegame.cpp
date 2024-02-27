@@ -108,8 +108,11 @@ struct visitor_
     // 19: see old-savegame.cpp
     // 20: complete rewrite
     // 21: oops, forgot the object counter
+    // 22: add object::speed
 
-    static constexpr inline proto_t proto_version      = 21;
+    static constexpr inline proto_t proto_version      = 22;
+    const proto_t& PROTO;
+    visitor_(const proto_t& proto) : PROTO{proto} {}
 
     template<typename T, typename F>
     CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
@@ -166,9 +169,12 @@ struct visitor_
             fm_throw("invalid object type {}"_cf, (int)type);
         //do_visit(*obj.c, f);
 
-        auto pt = obj.coord.local();
-        do_visit(pt, f);
-        non_const(obj.coord) = {ch, pt};
+        { auto pt = obj.coord.local();
+          do_visit(pt, f);
+          non_const(obj.coord) = {ch, pt};
+        }
+        if (PROTO >= 22) [[likely]]
+            do_visit(obj.speed, f);
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
@@ -338,6 +344,8 @@ constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_s
 
 struct writer final : visitor_<writer>
 {
+    static const proto_t fake_proto;
+
     const world& w;
 
     struct serialized_atlas
@@ -363,7 +371,10 @@ struct writer final : visitor_<writer>
 
     buffer header_buf{}, string_buf{};
 
-    writer(const world& w) : w{w} {} // avoid spurious warning until GCC 14: warning: missing initializer for member ::<anonymous>
+    writer(const world& w) :
+        visitor_{ fake_proto },
+        w{ w }
+    {}
 
     struct size_counter
     {
@@ -663,6 +674,8 @@ void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
         fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
 }
 
+const visitor_<writer>::proto_t writer::fake_proto = proto_version;
+
 } // namespace
 
 void world::serialize(StringView filename)
@@ -738,7 +751,7 @@ struct reader final : visitor_<reader>
     class world& w;
     loader_policy asset_policy;
 
-    reader(class world& w, loader_policy asset_policy) : w{w}, asset_policy{asset_policy} {}
+    reader(class world& w, loader_policy asset_policy) : visitor_{PROTO}, w{w}, asset_policy{asset_policy} {}
 
     using visitor_<reader>::visit;
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "src/global-coords.hpp"
-#include "src/rotation.hpp"
 #include "src/object.hpp"
 #include <Corrade/Containers/String.h>
 
