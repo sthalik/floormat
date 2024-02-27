@@ -15,7 +15,7 @@
 #define WARN (::Corrade::Utility::Warning{})
 #define ERR (::Corrade::Utility::Error{})
 
-#if !(defined __cpp_size_t_suffix || defined _MSC_VER && _MSVC_LANG < 202004)
+#if defined __CLION_IDE__ || !(defined __cpp_size_t_suffix || defined _MSC_VER && _MSVC_LANG < 202004)
 #ifdef _MSC_VER
 #pragma system_header
 #else
