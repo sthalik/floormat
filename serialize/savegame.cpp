@@ -549,28 +549,28 @@ ok:
             do_visit(c.coord(), f);
             // todo do atlases and variants separately
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].ground_atlas(), atlas_type::ground);
+                serialize_tile_([&](uint32_t index) {
+                    return maybe_intern_atlas(c[index].ground_atlas(), atlas_type::ground);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].wall_north_atlas(), atlas_type::wall);
+                serialize_tile_([&](uint32_t index) {
+                    return maybe_intern_atlas(c[index].wall_north_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t i) {
-                    return maybe_intern_atlas(c[i].wall_west_atlas(), atlas_type::wall);
+                serialize_tile_([&](uint32_t index) {
+                    return maybe_intern_atlas(c[index].wall_west_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t i) {
-                    auto v = c[i].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                serialize_tile_([&](uint32_t index) {
+                    auto v = c[index].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&c](uint32_t i) {
-                    auto v = c[i].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                serialize_tile_([&c](uint32_t index) {
+                    auto v = c[index].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&c](uint32_t i) {
-                    auto v = c[i].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                serialize_tile_([&c](uint32_t index) {
+                    auto v = c[index].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
 
             serialize_objects_(c, f);
