@@ -12,8 +12,9 @@
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Math/Color.h>
-#include <algorithm>
+#include <Magnum/Math/Functions.h>
 #include <thread>
+#include <algorithm>
 
 namespace floormat {
 
@@ -76,8 +77,8 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
     auto vec = pixel_to_tile_(position);
-    const auto x = (int32_t)std::floor(vec[0]), y = (int32_t)std::floor(vec[1]);
-    return { x, y, 0 };
+    auto vec_ = Math::floor(vec);
+    return { (int32_t)vec_.x(), (int32_t)vec.y(), 0 };
 }
 
 Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
@@ -106,10 +107,10 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 
     for (auto p : list)
     {
-        x0 = std::min(x0, p.x);
-        x1 = std::max(x1, p.x);
-        y0 = std::min(y0, p.y);
-        y1 = std::max(y1, p.y);
+        x0 = Math::min(x0, p.x);
+        x1 = Math::max(x1, p.x);
+        y0 = Math::min(y0, p.y);
+        y1 = Math::max(y1, p.y);
     }
     // todo test this with the default viewport size using --magnum-dpi-scaling=1
     x0 -= 1; y0 -= 1; x1 += 1; y1 += 1;
@@ -119,10 +120,10 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
     int16_t minx = center.x - mx + 1, maxx = center.x + mx,
             miny = center.y - my + 1, maxy = center.y + my;
 
-    x0 = std::clamp(x0, minx, maxx);
-    x1 = std::clamp(x1, minx, maxx);
-    y0 = std::clamp(y0, miny, maxy);
-    y1 = std::clamp(y1, miny, maxy);
+    x0 = Math::clamp(x0, minx, maxx);
+    x1 = Math::clamp(x1, minx, maxx);
+    y0 = Math::clamp(y0, miny, maxy);
+    y1 = Math::clamp(y1, miny, maxy);
 
     return {x0, x1, y0, y1};
 }
@@ -221,7 +222,8 @@ bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& 
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
                        p01 = tile_shader::project(Vector3d(0, len[y], 0)),
                        p11 = tile_shader::project(Vector3d(len[x], len[y], 0));
-    constexpr auto xx = std::minmax({ p00[x], p10[x], p01[x], p11[x], }), yy = std::minmax({ p00[y], p10[y], p01[y], p11[y], });
+    constexpr auto xx = std::minmax({ p00[x], p10[x], p01[x], p11[x], }),
+                   yy = std::minmax({ p00[y], p10[y], p01[y], p11[y], });
     constexpr auto minx = xx.first, maxx = xx.second, miny = yy.first, maxy = yy.second;
     constexpr int W = (int)(maxx - minx + .5 + 1e-16), H = (int)(maxy - miny + .5 + 1e-16);
     const auto X = (int)(minx + (offset[x] + size[x])*.5), Y = (int)(miny + (offset[y] + size[y])*.5);
@@ -250,7 +252,10 @@ void main_impl::do_update()
         timeline.nextFrame();
     }
 
-    dt = std::clamp(dt, 1e-5f, std::fmaxf(.2f, dt_expected.value));
+    if (auto d = Math::abs(dt - dt_expected.value); d <= 4e-3f)
+        dt = dt_expected.value + 1e-6f;
+
+    dt = Math::clamp(dt, 1e-5f, Math::max(.2f, dt_expected.value));
 
     app.update(dt);
 }
@@ -294,7 +299,7 @@ void main_impl::drawEvent()
         //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
         const float Δt = timeline.previousFrameDuration() - dt_expected.value;
         constexpr float α = .1f;
-        dt_expected.jitter = std::fmax(dt_expected.jitter + Δt * α,
+        dt_expected.jitter = Math::max(dt_expected.jitter + Δt * α,
                                        dt_expected.jitter * (1-α) + Δt * α);
         dt_expected.jitter = std::copysign(std::fmin(dt_expected.value, std::fabs(dt_expected.jitter)), dt_expected.jitter);
     }
