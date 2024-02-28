@@ -17,6 +17,7 @@ struct raycast_result_s
 {
     point from, to, collision;
     collision_data collider;
+    float time = 0;
     bool has_result : 1 = false,
          success    : 1 = false;
 };

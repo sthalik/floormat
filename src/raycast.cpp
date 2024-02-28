@@ -6,10 +6,11 @@
 #include "RTree-search.hpp"
 #include <cfloat>
 #include <bit>
-#include <Corrade/Containers/StructuredBindings.h>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/StructuredBindings.h>
+#include <cr/GrowableArray.h>
+#include <mg/Math.h>
+#include <mg/Vector2.h>
+#include <mg/Timeline.h>
 
 namespace floormat::rc {
 
@@ -310,12 +311,20 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
 raycast_result_s raycast(world& w, point from, point to, object_id self)
 {
-    return do_raycasting<false>(nullptr, w, from, to, self);
+    Timeline timeline;
+    timeline.start();
+    auto ret = do_raycasting<false>(nullptr, w, from, to, self);
+    ret.time = timeline.currentFrameDuration();
+    return ret;
 }
 
 raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self)
 {
-    return do_raycasting<true>(diag, w, from, to, self);
+    Timeline timeline;
+    timeline.start();
+    auto ret = do_raycasting<true>(diag, w, from, to, self);
+    ret.time = timeline.currentFrameDuration();
+    return ret;
 }
 
 } // namespace floormat::rc

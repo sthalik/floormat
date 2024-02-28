@@ -8,7 +8,6 @@
 #include "floormat/main.hpp"
 #include <bitset>
 #include <mg/Vector2.h>
-#include <mg/Timeline.h>
 
 namespace floormat::tests {
 
@@ -29,9 +28,8 @@ struct pending_s
 
 struct result_s
 {
-    std::bitset<chunk_bits> is_passable;
+    chunk::pass_region region;
     chunk_coords_ c;
-    float time = 0;
     bool exists : 1 = false;
 };
 
@@ -73,7 +71,7 @@ void region_test::draw_overlay(app& a)
             for (int i = 0; i < div_count.x(); i++)
             {
                 auto index = (uint32_t)j * div_count.x() + (uint32_t)i;
-                if (result.is_passable[index])
+                if (result.region.bits[index])
                     continue;
                 auto pos = div_min + div_size * Vector2i{i, j};
                 auto pt = object::normalize_coords(start, pos);
@@ -107,17 +105,17 @@ void region_test::draw_ui(app&, float)
         text(buf);
 
         do_column("passable");
-        std::snprintf(buf, sizeof buf, "%zu", result.is_passable.count());
+        std::snprintf(buf, sizeof buf, "%zu", result.region.bits.count());
         //{ auto b = push_style_color(ImGuiCol_Text, 0x00ff00ff_rgbaf); text(buf); }
         text(buf);
 
         do_column("blocked");
-        std::snprintf(buf, sizeof buf, "%zu", result.is_passable.size() - result.is_passable.count());
+        std::snprintf(buf, sizeof buf, "%zu", result.region.bits.size() - result.region.bits.count());
         //{ auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf); text(buf); }
         text(buf);
 
         do_column("time");
-        std::snprintf(buf, sizeof buf, "%.1f ms", (double)(1000 * result.time));
+        std::snprintf(buf, sizeof buf, "%.1f ms", (double)(1000 * result.region.time));
         text(buf);
     }
 }
@@ -157,16 +155,11 @@ void region_test::update_post(app& a)
 void region_test::do_region_extraction(world& w, chunk_coords_ coord)
 {
     if (auto* c = w.at(coord))
-    {
-        Timeline timeline;
-        timeline.start();
         result = {
-            .is_passable = c->make_pass_region(true).bits,
+            .region = c->make_pass_region(true),
             .c = coord,
-            .time = timeline.currentFrameDuration(),
             .exists = true,
         };
-    }
 }
 
 } // namespace

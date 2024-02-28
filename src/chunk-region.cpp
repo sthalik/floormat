@@ -139,8 +139,7 @@ auto chunk::make_pass_region(bool debug) -> pass_region
 auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
 {
     Timeline timeline;
-    if (debug) [[unlikely]]
-        timeline.start();
+    timeline.start();
 
     pass_region ret;
     auto& tmp = get_tmp();
@@ -184,11 +183,10 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
         do_pixel.operator()<D, false>(p);
     }
 
+    ret.time = timeline.currentFrameTime();
+
     if (debug) [[unlikely]]
-    {
-        const auto time = timeline.currentFrameTime();
-        DBG_nospace << "region: generating for " << _coord << " took " << fraction(1e3f*time, 3) << " ms";
-    }
+        DBG_nospace << "region: generating for " << _coord << " took " << fraction(1e3f*ret.time, 3) << " ms";
 
     return ret;
 }
