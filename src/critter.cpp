@@ -46,20 +46,24 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     fm_assert(false);
 }
 
-constexpr Vector2i rotation_to_vec(rotation r)
+constexpr Vector2 rotation_to_vec(rotation r)
 {
+    constexpr double c = move_speed * frame_time;
+
     CORRADE_ASSUME(r < rotation_COUNT);
+
+    constexpr double d = c / Vector2d{1,  1}.length();
     switch (r)
     {
     using enum rotation;
-    case N:  return {  0, -1 };
-    case NE: return {  1, -1 };
-    case E:  return {  1,  0 };
-    case SE: return {  1,  1 };
-    case S:  return {  0,  1 };
-    case SW: return { -1,  1 };
-    case W:  return { -1,  0 };
-    case NW: return { -1, -1 };
+    case NE: return Vector2(Vector2d{ 1, -1} * d);
+    case SE: return Vector2(Vector2d{ 1,  1} * d);
+    case SW: return Vector2(Vector2d{-1,  1} * d);
+    case NW: return Vector2(Vector2d{-1, -1} * d);
+    case N:  return Vector2(Vector2d{ 0, -1} * c);
+    case E:  return Vector2(Vector2d{ 1,  0} * c);
+    case S:  return Vector2(Vector2d{ 0,  1} * c);
+    case W:  return Vector2(Vector2d{-1,  0} * c);
     }
     std::unreachable();
     fm_assert(false);
@@ -119,15 +123,6 @@ int critter::allocate_frame_time(float dt)
     return ret;
 }
 
-constexpr Vector2 move_vec(Vector2i vec)
-{
-    const int left_right = vec[0], top_bottom = vec[1];
-    constexpr auto c = (float)move_speed * (float)frame_time;
-    auto dir = Vector2((float)Math::sign(left_right), (float)Math::sign(top_bottom));
-    auto inv_norm = 1.f/dir.length();
-    return c * dir * inv_norm;
-}
-
 void critter::set_keys(bool L, bool R, bool U, bool D)
 {
     b_L = L;
@@ -175,7 +170,7 @@ void critter::update(size_t i, float dt)
     {
         for (unsigned j = 0; j < nvecs; j++)
         {
-            const auto vec = move_vec(rotation_to_vec(rotations[j]));
+            const auto vec = rotation_to_vec(rotations[j]);
             constexpr auto frac = 65535u;
             constexpr auto inv_frac = 1.f / (float)frac;
             const auto sign_vec = Math::sign(vec);
