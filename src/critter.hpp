@@ -27,6 +27,8 @@ struct critter final : object
     explicit operator critter_proto() const;
 
     void update(size_t i, float dt) override;
+    void update_playable(size_t i, float dt);
+    void update_nonplayable(size_t i, float dt);
     void set_keys(bool L, bool R, bool U, bool D);
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;

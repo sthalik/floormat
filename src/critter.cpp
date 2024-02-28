@@ -118,7 +118,7 @@ int critter::allocate_frame_time(float dt)
     d = std::min(1., d);
     auto ret = (int)(d / frame_time);
     d -= ret;
-    d = std::max(0., d);
+    d = Math::clamp(d, 0., 1.);
     delta = (uint16_t)(d * 65535);
     return ret;
 }
@@ -143,6 +143,19 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
 }
 
 void critter::update(size_t i, float dt)
+{
+    if (playable)
+        update_playable(i, dt);
+    else
+        update_nonplayable(i, dt);
+}
+
+void critter::update_nonplayable(size_t i, float dt)
+{
+    (void)i; (void)dt; (void)playable;
+}
+
+void critter::update_playable(size_t i, float dt)
 {
     const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
     if (new_r == rotation_COUNT)
