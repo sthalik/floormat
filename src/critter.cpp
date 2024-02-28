@@ -15,7 +15,7 @@ namespace floormat {
 
 namespace {
 
-constexpr double framerate = 60, move_speed = 150;
+constexpr double framerate = 60, move_speed = 60;
 constexpr double frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
