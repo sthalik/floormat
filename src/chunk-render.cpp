@@ -80,7 +80,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{vert_index_view}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(int32_t(6 * count));
-    ground_mesh = Utility::move(mesh);
+    ground_mesh = move(mesh);
     return { ground_mesh, _ground->indexes, count };
 }
 

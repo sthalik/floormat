@@ -1,7 +1,6 @@
 #pragma once
 #include "compat/assert.hpp"
 #include <compare>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat::iptr { struct non_atomic_u32_tag{}; }
 
@@ -273,7 +272,7 @@ fm_template template<typename... Ts>
 requires std::is_constructible_v<T, Ts&&...>
 constexpr fm_basic_iptr::basic_iptr(InPlaceInitT, Ts&&... args) // NOLINT(*-missing-std-forward)
 noexcept(std::is_nothrow_constructible_v<T, Ts&&...>):
-    _ptr{new T{Utility::forward<Ts...>(args...)}}
+    _ptr{new T{forward<Ts...>(args...)}}
 {
     ops_t::init_to_1(_ptr);
 }

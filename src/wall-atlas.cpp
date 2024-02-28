@@ -102,9 +102,9 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
 }
 
 wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
-    : _dir_array{std::move(def.direction_array)},
-      _frame_array{std::move(def.frames)},
-      _info{std::move(def.header)}, _path{std::move(path)},
+    : _dir_array{move(def.direction_array)},
+      _frame_array{move(def.frames)},
+      _info{move(def.header)}, _path{move(path)},
       _image_size{get_image_size(img)},
       _direction_map{def.direction_map}
 {

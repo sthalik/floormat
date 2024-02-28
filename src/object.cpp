@@ -258,7 +258,7 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
         const_cast<rotation&>(r) = new_r;
         const_cast<class chunk*&>(c) = &c2;
         i = (size_t)std::distance(es.cbegin(), it);
-        arrayInsert(es, i, std::move(e_));
+        arrayInsert(es, i, move(e_));
     }
 }
 

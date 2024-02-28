@@ -161,7 +161,7 @@ void path_test::update_pre(app& a)
     result = {
         .from = pending.from,
         .to = pending.to,
-        .path = std::move(res.raw_path().vec),
+        .path = move(res.raw_path().vec),
         .time = res.time(),
         .cost = res.cost(),
         .distance = res.distance(),

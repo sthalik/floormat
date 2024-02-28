@@ -78,7 +78,7 @@ template<typename T, typename... Xs>
 decltype(auto) tile_shader::draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs)
 {
     draw_pre(tex);
-    decltype(auto) ret = GL::AbstractShaderProgram::draw(std::forward<T>(mesh), std::forward<Xs>(xs)...);
+    decltype(auto) ret = GL::AbstractShaderProgram::draw(forward<T>(mesh), forward<Xs>(xs)...);
     draw_post(tex);
     return ret;
 }

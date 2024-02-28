@@ -19,7 +19,6 @@
 
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
-#include <Corrade/Utility/Move.h>
 #include <Corrade/Utility/Path.h>
 
 #include <Magnum/Math/Functions.h>
@@ -82,7 +81,7 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
             Error{} << "error: failed to load" << filename << "as RGBA32 image";
             return cv::Mat4b{};
         }
-        return cv::Mat4b(Utility::move(mat));
+        return cv::Mat4b(move(mat));
     }();
 
     if (mat.empty())
@@ -128,7 +127,7 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
     const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
 
     arrayAppend(group.frames, {ground, atlas.offset(), dest_size_});
-    atlas.add_entry({&group.frames.back(), Utility::move(resized)});
+    atlas.add_entry({&group.frames.back(), move(resized)});
     return true;
 }
 
@@ -232,7 +231,7 @@ arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
 
-    return { Utility::move(opts), Utility::move(args), true };
+    return { move(opts), move(args), true };
 }
 
 [[nodiscard]] int usage(const Arguments& args) noexcept

@@ -45,10 +45,10 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
 template<typename Fmt, typename... Xs>
 auto asformat(Fmt&& fmt, Xs&&... args)
 {
-    auto result = fmt::format_to_n((char*)nullptr, 0, std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
+    auto result = fmt::format_to_n((char*)nullptr, 0, forward<Fmt>(fmt), forward<Xs>(args)...);
     std::string ret;
     ret.resize(result.size);
-    auto result2 = fmt::format_to_n(ret.data(), ret.size(), std::forward<Fmt>(fmt), std::forward<Xs>(args)...);
+    auto result2 = fmt::format_to_n(ret.data(), ret.size(), forward<Fmt>(fmt), forward<Xs>(args)...);
     fm_assert(result2.size == result.size);
     return ret;
 }
@@ -221,7 +221,6 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
         if ((Group_)j == Group_::top)
         {
             cv::rotate(mat, mat2, cv::ROTATE_90_COUNTERCLOCKWISE);
-            using std::swap;
             swap(mat, mat2);
         }
 
@@ -250,7 +249,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
         }
 
         frames.push_back({
-            .mat = std::move(buf),
+            .mat = move(buf),
             .size = {(unsigned)mat.cols, (unsigned)mat.rows},
         });
     }
@@ -297,7 +296,7 @@ bool do_direction(state& st, size_t i)
             return false;
     }
 
-    arrayAppend(st.new_atlas.direction_array, std::move(dir));
+    arrayAppend(st.new_atlas.direction_array, move(dir));
 
     return true;
 }
@@ -310,7 +309,7 @@ bool do_input_file(state& st)
     fm_assert(any_bit_of(st.old_atlas.direction_mask));
 
     auto& atlas = st.new_atlas;
-    atlas.header = std::move(const_cast<wall_atlas_def&>(st.old_atlas).header);
+    atlas.header = move(const_cast<wall_atlas_def&>(st.old_atlas).header);
 
     fm_assert(!atlas.frames.size());
     fm_assert(!any_bit_of(atlas.direction_mask));
@@ -378,7 +377,7 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
         fm_assert(opts.output_dir);
         fm_assert(opts.input_file);
         fm_assert(opts.input_dir);
-        return { .opts = std::move(opts), .args = std::move(args), .ok = true };
+        return { .opts = move(opts), .args = move(args), .ok = true };
     }
 
     return {};

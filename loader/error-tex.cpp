@@ -18,7 +18,7 @@ Trade::ImageData2D loader_impl::make_error_texture(Vector2ui size)
         *(Vector4ub*)data = magenta;
         data += 4;
     }
-    auto img = Trade::ImageData2D{PixelFormat::RGBA8Unorm, Vector2i(size), std::move(array)};
+    auto img = Trade::ImageData2D{PixelFormat::RGBA8Unorm, Vector2i(size), move(array)};
     return img;
 }
 

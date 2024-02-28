@@ -49,7 +49,7 @@ void loader_impl::set_application_working_directory()
         return;
     once = true;
     if (auto loc = Path::currentDirectory(); loc)
-        original_working_directory = std::move(*loc);
+        original_working_directory = move(*loc);
     else
     {
         auto err = error_string();

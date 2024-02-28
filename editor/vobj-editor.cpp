@@ -98,7 +98,7 @@ auto vobj_editor::make_vobj_type_map() -> std::map<String, vobj_>
 {
     constexpr auto add = [](auto& m, std::unique_ptr<vobj_factory>&& x) {
         StringView name = x->name(), descr = x->descr();
-        m[name] = vobj_editor::vobj_{ name, descr, std::move(x) };
+        m[name] = vobj_editor::vobj_{ name, descr, move(x) };
     };
     std::map<String, vobj_> map;
     add(map, std::make_unique<light_factory>());

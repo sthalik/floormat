@@ -122,7 +122,6 @@ void fisher_yates(T begin, T end)
     for (auto i = N-1; i >= 1; i--)
     {
         const auto j = random(i+1);
-        using std::swap;
         swap(begin[i], begin[j]);
     }
 }

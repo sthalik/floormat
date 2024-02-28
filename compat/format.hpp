@@ -4,7 +4,6 @@
 #include <fmt/compile.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/String.h>
-#include <Corrade/Utility/Move.h>
 
 namespace fmt {
 
@@ -52,7 +51,7 @@ template<size_t N, typename Fmt, typename... Xs>
 size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 {
     constexpr size_t n = N > 0 ? N - 1 : 0;
-    auto result = fmt::format_to_n(buf, n, Corrade::Utility::forward<Fmt>(fmt), Corrade::Utility::forward<Xs>(args)...);
+    auto result = fmt::format_to_n(buf, n, forward<Fmt>(fmt), forward<Xs>(args)...);
     const auto len = n < result.size ? n : result.size;
     fm_assert(len > 0);
 #if 0

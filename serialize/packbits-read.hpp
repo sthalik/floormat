@@ -4,7 +4,6 @@
 #include <type_traits>
 #include <concepts>
 #include <tuple>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat::Pack_impl {
 
@@ -103,7 +102,7 @@ constexpr CORRADE_ALWAYS_INLINE void read_(Tuple&& tuple, input<T, Left> st, std
     using next_type = typename input<T, Left>::template next<Size>;
     std::get<I>(tuple).value = st.template get<Size>();
     T next_value = st.template advance<Size>();
-    read_(Utility::forward<Tuple>(tuple), next_type{ next_value }, std::index_sequence<Is...>{});
+    read_(floormat::forward<Tuple>(tuple), next_type{ next_value }, std::index_sequence<Is...>{});
 }
 
 template<std::unsigned_integral T, typename Tuple, size_t Left>
@@ -125,7 +124,7 @@ requires requires (const Tuple& tuple) {
 {
     constexpr size_t nbits = sizeof(T)*8,
                      tuple_size = std::tuple_size_v<std::decay_t<Tuple>>;
-    Pack_impl::read_(Utility::forward<Tuple>(tuple),
+    Pack_impl::read_(floormat::forward<Tuple>(tuple),
                      Pack_impl::input<T, nbits>{value},
                      std::make_index_sequence<tuple_size>{});
 }

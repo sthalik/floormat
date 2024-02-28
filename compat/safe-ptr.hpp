@@ -3,7 +3,6 @@
 #include "compat/defs.hpp"
 #include <type_traits>
 #include <Corrade/Tags.h>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat {
 
@@ -26,7 +25,7 @@ public:
     safe_ptr() noexcept: safe_ptr{InPlaceInit} {}
 
     template<typename... Ts> safe_ptr(InPlaceInitT, Ts&&... args) noexcept:
-        ptr(new T{ Utility::forward<Ts>(args)... })
+        ptr(new T{ forward<Ts>(args)... })
     {}
 
     safe_ptr(const safe_ptr& other) noexcept:

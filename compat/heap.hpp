@@ -16,11 +16,11 @@ inline void _push_heap(It first,
     std::iter_difference_t<It> parent = (holeIndex - 1) / 2;
     while (holeIndex > topIndex && comp(*(first + parent), value))
     {
-        *(first + holeIndex) = std::move(*(first + parent));
+        *(first + holeIndex) = move(*(first + parent));
         holeIndex = parent;
         parent = (holeIndex - 1) / 2;
     }
-    *(first + holeIndex) = std::move(value);
+    *(first + holeIndex) = move(value);
 }
 
 template<typename It, typename Compare>
@@ -29,7 +29,7 @@ void push_heap(It first, It last, Compare comp)
     _push_heap(first,
                std::iter_difference_t<It>((last - first) - 1),
                std::iter_difference_t<It>(0),
-               std::move(*(last - 1)),
+               move(*(last - 1)),
                comp);
 }
 
@@ -47,16 +47,16 @@ void _adjust_heap(It first,
         secondChild = 2 * (secondChild + 1);
         if (comp(*(first + secondChild), *(first + (secondChild - 1))))
             secondChild--;
-        *(first + holeIndex) = std::move(*(first + secondChild));
+        *(first + holeIndex) = move(*(first + secondChild));
         holeIndex = secondChild;
     }
     if ((len & 1) == 0 && secondChild == (len - 2) / 2)
     {
         secondChild = 2 * (secondChild + 1);
-        *(first + holeIndex) = std::move(*(first + (secondChild - 1)));
+        *(first + holeIndex) = move(*(first + (secondChild - 1)));
         holeIndex = secondChild - 1;
     }
-    _push_heap(first, holeIndex, topIndex, std::move(value), comp);
+    _push_heap(first, holeIndex, topIndex, move(value), comp);
 }
 
 template<typename It, typename Compare>
@@ -65,12 +65,12 @@ void pop_heap(It first, It last, Compare comp)
     if (last - first > 1)
     {
         --last;
-        auto value = std::move(*last);
-        *last = std::move(*first);
+        auto value = move(*last);
+        *last = move(*first);
         _adjust_heap(first,
                      std::iter_difference_t<It>(0),
                      std::iter_difference_t<It>(last - first),
-                     std::move(value),
+                     move(value),
                      comp);
     }
 }

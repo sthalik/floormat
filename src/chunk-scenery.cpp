@@ -178,7 +178,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
             .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
             .setCount(int32_t(6 * count));
-        scenery_mesh = Utility::move(mesh);
+        scenery_mesh = move(mesh);
     }
 
     const auto size = _objects.size();

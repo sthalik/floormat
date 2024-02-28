@@ -3,7 +3,6 @@
 #include <type_traits>
 #include <iterator>
 #include <exception>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat {
 
@@ -27,7 +26,7 @@ private:
 template<typename Fmt, typename... Ts>
 exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 {
-    fmt::format_to(std::back_inserter(buf), fmt, Corrade::Utility::forward<Ts>(args)...); // todo remove <iterator>
+    fmt::format_to(std::back_inserter(buf), fmt, forward<Ts>(args)...); // todo remove <iterator>
     buf.push_back('\0');
 }
 

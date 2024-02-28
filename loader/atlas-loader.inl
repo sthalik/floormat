@@ -8,14 +8,13 @@
 #include <memory>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
-#include <cr/Move.h>
 #include <cr/GrowableArray.h>
 
 namespace floormat::loader_detail {
 
 template<typename ATLAS, typename TRAITS>
 atlas_loader<ATLAS, TRAITS>::atlas_loader(TRAITS&& traits): // NOLINT(*-rvalue-reference-param-not-moved)
-      t{Utility::move(traits)}
+      t{move(traits)}
 {
     arrayReserve(s.missing_atlas_names, 8);
 }
@@ -138,7 +137,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         fm_assert(!t.atlas_of(*c_));
         fm_assert(t.name_of(*c_) == name);
         const size_t index{s.cell_array.size()};
-        arrayAppend(s.cell_array, Utility::move(*c_));
+        arrayAppend(s.cell_array, move(*c_));
         Cell& c{s.cell_array.back()};
         String& name_{t.name_of(c)};
         if (name_.isSmall()) name_ = String{AllocatedInit, name_};
@@ -223,7 +222,7 @@ void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
     fm_assert(!s.name_map.contains(name));
     fm_soft_assert(loader.check_atlas_name(name));
     const size_t index{s.cell_array.size()};
-    arrayAppend(s.cell_array, Utility::move(c));
+    arrayAppend(s.cell_array, move(c));
     if (String& name_ = t.name_of(s.cell_array.back()); name_.isSmall()) name_ = String{AllocatedInit, name_};
     s.name_map[ t.name_of(s.cell_array.back()) ] = index;
 }

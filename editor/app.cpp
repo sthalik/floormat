@@ -13,7 +13,6 @@
 #include <cstring>
 #include <Corrade/Containers/StringIterable.h>
 #include <Corrade/Utility/Arguments.h>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat {
 
@@ -95,7 +94,7 @@ void app::reset_world(class world&& w_)
     _render_vobjs = true;
     _render_all_z_levels = true;
 
-    auto& w = M->reset_world(Utility::move(w_));
+    auto& w = M->reset_world(move(w_));
     w.collect(true);
     ensure_player_character(w);
     update_cursor_tile(pixel);
@@ -186,7 +185,7 @@ int app::run_from_argv(const int argc, const char* const* const argv)
     opts.argv = argv;
     opts.argc = argc;
 
-    struct app* A = new app{Utility::move(opts)};
+    struct app* A = new app{move(opts)};
     floormat_main* M = A->M;
     fm_assert(M != nullptr);
     ret = A->exec();

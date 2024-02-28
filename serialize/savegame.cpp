@@ -473,7 +473,7 @@ ok:
             intern_atlas_(atlas, type, byte_writer{s});
             auto id = (uint32_t)atlas_array.size();
             fm_assert(s.bytes_written() == s.bytes_allocated());
-            atlas_array.emplace_back(std::move(buf), atlas, type);
+            atlas_array.emplace_back(move(buf), atlas, type);
             kv.value() = id;
             fm_assert(id < null<atlasid>);
             return atlasid{id};
@@ -628,7 +628,7 @@ ok:
             b.write_asciiz_string(s);
         }
         fm_assert(b.bytes_written() == b.bytes_allocated());
-        string_buf = std::move(buf);
+        string_buf = move(buf);
     }
 
     void serialize_world()
@@ -659,7 +659,7 @@ ok:
             binary_writer s{&hdr.data[0], hdr.size};
             serialize_header_(byte_writer{s});
             fm_assert(s.bytes_written() == s.bytes_allocated());
-            header_buf = std::move(hdr);
+            header_buf = move(hdr);
         }
 
         serialize_strings_();
@@ -982,19 +982,19 @@ ok:
             deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
                 auto name = get_atlas<atlas_type::ground>(id);
                 auto a = loader.ground_atlas(name, loader_policy::warn);
-                c[i].ground() = { std::move(a), (variant_t)-1 };
+                c[i].ground() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
                 auto name = get_atlas<atlas_type::wall>(id);
                 auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[i].wall_north() = { std::move(a), (variant_t)-1 };
+                c[i].wall_north() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
                 auto name = get_atlas<atlas_type::wall>(id);
                 auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[i].wall_west() = { std::move(a), (variant_t)-1 };
+                c[i].wall_west() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
@@ -1052,7 +1052,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
         if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
             fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
 
-        buf.data = std::move(buf_);
+        buf.data = move(buf_);
         buf.size = len;
     }
 

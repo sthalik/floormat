@@ -42,7 +42,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
             {{ {.val = 0}, {}, }},
             {1u},
         }, name, loader.make_error_texture(frame_size));
-    return { .atlas = std::move(a), .name = name, };
+    return { .atlas = move(a), .name = name, };
 }
 
 auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
@@ -56,7 +56,7 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
     auto tex = loader.texture(""_s, file);
-    auto atlas = std::make_shared<class wall_atlas>(std::move(def), file, tex);
+    auto atlas = std::make_shared<class wall_atlas>(move(def), file, tex);
     return atlas;
 }
 

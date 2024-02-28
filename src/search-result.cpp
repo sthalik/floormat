@@ -21,11 +21,11 @@ path_search_result::path_search_result()
 {
     if (_pool)
     {
-        auto ptr = std::move(_pool);
+        auto ptr = move(_pool);
         fm_debug_assert(ptr->vec.empty());
-        auto next = std::move(ptr->_next);
-        _node = std::move(ptr);
-        _pool = std::move(next);
+        auto next = move(ptr->_next);
+        _node = move(ptr);
+        _pool = move(next);
     }
     else
     {
@@ -39,8 +39,8 @@ path_search_result::~path_search_result() noexcept
     if (_node && _node->vec.capacity() > 0) [[likely]]
     {
         _node->vec.clear();
-        _node->_next = std::move(_pool);
-        _pool = std::move(_node);
+        _node->_next = move(_pool);
+        _pool = move(_node);
     }
 }
 
@@ -49,7 +49,7 @@ path_search_result::path_search_result(const path_search_result& x) noexcept
     fm_debug_assert(x._node);
     auto self = path_search_result{};
     self._node->vec = x._node->vec;
-    _node = std::move(self._node);
+    _node = move(self._node);
     _cost = x._cost;
 }
 

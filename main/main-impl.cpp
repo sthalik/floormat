@@ -1,7 +1,6 @@
 #include "main-impl.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
-#include <Corrade/Utility/Move.h>
 #include <Magnum/Platform/Sdl2Application.h>
 
 namespace floormat {
@@ -37,7 +36,7 @@ int main_impl::exec()
 
 floormat_main* floormat_main::create(floormat_app& app, fm_settings&& options)
 {
-    auto* ret = new main_impl(app, Utility::move(options), options.argc, const_cast<char**>(options.argv));
+    auto* ret = new main_impl(app, move(options), options.argc, const_cast<char**>(options.argv));
     return ret;
 }
 

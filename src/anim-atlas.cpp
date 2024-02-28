@@ -37,8 +37,8 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
 
 anim_atlas::anim_atlas() noexcept = default;
 anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
-    _name{std::move(name)}, _bitmask{make_bitmask(image)},
-    _info{std::move(info)}, _group_indices{make_group_indices(_info)}
+    _name{move(name)}, _bitmask{make_bitmask(image)},
+    _info{move(info)}, _group_indices{make_group_indices(_info)}
 {
     fm_soft_assert(!_info.groups.isEmpty());
 

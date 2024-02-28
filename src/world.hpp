@@ -6,7 +6,6 @@
 #include "loader/policy.hpp"
 #include <memory>
 #include <unordered_map>
-#include <Corrade/Utility/Move.h>
 
 namespace floormat {
 
@@ -78,7 +77,7 @@ public:
     }
     std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
     {
-        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), Utility::forward<Xs>(xs)...});
+        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
         do_make_object(static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }
@@ -86,7 +85,7 @@ public:
 
     template<typename T, typename... Xs> std::shared_ptr<object> make_unconnected_object(Xs&&... xs)
     {
-        return std::shared_ptr<T>(new T{0, operator[](chunk_coords_{}), {}, Utility::forward<Xs>(xs)...});
+        return std::shared_ptr<T>(new T{0, operator[](chunk_coords_{}), {}, forward<Xs>(xs)...});
     }
 
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
@@ -120,7 +119,7 @@ std::shared_ptr<T> world::find_object(object_id id)
     {
         if (!(ptr->type() == object_type_<T>::value)) [[unlikely]]
             throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
-        return static_pointer_cast<T>(Utility::move(ptr));
+        return static_pointer_cast<T>(move(ptr));
     }
 }
 

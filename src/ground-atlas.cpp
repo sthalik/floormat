@@ -14,7 +14,7 @@ namespace floormat {
 using namespace floormat::Quads;
 
 ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
-    _def{std::move(info)}, _path{make_path(_def.name)},
+    _def{move(info)}, _path{make_path(_def.name)},
     _texcoords{make_texcoords_array(Vector2ui(image.size()), _def.size)},
     _pixel_size{image.size()}
 {

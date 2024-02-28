@@ -7,7 +7,6 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
-#include <cr/Move.h>
 #include <cr/StringView.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
@@ -53,12 +52,12 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     auto def = anim_def {
         .object_name = loader.INVALID,
         .anim_name = loader.INVALID,
-        .groups = Utility::move(groups),
+        .groups = move(groups),
         .pixel_size = size,
         .scale = anim_scale::fixed{size.x(), true},
         .nframes = 1,
     };
-    auto atlas = std::make_shared<class anim_atlas>(loader.INVALID, loader.make_error_texture(size), std::move(def));
+    auto atlas = std::make_shared<class anim_atlas>(loader.INVALID, loader.make_error_texture(size), move(def));
     auto info = anim_cell {
         .atlas = atlas,
         .name = loader.INVALID,
@@ -97,7 +96,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     const auto width = size[1], height = size[0];
     fm_soft_assert(anim_info.pixel_size[0] == width && anim_info.pixel_size[1] == height);
 
-    auto atlas = std::make_shared<class anim_atlas>(name, tex, std::move(anim_info));
+    auto atlas = std::make_shared<class anim_atlas>(name, tex, move(anim_info));
     return atlas;
 }
 

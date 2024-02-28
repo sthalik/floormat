@@ -109,7 +109,7 @@ wall_atlas_def wall_atlas_def::deserialize(StringView filename)
     auto [dirs, dir_indexes, mask] = read_all_directions(jroot);
     fm_soft_assert(!dirs.isEmpty());
     fm_soft_assert(dir_indexes != std::array<Wall::DirArrayIndex, Direction_COUNT>{});
-    atlas.direction_array = std::move(dirs);
+    atlas.direction_array = move(dirs);
     atlas.direction_map = dir_indexes;
     atlas.direction_mask = mask;
 
@@ -268,9 +268,9 @@ void write_all_frames(json& jroot, ArrayView<const Frame> array)
     for (const Frame& frame : array)
     {
         json jframe = frame;
-        jframes.push_back(std::move(jframe));
+        jframes.push_back(move(jframe));
     }
-    jroot["frames"] = std::move(jframes);
+    jroot["frames"] = move(jframes);
 }
 
 void write_group_metadata(json& jgroup, const Group& val)
@@ -318,7 +318,7 @@ void write_all_directions(json& jroot, const wall_atlas& a)
         {
             auto jdir = json{};
             write_direction_metadata(jdir, *dir);
-            jroot[name] = std::move(jdir);
+            jroot[name] = move(jdir);
         }
     }
 }

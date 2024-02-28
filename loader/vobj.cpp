@@ -70,9 +70,9 @@ std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView n
             },
         };
         def.groups = Array<anim_group>{1};
-        def.groups[0] = std::move(group);
+        def.groups[0] = move(group);
     }
-    auto atlas = std::make_shared<class anim_atlas>(name, tex, std::move(def));
+    auto atlas = std::make_shared<class anim_atlas>(name, tex, move(def));
     return atlas;
 }
 
@@ -92,7 +92,7 @@ void loader_impl::get_vobj_list()
     {
         auto atlas = make_vobj_anim_atlas(name, img_name);
         auto info = vobj_cell{name, descr, atlas};
-        vobjs.push_back(std::move(info));
+        vobjs.push_back(move(info));
         const auto& x = vobjs.back();
         vobj_atlas_map[x.atlas->name()] = &x;
     }

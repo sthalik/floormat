@@ -22,7 +22,7 @@ GL::Texture2D make_constant_texture()
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
        .setMinificationFilter(GL::SamplerFilter::Nearest)
        .setStorage(1, GL::textureFormat(img.format()), img.size())
-       .setSubImage(0, {}, std::move(img));
+       .setSubImage(0, {}, move(img));
     return tex;
 }
 

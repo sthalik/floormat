@@ -12,7 +12,7 @@ constexpr binary_reader<It>::binary_reader(const Seq& seq) noexcept
 
 template<string_input_iterator It>
 constexpr binary_reader<It>::binary_reader(It begin, It end) noexcept :
-    it{std::move(begin)}, end{std::move(end)}
+    it{move(begin)}, end{move(end)}
 {}
 
 template<string_input_iterator It>

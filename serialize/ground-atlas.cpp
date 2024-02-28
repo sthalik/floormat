@@ -8,7 +8,6 @@
 #include "serialize/magnum-vector.hpp"
 #include "serialize/pass-mode.hpp"
 #include <tuple>
-#include <Corrade/Utility/Move.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/ImageView.h>
 #include <nlohmann/json.hpp>
@@ -58,7 +57,7 @@ void adl_serializer<std::shared_ptr<ground_atlas>>::to_json(json& j, const std::
 void adl_serializer<std::shared_ptr<ground_atlas>>::from_json(const json& j, std::shared_ptr<ground_atlas>& val)
 {
     ground_def def = j;
-    val = std::make_shared<ground_atlas>(std::move(def), loader.texture(loader.GROUND_TILESET_PATH, def.name));
+    val = std::make_shared<ground_atlas>(move(def), loader.texture(loader.GROUND_TILESET_PATH, def.name));
 }
 
 } // namespace nlohmann

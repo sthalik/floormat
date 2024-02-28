@@ -48,8 +48,8 @@ template<typename T, typename U>
 GL::Mesh make_light_mesh(T&& vert, U&& index)
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(std::forward<T>(vert), 0, lightmap_shader::Position{})
-        .setIndexBuffer(std::forward<U>(index), 0, GL::MeshIndexType::UnsignedShort)
+    mesh.addVertexBuffer(forward<T>(vert), 0, lightmap_shader::Position{})
+        .setIndexBuffer(forward<U>(index), 0, GL::MeshIndexType::UnsignedShort)
         .setCount(6);
     return mesh;
 }
@@ -149,8 +149,8 @@ quad& lightmap_shader::alloc_rect()
         occlusion_mesh = GL::Mesh{NoCreate};
         vertex_buf = GL::Buffer{NoCreate};
         index_buf = GL::Buffer{NoCreate};
-        auto vertexes_ = std::move(vertexes);
-        auto indexes_ = std::move(indexes);
+        auto vertexes_ = move(vertexes);
+        auto indexes_ = move(indexes);
         vertexes = Array<std::array<Vector3, 4>>{ValueInit, capacity};
         indexes = Array<std::array<UnsignedShort, 6>>{ValueInit, capacity};
         for (auto i = 0uz; i < count; i++)

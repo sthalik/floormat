@@ -54,7 +54,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
         if ((size_t)data->BufSize > str.size()+1)
         {
             auto str2 = String{ValueInit, (size_t)data->BufSize};
-            str = std::move(str2);
+            str = move(str2);
             data->Buf = str.data();
         }
     }

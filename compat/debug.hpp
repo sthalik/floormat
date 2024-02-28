@@ -1,6 +1,5 @@
 #pragma once
 #include <Corrade/Utility/Debug.h>
-#include <Corrade/Utility/Move.h>
 #include <Corrade/Containers/StringView.h>
 #include <concepts>
 
@@ -70,11 +69,11 @@ auto quoted(T&& value, char c = '\'')
     using U = std::remove_cvref_t<T>;
     using floormat::detail::corrade_debug::Quoted;
     if constexpr(std::is_rvalue_reference_v<decltype(value)>)
-        return Quoted<U>{ .value = Utility::move(value), .c = c };
+        return Quoted<U>{ .value = move(value), .c = c };
     else
         return Quoted<const U&>{ .value = value, .c = c };
 }
 
-template<DebugPrintable T> auto quoted2(T&& value) { return quoted(Utility::forward<T>(value), '"'); }
+template<DebugPrintable T> auto quoted2(T&& value) { return quoted(forward<T>(value), '"'); }
 
 } // namespace floormat

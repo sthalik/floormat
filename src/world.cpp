@@ -3,7 +3,7 @@
 #include "object.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
-#include <Corrade/Containers/GrowableArray.h>
+#include <cr/GrowableArray.h>
 #include <tsl/robin_map.h>
 
 using namespace floormat;
@@ -32,7 +32,7 @@ world::world(std::unordered_map<chunk_coords_, chunk>&& chunks) :
     world{std::max(initial_capacity, size_t(1/max_load_factor * 2 * chunks.size()))}
 {
     for (auto&& [coord, c] : chunks)
-        operator[](coord) = std::move(c);
+        operator[](coord) = move(c);
 }
 
 world& world::operator=(world&& w) noexcept
@@ -42,10 +42,10 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!_teardown);
     fm_assert(w._unique_id);
     _last_chunk = {};
-    _chunks = std::move(w._chunks);
-    _objects = std::move(w._objects);
+    _chunks = move(w._chunks);
+    _objects = move(w._objects);
     w._objects = {};
-    _unique_id = std::move(w._unique_id);
+    _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
     fm_debug_assert(w._unique_id == nullptr);
     _object_counter = w._object_counter;

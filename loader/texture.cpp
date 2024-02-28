@@ -40,7 +40,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
             auto img = importer->image2D(0);
             if (!img)
                 fm_abort("can't allocate image for '%s'", buf);
-            auto ret = std::move(*img);
+            auto ret = move(*img);
             return ret;
         }
     }

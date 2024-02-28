@@ -10,7 +10,7 @@
 namespace floormat {
 
 app::app(fm_settings&& opts) :
-    M{floormat_main::create(*this, Utility::move(opts))},
+    M{floormat_main::create(*this, move(opts))},
     _imgui{InPlaceInit, NoCreate},
     _wireframe{InPlaceInit},
     _tests{tests_data_::make()},

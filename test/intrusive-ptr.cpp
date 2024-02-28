@@ -116,7 +116,6 @@ void test_copy()
 void test_move()
 {
     using myptr = local_iptr<Test1>;
-    using Utility::move;
 
     fm_assert_free();
     s = {};
@@ -142,7 +141,6 @@ void test_move()
 constexpr bool test_cexpr() // todo
 {
     using myptr = local_iptr<Test2>;
-    using Utility::move;
 
     // construct
     auto foo1 = myptr{};
