@@ -1,5 +1,6 @@
 #pragma once
 #include "integer-types.hpp"
+#include "move.hpp"
 #include <type_traits>
 #include <Corrade/Tags.h>
 #include <Corrade/Utility/Macros.h>
