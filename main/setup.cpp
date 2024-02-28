@@ -61,13 +61,20 @@ void main_impl::update_window_state()
 
     dt_expected.do_sleep = true;
     dt_expected.jitter = 0;
+    dt_expected.has_focus = true;
     if (flags & SDL_WINDOW_HIDDEN)
+    {
+        dt_expected.has_focus = false;
         dt_expected.value = 1;
+    }
     else if (int interval = std::abs(SDL_GL_GetSwapInterval()); s.vsync && interval > 0)
     {
         int hz = get_window_refresh_rate(window()) / interval;
         if (!(flags & SDL_WINDOW_INPUT_FOCUS))
+        {
             dt_expected.value = 2.f / hz;
+            dt_expected.has_focus = false;
+        }
         else
             dt_expected.value = 1.f/hz;
     }

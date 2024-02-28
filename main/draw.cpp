@@ -215,8 +215,13 @@ bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& 
     return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
 }
 
+#ifndef FM_NO_DEBUG
+static size_t good_frames, bad_frames;
+#endif
+
 void main_impl::do_update()
 {
+
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
@@ -238,7 +243,22 @@ void main_impl::do_update()
     }
 
     if (auto d = Math::abs(dt - dt_expected.value); d <= 4e-3f)
+    {
         dt = dt_expected.value + 1e-6f;
+#ifndef FM_NO_DEBUG
+        ++good_frames;
+#endif
+    }
+#ifndef FM_NO_DEBUG
+    else if (dt_expected.has_focus && dt_expected.do_sleep) [[unlikely]]
+    {
+        if (good_frames)
+        {
+            DBG_nospace << ++bad_frames << " bad frame " << d << ", expected:" << dt_expected.value << " good-frames:" << good_frames;
+            good_frames = 0;
+        }
+    }
+#endif
 
     dt = Math::clamp(dt, 1e-5f, Math::max(.2f, dt_expected.value));
 

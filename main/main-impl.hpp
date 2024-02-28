@@ -125,6 +125,7 @@ private:
         float value = 0;
         float jitter = 0;
         bool do_sleep = false;
+        bool has_focus = true;
     } dt_expected;
 
     Timeline fps_sample_timeline;
