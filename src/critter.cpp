@@ -49,24 +49,21 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 constexpr Vector2 rotation_to_vec(rotation r)
 {
     constexpr double c = move_speed * frame_time;
+    constexpr double d = c / Vector2d{1,  1}.length();
+
+    constexpr Vector2 array[8] = {
+        Vector2(Vector2d{ 0, -1} * c),
+        Vector2(Vector2d{ 1, -1} * d),
+        Vector2(Vector2d{ 1,  0} * c),
+        Vector2(Vector2d{ 1,  1} * d),
+        Vector2(Vector2d{ 0,  1} * c),
+        Vector2(Vector2d{-1,  1} * d),
+        Vector2(Vector2d{-1,  0} * c),
+        Vector2(Vector2d{-1, -1} * d),
+    };
 
     CORRADE_ASSUME(r < rotation_COUNT);
-
-    constexpr double d = c / Vector2d{1,  1}.length();
-    switch (r)
-    {
-    using enum rotation;
-    case NE: return Vector2(Vector2d{ 1, -1} * d);
-    case SE: return Vector2(Vector2d{ 1,  1} * d);
-    case SW: return Vector2(Vector2d{-1,  1} * d);
-    case NW: return Vector2(Vector2d{-1, -1} * d);
-    case N:  return Vector2(Vector2d{ 0, -1} * c);
-    case E:  return Vector2(Vector2d{ 1,  0} * c);
-    case S:  return Vector2(Vector2d{ 0,  1} * c);
-    case W:  return Vector2(Vector2d{-1,  0} * c);
-    }
-    std::unreachable();
-    fm_assert(false);
+    return array[(size_t)r];
 }
 
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
