@@ -103,7 +103,7 @@ constexpr bool test4()
     }
     {
         read_(std::tuple<>{}, input<uint8_t, 8>{0}, std::index_sequence<>{});
-        [[maybe_unused]] f32<2> a, b, c;
+        //f32<2> a, b, c;
         //read_(std::tuple<>{}, input<uint8_t, 8>{1}, std::index_sequence<>{});
         //read_(std::tie(a, b, c), input<uint8_t, 5>{0b11111}, std::make_index_sequence<3>{});
         //(void)input<uint8_t, 9>{};

@@ -63,7 +63,7 @@ world make_world()
 
 auto run(point from, point to, world& w, bool b, float len)
 {
-    constexpr float fuzz = iTILE_SIZE2.x();
+    constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0);
     if (res.success != b)

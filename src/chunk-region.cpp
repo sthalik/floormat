@@ -156,10 +156,10 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
         constexpr auto dir = fours[Dir];
         const auto pos = pos0 + dir;
         if constexpr(!Edge && (Dir == L || Dir == R))
-            if ((uint32_t)pos.x() >= div_count.x()) [[unlikely]]
+            if ((uint32_t)pos.x() >= (uint32_t)div_count.x()) [[unlikely]]
                 return;
         if constexpr(!Edge && (Dir == U || Dir == D))
-            if ((uint32_t)pos.y() >= div_count.y()) [[unlikely]]
+            if ((uint32_t)pos.y() >= (uint32_t)div_count.y()) [[unlikely]]
                 return;
         if (tmp.check_visited(ret.bits, pos, Dir) && check_pos(*this, nbs, pos, dir, f))
             tmp.append(ret.bits, pos);
