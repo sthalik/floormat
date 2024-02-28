@@ -161,21 +161,6 @@ void main_impl::draw_world() noexcept
                 if (!c_)
                     continue;
                 auto& c = *c_;
-#if 0
-                {
-                    std::array<chunk*, 8> ns = {};
-                    for (auto i = 0uz; i < 8; i++)
-                    {
-                        auto off = world::neighbor_offsets[i];
-                        auto n = chunk_coords_{int16_t(x + off.x()), int16_t(y + off.y()), z};
-                        ns[i] = _world.at(n);
-                    }
-                    if (z == 0 && draw_lights(c, ns))
-                    {
-                        (void)_lightmap_shader.accum_texture();
-                    }
-                }
-#endif
                 bind();
 
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
