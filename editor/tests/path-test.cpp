@@ -15,7 +15,7 @@ namespace floormat::tests {
 
 using namespace floormat::imgui;
 
-struct path_test : base_test
+struct path_test final : base_test
 {
     bool handle_key(app& a, const key_event& e, bool is_down) override;
     bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;

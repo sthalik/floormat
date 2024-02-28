@@ -41,7 +41,7 @@ void do_column(StringView name)
     ImGui::TableNextColumn();
 }
 
-struct region_test : base_test
+struct region_test final : base_test
 {
     result_s result;
     pending_s pending;

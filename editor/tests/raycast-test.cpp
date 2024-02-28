@@ -51,7 +51,7 @@ void do_column(StringView name)
   ImGui::TableNextColumn();
 }
 
-struct raycast_test : base_test
+struct raycast_test final : base_test
 {
     raycast_result_s result;
     pending_s pending;
