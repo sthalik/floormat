@@ -4,8 +4,8 @@
 #include "src/point.hpp"
 #include "src/object-id.hpp"
 #include "floormat/events.hpp"
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/Pointer.h>
+#include <cr/StringView.h>
+#include <cr/Pointer.h>
 
 namespace floormat { struct app; }
 

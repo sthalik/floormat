@@ -7,9 +7,10 @@
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Timeline.h>
+#include <cr/GrowableArray.h>
+#include <cr/String.h>
+#include <mg/Math.h>
+#include <mg/Timeline.h>
 
 namespace floormat {
 

@@ -4,8 +4,8 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
-#include <Corrade/Containers/Optional.h>
-#include <Magnum/Math/Functions.h>
+#include <cr/Optional.h>
+#include <mg/Math.h>
 
 namespace floormat {
 

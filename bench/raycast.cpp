@@ -4,7 +4,7 @@
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
-#include <Magnum/Math/Functions.h>
+#include <mg/Math.h>
 
 namespace floormat {
 

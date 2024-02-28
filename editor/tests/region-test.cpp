@@ -7,7 +7,7 @@
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
 #include <bitset>
-#include <Magnum/Math/Vector2.h>
+#include <mg/Vector2.h>
 
 namespace floormat::tests {
 

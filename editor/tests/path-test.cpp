@@ -8,8 +8,8 @@
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Math/Color.h>
+#include <mg/Math.h>
+#include <mg/Color.h>
 
 namespace floormat::tests {
 

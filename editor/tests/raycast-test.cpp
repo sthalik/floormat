@@ -9,7 +9,7 @@
 #include <cinttypes>
 #include <array>
 #include <vector>
-#include <Magnum/Math/Color.h>
+#include <mg/Color.h>
 
 namespace floormat::tests {
 
