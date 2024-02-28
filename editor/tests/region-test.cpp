@@ -8,6 +8,7 @@
 #include "floormat/main.hpp"
 #include <bitset>
 #include <mg/Vector2.h>
+#include <mg/Timeline.h>
 
 namespace floormat::tests {
 
@@ -30,6 +31,7 @@ struct result_s
 {
     std::bitset<chunk_bits> is_passable;
     chunk_coords_ c;
+    float time = 0;
     bool exists : 1 = false;
 };
 
@@ -113,6 +115,10 @@ void region_test::draw_ui(app&, float)
         std::snprintf(buf, sizeof buf, "%zu", result.is_passable.size() - result.is_passable.count());
         //{ auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf); text(buf); }
         text(buf);
+
+        do_column("time");
+        std::snprintf(buf, sizeof buf, "%.1f ms", (double)(1000 * result.time));
+        text(buf);
     }
 }
 
@@ -152,9 +158,12 @@ void region_test::do_region_extraction(world& w, chunk_coords_ coord)
 {
     if (auto* c = w.at(coord))
     {
+        Timeline timeline;
+        timeline.start();
         result = {
             .is_passable = c->make_pass_region(true).bits,
             .c = coord,
+            .time = timeline.currentFrameDuration(),
             .exists = true,
         };
     }

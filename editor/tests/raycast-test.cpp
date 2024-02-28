@@ -10,6 +10,7 @@
 #include <array>
 #include <vector>
 #include <mg/Color.h>
+#include <mg/Timeline.h>
 
 namespace floormat::tests {
 
@@ -56,6 +57,7 @@ struct raycast_test final : base_test
     raycast_result_s result;
     pending_s pending;
     raycast_diag_s diag;
+    float time = 0;
 
     ~raycast_test() noexcept override;
 
@@ -68,6 +70,7 @@ struct raycast_test final : base_test
     {
         if (e.button == mouse_button_left && is_down)
         {
+            time = 0;
             auto& M = a.main();
             auto& w = M.world();
             if (auto pt_ = a.cursor_state().point())
@@ -245,6 +248,10 @@ struct raycast_test final : base_test
             do_column("path-len");
             std::snprintf(buf, std::size(buf), "%zu", diag.path.size());
             text(buf);
+
+            do_column("time");
+            std::snprintf(buf, std::size(buf), "%.3f ms", (double)(1000 * time));
+            text(buf);
         }
     }
 
@@ -263,7 +270,10 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 return;
             }
+            Timeline timeline;
+            timeline.start();
             result = raycast_with_diag(diag, a.main().world(), pending.from, pending.to, pending.self);
+            time = timeline.currentFrameDuration();
         }
     }
 };
