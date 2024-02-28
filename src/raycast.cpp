@@ -121,9 +121,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     using Math::min;
     using Math::abs;
     using Math::ceil;
+    using Math::copysign;
 
-    constexpr float eps = 1e-6f;
-    constexpr float inv_eps = 1/eps;
+    constexpr auto inv_eps = 1e6f, eps = 1/inv_eps;
     constexpr int fuzz = 2;
     constexpr auto fuzz2 = 0.5f;
 
@@ -158,10 +158,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     size_[short_axis] = (short_len+nsteps*2-1) / nsteps;
     size_[long_axis]  = (long_len+nsteps-1) / nsteps;
 
-    auto dir_inv_norm = Vector2(
-        abs(dir.x()) < eps ? std::copysign(inv_eps, dir.x()) : 1 / dir.x(),
-        abs(dir.y()) < eps ? std::copysign(inv_eps, dir.y()) : 1 / dir.y()
-    );
+    auto dir_inv_norm = Vector2(abs(dir.x()) < eps ? copysign(inv_eps, dir.x()) : 1 / dir.x(),
+                                abs(dir.y()) < eps ? copysign(inv_eps, dir.y()) : 1 / dir.y());
     auto signs = ray_aabb_signs(dir_inv_norm);
 
     result = {
@@ -199,7 +197,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     for (unsigned k = 0; b && k <= nsteps; k++)
     {
         auto pos_ = ceil(abs(V * (float)k/(float)nsteps));
-        auto pos = Vector2i{(int)std::copysign(pos_.x(), V.x()), (int)std::copysign(pos_.y(), V.y())};
+        auto pos = Vector2i(copysign(pos_, V));
         auto size = size_;
 
         if (k == 0)

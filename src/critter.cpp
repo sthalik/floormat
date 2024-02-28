@@ -191,9 +191,7 @@ void critter::update_playable(size_t i, float dt)
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
-                offset_frac =
-                    Vector2us(Vector2(Math::abs(std::fmod(offset_.x(), 1.f)),
-                                      Math::abs(std::fmod(offset_.y(), 1.f))) * frac);
+                offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
                 if (can_move_to(off_i))
                 {
                     move_to(i, off_i, new_r);

@@ -163,7 +163,7 @@ void app::draw_collision_boxes()
         constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
+        const auto subpixel_ = Math::fmod(tile_, 1.f);
         // todo use this formula for dragging objs
         const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
                                           curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);

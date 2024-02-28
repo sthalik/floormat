@@ -9,7 +9,7 @@
 #include "src/camera-offset.hpp"
 #include "compat/enum-bitset.hpp"
 #include <bit>
-#include <algorithm>
+#include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
@@ -45,9 +45,7 @@ void app::do_camera(float dt, const key_set& cmds, int mods)
         const auto max_camera_offset = Vector2d(sz * 10);
 
         camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
-        camera_offset[0] = std::clamp(camera_offset[0], -max_camera_offset[0], max_camera_offset[0]);
-        camera_offset[1] = std::clamp(camera_offset[1], -max_camera_offset[1], max_camera_offset[1]);
-
+        camera_offset = Math::clamp(camera_offset, -max_camera_offset, max_camera_offset);
         shader.set_camera_offset(camera_offset, shader.depth_offset());
 
         update_cursor_tile(cursor.pixel);
@@ -85,7 +83,7 @@ object_id app::get_object_colliding_with_cursor()
         constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixel_ = Vector2(std::fmod(tile_[0], 1.f), std::fmod(tile_[1], 1.f));
+        const auto subpixel_ = Math::fmod(tile_, 1.f);
         const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
                                           curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
         for (int16_t y = miny; y <= maxy; y++)
@@ -143,13 +141,12 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*pixel)));
         const auto curchunk = Vector2(tile.chunk());
-        const auto subpixel_ = Vector2(std::fmod(tile_.x(), 1.f), std::fmod(tile_.y(), 1.f));
+        const auto subpixel_ = Math::fmod(tile_, 1.f);
         auto subpixel = TILE_SIZE2 * Vector2(curchunk.x() < 0 ? 1 + subpixel_.x() : subpixel_.x(),
                                              curchunk.y() < 0 ? 1 + subpixel_.y() : subpixel_.y());
         constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
         subpixel -= half_tile;
-        subpixel.x() = Math::clamp(std::round(subpixel.x()), -half_tile.x(), half_tile.x()-1);
-        subpixel.y() = Math::clamp(std::round(subpixel.y()), -half_tile.y(), half_tile.y()-1);
+        subpixel = Math::clamp(Math::round(subpixel), -half_tile, half_tile-Vector2{1.f});
         cursor.subpixel = Vector2b(subpixel);
     }
     else
