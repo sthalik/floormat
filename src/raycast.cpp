@@ -136,27 +136,27 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
         dir = {eps, eps};
 
-    unsigned long_axis, short_axis;
+    unsigned major_axis, minor_axis;
 
     if (abs(dir.y()) > abs(dir.x()))
     {
-        long_axis = 1;
-        short_axis = 0;
+        major_axis = 1;
+        minor_axis = 0;
     }
     else
     {
-        long_axis = 0;
-        short_axis = 1;
+        major_axis = 0;
+        minor_axis = 1;
     }
 
-    auto long_len  = max(1u, (unsigned)ceil(abs(V[long_axis]))),
-         short_len = max(1u, (unsigned)ceil(abs(V[short_axis])));
+    auto major_len = max(1u, (unsigned)ceil(abs(V[major_axis]))),
+         minor_lenj = max(1u, (unsigned)ceil(abs(V[minor_axis])));
     auto nsteps = 1u;
-    nsteps = max(nsteps, (short_len+tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
-    nsteps = max(nsteps, (long_len+chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
+    nsteps = max(nsteps, (minor_lenj +tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
+    nsteps = max(nsteps, (major_len +chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
     auto size_ = Vector2ui{};
-    size_[short_axis] = (short_len+nsteps*2-1) / nsteps;
-    size_[long_axis]  = (long_len+nsteps-1) / nsteps;
+    size_[minor_axis] = (minor_lenj +nsteps*2-1) / nsteps;
+    size_[major_axis]  = (major_len +nsteps-1) / nsteps;
 
     auto dir_inv_norm = Vector2(abs(dir.x()) < eps ? copysign(inv_eps, dir.x()) : 1 / dir.x(),
                                 abs(dir.y()) < eps ? copysign(inv_eps, dir.y()) : 1 / dir.y());
@@ -202,7 +202,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
         if (k == 0)
         {
-            for (auto axis : { long_axis, short_axis })
+            for (auto axis : { major_axis, minor_axis })
             {
                 auto sign = sign_<int>(V[axis]);
                 pos[axis] += (int)(size[axis]/4) * sign;
@@ -213,13 +213,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         {
             constexpr auto add = (tile_size<unsigned>.x()+1)/2,
                            min_size = tile_size<unsigned>.x() + add;
-            if (size[long_axis] > min_size)
+            if (size[major_axis] > min_size)
             {
-                auto sign = sign_<int>(V[long_axis]);
-                auto off = (int)(size[long_axis]/2) - (int)add;
+                auto sign = sign_<int>(V[major_axis]);
+                auto off = (int)(size[major_axis]/2) - (int)add;
                 fm_debug_assert(off >= 0);
-                pos[long_axis] -= off/2 * sign;
-                size[long_axis] -= (unsigned)off;
+                pos[major_axis] -= off/2 * sign;
+                size[major_axis] -= (unsigned)off;
             }
         }
 
