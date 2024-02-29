@@ -2,10 +2,11 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "tile-iterator.hpp"
+#include "log.hpp"
 #include "RTree.h"
 #include <algorithm>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Magnum/GL/Context.h>
+#include <cr/GrowableArray.h>
+#include <cr/Optional.h>
 
 namespace floormat {
 
@@ -14,29 +15,6 @@ namespace {
 constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
 
 size_t _reload_no_ = 0; // NOLINT
-
-[[maybe_unused]]
-bool is_log_quiet()
-{
-    using GLCCF = GL::Implementation::ContextConfigurationFlag;
-    auto flags = GL::Context::current().configurationFlags();
-    return !!(flags & GLCCF::QuietLog);
-}
-
-bool is_log_verbose()
-{
-    using GLCCF = GL::Implementation::ContextConfigurationFlag;
-    auto flags = GL::Context::current().configurationFlags();
-    return !!(flags & GLCCF::VerboseLog);
-}
-
-[[maybe_unused]]
-bool is_log_standard()
-{
-    using GLCCF = GL::Implementation::ContextConfigurationFlag;
-    auto flags = GL::Context::current().configurationFlags();
-    return !(flags & (GLCCF::VerboseLog|GLCCF::QuietLog));
-}
 
 } // namespace
 

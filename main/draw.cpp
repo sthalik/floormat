@@ -5,6 +5,7 @@
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "src/light.hpp"
+#include "src/log.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -250,7 +251,7 @@ void main_impl::do_update()
 #endif
     }
 #ifndef FM_NO_DEBUG
-    else if (dt_expected.has_focus && dt_expected.do_sleep) [[unlikely]]
+    else if (dt_expected.has_focus && dt_expected.do_sleep && is_log_verbose()) [[unlikely]]
     {
         if (good_frames)
         {
