@@ -26,14 +26,13 @@ constexpr step_s next_step(Vector2i vec_in)
 {
     const auto vec = Vector2ui(Math::abs(vec_in));
     const auto signs = Vector2b(Math::sign(vec_in));
-    fm_debug_assert(!vec.isZero());
 
-    if (vec.y() == 0)
+    if (vec.x() == vec.y())
+        return { vec.x(), Vector2b{1, 1} * signs };
+    else if (vec.y() == 0)
         return { vec.x(), Vector2b{1, 0} * signs };
     else if (vec.x() == 0)
         return { vec.y(), Vector2b{0, 1} * signs };
-    else if (vec.x() == vec.y())
-        return { vec.x(), Vector2b{1} * signs };
     else
     {
         uint32_t major_idx, minor_idx;
@@ -49,12 +48,9 @@ constexpr step_s next_step(Vector2i vec_in)
         }
         const auto major = vec[major_idx], minor = vec[minor_idx];
         const auto num_axis_aligned = (uint32_t)Math::abs((int)major - (int)minor);
-        fm_debug_assert(num_axis_aligned > 0);
         auto axis_aligned = Vector2b{};
         axis_aligned[major] = 1;
         return { num_axis_aligned, axis_aligned * signs };
-        // moving on the minor axis first looks more natural
-
     }
 }
 
@@ -75,7 +71,7 @@ struct pf_test final : base_test
 
     ~pf_test() noexcept override = default;
 
-    step_s get_next_step(point from, point to);
+    static step_s get_next_step(point from, point to);
 
     bool handle_key(app& a, const key_event& e, bool is_down) override;
     bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
@@ -90,12 +86,10 @@ step_s pf_test::get_next_step(point from, point to)
 {
     if (from.chunk3().z != to.chunk3().z)
         return invalid_step;
-
     if (from == to)
         return empty_step;
 
     const auto vec = to.coord() - from.coord();
-
     fm_debug_assert(!vec.isZero());
 
     return next_step(vec);
