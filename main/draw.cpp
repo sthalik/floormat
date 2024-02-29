@@ -217,12 +217,13 @@ bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& 
 }
 
 #ifndef FM_NO_DEBUG
-static size_t good_frames, bad_frames;
+static size_t good_frames, bad_frames; // NOLINT
 #endif
 
 void main_impl::do_update()
 {
 
+    // todo switch to using microseconds
     float dt = timeline.previousFrameDuration();
     if (dt > 0)
     {
@@ -230,7 +231,7 @@ void main_impl::do_update()
         {
             fps_sample_timeline.nextFrame();
             constexpr float RC = 10;
-            const float alpha = 1/(1 + RC);
+            constexpr float alpha = 1/(1 + RC);
             _frame_time = _frame_time*(1-alpha) + alpha*dt;
         }
         static size_t ctr = 0;
@@ -243,15 +244,15 @@ void main_impl::do_update()
         timeline.nextFrame();
     }
 
-    if (auto d = Math::abs(dt - dt_expected.value); d <= 4e-3f)
+#ifndef FM_NO_DEBUG
+    if (dt_expected.value == 0 || !is_log_verbose()) [[likely]]
+        void();
+    else if (auto d = Math::abs(dt - dt_expected.value); d <= 4e-3f)
     {
         dt = dt_expected.value + 1e-6f;
-#ifndef FM_NO_DEBUG
         ++good_frames;
-#endif
     }
-#ifndef FM_NO_DEBUG
-    else if (dt_expected.has_focus && dt_expected.do_sleep && is_log_verbose()) [[unlikely]]
+    else [[unlikely]]
     {
         if (good_frames)
         {
@@ -262,6 +263,29 @@ void main_impl::do_update()
 #endif
 
     dt = Math::clamp(dt, 1e-5f, Math::max(.2f, dt_expected.value));
+
+    if constexpr((false))
+    {
+        static struct
+        {
+            Timeline tl{};
+            float time = 0;
+            unsigned frames = 0;
+        } t;
+
+        if (t.frames++ == 0)
+            t.tl.start();
+        else
+            t.time += dt;
+
+        if (t.frames > 200)
+        {
+            Debug{} << "time"
+                    << (double)t.time * 1000. / t.frames
+                    << (double)t.tl.currentFrameDuration() * 1000. / t.frames;
+            t = {};
+        }
+    }
 
     app.update(dt);
 }
@@ -275,7 +299,7 @@ void main_impl::drawEvent()
 {
     _shader.set_tint({1, 1, 1, 1});
 
-    const auto clear_color = 0x222222ff_rgbaf;
+    constexpr auto clear_color = 0x222222ff_rgbaf;
 #ifdef FM_USE_DEPTH32
     framebuffer.fb.clearColor(0, clear_color);
 #else
@@ -296,7 +320,7 @@ void main_impl::drawEvent()
     redraw();
     timeline.nextFrame();
 
-    if (dt_expected.do_sleep)
+    if (dt_expected.do_sleep && (false))
     {
         constexpr float ε = 1e-3f;
         const float Δt൦ = timeline.previousFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
@@ -310,7 +334,10 @@ void main_impl::drawEvent()
         dt_expected.jitter = std::copysign(std::fmin(dt_expected.value, std::fabs(dt_expected.jitter)), dt_expected.jitter);
     }
     else
+    {
         dt_expected.jitter = 0;
+        dt_expected.value = 0;
+    }
 }
 
 ArrayView<const clickable> main_impl::clickable_scenery() const noexcept
