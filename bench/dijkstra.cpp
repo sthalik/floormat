@@ -5,7 +5,7 @@
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <cr/Optional.h>
-#include <mg/Math.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 

@@ -9,7 +9,7 @@
 #include <array>
 #include <cr/GrowableArray.h>
 #include <cr/String.h>
-#include <mg/Math.h>
+#include <mg/Functions.h>
 #include <mg/Timeline.h>
 
 namespace floormat {

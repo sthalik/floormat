@@ -4,7 +4,7 @@
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
-#include <mg/Math.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 

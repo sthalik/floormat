@@ -8,7 +8,7 @@
 #include <bit>
 #include <cr/StructuredBindings.h>
 #include <cr/GrowableArray.h>
-#include <mg/Math.h>
+#include <mg/Functions.h>
 #include <mg/Vector2.h>
 #include <mg/Timeline.h>
 

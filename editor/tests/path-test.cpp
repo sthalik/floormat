@@ -8,7 +8,7 @@
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
-#include <mg/Math.h>
+#include <mg/Functions.h>
 #include <mg/Color.h>
 
 namespace floormat::tests {

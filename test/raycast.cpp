@@ -4,7 +4,7 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
-#include <mg/Math.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 
