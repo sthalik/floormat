@@ -6,6 +6,7 @@
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include "src/point.hpp"
+#include "src/timer-fwd.hpp"
 #include <memory>
 
 namespace floormat {
@@ -68,7 +69,7 @@ struct object
     virtual object_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual void update(size_t i, float dt) = 0;
+    virtual void update(size_t i, Ns dt) = 0;
     virtual void rotate(size_t i, rotation r);
     virtual bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     virtual bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
@@ -83,6 +84,9 @@ struct object
     bool can_move_to(Vector2i delta);
     void move_to(size_t& i, Vector2i delta, rotation new_r);
     void move_to(Vector2i delta);
+
+    static uint32_t allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz);
+    uint32_t allocate_frame_time(Ns dt);
 
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);

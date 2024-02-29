@@ -1,4 +1,5 @@
 #include "light.hpp"
+#include "timer.hpp"
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
@@ -52,7 +53,7 @@ light::operator light_proto() const
 }
 
 object_type light::type() const noexcept { return object_type::light; }
-void light::update(size_t, float) {}
+void light::update(size_t, Ns) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 

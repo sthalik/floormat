@@ -7,13 +7,14 @@
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "src/camera-offset.hpp"
+#include "src/timer.hpp"
 #include "compat/enum-bitset.hpp"
 #include <bit>
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
 
-void app::do_camera(float dt, const key_set& cmds, int mods)
+void app::do_camera(Ns dt, const key_set& cmds, int mods)
 {
     if (cmds[key_camera_reset])
     {
@@ -44,7 +45,7 @@ void app::do_camera(float dt, const key_set& cmds, int mods)
         auto camera_offset = shader.camera_offset();
         const auto max_camera_offset = Vector2d(sz * 10);
 
-        camera_offset -= dir.normalized() * (double)dt * pixels_per_second;
+        camera_offset -= dir.normalized() * (double)Time::to_seconds(dt) * pixels_per_second;
         camera_offset = Math::clamp(camera_offset, -max_camera_offset, max_camera_offset);
         shader.set_camera_offset(camera_offset, shader.depth_offset());
 

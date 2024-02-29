@@ -7,6 +7,7 @@
 #include "shaders/shader.hpp"
 #include "src/rotation.inl"
 #include "compat/exception.hpp"
+#include "src/timer.hpp"
 #include <algorithm>
 
 namespace floormat {
@@ -50,7 +51,7 @@ scenery_proto::operator bool() const { return atlas != nullptr; }
 bool generic_scenery_proto::operator==(const generic_scenery_proto& p) const = default;
 enum scenery_type generic_scenery_proto::scenery_type() const { return scenery_type::generic; }
 
-void generic_scenery::update(scenery&, size_t, float) {}
+void generic_scenery::update(scenery&, size_t, Ns) {}
 Vector2 generic_scenery::ordinal_offset(const scenery&, Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(const scenery&, size_t) const { return interactive; }
 bool generic_scenery::activate(floormat::scenery&, size_t) { return false; }
@@ -80,23 +81,16 @@ door_scenery::door_scenery(object_id, class chunk&, const door_scenery_proto& p)
     closing{p.closing}, active{p.active}, interactive{p.interactive}
 {}
 
-void door_scenery::update(scenery& s, size_t, float dt)
+void door_scenery::update(scenery& s, size_t, Ns dt)
 {
     if (!s.atlas || !active)
         return;
 
     fm_assert(s.atlas);
     auto& anim = *s.atlas;
-    const auto hz = uint8_t(s.atlas->info().fps);
     const auto nframes = (int)anim.info().nframes;
     fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
-
-    auto delta_ = int(s.delta) + int(65535u * dt);
-    delta_ = std::min(65535, delta_);
-    const auto frame_time = int(1.f/hz * 65535);
-    const auto n = (uint8_t)std::clamp(delta_ / frame_time, 0, 255);
-    s.delta = (uint16_t)std::clamp(delta_ - frame_time*n, 0, 65535);
-    fm_debug_assert(s.delta >= 0);
+    const auto n = (int)s.allocate_frame_time(dt);
     if (n == 0)
         return;
     const int8_t dir = closing ? 1 : -1;
@@ -154,7 +148,7 @@ bool scenery::can_activate(size_t i) const
     );
 }
 
-void scenery::update(size_t i, float dt)
+void scenery::update(size_t i, Ns dt)
 {
     return std::visit(
         [&]<typename T>(T& sc) { sc.update(*this, i, dt); },

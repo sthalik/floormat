@@ -63,7 +63,7 @@ struct generic_scenery
     unsigned char active      : 1 = false;
     unsigned char interactive : 1 = false;
 
-    void update(scenery& sc, size_t i, float dt);
+    void update(scenery& sc, size_t i, Ns dt);
     Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
     bool can_activate(const scenery& sc, size_t i) const;
     bool activate(scenery& sc, size_t i);
@@ -80,7 +80,7 @@ struct door_scenery
     unsigned char active      : 1 = false;
     unsigned char interactive : 1 = false;
 
-    void update(scenery& sc, size_t i, float dt);
+    void update(scenery& sc, size_t i, Ns dt);
     Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
     bool can_activate(const scenery& sc, size_t i) const;
     bool activate(scenery& sc, size_t i);
@@ -97,7 +97,7 @@ struct scenery final : object
 {
     scenery_variants subtype;
 
-    void update(size_t i, float dt) override;
+    void update(size_t i, Ns dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
     bool can_activate(size_t i) const override;

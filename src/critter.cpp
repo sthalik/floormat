@@ -4,13 +4,13 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
+#include "src/timer.hpp"
 #include "shaders/shader.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
 #include <utility>
 #include <algorithm>
 #include <mg/Functions.h>
-#include <mg/Timeline.h>
 
 namespace floormat {
 
@@ -110,17 +110,6 @@ bool critter_proto::operator==(const object_proto& e0) const
     return name == s0.name && playable == s0.playable;
 }
 
-int critter::allocate_frame_time(float dt)
-{
-    auto d = (double)delta / 65535. + (double)dt;
-    d = std::min(1., d);
-    auto ret = (int)(d / frame_time);
-    d -= ret;
-    d = Math::clamp(d, 0., 1.);
-    delta = (uint16_t)(d * 65535);
-    return ret;
-}
-
 void critter::set_keys(bool L, bool R, bool U, bool D)
 {
     b_L = L;
@@ -140,10 +129,30 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-void critter::update(size_t i, float dt)
+void critter::update(size_t i, Ns dt)
 {
     if (playable)
     {
+#if 0
+        static auto TL = Time::now();
+        static Ns TIME{0};
+        static unsigned FRAMES;
+
+        if (++FRAMES == 0)
+            TL = Time::now();
+        else
+            TIME += dt;
+
+        if (++FRAMES > 240)
+        {
+            auto t = TL.update();
+            Debug{} << "player time" << Time::to_milliseconds(TIME) << Time::to_milliseconds(t);
+            Debug{} << Time::to_milliseconds(TIME) / Time::to_milliseconds(t);
+            TIME = Ns{0};
+            FRAMES = 0;
+        }
+#endif
+
         const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
         if (new_r == rotation_COUNT)
         {
@@ -157,21 +166,21 @@ void critter::update(size_t i, float dt)
         update_nonplayable(i, dt);
 }
 
-void critter::update_nonplayable(size_t i, float dt)
+void critter::update_nonplayable(size_t i, Ns dt)
 {
     (void)i; (void)dt; (void)playable;
 }
 
-void critter::update_movement(size_t i, float dt, rotation new_r)
+void critter::update_movement(size_t i, Ns dt, rotation new_r)
 {
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
 
-    int nframes = allocate_frame_time(dt * speed);
+    auto nframes = allocate_frame_time(dt * speed);
     if (nframes == 0)
     {
         static unsigned foo;
-        Debug{} << ++foo << "stopped";
+        //Debug{} << ++foo << "stopped";
         return;
     }
 
@@ -184,24 +193,7 @@ void critter::update_movement(size_t i, float dt, rotation new_r)
 
     c->ensure_passability();
 
-    static Timeline TL{};
-    static double TIME;
-    static unsigned FRAMES;
-
-    if (++FRAMES == 0)
-        TL.start();
-    else
-        TIME += (double)dt;
-
-    if (++FRAMES > 30)
-    {
-        Debug{} << "player time" << TIME;
-        TL.stop();
-        TIME = 0;
-        FRAMES = 0;
-    }
-
-    for (int k = 0; k < nframes; k++)
+    for (auto k = 0u; k < nframes; k++)
     {
         for (unsigned j = 0; j < nvecs; j++)
         {

@@ -1,8 +1,10 @@
 #pragma once
 
-namespace Magnum::Math { template<typename T> class Vector2; }
+namespace Magnum::Math { template<typename T> class Vector2; template<class T> class Nanoseconds; }
 
 namespace floormat {
+
+using Ns = Math::Nanoseconds<int64_t>;
 
 struct mouse_move_event;
 struct mouse_button_event;
@@ -28,7 +30,7 @@ struct floormat_app
     [[deprecated]] floormat_app(floormat_app&&) = default;
     [[deprecated]] floormat_app& operator=(floormat_app&&) = default;
 
-    virtual void update(float dt) = 0;
+    virtual void update(Ns t) = 0;
     virtual void maybe_initialize_chunk(const chunk_coords_& pos, chunk& c) = 0;
     virtual void draw() = 0;
     virtual z_bounds get_z_bounds() = 0;

@@ -57,7 +57,7 @@ struct anim_def final
     Array<anim_group> groups{};
     Vector2ui pixel_size{};
     anim_scale scale = anim_scale::ratio{1};
-    size_t nframes = 0, fps = 0, action_frame = 0, action_frame2 = 0;
+    uint32_t nframes = 0, fps = 0, action_frame = 0, action_frame2 = 0;
 };
 
 } // namespace floormat

@@ -33,7 +33,7 @@ struct light final : object
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
     object_type type() const noexcept override;
-    void update(size_t i, float dt) override;
+    void update(size_t i, Ns dt) override;
     bool is_dynamic() const override;
     bool is_virtual() const override;
 

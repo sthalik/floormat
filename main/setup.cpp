@@ -59,6 +59,7 @@ void main_impl::update_window_state()
 {
     const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
 
+#if 0
     dt_expected.do_sleep = true;
     dt_expected.jitter = 0;
     dt_expected.has_focus = true;
@@ -83,6 +84,7 @@ void main_impl::update_window_state()
         dt_expected.do_sleep = false;
         dt_expected.value = 1e-1f;
     }
+#endif
 }
 
 auto main_impl::meshes() noexcept -> struct meshes

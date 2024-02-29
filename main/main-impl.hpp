@@ -2,6 +2,8 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
+#include "src/timer-fwd.hpp"
+#include "src/timer.hpp"
 #include "draw/ground.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
@@ -11,7 +13,6 @@
 #include "main/clickable.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
-#include <Magnum/Timeline.h>
 #include <Magnum/Math/Range.h>
 #include <Magnum/GL/DebugOutput.h>
 #include <Magnum/Platform/Sdl2Application.h>
@@ -102,6 +103,12 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class astar& astar() override;
 
 private:
+    struct {
+        Ns last_frame_duration{0};
+        Time frame_start;
+        Time timeline; // todo rename
+    } tm;
+
     struct texture_unit_cache _tuc;
     fm_settings s;
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
@@ -110,7 +117,6 @@ private:
     struct lightmap_shader _lightmap_shader{_tuc};
     Array<clickable> _clickable_scenery;
     class world _world{};
-    Magnum::Timeline timeline;
     uint32_t _mouse_cursor = (uint32_t)-1;
     ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
@@ -121,14 +127,14 @@ private:
     safe_ptr<path_search> _search;
     safe_ptr<class astar> _astar;
 
+#if 0
     struct {
         float value = 0;
         float jitter = 0;
         bool do_sleep = false;
         bool has_focus = true;
     } dt_expected;
-
-    Timeline fps_sample_timeline;
+#endif
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;

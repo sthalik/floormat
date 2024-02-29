@@ -4,8 +4,9 @@
 #include "rotation.inl"
 #include "anim-atlas.hpp"
 #include "src/RTree-search.hpp"
+#include "src/timer.hpp"
+#include "compat/debug.hpp"
 #include "compat/exception.hpp"
-#include "shaders/shader.hpp"
 #include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
@@ -266,6 +267,39 @@ void object::move_to(Magnum::Vector2i delta)
 {
     auto i = index();
     move_to(i, delta, r);
+}
+
+uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz)
+{
+    fm_assert(hz > 0);
+    fm_assert(dt >= Ns{0});
+    constexpr auto ns_in_sec = Ns::Type{Ns(1e9)};
+    //const auto count = Ns::Type{ns_in_sec / hz} + accum};
+    const auto nsecs = Ns::Type{dt} + accum * ns_in_sec / Ns::Type{65535};
+    const auto frame_duration = ns_in_sec / hz;
+    const auto frames = (uint32_t)(nsecs / frame_duration);
+    const auto rem = nsecs % frame_duration;
+    const auto new_accum_ = rem * Ns::Type{65535} / ns_in_sec;
+    const auto new_accum = (uint16_t)Math::clamp(new_accum_, Ns::Type{0}, Ns::Type{65535});
+    [[maybe_unused]] const auto old_accum = accum;
+    accum = new_accum;
+#if 0
+    DBG_nospace << "alloc-frame-time: "
+                << "dt:" << fraction(Time::to_milliseconds(dt)) << "ms"
+                << ", secs:" << fraction(Time::to_milliseconds(Ns{nsecs}), 1) << " ms"
+                << ", frames:" << frames
+                << ", acc:" << new_accum_
+                << ", rem:" << rem;
+#endif
+    return frames;
+}
+
+uint32_t object::allocate_frame_time(Ns dt)
+{
+    fm_assert(atlas);
+    auto hz = atlas->info().fps;
+    fm_assert(hz > 0);
+    return allocate_frame_time(dt, delta, hz);
 }
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)

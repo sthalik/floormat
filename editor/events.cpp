@@ -137,6 +137,7 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
                 case SDLK_d:        return key_camera_right;
                 case SDLK_HOME:     return key_camera_reset;
                 case SDLK_r:        return key_rotate_tile;
+                case SDLK_F2:       return key_emit_timestamp;
                 case SDLK_1:        return key_mode_none;
                 case SDLK_2:        return key_mode_floor;
                 case SDLK_3:        return key_mode_walls;

@@ -7,6 +7,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-iterator.hpp"
+#include "src/timer.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -52,15 +53,17 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         const auto index = e.index();
         const auto end = e.atlas->info().nframes-1;
+        constexpr auto second = Ns(1e9);
+        constexpr auto dt = second / 60;
         fm_assert(e.frame == end);
         {   auto& x = std::get<door_scenery>(e.subtype);
             fm_assert(!x.active);
             e.activate(e.index());
             fm_assert(x.active);
-            e.update(index, 1.f/60);
+            e.update(index, dt);
             fm_assert(e.frame != end);
             for (int i = 0; i < 60*3; i++)
-                e.update(index, 1.f/60);
+                e.update(index, dt);
             fm_assert(e.frame == 0);
             fm_assert(!x.active);
         }

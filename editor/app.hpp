@@ -93,14 +93,14 @@ private:
 
     int exec();
 
-    void update(float dt) override;
-    void update_world(float dt);
+    void update(Ns dt) override;
+    void update_world(Ns dt);
     void update_cursor_tile(const Optional<Vector2i>& pixel);
     z_bounds get_z_bounds() override;
     void set_cursor();
     void maybe_initialize_chunk(const chunk_coords_& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c);
-    void update_character(float dt);
+    void update_character(Ns dt);
     void reset_world();
     void reset_world(class world&& w);
 
@@ -157,6 +157,7 @@ private:
     void do_key(key k);
     void do_set_mode(editor_mode mode);
     void do_rotate(bool backward);
+    static void do_emit_timestamp();
     void apply_commands(const key_set& k);
     int get_key_modifiers();
     void clear_keys(key min_inclusive, key max_exclusive);
@@ -164,7 +165,7 @@ private:
     void clear_non_global_keys();
     void clear_non_repeated_keys();
 
-    void do_camera(float dt, const key_set& cmds, int mods);
+    void do_camera(Ns dt, const key_set& cmds, int mods);
     void reset_camera_offset();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);

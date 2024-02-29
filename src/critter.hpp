@@ -26,9 +26,9 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(size_t i, float dt) override;
-    void update_movement(size_t i, float dt, rotation r);
-    void update_nonplayable(size_t i, float dt);
+    void update(size_t i, Ns dt) override;
+    void update_movement(size_t i, Ns dt, rotation r);
+    void update_nonplayable(size_t i, Ns dt);
     void set_keys(bool L, bool R, bool U, bool D);
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
@@ -40,8 +40,6 @@ struct critter final : object
     bool playable : 1 = false;
 
 private:
-    int allocate_frame_time(float dt);
-
     friend class world;
     critter(object_id id, class chunk& c, const critter_proto& proto);
 };

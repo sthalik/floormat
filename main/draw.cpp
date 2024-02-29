@@ -6,6 +6,7 @@
 #include "main/clickable.hpp"
 #include "src/light.hpp"
 #include "src/log.hpp"
+#include "src/timer.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -71,8 +72,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
     // -- user--
     app.on_viewport_event(fb_size);
-
-    fps_sample_timeline.start();
+    tm.timeline = Time::now();
 }
 
 global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
@@ -216,34 +216,33 @@ bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& 
     return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
 }
 
+#if 0
 #ifndef FM_NO_DEBUG
 static size_t good_frames, bad_frames; // NOLINT
 #endif
+#endif
 
-void main_impl::do_update()
+void main_impl::do_update() // todo! move to separate file
 {
-
-    // todo switch to using microseconds
-    float dt = timeline.previousFrameDuration();
-    if (dt > 0)
+    constexpr auto eps = 1e-5f;
+    const auto dt = tm.timeline.update();
+    if (auto secs = Time::to_seconds(dt); secs > eps)
     {
-        if (fps_sample_timeline.currentFrameDuration() > 1.f/15)
-        {
-            fps_sample_timeline.nextFrame();
-            constexpr float RC = 10;
-            constexpr float alpha = 1/(1 + RC);
-            _frame_time = _frame_time*(1-alpha) + alpha*dt;
-        }
+#if 1
+        constexpr float RC = 60;
+        constexpr auto alpha = 1 / (1 + RC);
+        _frame_time = _frame_time * (1 - alpha) + alpha * secs;
+#else
+        _frame_time = secs;
+#endif
         static size_t ctr = 0;
-        if (dt >= 1.f/55 && !dt_expected.do_sleep)
-            fm_debug("%zu frame took %.1f milliseconds", ctr++, dt*1e3f);
+        if (secs > 35e-3f /* && !dt_expected.do_sleep */)
+            fm_debug("%zu frame took %.2f milliseconds", ctr++, (double)secs*1e3);
     }
     else
-    {
         swapBuffers();
-        timeline.nextFrame();
-    }
 
+#if 0
 #ifndef FM_NO_DEBUG
     if (dt_expected.value == 0 || !is_log_verbose()) [[likely]]
         void();
@@ -286,6 +285,7 @@ void main_impl::do_update()
             t = {};
         }
     }
+#endif
 
     app.update(dt);
 }
@@ -295,7 +295,7 @@ void main_impl::bind() noexcept
     framebuffer.fb.bind();
 }
 
-void main_impl::drawEvent()
+void main_impl::drawEvent() // todo! move to separate file (with `do_update')
 {
     _shader.set_tint({1, 1, 1, 1});
 
@@ -318,8 +318,8 @@ void main_impl::drawEvent()
 
     swapBuffers();
     redraw();
-    timeline.nextFrame();
 
+#if 0
     if (dt_expected.do_sleep && (false))
     {
         constexpr float ε = 1e-3f;
@@ -338,6 +338,7 @@ void main_impl::drawEvent()
         dt_expected.jitter = 0;
         dt_expected.value = 0;
     }
+#endif
 }
 
 ArrayView<const clickable> main_impl::clickable_scenery() const noexcept

@@ -12,6 +12,7 @@
 #include "floormat/main.hpp"
 #include "src/critter.hpp"
 #include "src/tile-iterator.hpp"
+#include "src/timer.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/enum-bitset.hpp"
@@ -121,6 +122,17 @@ void app::do_rotate(bool backward)
     }
 }
 
+void app::do_emit_timestamp()
+{
+    static struct
+    {
+        Time time = Time::now();
+        unsigned ctr = 0;
+    } s;
+    char buf[fm_DATETIME_BUF_SIZE];
+    fm_debug("%s -- MARK -- 0x%08X", format_datetime_to_string(buf), ++s.ctr & 0xffff'ffffU);
+}
+
 void app::do_set_mode(editor_mode mode)
 {
     if (mode != _editor->mode())
@@ -152,6 +164,8 @@ void app::do_key(key k, int mods)
         return;
     case key_rotate_tile:
         return do_rotate(false);
+    case key_emit_timestamp:
+        return do_emit_timestamp();
     case key_mode_none:
         return do_set_mode(editor_mode::none);
     case key_mode_floor:
@@ -193,7 +207,7 @@ void app::apply_commands(const key_set& keys)
             do_key(k, key_modifiers[i]);
 }
 
-void app::update_world(float dt)
+void app::update_world(Ns dt)
 {
     auto& world = M->world();
     world.increment_frame_no();
@@ -214,7 +228,7 @@ void app::update_world(float dt)
             }
 }
 
-void app::update_character([[maybe_unused]] float dt)
+void app::update_character([[maybe_unused]] Ns dt)
 {
     auto& keys = *keys_;
     if (_character_id)
@@ -244,7 +258,7 @@ auto app::get_z_bounds() -> z_bounds
     return { chunk_z_min, chunk_z_max, _z_level, !_render_all_z_levels };
 }
 
-void app::update(float dt)
+void app::update(Ns dt)
 {
     //M->world().collect();
     M->world().collect(true);
