@@ -142,7 +142,16 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
 void critter::update(size_t i, float dt)
 {
     if (playable)
-        update_playable(i, dt);
+    {
+        const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
+        if (new_r == rotation_COUNT)
+        {
+            offset_frac = {};
+            delta = 0;
+        }
+        else
+            update_movement(i, dt, new_r);
+    }
     else
         update_nonplayable(i, dt);
 }
@@ -152,15 +161,10 @@ void critter::update_nonplayable(size_t i, float dt)
     (void)i; (void)dt; (void)playable;
 }
 
-void critter::update_playable(size_t i, float dt)
+void critter::update_movement(size_t i, float dt, rotation new_r)
 {
-    const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
-    if (new_r == rotation_COUNT)
-    {
-        offset_frac = {};
-        delta = 0;
-        return;
-    }
+    fm_assert(new_r < rotation_COUNT);
+    fm_assert(is_dynamic());
 
     int nframes = allocate_frame_time(dt * speed);
     if (nframes == 0)
@@ -171,7 +175,7 @@ void critter::update_playable(size_t i, float dt)
     const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
 
     if (r != new_r)
-        if (is_dynamic())
+        //if (is_dynamic())
             rotate(i, new_r);
 
     c->ensure_passability();
