@@ -6,7 +6,6 @@
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
-#include <bitset>
 #include <mg/Vector2.h>
 
 namespace floormat::tests {
@@ -17,7 +16,6 @@ using namespace floormat::imgui;
 using Search::div_count;
 using Search::div_size;
 
-constexpr auto chunk_bits = div_count.product();
 constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;
 
 struct pending_s
