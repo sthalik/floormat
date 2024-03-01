@@ -274,17 +274,17 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     fm_assert(hz > 0);
     fm_assert(dt >= Ns{0});
     constexpr auto ns_in_sec = Ns(1e9);
-    constexpr auto u16_max = uint16_t{65535};
+    constexpr auto u16_max = uint64_t{65535};
     //const auto count = Ns::Type{ns_in_sec / hz} + accum};
     const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
-    const auto from_dt = float{dt} * speed;
-    fm_assert(from_dt <= float{1 << 24});
+    const auto from_dt = Ns(uint64_t(float{dt} * speed));
+    fm_assert(from_dt <= Ns{1 << 24});
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
     const auto frames = (uint32_t)(ticks / frame_duration);
     const auto rem = (uint32_t)(ticks % frame_duration);
-    const auto new_accum_ = rem * u16_max / ns_in_sec;
-    const auto new_accum = (uint16_t)Math::clamp(new_accum_, Ns{0}, u16_max);
+    const auto new_accum_ = rem * u16_max / uint64_t{ns_in_sec};
+    const auto new_accum = (uint16_t)Math::clamp(new_accum_, uint64_t{0}, u16_max);
     [[maybe_unused]] const auto old_accum = accum;
     accum = new_accum;
 #if 0

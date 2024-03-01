@@ -2,7 +2,6 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
-#include "src/timer-fwd.hpp"
 #include "src/timer.hpp"
 #include "draw/ground.hpp"
 #include "draw/wall.hpp"

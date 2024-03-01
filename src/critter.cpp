@@ -179,14 +179,13 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
     auto nframes = allocate_frame_time(dt, speed);
     if (nframes == 0)
     {
-        static unsigned foo;
+        //static unsigned foo;
         //Debug{} << ++foo << "stopped";
         return;
     }
 
     const auto rotations = rotation_to_similar(new_r);
     const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
-
     if (r != new_r)
         //if (is_dynamic())
             rotate(i, new_r);

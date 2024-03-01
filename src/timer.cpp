@@ -65,6 +65,11 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
     return buf;
 }
 
-
+Ns operator-(const Time& lhs, const Time& rhs) noexcept
+{
+    auto a = lhs.stamp, b = rhs.stamp;
+    fm_assert(a >= b);
+    return Ns{a - b};
+}
 
 } // namespace floormat

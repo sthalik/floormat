@@ -4,8 +4,6 @@ namespace Magnum::Math { template<typename T> class Vector2; template<class T> c
 
 namespace floormat {
 
-using Ns = Math::Nanoseconds<int64_t>;
-
 struct mouse_move_event;
 struct mouse_button_event;
 struct mouse_scroll_event;
@@ -17,6 +15,7 @@ union any_event;
 struct chunk_coords;
 struct chunk_coords_;
 class chunk;
+struct Ns;
 
 struct floormat_app
 {
