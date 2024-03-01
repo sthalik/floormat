@@ -35,14 +35,6 @@ Time Time::now() noexcept
     return {ret};
 }
 
-Ns operator-(const Time& a, const Time& b) noexcept
-{
-    fm_assert(a.stamp >= b.stamp);
-    auto ret = a.stamp - b.stamp;
-    fm_assert(ret < uint64_t{1} << 63);
-    return Ns{ int64_t(ret) };
-}
-
 Ns Time::update(const Time& ts) & noexcept
 {
     auto ret = ts - *this;
@@ -54,8 +46,8 @@ uint64_t Time::init() noexcept { return get_time(); }
 bool Time::operator==(const Time&) const noexcept = default;
 std::strong_ordering Time::operator<=>(const Time&) const noexcept = default;
 
-float Time::to_seconds(const Ns& ts) noexcept { return float(Ns::Type{ts} * 1e-9L); }
-float Time::to_milliseconds(const Ns& ts) noexcept { return float(Ns::Type{ts} * 1e-6L); }
+float Time::to_seconds(const Ns& ts) noexcept { return float{ts} * 1e-9f; }
+float Time::to_milliseconds(const Ns& ts) noexcept { return float{ts} * 1e-6f; }
 
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {
@@ -72,5 +64,7 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
     fm_assert(len2 > 0 && len + (size_t)len2 < std::size(buf));
     return buf;
 }
+
+
 
 } // namespace floormat

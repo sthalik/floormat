@@ -6,7 +6,6 @@
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include "src/point.hpp"
-#include "src/timer-fwd.hpp"
 #include <memory>
 
 namespace floormat {
@@ -15,6 +14,7 @@ template<typename T> struct object_type_;
 class anim_atlas;
 class world;
 class chunk;
+struct Ns;
 
 struct object_proto
 {
