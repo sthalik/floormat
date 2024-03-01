@@ -276,8 +276,8 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     constexpr auto ns_in_sec = Ns(1e9);
     constexpr auto u16_max = uint16_t{65535};
     //const auto count = Ns::Type{ns_in_sec / hz} + accum};
-    const auto from_accum = accum * ns_in_sec / u16_max;
-    const auto from_dt = float(from_dt) * speed;
+    const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
+    const auto from_dt = float{dt} * speed;
     fm_assert(from_dt <= float{1 << 24});
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
