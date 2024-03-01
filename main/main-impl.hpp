@@ -107,11 +107,19 @@ private:
     {
         static constexpr unsigned min_refresh_rate = 20;
 
-        unsigned refresh_rate = min_refresh_rate;
-        float smoothed_frame_time = 0;
-        bool vsync       : 1 = false;
-        bool minimized   : 1 = false;
-        bool focused     : 1 = true;
+        unsigned refresh_rate;
+        float smoothed_frame_time;
+        bool vsync       : 1;
+        bool minimized   : 1;
+        bool focused     : 1;
+    };
+
+    frame_timings_s _frame_timings = {
+        .refresh_rate = frame_timings_s::min_refresh_rate,
+        .smoothed_frame_time = 0,
+        .vsync = false,
+        .minimized = false,
+        .focused = true,
     };
 
     Time timeline;
@@ -125,7 +133,6 @@ private:
     Array<clickable> _clickable_scenery;
     class world _world{};
     uint32_t _mouse_cursor = (uint32_t)-1;
-    frame_timings_s _frame_timings;
     ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;

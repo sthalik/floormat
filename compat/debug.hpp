@@ -76,4 +76,6 @@ auto quoted(T&& value, char c = '\'')
 
 template<DebugPrintable T> auto quoted2(T&& value) { return quoted(forward<T>(value), '"'); }
 
+// todo add operator for joining two printable items without spaces (when spaces are normally on)
+
 } // namespace floormat

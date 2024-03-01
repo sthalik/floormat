@@ -112,19 +112,45 @@ unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max)
         fm_warn_once("SDL_GetCurrentDisplayMode: %s", SDL_GetError());
     else
     {
-        fm_assert(dpymode.refresh_rate > 0 && dpymode.refresh_rate < max);
-        return (unsigned)dpymode.refresh_rate;
+        auto hz = (unsigned)dpymode.refresh_rate;
+        fm_assert(dpymode.refresh_rate > 0);
+        fm_assert(hz < max);
+        return hz;
     }
     return min;
 }
 
 void main_impl::update_window_state() // todo window minimized, out of focus, fake vsync etc
 {
-    auto refresh_rate = get_window_refresh_rate(window(), _frame_timings.min_refresh_rate, 10000);
-    fm_assert(refresh_rate > 0 && refresh_rate < 1000);
+    constexpr auto b = [](bool x) { return x ? "1" : "0"; };
+    const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
+
+    int interval = std::abs(SDL_GL_GetSwapInterval());
+    bool vsync = interval != 0;
+    //bool vsync = s.vsync ? interval != 0 : false;
+    if (interval < 0) [[unlikely]]
+        fm_warn_once("bad swap interval %d", interval);
+
+    auto hz      = get_window_refresh_rate(window(), _frame_timings.min_refresh_rate, 10000);
+    bool hidden  = flags & (SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED);
+    bool focused = flags & SDL_WINDOW_INPUT_FOCUS;
+    focused &= !hidden;
+
+    fm_assert(hz > 0 && hz < 1000);
     _frame_timings = {
-        .refresh_rate = refresh_rate,
+        .refresh_rate = hz,
+        .smoothed_frame_time = 0,
+        .vsync = vsync,
+        .minimized = hidden,
+        .focused = focused,
     };
+
+#if 0
+    DBG_nospace << "window:"
+                << " " << _framebuffer_size.x() << "x" << _framebuffer_size.y()
+                << " hz:" << hz << " vsync:" << b(vsync)
+                << " focused:" << b(focused) << " hidden:" << b(hidden);
+#endif
 }
 
 auto main_impl::meshes() noexcept -> struct meshes
