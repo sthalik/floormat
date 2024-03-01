@@ -103,7 +103,7 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
         .setStencilBufferSize(0);
 }
 
-unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max)
+unsigned main_impl::get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max)
 {
     fm_assert(window != nullptr);
     if (int index = SDL_GetWindowDisplayIndex(window); index < 0)
@@ -122,7 +122,6 @@ unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max)
 
 void main_impl::update_window_state() // todo window minimized, out of focus, fake vsync etc
 {
-    constexpr auto b = [](bool x) { return x ? "1" : "0"; };
     const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
 
     int interval = std::abs(SDL_GL_GetSwapInterval());
@@ -146,6 +145,7 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
     };
 
 #if 0
+    constexpr auto b = [](bool x) { return x ? "1" : "0"; };
     DBG_nospace << "window:"
                 << " " << _framebuffer_size.x() << "x" << _framebuffer_size.y()
                 << " hz:" << hz << " vsync:" << b(vsync)

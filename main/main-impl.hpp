@@ -59,6 +59,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class world& reset_world(class world&& w) noexcept override;
     SDL_Window* window() noexcept override;
     void update_window_state();
+    static unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max);
     float smoothed_frame_time() const noexcept override;
 
     fm_settings& settings() noexcept override;

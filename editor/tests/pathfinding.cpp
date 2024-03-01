@@ -97,20 +97,24 @@ step_s pf_test::get_next_step(point from, point to)
 
 bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
 {
+    (void) a; (void)e; (void)is_down;
     return false;
 }
 
 bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
 {
+    (void)a; (void)e; (void)is_down;
     return false;
 }
 
 void pf_test::draw_overlay(app& a)
 {
+    (void)a;
 }
 
-void pf_test::draw_ui(app& a, float menu_bar_height)
+void pf_test::draw_ui(app& a, float)
 {
+    (void)a;
 }
 
 void pf_test::update_pre(app& a)
