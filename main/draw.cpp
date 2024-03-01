@@ -13,6 +13,54 @@
 
 namespace floormat {
 
+void main_impl::do_update()
+{
+    constexpr auto eps = 1e-5f;
+    auto dt = timeline.update();
+    if (auto secs = Time::to_seconds(dt); secs > eps)
+    {
+#if 1
+        constexpr float RC = 60;
+        constexpr auto alpha = 1 / (1 + RC);
+        _smoothed_frame_time = _smoothed_frame_time * (1 - alpha) + alpha * secs;
+#else
+        _frame_time = secs;
+#endif
+        static size_t ctr = 0;
+        if (secs > 35e-3f /* && !dt_expected.do_sleep */)
+            fm_debug("%zu frame took %.2f milliseconds", ctr++, (double)secs*1e3);
+    }
+    else
+        swapBuffers();
+
+    app.update(dt);
+}
+
+void main_impl::drawEvent()
+{
+    _shader.set_tint({1, 1, 1, 1});
+
+    constexpr auto clear_color = 0x222222ff_rgbaf;
+#ifdef FM_USE_DEPTH32
+    framebuffer.fb.clearColor(0, clear_color);
+#else
+    GL::defaultFramebuffer.clearColor(clear_color);
+#endif
+    draw_world();
+
+    app.draw();
+    GL::Renderer::flush();
+
+    do_update();
+
+#ifdef FM_USE_DEPTH32
+    GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
+#endif
+
+    swapBuffers();
+    redraw();
+}
+
 void main_impl::draw_world() noexcept
 {
     const auto [z_min, z_max, z_cur, only] = app.get_z_bounds();
@@ -84,57 +132,9 @@ void main_impl::draw_world() noexcept
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
-void main_impl::do_update()
-{
-    constexpr auto eps = 1e-5f;
-    auto dt = timeline.update();
-    if (auto secs = Time::to_seconds(dt); secs > eps)
-    {
-#if 1
-        constexpr float RC = 60;
-        constexpr auto alpha = 1 / (1 + RC);
-        _smoothed_frame_time = _smoothed_frame_time * (1 - alpha) + alpha * secs;
-#else
-        _frame_time = secs;
-#endif
-        static size_t ctr = 0;
-        if (secs > 35e-3f /* && !dt_expected.do_sleep */)
-            fm_debug("%zu frame took %.2f milliseconds", ctr++, (double)secs*1e3);
-    }
-    else
-        swapBuffers();
-
-    app.update(dt);
-}
-
 void main_impl::bind() noexcept
 {
     framebuffer.fb.bind();
-}
-
-void main_impl::drawEvent()
-{
-    _shader.set_tint({1, 1, 1, 1});
-
-    constexpr auto clear_color = 0x222222ff_rgbaf;
-#ifdef FM_USE_DEPTH32
-    framebuffer.fb.clearColor(0, clear_color);
-#else
-    GL::defaultFramebuffer.clearColor(clear_color);
-#endif
-    draw_world();
-
-    app.draw();
-    GL::Renderer::flush();
-
-    do_update();
-
-#ifdef FM_USE_DEPTH32
-    GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
-#endif
-
-    swapBuffers();
-    redraw();
 }
 
 ArrayView<const clickable> main_impl::clickable_scenery() const noexcept
