@@ -44,7 +44,7 @@ template<typename T> Debug& operator<<(Debug& dbg, Quoted<T> box)
 struct Fraction
 {
     float value;
-    uint8_t decimal_points;
+    int decimal_points;
 };
 
 Debug& operator<<(Debug& dbg, Fraction frac);
@@ -61,7 +61,7 @@ floormat::detail::corrade_debug::Colon colon(char c = ':');
 floormat::detail::corrade_debug::ErrorString error_string(int error);
 floormat::detail::corrade_debug::ErrorString error_string();
 
-floormat::detail::corrade_debug::Fraction fraction(float value, uint8_t decimal_points = 1);
+floormat::detail::corrade_debug::Fraction fraction(float value, int decimal_points = 1);
 
 template<DebugPrintable T>
 auto quoted(T&& value, char c = '\'')

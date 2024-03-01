@@ -54,7 +54,7 @@ template struct Quoted<StringView>;
 Debug& operator<<(Debug& dbg, Fraction f)
 {
     char fmt[8], buf[56];
-    std::snprintf(fmt, sizeof fmt, "%%.%hhuf", f.decimal_points);
+    std::snprintf(fmt, sizeof fmt, "%%.%uf", (unsigned)f.decimal_points);
     std::snprintf(buf, sizeof buf, fmt, (double)f.value);
     dbg << buf;
     return dbg;
@@ -70,6 +70,6 @@ Colon colon(char c) { return Colon{c}; }
 ErrorString error_string(int error) { return { error }; }
 ErrorString error_string() { return { errno }; }
 
-Fraction fraction(float value, uint8_t decimal_points) { return Fraction { value, decimal_points }; }
+Fraction fraction(float value, int decimal_points) { return Fraction { value, decimal_points }; }
 
 } // namespace floormat

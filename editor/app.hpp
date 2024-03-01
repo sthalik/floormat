@@ -86,7 +86,7 @@ struct app final : floormat_app
     shared_ptr_wrapper<critter> ensure_player_character(world& w);
 
 private:
-    app(fm_settings&& opts);
+    explicit app(fm_settings&& opts);
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
     fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
