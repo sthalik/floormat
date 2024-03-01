@@ -6,6 +6,7 @@ namespace Magnum::Math { template<class T> class Nanoseconds; }
 namespace floormat {
 
 using Ns = Math::Nanoseconds<int64_t>;
+//long double operator/(Ns a, Ns b) noexcept;
 
 struct Time final
 {

@@ -218,6 +218,7 @@ struct visitor_
         do_visit(obj.name, f);
         if (PROTO >= 22) [[likely]]
             do_visit(obj.speed, f);
+        fm_soft_assert(obj.speed >= 0);
         do_visit(obj.offset_frac, f);
 
         constexpr struct {

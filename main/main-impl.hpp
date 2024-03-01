@@ -59,6 +59,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class world& reset_world() noexcept override;
     class world& reset_world(class world&& w) noexcept override;
     SDL_Window* window() noexcept override;
+    void update_window_state();
 
     fm_settings& settings() noexcept override;
     const fm_settings& settings() const noexcept override;
@@ -86,7 +87,6 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     void drawEvent() override;
     void bind() noexcept override;
     void do_update();
-    void update_window_state();
     struct meshes meshes() noexcept override;
 
     bool is_text_input_active() const noexcept override;
@@ -103,11 +103,8 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class astar& astar() override;
 
 private:
-    struct {
-        Ns last_frame_duration{0};
-        Time frame_start;
-        Time timeline; // todo rename
-    } tm;
+    Time timeline;
+    float _frame_time = 0;
 
     struct texture_unit_cache _tuc;
     fm_settings s;
@@ -126,15 +123,6 @@ private:
 #endif
     safe_ptr<path_search> _search;
     safe_ptr<class astar> _astar;
-
-#if 0
-    struct {
-        float value = 0;
-        float jitter = 0;
-        bool do_sleep = false;
-        bool has_focus = true;
-    } dt_expected;
-#endif
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;

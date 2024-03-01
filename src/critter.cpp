@@ -16,8 +16,7 @@ namespace floormat {
 
 namespace {
 
-constexpr double framerate = 60, move_speed = 60;
-constexpr double frame_time = 1/framerate;
+using F = float;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
@@ -33,6 +32,7 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     switch (bits)
     {
     using enum rotation;
+    default: std::unreachable();
     case 0: return rotation{rotation_COUNT};
     case L | U: return W;
     case L | D: return S;
@@ -43,28 +43,30 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case R: return NE;
     case U: return NW;
     }
-    std::unreachable();
-    fm_assert(false);
 }
 
 constexpr Vector2 rotation_to_vec(rotation r)
 {
-    constexpr double c = move_speed * frame_time;
-    constexpr double d = c / Vector2d{1,  1}.length();
+    constexpr double framerate = 60, move_speed = 60;
+    constexpr double frame_time = F(1)/framerate;
+    constexpr double b = move_speed * frame_time;
+    constexpr double inv_sqrt_2 = F{1}/Math::sqrt(F{2});
+    constexpr auto d = F(b * inv_sqrt_2);
+    constexpr auto c = F(b);
 
     constexpr Vector2 array[8] = {
-        Vector2(Vector2d{ 0, -1} * c),
-        Vector2(Vector2d{ 1, -1} * d),
-        Vector2(Vector2d{ 1,  0} * c),
-        Vector2(Vector2d{ 1,  1} * d),
-        Vector2(Vector2d{ 0,  1} * c),
-        Vector2(Vector2d{-1,  1} * d),
-        Vector2(Vector2d{-1,  0} * c),
-        Vector2(Vector2d{-1, -1} * d),
+        Vector2{ 0, -1} * c, // N
+        Vector2{ 1, -1} * d, // NE
+        Vector2{ 1,  0} * c, // E
+        Vector2{ 1,  1} * d, // SE
+        Vector2{ 0,  1} * c, // S
+        Vector2{-1,  1} * d, // SW
+        Vector2{-1,  0} * c, // W
+        Vector2{-1, -1} * d, // NW
     };
 
-    CORRADE_ASSUME(r < rotation_COUNT);
-    return array[(size_t)r];
+    auto value = array[(size_t)r];
+    return value;
 }
 
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
@@ -133,26 +135,6 @@ void critter::update(size_t i, Ns dt)
 {
     if (playable)
     {
-#if 0
-        static auto TL = Time::now();
-        static Ns TIME{0};
-        static unsigned FRAMES;
-
-        if (++FRAMES == 0)
-            TL = Time::now();
-        else
-            TIME += dt;
-
-        if (++FRAMES > 240)
-        {
-            auto t = TL.update();
-            Debug{} << "player time" << Time::to_milliseconds(TIME) << Time::to_milliseconds(t);
-            Debug{} << Time::to_milliseconds(TIME) / Time::to_milliseconds(t);
-            TIME = Ns{0};
-            FRAMES = 0;
-        }
-#endif
-
         const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
         if (new_r == rotation_COUNT)
         {
@@ -173,16 +155,9 @@ void critter::update_nonplayable(size_t i, Ns dt)
 
 void critter::update_movement(size_t i, Ns dt, rotation new_r)
 {
-    fm_assert(new_r < rotation_COUNT);
-    fm_assert(is_dynamic());
-
-    auto nframes = allocate_frame_time(dt * speed);
-    if (nframes == 0)
-    {
-        static unsigned foo;
-        //Debug{} << ++foo << "stopped";
-        return;
-    }
+    const auto fps = atlas->info().fps;
+    fm_assert(fps > 0);
+    const auto nframes = allocate_frame_time(delta, dt, speed, fps);
 
     const auto rotations = rotation_to_similar(new_r);
     const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
@@ -193,19 +168,19 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
 
     c->ensure_passability();
 
-    for (auto k = 0u; k < nframes; k++)
+    for (uint32_t k = 0; k < nframes; k++)
     {
-        for (unsigned j = 0; j < nvecs; j++)
+        for (uint8_t j = 0; j < nvecs; j++)
         {
-            const auto vec = rotation_to_vec(rotations[j]);
-            constexpr auto frac = 65535u;
-            constexpr auto inv_frac = 1.f / (float)frac;
+            const auto vec =  rotation_to_vec(rotations[j]);
+            constexpr auto frac = F{65535};
+            constexpr auto inv_frac = 1 / frac;
             const auto sign_vec = Math::sign(vec);
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
-                offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
+                offset_frac = Vector2us(Math::abs(Math::fmod(offset_, F(1))) * frac);
                 if (can_move_to(off_i))
                 {
                     move_to(i, off_i, new_r);
@@ -215,7 +190,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
             }
             else
             {
-                offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
+                offset_frac = Vector2us(Math::abs(Math::min({F(1),F(1)}, offset_)) * frac);
                 break;
             }
         }
@@ -243,6 +218,7 @@ critter::critter(object_id id, class chunk& c, const critter_proto& proto) :
         name = "(Unnamed)"_s;
     fm_soft_assert(atlas->check_rotation(r));
     object::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
+    fm_soft_assert(speed >= 0);
 }
 
 } // namespace floormat

@@ -27,8 +27,12 @@ class astar;
 
 struct floormat_main
 {
-    struct draw_bounds final { int16_t minx, maxx, miny, maxy; };
-    struct meshes final {
+    struct draw_bounds final
+    {
+        int16_t minx, maxx, miny, maxy;
+    };
+    struct meshes final
+    {
         ground_mesh& ground;
         wall_mesh& wall;
         anim_mesh& anim;
@@ -51,7 +55,7 @@ struct floormat_main
     virtual struct lightmap_shader& lightmap_shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
     virtual void bind() noexcept = 0;
-    constexpr float smoothed_dt() const noexcept { return _frame_time; }
+    float smoothed_frame_time() const noexcept;
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;
 
@@ -88,8 +92,8 @@ struct floormat_main
     [[maybe_unused]] static void debug_break();
 
 protected:
-    float _frame_time = 0;
-    Vector2 _dpi_scale{1, 1}, _virtual_scale{1, 1};
+    float _smoothed_frame_time = 0;
+    Vector2 _dpi_scale{ 1, 1 }, _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true;
 };

@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/assert.hpp"
-#include "compat/defs.hpp"
 #include <type_traits>
 #include <Corrade/Tags.h>
 

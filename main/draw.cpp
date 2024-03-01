@@ -4,130 +4,14 @@
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
-#include "src/light.hpp"
-#include "src/log.hpp"
 #include "src/timer.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/RenderbufferFormat.h>
-#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Math/Color.h>
-#include <Magnum/Math/Functions.h>
-#include <thread>
-#include <algorithm>
 
 namespace floormat {
-
-void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
-{
-    _dpi_scale = dpiScaling();
-    _virtual_scale = Vector2(fb_size) / Vector2(win_size);
-    update_window_state();
-    _shader.set_scale(Vector2{fb_size});
-
-    GL::Renderer::setDepthMask(true);
-
-#ifdef FM_USE_DEPTH32
-    {
-        framebuffer.fb = GL::Framebuffer{{ {}, fb_size }};
-
-        framebuffer.color = GL::Texture2D{};
-        framebuffer.color.setStorage(1, GL::TextureFormat::RGBA8, fb_size);
-        framebuffer.depth = GL::Renderbuffer{};
-        framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
-
-        framebuffer.fb.attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.color, 0);
-        framebuffer.fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, framebuffer.depth);
-        framebuffer.fb.clearColor(0, Color4{0.f, 0.f, 0.f, 1.f});
-        framebuffer.fb.clearDepth(0);
-
-        framebuffer.fb.bind();
-    }
-#else
-    GL::defaultFramebuffer.setViewport({{}, fb_size });
-    GL::defaultFramebuffer.clearColor(Color4{0.f, 0.f, 0.f, 1.f});
-    GL::defaultFramebuffer.clearDepthStencil(0, 0);
-    GL::defaultFramebuffer.bind();
-#endif
-
-    // -- state ---
-    glEnable(GL_LINE_SMOOTH);
-    using BlendEquation   = GL::Renderer::BlendEquation;
-    using BlendFunction   = GL::Renderer::BlendFunction;
-    using DepthFunction   = GL::Renderer::DepthFunction;
-    using ProvokingVertex = GL::Renderer::ProvokingVertex;
-    using Feature         = GL::Renderer::Feature;
-    GL::Renderer::setBlendEquation(BlendEquation::Add, BlendEquation::Add);
-    GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
-    GL::Renderer::disable(Feature::FaceCulling);
-    GL::Renderer::disable(Feature::DepthTest);
-    GL::Renderer::enable(Feature::Blending);
-    GL::Renderer::enable(Feature::ScissorTest);
-    GL::Renderer::enable(Feature::DepthClamp);
-    GL::Renderer::setDepthFunction(DepthFunction::Greater);
-    GL::Renderer::setScissor({{}, fb_size});
-    GL::Renderer::setProvokingVertex(ProvokingVertex::FirstVertexConvention);
-
-    // -- user--
-    app.on_viewport_event(fb_size);
-    tm.timeline = Time::now();
-}
-
-global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
-{
-    auto vec = pixel_to_tile_(position);
-    auto vec_ = Math::floor(vec);
-    return { (int32_t)vec_.x(), (int32_t)vec.y(), 0 };
-}
-
-Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
-{
-    constexpr Vector2d pixel_size(TILE_SIZE2);
-    constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{window_size()}*.5 - _shader.camera_offset();
-    return tile_shader::unproject(px*.5) / pixel_size + half;
-}
-
-auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
-{
-    using limits = std::numeric_limits<int16_t>;
-    auto x0 = limits::max(), x1 = limits::min(), y0 = limits::max(), y1 = limits::min();
-
-    const auto win = Vector2d(window_size());
-
-    chunk_coords list[] = {
-        pixel_to_tile(Vector2d{0, 0}).chunk(),
-        pixel_to_tile(Vector2d{win[0]-1, 0}).chunk(),
-        pixel_to_tile(Vector2d{0, win[1]-1}).chunk(),
-        pixel_to_tile(Vector2d{win[0]-1, win[1]-1}).chunk(),
-    };
-
-    auto center = pixel_to_tile(Vector2d{win[0]/2, win[1]/2}).chunk();
-
-    for (auto p : list)
-    {
-        x0 = Math::min(x0, p.x);
-        x1 = Math::max(x1, p.x);
-        y0 = Math::min(y0, p.y);
-        y1 = Math::max(y1, p.y);
-    }
-    // todo test this with the default viewport size using --magnum-dpi-scaling=1
-    x0 -= 1; y0 -= 1; x1 += 1; y1 += 1;
-
-    constexpr int16_t mx = tile_shader::max_screen_tiles.x()/(int16_t)2,
-                      my = tile_shader::max_screen_tiles.y()/(int16_t)2;
-    int16_t minx = center.x - mx + 1, maxx = center.x + mx,
-            miny = center.y - my + 1, maxy = center.y + my;
-
-    x0 = Math::clamp(x0, minx, maxx);
-    x1 = Math::clamp(x1, minx, maxx);
-    y0 = Math::clamp(y0, miny, maxy);
-    y1 = Math::clamp(y1, miny, maxy);
-
-    return {x0, x1, y0, y1};
-}
 
 void main_impl::draw_world() noexcept
 {
@@ -200,32 +84,10 @@ void main_impl::draw_world() noexcept
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
-bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
-{
-    constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
-    enum : size_t { x, y, };
-    constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
-                       p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
-                       p01 = tile_shader::project(Vector3d(0, len[y], 0)),
-                       p11 = tile_shader::project(Vector3d(len[x], len[y], 0));
-    constexpr auto xx = std::minmax({ p00[x], p10[x], p01[x], p11[x], }),
-                   yy = std::minmax({ p00[y], p10[y], p01[y], p11[y], });
-    constexpr auto minx = xx.first, maxx = xx.second, miny = yy.first, maxy = yy.second;
-    constexpr int W = (int)(maxx - minx + .5 + 1e-16), H = (int)(maxy - miny + .5 + 1e-16);
-    const auto X = (int)(minx + (offset[x] + size[x])*.5), Y = (int)(miny + (offset[y] + size[y])*.5);
-    return X + W > 0 && X < size[x] && Y + H > 0 && Y < size[y];
-}
-
-#if 0
-#ifndef FM_NO_DEBUG
-static size_t good_frames, bad_frames; // NOLINT
-#endif
-#endif
-
 void main_impl::do_update() // todo! move to separate file
 {
     constexpr auto eps = 1e-5f;
-    const auto dt = tm.timeline.update();
+    const auto dt = timeline.update();
     if (auto secs = Time::to_seconds(dt); secs > eps)
     {
 #if 1
@@ -241,51 +103,6 @@ void main_impl::do_update() // todo! move to separate file
     }
     else
         swapBuffers();
-
-#if 0
-#ifndef FM_NO_DEBUG
-    if (dt_expected.value == 0 || !is_log_verbose()) [[likely]]
-        void();
-    else if (auto d = Math::abs(dt - dt_expected.value); d <= 4e-3f)
-    {
-        dt = dt_expected.value + 1e-6f;
-        ++good_frames;
-    }
-    else [[unlikely]]
-    {
-        if (good_frames)
-        {
-            DBG_nospace << ++bad_frames << " bad frame " << d << ", expected:" << dt_expected.value << " good-frames:" << good_frames;
-            good_frames = 0;
-        }
-    }
-#endif
-
-    dt = Math::clamp(dt, 1e-5f, Math::max(.2f, dt_expected.value));
-
-    if constexpr((false))
-    {
-        static struct
-        {
-            Timeline tl{};
-            float time = 0;
-            unsigned frames = 0;
-        } t;
-
-        if (t.frames++ == 0)
-            t.tl.start();
-        else
-            t.time += dt;
-
-        if (t.frames > 200)
-        {
-            Debug{} << "time"
-                    << (double)t.time * 1000. / t.frames
-                    << (double)t.tl.currentFrameDuration() * 1000. / t.frames;
-            t = {};
-        }
-    }
-#endif
 
     app.update(dt);
 }
@@ -318,27 +135,6 @@ void main_impl::drawEvent() // todo! move to separate file (with `do_update')
 
     swapBuffers();
     redraw();
-
-#if 0
-    if (dt_expected.do_sleep && (false))
-    {
-        constexpr float ε = 1e-3f;
-        const float Δt൦ = timeline.previousFrameDuration(), sleep_secs = dt_expected.value - Δt൦ - dt_expected.jitter;
-        if (sleep_secs > ε)
-            std::this_thread::sleep_for(std::chrono::nanoseconds((long long)(sleep_secs * 1e9f)));
-        //fm_debug("jitter:%.1f sleep:%.0f", dt_expected.jitter*1000, sleep_secs*1000);
-        const float Δt = timeline.previousFrameDuration() - dt_expected.value;
-        constexpr float α = .1f;
-        dt_expected.jitter = Math::max(dt_expected.jitter + Δt * α,
-                                       dt_expected.jitter * (1-α) + Δt * α);
-        dt_expected.jitter = std::copysign(std::fmin(dt_expected.value, std::fabs(dt_expected.jitter)), dt_expected.jitter);
-    }
-    else
-    {
-        dt_expected.jitter = 0;
-        dt_expected.value = 0;
-    }
-#endif
 }
 
 ArrayView<const clickable> main_impl::clickable_scenery() const noexcept

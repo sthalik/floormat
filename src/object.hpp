@@ -85,8 +85,7 @@ struct object
     void move_to(size_t& i, Vector2i delta, rotation new_r);
     void move_to(Vector2i delta);
 
-    static uint32_t allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz);
-    uint32_t allocate_frame_time(Ns dt);
+    static uint32_t allocate_frame_time(uint16_t& accum, Ns dt, float speed, uint32_t hz);
 
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);

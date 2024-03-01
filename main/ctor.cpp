@@ -23,7 +23,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
         (void)setSwapInterval(0);
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
-    tm.timeline = Time::now();
+    timeline = Time::now();
 }
 
 class world& main_impl::reset_world(class world&& w) noexcept

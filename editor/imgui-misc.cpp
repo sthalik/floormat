@@ -9,7 +9,7 @@ using namespace floormat::imgui;
 void app::draw_fps()
 {
     const auto dpi = M->dpi_scale();
-    const auto frame_time = M->smoothed_dt();
+    const auto frame_time = M->smoothed_frame_time();
     char buf[16];
     const double hz = frame_time > 1e-6f ? (int)std::round(10./(double)frame_time + .05) * .1 : 9999;
     snformat(buf, "{:.1f} FPS"_cf, hz);
