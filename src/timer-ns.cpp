@@ -29,7 +29,7 @@ Ns operator+(const Ns& lhs, const Ns& rhs)
 {
     constexpr auto max = (uint64_t)-1;
     auto a = lhs.stamp, b = rhs.stamp;
-    fm_assert(max - a <= b);
+    fm_assert(max - a >= b);
     return Ns{a + b};
 }
 
