@@ -157,7 +157,7 @@ private:
     void do_key(key k);
     void do_set_mode(editor_mode mode);
     void do_rotate(bool backward);
-    static void do_emit_timestamp();
+    void do_emit_timestamp();
     void apply_commands(const key_set& k);
     int get_key_modifiers();
     void clear_keys(key min_inclusive, key max_exclusive);
@@ -183,6 +183,7 @@ private:
     void erase_inspector(size_t index, ptrdiff_t count = 1);
     void kill_inspectors();
 
+    uint64_t _timestamp = 0;
     floormat_main* M;
     safe_ptr<ImGuiIntegration::Context> _imgui;
     safe_ptr<floormat::wireframe::meshes> _wireframe;

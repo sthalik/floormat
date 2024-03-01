@@ -124,13 +124,25 @@ void app::do_rotate(bool backward)
 
 void app::do_emit_timestamp()
 {
-    static struct
-    {
-        Time time = Time::now();
-        unsigned ctr = 0;
-    } s;
+    constexpr const char* prefix = " -- MARK -- ";
+
+    static unsigned counter;
+    const auto now = Time::now();
+    const auto time = (double)Time::to_milliseconds(now - Time{_timestamp});
     char buf[fm_DATETIME_BUF_SIZE];
-    fm_debug("%s -- MARK -- 0x%08X", format_datetime_to_string(buf), ++s.ctr & 0xffff'ffffU);
+    format_datetime_to_string(buf);
+
+    if (time >= 1e5f)
+        fm_debug("%s%s0x%08x %.2f" " s", buf, prefix, counter++, time*1e-3);
+    else if (time >= 1e4f)
+        fm_debug("%s%s0x%08x %.2f" " s", buf, prefix, counter++, time*1e-3);
+    else if (time >= 1e3f)
+        fm_debug("%s%s0x%08x %.2f" " ms", buf, prefix, counter++, time);
+    else if (time > 0)
+        fm_debug("%s%s0x%08x %.4f" " ms", buf, prefix, counter++, time);
+    else
+        fm_debug("%s%s0x%08x 0" " ms", buf, prefix, counter++);
+    _timestamp = now.stamp;
 }
 
 void app::do_set_mode(editor_mode mode)

@@ -94,6 +94,7 @@ void app::reset_world(class world&& w_)
     _character_id = 0;
     _render_vobjs = true;
     _render_all_z_levels = true;
+    _timestamp = 0;
 
     auto& w = M->reset_world(move(w_));
     w.collect(true);
