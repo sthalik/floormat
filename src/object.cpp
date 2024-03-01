@@ -269,45 +269,37 @@ void object::move_to(Magnum::Vector2i delta)
     move_to(i, delta, r);
 }
 
-uint32_t object::allocate_frame_time(uint16_t& accum, Ns dt_, float speed, uint32_t hz)
+uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz)
 {
-    constexpr auto second = uint64_t(1e9), u16_max = uint64_t{65535};
-    //dt_ = Ns(16e6);
-    fm_assert(dt_ >= Ns{});
     fm_assert(hz > 0);
-    fm_assert(speed >= 0);
-
-    const auto frame_duration_ns = second / hz;
-    const auto dt_nsec = (uint64_t)int64_t{dt_};
-
-    const auto nsecs_from_accum = accum * second / u16_max;
-    const auto nsecs = dt_nsec + nsecs_from_accum;
-
-    const auto ticks = (uint64_t)(nsecs * speed);
-    const auto rem_ns = ticks % frame_duration_ns;
-    const auto rem_ = rem_ns * u16_max / second;
-
-    const auto frames = (uint32_t)(ticks / frame_duration_ns);
-
-    const auto rem = (uint16_t)Math::clamp(rem_, uint64_t(0), uint64_t(65535));
-    const auto old_accum = accum; (void)old_accum;
-    accum = rem;
-#if 1
-    if (frames)
-    {
-        DBG_nospace << "alloc-frame: "
-                    << "dt:" << fraction(Time::to_milliseconds(Ns(dt_nsec))) << " ms"
-                    << ", dt-nsec:" << Time::to_milliseconds(Ns(dt_nsec))
-                    << ", dt-acc:" << Time::to_milliseconds(Ns(nsecs_from_accum))
-                    << ", Hz:" << hz
-                    << ", old-acc:" << old_accum
-                    << ", frames:" << frames
-                    //<< ", duration:" << Time::to_milliseconds(Ns(frame_duration_ns))
-                    << ", ticks:" << fraction(Time::to_milliseconds(Ns(ticks)), 1)
-                    << ", rem:" << Time::to_milliseconds(Ns(rem_ns));
-    }
+    fm_assert(dt >= Ns{0});
+    constexpr auto ns_in_sec = Ns::Type{Ns(1e9)};
+    //const auto count = Ns::Type{ns_in_sec / hz} + accum};
+    const auto nsecs = Ns::Type{dt} + accum * ns_in_sec / Ns::Type{65535};
+    const auto frame_duration = ns_in_sec / hz;
+    const auto frames = (uint32_t)(nsecs / frame_duration);
+    const auto rem = nsecs % frame_duration;
+    const auto new_accum_ = rem * Ns::Type{65535} / ns_in_sec;
+    const auto new_accum = (uint16_t)Math::clamp(new_accum_, Ns::Type{0}, Ns::Type{65535});
+    [[maybe_unused]] const auto old_accum = accum;
+    accum = new_accum;
+#if 0
+    DBG_nospace << "alloc-frame-time: "
+                << "dt:" << fraction(Time::to_milliseconds(dt)) << "ms"
+                << ", secs:" << fraction(Time::to_milliseconds(Ns{nsecs}), 1) << " ms"
+                << ", frames:" << frames
+                << ", acc:" << new_accum_
+                << ", rem:" << rem;
 #endif
     return frames;
+}
+
+uint32_t object::allocate_frame_time(Ns dt)
+{
+    fm_assert(atlas);
+    auto hz = atlas->info().fps;
+    fm_assert(hz > 0);
+    return allocate_frame_time(dt, delta, hz);
 }
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
