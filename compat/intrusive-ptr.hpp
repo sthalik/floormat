@@ -55,7 +55,7 @@ struct refcount_access
     refcount_access() = delete;
 
     static constexpr auto access(T* ptr) noexcept -> counter_type&;
-    template<typename Y> static constexpr Y* checked_cast(const T* ptr) noexcept; // todo!
+    template<typename Y> static constexpr Y* checked_cast(const T* ptr) noexcept; // todo
 };
 
 template<typename Tag, typename T>
@@ -147,7 +147,7 @@ consteval bool check_traits()
 #define fm_template template<typename Tag, typename T>
 #define fm_basic_iptr basic_iptr<Tag, T>
 
-#ifndef FM_IPTR_USE_CONSTRUCT_AT // todo! finish it
+#ifndef FM_IPTR_USE_CONSTRUCT_AT // todo finish it
 #define FM_IPTR_USE_CONSTRUCT_AT 0
 #endif
 

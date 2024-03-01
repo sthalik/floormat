@@ -6,7 +6,7 @@
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/GL/TextureFormat.h>
-#include <algorithm> // todo! std::minmax
+#include <algorithm> // todo std::minmax
 
 namespace floormat {
 
@@ -115,7 +115,7 @@ static int get_window_refresh_rate(SDL_Window* window)
     return 30;
 }
 
-void main_impl::update_window_state() // todo! window minimized, out of focus, fake vsync etc
+void main_impl::update_window_state() // todo window minimized, out of focus, fake vsync etc
 {
 }
 

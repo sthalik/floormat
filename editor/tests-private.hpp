@@ -31,6 +31,7 @@ protected:
 };
 
 enum class Test : uint32_t {
+    //todo add a speedometer overlay test
     none, path, raycast, region, pathfinding, COUNT,
 };
 

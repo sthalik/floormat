@@ -84,7 +84,7 @@ void main_impl::draw_world() noexcept
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
-void main_impl::do_update() // todo! move to separate file
+void main_impl::do_update()
 {
     constexpr auto eps = 1e-5f;
     auto dt = timeline.update();
@@ -112,7 +112,7 @@ void main_impl::bind() noexcept
     framebuffer.fb.bind();
 }
 
-void main_impl::drawEvent() // todo! move to separate file (with `do_update')
+void main_impl::drawEvent()
 {
     _shader.set_tint({1, 1, 1, 1});
 
@@ -146,5 +146,4 @@ ArrayView<clickable> main_impl::clickable_scenery() noexcept
 {
     return { _clickable_scenery.data(), _clickable_scenery.size() };
 }
-
 } // namespace floormat
