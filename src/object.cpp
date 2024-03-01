@@ -291,6 +291,7 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
                 << ", acc:" << new_accum_
                 << ", rem:" << rem;
 #endif
+    fm_assert(frames < 1 << 22);
     return frames;
 }
 
