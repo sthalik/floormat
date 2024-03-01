@@ -103,11 +103,6 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
         .setStencilBufferSize(0);
 }
 
-void main_impl::update_window_state() // todo! window minimized, out of focus, fake vsync etc
-{
-}
-
-
 static int get_window_refresh_rate(SDL_Window* window)
 {
     fm_assert(window != nullptr);
@@ -118,6 +113,10 @@ static int get_window_refresh_rate(SDL_Window* window)
     else
         return Math::clamp(dpymode.refresh_rate, 30, 400);
     return 30;
+}
+
+void main_impl::update_window_state() // todo! window minimized, out of focus, fake vsync etc
+{
 }
 
 auto main_impl::meshes() noexcept -> struct meshes
