@@ -90,7 +90,7 @@ void door_scenery::update(scenery& s, size_t, Ns dt)
     auto& anim = *s.atlas;
     const auto nframes = (int)anim.info().nframes;
     fm_debug_assert(anim.info().fps > 0 && anim.info().fps <= 0xff);
-    const auto n = (int)s.allocate_frame_time(dt);
+    const auto n = (int)s.allocate_frame_time(dt, 1);
     if (n == 0)
         return;
     const int8_t dir = closing ? 1 : -1;

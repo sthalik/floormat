@@ -176,7 +176,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
 
-    auto nframes = allocate_frame_time(dt * speed);
+    auto nframes = allocate_frame_time(dt, speed);
     if (nframes == 0)
     {
         static unsigned foo;
@@ -242,6 +242,7 @@ critter::critter(object_id id, class chunk& c, const critter_proto& proto) :
     if (!name)
         name = "(Unnamed)"_s;
     fm_soft_assert(atlas->check_rotation(r));
+    fm_soft_assert(speed >= 0);
     object::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
