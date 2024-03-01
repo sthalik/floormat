@@ -1,5 +1,6 @@
 #include "timer.hpp"
 #include "compat/assert.hpp"
+#include "compat/debug.hpp"
 #include <cr/Debug.h>
 
 namespace floormat {
@@ -97,5 +98,15 @@ std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs)
 Ns::operator uint64_t() const { return stamp; }
 Ns::operator float() const { return float(stamp); }
 uint64_t Ns::operator*() const { return stamp; }
+
+Debug& operator<<(Debug& dbg, const Ns& box)
+{
+    auto flags = dbg.flags();
+    dbg << "";
+    dbg.setFlags(flags | Debug::Flag::NoSpace);
+    dbg << fraction((float)((double)box.stamp * 1e-6), 1) << " ms";
+    dbg.setFlags(flags);
+    return dbg;
+}
 
 } // namespace floormat

@@ -29,6 +29,8 @@ struct Ns
 
     friend bool operator==(const Ns& lhs, const Ns& rhs);
     friend std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs);
+
+    friend Debug& operator<<(Debug& dbg, const Ns& box);
 };
 
 struct Time final
@@ -47,8 +49,6 @@ struct Time final
 private:
     static uint64_t init() noexcept;
 };
-
-Debug& operator<<(Debug& dbg, Ns box);
 
 constexpr inline size_t fm_DATETIME_BUF_SIZE = 32;
 const char* format_datetime_to_string(char(&buf)[fm_DATETIME_BUF_SIZE]);
