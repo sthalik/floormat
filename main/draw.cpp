@@ -87,13 +87,13 @@ void main_impl::draw_world() noexcept
 void main_impl::do_update() // todo! move to separate file
 {
     constexpr auto eps = 1e-5f;
-    const auto dt = timeline.update();
+    auto dt = timeline.update();
     if (auto secs = Time::to_seconds(dt); secs > eps)
     {
 #if 1
         constexpr float RC = 60;
         constexpr auto alpha = 1 / (1 + RC);
-        _frame_time = _frame_time * (1 - alpha) + alpha * secs;
+        _smoothed_frame_time = _smoothed_frame_time * (1 - alpha) + alpha * secs;
 #else
         _frame_time = secs;
 #endif

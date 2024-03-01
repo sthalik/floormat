@@ -104,7 +104,6 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
 
 private:
     Time timeline;
-    float _frame_time = 0;
 
     struct texture_unit_cache _tuc;
     fm_settings s;
