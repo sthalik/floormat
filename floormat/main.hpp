@@ -55,7 +55,7 @@ struct floormat_main
     virtual struct lightmap_shader& lightmap_shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
     virtual void bind() noexcept = 0;
-    float smoothed_frame_time() const noexcept;
+    virtual float smoothed_frame_time() const noexcept = 0;
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;
 
@@ -92,7 +92,6 @@ struct floormat_main
     [[maybe_unused]] static void debug_break();
 
 protected:
-    float _smoothed_frame_time = 0;
     Vector2 _dpi_scale{ 1, 1 }, _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true;

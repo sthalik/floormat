@@ -13,6 +13,13 @@
 
 namespace floormat {
 
+namespace {
+
+size_t bad_frame_counter = 0;
+
+} // namespace
+
+
 void main_impl::do_update()
 {
     constexpr auto eps = 1e-5f;
@@ -22,13 +29,14 @@ void main_impl::do_update()
 #if 1
         constexpr float RC = 60;
         constexpr auto alpha = 1 / (1 + RC);
-        _smoothed_frame_time = _smoothed_frame_time * (1 - alpha) + alpha * secs;
+        auto& value = _frame_timings.smoothed_frame_time;
+
+        value = value*(1 - alpha) + alpha * secs;
 #else
-        _frame_time = secs;
+        value = secs;
 #endif
-        static size_t ctr = 0;
         if (secs > 35e-3f /* && !dt_expected.do_sleep */)
-            fm_debug("%zu frame took %.2f milliseconds", ctr++, (double)secs*1e3);
+            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)secs*1e3);
     }
     else
         swapBuffers();

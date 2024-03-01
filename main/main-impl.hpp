@@ -59,6 +59,7 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class world& reset_world(class world&& w) noexcept override;
     SDL_Window* window() noexcept override;
     void update_window_state();
+    float smoothed_frame_time() const noexcept override;
 
     fm_settings& settings() noexcept override;
     const fm_settings& settings() const noexcept override;
@@ -102,17 +103,29 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     class astar& astar() override;
 
 private:
+    struct frame_timings_s
+    {
+        static constexpr unsigned min_refresh_rate = 20;
+
+        unsigned refresh_rate = min_refresh_rate;
+        float smoothed_frame_time = 0;
+        bool vsync       : 1 = false;
+        bool minimized   : 1 = false;
+        bool focused     : 1 = true;
+    };
+
     Time timeline;
 
-    struct texture_unit_cache _tuc;
     fm_settings s;
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
-    floormat_app& app; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    floormat_app& app;
+    struct texture_unit_cache _tuc;
     tile_shader _shader;
     struct lightmap_shader _lightmap_shader{_tuc};
     Array<clickable> _clickable_scenery;
     class world _world{};
     uint32_t _mouse_cursor = (uint32_t)-1;
+    frame_timings_s _frame_timings;
     ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
@@ -124,8 +137,6 @@ private:
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
-    //bool draw_lights(chunk& c, const std::array<chunk*, 8>& neighbors) noexcept;
-    //bool draw_lights_for_chunk(chunk& c, Vector2b neighbor_offset) noexcept;
 
     draw_bounds get_draw_bounds() const noexcept override;
 

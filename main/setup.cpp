@@ -103,7 +103,7 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
         .setStencilBufferSize(0);
 }
 
-static int get_window_refresh_rate(SDL_Window* window)
+unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max)
 {
     fm_assert(window != nullptr);
     if (int index = SDL_GetWindowDisplayIndex(window); index < 0)
@@ -111,12 +111,20 @@ static int get_window_refresh_rate(SDL_Window* window)
     else if (SDL_DisplayMode dpymode{}; SDL_GetCurrentDisplayMode(index, &dpymode) < 0)
         fm_warn_once("SDL_GetCurrentDisplayMode: %s", SDL_GetError());
     else
-        return Math::clamp(dpymode.refresh_rate, 30, 400);
-    return 30;
+    {
+        fm_assert(dpymode.refresh_rate > 0 && dpymode.refresh_rate < max);
+        return (unsigned)dpymode.refresh_rate;
+    }
+    return min;
 }
 
 void main_impl::update_window_state() // todo window minimized, out of focus, fake vsync etc
 {
+    auto refresh_rate = get_window_refresh_rate(window(), _frame_timings.min_refresh_rate, 10000);
+    fm_assert(refresh_rate > 0 && refresh_rate < 1000);
+    _frame_timings = {
+        .refresh_rate = refresh_rate,
+    };
 }
 
 auto main_impl::meshes() noexcept -> struct meshes

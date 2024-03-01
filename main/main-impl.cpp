@@ -57,11 +57,9 @@ const Platform::Sdl2Application& main_impl::application() const noexcept { retur
 struct texture_unit_cache& main_impl::texture_unit_cache() { return _tuc; }
 path_search& main_impl::search() { return *_search; }
 astar& main_impl::astar() { return *_astar; }
-
 Vector2i floormat_main::window_size() const noexcept { return _framebuffer_size; }
+float main_impl::smoothed_frame_time() const noexcept { return _frame_timings.smoothed_frame_time; }
 void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }
 bool floormat_main::is_rendering_vobjs() const { return _do_render_vobjs; }
-
-float floormat_main::smoothed_frame_time() const noexcept { return _smoothed_frame_time; }
 
 } // namespace floormat
