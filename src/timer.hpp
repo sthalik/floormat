@@ -8,20 +8,40 @@ struct Ns
 {
     explicit constexpr Ns(): stamp{0} {}
     explicit constexpr Ns(uint64_t x) : stamp{x} {}
-    static Ns from_millis(uint64_t x);
+    explicit constexpr operator uint64_t() const { return stamp; }
+    explicit constexpr operator double() const { return stamp; }
+    explicit constexpr operator float() const = delete;
 
-    explicit operator uint64_t() const;
-    explicit operator float() const;
-    uint64_t operator*() const;
+    static constexpr Ns from_millis(uint64_t a)
+    {
+        constexpr auto b = uint64_t(1e6);
+        const auto x = a * b;
+        fm_assert(a == 0 || x / a == b);
+        return Ns{x};
+    }
 
-    friend Ns operator+(const Ns& lhs, const Ns& rhs);
-    friend Ns operator-(const Ns& lhs, const Ns& rhs);
+    // -----
+
+    friend constexpr Ns operator+(const Ns& lhs, const Ns& rhs)
+    {
+        constexpr auto max = (uint64_t)-1;
+        auto a = lhs.stamp, b = rhs.stamp;
+        fm_assert(max - a >= b);
+        return Ns{a + b};
+    }
+
+    friend constexpr Ns operator-(const Ns& lhs, const Ns& rhs)
+    {
+        auto a = lhs.stamp, b = rhs.stamp;
+        fm_assert(a >= b);
+        return Ns{a - b};
+    }
 
     friend Ns operator*(const Ns&, const Ns&) = delete;
 
     template<typename T>
     requires (std::is_integral_v<T> && std::is_unsigned_v<T>)
-    friend Ns operator*(const Ns& lhs, T rhs)
+    friend constexpr Ns operator*(const Ns& lhs, T rhs)
     {
         auto a = lhs.stamp, b = uint64_t{rhs};
         auto x = a * b;
@@ -31,18 +51,18 @@ struct Ns
 
     template<typename T>
     requires (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) < sizeof(uint64_t))
-    friend Ns operator*(const Ns& lhs, T rhs)
+    friend constexpr Ns operator*(const Ns& lhs, T rhs)
     {
         fm_assert(rhs >= T{0});
         return lhs * uint64_t(rhs);
     }
 
     template<typename T>
-    friend Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
+    friend constexpr Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
 
     template<typename T>
     requires std::is_same_v<float, T>
-    friend Ns operator*(const Ns& lhs, T rhs)
+    friend constexpr Ns operator*(const Ns& lhs, T rhs)
     {
         auto a = lhs.stamp;
         auto x = float(a) * float{rhs};
@@ -52,15 +72,53 @@ struct Ns
 
     template<typename T>
     requires std::is_same_v<float, T>
-    friend Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
+    friend constexpr Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
 
-    friend uint64_t operator/(const Ns& lhs, const Ns& rhs);
-    friend Ns operator/(const Ns& lhs, uint64_t rhs);
-    friend uint64_t operator%(const Ns& lhs, const Ns& rhs);
-    friend Ns operator%(const Ns& lhs, uint64_t rhs);
+    friend constexpr uint64_t operator/(const Ns& lhs, const Ns& rhs)
+    {
+        auto a = lhs.stamp, b = rhs.stamp;
+        fm_assert(b != 0);
+        return a / b;
+    }
 
-    friend bool operator==(const Ns& lhs, const Ns& rhs);
-    friend std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs);
+    friend constexpr Ns operator/(const Ns& lhs, uint64_t b)
+    {
+        auto a = lhs.stamp;
+        fm_assert(b != 0);
+        return Ns{a / b};
+    }
+
+    friend constexpr uint64_t operator%(const Ns& lhs, const Ns& rhs)
+    {
+        auto a = lhs.stamp, b = rhs.stamp;
+        fm_assert(b != 0);
+        return a % b;
+    }
+
+    friend constexpr Ns operator%(const Ns& lhs, uint64_t b)
+    {
+        auto a = lhs.stamp;
+        fm_assert(b != 0);
+        return Ns{a % b};
+    }
+
+    friend constexpr Ns& operator+=(Ns& lhs, const Ns& rhs)
+    {
+        constexpr auto max = (uint64_t)-1;
+        auto b = rhs.stamp;
+        fm_assert(max - lhs.stamp >= b);
+        lhs.stamp += b;
+        return lhs;
+    }
+
+    friend constexpr bool operator==(const Ns& lhs, const Ns& rhs) = default;
+
+    friend constexpr std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs)
+    {
+        auto a = lhs.stamp, b = rhs.stamp;
+        return a <=> b;
+    }
+
     friend Debug& operator<<(Debug& dbg, const Ns& box);
 
     uint64_t stamp;
@@ -76,8 +134,8 @@ struct Time final
     friend Ns operator-(const Time& lhs, const Time& rhs) noexcept;
     [[nodiscard]] Ns update(const Time& ts = now()) & noexcept;
 
-    static float to_seconds(const Ns& ts) noexcept;
-    static float to_milliseconds(const Ns& ts) noexcept;
+    static double to_seconds(const Ns& ts) noexcept;
+    static double to_milliseconds(const Ns& ts) noexcept;
 
     uint64_t stamp = init();
 

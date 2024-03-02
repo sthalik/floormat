@@ -303,7 +303,7 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
     const auto frames = (uint32_t)(ticks / frame_duration);
-    const auto rem = (uint32_t)(ticks % frame_duration);
+    const auto rem = ticks % frame_duration;
     const auto new_accum_ = rem * u16_max / uint64_t{ns_in_sec};
     const auto new_accum = (uint16_t)Math::clamp(new_accum_, uint64_t{0}, u16_max);
     [[maybe_unused]] const auto old_accum = accum;

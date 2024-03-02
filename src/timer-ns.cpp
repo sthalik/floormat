@@ -26,73 +26,6 @@ static_assert(MAX - HALF <= HALF+1);
 
 } // namespace
 
-Ns operator+(const Ns& lhs, const Ns& rhs)
-{
-    constexpr auto max = (uint64_t)-1;
-    auto a = lhs.stamp, b = rhs.stamp;
-    fm_assert(max - a >= b);
-    return Ns{a + b};
-}
-
-Ns operator-(const Ns& lhs, const Ns& rhs)
-{
-    auto a = lhs.stamp, b = rhs.stamp;
-    fm_assert(a >= b);
-    return Ns{a - b};
-}
-
-uint64_t operator/(const Ns& lhs, const Ns& rhs)
-{
-    auto a = lhs.stamp, b = rhs.stamp;
-    fm_assert(b != 0);
-    return a / b;
-}
-
-Ns operator/(const Ns& lhs, uint64_t b)
-{
-    auto a = lhs.stamp;
-    fm_assert(b != 0);
-    return Ns{a / b};
-}
-
-uint64_t operator%(const Ns& lhs, const Ns& rhs)
-{
-    auto a = lhs.stamp, b = rhs.stamp;
-    fm_assert(b != 0);
-    return a % b;
-}
-
-Ns operator%(const Ns& lhs, uint64_t b)
-{
-    auto a = lhs.stamp;
-    fm_assert(b != 0);
-    return Ns{a % b};
-}
-
-bool operator==(const Ns& lhs, const Ns& rhs)
-{
-    auto a = lhs.stamp, b = rhs.stamp;
-    return a == b;
-}
-
-std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs)
-{
-    auto a = lhs.stamp, b = rhs.stamp;
-    return a <=> b;
-}
-
-Ns Ns::from_millis(uint64_t a)
-{
-    constexpr auto b = uint64_t(1e6);
-    const auto x = a * b;
-    fm_assert(a == 0 || x / a == b);
-    return Ns{x};
-};
-
-Ns::operator uint64_t() const { return stamp; }
-Ns::operator float() const { return float(stamp); }
-uint64_t Ns::operator*() const { return stamp; }
-
 Debug& operator<<(Debug& dbg, const Ns& box)
 {
     const auto value = (float)((double)box.stamp * 1e-6);
@@ -109,10 +42,10 @@ Debug& operator<<(Debug& dbg, const Ns& box)
     auto flags = dbg.flags();
     dbg << "";
     dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << "{";
+    //dbg << "{";
     dbg << fraction(value, precision);
     dbg << " ms";
-    dbg << "}";
+    //dbg << "}";
     dbg.setFlags(flags);
     return dbg;
 }

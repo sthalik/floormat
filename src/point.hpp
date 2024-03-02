@@ -34,6 +34,9 @@ struct point
     size_t hash() const;
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
+    static constexpr uint32_t distance(point a, point b);
+    static constexpr uint32_t distance_l2(point a, point b);
+
 private:
     int16_t cx = 0, cy = 0;
     int8_t cz = 0;

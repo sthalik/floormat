@@ -46,8 +46,21 @@ uint64_t Time::init() noexcept { return get_time(); }
 bool Time::operator==(const Time&) const noexcept = default;
 std::strong_ordering Time::operator<=>(const Time&) const noexcept = default;
 
-float Time::to_seconds(const Ns& ts) noexcept { return float{ts} * 1e-9f; }
-float Time::to_milliseconds(const Ns& ts) noexcept { return float{ts} * 1e-6f; }
+double Time::to_seconds(const Ns& ts) noexcept
+{
+    auto x1 = double{ts};
+    auto x2 = x1 * 1e-9;
+    fm_assert(x2 < double{1 << 24});
+    return (float)x2;
+}
+
+double Time::to_milliseconds(const Ns& ts) noexcept
+{
+    auto x1 = double{ts};
+    auto x2 = x1 * 1e-6;
+    fm_assert(x2 < double{1 << 24});
+    return (float)x2;
+}
 
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {

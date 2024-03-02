@@ -31,8 +31,7 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
     Ns time{0};
     uint32_t steps;
 
-    Debug{} << "=>" << name;
-    Debug{} << ">>" << npc.position();
+    Debug{} << ">>" << name << npc.position();
 
     auto last_pos = npc.position();
     uint32_t i;
@@ -50,15 +49,18 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
             break;
         }
         last_pos = pos;
-        Debug{} << "" << Vector2i(pos.local()) << pos.offset();
+        Debug{} << Vector2i(pos.local()) << pos.offset();
 
         fm_assert(i != max_steps);
     }
 
     if (stopped)
-        Debug{} << " break!";
+    {
+        Debug{} << "===>" << i << "iters" << colon(',')  << time;
+        // todo! calc distance
+    }
     else
-        Debug{} << " loop ends...";
+        Debug{} << "!!! error: position doesn't converge after" << i << "iterations!";
 }
 
 /* ***** TEST 1 *****
@@ -66,10 +68,15 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
  * wall n 0x0 - 8:9
  * wall n 0x1 - 8:0
  *
- * npc speed=5 bbox-offset=0 bbox-size=32x32
+ * bbox-offset=0 bbox-size=32x32
+ *
+ * npc speed=1 ==> 6800 ms
+ * npc speed=5 ==> 1350 ms
  *
  * before chunk=0x0 tile=8:15 offset=-8:8
  * after  chunk=0x0 tile=8:9  offset=-8:-16
+ *
+ * time=6800ms
 */
 
 critter_proto make_proto(int accel)
@@ -106,6 +113,10 @@ template<typename F> void test1(const F& make_dt, int accel)
 
     run("test1"_s, make_dt, *player, Second*20, init, N, end, Second*7, 16, Millisecond*350);
 }
+
+/* ***** TEST 2 *****
+ *
+ */
 
 template<typename F> void test2(F&& make_dt, int accel)
 {
