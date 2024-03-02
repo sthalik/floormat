@@ -41,7 +41,7 @@ struct critter final : object
 
 private:
     friend class world;
-    critter(object_id id, class chunk& c, const critter_proto& proto);
+    critter(object_id id, class chunk& c, critter_proto proto);
 };
 
 template<> struct object_type_<struct critter> : std::integral_constant<object_type, object_type::critter> {};

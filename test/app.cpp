@@ -51,6 +51,7 @@ int test_app::exec()
         FM_TEST(test_entity),
         FM_TEST(test_iptr),
         FM_TEST(test_hash),
+        FM_TEST(test_critter),
         FM_TEST(test_raycast),
         FM_TEST(test_json),
         FM_TEST(test_time),
@@ -111,7 +112,7 @@ int test_app::exec()
             fm_assert(num_tabs <= tab_limit);
             for (auto i = 0uz; i < num_tabs; i++)
                 std::fputc('\t', s);
-            std::fprintf(s, "% 12.3f ms\n", (double)ms);
+            std::fprintf(s, "%12.3f ms\n", (double)ms);
             std::fflush(s);
         }
     }

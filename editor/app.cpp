@@ -30,51 +30,7 @@ const cursor_state& app::cursor_state() { return cursor; }
 
 shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
 {
-    if (_character_id)
-    {
-        std::shared_ptr<critter> tmp;
-        if (auto C = w.find_object(_character_id); C && C->type() == object_type::critter)
-        {
-            auto ptr = std::static_pointer_cast<critter>(C);
-            return {ptr};
-        }
-    }
-    _character_id = 0;
-
-    auto id = (object_id)-1;
-
-    shared_ptr_wrapper<critter> ret;
-
-    for (const auto& [coord, c] : w.chunks())
-    {
-        for (const auto& e_ : c.objects())
-        {
-            const auto& e = *e_;
-            if (e.type() == object_type::critter)
-            {
-                const auto& C = static_cast<const critter&>(e);
-                if (C.playable)
-                {
-                    id = std::min(id, C.id);
-                    ret.ptr = std::static_pointer_cast<critter>(e_);
-                }
-            }
-        }
-    }
-
-    if (id != (object_id)-1)
-        _character_id = id;
-    else
-    {
-        critter_proto cproto;
-        cproto.name = "Player"_s;
-        cproto.speed = 10;
-        cproto.playable = true;
-        ret.ptr = w.make_object<critter>(w.make_id(), global_coords{}, cproto);
-        _character_id = ret.ptr->id;
-    }
-    fm_debug_assert(ret.ptr);
-    return ret;
+    return w.ensure_player_character(_character_id);
 }
 
 void app::reset_world(class world&& w_)

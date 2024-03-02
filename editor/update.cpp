@@ -132,16 +132,16 @@ void app::do_emit_timestamp()
     char buf[fm_DATETIME_BUF_SIZE];
     format_datetime_to_string(buf);
 
-    if (time >= 1e5f)
+    if (time >= 1e5)
+        fm_debug("%s%s0x%08x %.1f" " s", buf, prefix, counter++, time*1e-3);
+    else if (time >= 1e4)
         fm_debug("%s%s0x%08x %.2f" " s", buf, prefix, counter++, time*1e-3);
-    else if (time >= 1e4f)
-        fm_debug("%s%s0x%08x %.2f" " s", buf, prefix, counter++, time*1e-3);
-    else if (time >= 1e3f)
+    else if (time >= 1e3)
         fm_debug("%s%s0x%08x %.2f" " ms", buf, prefix, counter++, time);
     else if (time > 0)
         fm_debug("%s%s0x%08x %.4f" " ms", buf, prefix, counter++, time);
     else
-        fm_debug("%s%s0x%08x 0" " ms", buf, prefix, counter++);
+        fm_debug("%s%s0x%08x 0 ms", buf, prefix, counter++);
     _timestamp = now.stamp;
 }
 

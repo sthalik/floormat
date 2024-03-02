@@ -1,6 +1,8 @@
 #include "world.hpp"
 #include "chunk.hpp"
 #include "object.hpp"
+#include "critter.hpp"
+#include "compat/shared-ptr-wrapper.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
 #include <cr/GrowableArray.h>
@@ -95,7 +97,7 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
     return *c;
 }
 
-auto world::operator[](global_coords pt) noexcept -> pair
+auto world::operator[](global_coords pt) noexcept -> pair_chunk_tile
 {
     auto& c = operator[](pt.chunk3());
     return { c, c[pt.local()] };
@@ -193,6 +195,70 @@ auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>
     std::array<chunk*, 8> ret;
     for (auto i = 0u; i < 8; i++)
         ret[i] = at(coord + neighbor_offsets[i]);
+    return ret;
+}
+
+const critter_proto& world::make_player_proto()
+{
+    static const critter_proto p = []
+    {
+        critter_proto cproto;
+        cproto.name = "Player"_s;
+        cproto.speed = 10;
+        cproto.playable = true;
+        return cproto;
+    }();
+    return p;
+}
+
+shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id)
+{
+    return ensure_player_character(id, make_player_proto());
+}
+
+shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critter_proto p)
+{
+    if (id_)
+    {
+        std::shared_ptr<critter> tmp;
+        if (auto C = find_object(id_); C && C->type() == object_type::critter)
+        {
+            auto ptr = std::static_pointer_cast<critter>(C);
+            return {ptr};
+        }
+    }
+    id_ = 0;
+
+    auto id = (object_id)-1;
+
+    shared_ptr_wrapper<critter> ret;
+
+    for (const auto& [coord, c] : chunks()) // todo use world::_objects
+    {
+        for (const auto& e_ : c.objects())
+        {
+            const auto& e = *e_;
+            if (e.type() == object_type::critter)
+            {
+                const auto& C = static_cast<const critter&>(e);
+                if (C.playable)
+                {
+                    id = std::min(id, C.id);
+                    ret.ptr = std::static_pointer_cast<critter>(e_);
+                }
+            }
+        }
+    }
+
+    if (id != (object_id)-1)
+        id_ = id;
+    else
+    {
+        p.playable = true;
+        ret.ptr = make_object<critter>(make_id(), global_coords{}, p);
+        id_ = ret.ptr->id;
+    }
+    fm_debug_assert(ret.ptr);
     return ret;
 }
 

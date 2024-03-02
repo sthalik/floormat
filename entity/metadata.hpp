@@ -246,6 +246,8 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
         return false;
 }
 
+constexpr inline auto ignored_write = []<typename O, typename T>(O&, T) {};
+
 } // namespace floormat::entities
 
 namespace floormat {

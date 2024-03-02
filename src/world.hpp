@@ -10,7 +10,10 @@
 namespace floormat {
 
 struct object;
+struct critter;
+struct critter_proto;
 template<typename T> struct object_type_;
+template<typename T> struct shared_ptr_wrapper;
 
 class world final
 {
@@ -43,6 +46,7 @@ private:
 
     void do_kill_object(object_id id);
     std::shared_ptr<object> find_object_(object_id id);
+
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
 
     friend struct object;
@@ -52,10 +56,10 @@ public:
     ~world() noexcept;
     explicit world(std::unordered_map<chunk_coords_, chunk>&& chunks);
 
-    struct pair final { chunk& c; tile_ref t; }; // NOLINT
+    struct pair_chunk_tile final { chunk& c; tile_ref t; }; // NOLINT
 
     chunk& operator[](chunk_coords_ c) noexcept;
-    pair operator[](global_coords pt) noexcept; // todo maybe remove this overload?
+    pair_chunk_tile operator[](global_coords pt) noexcept; // todo maybe remove this overload?
     chunk* at(chunk_coords_ c) noexcept;
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
@@ -89,6 +93,10 @@ public:
     }
 
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
+
+    shared_ptr_wrapper<critter> ensure_player_character(object_id& id, critter_proto p);
+    shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
+    static const critter_proto& make_player_proto();
 
     bool is_teardown() const { return _teardown; }
     object_id object_counter() const { return _object_counter; }

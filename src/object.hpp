@@ -48,7 +48,7 @@ struct object
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t delta = 0, frame = 0;
-    const rotation r = rotation::N;
+    const rotation r = rotation::N; // todo remove bitfield?
     const pass_mode pass = pass_mode::see_through;
     bool ephemeral : 1 = false;
     //char _pad[4]; // got 4 bytes left
