@@ -222,7 +222,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
 {
     if (new_r == rotation_COUNT)
         new_r = r;
-    else if (!atlas->check_rotation(new_r) || true)
+    else if (!atlas->check_rotation(new_r))
     {
         const auto& info = atlas->info();
         const auto *obj = info.object_name.data(), *anim = info.anim_name.data();

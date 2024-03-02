@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/assert.hpp"
 #include <compare>
 
 namespace floormat {
@@ -15,10 +16,43 @@ struct Ns
 
     friend Ns operator+(const Ns& lhs, const Ns& rhs);
     friend Ns operator-(const Ns& lhs, const Ns& rhs);
-    friend Ns operator*(const Ns& lhs, uint64_t rhs);
-    friend Ns operator*(uint64_t lhs, const Ns& rhs);
-    friend Ns operator*(const Ns& lhs, float rhs);
-    friend Ns operator*(float lhs, const Ns& rhs);
+
+    friend Ns operator*(const Ns&, const Ns&) = delete;
+
+    template<typename T>
+    requires (std::is_integral_v<T> && std::is_unsigned_v<T>)
+    friend Ns operator*(const Ns& lhs, T rhs)
+    {
+        auto a = lhs.stamp, b = uint64_t{rhs};
+        auto x = a * b;
+        fm_assert(b == 0 || x / b == a);
+        return Ns{x};
+    }
+
+    template<typename T>
+    requires (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) < sizeof(uint64_t))
+    friend Ns operator*(const Ns& lhs, T rhs)
+    {
+        fm_assert(rhs >= T{0});
+        return lhs * uint64_t(rhs);
+    }
+
+    template<typename T>
+    friend Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
+
+    template<typename T>
+    requires std::is_same_v<float, T>
+    friend Ns operator*(const Ns& lhs, T rhs)
+    {
+        auto a = lhs.stamp;
+        auto x = float(a) * float{rhs};
+        fm_assert(x <= 1 << 24 && x >= 0);
+        return Ns{uint64_t(x)};
+    }
+
+    template<typename T>
+    requires std::is_same_v<float, T>
+    friend Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
 
     friend uint64_t operator/(const Ns& lhs, const Ns& rhs);
     friend Ns operator/(const Ns& lhs, uint64_t rhs);
@@ -30,8 +64,6 @@ struct Ns
     friend Debug& operator<<(Debug& dbg, const Ns& box);
 
     uint64_t stamp;
-
-    static constexpr uint64_t Min = 0, Max = (uint64_t)-1;
 };
 
 constexpr inline Ns Second{1000000000}, Millisecond{1000000};

@@ -41,29 +41,6 @@ Ns operator-(const Ns& lhs, const Ns& rhs)
     return Ns{a - b};
 }
 
-Ns operator*(const Ns& lhs, uint64_t b)
-{
-    auto a = lhs.stamp;
-    auto x = a * b;
-    //fm_assert(!(a != 0 && x / a != b));
-    fm_assert(a == 0 || x / a == b);
-    return Ns{x};
-}
-
-Ns operator*(uint64_t a, const Ns& rhs)
-{
-    auto b = rhs.stamp;
-    return Ns{a} * b;
-}
-
-Ns operator*(const Ns& lhs, float b_)
-{
-    long double a(lhs.stamp), b(b_);
-    auto x = a * b;
-    fm_assert(x <= 1 << 24 && x >= 0);
-    return Ns{uint64_t(x)};
-}
-
 uint64_t operator/(const Ns& lhs, const Ns& rhs)
 {
     auto a = lhs.stamp, b = rhs.stamp;

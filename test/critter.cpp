@@ -75,13 +75,15 @@ template<typename F> void test1(const F& make_dt, int accel)
     object_id id = 0;
     auto player = w.ensure_player_character(id, make_proto(accel)).ptr;
     auto index = player->index();
-    player->teleport_to(index, );
+    player->teleport_to(index, init, rotation_COUNT);
 
     w[chunk_coords_{0,0,0}].mark_modified();
     w[chunk_coords_{0,1,0}].mark_modified();
+
+    run("test1"_s, make_dt, *player, 10, end, Second*7, 16, Millisecond*350);
 }
 
-template<typename F> void test2(F&& make_dt)
+template<typename F> void test2(F&& make_dt, int accel)
 {
     // TODO diagonal!
 }
@@ -90,7 +92,7 @@ template<typename F> void test2(F&& make_dt)
 
 void test_app::test_critter()
 {
-    test1(constantly(Ns::Millisecond*16.666667), 1);
+    test1(constantly(Millisecond * 1000), 1);
 }
 
 } // namespace floormat
