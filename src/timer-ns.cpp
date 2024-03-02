@@ -56,6 +56,14 @@ Ns operator*(uint64_t a, const Ns& rhs)
     return Ns{a} * b;
 }
 
+Ns operator*(const Ns& lhs, float b_)
+{
+    long double a(lhs.stamp), b(b_);
+    auto x = a * b;
+    fm_assert(x <= 1 << 24 && x >= 0);
+    return Ns{uint64_t(x)};
+}
+
 uint64_t operator/(const Ns& lhs, const Ns& rhs)
 {
     auto a = lhs.stamp, b = rhs.stamp;
@@ -95,6 +103,14 @@ std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs)
     auto a = lhs.stamp, b = rhs.stamp;
     return a <=> b;
 }
+
+Ns Ns::from_millis(uint64_t a)
+{
+    constexpr auto b = uint64_t(1e6);
+    const auto x = a * b;
+    fm_assert(a == 0 || x / a == b);
+    return Ns{x};
+};
 
 Ns::operator uint64_t() const { return stamp; }
 Ns::operator float() const { return float(stamp); }

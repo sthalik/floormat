@@ -5,13 +5,9 @@ namespace floormat {
 
 struct Ns
 {
-    static constexpr uint64_t Min = 0, Max = (uint64_t)-1;
-    static constexpr uint64_t Second = 1000000000, Millisecond = 1000000;
-
-    uint64_t stamp;
-
     explicit constexpr Ns(): stamp{0} {}
     explicit constexpr Ns(uint64_t x) : stamp{x} {}
+    static Ns from_millis(uint64_t x);
 
     explicit operator uint64_t() const;
     explicit operator float() const;
@@ -21,6 +17,8 @@ struct Ns
     friend Ns operator-(const Ns& lhs, const Ns& rhs);
     friend Ns operator*(const Ns& lhs, uint64_t rhs);
     friend Ns operator*(uint64_t lhs, const Ns& rhs);
+    friend Ns operator*(const Ns& lhs, float rhs);
+    friend Ns operator*(float lhs, const Ns& rhs);
 
     friend uint64_t operator/(const Ns& lhs, const Ns& rhs);
     friend Ns operator/(const Ns& lhs, uint64_t rhs);
@@ -29,9 +27,14 @@ struct Ns
 
     friend bool operator==(const Ns& lhs, const Ns& rhs);
     friend std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs);
-
     friend Debug& operator<<(Debug& dbg, const Ns& box);
+
+    uint64_t stamp;
+
+    static constexpr uint64_t Min = 0, Max = (uint64_t)-1;
 };
+
+constexpr inline Ns Second{1000000000}, Millisecond{1000000};
 
 struct Time final
 {

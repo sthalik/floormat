@@ -82,8 +82,10 @@ struct object
     virtual bool is_dynamic() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
-    void move_to(size_t& i, Vector2i delta, rotation new_r);
-    void move_to(Vector2i delta);
+    bool move_to(size_t& i, Vector2i delta, rotation new_r);
+    bool move_to(Vector2i delta);
+    void teleport_to(size_t& i, global_coords coord, Vector2b offset, rotation new_r);
+    void teleport_to(size_t& i, point pt, rotation new_r);
 
     static uint32_t allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed);
     uint32_t allocate_frame_time(Ns dt, float speed);

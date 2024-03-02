@@ -213,18 +213,25 @@ bool object::can_move_to(Vector2i delta)
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-void object::move_to(size_t& i, Vector2i delta, rotation new_r)
+void object::teleport_to(size_t& i, point pt, rotation new_r)
 {
-    if (!can_rotate(new_r))
-        return;
+    return teleport_to(i, pt.coord(), pt.offset(), new_r);
+}
 
-    auto& es = c->_objects;
-    fm_debug_assert(i < es.size());
-    auto e_ = es[i];
+void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rotation new_r)
+{
+    if (new_r == rotation_COUNT)
+        new_r = r;
+    else if (!atlas->check_rotation(new_r) || true)
+    {
+        const auto& info = atlas->info();
+        const auto *obj = info.object_name.data(), *anim = info.anim_name.data();
+        fm_abort("wrong rotation %d for %s/%s!", (int)new_r, obj, anim);
+    }
 
+    fm_assert(i < c->_objects.size());
+    const auto e_ = c->_objects[i];
     fm_assert(&*e_ == this);
-    auto& w = *c->_world;
-    const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
 
     if (coord_ == coord && offset_ == offset)
         return;
@@ -247,26 +254,37 @@ void object::move_to(size_t& i, Vector2i delta, rotation new_r)
     }
     else
     {
+        auto& w = *c->_world;
+
         auto& c2 = w[coord_.chunk3()];
         if (!is_dynamic())
             c2.mark_scenery_modified();
         c2._add_bbox(bb1);
         c->remove_object(i);
         auto& es = c2._objects;
-        auto it = std::lower_bound(es.cbegin(), es.cend(), e_, object_id_lessp);
         const_cast<global_coords&>(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
         const_cast<class chunk*&>(c) = &c2;
-        i = (size_t)std::distance(es.cbegin(), it);
+        i = (size_t)std::distance(es.cbegin(), std::lower_bound(es.cbegin(), es.cend(), e_, object_id_lessp));
         arrayInsert(es, i, move(e_));
     }
 }
 
-void object::move_to(Magnum::Vector2i delta)
+
+bool object::move_to(size_t& i, Vector2i delta, rotation new_r)
+{
+    if (!can_rotate(new_r))
+        return false;
+    const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    teleport_to(i, coord_, offset_, new_r);
+    return true;
+}
+
+bool object::move_to(Magnum::Vector2i delta)
 {
     auto i = index();
-    move_to(i, delta, r);
+    return move_to(i, delta, r);
 }
 
 uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed)
