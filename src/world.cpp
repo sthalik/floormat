@@ -198,17 +198,13 @@ auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>
     return ret;
 }
 
-const critter_proto& world::make_player_proto()
+critter_proto world::make_player_proto()
 {
-    static const critter_proto p = []
-    {
-        critter_proto cproto;
-        cproto.name = "Player"_s;
-        cproto.speed = 10;
-        cproto.playable = true;
-        return cproto;
-    }();
-    return p;
+    critter_proto cproto;
+    cproto.name = "Player"_s;
+    cproto.speed = 10;
+    cproto.playable = true;
+    return cproto;
 }
 
 shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id)

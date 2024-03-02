@@ -96,7 +96,7 @@ public:
 
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id, critter_proto p);
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
-    static const critter_proto& make_player_proto();
+    static critter_proto make_player_proto();
 
     bool is_teardown() const { return _teardown; }
     object_id object_counter() const { return _object_counter; }
