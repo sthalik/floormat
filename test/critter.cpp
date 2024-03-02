@@ -16,16 +16,18 @@ constexpr auto constantly(const auto& x) noexcept {
 }
 
 template<typename F>
-void run(StringView name, const F& make_dt, critter& npc, const uint32_t max_steps,
+void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
          const point start, const rotation r,
          const point end, const Ns expected_time,
          const uint32_t fuzz_pixels, const Ns fuzz_time)
 {
-    fm_assert(max_steps <= 1000);
+    constexpr uint32_t max_steps = 10'000;
+    fm_assert(max_time < Second*60);
 
     auto index = npc.index();
     npc.teleport_to(index, start, rotation_COUNT);
 
+    char buf[81];
     Ns time{0};
     uint32_t steps;
 
@@ -36,7 +38,7 @@ void run(StringView name, const F& make_dt, critter& npc, const uint32_t max_ste
     uint32_t i;
     bool stopped = false;
 
-    for (uint32_t i = 0; i <= max_steps; i++)
+    for (i = 0; i <= max_steps; i++)
     {
         auto dt = Ns{make_dt()};
         fm_assert(dt <= Ns(1e9));
@@ -48,7 +50,9 @@ void run(StringView name, const F& make_dt, critter& npc, const uint32_t max_ste
             break;
         }
         last_pos = pos;
-        Debug{} << "" << i <<  Vector2i(pos.local()) << pos.offset();
+        Debug{} << "" << Vector2i(pos.local()) << pos.offset();
+
+        fm_assert(i != max_steps);
     }
 
     if (stopped)
@@ -100,7 +104,7 @@ template<typename F> void test1(const F& make_dt, int accel)
     w[chunk_coords_{0,0,0}].mark_modified();
     w[chunk_coords_{0,1,0}].mark_modified();
 
-    run("test1"_s, make_dt, *player, 10, init, N, end, Second*7, 16, Millisecond*350);
+    run("test1"_s, make_dt, *player, Second*20, init, N, end, Second*7, 16, Millisecond*350);
 }
 
 template<typename F> void test2(F&& make_dt, int accel)
