@@ -45,10 +45,12 @@ struct entity_accessors<object, inspect_intent_t> {
             E::type<Vector3i>::field{"chunk"_s,
                 [](const object& x) { return Vector3i(x.chunk().coord()); },
                 ignored_write,
+                constantly(st::readonly),
             },
             E::type<Vector2i>::field{"tile"_s,
                 [](const object& x) { return Vector2i(x.coord.local()); },
                 ignored_write,
+                constantly(st::readonly),
             },
             E::type<Vector2i>::field{"offset"_s,
                 [](const object& x) { return Vector2i(x.offset); }, // todo return Vector2b
