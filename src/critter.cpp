@@ -133,26 +133,6 @@ void critter::update(size_t i, Ns dt)
 {
     if (playable)
     {
-#if 0
-        static auto TL = Time::now();
-        static Ns TIME{0};
-        static unsigned FRAMES;
-
-        if (++FRAMES == 0)
-            TL = Time::now();
-        else
-            TIME += dt;
-
-        if (++FRAMES > 240)
-        {
-            auto t = TL.update();
-            Debug{} << "player time" << Time::to_milliseconds(TIME) << Time::to_milliseconds(t);
-            Debug{} << Time::to_milliseconds(TIME) / Time::to_milliseconds(t);
-            TIME = Ns{0};
-            FRAMES = 0;
-        }
-#endif
-
         const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
         if (new_r == rotation_COUNT)
         {
