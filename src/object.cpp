@@ -35,7 +35,7 @@ constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int n
     auto xmask = (int8_t)-(int8_t)b;
     t += s & tmask;
     x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
-    return { t, (int8_t)x };
+    return { t, x };
 }
 
 } // namespace
