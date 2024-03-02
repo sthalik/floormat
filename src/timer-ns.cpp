@@ -111,7 +111,7 @@ Debug& operator<<(Debug& dbg, const Ns& box)
     dbg.setFlags(flags | Debug::Flag::NoSpace);
     dbg << "{";
     dbg << fraction(value, precision);
-    //dbg << " ms";
+    dbg << " ms";
     dbg << "}";
     dbg.setFlags(flags);
     return dbg;

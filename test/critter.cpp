@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/debug.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
@@ -16,25 +17,44 @@ constexpr auto constantly(const auto& x) noexcept {
 
 template<typename F>
 void run(StringView name, const F& make_dt, critter& npc, const uint32_t max_steps,
-         const point expected_pt, const Ns expected_time,
+         const point start, const rotation r,
+         const point end, const Ns expected_time,
          const uint32_t fuzz_pixels, const Ns fuzz_time)
 {
     fm_assert(max_steps <= 1000);
 
+    auto index = npc.index();
+    npc.teleport_to(index, start, rotation_COUNT);
+
     Ns time{0};
     uint32_t steps;
 
-    Debug{} << "==>" << name;
+    Debug{} << "=>" << name;
+    Debug{} << ">>" << npc.position();
 
-    for (uint32_t i = 0; i < max_steps; i++)
+    auto last_pos = npc.position();
+    uint32_t i;
+    bool stopped = false;
+
+    for (uint32_t i = 0; i <= max_steps; i++)
     {
         auto dt = Ns{make_dt()};
-        Debug{} << ">>" << i << dt;
         fm_assert(dt <= Ns(1e9));
-        Debug{} << "  " << i << npc.position();
+        npc.update_movement(index, dt, r);
+        const auto pos = npc.position();
+        if (pos == last_pos)
+        {
+            stopped = true;
+            break;
+        }
+        last_pos = pos;
+        Debug{} << "" << i <<  Vector2i(pos.local()) << pos.offset();
     }
 
-    Debug{} << "done";
+    if (stopped)
+        Debug{} << " break!";
+    else
+        Debug{} << " loop ends...";
 }
 
 /* ***** TEST 1 *****
@@ -61,6 +81,8 @@ critter_proto make_proto(int accel)
     return proto;
 }
 
+using enum rotation;
+
 template<typename F> void test1(const F& make_dt, int accel)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
@@ -74,13 +96,11 @@ template<typename F> void test1(const F& make_dt, int accel)
 
     object_id id = 0;
     auto player = w.ensure_player_character(id, make_proto(accel)).ptr;
-    auto index = player->index();
-    player->teleport_to(index, init, rotation_COUNT);
 
     w[chunk_coords_{0,0,0}].mark_modified();
     w[chunk_coords_{0,1,0}].mark_modified();
 
-    run("test1"_s, make_dt, *player, 10, end, Second*7, 16, Millisecond*350);
+    run("test1"_s, make_dt, *player, 10, init, N, end, Second*7, 16, Millisecond*350);
 }
 
 template<typename F> void test2(F&& make_dt, int accel)
@@ -92,7 +112,11 @@ template<typename F> void test2(F&& make_dt, int accel)
 
 void test_app::test_critter()
 {
+    Debug{} << "";
+    Debug{} << "--";
+    Debug{} << "";
     test1(constantly(Millisecond * 1000), 1);
+    Debug{} << "";
 }
 
 } // namespace floormat
