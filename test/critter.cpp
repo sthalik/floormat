@@ -92,13 +92,14 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
     if (!start.quiet) [[unlikely]]
     {
         if (subtest_name)
-            Debug{} << "-----" << start.name << "->" << start.instance << Debug::nospace << subtest_name << "-----";
+            Debug{} << "**" << start.name << "->" << start.instance << Debug::nospace << subtest_name << colon();
         else
-            Debug{} << "-----" << start.name << subtest_name << "-----";
+            Debug{} << "**" << start.name << subtest_name << colon();
     }
 
     constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt) {
-        DBG_nospace << prefix << " " << pos << "--"
+        DBG_nospace << prefix
+                    << " " << pos
                     << " time:" << time
                     << " dt:" << dt
                     << " dist:" << point::distance_l2(pos, start);
@@ -114,7 +115,7 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
             break;
         }
         if (start.verbose) [[unlikely]]
-            print_pos("-", expected.pt, npc.position(), time, dt);
+            print_pos("  ", expected.pt, npc.position(), time, dt);
         fm_assert(dt >= Millisecond*1e-1);
         fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, start.rotation);
@@ -128,14 +129,17 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
         {
             if (!start.quiet) [[unlikely]]
             {
-                print_pos("-", expected.pt, pos, time, dt);
-                Debug{} << "===>" << i << "iters" << colon(',')  << time << Debug::newline;
+                print_pos("->", expected.pt, pos, time, dt);
+                DBG_nospace << "===>"
+                            << " iters=" << colon(',')
+                            << " time" << time
+                            << Debug::newline;
             }
             if (i == 0) [[unlikely]] // todo! check for very small dt before dying
             {
                 { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
-                  dbg << "!!! fatal: took zero iterations!";
-                  dbg << " dt=" << dt << "accel=" << npc.speed;
+                  dbg << "!!! fatal: took zero iterations";
+                  dbg << " dt=" << dt << " accel=" << npc.speed;
                 }
                 fm_assert(false);
             }
