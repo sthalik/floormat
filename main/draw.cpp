@@ -24,19 +24,18 @@ void main_impl::do_update()
 {
     constexpr auto eps = 1e-5f;
     auto dt = timeline.update();
-    if (auto secs = Time::to_seconds(dt); secs > eps)
+    if (float secs{Time::to_seconds(dt)}; secs > eps)
     {
 #if 1
-        constexpr double RC = 60;
-        constexpr double alpha = 1 / (1 + RC);
-        auto& value = _frame_timings.smoothed_frame_time;
-
-        value = (float)(value*(1 - alpha) + alpha * secs);
+        constexpr float RC = 60;
+        constexpr float alpha = 1 / (1 + RC);
+        float& value = _frame_timings.smoothed_frame_time;
+        value = (value*(1 - alpha) + alpha * secs);
 #else
         value = secs;
 #endif
         if (secs > 35e-3f /* && !dt_expected.do_sleep */)
-            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)secs*1e3);
+            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)(secs*1e3));
     }
     else
         swapBuffers();
