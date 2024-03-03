@@ -56,10 +56,10 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
         last_pos = pos;
         Debug{} << "-" << pos << colon(',') << time;
 
-        if (time > max_time)
+        if (time > max_time) [[unlikely]]
         {
             if (verbose)
-            Debug{&std::cerr} << "timeout:" << max_time << "reached!";
+                Error{&std::cerr} << "timeout:" << max_time << "reached!";
             fm_EMIT_ABORT();
         }
 

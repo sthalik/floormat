@@ -1,6 +1,5 @@
 #pragma once
 #include "local-coords.hpp"
-#include "compat/assert.hpp"
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>

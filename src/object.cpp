@@ -296,7 +296,6 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     fm_assert(hz > 0);
     fm_assert(dt >= Ns{0});
 
-    //const auto count = Ns::Type{ns_in_sec / hz} + accum};
     const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
     const auto from_dt = Ns(uint64_t(ld(dt.stamp) * ld(speed)));
     fm_assert(from_dt <= Ns{uint64_t{1} << 54});
@@ -308,6 +307,7 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     const auto new_accum = (uint16_t)Math::clamp(new_accum_, uint64_t{0}, u16_max);
     [[maybe_unused]] const auto old_accum = accum;
     accum = new_accum;
+
 #if 0
     DBG_nospace << "alloc-frame-time: "
                 << "dt:" << fraction(Time::to_milliseconds(dt)) << "ms"

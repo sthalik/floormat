@@ -15,7 +15,7 @@ namespace floormat {
 
 namespace {
 
-size_t bad_frame_counter = 0;
+size_t bad_frame_counter = 0; // NOLINT
 
 } // namespace
 

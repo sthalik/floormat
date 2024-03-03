@@ -35,7 +35,7 @@ struct critter final : object
 
     String name;
     float speed = 1;
-    Vector2us offset_frac;
+    Vector2us offset_frac; // todo! switch to Vector2ui due to `allocate_frame_time'
     bool b_L : 1 = false, b_R : 1 = false, b_U : 1 = false, b_D : 1 = false;
     bool playable : 1 = false;
 
