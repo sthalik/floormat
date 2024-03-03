@@ -186,7 +186,8 @@ struct Ns
     uint64_t stamp;
 };
 
-constexpr inline Ns Second{1000000000}, Millisecond{1000000};
+constexpr inline Ns Second{1000000000}, Millisecond{1000000}, Microsecond{1000};
+constexpr inline const Ns& Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
 
 struct Time final
 {

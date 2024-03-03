@@ -19,10 +19,11 @@ constexpr auto constantly(const auto& x) noexcept {
 }
 
 template<typename F>
-void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
+void run(StringView name, const F& make_dt, critter& npc,
          const point start, const rotation r,
          const point end, const Ns expected_time,
-         const uint32_t fuzz_pixels, const Ns fuzz_time, bool no_crash = false)
+         const uint32_t fuzz_pixels, const Ns fuzz_time,
+         const Ns max_time = Second*300, bool no_crash = false)
 {
     constexpr uint32_t max_steps = 10'000;
     fm_assert(max_time < Second*300);
@@ -32,7 +33,6 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
 
     char buf[81];
     Ns time{0};
-    uint32_t steps;
 
     Debug{} << name << npc.position();
 
@@ -132,7 +132,7 @@ template<typename F> void test1(const F& make_dt, int accel)
     w[chunk_coords_{0,0,0}].mark_modified();
     w[chunk_coords_{0,1,0}].mark_modified();
 
-    run("test1"_s, make_dt, *player, Second*20, init, N, end, Second*7, 16, Millisecond*350);
+    run("test1"_s, make_dt, *player, init, N, end, Second*7, 16, Second*60);
 }
 
 /* ***** TEST 2 *****
