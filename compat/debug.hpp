@@ -57,6 +57,9 @@ Debug& operator<<(Debug& dbg, Fraction frac);
 
 namespace floormat {
 
+std::ostream* standard_output();
+std::ostream* standard_error();
+
 floormat::detail::corrade_debug::Colon colon(char c = ':');
 floormat::detail::corrade_debug::ErrorString error_string(int error);
 floormat::detail::corrade_debug::ErrorString error_string();

@@ -2,7 +2,9 @@
 #include "compat/strerror.hpp"
 #include <cerrno>
 #include <cstdio>
+#include <iostream>
 #include <Corrade/Containers/StringView.h>
+
 
 // Error{} << "error" << colon() << "can't open file" << colon() << quoted("foo") << error_string(EINVAL);
 // ===> "error: can't open file 'foo': Invalid argument"
@@ -63,6 +65,9 @@ Debug& operator<<(Debug& dbg, Fraction f)
 } // namespace floormat::detail::corrade_debug
 
 namespace floormat {
+
+std::ostream* standard_output() { return &std::cout; }
+std::ostream* standard_error() { return &std::cerr; }
 
 using namespace floormat::detail::corrade_debug;
 
