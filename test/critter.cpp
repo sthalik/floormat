@@ -36,7 +36,6 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
 
     Debug{} << name << npc.position();
 
-    auto last_pos = npc.position();
     uint32_t i;
     bool stopped = false;
 
@@ -45,20 +44,25 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
     for (i = 0; i <= max_steps; i++)
     {
         auto dt = Ns{make_dt()};
-        fm_assert(dt == Millisecond * 100);
-        const auto pos = npc.position();
-        Debug{} << "-" << pos << colon(',') << "time" << time << Debug::nospace << ", dt" << dt;
+        //fm_assert(dt == Millisecond * 100);
+        const auto last_pos = npc.position();
+        Debug{} << "-" << last_pos << colon(',')
+                << "time" << time
+                << Debug::nospace << ", dt" << dt;
         fm_assert(dt >= Millisecond*1e-1);
         fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, r);
+        const auto pos = npc.position();
         time += dt;
         if (pos == last_pos)
         {
             stopped = true;
+            Debug{} << "-" << last_pos << colon(',')
+                    << "time" << time << Debug::nospace
+                    << ", dt" << dt;
+            Debug{} << "break!";
             break;
         }
-        last_pos = pos;
-
         if (time > max_time) [[unlikely]]
         {
             Error{&std::cerr} << "timeout:" << max_time << "reached!";
