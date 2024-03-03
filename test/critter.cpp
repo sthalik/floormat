@@ -132,12 +132,13 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
                 Debug{} << "===>" << i << "iters" << colon(',')  << time << Debug::newline;
             }
             if (i == 0) [[unlikely]] // todo! check for very small dt before dying
-            { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
-              dbg << "!!! fatal: took zero iterations!";
-              dbg << " dt=" << dt << "accel=" << npc.speed;
+            {
+                { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
+                  dbg << "!!! fatal: took zero iterations!";
+                  dbg << " dt=" << dt << "accel=" << npc.speed;
+                }
+                fm_assert(false);
             }
-            std::fflush(stdout);;
-            fm_assert(false);
             break;
         }
         if (time > grace.max_time) [[unlikely]]
