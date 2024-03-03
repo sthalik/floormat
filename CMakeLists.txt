@@ -295,4 +295,8 @@ fm_install_assets()
 fm_run_hook(fm-userconfig-post)
 
 add_test(floormat-testsuite "${CMAKE_INSTALL_PREFIX}/bin/floormat-test")
+
 enable_testing()
+if(NOT TARGET "corrade-test")
+    add_custom_target(corrade-test COMMENT "CORRADE_TEST is disabled")
+endif()

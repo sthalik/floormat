@@ -59,7 +59,7 @@ function(fm-userconfig-external)
         -Wno-unused-but-set-variable
         -Wno-error=return-type
     )
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR FLOORMAT_ASAN)
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
              FLOORMAT_SUBMODULE-SDL2                            ON
              SDL_SHARED                                         OFF
@@ -82,6 +82,14 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_PLUGINS_STATIC                        OFF
              MAGNUM_BUILD_STATIC                                OFF
              MAGNUM_BUILD_TESTS                                 ON
+        )
+    endif()
+    if(FLOORMAT_ASAN)
+        sets(BOOL
+             CORRADE_BUILD_STATIC                               ON
+             CORRADE_BUILD_TESTS                                OFF
+             MAGNUM_BUILD_STATIC                                ON
+             MAGNUM_BUILD_TESTS                                 OFF
         )
     endif()
 endfunction()

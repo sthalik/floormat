@@ -62,6 +62,7 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_PLUGINS_STATIC                            ON
              MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
         )
+        set(OpenCV_DIR "" CACHE STRING "" FORCE)
     endif()
 endfunction()
 

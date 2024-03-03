@@ -49,6 +49,8 @@ endif()
 function(fm-userconfig-external)
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
+             CORRADE_BUILD_TESTS                                ON
+             MAGNUM_BUILD_TESTS                                 ON
              SDL_STATIC                                         OFF
              SDL_SHARED                                         ON
              SDL_FORCE_STATIC_VCRT                              OFF
@@ -59,10 +61,13 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_PLUGINS_STATIC                        OFF
         )
     else()
+        add_definitions(-DCORRADE_TARGET_AVX_FMA)
         sets(BOOL
              SDL_STATIC                                         ON
              SDL_SHARED                                         OFF
              SDL_FORCE_STATIC_VCRT                              ON
+             CORRADE_BUILD_TESTS                                OFF
+             MAGNUM_BUILD_TESTS                                 OFF
              CORRADE_BUILD_STATIC                               ON
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
              MAGNUM_BUILD_STATIC                                ON
