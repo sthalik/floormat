@@ -1,0 +1,6 @@
+file f:/build/floormat/gcc/install/bin/floormat-editor.exe
+#b abort
+#b exit
+#b _Exit
+#b _exit
+b std::terminate
