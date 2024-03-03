@@ -1,8 +1,15 @@
 #pragma once
 #include "defs.hpp"
-#include <cstdlib>
-#include <cstdio>
-#include <type_traits>
+#include <cstdlib> // todo speed up loading by moving printing into a .cpp file
+#include <cstdio>  // idem.
+
+namespace floormat::assert_detail {
+
+
+#define fm_EMIT_ABORT() do { std::fflush(stdout); std::fflush(stderr); ::std::abort(); } while (false)
+
+} // namespace floormat::assert_detail
+
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -28,14 +35,13 @@
 #define FM_KILL_PRINTF_WARN_2()
 #endif
 
-#define fm_EMIT_ABORT() ::std::abort()
-
 #define fm_EMIT_DEBUG2(pfx, ...)                                        \
     do {                                                                \
         if (!std::is_constant_evaluated())                              \
         {                                                               \
             if constexpr (sizeof(pfx) > 1)                              \
                 std::fputs((pfx), stderr);                              \
+            std::fflush(stderr);                                        \
             FM_KILL_PRINTF_WARN_1()                                     \
             std::fprintf(stderr, __VA_ARGS__);                          \
             FM_KILL_PRINTF_WARN_2()                                     \
