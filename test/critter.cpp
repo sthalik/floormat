@@ -42,6 +42,7 @@ struct Start
 {
     StringView name, instance;
     point pt;
+    int debug = 1;
     enum rotation rotation = N;
 };
 
@@ -79,12 +80,9 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);
 
-    char buf[81];
     Ns time{0};
-
     auto last_pos = npc.position();
     uint32_t i;
-    bool stopped = false;
 
     if (subtest_name)
         Debug{} << "-----" << start.name << "->" << start.instance << Debug::nospace << subtest_name << "-----";
@@ -185,7 +183,7 @@ template<typename F> void test1(StringView instance_name, const F& make_dt, int 
     w[{{0,1,0}, {8,0}}].t.wall_north() = W;
 
     constexpr point init {{0,0,0}, {8,15}, {-8,  8}};
-    constexpr point end  {{0,0,0}, {8, 9}, {-8,-16}};
+    constexpr point end  {{0,0,0}, {8, 9}, {-6,-15}}; // distance_L2 == 3
 
     object_id id = 0;
     auto player = w.ensure_player_character(id, make_proto(accel)).ptr;
@@ -216,7 +214,7 @@ template<typename F> void test1(StringView instance_name, const F& make_dt, int 
 
 template<typename F> void test2(F&& make_dt, int accel)
 {
-    // TODO diagonal!
+    // todo! diagonal
 }
 
 } // namespace
@@ -226,10 +224,10 @@ void test_app::test_critter()
     Debug{} << "";
     Debug{} << "--";
     Debug{} << "";
-    test1("dt=1000 ms",constantly(Millisecond * 1000), 1);
-    test1("dt=100 ms", constantly(Millisecond * 100), 1);
-    test1("dt=50 ms", constantly(Millisecond * 50), 1);
-    test1("dt=16.667 ms", constantly(Millisecond * 16.667), 1);
+    test1("dt=1000 ms   accel=5", constantly(Millisecond * 1000  ),    5);
+    test1("dt=100 ms    accel=5", constantly(Millisecond * 100   ),    5);
+    test1("dt=50 ms     accel=5", constantly(Millisecond * 50    ),    5);
+    test1("dt=16.667 ms accel=5", constantly(Millisecond * 16.667),   10);
     Debug{} << "";
 }
 
