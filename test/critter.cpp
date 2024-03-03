@@ -247,10 +247,10 @@ void test_app::test_critter()
 
     if (!is_log_quiet())
         DBG_nospace << "";
-    test1("dt=1000 ms   accel=1",  constantly(Millisecond * 1000  ),    1);
-    test1("dt=1000 ms   accel=5",  constantly(Millisecond * 1000  ),    5);
-    test1("dt=100 ms    accel=5",  constantly(Millisecond * 100   ),    5);
-    test1("dt=50 ms     accel=5",  constantly(Millisecond * 50    ),    5);
+    test1("dt=1000 ms accel=1",    constantly(Millisecond * 1000  ),    1);
+    test1("dt=1000 ms accel=5",    constantly(Millisecond * 1000  ),    5);
+    test1("dt=100 ms accel=5",     constantly(Millisecond * 100   ),    5);
+    test1("dt=50 ms accel=5",      constantly(Millisecond * 50    ),    5);
     test1("dt=16.667 ms accel=10", constantly(Millisecond * 16.667),   10);
     test1("dt=16.667 ms accel=1",  constantly(Millisecond * 16.667),    1);
     test1("dt=16.667 ms accel=1",  constantly(Millisecond * 16.5  ),    1);
