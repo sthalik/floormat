@@ -51,7 +51,7 @@ double Time::to_seconds(const Ns& ts) noexcept
     auto x1 = double{ts};
     auto x2 = x1 * 1e-9;
     fm_assert(x2 < double{1 << 24});
-    return (double)x2;
+    return x2;
 }
 
 double Time::to_milliseconds(const Ns& ts) noexcept
@@ -59,7 +59,7 @@ double Time::to_milliseconds(const Ns& ts) noexcept
     auto x1 = double{ts};
     auto x2 = x1 * 1e-6;
     fm_assert(x2 < double{1 << 24});
-    return (double)x2;
+    return x2;
 }
 
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
