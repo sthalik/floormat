@@ -94,7 +94,8 @@ function(fm-userconfig-src)
         -Wno-error=unused-variable
         -Wno-error=unused-function
         -Wno-error=unused-macros
-        -Wno-error=double-promotion
+        #-Wno-error=double-promotion
+        -Wdouble-promotion -Werror=double-promotion
         -Wno-error=restrict
         -Wno-error=unused-but-set-variable
         -Wno-error=subobject-linkage
