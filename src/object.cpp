@@ -289,7 +289,6 @@ bool object::move_to(Magnum::Vector2i delta)
 
 uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed)
 {
-    using ld = long double;
     constexpr auto ns_in_sec = Ns(1e9);
     constexpr auto u16_max = uint64_t{65535};
 
@@ -297,7 +296,7 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
     fm_assert(dt >= Ns{0});
 
     const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
-    const auto from_dt = Ns(uint64_t(ld(dt.stamp) * ld(speed)));
+    const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
     fm_assert(from_dt <= Ns{uint64_t{1} << 54});
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
