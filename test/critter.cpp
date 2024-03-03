@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include <cinttypes>
 #include "compat/debug.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/function2.hpp"
@@ -10,7 +9,8 @@
 #include "src/log.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
-
+#include <cinttypes>
+#include <cstdio>
 // todo! find all places where singed division is used
 
 namespace floormat {
@@ -43,7 +43,11 @@ struct Start
     point pt;
     enum rotation rotation = N;
     bool verbose = is_log_verbose();
+#if 0
     bool quiet = is_log_quiet();
+#else
+    bool quiet = !is_log_verbose();
+#endif
 };
 
 struct Expected
@@ -85,10 +89,13 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
     auto last_pos = npc.position();
     uint32_t i;
 
-    if (subtest_name)
-        Debug{} << "-----" << start.name << "->" << start.instance << Debug::nospace << subtest_name << "-----";
-    else
-        Debug{} << "-----" << start.name << subtest_name << "-----";
+    if (!start.quiet) [[unlikely]]
+    {
+        if (subtest_name)
+            Debug{} << "-----" << start.name << "->" << start.instance << Debug::nospace << subtest_name << "-----";
+        else
+            Debug{} << "-----" << start.name << subtest_name << "-----";
+    }
 
     constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt) {
         DBG_nospace << prefix << " " << pos << "--"
@@ -122,9 +129,13 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
             if (!start.quiet) [[unlikely]]
             {
                 print_pos("-", expected.pt, pos, time, dt);
-                Debug{} << "===>" << i << "iters" << colon(',')  << time;
+                Debug{} << "===>" << i << "iters" << colon(',')  << time << Debug::newline;
             }
-            Error{standard_error()} << "!!! fatal: took zero iterations!";
+            { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
+              dbg << "!!! fatal: took zero iterations!";
+              dbg << " dt=" << dt << "accel=" << npc.speed;
+            }
+            std::fflush(stdout);;
             fm_assert(false);
             break;
         }
@@ -227,14 +238,25 @@ template<typename F> void test2(F&& make_dt, int accel)
 
 void test_app::test_critter()
 {
-    Debug{} << "";
-    Debug{} << "--";
-    Debug{} << "";
-    test1("dt=1000 ms   accel=5", constantly(Millisecond * 1000  ),    5);
-    test1("dt=100 ms    accel=5", constantly(Millisecond * 100   ),    5);
-    test1("dt=50 ms     accel=5", constantly(Millisecond * 50    ),    5);
-    test1("dt=16.667 ms accel=5", constantly(Millisecond * 16.667),   10);
-    Debug{} << "";
+    // todo! add ANSI sequence to stdout to goto start of line and clear to eol
+    // \r
+    // <ESC>[2K
+    // \n
+
+    if (!is_log_quiet())
+        DBG_nospace << "";
+    test1("dt=1000 ms   accel=1",  constantly(Millisecond * 1000  ),    1);
+    test1("dt=1000 ms   accel=5",  constantly(Millisecond * 1000  ),    5);
+    test1("dt=100 ms    accel=5",  constantly(Millisecond * 100   ),    5);
+    test1("dt=50 ms     accel=5",  constantly(Millisecond * 50    ),    5);
+    test1("dt=16.667 ms accel=10", constantly(Millisecond * 16.667),   10);
+    test1("dt=16.667 ms accel=1",  constantly(Millisecond * 16.667),    1);
+    test1("dt=16.667 ms accel=1",  constantly(Millisecond * 16.5  ),    1);
+    if (!is_log_quiet())
+    {
+        std::fputc('\t', stdout);
+        std::fflush(stdout);
+    }
 }
 
 } // namespace floormat
