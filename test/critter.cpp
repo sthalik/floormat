@@ -63,7 +63,7 @@ struct Grace
 bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
-    fm_assert(start.verbose != start.quiet);
+    fm_assert(!start.quiet | !start.verbose);
     //validate_start(start);
     //validate_expected(expected);
     //validate_grace(grace);
