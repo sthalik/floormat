@@ -10,7 +10,6 @@
 #include "src/log.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
-#include <iostream>
 
 // todo! find all places where singed division is used
 
@@ -42,8 +41,9 @@ struct Start
 {
     StringView name, instance;
     point pt;
-    int debug = 1;
     enum rotation rotation = N;
+    bool verbose = is_log_verbose();
+    bool quiet = is_log_quiet();
 };
 
 struct Expected
@@ -63,6 +63,7 @@ struct Grace
 bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
+    fm_assert(start.verbose != start.quiet);
     //validate_start(start);
     //validate_expected(expected);
     //validate_grace(grace);
@@ -101,10 +102,12 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
         const auto dt = Ns{make_dt()};
         if (dt == Ns{}) [[unlikely]]
         {
-            Debug{} << "| dt == 0, breaking";
+            if (!start.quiet) [[unlikely]]
+                Debug{} << "| dt == 0, breaking";
             break;
         }
-        print_pos("-", expected.pt, npc.position(), time, dt);
+        if (start.verbose) [[unlikely]]
+            print_pos("-", expected.pt, npc.position(), time, dt);
         fm_assert(dt >= Millisecond*1e-1);
         fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, start.rotation);
@@ -116,15 +119,20 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
 
         if (same_pos) [[unlikely]]
         {
-            print_pos("-",  expected.pt, pos, time, dt);
-            Debug{} << "===>" << i << "iters" << colon(',')  << time;
-            fm_assert(i != 0);
+            if (!start.quiet) [[unlikely]]
+            {
+                print_pos("-", expected.pt, pos, time, dt);
+                Debug{} << "===>" << i << "iters" << colon(',')  << time;
+            }
+            Error{standard_error()} << "!!! fatal: took zero iterations!";
+            fm_assert(false);
             break;
         }
         if (time > grace.max_time) [[unlikely]]
         {
-            print_pos("*", start.pt, last_pos, time, dt);
-            Error{&std::cerr} << "!!! fatal: timeout" << grace.max_time << "reached!";
+            if (!start.quiet) [[unlikely]]
+                print_pos("*", start.pt, last_pos, time, dt);
+            Error{standard_error()} << "!!! fatal: timeout" << grace.max_time << "reached!";
             if (grace.no_crash)
                 return false;
             else
@@ -133,7 +141,7 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
         if (i > grace.max_steps) [[unlikely]]
         {
             print_pos("*", start.pt, last_pos, time, dt);
-            Error{&std::cerr} << "!!! fatal: position doesn't converge after" << i << "iterations!";
+            Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
             if (grace.no_crash)
                 return false;
             else
@@ -141,18 +149,16 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
         }
     }
 
-
-
     if (const auto dist_l2 = point::distance_l2(last_pos, expected.pt);
-        dist_l2 > grace.distance_L2)
+        dist_l2 > grace.distance_L2) [[unlikely]]
     {
-        Error{&std::cerr} << "!!! error: distance" << dist_l2 << "pixels" << "over grace distance of" <<  grace.distance_L2;
+        Error{standard_error()} << "!!! fatal: distance" << dist_l2 << "pixels" << "over grace distance of" <<  grace.distance_L2;
         if (grace.no_crash)
-            fm_assert(false);
+            return false;
         else
             fm_assert(false);
     }
-    else
+    else if (start.verbose) [[unlikely]]
         Debug{} << "*" << "distance:" << dist_l2 << "pixels";
 
     return true;
