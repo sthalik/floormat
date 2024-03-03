@@ -22,11 +22,10 @@ template<typename F>
 void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
          const point start, const rotation r,
          const point end, const Ns expected_time,
-         const uint32_t fuzz_pixels, const Ns fuzz_time)
+         const uint32_t fuzz_pixels, const Ns fuzz_time, bool no_crash = false)
 {
     constexpr uint32_t max_steps = 10'000;
-    const bool verbose = is_log_verbose();
-    fm_assert(max_time < Second*200);
+    fm_assert(max_time < Second*300);
 
     auto index = npc.index();
     npc.teleport_to(index, start, rotation_COUNT);
@@ -41,26 +40,32 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
     uint32_t i;
     bool stopped = false;
 
+    constexpr auto bar = Second*1000;
+
     for (i = 0; i <= max_steps; i++)
     {
         auto dt = Ns{make_dt()};
-        fm_assert(dt <= Ns(1e9));
+        fm_assert(dt == Millisecond * 100);
+        const auto pos = npc.position();
+        Debug{} << "-" << pos << colon(',') << "time" << time << Debug::nospace << ", dt" << dt;
+        fm_assert(dt >= Millisecond*1e-1);
+        fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, r);
         time += dt;
-        const auto pos = npc.position();
         if (pos == last_pos)
         {
             stopped = true;
             break;
         }
         last_pos = pos;
-        Debug{} << "-" << pos << colon(',') << time;
 
         if (time > max_time) [[unlikely]]
         {
-            if (verbose)
-                Error{&std::cerr} << "timeout:" << max_time << "reached!";
-            fm_EMIT_ABORT();
+            Error{&std::cerr} << "timeout:" << max_time << "reached!";
+            if (no_crash)
+                return;
+            else
+                fm_EMIT_ABORT();
         }
 
         fm_assert(i != max_steps);

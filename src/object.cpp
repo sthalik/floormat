@@ -289,7 +289,7 @@ bool object::move_to(Magnum::Vector2i delta)
 
 uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed)
 {
-    constexpr auto ns_in_sec = Ns(1e9);
+    constexpr auto ns_in_sec = Ns((int)1e9);
     constexpr auto u16_max = uint64_t{65535};
 
     fm_assert(hz > 0);

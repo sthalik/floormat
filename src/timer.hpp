@@ -7,8 +7,17 @@ namespace floormat {
 struct Ns
 {
     explicit constexpr Ns(): stamp{0} {}
-    explicit constexpr Ns(uint64_t x) : stamp{x} {}
 
+
+    template<typename T>
+    requires (std::is_integral_v<T> && std::is_unsigned_v<T>)
+    explicit constexpr Ns(T x) : stamp{x} {}
+
+    template<typename T>
+    requires (std::is_integral_v<T> && !std::is_unsigned_v<T>)
+    explicit constexpr Ns(T x) : stamp{uint64_t(x)} { fm_assert(x >= T{0}); }
+
+#if 0
     template<typename T>
     requires std::is_same_v<T, float>
     explicit constexpr Ns(T x) : stamp{}
@@ -16,7 +25,7 @@ struct Ns
         constexpr float max{uint64_t{1} << 24};
         fm_assert(x >= 0);
         fm_assert(x <= max);
-        stamp = uint64_t(x * 1e-9);
+        stamp = uint64_t(x);
     }
 
     template<typename T>
@@ -26,23 +35,30 @@ struct Ns
         constexpr double max{uint64_t{1} << 54};
         fm_assert(x >= 0);
         fm_assert(x <= max);
-        stamp = uint64_t(x * 1e-9);
+        stamp = uint64_t(x);
     }
+#endif
 
     explicit constexpr operator uint64_t() const { return stamp; }
-    //explicit constexpr operator double() const { return stamp; }
+
+    explicit constexpr operator double() const = delete;
     explicit constexpr operator float() const = delete;
 
     template<typename T>
-    requires (std::is_same_v<T, float>)
-    static Ns from_nonzero(T seconds)
+    requires (std::is_same_v<T, double>)
+    friend Ns operator*(const Ns& lhs, T b)
     {
-        constexpr float max{uint64_t{1} << 24};
-        fm_assert(seconds >= 0);
-        fm_assert (seconds <= max);
-        return Ns((uint64_t)seconds);
+        constexpr double max{uint64_t{1} << 54};
+        auto a = lhs.stamp;
+        fm_assert(b >= 0);
+        fm_assert(b <= max);
+        auto x = double(a) * b;
+        fm_assert(x <= max);
+        fm_assert(x >= 0);
+        return Ns{(uint64_t)x};
     }
 
+#if 0
     template<typename T>
     requires (std::is_same_v<T, double>)
     static Ns from_nonzero(T seconds)
@@ -52,6 +68,7 @@ struct Ns
         fm_assert(seconds <= max);
         return Ns((uint64_t)seconds);
     }
+#endif
 
     static constexpr Ns from_millis(uint64_t a)
     {
@@ -60,8 +77,6 @@ struct Ns
         fm_assert(a == 0 || x / a == b);
         return Ns{x};
     }
-
-    // -----
 
     friend constexpr Ns operator+(const Ns& lhs, const Ns& rhs)
     {
@@ -95,7 +110,10 @@ struct Ns
     friend constexpr Ns operator*(const Ns& lhs, T rhs)
     {
         fm_assert(rhs >= T{0});
-        return lhs * uint64_t(rhs);
+        auto b = uint64_t(rhs);
+        auto x = lhs.stamp * b;
+        fm_assert(b == 0 || x / b == lhs.stamp);
+        return Ns{x};
     }
 
     template<typename T>
@@ -113,9 +131,10 @@ struct Ns
         return Ns{uint64_t(x)};
     }
 
-    template<typename T>
-    requires std::is_same_v<float, T>
-    friend constexpr inline Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
+#if 0
+    template<typename T> requires (!std::is_same_v<Ns, T>)
+    friend constexpr Ns operator*(const T& lhs, const Ns& rhs) { return rhs * lhs; }
+#endif
 
     friend constexpr uint64_t operator/(const Ns& lhs, const Ns& rhs)
     {

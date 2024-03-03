@@ -53,8 +53,7 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         const auto index = e.index();
         const auto end = e.atlas->info().nframes-1;
-        constexpr auto second = Ns(1e9);
-        constexpr auto dt = Ns{second.stamp / 60};
+        constexpr Ns dt = Second / 60;
         fm_assert(e.frame == end);
         {   auto& x = std::get<door_scenery>(e.subtype);
             fm_assert(!x.active);
