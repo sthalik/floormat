@@ -66,6 +66,7 @@ Debug& operator<<(Debug& dbg, Fraction f)
 
 namespace floormat {
 
+std::istream* standard_input() { return &std::cin; }
 std::ostream* standard_output() { return &std::cout; }
 std::ostream* standard_error() { return &std::cerr; }
 

@@ -57,6 +57,7 @@ Debug& operator<<(Debug& dbg, Fraction frac);
 
 namespace floormat {
 
+std::istream* standard_input();
 std::ostream* standard_output();
 std::ostream* standard_error();
 
