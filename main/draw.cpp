@@ -27,11 +27,11 @@ void main_impl::do_update()
     if (auto secs = Time::to_seconds(dt); secs > eps)
     {
 #if 1
-        constexpr float RC = 60;
-        constexpr auto alpha = 1 / (1 + RC);
+        constexpr double RC = 60;
+        constexpr double alpha = 1 / (1 + RC);
         auto& value = _frame_timings.smoothed_frame_time;
 
-        value = value*(1 - alpha) + alpha * secs;
+        value = (float)(value*(1 - alpha) + alpha * secs);
 #else
         value = secs;
 #endif
