@@ -9,6 +9,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "point.hpp"
+#include "point.inl"
 #include <cstdio>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/StaticArray.h> // todo remove
@@ -96,22 +97,6 @@ struct heap_comparator
     inline heap_comparator(const Array<visited>& nodes) : nodes{nodes} {}
     inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
 };
-
-inline uint32_t distance(point a, point b)
-{
-    Vector2i dist;
-    dist += (a.coord() - b.coord())*iTILE_SIZE2;
-    dist += Vector2i(a.offset()) - Vector2i(b.offset());
-    return (uint32_t)Math::ceil(Math::sqrt(Vector2(dist).dot()));
-}
-
-inline uint32_t distance_l2(point a, point b)
-{
-    Vector2i dist;
-    dist += (a.coord() - b.coord())*iTILE_SIZE2;
-    dist += Vector2i(a.offset()) - Vector2i(b.offset());
-    return (uint32_t)Math::abs(dist).sum();
-}
 
 void set_result_from_idx(path_search_result& result, const Array<visited>& nodes,
                          point to, const uint32_t idx)
@@ -212,7 +197,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             auto off = Vector2i(x, y) * div_size;
             auto pt = object::normalize_coords({from.coord(), {}}, off);
             auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
-            auto dist = distance(from, pt) + min_dist;
+            auto dist = point::distance(from, pt) + min_dist;
 
             if (path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p))
             {
@@ -240,7 +225,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (cur_dist >= max_dist) [[unlikely]]
             continue;
 
-        if (auto d = distance(cur_pt, to); d < closest_dist) [[unlikely]]
+        if (auto d = point::distance(cur_pt, to); d < closest_dist) [[unlikely]]
         {
             closest_dist = d;
             closest_idx = cur_idx;
@@ -253,7 +238,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 #endif
         }
 
-        if (auto dist_to_goal = distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
+        if (auto dist_to_goal = point::distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist + dist_to_goal;
             if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
