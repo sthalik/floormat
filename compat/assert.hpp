@@ -28,7 +28,7 @@
 #define FM_KILL_PRINTF_WARN_2()
 #endif
 
-#define fm_EMIT_ABORT() ::std::abort();
+#define fm_EMIT_ABORT() ::std::abort()
 
 #define fm_EMIT_DEBUG2(pfx, ...)                                        \
     do {                                                                \
