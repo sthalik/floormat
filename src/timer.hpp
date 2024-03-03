@@ -8,9 +8,50 @@ struct Ns
 {
     explicit constexpr Ns(): stamp{0} {}
     explicit constexpr Ns(uint64_t x) : stamp{x} {}
+
+    template<typename T>
+    requires std::is_same_v<T, float>
+    explicit constexpr Ns(T x) : stamp{}
+    {
+        constexpr float max{uint64_t{1} << 24};
+        fm_assert(x >= 0);
+        fm_assert(x <= max);
+        stamp = uint64_t(x * 1e-9);
+    }
+
+    template<typename T>
+    requires std::is_same_v<T, double>
+    explicit constexpr Ns(T x) : stamp{}
+    {
+        constexpr double max{uint64_t{1} << 54};
+        fm_assert(x >= 0);
+        fm_assert(x <= max);
+        stamp = uint64_t(x * 1e-9);
+    }
+
     explicit constexpr operator uint64_t() const { return stamp; }
-    explicit constexpr operator double() const { return stamp; }
+    //explicit constexpr operator double() const { return stamp; }
     explicit constexpr operator float() const = delete;
+
+    template<typename T>
+    requires (std::is_same_v<T, float>)
+    static Ns from_nonzero(T seconds)
+    {
+        constexpr float max{uint64_t{1} << 24};
+        fm_assert(seconds >= 0);
+        fm_assert (seconds <= max);
+        return Ns((uint64_t)seconds);
+    }
+
+    template<typename T>
+    requires (std::is_same_v<T, double>)
+    static Ns from_nonzero(T seconds)
+    {
+        constexpr double max{uint64_t{1} << 54};
+        fm_assert(seconds >= 0);
+        fm_assert(seconds <= max);
+        return Ns((uint64_t)seconds);
+    }
 
     static constexpr Ns from_millis(uint64_t a)
     {
@@ -64,15 +105,17 @@ struct Ns
     requires std::is_same_v<float, T>
     friend constexpr Ns operator*(const Ns& lhs, T rhs)
     {
+        constexpr float max{uint64_t{1} << 24};
         auto a = lhs.stamp;
         auto x = float(a) * float{rhs};
-        fm_assert(x <= 1 << 24 && x >= 0);
+        fm_assert(x >= 0);
+        fm_assert(x <= max);
         return Ns{uint64_t(x)};
     }
 
     template<typename T>
     requires std::is_same_v<float, T>
-    friend constexpr Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
+    friend constexpr inline Ns operator*(T lhs, const Ns& rhs) { return rhs * lhs; }
 
     friend constexpr uint64_t operator/(const Ns& lhs, const Ns& rhs)
     {
@@ -134,8 +177,8 @@ struct Time final
     friend Ns operator-(const Time& lhs, const Time& rhs) noexcept;
     [[nodiscard]] Ns update(const Time& ts = now()) & noexcept;
 
-    static double to_seconds(const Ns& ts) noexcept;
-    static double to_milliseconds(const Ns& ts) noexcept;
+    static float to_seconds(const Ns& ts) noexcept;
+    static float to_milliseconds(const Ns& ts) noexcept;
 
     uint64_t stamp = init();
 
