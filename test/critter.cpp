@@ -18,6 +18,19 @@ constexpr auto constantly(const auto& x) noexcept {
     return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
 }
 
+critter_proto make_proto(int accel)
+{
+    critter_proto proto;
+    proto.atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+    proto.name = "Player"_s;
+    proto.speed = accel;
+    proto.playable = true;
+    proto.offset = {};
+    proto.bbox_offset = {};
+    proto.bbox_size = Vector2ub(tile_size_xy/2);
+    return proto;
+}
+
 template<typename F>
 void run(StringView name, const F& make_dt, critter& npc,
          const point start, const rotation r,
@@ -26,7 +39,7 @@ void run(StringView name, const F& make_dt, critter& npc,
          const Ns max_time = Second*300, bool no_crash = false)
 {
     constexpr uint32_t max_steps = 10'000;
-    fm_assert(max_time < Second*300);
+    fm_assert(max_time <= Second*300);
 
     auto index = npc.index();
     npc.teleport_to(index, start, rotation_COUNT);
@@ -100,19 +113,6 @@ void run(StringView name, const F& make_dt, critter& npc,
  * time=6800ms
 */
 
-critter_proto make_proto(int accel)
-{
-    critter_proto proto;
-    proto.atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
-    proto.name = "Player"_s;
-    proto.speed = accel;
-    proto.playable = true;
-    proto.offset = {};
-    proto.bbox_offset = {};
-    proto.bbox_size = Vector2ub(tile_size_xy/2);
-    return proto;
-}
-
 using enum rotation;
 
 template<typename F> void test1(const F& make_dt, int accel)
@@ -152,6 +152,8 @@ void test_app::test_critter()
     Debug{} << "--";
     Debug{} << "";
     test1(constantly(Millisecond * 100), 1);
+    test1(constantly(Millisecond * 10), 1);
+    test1(constantly(Millisecond * 1), 1);
     Debug{} << "";
 }
 
