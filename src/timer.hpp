@@ -4,6 +4,8 @@
 
 namespace floormat {
 
+// todo! move to .inl
+
 struct Ns
 {
     explicit constexpr Ns(): stamp{0} {}
@@ -69,14 +71,6 @@ struct Ns
         return Ns((uint64_t)seconds);
     }
 #endif
-
-    static constexpr Ns from_millis(uint64_t a)
-    {
-        constexpr auto b = uint64_t(1e6);
-        const auto x = a * b;
-        fm_assert(a == 0 || x / a == b);
-        return Ns{x};
-    }
 
     friend constexpr Ns operator+(const Ns& lhs, const Ns& rhs)
     {
@@ -186,8 +180,8 @@ struct Ns
     uint64_t stamp;
 };
 
-constexpr inline Ns Second{1000000000}, Millisecond{1000000}, Microsecond{1000};
-constexpr inline const Ns& Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
+constexpr inline Ns Minute{60000000000}, Second{1000000000}, Millisecond{1000000}, Microsecond{1000};
+constexpr inline const Ns& Minutes{Minute}, Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
 
 struct Time final
 {
