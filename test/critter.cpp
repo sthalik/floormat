@@ -1,11 +1,14 @@
 #include "app.hpp"
+#include <cinttypes>
 #include "compat/debug.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/timer.hpp"
+#include "src/log.hpp"
 #include "loader/loader.hpp"
+#include <iostream>
 
 namespace floormat {
 
@@ -22,7 +25,8 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
          const uint32_t fuzz_pixels, const Ns fuzz_time)
 {
     constexpr uint32_t max_steps = 10'000;
-    fm_assert(max_time < Second*60);
+    const bool verbose = is_log_verbose();
+    fm_assert(max_time < Second*200);
 
     auto index = npc.index();
     npc.teleport_to(index, start, rotation_COUNT);
@@ -31,7 +35,7 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
     Ns time{0};
     uint32_t steps;
 
-    Debug{} << ">>" << name << npc.position();
+    Debug{} << name << npc.position();
 
     auto last_pos = npc.position();
     uint32_t i;
@@ -42,6 +46,7 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
         auto dt = Ns{make_dt()};
         fm_assert(dt <= Ns(1e9));
         npc.update_movement(index, dt, r);
+        time += dt;
         const auto pos = npc.position();
         if (pos == last_pos)
         {
@@ -49,7 +54,14 @@ void run(StringView name, const F& make_dt, critter& npc, const Ns max_time,
             break;
         }
         last_pos = pos;
-        Debug{} << Vector2i(pos.local()) << pos.offset();
+        Debug{} << "-" << pos << colon(',') << time;
+
+        if (time > max_time)
+        {
+            if (verbose)
+            Debug{&std::cerr} << "timeout:" << max_time << "reached!";
+            fm_EMIT_ABORT();
+        }
 
         fm_assert(i != max_steps);
     }
@@ -130,7 +142,7 @@ void test_app::test_critter()
     Debug{} << "";
     Debug{} << "--";
     Debug{} << "";
-    test1(constantly(Millisecond * 1000), 1);
+    test1(constantly(Millisecond * 100), 1);
     Debug{} << "";
 }
 
