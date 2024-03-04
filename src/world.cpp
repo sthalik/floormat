@@ -251,7 +251,7 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
     else
     {
         p.playable = true;
-        ret.ptr = make_object<critter>(make_id(), global_coords{}, p);
+        ret.ptr = make_object<critter>(make_id(), global_coords{}, move(p));
         id_ = ret.ptr->id;
     }
     fm_debug_assert(ret.ptr);

@@ -212,9 +212,9 @@ critter::operator critter_proto() const
     return ret;
 }
 
-critter::critter(object_id id, class chunk& c, critter_proto proto) : // todo! check if it gets move-constructed
+critter::critter(object_id id, class chunk& c, critter_proto proto) :
     object{id, c, proto},
-    name{proto.name},
+    name{move(proto.name)},
     speed{proto.speed},
     playable{proto.playable}
 {
