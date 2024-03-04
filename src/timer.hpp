@@ -34,7 +34,7 @@ struct Ns
     requires std::is_same_v<T, double>
     explicit constexpr Ns(T x) : stamp{}
     {
-        constexpr double max{uint64_t{1} << 54};
+        constexpr double max{uint64_t{1} << 53};
         fm_assert(x >= 0);
         fm_assert(x <= max);
         stamp = uint64_t(x);
@@ -50,7 +50,7 @@ struct Ns
     requires (std::is_same_v<T, double>)
     friend Ns operator*(const Ns& lhs, T b)
     {
-        constexpr double max{uint64_t{1} << 54};
+        constexpr double max{uint64_t{1} << 53};
         auto a = lhs.stamp;
         fm_assert(b >= 0);
         fm_assert(b <= max);
@@ -65,7 +65,7 @@ struct Ns
     requires (std::is_same_v<T, double>)
     static Ns from_nonzero(T seconds)
     {
-        constexpr double max{uint64_t{1} << 54};
+        constexpr double max{uint64_t{1} << 53};
         fm_assert(seconds >= 0);
         fm_assert(seconds <= max);
         return Ns((uint64_t)seconds);

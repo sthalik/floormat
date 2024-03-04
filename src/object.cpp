@@ -297,7 +297,7 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
 
     const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
     const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
-    fm_assert(from_dt <= Ns{uint64_t{1} << 54});
+    fm_assert(from_dt <= Ns{uint64_t{1} << 53});
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
     const auto frames = (uint32_t)(ticks / frame_duration);
