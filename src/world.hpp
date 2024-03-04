@@ -67,6 +67,7 @@ public:
     size_t size() const noexcept { return _chunks.size(); }
 
     const auto& chunks() const noexcept { return _chunks; }
+    auto& chunks() noexcept { return _chunks; }
 
     void serialize(StringView filename);
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);

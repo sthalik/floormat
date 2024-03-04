@@ -19,12 +19,17 @@ namespace {
 
 using enum rotation;
 using fu2::function_view;
+using Function = function_view<Ns() const>;
 
+#ifndef __CLION_IDE__
 constexpr auto constantly(const auto& x) noexcept {
     return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
 }
+#else
+constexpr auto constantly(Ns x) noexcept { return [x] { return x; }; }
+#endif
 
-critter_proto make_proto(int accel)
+critter_proto make_proto(float accel)
 {
     critter_proto proto;
     proto.atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
@@ -37,10 +42,17 @@ critter_proto make_proto(int accel)
     return proto;
 }
 
+void mark_all_modified(world& w)
+{
+    for (auto& [coord, ch] : w.chunks())
+        ch.mark_modified();
+}
+
 struct Start
 {
     StringView name, instance;
     point pt;
+    float accel = 1;
     enum rotation rotation = N;
     bool verbose = is_log_verbose();
 #if 0
@@ -64,7 +76,7 @@ struct Grace
     bool no_crash = false;
 };
 
-bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>& make_dt,
+bool run(StringView subtest_name, world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
     fm_assert(!start.quiet | !start.verbose);
@@ -74,13 +86,18 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
     fm_assert(start.name);
     fm_assert(start.instance);
     fm_assert(start.rotation < rotation_COUNT);
-    fm_assert(expected.time > Ns{});
     fm_assert(expected.time <= grace.max_time);
     fm_assert(grace.max_time <= 10*Minutes);
     fm_assert(grace.max_time > Ns{});
     fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
     fm_assert(grace.max_steps > 0);
     fm_assert(grace.max_steps <= 1000'00);
+
+    mark_all_modified(w);
+
+    object_id id = 0;
+    auto npc_ = w.ensure_player_character(id, make_proto(start.accel)).ptr;
+    auto& npc = *npc_;
 
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);
@@ -131,7 +148,7 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
             {
                 print_pos("->", expected.pt, pos, time, dt);
                 DBG_nospace << "===>"
-                            << " iters=" << colon(',')
+                            << " iters" << colon(',')
                             << " time" << time
                             << Debug::newline;
             }
@@ -178,26 +195,23 @@ bool run(StringView subtest_name, critter& npc, const function_view<Ns() const>&
     else if (start.verbose) [[unlikely]]
         Debug{} << "*" << "distance:" << dist_l2 << "pixels";
 
+    if (expected.time != Ns{})
+    {
+        const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)time.stamp)};
+        if (time_diff > expected.time)
+        {
+            Error{standard_error()} << "!!! fatal: time" << time_diff << "over tolerance of" <<  grace.max_time;
+            if (grace.no_crash)
+                return false;
+            else
+                fm_assert(false);
+        }
+    }
+
     return true;
 }
 
-/* ***** TEST 1 *****
- *
- * wall n 0x0 - 8:9
- * wall n 0x1 - 8:0
- *
- * bbox-offset=0 bbox-size=32x32
- *
- * npc speed=1 ==> 6800 ms
- * npc speed=5 ==> 1350 ms
- *
- * before chunk=0x0 tile=8:15 offset=-8:8
- * after  chunk=0x0 tile=8:9  offset=-8:-16
- *
- * time=6800ms
-*/
-
-template<typename F> void test1(StringView instance_name, const F& make_dt, int accel)
+void test1(StringView instance_name, const Function& make_dt, float accel)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -205,39 +219,46 @@ template<typename F> void test1(StringView instance_name, const F& make_dt, int 
     w[{{0,0,0}, {8,9}}].t.wall_north() = W;
     w[{{0,1,0}, {8,0}}].t.wall_north() = W;
 
-    constexpr point init {{0,0,0}, {8,15}, {-8,  8}};
-    constexpr point end  {{0,0,0}, {8, 9}, {-6,-15}}; // distance_L2 == 3
-
-    object_id id = 0;
-    auto player = w.ensure_player_character(id, make_proto(accel)).ptr;
-
-    w[chunk_coords_{0,0,0}].mark_modified();
-    w[chunk_coords_{0,1,0}].mark_modified();
-
-    bool ret = run("test1", *player, make_dt,
+    bool ret = run("test1", w, make_dt,
                    Start{
-                       .name = "test1",
+                       .name = "test1"_s,
                        .instance = instance_name,
-                       .pt = init,
+                       .pt = {{0,0,0}, {8,15}, {-8,  8}},
+                       .accel = accel,
                        .rotation = N,
                    },
                    Expected{
-                       .pt = end,
+                       .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L2 == 3
                        .time = Millisecond*6950,
                    },
                    Grace{});
     fm_assert(ret);
-
-    //run("test1"_s, make_dt, *player, init, N, end, Second*7, Millisecond*16.667, Second*60);
 }
 
-/* ***** TEST 2 *****
- *
- */
-
-template<typename F> void test2(F&& make_dt, int accel)
+void test2(StringView instance_name, const Function& make_dt, float accel)
 {
-    // todo! diagonal
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+
+    auto w = world();
+    w[{{-1,-1,0}, {13,13}}].t.wall_north() = W;
+    w[{{-1,-1,0}, {13,13}}].t.wall_west() = W;
+    w[{{1,1,0}, {4,5}}].t.wall_north() = W;
+    w[{{1,1,0}, {5,4}}].t.wall_west() = W;
+
+    bool ret = run("test1", w, make_dt,
+               Start{
+                   .name = "test1"_s,
+                   .instance = instance_name,
+                   .pt = {{1,1,0}, {4,4}, {-29, 8}},
+                   .accel = accel,
+                   .rotation = NW,
+               },
+               Expected{
+                   .pt = {{-1,-1,0}, {13, 13}, {-16,-16}}, // distance_L2 == 3
+                   .time = accel == 1 ? Ns{Millisecond*6900} : Ns{},
+               },
+               Grace{});
+    fm_assert(ret);
 }
 
 } // namespace
@@ -251,13 +272,14 @@ void test_app::test_critter()
 
     if (!is_log_quiet())
         DBG_nospace << "";
-    test1("dt=1000 ms accel=1",    constantly(Millisecond * 1000  ),    1);
-    test1("dt=1000 ms accel=5",    constantly(Millisecond * 1000  ),    5);
-    test1("dt=100 ms accel=5",     constantly(Millisecond * 100   ),    5);
-    test1("dt=50 ms accel=5",      constantly(Millisecond * 50    ),    5);
-    test1("dt=16.667 ms accel=10", constantly(Millisecond * 16.667),   10);
-    test1("dt=16.667 ms accel=1",  constantly(Millisecond * 16.667),    1);
-    //test1("dt=16.5 ms accel=1",  constantly(Millisecond * 16.5  ),    1); // todo! fix this!
+    test1("dt=1000 accel=1",    constantly(Millisecond * 1000  ),  1);
+    test1("dt=1000 accel=5",    constantly(Millisecond * 1000  ),  5);
+    test1("dt=100 accel=5",     constantly(Millisecond * 100   ),  5);
+    test1("dt=50 accel=5",      constantly(Millisecond * 50    ),  5);
+    test1("dt=16.667 accel=10", constantly(Millisecond * 16.667), 10);
+    test1("dt=16.667 accel=1",  constantly(Millisecond * 16.667),  1);
+    //test1("dt=16.5 ms accel=1", constantly(Millisecond * 16.5),  1); // todo! fix this!
+    test2("dt=16.667 accel=5",  constantly(Millisecond * 16.667),  5);
     if (!is_log_quiet())
     {
         std::fputc('\t', stdout);
