@@ -44,13 +44,24 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<Vector3i>::field{"chunk"_s,
                 [](const object& x) { return Vector3i(x.chunk().coord()); },
-                ignored_write,
-                constantly(st::readonly),
+                [](object& x, Vector3i tile) {
+                    if (tile.z() != x.coord.z()) // todo
+                    {
+                        fm_warn_once("object tried to move to different Z level (from %d to %d)", (int)tile.z(), (int)x.coord.z());
+                        return;
+                    }
+                    auto foo1 = Vector2i{tile.x(), tile.y()};
+                    auto foo2 = Vector2i{x.coord.chunk()};
+                    constexpr auto chunk_size = Vector2i{tile_size_xy} * TILE_MAX_DIM;
+
+                    x.move_to((foo1 - foo2) * chunk_size);
+                },
             },
             E::type<Vector2i>::field{"tile"_s,
-                [](const object& x) { return Vector2i(x.coord.local()); },
-                ignored_write,
-                constantly(st::readonly),
+                [](const object& x) {return Vector2i(x.coord.local()); },
+                [](object& x, Vector2i tile) {
+                    x.move_to((tile - Vector2i{x.coord.local()}) * Vector2i{tile_size_xy});
+                },
             },
             E::type<Vector2i>::field{"offset"_s,
                 [](const object& x) { return Vector2i(x.offset); }, // todo return Vector2b
