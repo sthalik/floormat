@@ -165,7 +165,7 @@ private:
     void clear_non_global_keys();
     void clear_non_repeated_keys();
 
-    void do_camera(Ns dt, const key_set& cmds, int mods);
+    void do_camera(const Ns& dt, const key_set& cmds, int mods);
     void reset_camera_offset();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);

@@ -1,12 +1,10 @@
-#include "timer.hpp"
+#include "nanosecond.inl"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
 #include <cr/Debug.h>
 #include <mg/Functions.h>
 
 namespace floormat {
-
-
 
 Debug& operator<<(Debug& dbg, const Ns& val)
 {

@@ -7,7 +7,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-iterator.hpp"
-#include "src/timer.hpp"
+#include "src/nanosecond.inl"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -53,7 +53,7 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
         const auto index = e.index();
         const auto end = e.atlas->info().nframes-1;
-        constexpr Ns dt = Second / 60;
+        constexpr auto dt = Second / 60;
         fm_assert(e.frame == end);
         {   auto& x = std::get<door_scenery>(e.subtype);
             fm_assert(!x.active);

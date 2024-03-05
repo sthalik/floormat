@@ -5,13 +5,12 @@
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
-#include "src/timer.hpp"
+#include "src/nanosecond.inl"
 #include "src/log.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
 #include <cinttypes>
 #include <cstdio>
-// todo! find all places where singed division is used
 
 namespace floormat {
 

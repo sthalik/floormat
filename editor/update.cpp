@@ -12,6 +12,7 @@
 #include "floormat/main.hpp"
 #include "src/critter.hpp"
 #include "src/tile-iterator.hpp"
+#include "src/nanosecond.hpp"
 #include "src/timer.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"

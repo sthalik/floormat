@@ -5,7 +5,6 @@
 #include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
-#include "src/timer.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"

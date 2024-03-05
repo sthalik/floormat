@@ -4,7 +4,7 @@
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
-#include "src/timer.hpp"
+#include "src/nanosecond.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>

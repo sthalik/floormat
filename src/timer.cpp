@@ -1,5 +1,6 @@
 #include "timer.hpp"
 #include "compat/assert.hpp"
+#include "nanosecond.hpp"
 #include <ctime>
 #include <cstdio>
 #include <chrono>

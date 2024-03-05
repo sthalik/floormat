@@ -8,6 +8,7 @@
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
+#include "nanosecond.inl"
 #include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>

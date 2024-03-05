@@ -14,7 +14,7 @@
 
 namespace floormat {
 
-void app::do_camera(Ns dt, const key_set& cmds, int mods)
+void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
 {
     if (cmds[key_camera_reset])
     {

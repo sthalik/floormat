@@ -15,7 +15,6 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-#include "src/rotation.inl"
 #include "src/RTree-search.hpp"
 #include <bit>
 #include <Magnum/Math/Color.h>

@@ -1,14 +1,13 @@
 #include "scenery.hpp"
+#include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
-#include "chunk.hpp"
-#include "compat/assert.hpp"
+#include "rotation.inl"
+#include "nanosecond.hpp"
 #include "world.hpp"
 #include "shaders/shader.hpp"
-#include "src/rotation.inl"
-#include "compat/exception.hpp"
-#include "src/timer.hpp"
-#include <algorithm>
+#include <mg/Functions.h>
 
 namespace floormat {
 
@@ -103,7 +102,7 @@ void door_scenery::update(scenery& s, size_t, Ns dt)
     else
         p = pass_mode::see_through;
     s.set_bbox(s.offset, s.bbox_offset, s.bbox_size, p);
-    const auto new_frame = (uint16_t)std::clamp(fr, 0, nframes-1);
+    const auto new_frame = (uint16_t)Math::clamp(fr, 0, nframes-1);
     //Debug{} << "frame" << new_frame << nframes-1;
     s.frame = new_frame;
     if (!active)

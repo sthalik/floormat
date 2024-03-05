@@ -4,7 +4,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
-#include "src/timer.hpp"
+#include "src/nanosecond.hpp"
 #include "shaders/shader.hpp"
 #include "compat/exception.hpp"
 #include <cmath>

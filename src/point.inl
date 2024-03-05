@@ -1,6 +1,6 @@
 #pragma once
-#include "src/tile-constants.hpp"
 #include "point.hpp"
+#include "src/tile-constants.hpp"
 #include <mg/Functions.h>
 
 namespace floormat {

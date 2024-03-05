@@ -8,7 +8,6 @@
 #include "compat/heap.hpp"
 #include "object.hpp"
 #include "world.hpp"
-#include "point.hpp"
 #include "point.inl"
 #include <cstdio>
 #include <Corrade/Containers/GrowableArray.h>
