@@ -172,6 +172,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
             rotate(i, new_r);
 
     c->ensure_passability();
+    bool can_move = false;
 
     for (auto k = 0u; k < nframes; k++)
     {
@@ -188,6 +189,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
                 offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
                 if (can_move_to(off_i))
                 {
+                    can_move = true;
                     move_to(i, off_i, new_r);
                     ++frame %= atlas->info().nframes;
                     break;
@@ -199,6 +201,12 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
                 break;
             }
         }
+    }
+
+    if (!can_move)
+    {
+        delta = {};
+        offset_frac = {};
     }
 }
 
