@@ -8,7 +8,7 @@ namespace floormat {
 
 Debug& operator<<(Debug& dbg, const Ns& val)
 {
-    const char* unit;
+    const char* unit = "";
     double x = val.stamp;
     int precision;
     if (val >= 10*Second)
@@ -17,49 +17,47 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         x *= 1e-9;
         precision = 1;
     }
-#if 0
     else if (val >= 1*Second)
     {
-        unit = "ms";
+        unit = "ₘₛ";
         x *= 1e-6;
-        precision = 3;
+        precision = 2;
 
     }
-#endif
     else if (val >= 100*Millisecond)
     {
-        unit = "ms";
+        unit = "ₘₛ";
         x *= 1e-6;
         precision = 3;
     }
     else if (val >= 50*Microsecond)
     {
-        unit = "ms";
+        unit = "ₘₛ";
         x *= 1e-6;
         precision = 4;
     }
     else if (val >= 1*Microsecond)
     {
-        unit = "usec";
+        unit = "ₘₛ";
         x *= 1e-3;
         precision = 3;
     }
-    else if (val.stamp > 1000)
+    else if (val > Ns{100})
     {
         char buf[64];
-        std::snprintf(buf, sizeof buf, "%llu_%llu ns",
+        std::snprintf(buf, sizeof buf, "%llu_%llu ₙₛ",
                       val.stamp / 1000, val.stamp % 1000);
         return dbg;
     }
     else
     {
-        unit = "ns";
+        unit = " ₙₛ";
         precision = 0;
     }
     if (!precision)
-        dbg << (uint64_t)x << Debug::space << unit;
+        dbg << (uint64_t)x << Debug::nospace << unit;
     else
-        dbg << fraction((float)x, precision) << Debug::space << unit;
+        dbg << fraction((float)x, precision) << Debug::nospace << unit;
 
     return dbg;
 }
