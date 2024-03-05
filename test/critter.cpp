@@ -302,7 +302,7 @@ void test_app::test_critter()
     test1("dt=100 accel=2",      constantly(Millisecond * 100.0 ),    2);
     // test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),0.5); // todo! fix this!
     test1("dt=100 accel=0.5",    constantly(Millisecond * 100.0 ),  0.5);
-    test1("dt=16.667 ms accel=1", constantly(Millisecond * 16.667),  1); // todo! fix this!
+    test1("dt=16.667 ms accel=1", constantly(Millisecond * 16.667),   1);
     test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
     test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
     test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
