@@ -159,11 +159,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
     const auto hz = atlas->info().fps;
     const auto nframes = alloc_frame_time<uint16_t>(dt, delta, hz, speed);
     if (nframes == 0)
-    {
-        //static unsigned foo;
-        //Debug{} << ++foo << "stopped";
         return;
-    }
 
     const auto rotations = rotation_to_similar(new_r);
     const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
@@ -197,6 +193,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
             }
             else
             {
+                can_move = true;
                 offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
                 break;
             }

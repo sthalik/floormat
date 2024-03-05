@@ -311,10 +311,10 @@ uint32_t object::alloc_frame_time(Ns dt, T& accum, uint32_t hz, float speed)
 #if 0
     DBG_nospace << "alloc-frame-time: "
                 << "dt:" << fraction(Time::to_milliseconds(dt)) << "ms"
-                << ", secs:" << fraction(Time::to_milliseconds(Ns{nsecs}), 1) << " ms"
-                << ", frames:" << frames
-                << ", acc:" << new_accum_
-                << ", rem:" << rem;
+                << " ticks:" << ticks
+                << " frames:" << nframes
+                << " acc:" << new_accum_
+                << " rem:" << rem;
 #endif
     fm_assert(nframes < 1 << 12);
     return nframes;

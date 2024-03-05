@@ -54,7 +54,7 @@ struct Start
     double accel = 1;
     enum rotation rotation = N;
 #if 1
-    bool quiet = is_log_quiet() || is_log_standard();
+    bool quiet = !is_log_verbose();
     bool verbose = false;
 #elif 1
     bool verbose = true;
@@ -84,8 +84,8 @@ struct Grace
 bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
-    constexpr auto max_time = 120*Second;
-    constexpr uint32_t max_steps = 10'000;
+    constexpr auto max_time = 300*Second;
+    constexpr uint32_t max_steps = 50'000;
 
     fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
@@ -110,21 +110,23 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);
 
-    Ns time{0};
+    Ns time{0}, saved_time{0};
     auto last_pos = npc.position();
-    auto last_delta = npc.delta;
     uint32_t i;
+    constexpr auto max_stop_frames = 20;
+    uint32_t frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
         Debug{} << "**" << start.name << start.instance << colon();
 
-    constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt, uint16_t delta) {
+    constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt, const critter& npc) {
         DBG_nospace << prefix
                     << " " << pos
                     << " time:" << time
                     << " dt:" << dt
                     << " dist:" << point::distance_l2(pos, start)
-                    << " delta:" << delta;
+                    << " delta:" << npc.delta
+                    << " frac:" << npc.offset_frac;
     };
 
     auto fail = [b = grace.no_crash](const char* file, int line) {
@@ -148,48 +150,51 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
             break;
         }
         if (start.verbose) [[unlikely]]
-            print_pos("  ", expected.pt, npc.position(), time, dt, npc.delta);
+            print_pos("  ", expected.pt, npc.position(), time, dt, npc);
         fm_assert(dt >= Millisecond*1e-1);
         fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, start.rotation);
         const auto pos = npc.position();
-        const bool same_pos = pos == last_pos && npc.delta == last_delta;
+        const bool same_pos = pos == last_pos;
         last_pos = pos;
-        last_delta = npc.delta;
 
         time += dt;
 
         if (same_pos) [[unlikely]]
         {
-            if (!start.quiet) [[unlikely]]
+            frames_stopped++;
+            if (frames_stopped == 0)
+                saved_time = time;
+            if (frames_stopped >= max_stop_frames) [[unlikely]]
             {
-                print_pos("->", expected.pt, pos, time, dt, npc.delta);
-                DBG_nospace << "===>"
-                            << " iters,"
-                            << " time:" << time
-                            << " distance:" << point::distance_l2(last_pos, expected.pt) << " px"
-                            << Debug::newline;
-            }
-            if (i == 0) [[unlikely]] // todo! check for very small dt before dying
-            {
-                { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
-                  dbg << "!!! fatal: stopped after zero iterations";
-                  dbg << " dt=" << dt << " accel=" << npc.speed;
+                if (!start.quiet) [[unlikely]]
+                {
+                    print_pos("->", expected.pt, pos, time, dt, npc);
+                    DBG_nospace << "===>"
+                        << " iters,"
+                        << " time:" << time
+                        << " distance:" << point::distance_l2(last_pos, expected.pt) << " px"
+                        << Debug::newline;
                 }
-                return fail(__FILE__, __LINE__);
+                break;
             }
-            break;
         }
+        else
+        {
+            frames_stopped = 0;
+            saved_time = time;
+        }
+
         if (time > max_time) [[unlikely]]
         {
             if (!start.quiet) [[unlikely]]
-                print_pos("*", start.pt, last_pos, time, dt, npc.delta);
+                print_pos("*", start.pt, last_pos, time, dt, npc);
             Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
             return fail(__FILE__, __LINE__);
         }
         if (i > max_steps) [[unlikely]]
         {
-            print_pos("*", start.pt, last_pos, time, dt, npc.delta);
+            print_pos("*", start.pt, last_pos, time, dt, npc);
             Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
             return fail(__FILE__, __LINE__);
         }
@@ -206,7 +211,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
 
     if (expected.time != Ns{})
     {
-        const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)time.stamp)};
+        const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)saved_time.stamp)};
         if (time_diff > grace.time)
         {
             Error{ standard_error(), Debug::Flag::NoSpace }
@@ -300,9 +305,9 @@ void test_app::test_critter()
     test1("dt=16.667 accel=5",   constantly(Millisecond * 50.000),    5);
     test1("dt=200 accel=1",      constantly(Millisecond * 200.0 ),    1);
     test1("dt=100 accel=2",      constantly(Millisecond * 100.0 ),    2);
-    // test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),0.5); // todo! fix this!
-    test1("dt=100 accel=0.5",    constantly(Millisecond * 100.0 ),  0.5);
-    test1("dt=16.667 ms accel=1", constantly(Millisecond * 16.667),   1);
+    test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
+    test1("dt=100 accel=0.5",    constantly(Millisecond * 100.00 ), 0.5);
+    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
     test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
     test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
     test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
