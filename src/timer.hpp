@@ -60,18 +60,6 @@ struct Ns
         return Ns{(uint64_t)x};
     }
 
-#if 0
-    template<typename T>
-    requires (std::is_same_v<T, double>)
-    static Ns from_nonzero(T seconds)
-    {
-        constexpr double max{uint64_t{1} << 53};
-        fm_assert(seconds >= 0);
-        fm_assert(seconds <= max);
-        return Ns((uint64_t)seconds);
-    }
-#endif
-
     friend constexpr Ns operator+(const Ns& lhs, const Ns& rhs)
     {
         constexpr auto max = (uint64_t)-1;
@@ -143,6 +131,19 @@ struct Ns
         fm_assert(b != 0);
         return Ns{a / b};
     }
+
+#if 0
+    template<typename T>
+    requires std::is_floating_point_v<T>
+    friend constexpr double operator/(const Ns& lhs, double b)
+    {
+        fm_assert(b != 0.);
+        auto x = double{lhs.stamp / b};
+        constexpr auto max = double{uint64_t{1} << 53};
+        fm_assert(x <= max);
+        return x;
+    }
+#endif
 
     friend constexpr uint64_t operator%(const Ns& lhs, const Ns& rhs)
     {

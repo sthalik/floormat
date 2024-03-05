@@ -52,13 +52,20 @@ struct Start
 {
     StringView name, instance;
     point pt;
-    float accel = 1;
+    double accel = 1;
     enum rotation rotation = N;
-    bool verbose = is_log_verbose();
-#if 0
+#if 1
+    bool quiet = is_log_quiet() || is_log_standard();
+    bool verbose = false;
+#elif 1
+    bool verbose = true;
+    bool quiet = false;
+#elif 0
     bool quiet = is_log_quiet();
+    bool verbose = is_log_standard() || is_log_verbose();
 #else
-    bool quiet = !is_log_verbose();
+    bool quiet = is_log_quiet() || is_log_standard();
+    bool verbose = is_log_verbose();
 #endif
 };
 
@@ -70,33 +77,35 @@ struct Expected
 
 struct Grace
 {
-    Ns max_time = 600*Seconds;
+    Ns time = Ns{250};
     uint32_t distance_L2 = 24;
-    uint32_t max_steps = 10'000;
     bool no_crash = false;
 };
 
-bool run(StringView subtest_name, world& w, const function_view<Ns() const>& make_dt,
+bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
+    constexpr auto max_time = 120*Second;
+    constexpr uint32_t max_steps = 10'000;
+
+    fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
     //validate_start(start);
     //validate_expected(expected);
     //validate_grace(grace);
+    fm_assert(start.accel > 1e-8);
+    fm_assert(start.accel <= 50);
     fm_assert(start.name);
     fm_assert(start.instance);
     fm_assert(start.rotation < rotation_COUNT);
-    fm_assert(expected.time <= grace.max_time);
-    fm_assert(grace.max_time <= 10*Minutes);
-    fm_assert(grace.max_time > Ns{});
+    expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
+    fm_assert(expected.time <= max_time);
     fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
-    fm_assert(grace.max_steps > 0);
-    fm_assert(grace.max_steps <= 1000'00);
 
     mark_all_modified(w);
 
     object_id id = 0;
-    auto npc_ = w.ensure_player_character(id, make_proto(start.accel)).ptr;
+    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel)).ptr;
     auto& npc = *npc_;
 
     auto index = npc.index();
@@ -107,12 +116,7 @@ bool run(StringView subtest_name, world& w, const function_view<Ns() const>& mak
     uint32_t i;
 
     if (!start.quiet) [[unlikely]]
-    {
-        if (subtest_name)
-            Debug{} << "**" << start.name << "->" << start.instance << Debug::nospace << subtest_name << colon();
-        else
-            Debug{} << "**" << start.name << subtest_name << colon();
-    }
+        Debug{} << "**" << start.name << start.instance << colon();
 
     constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt) {
         DBG_nospace << prefix
@@ -122,7 +126,7 @@ bool run(StringView subtest_name, world& w, const function_view<Ns() const>& mak
                     << " dist:" << point::distance_l2(pos, start);
     };
 
-    for (i = 0; i <= grace.max_steps; i++)
+    for (i = 0; true; i++)
     {
         const auto dt = Ns{make_dt()};
         if (dt == Ns{}) [[unlikely]]
@@ -148,31 +152,32 @@ bool run(StringView subtest_name, world& w, const function_view<Ns() const>& mak
             {
                 print_pos("->", expected.pt, pos, time, dt);
                 DBG_nospace << "===>"
-                            << " iters" << colon(',')
-                            << " time" << time
+                            << " iters,"
+                            << " time:" << time
+                            << " distance:" << point::distance_l2(last_pos, expected.pt) << " px"
                             << Debug::newline;
             }
             if (i == 0) [[unlikely]] // todo! check for very small dt before dying
             {
                 { auto dbg = Error{standard_error(), Debug::Flag::NoSpace};
-                  dbg << "!!! fatal: took zero iterations";
+                  dbg << "!!! fatal: stopped after zero iterations";
                   dbg << " dt=" << dt << " accel=" << npc.speed;
                 }
                 fm_assert(false);
             }
             break;
         }
-        if (time > grace.max_time) [[unlikely]]
+        if (time > max_time) [[unlikely]]
         {
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt);
-            Error{standard_error()} << "!!! fatal: timeout" << grace.max_time << "reached!";
+            Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
             if (grace.no_crash)
                 return false;
             else
                 fm_assert(false);
         }
-        if (i > grace.max_steps) [[unlikely]]
+        if (i > max_steps) [[unlikely]]
         {
             print_pos("*", start.pt, last_pos, time, dt);
             Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
@@ -198,9 +203,13 @@ bool run(StringView subtest_name, world& w, const function_view<Ns() const>& mak
     if (expected.time != Ns{})
     {
         const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)time.stamp)};
-        if (time_diff > expected.time)
+        if (time_diff > grace.time)
         {
-            Error{standard_error()} << "!!! fatal: time" << time_diff << "over tolerance of" <<  grace.max_time;
+            Error{ standard_error(), Debug::Flag::NoSpace }
+                << "!!! fatal: wrong time " << time
+                << " expected:" << expected.time
+                << " diff:" << grace.time
+                << " for " << start.name << "/" << start.instance;
             if (grace.no_crash)
                 return false;
             else
@@ -211,7 +220,7 @@ bool run(StringView subtest_name, world& w, const function_view<Ns() const>& mak
     return true;
 }
 
-void test1(StringView instance_name, const Function& make_dt, float accel)
+void test1(StringView instance_name, const Function& make_dt, double accel)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -219,7 +228,7 @@ void test1(StringView instance_name, const Function& make_dt, float accel)
     w[{{0,0,0}, {8,9}}].t.wall_north() = W;
     w[{{0,1,0}, {8,0}}].t.wall_north() = W;
 
-    bool ret = run("test1", w, make_dt,
+    bool ret = run(w, make_dt,
                    Start{
                        .name = "test1"_s,
                        .instance = instance_name,
@@ -229,13 +238,15 @@ void test1(StringView instance_name, const Function& make_dt, float accel)
                    },
                    Expected{
                        .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L2 == 3
-                       .time = Millisecond*6950,
+                       .time = 6950*Millisecond,
                    },
-                   Grace{});
+                   Grace{
+                       .time = 300*Millisecond,
+                   });
     fm_assert(ret);
 }
 
-void test2(StringView instance_name, const Function& make_dt, float accel)
+void test2(StringView instance_name, const Function& make_dt, double accel)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -245,19 +256,22 @@ void test2(StringView instance_name, const Function& make_dt, float accel)
     w[{{1,1,0}, {4,5}}].t.wall_north() = W;
     w[{{1,1,0}, {5,4}}].t.wall_west() = W;
 
-    bool ret = run("test1", w, make_dt,
+    bool ret = run(w, make_dt,
                Start{
-                   .name = "test1"_s,
+                   .name = "test2"_s,
                    .instance = instance_name,
-                   .pt = {{1,1,0}, {4,4}, {-29, 8}},
+                   .pt = {{-1,-1,0}, {13,14}, {-15,-29}},
                    .accel = accel,
-                   .rotation = NW,
+                   .rotation = SE,
                },
                Expected{
-                   .pt = {{-1,-1,0}, {13, 13}, {-16,-16}}, // distance_L2 == 3
-                   .time = accel == 1 ? Ns{Millisecond*6900} : Ns{},
+                   .pt = {{1,1,0}, {4, 4}, {8,8}},
+                   .time = 35'000*Millisecond,
                },
-               Grace{});
+               Grace{
+                   .time = 250*Millisecond,
+                   .distance_L2 = 8,
+               });
     fm_assert(ret);
 }
 
@@ -270,17 +284,35 @@ void test_app::test_critter()
     // <ESC>[2K
     // \n
 
-    if (!is_log_quiet())
+    const bool is_noisy = !Start{}.quiet;
+    if (is_noisy)
         DBG_nospace << "";
-    test1("dt=1000 accel=1",    constantly(Millisecond * 1000  ),  1);
-    test1("dt=1000 accel=5",    constantly(Millisecond * 1000  ),  5);
-    test1("dt=100 accel=5",     constantly(Millisecond * 100   ),  5);
-    test1("dt=50 accel=5",      constantly(Millisecond * 50    ),  5);
-    test1("dt=16.667 accel=10", constantly(Millisecond * 16.667), 10);
-    test1("dt=16.667 accel=1",  constantly(Millisecond * 16.667),  1);
-    //test1("dt=16.5 ms accel=1", constantly(Millisecond * 16.5),  1); // todo! fix this!
-    test2("dt=16.667 accel=5",  constantly(Millisecond * 16.667),  5);
-    if (!is_log_quiet())
+
+    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
+    test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
+    test1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
+    test1("dt=33.337 accel=1",   constantly(Millisecond * 33.337),    1);
+    test1("dt=33.337 accel=2",   constantly(Millisecond * 33.337),    2);
+    test1("dt=33.337 accel=5",   constantly(Millisecond * 33.337),    5);
+    test1("dt=16.667 accel=1",   constantly(Millisecond * 50.000),    1);
+    test1("dt=16.667 accel=2",   constantly(Millisecond * 50.000),    2);
+    test1("dt=16.667 accel=5",   constantly(Millisecond * 50.000),    5);
+    test1("dt=200 accel=1",      constantly(Millisecond * 200.0 ),    1);
+    test1("dt=100 accel=2",      constantly(Millisecond * 100.0 ),    2);
+    // test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),0.5); // todo! fix this!
+    test1("dt=100 accel=0.5",    constantly(Millisecond * 100.0 ),  0.5);
+    //test1("dt=16.667 ms accel=1", constantly(Millisecond * 16.667),  1); // todo! fix this!
+    test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
+    test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
+    test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
+    test2("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
+    test2("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
+    test2("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
+    test2("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
+    test2("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
+    test2("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
+
+    if (is_noisy)
     {
         std::fputc('\t', stdout);
         std::fflush(stdout);
