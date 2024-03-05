@@ -124,6 +124,16 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     << " time:" << time
                     << " dt:" << dt
                     << " dist:" << point::distance_l2(pos, start);
+
+    auto fail = [b = grace.no_crash](const char* file, int line) {
+        if (b) [[likely]]
+            return false;
+        else
+        {
+            fm_assert(false);
+            fm_EMIT_DEBUG("", "assertion failed: false in %s:%d", file, line);
+            fm_EMIT_ABORT();
+        }
     };
 
     for (i = 0; true; i++)
@@ -164,7 +174,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                   dbg << "!!! fatal: stopped after zero iterations";
                   dbg << " dt=" << dt << " accel=" << npc.speed;
                 }
-                fm_assert(false);
+                return fail(__FILE__, __LINE__);
             }
             break;
         }
@@ -173,19 +183,13 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt);
             Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
-            if (grace.no_crash)
-                return false;
-            else
-                fm_assert(false);
+            return fail(__FILE__, __LINE__);
         }
         if (i > max_steps) [[unlikely]]
         {
             print_pos("*", start.pt, last_pos, time, dt);
             Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
-            if (grace.no_crash)
-                return false;
-            else
-                fm_assert(false);
+            return fail(__FILE__, __LINE__);
         }
     }
 
@@ -193,10 +197,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         dist_l2 > grace.distance_L2) [[unlikely]]
     {
         Error{standard_error()} << "!!! fatal: distance" << dist_l2 << "pixels" << "over grace distance of" <<  grace.distance_L2;
-        if (grace.no_crash)
-            return false;
-        else
-            fm_assert(false);
+        return fail(__FILE__, __LINE__);
     }
     else if (start.verbose) [[unlikely]]
         Debug{} << "*" << "distance:" << dist_l2 << "pixels";
@@ -211,10 +212,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                 << " expected:" << expected.time
                 << " diff:" << grace.time
                 << " for " << start.name << "/" << start.instance;
-            if (grace.no_crash)
-                return false;
-            else
-                fm_assert(false);
+            return fail(__FILE__, __LINE__);
         }
     }
 
