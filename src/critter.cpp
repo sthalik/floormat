@@ -156,7 +156,8 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
 
-    auto nframes = allocate_frame_time(dt, speed);
+    const auto hz = atlas->info().fps;
+    const auto nframes = allocate_frame_time<uint16_t>(dt, delta, hz, speed);
     if (nframes == 0)
     {
         //static unsigned foo;

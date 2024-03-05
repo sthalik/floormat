@@ -88,8 +88,9 @@ struct object
     void teleport_to(size_t& i, global_coords coord, Vector2b offset, rotation new_r);
     void teleport_to(size_t& i, point pt, rotation new_r);
 
-    static uint32_t allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed);
-    uint32_t allocate_frame_time(Ns dt, float speed);
+    template<typename T>
+    requires std::is_unsigned_v<T>
+    static uint32_t allocate_frame_time(Ns dt, T& accum, uint32_t hz, float speed);
 
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);

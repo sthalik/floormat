@@ -7,6 +7,7 @@
 #include "src/timer.hpp"
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"
+#include "compat/limits.hpp"
 #include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
@@ -287,23 +288,22 @@ bool object::move_to(Magnum::Vector2i delta)
     return move_to(i, delta, r);
 }
 
-uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed)
+template<typename T> requires std::is_unsigned_v<T>
+uint32_t object::allocate_frame_time(Ns dt, T& accum, uint32_t hz, float speed)
 {
     constexpr auto ns_in_sec = Ns((int)1e9);
-    constexpr auto u16_max = uint64_t{65535};
+    constexpr auto accum_max = uint64_t{limits<T>::max};
+    static_assert(Ns{accum_max} * ns_in_sec.stamp != Ns{}); // check for overflow on T
 
-    fm_assert(hz > 0);
-    fm_assert(dt >= Ns{0});
-
-    const auto from_accum = uint64_t{accum} * ns_in_sec / u16_max;
+    const auto from_accum = uint64_t{accum} * ns_in_sec / accum_max;
     const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
     fm_assert(from_dt <= Ns{uint64_t{1} << 53});
     const auto ticks = from_dt + from_accum;
     const auto frame_duration = ns_in_sec / hz;
-    const auto frames = (uint32_t)(ticks / frame_duration);
+    const auto nframes = (uint32_t)(ticks / frame_duration);
     const auto rem = ticks % frame_duration;
-    const auto new_accum_ = rem * u16_max / uint64_t{ns_in_sec};
-    const auto new_accum = (uint16_t)Math::clamp(new_accum_, uint64_t{0}, u16_max);
+    const auto new_accum_ = rem * accum_max / uint64_t{ns_in_sec};
+    const auto new_accum = (T)Math::clamp(new_accum_, uint64_t{0}, accum_max);
     [[maybe_unused]] const auto old_accum = accum;
     accum = new_accum;
 
@@ -315,17 +315,12 @@ uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float 
                 << ", acc:" << new_accum_
                 << ", rem:" << rem;
 #endif
-    fm_assert(frames < 1 << 22);
-    return frames;
+    fm_assert(nframes < 1 << 12);
+    return nframes;
 }
 
-uint32_t object::allocate_frame_time(Ns dt, float speed)
-{
-    fm_assert(atlas);
-    auto hz = atlas->info().fps;
-    fm_assert(hz > 0);
-    return allocate_frame_time(dt, delta, hz, speed);
-}
+template uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed);
+template uint32_t object::allocate_frame_time(Ns dt, uint32_t& accum, uint32_t hz, float speed);
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
