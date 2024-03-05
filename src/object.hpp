@@ -90,7 +90,7 @@ struct object
 
     template<typename T>
     requires std::is_unsigned_v<T>
-    static uint32_t allocate_frame_time(Ns dt, T& accum, uint32_t hz, float speed);
+    static uint32_t alloc_frame_time(Ns dt, T& accum, uint32_t hz, float speed);
 
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);

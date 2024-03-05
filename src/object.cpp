@@ -289,7 +289,7 @@ bool object::move_to(Magnum::Vector2i delta)
 }
 
 template<typename T> requires std::is_unsigned_v<T>
-uint32_t object::allocate_frame_time(Ns dt, T& accum, uint32_t hz, float speed)
+uint32_t object::alloc_frame_time(Ns dt, T& accum, uint32_t hz, float speed)
 {
     constexpr auto ns_in_sec = Ns((int)1e9);
     constexpr auto accum_max = uint64_t{limits<T>::max};
@@ -319,8 +319,8 @@ uint32_t object::allocate_frame_time(Ns dt, T& accum, uint32_t hz, float speed)
     return nframes;
 }
 
-template uint32_t object::allocate_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed);
-template uint32_t object::allocate_frame_time(Ns dt, uint32_t& accum, uint32_t hz, float speed);
+template uint32_t object::alloc_frame_time(Ns dt, uint16_t& accum, uint32_t hz, float speed);
+template uint32_t object::alloc_frame_time(Ns dt, uint32_t& accum, uint32_t hz, float speed);
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
