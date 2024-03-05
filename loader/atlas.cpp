@@ -22,9 +22,9 @@ StringView loader_::make_atlas_path(char(&buf)[fm_FILENAME_MAX], StringView dir,
     const auto dirsiz = dir.size(), namesiz = name.size(), extsiz = ext.size(),
                len = dirsiz + namesiz + extsiz;
     fm_soft_assert(len < fm_FILENAME_MAX);
-    std::memcpy(&buf[0],                dir.data(),  dirsiz );
+    std::memcpy(&buf[0],                   dir.data(),   dirsiz);
     std::memcpy(&buf[dirsiz],           name.data(), namesiz);
-    std::memcpy(&buf[dirsiz + namesiz], ext.data(),  extsiz );
+    std::memcpy(&buf[dirsiz + namesiz], ext.data(),   extsiz);
     buf[len] = '\0';
     return StringView{buf, len, StringViewFlag::NullTerminated};
 }
