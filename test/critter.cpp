@@ -143,7 +143,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         const auto dt = Ns{make_dt()};
         if (dt == Ns{}) [[unlikely]]
         {
-            if (!start.quiet) [[unlikely]]
+            if (start.verbose) [[unlikely]]
                 Debug{} << "| dt == 0, breaking";
             break;
         }
