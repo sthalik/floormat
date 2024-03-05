@@ -39,10 +39,12 @@ if(MSVC)
         -wd4312 # warning C4312: 'reinterpret_cast': conversion from 'GLenum' to 'void *' of greater size
         -wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
         -wd4456 # warning C4456: declaration of 'x' hides previous local declaration
-        -wd4457 # #warning C4457: declaration of 'name' hides function parameter
-        #-wd4530 # warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
+        -wd4457 # warning C4457: declaration of 'name' hides function parameter
         -wd4244 # warning C4244: 'initializing': conversion from 'unsigned int' to '_Ty', possible loss of data
         -wd4005 # warning C4005: '_USE_MATH_DEFINES': macro redefinition
+        -wd4910 # warning C4910: '__declspec(dllexport)' and 'extern' are incompatible on an explicit instantiation
+        -wd4661 # warning C4661:  no suitable definition provided for explicit template instantiation request
+        -wd4267 # warning C4267: 'initializing': conversion from 'size_t' to '_Ty2', possible loss of data
     )
 else()
     add_compile_options(
