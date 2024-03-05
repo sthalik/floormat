@@ -118,12 +118,14 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     if (!start.quiet) [[unlikely]]
         Debug{} << "**" << start.name << start.instance << colon();
 
-    constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt) {
+    constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt, uint16_t delta) {
         DBG_nospace << prefix
                     << " " << pos
                     << " time:" << time
                     << " dt:" << dt
-                    << " dist:" << point::distance_l2(pos, start);
+                    << " dist:" << point::distance_l2(pos, start)
+                    << " delta:" << delta;
+    };
 
     auto fail = [b = grace.no_crash](const char* file, int line) {
         if (b) [[likely]]
@@ -146,7 +148,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
             break;
         }
         if (start.verbose) [[unlikely]]
-            print_pos("  ", expected.pt, npc.position(), time, dt);
+            print_pos("  ", expected.pt, npc.position(), time, dt, npc.delta);
         fm_assert(dt >= Millisecond*1e-1);
         fm_assert(dt <= Second * 1000);
         npc.update_movement(index, dt, start.rotation);
@@ -161,7 +163,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         {
             if (!start.quiet) [[unlikely]]
             {
-                print_pos("->", expected.pt, pos, time, dt);
+                print_pos("->", expected.pt, pos, time, dt, npc.delta);
                 DBG_nospace << "===>"
                             << " iters,"
                             << " time:" << time
@@ -181,13 +183,13 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (time > max_time) [[unlikely]]
         {
             if (!start.quiet) [[unlikely]]
-                print_pos("*", start.pt, last_pos, time, dt);
+                print_pos("*", start.pt, last_pos, time, dt, npc.delta);
             Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
             return fail(__FILE__, __LINE__);
         }
         if (i > max_steps) [[unlikely]]
         {
-            print_pos("*", start.pt, last_pos, time, dt);
+            print_pos("*", start.pt, last_pos, time, dt, npc.delta);
             Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
             return fail(__FILE__, __LINE__);
         }
