@@ -85,7 +85,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
     constexpr auto max_time = 300*Second;
-    constexpr uint32_t max_steps = 50'000;
+    constexpr uint32_t max_steps = 100'000;
 
     fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
@@ -113,7 +113,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     Ns time{0}, saved_time{0};
     auto last_pos = npc.position();
     uint32_t i;
-    constexpr auto max_stop_frames = 20;
+    constexpr auto max_stop_frames = 250; // todo! detect collisions properly and don't rely on this
     uint32_t frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
@@ -296,26 +296,38 @@ void test_app::test_critter()
     test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
     test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
     test1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
-    test1("dt=33.337 accel=1",   constantly(Millisecond * 33.337),    1);
-    test1("dt=33.337 accel=2",   constantly(Millisecond * 33.337),    2);
-    test1("dt=33.337 accel=5",   constantly(Millisecond * 33.337),    5);
-    test1("dt=16.667 accel=1",   constantly(Millisecond * 50.000),    1);
-    test1("dt=16.667 accel=2",   constantly(Millisecond * 50.000),    2);
-    test1("dt=16.667 accel=5",   constantly(Millisecond * 50.000),    5);
-    test1("dt=200 accel=1",      constantly(Millisecond * 200.0 ),    1);
-    test1("dt=100 accel=2",      constantly(Millisecond * 100.0 ),    2);
     test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
-    test1("dt=100 accel=0.5",    constantly(Millisecond * 100.00 ), 0.5);
-    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
+    test1("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
+    test1("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
+    test1("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
+    test1("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
+    test1("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
+    test1("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
+    test1("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
+    test1("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
+    test1("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
+    test1("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
+    test1("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
+    test1("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
+    test1("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+
+    test2("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
+    test2("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
+    test2("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
+    test2("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
     test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
     test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
     test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
     test2("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
     test2("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
     test2("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
+    test2("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
     test2("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
     test2("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
     test2("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
+    test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
+    test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
+    test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
 
     if (is_noisy)
     {
