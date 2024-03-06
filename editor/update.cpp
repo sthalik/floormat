@@ -129,7 +129,9 @@ void app::do_emit_timestamp()
 
     static unsigned counter;
     const auto now = Time::now();
-    const auto time = (double)Time::to_milliseconds(now - Time{_timestamp});
+    auto time = (double)Time::to_milliseconds(now - Time{_timestamp});
+    if (counter == 0)
+        time = 0;
     char buf[fm_DATETIME_BUF_SIZE];
     format_datetime_to_string(buf);
 
