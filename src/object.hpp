@@ -21,7 +21,8 @@ struct object_proto
     std::shared_ptr<anim_atlas> atlas;
     Vector2b offset, bbox_offset;
     Vector2ub bbox_size = Vector2ub(tile_size_xy);
-    uint16_t delta = 0, frame = 0;
+    uint32_t delta = 0;
+    uint16_t frame = 0;
     object_type type : 3              = object_type::none;
     rotation r       : rotation_BITS  = rotation::N;
     pass_mode pass   : pass_mode_BITS = pass_mode::see_through; // todo move to struct scenery, add inherit bit
@@ -47,7 +48,7 @@ struct object
     const global_coords coord;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
-    uint16_t delta = 0; // todo! switch to Vector2ui due to `allocate_frame_time'
+    uint32_t delta = 0;
     uint16_t frame = 0;
     const rotation r = rotation::N; // todo remove bitfield?
     const pass_mode pass = pass_mode::see_through;

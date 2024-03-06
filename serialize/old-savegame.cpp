@@ -471,12 +471,18 @@ void reader_state::read_chunks(reader_t& s)
                     if (const auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
                     {
                         if (val->active)
-                            sc.delta << s;
+                        {
+                            uint16_t delta_; delta_ << s;
+                            sc.delta = uint32_t(sc.delta) * 65536u;
+                        }
                     }
                     else if (const auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
                     {
                         if (val->active)
-                            sc.delta << s;
+                        {
+                            uint16_t delta_; delta_ << s;
+                            sc.delta = uint32_t(sc.delta) * 65536u;
+                        }
                     }
                 }
                 auto e = _world->make_object<scenery, false>(oid, {ch, local}, sc);
@@ -581,9 +587,17 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             if (val->active)
             {
                 if (PROTO >= 4) [[likely]]
-                    sc.delta << s;
+                {
+                    uint16_t delta_;
+                    delta_ << s;
+                    sc.delta = uint32_t(delta_) * 65536u;
+                }
                 else
-                    sc.delta = (uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+                {
+                    auto x = (double)s.read<float>();
+                    fm_soft_assert(x >= 0 && x <= 1);
+                    sc.delta = (uint32_t)(x * (uint32_t)-1);
+                }
             }
         }
         else if (auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
@@ -591,9 +605,17 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             if (val->active)
             {
                 if (PROTO >= 4) [[likely]]
-                    sc.delta << s;
+                {
+                    uint16_t delta_;
+                    delta_ << s;
+                    sc.delta = uint32_t(delta_) * 65536u;
+                }
                 else
-                    sc.delta = (uint16_t)Math::clamp(int(s.read<float>() * 65535), 0, 65535);
+                {
+                    auto x = (double)s.read<float>();
+                    fm_soft_assert(x >= 0 && x <= 1);
+                    sc.delta = (uint32_t)(x * (uint32_t)-1);
+                }
             }
         }
     }

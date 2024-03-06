@@ -109,8 +109,9 @@ struct visitor_
     // 20: complete rewrite
     // 21: oops, forgot the object counter
     // 22: add object::speed
+    // 23: switch object::delta to 32-bit
 
-    static constexpr inline proto_t proto_version      = 22;
+    static constexpr inline proto_t proto_version      = 23;
     const proto_t& PROTO;
     visitor_(const proto_t& proto) : PROTO{proto} {}
 
@@ -176,7 +177,14 @@ struct visitor_
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
-        do_visit_nonconst(obj.delta, f);
+        if (PROTO >= 23) [[likely]]
+            do_visit_nonconst(obj.delta, f);
+        else
+        {
+            auto delta_ = uint16_t(obj.delta >> 16);
+            do_visit(delta_, f);
+            obj.delta = delta_ * 65536u;
+        }
         do_visit_nonconst(obj.frame, f);
         do_visit_nonconst(obj.r, f);
         do_visit_nonconst(obj.pass, f);
