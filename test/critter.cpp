@@ -192,7 +192,8 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         }
         if (i > max_steps) [[unlikely]]
         {
-            print_pos("*", start.pt, last_pos, time, dt, npc);
+            if (!start.quiet) [[unlikely]]
+                print_pos("*", start.pt, last_pos, time, dt, npc);
             Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
             return fail(__FILE__, __LINE__);
         }
