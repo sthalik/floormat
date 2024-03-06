@@ -160,12 +160,12 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
 
         time += dt;
 
-        if (same_pos) [[unlikely]]
+        if (same_pos)
         {
             frames_stopped++;
             if (frames_stopped == 0)
                 saved_time = time;
-            if (frames_stopped >= max_stop_frames) [[unlikely]]
+            else if (frames_stopped >= max_stop_frames) [[unlikely]]
             {
                 if (!start.quiet) [[unlikely]]
                 {
@@ -209,7 +209,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     else if (start.verbose) [[unlikely]]
         Debug{} << "*" << "distance:" << dist_l2 << "pixels";
 
-    if (expected.time != Ns{})
+    if (expected.time != Ns{}) [[likely]]
     {
         const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)saved_time.stamp)};
         if (time_diff > grace.time)
