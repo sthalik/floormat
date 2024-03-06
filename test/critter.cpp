@@ -163,9 +163,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (same_pos)
         {
             frames_stopped++;
-            if (frames_stopped == 0)
-                saved_time = time;
-            else if (frames_stopped >= max_stop_frames) [[unlikely]]
+            if (frames_stopped >= max_stop_frames) [[unlikely]]
             {
                 if (!start.quiet) [[unlikely]]
                 {
