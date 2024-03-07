@@ -60,18 +60,6 @@ constexpr Ns operator*(T lhs, const Ns& rhs)
     return rhs * lhs;
 }
 
-template<typename T>
-requires std::is_same_v<float, T>
-constexpr Ns operator*(const Ns& lhs, T rhs)
-{
-    constexpr float max{uint64_t{1} << 24};
-    auto a = lhs.stamp;
-    auto x = float(a) * float{rhs};
-    fm_assert(x >= 0);
-    fm_assert(x <= max);
-    return Ns{uint64_t(x)};
-}
-
 constexpr uint64_t operator/(const Ns& lhs, const Ns& rhs)
 {
     auto a = lhs.stamp, b = rhs.stamp;

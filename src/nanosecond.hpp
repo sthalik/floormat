@@ -21,7 +21,6 @@ struct Ns
     template<typename T> requires (std::is_integral_v<T> && std::is_unsigned_v<T>) friend constexpr Ns operator*(const Ns& lhs, T rhs);
     template<typename T> requires (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) < sizeof(uint64_t)) friend constexpr Ns operator*(const Ns&, T);
     template<typename T> friend constexpr Ns operator*(T lhs, const Ns& rhs);
-    template<typename T> requires std::is_same_v<float, T> friend constexpr Ns operator*(const Ns& lhs, T rhs);
 
     friend constexpr uint64_t operator/(const Ns& lhs, const Ns& rhs);
     friend constexpr Ns operator/(const Ns& lhs, uint64_t b);
