@@ -11,7 +11,7 @@ extern "C" __declspec(dllimport) long WINAPI RtlGetVersion(PRTL_OSVERSIONINFOEXW
 #ifdef _MSC_VER
 #pragma comment(lib, "ntdll.lib")
 #endif
-#if defined __GNUG__ && !defined __clang__
+#if defined __GNUG__
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
 #endif // _WIN32
