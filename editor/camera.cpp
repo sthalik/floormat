@@ -84,9 +84,9 @@ object_id app::get_object_colliding_with_cursor()
         constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixel_ = Math::fmod(tile_, 1.f);
-        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixel_[0] : subpixel_[0],
-                                          curchunk[1] < 0 ? 1 + subpixel_[1] : subpixel_[1]);
+        const auto subpixelʹ = Math::fmod(tile_, 1.f);
+        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixelʹ[0] : subpixelʹ[0],
+                                          curchunk[1] < 0 ? 1 + subpixelʹ[1] : subpixelʹ[1]);
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {

@@ -1,5 +1,5 @@
 #include "limits.hpp"
-#include <climits>
+#include <cstdint>
 #include <cfloat>
 
 namespace floormat {
