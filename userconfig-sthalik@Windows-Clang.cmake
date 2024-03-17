@@ -140,6 +140,7 @@ function(fm-userconfig-src)
         -Wno-error=weak-vtables
         -Wno-error=unreachable-code
         -Wno-error=unused-command-line-argument
+        -Wno-error=switch-default
     )
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         add_compile_options(-ftime-trace)
