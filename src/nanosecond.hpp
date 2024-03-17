@@ -38,6 +38,6 @@ struct Ns
 };
 
 constexpr inline Ns Minute{60000000000}, Second{1000000000}, Millisecond{1000000}, Microsecond{1000};
-constexpr inline const Ns& Minutes{Minute}, Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
+constexpr inline Ns Minutes{Minute}, Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
 
 } // namespace floormat
