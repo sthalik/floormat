@@ -231,16 +231,16 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
 
     for (const auto& [coord, c] : chunks()) // todo use world::_objects
     {
-        for (const auto& e_ : c.objects())
+        for (const auto& eʹ : c.objects())
         {
-            const auto& e = *e_;
+            const auto& e = *eʹ;
             if (e.type() == object_type::critter)
             {
                 const auto& C = static_cast<const critter&>(e);
                 if (C.playable)
                 {
                     id = std::min(id, C.id);
-                    ret.ptr = std::static_pointer_cast<critter>(e_);
+                    ret.ptr = std::static_pointer_cast<critter>(eʹ);
                 }
             }
         }

@@ -122,6 +122,7 @@ function(fm-userconfig-src)
         -Wno-unsafe-buffer-usage
         -Wno-bitwise-op-parentheses
         -Wno-weak-vtables
+        -Wno-c99-compat
     )
     add_compile_options(
         -Werror

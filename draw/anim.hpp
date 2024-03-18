@@ -30,7 +30,7 @@ struct anim_mesh
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& pos, float depth);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float dpeth);
     static void add_clickable(tile_shader& shader, const Vector2i& win_size,
-                              object* s_, const chunk::topo_sort_data& data,
+                              object* s, const chunk::topo_sort_data& data,
                               Array<clickable>& list);
 
 private:

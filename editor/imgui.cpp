@@ -267,11 +267,11 @@ void app::do_lightmap_test()
             if (auto* chunk = w.at(c))
             {
                 auto offset = Vector2(Vector2i(c.x) - Vector2i(x, y));
-                for (const auto& e_ : chunk->objects())
+                for (const auto& eʹ : chunk->objects())
                 {
-                    if (e_->type() == object_type::light)
+                    if (eʹ->type() == object_type::light)
                     {
-                        const auto& li = static_cast<const light&>(*e_);
+                        const auto& li = static_cast<const light&>(*eʹ);
                         if (li.max_distance < 1e-6f)
                             continue;
                         light_s L {
@@ -338,16 +338,16 @@ void app::do_popup_menu()
 {
     const auto [id, target] = _popup_target;
     auto& w = M->world();
-    auto e_ = w.find_object(id);
+    auto eʹ = w.find_object(id);
 
-    if (target == popup_target_type::none || !e_)
+    if (target == popup_target_type::none || !eʹ)
     {
         _popup_target = {};
         _pending_popup = {};
         return;
     }
 
-    auto& e = *e_;
+    auto& e = *eʹ;
 
     auto b0 = push_id(SCENERY_POPUP_NAME);
     //if (_popup_target.target != popup_target_type::scenery) {...}

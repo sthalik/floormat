@@ -33,10 +33,10 @@ std::array<UnsignedShort, 6> anim_mesh::make_index_array()
 }
 
 void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
-                              object* s_, const chunk::topo_sort_data& data,
+                              object* sʹ, const chunk::topo_sort_data& data,
                               Array<clickable>& list)
 {
-    const auto& s = *s_;
+    const auto& s = *sʹ;
     const auto& a = *s.atlas;
     const auto& g = a.group(s.r);
     const auto& f = a.frame(s.r, s.frame);
@@ -49,7 +49,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size,
             .src = { f.offset, f.offset + f.size },
             .dest = { offset, offset + Vector2i(f.size) },
             .bitmask = a.bitmask(),
-            .e = s_,
+            .e = sʹ,
             .depth = s.ordinal() + (float)s.coord.z() * TILE_COUNT,
             .slope = data.slope,
             .bb_min = data.bb_min, .bb_max = data.bb_max,

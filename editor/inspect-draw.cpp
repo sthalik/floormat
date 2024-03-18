@@ -26,13 +26,13 @@ void app::draw_inspector()
     for (auto i = (int)(inspectors.size()-1); i >= 0; i--)
     {
         auto [id, target] = inspectors[i];
-        auto e_ = w.find_object(id);
-        if (!e_)
+        auto eʹ = w.find_object(id);
+        if (!eʹ)
         {
             erase_inspector((unsigned)i);
             continue;
         }
-        auto& e = *e_;
+        auto& e = *eʹ;
 
         char buf[256], buf2[32], buf3[128];
         ImGui::SetNextWindowSize({375*dpi[0], 0});

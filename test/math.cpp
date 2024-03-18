@@ -20,9 +20,9 @@ bool test_sqrt()
     constexpr auto eps = F(1e-11);
     constexpr auto test = [](double x)
     {
-        auto x_ = (F)x;
-        auto y1 = Math::sqrt(x_);
-        auto y2 = std::sqrt(x_);
+        auto xʹ = (F)x;
+        auto y1 = Math::sqrt(xʹ);
+        auto y2 = std::sqrt(xʹ);
         return Math::abs(y1 - y2) < eps;
     };
 

@@ -397,9 +397,9 @@ void lightmap_shader::add_geometry(Vector2 neighbor_offset, chunk& c)
 
 void lightmap_shader::add_objects(Vector2 neighbor_offset, chunk& c)
 {
-    for (const auto& e_ : c.objects())
+    for (const auto& eʹ : c.objects())
     {
-        const auto& e = *e_;
+        const auto& e = *eʹ;
         if (e.is_virtual())
             continue;
         if (e.pass == pass_mode::pass || e.pass == pass_mode::see_through)

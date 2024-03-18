@@ -197,15 +197,15 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
         return false;
 
     auto& w = *c->_world;
-    auto& c_ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
+    auto& cʹ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
-    if (!do_search<false>(&c_, coord_, id, min, max))
+    if (!do_search<false>(&cʹ, coord_, id, min, max))
         return false;
     for (const auto& off : world::neighbor_offsets)
-        if (!do_search(&c_, coord_, id, min, max, off))
+        if (!do_search(&cʹ, coord_, id, min, max, off))
             return false;
     return true;
 }
@@ -232,8 +232,8 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     }
 
     fm_assert(i < c->_objects.size());
-    const auto e_ = c->_objects[i];
-    fm_assert(&*e_ == this);
+    const auto eʹ = c->_objects[i];
+    fm_assert(&*eʹ == this);
 
     if (coord_ == coord && offset_ == offset)
         return;
@@ -268,8 +268,8 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
         set_bbox_(offset_, bb_offset, bb_size, pass);
         const_cast<rotation&>(r) = new_r;
         const_cast<class chunk*&>(c) = &c2;
-        i = (size_t)std::distance(es.cbegin(), std::lower_bound(es.cbegin(), es.cend(), e_, object_id_lessp));
-        arrayInsert(es, i, move(e_));
+        i = (size_t)std::distance(es.cbegin(), std::lower_bound(es.cbegin(), es.cend(), eʹ, object_id_lessp));
+        arrayInsert(es, i, move(eʹ));
     }
 }
 

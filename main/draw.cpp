@@ -97,10 +97,10 @@ void main_impl::draw_world() noexcept
             for (int16_t x = maxx; x >= minx; x--)
             {
                 const chunk_coords_ ch{x, y, z};
-                auto* c_ = _world.at(ch);
-                if (!c_)
+                auto* cʹ = _world.at(ch);
+                if (!cʹ)
                     continue;
-                auto& c = *c_;
+                auto& c = *cʹ;
                 bind();
 
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
@@ -124,10 +124,10 @@ void main_impl::draw_world() noexcept
                     _shader.set_tint({1, 1, 1, 1});
 
                 const chunk_coords_ pos{x, y, z};
-                auto* c_ = _world.at(pos);
-                if (!c_)
+                auto* cʹ = _world.at(pos);
+                if (!cʹ)
                     continue;
-                auto& c = *c_;
+                auto& c = *cʹ;
                 const with_shifted_camera_offset o{_shader, pos, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), sz))
                     _anim_mesh.draw(_shader, sz, c, _clickable_scenery, _do_render_vobjs);

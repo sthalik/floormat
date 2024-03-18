@@ -228,9 +228,9 @@ Group read_group_metadata(const json& jgroup)
 
 Direction read_direction_metadata(const json& jroot, Direction_ dir)
 {
-    const auto s_ = direction_index_to_name((size_t)dir);
-    fm_assert(s_.size() == 1);
-    std::string_view s = {s_.data(), s_.size()};
+    const auto sʹ = direction_index_to_name((size_t)dir);
+    fm_assert(sʹ.size() == 1);
+    std::string_view s = {sʹ.data(), sʹ.size()};
     fm_assert(s.size() == 1);
     if (!jroot.contains(s))
         return {};

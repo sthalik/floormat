@@ -96,8 +96,8 @@ constexpr Math::Vector2<T> tile_shader::unproject(const Math::Vector2<T>& px)
 {
     static_assert(std::is_floating_point_v<T>);
     const auto X = px[0], Y = px[1];
-    const auto Y_ = Y / T(foreshortening_factor);
-    return { X + Y_, Y_ - X };
+    const auto Yʹ = Y / T(foreshortening_factor);
+    return { X + Yʹ, Yʹ - X };
 }
 
 } // namespace floormat

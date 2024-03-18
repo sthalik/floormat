@@ -131,13 +131,13 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
             }
         }
     }
-    else if (Optional<Cell> c_{t.make_cell(name)})
+    else if (Optional<Cell> cʹ{t.make_cell(name)})
     {
-        fm_assert(t.name_of(*c_));
-        fm_assert(!t.atlas_of(*c_));
-        fm_assert(t.name_of(*c_) == name);
+        fm_assert(t.name_of(*cʹ));
+        fm_assert(!t.atlas_of(*cʹ));
+        fm_assert(t.name_of(*cʹ) == name);
         const size_t index{s.cell_array.size()};
-        arrayAppend(s.cell_array, move(*c_));
+        arrayAppend(s.cell_array, move(*cʹ));
         Cell& c{s.cell_array.back()};
         String& name_{t.name_of(c)};
         if (name_.isSmall()) name_ = String{AllocatedInit, name_};

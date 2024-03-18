@@ -32,7 +32,7 @@ shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
     return w.ensure_player_character(_character_id);
 }
 
-void app::reset_world(class world&& w_)
+void app::reset_world(class world&& wʹ)
 {
     if (!M)
         return;
@@ -51,7 +51,7 @@ void app::reset_world(class world&& w_)
     _render_all_z_levels = true;
     _timestamp = 0;
 
-    auto& w = M->reset_world(move(w_));
+    auto& w = M->reset_world(move(wʹ));
     w.collect(true);
     ensure_player_character(w);
     update_cursor_tile(pixel);

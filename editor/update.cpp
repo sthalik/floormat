@@ -232,10 +232,10 @@ void app::update_world(Ns dt)
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
-                auto* c_ = world.at({x, y, z});
-                if (!c_)
+                auto* cʹ = world.at({x, y, z});
+                if (!cʹ)
                     continue;
-                auto& c = *c_;
+                auto& c = *cʹ;
                 const auto& es = c.objects();
                 const auto size = es.size();
                 for (auto i = (int)(size-1); i >= 0; i--)

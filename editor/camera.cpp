@@ -91,10 +91,10 @@ object_id app::get_object_colliding_with_cursor()
             for (int16_t x = minx; x <= maxx; x++)
             {
                 const chunk_coords_ c_pos{x, y, _z_level};
-                auto* c_ = world.at(c_pos);
-                if (!c_)
+                auto* cʹ = world.at(c_pos);
+                if (!cʹ)
                     continue;
-                auto& c = *c_;
+                auto& c = *cʹ;
                 c.ensure_passability();
                 const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
@@ -113,8 +113,8 @@ object_id app::get_object_colliding_with_cursor()
                         Vector2 min(rect.m_min[0], rect.m_min[1]), max(rect.m_max[0], rect.m_max[1]);
                         if (t0 >= min && t0 <= max)
                         {
-                            if (auto e_ = world.find_object(x.data);
-                                e_ && Vector2ui(e_->bbox_size).product() != 0)
+                            if (auto eʹ = world.find_object(x.data);
+                                eʹ && Vector2ui(eʹ->bbox_size).product() != 0)
                             {
                                 ret = x.data;
                                 return false;

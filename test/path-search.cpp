@@ -20,10 +20,10 @@ constexpr bbox<int> get_value(Vector2i sz, Vector2ui div, rotation r)
 {
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
-    const auto r_ = (uint8_t)r;
-    CORRADE_ASSUME(r_ <= (uint8_t)rotation_COUNT);
+    const auto rʹ = (uint8_t)r;
+    CORRADE_ASSUME(rʹ <= (uint8_t)rotation_COUNT);
 
-    switch (r_)
+    switch (rʹ)
     {
     case (uint8_t)rotation::N: {
         auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
