@@ -196,17 +196,17 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
 void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
 {
-    const size_t len_ = _objects.size();
+    const size_t lenʹ = _objects.size();
 
-    if (len_ <= bufs.array.size())
+    if (lenʹ <= bufs.array.size())
         return;
 
     size_t len;
 
-    if (len_ > 1 << 20)
-        len = len_;
+    if (lenʹ > 1 << 20)
+        len = lenʹ;
     else
-        len = std::bit_ceil(len_);
+        len = std::bit_ceil(lenʹ);
 
     bufs.array = Array<object_draw_order>{NoInit, len};
     bufs.scenery_vertexes = Array<std::array<vertex, 4>>{NoInit, len};

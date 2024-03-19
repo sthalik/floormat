@@ -113,8 +113,8 @@ object_id app::get_object_colliding_with_cursor()
                         Vector2 min(rect.m_min[0], rect.m_min[1]), max(rect.m_max[0], rect.m_max[1]);
                         if (t0 >= min && t0 <= max)
                         {
-                            if (auto eʹ = world.find_object(x.data);
-                                eʹ && Vector2ui(eʹ->bbox_size).product() != 0)
+                            if (auto e_ = world.find_object(x.data);
+                                e_ && Vector2ui(e_->bbox_size).product() != 0)
                             {
                                 ret = x.data;
                                 return false;
@@ -142,9 +142,9 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 
         const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*pixel)));
         const auto curchunk = Vector2(tile.chunk());
-        const auto subpixel_ = Math::fmod(tile_, 1.f);
-        auto subpixel = TILE_SIZE2 * Vector2(curchunk.x() < 0 ? 1 + subpixel_.x() : subpixel_.x(),
-                                             curchunk.y() < 0 ? 1 + subpixel_.y() : subpixel_.y());
+        const auto subpixelʹ = Math::fmod(tile_, 1.f);
+        auto subpixel = TILE_SIZE2 * Vector2(curchunk.x() < 0 ? 1 + subpixelʹ.x() : subpixelʹ.x(),
+                                             curchunk.y() < 0 ? 1 + subpixelʹ.y() : subpixelʹ.y());
         constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
         subpixel -= half_tile;
         subpixel = Math::clamp(Math::round(subpixel), -half_tile, half_tile-Vector2{1.f});

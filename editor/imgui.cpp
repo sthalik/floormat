@@ -115,7 +115,7 @@ float app::draw_main_menu()
 void app::draw_ui()
 {
     const auto dpi = M->dpi_scale().min();
-    [[maybe_unused]] const auto style_ = style_saver{};
+    [[maybe_unused]] const auto styleʹ = style_saver{};
     auto& style = ImGui::GetStyle();
     auto& ctx = *ImGui::GetCurrentContext();
 

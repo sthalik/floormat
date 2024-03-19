@@ -171,8 +171,8 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
 
         if (ImGui::TableSetColumnIndex(0))
         {
-            auto atlas_ = get_atlas(scenery);
-            auto& atlas = *atlas_;
+            auto atlasʹ = get_atlas(scenery);
+            auto& atlas = *atlasʹ;
             const auto size = Vector2(get_size(scenery, atlas));
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
             const auto texcoords = get_texcoords(scenery, atlas);
@@ -187,8 +187,8 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
         {
             constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
             bool selected = is_selected(ed, scenery);
-            auto name_ = scenery_name(name, scenery);
-            if (ImGui::Selectable(name_.data(), &selected, flags, {0, row_height}) && selected)
+            auto nameʹ = scenery_name(name, scenery);
+            if (ImGui::Selectable(nameʹ.data(), &selected, flags, {0, row_height}) && selected)
                 select_tile(ed, scenery);
             click_event();
         }
