@@ -275,9 +275,7 @@ auto app::get_z_bounds() -> z_bounds
 
 void app::update(Ns dt)
 {
-    //M->world().collect();
     M->world().collect(true);
-
     update_cursor_tile(cursor.pixel);
     tests_pre_update(dt);
     apply_commands(*keys_);
