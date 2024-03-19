@@ -200,7 +200,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
         }
     }
 
-    if (!can_move)
+    if (!can_move) [[unlikely]]
     {
         delta = {};
         offset_frac = {};
