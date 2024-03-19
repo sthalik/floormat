@@ -18,6 +18,7 @@ else()
     add_compile_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
+    add_compile_options(-Wno-nan-infinity-disabled)
 endif()
 
 if(FLOORMAT_ASAN)
