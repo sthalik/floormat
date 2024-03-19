@@ -4,6 +4,8 @@
 #include "src/world.hpp"
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
+#include "src/critter.hpp"
+
 #include <mg/Functions.h>
 
 namespace floormat::tests {
@@ -125,6 +127,9 @@ void pf_test::update_pre(app& a, const Ns& dt)
 
     auto& m = a.main();
     auto& c = *a.ensure_player_character(m.world()).ptr;
+    c.set_keys(false, false, false, false);
+
+    //const auto nframes = c.alloc_frame_time();
 }
 
 void pf_test::update_post(app& a, const Ns&)
