@@ -252,12 +252,12 @@ struct raycast_test final : base_test
         }
     }
 
-    void update_pre(app&) override
+    void update_pre(app&, const Ns&) override
     {
 
     }
 
-    void update_post(app& a) override
+    void update_post(app& a, const Ns&) override
     {
         if (pending.exists)
         {

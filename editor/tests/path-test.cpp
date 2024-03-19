@@ -22,8 +22,8 @@ struct path_test final : base_test
     bool handle_mouse_move(app& a, const mouse_move_event& e) override;
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float width) override;
-    void update_pre(app& a) override;
-    void update_post(app& a) override;
+    void update_pre(app& a, const Ns& dt) override;
+    void update_post(app&, const Ns&) override {}
 
     struct pending_s
     {
@@ -144,7 +144,7 @@ void path_test::draw_overlay(app& a)
     }
 }
 
-void path_test::update_pre(app& a)
+void path_test::update_pre(app& a, const Ns&)
 {
     if (!has_pending)
         return;
@@ -167,11 +167,6 @@ void path_test::update_pre(app& a)
         .distance = res.distance(),
         .found = res.is_found(),
     };
-}
-
-void path_test::update_post(app& a)
-{
-    (void)a;
 }
 
 void path_test::draw_ui(app&, float)

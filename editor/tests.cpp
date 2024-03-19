@@ -3,6 +3,7 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "floormat/events.hpp"
+#include "src/nanosecond.inl"
 #include "imgui-raii.hpp"
 #define HAVE_LIBC 1
 #include <SDL_keycode.h>
@@ -45,16 +46,16 @@ safe_ptr<tests_data_> tests_data_::make()
     return safe_ptr<tests_data_>{new tests_data};
 }
 
-void app::tests_pre_update()
+void app::tests_pre_update(Ns dt)
 {
     if (auto& x = tests().current_test)
-        x->update_pre(*this);
+        x->update_pre(*this, dt);
 }
 
-void app::tests_post_update()
+void app::tests_post_update(Ns dt)
 {
     if (auto& x = tests().current_test)
-        x->update_post(*this);
+        x->update_post(*this, dt);
 }
 
 bool app::tests_handle_mouse_click(const mouse_button_event& e, bool is_down)

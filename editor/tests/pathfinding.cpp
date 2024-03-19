@@ -78,8 +78,8 @@ struct pf_test final : base_test
     bool handle_mouse_move(app& a, const mouse_move_event&) override { return {}; }
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float menu_bar_height) override;
-    void update_pre(app& a) override;
-    void update_post(app& a) override;
+    void update_pre(app& a, const Ns& dt) override;
+    void update_post(app& a, const Ns& dt) override;
 };
 
 step_s pf_test::get_next_step(point from, point to)
@@ -117,7 +117,7 @@ void pf_test::draw_ui(app& a, float)
     (void)a;
 }
 
-void pf_test::update_pre(app& a)
+void pf_test::update_pre(app& a, const Ns& dt)
 {
     if (!pending.has_value)
         return;
@@ -127,7 +127,7 @@ void pf_test::update_pre(app& a)
     auto& c = *a.ensure_player_character(m.world()).ptr;
 }
 
-void pf_test::update_post(app& a)
+void pf_test::update_post(app& a, const Ns&)
 {
 }
 

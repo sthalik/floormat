@@ -52,8 +52,8 @@ struct region_test final : base_test
     bool handle_mouse_move(app&, const mouse_move_event&) override { return {}; }
     void draw_overlay(app& a) override;
     void draw_ui(app&, float) override;
-    void update_pre(app&) override {}
-    void update_post(app& a) override;
+    void update_pre(app&, const Ns&) override {}
+    void update_post(app& a, const Ns&) override;
 };
 
 void region_test::draw_overlay(app& a)
@@ -139,7 +139,7 @@ bool region_test::handle_mouse_click(app& a, const mouse_button_event& e, bool i
     return false;
 }
 
-void region_test::update_post(app& a)
+void region_test::update_post(app& a, const Ns&)
 {
     if (pending.exists)
     {

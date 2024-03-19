@@ -279,14 +279,14 @@ void app::update(Ns dt)
     M->world().collect(true);
 
     update_cursor_tile(cursor.pixel);
-    tests_pre_update();
+    tests_pre_update(dt);
     apply_commands(*keys_);
     update_character(dt);
     update_world(dt);
     do_camera(dt, *keys_, get_key_modifiers());
     clear_non_repeated_keys();
     set_cursor();
-    tests_post_update();
+    tests_post_update(dt);
 }
 
 } // namespace floormat

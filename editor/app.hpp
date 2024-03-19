@@ -171,8 +171,8 @@ private:
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_move(const mouse_move_event& e);
-    void tests_pre_update();
-    void tests_post_update();
+    void tests_pre_update(Ns dt);
+    void tests_post_update(Ns dt);
     void draw_tests_pane(float width);
     void draw_tests_overlay();
     void tests_reset_mode();

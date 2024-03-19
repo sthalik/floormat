@@ -7,7 +7,7 @@
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
 
-namespace floormat { struct app; }
+namespace floormat { struct app; struct Ns; }
 
 namespace floormat::tests {
 
@@ -21,8 +21,8 @@ struct base_test
     virtual bool handle_mouse_move(app& a, const mouse_move_event& e) = 0;
     virtual void draw_overlay(app& a) = 0;
     virtual void draw_ui(app& a, float width) = 0;
-    virtual void update_pre(app& a) = 0;
-    virtual void update_post(app& a) = 0;
+    virtual void update_pre(app& a, const Ns& dt) = 0;
+    virtual void update_post(app& a, const Ns& dt) = 0;
 
     virtual ~base_test() noexcept;
 
