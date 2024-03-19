@@ -21,19 +21,15 @@ constexpr double frame_time = 1/framerate;
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
-    if (left == right)
-        left = right = false;
-    if (up == down)
-        up = down = false;
-
-    const auto bits = unsigned(left << 3 | right << 2 | up << 1 | down << 0);
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
-    CORRADE_ASSUME(bits <= 0xff);
+    const unsigned bits = left*L | right*R | up*U | down*D;
+    constexpr unsigned mask = L|R|U|D;
+    CORRADE_ASSUME((bits & mask) == bits);
 
     switch (bits)
     {
+    default: std::unreachable(); // -Wswitch-default
     using enum rotation;
-    case 0: return rotation{rotation_COUNT};
     case L | U: return W;
     case L | D: return S;
     case R | U: return N;
@@ -42,10 +38,28 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case D: return SE;
     case R: return NE;
     case U: return NW;
+    case L|(U|D): return SW;
+    case R|(U|D): return NE;
+    case U|(L|R): return NW;
+    case D|(L|R): return SE;
+    case 0:
+    // degenerate case
+    case L|R|D|U:
+    case D|U:
+    case L|R:
+        return rotation{rotation_COUNT};
     }
-    std::unreachable();
-    fm_assert(false);
 }
+#if 0
+static_assert(arrows_to_dir(true, false, false, false) == rotation::SW);
+static_assert(arrows_to_dir(true, false, true, true) == rotation::SW);
+static_assert(arrows_to_dir(true, false, true, false) == rotation::W);
+static_assert(arrows_to_dir(false, true, false, true) == rotation::E);
+static_assert(arrows_to_dir(false, false, true, false) == rotation::NW);
+static_assert(arrows_to_dir(false, false, false, false) == rotation_COUNT);
+static_assert(arrows_to_dir(true, true, true, true) == rotation_COUNT);
+static_assert(arrows_to_dir(true, true, false, false) == rotation_COUNT);
+#endif
 
 constexpr Vector2 rotation_to_vec(rotation r)
 {
