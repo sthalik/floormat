@@ -122,10 +122,10 @@ bool region_test::handle_mouse_click(app& a, const mouse_button_event& e, bool i
 {
     if (e.button == mouse_button_left && is_down)
     {
-        if (auto pt_ = a.cursor_state().point())
+        if (auto ptʹ = a.cursor_state().point())
         {
             pending = {
-                .c = pt_->chunk3(),
+                .c = ptʹ->chunk3(),
                 .exists = true,
             };
             return true;
