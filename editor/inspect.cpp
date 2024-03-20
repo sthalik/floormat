@@ -81,6 +81,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     case hidden: return false;
     case readonly: should_disable = true; break;
     case enabled: should_disable = false; break;
+    default: fm_assert(false);
     }
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
