@@ -2,7 +2,7 @@
 #include "global-coords.hpp"
 #include <compare>
 #include <type_traits>
-#include <Corrade/Utility/StlForwardTuple.h>
+#include <Corrade/Utility/StlForwardTupleSizeElement.h>
 
 namespace floormat { struct point; }
 
@@ -23,6 +23,7 @@ struct point
 
     constexpr bool operator==(const point&) const noexcept;
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b);
+    friend constexpr Vector2i operator-(const point& p1, const point& p2);
 
     constexpr global_coords coord() const;
     constexpr chunk_coords chunk() const;
@@ -50,18 +51,6 @@ constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) 
     cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
 {}
 constexpr bool point::operator==(const point&) const noexcept = default;
-
-constexpr std::strong_ordering operator<=>(const point& p1, const point& p2)
-{
-    if (auto val = p1.cz <=> p2.cz; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.cy <=> p2.cy; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.cx <=> p2.cx; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.tile.y <=> p2.tile.y; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.tile.x <=> p2.tile.x; val != std::strong_ordering::equal) return val;
-    if (auto val = p1._offset.y() <=> p2._offset.y(); val != std::strong_ordering::equal) return val;
-    if (auto val = p1._offset.x() <=> p2._offset.x(); val != std::strong_ordering::equal) return val;
-    return std::strong_ordering::equal;
-}
 
 constexpr global_coords point::coord() const { return {{cx, cy}, tile, cz}; }
 constexpr chunk_coords_ point::chunk3() const { return {cx, cy, cz}; }
