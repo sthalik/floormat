@@ -797,12 +797,17 @@ struct reader final : visitor_<reader>
         f(id);
         switch (type)
         {
-        default: fm_throw("invalid atlas type {}"_cf, (int)type);
-        case atlas_type::anim: a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, loader_policy::warn); return;
-        case atlas_type::vobj: a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas; return;
         case atlas_type::ground:
         case atlas_type::wall:
         case atlas_type::none:
+        default:
+            fm_throw("invalid atlas type {}"_cf, (int)type);
+        case atlas_type::anim:
+            a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, loader_policy::warn);
+            break;
+        case atlas_type::vobj:
+            a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas;
+            break;
         }
     }
 
@@ -817,18 +822,18 @@ struct reader final : visitor_<reader>
 
         switch (type)
         {
+        default: fm_throw("invalid object type {}"_cf, type_);
         case object_type::none:
         case object_type::COUNT:
             break;
         case object_type::light:
-            obj = w.make_unconnected_object<light>(); goto ok;
+            obj = w.make_unconnected_object<light>(); break;
         case object_type::critter:
-            obj = w.make_unconnected_object<critter>(); goto ok;
+            obj = w.make_unconnected_object<critter>(); break;
         case object_type::scenery:
-            obj = w.make_unconnected_object<scenery>(); goto ok;
+            obj = w.make_unconnected_object<scenery>(); break;
         }
-        fm_throw("invalid object type {}"_cf, type_);
-ok:
+
         visit_object_internal(*obj, f, id, object_type(type), ch);
 
         if (PROTO >= 21) [[likely]]
@@ -903,22 +908,21 @@ ok:
             void* atlas = nullptr;
             switch (type)
             {
+            default: fm_throw("invalid atlas_type {}"_cf, (size_t)type);
             case atlas_type::none: break;
             case atlas_type::ground:
                 atlas = loader.ground_atlas(str, loader_policy::warn).get();
-                goto ok;
+                break;
             case atlas_type::wall:
                 atlas = loader.wall_atlas(str, loader_policy::warn).get();
-                goto ok;
+                break;
             case atlas_type::anim:
                 atlas = loader.anim_atlas(str, {}, loader_policy::warn).get();
-                goto ok;
+                break;
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
-                goto ok;
+                break;
             }
-            fm_throw("invalid atlas_type {}"_cf, (size_t)type);
-ok:
             atlases.push_back({.atlas = atlas, .type = type });
         }
     }
