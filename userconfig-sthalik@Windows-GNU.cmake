@@ -1,6 +1,6 @@
 sets(STRING
      CMAKE_C_FLAGS ""
-     CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all"
+     CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all -fstack-reuse=none"
      CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=core2 -mtune=native -mavx -flto -fipa-pta -fmerge-all-constants -static"
 )
 
