@@ -16,9 +16,6 @@ namespace floormat {
 
 namespace {
 
-constexpr double framerate = 60, move_speed = 60;
-constexpr double frame_time = 1/framerate;
-
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
@@ -63,7 +60,7 @@ static_assert(arrows_to_dir(true, true, false, false) == rotation_COUNT);
 
 constexpr Vector2 rotation_to_vec(rotation r)
 {
-    constexpr double c = move_speed * frame_time;
+    constexpr double c = critter::move_speed * critter::frame_time;
     constexpr double d = c / Vector2d{1,  1}.length();
 
     constexpr Vector2 array[8] = {

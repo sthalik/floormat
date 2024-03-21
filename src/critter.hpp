@@ -23,6 +23,9 @@ struct critter_proto : object_proto
 
 struct critter final : object
 {
+    static constexpr double framerate = 60, move_speed = 60;
+    static constexpr double frame_time = 1/framerate;
+
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
