@@ -239,8 +239,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
         }
         const auto step = next_step(from, current.dest);
         Debug{} << "step" << step.direction << step.count;
-        // TODO
-        //C.set_keys_auto();
+        C.set_keys_auto();
         if (step.direction == Vector2b{})
         {
             ok = false;
