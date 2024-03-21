@@ -2,6 +2,7 @@
 #include "compat/shared-ptr-wrapper.hpp"
 #include "editor/app.hpp"
 #include "src/world.hpp"
+#include "src/point.inl"
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
 #include "src/critter.hpp"
@@ -22,9 +23,7 @@ struct step_s
     explicit constexpr operator bool() const { return count != 0 && count != -1u; }
 };
 
-constexpr inline auto empty_step = step_s{0, {}}, invalid_step = step_s{-1u, {}};
-
-constexpr step_s next_step(Vector2i vec_in)
+constexpr step_s next_stepʹ(Vector2i vec_in)
 {
     const auto vec = Vector2ui(Math::abs(vec_in));
     const auto signs = Vector2b(Math::sign(vec_in));
@@ -84,17 +83,14 @@ struct pf_test final : base_test
     void update_post(app& a, const Ns& dt) override;
 };
 
-step_s pf_test::get_next_step(point from, point to)
+constexpr step_s next_step(point from, point to)
 {
-    if (from.chunk3().z != to.chunk3().z)
-        return invalid_step;
-    if (from == to)
-        return empty_step;
+    fm_debug_assert(from.chunk3().z != to.chunk3().z);
 
-    const auto vec = to.coord() - from.coord();
+    const auto vec = to - from;
     fm_debug_assert(!vec.isZero());
 
-    return next_step(vec);
+    return next_stepʹ(vec);
 }
 
 bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
