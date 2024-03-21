@@ -1,12 +1,14 @@
 #include "../tests-private.hpp"
+#include "compat/limits.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "editor/app.hpp"
 #include "src/world.hpp"
+#include "src/critter.hpp"
 #include "src/point.inl"
+#include "src/anim-atlas.hpp"
+#include "src/nanosecond.hpp"
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
-#include "src/critter.hpp"
-
 #include <mg/Functions.h>
 
 namespace floormat::tests {
@@ -19,8 +21,6 @@ struct step_s
 {
     uint32_t count;
     Vector2b direction;
-
-    explicit constexpr operator bool() const { return count != 0 && count != -1u; }
 };
 
 constexpr step_s next_stepʹ(Vector2i vec_in)
@@ -62,21 +62,19 @@ struct result_s
 
 struct pending_s
 {
+    point dest;
     bool has_value : 1 = false;
 };
 
 struct pf_test final : base_test
 {
-    result_s result;
-    pending_s pending;
+    pending_s current;
 
     ~pf_test() noexcept override = default;
 
-    static step_s get_next_step(point from, point to);
-
     bool handle_key(app& a, const key_event& e, bool is_down) override;
     bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
-    bool handle_mouse_move(app& a, const mouse_move_event&) override { return {}; }
+    bool handle_mouse_move(app& a, const mouse_move_event& e) override;
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float menu_bar_height) override;
     void update_pre(app& a, const Ns& dt) override;
@@ -93,6 +91,80 @@ constexpr step_s next_step(point from, point to)
     return next_stepʹ(vec);
 }
 
+#if 0
+constexpr rotation dir_from_step(step_s step)
+{
+    if (!step) [[unlikely]]
+        return rotation_COUNT;
+
+    auto x = step.direction.x() + 1;
+    auto y = step.direction.y() + 1;
+    fm_debug_assert((x & 3) == x && (y & 3) == y);
+    auto val = x << 2 | y;
+
+    switch (val)
+    {
+    using enum rotation;
+    case 0 << 2 | 0: /* -1 -1 */ return NW;
+    case 0 << 2 | 1: /* -1  0 */ return W;
+    case 0 << 2 | 2: /* -1  1 */ return SW;
+    case 1 << 2 | 0: /*  0 -1 */ return N;
+    case 1 << 2 | 1: /*  0  0 */ return rotation_COUNT;
+    case 1 << 2 | 2: /*  0  1 */ return S;
+    case 2 << 2 | 0: /*  1 -1 */ return NE;
+    case 2 << 2 | 1: /*  1  0 */ return E;
+    case 2 << 2 | 2: /*  1  1 */ return SE;
+    default: return rotation_COUNT;
+    }
+}
+#endif
+
+#if 0
+constexpr std::array<bool, 4> arrows_from_step(step_s step)
+{
+    auto x = step.direction.x() + 1;
+    auto y = step.direction.y() + 1;
+    fm_debug_assert((x & 3) == x && (y & 3) == y);
+    auto val = (unsigned)x << 2 | (unsigned)y;
+
+    switch (val)
+    {
+    using enum rotation;
+    case 0 << 2 | 0: /* -1 -1 */ return { 1, 0, 1, 0 }; //NOLINT(*-use-bool-literals)
+    case 0 << 2 | 1: /* -1  0 */ return { 1, 0, 0, 0 }; //NOLINT(*-use-bool-literals)
+    case 0 << 2 | 2: /* -1  1 */ return { 1, 0, 0, 1 }; //NOLINT(*-use-bool-literals)
+    case 1 << 2 | 0: /*  0 -1 */ return { 0, 0, 1, 0 }; //NOLINT(*-use-bool-literals)
+    case 1 << 2 | 1: /*  0  0 */ return {};
+    case 1 << 2 | 2: /*  0  1 */ return { 0, 0, 0, 1 }; //NOLINT(*-use-bool-literals)
+    case 2 << 2 | 0: /*  1 -1 */ return { 0, 1, 1, 0 }; //NOLINT(*-use-bool-literals)
+    case 2 << 2 | 1: /*  1  0 */ return { 0, 1, 0, 0 }; //NOLINT(*-use-bool-literals)
+    case 2 << 2 | 2: /*  1  1 */ return { 0, 1, 0, 1 }; //NOLINT(*-use-bool-literals)
+    default: return {};
+    }
+}
+#if 0
+static_assert(arrows_from_step({0, { 1, -1}}) == std::array<bool, 4>{0, 1, 1, 0});
+static_assert(arrows_from_step({0, {-1,  1}}) == std::array<bool, 4>{1, 0, 0, 1});
+static_assert(arrows_from_step({0, { 0, -1}}) == std::array<bool, 4>{0, 0, 1, 0});
+static_assert(arrows_from_step({0, { 1,  0}}) == std::array<bool, 4>{0, 1, 0, 0});
+#endif
+#endif
+
+constexpr float step_magnitude(Vector2b vec)
+{
+    constexpr double cʹ = critter::move_speed * critter::frame_time;
+    constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
+    constexpr auto c = (float)cʹ, d = (float)dʹ;
+    const auto vecʹ = Vector2(vec);
+
+    if (vec.x() * vec.y() != 0)
+        // diagonal
+        return c;
+    else
+        // axis-aligned
+        return d;
+}
+
 bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
 {
     (void) a; (void)e; (void)is_down;
@@ -101,8 +173,28 @@ bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
 
 bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
 {
-    (void)a; (void)e; (void)is_down;
+    if (e.button == mouse_button_left && is_down)
+    {
+        if (auto ptʹ = a.cursor_state().point())
+        {
+            current = {
+                .dest = *ptʹ,
+                .has_value = true,
+            };
+            return true;
+        }
+    }
+    else if (e.button == mouse_button_right && is_down)
+        current = {};
     return false;
+}
+
+bool pf_test::handle_mouse_move(floormat::app &a, const mouse_move_event& e)
+{
+    if (e.buttons & mouse_button_left)
+        return handle_mouse_click(a, {e.position, e.mods, mouse_button_left, 1}, true);
+    else
+        return false;
 }
 
 void pf_test::draw_overlay(app& a)
@@ -117,18 +209,75 @@ void pf_test::draw_ui(app& a, float)
 
 void pf_test::update_pre(app& a, const Ns& dt)
 {
-    if (!pending.has_value)
+    if (!current.has_value)
         return;
-    pending.has_value = false;
 
     auto& m = a.main();
-    auto& c = *a.ensure_player_character(m.world()).ptr;
-    c.set_keys(false, false, false, false);
+    auto& C = *a.ensure_player_character(m.world()).ptr;
+    fm_assert(C.is_dynamic());
 
-    //const auto nframes = c.alloc_frame_time();
+    const auto hz = C.atlas->info().fps;
+    const auto nframes = C.alloc_frame_time(dt, C.delta, hz, C.speed);
+
+    if (nframes == 0)
+        return;
+
+    C.set_keys(false, false, false, false);
+
+    auto index = C.index();
+    bool ok = true;
+
+    for (uint32_t i = 0; i < nframes; i++)
+    {
+        C.chunk().ensure_passability();
+
+        const auto from = C.position();
+        if (from == current.dest)
+        {
+            current.has_value = false;
+            Debug{} << "done!" << from;
+            return;
+        }
+        const auto step = next_step(from, current.dest);
+        Debug{} << "step" << step.direction << step.count;
+        // TODO
+        //C.set_keys_auto();
+        if (step.direction == Vector2b{})
+        {
+            ok = false;
+            break;
+        }
+        fm_assert(step.count > 0);
+        constexpr auto inv_Frac = 1.f / (float)unsigned{limits< std::decay_t<decltype(C.offset_frac.x())> >::max};
+        const auto vec = Vector2(step.direction) * step_magnitude(step.direction);
+        const auto sign_vec = Math::sign(vec);
+        const auto frac = Vector2(C.offset_frac) * sign_vec * inv_Frac;
+        auto offset_ = vec + frac;
+        auto off_i = Vector2i(offset_);
+        if (!off_i.isZero())
+        {
+            if (C.can_move_to(off_i))
+                C.move_to(index, off_i, C.r);
+            else
+            {
+                ok = false;
+                break;
+            }
+        }
+        else
+        {
+
+        }
+    }
+
+    if (!ok) [[unlikely]]
+    {
+        C.delta = {};
+        C.offset_frac = {};
+    }
 }
 
-void pf_test::update_post(app& a, const Ns&)
+void pf_test::update_post(app&, const Ns&)
 {
 }
 
