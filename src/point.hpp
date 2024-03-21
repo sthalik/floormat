@@ -38,6 +38,8 @@ struct point
     static constexpr uint32_t distance(point a, point b);
     static constexpr uint32_t distance_l2(point a, point b);
 
+    friend constexpr Vector2i operator-(const point& p1, const point& p2);
+
 private:
     int16_t cx = 0, cy = 0;
     int8_t cz = 0;
