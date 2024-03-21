@@ -447,18 +447,15 @@ struct writer final : visitor_<writer>
 
         switch (type)
         {
-        case atlas_type::ground: name = reinterpret_cast<const ground_atlas*>(atlas)->name(); goto ok;
-        case atlas_type::wall:   name = reinterpret_cast<const wall_atlas*>(atlas)->name(); goto ok;
+        case atlas_type::ground: name = reinterpret_cast<const ground_atlas*>(atlas)->name(); break;
+        case atlas_type::wall:   name = reinterpret_cast<const wall_atlas*>(atlas)->name(); break;
         case atlas_type::vobj:
         case atlas_type::anim:
             name = reinterpret_cast<const anim_atlas*>(atlas)->name();
-            goto ok;
-        case atlas_type::none:
             break;
+        default:
+            fm_abort("invalid atlas type '%d'", (int)type);
         }
-        fm_abort("invalid atlas type '%d'", (int)type);
-
-ok:
         do_visit(intern_string(name), f);
     }
 

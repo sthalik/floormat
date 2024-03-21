@@ -35,7 +35,4 @@ template<> struct limits<double>
     using integer_type = int64_t;
 };
 
-template<typename T> requires std::is_integral_v<T> using int_max = typename limits<T>::max;
-template<typename T> requires std::is_integral_v<T> using int_min = typename limits<T>::min;
-
 } // namespace floormat
