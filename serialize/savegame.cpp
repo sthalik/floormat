@@ -164,6 +164,7 @@ struct visitor_
             break;
         case object_type::none:
         case object_type::COUNT:
+        default:
             break;
         }
         if (!obj.atlas)
@@ -197,8 +198,9 @@ struct visitor_
         case object_type::COUNT:
         case object_type::none:
             break;
+        default:
+            fm_abort("invalid object type '%d'", (int)type);
         }
-        fm_abort("invalid object type '%d'", (int)type);
     }
 
     template<typename F>
