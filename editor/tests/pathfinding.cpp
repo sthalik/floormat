@@ -155,7 +155,6 @@ constexpr float step_magnitude(Vector2b vec)
     constexpr double cʹ = critter::move_speed * critter::frame_time;
     constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
     constexpr auto c = (float)cʹ, d = (float)dʹ;
-    const auto vecʹ = Vector2(vec);
 
     if (vec.x() * vec.y() != 0)
         // diagonal
