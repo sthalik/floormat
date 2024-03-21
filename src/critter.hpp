@@ -33,13 +33,18 @@ struct critter final : object
     void update_movement(size_t i, Ns dt, rotation r);
     void update_nonplayable(size_t i, Ns dt);
     void set_keys(bool L, bool R, bool U, bool D);
+    void set_keys_auto();
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
 
     String name;
     float speed = 1;
     Vector2us offset_frac; // todo! switch to Vector2ui due to `allocate_frame_time'
-    bool b_L : 1 = false, b_R : 1 = false, b_U : 1 = false, b_D : 1 = false;
+
+    struct movement_s {
+        bool L : 1, R : 1, U : 1, D : 1, AUTO : 1;
+    } movement = {};
+
     bool playable : 1 = false;
 
 private:

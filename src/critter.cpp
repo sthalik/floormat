@@ -123,10 +123,12 @@ bool critter_proto::operator==(const object_proto& e0) const
 
 void critter::set_keys(bool L, bool R, bool U, bool D)
 {
-    b_L = L;
-    b_R = R;
-    b_U = U;
-    b_D = D;
+    movement = { L, R, U, D, false };
+}
+
+void critter::set_keys_auto()
+{
+    movement = { false, false, false, false, true };
 }
 
 float critter::depth_offset() const
@@ -144,14 +146,17 @@ void critter::update(size_t i, Ns dt)
 {
     if (playable)
     {
-        const auto new_r = arrows_to_dir(b_L, b_R, b_U, b_D);
-        if (new_r == rotation_COUNT)
+        if (!movement.AUTO)
         {
-            offset_frac = {};
-            delta = 0;
+            const auto new_r = arrows_to_dir(movement.L, movement.R, movement.U, movement.D);
+            if (new_r == rotation_COUNT)
+            {
+                offset_frac = {};
+                delta = 0;
+            }
+            else
+                update_movement(i, dt, new_r);
         }
-        else
-            update_movement(i, dt, new_r);
     }
     else
         update_nonplayable(i, dt);
