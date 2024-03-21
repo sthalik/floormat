@@ -246,10 +246,11 @@ void pf_test::update_pre(app& a, const Ns& dt)
             break;
         }
         fm_assert(step.count > 0);
-        constexpr auto inv_Frac = 1.f / (float)unsigned{limits< std::decay_t<decltype(C.offset_frac.x())> >::max};
+        using Frac = decltype(critter::offset_frac)::Type;
+        constexpr auto inv_frac = 1.f / (float)unsigned{limits<Frac>::max};
         const auto vec = Vector2(step.direction) * step_magnitude(step.direction);
         const auto sign_vec = Math::sign(vec);
-        const auto frac = Vector2(C.offset_frac) * sign_vec * inv_Frac;
+        const auto frac = Vector2(C.offset_frac) * sign_vec * inv_frac;
         auto offset_ = vec + frac;
         auto off_i = Vector2i(offset_);
         if (!off_i.isZero())
