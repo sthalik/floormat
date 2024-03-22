@@ -50,7 +50,7 @@ constexpr step_s next_stepʹ(Vector2i vec_in)
         const auto major = vec[major_idx], minor = vec[minor_idx];
         const auto num_axis_aligned = (uint32_t)Math::abs((int)major - (int)minor);
         auto axis_aligned = Vector2b{};
-        axis_aligned[major] = 1;
+        axis_aligned[major_idx] = 1;
         return { num_axis_aligned, axis_aligned * signs };
     }
 }
