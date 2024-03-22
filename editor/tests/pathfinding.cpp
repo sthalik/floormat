@@ -73,7 +73,7 @@ struct pf_test final : base_test
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float menu_bar_height) override;
     void update_pre(app& a, const Ns& dt) override;
-    void update_post(app& a, const Ns& dt) override;
+    void update_post(app&, const Ns&) override {}
 };
 
 constexpr step_s next_step(point from, point to)
@@ -206,10 +206,6 @@ void pf_test::update_pre(app& a, const Ns& dt)
         C.delta = {};
         C.offset_frac = {};
     }
-}
-
-void pf_test::update_post(app&, const Ns&)
-{
 }
 
 } // namespace
