@@ -257,7 +257,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-            C.offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
+            C.offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
     }
 
     if (!ok) [[unlikely]]

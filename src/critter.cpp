@@ -210,7 +210,7 @@ void critter::update_movement(size_t i, Ns dt, rotation new_r)
             else
             {
                 can_move = true;
-                offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
+                offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
                 break;
             }
         }
