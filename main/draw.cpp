@@ -4,7 +4,7 @@
 #include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
-#include "src/nanosecond.hpp"
+#include "src/nanosecond.inl"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -23,7 +23,9 @@ size_t bad_frame_counter = 0; // NOLINT
 void main_impl::do_update()
 {
     constexpr auto eps = 1e-5f;
-    auto dt = timeline.update();
+    constexpr auto max_dt = Milliseconds*100;
+    const auto dtʹ = timeline.update();
+    const auto dt = dtʹ > max_dt ? max_dt : dtʹ;
     if (float secs{Time::to_seconds(dt)}; secs > eps)
     {
 #if 1
