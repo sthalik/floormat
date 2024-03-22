@@ -84,65 +84,6 @@ constexpr step_s next_step(point from, point to)
     return next_stepʹ(vec);
 }
 
-#if 0
-constexpr rotation dir_from_step(step_s step)
-{
-    if (!step) [[unlikely]]
-        return rotation_COUNT;
-
-    auto x = step.direction.x() + 1;
-    auto y = step.direction.y() + 1;
-    fm_debug_assert((x & 3) == x && (y & 3) == y);
-    auto val = x << 2 | y;
-
-    switch (val)
-    {
-    using enum rotation;
-    case 0 << 2 | 0: /* -1 -1 */ return NW;
-    case 0 << 2 | 1: /* -1  0 */ return W;
-    case 0 << 2 | 2: /* -1  1 */ return SW;
-    case 1 << 2 | 0: /*  0 -1 */ return N;
-    case 1 << 2 | 1: /*  0  0 */ return rotation_COUNT;
-    case 1 << 2 | 2: /*  0  1 */ return S;
-    case 2 << 2 | 0: /*  1 -1 */ return NE;
-    case 2 << 2 | 1: /*  1  0 */ return E;
-    case 2 << 2 | 2: /*  1  1 */ return SE;
-    default: return rotation_COUNT;
-    }
-}
-#endif
-
-#if 0
-constexpr std::array<bool, 4> arrows_from_step(step_s step)
-{
-    auto x = step.direction.x() + 1;
-    auto y = step.direction.y() + 1;
-    fm_debug_assert((x & 3) == x && (y & 3) == y);
-    auto val = (unsigned)x << 2 | (unsigned)y;
-
-    switch (val)
-    {
-    using enum rotation;
-    case 0 << 2 | 0: /* -1 -1 */ return { 1, 0, 1, 0 }; //NOLINT(*-use-bool-literals)
-    case 0 << 2 | 1: /* -1  0 */ return { 1, 0, 0, 0 }; //NOLINT(*-use-bool-literals)
-    case 0 << 2 | 2: /* -1  1 */ return { 1, 0, 0, 1 }; //NOLINT(*-use-bool-literals)
-    case 1 << 2 | 0: /*  0 -1 */ return { 0, 0, 1, 0 }; //NOLINT(*-use-bool-literals)
-    case 1 << 2 | 1: /*  0  0 */ return {};
-    case 1 << 2 | 2: /*  0  1 */ return { 0, 0, 0, 1 }; //NOLINT(*-use-bool-literals)
-    case 2 << 2 | 0: /*  1 -1 */ return { 0, 1, 1, 0 }; //NOLINT(*-use-bool-literals)
-    case 2 << 2 | 1: /*  1  0 */ return { 0, 1, 0, 0 }; //NOLINT(*-use-bool-literals)
-    case 2 << 2 | 2: /*  1  1 */ return { 0, 1, 0, 1 }; //NOLINT(*-use-bool-literals)
-    default: return {};
-    }
-}
-#if 0
-static_assert(arrows_from_step({0, { 1, -1}}) == std::array<bool, 4>{0, 1, 1, 0});
-static_assert(arrows_from_step({0, {-1,  1}}) == std::array<bool, 4>{1, 0, 0, 1});
-static_assert(arrows_from_step({0, { 0, -1}}) == std::array<bool, 4>{0, 0, 1, 0});
-static_assert(arrows_from_step({0, { 1,  0}}) == std::array<bool, 4>{0, 1, 0, 0});
-#endif
-#endif
-
 constexpr float step_magnitude(Vector2b vec)
 {
     constexpr double cʹ = critter::move_speed * critter::frame_time;
