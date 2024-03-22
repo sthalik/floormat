@@ -55,11 +55,6 @@ constexpr step_s next_stepʹ(Vector2i vec_in)
     }
 }
 
-struct result_s
-{
-    bool has_value : 1 = false;
-};
-
 struct pending_s
 {
     point dest;
