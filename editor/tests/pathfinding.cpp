@@ -83,11 +83,9 @@ struct pf_test final : base_test
 
 constexpr step_s next_step(point from, point to)
 {
-    fm_debug_assert(from.chunk3().z != to.chunk3().z);
-
+    fm_debug_assert(from.chunk3().z == to.chunk3().z);
     const auto vec = to - from;
     fm_debug_assert(!vec.isZero());
-
     return next_stepʹ(vec);
 }
 
@@ -264,9 +262,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-        {
-
-        }
+            C.offset_frac = Vector2us(Math::abs(Math::min({1.f,1.f}, offset_)) * frac);
     }
 
     if (!ok) [[unlikely]]
