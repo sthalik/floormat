@@ -97,7 +97,7 @@ struct scenery final : object
 {
     scenery_variants subtype;
 
-    void update(size_t i, Ns dt) override;
+    void update(size_t i, const Ns& dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
     bool can_activate(size_t i) const override;

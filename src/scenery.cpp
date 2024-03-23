@@ -146,7 +146,7 @@ bool scenery::can_activate(size_t i) const
     );
 }
 
-void scenery::update(size_t i, Ns dt)
+void scenery::update(size_t i, const Ns& dt)
 {
     return std::visit(
         [&]<typename T>(T& sc) { sc.update(*this, i, dt); },

@@ -29,9 +29,9 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(size_t i, Ns dt) override;
-    void update_movement(size_t i, Ns dt, rotation r);
-    void update_nonplayable(size_t i, Ns dt);
+    void update(size_t i, const Ns& dt) override;
+    void update_movement(size_t i, const Ns& dt, rotation r);
+    void update_nonplayable(size_t i, const Ns& dt);
     void set_keys(bool L, bool R, bool U, bool D);
     void set_keys_auto();
     Vector2 ordinal_offset(Vector2b offset) const override;

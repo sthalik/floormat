@@ -4,7 +4,6 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
-#include "src/nanosecond.hpp"
 #include "shaders/shader.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
@@ -144,7 +143,7 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-void critter::update(size_t i, Ns dt)
+void critter::update(size_t i, const Ns& dt)
 {
     if (playable)
     {
@@ -164,12 +163,12 @@ void critter::update(size_t i, Ns dt)
         update_nonplayable(i, dt);
 }
 
-void critter::update_nonplayable(size_t i, Ns dt)
+void critter::update_nonplayable(size_t i, const Ns& dt)
 {
     (void)i; (void)dt; (void)playable;
 }
 
-void critter::update_movement(size_t i, Ns dt, rotation new_r)
+void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
 {
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
