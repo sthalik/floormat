@@ -99,7 +99,6 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 }
 
 template<rotation new_r, float vx, float vy>
-CORRADE_ALWAYS_INLINE
 bool update_movement_body(size_t& i, critter& C, const anim_def& info)
 {
     constexpr auto vec = Vector2{vx, vy};
@@ -130,11 +129,11 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info)
 }
 
 template<rotation r>
-CORRADE_NEVER_INLINE
-bool update_movement_2(size_t& index, critter& C, const anim_def& info)
+CORRADE_ALWAYS_INLINE
+bool update_movement_2(size_t& i, critter& C, const anim_def& info)
 {
     constexpr auto vec = rotation_to_vec(r);
-    return update_movement_body<r, vec.x(), vec.y()>(index, C, info);
+    return update_movement_body<r, vec.x(), vec.y()>(i, C, info);
 }
 
 template<rotation r>
@@ -164,9 +163,8 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
     }
     else
     {
-        constexpr auto vec = rotation_to_vec(new_r);
         for (auto k = 0u; k < nframes; k++)
-            if (!update_movement_body<new_r, vec.x(), vec.y()>(i, C, info))
+            if (!update_movement_2<new_r>(i, C, info))
                 return false;
     }
 
