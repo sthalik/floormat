@@ -1,4 +1,5 @@
 #include "critter.hpp"
+#include "compat/limits.hpp"
 #include "tile-constants.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
@@ -173,8 +174,8 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
 
-    const auto hz = atlas->info().fps;
-    const auto nframes = alloc_frame_time(dt, delta, hz, speed);
+    const auto& info = atlas->info();
+    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
     if (nframes == 0)
         return;
 
@@ -192,26 +193,27 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
         for (unsigned j = 0; j < nvecs; j++)
         {
             const auto vec = rotation_to_vec(rotations[j]);
-            constexpr auto frac = 65535u;
-            constexpr auto inv_frac = 1.f / (float)frac;
+            using Frac = decltype(critter::offset_frac)::Type;
+            constexpr auto frac = float{limits<Frac>::max};
+            constexpr auto inv_frac = 1 / frac;
             const auto sign_vec = Math::sign(vec);
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
-                offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
+                offset_frac = Math::Vector2<Frac>(Math::abs(Math::fmod(offset_, 1.f)) * frac);
                 if (can_move_to(off_i))
                 {
                     can_move = true;
                     move_to(i, off_i, new_r);
-                    ++frame %= atlas->info().nframes;
+                    ++frame %= info.nframes;
                     break;
                 }
             }
             else
             {
                 can_move = true;
-                offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
+                offset_frac = Math::Vector2<Frac>(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
                 break;
             }
         }

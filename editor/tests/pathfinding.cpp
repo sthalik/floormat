@@ -181,8 +181,8 @@ void pf_test::update_pre(app& a, const Ns& dt)
         return;
     }
 
-    const auto hz = C.atlas->info().fps;
-    const auto nframes = C.alloc_frame_time(dt, C.delta, hz, C.speed);
+    const auto& info = C.atlas->info();
+    const auto nframes = C.alloc_frame_time(dt, C.delta, info.fps, C.speed);
 
     if (nframes == 0)
         return;
@@ -216,8 +216,8 @@ void pf_test::update_pre(app& a, const Ns& dt)
         fm_assert(step.count > 0);
         const auto new_r = dir_from_step(step);
         using Frac = decltype(critter::offset_frac)::Type;
-        constexpr auto frac = limits<Frac>::max;
-        constexpr auto inv_frac = 1.f / float{frac};
+        constexpr auto frac = float{limits<Frac>::max};
+        constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
         const auto sign_vec = Math::sign(vec);
@@ -227,10 +227,12 @@ void pf_test::update_pre(app& a, const Ns& dt)
 
         if (!off_i.isZero())
         {
-            C.offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
-
+            C.offset_frac = Math::Vector2<Frac>(Math::abs(Math::fmod(offset_, 1.f)) * frac);
             if (C.can_move_to(off_i))
+            {
                 C.move_to(index, off_i, new_r);
+                ++C.frame %= info.nframes;
+            }
             else
             {
                 ok = false;
@@ -238,7 +240,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-            C.offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
+            C.offset_frac = Math::Vector2<Frac>(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
     }
 
     if (!ok) [[unlikely]]
