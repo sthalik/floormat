@@ -1,7 +1,7 @@
 #pragma once
 
-#if defined __clang__ && defined __CLION_IDE__ >= 20240100
-#define CORRADE_ASSUME __attribute__((assume(condition)))
+#if defined __CLION_IDE__ && __CLION_IDE__ >= 20240100 && defined __GNUG__
+#define CORRADE_ASSUME(condition) __attribute__((assume(condition)))
 #endif
 
 #include "integer-types.hpp"
