@@ -214,9 +214,9 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (time_diff > grace.time)
         {
             Error{ standard_error(), Debug::Flag::NoSpace }
-                << "!!! fatal: wrong time " << time
+                << "!!! fatal: wrong time " << saved_time
                 << " expected:" << expected.time
-                << " diff:" << grace.time
+                << " diff:" << time_diff
                 << " for " << start.name << "/" << start.instance;
             return fail(__FILE__, __LINE__);
         }
