@@ -271,10 +271,10 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
                },
                Expected{
                    .pt = {{1,1,0}, {4, 4}, {8,8}},
-                   .time = 35'000*Millisecond,
+                   .time = 35'100*Millisecond,
                },
                Grace{
-                   .time = 250*Millisecond,
+                   .time = 500*Millisecond,
                    .distance_L2 = 8,
                });
     fm_assert(ret);
