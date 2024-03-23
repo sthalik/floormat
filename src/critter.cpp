@@ -102,12 +102,13 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 template<rotation new_r>
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
-    const auto rotations = rotation_to_similar(new_r);
-    const unsigned nvecs = (int)new_r & 1 ? 3 : 1;
-    bool can_move = false;
+    constexpr auto rotations = rotation_to_similar(new_r);
+    constexpr unsigned nvecs = (int)new_r & 1 ? 3 : 1;
 
     for (auto k = 0u; k < nframes; k++)
     {
+        bool can_move = false;
+
         for (unsigned j = 0; j < nvecs; j++)
         {
             const auto vec = rotation_to_vec(rotations[j]);
@@ -137,9 +138,12 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
                 break;
             }
         }
+
+        if (!can_move)
+            return false;
     }
 
-    return can_move;
+    return true;
 }
 
 } // namespace
