@@ -55,6 +55,32 @@ constexpr step_s next_stepʹ(Vector2i vec_in)
     }
 }
 
+constexpr rotation dir_from_step(step_s step)
+{
+    if (step.direction.isZero()) [[unlikely]]
+        return rotation_COUNT;
+
+    auto x = step.direction.x() + 1;
+    auto y = step.direction.y() + 1;
+    fm_debug_assert((x & 3) == x && (y & 3) == y);
+    auto val = x << 2 | y;
+
+    switch (val)
+    {
+    using enum rotation;
+    case 0 << 2 | 0: /* -1 -1 */ return NW;
+    case 0 << 2 | 1: /* -1  0 */ return W;
+    case 0 << 2 | 2: /* -1  1 */ return SW;
+    case 1 << 2 | 0: /*  0 -1 */ return N;
+    case 1 << 2 | 1: /*  0  0 */ return rotation_COUNT;
+    case 1 << 2 | 2: /*  0  1 */ return S;
+    case 2 << 2 | 0: /*  1 -1 */ return NE;
+    case 2 << 2 | 1: /*  1  0 */ return E;
+    case 2 << 2 | 2: /*  1  1 */ return SE;
+    default: return rotation_COUNT;
+    }
+}
+
 struct pending_s
 {
     point dest;
@@ -188,6 +214,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             break;
         }
         fm_assert(step.count > 0);
+        const auto new_r = dir_from_step(step);
         using Frac = decltype(critter::offset_frac)::Type;
         constexpr auto frac = limits<Frac>::max;
         constexpr auto inv_frac = 1.f / float{frac};
@@ -203,7 +230,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             C.offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
 
             if (C.can_move_to(off_i))
-                C.move_to(index, off_i, C.r);
+                C.move_to(index, off_i, new_r);
             else
             {
                 ok = false;
