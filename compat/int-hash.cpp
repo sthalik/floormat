@@ -2,6 +2,7 @@
 #include "int-hash.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <bit>
+#include <utility>
 
 namespace floormat {
 
