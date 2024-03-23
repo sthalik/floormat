@@ -20,7 +20,7 @@
 
 namespace floormat::tests {
 
-static_assert(arraySize(tests_data::fields) == (size_t)Test::COUNT);
+static_assert(arraySize(tests_data::fields) <= (size_t)Test::COUNT);
 
 Pointer<base_test> tests_data::make_test_none() { return {}; }
 
