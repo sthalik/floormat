@@ -110,8 +110,9 @@ struct visitor_
     // 21: oops, forgot the object counter
     // 22: add object::speed
     // 23: switch object::delta to 32-bit
+    // 24: switch object::offset_frac from Vector2us to uint16_t
 
-    static constexpr inline proto_t proto_version      = 23;
+    static constexpr inline proto_t proto_version      = 24;
     const proto_t& PROTO;
     visitor_(const proto_t& proto) : PROTO{proto} {}
 
@@ -226,10 +227,22 @@ struct visitor_
     void visit(critter& obj, F&& f)
     {
         do_visit(obj.name, f);
+
         if (PROTO >= 22) [[likely]]
             do_visit(obj.speed, f);
         fm_soft_assert(obj.speed >= 0);
-        do_visit(obj.offset_frac, f);
+
+        if (PROTO >= 24) [[likely]]
+            do_visit(obj.offset_frac_, f);
+        else
+        {
+            static_assert(std::is_same_v<uint16_t, decltype(critter::offset_frac_)>);
+            Vector2us foo1;
+            do_visit(foo1, f);
+            auto foo2 = Vector2(foo1)*(1.f/65535);
+            auto foo3 = foo2.length()*32768;
+            obj.offset_frac_ = uint16_t(foo3);
+        }
 
         constexpr struct {
             uint8_t bits;

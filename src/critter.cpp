@@ -153,7 +153,7 @@ void critter::update(size_t i, const Ns& dt)
             const auto new_r = arrows_to_dir(movement.L, movement.R, movement.U, movement.D);
             if (new_r == rotation_COUNT)
             {
-                offset_frac = {};
+                offset_frac_ = {};
                 delta = 0;
             }
             else
@@ -193,16 +193,17 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
         for (unsigned j = 0; j < nvecs; j++)
         {
             const auto vec = rotation_to_vec(rotations[j]);
-            using Frac = decltype(critter::offset_frac)::Type;
+            using Frac = decltype(critter::offset_frac_);
             constexpr auto frac = (float{limits<Frac>::max}+1)/2;
             constexpr auto inv_frac = 1 / frac;
             const auto sign_vec = Math::sign(vec);
-            const auto from_accum = Vector2(offset_frac) * sign_vec * inv_frac;
+            const auto from_accum = (offset_frac_*inv_frac) * sign_vec.normalized();
             auto offset_ = vec + from_accum;
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
-                offset_frac = Math::Vector2<Frac>(Math::abs(Math::fmod(offset_, 1.f)) * frac);
+                auto rem = (offset_ - Vector2(off_i)).length();
+                offset_frac_ = Frac(rem * frac);
                 if (can_move_to(off_i))
                 {
                     can_move = true;
@@ -214,7 +215,8 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
             else
             {
                 can_move = true;
-                offset_frac = Math::Vector2<Frac>(Math::min({2.f,2.f}, Math::abs(offset_)) * frac);
+                auto rem = offset_.length();
+                offset_frac_ = Frac(rem * frac);
                 break;
             }
         }
@@ -223,7 +225,7 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
     if (!can_move) [[unlikely]]
     {
         delta = {};
-        offset_frac = {};
+        offset_frac_ = {};
     }
 }
 

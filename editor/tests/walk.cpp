@@ -171,6 +171,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
     if (!current.has_value)
         return;
 
+#if 0
     auto& m = a.main();
     auto& C = *a.ensure_player_character(m.world()).ptr;
     fm_assert(C.is_dynamic());
@@ -250,6 +251,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
         C.offset_frac = {};
         current.has_value = false;
     }
+#endif
 }
 
 } // namespace

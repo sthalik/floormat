@@ -431,7 +431,7 @@ void reader_state::read_chunks(reader_t& s)
                 }
                 SET_CHUNK_SIZE();
                 auto e = _world->make_object<critter, false>(oid, {ch, local}, proto);
-                e->offset_frac = offset_frac;
+                e->offset_frac_ = (uint16_t)((Vector2(offset_frac)*(1.f/65355)).length()*32768);
                 (void)e;
                 break;
             }
