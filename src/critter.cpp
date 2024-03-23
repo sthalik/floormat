@@ -99,6 +99,7 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 }
 
 template<rotation new_r, float vx, float vy>
+CORRADE_ALWAYS_INLINE
 bool update_movement_body(size_t& i, critter& C, const anim_def& info)
 {
     constexpr auto vec = Vector2{vx, vy};
@@ -129,6 +130,7 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info)
 }
 
 template<rotation new_r>
+CORRADE_NEVER_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
     constexpr bool Diagonal = (int)new_r & 1;
