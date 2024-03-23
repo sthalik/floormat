@@ -124,12 +124,12 @@ bool critter_proto::operator==(const object_proto& e0) const
 
 void critter::set_keys(bool L, bool R, bool U, bool D)
 {
-    movement = { L, R, U, D, false };
+    movement = { L, R, U, D, false, false, false, false };
 }
 
 void critter::set_keys_auto()
 {
-    movement = { false, false, false, false, true };
+    movement = { false, false, false, false, true, false, false, false };
 }
 
 float critter::depth_offset() const

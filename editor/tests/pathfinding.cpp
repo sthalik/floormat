@@ -149,6 +149,12 @@ void pf_test::update_pre(app& a, const Ns& dt)
     auto& C = *a.ensure_player_character(m.world()).ptr;
     fm_assert(C.is_dynamic());
 
+    if (C.movement.L | C.movement.R | C.movement.U | C.movement.D) [[unlikely]]
+    {
+        current.has_value = false;
+        return;
+    }
+
     const auto hz = C.atlas->info().fps;
     const auto nframes = C.alloc_frame_time(dt, C.delta, hz, C.speed);
 
@@ -169,6 +175,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
         {
             current.has_value = false;
             Debug{} << "done!" << from;
+            C.set_keys(false, false, false, false);
             return;
         }
         const auto step = next_step(from, current.dest);
@@ -209,8 +216,10 @@ void pf_test::update_pre(app& a, const Ns& dt)
 
     if (!ok) [[unlikely]]
     {
+        C.set_keys(false, false, false, false);
         C.delta = {};
         C.offset_frac = {};
+        current.has_value = false;
     }
 }
 
