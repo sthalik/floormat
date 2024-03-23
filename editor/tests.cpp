@@ -5,8 +5,18 @@
 #include "floormat/events.hpp"
 #include "src/nanosecond.inl"
 #include "imgui-raii.hpp"
+
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#endif
+
 #define HAVE_LIBC 1
 #include <SDL_keycode.h>
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
 
 namespace floormat::tests {
 
