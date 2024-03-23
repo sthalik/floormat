@@ -254,6 +254,6 @@ void pf_test::update_pre(app& a, const Ns& dt)
 
 } // namespace
 
-Pointer<base_test> tests_data::make_test_pathfinding() { return Pointer<pf_test>{InPlaceInit}; }
+Pointer<base_test> tests_data::make_test_walk() { return Pointer<pf_test>{InPlaceInit}; }
 
 } // namespace floormat::tests
