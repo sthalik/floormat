@@ -200,16 +200,16 @@ void pf_test::update_pre(app& a, const Ns& dt)
         if (from == current.dest)
         {
             current.has_value = false;
-            Debug{} << "done!" << from;
+            //Debug{} << "done!" << from;
             C.set_keys(false, false, false, false);
             return;
         }
         const auto step = next_step(from, current.dest);
-        //Debug{} << "step" << step.direction << step.count << "frames" << i << "/" << nframes;
+        //Debug{} << "step" << step.direction << step.count << "|" << C.position();
         C.set_keys_auto();
         if (step.direction == Vector2b{})
         {
-            Debug{} << "no dir break";
+            //Debug{} << "no dir break";
             ok = false;
             break;
         }
@@ -223,7 +223,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
         const auto sign_vec = Math::sign(vec);
         auto offset_ = vec + Vector2(C.offset_frac) * sign_vec * inv_frac;
         auto off_i = Vector2i(offset_);
-        Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << Vector2(C.offset_frac) * sign_vec * inv_frac;
+        //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << Vector2(C.offset_frac) * sign_vec * inv_frac;
 
         if (!off_i.isZero())
         {
