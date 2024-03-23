@@ -197,7 +197,8 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
             constexpr auto frac = (float{limits<Frac>::max}+1)/2;
             constexpr auto inv_frac = 1 / frac;
             const auto sign_vec = Math::sign(vec);
-            auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
+            const auto from_accum = Vector2(offset_frac) * sign_vec * inv_frac;
+            auto offset_ = vec + from_accum;
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
