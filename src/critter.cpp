@@ -98,15 +98,21 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     }
 }
 
-template<rotation new_r, float vx, float vy>
-bool update_movement_body(size_t& i, critter& C, const anim_def& info)
+template<rotation new_r, float vx, float vy, bool MultiStep>
+bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
 {
     constexpr auto vec = Vector2{vx, vy};
     using Frac = decltype(critter::offset_frac_);
     constexpr auto frac = (float{limits<Frac>::max}+1)/2;
     constexpr auto inv_frac = 1 / frac;
     const auto from_accum = C.offset_frac_ * inv_frac * vec;
-    auto offset_ = vec + from_accum;
+
+    Vector2 offset_{NoInit};
+    if constexpr(MultiStep)
+        offset_ = vec * float(nsteps) + from_accum;
+    else
+        offset_ = vec + from_accum;
+
     auto off_i = Vector2i(offset_);
     if (!off_i.isZero())
     {
@@ -115,7 +121,10 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info)
         if (C.can_move_to(off_i))
         {
             C.move_to(i, off_i, new_r);
-            ++C.frame %= info.nframes;
+            if constexpr(MultiStep)
+                (C.frame += nsteps) %= info.nframes;
+            else
+                ++C.frame %= info.nframes;
             return true;
         }
     }
@@ -128,12 +137,12 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info)
     return false;
 }
 
-template<rotation r>
+template<rotation r, bool MultiStep>
 CORRADE_ALWAYS_INLINE
-bool update_movement_2(size_t& i, critter& C, const anim_def& info)
+bool update_movement_2(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
 {
     constexpr auto vec = rotation_to_vec(r);
-    return update_movement_body<r, vec.x(), vec.y()>(i, C, info);
+    return update_movement_body<r, vec.x(), vec.y(), MultiStep>(i, C, info, nsteps);
 }
 
 template<rotation r>
@@ -141,44 +150,91 @@ CORRADE_ALWAYS_INLINE
 bool update_movement_3way(size_t i, critter& C, const anim_def& info)
 {
     constexpr auto rotations = rotation_to_similar(r);
-    if (update_movement_2<rotations[0]>(i, C, info))
+    if (update_movement_2<rotations[0], false>(i, C, info, 0))
         return true;
-    if (update_movement_2<rotations[1]>(i, C, info))
+    if (update_movement_2<rotations[1], false>(i, C, info, 0))
         return true;
-    if (update_movement_2<rotations[2]>(i, C, info))
+    if (update_movement_2<rotations[2], false>(i, C, info, 0))
         return true;
     return false;
 }
 
-template<rotation new_r>
+template<rotation r> constexpr uint8_t get_length_axis()
+{
+    static_assert((int)r % 2 == 0);
+    using enum rotation;
+    if constexpr(r == N || r == S)
+        return 1;
+    else if constexpr(r == W || r == E)
+        return 0;
+    fm_assert(false);
+}
+
+constexpr bool DoUnroll = true;
+
+template<rotation new_r, bool DoUnroll>
 CORRADE_ALWAYS_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
-    constexpr bool Diagonal = (int)new_r & 1;
-    if constexpr(Diagonal)
+    if constexpr((int)new_r & 1)
     {
+        if constexpr(DoUnroll)
+        {
+            //Debug{} << "< nframes" << nframes;
+            while (nframes > 1)
+            {
+                auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min() / 2u);
+                if (len <= 1)
+                    break;
+                if (!update_movement_2<new_r, true>(i, C, info, len))
+                    break;
+                //Debug{} << " " << len;
+                nframes -= len;
+            }
+            //Debug{} << ">" << nframes;
+        }
+
         for (auto k = 0u; k < nframes; k++)
+        {
             if (!update_movement_3way<new_r>(i, C, info))
                 return false;
+        }
     }
     else
     {
+        if constexpr(DoUnroll)
+        {
+            //Debug{} << "< nframes" << nframes;
+            while (nframes > 1)
+            {
+                constexpr auto len_axis = get_length_axis<new_r>();
+                auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.data()[len_axis]);
+                if (len <= 1) [[unlikely]]
+                    break;
+                if (!update_movement_2<new_r, true>(i, C, info, len))
+                    break;
+                //Debug{} << " " << len;
+                nframes -= len;
+            }
+            //Debug{} << ">" << nframes;
+        }
+
         for (auto k = 0u; k < nframes; k++)
-            if (!update_movement_2<new_r>(i, C, info))
+            if (!update_movement_2<new_r, false>(i, C, info, 0))
                 return false;
     }
 
     return true;
 }
 
-template bool update_movement_1<(rotation)0>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)1>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)2>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)3>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)4>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)5>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)6>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)7>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)0, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)1, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)2, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)3, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)4, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)5, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)6, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)7, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
 
 } // namespace
 
@@ -271,14 +327,14 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
     switch (new_r)
     {
     default: std::unreachable();
-    case (rotation)0: ret = update_movement_1<(rotation)0>(*this, i, info, nframes); break;
-    case (rotation)1: ret = update_movement_1<(rotation)1>(*this, i, info, nframes); break;
-    case (rotation)2: ret = update_movement_1<(rotation)2>(*this, i, info, nframes); break;
-    case (rotation)3: ret = update_movement_1<(rotation)3>(*this, i, info, nframes); break;
-    case (rotation)4: ret = update_movement_1<(rotation)4>(*this, i, info, nframes); break;
-    case (rotation)5: ret = update_movement_1<(rotation)5>(*this, i, info, nframes); break;
-    case (rotation)6: ret = update_movement_1<(rotation)6>(*this, i, info, nframes); break;
-    case (rotation)7: ret = update_movement_1<(rotation)7>(*this, i, info, nframes); break;
+    case (rotation)0: ret = update_movement_1<(rotation)0, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)1: ret = update_movement_1<(rotation)1, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)2: ret = update_movement_1<(rotation)2, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)3: ret = update_movement_1<(rotation)3, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)4: ret = update_movement_1<(rotation)4, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)5: ret = update_movement_1<(rotation)5, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)6: ret = update_movement_1<(rotation)6, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)7: ret = update_movement_1<(rotation)7, DoUnroll>(*this, i, info, nframes); break;
     }
 
     if (!ret) [[unlikely]]
