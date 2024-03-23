@@ -130,11 +130,25 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info)
 }
 
 template<rotation r>
-CORRADE_ALWAYS_INLINE
-bool update_movement_3way(size_t& index, critter& C, const anim_def& info)
+CORRADE_NEVER_INLINE
+bool update_movement_2(size_t& index, critter& C, const anim_def& info)
 {
     constexpr auto vec = rotation_to_vec(r);
     return update_movement_body<r, vec.x(), vec.y()>(index, C, info);
+}
+
+template<rotation r>
+CORRADE_ALWAYS_INLINE
+bool update_movement_3way(size_t i, critter& C, const anim_def& info)
+{
+    constexpr auto rotations = rotation_to_similar(r);
+    if (update_movement_2<rotations[0]>(i, C, info))
+        return true;
+    if (update_movement_2<rotations[1]>(i, C, info))
+        return true;
+    if (update_movement_2<rotations[2]>(i, C, info))
+        return true;
+    return false;
 }
 
 template<rotation new_r>
@@ -145,13 +159,8 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
     if constexpr(Diagonal)
     {
         for (auto k = 0u; k < nframes; k++)
-        {
-            constexpr auto rotations = rotation_to_similar(new_r);
-            if (update_movement_3way<rotations[0]>(i, C, info)) continue;
-            if (update_movement_3way<rotations[1]>(i, C, info)) continue;
-            if (update_movement_3way<rotations[2]>(i, C, info)) continue;
-            return false;
-        }
+            if (!update_movement_3way<new_r>(i, C, info))
+                return false;
     }
     else
     {
