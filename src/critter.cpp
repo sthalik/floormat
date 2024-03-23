@@ -125,7 +125,7 @@ bool critter_proto::operator==(const object_proto& e0) const
 
 void critter::set_keys(bool L, bool R, bool U, bool D)
 {
-    movement = { L, R, U, D, false, false, false, false };
+    movement = { L, R, U, D, movement.AUTO, false, false, false };
 }
 
 void critter::set_keys_auto()
@@ -146,8 +146,10 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
 
 void critter::update(size_t i, const Ns& dt)
 {
-    if (playable)
+    if (playable) [[unlikely]]
     {
+        movement.AUTO &= !(movement.L | movement.R | movement.U | movement.D);
+
         if (!movement.AUTO)
         {
             const auto new_r = arrows_to_dir(movement.L, movement.R, movement.U, movement.D);
@@ -202,7 +204,7 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
             auto off_i = Vector2i(offset_);
             if (!off_i.isZero())
             {
-                auto rem = (offset_ - Vector2(off_i)).length();
+                auto rem = Math::fmod(offset_, 1.f).length();
                 offset_frac_ = Frac(rem * frac);
                 if (can_move_to(off_i))
                 {
