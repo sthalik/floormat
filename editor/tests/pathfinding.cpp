@@ -182,17 +182,19 @@ void pf_test::update_pre(app& a, const Ns& dt)
         }
         fm_assert(step.count > 0);
         using Frac = decltype(critter::offset_frac)::Type;
-        constexpr auto inv_frac = 1.f / float{limits<Frac>::max};
+        constexpr auto frac = limits<Frac>::max;
+        constexpr auto inv_frac = 1.f / float{frac};
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
         const auto sign_vec = Math::sign(vec);
-        const auto frac = Vector2(C.offset_frac) * sign_vec * inv_frac;
-        auto offsetʹ = vec + frac;
-        auto off_i = Vector2i(offsetʹ);
-        Debug{} << "vec" << vec << "mag" << mag << "frac" << frac;
+        auto offset_ = vec + Vector2(C.offset_frac) * sign_vec * inv_frac;
+        auto off_i = Vector2i(offset_);
+        Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << Vector2(C.offset_frac) * sign_vec * inv_frac;
 
         if (!off_i.isZero())
         {
+            C.offset_frac = Vector2us(Math::abs(Math::fmod(offset_, 1.f)) * frac);
+
             if (C.can_move_to(off_i))
                 C.move_to(index, off_i, C.r);
             else
@@ -202,7 +204,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-            C.offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offsetʹ)) * frac);
+            C.offset_frac = Vector2us(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
     }
 
     if (!ok) [[unlikely]]
