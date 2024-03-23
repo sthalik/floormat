@@ -96,55 +96,72 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
         std::unreachable();
         fm_assert(false);
     }
+}
 
+template<rotation new_r, float vx, float vy>
+bool update_movement_body(size_t& i, critter& C, const anim_def& info)
+{
+    constexpr auto vec = Vector2{vx, vy};
+    using Frac = decltype(critter::offset_frac_);
+    constexpr auto frac = (float{limits<Frac>::max}+1)/2;
+    constexpr auto inv_frac = 1 / frac;
+    const auto from_accum = C.offset_frac_ * inv_frac * vec;
+    auto offset_ = vec + from_accum;
+    auto off_i = Vector2i(offset_);
+    if (!off_i.isZero())
+    {
+        auto rem = Math::fmod(offset_, 1.f).length();
+        C.offset_frac_ = Frac(rem * frac);
+        if (C.can_move_to(off_i))
+        {
+            C.move_to(i, off_i, new_r);
+            ++C.frame %= info.nframes;
+            return true;
+        }
+    }
+    else
+    {
+        auto rem = offset_.length();
+        C.offset_frac_ = Frac(rem * frac);
+        return true;
+    }
+    return false;
 }
 
 template<rotation new_r>
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
-    constexpr auto rotations = rotation_to_similar(new_r);
-    constexpr unsigned nvecs = (int)new_r & 1 ? 3 : 1;
-
-    for (auto k = 0u; k < nframes; k++)
+    constexpr bool Diagonal = (int)new_r & 1;
+    if constexpr(Diagonal)
     {
-        bool can_move = false;
-
-        for (unsigned j = 0; j < nvecs; j++)
+        for (auto k = 0u; k < nframes; k++)
         {
-            const auto vec = rotation_to_vec(rotations[j]);
-            using Frac = decltype(critter::offset_frac_);
-            constexpr auto frac = (float{limits<Frac>::max}+1)/2;
-            constexpr auto inv_frac = 1 / frac;
-            const auto from_accum = C.offset_frac_ * inv_frac * vec;
-            auto offset_ = vec + from_accum;
-            auto off_i = Vector2i(offset_);
-            if (!off_i.isZero())
-            {
-                auto rem = Math::fmod(offset_, 1.f).length();
-                C.offset_frac_ = Frac(rem * frac);
-                if (C.can_move_to(off_i))
-                {
-                    can_move = true;
-                    C.move_to(i, off_i, new_r);
-                    ++C.frame %= info.nframes;
-                    break;
-                }
-            }
-            else
-            {
-                can_move = true;
-                auto rem = offset_.length();
-                C.offset_frac_ = Frac(rem * frac);
-                break;
-            }
-        }
-
-        if (!can_move)
+            constexpr auto rotations = rotation_to_similar(new_r);
+            if (constexpr auto vec = rotation_to_vec(rotations[0]); update_movement_body<rotations[0], vec.x(), vec.y()>(i, C, info)) continue;
+            if (constexpr auto vec = rotation_to_vec(rotations[1]); update_movement_body<rotations[1], vec.x(), vec.y()>(i, C, info)) continue;
+            if (constexpr auto vec = rotation_to_vec(rotations[2]); update_movement_body<rotations[2], vec.x(), vec.y()>(i, C, info)) continue;
             return false;
+        }
+    }
+    else
+    {
+        constexpr auto vec = rotation_to_vec(new_r);
+        for (auto k = 0u; k < nframes; k++)
+            if (!update_movement_body<new_r, vec.x(), vec.y()>(i, C, info))
+                return false;
     }
 
     return true;
 }
+
+template bool update_movement_1<(rotation)0>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)1>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)2>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)3>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)4>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)5>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)6>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)7>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
 
 } // namespace
 
