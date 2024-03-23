@@ -254,13 +254,13 @@ void critter::update_nonplayable(size_t i, const Ns& dt)
 
 void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
 {
-    fm_assert(new_r < rotation_COUNT);
-    fm_assert(is_dynamic());
-
     const auto& info = atlas->info();
     const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
     if (nframes == 0)
         return;
+
+    fm_assert(new_r < rotation_COUNT);
+    fm_assert(is_dynamic());
 
     if (r != new_r)
         rotate(i, new_r);
