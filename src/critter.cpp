@@ -151,7 +151,7 @@ bool update_movement_3way(size_t i, critter& C, const anim_def& info)
 }
 
 template<rotation new_r>
-CORRADE_NEVER_INLINE
+CORRADE_ALWAYS_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
     constexpr bool Diagonal = (int)new_r & 1;
