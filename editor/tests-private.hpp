@@ -58,11 +58,11 @@ struct tests_data final : tests_data_
     };
 
     static constexpr test_tuple fields[] = {
-        { "None"_s,              Test::none,        make_test_none,     },
-        { "Path"_s,              Test::path,        make_test_path,     },
-        { "Raycasting"_s,        Test::raycast,     make_test_raycast   },
-        { "Region extraction"_s, Test::region,      make_test_region    },
-        { "Walking"_s,           Test::walk,        make_test_walk      },
+        { "None"_s,        Test::none,        make_test_none,   },
+        { "Path search"_s, Test::path,        make_test_path,   },
+        { "Raycasting"_s,  Test::raycast,     make_test_raycast },
+        { "Region"_s,      Test::region,      make_test_region  },
+        { "Walking"_s,     Test::walk,        make_test_walk    },
     };
 };
 
