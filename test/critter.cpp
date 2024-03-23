@@ -56,8 +56,11 @@ struct Start
 #if 1
     bool quiet = !is_log_verbose();
     bool verbose = false;
-#elif 1
+#elif 0
     bool verbose = true;
+    bool quiet = false;
+#elif 1
+    bool verbose = false;
     bool quiet = false;
 #elif 0
     bool quiet = is_log_quiet();
