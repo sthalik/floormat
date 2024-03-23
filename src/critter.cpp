@@ -194,7 +194,7 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
         {
             const auto vec = rotation_to_vec(rotations[j]);
             using Frac = decltype(critter::offset_frac)::Type;
-            constexpr auto frac = float{limits<Frac>::max};
+            constexpr auto frac = (float{limits<Frac>::max}+1)/2;
             constexpr auto inv_frac = 1 / frac;
             const auto sign_vec = Math::sign(vec);
             auto offset_ = vec + Vector2(offset_frac) * sign_vec * inv_frac;
@@ -213,7 +213,7 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
             else
             {
                 can_move = true;
-                offset_frac = Math::Vector2<Frac>(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
+                offset_frac = Math::Vector2<Frac>(Math::min({2.f,2.f}, Math::abs(offset_)) * frac);
                 break;
             }
         }

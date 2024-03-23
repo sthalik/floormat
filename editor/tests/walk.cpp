@@ -216,7 +216,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
         fm_assert(step.count > 0);
         const auto new_r = dir_from_step(step);
         using Frac = decltype(critter::offset_frac)::Type;
-        constexpr auto frac = float{limits<Frac>::max};
+        constexpr auto frac = (float{limits<Frac>::max}+1)/2;
         constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
@@ -240,7 +240,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-            C.offset_frac = Math::Vector2<Frac>(Math::min({1.f,1.f}, Math::abs(offset_)) * frac);
+            C.offset_frac = Math::Vector2<Frac>(Math::min({2.f,2.f}, Math::abs(offset_)) * frac);
     }
 
     if (!ok) [[unlikely]]
