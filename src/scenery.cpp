@@ -249,6 +249,7 @@ scenery_variants scenery::subtype_from_scenery_type(object_id id, class chunk& c
     case scenery_type::door:
         return door_scenery{id, c, {}};
     case scenery_type::none:
+    default:
         break;
     }
     fm_throw("invalid scenery type"_cf, (int)type);

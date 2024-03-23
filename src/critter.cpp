@@ -92,9 +92,11 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     case SW: return { SW,  S,  W };
     case W:  return {  W, SW, NW };
     case NW: return { NW,  W,  N };
+    default:
+        std::unreachable();
+        fm_assert(false);
     }
-    std::unreachable();
-    fm_assert(false);
+
 }
 
 } // namespace
