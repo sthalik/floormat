@@ -115,6 +115,7 @@ size_t fnvhash_buf(const void* __restrict buf, size_t size, size_t seed) noexcep
     case 2: hash *= b; hash ^= (uint8_t)*str++; [[fallthrough]];
     case 1: hash *= b; hash ^= (uint8_t)*str++; [[fallthrough]];
     case 0: break;
+    default: std::unreachable();
     }
     return hash;
 }
