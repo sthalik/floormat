@@ -23,7 +23,7 @@ struct step_s
     Vector2b direction;
 };
 
-constexpr step_s next_stepʹ(Vector2i vec_in)
+constexpr step_s next_step_(Vector2i vec_in)
 {
     const auto vec = Vector2ui(Math::abs(vec_in));
     const auto signs = Vector2b(Math::sign(vec_in));
@@ -107,7 +107,7 @@ constexpr step_s next_step(point from, point to)
     fm_debug_assert(from.chunk3().z == to.chunk3().z);
     const auto vec = to - from;
     fm_debug_assert(!vec.isZero());
-    return next_stepʹ(vec);
+    return next_step_(vec);
 }
 
 constexpr float step_magnitude(Vector2b vec)
@@ -118,10 +118,10 @@ constexpr float step_magnitude(Vector2b vec)
 
     if (vec.x() * vec.y() != 0)
         // diagonal
-        return c;
+        return d;
     else
         // axis-aligned
-        return d;
+        return c;
 }
 
 bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
@@ -171,7 +171,6 @@ void pf_test::update_pre(app& a, const Ns& dt)
     if (!current.has_value)
         return;
 
-#if 0
     auto& m = a.main();
     auto& C = *a.ensure_player_character(m.world()).ptr;
     fm_assert(C.is_dynamic());
@@ -188,7 +187,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
     if (nframes == 0)
         return;
 
-    C.set_keys(false, false, false, false);
+    C.set_keys_auto();
 
     auto index = C.index();
     bool ok = true;
@@ -207,7 +206,6 @@ void pf_test::update_pre(app& a, const Ns& dt)
         }
         const auto step = next_step(from, current.dest);
         //Debug{} << "step" << step.direction << step.count << "|" << C.position();
-        C.set_keys_auto();
         if (step.direction == Vector2b{})
         {
             //Debug{} << "no dir break";
@@ -216,19 +214,21 @@ void pf_test::update_pre(app& a, const Ns& dt)
         }
         fm_assert(step.count > 0);
         const auto new_r = dir_from_step(step);
-        using Frac = decltype(critter::offset_frac)::Type;
+        using Frac = decltype(critter::offset_frac_);
         constexpr auto frac = (float{limits<Frac>::max}+1)/2;
         constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
-        const auto sign_vec = Math::sign(vec);
-        auto offset_ = vec + Vector2(C.offset_frac) * sign_vec * inv_frac;
+        const auto from_accum = C.offset_frac_ * inv_frac * vec;
+        auto offset_ = vec + from_accum;
         auto off_i = Vector2i(offset_);
-        //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << Vector2(C.offset_frac) * sign_vec * inv_frac;
+        //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << C.offset_frac_;
 
         if (!off_i.isZero())
         {
-            C.offset_frac = Math::Vector2<Frac>(Math::abs(Math::fmod(offset_, 1.f)) * frac);
+            auto rem = Math::fmod(offset_, 1.f).length();
+            C.offset_frac_ = Frac(rem * frac);
+            //Debug{} << "foo1" << C.offset_frac_;
             if (C.can_move_to(off_i))
             {
                 C.move_to(index, off_i, new_r);
@@ -241,17 +241,20 @@ void pf_test::update_pre(app& a, const Ns& dt)
             }
         }
         else
-            C.offset_frac = Math::Vector2<Frac>(Math::min({2.f,2.f}, Math::abs(offset_)) * frac);
+        {
+            auto rem = offset_.length();
+            C.offset_frac_ = Frac(rem * frac);
+        }
     }
 
     if (!ok) [[unlikely]]
     {
+        Debug{} << "bad";
         C.set_keys(false, false, false, false);
         C.delta = {};
-        C.offset_frac = {};
+        C.offset_frac_ = {};
         current.has_value = false;
     }
-#endif
 }
 
 } // namespace
