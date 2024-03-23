@@ -98,10 +98,10 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     }
 }
 
-template<rotation new_r, float vx, float vy, bool MultiStep>
+template<rotation new_r, bool MultiStep>
 bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
 {
-    constexpr auto vec = Vector2{vx, vy};
+    constexpr auto vec = rotation_to_vec(new_r);
     using Frac = decltype(critter::offset_frac_);
     constexpr auto frac = (float{limits<Frac>::max}+1)/2;
     constexpr auto inv_frac = 1 / frac;
@@ -137,24 +137,16 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t n
     return false;
 }
 
-template<rotation r, bool MultiStep>
-CORRADE_ALWAYS_INLINE
-bool update_movement_2(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
-{
-    constexpr auto vec = rotation_to_vec(r);
-    return update_movement_body<r, vec.x(), vec.y(), MultiStep>(i, C, info, nsteps);
-}
-
 template<rotation r>
 CORRADE_ALWAYS_INLINE
 bool update_movement_3way(size_t i, critter& C, const anim_def& info)
 {
     constexpr auto rotations = rotation_to_similar(r);
-    if (update_movement_2<rotations[0], false>(i, C, info, 0))
+    if (update_movement_body<rotations[0], false>(i, C, info, 0))
         return true;
-    if (update_movement_2<rotations[1], false>(i, C, info, 0))
+    if (update_movement_body<rotations[1], false>(i, C, info, 0))
         return true;
-    if (update_movement_2<rotations[2], false>(i, C, info, 0))
+    if (update_movement_body<rotations[2], false>(i, C, info, 0))
         return true;
     return false;
 }
@@ -186,7 +178,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
                 auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min() / 2u);
                 if (len <= 1)
                     break;
-                if (!update_movement_2<new_r, true>(i, C, info, len))
+                if (!update_movement_body<new_r, true>(i, C, info, len))
                     break;
                 //Debug{} << " " << len;
                 nframes -= len;
@@ -195,10 +187,8 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
         }
 
         for (auto k = 0u; k < nframes; k++)
-        {
             if (!update_movement_3way<new_r>(i, C, info))
                 return false;
-        }
     }
     else
     {
@@ -211,7 +201,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
                 auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.data()[len_axis]);
                 if (len <= 1) [[unlikely]]
                     break;
-                if (!update_movement_2<new_r, true>(i, C, info, len))
+                if (!update_movement_body<new_r, true>(i, C, info, len))
                     break;
                 //Debug{} << " " << len;
                 nframes -= len;
@@ -220,7 +210,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
         }
 
         for (auto k = 0u; k < nframes; k++)
-            if (!update_movement_2<new_r, false>(i, C, info, 0))
+            if (!update_movement_body<new_r, false>(i, C, info, 0))
                 return false;
     }
 
