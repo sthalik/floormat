@@ -136,10 +136,17 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
     {
         for (auto k = 0u; k < nframes; k++)
         {
-            constexpr auto rotations = rotation_to_similar(new_r);
-            if (constexpr auto vec = rotation_to_vec(rotations[0]); update_movement_body<rotations[0], vec.x(), vec.y()>(i, C, info)) continue;
-            if (constexpr auto vec = rotation_to_vec(rotations[1]); update_movement_body<rotations[1], vec.x(), vec.y()>(i, C, info)) continue;
-            if (constexpr auto vec = rotation_to_vec(rotations[2]); update_movement_body<rotations[2], vec.x(), vec.y()>(i, C, info)) continue;
+            constexpr auto fun = []<size_t k>(size_t& index, critter& C, const anim_def& info) {
+                constexpr auto rotations = rotation_to_similar(new_r);
+                constexpr auto vec = rotation_to_vec(rotations[k]);
+                constexpr auto vx = vec.x(), vy = vec.y();
+                return update_movement_body<rotations[k], vx, vy>(index, C, info);
+            };
+
+            if (fun.template operator()<0>(i, C, info)) continue;
+            if (fun.template operator()<1>(i, C, info)) continue;
+            if (fun.template operator()<2>(i, C, info)) continue;
+
             return false;
         }
     }
