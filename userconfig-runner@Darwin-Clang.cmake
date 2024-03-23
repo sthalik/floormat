@@ -39,6 +39,7 @@ function(fm-userconfig-src)
         -Wno-zero-length-array
         -Wno-unsafe-buffer-usage
         -Wno-poison-system-directories
+        -Wno-c99-compat
     )
     add_compile_options(
         #-Werror
