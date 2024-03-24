@@ -348,6 +348,8 @@ object::operator object_proto() const
 
 void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass)
 {
+    fm_assert(Vector2ui(bb_size_).product() != 0);
+
     if (offset != offset_)
         if (!is_dynamic())
             c->mark_scenery_modified();
