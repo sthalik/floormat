@@ -196,7 +196,7 @@ auto wall_atlas::group(size_t dir, size_t tag) const -> const Group*
         return {};
 }
 
-auto wall_atlas::group(const Direction& dir, Group_ tag) const -> const Group*
+auto wall_atlas::group(const Direction& dir, Group_ tag) -> const Group*
 {
     fm_assert(tag < Group_::COUNT);
     const auto memfn = dir.groups[(size_t)tag].member;

@@ -135,7 +135,7 @@ public:
     const Group* group(Direction_ dir, Group_ group) const;
     const Group* group(size_t dir, size_t group) const;
     const Group* group(size_t dir, Group_ tag) const;
-    const Group* group(const Direction& dir, Group_ group) const;
+    static const Group* group(const Direction& dir, Group_ group);
     const Direction* direction(size_t dir) const;
     const Direction* direction(Direction_ dir) const;
     const Direction& calc_direction(Direction_ dir) const;
