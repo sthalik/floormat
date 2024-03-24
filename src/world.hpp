@@ -83,7 +83,7 @@ public:
     std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
     {
         auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
-        do_make_object(static_pointer_cast<object>(ret), pos, sorted);
+        do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }
     void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted);
