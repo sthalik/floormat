@@ -42,12 +42,12 @@ struct critter final : object
     uint16_t offset_frac_ = 0;
 
     struct movement_s {
-        bool L : 1 = false,
-             R : 1 = false,
-             U : 1 = false,
-             D : 1 = false,
-             AUTO : 1 = false;
-        bool _pad1 : 1 = false,
+        bool L     : 1 = false,
+             R     : 1 = false,
+             U     : 1 = false,
+             D     : 1 = false,
+             AUTO  : 1 = false,
+             _pad1 : 1 = false,
              _pad2 : 1 = false,
              _pad3 : 1 = false;
     } movement;
