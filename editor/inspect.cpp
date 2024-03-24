@@ -181,8 +181,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
-        for (auto i = 0uz; i < T::Size; i++)
-            value[i] = Math::clamp(value[i], min[i], max[i]);
+        value = Math::clamp(value, min, max);
     }
 
     if (ret && !should_disable && !eqv(value, orig))
