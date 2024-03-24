@@ -51,7 +51,6 @@ int test_app::exec()
         FM_TEST(test_entity),
         FM_TEST(test_iptr),
         FM_TEST(test_hash),
-        FM_TEST(test_critter),
         FM_TEST(test_raycast),
         FM_TEST(test_json),
         FM_TEST(test_loader),
@@ -67,6 +66,7 @@ int test_app::exec()
         FM_TEST(test_astar_pool),
         FM_TEST(test_astar),
         FM_TEST(test_dijkstra),
+        FM_TEST(test_critter),
         FM_TEST(test_saves),
         FM_TEST(test_zzz_misc),
     };
