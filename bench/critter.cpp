@@ -83,7 +83,7 @@ struct Grace
 {
     Ns time = Ns{250};
     uint32_t distance_L2 = 24;
-    bool no_crash = false;
+    static constexpr bool no_crash = false;
 };
 
 bool run(world& w, const function_view<Ns() const>& make_dt,
@@ -339,7 +339,7 @@ void test_critter()
     }
 }
 
-void Critter_update_movement(benchmark::State& st)
+void Critter_move(benchmark::State& st)
 {
     for (int i = 0; i < 2; i++)
         test_critter();
@@ -347,7 +347,7 @@ void Critter_update_movement(benchmark::State& st)
         test_critter();
 }
 
-BENCHMARK(Critter_update_movement)->Unit(benchmark::kMillisecond);
+BENCHMARK(Critter_move)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
