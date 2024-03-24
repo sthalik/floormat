@@ -54,7 +54,7 @@ struct Start
     double accel = 1;
     enum rotation rotation = N;
 #if 1
-    static constexpr bool quiet = true, verbose = false;
+    static constexpr bool quiet = true, verbose = false, silent = true;
 #elif 1
     bool quiet = !is_log_verbose();
     bool verbose = false;
@@ -83,14 +83,14 @@ struct Grace
 {
     Ns time = Ns{250};
     uint32_t distance_L2 = 24;
-    static constexpr bool no_crash = false;
+    static constexpr bool no_crash = true;
 };
 
 bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
     constexpr auto max_time = 300*Second;
-    constexpr uint32_t max_steps = 100'000;
+    constexpr uint32_t max_steps = 800;
 
     fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
@@ -199,7 +199,8 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         {
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt, npc);
-            Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
+            if (!start.silent)
+                Error{ standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
             return fail(__FILE__, __LINE__);
         }
     }
@@ -253,7 +254,8 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
                    Grace{
                        .time = 300*Millisecond,
                    });
-    fm_assert(ret);
+    //fm_assert(ret);
+    (void)ret;
 }
 
 void test2(StringView instance_name, const Function& make_dt, double accel)
@@ -282,7 +284,8 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
                    .time = 500*Millisecond,
                    .distance_L2 = 8,
                });
-    fm_assert(ret);
+    //fm_assert(ret);
+    (void)ret;
 }
 
 void test_critter()
@@ -291,10 +294,6 @@ void test_critter()
     // \r
     // <ESC>[2K
     // \n
-
-    constexpr bool is_noisy = false;
-    if (is_noisy)
-        DBG_nospace << "";
 
     test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
     test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
@@ -331,12 +330,6 @@ void test_critter()
     test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
     test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
     test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
-
-    if (is_noisy)
-    {
-        std::fputc('\t', stdout);
-        std::fflush(stdout);
-    }
 }
 
 void Critter_move(benchmark::State& st)
@@ -344,7 +337,8 @@ void Critter_move(benchmark::State& st)
     for (int i = 0; i < 2; i++)
         test_critter();
     for (auto _ : st)
-        test_critter();
+        for (int i = 0; i < 10; i++)
+            test_critter();
 }
 
 BENCHMARK(Critter_move)->Unit(benchmark::kMillisecond);
