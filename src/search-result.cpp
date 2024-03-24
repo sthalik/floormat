@@ -4,8 +4,8 @@
 #include "compat/vector-wrapper.hpp"
 #include "search-node.hpp"
 #include "src/point.hpp"
-#include <Corrade/Containers/ArrayView.h>
-#include <utility>
+#include <cr/ArrayView.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 
