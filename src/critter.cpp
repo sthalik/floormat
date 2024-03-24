@@ -139,7 +139,7 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t n
 
 template<rotation r>
 CORRADE_ALWAYS_INLINE
-bool update_movement_3way(size_t i, critter& C, const anim_def& info)
+bool update_movement_3way(size_t& i, critter& C, const anim_def& info)
 {
     constexpr auto rotations = rotation_to_similar(r);
     if (update_movement_body<rotations[0], false>(i, C, info, 0))
