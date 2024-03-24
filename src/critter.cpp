@@ -293,12 +293,12 @@ void critter::update(size_t i, const Ns& dt)
         update_nonplayable(i, dt);
 }
 
-void critter::update_nonplayable(size_t i, const Ns& dt)
+void critter::update_nonplayable(size_t& i, const Ns& dt)
 {
     (void)i; (void)dt; (void)playable;
 }
 
-void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
+void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
 {
     const auto& info = atlas->info();
     const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
