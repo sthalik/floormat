@@ -137,7 +137,6 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
             return false;
         else
         {
-            fm_assert(false);
             fm_EMIT_DEBUG("", "assertion failed: false in %s:%d", file, line);
             fm_EMIT_ABORT();
         }
