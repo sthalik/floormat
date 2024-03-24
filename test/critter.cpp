@@ -9,6 +9,8 @@
 #include "src/log.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
+#include "src/scenery.hpp"
+
 #include <cinttypes>
 #include <cstdio>
 
@@ -53,6 +55,7 @@ struct Start
     point pt;
     double accel = 1;
     enum rotation rotation = N;
+    bool silent = false;
 #if 1
     bool quiet = !is_log_verbose();
     bool verbose = false;
@@ -87,6 +90,9 @@ struct Grace
 bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {})
 {
+    start.quiet |= start.silent;
+    start.verbose &= !start.silent;
+
     constexpr auto max_time = 300*Second;
     constexpr uint32_t max_steps = 100'000;
 
@@ -102,7 +108,8 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     fm_assert(start.rotation < rotation_COUNT);
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
+    if (grace.distance_L2 != (uint32_t)-1) [[unlikely]]
+        fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
 
     mark_all_modified(w);
 
@@ -189,14 +196,16 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         {
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt, npc);
-            Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
+            if (!start.silent) [[unlikely]]
+                Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
             return fail(__FILE__, __LINE__);
         }
         if (i > max_steps) [[unlikely]]
         {
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt, npc);
-            Error{standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
+            if (!start.silent) [[unlikely]]
+                Error{ standard_error() } << "!!! fatal: position doesn't converge after" << i << "iterations!";
             return fail(__FILE__, __LINE__);
         }
     }
@@ -215,11 +224,12 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)saved_time.stamp)};
         if (time_diff > grace.time)
         {
-            Error{ standard_error(), Debug::Flag::NoSpace }
-                << "!!! fatal: wrong time " << saved_time
-                << " expected:" << expected.time
-                << " diff:" << time_diff
-                << " for " << start.name << "/" << start.instance;
+            if (!start.silent) [[unlikely]]
+                Error{ standard_error(), Debug::Flag::NoSpace }
+                    << "!!! fatal: wrong time " << saved_time
+                    << " expected:" << expected.time
+                    << " diff:" << time_diff
+                    << " for " << start.name << "/" << start.instance;
             return fail(__FILE__, __LINE__);
         }
     }
@@ -282,6 +292,51 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
     fm_assert(ret);
 }
 
+void test3(StringView instance_name, const Function& make_dt, double accel, rotation r, bool no_unroll)
+{
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+    const auto S = scenery_proto{loader.scenery("table0")};
+
+    auto w = world();
+    w[{{-1,-1,0}, {13,13}}].t.wall_north() = W;
+    w[{{-1,-1,0}, {13,13}}].t.wall_west() = W;
+    w[{{1,1,0}, {4,5}}].t.wall_north() = W;
+    w[{{1,1,0}, {5,4}}].t.wall_west() = W;
+    (void)w.make_object<scenery, false>(w.make_id(), {{}, {0, 0}}, S);
+    (void)w.make_object<scenery, false>(w.make_id(), {{}, {1, 1}}, S);
+    (void)w.make_object<scenery, false>(w.make_id(), {{}, {14, 14}}, S);
+    (void)w.make_object<scenery, false>(w.make_id(), {{}, {15, 15}}, S);
+    w[chunk_coords_{}].sort_objects();
+
+    if (no_unroll)
+    {
+        // reproduce the bug from commit 2b5a6e3f
+        object_id id = 0;
+        auto npc = w.ensure_player_character(id, make_proto(accel)).ptr;
+        npc->set_bbox({}, {}, {1,1}, pass_mode::blocked);
+    }
+
+    bool ret = run(w, make_dt,
+           Start{
+               .name = "test3"_s,
+               .instance = instance_name,
+               .pt = {{0,0,0}, {8,8}, {}},
+               .accel = accel,
+               .rotation = r,
+               .silent = true,
+           },
+           Expected{
+               .pt = {},
+               .time = 10*Second,
+           },
+           Grace{
+               .time = Ns{(uint64_t)-1},
+               .distance_L2 = (uint32_t)-1,
+               .no_crash = true,
+           });
+    fm_assert(!ret); // tiemout 300s reached
+}
+
 } // namespace
 
 void test_app::test_critter()
@@ -330,6 +385,11 @@ void test_app::test_critter()
     test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
     test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
     test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+
+    test3("dt=16.667 accel=50 r=E  no-unroll=false", constantly(Millisecond * 16.667), 50, E , false);
+    test3("dt=16.667 accel=50 r=NE no-unroll=false", constantly(Millisecond * 16.667), 50, NE, false);
+    test3("dt=16.667 accel=50 r=E  no-unroll=true",  constantly(Millisecond * 16.667), 50, E , true);
+    test3("dt=16.667 accel=50 r=NE no-unroll=true",  constantly(Millisecond * 16.667), 50, NE, true);
 
     if (is_noisy)
     {
