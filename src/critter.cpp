@@ -164,7 +164,7 @@ template<rotation r> constexpr uint8_t get_length_axis()
 
 constexpr bool DoUnroll = true;
 
-template<rotation new_r, bool DoUnroll>
+template<rotation new_r>
 CORRADE_ALWAYS_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
@@ -217,14 +217,14 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
     return true;
 }
 
-template bool update_movement_1<(rotation)0, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)1, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)2, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)3, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)4, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)5, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)6, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
-template bool update_movement_1<(rotation)7, DoUnroll>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)0>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)1>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)2>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)3>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)4>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)5>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)6>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
+template bool update_movement_1<(rotation)7>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
 
 } // namespace
 
@@ -317,14 +317,14 @@ void critter::update_movement(size_t i, const Ns& dt, rotation new_r)
     switch (new_r)
     {
     default: std::unreachable();
-    case (rotation)0: ret = update_movement_1<(rotation)0, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)1: ret = update_movement_1<(rotation)1, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)2: ret = update_movement_1<(rotation)2, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)3: ret = update_movement_1<(rotation)3, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)4: ret = update_movement_1<(rotation)4, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)5: ret = update_movement_1<(rotation)5, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)6: ret = update_movement_1<(rotation)6, DoUnroll>(*this, i, info, nframes); break;
-    case (rotation)7: ret = update_movement_1<(rotation)7, DoUnroll>(*this, i, info, nframes); break;
+    case (rotation)0: ret = update_movement_1<(rotation)0>(*this, i, info, nframes); break;
+    case (rotation)1: ret = update_movement_1<(rotation)1>(*this, i, info, nframes); break;
+    case (rotation)2: ret = update_movement_1<(rotation)2>(*this, i, info, nframes); break;
+    case (rotation)3: ret = update_movement_1<(rotation)3>(*this, i, info, nframes); break;
+    case (rotation)4: ret = update_movement_1<(rotation)4>(*this, i, info, nframes); break;
+    case (rotation)5: ret = update_movement_1<(rotation)5>(*this, i, info, nframes); break;
+    case (rotation)6: ret = update_movement_1<(rotation)6>(*this, i, info, nframes); break;
+    case (rotation)7: ret = update_movement_1<(rotation)7>(*this, i, info, nframes); break;
     }
 
     if (!ret) [[unlikely]]
