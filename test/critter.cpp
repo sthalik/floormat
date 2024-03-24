@@ -84,7 +84,12 @@ struct Grace
 {
     Ns time = Ns{250};
     uint32_t distance_L2 = 24;
+    uint32_t max_steps = 1'000;
     bool no_crash = false;
+
+    static constexpr uint32_t very_slow_max_steps = 120'000,
+                              slow_max_steps      = 12'000,
+                              default_max_steps   = 1'200;
 };
 
 bool run(world& w, const function_view<Ns() const>& make_dt,
@@ -94,7 +99,6 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     start.verbose &= !start.silent;
 
     constexpr auto max_time = 300*Second;
-    constexpr uint32_t max_steps = 100'000;
 
     fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
@@ -200,7 +204,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                 Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
             return fail(__FILE__, __LINE__);
         }
-        if (i > max_steps) [[unlikely]]
+        if (i >= grace.max_steps) [[unlikely]]
         {
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt, npc);
@@ -237,7 +241,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     return true;
 }
 
-void test1(StringView instance_name, const Function& make_dt, double accel)
+void test1(StringView instance_name, const Function& make_dt, double accel, uint32_t max_steps)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -260,11 +264,12 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
                    Grace{
                        .time = 300*Millisecond,
                        .distance_L2 = 4,
+                       .max_steps = max_steps,
                    });
     fm_assert(ret);
 }
 
-void test2(StringView instance_name, const Function& make_dt, double accel)
+void test2(StringView instance_name, const Function& make_dt, double accel, uint32_t max_steps)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -289,6 +294,7 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
                Grace{
                    .time = 500*Millisecond,
                    .distance_L2 = 4,
+                   .max_steps = max_steps,
                });
     fm_assert(ret);
 }
@@ -328,11 +334,12 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
            },
            Expected{
                .pt = {},
-               .time = 10*Second,
+               .time = Ns{},
            },
            Grace{
-               .time = Ns{(uint64_t)-1},
-               .distance_L2 = (uint32_t)-1,
+               //.time = 15*Second,
+               //.distance_L2 = (uint32_t)-1,
+               .max_steps = 1000,
                .no_crash = true,
            });
     fm_assert(!ret); // tiemout 300s reached
@@ -351,41 +358,41 @@ void test_app::test_critter()
     if (is_noisy)
         DBG_nospace << "";
 
-    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
-    test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
-    test1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
-    test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
-    test1("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
-    test1("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
-    test1("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
-    test1("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
-    test1("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
-    test1("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
-    test1("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
-    test1("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
-    test1("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
-    test1("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
-    test1("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
-    test1("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
-    test1("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1, Grace::default_max_steps);
+    test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2, Grace::default_max_steps);
+    test1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5, Grace::default_max_steps);
+    test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5, Grace::default_max_steps*2);
+    test1("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1, Grace::default_max_steps);
+    test1("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2, Grace::default_max_steps);
+    test1("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5, Grace::default_max_steps);
+    test1("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10, Grace::default_max_steps);
+    test1("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1, Grace::default_max_steps);
+    test1("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2, Grace::default_max_steps);
+    test1("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5, Grace::default_max_steps);
+    test1("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1, Grace::default_max_steps);
+    test1("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2, Grace::default_max_steps);
+    test1("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5, Grace::default_max_steps);
+    test1("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1, Grace::default_max_steps);
+    test1("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1, Grace::very_slow_max_steps);
+    test1("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5, Grace::very_slow_max_steps);
 
-    test2("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
-    test2("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
-    test2("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
-    test2("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
-    test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
-    test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
-    test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
-    test2("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
-    test2("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
-    test2("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
-    test2("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
-    test2("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
-    test2("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
-    test2("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
-    test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
-    test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
-    test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+    test2("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1, Grace::default_max_steps*5);
+    test2("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2, Grace::default_max_steps*3);
+    test2("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5, Grace::default_max_steps);
+    test2("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5, Grace::slow_max_steps);
+    test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1, Grace::default_max_steps*2);
+    test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2, Grace::default_max_steps);
+    test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5, Grace::default_max_steps);
+    test2("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10, Grace::default_max_steps);
+    test2("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1, Grace::default_max_steps);
+    test2("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2, Grace::default_max_steps);
+    test2("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5, Grace::default_max_steps);
+    test2("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1, Grace::default_max_steps);
+    test2("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2, Grace::default_max_steps);
+    test2("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5, Grace::default_max_steps);
+    test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1, Grace::default_max_steps);
+    test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1, Grace::very_slow_max_steps);
+    test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5, Grace::very_slow_max_steps);
 
     test3("dt=16.667 accel=50 r=E  no-unroll=false", constantly(Millisecond * 16.667), 50, E , false);
     test3("dt=16.667 accel=50 r=NE no-unroll=false", constantly(Millisecond * 16.667), 50, NE, false);
