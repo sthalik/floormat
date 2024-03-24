@@ -259,6 +259,7 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
                    },
                    Grace{
                        .time = 300*Millisecond,
+                       .distance_L2 = 4,
                    });
     fm_assert(ret);
 }
@@ -287,7 +288,7 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
                },
                Grace{
                    .time = 500*Millisecond,
-                   .distance_L2 = 8,
+                   .distance_L2 = 4,
                });
     fm_assert(ret);
 }
