@@ -313,7 +313,7 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
     {
         // reproduce the bug from commit 2b5a6e3f
         object_id id = 0;
-        auto npc = w.ensure_player_character(id, make_proto(accel)).ptr;
+        auto npc = w.ensure_player_character(id, make_proto((float)accel)).ptr;
         npc->set_bbox({}, {}, {1,1}, pass_mode::blocked);
     }
 
