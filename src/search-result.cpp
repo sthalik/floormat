@@ -3,7 +3,7 @@
 #include "compat/assert.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "search-node.hpp"
-#include "src/point.hpp"
+#include "src/point.inl"
 #include <cr/ArrayView.h>
 #include <mg/Functions.h>
 
@@ -11,13 +11,50 @@ namespace floormat {
 
 namespace {
 
-constexpr auto min_length = TILE_MAX_DIM*2;
+struct off_pair
+{
+    unsigned val;
+    bool is_bad;
+    constexpr bool operator==(const off_pair&) const = default;
+};
+
+template<unsigned N> constexpr off_pair offset_is_bad(Int x)
+{
+    switch (x)
+    {
+    case Int{-1}:
+    case Int{ 1}:
+    case Int{ 0}:
+        return { (unsigned(Int{1} + x)) << N, false };
+    default:
+        return { (unsigned)-1, true };
+    }
+}
+#if 0
+static_assert((2 | 2 << 8) == (offset_is_bad<0>(Int{1}).val | offset_is_bad<8>(Int{1}).val));
+static_assert((2 | 1 << 8) == (offset_is_bad<0>(Int{1}).val | offset_is_bad<8>(Int{0}).val));
+static_assert((1 | 1 << 8) == (offset_is_bad<0>(Int{0}).val | offset_is_bad<8>(Int{0}).val));
+static_assert((0 | 2 << 8) == (offset_is_bad<0>(Int{-1}).val | offset_is_bad<8>(Int{1}).val));
+static_assert((unsigned)-1 == (offset_is_bad<0>(Int{4242}).val | offset_is_bad<8>(Int{1}).val));
+#endif
 
 void simplify_path(const std::vector<point>& src, std::vector<path_search_result::pair>& dest)
 {
     dest.clear();
+    dest.reserve(src.size());
     fm_assert(!src.empty());
+    fm_assert(src.size() >= 2);
+    const auto size = (uint32_t)src.size();
+    dest.push_back({src[0], 0});
 
+    auto last = src[0];
+    auto cur = src[1] - src[0];
+    size_t len = 1;
+
+    for (auto i = 1u; i < size; i++)
+    {
+
+    }
 }
 
 } // namespace
@@ -26,6 +63,7 @@ Pointer<path_search_result::node> path_search_result::_pool; // NOLINT
 
 path_search_result::path_search_result()
 {
+    constexpr auto min_length = TILE_MAX_DIM*2;
     if (_pool)
     {
         auto ptr = move(_pool);
