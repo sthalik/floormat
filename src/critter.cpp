@@ -175,6 +175,10 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
             //Debug{} << "< nframes" << nframes;
             while (nframes > 1)
             {
+                // todo what is the correct formula?
+                // 1. C.bbox_size.min()
+                // 2. C.bbox_size.min()/2
+                // 3. (C.bbox_size.min()+1)/2
                 auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min());
                 if (len <= 1)
                     break;
