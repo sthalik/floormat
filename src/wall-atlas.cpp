@@ -214,19 +214,16 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
     if (auto dai = _direction_map[(size_t)dir]) [[likely]]
         return _dir_array[dai.val];
     CORRADE_ASSUME(dir < Direction_::COUNT);
+    Direction_ other;
     switch (dir)
     {
-    case Direction_::N:
-        if (auto dai = _direction_map[(size_t)Direction_::W])
-            return _dir_array[dai.val];
-        break;
-    case Direction_::W:
+    case Direction_::N: other = Direction_::W; break;
+    case Direction_::W: other = Direction_::N; break;
+    default: other = Direction_::COUNT;
+    }
+    if (other != Direction_::COUNT)
         if (auto dai = _direction_map[(size_t)Direction_::N])
             return _dir_array[dai.val];
-        break;
-    case Direction_::COUNT:
-        std::unreachable();
-    }
     fm_abort("wall_atlas: can't find direction '%d'", (int)dir);
 }
 

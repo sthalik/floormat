@@ -44,8 +44,8 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
     switch (G)
     {
     using enum Group_;
-    case COUNT:
-        std::unreachable();
+    default:
+        fm_abort("invalid wall_atlas group '%d'", (int)G);
     case wall:
         if (!is_west)
             return {{
@@ -107,8 +107,6 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 {-X, -Y, Z },
             }};
     }
-    std::unreachable();
-    fm_abort("invalid wall_atlas group '%d'", (int)G);
 }
 
 Array<Quads::indexes> make_indexes_()
