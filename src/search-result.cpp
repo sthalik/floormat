@@ -11,7 +11,14 @@ namespace floormat {
 
 namespace {
 
-constexpr size_t min_length = TILE_MAX_DIM*2;
+constexpr auto min_length = TILE_MAX_DIM*2;
+
+void simplify_path(const std::vector<point>& src, std::vector<path_search_result::pair>& dest)
+{
+    dest.clear();
+    fm_assert(!src.empty());
+
+}
 
 } // namespace
 
@@ -77,6 +84,19 @@ bool path_search_result::is_found() const { return _found; }
 void path_search_result::set_found(bool value) { _found = value; }
 uint32_t path_search_result::distance() const { return _distance; }
 void path_search_result::set_distance(uint32_t dist) { _distance = dist; }
+bool path_search_result::is_simplified() const { /*fm_assert(!_node->vec.empty());*/ return !_node->vec_.empty(); }
+auto path_search_result::simplified() -> ArrayView<const pair>
+{
+    if (!_node->vec_.empty())
+        return { _node->vec_.data(), _node->vec_.size() };
+    else
+    {
+        //fm_assert(!_node->vec.empty());
+        simplify_path(_node->vec, _node->vec_);
+        fm_assert(!_node->vec_.empty());
+        return { _node->vec_.data(), _node->vec_.size() };
+    }
+}
 
 auto path_search_result::data() const -> const point* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }
@@ -93,6 +113,7 @@ const point& path_search_result::operator[](size_t index) const
     fm_debug_assert(index < _node->vec.size());
     return data()[index];
 }
+
 vector_wrapper<point, vector_wrapper_repr::ref> path_search_result::raw_path() { fm_assert(_node); return {_node->vec}; }
 ArrayView<const point> path_search_result::path() const { fm_assert(_node); return {_node->vec.data(), _node->vec.size()}; }
 

@@ -15,7 +15,7 @@ struct path_search_result::pair
 
 struct path_search_result::node
 {
-    friend class path_search_result;
+    friend struct path_search_result;
     friend struct test_app;
 
     node() noexcept;
