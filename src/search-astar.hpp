@@ -11,7 +11,7 @@ namespace floormat {
 
 class world;
 struct point;
-struct path_search_result;
+class path_search_result;
 
 class astar
 {
