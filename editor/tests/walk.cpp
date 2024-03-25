@@ -249,7 +249,7 @@ void pf_test::update_pre(app& a, const Ns& dt)
 
     if (!ok) [[unlikely]]
     {
-        Debug{} << "bad";
+        //Debug{} << "bad";
         C.set_keys(false, false, false, false);
         C.delta = {};
         C.offset_frac_ = {};
