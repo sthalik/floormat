@@ -123,7 +123,7 @@ void path_search_result::set_found(bool value) { _found = value; }
 uint32_t path_search_result::distance() const { return _distance; }
 void path_search_result::set_distance(uint32_t dist) { _distance = dist; }
 bool path_search_result::is_simplified() const { /*fm_assert(!_node->vec.empty());*/ return !_node->vec_.empty(); }
-auto path_search_result::simplified() -> ArrayView<const pair>
+auto path_search_result::simplified_path() -> ArrayView<const pair>
 {
     if (!_node->vec_.empty())
         return { _node->vec_.data(), _node->vec_.size() };
@@ -136,23 +136,10 @@ auto path_search_result::simplified() -> ArrayView<const pair>
     }
 }
 
-auto path_search_result::data() const -> const point* { return _node->vec.data(); }
 path_search_result::operator bool() const { return !_node->vec.empty(); }
 
-path_search_result::operator ArrayView<const point>() const
-{
-    fm_debug_assert(_node);
-    return {_node->vec.data(), _node->vec.size()};
-}
-
-const point& path_search_result::operator[](size_t index) const
-{
-    fm_debug_assert(_node);
-    fm_debug_assert(index < _node->vec.size());
-    return data()[index];
-}
-
 vector_wrapper<point, vector_wrapper_repr::ref> path_search_result::raw_path() { fm_assert(_node); return {_node->vec}; }
+auto path_search_result::raw_simplified_path() -> vector_wrapper<pair, vector_wrapper_repr::ref> { fm_assert(_node); return {_node->vec_}; }
 ArrayView<const point> path_search_result::path() const { fm_assert(_node); return {_node->vec.data(), _node->vec.size()}; }
 
 } // namespace floormat

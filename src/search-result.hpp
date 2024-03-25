@@ -13,8 +13,6 @@ struct path_search_result final
     struct pair;
     struct node;
 
-    const point* data() const;
-    const point& operator[](size_t index) const;
     size_t size() const;
     uint32_t cost() const;
     void set_cost(uint32_t value);
@@ -25,12 +23,11 @@ struct path_search_result final
     uint32_t distance() const;
     void set_distance(uint32_t dist);
     bool is_simplified() const;
-    ArrayView<const pair> simplified();
 
     vector_wrapper<point, vector_wrapper_repr::ref> raw_path();
     vector_wrapper<pair, vector_wrapper_repr::ref> raw_simplified_path();
     ArrayView<const point> path() const;
-    explicit operator ArrayView<const point>() const;
+    ArrayView<const pair> simplified_path();
     explicit operator bool() const;
 
     path_search_result();
