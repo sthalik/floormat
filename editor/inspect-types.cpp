@@ -65,9 +65,7 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<Vector2i>::field{"offset"_s,
                 [](const object& x) { return Vector2i(x.offset); }, // todo return Vector2b
-                //[](object& x, Vector2i value) { x.set_bbox(value, x.bbox_offset, x.bbox_size, x.pass); },
                 [](object& x, Vector2i value) { x.move_to(value - Vector2i(x.offset)); },
-                //constantly(constraints::range{Vector2b(iTILE_SIZE2/-2), Vector2b(iTILE_SIZE2/2)}),
             },
             E::type<pass_mode>::field{"pass-mode"_s,
                 &object::pass,
@@ -119,7 +117,6 @@ struct entity_accessors<scenery, inspect_intent_t> {
                                   return std::visit(overloaded {
                                       [&](const door_scenery&) { return st::enabled; },
                                       [&](const generic_scenery&) { return st::enabled; },
-                                      //[](auto&&) { return st::hidden; },
                                   }, x.subtype);
                                 },
             },
@@ -135,14 +132,6 @@ requires requires (const T& x) { { x.atlas } -> std::convertible_to<const std::s
 struct has_anim_atlas<T> : std::true_type {
     static const anim_atlas& get_atlas(const object& x) { return *x.atlas; }
 };
-
-#if 0
-template<> struct has_anim_atlas<object> : std::true_type {
-    static const anim_atlas& get_atlas(const object& x) { return *x.atlas; }
-};
-template<> struct has_anim_atlas<scenery> : has_anim_atlas<object> {};
-template<> struct has_anim_atlas<critter> : has_anim_atlas<object> {};
-#endif
 
 using enum_pair = std::pair<StringView, size_t>;
 template<typename T, typename U> struct enum_values;
@@ -284,7 +273,6 @@ struct entity_accessors<light, inspect_intent_t>
     }
 };
 
-//template bool inspect_type(object&);
 template bool inspect_type(scenery&, inspect_intent_t);
 template bool inspect_type(critter&, inspect_intent_t);
 template bool inspect_type(light&, inspect_intent_t);
@@ -294,7 +282,6 @@ bool inspect_object_subtype(object& x)
     switch (auto type = x.type())
     {
     default: fm_warn_once("unknown object subtype '%d'", (int)type); return false;
-    //case object_type::none: return inspect_type(x);
     case object_type::scenery: return inspect_type(static_cast<scenery&>(x), inspect_intent_t{});
     case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
     case object_type::light: return inspect_type(static_cast<light&>(x), inspect_intent_t{});
