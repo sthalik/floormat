@@ -67,6 +67,11 @@ struct read_field<Obj, Type, Type (Obj::*)() const> {
 };
 
 template<typename Obj, typename Type>
+struct read_field<Obj, Type, const Type Obj::*> {
+    static constexpr Type read(const Obj& x, const Type Obj::*r) { return x.*r; }
+};
+
+template<typename Obj, typename Type>
 struct read_field<Obj, Type, Type Obj::*> {
     static constexpr Type read(const Obj& x, Type Obj::*r) { return x.*r; }
 };
