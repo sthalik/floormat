@@ -27,7 +27,7 @@ struct entity_accessors<object, inspect_intent_t> {
                 constantly(st::readonly),
             },
             E::type<StringView>::field{"atlas"_s,
-                [](const object& x) { return loader.strip_prefix(x.atlas->name()); },
+                [](const object& x) { return x.atlas->name(); },
                 ignored_write,
                 constantly(st::readonly),
             },
