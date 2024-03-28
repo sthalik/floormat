@@ -7,12 +7,6 @@
 
 namespace floormat {
 
-struct path_search_result::pair
-{
-    point pt;
-    uint32_t length = 0;
-};
-
 struct path_search_result::node
 {
     friend struct path_search_result;
@@ -23,7 +17,6 @@ struct path_search_result::node
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
 
     std::vector<point> vec;
-    std::vector<pair> vec_;
 
 private:
     Pointer<node> _next;

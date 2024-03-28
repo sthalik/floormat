@@ -36,7 +36,7 @@ struct path_test final : base_test
     struct result_s
     {
         point from, to;
-        std::vector<point> path;
+        path_search_result res;
         float time;
         uint32_t cost, distance;
         bool found : 1;
@@ -116,7 +116,7 @@ void path_test::draw_overlay(app& a)
     auto last = a.point_screen_pos(result.from);
     draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
 
-    for (auto pt : result.path)
+    for (auto pt : result.res.path())
     {
         auto pos = a.point_screen_pos(pt);
         draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, line_color, line_thickness);
@@ -124,9 +124,9 @@ void path_test::draw_overlay(app& a)
         last = pos;
     }
 
-    if (!result.found && !result.path.empty())
+    if (!result.found && !result.res.path().isEmpty())
     {
-        auto pos = a.point_screen_pos(result.path.back());
+        auto pos = a.point_screen_pos(result.res.path().back());
         constexpr float spacing = 12, size1 = 7, size2 = 3, spacing2 = spacing + size2;
 
         draw.AddLine({pos.x() - spacing2, pos.y() - spacing2},
@@ -161,7 +161,7 @@ void path_test::update_pre(app& a, const Ns&)
     result = {
         .from = pending.from,
         .to = pending.to,
-        .path = move(res.raw_path().vec),
+        .res = move(res),
         .time = res.time(),
         .cost = res.cost(),
         .distance = res.distance(),
@@ -236,7 +236,7 @@ void path_test::draw_ui(app&, float)
         text(buf);
 
         do_column("length");
-        std::snprintf(buf, std::size(buf), "%d", (int)res.path.size());
+        std::snprintf(buf, std::size(buf), "%d", (int)res.res.path().size());
         text(buf);
 
         do_column("time");

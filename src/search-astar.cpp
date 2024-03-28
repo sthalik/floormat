@@ -33,6 +33,39 @@ using Search::min_size;
 
 namespace {
 
+void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
+{
+    const auto size = (uint32_t)src.size();
+    fm_assert(size >= 2);
+    dest.reserve(size);
+    auto last_vec = src[1] - src[0];
+
+    dest.clear();
+    dest.reserve(src.size());
+
+    if (last_vec.isZero()) [[unlikely]]
+    {
+        fm_assert(size <= 2);
+        return;
+    }
+
+    dest.push_back(src[1]);
+
+    for (auto i = 2u; i < size; i++)
+    {
+        const auto pos = src[i];
+        const auto vec = pos - src[i-1];
+        if (vec != last_vec || Math::abs(vec).max() != div_size.x())
+        {
+            dest.push_back(pos);
+            last_vec = vec;
+        }
+    }
+
+    if (dest.back() != src.back())
+        dest.push_back(src.back());
+}
+
 constexpr bbox<Int> bbox_from_pos1(point pt, Vector2ui size)
 {
     auto center = Vector2i(pt.local()) * iTILE_SIZE2 + Vector2i(pt.offset());
@@ -94,27 +127,33 @@ struct heap_comparator
     inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
 };
 
-void set_result_from_idx(path_search_result& result, const Array<visited>& nodes,
+void set_result_from_idx(path_search_result& result,
+                         Array<point>& temp_nodes, const Array<visited>& nodes,
                          point to, const uint32_t idx)
 {
-    fm_debug_assert(idx != (uint32_t)-1);
+    uint32_t len = 0;
+    for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
+        len++;
 
-    auto& path = result.raw_path().vec;
-    path.clear();
+    fm_debug_assert(idx != (uint32_t)-1);
+    arrayResize(temp_nodes, 0);
+    arrayReserve(temp_nodes, len+1);
 
     const auto& to_node = nodes[idx];
     if (result.is_found() && to != to_node.pt)
-        path.push_back(to);
+        arrayAppend(temp_nodes, to);
     result.set_cost(to_node.dist);
 
     auto i = idx;
     do {
         const auto& node = nodes[i];
-        path.push_back(node.pt);
+        arrayAppend(temp_nodes, node.pt);
         i = node.prev;
     } while (i != (uint32_t)-1);
 
-    std::reverse(path.begin(), path.end());
+    std::reverse(temp_nodes.begin(), temp_nodes.end());
+    simplify_path(temp_nodes, result.raw_path().vec);
+    arrayResize(temp_nodes, 0);
 }
 
 } // namespace
@@ -304,13 +343,13 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     {
         result.set_found(true);
         result.set_distance(0);
-        set_result_from_idx(result, nodes, to, goal_idx);
+        set_result_from_idx(result, temp_nodes, nodes, to, goal_idx);
     }
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
         result.set_distance(closest_dist);
-        set_result_from_idx(result, nodes, to, closest_idx);
+        set_result_from_idx(result, temp_nodes, nodes, to, closest_idx);
     }
 
     result.set_time(timeline.currentFrameTime());
