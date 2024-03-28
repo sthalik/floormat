@@ -38,6 +38,7 @@ private:
     safe_ptr<struct Search::cache> _cache;
     Array<visited> nodes;
     Array<uint32_t> Q;
+    Array<point> temp_nodes;
 };
 
 } // namespace floormat

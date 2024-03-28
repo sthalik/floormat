@@ -10,7 +10,6 @@ struct point;
 struct path_search_result final
 {
     friend struct test_app;
-    struct pair;
     struct node;
 
     size_t size() const;
@@ -22,12 +21,9 @@ struct path_search_result final
     void set_found(bool value);
     uint32_t distance() const;
     void set_distance(uint32_t dist);
-    bool is_simplified() const;
 
     vector_wrapper<point, vector_wrapper_repr::ref> raw_path();
-    vector_wrapper<pair, vector_wrapper_repr::ref> raw_simplified_path();
     ArrayView<const point> path() const;
-    ArrayView<const pair> simplified_path();
     explicit operator bool() const;
 
     path_search_result();
