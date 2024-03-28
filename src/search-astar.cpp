@@ -78,10 +78,7 @@ constexpr auto directions = []() constexpr
         { {  0,  1 }, len1.y() },
     }};
     for (auto& [vec, len] : array)
-    {
         vec *= div_size;
-        vec += Vector2i(1);
-    }
 #if 0
     for (auto i = 0uz; i < array.size(); i++)
         for (auto j = 0uz; j < i; j++)
