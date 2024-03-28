@@ -1,9 +1,4 @@
 #pragma once
-
-#if defined __CLION_IDE__ && __CLION_IDE__ >= 20240100 && defined __GNUG__
-#define CORRADE_ASSUME(condition) __attribute__((assume(condition)))
-#endif
-
 #include "integer-types.hpp"
 #include "move.hpp"
 #include <type_traits>
