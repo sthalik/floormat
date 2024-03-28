@@ -66,7 +66,7 @@ constexpr auto directions = []() constexpr
 {
     struct pair { Vector2i dir; uint32_t len; };
     constexpr auto len1 = div_size;
-    constexpr auto len2 = (uint32_t)(len1.length() + 0.5f); // NOLINT
+    constexpr auto len2 = (uint32_t)(len1.length() + 1.f); // NOLINT
     std::array<pair, 8> array = {{
         { { -1, -1 }, len2 },
         { {  1,  1 }, len2 },
