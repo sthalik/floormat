@@ -71,22 +71,15 @@ object_id app::get_object_colliding_with_cursor()
     auto& shader = M->shader();
 
     using rtree_type = std::decay_t<decltype(*world[chunk_coords_{}].rtree())>;
-    using rect_type = typename rtree_type::Rect;
+    using rect_type = rtree_type::Rect;
 
     if (cursor.pixel)
     {
         auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
-        auto pixel = Vector2d{*cursor.pixel} + pos;
-        auto coord = M->pixel_to_tile(pixel);
-        auto tile = global_coords{coord.chunk(), coord.local(), 0};
-
-        constexpr auto eps = 1e-6f;
-        constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
-        const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
+        const auto [tile, subpixelʹ] = M->pixel_to_point(Vector2d{*cursor.pixel} + pos);
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixelʹ = Math::fmod(tile_, 1.f);
-        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixelʹ[0] : subpixelʹ[0],
-                                          curchunk[1] < 0 ? 1 + subpixelʹ[1] : subpixelʹ[1]);
+        const auto subpixel = Vector2(subpixelʹ);
+
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -99,10 +92,9 @@ object_id app::get_object_colliding_with_cursor()
                 const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
-                    constexpr auto half_tile = TILE_SIZE2/2;
                     constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
                     auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
                     object_id ret = 0;
@@ -136,19 +128,9 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     // assert_invariant !!cursor.tile == !!cursor.subpixel;
     if (pixel)
     {
-        auto coord = M->pixel_to_tile(Vector2d{*pixel});
-        auto tile = global_coords{coord.chunk(), coord.local(), _z_level};
+        auto [tile, subpixel] = M->pixel_to_point(Vector2d(*pixel), _z_level);
         cursor.tile = tile;
-
-        const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(*pixel)));
-        const auto curchunk = Vector2(tile.chunk());
-        const auto subpixelʹ = Math::fmod(tile_, 1.f);
-        auto subpixel = TILE_SIZE2 * Vector2(curchunk.x() < 0 ? 1 + subpixelʹ.x() : subpixelʹ.x(),
-                                             curchunk.y() < 0 ? 1 + subpixelʹ.y() : subpixelʹ.y());
-        constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
-        subpixel -= half_tile;
-        subpixel = Math::clamp(Math::round(subpixel), -half_tile, half_tile-Vector2{1.f});
-        cursor.subpixel = Vector2b(subpixel);
+        cursor.subpixel = subpixel;
     }
     else
     {

@@ -1,15 +1,16 @@
 #include "main-impl.hpp"
 #include "src/tile-constants.hpp"
+#include "src/point.hpp"
 #include <algorithm>
 #include <limits>
 
 namespace floormat {
 
-global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
+global_coords main_impl::pixel_to_tile(Vector2d position, int8_t z_level) const noexcept
 {
     auto vec = pixel_to_tile_(position);
     auto vec_ = Math::floor(vec);
-    return { (int32_t)vec_.x(), (int32_t)vec_.y(), 0 };
+    return { (int32_t)vec_.x(), (int32_t)vec_.y(), z_level };
 }
 
 Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
@@ -18,6 +19,20 @@ Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
     constexpr Vector2d half{.5, .5};
     const Vector2d px = position - Vector2d{window_size()}*.5 - _shader.camera_offset();
     return tile_shader::unproject(px*.5) / pixel_size + half;
+}
+
+point main_impl::pixel_to_point(Vector2d pixel, int8_t z_level) const noexcept
+{
+    const auto tileʹ = pixel_to_tile_(pixel);
+    const auto tileʹʹ = Math::floor(tileʹ);
+    const auto tile = global_coords{(int)tileʹʹ.x(), (int)tileʹʹ.y(), z_level};
+    const auto subpixelʹ = Math::fmod(Vector2(tileʹ), 1.f);
+    const auto subpixelʹ_neg = Vector2{Vector2i(tile.chunk()) < Vector2i{}};
+    auto subpixel = TILE_SIZE2 * (subpixelʹ + subpixelʹ_neg);
+    constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
+    subpixel -= half_tile;
+    subpixel = Math::clamp(Math::round(subpixel), -half_tile, half_tile-Vector2{1.f});
+    return point{ tile, Vector2b{subpixel} };
 }
 
 auto main_impl::get_draw_bounds() const noexcept -> draw_bounds

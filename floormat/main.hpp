@@ -24,6 +24,7 @@ struct anim_mesh;
 struct texture_unit_cache;
 class path_search;
 class astar;
+struct point;
 
 struct floormat_main
 {
@@ -68,8 +69,10 @@ struct floormat_main
     virtual void set_cursor(uint32_t cursor) noexcept = 0;
     virtual uint32_t cursor() const noexcept = 0;
 
-    virtual global_coords pixel_to_tile(Vector2d position) const noexcept = 0;
+    virtual global_coords pixel_to_tile(Vector2d position, int8_t z_level = 0) const noexcept = 0;
     virtual Vector2d pixel_to_tile_(Vector2d position) const noexcept = 0;
+    virtual point pixel_to_point(Vector2d position, int8_t z_level = 0) const noexcept = 0;
+
     virtual draw_bounds get_draw_bounds() const noexcept = 0;
     [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
     virtual struct meshes meshes() noexcept = 0;

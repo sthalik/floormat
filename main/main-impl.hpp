@@ -65,8 +65,9 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     fm_settings& settings() noexcept override;
     const fm_settings& settings() const noexcept override;
 
-    global_coords pixel_to_tile(Vector2d position) const noexcept override;
+    global_coords pixel_to_tile(Vector2d position, int8_t z_level = 0) const noexcept override;
     Vector2d pixel_to_tile_(Vector2d position) const noexcept override;
+    point pixel_to_point(Vector2d position, int8_t z_level = 0) const noexcept override;
 
     ArrayView<const clickable> clickable_scenery() const noexcept override;
     ArrayView<clickable> clickable_scenery() noexcept override;

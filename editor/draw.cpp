@@ -155,17 +155,9 @@ void app::draw_collision_boxes()
     {
         auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
         auto pixel = Vector2d{*cursor.pixel} + pos;
-        auto coord = M->pixel_to_tile(pixel);
-        auto tile = global_coords{coord.chunk(), coord.local(), 0};
-
-        constexpr auto eps = 1e-6f;
-        constexpr auto m = TILE_SIZE2 * Vector2(1- eps, 1- eps);
-        const auto tile_ = Vector2(M->pixel_to_tile_(Vector2d(pixel)));
-        const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixelʹ = Math::fmod(tile_, 1.f);
-        // todo use this formula for dragging objs
-        const auto subpixel = m * Vector2(curchunk[0] < 0 ? 1 + subpixelʹ[0] : subpixelʹ[0],
-                                          curchunk[1] < 0 ? 1 + subpixelʹ[1] : subpixelʹ[1]);
+        const auto [coord, subpixelʹ] = M->pixel_to_point(Vector2d(pixel));
+        const auto curchunk = Vector2(coord.chunk()), curtile = Vector2(coord.local());
+        const auto subpixel = Vector2(subpixelʹ);
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
@@ -178,10 +170,9 @@ void app::draw_collision_boxes()
                 const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
-                    constexpr auto half_tile = TILE_SIZE2/2;
                     constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
                     auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel - half_tile;
+                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
                     auto t1 = t0+Vector2(1e-4f);
                     const auto* rtree = c.rtree();
                     rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
