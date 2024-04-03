@@ -26,6 +26,14 @@ struct limit_traits<T>
 };
 
 template<typename T>
+requires std::is_enum_v<T>
+struct limit_traits<T>
+{
+    static constexpr T min() { return T(limits<std::underlying_type_t<T>>::min); }
+    static constexpr T max() { return T(limits<std::underlying_type_t<T>>::max); }
+};
+
+template<typename T>
 struct limit_traits
 {
     static_assert(std::is_nothrow_default_constructible_v<T>);

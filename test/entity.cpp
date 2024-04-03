@@ -281,6 +281,17 @@ void test_range4()
     fm_assert(r.second == rʹ.max);
 }
 
+constexpr bool test_enum_range()
+{
+    enum class E { foo, bar };
+    constexpr auto x = TestAccessors{};
+    constexpr auto f = entity::type<E>::field("vec"_s, constantly(E::bar), [](auto&&, auto&&) {});
+    static_assert(f.read(x) == E::bar);
+    constexpr auto r = f.get_range(x);
+    static_assert(r.max != E{0});
+    return true;
+}
+
 } // namespace
 
 void test_app::test_entity()
@@ -300,6 +311,7 @@ void test_app::test_entity()
     test_range2();
     static_assert(test_range3());
     test_range4();
+    static_assert(test_enum_range());
 }
 
 } // namespace floormat
