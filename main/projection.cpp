@@ -9,7 +9,7 @@ global_coords main_impl::pixel_to_tile(Vector2d position) const noexcept
 {
     auto vec = pixel_to_tile_(position);
     auto vec_ = Math::floor(vec);
-    return { (int32_t)vec_.x(), (int32_t)vec.y(), 0 };
+    return { (int32_t)vec_.x(), (int32_t)vec_.y(), 0 };
 }
 
 Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
