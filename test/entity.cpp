@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
+#include "compat/limits.hpp"
 #include "entity/metadata.hpp"
+#include "entity/accessor.hpp"
 #include <tuple>
 
 using namespace floormat;
@@ -148,8 +150,10 @@ void test_type_name()
     constexpr StringView name = name_of<foobar>;
     fm_assert(name.contains("foobar"_s));
     static_assert(name.data() == name_of<foobar>.data());
+#ifndef __CLION_IDE__
     static_assert(name_of<int> != name_of<unsigned>);
     static_assert(name_of<foobar*> != name_of<const foobar*>);
+#endif
     using foobar2 = foobar;
     static_assert(name_of<foobar2>.data() == name_of<foobar>.data());
 }
@@ -239,6 +243,44 @@ void test_erased_constraints()
     fm_assert(erased.get_max_length(&x) == 42);
 }
 
+constexpr bool test_range1()
+{
+    constexpr auto x = TestAccessors{};
+    constexpr auto r = m_foo.get_range(x);
+    static_assert(r.max == limits<int>::max);
+    return true;
+}
+
+void test_range2()
+{
+    constexpr auto x = TestAccessors{};
+    constexpr auto rʹ = m_foo.get_range(x);
+    constexpr auto A = m_foo.erased();
+    auto r = A.get_range(&x);
+    auto i = r.convert<int>();
+    fm_assert(i.second == rʹ.max);
+}
+
+constexpr bool test_range3()
+{
+    constexpr auto f = entity::type<Vector2i>::field("vec"_s, constantly(Vector2i(0)), [](auto&&, auto&&) {});
+    constexpr auto r = f.get_range(f.range, TestAccessors{});
+    static_assert(r.max == Vector2i(limits<int>::max));
+
+    return true;
+}
+
+void test_range4()
+{
+    constexpr auto x = TestAccessors{};
+    constexpr auto f = entity::type<Vector2i>::field("vec"_s, constantly(Vector2i(0)), [](auto&&, auto&&) {});
+    constexpr auto rʹ = f.get_range(f.range, TestAccessors{});
+    const auto A = f.erased();
+    const auto r = A.get_range(&x).convert<Vector2i>();
+    fm_assert(r.first == rʹ.min);
+    fm_assert(r.second == rʹ.max);
+}
+
 } // namespace
 
 void test_app::test_entity()
@@ -254,6 +296,10 @@ void test_app::test_entity()
     test_metadata();
     test_constraints();
     test_erased_constraints();
+    static_assert(test_range1());
+    test_range2();
+    static_assert(test_range3());
+    test_range4();
 }
 
 } // namespace floormat

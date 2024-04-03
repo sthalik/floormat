@@ -1,16 +1,47 @@
 #pragma once
+#include "compat/limits.hpp"
 #include "erased-constraints.hpp"
 #include <type_traits>
-#include <limits>
 #include <utility>
 #include <mg/Vector.h>
+
+namespace floormat::entities::limit_detail {
+
+template<typename T> struct limit_traits;
+
+template<typename T>
+requires Math::IsVector<T>::value
+struct limit_traits<T>
+{
+    static constexpr auto min() { return T(limits<typename T::Type>::min); }
+    static constexpr auto max() { return T(limits<typename T::Type>::max); }
+};
+
+template<typename T>
+requires std::is_arithmetic_v<T>
+struct limit_traits<T>
+{
+    static constexpr auto min() { return limits<T>::min; }
+    static constexpr auto max() { return limits<T>::max; }
+};
+
+template<typename T>
+struct limit_traits
+{
+    static_assert(std::is_nothrow_default_constructible_v<T>);
+    static constexpr T min() { return T{}; }
+    static constexpr T max() { return T{}; }
+};
+
+} // namespace floormat::entities::limit_detail
+
 
 namespace floormat::entities::constraints {
 
 template<typename T> struct range
 {
-    using limits = std::numeric_limits<T>;
-    T min = limits::min(), max = limits::max();
+    T min = limit_detail::limit_traits<T>::min();
+    T max = limit_detail::limit_traits<T>::max();
 
     constexpr operator erased_constraints::range() const noexcept;
     constexpr operator std::pair<T, T>() const noexcept;
@@ -41,14 +72,13 @@ constexpr erased_constraints::range erased_range_from_range(const Math::Vector<N
 {
     static_assert(N <= 4);
     static_assert(sizeof T{} <= sizeof 0uz);
-    using limits = std::numeric_limits<T>;
     using type = erased_constraints::range::type_;
 
     using Element = std::conditional_t<std::is_floating_point_v<T>, float,
                                        std::conditional_t<std::is_unsigned_v<T>, size_t,
                                                           std::make_signed_t<size_t>>>;
 
-    Math::Vector4<Element> min{limits::min()}, max{limits::max()};
+    Math::Vector4<Element> min{limits<Element>::min}, max{limits<Element>::max};
     for (auto i = 0u; i < N; i++)
     {
         min[i] = Element(min0[i]);
