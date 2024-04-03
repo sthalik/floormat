@@ -255,7 +255,7 @@ void test_range2()
 {
     constexpr auto x = TestAccessors{};
     constexpr auto rʹ = m_foo.get_range(x);
-    constexpr auto A = m_foo.erased();
+    const auto A = m_foo.erased();
     auto r = A.get_range(&x);
     auto i = r.convert<int>();
     fm_assert(i.second == rʹ.max);
