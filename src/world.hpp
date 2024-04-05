@@ -117,7 +117,7 @@ public:
 template<typename T>
 std::shared_ptr<T> world::find_object(object_id id)
 {
-    static_assert(std::is_same_v<object, T> || std::is_base_of_v<object, T>);
+    static_assert(std::is_base_of_v<object, T>);
     // make it a dependent name so that including "src/object.hpp" isn't needed
     using U = std::conditional_t<std::is_same_v<T, object>, T, object>;
     if (std::shared_ptr<U> ptr = find_object_(id); !ptr)
