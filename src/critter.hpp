@@ -29,7 +29,12 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(size_t i, const Ns& dt) override;
+    void update(size_t i, const Ns& dt) override; // todo! return true when the position changed
+    // todo!
+    // add a field: last_update_frame. if doesn't equal to the current world's update
+    // frame, update() gets called and last_update_frame is set to current frame.
+    // when update() returns true, the *currently* iterated chunk gets rescanned from
+    // the beginning in editor's update world
     void update_movement(size_t& i, const Ns& dt, rotation r);
     void update_nonplayable(size_t& i, const Ns& dt);
     void set_keys(bool L, bool R, bool U, bool D);
