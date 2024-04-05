@@ -72,10 +72,10 @@ struct object
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
     virtual void update(size_t i, const Ns& dt) = 0;
-    virtual void rotate(size_t i, rotation r);
-    virtual bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
-    virtual bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
-    virtual void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
+    void rotate(size_t i, rotation r);
+    bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
+    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
+    void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
