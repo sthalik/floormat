@@ -195,7 +195,8 @@ auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<Vector2i> posi
     ret.time = timeline.currentFrameTime();
 
     if (debug) [[unlikely]]
-        DBG_nospace << "region: generating for " << _coord << " took " << fraction(1e3f*ret.time, 3) << " ms";
+        DBG_nospace << "region: generating for " << _coord
+                    << " took " << fraction(1e3f * ret.time, 3) << " ms";
 
     return ret;
 }
