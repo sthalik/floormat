@@ -29,7 +29,7 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(size_t i, const Ns& dt) override; // todo! return true when the position changed
+    void update(size_t& i, const Ns& dt) override;
     // todo!
     // add a field: last_update_frame. if doesn't equal to the current world's update
     // frame, update() gets called and last_update_frame is set to current frame.

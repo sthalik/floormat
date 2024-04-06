@@ -53,7 +53,7 @@ light::operator light_proto() const
 }
 
 object_type light::type() const noexcept { return object_type::light; }
-void light::update(size_t, const Ns&) {}
+void light::update(size_t&, const Ns&) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 

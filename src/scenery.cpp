@@ -50,7 +50,7 @@ scenery_proto::operator bool() const { return atlas != nullptr; }
 bool generic_scenery_proto::operator==(const generic_scenery_proto& p) const = default;
 enum scenery_type generic_scenery_proto::scenery_type() const { return scenery_type::generic; }
 
-void generic_scenery::update(scenery&, size_t, Ns) {}
+void generic_scenery::update(scenery&, size_t&, Ns) {}
 Vector2 generic_scenery::ordinal_offset(const scenery&, Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(const scenery&, size_t) const { return interactive; }
 bool generic_scenery::activate(floormat::scenery&, size_t) { return false; }
@@ -80,7 +80,7 @@ door_scenery::door_scenery(object_id, class chunk&, const door_scenery_proto& p)
     closing{p.closing}, active{p.active}, interactive{p.interactive}
 {}
 
-void door_scenery::update(scenery& s, size_t, Ns dt)
+void door_scenery::update(scenery& s, size_t&, Ns dt)
 {
     if (!s.atlas || !active)
         return;
@@ -146,7 +146,7 @@ bool scenery::can_activate(size_t i) const
     );
 }
 
-void scenery::update(size_t i, const Ns& dt)
+void scenery::update(size_t& i, const Ns& dt)
 {
     return std::visit(
         [&]<typename T>(T& sc) { sc.update(*this, i, dt); },

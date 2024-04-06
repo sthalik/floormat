@@ -43,6 +43,7 @@ struct object
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);
 
     const object_id id = 0;
+    uint64_t last_frame_no = 0;
     class chunk* const c;
     const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
@@ -71,7 +72,7 @@ struct object
     virtual object_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual void update(size_t i, const Ns& dt) = 0;
+    virtual void update(size_t& i, const Ns& dt) = 0;
     void rotate(size_t i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);

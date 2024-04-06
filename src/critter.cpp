@@ -362,7 +362,7 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-void critter::update(size_t i, const Ns& dt)
+void critter::update(size_t& i, const Ns& dt)
 {
     if (playable) [[unlikely]]
     {

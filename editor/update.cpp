@@ -225,7 +225,7 @@ void app::apply_commands(const key_set& keys)
 void app::update_world(Ns dt)
 {
     auto& world = M->world();
-    world.increment_frame_no();
+    const auto frame_no = world.increment_frame_no();
     auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
     minx--; miny--; maxx++; maxy++;
     for (int8_t z = chunk_z_min; z <= chunk_z_max; z++)
@@ -237,10 +237,42 @@ void app::update_world(Ns dt)
                     continue;
                 auto& c = *cʹ;
                 const auto& es = c.objects();
-                const auto size = es.size();
-                for (auto i = (int)(size-1); i >= 0; i--)
-                    es[i]->update((unsigned)i, dt);
+                auto size = es.size();
+                for (auto i = 0uz; i < size; i++)
+                {
+                    auto& e = *es[i];
+                    if (e.last_frame_no == frame_no) [[unlikely]]
+                        continue;
+                    e.last_frame_no = frame_no;
+                    const auto* const ch = &e.chunk();
+                    size_t index = i;
+                    e.update(index, dt);
+                    if (&e.chunk() != ch || (uint32_t)index > i) [[unlikely]]
+                    {
+                        i--;
+                        size = es.size();
+                    }
+                }
             }
+
+#ifndef FM_NO_DEBUG
+    for (int8_t z = chunk_z_min; z <= chunk_z_max; z++)
+        for (int16_t y = miny; y <= maxy; y++)
+            for (int16_t x = minx; x <= maxx; x++)
+            {
+                auto* cʹ = world.at({x, y, z});
+                if (!cʹ)
+                    continue;
+                auto& c = *cʹ;
+                const auto& es = c.objects();
+                auto size = es.size();
+                for (auto i = 0uz; i < size; i++)
+                {
+                    auto& e = *es[i];
+                    fm_assert(e.last_frame_no == frame_no);
+                }
+            }
+#endif
 }
 
 void app::update_character([[maybe_unused]] Ns dt)
