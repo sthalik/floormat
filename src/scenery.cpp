@@ -13,21 +13,6 @@ namespace floormat {
 
 namespace {
 
-template<typename... Ts> struct [[maybe_unused]] overloaded : Ts... { using Ts::operator()...; };
-
-#if defined __GNUG__ && !defined __clang__
-#pragma GCC diagnostic push // gcc doesn't support [[attributes]] on deduction guides
-#pragma GCC diagnostic ignored "-Wunused"
-#endif
-template<typename... Ts>
-#ifdef __clang__
-[[maybe_unused]]
-#endif
-overloaded(Ts...) -> overloaded<Ts...>;
-#if defined __GNUG__ && !defined __clang__
-#pragma GCC diagnostic pop
-#endif
-
 template<typename T> struct proto_to_scenery_;
 template<> struct proto_to_scenery_<generic_scenery_proto> { using type = generic_scenery; };
 template<> struct proto_to_scenery_<door_scenery_proto> { using type = door_scenery; };

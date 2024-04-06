@@ -11,9 +11,6 @@
 
 namespace floormat {
 
-template<typename... Ts> struct [[maybe_unused]] overloaded : Ts... { using Ts::operator()...; };
-template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 class chunk;
 class anim_atlas;
 class world;

@@ -1,5 +1,6 @@
 #include "entity/metadata.hpp"
 #include "entity/accessor.hpp"
+#include "compat/overloaded.hpp"
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
@@ -89,9 +90,6 @@ struct entity_accessors<object, inspect_intent_t> {
         };
     }
 };
-
-template<typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template<>
 struct entity_accessors<scenery, inspect_intent_t> {

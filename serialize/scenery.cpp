@@ -1,4 +1,5 @@
 #include "scenery.hpp"
+#include "compat/overloaded.hpp"
 #include "compat/exception.hpp"
 #include "src/anim-atlas.hpp"
 #include "compat/assert.hpp"
