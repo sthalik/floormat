@@ -1,6 +1,7 @@
 #include "critter.hpp"
 #include "compat/limits.hpp"
 #include "tile-constants.hpp"
+#include "src/point.inl"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
@@ -9,7 +10,7 @@
 #include "compat/exception.hpp"
 #include <cmath>
 #include <utility>
-#include <algorithm>
+#include <array>
 #include <mg/Functions.h>
 
 namespace floormat {
@@ -230,6 +231,92 @@ template bool update_movement_1<(rotation)5>(critter& C, size_t& i, const anim_d
 template bool update_movement_1<(rotation)6>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
 template bool update_movement_1<(rotation)7>(critter& C, size_t& i, const anim_def& info, uint32_t nframes);
 
+struct step_s
+{
+    uint32_t count;
+    Vector2b direction;
+};
+
+constexpr step_s next_step_(Vector2i vec_in)
+{
+    const auto vec = Vector2ui(Math::abs(vec_in));
+    const auto signs = Vector2b(Math::sign(vec_in));
+
+    if (vec.x() == vec.y())
+        return { vec.x(), Vector2b{1, 1} * signs };
+    else if (vec.y() == 0)
+        return { vec.x(), Vector2b{1, 0} * signs };
+    else if (vec.x() == 0)
+        return { vec.y(), Vector2b{0, 1} * signs };
+    else
+    {
+        uint32_t major_idx, minor_idx;
+        if (vec.x() > vec.y())
+        {
+            major_idx = 0;
+            minor_idx = 1;
+        }
+        else
+        {
+            major_idx = 1;
+            minor_idx = 0;
+        }
+        const auto major = vec[major_idx], minor = vec[minor_idx];
+        const auto num_axis_aligned = (uint32_t)Math::abs((int)major - (int)minor);
+        auto axis_aligned = Vector2b{};
+        axis_aligned[major_idx] = 1;
+        return { num_axis_aligned, axis_aligned * signs };
+    }
+}
+
+constexpr rotation dir_from_step(step_s step)
+{
+    if (step.direction.isZero()) [[unlikely]]
+        return rotation_COUNT;
+
+    auto x = step.direction.x() + 1;
+    auto y = step.direction.y() + 1;
+    fm_debug_assert((x & 3) == x && (y & 3) == y);
+    auto val = x << 2 | y;
+
+    switch (val)
+    {
+    using enum rotation;
+    case 0 << 2 | 0: /* -1 -1 */ return NW;
+    case 0 << 2 | 1: /* -1  0 */ return W;
+    case 0 << 2 | 2: /* -1  1 */ return SW;
+    case 1 << 2 | 0: /*  0 -1 */ return N;
+    case 1 << 2 | 1: /*  0  0 */ return rotation_COUNT;
+    case 1 << 2 | 2: /*  0  1 */ return S;
+    case 2 << 2 | 0: /*  1 -1 */ return NE;
+    case 2 << 2 | 1: /*  1  0 */ return E;
+    case 2 << 2 | 2: /*  1  1 */ return SE;
+    default: return rotation_COUNT;
+    }
+}
+
+constexpr step_s next_step(point from, point to)
+{
+    fm_debug_assert(from.chunk3().z == to.chunk3().z);
+    const auto vec = to - from;
+    fm_debug_assert(!vec.isZero());
+    return next_step_(vec);
+}
+
+constexpr float step_magnitude(Vector2b vec)
+{
+    constexpr double cʹ = critter::move_speed * critter::frame_time;
+    constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
+    constexpr auto c = (float)cʹ, d = (float)dʹ;
+
+    if (vec.x() * vec.y() != 0)
+        // diagonal
+            return d;
+    else
+        // axis-aligned
+            return c;
+}
+
 } // namespace
 
 critter_proto::critter_proto(const critter_proto&) = default;
@@ -337,6 +424,102 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
         offset_frac_ = {};
     }
 }
+
+auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> move_result
+{
+    fm_assert(is_dynamic());
+
+    if (movement.L | movement.R | movement.U | movement.D) [[unlikely]]
+        return { .blocked = true, .moved = false, };
+
+    const auto& info = atlas->info();
+    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
+    bool moved = false;
+
+    set_keys_auto();
+
+    if (nframes == 0)
+        return { .blocked = false, .moved = moved };
+
+    bool ok = true;
+
+    for (uint32_t i = 0; i < nframes; i++)
+    {
+        chunk().ensure_passability();
+
+        const auto from = position();
+        if (from == dest)
+        {
+            //Debug{} << "done!" << from;
+            //C.set_keys(false, false, false, false);
+            return { .blocked = false, .moved = moved, };
+        }
+        const auto step = next_step(from, dest);
+        //Debug{} << "step" << step.direction << step.count << "|" << C.position();
+        if (step.direction == Vector2b{}) [[unlikely]]
+        {
+            {
+                static bool once = false;
+                if (!once) [[unlikely]]
+                {
+                    once = true;
+                    DBG_nospace << "critter::move_toward: no dir for"
+                                << " vec:" << (dest - from)
+                                << " dest:" << dest
+                                << " from:" << from;
+                }
+            }
+            ok = false;
+            break;
+        }
+        fm_assert(step.count > 0);
+        const auto new_r = dir_from_step(step);
+        using Frac = decltype(critter::offset_frac_);
+        constexpr auto frac = (float{limits<Frac>::max}+1)/2;
+        constexpr auto inv_frac = 1 / frac;
+        const auto mag = step_magnitude(step.direction);
+        const auto vec = Vector2(step.direction) * mag;
+        const auto from_accum = offset_frac_ * inv_frac * vec;
+        auto offset_ = vec + from_accum;
+        auto off_i = Vector2i(offset_);
+        //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << C.offset_frac_;
+
+        if (!off_i.isZero())
+        {
+            auto rem = Math::fmod(offset_, 1.f).length();
+            offset_frac_ = Frac(rem * frac);
+            //Debug{} << "foo1" << C.offset_frac_;
+            if (can_move_to(off_i))
+            {
+                move_to(index, off_i, new_r);
+                moved = true;
+                ++frame %= info.nframes;
+            }
+            else
+            {
+                ok = false;
+                break;
+            }
+        }
+        else
+        {
+            auto rem = offset_.length();
+            offset_frac_ = Frac(rem * frac);
+        }
+    }
+
+    if (!ok) [[unlikely]]
+    {
+        //Debug{} << "bad";
+        set_keys(false, false, false, false);
+        delta = {};
+        offset_frac_ = {};
+        return { .blocked = true, .moved = moved };
+    }
+
+    return { .blocked = false, .moved = moved };
+}
+
 
 object_type critter::type() const noexcept { return object_type::critter; }
 

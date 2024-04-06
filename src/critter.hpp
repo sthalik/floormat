@@ -37,6 +37,10 @@ struct critter final : object
     // the beginning in editor's update world
     void update_movement(size_t& i, const Ns& dt, rotation r);
     void update_nonplayable(size_t& i, const Ns& dt);
+
+    struct move_result { bool blocked, moved; };
+    [[nodiscard]] move_result move_toward(size_t& i, const Ns& dt, const point& dest);
+
     void set_keys(bool L, bool R, bool U, bool D);
     void set_keys_auto();
     Vector2 ordinal_offset(Vector2b offset) const override;
