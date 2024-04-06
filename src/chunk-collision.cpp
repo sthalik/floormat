@@ -64,6 +64,12 @@ void chunk::ensure_passability() noexcept
             auto [min, max] = wall_north(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
             _rtree->Insert(min.data(), max.data(), id);
+
+            if (tile.wall_west_atlas().get())
+            {
+                auto [min, max] = wall_pillar(i, (float)atlas->info().depth);
+                _rtree->Insert(min.data(), max.data(), id);
+            }
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {

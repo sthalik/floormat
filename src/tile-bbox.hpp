@@ -40,4 +40,10 @@ constexpr Pair<Vector2, Vector2> wall_west(size_t k, float wall_depth)
     return { min, min + Vector2{wall_depth, TILE_SIZE2.y()} };
 }
 
+constexpr Pair<Vector2, Vector2> wall_pillar(size_t k, float wall_depth)
+{
+    auto min = tile_start(k) - Vector2{wall_depth, 0};
+    return { min - Vector2{0, wall_depth}, min + Vector2{wall_depth, TILE_SIZE2.y()} };
+}
+
 } // namespace floormat
