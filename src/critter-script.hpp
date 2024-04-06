@@ -31,7 +31,7 @@ public:
 struct critter_script : base_script
 {
     critter_script(critter& c);
-    virtual void update(critter& c, size_t i, const Ns& dt) = 0;
+    virtual void update(critter& c, size_t& i, const Ns& dt) = 0;
     // todo can_activate, activate
 };
 
