@@ -19,6 +19,7 @@ namespace {
 using Search::bbox;
 using Search::div_size;
 using Search::div_count;
+using Search::div_factor;
 using Search::pred;
 
 static_assert(div_count.x() == div_count.y());
@@ -131,12 +132,12 @@ auto default_region_predicate(chunk& c) noexcept
 
 } // namespace
 
-auto chunk::make_pass_region(bool debug) -> pass_region
+auto chunk::make_pass_region(bool debug, ArrayView<Vector2i> positions) -> pass_region
 {
-    return make_pass_region(default_region_predicate(*this), debug);
+    return make_pass_region(default_region_predicate(*this), debug, positions);
 }
 
-auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
+auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<Vector2i> positions) -> pass_region
 {
     Timeline timeline;
     timeline.start();
@@ -170,6 +171,14 @@ auto chunk::make_pass_region(const pred& f, bool debug) -> pass_region
         do_pixel.operator()<R, true>(Vector2i(-1, i));
         do_pixel.operator()<U, true>(Vector2i(i, div_count.y()));
         do_pixel.operator()<D, true>(Vector2i(i, -1));
+    }
+
+    for (auto pos : positions)
+    {
+        const auto posʹ = (pos + iTILE_SIZE2)*div_factor / iTILE_SIZE2;
+        fm_debug_assert(posʹ >= Vector2i{});
+        fm_debug_assert(posʹ < div_count);
+        tmp.append(ret.bits, posʹ);
     }
 
     while (!tmp.stack.isEmpty())

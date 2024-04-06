@@ -1,4 +1,5 @@
 #include "../tests-private.hpp"
+#include "compat/shared-ptr-wrapper.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
 #include "src/object.hpp"
@@ -6,7 +7,7 @@
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
-#include <mg/Vector2.h>
+#include "src/critter.hpp"
 
 namespace floormat::tests {
 
@@ -44,7 +45,7 @@ struct region_test final : base_test
     result_s result;
     pending_s pending;
 
-    void do_region_extraction(world& w, chunk_coords_ coord);
+    void do_region_extraction(app& a, chunk_coords_ coord);
     ~region_test() noexcept override = default;
 
     bool handle_key(app&, const key_event&, bool) override { return {}; }
@@ -144,20 +145,24 @@ void region_test::update_post(app& a, const Ns&)
     if (pending.exists)
     {
         pending.exists = false;
-        auto& M = a.main();
-        auto& w = M.world();
-        do_region_extraction(w, pending.c);
+        do_region_extraction(a, pending.c);
     }
 }
 
-void region_test::do_region_extraction(world& w, chunk_coords_ coord)
+void region_test::do_region_extraction(app& a, chunk_coords_ coord)
 {
+    auto& M = a.main();
+    auto& w = M.world();
+    auto C = a.ensure_player_character(w).ptr;
     if (auto* c = w.at(coord))
+    {
+        Vector2i C_coord[] = { Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
         result = {
-            .region = c->make_pass_region(true),
+            .region = c->make_pass_region(true, C_coord),
             .c = coord,
             .exists = true,
         };
+    }
 }
 
 } // namespace
