@@ -1,7 +1,5 @@
 #pragma once
 #include "src/tile-defs.hpp"
-#include "shaders/texture-unit-cache.hpp"
-#include <utility>
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
@@ -11,6 +9,7 @@ namespace Magnum::GL { class AbstractTexture; }
 
 namespace floormat {
 
+struct texture_unit_cache;
 struct local_coords;
 
 struct tile_shader final : private GL::AbstractShaderProgram

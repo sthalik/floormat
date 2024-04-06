@@ -41,7 +41,6 @@ struct path_test final : base_test
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
-
 bool path_test::handle_key(app& a, const key_event& e, bool is_down)
 {
     (void)a; (void)e; (void)is_down;

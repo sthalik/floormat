@@ -2,6 +2,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "src/local-coords.hpp"
+#include "texture-unit-cache.hpp"
 #include <cmath>
 #include <Corrade/Containers/Iterable.h>
 #include <Magnum/Math/Vector4.h>
