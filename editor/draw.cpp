@@ -137,6 +137,11 @@ void app::draw_collision_boxes()
 #if 1
                         if (x.tag == (uint64_t)collision_type::geometry)
                             return true;
+#else
+                        if (x.tag == (uint64_t)collision_type::geometry)
+                            if (x.pass == (uint64_t)pass_mode::pass)
+                                if (x.data < TILE_COUNT*2+1)
+                                    return true;
 #endif
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = (end - start);
