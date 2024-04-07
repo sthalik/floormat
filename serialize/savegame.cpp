@@ -848,7 +848,7 @@ struct reader final : visitor_<reader>
             obj = w.make_unconnected_object<scenery>(); break;
         }
 
-        visit_object_internal(*obj, f, id, object_type(type), ch);
+        visit_object_internal(*obj, f, id, type, ch);
 
         if (PROTO >= 21) [[likely]]
             fm_soft_assert(object_counter >= id);
