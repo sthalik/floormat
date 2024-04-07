@@ -40,7 +40,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
                 { .index = 0, .count = 1, .pixel_size = frame_size, .is_defined = true, }
             } }),
             {{ {.val = 0}, {}, }},
-            {1u},
+            {true, false},
         }, name, loader.make_error_texture(frame_size));
     return { .atlas = move(a), .name = name, };
 }
