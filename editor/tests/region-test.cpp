@@ -156,9 +156,9 @@ void region_test::do_region_extraction(app& a, chunk_coords_ coord)
     auto C = a.ensure_player_character(w).ptr;
     if (auto* c = w.at(coord))
     {
-        Vector2i C_coord[] = { Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
+        auto C_coord = Vector2i{ Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
         result = {
-            .region = c->make_pass_region(true, C_coord),
+            .region = c->make_pass_region(true, {&C_coord, 1}),
             .c = coord,
             .exists = true,
         };
