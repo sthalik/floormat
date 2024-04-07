@@ -32,6 +32,11 @@
 #define fm_assert(...) void(bool((__VA_ARGS__)))
 #endif
 
+// ReSharper disable CppDFAUnreachableCode
+// ReSharper disable CppDFAUnreachableFunctionCall
+// ReSharper disable CppUseStructuredBinding
+// NOLINTBEGIN(*-missing-std-forward, *-avoid-const-or-ref-data-members, *-redundant-member-init)
+
 namespace floormat {
 
 using floormat::Serialize::binary_reader;
@@ -44,7 +49,7 @@ namespace {
 
 struct FILE_raii final
 {
-    FILE_raii(FILE* s) noexcept : s{s} {}
+    explicit FILE_raii(FILE* s) noexcept : s{s} {}
     ~FILE_raii() noexcept { close(); }
     operator FILE*() noexcept { return s; }
     void close() noexcept { if (s) std::fclose(s); s = nullptr; }
@@ -59,8 +64,6 @@ struct string_hasher
         return fnvhash_buf(s.data(), s.size());
     }
 };
-
-// NOLINTBEGIN(*-missing-std-forward)
 
 template<typename T> T& non_const(const T& value) { return const_cast<T&>(value); }
 template<typename T> T& non_const(T& value) = delete;
@@ -113,7 +116,7 @@ struct visitor_
 
     static constexpr proto_t proto_version      = 24;
     const proto_t& PROTO; // NOLINT(*-avoid-const-or-ref-data-members)
-    visitor_(const proto_t& proto) : PROTO{proto} {}
+    explicit visitor_(const proto_t& proto) : PROTO{proto} {}
 
     template<typename T, typename F>
     CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
@@ -211,7 +214,7 @@ struct visitor_
         do_visit(c.wall_west(), f);
     }
 
-    template<typename F> void visit(chunk_coords_& coord, F&& f)
+    template<typename F> static void visit(chunk_coords_& coord, F&& f)
     {
         f(coord.x);
         f(coord.y);
@@ -373,9 +376,9 @@ struct writer final : visitor_<writer>
 
     struct serialized_atlas
     {
-        buffer buf;
-        const void* atlas;
-        atlas_type type;
+        [[maybe_unused]] buffer buf;
+        [[maybe_unused]] const void* atlas;
+        [[maybe_unused]] atlas_type type;
     };
 
     struct serialized_chunk
@@ -394,7 +397,7 @@ struct writer final : visitor_<writer>
 
     buffer header_buf{}, string_buf{};
 
-    writer(const world& w) :
+    explicit writer(const world& w) :
         visitor_{ fake_proto },
         w{ w }
     {}
@@ -429,7 +432,7 @@ struct writer final : visitor_<writer>
         do_visit(id, f);
     }
 
-    template<typename F> void visit(const local_coords& pt, F&& f)
+    template<typename F> static void visit(const local_coords& pt, F&& f)
     {
         f(pt.to_index());
     }
@@ -528,7 +531,7 @@ struct writer final : visitor_<writer>
                 continue;
             count++;
         }
-        f((uint32_t)count);
+        f(count);
 
         for (const std::shared_ptr<object>& obj : c.objects())
         {
@@ -578,7 +581,6 @@ struct writer final : visitor_<writer>
             static_assert(null<uint32_t> == 0x7fffffff && highbit<uint32_t> == 0x80000000);
             do_visit(chunk_magic, f);
             do_visit(c.coord(), f);
-            // todo do atlases and variants separately
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t index) {
                     return maybe_intern_atlas(c[index].ground_atlas(), atlas_type::ground);
@@ -705,7 +707,7 @@ void world::serialize(StringView filename)
     fm_assert(filename.flags() & StringViewFlag::NullTerminated);
     if (Path::exists(filename))
         Path::remove(filename);
-    FILE_raii file = std::fopen(filename.data(), "wb");
+    FILE_raii file{std::fopen(filename.data(), "wb")};
     if (!file)
     {
         int error = errno;
@@ -795,7 +797,7 @@ struct reader final : visitor_<reader>
         str = get_string(id);
     }
 
-    template<typename F> void visit(local_coords& pt, F&& f)
+    template<typename F> static void visit(local_coords& pt, F&& f)
     {
         uint8_t i;
         f(i);
@@ -914,7 +916,7 @@ struct reader final : visitor_<reader>
     {
         for (uint32_t i = 0; i < natlases; i++)
         {
-            atlas_type type = (atlas_type)s.read<std::underlying_type_t<atlas_type>>();
+            auto type = (atlas_type)s.read<std::underlying_type_t<atlas_type>>();
             atlasid id; id << s;
             auto str = get_string(id);
             void* atlas = nullptr;
@@ -1050,18 +1052,16 @@ struct reader final : visitor_<reader>
     }
 };
 
-// NOLINTEND(*-missing-std-forward)
-
 } // namespace
 
 class world world::deserialize(StringView filename, loader_policy asset_policy) noexcept(false)
 {
-    char errbuf[128];
     buffer buf;
 
     fm_soft_assert(filename.flags() & StringViewFlag::NullTerminated);
-    FILE_raii f = std::fopen(filename.data(), "rb");
     {
+        FILE_raii f{std::fopen(filename.data(), "rb")};
+        char errbuf[128];
         if (!f)
             fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
@@ -1085,8 +1085,10 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
     struct reader r{w, asset_policy};
     r.deserialize_world(buf);
 
-    //fm_assert("todo" && false);
+    //fm_assert("t o d o && false);
     return w;
 }
 
 } // namespace floormat
+
+// NOLINTEND(*-missing-std-forward, *-avoid-const-or-ref-data-members, *-redundant-member-init)
