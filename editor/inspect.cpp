@@ -49,7 +49,7 @@ int corrade_string_resize_callback(ImGuiInputTextCallbackData* data)
 {
     if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
     {
-        auto& str = *reinterpret_cast<String*>(data->UserData);
+        auto& str = *static_cast<String*>(data->UserData);
         fm_assert(str.data() == data->Buf);
         if ((size_t)data->BufSize > str.size()+1)
         {

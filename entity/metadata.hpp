@@ -158,20 +158,20 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
 
     constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {
-        const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
-        const auto& reader_ = *reinterpret_cast<const R*>(reader);
-        auto& value_ = *reinterpret_cast<Type*>(value);
+        const auto& obj_ = *static_cast<const Obj*>(obj);
+        const auto& reader_ = *static_cast<const R*>(reader);
+        auto& value_ = *static_cast<Type*>(value);
         value_ = read(reader_, obj_);
     };
     constexpr auto writer_fn = [](void* obj, const writer_t* writer, void* value) {
-        auto& obj_ = *reinterpret_cast<Obj*>(obj);
-        const auto& writer_ = *reinterpret_cast<const W*>(writer);
-        Type value_ = move(*reinterpret_cast<Type*>(value));
+        auto& obj_ = *static_cast<Obj*>(obj);
+        const auto& writer_ = *static_cast<const W*>(writer);
+        Type value_ = move(*static_cast<Type*>(value));
         write(writer_, obj_, move(value_));
     };
     constexpr auto predicate_fn = [](const void* obj, const predicate_t* predicate) {
-        const auto& obj_ = *reinterpret_cast<const Obj*>(obj);
-        const auto& predicate_ = *reinterpret_cast<const Predicate*>(predicate);
+        const auto& obj_ = *static_cast<const Obj*>(obj);
+        const auto& predicate_ = *static_cast<const Predicate*>(predicate);
         return is_enabled(predicate_, obj_);
     };
     constexpr auto writer_stub_fn = [](void*, const writer_t*, void*) {
@@ -180,10 +180,10 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr bool has_writer = !std::is_same_v<std::decay_t<decltype(writer)>, std::nullptr_t>;
 
     constexpr auto c_range_fn = [](const void* obj, const c_range_t* reader) -> erased_constraints::range {
-        return get_range(*reinterpret_cast<const Range*>(reader), *reinterpret_cast<const Obj*>(obj));
+        return get_range(*static_cast<const Range*>(reader), *reinterpret_cast<const Obj*>(obj));
     };
     constexpr auto c_length_fn = [](const void* obj, const c_length_t* reader) -> erased_constraints::max_length {
-        return get_max_length(*reinterpret_cast<const Length*>(reader), *reinterpret_cast<const Obj*>(obj));
+        return get_max_length(*static_cast<const Length*>(reader), *reinterpret_cast<const Obj*>(obj));
     };
     return erased_accessor {
         (void*)&reader, has_writer ? (void*)&writer : nullptr,
