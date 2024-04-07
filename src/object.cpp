@@ -273,7 +273,6 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     }
 }
 
-
 bool object::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
