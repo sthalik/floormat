@@ -772,7 +772,7 @@ struct reader final : visitor_<reader>
     class world& w;
     loader_policy asset_policy;
 
-    reader(class world& w, loader_policy asset_policy) : visitor_{PROTO}, w{w}, asset_policy{asset_policy} {}
+    reader(class world& w, loader_policy asset_policy) : visitor_{PROTO = (proto_t)-1}, w{w}, asset_policy{asset_policy} {}
 
     using visitor_<reader>::visit;
 
