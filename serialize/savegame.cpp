@@ -1,7 +1,6 @@
 #include "binary-writer.inl"
 #include "binary-reader.inl"
 #include "compat/defs.hpp"
-#include "compat/debug.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
@@ -25,12 +24,10 @@
 #include <vector>
 #include <algorithm>
 #include <Corrade/Utility/Path.h>
-#include <Magnum/Math/Functions.h>
+//#include <Magnum/Math/Functions.h>
 #include <tsl/robin_map.h>
 
 #ifdef __CLION_IDE__
-#pragma clang diagnostic ignored "-Wunknown-pragmas"
-#pragma ide diagnostic ignored "cppcoreguidelines-missing-std-forward"
 #undef fm_assert
 #define fm_assert(...) void(bool((__VA_ARGS__)))
 #endif
@@ -57,15 +54,17 @@ private:
 
 struct string_hasher
 {
-    inline size_t operator()(StringView s) const
+    size_t operator()(StringView s) const
     {
         return fnvhash_buf(s.data(), s.size());
     }
 };
 
+// NOLINTBEGIN(*-missing-std-forward)
+
 template<typename T> T& non_const(const T& value) { return const_cast<T&>(value); }
 template<typename T> T& non_const(T& value) = delete;
-template<typename T> T& non_const(T&& value) = delete;
+template<typename T> T& non_const(T&&) = delete;
 template<typename T> T& non_const(const T&& value) = delete;
 
 struct buffer
@@ -97,11 +96,11 @@ struct visitor_
     template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
     template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
-    static constexpr inline size_t string_max          = 512;
-    static constexpr inline proto_t proto_version_min  = 20;
-    static constexpr inline auto file_magic            = ".floormat.save"_s;
-    static constexpr inline auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
-    static constexpr inline auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
+    static constexpr size_t string_max          = 512;
+    static constexpr proto_t proto_version_min  = 20;
+    static constexpr auto file_magic            = ".floormat.save"_s;
+    static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
+    static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
 
     // ---------- proto versions ----------
 
@@ -112,8 +111,8 @@ struct visitor_
     // 23: switch object::delta to 32-bit
     // 24: switch object::offset_frac from Vector2us to uint16_t
 
-    static constexpr inline proto_t proto_version      = 24;
-    const proto_t& PROTO;
+    static constexpr proto_t proto_version      = 24;
+    const proto_t& PROTO; // NOLINT(*-avoid-const-or-ref-data-members)
     visitor_(const proto_t& proto) : PROTO{proto} {}
 
     template<typename T, typename F>
@@ -1003,34 +1002,34 @@ struct reader final : visitor_<reader>
         auto& c = w[coord];
 
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
                 auto name = get_atlas<atlas_type::ground>(id);
                 auto a = loader.ground_atlas(name, loader_policy::warn);
-                c[i].ground() = { move(a), (variant_t)-1 };
+                c[t].ground() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
                 auto name = get_atlas<atlas_type::wall>(id);
                 auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[i].wall_north() = { move(a), (variant_t)-1 };
+                c[t].wall_north() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t i, uint32_t id) {
+            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
                 auto name = get_atlas<atlas_type::wall>(id);
                 auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[i].wall_west() = { move(a), (variant_t)-1 };
+                c[t].wall_west() = { move(a), (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
-                c[i].ground().variant = id;
+            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+                c[t].ground().variant = id;
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
-                c[i].wall_north().variant = id;
+            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+                c[t].wall_north().variant = id;
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t i, variant_t id) {
-                c[i].wall_west().variant = id;
+            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+                c[t].wall_west().variant = id;
             }, i, r);
 
         deserialize_objects_(c, r);
@@ -1050,6 +1049,8 @@ struct reader final : visitor_<reader>
         s.assert_end();
     }
 };
+
+// NOLINTEND(*-missing-std-forward)
 
 } // namespace
 
