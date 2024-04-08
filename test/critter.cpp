@@ -127,7 +127,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     Ns time{0}, saved_time{0};
     auto last_pos = npc.position();
     uint32_t i;
-    constexpr auto max_stop_frames = 250; // todo! detect collisions properly and don't rely on this
+    constexpr auto max_stop_frames = 250; // todo detect collisions properly and don't rely on this
     uint32_t frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
@@ -349,11 +349,6 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
 
 void test_app::test_critter()
 {
-    // todo! add ANSI sequence to stdout to goto start of line and clear to eol
-    // \r
-    // <ESC>[2K
-    // \n
-
     const bool is_noisy = !Start{}.quiet;
     if (is_noisy)
         DBG_nospace << "";
