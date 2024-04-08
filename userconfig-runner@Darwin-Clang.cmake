@@ -14,9 +14,8 @@ endfunction()
 
 # for floormat sources only
 function(fm-userconfig-src)
-    add_compile_options(
-        -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything
-    )
+    # start copy-paste
+    add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything)
     add_compile_options(
         -Wno-c++98-compat
         -Wno-c++20-compat
@@ -30,6 +29,7 @@ function(fm-userconfig-src)
         -Wno-exit-time-destructors
         -Wno-implicit-int-float-conversion
         -Wno-shadow-field-in-constructor
+        -Wno-shadow-field
         -Wno-shadow
         -Wno-ctad-maybe-unsupported
         -Wno-documentation-unknown-command
@@ -38,20 +38,11 @@ function(fm-userconfig-src)
         -Wno-reserved-identifier
         -Wno-zero-length-array
         -Wno-unsafe-buffer-usage
-        -Wno-poison-system-directories
+        -Wno-bitwise-op-parentheses
+        -Wno-weak-vtables
         -Wno-c99-compat
+        -Wno-switch-default
     )
-    add_compile_options(
-        #-Werror
-        -Wno-error=float-equal
-        #-Wno-error=comma
-        -Wno-error=unused-parameter
-        -Wno-error=unused-private-field
-        -Wno-error=unused-variable
-        -Wno-error=unused-function
-        -Wno-error=unused-member-function
-        -Wno-error=unused-macros
-        -Wno-error=alloca
-        -Wno-error=double-promotion
-    )
+    #end copy-paste
+    add_compile_option(-Wno-poison-system-directories)
 endfunction()
