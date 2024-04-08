@@ -45,16 +45,25 @@ struct critter final : object
     float speed = 1;
     uint16_t offset_frac_ = 0;
 
-    struct movement_s {
-        bool L     : 1 = false,
-             R     : 1 = false,
-             U     : 1 = false,
-             D     : 1 = false,
-             AUTO  : 1 = false,
-             _pad1 : 1 = false,
-             _pad2 : 1 = false,
-             _pad3 : 1 = false;
-    } movement;
+    struct movement_s
+    {
+        bool L : 1 = false;
+        bool R : 1 = false;
+        bool U : 1 = false;
+        bool D : 1 = false;
+        bool AUTO : 1 = false;
+
+        bool _pad1 : 1;
+        bool _pad2 : 1;
+        bool _pad3 : 1;
+        //bool _pad4 : 1;
+    };
+
+    union
+    {
+        uint8_t movement_value = 0;
+        movement_s movement;
+    };
 
     bool playable : 1 = false;
 

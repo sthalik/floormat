@@ -99,7 +99,19 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     }
 }
 
+template<rotation r> constexpr uint8_t get_length_axis()
+{
+    static_assert((int)r % 2 == 0);
+    using enum rotation;
+    if constexpr(r == N || r == S)
+        return 1;
+    else if constexpr(r == W || r == E)
+        return 0;
+    fm_assert(false);
+}
+
 template<rotation new_r, bool MultiStep>
+CORRADE_ALWAYS_INLINE
 bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
 {
     constexpr auto vec = rotation_to_vec(new_r);
@@ -152,69 +164,60 @@ bool update_movement_3way(size_t& i, critter& C, const anim_def& info)
     return false;
 }
 
-template<rotation r> constexpr uint8_t get_length_axis()
-{
-    static_assert((int)r % 2 == 0);
-    using enum rotation;
-    if constexpr(r == N || r == S)
-        return 1;
-    else if constexpr(r == W || r == E)
-        return 0;
-    fm_assert(false);
-}
-
 constexpr bool DoUnroll = true;
 
 template<rotation new_r>
+requires (((int)new_r & 1) % 2 != 0)
 CORRADE_ALWAYS_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
-    if constexpr((int)new_r & 1)
+    if constexpr(DoUnroll)
     {
-        if constexpr(DoUnroll)
+        //Debug{} << "< nframes" << nframes;
+        while (nframes > 1)
         {
-            //Debug{} << "< nframes" << nframes;
-            while (nframes > 1)
-            {
-                auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min());
-                if (len <= 1)
-                    break;
-                if (!update_movement_body<new_r, true>(i, C, info, len))
-                    break;
-                //Debug{} << " " << len;
-                nframes -= len;
-            }
-            //Debug{} << ">" << nframes;
+            auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min());
+            if (len <= 1)
+                break;
+            if (!update_movement_body<new_r, true>(i, C, info, len))
+                break;
+            //Debug{} << " " << len;
+            nframes -= len;
         }
-
-        for (auto k = 0u; k < nframes; k++)
-            if (!update_movement_3way<new_r>(i, C, info))
-                return false;
-    }
-    else
-    {
-        if constexpr(DoUnroll)
-        {
-            //Debug{} << "< nframes" << nframes;
-            while (nframes > 1)
-            {
-                constexpr auto len_axis = get_length_axis<new_r>();
-                auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.data()[len_axis]);
-                if (len <= 1) [[unlikely]]
-                    break;
-                if (!update_movement_body<new_r, true>(i, C, info, len))
-                    break;
-                //Debug{} << " " << len;
-                nframes -= len;
-            }
-            //Debug{} << ">" << nframes;
-        }
-
-        for (auto k = 0u; k < nframes; k++)
-            if (!update_movement_body<new_r, false>(i, C, info, 0))
-                return false;
+        //Debug{} << ">" << nframes;
     }
 
+    for (auto k = 0u; k < nframes; k++)
+        if (!update_movement_3way<new_r>(i, C, info))
+            return false;
+    return true;
+}
+
+template<rotation new_r>
+requires (((int)new_r & 1) % 2 == 0)
+CORRADE_NEVER_INLINE
+bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
+{
+    if constexpr(DoUnroll)
+    {
+        //Debug{} << "< nframes" << nframes;
+        while (nframes > 1)
+        {
+            constexpr auto len_axis = get_length_axis<new_r>();
+            auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.data()[len_axis]);
+            if (len <= 1) [[unlikely]]
+                break;
+            if (!update_movement_body<new_r, true>(i, C, info, len))
+                break;
+            //Debug{} << " " << len;
+            nframes -= len;
+        }
+        //Debug{} << ">" << nframes;
+    }
+
+    for (auto k = 0u; k < nframes; k++)
+        if (!update_movement_body<new_r, false>(i, C, info, 0))
+            return false;
     return true;
 }
 
