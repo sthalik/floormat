@@ -89,7 +89,6 @@ struct object_header_s
     object_type& type;
     chunk_coords_& ch;
     local_coords& tile;
-    Vector2b& offset;
 };
 
 struct critter_header_s
@@ -197,6 +196,9 @@ struct visitor_
         visit(obj.frame, f);
         visit(obj.r, f);
         visit(obj.pass, f);
+
+        // todo!
+        // immediately after this function's return, read sc_type and then read scenery_proto
     }
 
     template<typename F>
