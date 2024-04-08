@@ -156,10 +156,11 @@ void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, 
 {
     fm_assert(e->id > 0);
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
-    fm_assert(!_objects->contains(e->id));
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
-    (*_objects)[e->id] = e;
+    auto [_, fresh] = _objects->try_emplace(e->id, e);
+    if (!fresh) [[unlikely]]
+        fm_throw("object already initialized id:{}"_cf, e->id);
     if (sorted)
         e->c->add_object(e);
     else
