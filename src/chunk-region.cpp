@@ -132,12 +132,12 @@ auto default_region_predicate(chunk& c) noexcept
 
 } // namespace
 
-auto chunk::make_pass_region(bool debug, ArrayView<Vector2i> positions) -> pass_region
+auto chunk::make_pass_region(bool debug, ArrayView<const Vector2i> positions) -> pass_region
 {
     return make_pass_region(default_region_predicate(*this), debug, positions);
 }
 
-auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<Vector2i> positions) -> pass_region
+auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<const Vector2i> positions) -> pass_region
 {
     Timeline timeline;
     timeline.start();

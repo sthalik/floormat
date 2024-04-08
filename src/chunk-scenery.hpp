@@ -30,7 +30,7 @@ struct chunk::object_draw_order
 
 struct chunk::scenery_mesh_tuple {
     GL::Mesh& mesh;
-    ArrayView<object_draw_order> array;
+    ArrayView<const object_draw_order> array;
     size_t size;
 };
 

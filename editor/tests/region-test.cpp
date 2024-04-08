@@ -158,7 +158,7 @@ void region_test::do_region_extraction(app& a, chunk_coords_ coord)
     {
         auto C_coord = Vector2i{ Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
         result = {
-            .region = c->make_pass_region(true, {&C_coord, 1}),
+            .region = c->make_pass_region(true, arrayView({C_coord})),
             .c = coord,
             .exists = true,
         };
