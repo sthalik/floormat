@@ -98,6 +98,7 @@ protected:
     Vector2 _dpi_scale{ 1, 1 }, _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true;
+    bool _first_frame : 1 = true;
 };
 
 } // namespace floormat

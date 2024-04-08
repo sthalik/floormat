@@ -30,6 +30,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
 {
     arrayResize(_clickable_scenery, 0);
     _world = move(w);
+    _first_frame = true;
     return _world;
 }
 

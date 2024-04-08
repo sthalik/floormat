@@ -16,15 +16,14 @@ namespace floormat {
 namespace {
 
 size_t bad_frame_counter = 0; // NOLINT
+constexpr auto clear_color = 0x222222ff_rgbaf;
 
 } // namespace
 
-
-void main_impl::do_update()
+void main_impl::do_update(const Ns& dtʹ)
 {
     constexpr auto eps = 1e-5f;
     constexpr auto max_dt = Milliseconds*100;
-    const auto dtʹ = timeline.update();
     const auto dt = dtʹ > max_dt ? max_dt : dtʹ;
     if (float secs{Time::to_seconds(dt)}; secs > eps)
     {
@@ -45,22 +44,47 @@ void main_impl::do_update()
     app.update(dt);
 }
 
-void main_impl::drawEvent()
+void main_impl::clear_framebuffer()
 {
-    _shader.set_tint({1, 1, 1, 1});
-
-    constexpr auto clear_color = 0x222222ff_rgbaf;
 #ifdef FM_USE_DEPTH32
     framebuffer.fb.clearColor(0, clear_color);
 #else
     GL::defaultFramebuffer.clearColor(clear_color);
 #endif
+}
+
+void main_impl::cache_draw_on_startup()
+{
+    _shader.set_tint({1, 1, 1, 1});
+    clear_framebuffer();
+    for (int i = 0; i < 3; i++)
+    {
+        do_update(Ns{1});
+        draw_world();
+    }
+    clear_framebuffer();
+    (void)timeline.update();
+    swapBuffers();
+    redraw();
+}
+
+void main_impl::drawEvent()
+{
+    if (_first_frame) [[unlikely]]
+    {
+        _first_frame = false;
+        cache_draw_on_startup();
+    }
+
+    _shader.set_tint({1, 1, 1, 1});
+
+    clear_framebuffer();
     draw_world();
 
     app.draw();
     GL::Renderer::flush();
 
-    do_update();
+    do_update(timeline.update());
 
 #ifdef FM_USE_DEPTH32
     GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);

@@ -85,10 +85,12 @@ struct main_impl final : Platform::Sdl2Application, floormat_main
     [[maybe_unused]] void keyPressEvent(KeyEvent& event) override;
     [[maybe_unused]] void keyReleaseEvent(KeyEvent& event) override;
     [[maybe_unused]] void anyEvent(SDL_Event& event) override;
-    
+
+    void cache_draw_on_startup();
+    void clear_framebuffer();
     void drawEvent() override;
     void bind() noexcept override;
-    void do_update();
+    void do_update(const Ns& dt);
     struct meshes meshes() noexcept override;
 
     bool is_text_input_active() const noexcept override;
