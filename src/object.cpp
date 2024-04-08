@@ -348,6 +348,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
 bool object::can_activate(size_t) const { return false; }
 bool object::activate(size_t) { return false; }
 class chunk& object::chunk() const { return *c; }
+class world& object::world() const { return c->world(); }
 bool object::is_virtual() const { return false; }
 point object::position() const { return {coord, offset}; }
 object_type object::type_of() const noexcept { return type(); }

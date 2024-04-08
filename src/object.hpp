@@ -63,6 +63,7 @@ struct object
     float ordinal() const;
     float ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const;
     class chunk& chunk() const;
+    class world& world() const;
     size_t index() const;
     virtual bool is_virtual() const;
     point position() const;
