@@ -27,10 +27,25 @@ struct empty_critter_script final : critter_script
 };
 
 empty_critter_script::empty_critter_script() : critter_script{nullptr} {}
-void empty_critter_script::on_init(const std::shared_ptr<critter>& p) { touch_ptr(p); }
-void empty_critter_script::on_update(const std::shared_ptr<critter>& p, size_t&, const Ns&) { touch_ptr(p); }
-void empty_critter_script::on_destroy(const std::shared_ptr<critter>& p, script_destroy_reason) { touch_ptr(p); }
-void empty_critter_script::delete_self() noexcept {}
+void empty_critter_script::on_init(const std::shared_ptr<critter>& p)
+{
+    DBG_nospace << "> init critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
+    touch_ptr(p);
+}
+void empty_critter_script::on_update(const std::shared_ptr<critter>& p, size_t&, const Ns&)
+{
+    DBG_nospace << "> update critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
+    touch_ptr(p);
+}
+void empty_critter_script::on_destroy(const std::shared_ptr<critter>& p, script_destroy_reason r)
+{
+    DBG_nospace << "> destroy critter:" << (void*)&*p << " id:" << p->id << " reason:" << (int)r << (p->name ? " name:" : "") << p->name;
+    touch_ptr(p);
+}
+void empty_critter_script::delete_self() noexcept
+{
+    DBG_nospace << "> delete critter:";
+}
 
 empty_critter_script empty_script_ = {};
 
