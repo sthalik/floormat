@@ -83,16 +83,33 @@ struct buffer
     }
 };
 
+struct object_header_s
+{
+    object_id& id;
+    object_type& type;
+    chunk_coords_& ch;
+    local_coords& tile;
+    Vector2b& offset;
+};
+
+struct critter_header_s
+{
+    uint16_t& offset_frac;
+};
+
 template<typename Derived>
 struct visitor_
 {
-    using tilemeta = uint8_t;
-    using atlasid  = uint32_t;
-    using chunksiz = uint32_t;
     using proto_t  = uint16_t;
 
-    template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
-    template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
+    // ---------- proto versions ----------
+    // 19: see old-savegame.cpp
+    // 20: complete rewrite
+    // 21: oops, forgot the object counter
+    // 22: add object::speed
+    // 23: switch object::delta to 32-bit
+    // 24: switch object::offset_frac from Vector2us to uint16_t
+    static constexpr proto_t proto_version = 24;
 
     static constexpr size_t string_max          = 512;
     static constexpr proto_t proto_version_min  = 20;
@@ -100,27 +117,23 @@ struct visitor_
     static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
     static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
 
-    // ---------- proto versions ----------
-
-    // 19: see old-savegame.cpp
-    // 20: complete rewrite
-    // 21: oops, forgot the object counter
-    // 22: add object::speed
-    // 23: switch object::delta to 32-bit
-    // 24: switch object::offset_frac from Vector2us to uint16_t
-
-    static constexpr proto_t proto_version      = 24;
     const proto_t& PROTO; // NOLINT(*-avoid-const-or-ref-data-members)
+
+    using tilemeta = uint8_t;
+    using atlasid  = uint32_t;
+    using chunksiz = uint32_t;
+
+    template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
+    template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
+
+    Derived& self = static_cast<Derived&>(*this);
     explicit visitor_(const proto_t& proto) : PROTO{proto} {}
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(visitor_);
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(visitor_);
 
     template<typename T, typename F>
-    CORRADE_ALWAYS_INLINE void do_visit_nonconst(const T& value, F&& fun)
-    {
-        do_visit(non_const(value), fun);
-    }
-
-    template<typename T, typename F>
-    CORRADE_ALWAYS_INLINE void do_visit(T&& value, F&& fun)
+    [[deprecated]]
+    CORRADE_ALWAYS_INLINE void do_visit(T&& value, F&& fun) // todo! remove it
     {
         static_cast<Derived&>(*this).visit(value, fun);
     }
@@ -144,56 +157,46 @@ struct visitor_
     void visit(E& x, F&& f)
     {
         auto* ptr = const_cast<std::underlying_type_t<E>*>(reinterpret_cast<const std::underlying_type_t<E>*>(&x));
-        do_visit(*ptr, f);
+        visit(*ptr, f);
     }
 
     template<typename F>
-    void visit_object_internal(object& obj, F&& f, object_id id, object_type type, chunk_coords_ ch)
+    void visit_object_header(object_proto& obj, object_header_s& s, F&& f)
     {
-        if (type >= object_type::COUNT || type == object_type::none) [[unlikely]]
-            fm_throw("invalid object type {}"_cf, (int)type);
-        switch (type)
+        visit(s.id, f);
+        fm_soft_assert(s.id != 0);
+        visit(s.type, f);
+        if (s.type >= object_type::COUNT || s.type == object_type::none) [[unlikely]]
+            fm_throw("invalid object type {}"_cf, (int)s.type);
+        switch (s.type)
         {
         case object_type::none:
         case object_type::COUNT: std::unreachable();
         case object_type::light:
-            static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::vobj, f);
+            static_cast<Derived&>(*this).visit(obj.atlas, atlas_type::vobj, f);
             break;
         case object_type::scenery:
         case object_type::critter:
-            static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::anim, f);
+            static_cast<Derived&>(*this).visit(obj.atlas, atlas_type::anim, f);
             break;
-
         }
         fm_debug_assert(obj.atlas);
 
-        { auto pt = obj.coord.local();
-          do_visit(pt, f);
-          non_const(obj.coord) = {ch, pt};
-        }
-        non_const(obj.id) = id;
-        do_visit_nonconst(obj.offset, f);
-        do_visit_nonconst(obj.bbox_offset, f);
-        do_visit_nonconst(obj.bbox_size, f);
+        visit(s.tile, f);
+        visit(obj.offset, f);
+        visit(obj.bbox_offset, f);
+        visit(obj.bbox_size, f);
         if (PROTO >= 23) [[likely]]
-            do_visit_nonconst(obj.delta, f);
+            visit(obj.delta, f);
         else
         {
             auto delta_ = uint16_t(obj.delta >> 16);
-            do_visit(delta_, f);
+            visit(delta_, f);
             obj.delta = delta_ * 65536u;
         }
-        do_visit_nonconst(obj.frame, f);
-        do_visit_nonconst(obj.r, f);
-        do_visit_nonconst(obj.pass, f);
-
-        switch (type)
-        {
-        default: break;
-        case object_type::critter: do_visit(static_cast<critter&>(obj), f); return;
-        case object_type::scenery: do_visit(static_cast<scenery&>(obj), f); return;
-        case object_type::light:   do_visit(static_cast<light&>(obj), f); return;
-        }
+        visit(obj.frame, f);
+        visit(obj.r, f);
+        visit(obj.pass, f);
     }
 
     template<typename F>
@@ -215,17 +218,18 @@ struct visitor_
         flag_playable = 1 << 0,
     };
 
+
     template<typename F>
-    void visit(critter& obj, F&& f)
+    void visit(critter_proto& obj, critter_header_s& s, F&& f)
     {
-        do_visit(obj.name, f);
+        self.visit(obj.name, f);
 
         if (PROTO >= 22) [[likely]]
-            do_visit(obj.speed, f);
+            visit(obj.speed, f);
         fm_soft_assert(obj.speed >= 0);
 
         if (PROTO >= 24) [[likely]]
-            do_visit(obj.offset_frac_, f);
+            visit(s.offset_frac, f);
         else
         {
             static_assert(std::is_same_v<uint16_t, decltype(critter::offset_frac_)>);
@@ -233,7 +237,7 @@ struct visitor_
             do_visit(foo1, f);
             auto foo2 = Vector2(foo1)*(1.f/65535);
             auto foo3 = foo2.length()*32768;
-            obj.offset_frac_ = uint16_t(foo3);
+            visit(s.offset_frac, f);
         }
 
         constexpr struct {
@@ -261,7 +265,7 @@ struct visitor_
         flag_interactive = 1 << 2,
     };
 
-    template<typename F> void visit(generic_scenery& s, F&& f)
+    template<typename F> void visit(generic_scenery_proto& s, F&& f)
     {
         constexpr struct {
             uint8_t bits;
@@ -435,12 +439,8 @@ struct writer final : visitor_<writer>
     template<typename F>
     void visit(object& obj, F&& f, chunk_coords_ ch)
     {
-        auto type = obj.type();
-
-        do_visit_nonconst(obj.id, f);
-        do_visit(type, f);
-
         visit_object_internal(obj, f, obj.id, obj.type(), ch);
+        zzz;
     }
 
     template<typename F>
@@ -821,11 +821,10 @@ struct reader final : visitor_<reader>
     template<typename F>
     void visit(std::shared_ptr<object>& obj, F&& f, chunk_coords_ ch)
     {
-        object_id id;
-        do_visit(id, f);
-        std::underlying_type_t<object_type> type_;
-        do_visit(type_, f);
-        auto type = object_type(type_);
+
+        object_header_s s{};
+        visit_object_header(*obj, s, f);
+        zzz;
 
         switch (type)
         {
@@ -840,8 +839,6 @@ struct reader final : visitor_<reader>
         case object_type::scenery:
             obj = w.make_unconnected_object<scenery>(); break;
         }
-
-        visit_object_internal(*obj, f, id, type, ch);
 
         if (PROTO >= 21) [[likely]]
             fm_soft_assert(object_counter >= id);

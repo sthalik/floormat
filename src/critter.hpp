@@ -47,7 +47,7 @@ struct critter final : object
     Script<critter_script, critter> script;
     String name;
     float speed = 1;
-    uint16_t offset_frac_ = 0;
+    uint16_t offset_frac_ = 0; // todo! remove underscore
 
     struct movement_s
     {
