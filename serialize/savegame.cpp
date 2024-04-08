@@ -27,11 +27,6 @@
 //#include <Magnum/Math/Functions.h>
 #include <tsl/robin_map.h>
 
-#ifdef __CLION_IDE__
-#undef fm_assert
-#define fm_assert(...) void(bool((__VA_ARGS__)))
-#endif
-
 // ReSharper disable CppDFAUnreachableCode
 // ReSharper disable CppDFAUnreachableFunctionCall
 // ReSharper disable CppUseStructuredBinding
