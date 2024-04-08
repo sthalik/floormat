@@ -17,8 +17,8 @@ struct light_proto : object_proto
 
     float max_distance = 0;
     Color4ub color{255, 255, 255, 255};
-    light_falloff falloff : 3 = light_falloff::linear;
-    uint8_t enabled : 1 = true;
+    light_falloff falloff = light_falloff::linear;
+    bool enabled = true;
 };
 
 struct light final : object

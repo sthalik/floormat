@@ -222,21 +222,6 @@ scenery_variants scenery::subtype_from_proto(object_id id, class chunk& c, const
     );
 }
 
-scenery_variants scenery::subtype_from_scenery_type(object_id id, class chunk& c, enum scenery_type type)
-{
-    switch (type)
-    {
-    case scenery_type::none:
-    case scenery_type::COUNT:
-        break;
-    case scenery_type::generic:
-        return generic_scenery{id, c, {}};
-    case scenery_type::door:
-        return door_scenery{id, c, {}};
-    }
-    fm_throw("invalid scenery type"_cf, (int)type);
-}
-
 scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
     object{id, c, proto}, subtype{ subtype_from_proto(id, c, proto.subtype) }
 {

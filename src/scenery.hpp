@@ -105,7 +105,6 @@ struct scenery final : object
     enum scenery_type scenery_type() const;
 
     static scenery_variants subtype_from_proto(object_id id, class chunk& c, const scenery_proto_variants& variants);
-    static scenery_variants subtype_from_scenery_type(object_id id, class chunk& c, enum scenery_type type);
 
 private:
     friend class world;

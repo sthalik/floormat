@@ -14,7 +14,7 @@ struct critter_proto : object_proto
 {
     String name;
     float speed = 1;
-    bool playable : 1 = false;
+    bool playable = false;
 
     critter_proto();
     critter_proto(const critter_proto&);
