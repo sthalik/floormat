@@ -87,7 +87,7 @@ function(fm-userconfig-src)
     )
     add_compile_options(
         -Werror=format
-        #-Werror
+        -Werror
         -Wno-error=float-equal
         #-Wno-error=comma
         -Wno-error=unused-parameter
@@ -100,6 +100,7 @@ function(fm-userconfig-src)
         -Wno-error=unused-but-set-variable
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
+        -Wlarger-than=65535
     )
     add_compile_options(
         -Wdelete-incomplete -Werror=delete-incomplete

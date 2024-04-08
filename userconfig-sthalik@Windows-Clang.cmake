@@ -121,6 +121,7 @@ function(fm-userconfig-src)
         -Wno-bitwise-op-parentheses
         -Wno-weak-vtables
         -Wno-c99-compat
+        -Wno-switch-default
     )
     add_compile_options(
         -Werror
