@@ -4,7 +4,7 @@ namespace floormat {
 
 enum class loader_policy : uint8_t
 {
-    error, warn, ignore, DEFAULT = error,
+    error, warn, ignore, COUNT, DEFAULT = error,
 };
 
 } // namespace floormat

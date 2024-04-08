@@ -150,9 +150,12 @@ struct visitor_
     template<typename F>
     void visit_object_internal(object& obj, F&& f, object_id id, object_type type, chunk_coords_ ch)
     {
-        non_const(obj.id) = id;
+        if (type >= object_type::COUNT || type == object_type::none) [[unlikely]]
+            fm_throw("invalid object type {}"_cf, (int)type);
         switch (type)
         {
+        case object_type::none:
+        case object_type::COUNT: std::unreachable();
         case object_type::light:
             static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::vobj, f);
             break;
@@ -160,19 +163,15 @@ struct visitor_
         case object_type::critter:
             static_cast<Derived&>(*this).visit(non_const(obj.atlas), atlas_type::anim, f);
             break;
-        case object_type::none:
-        case object_type::COUNT:
-        default:
-            break;
+
         }
-        if (!obj.atlas)
-            fm_throw("invalid object type {}"_cf, (int)type);
-        //do_visit(*obj.c, f);
+        fm_debug_assert(obj.atlas);
 
         { auto pt = obj.coord.local();
           do_visit(pt, f);
           non_const(obj.coord) = {ch, pt};
         }
+        non_const(obj.id) = id;
         do_visit_nonconst(obj.offset, f);
         do_visit_nonconst(obj.bbox_offset, f);
         do_visit_nonconst(obj.bbox_size, f);
@@ -190,14 +189,10 @@ struct visitor_
 
         switch (type)
         {
+        default: break;
         case object_type::critter: do_visit(static_cast<critter&>(obj), f); return;
         case object_type::scenery: do_visit(static_cast<scenery&>(obj), f); return;
         case object_type::light:   do_visit(static_cast<light&>(obj), f); return;
-        case object_type::COUNT:
-        case object_type::none:
-            break;
-        default:
-            fm_abort("invalid object type '%d'", (int)type);
         }
     }
 
@@ -455,16 +450,19 @@ struct writer final : visitor_<writer>
 
         StringView name;
 
+        if (type >= atlas_type::COUNT || type == atlas_type::none) [[unlikely]]
+            fm_abort("invalid atlas type '%d'", (int)type);
         switch (type)
         {
-        case atlas_type::ground: name = static_cast<const ground_atlas*>(atlas)->name(); break;
-        case atlas_type::wall:   name = static_cast<const wall_atlas*>(atlas)->name(); break;
+        case atlas_type::ground:
+            name = static_cast<const ground_atlas*>(atlas)->name(); break;
+        case atlas_type::wall:
+            name = static_cast<const wall_atlas*>(atlas)->name(); break;
         case atlas_type::vobj:
         case atlas_type::anim:
-            name = static_cast<const anim_atlas*>(atlas)->name();
-            break;
-        default:
-            fm_abort("invalid atlas type '%d'", (int)type);
+            name = static_cast<const anim_atlas*>(atlas)->name(); break;
+        case atlas_type::none:
+        case atlas_type::COUNT: std::unreachable();
         }
         do_visit(intern_string(name), f);
     }

@@ -277,13 +277,17 @@ template bool inspect_type(light&, inspect_intent_t);
 
 bool inspect_object_subtype(object& x)
 {
-    switch (auto type = x.type())
+    const auto type = x.type();
+    switch (type)
     {
-    default: fm_warn_once("unknown object subtype '%d'", (int)type); return false;
     case object_type::scenery: return inspect_type(static_cast<scenery&>(x), inspect_intent_t{});
     case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
-    case object_type::light: return inspect_type(static_cast<light&>(x), inspect_intent_t{});
+    case object_type::light:   return inspect_type(static_cast<light&>(x), inspect_intent_t{});
+    case object_type::COUNT: break;
+    case object_type::none:  break;
     }
+    fm_warn_once("unknown object subtype '%d'", (int)type);
+    return false;
 }
 
 } // namespace floormat::entities

@@ -151,15 +151,15 @@ bool operator==(const range& a, const range& b)
 
     switch (a.type)
     {
-    default: return false;
-    case range::type_none:  return true;
-    case range::type_float: return std::fabs(a.min.f - b.min.f) < eps && std::fabs(a.max.f - b.max.f) < eps;
-    case range::type_uint:  return a.min.u == b.min.u && a.max.u == b.max.u;
-    case range::type_int:   return a.min.i == b.min.i && a.max.i == b.max.i;
+    case range::type_none:   return true;
+    case range::type_float:  return std::fabs(a.min.f - b.min.f) < eps && std::fabs(a.max.f - b.max.f) < eps;
+    case range::type_uint:   return a.min.u == b.min.u && a.max.u == b.max.u;
+    case range::type_int:    return a.min.i == b.min.i && a.max.i == b.max.i;
     case range::type_float4: return a.min.f4 == b.min.f4 && a.max.f4 == b.max.f4;
-    case range::type_uint4: return a.min.u4 == b.min.u4 && a.max.u4 == b.max.u4;
-    case range::type_int4: return a.min.i4 == b.min.i4 && a.max.i4 == b.max.i4;
+    case range::type_uint4:  return a.min.u4 == b.min.u4 && a.max.u4 == b.max.u4;
+    case range::type_int4:   return a.min.i4 == b.min.i4 && a.max.i4 == b.max.i4;
     }
+    fm_assert(false);
 }
 
 } // namespace floormat::entities::erased_constraints

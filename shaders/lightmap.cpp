@@ -227,9 +227,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float range;
 
+    fm_assert(light.falloff < light_falloff::COUNT);
     switch (light.falloff)
     {
-    default:
+    case light_falloff::COUNT: std::unreachable();
     case light_falloff::constant:
         range = TILE_MAX_DIM;
         break;

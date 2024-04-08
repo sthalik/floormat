@@ -29,7 +29,7 @@ struct anim_group final
     Vector3b offset{};
 };
 
-enum class anim_scale_type : unsigned char { invalid, ratio, fixed, };
+enum class anim_scale_type : unsigned char { invalid, ratio, fixed, COUNT, };
 
 struct anim_scale final
 {

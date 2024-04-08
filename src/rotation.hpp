@@ -8,6 +8,6 @@ enum class rotation : unsigned char {
 
 constexpr inline size_t rotation_BITS = 3;
 constexpr inline size_t rotation_MASK = (1 << rotation_BITS)-1;
-constexpr inline rotation rotation_COUNT = rotation{1 << rotation_BITS};
+constexpr inline rotation rotation_COUNT = rotation{1 << rotation_BITS}; // todo! remove
 
 } // namespace floormat

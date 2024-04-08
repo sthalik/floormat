@@ -60,7 +60,7 @@ void app::draw_cursor()
             {
             case rotation::N: draw(_wireframe->wall_n, TILE_SIZE); break;
             case rotation::W: draw(_wireframe->wall_w, TILE_SIZE); break;
-            default: std::unreachable();
+            default: fm_assert(false);
             }
         }
         else if (const auto* ed = _editor->current_scenery_editor())

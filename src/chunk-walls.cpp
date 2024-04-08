@@ -41,11 +41,11 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
     constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
     const bool is_west = D == Wall::Direction_::W;
 
+    fm_assert(G < Group_::COUNT);
     switch (G)
     {
     using enum Group_;
-    default:
-        fm_abort("invalid wall_atlas group '%d'", (int)G);
+    case COUNT: std::unreachable();
     case wall:
         if (!is_west)
             return {{
@@ -107,6 +107,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 {-X, -Y, Z },
             }};
     }
+    std::unreachable();
 }
 
 Array<Quads::indexes> make_indexes_()

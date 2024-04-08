@@ -181,14 +181,11 @@ bool scenery_proto::operator==(const object_proto& e0) const
         return false;
 
     return std::visit(
-        [](const auto& a, const auto& b) {
-            if constexpr(std::is_same_v< std::decay_t<decltype(a)>, std::decay_t<decltype(b)> >)
+        [](const auto& a, const auto& b) -> bool {
+            if constexpr(std::is_same_v<std::decay_t<decltype(a)>, std::decay_t<decltype(b)>>)
                 return a == b;
             else
-            {
-                std::unreachable();
-                return false;
-            }
+                fm_assert(false);
         },
         subtype, sc.subtype
     );
@@ -229,13 +226,13 @@ scenery_variants scenery::subtype_from_scenery_type(object_id id, class chunk& c
 {
     switch (type)
     {
+    case scenery_type::none:
+    case scenery_type::COUNT:
+        break;
     case scenery_type::generic:
         return generic_scenery{id, c, {}};
     case scenery_type::door:
         return door_scenery{id, c, {}};
-    case scenery_type::none:
-    default:
-        break;
     }
     fm_throw("invalid scenery type"_cf, (int)type);
 }

@@ -15,7 +15,7 @@ struct group;
 
 namespace floormat::entities {
 
-enum class field_status : unsigned char { hidden, readonly, enabled, };
+enum class field_status : unsigned char { hidden, readonly, enabled, COUNT, };
 
 struct erased_accessor final {
     using reader_t = void;

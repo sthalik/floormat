@@ -10,6 +10,11 @@
 #include <cr/Optional.h>
 #include <cr/GrowableArray.h>
 
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#endif
+
 namespace floormat::loader_detail {
 
 template<typename ATLAS, typename TRAITS>
@@ -68,30 +73,21 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
     atlas_list();
     const AtlasPtr& invalid_atlas = t.atlas_of(get_invalid_atlas());
 
-    switch (p)
-    {
-    using enum loader_policy;
-    case error:
-    case ignore:
-    case warn:
-        break;
-    default:
-        fm_abort("invalid loader_policy (%d)", (int)p);
-    }
-    CORRADE_ASSUME(p <= loader_policy::ignore);
-
+    fm_assert(p < loader_policy::COUNT);
     if (name == loader.INVALID) [[unlikely]]
+    {
         switch (p)
         {
         using enum loader_policy;
-        default:
-            std::unreachable();
+        case COUNT: std::unreachable();
         case error:
             goto error;
         case ignore:
         case warn:
             return invalid_atlas;
         }
+        std::unreachable();
+    }
 
     fm_soft_assert(loader.check_atlas_name(name));
 
@@ -102,14 +98,14 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
             switch (p)
             {
             using enum loader_policy;
-            default:
-                std::unreachable();
+            case COUNT: std::unreachable();
             case error:
                 goto error;
             case warn:
             case ignore:
                 return invalid_atlas;
             }
+            std::unreachable();
         }
         else
         {
@@ -147,11 +143,12 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         return t.atlas_of(c);
     }
     else
+    {
+        fm_assert(p < loader_policy::COUNT);
         switch (p)
         {
         using enum loader_policy;
-        default:
-            std::unreachable();
+        case COUNT: std::unreachable();
         case error:
             goto error;
         case warn:
@@ -159,7 +156,8 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         case ignore:
             return invalid_atlas;
         }
-
+        std::unreachable();
+    }
     std::unreachable();
     fm_assert(false);
 
@@ -228,3 +226,7 @@ void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
 }
 
 } // namespace floormat::loader_detail
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif

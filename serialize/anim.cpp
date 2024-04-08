@@ -133,10 +133,11 @@ namespace nlohmann {
 
 void adl_serializer<floormat::anim_scale>::to_json(json& j, const anim_scale val)
 {
+    if (val.type >= anim_scale_type::COUNT) [[unlikely]]
+        fm_throw("invalid anim_scale_type '{}"_cf, (unsigned)val.type);
     switch (val.type)
     {
-    default:
-        fm_throw("invalid anim_scale_type '{}"_cf, (unsigned)val.type);
+    case anim_scale_type::COUNT: std::unreachable();
     case anim_scale_type::invalid:
         fm_throw("anim_scale is invalid"_cf);
     case anim_scale_type::fixed:

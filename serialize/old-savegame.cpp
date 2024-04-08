@@ -309,11 +309,11 @@ void reader_state::read_chunks(reader_t& s)
             tile_ref t = c[i];
             using uchar = uint8_t;
             const auto make_atlas = [&]<typename T>() -> image_proto_<T> {
-                atlasid id;
+                atlasid atlas_id;
                 if (PROTO < 8) [[unlikely]]
-                    id = flags & meta_short_atlasid_ ? atlasid{s.read<uchar>()} : s.read<atlasid>();
+                    atlas_id = flags & meta_short_atlasid_ ? atlasid{s.read<uchar>()} : s.read<atlasid>();
                 else
-                    id << s;
+                    atlas_id << s;
                 uint8_t v;
                 if (PROTO >= 2) [[likely]]
                     v << s;
@@ -321,20 +321,24 @@ void reader_state::read_chunks(reader_t& s)
                     v = flags & meta_short_variant_
                         ? s.read<uint8_t>()
                         : uint8_t(s.read<uint16_t>());
-                auto name = lookup_atlas(id);
+                auto name = lookup_atlas(atlas_id);
                 if constexpr(std::is_same_v<ground_atlas, T>)
                 {
                     auto atlas = loader.ground_atlas(name, asset_policy);
                     fm_soft_assert(v < atlas->num_tiles());
                     return { atlas, v };
                 }
-                else if (std::is_same_v<wall_atlas, T>)
+                else if constexpr(std::is_same_v<wall_atlas, T>)
                 {
                     auto atlas = loader.wall_atlas(name, asset_policy);
                     return { atlas, v };
                 }
                 else
+                {
+                    static_assert(sizeof T{} != (size_t)-1);
+                    static_assert(sizeof T{} == (size_t)-1);
                     std::unreachable();
+                }
             };
             SET_CHUNK_SIZE();
             //t.passability() = pass_mode(flags & pass_mask);
@@ -364,7 +368,6 @@ void reader_state::read_chunks(reader_t& s)
                 oid << s;
                 fm_soft_assert((oid & lowbits<collision_data_BITS, object_id>) == oid);
                 type = object_type(s.read<std::underlying_type_t<object_type>>());
-                fm_soft_assert(type < object_type::COUNT);
             }
             else
             {
@@ -373,6 +376,9 @@ void reader_state::read_chunks(reader_t& s)
                 fm_soft_assert(oid != 0);
                 type = object_type(_id >> 61);
             }
+            if (type >= object_type::COUNT || type == object_type::none) [[unlikely]]
+                fm_throw("invalid_object_type '{}'"_cf, (int)type);
+
             const auto local = local_coords{s.read<uint8_t>()};
 
             Vector2b offset;
@@ -388,6 +394,7 @@ void reader_state::read_chunks(reader_t& s)
                 s >> e.bbox_size[1];
             };
             SET_CHUNK_SIZE();
+
             switch (type)
             {
             case object_type::critter: {
@@ -409,8 +416,8 @@ void reader_state::read_chunks(reader_t& s)
 
                 if (PROTO >= 9) [[likely]]
                 {
-                    uint32_t id; id << s;
-                    auto name = lookup_string(id);
+                    uint32_t string_id; string_id << s;
+                    auto name = lookup_string(string_id);
                     fm_soft_assert(name.size() < critter_name_max);
                     proto.name = name;
                 }
@@ -527,8 +534,8 @@ void reader_state::read_chunks(reader_t& s)
                 (void)L;
                 break;
             }
-            default:
-                fm_throw("invalid_object_type '{}'"_cf, (int)type);
+            case object_type::none:
+            case object_type::COUNT: std::unreachable();
             }
         }
 

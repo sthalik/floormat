@@ -95,10 +95,10 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     case side:
     case corner:
         return { depth, size.z() };
-    default:
-        std::unreachable();
-        fm_assert(false);
+    case COUNT:
+        break;
     }
+    fm_assert(false);
 }
 
 wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)

@@ -75,13 +75,15 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     char buf[128];
     bool should_disable = false;
 
-    switch (accessor.is_enabled(datum))
+    const auto enabled = accessor.is_enabled(datum);
+    fm_assert(enabled < field_status::COUNT);
+    switch (enabled)
     {
     using enum field_status;
+    case COUNT: fm_assert(false);
     case hidden: return false;
     case readonly: should_disable = true; break;
     case enabled: should_disable = false; break;
-    default: fm_assert(false);
     }
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);

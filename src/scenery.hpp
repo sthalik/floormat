@@ -16,7 +16,7 @@ class anim_atlas;
 class world;
 
 enum class scenery_type : unsigned char {
-    none, generic, door,
+    none, generic, door, COUNT,
 };
 
 struct generic_scenery_proto

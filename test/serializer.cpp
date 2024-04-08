@@ -85,9 +85,13 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
     {
         const auto& ae = *a.objects()[i];
         const auto& be = *b.objects()[i];
+        const auto type = ae.type();
         fm_assert(ae.type() == be.type());
-        switch (ae.type())
+        fm_assert(type < object_type::COUNT && type != object_type::none);
+        switch (type)
         {
+        case object_type::none:
+        case object_type::COUNT: std::unreachable();
         case object_type::critter: {
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
@@ -109,8 +113,6 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             fm_assert(p1 == p2);
             break;
         }
-        default:
-            fm_abort("invalid object type '%d'", (int)ae.type());
         }
     }
 }

@@ -83,7 +83,7 @@ void wall_editor::place_tile(world& w, global_coords coords, const std::shared_p
     {
     case rotation::N: t.wall_north() = { atlas, (variant_t)-1 }; break;
     case rotation::W: t.wall_west() = { atlas, (variant_t)-1 }; break;
-    default: std::unreachable();
+    default: fm_assert(false);
     }
     //c.mark_walls_modified();
     for (int y = -1; y <= 1; y++)
@@ -102,7 +102,7 @@ editor_snap_mode wall_editor::check_snap(int mods) const
     else if (_r == rotation::W)
         return editor_snap_mode::vertical;
     else
-        std::unreachable();
+        fm_assert(false);
 }
 
 } // namespace floormat

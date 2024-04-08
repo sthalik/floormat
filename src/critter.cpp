@@ -26,7 +26,6 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 
     switch (bits)
     {
-    default: std::unreachable(); // -Wswitch-default
     using enum rotation;
     case L | U: return W;
     case L | D: return S;
@@ -47,6 +46,7 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case L|R:
         return rotation{rotation_COUNT};
     }
+    std::unreachable();
 }
 #if 0
 static_assert(arrows_to_dir(true, false, false, false) == rotation::SW);
@@ -93,10 +93,8 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     case SW: return { SW,  S,  W };
     case W:  return {  W, SW, NW };
     case NW: return { NW,  W,  N };
-    default:
-        std::unreachable();
-        fm_assert(false);
     }
+    std::unreachable();
 }
 
 template<rotation r> constexpr uint8_t get_length_axis()

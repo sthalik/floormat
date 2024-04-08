@@ -55,7 +55,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
     {
         switch (_editor->mode())
         {
-        default:
+        case editor_mode::tests:
             break;
         case editor_mode::none:
             if (button == mouse_button_left)
@@ -78,8 +78,8 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
         case editor_mode::floor:
         case editor_mode::walls:
         case editor_mode::scenery:
-        case editor_mode::vobj:
-            auto pos = *cursor.tile;
+        case editor_mode::vobj: {
+            const auto pos = *cursor.tile;
             switch (button)
             {
             case mouse_button_left:
@@ -91,6 +91,7 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
             default: break;
             }
             break;
+        }
         }
     }
     _editor->on_release();

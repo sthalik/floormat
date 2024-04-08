@@ -151,10 +151,12 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     fm_soft_assert(bbox_offset == Vector2i(Vector2b(bbox_offset)));
     fm_soft_assert(bbox_size == Vector2ui(Vector2ub(bbox_size)));
 
+
+    fm_assert(type < scenery_type::COUNT);
     switch (type)
     {
-    default:
-        fm_throw("unhandled scenery type '{}'"_cf, (unsigned)type);
+    case scenery_type::none:
+    case scenery_type::COUNT: std::unreachable();
     case scenery_type::generic: {
         constexpr generic_scenery_proto G;
         auto s = G;
