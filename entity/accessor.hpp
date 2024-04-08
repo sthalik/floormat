@@ -3,7 +3,6 @@
 #include "erased-constraints.hpp"
 #include "name-of.hpp"
 #include <type_traits>
-#include <utility>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat::erased_constraints {
