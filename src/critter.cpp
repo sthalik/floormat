@@ -316,6 +316,8 @@ constexpr float step_magnitude(Vector2b vec)
 
 } // namespace
 
+extern template class Script<critter, critter_script>;
+
 critter_proto::critter_proto(const critter_proto&) = default;
 critter_proto::~critter_proto() noexcept = default;
 critter_proto& critter_proto::operator=(const critter_proto&) = default;
@@ -540,6 +542,11 @@ critter::critter(object_id id, class chunk& c, critter_proto proto) :
     fm_soft_assert(atlas->check_rotation(r));
     fm_soft_assert(speed >= 0);
     object::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
+}
+
+critter::~critter() noexcept
+{
+    //fm_assert(!script);
 }
 
 } // namespace floormat

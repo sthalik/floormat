@@ -111,6 +111,7 @@ public:
     void add_object_unsorted(const std::shared_ptr<object>& e);
     void sort_objects();
     void remove_object(size_t i);
+    void on_teardown();
     ArrayView<const std::shared_ptr<object>> objects() const;
 
     // for drawing only

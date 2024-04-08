@@ -53,8 +53,9 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
         {
             for (auto i = (int)(es.size()-1); i >= 0; i--)
             {
-                if (es[i]->id == id)
+                if (const auto eʹ = es[i]; eʹ->id == id)
                 {
+                    //eʹ->on_destroy(eʹ);
                     c.remove_object((unsigned)i);
                     goto start;
                 }

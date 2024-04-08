@@ -92,8 +92,9 @@ start:
         while (auto id = a.get_object_colliding_with_cursor())
         {
             for (auto i = 0uz; i < sz; i++)
-                if (es[i]->id == id)
+                if (const auto eʹ = es[i]; eʹ->id == id)
                 {
+                    //eʹ->on_destroy(eʹ, false);
                     c.remove_object(i);
                     goto start;
                 }

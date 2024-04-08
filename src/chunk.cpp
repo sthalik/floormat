@@ -170,6 +170,12 @@ void chunk::add_object(const std::shared_ptr<object>& e)
     arrayInsert(es, (size_t)std::distance(es.cbegin(), it), e);
 }
 
+void chunk::on_teardown()
+{
+    fm_assert(!_teardown); // too late, some chunks were already erased
+    //for (const auto& eʹ : _objects) eʹ->on_destroy(eʹ, true); // todo!
+}
+
 void chunk::remove_object(size_t i)
 {
     fm_assert(_objects_sorted);

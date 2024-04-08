@@ -1,12 +1,14 @@
 #pragma once
-#include "src/global-coords.hpp"
-#include "src/object.hpp"
+#include "global-coords.hpp"
+#include "object.hpp"
+#include "script.hpp"
 #include <Corrade/Containers/String.h>
 
 namespace floormat {
 
 class anim_atlas;
 class world;
+struct critter_script;
 
 struct critter_proto : object_proto
 {
@@ -26,6 +28,7 @@ struct critter final : object
     static constexpr double framerate = 60, move_speed = 60;
     static constexpr double frame_time = 1/framerate;
 
+    ~critter() noexcept override;
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
@@ -41,6 +44,7 @@ struct critter final : object
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
 
+    Script<critter_script, critter> script;
     String name;
     float speed = 1;
     uint16_t offset_frac_ = 0;

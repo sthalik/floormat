@@ -65,14 +65,16 @@ world::world() : world{initial_capacity}
 
 world::~world() noexcept
 {
+    for (auto& [k, c] : _chunks)
+        c.on_teardown();
     _teardown = true;
-    for (auto& [k, v] : _chunks)
+    for (auto& [k, c] : _chunks)
     {
-        v._teardown = true;
-        v.mark_scenery_modified();
-        v.mark_passability_modified();
+        c._teardown = true;
+        c.mark_scenery_modified();
+        c.mark_passability_modified();
         _last_chunk = {};
-        arrayResize(v._objects, 0);
+        arrayResize(c._objects, 0);
     }
     _last_chunk = {};
     _chunks.clear();

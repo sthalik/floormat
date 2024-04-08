@@ -338,7 +338,7 @@ void app::do_popup_menu()
 {
     const auto [id, target] = _popup_target;
     auto& w = M->world();
-    auto eʹ = w.find_object(id);
+    const auto eʹ = w.find_object(id);
 
     if (target == popup_target_type::none || !eʹ)
     {
@@ -388,7 +388,10 @@ void app::do_popup_menu()
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
             e.rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
+        {
+            //e.on_destroy(eʹ, false);
             e.chunk().remove_object(e.index());
+        }
     }
     else
         _popup_target = {};
