@@ -87,11 +87,6 @@ float object::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
     return vec[0] + vec[1] + Vector2(z_offset).sum();
 }
 
-class chunk& object::chunk() const
-{
-    return *c;
-}
-
 size_t object::index() const
 {
     auto& c = chunk();
@@ -101,16 +96,6 @@ size_t object::index() const
     fm_assert(it != es.cend());
     fm_assert((*it)->id == id);
     return (size_t)std::distance(es.cbegin(), it);
-}
-
-bool object::is_virtual() const
-{
-    return false;
-}
-
-point object::position() const
-{
-    return {coord, offset};
 }
 
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
@@ -362,15 +347,14 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
 
 bool object::can_activate(size_t) const { return false; }
 bool object::activate(size_t) { return false; }
+class chunk& object::chunk() const { return *c; }
+bool object::is_virtual() const { return false; }
+point object::position() const { return {coord, offset}; }
+object_type object::type_of() const noexcept { return type(); }
 
 bool object::is_dynamic() const
 {
     return atlas->info().fps > 0;
-}
-
-object_type object::type_of() const noexcept
-{
-    return type();
 }
 
 } // namespace floormat
