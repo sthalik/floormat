@@ -117,7 +117,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
     }
 }
 
-void test_save1(StringView input, StringView tmp)
+void run(StringView input, StringView tmp)
 {
     if (Path::exists(tmp))
         Path::remove(tmp);
@@ -149,16 +149,16 @@ void test_offset_frac(StringView tmp)
 void test_app::test_save()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
-    const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer1.dat"_s);
+    const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-save1.dat"_s);
 
-    test_save1({}, tmp_filename);
+    run({}, tmp_filename);
     test_offset_frac(tmp_filename);
 }
 
 void test_app::test_saves()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
-    const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer2.dat"_s);
+    const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-save2.dat"_s);
     const auto dir = Path::join(loader.TEMP_PATH, "test/save/"_s);
     using LF = Path::ListFlag;
     auto files = Path::list(dir, LF::SkipDirectories|LF::SkipSpecial|LF::SkipDotAndDotDot);
@@ -167,7 +167,7 @@ void test_app::test_saves()
     {
         fm_assert(file.hasSuffix(".dat"_s));
         auto path = Path::join(dir, file);
-        test_save1(path, tmp_filename);
+        run(path, tmp_filename);
     }
 }
 
