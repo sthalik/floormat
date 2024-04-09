@@ -53,6 +53,9 @@ void test_app::test_loader()
 
 void test_app::test_loader2()
 {
+    fm_assert(loader.ground_atlas("__/nonexistent/__", loader_policy::ignore) == loader.invalid_ground_atlas().atlas);
+    fm_assert(loader.wall_atlas("__/nonexistent/__", loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
+
     fm_assert(loader.ground_atlas("metal1")->pass_mode() == pass_mode::pass);
 
     fm_assert(loader.invalid_ground_atlas().atlas);
