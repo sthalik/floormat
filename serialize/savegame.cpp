@@ -1016,7 +1016,7 @@ ok:
         {
             using magic_type = std::decay_t<decltype(object_magic)>;
             magic_type magic;
-            r(magic);
+            visit(magic, r);
             fm_soft_assert(magic == object_magic);
             (void)read_object(&c, r);
         }
