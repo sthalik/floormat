@@ -1,7 +1,7 @@
 #pragma once
 #include "script.hpp"
 #include "compat/assert.hpp"
-
+#include <utility>
 #include <Corrade/Containers/StringView.h>
 
 // ReSharper disable CppDFAUnreachableCode

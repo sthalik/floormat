@@ -44,5 +44,5 @@ function(fm-userconfig-src)
         -Wno-switch-default
     )
     #end copy-paste
-    add_compile_option(-Wno-poison-system-directories)
+    add_compile_options(-Wno-poison-system-directories)
 endfunction()
