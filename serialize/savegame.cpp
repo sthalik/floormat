@@ -28,9 +28,9 @@
 //#include <Magnum/Math/Functions.h>
 #include <tsl/robin_map.h>
 
-// ReSharper disable CppDFAUnreachableCode
-// ReSharper disable CppDFAUnreachableFunctionCall
-// ReSharper disable CppUseStructuredBinding
+// zzReSharper disable CppDFAUnreachableCode
+// zzReSharper disable CppDFAUnreachableFunctionCall
+// zzReSharper disable CppUseStructuredBinding
 // NOLINTBEGIN(*-missing-std-forward, *-avoid-const-or-ref-data-members, *-redundant-member-init)
 
 namespace floormat {
@@ -53,13 +53,7 @@ private:
     FILE* s;
 };
 
-struct string_hasher
-{
-    size_t operator()(StringView s) const
-    {
-        return fnvhash_buf(s.data(), s.size());
-    }
-};
+struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) const { return fnvhash_buf(s.data(), s.size()); } };
 
 template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 template<typename T> concept Enum = std::is_enum_v<std::remove_cvref_t<T>>;
@@ -170,8 +164,8 @@ struct visitor_
     {
         auto& self = derived();
 
-        visit(s.id, f);
         fm_soft_assert(s.id != 0);
+        f(s.id);
         visit(s.type, f);
         if (s.type >= object_type::COUNT || s.type == object_type::none) [[unlikely]]
             fm_throw("invalid object type {}"_cf, (int)s.type);
@@ -415,6 +409,7 @@ struct writer final : visitor_<writer, true>
     template<typename F> void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
     {
         auto sc_type = obj.scenery_type();
+        fm_debug_assert(sc_type != scenery_type::none);
         visit(sc_type, f);
         std::visit(
             [&](auto& subtype) { visit_scenery_proto(subtype, f); },
@@ -434,6 +429,7 @@ struct writer final : visitor_<writer, true>
             .tile = tile,
         };
         visit_object_header(obj, s, f);
+        fm_assert(s.id != 0);
         switch (type)
         {
         case object_type::none:
@@ -861,7 +857,7 @@ struct reader final : visitor_<reader, false>
     template<typename Obj, typename Proto, typename Header>
     std::shared_ptr<object> make_object(const object_header_s& h0, object_proto&& p0, Header&& h, auto&& f)
     {
-        fm_debug_assert(h0.id  != 0);
+        fm_soft_assert(h0.id  != 0);
 
         const auto coord = global_coords{h0.ch->coord(), h0.tile};
         Proto p{};
@@ -876,7 +872,7 @@ struct reader final : visitor_<reader, false>
     {
         std::shared_ptr<object> obj;
         object_id id = 0;
-        object_type type = object_type::none;
+        auto type = object_type::none;
         local_coords tile;
 
         object_header_s s{
@@ -960,12 +956,12 @@ ok:
 
     template<atlas_type Type> StringView get_atlas(atlasid id)
     {
-        fm_soft_assert(id < atlases.size());
-        auto a = atlases[id];
-        fm_soft_assert(a.type == Type);
         using atlas_type = typename atlas_from_type<Type>::Type;
-        const auto* atlas = static_cast<const atlas_type*>(a.atlas);
-        return atlas->name();
+        auto [atlas, type] = atlases[id];
+        fm_soft_assert(id < atlases.size());
+        fm_soft_assert(type == Type);
+        const auto* atlasʹ = static_cast<const atlas_type*>(atlas);
+        return atlasʹ->name();
     }
 
     void deserialize_strings_(binary_reader<const char*>& s)
