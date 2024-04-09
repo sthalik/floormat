@@ -155,6 +155,8 @@ void world::collect(bool force)
 void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted)
 {
     fm_assert(e->id > 0);
+    fm_debug_assert(e->c);
+    fm_debug_assert(pos.chunk3() == e->c->coord());
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;

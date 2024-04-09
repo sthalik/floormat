@@ -80,13 +80,13 @@ public:
         T{object_id(), c, std::declval<Xs&&>()...};
         std::is_base_of_v<object, T>;
     }
-    std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
+    std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs) // todo! replace 2nd arg with chunk&
     {
         auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
         do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }
-    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted);
+    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted); // todo! replace 2nd arg with chunk&
 
 #if 0
     template<typename T, typename... Xs> std::shared_ptr<object> make_unconnected_object(Xs&&... xs)
