@@ -234,9 +234,6 @@ struct visitor_
         visit(obj.frame, f);
         visit(obj.r, f);
         visit(obj.pass, f);
-
-        // todo!
-        // immediately after this function's return, read sc_type and then read scenery_proto
     }
 
     template<typename F> static inline void visit(tile_ref c, F&& f)
