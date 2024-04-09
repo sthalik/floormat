@@ -116,8 +116,6 @@ struct visitor_
     static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
     static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
 
-    const proto_t& PROTO; // NOLINT(*-avoid-const-or-ref-data-members)
-
     static constexpr bool IsWriter = IsWriter_;
 
     using tilemeta = uint8_t;
@@ -128,7 +126,7 @@ struct visitor_
     template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
     Derived& self = static_cast<Derived&>(*this);
-    explicit visitor_(const proto_t& proto) : PROTO{proto} {}
+    explicit visitor_() {}
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(visitor_);
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(visitor_);
 
@@ -188,7 +186,7 @@ struct visitor_
         visit(obj.offset, f);
         visit(obj.bbox_offset, f);
         visit(obj.bbox_size, f);
-        if (PROTO >= 23) [[likely]]
+        if (self.PROTO >= 23) [[likely]]
             visit(obj.delta, f);
         else
         {
@@ -230,7 +228,7 @@ struct visitor_
     };
 
     template<typename F, typename T>
-    void visit_scenery_proto_(o_sc_g& s, F&& f)
+    void visit_scenery_proto(o_sc_g& s, F&& f)
     {
         constexpr struct {
             uint8_t bits;
@@ -255,13 +253,13 @@ struct visitor_
             setter(s, flags & bits);
     }
 
-    template<typename F, typename T>
-    void visit_scenery_proto_(o_sc_door& s, F&& f)
+    template<typename F>
+    void visit_scenery_proto(o_sc_door& s, F&& f)
     {
         constexpr struct {
             uint8_t bits;
-            bool(*getter)(const T&);
-            void(*setter)(T&, bool);
+            bool(*getter)(const o_sc_door&);
+            void(*setter)(o_sc_door&, bool);
         } pairs[] = {
             { flag_active,
               [](const auto& sc) { return !!sc.active; },
@@ -280,7 +278,7 @@ struct visitor_
         uint8_t flags = 0;
         for (auto [bits, getter, setter] : pairs)
             flags |= bits * getter(s);
-        do_visit(flags, f);
+        visit(flags, f);
         for (auto [bits, getter, setter] : pairs)
             setter(s, flags & bits);
     }
@@ -290,11 +288,11 @@ struct visitor_
     {
         self.visit(obj.name, f);
 
-        if (PROTO >= 22) [[likely]]
+        if (self.PROTO >= 22) [[likely]]
             visit(obj.speed, f);
         fm_soft_assert(obj.speed >= 0);
 
-        if (PROTO >= 24) [[likely]]
+        if (self.PROTO >= 24) [[likely]]
             visit(s.offset_frac, f);
         else
         {
@@ -320,7 +318,6 @@ constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_s
 struct writer final : visitor_<writer, true>
 {
     using visitor_<writer, true>::visit;
-    static const proto_t fake_proto;
 
     struct serialized_atlas
     {
@@ -335,6 +332,8 @@ struct writer final : visitor_<writer, true>
         chunk* c;
     };
 
+    static constexpr proto_t PROTO = proto_version_min;
+
     const world& w;
 
     std::vector<StringView> string_array{};
@@ -348,7 +347,6 @@ struct writer final : visitor_<writer, true>
     buffer header_buf{}, string_buf{};
 
     explicit writer(const world& w) :
-        visitor_{ fake_proto },
         w{ w }
     {}
 
@@ -391,18 +389,18 @@ struct writer final : visitor_<writer, true>
     }
 
     template<typename F>
-    void write_scenery(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
+    void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
     {
         auto sc_type = obj.scenery_type();
         visit(sc_type, f);
         std::visit(
-            [&](auto& subtype) { visit_scenery_proto_(subtype, f); },
+            [&](auto& subtype) { visit_scenery_proto(subtype, f); },
             obj.subtype
         );
     }
 
     template<typename F>
-    void serialize_object(o_object& obj, chunk* c, F&& f)
+    void write_object(o_object& obj, chunk* c, F&& f)
     {
         auto id = obj.id;
         auto type = obj.type();
@@ -421,7 +419,7 @@ struct writer final : visitor_<writer, true>
             break;
         case object_type::critter: visit_object_proto(static_cast<const critter&>(obj), f); goto ok;
         case object_type::light:   visit_object_proto(static_cast<const light&>(obj), f); goto ok;
-        case object_type::scenery: write_scenery(static_cast<const scenery&>(obj), f); goto ok;
+        case object_type::scenery: write_scenery_proto(static_cast<const scenery&>(obj), f); goto ok;
         }
         fm_assert(false);
 ok:     void();
@@ -517,7 +515,7 @@ ok:     void();
                 continue;
             auto magic = object_magic;
             visit(magic, f);
-            visit(*obj, f, c.coord());
+            write_object(*obj, obj->chunk(), f);
         }
     }
 
@@ -675,8 +673,6 @@ void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
         fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
 }
 
-const proto_t writer::fake_proto = proto_version;
-
 } // namespace
 
 void world::serialize(StringView filename)
@@ -754,7 +750,7 @@ struct reader final : visitor_<reader, false>
     class world& w;
     loader_policy asset_policy;
 
-    reader(class world& w, loader_policy asset_policy) : visitor_{PROTO = (proto_t)-1}, w{w}, asset_policy{asset_policy} {}
+    reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
 
     struct byte_reader
     {
@@ -805,7 +801,23 @@ struct reader final : visitor_<reader, false>
     }
 
     template<typename F>
-    void read_object(std::shared_ptr<object>& obj, F&& f)
+    void visit_object_proto(o_scenery& obj, std::nullptr_t&, F&& f)
+    {
+
+    }
+    using visitor_<reader, false>::visit_object_proto;
+
+    template<typename Obj, typename Proto, typename Header>
+    std::shared_ptr<object> make_object(const object_header_s& h0, object_proto p0, Header&& h, Proto p, auto&& f)
+    {
+        fm_debug_assert(h0.id  != 0);
+        static_cast<object_proto&>(p) = move(p0);
+        visit_object_proto(p, h, f);
+        return w.make_object<Obj>(h0.id, {h0.ch, h0.tile}, move(p));
+    }
+
+    template<typename F>
+    void read_object(std::shared_ptr<object>& obj, chunk* ch, F&& f)
     {
         fm_assert(!obj);
         object_id id = 0;
@@ -818,24 +830,29 @@ struct reader final : visitor_<reader, false>
             .tile = tile,
         };
 
-        object_proto p_o;
-        visit_object_header(p_o, s, f);
+        object_proto pʹ;
+        visit_object_header(pʹ, s, f);
 
-        switch (p_o.type)
+        switch (s.type)
         {
         case object_type::none:
         case object_type::COUNT:
             break;
         case object_type::critter: {
-            critter_proto p_c;
-            static_cast<object_proto&>(p_c) = p_o;
+            make_object();
+            critter_proto p;
+            static_cast<object_proto&>(p) = pʹ;
+            visit_object_proto(p, f);
             obj = w.make_object<>();
             goto ok;
         }
         }
-        fm_throw("invalid sc_type {}"_cf, (int)p_o.type);
+        fm_throw("invalid sc_type {}"_cf, (int)pʹ.type);
+ok:
+        fm_assert(obj);
+        non_const(obj->c) = ch;
 
-ok:     if (PROTO >= 21) [[likely]]
+        if (PROTO >= 21) [[likely]]
             fm_soft_assert(object_counter >= id);
         else if (PROTO == 20) [[unlikely]]
             object_counter = Math::max(object_counter, id);
@@ -962,6 +979,7 @@ ok:     if (PROTO >= 21) [[likely]]
             fm_soft_assert(magic == object_magic);
 
             std::shared_ptr<object> obj;
+            read_object(obj, r);
             visit(obj, r, c.coord());
             non_const(obj->coord) = {c.coord(), obj->coord.local()};
             non_const(obj->c) = &c;

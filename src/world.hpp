@@ -88,10 +88,12 @@ public:
     }
     void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted);
 
+#if 0
     template<typename T, typename... Xs> std::shared_ptr<object> make_unconnected_object(Xs&&... xs)
     {
         return std::shared_ptr<T>(new T{0, operator[](chunk_coords_{}), {}, forward<Xs>(xs)...});
     }
+#endif
 
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
 
