@@ -42,7 +42,7 @@ struct test_app final : private FM_APPLICATION
     static void test_region();
     static void test_saves();
     static void test_script();
-    static void test_serializer1();
+    static void test_save();
     static void test_tile_iter();
     static void test_wall_atlas();
     static void test_wall_atlas2();

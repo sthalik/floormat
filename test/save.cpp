@@ -117,7 +117,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
     }
 }
 
-void test_serializer(StringView input, StringView tmp)
+void test_save1(StringView input, StringView tmp)
 {
     if (Path::exists(tmp))
         Path::remove(tmp);
@@ -139,13 +139,20 @@ void test_serializer(StringView input, StringView tmp)
     assert_chunks_equal(w[coord], c2);
 }
 
+void test_offset_frac(StringView tmp)
+{
+    // todo! test non-zero offset_frac
+}
+
 } // namespace
 
-void test_app::test_serializer1()
+void test_app::test_save()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-serializer1.dat"_s);
-    test_serializer({}, tmp_filename);
+
+    test_save1({}, tmp_filename);
+    test_offset_frac(tmp_filename);
 }
 
 void test_app::test_saves()
@@ -160,7 +167,7 @@ void test_app::test_saves()
     {
         fm_assert(file.hasSuffix(".dat"_s));
         auto path = Path::join(dir, file);
-        test_serializer(path, tmp_filename);
+        test_save1(path, tmp_filename);
     }
 }
 

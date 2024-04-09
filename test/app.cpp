@@ -61,7 +61,7 @@ int test_app::exec()
         FM_TEST(test_json3),
         FM_TEST(test_bitmask),
         FM_TEST(test_loader2),
-        FM_TEST(test_serializer1),
+        FM_TEST(test_save),
         FM_TEST(test_loader3),
         FM_TEST(test_astar_pool),
         FM_TEST(test_astar),
