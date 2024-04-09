@@ -222,11 +222,14 @@ struct visitor_
             visit(obj.delta, f);
         else
         {
-            fm_assert(IsWriter);
-            auto delta_ = uint16_t(obj.delta >> 16);
-            visit(delta_, f);
-            if constexpr(IsWriter)
+            if constexpr(!IsWriter)
+            {
+                auto delta_ = uint16_t(obj.delta >> 16);
+                visit(delta_, f);
                 non_const_(obj.delta) = delta_ * 65536u;
+            }
+            else
+                fm_assert(false);
         }
         visit(obj.frame, f);
         visit(obj.r, f);
