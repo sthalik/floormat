@@ -2,6 +2,8 @@
 #include "chunk.hpp"
 #include "object.hpp"
 #include "critter.hpp"
+#include "scenery.hpp"
+#include "light.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
@@ -262,5 +264,28 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
     fm_debug_assert(ret.ptr);
     return ret;
 }
+
+template<typename T>
+std::shared_ptr<T> world::find_object(object_id id)
+{
+    static_assert(std::is_base_of_v<object, T>);
+    // make it a dependent name so that including "src/object.hpp" isn't needed
+    using U = std::conditional_t<std::is_same_v<T, object>, T, object>;
+    if (std::shared_ptr<U> ptr = find_object_(id); !ptr)
+        return {};
+    else if constexpr(std::is_same_v<T, object>)
+        return ptr;
+    else
+    {
+        if (!(ptr->type() == object_type_<T>::value)) [[unlikely]]
+            throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
+        return static_pointer_cast<T>(move(ptr));
+    }
+}
+
+template std::shared_ptr<object>  world::find_object(object_id id);
+template std::shared_ptr<critter> world::find_object(object_id id);
+template std::shared_ptr<scenery> world::find_object(object_id id);
+template std::shared_ptr<light>   world::find_object(object_id id);
 
 } // namespace floormat

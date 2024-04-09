@@ -44,6 +44,7 @@ private:
 
     explicit world(size_t capacity);
 
+    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted); // todo! replace 2nd arg with chunk&
     void do_kill_object(object_id id);
     std::shared_ptr<object> find_object_(object_id id);
 
@@ -86,14 +87,6 @@ public:
         do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }
-    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted); // todo! replace 2nd arg with chunk&
-
-#if 0
-    template<typename T, typename... Xs> std::shared_ptr<object> make_unconnected_object(Xs&&... xs)
-    {
-        return std::shared_ptr<T>(new T{0, operator[](chunk_coords_{}), {}, forward<Xs>(xs)...});
-    }
-#endif
 
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
 
@@ -115,23 +108,5 @@ public:
     world& operator=(world&& w) noexcept;
     world(world&& w) noexcept;
 };
-
-template<typename T>
-std::shared_ptr<T> world::find_object(object_id id)
-{
-    static_assert(std::is_base_of_v<object, T>);
-    // make it a dependent name so that including "src/object.hpp" isn't needed
-    using U = std::conditional_t<std::is_same_v<T, object>, T, object>;
-    if (std::shared_ptr<U> ptr = find_object_(id); !ptr)
-        return {};
-    else if constexpr(std::is_same_v<T, object>)
-        return ptr;
-    else
-    {
-        if (!(ptr->type() == object_type_<T>::value)) [[unlikely]]
-            throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
-        return static_pointer_cast<T>(move(ptr));
-    }
-}
 
 } // namespace floormat
