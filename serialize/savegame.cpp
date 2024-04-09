@@ -61,6 +61,7 @@ struct string_hasher
     }
 };
 
+template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 template<typename T> concept Enum = std::is_enum_v<std::remove_cvref_t<T>>;
 template<typename T> concept Vector = Math::IsVector<std::remove_cvref_t<T>>::value;
 
@@ -71,7 +72,7 @@ template<typename T> [[maybe_unused]] T& non_const(const T&& value) = delete;
 
 template<typename T> [[maybe_unused]] T& non_const_(const T& value) { return const_cast<T&>(value); }
 template<typename T> [[maybe_unused]] T& non_const_(T& value) { return value; }
-template<typename T> [[maybe_unused]] T& non_const_(T&& value) { return value; }
+template<typename T> [[maybe_unused]] T& non_const_(T&& value) { return static_cast<T&>(value); }
 template<typename T> [[maybe_unused]] T& non_const_(const T&& value) { return static_cast<T&>(const_cast<T&&>(value)); }
 
 struct buffer
@@ -149,7 +150,7 @@ struct visitor_
 
     Derived& self = static_cast<Derived&>(*this);
 
-    template<typename T, typename F>
+    template<Number T, typename F>
     requires std::is_arithmetic_v<std::remove_cvref_t<T>>
     static void visit(T&& x, F&& f)
     {
@@ -161,13 +162,14 @@ struct visitor_
     {
         constexpr auto N = std::remove_cvref_t<T>::Size;
         for (uint32_t i = 0; i < N; i++)
-            visit(forward<T>(x).data()[i], f);
+            f(forward<T>(x).data()[i]);
     }
 
     template<Enum E, typename F>
     void visit(E&& x, F&& f)
     {
-        visit(forward<E>(x), f);
+        using U = std::underlying_type_t<std::remove_cvref_t<E>>;
+        f(non_const_(U(x)));
     }
 
     template<typename F>
