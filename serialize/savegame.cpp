@@ -151,26 +151,24 @@ struct visitor_
     Derived& self = static_cast<Derived&>(*this);
 
     template<Number T, typename F>
-    requires std::is_arithmetic_v<std::remove_cvref_t<T>>
-    static void visit(T&& x, F&& f)
+    requires (!IsWriter)
+    static CORRADE_ALWAYS_INLINE void visit(T& x, F&& f)
     {
         f(forward<T>(x));
     }
 
-    template<Vector T, typename F>
-    void visit(T&& x, F&& f)
+    template<Vector T, typename F> void visit(T&& x, F&& f)
     {
         constexpr auto N = std::remove_cvref_t<T>::Size;
         for (uint32_t i = 0; i < N; i++)
-            f(forward<T>(x).data()[i]);
+            visit(forward<T>(x).data()[i], f);
     }
 
-    template<Enum E, typename F>
-    void visit(E&& x, F&& f)
-    {
-        using U = std::underlying_type_t<std::remove_cvref_t<E>>;
-        f(non_const_(U(x)));
-    }
+    template<Enum E, typename F> requires (!IsWriter) CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
+    { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(x); f(xʹ); }
+
+    template<Enum E, typename F> requires (IsWriter) CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
+    { using U = std::underlying_type_t<E>; f(static_cast<U>(x)); }
 
     template<typename F>
     void visit_object_header(o_object& obj, const object_header_s& s, F&& f)
@@ -216,15 +214,14 @@ struct visitor_
         // immediately after this function's return, read sc_type and then read scenery_proto
     }
 
-    template<typename F>
-    void visit(tile_ref c, F&& f)
+    template<typename F> static inline void visit(tile_ref c, F&& f)
     {
         do_visit(c.ground(), f);
         do_visit(c.wall_north(), f);
         do_visit(c.wall_west(), f);
     }
 
-    template<typename F> static void visit(qual<chunk_coords_>& coord, F&& f)
+    template<typename F> static inline void visit(qual<chunk_coords_>& coord, F&& f)
     {
         f(coord.x);
         f(coord.y);
@@ -241,8 +238,7 @@ struct visitor_
         flag_interactive = 1 << 2,
     };
 
-    template<typename F>
-    void visit_scenery_proto(o_sc_g& s, F&& f)
+    template<typename F> void visit_scenery_proto(o_sc_g& s, F&& f)
     {
         using T = std::conditional_t<IsWriter, generic_scenery, generic_scenery_proto>;
         // todo! make bitmask reader/writer
@@ -278,8 +274,7 @@ struct visitor_
         }
     }
 
-    template<typename F>
-    void visit_scenery_proto(o_sc_door& s, F&& f)
+    template<typename F> void visit_scenery_proto(o_sc_door& s, F&& f)
     {
         using T = std::conditional_t<IsWriter, door_scenery, door_scenery_proto>;
         constexpr struct {
@@ -317,8 +312,7 @@ struct visitor_
         }
     }
 
-    template<typename F>
-    void visit_object_proto(o_critter& obj, critter_header_s&& s, F&& f)
+    template<typename F> void visit_object_proto(o_critter& obj, critter_header_s&& s, F&& f)
     {
         self.visit(obj.name, f);
 
@@ -380,9 +374,7 @@ struct writer final : visitor_<writer, true>
 
     buffer header_buf{}, string_buf{};
 
-    explicit writer(const world& w) :
-        w{ w }
-    {}
+    explicit writer(const world& w) : w{ w } {}
 
     struct size_counter
     {
@@ -405,8 +397,7 @@ struct writer final : visitor_<writer, true>
         }
     };
 
-    template<typename F>
-    void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
+    template<typename F> void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
     {
         atlasid id = intern_atlas(a, type);
         visit(id, f);
@@ -422,8 +413,7 @@ struct writer final : visitor_<writer, true>
         f(intern_string(name));
     }
 
-    template<typename F>
-    void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
+    template<typename F> void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
     {
         auto sc_type = obj.scenery_type();
         visit(sc_type, f);
@@ -433,8 +423,7 @@ struct writer final : visitor_<writer, true>
         );
     }
 
-    template<typename F>
-    void write_object(o_object& obj, chunk* c, F&& f)
+    template<typename F> void write_object(o_object& obj, chunk* c, F&& f)
     {
         auto id = obj.id;
         auto type = obj.type();
@@ -471,8 +460,7 @@ struct writer final : visitor_<writer, true>
 ok:     void();
     }
 
-    template<typename F>
-    void intern_atlas_(const void* atlas, atlas_type type, F&& f)
+    template<typename F> void intern_atlas_(const void* atlas, atlas_type type, F&& f)
     {
         visit(type, f);
 
@@ -542,8 +530,7 @@ ok:     void();
         return pair->second;
     }
 
-    template<typename F>
-    void serialize_objects_(chunk& c, F&& f)
+    template<typename F> void serialize_objects_(chunk& c, F&& f)
     {
         uint32_t count = 0;
         for (const std::shared_ptr<object>& obj : c.objects())
@@ -813,8 +800,7 @@ struct reader final : visitor_<reader, false>
         }
     };
 
-    template<typename F>
-    void visit(String& str, F&& f)
+    template<typename F> void visit(String& str, F&& f)
     {
         atlasid id;
         f(id);
@@ -828,8 +814,7 @@ struct reader final : visitor_<reader, false>
         pt = local_coords{i};
     }
 
-    template<typename F>
-    void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
+    template<typename F> void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
     {
         atlasid id = (atlasid)-1;
         f(id);
@@ -849,8 +834,7 @@ struct reader final : visitor_<reader, false>
         }
     }
 
-    template<typename F>
-    void visit_object_proto(o_scenery& obj, std::nullptr_t, F&& f)
+    template<typename F> void visit_object_proto(o_scenery& obj, std::nullptr_t, F&& f)
     {
         auto sc_type = scenery_type::none;
         visit(sc_type, f);
@@ -889,9 +873,7 @@ struct reader final : visitor_<reader, false>
         return w.make_object<Obj>(h0.id, coord, move(p));
     }
 
-    template<typename F>
-    [[nodiscard]]
-    std::shared_ptr<object> read_object(chunk* ch, F&& f)
+    template<typename F> [[nodiscard]] std::shared_ptr<object> read_object(chunk* ch, F&& f)
     {
         std::shared_ptr<object> obj;
         object_id id = 0;
@@ -977,8 +959,7 @@ ok:
         return strings[id];
     }
 
-    template<atlas_type Type>
-    StringView get_atlas(atlasid id)
+    template<atlas_type Type> StringView get_atlas(atlasid id)
     {
         fm_soft_assert(id < atlases.size());
         auto a = atlases[id];
@@ -1028,8 +1009,7 @@ ok:
         }
     }
 
-    template<typename INT>
-    void deserialize_tile_part(auto&& g, uint32_t& i, byte_reader& r)
+    template<typename INT> void deserialize_tile_part(auto&& g, uint32_t& i, byte_reader& r)
     {
         constexpr auto highbit = reader::highbit<INT>;
         constexpr auto null = reader::null<INT>;
