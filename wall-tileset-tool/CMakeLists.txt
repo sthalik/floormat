@@ -1,4 +1,6 @@
-find_package(OpenCV QUIET)
+if(NOT DEFINED OpenCV_FOUND)
+    find_package(OpenCV QUIET)
+endif()
 if(OpenCV_FOUND)
     set(self "floormat-wall-tileset-tool")
 
