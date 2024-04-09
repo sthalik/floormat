@@ -442,10 +442,10 @@ struct writer final : visitor_<writer, true>
         case object_type::critter:
         {
             uint16_t offset_frac = 0;
-            critter_header_s s = {
+            critter_header_s cr = {
                 .offset_frac = offset_frac,
             };
-            visit_object_proto(static_cast<const critter&>(obj), move(s), f);
+            visit_object_proto(static_cast<const critter&>(obj), move(cr), f);
             goto ok;
         }
         case object_type::light:
