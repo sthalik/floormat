@@ -37,6 +37,7 @@ constexpr CORRADE_ALWAYS_INLINE T maybe_byteswap(T x) noexcept
 }
 
 template<integer T>
+requires (sizeof(T) > 1)
 constexpr CORRADE_ALWAYS_INLINE T maybe_byteswap(T x) noexcept
 {
     if constexpr(std::endian::native == std::endian::big)
