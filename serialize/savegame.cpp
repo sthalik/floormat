@@ -384,7 +384,7 @@ struct writer final : visitor_<writer, true>
         chunk* c;
     };
 
-    static constexpr proto_t PROTO = proto_version_min;
+    static constexpr proto_t PROTO = proto_version;
 
     const world& w;
 
