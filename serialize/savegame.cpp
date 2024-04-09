@@ -229,7 +229,10 @@ struct visitor_
                 non_const_(obj.delta) = delta_ * 65536u;
             }
             else
+            {
+                std::unreachable();
                 fm_assert(false);
+            }
         }
         visit(obj.frame, f);
         visit(obj.r, f);
