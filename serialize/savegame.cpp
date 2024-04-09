@@ -28,10 +28,16 @@
 //#include <Magnum/Math/Functions.h>
 #include <tsl/robin_map.h>
 
-// zzReSharper disable CppDFAUnreachableCode
-// zzReSharper disable CppDFAUnreachableFunctionCall
+// ReSharper disable CppDFAUnreachableCode
+// ReSharper disable CppDFAUnreachableFunctionCall
 // zzReSharper disable CppUseStructuredBinding
-// NOLINTBEGIN(*-missing-std-forward, *-avoid-const-or-ref-data-members, *-redundant-member-init)
+/*
+NOLINTBEGIN(
+  *-missing-std-forward, *-avoid-const-or-ref-data-members,
+  *-redundant-member-init, *-redundant-inline-specifier,
+  *-rvalue-reference-param-not-moved, *-redundant-casting
+)
+*/
 
 namespace floormat {
 
@@ -579,39 +585,39 @@ ok:     void();
 
     void serialize_chunk_(chunk& c, buffer& buf)
     {
-        const auto fn = [this](chunk& c, auto&& f)
+        const auto fn = [this](chunk& ch, auto&& f)
         {
             static_assert(null<uint8_t> == 127 && highbit<uint8_t> == 128);
             static_assert(null<uint32_t> == 0x7fffffff && highbit<uint32_t> == 0x80000000);
             auto magic = chunk_magic;
             visit(magic, f);
-            visit(c.coord(), f);
+            visit(ch.coord(), f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t index) {
-                    return maybe_intern_atlas(c[index].ground_atlas(), atlas_type::ground);
-                }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t index) {
-                    return maybe_intern_atlas(c[index].wall_north_atlas(), atlas_type::wall);
+                    return maybe_intern_atlas(ch[index].ground_atlas(), atlas_type::ground);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t index) {
-                    return maybe_intern_atlas(c[index].wall_west_atlas(), atlas_type::wall);
+                    return maybe_intern_atlas(ch[index].wall_north_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
                 serialize_tile_([&](uint32_t index) {
-                    auto v = c[index].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                    return maybe_intern_atlas(ch[index].wall_west_atlas(), atlas_type::wall);
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&c](uint32_t index) {
-                    auto v = c[index].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                serialize_tile_([&](uint32_t index) {
+                    auto v = ch[index].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
             for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&c](uint32_t index) {
-                    auto v = c[index].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                serialize_tile_([&ch](uint32_t index) {
+                    auto v = ch[index].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
+                }, i, f);
+            for (uint32_t i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&ch](uint32_t index) {
+                    auto v = ch[index].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
 
-            serialize_objects_(c, f);
+            serialize_objects_(ch, f);
         };
 
         size_t len = 0;
@@ -1147,4 +1153,10 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
 
 } // namespace floormat
 
-// NOLINTEND(*-missing-std-forward, *-avoid-const-or-ref-data-members, *-redundant-member-init)
+/*
+NOLINTEND(
+  *-missing-std-forward, *-avoid-const-or-ref-data-members,
+  *-redundant-member-init, *-redundant-inline-specifier,
+  *-rvalue-reference-param-not-moved, *-redundant-casting
+)
+*/
