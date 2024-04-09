@@ -93,6 +93,30 @@ struct buffer
     }
 };
 
+struct size_counter
+{
+    size_t& size;
+
+    template<typename T> requires (std::is_arithmetic_v<T> && std::is_fundamental_v<T>)
+    CORRADE_ALWAYS_INLINE void operator()(T) { size += sizeof(T); }
+};
+
+struct byte_writer
+{
+    binary_writer<char*>& s;
+
+    template<typename T> requires (std::is_fundamental_v<T> && std::is_arithmetic_v<T>)
+    CORRADE_ALWAYS_INLINE void operator()(T value) { s << value; }
+};
+
+struct byte_reader
+{
+    binary_reader<const char*>& s;
+
+    template<typename T> requires (std::is_fundamental_v<T> && std::is_arithmetic_v<T>)
+    CORRADE_ALWAYS_INLINE void operator()(T& value) { value << s; }
+};
+
 struct object_header_s
 {
     object_id& id;
@@ -170,8 +194,9 @@ struct visitor_
     {
         auto& self = derived();
 
-        fm_soft_assert(s.id != 0);
         f(s.id);
+        fm_soft_assert(s.id != 0);
+
         visit(s.type, f);
         if (s.type >= object_type::COUNT || s.type == object_type::none) [[unlikely]]
             fm_throw("invalid object type {}"_cf, (int)s.type);
@@ -375,42 +400,11 @@ struct writer final : visitor_<writer, true>
 
     explicit writer(const world& w) : w{ w } {}
 
-    struct size_counter
-    {
-        size_t& size;
-
-        template<typename T>
-        requires (std::is_arithmetic_v<T> && std::is_fundamental_v<T>)
-        void operator()(T) { size += sizeof(T); }
-    };
-
-    struct byte_writer
-    {
-        binary_writer<char*>& s;
-
-        template<typename T>
-        requires (std::is_fundamental_v<T> && std::is_arithmetic_v<T>)
-        void operator()(T value)
-        {
-            s << value;
-        }
-    };
+    template<typename F> static void visit(const local_coords& pt, F&& f) { f(pt.to_index()); }
+    template<typename F> void visit(StringView name, F&& f) { f(intern_string(name)); }
 
     template<typename F> void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
-    {
-        atlasid id = intern_atlas(a, type);
-        visit(id, f);
-    }
-
-    template<typename F> static void visit(const local_coords& pt, F&& f)
-    {
-        f(pt.to_index());
-    }
-
-    template<typename F> void visit(StringView name, F&& f)
-    {
-        f(intern_string(name));
-    }
+    { atlasid id = intern_atlas(a, type); visit(id, f); }
 
     template<typename F> void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
     {
@@ -789,31 +783,11 @@ struct reader final : visitor_<reader, false>
 
     reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
 
-    struct byte_reader
-    {
-        binary_reader<const char*>& s;
-
-        template<typename T>
-        requires (std::is_fundamental_v<T> && std::is_arithmetic_v<T>)
-        void operator()(T& value)
-        {
-            value << s;
-        }
-    };
-
     template<typename F> void visit(String& str, F&& f)
-    {
-        atlasid id;
-        f(id);
-        str = get_string(id);
-    }
+    { atlasid id; f(id); str = get_string(id); }
 
     template<typename F> static void visit(local_coords& pt, F&& f)
-    {
-        uint8_t i;
-        f(i);
-        pt = local_coords{i};
-    }
+    { uint8_t i; f(i); pt = local_coords{i}; }
 
     template<typename F> void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
     {
