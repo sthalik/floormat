@@ -148,14 +148,15 @@ struct visitor_
     using o_sc_g    = qual2<generic_scenery, generic_scenery_proto>;
     using o_sc_door = qual2<door_scenery, door_scenery_proto>;
 
-    Derived& self = static_cast<Derived&>(*this);
+    template<Number T, typename F> requires (!IsWriter) static CORRADE_ALWAYS_INLINE void visit(T& x, F&& f) { f(x); }
+    template<Number T, typename F> requires (IsWriter) static CORRADE_ALWAYS_INLINE void visit(T x, F&& f) { f(x); }
 
-    template<Number T, typename F>
-    requires (!IsWriter)
-    static CORRADE_ALWAYS_INLINE void visit(T& x, F&& f)
-    {
-        f(forward<T>(x));
-    }
+    CORRADE_ALWAYS_INLINE Derived& derived() { return static_cast<Derived&>(*this); }
+
+    template<Enum E, typename F> requires (!IsWriter) CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
+    { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(x); f(xʹ); }
+    template<Enum E, typename F> requires (IsWriter) CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
+    { using U = std::underlying_type_t<E>; f(static_cast<U>(x)); }
 
     template<Vector T, typename F> void visit(T&& x, F&& f)
     {
@@ -164,15 +165,11 @@ struct visitor_
             visit(forward<T>(x).data()[i], f);
     }
 
-    template<Enum E, typename F> requires (!IsWriter) CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
-    { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(x); f(xʹ); }
-
-    template<Enum E, typename F> requires (IsWriter) CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
-    { using U = std::underlying_type_t<E>; f(static_cast<U>(x)); }
-
     template<typename F>
     void visit_object_header(o_object& obj, const object_header_s& s, F&& f)
     {
+        auto& self = derived();
+
         visit(s.id, f);
         fm_soft_assert(s.id != 0);
         visit(s.type, f);
@@ -314,6 +311,8 @@ struct visitor_
 
     template<typename F> void visit_object_proto(o_critter& obj, critter_header_s&& s, F&& f)
     {
+        auto& self = derived();
+
         self.visit(obj.name, f);
 
         if (self.PROTO >= 22) [[likely]]
