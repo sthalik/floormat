@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "loader/anim-cell.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
@@ -117,6 +118,21 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
     }
 }
 
+void assert_chunks_equal(const chunk* a, const chunk* b)
+{
+    fm_assert(a);
+    fm_assert(b);
+    assert_chunks_equal(*a, *b);
+}
+
+[[nodiscard]] world reload_from_save(StringView tmp, world& w)
+{
+    if (Path::exists(tmp))
+        Path::remove(tmp);
+    w.serialize(tmp);
+    return world::deserialize(tmp, loader_policy::error);
+}
+
 void run(StringView input, StringView tmp)
 {
     if (Path::exists(tmp))
@@ -139,25 +155,15 @@ void run(StringView input, StringView tmp)
     assert_chunks_equal(w[coord], c2);
 }
 
-void test_offset_frac(StringView tmp)
+void test_save_1()
 {
-    // todo! test non-zero offset_frac
-}
-
-} // namespace
-
-void test_app::test_save()
-{
-    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-save1.dat"_s);
 
     run({}, tmp_filename);
-    test_offset_frac(tmp_filename);
 }
 
-void test_app::test_saves()
+void test_save_2()
 {
-    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto tmp_filename = Path::join(loader.TEMP_PATH, "test/test-save2.dat"_s);
     const auto dir = Path::join(loader.TEMP_PATH, "test/save/"_s);
     using LF = Path::ListFlag;
@@ -169,6 +175,89 @@ void test_app::test_saves()
         auto path = Path::join(dir, file);
         run(path, tmp_filename);
     }
+}
+
+void test_save_objs()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-objs.dat"_s);
+
+    // todo! test non-zero offset_frac
+    // todo! test all object and scenery types!
+    auto w = world();
+
+    {   // --- COUNTER ---
+        const auto ctr = w.object_counter();
+        const auto ctrʹ  = ctr + 364;
+        fm_assert(ctrʹ > ctr);
+        fm_assert(ctrʹ + 2 > ctr);
+        w.set_object_counter(ctrʹ);
+        (void)w.make_id(); (void)w.make_id();
+        const auto ctrʹʹ = w.object_counter();
+        fm_assert(ctrʹʹ == ctrʹ + 2);
+    }
+
+
+    {   // ---  CRITTER ---
+        critter_proto p;
+        p.atlas            = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+        p.offset       = Vector2b{-1, 2};
+        p.bbox_offset  = Vector2b{3, -4};
+        p.bbox_size    = Vector2ub{129, 254};
+        p.delta        = uint32_t{65638};
+        p.frame        = uint16_t{9};
+        p.type         = object_type::critter;
+        p.r            = rotation::SE;
+        p.pass         = pass_mode::see_through;
+        p.name         = "foo 123"_s;
+        p.speed        = 0.25f;
+        p.playable     = true;
+
+        constexpr auto ch = chunk_coords_{512, -768, 0};
+        constexpr auto coord = global_coords{ch, {1, 15}};
+        constexpr auto offset_frac = uint16_t{44'432};
+
+        const auto objʹ = w.make_object<critter>(w.make_id(), coord, p);
+        fm_assert(objʹ);
+        const auto& obj = *objʹ;
+        const_cast<uint16_t&>(obj.offset_frac_) = offset_frac;
+        auto w2 = reload_from_save(tmp, w);
+        const auto& obj2ʹ = w.find_object<critter>(obj.id);
+        fm_assert(obj2ʹ);
+        const auto& obj2 = *obj2ʹ;
+        fm_assert(p.name == obj2.name);
+        fm_assert(p.frame == obj2.frame);
+        fm_assert(p.speed == obj2.speed);
+        fm_assert(obj.offset_frac_ == obj2.offset_frac_);
+
+        assert_chunks_equal(w.at(ch), w2.at(ch));
+    }
+
+#if 0
+    constexpr auto coord = global_coords{{ 1, -2, 0}, { 6, 5}};
+    constexpr auto coord = global_coords{{-3,  4, 0}, { 3, 4}};
+    constexpr auto coord = global_coords{{ 5, -6, 0}, { 4, 7}};
+    constexpr auto coord = global_coords{{-7,  8, 0}, { 9, 1}};
+    constexpr auto coord = global_coords{{ 9,  0, 0}, {15, 0}};
+#endif
+
+    {
+
+    }
+}
+
+} // namespace
+
+void test_app::test_save()
+{
+    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
+    test_save_1();
+}
+
+void test_app::test_saves()
+{
+    fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
+    test_save_2();
+    test_save_objs();
 }
 
 } // namespace floormat
