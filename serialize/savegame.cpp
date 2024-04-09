@@ -822,16 +822,18 @@ struct reader final : visitor_<reader, false>
             generic_scenery_proto p;
             visit_scenery_proto(p, f);
             obj.subtype = move(p);
-            break;
+            goto ok;
         }
         case scenery_type::door: {
             door_scenery_proto p;
             visit_scenery_proto(p, f);
             obj.subtype = move(p);
-            break;
+            goto ok;
         }
         }
         fm_throw("invalid sc_type {}"_cf, (int)sc_type);
+ok:
+        void();
     }
 
     template<typename Obj, typename Proto, typename Header>
