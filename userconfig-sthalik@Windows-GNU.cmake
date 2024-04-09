@@ -16,7 +16,7 @@ list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 add_compile_options(-fdiagnostics-color=always)
 set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-gcc/install" CACHE PATH "" FORCE)
-add_compile_options(-fstack-usage -Wstack-usage=12288)
+add_compile_options(-fstack-usage -Wstack-usage=16384)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
@@ -100,7 +100,7 @@ function(fm-userconfig-src)
         -Wno-error=unused-but-set-variable
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
-        -Wlarger-than=65535
+        -Wlarger-than=65535 -Wno-error=larger-than=65535
     )
     add_compile_options(
         -Wdelete-incomplete -Werror=delete-incomplete
