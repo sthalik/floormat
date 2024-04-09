@@ -1,6 +1,7 @@
 #include "nanosecond.inl"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
+#include <cinttypes>
 #include <cr/Debug.h>
 #include <mg/Functions.h>
 
@@ -45,7 +46,7 @@ Debug& operator<<(Debug& dbg, const Ns& val)
     else if (val > Ns{100})
     {
         char buf[64];
-        std::snprintf(buf, sizeof buf, "%llu_%llu ₙₛ",
+        std::snprintf(buf, sizeof buf, "%" PRIu64 "_%" PRIu64 " ₙₛ",
                       val.stamp / 1000, val.stamp % 1000);
         return dbg;
     }
