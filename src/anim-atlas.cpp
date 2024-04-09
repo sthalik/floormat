@@ -135,6 +135,7 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const n
 
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 {
+    // todo! decompose into a C function that can use __restrict
     const auto pixels = tex.pixels();
     const auto size   = pixels.size();
     const auto width = size[1], height = size[0],
