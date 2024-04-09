@@ -1,11 +1,7 @@
 #pragma once
-#include "pass-mode.hpp"
-#include "tile-defs.hpp"
-#include "rotation.hpp"
 #include "object.hpp"
 #include <type_traits>
 #include <variant>
-#include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Magnum.h>
 
