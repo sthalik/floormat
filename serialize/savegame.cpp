@@ -178,7 +178,7 @@ struct visitor_
     CORRADE_ALWAYS_INLINE Derived& derived() { return static_cast<Derived&>(*this); }
 
     template<Enum E, typename F> requires (!IsWriter) CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
-    { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(x); f(xʹ); }
+    { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(0); f(xʹ); x = E(xʹ); }
     template<Enum E, typename F> requires (IsWriter) CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
     { using U = std::underlying_type_t<E>; f(static_cast<U>(x)); }
 
