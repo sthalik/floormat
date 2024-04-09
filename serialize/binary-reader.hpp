@@ -1,7 +1,7 @@
 #pragma once
 #include "binary-serializer.hpp"
 #include <array>
-#include <iterator>
+//#include <iterator>
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat::Serialize {
@@ -26,7 +26,7 @@ template<string_input_iterator It>
 struct binary_reader final {
     template<char_sequence Seq> explicit constexpr binary_reader(const Seq& seq) noexcept;
     constexpr binary_reader(It begin, It end) noexcept;
-    constexpr void assert_end() noexcept(false);
+    constexpr CORRADE_ALWAYS_INLINE void assert_end() noexcept(false);
 
     constexpr size_t bytes_read() const noexcept { return num_bytes_read; }
     template<serializable T> constexpr T read() noexcept(false);
@@ -47,10 +47,10 @@ private:
 };
 
 template<string_input_iterator It, serializable T>
-constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false);
+constexpr CORRADE_ALWAYS_INLINE void operator<<(T& x, binary_reader<It>& reader) noexcept(false);
 
 template<string_input_iterator It, serializable T>
-constexpr void operator>>(binary_reader<It>& reader, T& x) noexcept(false);
+constexpr CORRADE_ALWAYS_INLINE void operator>>(binary_reader<It>& reader, T& x) noexcept(false);
 
 template<string_input_iterator It> binary_reader(It&& begin, It&& end) -> binary_reader<std::decay_t<It>>;
 

@@ -31,13 +31,13 @@ concept serializable = requires(T x) {
 };
 
 template<typename T>
-constexpr inline T maybe_byteswap(T x) noexcept
+constexpr CORRADE_ALWAYS_INLINE T maybe_byteswap(T x) noexcept
 {
     return x;
 }
 
 template<integer T>
-constexpr inline T maybe_byteswap(T x) noexcept
+constexpr CORRADE_ALWAYS_INLINE T maybe_byteswap(T x) noexcept
 {
     if constexpr(std::endian::native == std::endian::big)
         return std::byteswap(x);

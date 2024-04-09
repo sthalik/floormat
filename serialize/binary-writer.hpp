@@ -19,6 +19,6 @@ private:
 };
 
 template<std::output_iterator<char> It, serializable T>
-constexpr binary_writer<It>& operator<<(binary_writer<It>& writer, T x) noexcept;
+constexpr CORRADE_ALWAYS_INLINE binary_writer<It>& operator<<(binary_writer<It>& writer, T x) noexcept;
 
 } // namespace floormat::Serialize
