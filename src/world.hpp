@@ -77,7 +77,7 @@ public:
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c) {
-        T{object_id(), c, std::declval<Xs>()...};
+        T{object_id(), c, std::declval<Xs&&>()...};
         std::is_base_of_v<object, T>;
     }
     std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
