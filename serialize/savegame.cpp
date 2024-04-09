@@ -194,7 +194,7 @@ struct visitor_
     {
         auto& self = derived();
 
-        f(s.id);
+        visit(s.id, f);
         fm_soft_assert(s.id != 0);
 
         visit(s.type, f);
@@ -245,9 +245,9 @@ struct visitor_
 
     template<typename F> static inline void visit(qual<chunk_coords_>& coord, F&& f)
     {
-        f(coord.x);
-        f(coord.y);
-        f(coord.z);
+        visit(coord.x, f);
+        visit(coord.y, f);
+        visit(coord.z, f);
     }
 
     enum : uint8_t {
@@ -285,12 +285,12 @@ struct visitor_
             uint8_t flags = 0;
             for (auto [bits, getter, setter] : pairs)
                 flags |= bits * getter(s);
-            f(flags);
+            visit(flags, f);
         }
         else
         {
             uint8_t flags = 0;
-            f(flags);
+            visit(flags, f);
             for (auto [bits, getter, setter] : pairs)
                 setter(s, flags & bits);
         }
@@ -323,12 +323,12 @@ struct visitor_
             uint8_t flags = 0;
             for (auto [bits, getter, setter] : pairs)
                 flags |= bits * getter(s);
-            f(flags);
+            visit(flags, f);
         }
         else
         {
             uint8_t flags = 0;
-            f(flags);
+            visit(flags, f);
             for (auto [bits, getter, setter] : pairs)
                 setter(s, flags & bits);
         }
@@ -400,8 +400,8 @@ struct writer final : visitor_<writer, true>
 
     explicit writer(const world& w) : w{ w } {}
 
-    template<typename F> static void visit(const local_coords& pt, F&& f) { f(pt.to_index()); }
-    template<typename F> void visit(StringView name, F&& f) { f(intern_string(name)); }
+    template<typename F> static void visit(const local_coords& pt, F&& f) { visit(pt.to_index(), f); }
+    template<typename F> void visit(StringView name, F&& f) { visit(intern_string(name), f); }
 
     template<typename F> void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
     { atlasid id = intern_atlas(a, type); visit(id, f); }
@@ -534,7 +534,7 @@ ok:     void();
                 continue;
             count++;
         }
-        f(count);
+        visit(count, f);
 
         for (const std::shared_ptr<object>& obj : c.objects())
         {
@@ -630,9 +630,9 @@ ok:     void();
     {
         fm_assert(header_buf.empty());
         for (char c : file_magic)
-            f(c);
-        f(proto_version);
-        f(w.object_counter());
+            visit(c, f);
+        visit(proto_version, f);
+        visit(w.object_counter(), f);
         auto nstrings = (uint32_t)string_array.size(),
              natlases = (uint32_t)atlas_array.size(),
              nchunks  = (uint32_t)chunk_array.size();
