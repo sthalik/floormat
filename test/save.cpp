@@ -185,7 +185,7 @@ void test_save_objs()
     // todo! test all object and scenery types!
     auto w = world();
 
-    {   // --- COUNTER ---
+    {   // --- counter ---
         const auto ctr = w.object_counter();
         const auto ctrʹ  = ctr + 364;
         fm_assert(ctrʹ > ctr);
@@ -194,12 +194,15 @@ void test_save_objs()
         (void)w.make_id(); (void)w.make_id();
         const auto ctrʹʹ = w.object_counter();
         fm_assert(ctrʹʹ == ctrʹ + 2);
+
+        auto w2 = reload_from_save(tmp, w);
+        const auto ctrʹʹʹ = w.object_counter();
+        fm_assert(ctrʹʹʹ == ctrʹʹ);
     }
 
-
-    {   // ---  CRITTER ---
+    {   // ---  critter ---
         critter_proto p;
-        p.atlas            = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
+        p.atlas        = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
         p.offset       = Vector2b{-1, 2};
         p.bbox_offset  = Vector2b{3, -4};
         p.bbox_size    = Vector2ub{129, 254};
