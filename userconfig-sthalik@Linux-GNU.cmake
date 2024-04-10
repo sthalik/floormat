@@ -26,6 +26,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
     set(OpenCV_FOUND 0)
+else()
+    set(BUILD_SHARED_LIBS OFF)
 endif()
 add_compile_definitions("$<IF:$<CONFIG:Debug,DEBUG>,,_FORTIFY_SOURCE=3>")
 
@@ -65,7 +67,6 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_STATIC_UNIQUE_GLOBALS                     OFF
         )
     endif()
-    set(BUILD_SHARED_LIBS OFF PARENT_SCOPE)
 endfunction()
 
 # for floormat sources only
