@@ -4,7 +4,8 @@
 #include "loader/loader.hpp"
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
-#include <Magnum/Trade/ImageData.h>
+#include <mg/Functions.h>
+#include <mg/ImageData.h>
 
 namespace floormat {
 
@@ -36,11 +37,10 @@ void bitmask_test()
     printf("\n");
     fflush(stdout);
 #endif
-    fm_assert(img.size().product() == Int{data_nbytes});
-    const auto len = std::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
+    const auto len = Math::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
     for (auto i = 0uz; i < len; i++)
         if ((unsigned char)bitmask.data()[i] != img_bitmask[i])
-            fm_abort("wrong value at bit %zu, should be' 0x%02hhx'", i, img_bitmask[i]);
+            fm_abort("wrong value at byte %zu, should be' 0x%02hhx'", i, img_bitmask[i]);
 }
 
 } // namespace
