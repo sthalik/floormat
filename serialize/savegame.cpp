@@ -700,10 +700,13 @@ template struct visitor_<writer, true>;
 
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
-    auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
-    int error = errno;
-    if (len != 1)
-        fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
+    if (buf.size > 0) [[likely]]
+    {
+        auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
+        int error = errno;
+        if (len != 1)
+            fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
+    }
 }
 
 } // namespace
