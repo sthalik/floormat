@@ -181,11 +181,11 @@ void test_save_objs()
 {
     const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-objs.dat"_s);
 
-    // todo! test non-zero offset_frac
     // todo! test all object and scenery types!
-    auto w = world();
 
     {   // --- counter ---
+        auto w = world();
+
         const auto ctr = w.object_counter();
         const auto ctrʹ  = ctr + 364;
         fm_assert(ctrʹ > ctr);
@@ -201,6 +201,7 @@ void test_save_objs()
     }
 
     {   // ---  critter ---
+        auto w = world();
         critter_proto p;
         p.atlas        = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
         p.offset       = Vector2b{-1, 2};

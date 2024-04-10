@@ -5,43 +5,42 @@
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/Trade/ImageData.h>
-#include <Magnum/ImageView.h>
-#include <Magnum/PixelFormat.h>
-
-//#define DO_GENERATE
 
 namespace floormat {
 
 namespace {
 
-const unsigned char data_door_close[] = {
+const unsigned char img_bitmask[] = {
 #include "bitmask.embed.inc"
 };
 
-constexpr auto data_nbytes = arraySize(data_door_close);
-static_assert(data_nbytes == 128);
+constexpr auto data_nbytes = arraySize(img_bitmask);
+constexpr auto size = Vector2i{21, 52};
+static_assert(size_t{size.product()+7}/8 == data_nbytes);
 
 void bitmask_test()
 {
-    auto img = loader.texture(loader.SCENERY_PATH, "door-close"_s);
+    auto img = loader.texture(loader.SCENERY_PATH, "control-panel"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
-    fm_assert(img.pixelSize() == 4 && (size_t)img.size().product() >= data_nbytes);
+    fm_assert(bitmask.size() == size_t{size.product()});
+    fm_assert(img.pixelSize() == 4 && img.size() == size);
+//#define DO_GENERATE
 #ifdef DO_GENERATE
-    for (auto i = 0uz; i < data_nbytes; i++)
+    fputc('\n', stdout);
+    for (auto i = 0u; i < (bitmask.size()+7)/8; i++)
     {
-        if (i && i % 16 == 0)
-            printf("\n");
         printf("0x%02hhx,", bitmask.data()[i]);
-        if ((i+1) % 16 != 0)
-            printf(" ");
+        if (i % 15 == 14)
+            printf("\n");
     }
     printf("\n");
     fflush(stdout);
 #endif
+    fm_assert(img.size().product() == Int{data_nbytes});
     const auto len = std::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
     for (auto i = 0uz; i < len; i++)
-        if ((unsigned char)bitmask.data()[i] != data_door_close[i])
-            fm_abort("wrong value at bit %zu, should be' 0x%02hhx'", i, data_door_close[i]);
+        if ((unsigned char)bitmask.data()[i] != img_bitmask[i])
+            fm_abort("wrong value at bit %zu, should be' 0x%02hhx'", i, img_bitmask[i]);
 }
 
 } // namespace
