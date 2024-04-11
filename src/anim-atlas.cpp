@@ -16,6 +16,29 @@ static constexpr inline auto rot_count = size_t(rotation_COUNT);
 static_assert(std::size(name_array) == rot_count);
 static_assert(rot_count == 8);
 
+namespace {
+
+constexpr uint8_t amin = 32;
+
+CORRADE_ALWAYS_INLINE void make_bitmask_impl(const ImageView2D& tex, BitArray& array)
+{
+    array.resetAll(); // slow
+    const auto pixels = tex.pixels();
+    fm_soft_assert(tex.pixelSize() == 4);
+    fm_soft_assert(pixels.stride()[1] == 4);
+
+    const auto* const src = (const unsigned char*)pixels.data();
+    const auto stride = (size_t)pixels.stride()[0];
+    const auto size   = pixels.size();
+    const auto width  = size[1], height = size[0];
+
+    for (auto j = 0u; j < height; j++)
+        for (auto i = 0u; i < width; i++)
+            array.set((height - j - 1)*width + i, src[(j*stride + i*4)+3] >= amin);
+}
+
+} // namespace
+
 uint8_t anim_atlas::rotation_to_index(StringView name)
 {
     for (uint8_t i = 0; i < rot_count; i++)
@@ -135,45 +158,7 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const n
 
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
 {
-    // todo! decompose into a C function that can use __restrict
-    const auto pixels = tex.pixels();
-    const auto size   = pixels.size();
-    const auto width = size[1], height = size[0],
-               stride = (size_t)pixels.stride()[0], width0 = width & ~7u;
-    const auto* const data = (const unsigned char*)pixels.data();
-    auto* const dest = (unsigned char*)array.data();
-
-    fm_soft_assert(tex.pixelSize() == 4);
-    fm_soft_assert(pixels.stride()[1] == 4);
-
-    for (auto j = 0uz; j < height; j++)
-    {
-        constexpr unsigned char amin = 32;
-        auto i = 0uz;
-        for (; i < width0; i += 8)
-        {
-            const auto src_idx = (j*stride + i*4)+3, dst_idx = (height-j-1)*width+i >> 3;
-            const unsigned char* buf = data + src_idx;
-            auto value = (unsigned char)(
-                (unsigned char)(buf[0*4] >= amin) << 0 |
-                (unsigned char)(buf[1*4] >= amin) << 1 |
-                (unsigned char)(buf[2*4] >= amin) << 2 |
-                (unsigned char)(buf[3*4] >= amin) << 3 |
-                (unsigned char)(buf[4*4] >= amin) << 4 |
-                (unsigned char)(buf[5*4] >= amin) << 5 |
-                (unsigned char)(buf[6*4] >= amin) << 6 |
-                (unsigned char)(buf[7*4] >= amin) << 7);
-            dest[dst_idx] = value;
-        }
-        if (i < width)
-        {
-            dest[(height-j-1)*width+i >> 3] = 0;
-            do {
-                unsigned char alpha = data[(j*stride + i*4)+3];
-                array.set((height-j-1)*width + i, alpha >= amin);
-            } while (++i < width);
-        }
-    }
+    return make_bitmask_impl(tex, array);
 }
 
 BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
