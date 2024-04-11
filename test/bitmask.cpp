@@ -11,11 +11,11 @@ namespace floormat {
 
 namespace {
 
-const unsigned char img_bitmask[] = {
+const unsigned char src[] = {
 #include "bitmask.embed.inc"
 };
 
-constexpr auto data_nbytes = arraySize(img_bitmask);
+constexpr auto data_nbytes = arraySize(src);
 constexpr auto size = Vector2i{8, 16};
 static_assert(size_t{size.product()+7}/8 <= data_nbytes);
 
@@ -38,9 +38,10 @@ void bitmask_test()
     fflush(stdout);
 #endif
     const auto len = Math::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
+    fm_assert(arraySize(src) >= len);
     for (auto i = 0uz; i < len; i++)
-        if ((unsigned char)bitmask.data()[i] != img_bitmask[i])
-            fm_abort("wrong value at byte %zu, should be' 0x%02hhx'", i, img_bitmask[i]);
+        if ((unsigned char)bitmask.data()[i] != src[i])
+            fm_abort("wrong value at byte %zu, should be' 0x%02hhx'", i, src[i]);
 }
 
 } // namespace
