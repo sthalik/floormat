@@ -20,7 +20,7 @@ constexpr auto size = Vector2i{21, 52};
 
 void bitmask_test()
 {
-    auto img = loader.texture(loader.SCENERY_PATH, "control-panel"_s);
+    auto img = loader.texture("images/", "bitmask-test1"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
     fm_assert(bitmask.size() >= size_t{size.product()});
     fm_assert(img.pixelSize() == 4);

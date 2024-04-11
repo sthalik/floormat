@@ -1,7 +1,6 @@
 #include "anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "shaders/shader.hpp"
-#include "tile-defs.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -15,29 +14,6 @@ static constexpr inline auto rot_count = size_t(rotation_COUNT);
 
 static_assert(std::size(name_array) == rot_count);
 static_assert(rot_count == 8);
-
-namespace {
-
-constexpr uint8_t amin = 32;
-
-CORRADE_ALWAYS_INLINE void make_bitmask_impl(const ImageView2D& tex, BitArray& array)
-{
-    array.resetAll(); // slow
-    const auto pixels = tex.pixels();
-    fm_soft_assert(tex.pixelSize() == 4);
-    fm_soft_assert(pixels.stride()[1] == 4);
-
-    const auto* const src = (const unsigned char*)pixels.data();
-    const auto stride = (size_t)pixels.stride()[0];
-    const auto size   = pixels.size();
-    const auto width  = size[1], height = size[0];
-
-    for (auto j = 0u; j < height; j++)
-        for (auto i = 0u; i < width; i++)
-            array.set((height - j - 1)*width + i, src[(j*stride + i*4)+3] >= amin);
-}
-
-} // namespace
 
 uint8_t anim_atlas::rotation_to_index(StringView name)
 {
@@ -156,18 +132,14 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const n
     }};
 }
 
-void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& array)
-{
-    return make_bitmask_impl(tex, array);
-}
-
 BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
 {
     if (tex.pixelSize() == 3)
         return {};
 
     const auto size = tex.pixels().size();
-    auto array = BitArray{NoInit, size[0]*size[1]};
+    auto width = (size[0]+7)&~7uz;
+    auto array = BitArray{NoInit, width*size[1]};
     make_bitmask_(tex, array);
     return array;
 }
