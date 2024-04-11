@@ -43,7 +43,7 @@ Script<S, Obj>::~Script() noexcept
     {
     case script_lifecycle::no_init:
     case script_lifecycle::torn_down:
-        state = (script_lifecycle)(unsigned)-1;
+        state = (script_lifecycle)-1;
         break;
     case script_lifecycle::COUNT:
         std::unreachable();

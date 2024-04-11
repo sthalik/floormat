@@ -10,7 +10,7 @@ namespace floormat {
 Debug& operator<<(Debug& dbg, const Ns& val)
 {
     const char* unit = "";
-    double x = val.stamp;
+    auto x = (double)val.stamp;
     int precision;
     if (val >= 10*Second)
     {
