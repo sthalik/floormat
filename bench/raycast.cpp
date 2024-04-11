@@ -101,11 +101,10 @@ void Raycast(benchmark::State& state)
     for (int i = 0; i < 50; i++)
         test();
     for (auto _ : state)
-        for (int i = 0; i < 1000; i++)
-            test();
+        test();
 }
 
-BENCHMARK(Raycast)->Unit(benchmark::kMillisecond);
+BENCHMARK(Raycast)->Unit(benchmark::kMicrosecond);
 
 } // namespace
 

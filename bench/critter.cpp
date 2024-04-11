@@ -332,11 +332,10 @@ void Critter_move(benchmark::State& st)
     for (int i = 0; i < 2; i++)
         test_critter();
     for (auto _ : st)
-        for (int i = 0; i < 10; i++)
-            test_critter();
+        test_critter();
 }
 
-BENCHMARK(Critter_move)->Unit(benchmark::kMillisecond);
+BENCHMARK(Critter_move)->Unit(benchmark::kMicrosecond);
 
 } // namespace
 
