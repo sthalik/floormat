@@ -1,6 +1,5 @@
 #pragma once
 #include "object.hpp"
-#include <type_traits>
 #include <variant>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Magnum.h>
@@ -17,21 +16,21 @@ enum class scenery_type : unsigned char {
 
 struct generic_scenery_proto
 {
-    unsigned char active      : 1 = false;
-    unsigned char interactive : 1 = false;
+    bool active      : 1 = false;
+    bool interactive : 1 = false;
 
     bool operator==(const generic_scenery_proto& p) const;
-    enum scenery_type scenery_type() const;
+    static enum scenery_type scenery_type();
 };
 
 struct door_scenery_proto
 {
-    unsigned char active      : 1 = false;
-    unsigned char interactive : 1 = true;
-    unsigned char closing     : 1 = false;
+    bool active      : 1 = false;
+    bool interactive : 1 = true;
+    bool closing     : 1 = false;
 
     bool operator==(const door_scenery_proto& p) const;
-    enum scenery_type scenery_type() const;
+    static enum scenery_type scenery_type();
 };
 
 using scenery_proto_variants = std::variant<generic_scenery_proto, door_scenery_proto>;
@@ -51,63 +50,59 @@ struct scenery_proto : object_proto
 
 struct scenery;
 
-struct generic_scenery
+struct scenery : object
 {
-    unsigned char active      : 1 = false;
-    unsigned char interactive : 1 = false;
-
-    void update(scenery& sc, size_t& i, Ns dt);
-    Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
-    bool can_activate(const scenery& sc, size_t i) const;
-    bool activate(scenery& sc, size_t i);
-
-    enum scenery_type scenery_type() const;
-    explicit operator generic_scenery_proto() const;
-
-    generic_scenery(object_id id, class chunk& c, const generic_scenery_proto& p);
-};
-
-struct door_scenery
-{
-    unsigned char closing     : 1 = false;
-    unsigned char active      : 1 = false;
-    unsigned char interactive : 1 = false;
-
-    void update(scenery& sc, size_t& i, Ns dt);
-    Vector2 ordinal_offset(const scenery& sc, Vector2b offset) const;
-    bool can_activate(const scenery& sc, size_t i) const;
-    bool activate(scenery& sc, size_t i);
-
-    enum scenery_type scenery_type() const;
-    explicit operator door_scenery_proto() const;
-
-    door_scenery(object_id id, class chunk& c, const door_scenery_proto& p);
-};
-
-using scenery_variants = std::variant<generic_scenery, door_scenery>;
-
-struct scenery final : object
-{
-    scenery_variants subtype;
-
-    void update(size_t& i, const Ns& dt) override;
-    Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
-    bool can_activate(size_t i) const override;
-    bool activate(size_t i) override;
+    enum object_type type() const noexcept override;
+    virtual enum scenery_type scenery_type() const = 0;
 
-    object_type type() const noexcept override;
-    explicit operator scenery_proto() const;
-    enum scenery_type scenery_type() const;
-
-    static scenery_variants subtype_from_proto(object_id id, class chunk& c, const scenery_proto_variants& variants);
-
-private:
-    friend class world;
+protected:
+    virtual explicit operator scenery_proto() const;
     scenery(object_id id, class chunk& c, const scenery_proto& proto);
 };
 
+struct generic_scenery final : scenery
+{
+    bool active      : 1 = false;
+    bool interactive : 1 = false;
+
+    void update(size_t& i, const Ns& dt) override;
+    Vector2 ordinal_offset(Vector2b offset) const override;
+    bool can_activate(size_t i) const override;
+    bool activate(size_t i) override;
+
+    enum scenery_type scenery_type() const override;
+    explicit operator scenery_proto() const override;
+    explicit operator generic_scenery_proto() const;
+
+private:
+    friend class world;
+    generic_scenery(object_id id, class chunk& c, const generic_scenery_proto& p, const scenery_proto& p0);
+};
+
+struct door_scenery final : scenery
+{
+    bool closing     : 1 = false;
+    bool active      : 1 = false;
+    bool interactive : 1 = false;
+
+    void update(size_t& i, const Ns& dt) override;
+    Vector2 ordinal_offset(Vector2b offset) const override;
+    bool can_activate(size_t i) const override;
+    bool activate(size_t i) override;
+
+    enum scenery_type scenery_type() const override;
+    explicit operator scenery_proto() const override;
+    explicit operator door_scenery_proto() const;
+
+private:
+    friend class world;
+    door_scenery(object_id id, class chunk& c, const door_scenery_proto& p, const scenery_proto& p0);
+};
+
 template<> struct object_type_<scenery> : std::integral_constant<object_type, object_type::scenery> {};
+template<> struct object_type_<generic_scenery> : std::integral_constant<object_type, object_type::scenery> {};
+template<> struct object_type_<door_scenery> : std::integral_constant<object_type, object_type::scenery> {};
 template<> struct object_type_<scenery_proto> : std::integral_constant<object_type, object_type::scenery> {};
 
 } // namespace floormat

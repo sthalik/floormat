@@ -26,7 +26,7 @@ struct light final : object
     float max_distance;
     Color4ub color;
     light_falloff falloff : 2;
-    uint8_t enabled : 1;
+    bool enabled : 1;
 
     light(object_id id, class chunk& c, const light_proto& proto);
 
