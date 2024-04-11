@@ -42,14 +42,14 @@ void app::clear_keys(key min_inclusive, key max_exclusive)
     {
         const auto idx = key(i);
         keys[idx] = false;
-        key_modifiers[i] = kmod_none;
+        key_modifiers.data[i] = kmod_none;
     }
 }
 
 void app::clear_keys()
 {
     keys_->reset();
-    key_modifiers = StaticArray<key_COUNT, int>{ValueInit};
+    key_modifiers = {};
 }
 
 void app::on_mouse_move(const mouse_move_event& event) noexcept
@@ -198,7 +198,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
     else
     {
         (*keys_)[x] = is_down;
-        key_modifiers[size_t(x)] = mods;
+        key_modifiers.data[size_t(x)] = mods;
     }
 }
 

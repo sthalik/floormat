@@ -15,7 +15,8 @@ app::app(fm_settings&& opts) :
     _wireframe{InPlaceInit},
     _tests{tests_data_::make()},
     _editor{InPlaceInit, this},
-    keys_{InPlaceInit, 0u}
+    keys_{InPlaceInit, 0u},
+    key_modifiers{}
 {
     reset_world();
     auto& w = M->world();

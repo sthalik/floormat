@@ -8,7 +8,6 @@
 #include "src/object-id.hpp"
 #include "editor-enums.hpp"
 #include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/StaticArray.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Corrade/Containers/Optional.h>
 #include <Magnum/Math/Vector2.h>
@@ -190,7 +189,7 @@ private:
     safe_ptr<tests_data_> _tests;
     safe_ptr<editor> _editor;
     safe_ptr<key_set> keys_;
-    StaticArray<key_COUNT, int> key_modifiers{ValueInit};
+    struct key_modifiers_ { int data[key_COUNT]; } key_modifiers;
     Array<popup_target> inspectors;
     object_id _character_id = 0;
     struct cursor_state cursor;

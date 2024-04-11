@@ -220,7 +220,7 @@ void app::apply_commands(const key_set& keys)
     using value_type = key_set::value_type;
     for (value_type i = key_MIN; i < key_NO_REPEAT; i++)
         if (const auto k = key(i); keys[k])
-            do_key(k, key_modifiers[i]);
+            do_key(k, key_modifiers.data[i]);
 }
 
 void app::update_world(Ns dt)
