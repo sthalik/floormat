@@ -329,7 +329,7 @@ void test_critter()
 
 void Critter_move(benchmark::State& st)
 {
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         test_critter();
     for (auto _ : st)
         test_critter();

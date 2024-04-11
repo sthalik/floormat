@@ -50,7 +50,8 @@ void Loader_json(benchmark::State& state)
 {
     loader.destroy();
 
-    run();
+    for (int i = 0; i < 3; i++)
+        run();
     for (auto _ : state)
         run();
 }

@@ -69,6 +69,8 @@ void Dijkstra(benchmark::State& state)
     }
 
     first_run = false;
+    for (int i = 0; i < 3; i++)
+        run();
     for (auto _ : state)
         run();
 }
