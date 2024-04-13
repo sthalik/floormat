@@ -25,11 +25,13 @@ enum scenery_type door_scenery_proto::scenery_type() { return scenery_type::door
 // --- scenery_proto ---
 
 scenery_proto::scenery_proto() noexcept { type = object_type::scenery; }
+scenery_proto::~scenery_proto() noexcept = default;
+scenery_proto::operator bool() const { return atlas != nullptr; }
 
 scenery_proto& scenery_proto::operator=(const scenery_proto&) noexcept = default;
 scenery_proto::scenery_proto(const scenery_proto&) noexcept = default;
-scenery_proto::~scenery_proto() noexcept = default;
-scenery_proto::operator bool() const { return atlas != nullptr; }
+scenery_proto& scenery_proto::operator=(scenery_proto&&) noexcept = default;
+scenery_proto::scenery_proto(scenery_proto&&) noexcept = default;
 
 enum scenery_type scenery_proto::scenery_type() const
 {

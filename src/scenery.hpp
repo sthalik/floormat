@@ -40,12 +40,14 @@ struct scenery_proto : object_proto
     scenery_proto_variants subtype; // todo! add std::monostate
 
     scenery_proto() noexcept;
-    scenery_proto(const scenery_proto&) noexcept;
     ~scenery_proto() noexcept override;
-    scenery_proto& operator=(const scenery_proto&) noexcept;
-    bool operator==(const object_proto& proto) const override;
     explicit operator bool() const;
+    bool operator==(const object_proto& proto) const override;
     enum scenery_type scenery_type() const;
+    scenery_proto(const scenery_proto&) noexcept;
+    scenery_proto& operator=(const scenery_proto&) noexcept;
+    scenery_proto(scenery_proto&&) noexcept;
+    scenery_proto& operator=(scenery_proto&&) noexcept;
 };
 
 struct scenery;
