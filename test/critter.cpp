@@ -3,13 +3,13 @@
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/function2.hpp"
 #include "src/critter.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/nanosecond.inl"
 #include "src/log.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
-#include "src/scenery.hpp"
 
 #include <cinttypes>
 #include <cstdio>

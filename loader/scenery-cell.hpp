@@ -1,7 +1,6 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
-#include "src/scenery.hpp"
-#include <memory>
+#include "src/scenery-proto.hpp"
 #include <cr/String.h>
 #include <cr/Optional.h>
 

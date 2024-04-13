@@ -9,6 +9,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/world.hpp"

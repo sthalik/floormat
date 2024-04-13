@@ -1,56 +1,15 @@
 #pragma once
 #include "object.hpp"
-#include <variant>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Magnum.h>
+#include "scenery-type.hpp"
 
 namespace floormat {
 
 class chunk;
 class anim_atlas;
 class world;
-
-enum class scenery_type : unsigned char {
-    none, generic, door, COUNT,
-};
-
-struct generic_scenery_proto
-{
-    bool active      : 1 = false;
-    bool interactive : 1 = false;
-
-    bool operator==(const generic_scenery_proto& p) const;
-    static enum scenery_type scenery_type();
-};
-
-struct door_scenery_proto
-{
-    bool active      : 1 = false;
-    bool interactive : 1 = true;
-    bool closing     : 1 = false;
-
-    bool operator==(const door_scenery_proto& p) const;
-    static enum scenery_type scenery_type();
-};
-
-using scenery_proto_variants = std::variant<std::monostate, generic_scenery_proto, door_scenery_proto>;
-
-struct scenery_proto : object_proto
-{
-    scenery_proto_variants subtype; // todo! add std::monostate
-
-    scenery_proto() noexcept;
-    ~scenery_proto() noexcept override;
-    explicit operator bool() const;
-    bool operator==(const object_proto& proto) const override;
-    enum scenery_type scenery_type() const;
-    scenery_proto(const scenery_proto&) noexcept;
-    scenery_proto& operator=(const scenery_proto&) noexcept;
-    scenery_proto(scenery_proto&&) noexcept;
-    scenery_proto& operator=(scenery_proto&&) noexcept;
-};
-
-struct scenery;
+struct scenery_proto;
+struct generic_scenery_proto;
+struct door_scenery_proto;
 
 struct scenery : object
 {

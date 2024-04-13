@@ -4,7 +4,7 @@
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include "src/world.hpp"
-#include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/search-bbox.hpp"
 #include "src/search-constants.hpp"
 #include <Magnum/Math/Functions.h>

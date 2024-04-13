@@ -3,6 +3,7 @@
 #include "object.hpp"
 #include "critter.hpp"
 #include "scenery.hpp"
+#include "scenery-proto.hpp"
 #include "light.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/int-hash.hpp"

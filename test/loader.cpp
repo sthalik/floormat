@@ -6,8 +6,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/scenery.hpp"
-#include <mg/Texture.h>
+#include "src/scenery-proto.hpp"
 
 namespace floormat {
 

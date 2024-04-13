@@ -2,6 +2,7 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/ground-atlas.hpp"
