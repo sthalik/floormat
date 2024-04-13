@@ -477,7 +477,7 @@ void reader_state::read_chunks(reader_t& s)
                         s >> sc.offset[1];
                     }
                     read_bbox(s, sc);
-                    _world->make_scenery(oid, {ch, local}, move(sc));
+                    _world->make_scenery<false>(oid, {ch, local}, move(sc));
                 }
                 break;
             }
