@@ -43,10 +43,12 @@ constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int n
 } // namespace
 
 bool object_proto::operator==(const object_proto&) const = default;
-object_proto& object_proto::operator=(const object_proto&) = default;
+object_proto::object_proto(const object_proto&) noexcept = default;
+object_proto& object_proto::operator=(const object_proto&) noexcept = default;
+object_proto::object_proto(object_proto&&) noexcept = default;
+object_proto& object_proto::operator=(object_proto&&) noexcept = default;
 object_proto::~object_proto() noexcept = default;
-object_proto::object_proto() = default;
-object_proto::object_proto(const object_proto&) = default;
+object_proto::object_proto() noexcept = default;
 object_type object_proto::type_of() const noexcept { return type; }
 
 object::object(object_id id, class chunk& c, const object_proto& proto) :
@@ -90,6 +92,7 @@ float object::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
 size_t object::index() const
 {
     auto& c = chunk();
+    fm_assert(c._objects_sorted);
     const auto fn = [id = id](const auto& a, const auto&) { return a->id < id; };
     auto& es = c._objects;
     auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);

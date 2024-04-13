@@ -837,20 +837,19 @@ struct reader final : visitor_<reader, false>
         case scenery_type::generic: {
             generic_scenery_proto p;
             visit_scenery_proto(p, f);
-            sc.subtype = move(p); // todo! extract into make_scenery()
-            ret = w.make_object<generic_scenery>(h.id, coord, move(p), move(sc));
-            return;
+            sc.subtype = move(p);
+            goto ok;
         }
         case scenery_type::door: {
             door_scenery_proto p;
             visit_scenery_proto(p, f);
             sc.subtype = move(p);
-            ret = w.make_object<door_scenery>(h.id, coord, move(p), move(sc));
-            return;
+            goto ok;
         }
         }
-
         fm_throw("invalid sc_type {}"_cf, (int)sc_type);
+ok:
+        ret = w.make_scenery(h.id, coord, move(sc));
     }
 
     template<typename Obj, typename Proto, typename Header>

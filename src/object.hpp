@@ -11,7 +11,6 @@
 
 namespace floormat {
 
-template<typename T> struct object_type_;
 class anim_atlas;
 class world;
 class chunk;
@@ -28,15 +27,16 @@ struct object_proto
     rotation r = rotation::N;
     pass_mode pass = pass_mode::see_through; // todo move to struct scenery, add inherit bit
 
-    object_proto& operator=(const object_proto&);
-    object_proto();
-    object_proto(const object_proto&);
-
-    virtual bool operator==(const object_proto&) const;
-    bool operator!=(const object_proto& o) const { return !operator==(o); }
+    object_proto() noexcept;
     virtual ~object_proto() noexcept;
-
+    virtual bool operator==(const object_proto&) const;
+    bool operator!=(const object_proto& o) const noexcept { return !operator==(o); }
     object_type type_of() const noexcept;
+
+    object_proto& operator=(const object_proto&) noexcept;
+    object_proto(const object_proto&) noexcept;
+    object_proto& operator=(object_proto&&) noexcept;
+    object_proto(object_proto&&) noexcept;
 };
 
 struct object

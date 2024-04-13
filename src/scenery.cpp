@@ -1,6 +1,7 @@
 #include "scenery.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/overloaded.hpp"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
 #include "rotation.inl"
@@ -32,9 +33,10 @@ scenery_proto::operator bool() const { return atlas != nullptr; }
 
 enum scenery_type scenery_proto::scenery_type() const
 {
-    return std::visit(
+    return std::visit(overloaded {
+        [](std::monostate) { return scenery_type::none; },
         []<typename T>(const T&) { return T::scenery_type(); },
-        subtype
+        }, subtype
     );
 }
 

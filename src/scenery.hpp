@@ -33,7 +33,7 @@ struct door_scenery_proto
     static enum scenery_type scenery_type();
 };
 
-using scenery_proto_variants = std::variant<generic_scenery_proto, door_scenery_proto>;
+using scenery_proto_variants = std::variant<std::monostate, generic_scenery_proto, door_scenery_proto>;
 
 struct scenery_proto : object_proto
 {
@@ -55,7 +55,7 @@ struct scenery : object
     float depth_offset() const override;
     enum object_type type() const noexcept override;
     virtual enum scenery_type scenery_type() const = 0;
-    virtual explicit operator scenery_proto() const;
+    virtual explicit operator scenery_proto() const; // todo make protected?
 
 protected:
     scenery(object_id id, class chunk& c, const scenery_proto& proto);

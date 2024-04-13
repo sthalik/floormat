@@ -183,6 +183,8 @@ bool read_object_flags(binary_reader<T>& s, U& e)
             val->closing     = !!(flags & 1 << 3);
             val->interactive = !!(flags & 1 << 4);
         }
+        else
+            fm_soft_assert(false);
     }
     else if constexpr(tag == object_type::critter)
     {
@@ -475,26 +477,7 @@ void reader_state::read_chunks(reader_t& s)
                         s >> sc.offset[1];
                     }
                     read_bbox(s, sc);
-                    if (const auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
-                    {
-                        if (val->active)
-                        {
-                            uint16_t delta_; delta_ << s;
-                            sc.delta = uint32_t(sc.delta) * 65536u;
-                        }
-                        _world->make_object<generic_scenery, false>(oid, {ch, local}, *val, sc);
-                    }
-                    else if (const auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
-                    {
-                        if (val->active)
-                        {
-                            uint16_t delta_; delta_ << s;
-                            sc.delta = uint32_t(sc.delta) * 65536u;
-                        }
-                        _world->make_object<door_scenery, false>(oid, {ch, local}, *val, sc);
-                    }
-                    else
-                        fm_soft_assert(false);
+                    _world->make_scenery(oid, {ch, local}, move(sc));
                 }
                 break;
             }
@@ -635,12 +618,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
     }
     else
     {
-        if (auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
-            auto e = _world->make_object<generic_scenery, false>(_world->make_id(), coord, *val, sc);
-        else if (auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
-            auto e = _world->make_object<door_scenery, false>(_world->make_id(), coord, *val, sc);
-        else
-            fm_soft_assert(false);
+        _world->make_scenery(_world->make_id(), coord, move(sc));
     }
 }
 

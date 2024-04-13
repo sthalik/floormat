@@ -7,6 +7,7 @@
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
+#include "compat/overloaded.hpp"
 #include <cr/GrowableArray.h>
 #include <tsl/robin_map.h>
 
@@ -118,7 +119,7 @@ chunk* world::at(chunk_coords_ c) noexcept
 
 bool world::contains(chunk_coords_ c) const noexcept
 {
-    return _chunks.find(c) != _chunks.cend();
+    return _chunks.contains(c);
 }
 
 void world::clear()
@@ -195,6 +196,16 @@ void world::set_object_counter(object_id value)
 void world::throw_on_wrong_object_type(object_id id, object_type actual, object_type expected)
 {
     fm_throw("object '{}' has wrong object type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
+}
+
+void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset)
+{
+    ERR_nospace << "scenery_proto subtype not set"
+                << " id:" << id
+                << " pos:" << point{pos, offset};
+    auto ch = Vector3i(pos.chunk3());
+    auto t = Vector2i(pos.local());
+    fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}"_cf, id, ch.x(), ch.y(), ch.z(), t.x(), t.y());
 }
 
 auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>
@@ -283,9 +294,32 @@ std::shared_ptr<T> world::find_object(object_id id)
     }
 }
 
-template std::shared_ptr<object>  world::find_object(object_id id);
-template std::shared_ptr<critter> world::find_object(object_id id);
-template std::shared_ptr<scenery> world::find_object(object_id id);
-template std::shared_ptr<light>   world::find_object(object_id id);
+template std::shared_ptr<object>  world::find_object<object>(object_id id);
+template std::shared_ptr<critter> world::find_object<critter>(object_id id);
+template std::shared_ptr<scenery> world::find_object<scenery>(object_id id);
+template std::shared_ptr<light>   world::find_object<light>(object_id id);
+
+template<bool sorted>
+std::shared_ptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)
+{
+    using type = std::shared_ptr<scenery>;
+
+    return std::visit(overloaded {
+        [&](std::monostate) -> type {
+            throw_on_empty_scenery_proto(id, pos, proto.offset);
+        },
+        [&](generic_scenery_proto&& p) -> type {
+            fm_debug_assert(p.scenery_type() == scenery_type::generic);
+            return make_object<generic_scenery, sorted>(id, pos, move(p), move(proto));
+        },
+        [&](door_scenery_proto&& p) -> type {
+            fm_debug_assert(p.scenery_type() == scenery_type::door);
+            return make_object<door_scenery, sorted>(id, pos, move(p), move(proto));
+        },
+    }, move(proto.subtype));
+}
+
+template std::shared_ptr<scenery> world::make_scenery<false>(object_id id, global_coords pos, scenery_proto&& proto);
+template std::shared_ptr<scenery> world::make_scenery<true>(object_id id, global_coords pos, scenery_proto&& proto);
 
 } // namespace floormat
