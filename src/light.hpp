@@ -9,10 +9,12 @@ namespace floormat {
 
 struct light_proto : object_proto
 {
+    ~light_proto() noexcept override;
     light_proto();
     light_proto(const light_proto&);
     light_proto& operator=(const light_proto&);
-    ~light_proto() noexcept override;
+    light_proto(light_proto&&) noexcept;
+    light_proto& operator=(light_proto&&) noexcept;
     bool operator==(const light_proto&) const;
 
     float max_distance = 0;

@@ -64,7 +64,7 @@ bool scenery_proto::operator==(const object_proto& e0) const
 
 // --- scenery ---
 
-enum object_type scenery::type() const override { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
+enum object_type scenery::type() const noexcept { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
 
 float scenery::depth_offset() const
 {

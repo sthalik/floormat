@@ -102,8 +102,26 @@ start:
         }
     }
     else
+    {
+        const auto sc_type = s.proto.scenery_type();
         // todo check collision at pos
-        w.make_object<scenery>(w.make_id(), pos, s.proto);
+        switch (sc_type)
+        {
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            break;
+        case scenery_type::generic:
+            w.make_object<generic_scenery>(w.make_id(), pos, std::get<generic_scenery_proto>(s.proto.subtype), s.proto);
+            goto ok;
+        case scenery_type::door:
+            w.make_object<door_scenery>(w.make_id(), pos, std::get<door_scenery_proto>(s.proto.subtype), s.proto);
+            goto ok;
+        }
+        fm_abort("place_tile: wrong scenery type %d", (int)sc_type);
+ok:
+        void();
+    }
+
 }
 
 } // namespace floormat

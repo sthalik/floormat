@@ -309,10 +309,14 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
     w[{{-1,-1,0}, {13,13}}].t.wall_west() = W;
     w[{{1,1,0}, {4,5}}].t.wall_north() = W;
     w[{{1,1,0}, {5,4}}].t.wall_west() = W;
-    (void)w.make_object<scenery, false>(w.make_id(), {{}, {0, 0}}, S);
-    (void)w.make_object<scenery, false>(w.make_id(), {{}, {1, 1}}, S);
-    (void)w.make_object<scenery, false>(w.make_id(), {{}, {14, 14}}, S);
-    (void)w.make_object<scenery, false>(w.make_id(), {{}, {15, 15}}, S);
+    (void)w.make_object<generic_scenery, false>(w.make_id(), {{}, {0, 0}},
+        std::get<generic_scenery_proto>(S.subtype), S); // todo!
+    (void)w.make_object<generic_scenery, false>(w.make_id(), {{}, {1, 1}},
+        std::get<generic_scenery_proto>(S.subtype), S);
+    (void)w.make_object<generic_scenery, false>(w.make_id(), {{}, {14, 14}},
+        std::get<generic_scenery_proto>(S.subtype), S);
+    (void)w.make_object<generic_scenery, false>(w.make_id(), {{}, {15, 15}},
+        std::get<generic_scenery_proto>(S.subtype), S);
     w[chunk_coords_{}].sort_objects();
 
     if (no_unroll)

@@ -412,12 +412,16 @@ struct writer final : visitor_<writer, true>
     template<typename F> void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
     {
         auto sc_type = obj.scenery_type();
-        fm_debug_assert(sc_type != scenery_type::none);
+        fm_debug_assert(sc_type != scenery_type::none && sc_type < scenery_type::COUNT);
         visit(sc_type, f);
-        std::visit(
-            [&](auto& subtype) { visit_scenery_proto(subtype, f); },
-            obj.subtype
-        );
+        switch (sc_type)
+        {
+        case scenery_type::generic: visit_scenery_proto(static_cast<const generic_scenery&>(obj), f); break;
+        case scenery_type::door:    visit_scenery_proto(static_cast<const door_scenery&>(obj), f); break;
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            std::unreachable();
+        }
     }
 
     template<typename F> void write_object(o_object& obj, chunk* c, F&& f)
@@ -815,10 +819,16 @@ struct reader final : visitor_<reader, false>
         }
     }
 
-    template<typename F> void visit_object_proto(o_scenery& obj, std::nullptr_t, F&& f)
+    template<typename F>
+    void read_scenery(std::shared_ptr<scenery>& ret, const object_proto& pʹ, const object_header_s& h, F&& f)
     {
+        const auto coord = global_coords{h.ch->coord(), h.tile};
         auto sc_type = scenery_type::none;
         visit(sc_type, f);
+
+        scenery_proto sc;
+        static_cast<object_proto&>(sc) = pʹ;
+
         switch (sc_type)
         {
         case scenery_type::none:
@@ -827,19 +837,20 @@ struct reader final : visitor_<reader, false>
         case scenery_type::generic: {
             generic_scenery_proto p;
             visit_scenery_proto(p, f);
-            obj.subtype = move(p);
-            goto ok;
+            sc.subtype = move(p); // todo! extract into make_scenery()
+            ret = w.make_object<generic_scenery>(h.id, coord, move(p), move(sc));
+            return;
         }
         case scenery_type::door: {
             door_scenery_proto p;
             visit_scenery_proto(p, f);
-            obj.subtype = move(p);
-            goto ok;
+            sc.subtype = move(p);
+            ret = w.make_object<door_scenery>(h.id, coord, move(p), move(sc));
+            return;
         }
         }
+
         fm_throw("invalid sc_type {}"_cf, (int)sc_type);
-ok:
-        void();
     }
 
     template<typename Obj, typename Proto, typename Header>
@@ -856,7 +867,7 @@ ok:
         return w.make_object<Obj>(h0.id, coord, move(p));
     }
 
-    template<typename F> [[nodiscard]] std::shared_ptr<object> read_object(chunk* ch, F&& f)
+    template<typename F> void read_object(chunk* ch, F&& f)
     {
         std::shared_ptr<object> obj;
         object_id id = 0;
@@ -870,8 +881,8 @@ ok:
             .tile = tile,
         };
 
-        object_proto pʹ;
-        visit_object_header(pʹ, s, f);
+        object_proto p;
+        visit_object_header(p, s, f);
 
         switch (type)
         {
@@ -883,17 +894,20 @@ ok:
             critter_header_s h{
                 .offset_frac = offset_frac,
             };
-            obj = make_object<critter, critter_proto, critter_header_s>(s, move(pʹ), move(h), f);
+            obj = make_object<critter, critter_proto, critter_header_s>(s, move(p), move(h), f);
             goto ok;
         }
         case object_type::light:
-            obj = make_object<light, light_proto, std::nullptr_t>(s, move(pʹ), {}, f);
+            obj = make_object<light, light_proto, std::nullptr_t>(s, move(p), {}, f);
             goto ok;
-        case object_type::scenery:
-            obj = make_object<scenery, scenery_proto, std::nullptr_t>(s, move(pʹ), {}, f);
+        case object_type::scenery: {
+            std::shared_ptr<scenery> objʹ;
+            read_scenery(objʹ, move(p), s, f);
+            obj = move(objʹ);
             goto ok;
         }
-        fm_throw("invalid sc_type {}"_cf, (int)type);
+        }
+        fm_throw("invalid object_type {}"_cf, (int)type);
 ok:
         fm_assert(obj);
         fm_debug_assert(obj->c == ch);
@@ -905,8 +919,6 @@ ok:
             fm_soft_assert(object_counter >= id);
         else if (PROTO == 20) [[unlikely]]
             object_counter = Math::max(object_counter, id);
-
-        return obj;
     }
 
     bool deserialize_header_(binary_reader<const char*>& s, ArrayView<const char> buf)

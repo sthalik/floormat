@@ -186,7 +186,7 @@ bool read_object_flags(binary_reader<T>& s, U& e)
     }
     else if constexpr(tag == object_type::critter)
     {
-        e.playable    = !!(flags & 1 << 2);
+        e.playable = !!(flags & 1 << 2);
     }
     else
     {
@@ -355,7 +355,7 @@ void reader_state::read_chunks(reader_t& s)
         }
         uint32_t object_count = 0;
         if (PROTO >= 8) [[likely]]
-                object_count << s;
+            object_count << s;
 
         SET_CHUNK_SIZE();
 
@@ -482,6 +482,7 @@ void reader_state::read_chunks(reader_t& s)
                             uint16_t delta_; delta_ << s;
                             sc.delta = uint32_t(sc.delta) * 65536u;
                         }
+                        _world->make_object<generic_scenery, false>(oid, {ch, local}, *val, sc);
                     }
                     else if (const auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
                     {
@@ -490,10 +491,11 @@ void reader_state::read_chunks(reader_t& s)
                             uint16_t delta_; delta_ << s;
                             sc.delta = uint32_t(sc.delta) * 65536u;
                         }
+                        _world->make_object<door_scenery, false>(oid, {ch, local}, *val, sc);
                     }
+                    else
+                        fm_soft_assert(false);
                 }
-                auto e = _world->make_object<scenery, false>(oid, {ch, local}, sc);
-                (void)e;
                 break;
             }
             case object_type::light: {
@@ -564,10 +566,12 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
     atlasid id; id << s;
     const bool exact = id & meta_short_scenery_bit_;
     const auto r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
+    const global_coords coord{ch, local_coords{i}};
     id &= ~scenery_id_flag_mask_;
     auto sc = lookup_scenery(id);
-    (void)sc.atlas->group(r);
     sc.r = r;
+    (void)sc.atlas->group(r);
+
     if (!exact)
     {
         if (read_object_flags(s, sc))
@@ -589,6 +593,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             sc.bbox_offset[0] << s;
             sc.bbox_offset[1] << s;
         }
+
         if (auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
         {
             if (val->active)
@@ -625,10 +630,18 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
                 }
             }
         }
+        else
+            fm_soft_assert(false);
     }
-    global_coords coord{ch, local_coords{i}};
-    auto e = _world->make_object<scenery, false>(_world->make_id(), coord, sc);
-    (void)e;
+    else
+    {
+        if (auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
+            auto e = _world->make_object<generic_scenery, false>(_world->make_id(), coord, *val, sc);
+        else if (auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
+            auto e = _world->make_object<door_scenery, false>(_world->make_id(), coord, *val, sc);
+        else
+            fm_soft_assert(false);
+    }
 }
 
 void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)

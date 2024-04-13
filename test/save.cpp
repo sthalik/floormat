@@ -35,8 +35,10 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal2, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
-    w.make_object<scenery>(w.make_id(), {ch, {3, 4}}, table);
-    w.make_object<scenery>(w.make_id(), {ch, {K, K+1}}, control_panel);
+    w.make_object<generic_scenery>(w.make_id(), {ch, {3, 4}},
+        std::get<generic_scenery_proto>(table.subtype), table); // todo!
+    w.make_object<generic_scenery>(w.make_id(), {ch, {K, K+1}},
+        std::get<generic_scenery_proto>(control_panel.subtype), control_panel); // todo!
 
     const auto add_player = [&](StringView name, Vector2i coord, bool playable) {
         critter_proto cproto;
@@ -51,20 +53,20 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     add_player("Player 3", {15, 11}, true);
 
     {
-        auto& e = *w.make_object<scenery>(w.make_id(), {ch, {K+3, K+1}}, door);
+        auto& e = *w.make_object<door_scenery>(w.make_id(), {ch, {K+3, K+1}},
+            std::get<door_scenery_proto>(door.subtype), door);
         const auto end = e.atlas->info().nframes-1;
         constexpr auto dt = Second / 60;
         fm_assert(e.frame == end);
-        {   auto& x = std::get<door_scenery>(e.subtype);
-            fm_assert(!x.active);
+        {   fm_assert(!e.active);
             e.activate(e.index());
-            fm_assert(x.active);
+            fm_assert(e.active);
             { auto index = e.index(); e.update(index, dt); }
             fm_assert(e.frame != end);
             for (int i = 0; i < 60*3; i++)
                 { auto index = e.index(); e.update(index, dt); }
             fm_assert(e.frame == 0);
-            fm_assert(!x.active);
+            fm_assert(!e.active);
         }
     }
     return c;

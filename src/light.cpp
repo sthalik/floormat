@@ -15,9 +15,12 @@ light_proto::light_proto()
     type = object_type::light;
 }
 
+light_proto::~light_proto() noexcept = default;
 light_proto::light_proto(const light_proto&) = default;
 light_proto& light_proto::operator=(const light_proto&) = default;
-light_proto::~light_proto() noexcept = default;
+light_proto::light_proto(light_proto&&) noexcept = default;
+light_proto& light_proto::operator=(light_proto&&) noexcept = default;
+
 bool light_proto::operator==(const light_proto&) const = default;
 
 light::light(object_id id, class chunk& c, const light_proto& proto) :

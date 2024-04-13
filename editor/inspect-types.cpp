@@ -91,39 +91,56 @@ struct entity_accessors<object, inspect_intent_t> {
     }
 };
 
-template<>
-struct entity_accessors<scenery, inspect_intent_t> {
+template<> struct entity_accessors<generic_scenery, inspect_intent_t>
+{
     static constexpr auto accessors()
     {
-        using E = Entity<scenery>;
+        using E = Entity<generic_scenery>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
+            E::type<bool>::field{"active"_s,
+                [](const generic_scenery& x) { return x.active; },
+                [](generic_scenery& x, bool b) { x.active = b; },
+                constantly(st::readonly),
+            },
             E::type<bool>::field{"interactive"_s,
-                                 [](const scenery& x) {
-                                   return std::visit(overloaded {
-                                       [&](const door_scenery& s) { return s.interactive; },
-                                       [&](const generic_scenery& s) { return s.interactive; },
-                                   }, x.subtype);
-                                 },
-                                 [](scenery& x, bool b) {
-                                   return std::visit(overloaded {
-                                       [&](door_scenery& s) { s.interactive = b; },
-                                       [&](generic_scenery& s) { s.interactive = b; },
-                                   }, x.subtype);
-                                 },
-                                [](const scenery& x) {
-                                  return std::visit(overloaded {
-                                      [&](const door_scenery&) { return st::enabled; },
-                                      [&](const generic_scenery&) { return st::enabled; },
-                                  }, x.subtype);
-                                },
+                [](const generic_scenery& x) { return x.interactive; },
+                [](generic_scenery& x, bool b) { x.interactive = b; },
+                constantly(st::enabled),
             },
         };
         return std::tuple_cat(tuple0, tuple);
     }
 };
 
-template<typename T, typename = void> struct has_anim_atlas : std::false_type {};
+template<> struct entity_accessors<door_scenery, inspect_intent_t>
+{
+    static constexpr auto accessors()
+    {
+        using E = Entity<door_scenery>;
+        auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
+        auto tuple = std::tuple{
+            E::type<bool>::field{"closing"_s,
+                [](const door_scenery& x) { return x.closing; },
+                [](door_scenery& x, bool b) { x.closing = b; },
+                constantly(st::readonly),
+            },
+            E::type<bool>::field{"active"_s,
+                [](const door_scenery& x) { return x.active; },
+                [](door_scenery& x, bool b) { x.active = b; },
+                constantly(st::readonly),
+            },
+            E::type<bool>::field{"interactive"_s,
+                [](const door_scenery& x) { return x.interactive; },
+                [](door_scenery& x, bool b) { x.interactive = b; },
+                constantly(st::enabled),
+            },
+        };
+        return std::tuple_cat(tuple0, tuple);
+    }
+};
+
+template<typename, typename = void> struct has_anim_atlas : std::false_type {};
 
 template<typename T>
 requires requires (const T& x) { { x.atlas } -> std::convertible_to<const std::shared_ptr<anim_atlas>&>; }
@@ -187,7 +204,7 @@ struct enum_values<rotation, U>
 };
 
 template<typename T, typename Intent>
-static bool inspect_type(T& x, Intent)
+bool inspect_type(T& x, Intent)
 {
     size_t width = 0;
     visit_tuple([&](const auto& field) {
@@ -271,7 +288,8 @@ struct entity_accessors<light, inspect_intent_t>
     }
 };
 
-template bool inspect_type(scenery&, inspect_intent_t);
+template bool inspect_type(generic_scenery&, inspect_intent_t);
+template bool inspect_type(door_scenery&, inspect_intent_t);
 template bool inspect_type(critter&, inspect_intent_t);
 template bool inspect_type(light&, inspect_intent_t);
 
@@ -280,11 +298,26 @@ bool inspect_object_subtype(object& x)
     const auto type = x.type();
     switch (type)
     {
-    case object_type::scenery: return inspect_type(static_cast<scenery&>(x), inspect_intent_t{});
+    case object_type::scenery: {
+        auto& sc = static_cast<scenery&>(x);
+        const auto sc_type = sc.scenery_type();
+        switch (sc_type)
+        {
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            break;
+        case scenery_type::generic:
+            return inspect_type(static_cast<generic_scenery&>(sc), inspect_intent_t{});
+        case scenery_type::door:
+            return inspect_type(static_cast<door_scenery&>(sc), inspect_intent_t{});
+        }
+        fm_warn_once("unknown scenery subtype '%d'", (int)sc_type); [[fallthrough]];
+    }
     case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
     case object_type::light:   return inspect_type(static_cast<light&>(x), inspect_intent_t{});
-    case object_type::COUNT: break;
-    case object_type::none:  break;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
     }
     fm_warn_once("unknown object subtype '%d'", (int)type);
     return false;
