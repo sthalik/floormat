@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "loader/anim-cell.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "src/scenery.hpp"
@@ -35,10 +34,8 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal2, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
-    w.make_object<generic_scenery>(w.make_id(), {ch, {3, 4}},
-        std::get<generic_scenery_proto>(table.subtype), table); // todo!
-    w.make_object<generic_scenery>(w.make_id(), {ch, {K, K+1}},
-        std::get<generic_scenery_proto>(control_panel.subtype), control_panel); // todo!
+    w.make_scenery(w.make_id(), {ch, {3, 4}}, scenery_proto(table));
+    w.make_scenery(w.make_id(), {ch, {K, K+1}}, scenery_proto(control_panel)); // todo!
 
     const auto add_player = [&](StringView name, Vector2i coord, bool playable) {
         critter_proto cproto;
@@ -53,8 +50,9 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     add_player("Player 3", {15, 11}, true);
 
     {
-        auto& e = *w.make_object<door_scenery>(w.make_id(), {ch, {K+3, K+1}},
-            std::get<door_scenery_proto>(door.subtype), door);
+        auto eʹ = w.make_scenery(w.make_id(), {ch, {K+3, K+1}}, scenery_proto(door));
+        fm_assert(eʹ->scenery_type() == scenery_type::door);
+        auto& e = static_cast<door_scenery&>(*eʹ);
         const auto end = e.atlas->info().nframes-1;
         constexpr auto dt = Second / 60;
         fm_assert(e.frame == end);
@@ -237,9 +235,37 @@ void test_save_objs()
 
         assert_chunks_equal(w.at(ch), w2.at(ch));
     }
+    {
+        // ---  light ---
+        auto w = world();
+        light_proto p;
+        p.max_distance = 42;
+        p.color = Color4ub{1, 2, 3, 4};
+        p.falloff = light_falloff::quadratic;
+        p.enabled = false;
+        p.frame = 0;
+        p.offset = {1, 2};
+        p.bbox_size = {3, 4};
+        p.delta = 5;
+        p.pass = pass_mode::see_through;
+
+        constexpr auto ch = chunk_coords_{ 1, -2, 0};
+        constexpr auto coord = global_coords{ch, {6, 5}};
+
+        const auto id = w.make_id();
+        const auto objʹ = w.make_object<light>(id, coord, p);
+        auto w2 = reload_from_save(tmp, w);
+        const auto& obj2ʹ = w.find_object<light>(id);
+        fm_assert(obj2ʹ);
+        const auto& obj2 = *obj2ʹ;
+        fm_assert(p.max_distance == obj2.max_distance);
+        fm_assert(p.color == obj2.color);
+        fm_assert(p.falloff == obj2.falloff);
+        fm_assert(p.enabled == obj2.enabled);
+        assert_chunks_equal(w.at(ch), w2.at(ch));
+    }
 
 #if 0
-    constexpr auto coord = global_coords{{ 1, -2, 0}, { 6, 5}};
     constexpr auto coord = global_coords{{-3,  4, 0}, { 3, 4}};
     constexpr auto coord = global_coords{{ 5, -6, 0}, { 4, 7}};
     constexpr auto coord = global_coords{{-7,  8, 0}, { 9, 1}};
