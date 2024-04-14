@@ -310,11 +310,9 @@ std::shared_ptr<scenery> world::make_scenery(object_id id, global_coords pos, sc
             throw_on_empty_scenery_proto(id, pos, proto.offset);
         },
         [&](generic_scenery_proto&& p) -> type {
-            fm_debug_assert(p.scenery_type() == scenery_type::generic);
             return make_object<generic_scenery, sorted>(id, pos, move(p), move(proto));
         },
         [&](door_scenery_proto&& p) -> type {
-            fm_debug_assert(p.scenery_type() == scenery_type::door);
             return make_object<door_scenery, sorted>(id, pos, move(p), move(proto));
         },
     }, move(proto.subtype));
