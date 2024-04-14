@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
@@ -264,18 +265,30 @@ void test_save_objs()
         fm_assert(p.falloff == obj2.falloff);
         fm_assert(p.enabled == obj2.enabled);
         assert_chunks_equal(w.at(ch), w2.at(ch));
+        //const auto obj3 = w.find_object<generic_scenery>(id); // must fail
+    }
+
+    {
+        // ---  scenery ---
+        auto w = world();
+        scenery_proto p;
+        p.atlas = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype = generic_scenery_proto{};
+        constexpr auto ch = chunk_coords_{-3,  4, 0};
+        constexpr auto coord = global_coords{ch, { 3, 4}};
+        const auto id = w.make_id();
+        const auto objʹ = w.make_scenery(id, coord, move(p));
+        const auto obj = std::static_pointer_cast<generic_scenery>(objʹ);
+        const auto obj2 = w.find_object<generic_scenery>(id);
+        //const auto obj3 = w.find_object<door_scenery>(id); // must fail
+        fm_assert(obj == obj2);
     }
 
 #if 0
-    constexpr auto coord = global_coords{{-3,  4, 0}, { 3, 4}};
     constexpr auto coord = global_coords{{ 5, -6, 0}, { 4, 7}};
     constexpr auto coord = global_coords{{-7,  8, 0}, { 9, 1}};
     constexpr auto coord = global_coords{{ 9,  0, 0}, {15, 0}};
 #endif
-
-    {
-
-    }
 }
 
 } // namespace

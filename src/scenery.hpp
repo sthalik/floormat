@@ -66,4 +66,7 @@ template<> struct object_type_<generic_scenery> : std::integral_constant<object_
 template<> struct object_type_<door_scenery> : std::integral_constant<object_type, object_type::scenery> {};
 template<> struct object_type_<scenery_proto> : std::integral_constant<object_type, object_type::scenery> {};
 
+template<> struct scenery_type_<generic_scenery> : std::integral_constant<scenery_type, scenery_type::generic> {};
+template<> struct scenery_type_<door_scenery> : std::integral_constant<scenery_type, scenery_type::door> {};
+
 } // namespace floormat

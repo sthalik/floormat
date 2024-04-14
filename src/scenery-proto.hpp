@@ -41,4 +41,7 @@ struct scenery_proto : object_proto
     scenery_proto& operator=(scenery_proto&&) noexcept;
 };
 
+template<> struct scenery_type_<generic_scenery_proto> : std::integral_constant<scenery_type, scenery_type::generic> {};
+template<> struct scenery_type_<door_scenery_proto> : std::integral_constant<scenery_type, scenery_type::door> {};
+
 } // namespace floormat

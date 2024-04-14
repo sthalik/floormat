@@ -196,7 +196,12 @@ void world::set_object_counter(object_id value)
 
 void world::throw_on_wrong_object_type(object_id id, object_type actual, object_type expected)
 {
-    fm_throw("object '{}' has wrong object type '{}', should be '{}'"_cf, id, (size_t)actual, (size_t)expected);
+    fm_throw("object {} has wrong object type {}, should be {}"_cf, id, (size_t)actual, (size_t)expected);
+}
+
+void world::throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected)
+{
+    fm_throw("object {} has wrong scenery type {}, should be {}"_cf, id, (size_t)actual, (size_t)expected);
 }
 
 void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset)
@@ -285,18 +290,30 @@ std::shared_ptr<T> world::find_object(object_id id)
         return {};
     else if constexpr(std::is_same_v<T, object>)
         return ptr;
+    else if (ptr->type() != object_type_<T>::value) [[unlikely]]
+        throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
     else
-    {
-        if (!(ptr->type() == object_type_<T>::value)) [[unlikely]]
-            throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
         return static_pointer_cast<T>(move(ptr));
-    }
+}
+
+template<typename T>
+requires is_strict_base_of<scenery, T>
+std::shared_ptr<T> world::find_object(object_id id)
+{
+    if (auto ptr = find_object<scenery>(id); !ptr)
+        return {};
+    else if (ptr->scenery_type() != scenery_type_<T>::value) [[unlikely]]
+        throw_on_wrong_scenery_type(id, ptr->scenery_type(), scenery_type_<T>::value);
+    else
+        return static_pointer_cast<T>(move(ptr));
 }
 
 template std::shared_ptr<object>  world::find_object<object>(object_id id);
 template std::shared_ptr<critter> world::find_object<critter>(object_id id);
 template std::shared_ptr<scenery> world::find_object<scenery>(object_id id);
 template std::shared_ptr<light>   world::find_object<light>(object_id id);
+template std::shared_ptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
+template std::shared_ptr<door_scenery> world::find_object<door_scenery>(object_id id);
 
 template<bool sorted>
 std::shared_ptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)

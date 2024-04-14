@@ -1,8 +1,10 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
+#include "compat/base-of.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
+#include "scenery-type.hpp"
 #include "loader/policy.hpp"
 #include <memory>
 #include <unordered_map>
@@ -50,6 +52,7 @@ private:
     std::shared_ptr<object> find_object_(object_id id);
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
+    [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);
     [[noreturn]] static void throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset);
 
     friend struct object;
@@ -91,6 +94,7 @@ public:
     }
     template<bool sorted = true> std::shared_ptr<scenery> make_scenery(object_id id, global_coords pos, scenery_proto&& proto);
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
+    template<typename T> requires is_strict_base_of<scenery, T> std::shared_ptr<T> find_object(object_id id);
 
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id, critter_proto p);
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
