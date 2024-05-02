@@ -30,7 +30,7 @@ struct path_test final : base_test
         point from, to;
         object_id own_id;
         uint32_t max_dist;
-        Vector2ub own_size;
+        Vector2ui own_size;
     } pending = {};
 
     struct result_s
@@ -67,7 +67,8 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
 
             has_pending = true;
             pending = { .from = pt0, .to = *pt, .own_id = C->id,
-                        .max_dist = dist, .own_size = C->bbox_size, };
+                        .max_dist = dist,
+                        .own_size = Vector2ui(C->bbox_size) + Vector2ui(2), };
         }
         return true;
     }

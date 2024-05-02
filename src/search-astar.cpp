@@ -192,7 +192,7 @@ uint32_t astar::pop_from_heap()
 }
 
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
-                                   object_id own_id, uint32_t max_dist, Vector2ub own_size_,
+                                   object_id own_id, uint32_t max_dist, Vector2ui own_size_,
                                    int debug, const pred& p)
 {
 #ifdef FM_NO_DEBUG
@@ -207,7 +207,9 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto& cache = *_cache;
     cache.allocate(from, max_dist);
 
-    const auto own_size = Math::max(Vector2ui(own_size_), min_size);
+    constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
+    fm_assert(own_size_ < Vector2ui{size_max});
+    const auto own_size = Math::max(own_size_, min_size);
     constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]

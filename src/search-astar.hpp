@@ -26,7 +26,7 @@ public:
 
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, point from, point to,
-                                object_id own_id, uint32_t max_dist, Vector2ub own_size,
+                                object_id own_id, uint32_t max_dist, Vector2ui own_size,
                                 int debug = 0, const pred& p = Search::never_continue());
 
 private:
