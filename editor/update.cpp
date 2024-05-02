@@ -235,7 +235,7 @@ void app::update_world(Ns dt)
         for (int16_t y = miny; y <= maxy; y++)
             for (int16_t x = minx; x <= maxx; x++)
             {
-                auto* cʹ = world.at({x, y, z});
+                auto* const cʹ = world.at({x, y, z});
                 if (!cʹ)
                     continue;
                 auto& c = *cʹ;
@@ -245,19 +245,15 @@ void app::update_world(Ns dt)
                 {
                     auto eʹ = es[i];
                     auto index = size_t{i};
+                    auto& e = *eʹ;
+                    if (e.last_frame_no == frame_no) [[unlikely]]
+                        continue;
+                    e.last_frame_no = frame_no;
+                    e.update(eʹ, index, dt); // objects can't delete themselves during update()
+                    if (&e.chunk() != cʹ || index > i) [[unlikely]]
                     {
-                        auto& e = *eʹ;
-                        if (e.last_frame_no == frame_no) [[unlikely]]
-                            continue;
-                        e.last_frame_no = frame_no;
-                    }
-                    {
-                        eʹ->update(eʹ, index, dt);
-                        if (&eʹ->chunk() != cʹ || index > i) [[unlikely]]
-                        {
-                            i--;
-                            size = (uint32_t)es.size();
-                        }
+                        i--;
+                        size = (uint32_t)es.size();
                     }
                 }
             }
