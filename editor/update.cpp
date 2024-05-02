@@ -169,14 +169,14 @@ void app::do_escape()
     kill_popups(false);
 }
 
-void app::do_key(key k, int mods)
+void app::do_key(key k, int mods, int keycode)
 {
     (void)mods;
     switch (k)
     {
     default:
         if (k >= key_NO_REPEAT)
-            fm_warn("unhandled key: '%zu'", size_t(k));
+            fm_warn("unhandled key: '%d'", keycode);
         return;
     case key_noop:
         return;
@@ -222,7 +222,7 @@ void app::apply_commands(const key_set& keys)
     using value_type = key_set::value_type;
     for (value_type i = key_MIN; i < key_NO_REPEAT; i++)
         if (const auto k = key(i); keys[k])
-            do_key(k, key_modifiers.data[i]);
+            do_key(k, key_modifiers.data[i], 0);
 }
 
 void app::update_world(Ns dt)

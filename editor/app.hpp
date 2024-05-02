@@ -152,7 +152,7 @@ private:
     void render_menu();
 
     using key_set = enum_bitset<key, key_COUNT>;
-    void do_key(key k, int mods);
+    void do_key(key k, int mods, int keycode);
     void do_key(key k);
     void do_set_mode(editor_mode mode);
     void do_rotate(bool backward);

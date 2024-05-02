@@ -58,11 +58,11 @@ float app::draw_main_menu()
             ImGui::Separator();
             ImGui::MenuItem("Quit", "Ctrl+Q", &do_quit);
             if (do_new)
-                do_key(key_new_file, kmod_none);
+                do_key(key_new_file);
             else if (do_quickload)
-                do_key(key_quickload, kmod_none);
+                do_key(key_quickload);
             else if (do_quit)
-                do_key(key_quit, kmod_none);
+                do_key(key_quit);
         }
         if (auto b = begin_menu("Editor"))
         {

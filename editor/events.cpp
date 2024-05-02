@@ -209,7 +209,7 @@ void app::on_key_up_down(const key_event& event, bool is_down) noexcept
         (x == key_COUNT || x == key_escape) && _editor->mode() == editor_mode::tests && tests_handle_key(event, is_down))
         clear_non_global_keys();
     else if (x >= key_NO_REPEAT)
-        is_down && !event.is_repeated ? do_key(x, mods) : void();
+        is_down && !event.is_repeated ? do_key(x, mods, event.key & ~SDLK_SCANCODE_MASK) : void();
     else
     {
         (*keys_)[x] = is_down;
@@ -244,7 +244,7 @@ void app::on_mouse_leave() noexcept
 
 void app::do_key(key k)
 {
-    do_key(k, get_key_modifiers());
+    do_key(k, get_key_modifiers(), 0);
 }
 
 int app::get_key_modifiers()
