@@ -284,7 +284,7 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
 
     shared_ptr_wrapper<critter> ret;
 
-    for (const auto& [coord, c] : chunks()) // todo use world::_objects
+    for (auto& [coord, c] : chunks())
     {
         for (const auto& eʹ : c.objects())
         {
