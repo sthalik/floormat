@@ -44,6 +44,8 @@ private:
     object_id _object_counter = object_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct object
     bool _teardown : 1 = false;
+    bool _script_initialized : 1 = false;
+    bool _script_finalized : 1 = false;
 
     explicit world(size_t capacity);
 
@@ -92,6 +94,7 @@ public:
         do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);
         return ret;
     }
+
     template<bool sorted = true> std::shared_ptr<scenery> make_scenery(object_id id, global_coords pos, scenery_proto&& proto);
     template<typename T = object> std::shared_ptr<T> find_object(object_id id);
     template<typename T> requires is_strict_base_of<scenery, T> std::shared_ptr<T> find_object(object_id id);
@@ -100,7 +103,9 @@ public:
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
     static critter_proto make_player_proto();
 
-    bool is_teardown() const { return _teardown; }
+    void init_scripts();
+    void finish_scripts();
+    bool is_teardown() const;
     object_id object_counter() const { return _object_counter; }
     [[nodiscard]] object_id make_id() { return ++_object_counter; }
     void set_object_counter(object_id value);

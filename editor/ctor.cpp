@@ -18,7 +18,7 @@ app::app(fm_settings&& opts) :
     keys_{InPlaceInit, 0u},
     key_modifiers{}
 {
-    reset_world();
+    reset_world_post();
     auto& w = M->world();
     constexpr chunk_coords_ coord{0, 0, 0};
     maybe_initialize_chunk_(coord, w[coord]);
@@ -29,12 +29,7 @@ app::app(fm_settings&& opts) :
 
 app::~app()
 {
+    reset_world_pre();
 }
-
-void app::reset_world()
-{
-    reset_world(world{});
-}
-
 
 } // namespace floormat

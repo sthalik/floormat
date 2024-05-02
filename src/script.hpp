@@ -37,6 +37,7 @@ class Script final
     S* ptr;
     script_lifecycle state;
     void _assert_state(script_lifecycle s, const char* file, int line);
+    static S* make_empty();
 
 public:
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(Script);
@@ -60,8 +61,7 @@ public:
     void do_create(S* ptr);
     void do_initialize(const std::shared_ptr<Obj>& obj);
     void do_reassign(S* ptr, const std::shared_ptr<Obj>& obj);
-    void do_destroy_1(const std::shared_ptr<Obj>& obj);
-    void do_destroy_pre(const std::shared_ptr<Obj>& obj);
+    void do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r);
     void do_finish_destroy();
     void do_ensure_torn_down();
     void do_error_unwind();

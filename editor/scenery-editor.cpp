@@ -5,6 +5,8 @@
 #include "src/RTree-search.hpp"
 #include "src/rotation.inl"
 #include "app.hpp"
+#include "src/scenery.hpp"
+
 #include <Magnum/Math/Range.h>
 
 namespace floormat {
@@ -94,8 +96,9 @@ start:
             for (auto i = 0uz; i < sz; i++)
                 if (const auto eʹ = es[i]; eʹ->id == id)
                 {
-                    //eʹ->on_destroy(eʹ, false);
+                    eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
                     c.remove_object(i);
+                    eʹ->destroy_script_post();
                     goto start;
                 }
             break;
@@ -103,8 +106,8 @@ start:
     }
     else
     {
-        // todo check collision at pos
-        w.make_scenery(w.make_id(), pos, scenery_proto(s.proto));
+        auto sc = w.make_scenery(w.make_id(), pos, scenery_proto(s.proto));
+        sc->init_script(sc);
     }
 }
 

@@ -2,6 +2,7 @@
 #include "compat/fpu.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
+#include "src/chunk.hpp"
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
 
@@ -29,6 +30,11 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
 class world& main_impl::reset_world(class world&& w) noexcept
 {
     arrayResize(_clickable_scenery, 0);
+
+    for (auto& [_, cʹ] : _world.chunks())
+        for (const auto& eʹ : cʹ.objects())
+            fm_assert(eʹ.use_count() == 1);
+
     _world = move(w);
     _first_frame = true;
     return _world;

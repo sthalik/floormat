@@ -44,6 +44,10 @@ struct critter final : object
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
 
+    void init_script(const std::shared_ptr<object>& ptr) override;
+    void destroy_script_pre(const std::shared_ptr<object>& ptr, script_destroy_reason r) override;
+    void destroy_script_post() override;
+
     Script<critter_script, critter> script;
     String name;
     float speed = 1;

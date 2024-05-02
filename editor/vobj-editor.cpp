@@ -53,9 +53,11 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
         {
             for (auto i = (int)(es.size()-1); i >= 0; i--)
             {
-                if (const auto eʹ = es[i]; eʹ->id == id)
+                const auto eʹ = es[i];
+                if (eʹ->id == id && eʹ->is_virtual())
                 {
-                    //eʹ->on_destroy(eʹ);
+                    eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
+                    eʹ->destroy_script_post();
                     c.remove_object((unsigned)i);
                     goto start;
                 }

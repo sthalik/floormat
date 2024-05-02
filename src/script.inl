@@ -35,8 +35,7 @@ namespace floormat {
 
 #define FM_ASSERT_SCRIPT_STATE(new_state) (Script<S, Obj>::_assert_state((new_state), __FILE__, __LINE__))
 
-template <typename S, typename Obj>
-Script<S, Obj>::~Script() noexcept
+template <typename S, typename Obj> Script<S, Obj>::~Script() noexcept
 {
     fm_assert(state < script_lifecycle::COUNT);
     switch (state)
@@ -96,9 +95,20 @@ void Script<S, Obj>::do_create(S* p)
 template <typename S, typename Obj>
 void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
 {
-    FM_ASSERT_SCRIPT_STATE(script_lifecycle::initializing);
-    state = script_lifecycle::created;
-    ptr->on_init(obj);
+    switch (state)
+    {
+    default:
+        FM_ASSERT_SCRIPT_STATE(script_lifecycle::initializing);
+        std::unreachable();
+    case script_lifecycle::no_init:
+        ptr = make_empty();
+        [[fallthrough]];
+    case script_lifecycle::initializing:
+        state = script_lifecycle::created;
+        ptr->on_init(obj);
+        return;
+    }
+    std::unreachable();
 }
 
 template <typename S, typename Obj>
@@ -114,21 +124,11 @@ void Script<S, Obj>::do_reassign(S* p, const std::shared_ptr<Obj>& obj)
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_destroy_1(const std::shared_ptr<Obj>& obj)
-{
-    FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
-    state = script_lifecycle::torn_down;
-    ptr->on_destroy(obj, script_destroy_reason::kill);
-    ptr->delete_self();
-    ptr = nullptr;
-}
-
-template <typename S, typename Obj>
-void Script<S, Obj>::do_destroy_pre(const std::shared_ptr<Obj>& obj)
+void Script<S, Obj>::do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r)
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
     state = script_lifecycle::destroying;
-    ptr->on_destroy(obj, script_destroy_reason::quit);
+    ptr->on_destroy(obj, r);
 }
 
 template <typename S, typename Obj>

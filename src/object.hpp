@@ -97,6 +97,10 @@ struct object
     requires std::is_unsigned_v<T>
     static uint32_t alloc_frame_time(const Ns& dt, T& accum, uint32_t hz, float speed);
 
+    virtual void init_script(const std::shared_ptr<object>& ptr);
+    virtual void destroy_script_pre(const std::shared_ptr<object>& ptr, script_destroy_reason r);
+    virtual void destroy_script_post();
+
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);

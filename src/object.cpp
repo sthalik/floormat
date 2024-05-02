@@ -361,4 +361,8 @@ bool object::is_dynamic() const
     return atlas->info().fps > 0;
 }
 
+void object::init_script(const std::shared_ptr<object>&) {}
+void object::destroy_script_pre(const std::shared_ptr<object>&, script_destroy_reason) {}
+void object::destroy_script_post() {}
+
 } // namespace floormat

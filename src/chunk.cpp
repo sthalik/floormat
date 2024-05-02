@@ -173,7 +173,6 @@ void chunk::add_object(const std::shared_ptr<object>& e)
 void chunk::on_teardown()
 {
     fm_assert(!_teardown); // too late, some chunks were already erased
-    //for (const auto& eʹ : _objects) eʹ->on_destroy(eʹ, true); // todo!
 }
 
 void chunk::remove_object(size_t i)

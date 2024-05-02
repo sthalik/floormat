@@ -549,4 +549,19 @@ critter::~critter() noexcept
     //fm_assert(!script);
 }
 
+void critter::init_script(const std::shared_ptr<object>& ptrʹ)
+{
+    script.do_initialize(std::static_pointer_cast<critter>(ptrʹ));
+}
+
+void critter::destroy_script_pre(const std::shared_ptr<object>& ptrʹ, script_destroy_reason r)
+{
+    script.do_destroy_pre(std::static_pointer_cast<critter>(ptrʹ), r);
+}
+
+void critter::destroy_script_post()
+{
+    script.do_finish_destroy();
+}
+
 } // namespace floormat

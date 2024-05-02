@@ -100,6 +100,8 @@ private:
     void maybe_initialize_chunk(const chunk_coords_& pos, chunk& c) override;
     void maybe_initialize_chunk_(const chunk_coords_& pos, chunk& c);
     void update_character(Ns dt);
+    void reset_world_pre();
+    void reset_world_post();
     void reset_world();
     void reset_world(class world&& w);
 

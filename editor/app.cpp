@@ -31,30 +31,46 @@ shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
 {
     return w.ensure_player_character(_character_id);
 }
-
-void app::reset_world(class world&& wʹ)
+void app::reset_world()
 {
-    if (!M)
-        return;
+    if (M)
+        reset_world(world{});
+}
 
+void app::reset_world_pre()
+{
+    auto& w = M->world();
+    w.finish_scripts();
     _editor->on_release();
     //_editor->clear_selection();
     kill_popups(true);
     tested_light_chunk = {};
     tests_reset_mode();
-
     clear_keys();
-    const auto pixel = cursor.pixel;
-    cursor = {};
     _character_id = 0;
     _render_vobjs = true;
     _render_all_z_levels = true;
     _timestamp = 0;
+    const auto pixel = cursor.pixel;
+    cursor = {};
+    cursor.pixel = pixel;
+}
 
-    auto& w = M->reset_world(move(wʹ));
+void app::reset_world_post()
+{
+    auto& w = M->world();
     w.collect(true);
     ensure_player_character(w);
-    update_cursor_tile(pixel);
+    update_cursor_tile(cursor.pixel);
+    w.init_scripts();
+}
+
+void app::reset_world(class world&& wʹ)
+{
+    fm_assert(M);
+    reset_world_pre();
+    M->reset_world(move(wʹ));
+    reset_world_post();
 }
 
 int app::exec()

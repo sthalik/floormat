@@ -44,6 +44,11 @@ world::world(std::unordered_map<chunk_coords_, chunk>&& chunks) :
 world& world::operator=(world&& w) noexcept
 {
     fm_debug_assert(&w != this);
+    fm_assert(!w._script_initialized);
+    fm_assert(!w._script_finalized);
+    fm_assert(!_script_initialized || _script_finalized);
+    _script_initialized = false;
+    _script_finalized = false;
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
     fm_assert(w._unique_id);
@@ -69,6 +74,7 @@ world::world() : world{initial_capacity}
 
 world::~world() noexcept
 {
+    fm_assert(_script_finalized || !_script_initialized);
     for (auto& [k, c] : _chunks)
         c.on_teardown();
     _teardown = true;
@@ -229,6 +235,31 @@ critter_proto world::make_player_proto()
     cproto.speed = 10;
     cproto.playable = true;
     return cproto;
+}
+
+bool world::is_teardown() const { return _teardown; }
+
+void world::init_scripts()
+{
+    fm_assert(!_script_initialized);
+    _script_initialized = true;
+    for (auto& [k, c] : _chunks)
+        for (const auto& obj : c.objects())
+            obj->init_script(obj);
+}
+
+void world::finish_scripts()
+{
+    fm_assert(_script_initialized);
+    fm_assert(!_script_finalized);
+    _script_finalized = true;
+
+    for (auto& [k, c] : _chunks)
+        for (const auto& obj : c.objects())
+            obj->destroy_script_pre(obj, script_destroy_reason::quit);
+    for (auto& [k, c] : _chunks)
+        for (const auto& obj : c.objects())
+            obj->destroy_script_post();
 }
 
 shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id)
