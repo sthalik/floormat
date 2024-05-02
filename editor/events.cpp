@@ -113,6 +113,21 @@ auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
     [[maybe_unused]] constexpr int ALT   = kmod_alt;
     [[maybe_unused]] constexpr int SUPER = kmod_super;
 
+    switch (k_)
+    {
+    case SDLK_LSHIFT:
+    case SDLK_RSHIFT:
+    case SDLK_LCTRL:
+    case SDLK_RCTRL:
+    case SDLK_LALT:
+    case SDLK_RALT:
+    case SDLK_LGUI:
+    case SDLK_RGUI:
+        return { key_noop, kmod_mask };
+    default:
+        break;
+    }
+
     const int k = k_ | fixup_mods(mods_);
     constexpr kmod list[] = { kmod_none, kmod_super, kmod_alt, kmod_shift, kmod_ctrl, };
     int last = ~0;

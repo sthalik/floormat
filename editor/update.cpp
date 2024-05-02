@@ -178,6 +178,8 @@ void app::do_key(key k, int mods)
         if (k >= key_NO_REPEAT)
             fm_warn("unhandled key: '%zu'", size_t(k));
         return;
+    case key_noop:
+        return;
     case key_rotate_tile:
         return do_rotate(false);
     case key_emit_timestamp:
