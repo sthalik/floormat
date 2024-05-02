@@ -164,7 +164,6 @@ void Script<S, Obj>::do_error_unwind()
     case torn_down:
         break;
     }
-    fm_assert(false);
 }
 
 #undef FM_ASSERT_SCRIPT_STATE
