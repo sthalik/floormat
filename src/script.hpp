@@ -39,6 +39,9 @@ class Script final
     void _assert_state(script_lifecycle s, const char* file, int line);
 
 public:
+    fm_DECLARE_DELETED_COPY_ASSIGNMENT(Script);
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(Script);
+
     Script();
     ~Script() noexcept;
 

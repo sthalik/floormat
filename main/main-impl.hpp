@@ -33,7 +33,7 @@ struct clickable;
 class path_search;
 class astar;
 
-struct main_impl final : Platform::Sdl2Application, floormat_main
+struct main_impl final : private Platform::Sdl2Application, public floormat_main
 {
 #ifdef FM_USE_DEPTH32
     struct Framebuffer final {

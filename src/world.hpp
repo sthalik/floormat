@@ -86,7 +86,7 @@ public:
         T{object_id(), c, std::declval<Xs&&>()...};
         std::is_base_of_v<object, T>;
     }
-    std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs) // todo! replace 2nd arg with chunk&
+    std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
     {
         auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
         do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);

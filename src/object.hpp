@@ -42,6 +42,7 @@ struct object_proto
 struct object
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);
+    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(object);
 
     const object_id id = 0;
     uint64_t last_frame_no = 0;

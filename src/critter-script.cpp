@@ -44,7 +44,7 @@ void empty_critter_script::on_destroy(const std::shared_ptr<critter>& p, script_
 }
 void empty_critter_script::delete_self() noexcept
 {
-    DBG_nospace << "> delete critter:";
+    DBG_nospace << "> delete critter";
 }
 
 empty_critter_script empty_script_ = {};
