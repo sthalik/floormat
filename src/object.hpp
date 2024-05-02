@@ -6,7 +6,7 @@
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include "src/point.hpp"
-#include "src/script.hpp"
+#include "src/script-enums.hpp"
 #include <memory>
 
 namespace floormat {
@@ -75,7 +75,7 @@ struct object
     virtual object_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual void update(size_t& i, const Ns& dt) = 0;
+    virtual void update(const std::shared_ptr<object>& self, size_t& i, const Ns& dt) = 0;
     void rotate(size_t i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
@@ -104,6 +104,9 @@ struct object
 protected:
     object(object_id id, class chunk& c, const object_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
+
+    static void check_script_update_1(script_lifecycle state);
+    [[nodiscard]] static bool check_script_update_2(script_lifecycle state);
 };
 
 } // namespace floormat

@@ -27,7 +27,7 @@ struct generic_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(size_t& i, const Ns& dt) override;
+    void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
@@ -47,7 +47,7 @@ struct door_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(size_t& i, const Ns& dt) override;
+    void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
     Vector2 ordinal_offset(Vector2b offset) const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;

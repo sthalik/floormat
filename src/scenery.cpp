@@ -47,7 +47,7 @@ scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
 
 // ---------- generic_scenery ----------
 
-void generic_scenery::update(size_t&, const Ns&) {}
+void generic_scenery::update(const std::shared_ptr<object>&, size_t&, const Ns&) {}
 Vector2 generic_scenery::ordinal_offset(Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(size_t) const { return interactive; }
 bool generic_scenery::activate(size_t) { return false; }
@@ -76,7 +76,7 @@ generic_scenery::generic_scenery(object_id id, class chunk& c, const generic_sce
 
 enum scenery_type door_scenery::scenery_type() const { return scenery_type::door; }
 
-void door_scenery::update(size_t&, const Ns& dt)
+void door_scenery::update(const std::shared_ptr<object>&, size_t&, const Ns& dt)
 {
     if (!atlas || !active)
         return;

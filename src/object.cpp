@@ -365,4 +365,39 @@ void object::init_script(const std::shared_ptr<object>&) {}
 void object::destroy_script_pre(const std::shared_ptr<object>&, script_destroy_reason) {}
 void object::destroy_script_post() {}
 
+void object::check_script_update_1(script_lifecycle state)
+{
+    switch (state)
+    {
+    case script_lifecycle::no_init:
+        //return; // for tests?
+    case script_lifecycle::COUNT:
+    case script_lifecycle::destroying:
+    case script_lifecycle::initializing:
+    case script_lifecycle::torn_down:
+        break;
+    case script_lifecycle::created:
+        return;
+    }
+    fm_abort("bad script state %d in update() #1", (int)state);
+}
+
+bool object::check_script_update_2(script_lifecycle state)
+{
+    switch (state)
+    {
+    case script_lifecycle::no_init:
+        // bad = false; break; // for tests?
+    case script_lifecycle::COUNT:
+    case script_lifecycle::destroying:
+    case script_lifecycle::initializing:
+        break;
+    case script_lifecycle::torn_down:
+        return true;
+    case script_lifecycle::created:
+        return false;
+    }
+    fm_abort("bad script state %d in update() #2", (int)state);
+}
+
 } // namespace floormat

@@ -34,7 +34,7 @@ void empty_critter_script::on_init(const std::shared_ptr<critter>& p)
 }
 void empty_critter_script::on_update(const std::shared_ptr<critter>& p, size_t&, const Ns&)
 {
-    DBG_nospace << "  update critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
+    //DBG_nospace << "  update critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
     touch_ptr(p);
 }
 void empty_critter_script::on_destroy(const std::shared_ptr<critter>& p, script_destroy_reason r)

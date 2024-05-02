@@ -1,4 +1,6 @@
 #include "critter.hpp"
+
+#include "critter-script.hpp"
 #include "compat/limits.hpp"
 #include "tile-constants.hpp"
 #include "src/point.inl"
@@ -361,8 +363,15 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-void critter::update(size_t& i, const Ns& dt)
+void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& dt)
 {
+    fm_debug_assert(&*ptrʹ == this);
+
+    check_script_update_1(script.state());
+    script->on_update(std::static_pointer_cast<critter>(ptrʹ), i, dt);
+    if (check_script_update_2(script.state())) [[unlikely]]
+        return;
+
     if (playable) [[unlikely]]
     {
         movement.AUTO &= !(movement.L | movement.R | movement.U | movement.D);
@@ -546,7 +555,6 @@ critter::critter(object_id id, class chunk& c, critter_proto proto) :
 
 critter::~critter() noexcept
 {
-    //fm_assert(!script);
 }
 
 void critter::init_script(const std::shared_ptr<object>& ptrʹ)

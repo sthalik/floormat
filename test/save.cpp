@@ -61,10 +61,10 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
         {   fm_assert(!e.active);
             e.activate(e.index());
             fm_assert(e.active);
-            { auto index = e.index(); e.update(index, dt); }
+            { auto index = e.index(); e.update(eʹ, index, dt); }
             fm_assert(e.frame != end);
             for (int i = 0; i < 60*3; i++)
-                { auto index = e.index(); e.update(index, dt); }
+                { auto index = e.index(); e.update(eʹ, index, dt); }
             fm_assert(e.frame == 0);
             fm_assert(!e.active);
         }

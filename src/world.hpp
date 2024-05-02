@@ -105,6 +105,8 @@ public:
 
     void init_scripts();
     void finish_scripts();
+    void ensure_scripts_created(); // todo!
+    void ensure_scripts_town_down(); // todo!
     bool is_teardown() const;
     object_id object_counter() const { return _object_counter; }
     [[nodiscard]] object_id make_id() { return ++_object_counter; }

@@ -1,4 +1,5 @@
 #pragma once
+#include "script-enums.hpp"
 #include "compat/defs.hpp"
 #include <memory>
 
@@ -6,11 +7,6 @@ namespace floormat
 {
 struct object;
 struct Ns;
-
-enum class script_lifecycle : uint8_t
-{
-    no_init, initializing, created, destroying, torn_down, COUNT,
-};
 
 struct base_script
 {
@@ -23,19 +19,11 @@ struct base_script
     static StringView state_name(script_lifecycle x);
 };
 
-enum class script_destroy_reason : uint8_t
-{
-    quit,       // game is being shut down
-    kill,       // object is being deleted from the gameworld
-    unassign,   // script is unassigned from object
-    COUNT,
-};
-
 template<typename S, typename Obj>
 class Script final
 {
     S* ptr;
-    script_lifecycle state;
+    script_lifecycle _state;
     void _assert_state(script_lifecycle s, const char* file, int line);
     static S* make_empty();
 
@@ -55,7 +43,9 @@ public:
     // [torn-down]      -> do_ensure_torn_down()    -> [torn-down]
     // *                -> do_error_unwind()        -> [torn-down]
     // [torn-down]      -> ~script()
+    // [no-init]        -> ~script() // for tests
 
+    script_lifecycle state() const;
     S* operator->();
 
     void do_create(S* ptr);

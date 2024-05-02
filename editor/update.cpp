@@ -240,20 +240,24 @@ void app::update_world(Ns dt)
                     continue;
                 auto& c = *cʹ;
                 const auto& es = c.objects();
-                auto size = es.size();
-                for (auto i = 0uz; i < size; i++)
+                auto size = (uint32_t)es.size();
+                for (auto i = 0u; i < size; i++)
                 {
-                    auto& e = *es[i];
-                    if (e.last_frame_no == frame_no) [[unlikely]]
-                        continue;
-                    e.last_frame_no = frame_no;
-                    const auto* const ch = &e.chunk();
-                    size_t index = i;
-                    e.update(index, dt);
-                    if (&e.chunk() != ch || (uint32_t)index > i) [[unlikely]]
+                    auto eʹ = es[i];
+                    auto index = size_t{i};
                     {
-                        i--;
-                        size = es.size();
+                        auto& e = *eʹ;
+                        if (e.last_frame_no == frame_no) [[unlikely]]
+                            continue;
+                        e.last_frame_no = frame_no;
+                    }
+                    {
+                        eʹ->update(eʹ, index, dt);
+                        if (&eʹ->chunk() != cʹ || index > i) [[unlikely]]
+                        {
+                            i--;
+                            size = (uint32_t)es.size();
+                        }
                     }
                 }
             }

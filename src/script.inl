@@ -37,12 +37,12 @@ namespace floormat {
 
 template <typename S, typename Obj> Script<S, Obj>::~Script() noexcept
 {
-    fm_assert(state < script_lifecycle::COUNT);
-    switch (state)
+    fm_assert(_state < script_lifecycle::COUNT);
+    switch (_state)
     {
     case script_lifecycle::no_init:
     case script_lifecycle::torn_down:
-        state = (script_lifecycle)-1;
+        _state = (script_lifecycle)-1;
         break;
     case script_lifecycle::COUNT:
         std::unreachable();
@@ -50,13 +50,12 @@ template <typename S, typename Obj> Script<S, Obj>::~Script() noexcept
     case script_lifecycle::destroying:
     case script_lifecycle::initializing:
         fm_abort("invalid state '%s' in script destructor",
-                 base_script::state_name(state).data());
+                 base_script::state_name(_state).data());
     }
 }
 
 template <typename S, typename Obj>
-
-Script<S, Obj>::Script(): ptr{nullptr}, state{script_lifecycle::no_init}
+Script<S, Obj>::Script(): ptr{nullptr}, _state{script_lifecycle::no_init}
 {
     detail_Script::concept_check<S, Obj>();
 }
@@ -64,16 +63,18 @@ Script<S, Obj>::Script(): ptr{nullptr}, state{script_lifecycle::no_init}
 template <typename S, typename Obj>
 void Script<S, Obj>::_assert_state(script_lifecycle s, const char* file, int line)
 {
-    if (state != s)
+    if (_state != s)
     {
         fm_EMIT_DEBUG2("fatal: ",
                        "invalid state transition from '%s' to '%s'",
-                       base_script::state_name(state).data(),
+                       base_script::state_name(_state).data(),
                        base_script::state_name(s).data());
         fm_EMIT_DEBUG("", " in %s:%d", file, line);
         fm_EMIT_ABORT();
     }
 }
+
+template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() const { return _state; }
 
 template <typename S, typename Obj>
 S* Script<S, Obj>::operator->()
@@ -88,14 +89,14 @@ void Script<S, Obj>::do_create(S* p)
 {
     fm_assert(p);
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::no_init);
-    state = script_lifecycle::initializing;
+    _state = script_lifecycle::initializing;
     ptr = p;
 }
 
 template <typename S, typename Obj>
 void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
 {
-    switch (state)
+    switch (_state)
     {
     default:
         FM_ASSERT_SCRIPT_STATE(script_lifecycle::initializing);
@@ -104,7 +105,7 @@ void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
         ptr = make_empty();
         [[fallthrough]];
     case script_lifecycle::initializing:
-        state = script_lifecycle::created;
+        _state = script_lifecycle::created;
         ptr->on_init(obj);
         return;
     }
@@ -127,7 +128,7 @@ template <typename S, typename Obj>
 void Script<S, Obj>::do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r)
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
-    state = script_lifecycle::destroying;
+    _state = script_lifecycle::destroying;
     ptr->on_destroy(obj, r);
 }
 
@@ -135,7 +136,7 @@ template <typename S, typename Obj>
 void Script<S, Obj>::do_finish_destroy()
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::destroying);
-    state = script_lifecycle::torn_down;
+    _state = script_lifecycle::torn_down;
     ptr->delete_self();
     ptr = nullptr;
 }
@@ -149,8 +150,8 @@ void Script<S, Obj>::do_ensure_torn_down()
 template <typename S, typename Obj>
 void Script<S, Obj>::do_error_unwind()
 {
-    fm_assert(state < script_lifecycle::COUNT);
-    switch (state)
+    fm_assert(_state < script_lifecycle::COUNT);
+    switch (_state)
     {
     using enum script_lifecycle;
     case COUNT: std::unreachable();

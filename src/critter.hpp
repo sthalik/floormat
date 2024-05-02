@@ -32,7 +32,7 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(size_t& i, const Ns& dt) override;
+    void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
     void update_movement(size_t& i, const Ns& dt, rotation r);
     void update_nonplayable(size_t& i, const Ns& dt);
 
