@@ -1,89 +1,49 @@
 #pragma once
-#include "defs.hpp"
-#include <cstdlib> // todo speed up loading by moving printing into a .cpp file
-#include <cstdio>  // idem.
+//#include "defs.hpp"
+#if defined __GNUG__ || defined __CLION_IDE__
+#define fm_FORMAT_ARG(n) __attribute__((format (gnu_printf, (n), (n+1))))
+#define fm_FORMAT_ARG_MSVC
+#elif defined _MSC_VER
+#include <sal.h>
+#define fm_FORMAT_ARG(n)
+#define fm_FORMAT_ARG_MSVC _Printf_format_string_
+#else
+#define fm_FORMAT_ARG(n)
+#define fm_FORMAT_ARG_MSVC
+#endif
 
-namespace floormat::assert_detail {
+namespace floormat {
 
+void fm_emit_debug(const char* prefix, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(2);
+void fm_emit_debug0(fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(1);
+void fm_emit_debug_loc(const char* prefix, const char* file, int line, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(4);
+void fm_emit_debug_loc0(const char* file, int line, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(3);
 
-#define fm_EMIT_ABORT() do { std::fflush(stdout); std::fflush(stderr); ::std::abort(); } while (false)
+[[noreturn]] CORRADE_NEVER_INLINE void fm_emit_assert_fail(const char* expr, const char* file, int line);
+[[noreturn]] CORRADE_NEVER_INLINE void fm_emit_abort(const char* file, int line, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(3);
+[[noreturn]] CORRADE_NEVER_INLINE void fm_emit_abort();
 
-} // namespace floormat::assert_detail
-
+} // namespace floormat
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
-#ifdef __clang__
-#   define FM_KILL_PRINTF_WARN_1_2() \
-    _Pragma("clang diagnostic push") \
-    _Pragma("clang diagnostic ignored \"-Wformat-nonliteral\"")
-#   define FM_KILL_PRINTF_WARN_2_2() _Pragma("clang diagnostic pop")
-#else
-#define FM_KILL_PRINTF_WARN_1_2()
-#define FM_KILL_PRINTF_WARN_2_2()
 #endif
 
-#define FM_KILL_PRINTF_WARN_1()                              \
-    _Pragma("GCC diagnostic push")                           \
-    _Pragma("GCC diagnostic ignored \"-Wdouble-promotion\"") \
-    FM_KILL_PRINTF_WARN_1_2()
-
-#define FM_KILL_PRINTF_WARN_2() _Pragma("GCC diagnostic pop") FM_KILL_PRINTF_WARN_2_2()
-#else
-#define FM_KILL_PRINTF_WARN_1()
-#define FM_KILL_PRINTF_WARN_2()
-#endif
-
-#define fm_EMIT_DEBUG2(pfx, ...)                                        \
-    do {                                                                \
-        if (!std::is_constant_evaluated())                              \
-        {                                                               \
-            if constexpr (sizeof(pfx) > 1)                              \
-                std::fputs((pfx), stderr);                              \
-            std::fflush(stderr);                                        \
-            FM_KILL_PRINTF_WARN_1()                                     \
-            std::fprintf(stderr, __VA_ARGS__);                          \
-            FM_KILL_PRINTF_WARN_2()                                     \
-        }                                                               \
-    } while (false)
-
-#define fm_EMIT_DEBUG(pfx, ...)                                         \
-    do {                                                                \
-        if (!std::is_constant_evaluated())                              \
-        {                                                               \
-            fm_EMIT_DEBUG2(pfx, __VA_ARGS__);                           \
-            std::fputc('\n', stderr);                                   \
-            std::fflush(stderr);                                        \
-        }                                                               \
-    } while (false)
-
-#define fm_abort(...)                                                   \
-    do {                                                                \
-        fm_EMIT_DEBUG2("fatal: ", __VA_ARGS__);                         \
-        fm_EMIT_DEBUG("", " in %s:%d", __FILE__, __LINE__);             \
-        fm_EMIT_ABORT();                                                \
-    } while (false)
-
-#define fm_assert(...)                                                  \
-    do {                                                                \
-        if (!(__VA_ARGS__)) /*NOLINT(*-simplify-boolean-expr)*/ [[unlikely]] { \
-            fm_EMIT_DEBUG("", "assertion failed: %s in %s:%d",          \
-                          #__VA_ARGS__, __FILE__, __LINE__);            \
-            fm_EMIT_ABORT();                                            \
-        }                                                               \
-    } while(false)
+#define fm_assert(...) ((__VA_ARGS__) ? void() : ::floormat::fm_emit_assert_fail(#__VA_ARGS__, __FILE__, __LINE__))
+#define fm_abort(...)           (::floormat::fm_emit_abort(__FILE__, __LINE__, __VA_ARGS__))
+#define fm_warn(...)            (::floormat::fm_emit_debug("warning: ", __VA_ARGS__))
+#define fm_error(...)           (::floormat::fm_emit_debug("error: ", __VA_ARGS__))
+#define fm_log(...)             (::floormat::fm_emit_debug0(__VA_ARGS__))
+#define fm_debug(...)           (::floormat::fm_emit_debug0(__VA_ARGS__))
+#define fm_debug_loc(pfx, ...)  (::floormat::fm_emit_debug_loc(pfx, __FILE__, __LINE__,__VA_ARGS__))
+#define fm_debug_loc0(...)      (::floormat::fm_emit_debug_loc0(__FILE__, __LINE__,__VA_ARGS__))
 
 #ifndef FM_NO_DEBUG
 #define fm_debug_assert(...) fm_assert(__VA_ARGS__)
 #else
 #define fm_debug_assert(...) void()
 #endif
-
-#define fm_warn(...)  fm_EMIT_DEBUG("warning: ", __VA_ARGS__)
-#define fm_error(...) fm_EMIT_DEBUG("error: ", __VA_ARGS__)
-#define fm_log(...)   fm_EMIT_DEBUG("", __VA_ARGS__)
-#define fm_debug(...) fm_EMIT_DEBUG("", __VA_ARGS__)
 
 #define fm_warn_once(...) do {                                          \
         static bool _fm_once_flag = false;                              \
@@ -106,7 +66,7 @@ namespace floormat::assert_detail {
             ERR_nospace << #__VA_ARGS__;                                \
             ERR_nospace << "    expected: " << a;                       \
             ERR_nospace << "      actual: " << b;                       \
-            fm_EMIT_ABORT();                                            \
+            fm_emit_abort();                                            \
         }                                                               \
     })(__VA_ARGS__)
 

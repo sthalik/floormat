@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
 #include <cinttypes>
+#include <cstdio>
 #include <cr/Debug.h>
 #include <mg/Functions.h>
 

@@ -63,15 +63,11 @@ Script<S, Obj>::Script(): ptr{nullptr}, _state{script_lifecycle::no_init}
 template <typename S, typename Obj>
 void Script<S, Obj>::_assert_state(script_lifecycle s, const char* file, int line)
 {
-    if (_state != s)
-    {
-        fm_EMIT_DEBUG2("fatal: ",
-                       "invalid state transition from '%s' to '%s'",
-                       base_script::state_name(_state).data(),
-                       base_script::state_name(s).data());
-        fm_EMIT_DEBUG("", " in %s:%d", file, line);
-        fm_EMIT_ABORT();
-    }
+    if (_state != s) [[unlikely]]
+        fm_emit_abort(file, line,
+                      "invalid state transition from '%s' to '%s'",
+                      base_script::state_name(_state).data(),
+                      base_script::state_name(s).data());
 }
 
 template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() const { return _state; }

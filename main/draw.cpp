@@ -36,7 +36,7 @@ void main_impl::do_update(const Ns& dtʹ)
         value = secs;
 #endif
         if (secs > 35e-3f /* && !dt_expected.do_sleep */) [[likely]]
-            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)(secs*1e3));
+            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)secs*1e3);
     }
     else
         swapBuffers();

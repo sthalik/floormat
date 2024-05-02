@@ -2,6 +2,7 @@
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include <cstdio>
 #include <Corrade/Containers/String.h>
 #include <Corrade/Utility/Path.h>
 
@@ -36,10 +37,10 @@ void app::do_quicksave()
     world.collect(true);
     if (Path::exists(tmp))
         Path::remove(tmp);
-    fputs("quicksave... ", stderr); fflush(stderr);
+    std::fputs("quicksave... ", stderr); std::fflush(stderr);
     world.serialize(tmp);
     Path::move(tmp, file);
-    fputs("done\n", stderr); fflush(stderr);
+    std::fputs("done\n", stderr); std::fflush(stderr);
 }
 
 void app::do_quickload()
@@ -52,9 +53,9 @@ void app::do_quickload()
         fm_warn("no quicksave");
         return;
     }
-    fputs("quickload... ", stderr); fflush(stderr);
+    std::fputs("quickload... ", stderr); std::fflush(stderr);
     reset_world(world::deserialize(file, loader_policy::warn));
-    fputs("done\n", stderr); fflush(stderr);
+    std::fputs("done\n", stderr); std::fflush(stderr);
 }
 
 void app::do_new_file()

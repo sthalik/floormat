@@ -3,6 +3,8 @@
 #include "compat/defs.hpp"
 #include "entity/accessor.hpp"
 #include "imgui-raii.hpp"
+#include <cstdio>
+#include <utility>
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Functions.h>
@@ -10,7 +12,6 @@
 #include <Magnum/Math/Vector3.h>
 #include <Magnum/Math/Vector4.h>
 #include <Magnum/Math/Color.h>
-#include <utility>
 
 namespace floormat::entities {
 

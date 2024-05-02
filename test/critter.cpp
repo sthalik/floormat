@@ -147,10 +147,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (b) [[likely]]
             return false;
         else
-        {
-            fm_EMIT_DEBUG("", "assertion failed: false in %s:%d", file, line);
-            fm_EMIT_ABORT();
-        }
+            fm_emit_assert_fail("false", file, line);
     };
 
     for (i = 0; true; i++)
