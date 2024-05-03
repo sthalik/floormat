@@ -45,10 +45,10 @@ void print_vec2(auto&& buf, Vector2 vec)
 
 void do_column(StringView name)
 {
-  ImGui::TableNextRow();
-  ImGui::TableNextColumn();
-  text(name);
-  ImGui::TableNextColumn();
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    text(name);
+    ImGui::TableNextColumn();
 }
 
 struct raycast_test final : base_test

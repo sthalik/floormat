@@ -110,7 +110,7 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
     if (_pass_modified)
         return;
 
-    unsigned i = (unsigned)b1 << 1 | (unsigned)!!b0 << 0;
+    unsigned i = (unsigned)b1 << 1 | (unsigned)b0 << 0;
     CORRADE_ASSUME(i < 4u); (void)0;
 
     switch (i)
