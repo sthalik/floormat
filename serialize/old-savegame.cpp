@@ -1,4 +1,5 @@
 #include "binary-reader.inl"
+#include "compat/limits.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
@@ -53,11 +54,6 @@ using tilemeta = uint8_t;
 using atlasid  = uint16_t;
 using chunksiz = uint16_t;
 using proto_t  = uint16_t;
-
-template<typename T> struct int_traits;
-
-template<std::unsigned_integral T> struct int_traits<T> { static constexpr T max = T(-1); };
-template<std::signed_integral T> struct int_traits<T> { static constexpr T max = T(-1)&~(T(1) << sizeof(T)*8-1); };
 
 namespace {
 
@@ -115,7 +111,7 @@ using namespace floormat::Serialize;
 constexpr inline atlasid meta_short_scenery_bit_ = highbits<atlasid, 1, 0>;
 constexpr inline atlasid meta_rotation_bits_ = highbits<atlasid, rotation_BITS, 1>;
 constexpr inline atlasid scenery_id_flag_mask_ = meta_short_scenery_bit_ | meta_rotation_bits_;
-constexpr inline atlasid scenery_id_max_ = int_traits<atlasid>::max & ~scenery_id_flag_mask_;
+constexpr inline atlasid scenery_id_max_ = limits<atlasid>::max & ~scenery_id_flag_mask_;
 
 struct reader_state final {
     explicit reader_state(world& world, loader_policy policy) noexcept;
