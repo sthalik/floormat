@@ -369,15 +369,14 @@ void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& 
 
     check_script_update_1(script.state());
     script->on_update(std::static_pointer_cast<critter>(ptrʹ), i, dt);
-#if 0
-    // for now, objects can't delete themselves
+#if 0 // for now, objects can't delete themselves
     if (check_script_update_2(script.state())) [[unlikely]]
         return;
 #endif
 
     if (playable) [[unlikely]]
     {
-        movement.AUTO &= !(movement.L | movement.R | movement.U | movement.D);
+        movement.AUTO &= (movement.L | movement.R | movement.U | movement.D) == 0;
 
         if (!movement.AUTO)
         {
