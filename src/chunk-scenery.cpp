@@ -23,8 +23,8 @@ auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 
 bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
 {
-    return min[0] <= o.max[0] && max[0] >= o.min[0] &&
-           min[1] <= o.max[1] && max[1] >= o.min[1];
+    return min.x() <= o.max.x() && max.x() >= o.min.x() &&
+           min.y() <= o.max.y() && max.y() >= o.min.y();
 }
 
 static void topo_dfs(Array<chunk::object_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
