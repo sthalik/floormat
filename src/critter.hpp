@@ -34,7 +34,6 @@ struct critter final : object
 
     void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
     void update_movement(size_t& i, const Ns& dt, rotation r);
-    void update_nonplayable(size_t& i, const Ns& dt);
 
     struct move_result { bool blocked, moved; };
     [[nodiscard]] move_result move_toward(size_t& i, const Ns& dt, const point& dest);

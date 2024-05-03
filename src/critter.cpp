@@ -391,13 +391,6 @@ void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& 
                 update_movement(i, dt, new_r);
         }
     }
-    else
-        update_nonplayable(i, dt);
-}
-
-void critter::update_nonplayable(size_t& i, const Ns& dt)
-{
-    (void)i; (void)dt; (void)playable;
 }
 
 void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
@@ -530,7 +523,6 @@ auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> mov
 
     return { .blocked = false, .moved = moved };
 }
-
 
 object_type critter::type() const noexcept { return object_type::critter; }
 

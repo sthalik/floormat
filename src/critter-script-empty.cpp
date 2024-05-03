@@ -1,5 +1,5 @@
 #include "critter-script.inl"
-#include "compat/assert.hpp"
+#include "entity/name-of.hpp"
 
 namespace floormat {
 
@@ -19,14 +19,20 @@ void touch_ptr(const std::shared_ptr<critter>& p)
 
 struct empty_critter_script final : critter_script
 {
-    empty_critter_script();
+    const void* type_id() const override;
     void on_init(const std::shared_ptr<critter>& c) override;
     void on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt) override;
     void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 };
 
-empty_critter_script::empty_critter_script() : critter_script{} {}
+constexpr StringView script_name = name_of<empty_critter_script>;
+
+const void* empty_critter_script::type_id() const
+{
+    return &script_name;
+}
+
 void empty_critter_script::on_init(const std::shared_ptr<critter>& p)
 {
     DBG_nospace << "> init critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
@@ -47,7 +53,7 @@ void empty_critter_script::delete_self() noexcept
     DBG_nospace << "< delete critter";
 }
 
-empty_critter_script empty_script_ = {};
+constinit empty_critter_script empty_script_ = {};
 
 } // namespace
 

@@ -33,7 +33,7 @@ void concept_check() {}
 
 namespace floormat {
 
-#define FM_ASSERT_SCRIPT_STATE(new_state) (Script<S, Obj>::_assert_state((new_state), __FILE__, __LINE__))
+#define FM_ASSERT_SCRIPT_STATE(new_state) (base_script::_assert_state(_state, (new_state), __FILE__, __LINE__))
 
 template <typename S, typename Obj> Script<S, Obj>::~Script() noexcept
 {
@@ -58,16 +58,6 @@ template <typename S, typename Obj>
 Script<S, Obj>::Script(): ptr{nullptr}, _state{script_lifecycle::no_init}
 {
     detail_Script::concept_check<S, Obj>();
-}
-
-template <typename S, typename Obj>
-void Script<S, Obj>::_assert_state(script_lifecycle s, const char* file, int line)
-{
-    if (_state != s) [[unlikely]]
-        fm_emit_abort(file, line,
-                      "invalid state transition from '%s' to '%s'",
-                      base_script::state_name(_state).data(),
-                      base_script::state_name(s).data());
 }
 
 template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() const { return _state; }
@@ -111,13 +101,24 @@ void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
 template <typename S, typename Obj>
 void Script<S, Obj>::do_reassign(S* p, const std::shared_ptr<Obj>& obj)
 {
-    fm_assert(p);
+    if (!p) [[unlikely]]
+        return do_clear(obj);
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
     fm_debug_assert(ptr);
     ptr->on_destroy(obj, script_destroy_reason::unassign);
     ptr->delete_self();
     ptr = p;
     p->on_init(obj);
+}
+
+template <typename S, typename Obj>
+void Script<S, Obj>::do_clear(const std::shared_ptr<Obj>& obj)
+{
+    FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
+    fm_debug_assert(ptr);
+    ptr->on_destroy(obj, script_destroy_reason::unassign);
+    ptr->delete_self();
+    ptr = make_empty();
 }
 
 template <typename S, typename Obj>

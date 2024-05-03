@@ -20,7 +20,15 @@ StringView base_script::state_name(script_lifecycle x)
         return names[(uint32_t)x];
 }
 
+void base_script::_assert_state(script_lifecycle old_state, script_lifecycle s, const char* file, int line)
+{
+    if (old_state != s) [[unlikely]]
+        fm_emit_abort(file, line,
+                      "invalid state transition from '%s' to '%s'",
+                      state_name(old_state).data(),
+                      state_name(s).data());
+}
+
 base_script::~base_script() noexcept = default;
-base_script::base_script() noexcept = default;
 
 } // namespace floormat
