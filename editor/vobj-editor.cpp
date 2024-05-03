@@ -57,8 +57,8 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
                 if (eʹ->id == id && eʹ->is_virtual())
                 {
                     eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
-                    eʹ->destroy_script_post();
                     c.remove_object((unsigned)i);
+                    eʹ->destroy_script_post();
                     goto start;
                 }
             }
