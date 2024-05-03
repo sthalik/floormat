@@ -54,7 +54,7 @@ struct refcount_access
     using counter_type = refcount_traits<Tag, T>::counter_type;
     refcount_access() = delete;
 
-    static constexpr auto access(T* ptr) noexcept -> counter_type&;
+    static constexpr auto access(T* ptr) noexcept -> counter_type&; // todo this should return the iptr's control block. it has to contain the original pointer (because the casted ptr (or its base class, when casted to iptr<base>) might not have a virtual dtor), shared count, and (shared+weak) count.
     template<typename Y> static constexpr Y* checked_cast(const T* ptr) noexcept; // todo
 };
 
@@ -168,7 +168,7 @@ class basic_iptr final
     using ops_t = ::floormat::iptr::refcount_ops<Tag, T>;
     static_assert(::floormat::iptr::check_traits<Tag, T>());
 
-    T* _ptr{nullptr};
+    T* _ptr{nullptr}; // todo control block
 
     // todo use std::construct_at as it has a constexpr exception.
     // ...but it requires <memory> :( — maybe use an ifdef?
