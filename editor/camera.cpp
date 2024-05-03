@@ -89,7 +89,7 @@ object_id app::get_object_colliding_with_cursor()
                     continue;
                 auto& c = *cʹ;
                 c.ensure_passability();
-                const with_shifted_camera_offset o{shader, c_pos, {minx, miny}, {maxx, maxy}};
+                const with_shifted_camera_offset o{shader, c_pos};
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
                     constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
@@ -144,8 +144,7 @@ Vector2 app::point_screen_pos(point pt)
     auto& shader = M->shader();
     auto win_size = M->window_size();
     auto c3 = pt.chunk3();
-    auto c2 = pt.chunk();
-    with_shifted_camera_offset co{shader, c3, c2, c2 };
+    with_shifted_camera_offset co{shader, c3};
     auto world_pos = TILE_SIZE20 * Vector3(pt.local()) + Vector3(Vector2(pt.offset()), 0);
     return Vector2(shader.camera_offset()) + Vector2(win_size)*.5f + shader.project(world_pos);
 }
