@@ -103,8 +103,11 @@ public:
     shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
     static critter_proto make_player_proto();
 
+    struct script_status { bool initialized, finalized; };
     void init_scripts();
     void finish_scripts();
+    struct script_status script_status() const;
+
     bool is_teardown() const;
     object_id object_counter() const { return _object_counter; }
     [[nodiscard]] object_id make_id() { return ++_object_counter; }

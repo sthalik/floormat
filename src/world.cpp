@@ -262,6 +262,11 @@ void world::finish_scripts()
             obj->destroy_script_post();
 }
 
+struct world::script_status world::script_status() const
+{
+    return { _script_initialized, _script_finalized };
+}
+
 shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id)
 {
     return ensure_player_character(id, make_player_proto());

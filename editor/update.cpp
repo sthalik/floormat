@@ -310,10 +310,15 @@ auto app::get_z_bounds() -> z_bounds
 
 void app::update(Ns dt)
 {
-    M->world().collect(true);
+    auto& w = M->world();
+    w.collect(true);
     update_cursor_tile(cursor.pixel);
     tests_pre_update(dt);
     apply_commands(*keys_);
+    { auto status = w.script_status();
+      fm_assert(status.initialized);
+      fm_assert(!status.finalized);
+    }
     update_character(dt);
     update_world(dt);
     do_camera(dt, *keys_, get_key_modifiers());
