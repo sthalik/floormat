@@ -9,7 +9,6 @@ struct Ns;
 
 struct critter_script : base_script
 {
-    critter_script(const std::shared_ptr<critter>& c);
     ~critter_script() noexcept override;
 
     virtual void on_init(const std::shared_ptr<critter>& c) = 0;

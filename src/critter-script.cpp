@@ -26,7 +26,7 @@ struct empty_critter_script final : critter_script
     void delete_self() noexcept override;
 };
 
-empty_critter_script::empty_critter_script() : critter_script{nullptr} {}
+empty_critter_script::empty_critter_script() : critter_script{} {}
 void empty_critter_script::on_init(const std::shared_ptr<critter>& p)
 {
     DBG_nospace << "> init critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
@@ -57,9 +57,8 @@ critter_script* Script<critter_script, critter>::make_empty()
     return &empty_script_;
 }
 
-critter_script::critter_script(const std::shared_ptr<critter>&) {}
-critter_script::~critter_script() noexcept {}
-
 template class Script<critter_script, critter>;
+
+critter_script::~critter_script() noexcept = default;
 
 } // namespace floormat
