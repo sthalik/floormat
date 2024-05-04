@@ -3,9 +3,12 @@
 
 namespace floormat::detail_borrowed_ptr {
 
-#ifdef __GNUG__
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdelete-abstract-non-virtual-dtor"
+#elif defined __GNUG__
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdelete-abstract-non-virtual-dtor"
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #endif
 void control_block_::decrement(control_block_*& blk) noexcept
 {
@@ -20,22 +23,10 @@ void control_block_::decrement(control_block_*& blk) noexcept
     blk = nullptr;
 }
 
-#ifdef __GNUG__
+#ifdef __clang__
+#pragma clang diagnostic pop
+#elif defined __GNUG__
 #pragma GCC diagnostic pop
 #endif
 
 } // namespace floormat::detail_borrowed_ptr
-
-namespace {
-struct Foo {};
-struct Bar : Foo {};
-struct Baz {};
-} // namespace
-
-namespace floormat {
-
-template struct detail_borrowed_ptr::control_block_impl<Foo>;
-template class bptr<Foo>;
-template bptr<Bar> static_pointer_cast(const bptr<Foo>&) noexcept;
-
-} // namespace floormat
