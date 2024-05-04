@@ -44,24 +44,25 @@ int test_app::exec()
         StringView name;
         void(*function)();
     } list[] = {
+        // fast
+        FM_TEST(test_magnum_math),
+        FM_TEST(test_math),
         FM_TEST(test_astar_pool),
-        FM_TEST(test_bitmask),
         FM_TEST(test_coords),
+        FM_TEST(test_iptr),
         FM_TEST(test_entity),
         FM_TEST(test_hash),
-        FM_TEST(test_iptr),
+        // normal
+        FM_TEST(test_zzz_misc),
+        FM_TEST(test_bitmask),
         FM_TEST(test_json),
         FM_TEST(test_json2),
         FM_TEST(test_json3),
         FM_TEST(test_loader),
-        FM_TEST(test_magnum_math),
-        FM_TEST(test_math),
         FM_TEST(test_raycast),
         FM_TEST(test_region),
-        FM_TEST(test_tile_iter),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
-        FM_TEST(test_zzz_misc),
         // the rest are slow
         FM_TEST(test_astar),
         FM_TEST(test_critter),
