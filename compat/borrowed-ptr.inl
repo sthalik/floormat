@@ -92,7 +92,7 @@ bptr<T>::bptr(T* ptr) noexcept:
     casted_ptr{ptr},
     blk{detail_borrowed_ptr::control_block_impl<T>::create(ptr)}
 {
-    fm_bptr_assert(blk && blk->_count == 1 && ptr && blk->_ptr);
+    fm_bptr_assert(!blk || blk->_count == 1 && blk->_ptr);
 }
 
 template<typename T>
@@ -142,8 +142,9 @@ template<typename T>
 template<bool MaybeEmpty>
 void bptr<T>::destroy() noexcept
 {
-    if constexpr(!MaybeEmpty)
-        fm_assert(blk);
+    if constexpr(MaybeEmpty)
+        if (!blk)
+            return;
     blk->free_ptr();
     blk->_ptr = nullptr;
     casted_ptr = nullptr;
@@ -219,7 +220,7 @@ template<typename T> T* bptr<T>::operator->() const noexcept
 }
 
 template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
-template<typename T> bool operator==(const bptr<T>& a, const bptr<T>& b) noexcept { return a.blk == b.blk; }
+template<typename T> bool operator==(const bptr<T>& a, const bptr<T>& b) noexcept { return a.get() == b.get(); }
 template<typename T> bptr<T>::operator bool() const noexcept { return get(); }
 
 template<typename T>
