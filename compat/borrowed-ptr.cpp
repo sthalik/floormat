@@ -9,6 +9,9 @@ namespace floormat::detail_borrowed_ptr {
 #elif defined __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
+#elif defined _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 5205)
 #endif
 void control_block_::decrement(control_block_*& blk) noexcept
 {
@@ -27,6 +30,8 @@ void control_block_::decrement(control_block_*& blk) noexcept
 #pragma clang diagnostic pop
 #elif defined __GNUG__
 #pragma GCC diagnostic pop
+#elif defined _MSC_VER
+#pragma warning(pop)
 #endif
 
 } // namespace floormat::detail_borrowed_ptr
