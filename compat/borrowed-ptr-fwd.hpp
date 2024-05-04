@@ -69,4 +69,6 @@ public:
     template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
 };
 
+template<typename T> bptr(T* ptr) -> bptr<T>;
+
 } // namespace floormat

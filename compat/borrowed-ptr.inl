@@ -5,7 +5,9 @@
 
 #define FM_BPTR_DEBUG
 
-#if defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
+#ifdef __CLION_IDE__
+#define fm_bptr_assert(...) (void(__VA_ARGS__))
+#elif defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
 #define fm_bptr_assert(...) fm_assert(__VA_ARGS__)
 #else
 #define fm_bptr_assert(...) void()
@@ -175,7 +177,8 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
             blk->decrement(blk);
         casted_ptr = other.casted_ptr;
         blk = other.blk;
-        ++blk->_count;
+        if (blk)
+            ++blk->_count;
     }
     return *this;
 }
@@ -204,7 +207,7 @@ bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
 
 template<typename T> T* bptr<T>::get() const noexcept
 {
-    if (blk && blk->_ptr)
+    if (blk && blk->_ptr) [[likely]]
     {
         fm_bptr_assert(casted_ptr);
         return casted_ptr;
