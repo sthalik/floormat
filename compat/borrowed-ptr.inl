@@ -1,6 +1,7 @@
 #pragma once
 #include "borrowed-ptr.hpp"
 #include "compat/assert.hpp"
+#include <utility>
 
 #define FM_BPTR_DEBUG
 
@@ -21,22 +22,22 @@ namespace floormat::detail_borrowed_ptr {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #endif
-struct control_block_
+struct control_block
 {
     void* _ptr; // todo maybe add directly embeddable objects?
     uint32_t _count;
     virtual void free_ptr() noexcept = 0;
-    static void decrement(control_block_*& blk) noexcept;
+    static void decrement(control_block*& blk) noexcept;
 };
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
 #endif
 
 template<typename T>
-struct control_block_impl final: control_block_
+struct control_block_impl final: control_block
 {
     void free_ptr() noexcept override;
-    [[nodiscard]] static control_block_* create(T* ptr) noexcept;
+    [[nodiscard]] static control_block* create(T* ptr) noexcept;
 protected:
     explicit control_block_impl(T* ptr) noexcept;
 };
@@ -56,7 +57,7 @@ void control_block_impl<T>::free_ptr() noexcept
 }
 
 template <typename T>
-control_block_* control_block_impl<T>::create(T* ptr) noexcept
+control_block* control_block_impl<T>::create(T* ptr) noexcept
 {
     if (ptr)
     {
@@ -71,11 +72,9 @@ control_block_* control_block_impl<T>::create(T* ptr) noexcept
 
 namespace floormat {
 
-template<typename T> bptr<T>::bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block_* blk) noexcept:
+template<typename T> bptr<T>::bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block* blk) noexcept:
     casted_ptr{casted_ptr}, blk{blk}
 {}
-
-//template<typename T> bptr<T>::bptr(NoInitT) noexcept {}
 
 template<typename T>
 template<typename... Ts>
@@ -103,28 +102,29 @@ bptr<T>::~bptr() noexcept
         blk->decrement(blk);
 }
 
-template<typename T>
-template<typename Y>
-requires std::is_convertible_v<Y*, T*>
-bptr<T>::bptr(const bptr<Y>& other) noexcept:
-    casted_ptr{other.casted_ptr}, blk{other.blk}
-{
-    if (blk)
-    {
-        ++blk->_count;
-        fm_bptr_assert(blk->_count > 1);
-    }
-}
+template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, private_tag} {}
+template<typename T> bptr<T>& bptr<T>::operator=(const bptr& other) noexcept { return _copy_assign(other); }
 
 template<typename T>
-template<typename Y>
-requires std::is_convertible_v<Y*, T*>
-bptr<T>::bptr(bptr<Y>&& other) noexcept:
-    casted_ptr{other.casted_ptr}, blk{other.blk}
-{
-    other.casted_ptr = nullptr;
-    other.blk = nullptr;
-}
+template<detail_borrowed_ptr::DerivedFrom<T> Y>
+bptr<T>::bptr(const bptr<Y>& other) noexcept: bptr{other, private_tag} {}
+
+template<typename T>
+template<detail_borrowed_ptr::DerivedFrom<T> Y>
+bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
+{ return _copy_assign(other); }
+
+template<typename T> bptr<T>& bptr<T>::operator=(bptr&& other) noexcept { return _move_assign(move(other)); }
+template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), private_tag} {}
+
+template<typename T>
+template<detail_borrowed_ptr::DerivedFrom<T> Y>
+bptr<T>::bptr(bptr<Y>&& other) noexcept: bptr{move(other), private_tag} {}
+
+template<typename T>
+template<detail_borrowed_ptr::DerivedFrom<T> Y>
+bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
+{ return _move_assign(move(other)); }
 
 template<typename T>
 void bptr<T>::reset() noexcept
@@ -153,8 +153,19 @@ template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { rese
 
 template<typename T>
 template<typename Y>
-requires std::is_convertible_v<Y*, T*>
-bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
+bptr<T>::bptr(const bptr<Y>& other, private_tag_t) noexcept:
+    casted_ptr{other.casted_ptr}, blk{other.blk}
+{
+    if (blk)
+    {
+        ++blk->_count;
+        fm_bptr_assert(blk->_count > 1);
+    }
+}
+
+template<typename T>
+template<typename Y>
+bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
@@ -170,10 +181,19 @@ bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
 
 template<typename T>
 template<typename Y>
-requires std::is_convertible_v<Y*, T*>
-bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
+bptr<T>::bptr(bptr<Y>&& other, private_tag_t) noexcept:
+    casted_ptr{other.casted_ptr}, blk{other.blk}
 {
-    blk->decrement(blk);
+    other.casted_ptr = nullptr;
+    other.blk = nullptr;
+}
+
+template<typename T>
+template<typename Y>
+bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
+{
+    if (blk)
+        blk->decrement(blk);
     casted_ptr = other.casted_ptr;
     blk = other.blk;
     other.casted_ptr = nullptr;

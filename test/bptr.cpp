@@ -39,8 +39,59 @@ template bptr<Foo> static_pointer_cast(const bptr<Bar>&) noexcept;
 
 namespace {
 
+int A_total = 0, A_alive = 0; // NOLINT
+
+struct A
+{
+    int val, serial;
+    explicit A(int val) : val{val}, serial{++A_total} { ++A_alive; }
+    ~A() noexcept { --A_alive; fm_assert(A_alive >= 0); }
+};
+
 void test1()
 {
+    A_total = 0; A_alive = 0;
+
+    auto p1 = bptr<A>{InPlace, 1};
+    fm_assert(p1.use_count() == 1);
+    fm_assert(p1.get());
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 1);
+
+    p1 = nullptr;
+    fm_assert(p1.use_count() == 0);
+    fm_assert(!p1.get());
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 0);
+}
+
+void test2()
+{
+    A_total = 0; A_alive = 0;
+
+    auto p1 = bptr<A>{InPlace, 2};
+    auto p2 = p1;
+
+    fm_assert(p1.get());
+    fm_assert(p1.get() == p2.get());
+    fm_assert(p1->val == 2);
+    fm_assert(p1->serial == 1);
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 1);
+
+    p1 = nullptr;
+    fm_assert(!p1.get());
+    fm_assert(p2.get());
+    fm_assert(p2->val == 2);
+    fm_assert(p2->serial == 1);
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 1);
+
+    p2 = nullptr;
+    fm_assert(!p1.get());
+    fm_assert(!p2.get());
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 0);
 }
 
 } // namespace
@@ -48,6 +99,7 @@ void test1()
 void test_app::test_bptr()
 {
     test1();
+    test2();
 }
 
 } // namespace floormat

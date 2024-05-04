@@ -1,6 +1,15 @@
 #pragma once
 
-namespace floormat::detail_borrowed_ptr { struct control_block_; }
+namespace floormat::detail_borrowed_ptr {
+
+struct control_block;
+template<typename From, typename To>
+concept DerivedFrom = requires(From* x) {
+    requires !std::is_same_v<From, To>;
+    requires std::is_nothrow_convertible_v<From*, To*>;
+};
+
+} // namespace floormat::detail_borrowed_ptr
 
 namespace floormat {
 
@@ -11,26 +20,39 @@ template<typename T>
 class bptr final // NOLINT(*-special-member-functions)
 {
     mutable T* casted_ptr;
-    detail_borrowed_ptr::control_block_* blk;
+    detail_borrowed_ptr::control_block* blk;
 
-    explicit bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block_* blk) noexcept;
-    //explicit bptr(NoInitT) noexcept;
+    explicit bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block* blk) noexcept;
+
+    struct private_tag_t final {};
+    static constexpr private_tag_t private_tag{};
+
+    template<typename Y> bptr(const bptr<Y>& other, private_tag_t) noexcept;
+    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
+    template<typename Y> bptr(bptr<Y>&& other, private_tag_t) noexcept;
+    template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
 
 public:
     template<typename... Ts>
     requires std::is_constructible_v<T, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
-    bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
-    bptr() noexcept;
     explicit bptr(T* ptr) noexcept;
+    bptr() noexcept;
     ~bptr() noexcept;
 
+    bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     bptr& operator=(std::nullptr_t) noexcept;
-    template<typename Y> requires std::is_convertible_v<Y*, T*> bptr(const bptr<Y>&) noexcept;
-    template<typename Y> requires std::is_convertible_v<Y*, T*> bptr& operator=(const bptr<Y>&) noexcept;
-    template<typename Y> requires std::is_convertible_v<Y*, T*> bptr(bptr<Y>&&) noexcept;
-    template<typename Y> requires std::is_convertible_v<Y*, T*> bptr& operator=(bptr<Y>&&) noexcept;
+
+    bptr(const bptr&) noexcept;
+    bptr& operator=(const bptr&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
+
+    bptr(bptr&&) noexcept;
+    bptr& operator=(bptr&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
     friend bool operator==<T>(const bptr<T>& a, const bptr<T>& b) noexcept;
     explicit operator bool() const noexcept;

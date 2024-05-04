@@ -13,7 +13,7 @@ namespace floormat::detail_borrowed_ptr {
 #pragma warning(push)
 #pragma warning(disable : 5205)
 #endif
-void control_block_::decrement(control_block_*& blk) noexcept
+void control_block::decrement(control_block*& blk) noexcept
 {
     fm_bptr_assert(blk);
     auto c = --blk->_count;
