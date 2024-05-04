@@ -42,13 +42,6 @@ public:
     using iterator = tile_iterator;
     using const_iterator = tile_const_iterator;
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator cbegin() const noexcept;
-    const_iterator cend() const noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
-
     bool empty(bool force = false) const noexcept;
 
     explicit chunk(class world& w, chunk_coords_ ch) noexcept;

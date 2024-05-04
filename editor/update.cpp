@@ -11,7 +11,6 @@
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "src/critter.hpp"
-#include "src/tile-iterator.hpp"
 #include "src/nanosecond.hpp"
 #include "src/timer.hpp"
 #include "keys.hpp"
@@ -27,8 +26,8 @@ void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chu
 {
     auto floor1 = loader.ground_atlas("floor-tiles");
 
-    for (auto [x, k, pt] : c)
-        x.ground() = { floor1, variant_t(k % floor1->num_tiles()) };
+    for (auto k = 0u; k < TILE_COUNT; k++)
+        c[k].ground() = { floor1, variant_t(k % floor1->num_tiles()) };
     c.mark_modified();
 }
 

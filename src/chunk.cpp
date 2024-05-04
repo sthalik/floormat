@@ -1,7 +1,6 @@
 #include "chunk.hpp"
 #include "object.hpp"
 #include "world.hpp"
-#include "tile-iterator.hpp"
 #include "log.hpp"
 #include "RTree.h"
 #include <algorithm>
@@ -68,13 +67,6 @@ Optional<tile_ref> chunk::at_offset_(local_coords pos, Vector2i off)
 
 tile_ref chunk::at_offset(tile_ref r, Vector2i off) { return at_offset(local_coords{r.index()}, off); }
 Optional<tile_ref> chunk::at_offset_(tile_ref r, Vector2i off) { return at_offset_(local_coords{r.index()}, off); }
-
-auto chunk::begin() noexcept -> iterator { return iterator { *this, 0 }; }
-auto chunk::end() noexcept -> iterator { return iterator { *this, TILE_COUNT }; }
-auto chunk::cbegin() const noexcept -> const_iterator { return const_iterator { *this, 0 }; }
-auto chunk::cend() const noexcept -> const_iterator { return const_iterator { *this, TILE_COUNT }; }
-auto chunk::begin() const noexcept -> const_iterator { return cbegin(); }
-auto chunk::end() const noexcept -> const_iterator { return cend(); }
 
 void chunk::mark_ground_modified() noexcept
 {

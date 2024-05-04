@@ -8,7 +8,6 @@
 #include "src/light.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/tile-iterator.hpp"
 #include "src/nanosecond.inl"
 #include <Corrade/Utility/Path.h>
 
@@ -27,11 +26,10 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     auto table = loader.scenery("table1");
     auto control_panel = loader.scenery("control panel (wall) 1");
 
-    constexpr auto N = TILE_MAX_DIM;
-    for (auto [x, k, pt] : c)
-        x.ground() = { tiles, variant_t(k % tiles->num_tiles()) };
+    for (auto k = 0u; k < TILE_COUNT; k++)
+        c[k].ground() = { tiles, variant_t(k % tiles->num_tiles()) };
     control_panel.r = rotation::W;
-    constexpr auto K = N/2;
+    constexpr auto K = TILE_MAX_DIM/2;
     c[{K,   K  }].wall_north() = { metal2, 0 };
     c[{K,   K  }].wall_west()  = { metal2, 0 };
     c[{K,   K+1}].wall_north() = { metal2, 0 };
