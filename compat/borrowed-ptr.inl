@@ -10,17 +10,10 @@ namespace floormat::detail_borrowed_ptr {
 
 struct control_block_
 {
-    explicit control_block_(void* ptr) noexcept;
-    ~control_block_() noexcept;
-    void incr() noexcept;
-    void decr() noexcept;
-    uint32_t count() const noexcept;
-
     void* _ptr; // todo maybe add directly embeddable objects?
     uint32_t _count;
-
-private:
-    virtual void free() noexcept = 0;
+    virtual void free_ptr() noexcept = 0;
+    static void decrement(control_block_*& blk) noexcept;
 };
 
 #ifdef __GNUG__
@@ -28,37 +21,49 @@ private:
 #endif
 
 template<typename T>
-struct control_block final: control_block_
+struct control_block_impl final: control_block_
 {
-    void free() noexcept override;
+    void free_ptr() noexcept override;
     [[nodiscard]] static control_block_* create(T* ptr) noexcept;
-
 protected:
-    explicit control_block(T* ptr) noexcept;
+    explicit control_block_impl(T* ptr) noexcept;
 };
 
 template <typename T>
-control_block<T>::control_block(T* ptr) noexcept:
-    control_block_{ptr}
+control_block_impl<T>::control_block_impl(T* ptr) noexcept
 {
     fm_bptr_assert(ptr);
+    _ptr = ptr;
+    _count = 1;
 }
 
 template <typename T>
-void control_block<T>::free() noexcept
+void control_block_impl<T>::free_ptr() noexcept
 {
     delete static_cast<T*>(_ptr);
 }
 
 template <typename T>
-control_block_* control_block<T>::create(T* ptr) noexcept
+control_block_* control_block_impl<T>::create(T* ptr) noexcept
 {
-    return ptr ? new control_block<T>{ptr} : nullptr;
+    if (ptr)
+    {
+        auto* __restrict ret = new control_block_impl<T>{ptr};
+        return ret;
+    }
+    else
+        return nullptr;
 }
 
 } // namespace floormat::detail_borrowed_ptr
 
 namespace floormat {
+
+template<typename T> bptr<T>::bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block_* blk) noexcept:
+    casted_ptr{casted_ptr}, blk{blk}
+{}
+
+//template<typename T> bptr<T>::bptr(NoInitT) noexcept {}
 
 template<typename T>
 template<typename... Ts>
@@ -68,68 +73,85 @@ bptr{ new T{ forward<Ts...>(args...) } }
 {
 }
 
-template<typename T> constexpr bptr<T>::bptr(NoInitT) noexcept {};
-
-template<typename T>
-constexpr bptr<T>::bptr(DirectInitT, T* ptr, detail_borrowed_ptr::control_block_* blk) noexcept:
-    ptr{ptr}, blk{blk}
-{
-}
+template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: casted_ptr{nullptr}, blk{nullptr} {}
+template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
 template<typename T>
 bptr<T>::bptr(T* ptr) noexcept:
-    ptr{ptr},
-    blk{detail_borrowed_ptr::control_block<T>::create(ptr)}
+    casted_ptr{ptr},
+    blk{detail_borrowed_ptr::control_block_impl<T>::create(ptr)}
 {
+    fm_bptr_assert(blk && blk->_count == 1 && ptr && blk->_ptr);
 }
 
 template<typename T>
 bptr<T>::~bptr() noexcept
 {
     if (blk)
-        blk->decr();
-    //blk = reinterpret_cast<T*>(-1);
-    //blk = nullptr;
+        blk->decrement(blk);
 }
 
 template<typename T>
 template<typename Y>
 requires std::is_convertible_v<Y*, T*>
 bptr<T>::bptr(const bptr<Y>& other) noexcept:
-    ptr{other.ptr}, blk{other.blk}
+    casted_ptr{other.casted_ptr}, blk{other.blk}
 {
-    static_assert(std::is_convertible_v<Y*, T*>);
     if (blk)
-        blk->incr();
-    else
-        fm_bptr_assert(!ptr);
+    {
+        ++blk->_count;
+        fm_bptr_assert(blk->_count > 1);
+    }
 }
 
 template<typename T>
 template<typename Y>
 requires std::is_convertible_v<Y*, T*>
-bptr<T>::bptr(bptr<Y>&& other) noexcept: ptr{other.ptr}, blk{other.blk}
+bptr<T>::bptr(bptr<Y>&& other) noexcept:
+    casted_ptr{other.casted_ptr}, blk{other.blk}
 {
-    other.ptr = nullptr;
+    other.casted_ptr = nullptr;
     other.blk = nullptr;
 }
+
+template<typename T>
+void bptr<T>::reset() noexcept
+{
+    if (blk)
+    {
+        fm_bptr_assert(casted_ptr);
+        blk->decrement(blk);
+        casted_ptr = nullptr;
+        blk = nullptr;
+    }
+}
+
+template<typename T>
+template<bool MaybeEmpty>
+void bptr<T>::destroy() noexcept
+{
+    if constexpr(!MaybeEmpty)
+        fm_assert(blk && blk->_ptr);
+    blk->free_ptr();
+    blk->_ptr = nullptr;
+    casted_ptr = nullptr;
+}
+
+template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
 
 template<typename T>
 template<typename Y>
 requires std::is_convertible_v<Y*, T*>
 bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
 {
-    static_assert(std::is_convertible_v<Y*, T*>);
-    auto* const newblk = other.blk;
-    if (blk != newblk)
+    if (blk != other.blk)
     {
-        CORRADE_ASSUME(this != &other);
-        ptr = other.ptr;
+        CORRADE_ASSUME(this != &other); // todo! see if helps
         if (blk)
-            blk->decr();
-        blk = newblk;
-        if (newblk)
-            newblk->incr();
+            blk->decrement(blk);
+        casted_ptr = other.casted_ptr;
+        blk = other.blk;
+        ++blk->_count;
     }
     return *this;
 }
@@ -139,34 +161,49 @@ template<typename Y>
 requires std::is_convertible_v<Y*, T*>
 bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
 {
-    ptr = other.ptr;
+    blk->decrement(blk);
+    casted_ptr = other.casted_ptr;
     blk = other.blk;
-    other.ptr = nullptr;
+    other.casted_ptr = nullptr;
     other.blk = nullptr;
     return *this;
 }
+
+template<typename T> T* bptr<T>::get() const noexcept
+{
+    if (blk && blk->_ptr)
+    {
+        fm_bptr_assert(casted_ptr);
+        return casted_ptr;
+    }
+    else
+        return nullptr;
+}
+template<typename T> T* bptr<T>::operator->() const noexcept
+{
+    auto* ret = get();
+    fm_bptr_assert(ret);
+    return ret;
+}
+
+template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
+template<typename T> bool operator==(const bptr<T>& a, const bptr<T>& b) noexcept { return a.blk == b.blk; }
+template<typename T> bptr<T>::operator bool() const noexcept { return get(); }
 
 template<typename T>
 void bptr<T>::swap(bptr& other) noexcept
 {
     using floormat::swap;
-    swap(ptr, other.ptr);
+    swap(casted_ptr, other.casted_ptr);
     swap(blk, other.blk);
 }
 
 template<typename T> uint32_t bptr<T>::use_count() const noexcept
 {
     if (blk) [[likely]]
-    {
-        auto count = blk->_count;
-        fm_bptr_assert(count > 0);
-        return count;
-    }
+        return blk->_count;
     else
-    {
-        fm_bptr_assert(ptr);
         return 0;
-    }
 }
 
 } // namespace floormat

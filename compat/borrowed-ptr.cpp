@@ -3,31 +3,26 @@
 
 namespace floormat::detail_borrowed_ptr {
 
-control_block_::control_block_(void* ptr) noexcept: _ptr{ptr}, _count{1}
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-abstract-non-virtual-dtor"
+#endif
+void control_block_::decrement(control_block_*& blk) noexcept
 {
-    fm_bptr_assert(ptr);
-}
-
-void control_block_::incr() noexcept
-{
-    auto val = ++_count;
-    (void)val;
-    fm_bptr_assert(val > 1);
-}
-
-void control_block_::decr() noexcept
-{
-    auto val = --_count;
-    fm_bptr_assert(val != (uint32_t)-1);
-    if (val == 0)
+    fm_bptr_assert(blk);
+    auto c = --blk->_count;
+    fm_bptr_assert(c != (uint32_t)-1);
+    if (c == 0)
     {
-        free();
-        _ptr = nullptr;
+        blk->free_ptr();
+        delete blk;
     }
+    blk = nullptr;
 }
 
-control_block_::~control_block_() noexcept { decr(); }
-uint32_t control_block_::count() const noexcept { return _count; }
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace floormat::detail_borrowed_ptr
 
@@ -39,7 +34,7 @@ struct Baz {};
 
 namespace floormat {
 
-template struct detail_borrowed_ptr::control_block<Foo>;
+template struct detail_borrowed_ptr::control_block_impl<Foo>;
 template class bptr<Foo>;
 template bptr<Bar> static_pointer_cast(const bptr<Foo>&) noexcept;
 
