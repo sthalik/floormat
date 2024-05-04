@@ -23,7 +23,8 @@ void control_block::decrement(control_block*& blk) noexcept
         blk->free_ptr();
         delete blk;
     }
-    blk = nullptr;
+    //blk = nullptr;
+    blk = (control_block*)-1;
 }
 
 #ifdef __clang__
