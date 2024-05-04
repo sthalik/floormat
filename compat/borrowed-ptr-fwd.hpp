@@ -44,7 +44,7 @@ public:
     T& operator*() const noexcept;
 
     template<typename U> friend class bptr;
-    template<typename Tʹ, typename U> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
+    template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
 };
 
 } // namespace floormat

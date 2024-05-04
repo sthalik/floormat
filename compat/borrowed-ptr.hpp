@@ -28,20 +28,23 @@ concept StaticCastable = requires(From* from) {
 
 namespace floormat {
 
-template<typename T, typename U>
+template<typename U, typename T>
 bptr<U> static_pointer_cast(const bptr<T>& p) noexcept
 {
-    static_assert(detail_borrowed_ptr::StaticCastable<T, U>);
-
-    if (p.blk) [[likely]]
+    // hack to generate better error message
+    if constexpr (detail_borrowed_ptr::StaticCastable<T, U>)
     {
-        if (auto* ptr = p.blk->_ptr)
+        if (p.blk && p.blk->_ptr) [[likely]]
         {
             fm_bptr_assert(p.casted_ptr);
             auto* ret = static_cast<U*>(p.casted_ptr);
             return bptr<U>{DirectInit, ret, p.blk};
         }
     }
+    else
+        // concepts can't be forward-declared so use static_assert
+        static_assert(detail_borrowed_ptr::StaticCastable<T, U>);
+
     return bptr<U>{nullptr};
 }
 
