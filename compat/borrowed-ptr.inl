@@ -82,6 +82,7 @@ bptr<T>::~bptr() noexcept
     if (blk)
         blk->decr();
     //blk = reinterpret_cast<T*>(-1);
+    //blk = nullptr;
 }
 
 template<typename T>
@@ -138,14 +139,16 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
     return *this;
 }
 
-template<typename T, typename U>
-bptr<T> static_pointer_cast(const bptr<U>& p)
+template<typename T>
+template<typename U>
+requires detail_borrowed_ptr::StaticCastable<T, U>
+bptr<U> bptr<T>::static_pointer_cast() noexcept
 {
     auto ret = bptr<T>{NoInit};
-    ret.blk = p.blk;
+    ret.blk = blk;
     if (ret.blk) [[likely]]
         ret.blk->incr();
-    ret.ptr = static_cast<T*>(p.ptr);
+    ret.ptr = static_cast<T*>(ptr);
     return ret;
 }
 

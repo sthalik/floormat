@@ -31,11 +31,8 @@ uint32_t control_block_::count() const noexcept { return _count; }
 
 } // namespace floormat::detail_borrowed_ptr
 
-namespace floormat {
-
-namespace { struct Foo {}; }
-
-template struct detail_borrowed_ptr::control_block<Foo>;
-template class bptr<Foo>;
-
-} // namespace floormat
+namespace {
+struct Foo {};
+struct Bar : Foo {};
+struct Baz {};
+} // namespace
