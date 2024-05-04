@@ -36,3 +36,11 @@ struct Foo {};
 struct Bar : Foo {};
 struct Baz {};
 } // namespace
+
+namespace floormat {
+
+template struct detail_borrowed_ptr::control_block<Foo>;
+template class bptr<Foo>;
+template bptr<Bar> static_pointer_cast(const bptr<Foo>&) noexcept;
+
+} // namespace floormat

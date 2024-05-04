@@ -19,6 +19,9 @@ class bptr final // NOLINT(*-special-member-functions)
     T* ptr; // todo add simple_bptr that doesn't allow casting. should only have the control block member variable.
     detail_borrowed_ptr::control_block_* blk;
 
+    explicit constexpr bptr(NoInitT) noexcept;
+    explicit constexpr bptr(DirectInitT, T* ptr, detail_borrowed_ptr::control_block_* blk) noexcept;
+
 public:
     template<typename... Ts>
     requires std::is_constructible_v<T, Ts&&...>
@@ -26,7 +29,6 @@ public:
 
     constexpr bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     constexpr bptr() noexcept;
-    explicit constexpr bptr(NoInitT) noexcept;
     explicit bptr(T* ptr) noexcept;
     ~bptr() noexcept;
 
@@ -43,9 +45,9 @@ public:
     uint32_t use_count() const noexcept;
     explicit operator bool() const noexcept;
 
-    template<typename U>
-    requires detail_borrowed_ptr::StaticCastable<T, U>
-    bptr<U> static_pointer_cast() noexcept;
+    template<typename U> friend class bptr;
+    template<typename Tʹ, typename U>
+    friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
 };
 
 } // namespace floormat

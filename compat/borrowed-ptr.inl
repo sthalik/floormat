@@ -69,6 +69,14 @@ bptr{ new T{ forward<Ts...>(args...) } }
 {
 }
 
+template<typename T> constexpr bptr<T>::bptr(NoInitT) noexcept {};
+
+template<typename T>
+constexpr bptr<T>::bptr(DirectInitT, T* ptr, detail_borrowed_ptr::control_block_* blk) noexcept:
+    ptr{ptr}, blk{blk}
+{
+}
+
 template<typename T>
 bptr<T>::bptr(T* ptr) noexcept:
     ptr{ptr},
@@ -137,19 +145,6 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
     other.ptr = nullptr;
     other.blk = nullptr;
     return *this;
-}
-
-template<typename T>
-template<typename U>
-requires detail_borrowed_ptr::StaticCastable<T, U>
-bptr<U> bptr<T>::static_pointer_cast() noexcept
-{
-    auto ret = bptr<T>{NoInit};
-    ret.blk = blk;
-    if (ret.blk) [[likely]]
-        ret.blk->incr();
-    ret.ptr = static_cast<T*>(ptr);
-    return ret;
 }
 
 } // namespace floormat
