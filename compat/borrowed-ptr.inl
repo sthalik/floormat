@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/assert.hpp"
 #include "borrowed-ptr.hpp"
 
 namespace floormat::detail_borrowed_ptr {
@@ -42,7 +41,7 @@ template <typename T>
 control_block<T>::control_block(T* ptr) noexcept:
     control_block_{ptr}
 {
-    fm_debug_assert(ptr);
+    fm_bptr_assert(ptr);
 }
 
 template <typename T>
@@ -103,7 +102,7 @@ bptr<T>::bptr(const bptr<Y>& other) noexcept:
     if (blk)
         blk->incr();
     else
-        fm_debug_assert(!ptr);
+        fm_bptr_assert(!ptr);
 }
 
 template<typename T>
@@ -145,6 +144,29 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
     other.ptr = nullptr;
     other.blk = nullptr;
     return *this;
+}
+
+template<typename T>
+void bptr<T>::swap(bptr& other) noexcept
+{
+    using floormat::swap;
+    swap(ptr, other.ptr);
+    swap(blk, other.blk);
+}
+
+template<typename T> uint32_t bptr<T>::use_count() const noexcept
+{
+    if (blk) [[likely]]
+    {
+        auto count = blk->_count;
+        fm_bptr_assert(count > 0);
+        return count;
+    }
+    else
+    {
+        fm_bptr_assert(ptr);
+        return 0;
+    }
 }
 
 } // namespace floormat

@@ -5,20 +5,20 @@ namespace floormat::detail_borrowed_ptr {
 
 control_block_::control_block_(void* ptr) noexcept: _ptr{ptr}, _count{1}
 {
-    fm_debug_assert(ptr);
+    fm_bptr_assert(ptr);
 }
 
 void control_block_::incr() noexcept
 {
     auto val = ++_count;
     (void)val;
-    fm_debug_assert(val > 1);
+    fm_bptr_assert(val > 1);
 }
 
 void control_block_::decr() noexcept
 {
     auto val = --_count;
-    fm_debug_assert(val != (uint32_t)-1);
+    fm_bptr_assert(val != (uint32_t)-1);
     if (val == 0)
     {
         free();
