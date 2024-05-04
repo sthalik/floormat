@@ -1,13 +1,17 @@
 #pragma once
 #include "borrowed-ptr.hpp"
 
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 namespace floormat::detail_borrowed_ptr {
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #endif
-
 struct control_block_
 {
     void* _ptr; // todo maybe add directly embeddable objects?
@@ -15,7 +19,6 @@ struct control_block_
     virtual void free_ptr() noexcept = 0;
     static void decrement(control_block_*& blk) noexcept;
 };
-
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
 #endif
@@ -207,3 +210,7 @@ template<typename T> uint32_t bptr<T>::use_count() const noexcept
 }
 
 } // namespace floormat
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
