@@ -18,7 +18,7 @@ using Millis = duration<unsigned, std::milli>;
 
 namespace {
 
-template<typename T> struct array_size_;
+template<typename T> struct array_size_; // todo! move to compat, replace usages of arraySize & std::size_t
 template<typename T, size_t N> struct array_size_<T(&)[N]> : std::integral_constant<size_t, N> {};
 template<typename T, size_t N> struct array_size_<std::array<T, N>> : std::integral_constant<size_t, N> {};
 template<typename T> constexpr inline auto array_size = array_size_<T>::value;
