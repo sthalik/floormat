@@ -21,8 +21,9 @@ void fm_emit_debug_(const char* prefix, const char* file, int line, const char* 
         std::fputs(prefix, stderr);
     std::vfprintf(stderr, fmt, arg_ptr);
     if constexpr(DoSourceLocation)
-        std::fprintf(stderr, " in %s:%d", file, line);
-    std::fputc('\n', stderr);
+        std::fprintf(stderr, " in %s:%d\n", file, line);
+    else
+        std::fputc('\n', stderr);
     std::fflush(stderr);
 }
 
@@ -56,7 +57,7 @@ void fm_emit_assert_fail(const char* expr, const char* file, int line)
 {
     std::fflush(stdout);
     std::fflush(stderr);
-    std::fprintf(stderr, "assertion failed: %s in %s:%d", expr, file, line);
+    std::fprintf(stderr, "assertion failed: %s in %s:%d\n", expr, file, line);
     std::fflush(stderr);
     std::abort();
 }
