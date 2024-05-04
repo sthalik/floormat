@@ -36,6 +36,12 @@ chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
     w.make_scenery(w.make_id(), {ch, {3, 4}}, scenery_proto(table));
     w.make_scenery(w.make_id(), {ch, {K, K+1}}, scenery_proto(control_panel)); // todo!
+    auto L = light_proto{};
+    L.color = {64, 128, 252, 201};
+    L.max_distance = float{0.125};
+    L.falloff = light_falloff::quadratic;
+    L.enabled = false;
+    w.make_object<light>(w.make_id(), {ch, {4, 1}}, L);
 
     const auto add_player = [&](StringView name, Vector2i coord, bool playable) {
         critter_proto cproto;
