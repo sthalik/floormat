@@ -1,5 +1,14 @@
 #pragma once
 #include "borrowed-ptr.hpp"
+#include "compat/assert.hpp"
+
+#define FM_BPTR_DEBUG
+
+#if defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
+#define fm_bptr_assert(...) fm_assert(__VA_ARGS__)
+#else
+#define fm_bptr_assert(...) void()
+#endif
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -134,7 +143,7 @@ template<bool MaybeEmpty>
 void bptr<T>::destroy() noexcept
 {
     if constexpr(!MaybeEmpty)
-        fm_assert(blk && blk->_ptr);
+        fm_assert(blk);
     blk->free_ptr();
     blk->_ptr = nullptr;
     casted_ptr = nullptr;

@@ -1,19 +1,6 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
-#include "borrowed-ptr.inl"
-#include "borrowed-ptr.inl"
-
-#define FM_BPTR_DEBUG
-
-#ifdef FM_NO_DEBUG
-#undef FM_BPTR_DEBUG
-#endif
-#ifdef FM_BPTR_DEBUG
 #include "compat/assert.hpp"
-#define fm_bptr_assert(...) fm_assert(__VA_ARGS__)
-#else
-#define fm_bptr_assert(...) void()
-#endif
 
 namespace floormat::detail_borrowed_ptr {
 
@@ -28,24 +15,28 @@ concept StaticCastable = requires(From* from) {
 
 namespace floormat {
 
-template<typename U, typename T>
-bptr<U> static_pointer_cast(const bptr<T>& p) noexcept
+template<typename To, typename From>
+bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
 {
     // hack to generate better error message
-    if constexpr (detail_borrowed_ptr::StaticCastable<T, U>)
+    if constexpr (detail_borrowed_ptr::StaticCastable<From, To>)
     {
         if (p.blk && p.blk->_ptr) [[likely]]
         {
-            fm_bptr_assert(p.casted_ptr);
-            auto* ret = static_cast<U*>(p.casted_ptr);
-            return bptr<U>{DirectInit, ret, p.blk};
+            fm_assert(p.casted_ptr);
+            auto* ret = static_cast<To*>(p.casted_ptr);
+            return bptr<To>{DirectInit, ret, p.blk};
         }
     }
     else
+    {
+        using detail_borrowed_ptr::StaticCastable;
         // concepts can't be forward-declared so use static_assert
-        static_assert(detail_borrowed_ptr::StaticCastable<T, U>);
+        static_assert(StaticCastable<From, To>,
+            "cannot static_cast, classes must be related by inheritance");
+    }
 
-    return bptr<U>{nullptr};
+    return bptr<To>{nullptr};
 }
 
 } // namespace floormat
