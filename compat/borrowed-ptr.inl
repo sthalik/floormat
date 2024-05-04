@@ -215,6 +215,7 @@ template<typename T> T* bptr<T>::get() const noexcept
     else
         return nullptr;
 }
+
 template<typename T> T* bptr<T>::operator->() const noexcept
 {
     auto* ret = get();
@@ -236,7 +237,7 @@ void bptr<T>::swap(bptr& other) noexcept
 
 template<typename T> uint32_t bptr<T>::use_count() const noexcept
 {
-    if (blk) [[likely]]
+    if (blk && blk->_ptr) [[likely]]
         return blk->_count;
     else
         return 0;

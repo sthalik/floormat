@@ -1,6 +1,7 @@
 #include "app.hpp"
-#include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/assert.hpp"
+#include "compat/defs.hpp"
 #include <array>
 
 namespace floormat {
@@ -47,6 +48,8 @@ struct A
     int val, serial;
     explicit A(int val) : val{val}, serial{++A_total} { ++A_alive; }
     ~A() noexcept { --A_alive; fm_assert(A_alive >= 0); }
+
+    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(A);
 };
 
 void test1()
@@ -277,9 +280,61 @@ void test7()
     check_empty(p1);
     check_empty(p2);
     fm_assert(A_total == 1 && A_alive == 0);
-
-    A_total = 0; A_alive = 0;
 }
+
+void test8()
+{
+    A_total = 0; A_alive = 0;
+
+    auto p1 = bptr<A>{InPlace, 81};
+    auto p2 = bptr<A>{InPlace, 82};
+    fm_assert(A_total == 2 && A_alive == 2);
+
+    p1 = p2;
+    fm_assert(A_total == 2 && A_alive == 1);
+
+    p2 = move(p1);
+    fm_assert(A_total == 2 && A_alive == 1);
+
+    p1.reset();
+    p2 = nullptr;
+    (void)p2;
+    fm_assert(A_total == 2 && A_alive == 0);
+}
+
+void test9()
+{
+    A_total = 0; A_alive = 0;
+
+    auto p1 = bptr<A>{InPlace, 9};
+    auto p2 = p1;
+    p1 = p2;
+    fm_assert(p1.use_count() == 2);
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 1);
+
+    p1.destroy();
+    fm_assert(!p1);
+    fm_assert(!p2);
+    fm_assert(p1.use_count() == 0);
+    fm_assert(p2.use_count() == 0);
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 0);
+
+    p1.swap(p2);
+    fm_assert(!p1 && !p2);
+    fm_assert(p1.use_count() == 0 && p2.use_count() == 0);
+    fm_assert(A_total == 1);
+    fm_assert(A_alive == 0);
+
+    p1.reset();
+    fm_assert(p1.use_count() == 0);
+    fm_assert(p2.use_count() == 0);
+    p2 = bptr<A>{(A*)nullptr};
+    fm_assert(p1.use_count() == 0);
+    fm_assert(p2.use_count() == 0);
+    fm_assert(A_total == 1 && A_alive == 0);
+};
 
 } // namespace
 
@@ -292,6 +347,8 @@ void test_app::test_bptr()
     test5();
     test6();
     test7();
+    test8();
+    test9();
 }
 
 } // namespace floormat
