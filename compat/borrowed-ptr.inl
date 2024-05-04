@@ -141,7 +141,7 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
 template<typename T, typename U>
 bptr<T> static_pointer_cast(const bptr<U>& p)
 {
-    auto ret = bptr<T>{};
+    auto ret = bptr<T>{NoInit};
     ret.blk = p.blk;
     if (ret.blk) [[likely]]
         ret.blk->incr();

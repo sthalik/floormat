@@ -14,7 +14,7 @@ class bptr final // NOLINT(*-special-member-functions)
     T* ptr; // todo add simple_bptr that doesn't allow casting. should only have the control block element.
     detail_borrowed_ptr::control_block_* blk;
 
-    friend bptr<T> static_pointer_cast<T>(const bptr<T>& p);
+    constexpr bptr(NoInitT) noexcept;
 
 public:
     template<typename... Ts>
@@ -38,8 +38,11 @@ public:
     T* operator->() const noexcept;
     uint32_t use_count() const noexcept;
     explicit operator bool() const noexcept;
+
+    friend bptr<T> static_pointer_cast<T>(const bptr<T>& p);
 };
 
+template<typename T> constexpr bptr<T>::bptr(NoInitT) noexcept {};
 template<typename T> constexpr bptr<T>::bptr(std::nullptr_t) noexcept: ptr{nullptr}, blk{nullptr} {}
 template<typename T> constexpr bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
