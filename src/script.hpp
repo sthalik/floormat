@@ -10,8 +10,7 @@ struct Ns;
 
 struct base_script
 {
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(base_script);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(base_script);
+    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(base_script);
 
     constexpr base_script() noexcept = default;
     virtual ~base_script() noexcept;
@@ -29,8 +28,7 @@ class Script final
     static S* make_empty();
 
 public:
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(Script);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(Script);
+    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Script);
 
     Script();
     ~Script() noexcept;

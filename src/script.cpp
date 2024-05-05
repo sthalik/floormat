@@ -7,7 +7,7 @@ namespace {
 
 constexpr StringView names[(size_t)script_lifecycle::COUNT] =
 {
-    "no-init"_s, "initializing"_s, "created"_s, "destroying"_s, "torn_down"_s,
+    "no-init"_s, "initializing"_s, "created"_s, "destroying"_s, "torn-down"_s,
 };
 
 } // namespace

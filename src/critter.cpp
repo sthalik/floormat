@@ -1,5 +1,4 @@
 #include "critter.hpp"
-
 #include "critter-script.hpp"
 #include "compat/limits.hpp"
 #include "tile-constants.hpp"
