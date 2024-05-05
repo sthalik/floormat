@@ -54,8 +54,6 @@ public:
     template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
     template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
-    friend bool operator==<T>(const bptr<T>& a, const bptr<T>& b) noexcept;
-    explicit operator bool() const noexcept;
     void reset() noexcept;
     template<bool MaybeEmpty = true> void destroy() noexcept;
     void swap(bptr& other) noexcept;
@@ -64,6 +62,9 @@ public:
     T* get() const noexcept;
     T* operator->() const noexcept;
     T& operator*() const noexcept;
+
+    explicit operator bool() const noexcept;
+    friend bool operator==<T>(const bptr<T>& a, const bptr<T>& b) noexcept;
 
     template<typename U> friend class bptr;
     template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
