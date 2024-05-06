@@ -15,9 +15,7 @@ namespace {
 
 bool walk_line(point dest, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
 {
-    Debug{} << "move from" << c->position() << "to" << dest;
     auto res = c->move_toward(i, dt, dest);
-    DBG_nospace << "blocked:" << res.blocked << " moved:" << res.moved;
     return res.blocked || c->position() == dest;
 }
 
@@ -26,7 +24,8 @@ struct walk_script final : critter_script
     struct line_tag_t {};
     struct path_tag_t {};
 
-    const void* type_id() const override;
+    StringView name() const override;
+    const void* id() const override;
     void on_init(const std::shared_ptr<critter>& c) override;
     void on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt) override;
     void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
@@ -79,12 +78,15 @@ void walk_script::on_update(const std::shared_ptr<critter>& c, size_t& i, const 
 
 done:
     Debug{} << "  finished walking";
+    m.AUTO = false;
     c->script.do_clear(c);
 }
 
 constexpr StringView script_name = name_of<walk_script>;
 
-const void* walk_script::type_id() const
+StringView walk_script::name() const { return "walk"_s; }
+
+const void* walk_script::id() const
 {
     return &script_name;
 }

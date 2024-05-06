@@ -5,21 +5,11 @@ namespace floormat {
 
 namespace {
 
-CORRADE_ALWAYS_INLINE
-void touch_ptr(const std::shared_ptr<critter>& p)
-{
-    (void)p;
-#if fm_ASAN
-    volatile char foo = *reinterpret_cast<volatile const char*>(&*p);
-    (void)foo;
-//#else
-//    fm_debug_assert(p);
-#endif
-}
-
 struct empty_critter_script final : critter_script
 {
-    const void* type_id() const override;
+    StringView name() const override;
+    const void* id() const override;
+
     void on_init(const std::shared_ptr<critter>& c) override;
     void on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt) override;
     void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
@@ -28,30 +18,20 @@ struct empty_critter_script final : critter_script
 
 constexpr StringView script_name = name_of<empty_critter_script>;
 
-const void* empty_critter_script::type_id() const
+StringView empty_critter_script::name() const
+{
+    return "empty"_s;
+}
+
+const void* empty_critter_script::id() const
 {
     return &script_name;
 }
 
-void empty_critter_script::on_init(const std::shared_ptr<critter>& p)
-{
-    DBG_nospace << "> script init critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
-    touch_ptr(p);
-}
-void empty_critter_script::on_update(const std::shared_ptr<critter>& p, size_t&, const Ns&)
-{
-    //DBG_nospace << "  script update critter:" << (void*)&*p << " id:" << p->id << (p->name ? " name:" : "") << p->name;
-    touch_ptr(p);
-}
-void empty_critter_script::on_destroy(const std::shared_ptr<critter>& p, script_destroy_reason r)
-{
-    DBG_nospace << "  script destroy critter:" << (void*)&*p << " id:" << p->id << " reason:" << (int)r << (p->name ? " name:" : "") << p->name;
-    touch_ptr(p);
-}
-void empty_critter_script::delete_self() noexcept
-{
-    DBG_nospace << "< script delete critter";
-}
+void empty_critter_script::on_init(const std::shared_ptr<critter>&) {}
+void empty_critter_script::on_update(const std::shared_ptr<critter>&, size_t&, const Ns&) {}
+void empty_critter_script::on_destroy(const std::shared_ptr<critter>&, script_destroy_reason) {}
+void empty_critter_script::delete_self() noexcept { }
 
 constinit empty_critter_script empty_script_ = {};
 

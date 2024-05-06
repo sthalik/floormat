@@ -1,6 +1,7 @@
 #pragma once
 #include "script-enums.hpp"
 #include "compat/defs.hpp"
+#include "src/object-type.hpp"
 #include <memory>
 
 namespace floormat
@@ -12,9 +13,12 @@ struct base_script
 {
     fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(base_script);
 
+    virtual StringView name() const = 0;
+    virtual const void* id() const = 0;
+    virtual object_type type() const = 0;
+
     constexpr base_script() noexcept = default;
     virtual ~base_script() noexcept;
-    virtual const void* type_id() const = 0;
 
     static StringView state_name(script_lifecycle x);
     static void _assert_state(script_lifecycle old_state, script_lifecycle s, const char* file, int line);

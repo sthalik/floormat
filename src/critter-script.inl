@@ -6,5 +6,4 @@
 namespace floormat {
 
 
-
 } // namespace floormat
