@@ -241,13 +241,12 @@ void app::update_world(Ns dt)
                 auto size = (uint32_t)c.objects().size();
                 for (auto i = 0u; i < size; i++)
                 {
-                    auto& eʹ = c.objects().data()[i];
                     auto index = size_t{i};
-                    auto& e = *eʹ;
+                    auto& e = *c.objects().data()[i].get();
                     if (e.last_frame_no == frame_no) [[unlikely]]
                         continue;
                     e.last_frame_no = frame_no;
-                    e.update(eʹ, index, dt); // objects can't delete themselves during update()
+                    e.update(c.objects().data()[i], index, dt); // objects can't delete themselves during update()
                     if (&e.chunk() != cʹ || index > i) [[unlikely]]
                     {
                         i--;
