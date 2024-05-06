@@ -38,8 +38,6 @@ struct critter final : object
     struct move_result { bool blocked, moved; };
     [[nodiscard]] move_result move_toward(size_t& i, const Ns& dt, const point& dest);
 
-    void set_keys(bool L, bool R, bool U, bool D);
-    void set_keys_auto();
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
 
@@ -47,32 +45,42 @@ struct critter final : object
     void destroy_script_pre(const std::shared_ptr<object>& ptr, script_destroy_reason r) override;
     void destroy_script_post() override;
 
+    void clear_auto_movement();
+    bool maybe_stop_auto_movement();
+    void set_keys(bool L, bool R, bool U, bool D);
+    void set_keys_auto();
+
     Script<critter_script, critter> script;
     String name;
     float speed = 1;
     uint16_t offset_frac_ = 0; // todo! remove underscore
 
-    struct movement_s
-    {
-        bool L : 1 = false;
-        bool R : 1 = false;
-        bool U : 1 = false;
-        bool D : 1 = false;
-        bool AUTO : 1 = false;
+    bool playable : 1 = false;
 
-        bool _pad1 : 1;
-        bool _pad2 : 1;
-        bool _pad3 : 1;
+    struct move_s
+    {
+        bool L    : 1 = false;
+        bool R    : 1 = false;
+        bool U    : 1 = false;
+        bool D    : 1 = false;
+        bool AUTO : 1 = false;
+        bool pad1 : 1 = false;
+        bool pad2 : 1 = false;
+        bool pad3 : 1 = false;
         //bool _pad4 : 1;
+    };
+
+    union move_u
+    {
+        move_s bits;
+        uint8_t val = 0;
     };
 
     union
     {
-        uint8_t movement_value = 0;
-        movement_s movement;
+        move_s moves;
+        uint8_t moves_ = 0;
     };
-
-    bool playable : 1 = false;
 
 private:
     friend class world;

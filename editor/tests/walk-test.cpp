@@ -40,10 +40,9 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
     {
         if (auto ptʹ = a.cursor_state().point())
         {
-
             auto C = a.ensure_player_character(m.world()).ptr;
             fm_assert(C->is_dynamic());
-            auto S = critter_script::make_walk_script(*ptʹ, {}, critter_script::walk_mode::line);
+            auto S = critter_script::make_walk_script(*ptʹ);
             C->script.do_reassign(move(S), move(C));
             return true;
         }

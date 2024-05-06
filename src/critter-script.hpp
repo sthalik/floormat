@@ -26,8 +26,8 @@ struct critter_script : base_script
 
     object_type type() const override;
 
-    enum class walk_mode : uint8_t { none, line, path, };
-    static Pointer<critter_script> make_walk_script(point to, const path_search_result& path, walk_mode mode);
+    static Pointer<critter_script> make_walk_script(point to);
+    static Pointer<critter_script> make_walk_script(path_search_result path);
 };
 
 } // namespace floormat

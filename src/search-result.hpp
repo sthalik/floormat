@@ -30,7 +30,7 @@ struct path_search_result final
     explicit operator bool() const;
 
     path_search_result();
-    path_search_result(const path_search_result& x) noexcept;
+    explicit path_search_result(const path_search_result& x) noexcept;
     path_search_result& operator=(const path_search_result& x) noexcept;
     path_search_result(path_search_result&&) noexcept;
     path_search_result& operator=(path_search_result&&) noexcept;

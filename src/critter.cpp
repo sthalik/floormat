@@ -18,6 +18,8 @@ namespace floormat {
 
 namespace {
 
+constexpr auto m_auto_mask = critter::move_u { .bits {.AUTO = true} };
+
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
@@ -341,14 +343,14 @@ bool critter_proto::operator==(const object_proto& e0) const
     return name == s0.name && playable == s0.playable;
 }
 
-void critter::set_keys(bool L, bool R, bool U, bool D)
+void critter::set_keys(bool L, bool R, bool U, bool D) { moves = { L, R, U, D, moves.AUTO, }; }
+void critter::set_keys_auto() { moves_ = m_auto_mask.val; }
+void critter::clear_auto_movement() { moves_ &= ~m_auto_mask.val; }
+bool critter::maybe_stop_auto_movement()
 {
-    movement = { L, R, U, D, movement.AUTO, false, false, false };
-}
-
-void critter::set_keys_auto()
-{
-    movement = { false, false, false, false, true, false, false, false };
+    bool b1 = moves_ == m_auto_mask.val;
+    bool b2 = moves.AUTO &= b1;
+    return !b2;
 }
 
 float critter::depth_offset() const
@@ -372,13 +374,11 @@ void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& 
     if (check_script_update_2(script.state())) [[unlikely]]
         return;
 #endif
-    if (playable && !movement.AUTO) [[unlikely]]
+    if (playable) [[unlikely]]
     {
-        movement.AUTO &= (movement.L | movement.R | movement.U | movement.D) == 0;
-
-        if (!movement.AUTO)
+        if (!moves.AUTO)
         {
-            const auto new_r = arrows_to_dir(movement.L, movement.R, movement.U, movement.D);
+            const auto new_r = arrows_to_dir(moves.L, moves.R, moves.U, moves.D);
             if (new_r == rotation_COUNT)
             {
                 offset_frac_ = {};
@@ -430,14 +430,9 @@ auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> mov
 {
     fm_assert(is_dynamic());
 
-    if (movement.L | movement.R | movement.U | movement.D) [[unlikely]]
-        return { .blocked = true, .moved = false, };
-
     const auto& info = atlas->info();
     const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
     bool moved = false;
-
-    set_keys_auto();
 
     if (nframes == 0)
         return { .blocked = false, .moved = moved };
@@ -508,6 +503,8 @@ auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> mov
             offset_frac_ = Frac(rem * frac);
         }
     }
+
+    // todo return unused movement frames into the offset_frac pool
 
     if (!ok) [[unlikely]]
     {
