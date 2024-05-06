@@ -294,7 +294,7 @@ constexpr bool test_enum_range()
 
 } // namespace
 
-void test_app::test_entity()
+void Test::test_entity()
 {
     static_assert(test_accessors());
     static_assert(test_visitor());

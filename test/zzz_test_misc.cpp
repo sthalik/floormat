@@ -9,7 +9,7 @@ void test_foo() {}
 
 } // namespace
 
-void test_app::test_zzz_misc()
+void Test::test_zzz_misc()
 {
     test_foo();
 }

@@ -9,7 +9,7 @@
 
 namespace floormat {
 
-void test_app::test_dijkstra()
+void Test::test_dijkstra()
 {
     [[maybe_unused]] constexpr bool debug = false;
 

@@ -45,12 +45,12 @@ constexpr const char* sceneries[] = {
 
 } // namespace
 
-void test_app::test_loader()
+void Test::test_loader()
 {
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
 }
 
-void test_app::test_loader2()
+void Test::test_loader2()
 {
     constexpr auto nonexistent = "__/nonexistent/__"_s;
 
@@ -92,7 +92,7 @@ void test_app::test_loader2()
     }
 }
 
-void test_app::test_loader3()
+void Test::test_loader3()
 {
     for (const auto& x : loader.ground_atlas_list())
     {

@@ -344,7 +344,7 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
 
 } // namespace
 
-void test_app::test_critter()
+void Test::test_critter()
 {
     const bool is_noisy = !Start{}.quiet;
     if (is_noisy)

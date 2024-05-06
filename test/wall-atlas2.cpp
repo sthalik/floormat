@@ -100,7 +100,7 @@ void test_concrete_wall()
 
 } // namespace
 
-void test_app::test_wall_atlas2()
+void Test::test_wall_atlas2()
 {
     test_empty_wall();
     test_loading();

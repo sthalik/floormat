@@ -338,7 +338,7 @@ void test9()
 
 } // namespace
 
-void test_app::test_bptr()
+void Test::test_bptr()
 {
     test1();
     test2();

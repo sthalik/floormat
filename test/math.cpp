@@ -91,7 +91,7 @@ constexpr bool test_ceil()
 
 } // namespace
 
-void test_app::test_math()
+void Test::test_math()
 {
     static_assert(test_double_sqrt());
     fm_assert(test_sqrt<float>());

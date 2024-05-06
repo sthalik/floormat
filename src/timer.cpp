@@ -1,5 +1,6 @@
 #include "timer.hpp"
 #include "compat/assert.hpp"
+#include "compat/array-size.hpp"
 #include "nanosecond.hpp"
 #include <ctime>
 #include <cstdio>
@@ -17,11 +18,6 @@ using Nsecs = duration<uint64_t, std::nano>;
 using Millis = duration<unsigned, std::milli>;
 
 namespace {
-
-template<typename T> struct array_size_; // todo! move to compat, replace usages of arraySize & std::size_t
-template<typename T, size_t N> struct array_size_<T(&)[N]> : std::integral_constant<size_t, N> {};
-template<typename T, size_t N> struct array_size_<std::array<T, N>> : std::integral_constant<size_t, N> {};
-template<typename T> constexpr inline auto array_size = array_size_<T>::value;
 
 uint64_t get_time() noexcept { return duration_cast<Nsecs>(Clock::now().time_since_epoch()).count(); }
 
@@ -77,7 +73,7 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {
     constexpr const char* fmt = "%a, %d %b %Y %H:%M:%S.";
     constexpr size_t fmtsize = std::size("Thu 01 Mon 197000 00:00:00.");
-    static_assert(array_size<decltype(buf)> - fmtsize == 4);
+    static_assert(static_array_size<decltype(buf)> - fmtsize == 4);
     const auto t    = SystemClock::now();
     const auto ms   = duration_cast<Millis>(t.time_since_epoch()) % 1000;
     const auto time = SystemClock::to_time_t(t);

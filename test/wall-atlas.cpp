@@ -129,7 +129,7 @@ void test_expected_size()
 
 } // namespace floormat::Wall::detail
 
-void floormat::test_app::test_wall_atlas()
+void floormat::Test::test_wall_atlas()
 {
     using namespace floormat::Wall::detail;
     using namespace floormat::Wall;

@@ -11,7 +11,7 @@ void test_script1()
 
 } // namespace
 
-void test_app::test_script()
+void Test::test_script()
 {
     test_script1();
 }

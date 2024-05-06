@@ -27,7 +27,7 @@ size_t path_search_result_pool_access<Test_PathPool>::pool_size()
     return ret;
 }
 
-void test_app::test_astar_pool()
+void Test::test_astar_pool()
 {
     const auto& pool = psrpa::get_pool();
     fm_assert(psrpa::pool_size() == 0);

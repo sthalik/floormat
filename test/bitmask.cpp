@@ -48,7 +48,7 @@ void bitmask_test()
 
 } // namespace
 
-void test_app::test_bitmask()
+void Test::test_bitmask()
 {
     bitmask_test();
     //bitmask_benchmark();

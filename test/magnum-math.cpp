@@ -57,7 +57,7 @@ constexpr bool compile_tests()
 
 } // namespace
 
-void test_app::test_magnum_math()
+void Test::test_magnum_math()
 {
     static_assert(compile_tests());
 }

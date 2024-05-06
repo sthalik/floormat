@@ -28,7 +28,7 @@ void test_normalize_point()
 
 } // namespace
 
-void test_app::test_coords()
+void Test::test_coords()
 {
     test_normalize_point();
 }

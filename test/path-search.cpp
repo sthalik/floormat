@@ -241,7 +241,7 @@ void test_bbox()
         using enum rotation;
         constexpr auto ch = chunk_coords_{0, 0, 0};
         auto w = world();
-        auto& c = test_app::make_test_chunk(w, ch);
+        auto& c = Test::make_test_chunk(w, ch);
 
         constexpr auto is_passable_NESW = [](chunk& c, Vector2i coord, std::array<bool, 4> dirs)
         {
@@ -342,7 +342,7 @@ void test_bbox()
 
 } // namespace
 
-void test_app::test_astar()
+void Test::test_astar()
 {
     test_bbox();
 }

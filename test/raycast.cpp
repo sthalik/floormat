@@ -87,7 +87,7 @@ auto run(point from, point to, world& w, bool b, float len)
 
 } // namespace
 
-void test_app::test_raycast()
+void Test::test_raycast()
 {
     auto w = make_world();
     { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};

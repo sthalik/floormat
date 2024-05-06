@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/headless.hpp"
 #include "loader/loader.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
@@ -6,8 +7,9 @@
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Timeline.h>
 #include <Magnum/GL/Context.h>
+#include <Magnum/Magnum.h>
 
-namespace floormat {
+namespace floormat::Test {
 
 namespace {
 
@@ -20,7 +22,16 @@ bool is_log_quiet() // copy-pasted from src/chunk.cpp
 
 } // namespace
 
-test_app::test_app(const Arguments& arguments):
+struct App final : private FM_APPLICATION
+{
+    using Application = FM_APPLICATION;
+    explicit App(const Arguments& arguments);
+    ~App();
+
+    int exec() override;
+};
+
+App::App(const Arguments& arguments):
       Application {
           arguments,
           Configuration{}
@@ -28,12 +39,12 @@ test_app::test_app(const Arguments& arguments):
 {
 }
 
-test_app::~test_app()
+App::~App()
 {
     loader.destroy();
 }
 
-int test_app::exec()
+int App::exec()
 {
     constexpr auto SV_flags = StringViewFlag::Global|StringViewFlag::NullTerminated;
     constexpr auto name_prefix = "test_"_s;
@@ -122,7 +133,7 @@ int test_app::exec()
     return 0;
 }
 
-} // namespace floormat
+} // namespace floormat::Test
 
 int main(int argc, char** argv)
 {
@@ -133,6 +144,6 @@ int main(int argc, char** argv)
 #else
         ::setenv("MAGNUM_LOG", "quiet", 0);
 #endif
-    floormat::test_app application{{argc, argv}};
-    return application.exec();
+    auto app = floormat::Test::App{{argc, argv}};
+    return app.exec();
 }

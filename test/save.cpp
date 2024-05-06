@@ -15,7 +15,7 @@ namespace floormat {
 
 namespace Path = Corrade::Utility::Path;
 
-chunk& test_app::make_test_chunk(world& w, chunk_coords_ ch)
+chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
 {
     chunk& c = w[ch];
     c.mark_modified();
@@ -151,7 +151,7 @@ void run(StringView input, StringView tmp)
     {
         coord = {1, 1, 0};
         w = world();
-        auto& c = test_app::make_test_chunk(w, coord);
+        auto& c = Test::make_test_chunk(w, coord);
         fm_assert(!c.empty(true));
     }
     w.serialize(tmp);
@@ -297,13 +297,13 @@ void test_save_objs()
 
 } // namespace
 
-void test_app::test_save()
+void Test::test_save()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     test_save_1();
 }
 
-void test_app::test_saves()
+void Test::test_saves()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     test_save_2();

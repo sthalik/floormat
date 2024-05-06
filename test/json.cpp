@@ -15,7 +15,7 @@
 
 namespace floormat {
 
-void test_app::test_json() // NOLINT(readability-convert-member-functions-to-static)
+void Test::test_json() // NOLINT(readability-convert-member-functions-to-static)
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
@@ -32,7 +32,7 @@ void test_app::test_json() // NOLINT(readability-convert-member-functions-to-sta
     }
 }
 
-void test_app::test_json2()
+void Test::test_json2()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);
@@ -42,7 +42,7 @@ void test_app::test_json2()
     atlas2->serialize(Path::join(output_dir, "atlas2.json"));
 }
 
-void test_app::test_json3()
+void Test::test_json3()
 {
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     const auto output_dir = Path::join(loader.TEMP_PATH, "test/."_s);

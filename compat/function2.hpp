@@ -17,7 +17,7 @@
 #define FU2_WITH_NO_FUNCTIONAL_HEADER
 #include <cassert>
 #include <cstddef>
-//#include <cstdlib>
+#include <cstdlib>
 #include <memory>
 #include <tuple>
 #include <type_traits>

@@ -100,7 +100,7 @@ void test3()
 
 } // namespace
 
-void test_app::test_region()
+void Test::test_region()
 {
     test1();
     test2();

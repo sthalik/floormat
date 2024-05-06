@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/int-hash.hpp"
-#include <Corrade/Containers/StringView.h>
+#include "compat/array-size.hpp"
+#include <cr/StringView.h>
 #include <bitset>
 #include <memory>
 
@@ -11,7 +12,7 @@ namespace {
 void test_simple()
 {
     constexpr StringView list[] = { "foo"_s, "bar"_s, "bar\0"_s, "bar2"_s, "baz"_s, };
-    constexpr auto size = arraySize(list);
+    constexpr auto size = array_size(list);
 
     size_t hashes[size] = {};
     for (auto i = 0uz; i < size; i++)
@@ -63,7 +64,7 @@ void test_collisions()
 
 } // namespace
 
-void test_app::test_hash()
+void Test::test_hash()
 {
     test_simple();
     test_collisions();

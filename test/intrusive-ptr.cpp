@@ -157,7 +157,7 @@ constexpr bool test_cexpr() // todo
 
 } // namespace
 
-void test_app::test_iptr()
+void Test::test_iptr()
 {
     static_assert(test_cexpr());
     test_copy();
