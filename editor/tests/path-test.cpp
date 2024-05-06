@@ -8,6 +8,7 @@
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
+#include <cr/Optional.h>
 #include <mg/Functions.h>
 #include <mg/Color.h>
 
@@ -36,7 +37,7 @@ struct path_test final : base_test
     struct result_s
     {
         point from, to;
-        path_search_result res;
+        Optional<path_search_result> res;
     } result;
     bool has_result : 1 = false, has_pending : 1 = false;
 };
@@ -103,6 +104,8 @@ void path_test::draw_overlay(app& a)
 {
     if (!has_result)
         return;
+    fm_assert(result.res);
+    const auto& res = *result.res;
 
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
@@ -112,7 +115,9 @@ void path_test::draw_overlay(app& a)
     auto last = a.point_screen_pos(result.from);
     draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
 
-    for (auto pt : result.res.path())
+
+
+    for (auto pt : res.path())
     {
         auto pos = a.point_screen_pos(pt);
         draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, line_color, line_thickness);
@@ -120,9 +125,9 @@ void path_test::draw_overlay(app& a)
         last = pos;
     }
 
-    if (!result.res.is_found() && !result.res.path().isEmpty())
+    if (!res.is_found() && !res.path().isEmpty())
     {
-        auto pos = a.point_screen_pos(result.res.path().back());
+        auto pos = a.point_screen_pos(res.path().back());
         constexpr float spacing = 12, size1 = 7, size2 = 3, spacing2 = spacing + size2;
 
         draw.AddLine({pos.x() - spacing2, pos.y() - spacing2},
@@ -157,7 +162,7 @@ void path_test::update_pre(app& a, const Ns&)
     result = {
         .from = pending.from,
         .to = pending.to,
-        .res = move(res),
+        .res = has_result ? move(res) : Optional<path_search_result>{},
     };
 }
 
@@ -168,10 +173,12 @@ void path_test::draw_ui(app&, float)
     constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
 
     char buf[128];
-    const auto& res = result.res;
 
     if (!has_result)
         return;
+
+    fm_assert(result.res);
+    const auto& res = *result.res;
 
     auto from_c = Vector3i(result.from.chunk3()), to_c = Vector3i(result.to.chunk3());
     auto from_l = Vector2i(result.from.local()), to_l = Vector2i(result.to.local());

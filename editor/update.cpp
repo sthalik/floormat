@@ -239,9 +239,10 @@ void app::update_world(Ns dt)
                     continue;
                 auto& c = *cʹ;
                 const auto& es = c.objects();
-                auto size = (uint32_t)es.size();
+start:          auto size = (uint32_t)es.size();
                 for (auto i = 0u; i < size; i++)
                 {
+                    Debug{} << "world::update start";
                     auto eʹ = es[i];
                     auto index = size_t{i};
                     auto& e = *eʹ;
@@ -251,9 +252,12 @@ void app::update_world(Ns dt)
                     e.update(eʹ, index, dt); // objects can't delete themselves during update()
                     if (&e.chunk() != cʹ || index > i) [[unlikely]]
                     {
-                        i--;
-                        size = (uint32_t)es.size();
+                        Debug{} << "changed" << c.coord() << "to" << e.chunk().coord();
+                        goto start;
                     }
+                    else
+                        Debug{} << "unchanged";
+                    Debug{} << "world::update end";
                 }
             }
 

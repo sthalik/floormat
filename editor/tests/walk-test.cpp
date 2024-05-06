@@ -2,6 +2,8 @@
 #include "compat/shared-ptr-wrapper.hpp"
 #include "editor/app.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
+#include "src/search-result.hpp"
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
 
@@ -11,16 +13,8 @@ using namespace floormat::imgui;
 
 namespace {
 
-struct pending_s
-{
-    point dest;
-    bool has_value : 1 = false;
-};
-
 struct pf_test final : base_test
 {
-    pending_s current;
-
     ~pf_test() noexcept override = default;
 
     bool handle_key(app& a, const key_event& e, bool is_down) override;
@@ -40,19 +34,25 @@ bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
 
 bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
 {
+    auto& m = a.main();
+
     if (e.button == mouse_button_left && is_down)
     {
         if (auto ptʹ = a.cursor_state().point())
         {
-            current = {
-                .dest = *ptʹ,
-                .has_value = true,
-            };
+
+            auto C = a.ensure_player_character(m.world()).ptr;
+            fm_assert(C->is_dynamic());
+            auto S = critter_script::make_walk_script(*ptʹ, {}, critter_script::walk_mode::line);
+            C->script.do_reassign(move(S), move(C));
             return true;
         }
     }
     else if (e.button == mouse_button_right && is_down)
-        current = {};
+    {
+        auto C = a.ensure_player_character(m.world()).ptr;
+        C->script.do_clear(C);
+    }
     return false;
 }
 
@@ -76,26 +76,8 @@ void pf_test::draw_ui(app& a, float)
 
 void pf_test::update_pre(app& a, const Ns& dt)
 {
-    if (!current.has_value)
-        return;
-
-    auto& m = a.main();
-    auto& C = *a.ensure_player_character(m.world()).ptr;
-    fm_assert(C.is_dynamic());
-
-    if (C.movement.L | C.movement.R | C.movement.U | C.movement.D) [[unlikely]]
-    {
-        current.has_value = false;
-        return;
-    }
-
-    auto index = C.index();
-    critter::move_result result;
-
-    if (current.dest == C.position() ||
-        (void(result = C.move_toward(index, dt, current.dest)), result.blocked) ||
-        result.moved && current.dest == C.position())
-        current.has_value = false;
+    (void)a;
+    (void)dt;
 }
 
 } // namespace
