@@ -1,42 +1,73 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
-#include "compat/assert.hpp"
 
 namespace floormat::detail_borrowed_ptr {
 
-//static_assert(std::is_same_v<T, U> || std::has_virtual_destructor_v<T> && std::has_virtual_destructor_v<T>); // todo! for simple_bptr
-
+struct control_block;
 template<typename From, typename To>
-concept StaticCastable = requires(From* from) {
-    static_cast<To*>(from);
+concept DerivedFrom = requires(From* x) {
+    requires !std::is_same_v<From, To>;
+    requires std::is_nothrow_convertible_v<From*, To*>;
 };
 
 } // namespace floormat::detail_borrowed_ptr
 
 namespace floormat {
 
-template<typename To, typename From>
-bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
-{
-    // hack to generate better error message
-    if constexpr (detail_borrowed_ptr::StaticCastable<From, To>)
-    {
-        if (p.blk && p.blk->_ptr) [[likely]]
-        {
-            fm_assert(p.casted_ptr);
-            auto* ret = static_cast<To*>(p.casted_ptr);
-            return bptr<To>{DirectInit, ret, p.blk};
-        }
-    }
-    else
-    {
-        using detail_borrowed_ptr::StaticCastable;
-        // concepts can't be forward-declared so use static_assert
-        static_assert(StaticCastable<From, To>,
-            "cannot static_cast, classes must be related by inheritance");
-    }
+template<typename T> class bptr;
 
-    return bptr<To>{nullptr};
-}
+template<typename T>
+class bptr final // NOLINT(*-special-member-functions)
+{
+    mutable T* casted_ptr;
+    detail_borrowed_ptr::control_block* blk;
+
+    explicit bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block* blk) noexcept;
+
+    struct private_tag_t final {};
+    static constexpr private_tag_t private_tag{};
+
+    template<typename Y> bptr(const bptr<Y>& other, private_tag_t) noexcept;
+    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
+    template<typename Y> bptr(bptr<Y>&& other, private_tag_t) noexcept;
+    template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
+
+public:
+    template<typename... Ts>
+    requires std::is_constructible_v<T, Ts&&...>
+    explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
+
+    explicit bptr(T* ptr) noexcept;
+    bptr() noexcept;
+    ~bptr() noexcept;
+
+    bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
+    bptr& operator=(std::nullptr_t) noexcept;
+
+    bptr(const bptr&) noexcept;
+    bptr& operator=(const bptr&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
+
+    bptr(bptr&&) noexcept;
+    bptr& operator=(bptr&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
+
+    void reset() noexcept;
+    template<bool MaybeEmpty = true> void destroy() noexcept;
+    void swap(bptr& other) noexcept;
+    uint32_t use_count() const noexcept;
+
+    T* get() const noexcept;
+    T* operator->() const noexcept;
+    T& operator*() const noexcept;
+
+    explicit operator bool() const noexcept;
+    friend bool operator==<T>(const bptr<T>& a, const bptr<T>& b) noexcept;
+
+    template<typename U> friend class bptr;
+    template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
+};
 
 } // namespace floormat

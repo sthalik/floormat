@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr-cast.hpp"
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
 #include <array>
