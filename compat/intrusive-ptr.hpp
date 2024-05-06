@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/assert.hpp"
-#include <compare>
 
 namespace floormat::iptr { struct non_atomic_u32_tag{}; }
 
@@ -201,8 +200,11 @@ public:
     template<typename TAG, typename TYPE>
     friend constexpr bool operator==(const basic_iptr<TAG, TYPE>& a, const basic_iptr<TAG, TYPE>& b) noexcept;
 
+#if 0
+    // todo move to .inl
     template<typename TAG, typename TYPE>
     friend constexpr std::strong_ordering operator<=>(const basic_iptr<TAG, TYPE>& a, const basic_iptr<TAG, TYPE>& b) noexcept;
+#endif
 };
 
 // ----- constructors -----
@@ -314,10 +316,12 @@ fm_template constexpr bool operator==(const fm_basic_iptr& a, const fm_basic_ipt
     return a._ptr == b._ptr;
 }
 
+#if 0
 fm_template constexpr std::strong_ordering operator<=>(const fm_basic_iptr& a, const fm_basic_iptr& b) noexcept
 {
     return a._ptr <=> b._ptr;
 }
+#endif
 
 #undef fm_template
 #undef fm_basic_iptr
