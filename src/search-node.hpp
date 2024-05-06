@@ -7,18 +7,18 @@
 
 namespace floormat {
 
+template<typename T> struct path_search_result_pool_access;
+
 struct path_search_result::node
 {
     friend struct path_search_result;
-    friend struct test_app;
+    template<typename T> friend struct path_search_result_pool_access;
 
     node() noexcept;
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
 
     std::vector<point> vec;
-
-private:
     Pointer<node> _next;
 };
 

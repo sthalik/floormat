@@ -46,10 +46,13 @@ public:
 
     script_lifecycle state() const;
     S* operator->();
+    explicit operator bool() const;
 
     void do_create(S* ptr);
+    void do_create(Pointer<S> ptr);
     void do_initialize(const std::shared_ptr<Obj>& obj);
     void do_reassign(S* ptr, const std::shared_ptr<Obj>& obj);
+    void do_reassign(Pointer<S> ptr, const std::shared_ptr<Obj>& obj);
     void do_clear(const std::shared_ptr<Obj>& obj);
     void do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r);
     void do_finish_destroy();

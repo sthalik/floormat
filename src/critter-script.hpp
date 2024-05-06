@@ -1,6 +1,7 @@
 #pragma once
 #include "script.hpp"
 #include <memory>
+#include <cr/Pointer.h>
 
 namespace floormat {
 
@@ -21,7 +22,10 @@ struct critter_script : base_script
     virtual void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) = 0;
     virtual void delete_self() = 0;
 
-    [[nodiscard]] static critter_script* make_walk_script(point to, path_search_result path);
+    // todo! move to src/scripts dir
+
+    enum class walk_mode : uint8_t { none, line, path, };
+    static Pointer<critter_script> make_walk_script(point to, const path_search_result& path, walk_mode mode);
 };
 
 } // namespace floormat

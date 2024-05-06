@@ -80,6 +80,7 @@ path_search_result& path_search_result::operator=(path_search_result&& other) no
 }
 
 size_t path_search_result::size() const { return _node->vec.size(); }
+bool path_search_result::empty() const { return _node->vec.empty(); }
 path_search_result::node::node() noexcept = default;
 float path_search_result::time() const { return _time; }
 

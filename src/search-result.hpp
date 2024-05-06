@@ -1,18 +1,21 @@
 #pragma once
 #include "compat/vector-wrapper-fwd.hpp"
 #include "src/global-coords.hpp"
-#include <Corrade/Containers/Pointer.h>
+#include <cr/Pointer.h>
 
 namespace floormat {
 
 struct point;
+template<typename T> struct path_search_result_pool_access;
 
 struct path_search_result final
 {
-    friend struct test_app;
+    template<typename T> friend struct path_search_result_pool_access;
+
     struct node;
 
     size_t size() const;
+    bool empty() const;
     uint32_t cost() const;
     void set_cost(uint32_t value);
     float time() const;

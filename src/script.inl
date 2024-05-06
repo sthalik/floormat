@@ -2,7 +2,8 @@
 #include "script.hpp"
 #include "compat/assert.hpp"
 #include <utility>
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
+#include <cr/Pointer.h>
 
 // ReSharper disable CppDFAUnreachableCode
 
@@ -61,6 +62,7 @@ Script<S, Obj>::Script(): ptr{nullptr}, _state{script_lifecycle::no_init}
 }
 
 template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() const { return _state; }
+template<typename S, typename Obj> Script<S, Obj>::operator bool() const { return ptr; }
 
 template <typename S, typename Obj>
 S* Script<S, Obj>::operator->()
@@ -73,10 +75,17 @@ S* Script<S, Obj>::operator->()
 template<typename S, typename Obj>
 void Script<S, Obj>::do_create(S* p)
 {
-    fm_assert(p);
+    if (!p)
+        p = make_empty();
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::no_init);
     _state = script_lifecycle::initializing;
     ptr = p;
+}
+
+template<typename S, typename Obj>
+void Script<S, Obj>::do_create(Pointer<S> p)
+{
+    do_create(p.release());
 }
 
 template <typename S, typename Obj>
@@ -109,6 +118,12 @@ void Script<S, Obj>::do_reassign(S* p, const std::shared_ptr<Obj>& obj)
     ptr->delete_self();
     ptr = p;
     p->on_init(obj);
+}
+
+template <typename S, typename Obj>
+void Script<S, Obj>::do_reassign(Pointer<S> p, const std::shared_ptr<Obj>& obj)
+{
+    return do_reassign(p.release(), obj);
 }
 
 template <typename S, typename Obj>
