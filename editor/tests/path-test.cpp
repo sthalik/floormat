@@ -157,6 +157,7 @@ void path_test::update_pre(app& a, const Ns&)
     auto& w = M.world();
     auto& astar = M.astar();
 
+    result.res = {}; // return back to the pool to preserve cpu cache
     auto res = astar.Dijkstra(w, pending.from, pending.to, pending.own_id, pending.max_dist, pending.own_size, 1);
     has_result = !!res;
     result = {

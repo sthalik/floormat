@@ -135,6 +135,9 @@ void set_result_from_idx(path_search_result& result,
     for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
         len++;
 
+    if (!len) [[unlikely]]
+        return;
+
     fm_debug_assert(idx != (uint32_t)-1);
     arrayResize(temp_nodes, 0);
     arrayReserve(temp_nodes, len+1);

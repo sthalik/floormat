@@ -37,6 +37,8 @@ struct path_search_result final
     ~path_search_result() noexcept;
 
 private:
+    void allocate_node();
+
     Pointer<node> _node;
     float _time = 0;
     uint32_t _cost = 0, _distance = (uint32_t)-1;
