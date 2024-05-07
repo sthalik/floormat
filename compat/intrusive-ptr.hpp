@@ -50,7 +50,7 @@ struct refcount_ops
 template<typename Tag, typename T>
 struct refcount_access
 {
-    using counter_type = refcount_traits<Tag, T>::counter_type;
+    using counter_type = typename refcount_traits<Tag, T>::counter_type;
     refcount_access() = delete;
 
     static constexpr auto access(T* ptr) noexcept -> counter_type&; // todo this should return the iptr's control block. it has to contain the original pointer (because the casted ptr (or its base class, when casted to iptr<base>) might not have a virtual dtor), shared count, and (shared+weak) count.
@@ -169,9 +169,6 @@ class basic_iptr final
 
     T* _ptr{nullptr}; // todo control block
 
-    // todo use std::construct_at as it has a constexpr exception.
-    // ...but it requires <memory> :( — maybe use an ifdef?
-
 public:
     constexpr basic_iptr() noexcept;
     constexpr basic_iptr(std::nullptr_t) noexcept;
@@ -184,7 +181,7 @@ public:
     constexpr ~basic_iptr() noexcept;
 
     template<typename... Ts> requires std::is_constructible_v<T, Ts&&...>
-    constexpr basic_iptr(InPlaceInitT, Ts&&... args) // NOLINT(*-missing-std-forward)
+    explicit constexpr basic_iptr(InPlaceInitT, Ts&&... args) // NOLINT(*-missing-std-forward)
     noexcept(std::is_nothrow_constructible_v<T, Ts&&...>);
 
     constexpr inline void reset() noexcept;
