@@ -49,6 +49,9 @@ private:
     walk_mode mode = failwith<walk_mode>("walk_mode not set");
 };
 
+walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
+walk_script::walk_script(psr path) : path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
+
 StringView walk_script::name() const { return "walk"_s; }
 const void* walk_script::id() const { return &script_name; }
 void walk_script::on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
@@ -65,6 +68,7 @@ void walk_script::on_init(const std::shared_ptr<critter>& c)
         break;
     case walk_mode::path:
         fm_assert(!path.empty());
+        dest = path.path().back();
         break;
     default:
         std::unreachable();
@@ -100,9 +104,6 @@ done:
     c->clear_auto_movement();
     c->script.do_clear(c);
 }
-
-walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
-walk_script::walk_script(psr path) : path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
 
 } // namespace
 
