@@ -12,17 +12,6 @@ namespace floormat {
 
 namespace {
 
-bool walk_line(point dest, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
-{
-    auto res = c->move_toward(i, dt, dest);
-    return res.blocked || c->position() == dest;
-}
-
-bool walk_path(point dest, const path_search_result& path, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
-{
-    return {};
-}
-
 struct walk_script;
 constexpr StringView script_name = name_of<walk_script>;
 using ScriptPtr = Pointer<critter_script>;
@@ -49,9 +38,6 @@ private:
     walk_mode mode = failwith<walk_mode>("walk_mode not set");
 };
 
-walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
-walk_script::walk_script(psr path) : path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
-
 StringView walk_script::name() const { return "walk"_s; }
 const void* walk_script::id() const { return &script_name; }
 void walk_script::on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
@@ -74,6 +60,20 @@ void walk_script::on_init(const std::shared_ptr<critter>& c)
         std::unreachable();
         fm_assert(false);
     }
+}
+
+walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
+walk_script::walk_script(psr path) : path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
+
+bool walk_line(point dest, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
+{
+    auto res = c->move_toward(i, dt, dest);
+    return res.blocked || c->position() == dest;
+}
+
+bool walk_path(point dest, const path_search_result& path, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
+{
+    return {};
 }
 
 void walk_script::on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
