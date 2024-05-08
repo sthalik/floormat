@@ -1,7 +1,7 @@
 #pragma once
 //#include "defs.hpp"
 #if defined __GNUG__ || defined __CLION_IDE__
-#define fm_FORMAT_ARG(n) __attribute__((format (gnu_printf, (n), (n+1))))
+#define fm_FORMAT_ARG(n) __attribute__((format (gnu_printf, (n), ((n)+1))))
 #define fm_FORMAT_ARG_MSVC
 #elif defined _MSC_VER
 #include <sal.h>
