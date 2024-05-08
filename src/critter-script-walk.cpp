@@ -1,10 +1,11 @@
 #include "critter-script.hpp"
-#include "compat/failwith.hpp"
 //#include "raycast.hpp"
+#include "compat/failwith.hpp"
+#include "point.hpp"
+#include "nanosecond.hpp"
+#include "critter.hpp"
 #include "search-result.hpp"
 #include "search-astar.hpp"
-#include "critter.hpp"
-#include "point.hpp"
 #include "entity/name-of.hpp"
 
 namespace floormat {
@@ -29,6 +30,9 @@ struct walk_script final : critter_script
 
     walk_script(point dest);
     walk_script(psr path);
+
+    bool walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
+    bool walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
 
 private:
     point dest;
@@ -61,23 +65,8 @@ void walk_script::on_init(const std::shared_ptr<critter>& c)
     }
 }
 
-walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
-walk_script::walk_script(psr path) : path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
-
-bool walk_line(point dest, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
-{
-    auto res = c->move_toward(i, dt, dest);
-    return res.blocked || c->position() == dest;
-}
-
-bool walk_path(point dest, const path_search_result& path, const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
-{
-    return {};
-}
-
 void walk_script::on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
 {
-    auto& m = c->moves;
     if (c->maybe_stop_auto_movement())
         goto done;
 
@@ -85,11 +74,11 @@ void walk_script::on_update(const std::shared_ptr<critter>& c, size_t& i, const 
     {
     case walk_mode::line:
         fm_assert(!path);
-        if (walk_line(dest, c, i, dt))
+        if (walk_line(c, i, dt))
             goto done;
         return;
     case walk_mode::path:
-        if (walk_path(dest, path, c, i, dt))
+        if (walk_path(c, i, dt))
             goto done;
         return;
     case walk_mode::none:
@@ -102,6 +91,29 @@ done:
     Debug{} << "  finished walking";
     c->clear_auto_movement();
     c->script.do_clear(c);
+}
+
+walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
+walk_script::walk_script(psr path) : dest{path.path().back()}, path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
+
+bool walk_script::walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
+{
+    auto dt = dtʹ;
+    auto res = c->move_toward(i, dt, dest);
+    return res.blocked || c->position() == dest;
+}
+
+bool walk_script::walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
+{
+    point cur;
+    for (cur = path.path()[path_index]; c->position() == cur; path_index++) [[unlikely]]
+        if (path_index == path.size()) [[unlikely]]
+            return true;
+    auto dt = dtʹ;
+    auto ret = c->move_toward(i, dt, cur);
+    Debug{} << "move toward" << cur << dt;
+    return ret.blocked;
+    // todo allow move_toward() to return portion of dt
 }
 
 } // namespace
