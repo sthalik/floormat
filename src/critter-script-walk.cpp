@@ -1,11 +1,10 @@
 #include "critter-script.hpp"
-//#include "raycast.hpp"
-#include "critter.hpp"
 #include "compat/failwith.hpp"
-#include "point.hpp"
-#include "critter.hpp"
+//#include "raycast.hpp"
 #include "search-result.hpp"
 #include "search-astar.hpp"
+#include "critter.hpp"
+#include "point.hpp"
 #include "entity/name-of.hpp"
 
 namespace floormat {
