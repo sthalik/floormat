@@ -31,6 +31,7 @@ void test_json3();
 void test_loader();
 void test_loader2();
 void test_loader3();
+void test_local();
 void test_magnum_math();
 void test_math();
 void test_raycast();
@@ -40,6 +41,5 @@ void test_saves();
 void test_script();
 void test_wall_atlas();
 void test_wall_atlas2();
-void test_zzz_misc();
 
 } // namespace floormat::Test

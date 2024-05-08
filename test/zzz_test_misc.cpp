@@ -5,11 +5,13 @@ namespace floormat {
 namespace {
 
 // tests go here
-void test_foo() {}
+void test_foo()
+{
+}
 
 } // namespace
 
-void Test::test_zzz_misc()
+void Test::test_local()
 {
     test_foo();
 }

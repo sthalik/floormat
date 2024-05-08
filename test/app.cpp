@@ -55,6 +55,7 @@ int App::exec()
         StringView name;
         void(*function)();
     } list[] = {
+        FM_TEST(test_local),
         // fast
         FM_TEST(test_magnum_math),
         FM_TEST(test_math),
@@ -65,7 +66,6 @@ int App::exec()
         FM_TEST(test_entity),
         FM_TEST(test_hash),
         // normal
-        FM_TEST(test_zzz_misc),
         FM_TEST(test_bitmask),
         FM_TEST(test_json),
         FM_TEST(test_json2),
