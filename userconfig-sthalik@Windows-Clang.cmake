@@ -106,8 +106,6 @@ function(fm-userconfig-src)
         -Wno-switch-enum
         -Wno-covered-switch-default
         -Wno-old-style-cast
-        -Wno-global-constructors
-        -Wno-exit-time-destructors
         -Wno-implicit-int-float-conversion
         -Wno-shadow-field-in-constructor
         -Wno-shadow-field
@@ -143,6 +141,12 @@ function(fm-userconfig-src)
         -Wno-error=unreachable-code
         -Wno-error=unused-command-line-argument
         -Wno-error=switch-default
+        -Wno-error=global-constructors
+        -Wno-error=exit-time-destructors
+    )
+    add_compile_options(
+        #-Wglobal-constructors
+        #-Wexit-time-destructors
     )
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         add_compile_options(-ftime-trace)
