@@ -41,7 +41,7 @@ struct refcount_ops
     using Tref = T*;
 #endif
 
-    static constexpr inline auto incr(T* ptr) noexcept -> size_type; // todo! move to .inl, add iptr_<...> that has non-constexpr members that call iptr<...> variants, and is meant to be instantiated through `template class` rather than including the .inl
+    static constexpr inline auto incr(T* ptr) noexcept -> size_type; // todo! remove constexpr from everywhere, then move everything to .inl
     static constexpr inline auto decr(Tref ptr) noexcept -> size_type;
     static constexpr inline auto count(T* ptr) noexcept -> size_type;
     static constexpr inline void init_to_1(T* ptr) noexcept;
@@ -54,7 +54,7 @@ struct refcount_access
     refcount_access() = delete;
 
     static constexpr auto access(T* ptr) noexcept -> counter_type&; // todo! this should return the iptr's control block. it has to contain the original pointer (because the casted ptr (or its base class, when casted to iptr<base>) might not have a virtual dtor), shared count, and (shared+weak) count.
-    template<typename Y> static constexpr Y* checked_cast(const T* ptr) noexcept; // todo! rather than using a traits object, require inheriting from new `refcount_base<...>`, add pointer to refcount_base<...> to the control block and static_cast from it when a static cast is required
+    template<typename Y> static constexpr Y* checked_cast(const T* ptr) noexcept;
 };
 
 template<typename Tag, typename T>
