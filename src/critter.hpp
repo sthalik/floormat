@@ -36,7 +36,7 @@ struct critter final : object
     void update_movement(size_t& i, const Ns& dt, rotation r);
 
     struct move_result { bool blocked, moved; };
-    [[nodiscard]] move_result move_toward(size_t& i, const Ns& dt, const point& dest);
+    [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
 
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;

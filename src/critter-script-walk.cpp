@@ -1,7 +1,7 @@
 #include "critter-script.hpp"
 //#include "raycast.hpp"
 #include "compat/failwith.hpp"
-#include "point.hpp"
+#include "point.inl"
 #include "nanosecond.hpp"
 #include "critter.hpp"
 #include "search-result.hpp"
@@ -28,8 +28,8 @@ struct walk_script final : critter_script
     void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
-    walk_script(point dest);
-    walk_script(psr path);
+    explicit walk_script(point dest);
+    explicit walk_script(psr path);
 
     bool walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
     bool walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
@@ -94,7 +94,15 @@ done:
 }
 
 walk_script::walk_script(point dest) : dest{dest}, mode{walk_mode::line} {}
-walk_script::walk_script(psr path) : dest{path.path().back()}, path{move(path)}, mode{walk_mode::path} { fm_assert(!path.empty()); }
+
+walk_script::walk_script(psr pathʹ) :
+    dest{pathʹ.path().back()},
+    path{move(pathʹ)},
+    path_index{0},
+    mode{walk_mode::path}
+{
+    fm_assert(!path.empty());
+}
 
 bool walk_script::walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
 {
@@ -105,15 +113,19 @@ bool walk_script::walk_line(const std::shared_ptr<critter>& c, size_t& i, const 
 
 bool walk_script::walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
 {
-    point cur;
-    for (cur = path.path()[path_index]; c->position() == cur; path_index++) [[unlikely]]
-        if (path_index == path.size()) [[unlikely]]
-            return true;
     auto dt = dtʹ;
-    auto ret = c->move_toward(i, dt, cur);
-    Debug{} << "move toward" << cur << dt;
-    return ret.blocked;
-    // todo allow move_toward() to return portion of dt
+    while (dt != Ns{})
+    {
+        while (path_index < path.size() && c->position() == path.path()[path_index])
+            path_index++;
+        if (path_index == path.size())
+            return true;
+        point cur = path.path()[path_index];
+        auto ret = c->move_toward(i, dt, cur);
+        if (ret.blocked || !ret.moved)
+            return ret.blocked;
+    }
+    return false;
 }
 
 } // namespace

@@ -4,8 +4,11 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/search-result.hpp"
+#include "src/point.inl"
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
+#include "src/search-astar.hpp"
+#include <mg/Functions.h>
 
 namespace floormat::tests {
 
@@ -42,8 +45,19 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
         {
             auto C = a.ensure_player_character(m.world()).ptr;
             fm_assert(C->is_dynamic());
-            auto S = critter_script::make_walk_script(*ptʹ);
-            C->script.do_reassign(move(S), move(C));
+
+            constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+            auto pt0 = C->position();
+            auto vec = Math::abs(*ptʹ - pt0) * 2 + chunk_size * 1;
+            auto dist = (uint32_t)vec.length();
+            constexpr auto bb_const = Vector2ui{tile_size_xy / 8};
+            auto bb = Vector2ui{C->bbox_size} + bb_const;
+            auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, C->id, dist, bb, 0);
+            if (!res.empty())
+            {
+                auto S = critter_script::make_walk_script(move(res));
+                C->script.do_reassign(move(S), move(C));
+            }
             return true;
         }
     }

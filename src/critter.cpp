@@ -7,6 +7,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
+#include "src/nanosecond.inl"
 #include "shaders/shader.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
@@ -317,6 +318,11 @@ constexpr float step_magnitude(Vector2b vec)
             return c;
 }
 
+Ns return_unspent_dt(uint32_t nframes, uint32_t i, float speed, Ns frame_duration)
+{
+    return Ns{(uint64_t)((float)(uint64_t)((nframes - i) * frame_duration) / speed)};
+}
+
 } // namespace
 
 extern template class Script<critter, critter_script>;
@@ -426,12 +432,17 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
     }
 }
 
-auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> move_result
+auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_result
 {
     fm_assert(is_dynamic());
 
     const auto& info = atlas->info();
-    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
+    const auto anim_frames = info.nframes;
+    const auto hz = info.fps;
+    constexpr auto ns_in_sec = Ns((int)1e9);
+    const auto frame_duration = ns_in_sec / hz;
+    const auto nframes = alloc_frame_time(dt, delta, hz, speed);
+    dt = Ns{};
     bool moved = false;
 
     if (nframes == 0)
@@ -448,27 +459,12 @@ auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> mov
         {
             //Debug{} << "done!" << from;
             //C.set_keys(false, false, false, false);
+            dt = return_unspent_dt(nframes, i, speed, frame_duration);
             return { .blocked = false, .moved = moved, };
         }
         const auto step = next_step(from, dest);
         //Debug{} << "step" << step.direction << step.count << "|" << C.position();
-        if (step.direction == Vector2b{}) [[unlikely]]
-        {
-            {
-                static bool once = false;
-                if (!once) [[unlikely]]
-                {
-                    once = true;
-                    DBG_nospace << "critter::move_toward: no dir for"
-                                << " vec:" << (dest - from)
-                                << " dest:" << dest
-                                << " from:" << from;
-                }
-            }
-            ok = false;
-            break;
-        }
-        fm_assert(step.count > 0);
+        fm_assert(step.direction != Vector2b{} && step.count > 0);
         const auto new_r = dir_from_step(step);
         using Frac = decltype(critter::offset_frac_);
         constexpr auto frac = (float{limits<Frac>::max}+1)/2;
@@ -489,10 +485,11 @@ auto critter::move_toward(size_t& index, const Ns& dt, const point& dest) -> mov
             {
                 move_to(index, off_i, new_r);
                 moved = true;
-                ++frame %= info.nframes;
+                ++frame %= anim_frames;
             }
             else
             {
+                dt = return_unspent_dt(nframes, i, speed, frame_duration);
                 ok = false;
                 break;
             }
