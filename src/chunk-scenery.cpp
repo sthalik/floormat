@@ -12,78 +12,11 @@
 namespace floormat {
 
 using namespace floormat::Quads;
+using topo_sort_data = chunk::topo_sort_data;
 
-auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
-{
-    Array<object_draw_order> array;
-    Array<std::array<vertex, 4>> scenery_vertexes;
-    Array<std::array<UnsignedShort, 6>> scenery_indexes;
-    return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
-}
+namespace {
 
-bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
-{
-    return min.x() <= o.max.x() && max.x() >= o.min.x() &&
-           min.y() <= o.max.y() && max.y() >= o.min.y();
-}
-
-static void topo_dfs(Array<chunk::object_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
-{
-    using m = typename chunk::topo_sort_data::m;
-
-    if (array[i].data.visited)
-        return;
-    array[i].data.visited = true;
-
-    const auto& data_i = array[i].data;
-
-    for (auto j = 0uz; j < size; j++)
-    {
-        if (i == j)
-            continue;
-        const auto& data_j = array[j].data;
-        if (data_j.visited)
-            continue;
-        if (data_j.mode == m::mode_static && data_i.mode == m::mode_character)
-        {
-            if (!data_i.intersects(data_j))
-                continue;
-            const auto &c = data_i, &s = data_j;
-            auto off = c.center.x() - s.center.x();
-            auto y = s.center.y() + s.slope * off;
-            if (y < c.center.y())
-                topo_dfs(array, output, j, size);
-        }
-        else if (data_i.mode == m::mode_static && data_j.mode == m::mode_character)
-        {
-            if (!data_i.intersects(data_j))
-                continue;
-            const auto &c = data_j, &s = data_i;
-            auto off = c.center.x() - s.center.x();
-            auto y = s.center.y() + s.slope * off;
-            if (y >= c.center.y())
-                topo_dfs(array, output, j, size);
-        }
-        else if (data_i.ord > data_j.ord)
-            topo_dfs(array, output, j, size);
-    }
-    fm_assert(output < size);
-    array[output].e = data_i.in;
-    array[output].mesh_idx = data_i.in_mesh_idx;
-    output++;
-}
-
-static void topological_sort(Array<chunk::object_draw_order>& array, size_t size)
-{
-    size_t output = 0;
-
-    for (auto i = 0uz; i < size; i++)
-        if (!array[i].data.visited)
-            topo_dfs(array, output, i, size);
-    fm_assert(output == size);
-}
-
-auto chunk::make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
+auto make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
 {
     const auto& a = *e.atlas;
     const auto& f = a.frame(e.r, e.frame);
@@ -131,6 +64,78 @@ auto chunk::make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
     return data;
 }
 
+void topo_dfs(Array<chunk::object_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
+{
+    using m = typename chunk::topo_sort_data::m;
+
+    if (array[i].data.visited)
+        return;
+    array[i].data.visited = true;
+
+    const auto& data_i = array[i].data;
+
+    for (auto j = 0u; j < size; j++)
+    {
+        if (i == j)
+            continue;
+        const auto& data_j = array[j].data;
+        if (data_j.visited)
+            continue;
+        if (data_j.mode == m::mode_static && data_i.mode == m::mode_character)
+        {
+            if (!data_i.intersects(data_j))
+                continue;
+            const auto &c = data_i, &s = data_j;
+            auto off = c.center.x() - s.center.x();
+            auto y = s.center.y() + s.slope * off;
+            if (y < c.center.y())
+                topo_dfs(array, output, j, size);
+        }
+        else if (data_i.mode == m::mode_static && data_j.mode == m::mode_character)
+        {
+            if (!data_i.intersects(data_j))
+                continue;
+            const auto &c = data_j, &s = data_i;
+            auto off = c.center.x() - s.center.x();
+            auto y = s.center.y() + s.slope * off;
+            if (y >= c.center.y())
+                topo_dfs(array, output, j, size);
+        }
+        else if (data_i.ord > data_j.ord)
+            topo_dfs(array, output, j, size);
+    }
+    fm_assert(output < size);
+    array[output].e = data_i.in;
+    array[output].mesh_idx = data_i.in_mesh_idx;
+    output++;
+}
+
+void topological_sort(Array<chunk::object_draw_order>& array, size_t size)
+{
+    size_t output = 0;
+
+    for (auto i = 0u; i < size; i++)
+        if (!array[i].data.visited)
+            topo_dfs(array, output, i, size);
+    fm_assert(output == size);
+}
+
+} // namespace
+
+auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
+{
+    Array<object_draw_order> array;
+    Array<std::array<vertex, 4>> scenery_vertexes;
+    Array<std::array<UnsignedShort, 6>> scenery_indexes;
+    return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
+}
+
+bool chunk::topo_sort_data::intersects(const topo_sort_data& o) const
+{
+    return min.x() <= o.max.x() && max.x() >= o.min.x() &&
+           min.y() <= o.max.y() && max.y() >= o.min.y();
+}
+
 auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> scenery_mesh_tuple
 {
     ensure_scenery_buffers(buffers);
@@ -141,8 +146,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     {
         _scenery_modified = false;
 
-        const auto count = [&] {
-            size_t ret = 0;
+        const auto count = [this] {
+            uint32_t ret = 0;
             for (const auto& e : _objects)
                 ret += !e->is_dynamic();
             return ret;
@@ -151,7 +156,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         auto& scenery_vertexes = buffers.scenery_vertexes;
         auto& scenery_indexes = buffers.scenery_indexes;
 
-        for (auto i = 0uz; const auto& e : _objects)
+        for (auto i = 0u; const auto& e : _objects)
         {
             if (e->is_dynamic())
                 continue;
@@ -166,7 +171,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             const auto d = e->depth_offset();
             const float depth = tile_shader::depth_value(pos, d);
 
-            for (auto j = 0uz; j < 4; j++)
+            for (auto j = 0u; j < 4; j++)
                 scenery_vertexes[i][j] = { quad[j], texcoords[j], depth };
             scenery_indexes[i] = quad_indexes(i);
             i++;

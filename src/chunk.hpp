@@ -146,7 +146,6 @@ private:
                  _objects_sorted   : 1 = true;
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
-    static topo_sort_data make_topo_sort_data(object& e, uint32_t mesh_idx);
 
     struct bbox final
     {
