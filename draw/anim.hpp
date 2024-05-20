@@ -34,8 +34,6 @@ struct anim_mesh
                               Array<clickable>& list);
 
 private:
-    static std::array<UnsignedShort, 6> make_index_array();
-
     struct vertex_data
     {
         Vector3 position;
