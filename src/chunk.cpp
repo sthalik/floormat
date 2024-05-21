@@ -129,6 +129,7 @@ chunk& chunk::operator=(chunk&&) noexcept = default;
 
 void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
 {
+    fm_assert(!e->gone);
     _objects_sorted = false;
     if (!e->is_dynamic())
         mark_scenery_modified();
@@ -152,6 +153,7 @@ void chunk::sort_objects()
 void chunk::add_object(const std::shared_ptr<object>& e)
 {
     fm_assert(_objects_sorted);
+    fm_assert(!e->gone);
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
@@ -173,6 +175,7 @@ void chunk::remove_object(size_t i)
     auto& es = _objects;
     fm_debug_assert(i < es.size());
     auto* e = es[i].get();
+    fm_assert(!e->gone);
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))

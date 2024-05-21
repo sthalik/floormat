@@ -49,6 +49,7 @@ struct object
     class chunk* const c;
     const std::shared_ptr<anim_atlas> atlas;
     const global_coords coord;
+    const std::weak_ptr<object> parent;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint32_t delta = 0;
