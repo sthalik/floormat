@@ -172,7 +172,7 @@ void chunk::remove_object(size_t i)
     fm_assert(_objects_sorted);
     auto& es = _objects;
     fm_debug_assert(i < es.size());
-    const auto e = es[i];
+    auto* e = es[i].get();
     if (!e->is_dynamic())
         mark_scenery_modified();
     if (bbox bb; _bbox_for_scenery(*e, bb))
