@@ -59,6 +59,7 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
                     eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
                     c.remove_object((unsigned)i);
                     eʹ->destroy_script_post();
+                    eʹ->gone = true;
                     goto start;
                 }
             }

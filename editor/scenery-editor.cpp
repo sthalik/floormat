@@ -99,6 +99,7 @@ start:
                     eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
                     c.remove_object(i);
                     eʹ->destroy_script_post();
+                    eʹ->gone = true;
                     goto start;
                 }
             break;
