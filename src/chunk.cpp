@@ -21,13 +21,12 @@ bool chunk::empty(bool force) const noexcept
 {
     if (!force && !_maybe_empty) [[likely]]
         return false;
+    if (!_objects.isEmpty())
+        return _maybe_empty = false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
-        if (!_objects.isEmpty() ||
-            _ground && _ground->atlases[i] ||
+        if (_ground && _ground->atlases[i] ||
             _walls && (_walls->atlases[i*2+0] || _walls->atlases[i*2+1]))
             return _maybe_empty = false;
-    if (!_objects.isEmpty())
-        return false;
     return true;
 }
 
