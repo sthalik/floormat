@@ -19,6 +19,6 @@ void main() {
     if (enable_lightmap)
         light *= vec4(texture(lightmap_sampler, frag_light_coord).rgb, 1);
     color = texture(sampler, frag_texcoords) * light;
-    if (color.a == 0)
-        discard;
+    //if (color.a == 0)
+    //    discard;
 }
