@@ -2,10 +2,6 @@
 
 namespace floormat {
 
-enum class collision : unsigned char {
-    view, shoot, move,
-};
-
 enum class collision_type : unsigned char {
     none, object, scenery, geometry,
 };
