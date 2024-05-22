@@ -85,7 +85,7 @@ bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offs
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id_(collision_type::scenery, s.pass, s.id);
     value = { .data = id, .start = start, .end = end };
-    return s.atlas && !Vector2ui(s.bbox_size).isZero();
+    return Vector2ui(s.bbox_size).product() > 0 && s.atlas;
 }
 
 bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
