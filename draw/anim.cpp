@@ -134,7 +134,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         fm_assert(e.is_dynamic() == (x.mesh_idx == (uint32_t)-1));
         if (!e.is_dynamic())
         {
-#if 1
+#if 1 // todo! recalc it when chunk's object list changes!
             auto r = get_contig_draw_len(es, k);
 #else
             auto r = minmax_s{1, x.mesh_idx};
