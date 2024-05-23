@@ -32,6 +32,7 @@ struct loader_
     static loader_& default_loader() noexcept;
     virtual StringView shader(StringView filename) noexcept = 0;
     virtual Trade::ImageData2D make_error_texture(Vector2ui size) = 0;
+    virtual Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
 
     virtual const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;

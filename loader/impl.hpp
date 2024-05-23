@@ -39,6 +39,7 @@ struct loader_impl final : loader_
     StringView shader(StringView filename) noexcept override;
 
     Trade::ImageData2D make_error_texture(Vector2ui size) override;
+    Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
 
     // >-----> ground >----->

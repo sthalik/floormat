@@ -135,9 +135,9 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         if (!e.is_dynamic())
         {
 #if 1 // todo! recalc it when chunk's object list changes!
-            auto r = get_contig_draw_len(es, k);
+            const auto r = get_contig_draw_len(es, k);
 #else
-            auto r = minmax_s{1, x.mesh_idx};
+            constexpr auto r = minmax_s{1, x.mesh_idx};
 #endif
             uint32_t count = r.len;
             GL::MeshView mesh{mesh_};
