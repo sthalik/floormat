@@ -395,6 +395,8 @@ void reader_state::read_chunks(reader_t& s)
 
             switch (type)
             {
+            case object_type::hole:
+                fm_abort("not implemented");
             case object_type::critter: {
                 critter_proto proto;
                 proto.offset = offset;
