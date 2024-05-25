@@ -70,6 +70,23 @@ void fm_emit_debug_loc0(const char* file, int line, fm_FORMAT_ARG_MSVC const cha
         }                                                               \
     })(__VA_ARGS__)
 
+#define fm_assert_not_equal(...) \
+    ([](auto a, auto b) -> void                                         \
+    {                                                                   \
+        if (a == b) [[unlikely]]                                        \
+        {                                                               \
+            ERR_nospace << Debug::color(Debug::Color::Magenta)          \
+                        << "fatal:"                                     \
+                        << Debug::resetColor << " "                     \
+                        << "Inequality assertion failed at "            \
+                        << __FILE__ << ":" << __LINE__;                 \
+            ERR_nospace << #__VA_ARGS__;                                \
+            ERR_nospace << "not expected: " << a;                       \
+            ERR_nospace << "      actual: " << b;                       \
+            fm_emit_abort();                                            \
+        }                                                               \
+        })(__VA_ARGS__)
+
 #ifdef __GNUG__
 #   pragma GCC diagnostic pop
 #endif
