@@ -112,12 +112,10 @@ constexpr element make_element(uint8_t s)
     }
     fm_assert(false);
 }
+
 constexpr auto elements = map(make_element, iota_array<uint8_t, 16>);
-static_assert(array_size(elements) == 16);
 
-} // namespace
-
-constexpr cut_rectangle_result cut_rectangle(bbox input, bbox hole)
+constexpr cut_rectangle_result cut_rectangleʹ(bbox input, bbox hole)
 {
     auto ihalf = Vector2i{input.bbox_size/2};
     auto r0 = input.position - ihalf;
@@ -167,10 +165,14 @@ constexpr cut_rectangle_result cut_rectangle(bbox input, bbox hole)
         res.array[i] = { {x0, y0}, {x1, y1}, };
     }
 
-    fm_assert(false);
-    std::unreachable();
+    return res;
+}
 
-    //return -1;
+} // namespace
+
+cut_rectangle_result cut_rectangle(bbox input, bbox hole)
+{
+    return cut_rectangleʹ(input, hole);
 }
 
 } // namespace floormat
