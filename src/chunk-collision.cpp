@@ -13,8 +13,8 @@ namespace floormat {
 
 bool collision_data::operator==(const collision_data&) const noexcept = default;
 bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
-
 chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
+world& chunk::world() noexcept { return *_world; }
 
 namespace {
 
@@ -65,7 +65,7 @@ void chunk::ensure_passability() noexcept
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
             _rtree->Insert(min.data(), max.data(), id);
 
-            if (tile.wall_west_atlas().get())
+            if (tile.wall_west_atlas())
             {
                 auto [min, max] = wall_pillar(i, (float)atlas->info().depth);
                 _rtree->Insert(min.data(), max.data(), id);

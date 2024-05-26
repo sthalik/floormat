@@ -168,6 +168,8 @@ void chunk::on_teardown()
     fm_assert(!_teardown); // too late, some chunks were already erased
 }
 
+bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
+
 void chunk::remove_object(size_t i)
 {
     fm_assert(_objects_sorted);

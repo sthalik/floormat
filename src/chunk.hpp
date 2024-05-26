@@ -96,7 +96,7 @@ public:
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
-    class world& world() noexcept { return *_world; }
+    class world& world() noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
 
@@ -105,6 +105,7 @@ public:
     void sort_objects();
     void remove_object(size_t i);
     void on_teardown();
+    bool is_teardown() const;
     ArrayView<const std::shared_ptr<object>> objects() const;
 
     // for drawing only

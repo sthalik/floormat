@@ -298,6 +298,9 @@ bool inspect_object_subtype(object& x)
     const auto type = x.type();
     switch (type)
     {
+    case object_type::none:
+    case object_type::COUNT:
+        break;
     case object_type::scenery: {
         auto& sc = static_cast<scenery&>(x);
         const auto sc_type = sc.scenery_type();
@@ -315,9 +318,6 @@ bool inspect_object_subtype(object& x)
     }
     case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
     case object_type::light:   return inspect_type(static_cast<light&>(x), inspect_intent_t{});
-    case object_type::none:
-    case object_type::COUNT:
-        break;
     }
     fm_warn_once("unknown object subtype '%d'", (int)type);
     return false;

@@ -68,7 +68,7 @@ object::object(object_id id, class chunk& c, const object_proto& proto) :
 object::~object() noexcept
 {
     fm_debug_assert(id);
-    if (c->_teardown || c->_world->_teardown) [[unlikely]]
+    if (c->is_teardown()) [[unlikely]]
         return;
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);

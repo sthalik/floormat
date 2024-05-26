@@ -11,8 +11,6 @@
 
 namespace floormat {
 
-
-
 // --- scenery ---
 
 enum object_type scenery::type() const noexcept { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
