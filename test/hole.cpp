@@ -6,7 +6,7 @@ namespace {
 
 using bbox = cut_rectangle_result::bbox;
 
-constexpr auto cutʹ(bbox rect, bbox hole, Vector2i offset)
+constexpr auto cut(bbox rect, bbox hole, Vector2i offset)
 {
     auto rectʹ = bbox { rect.position + offset, rect.bbox_size };
     auto holeʹ = bbox { hole.position + offset, hole.bbox_size };
@@ -17,28 +17,28 @@ void test1(Vector2i offset)
 {
     constexpr auto rect = bbox{{}, {50, 50}};
 #if 1
-    fm_assert_not_equal(0, cutʹ(rect, {{ 49,   0}, {50, 50}}, offset));
-    fm_assert_not_equal(0, cutʹ(rect, {{  0,  49}, {50, 50}}, offset));
-    fm_assert_not_equal(0, cutʹ(rect, {{ 49,  49}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{ 49,   0}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{  0,  49}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{ 49,  49}, {50, 50}}, offset));
 #endif
 #if 1
-    fm_assert_not_equal(0, cutʹ(rect, {{-49,   0}, {50, 50}}, offset));
-    fm_assert_not_equal(0, cutʹ(rect, {{  0, -49}, {50, 50}}, offset));
-    fm_assert_not_equal(0, cutʹ(rect, {{ 49, -49}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{-49,   0}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{  0, -49}, {50, 50}}, offset));
+    fm_assert_not_equal(0, cut(rect, {{ 49, -49}, {50, 50}}, offset));
 #endif
 #if 1
-    fm_assert_equal(0, cutʹ(rect, {{50,  0}, {50, 50}}, offset));
-    fm_assert_equal(0, cutʹ(rect, {{ 0, 50}, {50, 50}}, offset));
-    fm_assert_equal(0, cutʹ(rect, {{50, 50}, {50, 50}}, offset));
+    fm_assert_equal(0, cut(rect, {{50,  0}, {50, 50}}, offset));
+    fm_assert_equal(0, cut(rect, {{ 0, 50}, {50, 50}}, offset));
+    fm_assert_equal(0, cut(rect, {{50, 50}, {50, 50}}, offset));
 #endif
 #if 1
-    fm_assert_equal(1, cutʹ(rect, {{ 9,  9}, {70, 70}}, offset));
-    fm_assert_equal(1, cutʹ(rect, {{10, 10}, {70, 70}}, offset));
+    fm_assert_equal(1, cut(rect, {{ 9,  9}, {70, 70}}, offset));
+    fm_assert_equal(1, cut(rect, {{10, 10}, {70, 70}}, offset));
 #endif
 #if 1
-    fm_assert_equal(1, cutʹ(rect, {{1, 0}, {50, 50}}, offset));
-    fm_assert_equal(1, cutʹ(rect, {{0, 1}, {50, 50}}, offset));
-    fm_assert_equal(2, cutʹ(rect, {{1, 1}, {50, 50}}, offset));
+    fm_assert_equal(1, cut(rect, {{1, 0}, {50, 50}}, offset));
+    fm_assert_equal(1, cut(rect, {{0, 1}, {50, 50}}, offset));
+    fm_assert_equal(2, cut(rect, {{1, 1}, {50, 50}}, offset));
 #endif
 #if 1
     // todo! coverage
