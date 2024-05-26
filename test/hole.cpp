@@ -10,7 +10,7 @@
 #endif
 
 namespace floormat::Hole {
-//namespace {
+namespace {
 
 using bbox = cut_rectangle_result::bbox;
 
@@ -68,7 +68,7 @@ constexpr element make_element(uint8_t s)
     }}};
     case __|__|y0|y1: return element{2, {{ // 13.2
         {R0, H0, H1, R1},
-        {R0, H0, H0, R1},
+        {H1, R1, R0, R1},
     }}};
 
     case x0|x1|y0|__: return element{1, {{ // 12.1
@@ -106,22 +106,26 @@ constexpr element make_element(uint8_t s)
     }}};
 
     case x0|__|y0|__: return element{2, {{ // 11.1
-
+        {H1, R1, R0, H1},
+        {R0, R1, H1, R1},
     }}};
-    case __|x1|y0|__: return element{2, {{ // 11.1
-
+    case __|x1|y0|__: return element{2, {{ // 11.2
+        {R0, H0, R0, H1},
+        {R0, R1, H1, R1},
     }}};
-    case x0|__|__|y1: return element{2, {{ // 11.1
-
+    case x0|__|__|y1: return element{2, {{ // 11.3
+        {R0, R1, R0, H0},
+        {H1, R1, H0, R1},
     }}};
-    case __|x1|__|y1: return element{2, {{ // 11.1
-
+    case __|x1|__|y1: return element{2, {{ // 11.4
+        {R0, R1, R0, H0},
+        {R0, H0, H0, H1},
     }}};
     }
     fm_assert(false);
 }
 constexpr auto elements = map(make_element, iota_array<uint8_t, 16>);
-static_assert(sizeof(elements) == 9 * 16);
+static_assert(array_size(elements) == 16);
 
 constexpr cut_rectangle_result cut(bbox input, bbox hole)
 {
@@ -153,7 +157,8 @@ constexpr cut_rectangle_result cut(bbox input, bbox hole)
     auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
     CORRADE_ASSUME(val < 16);
 
-    //static_assert(array_size(starts) == 16);
+
+
     fm_assert(false);
     std::unreachable();
 
@@ -199,11 +204,10 @@ void test1()
 #endif
 }
 
-//} // namespace
+} // namespace
 } // namespace floormat::Hole
 
 namespace floormat {
-
 void Test::test_hole()
 {
     Hole::test1<   0,     0 >();
