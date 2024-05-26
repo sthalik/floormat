@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "inspect.hpp"
 #include "floormat/main.hpp"
@@ -47,7 +48,7 @@ auto z = e.coord.z();
 #else
         entity_inspector_name(buf2, sizeof buf2, e.id);
         entity_friendly_name(buf3, sizeof buf3, e);
-        std::snprintf(buf, std::size(buf), "%s###%s", buf3, buf2);
+        std::snprintf(buf, array_size(buf), "%s###%s", buf3, buf2);
 #endif
 
         bool is_open = true;

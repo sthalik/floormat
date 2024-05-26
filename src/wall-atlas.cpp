@@ -1,5 +1,6 @@
 #include "wall-atlas.hpp"
 #include "tile-constants.hpp"
+#include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include <utility>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -21,7 +22,7 @@ uint8_t direction_index_from_name(StringView s) noexcept(false)
 
 StringView direction_index_to_name(size_t i) noexcept(false)
 {
-    fm_soft_assert(i < arraySize(wall_atlas::directions));
+    fm_soft_assert(i < array_size(wall_atlas::directions));
     return wall_atlas::directions[i].name;
 }
 

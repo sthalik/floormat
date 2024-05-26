@@ -1,4 +1,5 @@
 #include "wall-editor.hpp"
+#include "compat/array-size.hpp"
 #include "src/wall-defs.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/world.hpp"
@@ -18,7 +19,7 @@ constexpr inline rot_pair rot_map[] = {
     { rotation::N, Direction_::N },
     { rotation::W, Direction_::W },
 };
-static_assert(std::size(rot_map) == Direction_COUNT);
+static_assert(array_size(rot_map) == Direction_COUNT);
 
 constexpr rotation dir_to_rot(Direction_ D)
 {

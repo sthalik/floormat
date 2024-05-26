@@ -6,6 +6,7 @@
 #include "world.hpp"
 #include "pass-mode.hpp"
 #include "RTree-search.hpp"
+#include "compat/array-size.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 
@@ -76,7 +77,7 @@ bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors
 
         if (c2)
         {
-            static_assert(std::size(world::neighbor_offsets) == 8);
+            static_assert(array_size(world::neighbor_offsets) == 8);
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
             const auto off = Vector2(nb)*Vector2(chunk_size);
             const auto min_ = min - off, max_ = max - off;

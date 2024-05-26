@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "editor/app.hpp"
 #include "floormat/main.hpp"
+#include "compat/array-size.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "../imgui-raii.hpp"
 #include "src/critter.hpp"
@@ -27,7 +28,7 @@ struct pending_s
 
 void print_coord(auto&& buf, Vector3i c, Vector2i l, Vector2i p)
 {
-    std::snprintf(buf, std::size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+    std::snprintf(buf, array_size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
 }
 
 void print_coord_(auto&& buf, point pt)
@@ -40,7 +41,7 @@ void print_coord_(auto&& buf, point pt)
 
 void print_vec2(auto&& buf, Vector2 vec)
 {
-    std::snprintf(buf, std::size(buf), "(%.2f x %.2f)", (double)vec.x(), (double)vec.y());
+    std::snprintf(buf, array_size(buf), "(%.2f x %.2f)", (double)vec.x(), (double)vec.y());
 }
 
 void do_column(StringView name)
@@ -197,7 +198,7 @@ struct raycast_test final : base_test
                 }
 
                 do_column("collider");
-                std::snprintf(buf, std::size(buf), "%s @ %" PRIu64,
+                std::snprintf(buf, array_size(buf), "%s @ %" PRIu64,
                               type, uint64_t{result.collider.data});
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
@@ -207,13 +208,13 @@ struct raycast_test final : base_test
             ImGui::NewLine();
 
             do_column("dir");
-            std::snprintf(buf, std::size(buf), "%.4f x %.4f", (double)diag.dir.x(), (double)diag.dir.y());
+            std::snprintf(buf, array_size(buf), "%.4f x %.4f", (double)diag.dir.x(), (double)diag.dir.y());
             text(buf);
 
             if (!result.success)
             {
                 do_column("tmin");
-                std::snprintf(buf, std::size(buf), "%f / %f",
+                std::snprintf(buf, array_size(buf), "%f / %f",
                               (double)diag.tmin,
                               (double)(diag.tmin / diag.V.length()));
                 text(buf);
@@ -221,7 +222,7 @@ struct raycast_test final : base_test
             else
             {
                 do_column("tmin");
-                std::snprintf(buf, std::size(buf), "%f / %f",
+                std::snprintf(buf, array_size(buf), "%f / %f",
                               (double)diag.V.length(), 1.0);
                 text(buf);
             }
@@ -231,7 +232,7 @@ struct raycast_test final : base_test
             text(buf);
 
             do_column("||dir^-1||");
-            std::snprintf(buf, std::size(buf), "%f x %f",
+            std::snprintf(buf, array_size(buf), "%f x %f",
                           (double)diag.dir_inv_norm.x(),
                           (double)diag.dir_inv_norm.y());
             text(buf);
@@ -239,15 +240,15 @@ struct raycast_test final : base_test
             ImGui::NewLine();
 
             do_column("bbox-size");
-            std::snprintf(buf, std::size(buf), "(%u x %u)", diag.size.x(), diag.size.y());
+            std::snprintf(buf, array_size(buf), "(%u x %u)", diag.size.x(), diag.size.y());
             text(buf);
 
             do_column("path-len");
-            std::snprintf(buf, std::size(buf), "%zu", diag.path.size());
+            std::snprintf(buf, array_size(buf), "%zu", diag.path.size());
             text(buf);
 
             do_column("time");
-            std::snprintf(buf, std::size(buf), "%.3f ms", (double)(1000 * result.time));
+            std::snprintf(buf, array_size(buf), "%.3f ms", (double)(1000 * result.time));
             text(buf);
         }
     }

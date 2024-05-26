@@ -6,6 +6,7 @@
 #include "pass-mode.hpp"
 #include "json-helper.hpp"
 #include "corrade-array.hpp"
+#include "compat/array-size.hpp"
 #include <utility>
 #include <string_view>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -56,7 +57,7 @@ direction_triple read_all_directions(const json& jroot)
             count++;
     direction_triple ret = { Array<Direction>{count}, {}, {}, };
     auto& [array, map, mask] = ret;
-    for (uint8_t i = 0, pos = 0; i < std::size(wall_atlas::directions); i++)
+    for (uint8_t i = 0, pos = 0; i < array_size(wall_atlas::directions); i++)
     {
         auto [str, dir] = wall_atlas::directions[i];
         if (jroot.contains(str))
@@ -77,7 +78,7 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
         return false;
     if (direction_array.size() != other.direction_array.size())
         return false;
-    for (uint8_t i = 0; i < std::size(direction_map); i++)
+    for (uint8_t i = 0; i < array_size(direction_map); i++)
     {
         auto i1 = direction_map[i], i2 = other.direction_map[i];
         if (!i1 != !i2)

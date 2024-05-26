@@ -1,5 +1,6 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
+#include "compat/array-size.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "floormat/main.hpp"
@@ -187,7 +188,7 @@ void path_test::draw_ui(app&, float)
 
     constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
     {
-        std::snprintf(buf, std::size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+        std::snprintf(buf, array_size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
     };
 
     constexpr auto do_column = [](StringView name)
@@ -226,21 +227,21 @@ void path_test::draw_ui(app&, float)
             {
                 auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                 do_column("dist");
-                std::snprintf(buf, std::size(buf), "%d", (int)res.distance());
+                std::snprintf(buf, array_size(buf), "%d", (int)res.distance());
                 text(buf);
             }
         }
 
         do_column("cost");
-        std::snprintf(buf, std::size(buf), "%d", (int)res.cost());
+        std::snprintf(buf, array_size(buf), "%d", (int)res.cost());
         text(buf);
 
         do_column("length");
-        std::snprintf(buf, std::size(buf), "%d", (int)res.path().size());
+        std::snprintf(buf, array_size(buf), "%d", (int)res.path().size());
         text(buf);
 
         do_column("time");
-        std::snprintf(buf, std::size(buf), "%.1f ms", (double)(1000 * res.time()));
+        std::snprintf(buf, array_size(buf), "%.1f ms", (double)(1000 * res.time()));
         text(buf);
     }
 }

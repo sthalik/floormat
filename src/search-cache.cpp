@@ -2,6 +2,7 @@
 #include "search-constants.hpp"
 #include "point.hpp"
 #include "world.hpp"
+#include "compat/array-size.hpp"
 #include <bitset>
 
 namespace floormat::Search {
@@ -18,7 +19,7 @@ struct cache::chunk_cache
             x *= i;
         return x;
     }();
-    static constexpr size_t rank = arraySize(dimensions);
+    static constexpr size_t rank = array_size(dimensions);
 
     struct index { uint32_t value = 0; };
     class chunk* chunk = nullptr;

@@ -1,4 +1,5 @@
 #include "tests-private.hpp"
+#include "compat/array-size.hpp"
 #include "compat/safe-ptr.hpp"
 #include "app.hpp"
 #include "floormat/main.hpp"
@@ -20,7 +21,7 @@
 
 namespace floormat::tests {
 
-static_assert(arraySize(tests_data::fields) <= (size_t)Test::COUNT);
+static_assert(array_size(tests_data::fields) <= (size_t)Test::COUNT);
 
 Pointer<base_test> tests_data::make_test_none() { return {}; }
 
@@ -42,7 +43,7 @@ using namespace floormat::imgui;
 
 void tests_data::switch_to(Test i)
 {
-    fm_assert((size_t)i < arraySize(fields));
+    fm_assert((size_t)i < array_size(fields));
     current_index = Test::none;
     current_test = make_test_none();
     if (i < Test::COUNT)

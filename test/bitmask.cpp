@@ -2,6 +2,7 @@
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
+#include "compat/array-size.hpp"
 #include <mg/Functions.h>
 #include <mg/ImageData.h>
 
@@ -13,7 +14,7 @@ const unsigned char src[] = {
 #include "bitmask.embed.inc"
 };
 
-constexpr auto data_nbytes = arraySize(src);
+constexpr auto data_nbytes = array_size(src);
 constexpr auto size = Vector2i{21, 52};
 //static_assert(size_t{size.product()+7}/8 <= data_nbytes);
 
@@ -36,7 +37,7 @@ void bitmask_test()
     fflush(stdout);
 #endif
     const auto len = Math::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
-    fm_assert(arraySize(src) >= len);
+    fm_assert(array_size(src) >= len);
     for (auto i = 0uz; i < len; i++)
     {
         auto a = (unsigned char)bitmask.data()[i];

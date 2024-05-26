@@ -1,6 +1,7 @@
 #include "anim-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "compat/assert.hpp"
+#include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -12,7 +13,7 @@ namespace floormat {
 static constexpr const char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
 static constexpr inline auto rot_count = size_t(rotation_COUNT);
 
-static_assert(std::size(name_array) == rot_count);
+static_assert(array_size(name_array) == rot_count);
 static_assert(rot_count == 8);
 
 uint8_t anim_atlas::rotation_to_index(StringView name)

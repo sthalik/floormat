@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
+#include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/strerror.hpp"
 #include <cstring>
@@ -29,11 +30,11 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
 
     for (auto extension : { ".tga"_s, ".png"_s, ".webp"_s, })
     {
-        fm_soft_assert(len + extension.size() < std::size(buf));
+        fm_soft_assert(len + extension.size() < array_size(buf));
         std::memcpy(buf + len, extension.data(), extension.size());
         buf[len + extension.size()] = '\0';
         auto path = StringView{buf, len + extension.size(), StringViewFlag::NullTerminated};
-        fm_debug_assert(path.size() < std::size(buf));
+        fm_debug_assert(path.size() < array_size(buf));
         auto& importer = extension == ".tga"_s ? tga_importer : image_importer;
         if (Path::exists(path) && importer->openFile(path))
         {

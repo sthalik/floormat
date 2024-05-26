@@ -6,6 +6,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "point.inl"
+#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "compat/heap.hpp"
@@ -388,7 +389,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         }
         if (len)
         {
-            len = Math::min(len, std::size(buf)-1);
+            len = Math::min(len, array_size(buf)-1);
             std::fwrite(buf, len, 1, stdout);
             std::fflush(stdout);
         }

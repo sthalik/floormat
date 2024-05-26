@@ -3,7 +3,7 @@
 
 namespace floormat::detail {
 
-template<typename T> struct array_size_; // todo! replace usages of arraySize & std::size
+template<typename T> struct array_size_;
 template<typename T, size_t N> struct array_size_<T(&)[N]> : std::integral_constant<size_t, N> {};
 template<typename T, size_t N> struct array_size_<T[N]> : std::integral_constant<size_t, N> {};
 template<typename T, size_t N> struct array_size_<std::array<T, N>> : std::integral_constant<size_t, N> {};

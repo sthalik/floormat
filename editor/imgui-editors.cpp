@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/tile-constants.hpp"
+#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include "ground-editor.hpp"
@@ -83,7 +84,7 @@ void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const std::
             text(" (selected)");
         }
         const auto len = snformat(buf, "{:d}"_cf, N);
-        fm_assert(len < std::size(buf));
+        fm_assert(len < array_size(buf));
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi[0]);
         text({buf, len});
     };

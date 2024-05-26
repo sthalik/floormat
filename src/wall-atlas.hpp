@@ -3,6 +3,7 @@
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
 #include "compat/defs.hpp"
+#include "compat/array-size.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
@@ -57,7 +58,7 @@ struct Direction
         { "top"_s,      &Direction::top,      Group_::top       },
         { "corner"_s,   &Direction::corner,   Group_::corner    },
     };
-    static_assert(std::size(groups) == (size_t)Group_::COUNT);
+    static_assert(array_size(groups) == (size_t)Group_::COUNT);
 
     static constexpr inline member_tuple groups_for_draw[] = {
         { "wall"_s,     &Direction::wall,     Group_::wall      },

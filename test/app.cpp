@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
+#include "compat/array-size.hpp"
 #include "compat/headless.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
@@ -48,7 +49,7 @@ int App::exec()
     constexpr auto SV_flags = StringViewFlag::Global|StringViewFlag::NullTerminated;
     constexpr auto name_prefix = "test_"_s;
 
-#define FM_TEST(name) { ( StringView{#name, arraySize(#name)-1, SV_flags} ), ( &(name) ), }
+#define FM_TEST(name) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &(name) ), }
 
     constexpr struct {
         StringView name;

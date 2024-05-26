@@ -72,16 +72,16 @@ float Time::to_milliseconds(const Ns& ts) noexcept
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {
     constexpr const char* fmt = "%a, %d %b %Y %H:%M:%S.";
-    constexpr size_t fmtsize = std::size("Thu 01 Mon 197000 00:00:00.");
+    constexpr size_t fmtsize = array_size("Thu 01 Mon 197000 00:00:00.");
     static_assert(static_array_size<decltype(buf)> - fmtsize == 4);
     const auto t    = SystemClock::now();
     const auto ms   = duration_cast<Millis>(t.time_since_epoch()) % 1000;
     const auto time = SystemClock::to_time_t(t);
     const auto* tm  = std::localtime(&time);
-    auto len = std::strftime(buf, std::size(buf), fmt, tm);
+    auto len = std::strftime(buf, array_size(buf), fmt, tm);
     fm_assert(len > 0 && len <= fmtsize);
     auto len2 = std::sprintf(buf + len, "%03u", unsigned{ms.count()});
-    fm_assert(len2 > 0 && len + (size_t)len2 < std::size(buf));
+    fm_assert(len2 > 0 && len + (size_t)len2 < array_size(buf));
     return buf;
 }
 
