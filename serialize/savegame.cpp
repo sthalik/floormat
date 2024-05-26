@@ -1,6 +1,7 @@
 #include "binary-writer.inl"
 #include "binary-reader.inl"
 #include "compat/defs.hpp"
+#include "compat/non-const.hpp"
 #include "compat/strerror.hpp"
 #include "compat/int-hash.hpp"
 #include "compat/exception.hpp"
@@ -65,16 +66,6 @@ struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) con
 template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 template<typename T> concept Enum = std::is_enum_v<std::remove_cvref_t<T>>;
 template<typename T> concept Vector = Math::IsVector<std::remove_cvref_t<T>>::value;
-
-template<typename T> [[maybe_unused]] T& non_const(const T& value) { return const_cast<T&>(value); }
-template<typename T> [[maybe_unused]] T& non_const(T& value) = delete;
-template<typename T> [[maybe_unused]] T& non_const(T&&) = delete;
-template<typename T> [[maybe_unused]] T& non_const(const T&& value) = delete;
-
-template<typename T> [[maybe_unused]] T& non_const_(const T& value) { return const_cast<T&>(value); }
-template<typename T> [[maybe_unused]] T& non_const_(T& value) { return value; }
-template<typename T> [[maybe_unused]] T& non_const_(T&& value) { return static_cast<T&>(value); }
-template<typename T> [[maybe_unused]] T& non_const_(const T&& value) { return static_cast<T&>(const_cast<T&&>(value)); }
 
 struct buffer
 {
