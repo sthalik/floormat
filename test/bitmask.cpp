@@ -1,8 +1,7 @@
 #include "app.hpp"
-#include "compat/assert.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
-#include <Corrade/Containers/ArrayView.h>
+#include "compat/assert.hpp"
 #include <mg/Functions.h>
 #include <mg/ImageData.h>
 

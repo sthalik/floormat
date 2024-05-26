@@ -1,6 +1,6 @@
 #include "anim-atlas.hpp"
-#include "compat/assert.hpp"
 #include "shaders/shader.hpp"
+#include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>

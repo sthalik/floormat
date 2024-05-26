@@ -1,7 +1,6 @@
 #include "app.hpp"
 #include "compat/format.hpp"
 #include "inspect.hpp"
-#include "main/clickable.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"

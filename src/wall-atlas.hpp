@@ -1,8 +1,8 @@
 #pragma once
-#include "compat/defs.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
+#include "compat/defs.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>

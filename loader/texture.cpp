@@ -1,7 +1,7 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
-#include "compat/exception.hpp"
 #include "compat/defs.hpp"
+#include "compat/exception.hpp"
 #include "compat/strerror.hpp"
 #include <cstring>
 //#include <cstdio>

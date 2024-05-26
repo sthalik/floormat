@@ -1,13 +1,12 @@
 #include "app.hpp"
-#include "compat/headless.hpp"
 #include "loader/loader.hpp"
+#include "compat/headless.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Timeline.h>
 #include <Magnum/GL/Context.h>
-#include <Magnum/Magnum.h>
 
 namespace floormat::Test {
 

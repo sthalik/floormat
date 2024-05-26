@@ -3,12 +3,12 @@
 #include "search-constants.hpp"
 #include "search-cache.hpp"
 #include "search-result.hpp"
-#include "compat/format.hpp"
-#include "compat/vector-wrapper.hpp"
-#include "compat/heap.hpp"
 #include "object.hpp"
 #include "world.hpp"
 #include "point.inl"
+#include "compat/format.hpp"
+#include "compat/vector-wrapper.hpp"
+#include "compat/heap.hpp"
 #include <cstdio>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/StaticArray.h> // todo remove
