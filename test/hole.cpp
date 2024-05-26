@@ -6,15 +6,16 @@ namespace {
 
 using bbox = cut_rectangle_result::bbox;
 
+constexpr auto cutʹ(bbox rect, bbox hole, Vector2i offset)
+{
+    auto rectʹ = bbox { rect.position + offset, rect.bbox_size };
+    auto holeʹ = bbox { hole.position + offset, hole.bbox_size };
+    return cut_rectangle(rectʹ, holeʹ).size;
+}
+
 void test1(Vector2i offset)
 {
     constexpr auto rect = bbox{{}, {50, 50}};
-
-    constexpr auto cutʹ = [](bbox rect, bbox hole, Vector2i offset) {
-        auto rectʹ = bbox { rect.position + offset, rect.bbox_size };
-        auto holeʹ = bbox { hole.position + offset, hole.bbox_size };
-        return cut_rectangle(rectʹ, holeʹ).size;
-    };
 #if 1
     fm_assert_not_equal(0, cutʹ(rect, {{ 49,   0}, {50, 50}}, offset));
     fm_assert_not_equal(0, cutʹ(rect, {{  0,  49}, {50, 50}}, offset));
