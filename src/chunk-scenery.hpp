@@ -1,7 +1,7 @@
 #pragma once
 #include "chunk.hpp"
-#include <Corrade/Containers/Array.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/ArrayView.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

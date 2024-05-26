@@ -66,7 +66,7 @@ private:
     bool _enable_lightmap : 1 = false;
     Int _sampler = 0, _real_sampler;
 
-    enum {
+    enum : Int {
         ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
         EnableLightmapUniform = 3,
         SamplerUniform = 4, LightmapSamplerUniform = 5,
