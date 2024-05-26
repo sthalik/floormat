@@ -6,16 +6,40 @@ namespace floormat {
 
 struct hole_proto final : object_proto
 {
-    bool affects_render  : 1 = true;
-    bool affects_physics : 1 = false;
+    ~hole_proto() noexcept override;
+    hole_proto();
+    hole_proto(const hole_proto&);
+    hole_proto& operator=(const hole_proto&);
+    hole_proto(hole_proto&&) noexcept;
+    hole_proto& operator=(hole_proto&&) noexcept;
+    bool operator==(const hole_proto&) const;
+
+    uint8_t height = 0;
+    bool on_render  : 1 = true;
+    bool on_physics : 1 = true;
+    bool is_wall    : 1 = false;
 };
 
-struct hole : object
+struct hole final : object
 {
-    bool affects_render  : 1 = true;
-    bool affects_physics : 1 = false;
+    uint8_t _height = 0;
+    const bool on_render  : 1 = true;
+    const bool on_physics : 1 = true;
+    const bool is_wall    : 1 = false;
 
     hole(object_id id, class chunk& c, const hole_proto& proto);
+    ~hole() noexcept override;
+
+    Vector2 ordinal_offset(Vector2b offset) const override;
+    float depth_offset() const override;
+    object_type type() const noexcept override;
+    void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
+    bool is_dynamic() const override;
+    bool is_virtual() const override;
+
+    explicit operator hole_proto() const;
+
+    friend class world;
 };
 
 struct cut_rectangle_result
