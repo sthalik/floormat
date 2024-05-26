@@ -125,7 +125,6 @@ function(fm-userconfig-src)
     add_compile_options(
         -Werror
         -Wno-error=float-equal          
-        #-Wno-error=comma
         -Wno-error=unused-parameter
         -Wno-error=unused-private-field
         -Wno-error=unused-variable
@@ -141,12 +140,15 @@ function(fm-userconfig-src)
         -Wno-error=unreachable-code
         -Wno-error=unused-command-line-argument
         -Wno-error=switch-default
+        #-Wno-error=switch
         -Wno-error=global-constructors
         -Wno-error=exit-time-destructors
     )
     add_compile_options(
         #-Wglobal-constructors
+        -Wno-global-constructors
         #-Wexit-time-destructors
+        -Wno-exit-time-destructors
     )
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         add_compile_options(-ftime-trace)

@@ -91,17 +91,16 @@ function(fm-userconfig-src)
         -Werror=format
         -Werror
         -Wno-error=float-equal
-        #-Wno-error=comma
         -Wno-error=unused-parameter
         -Wno-error=unused-variable
         -Wno-error=unused-function
         -Wno-error=unused-macros
-        #-Wno-error=double-promotion
         -Wdouble-promotion -Werror=double-promotion
         -Wno-error=restrict
         -Wno-error=unused-but-set-variable
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
+        #-Wno-error=switch
         -Wlarger-than=65535 -Wno-error=larger-than=65535
     )
     add_compile_options(
