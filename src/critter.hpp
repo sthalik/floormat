@@ -53,7 +53,7 @@ struct critter final : object
     Script<critter_script, critter> script;
     String name;
     float speed = 1;
-    uint16_t offset_frac_ = 0; // todo! remove underscore
+    uint16_t offset_frac = 0;
 
     bool playable : 1 = false;
 

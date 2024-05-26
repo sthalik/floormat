@@ -117,10 +117,10 @@ CORRADE_ALWAYS_INLINE
 bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps)
 {
     constexpr auto vec = rotation_to_vec(new_r);
-    using Frac = decltype(critter::offset_frac_);
+    using Frac = decltype(critter::offset_frac);
     constexpr auto frac = (float{limits<Frac>::max}+1)/2;
     constexpr auto inv_frac = 1 / frac;
-    const auto from_accum = C.offset_frac_ * inv_frac * vec;
+    const auto from_accum = C.offset_frac * inv_frac * vec;
 
     Vector2 offset_{NoInit};
     if constexpr(MultiStep)
@@ -132,7 +132,7 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t n
     if (!off_i.isZero())
     {
         auto rem = Math::fmod(offset_, 1.f).length();
-        C.offset_frac_ = Frac(rem * frac);
+        C.offset_frac = Frac(rem * frac);
         if (C.can_move_to(off_i))
         {
             C.move_to(i, off_i, new_r);
@@ -146,7 +146,7 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t n
     else
     {
         auto rem = offset_.length();
-        C.offset_frac_ = Frac(rem * frac);
+        C.offset_frac = Frac(rem * frac);
         return true;
     }
     return false;
@@ -387,7 +387,7 @@ void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& 
             const auto new_r = arrows_to_dir(moves.L, moves.R, moves.U, moves.D);
             if (new_r == rotation_COUNT)
             {
-                offset_frac_ = {};
+                offset_frac = {};
                 delta = 0;
             }
             else
@@ -428,7 +428,7 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
     if (!ret) [[unlikely]]
     {
         delta = {};
-        offset_frac_ = {};
+        offset_frac = {};
     }
 }
 
@@ -466,12 +466,12 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         //Debug{} << "step" << step.direction << step.count << "|" << C.position();
         fm_assert(step.direction != Vector2b{} && step.count > 0);
         const auto new_r = dir_from_step(step);
-        using Frac = decltype(critter::offset_frac_);
+        using Frac = decltype(critter::offset_frac);
         constexpr auto frac = (float{limits<Frac>::max}+1)/2;
         constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
-        const auto from_accum = offset_frac_ * inv_frac * vec;
+        const auto from_accum = offset_frac * inv_frac * vec;
         auto offset_ = vec + from_accum;
         auto off_i = Vector2i(offset_);
         //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << C.offset_frac_;
@@ -479,7 +479,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         if (!off_i.isZero())
         {
             auto rem = Math::fmod(offset_, 1.f).length();
-            offset_frac_ = Frac(rem * frac);
+            offset_frac = Frac(rem * frac);
             //Debug{} << "foo1" << C.offset_frac_;
             if (can_move_to(off_i))
             {
@@ -497,7 +497,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         else
         {
             auto rem = offset_.length();
-            offset_frac_ = Frac(rem * frac);
+            offset_frac = Frac(rem * frac);
         }
     }
 
@@ -508,7 +508,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         //Debug{} << "bad";
         set_keys(false, false, false, false);
         delta = {};
-        offset_frac_ = {};
+        offset_frac = {};
         return { .blocked = true, .moved = moved };
     }
 

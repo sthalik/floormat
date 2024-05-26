@@ -267,7 +267,6 @@ struct visitor_
     template<typename F> void visit_scenery_proto(o_sc_g& s, F&& f)
     {
         using T = std::conditional_t<IsWriter, generic_scenery, generic_scenery_proto>;
-        // todo! make bitmask reader/writer
         constexpr struct {
             uint8_t bits;
             bool(*getter)(const T&);
@@ -410,7 +409,7 @@ struct writer final : visitor_<writer, true>
     template<typename F> void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
     { atlasid id = intern_atlas(a, type); visit(id, f); }
 
-    template<typename F> void write_scenery_proto(const scenery& obj, F&& f) // todo! replace scenery::subtype with inheritance!
+    template<typename F> void write_scenery_proto(const scenery& obj, F&& f)
     {
         auto sc_type = obj.scenery_type();
         fm_debug_assert(sc_type != scenery_type::none && sc_type < scenery_type::COUNT);

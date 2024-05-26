@@ -131,7 +131,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     << " dt:" << dt
                     << " dist:" << point::distance_l2(pos, start)
                     << " delta:" << npc.delta
-                    << " frac:" << npc.offset_frac_;
+                    << " frac:" << npc.offset_frac;
     };
 
     auto fail = [b = grace.no_crash](const char* file, int line) {

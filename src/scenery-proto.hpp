@@ -28,7 +28,7 @@ using scenery_proto_variants = std::variant<std::monostate, generic_scenery_prot
 
 struct scenery_proto : object_proto
 {
-    scenery_proto_variants subtype; // todo! add std::monostate
+    scenery_proto_variants subtype;
 
     scenery_proto() noexcept;
     ~scenery_proto() noexcept override;

@@ -35,7 +35,7 @@ chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
     c[{K,   K+1}].wall_north() = { metal2, 0 };
     c[{K+1, K  }].wall_west()  = { metal2, 0 };
     w.make_scenery(w.make_id(), {ch, {3, 4}}, scenery_proto(table));
-    w.make_scenery(w.make_id(), {ch, {K, K+1}}, scenery_proto(control_panel)); // todo!
+    w.make_scenery(w.make_id(), {ch, {K, K+1}}, scenery_proto(control_panel));
     auto L = light_proto{};
     L.color = {64, 128, 252, 201};
     L.max_distance = float{0.125};
@@ -229,7 +229,7 @@ void test_save_objs()
         const auto objʹ = w.make_object<critter>(w.make_id(), coord, p);
         fm_assert(objʹ);
         const auto& obj = *objʹ;
-        const_cast<uint16_t&>(obj.offset_frac_) = offset_frac;
+        const_cast<uint16_t&>(obj.offset_frac) = offset_frac;
         auto w2 = reload_from_save(tmp, w);
         const auto& obj2ʹ = w.find_object<critter>(obj.id);
         fm_assert(obj2ʹ);
@@ -237,7 +237,7 @@ void test_save_objs()
         fm_assert(p.name == obj2.name);
         fm_assert(p.frame == obj2.frame);
         fm_assert(p.speed == obj2.speed);
-        fm_assert(obj.offset_frac_ == obj2.offset_frac_);
+        fm_assert(obj.offset_frac == obj2.offset_frac);
 
         assert_chunks_equal(w.at(ch), w2.at(ch));
     }

@@ -194,7 +194,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
         array[i++] = { e.get(), (uint32_t)-1, e->ordinal(), make_topo_sort_data(*e, index) };
     }
-    topological_sort(array, i); // todo! do this before upload so that multi-draw works
+    topological_sort(array, i);
 
     return { scenery_mesh, ArrayView<object_draw_order>{array, size}, j };
 }
