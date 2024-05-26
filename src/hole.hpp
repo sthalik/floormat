@@ -20,17 +20,11 @@ struct hole : object
 
 struct cut_rectangle_result
 {
-    struct bbox
-    {
-        Vector2i position;
-        Vector2ub bbox_size;
-    };
-
+    struct bbox { Vector2i position; Vector2ub bbox_size; };
     struct rect { Vector2i min, max; };
 
-    uint8_t code = 0;
     uint8_t size = 0;
-    std::array<rect, 8> ret;
+    std::array<rect, 8> array;
 
     operator ArrayView<const bbox>() const;
 };
