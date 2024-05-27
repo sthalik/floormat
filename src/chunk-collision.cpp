@@ -80,7 +80,8 @@ void chunk::ensure_passability() noexcept
     }
 }
 
-bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
+bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
+                              Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
 {
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id_(collision_type::scenery, s.pass, s.id);
