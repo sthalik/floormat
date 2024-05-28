@@ -17,10 +17,11 @@ struct chunk_coords_;
 class chunk;
 struct Ns;
 
+struct z_bounds;
+struct draw_bounds;
+
 struct floormat_app
 {
-    struct z_bounds final { int8_t min, max, cur; bool only; };
-
     explicit floormat_app() noexcept;
     virtual ~floormat_app() noexcept;
 

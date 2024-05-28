@@ -1,4 +1,5 @@
 #include "main-impl.hpp"
+#include "floormat/draw-bounds.hpp"
 #include "src/tile-constants.hpp"
 #include "src/point.hpp"
 #include <algorithm>

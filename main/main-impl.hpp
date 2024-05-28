@@ -149,6 +149,8 @@ private:
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
 
+    template<typename Function> void draw_world_0(const Function& fun, const draw_bounds& d_b, const z_bounds& z_b, Vector2i win_size);
+
     draw_bounds get_draw_bounds() const noexcept override;
 
     void register_debug_callback();

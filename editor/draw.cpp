@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/tile-constants.hpp"
 #include "floormat/main.hpp"
+#include "floormat/draw-bounds.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include "main/clickable.hpp"

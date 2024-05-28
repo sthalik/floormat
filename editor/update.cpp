@@ -10,6 +10,7 @@
 #include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
+#include "floormat/draw-bounds.hpp"
 #include "src/critter.hpp"
 #include "src/nanosecond.hpp"
 #include "src/timer.hpp"

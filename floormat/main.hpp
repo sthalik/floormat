@@ -25,13 +25,11 @@ struct texture_unit_cache;
 class path_search;
 class astar;
 struct point;
+struct z_bounds;
+struct draw_bounds;
 
 struct floormat_main
 {
-    struct draw_bounds final
-    {
-        int16_t minx, maxx, miny, maxy;
-    };
     struct meshes final
     {
         ground_mesh& ground;
