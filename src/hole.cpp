@@ -1,7 +1,9 @@
 #include "hole.hpp"
 #include "chunk.hpp"
-#include "tile-constants.hpp"
+#include "loader/loader.hpp"
+#include "loader/vobj-cell.hpp"
 #include "shaders/shader.hpp"
+#include "tile-constants.hpp"
 #include "compat/non-const.hpp"
 
 namespace floormat {
@@ -10,7 +12,6 @@ namespace {
 } // namespace
 
 hole_proto::~hole_proto() noexcept = default;
-hole_proto::hole_proto() = default;
 hole_proto::hole_proto(const hole_proto&) = default;
 hole_proto& hole_proto::operator=(const hole_proto&) = default;
 hole_proto::hole_proto(hole_proto&&) noexcept = default;
@@ -18,6 +19,12 @@ hole_proto& hole_proto::operator=(hole_proto&&) noexcept = default;
 
 bool hole_proto::flags::operator==(const struct flags&) const = default;
 bool hole_proto::operator==(const hole_proto&) const = default;
+
+hole_proto::hole_proto()
+{
+    atlas = loader.vobj("hole"_s).atlas;
+    type = object_type::hole;
+}
 
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
     object{id, c, proto}, height{proto.height}, flags{proto.flags}
