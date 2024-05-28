@@ -49,27 +49,33 @@ void hole_test::draw_overlay(app& a)
 void hole_test::draw_ui(app& a, float menu_bar_height)
 {
     const auto& m = a.main();
-    const auto size_x = ImGui::GetWindowSize().x;
-    const auto window_size = ImVec2{size_x, size_x};
+    const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
+    const auto window_size = ImVec2{width, width};
+    const auto bgcolor = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
+    const auto& style = ImGui::GetStyle();
     //const auto dpi = m.dpi_scale();
     constexpr auto igcf = ImGuiChildFlags_None;
-    constexpr auto igwf = ImGuiWindowFlags_NoDecoration;
-
-    ImGui::NewLine();
-
+    constexpr auto igwf = 0;//ImGuiWindowFlags_NoDecoration;
+    constexpr auto imdf = ImDrawFlags_None;
     char buf[32];
 
-    ImGui::LabelText("##test-area", "Test area");
-
     ImGui::NewLine();
+
+    //ImGui::LabelText("##test-area", "Test area");
+    //ImGui::NewLine();
+
+    ImGui::SetNextWindowSize({width, width});
     if (auto b1 = imgui::begin_child("Test area"_s, window_size, igcf, igwf))
     {
         const auto& win = *ImGui::GetCurrentWindow();
         ImDrawList& draw = *win.DrawList;
+        draw.AddRectFilled({win.Pos.x, win.Pos.y}, {win.Pos.x+width-1, win.Pos.y+width-1}, bgcolor, 0, imdf);
     }
-    ImGui::NewLine();
+    //ImGui::NewLine();
 
-    const auto label_width = ImGui::CalcTextSize("MMMM").x;
+    const auto label_width = ImGui::CalcTextSize("MMMMMMMMM").x;
+
+    ImGui::Indent(style.FramePadding.x);
 
     label_left("width", buf, label_width);
     ImGui::NewLine();
@@ -85,6 +91,8 @@ void hole_test::draw_ui(app& a, float menu_bar_height)
 
     label_left("z", buf, label_width);
     ImGui::NewLine();
+
+    ImGui::Unindent(style.FramePadding.x);
 }
 
 void hole_test::update_pre(app& a, const Ns& dt)
