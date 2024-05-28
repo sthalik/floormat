@@ -77,7 +77,7 @@ auto main_impl::get_draw_bounds() const noexcept -> draw_bounds
 bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept
 {
     constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
-    enum : size_t { x, y, };
+    enum : uint32_t { x, y, };
     constexpr Vector2d p00 = tile_shader::project(Vector3d(0, 0, 0)),
                        p10 = tile_shader::project(Vector3d(len[x], 0, 0)),
                        p01 = tile_shader::project(Vector3d(0, len[y], 0)),
@@ -91,4 +91,4 @@ bool floormat_main::check_chunk_visible(const Vector2d& offset, const Vector2i& 
 }
 
 
-}
+} // namespace floormat
