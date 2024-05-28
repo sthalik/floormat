@@ -3,5 +3,10 @@
         "name": "light",
         "description": "Light",
         "image": "light"
+    },
+    {
+        "name": "hole",
+        "description": "Hole",
+        "image": "hole"
     }
 ]

@@ -2,37 +2,53 @@
 #include "chunk.hpp"
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
+#include "compat/non-const.hpp"
 
 namespace floormat {
 namespace {
 
 } // namespace
 
+hole_proto::~hole_proto() noexcept = default;
+hole_proto::hole_proto() = default;
+hole_proto::hole_proto(const hole_proto&) = default;
+hole_proto& hole_proto::operator=(const hole_proto&) = default;
+hole_proto::hole_proto(hole_proto&&) noexcept = default;
+hole_proto& hole_proto::operator=(hole_proto&&) noexcept = default;
+
+bool hole_proto::flags::operator==(const struct flags&) const = default;
+bool hole_proto::operator==(const hole_proto&) const = default;
+
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
-    object{id, c, proto}
+    object{id, c, proto}, height{proto.height}, flags{proto.flags}
 {
+
 }
 
 hole::~hole() noexcept
 {
-    c->mark_ground_modified();
-    c->mark_walls_modified();
-    c->mark_passability_modified();
+    if (c->is_teardown()) [[unlikely]]
+        return;
+
+    mark_chunk_modified();
 }
 
-void hole::update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt)
-{
-}
+void hole::update(const std::shared_ptr<object>&, size_t&, const Ns&) {}
 
 hole::operator hole_proto() const
 {
     hole_proto ret;
     static_cast<object_proto&>(ret) = object_proto(*this);
-    ret.max_distance = max_distance;
-    ret.color = color;
-    ret.falloff = falloff;
-    ret.enabled = enabled;
+    ret.height = height;
+    ret.flags = flags;
     return ret;
+}
+
+void hole::mark_chunk_modified()
+{
+    c->mark_ground_modified(); // todo conditionalize
+    c->mark_walls_modified();  // todo conditionalize
+    c->mark_passability_modified();
 }
 
 float hole::depth_offset() const
@@ -47,8 +63,38 @@ Vector2 hole::ordinal_offset(Vector2b) const
     return ret;
 }
 
+void hole::set_height(uint8_t heightʹ)
+{
+    if (height != heightʹ)
+    {
+        const_cast<uint8_t&>(height) = heightʹ;
+        mark_chunk_modified();
+    }
+}
+
+void hole::set_z_offset(uint8_t z)
+{
+    if (z_offset != z)
+    {
+        const_cast<uint8_t&>(z_offset) = z;
+        mark_chunk_modified();
+    }
+}
+
+
+void hole::set_enabled(bool on_render, bool on_physics)
+{
+    non_const(flags).on_render = on_render;
+
+    if (flags.on_physics != on_physics)
+    {
+        non_const(flags).on_physics = on_physics;
+        mark_chunk_modified();
+    }
+}
+
 object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
-bool hole::is_dynamic() const { return false; }
+bool hole::is_dynamic() const { return true; }
 
 } // namespace floormat

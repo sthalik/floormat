@@ -17,18 +17,6 @@ namespace floormat::entities {
 
 namespace {
 
-template<std::size_t N>
-const char* label_left(StringView label, char(&buf)[N], size_t width)
-{
-    std::snprintf(buf, N, "##%s", label.data());
-    float x = ImGui::GetCursorPosX();
-    ImGui::TextEx(label.data(), label.data() + label.size());
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(x + (float)width + ImGui::GetStyle().ItemInnerSpacing.x);
-    ImGui::SetNextItemWidth(-1);
-    return buf;
-}
-
 template<typename T> struct IGDT_;
 template<> struct IGDT_<uint8_t> : std::integral_constant<int, ImGuiDataType_U8> {};
 template<> struct IGDT_<int8_t> : std::integral_constant<int, ImGuiDataType_S8> {};
@@ -89,7 +77,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
     bool ret = false;
-    const char* const label = label_left(accessor.field_name, buf, label_width);
+    const char* const label = label_left(accessor.field_name, buf, (float)label_width);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
     auto orig = value;

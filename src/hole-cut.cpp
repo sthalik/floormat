@@ -156,7 +156,10 @@ constexpr cut_rectangle_result cut_rectangleʹ(bbox input, bbox hole)
     auto h1 = hole.position + Vector2i{hole.bbox_size} - hhalf;
 
     if (check_empty(r0, r1, h0, h1, input.bbox_size, hole.bbox_size))
-        return {0, {}};
+        return {
+            .size = 1,
+            .array = {{ rect { r0, r1 }, }},
+        };
 
     const bool sx = h0.x() <= r0.x();
     const bool ex = h1.x() >= r1.x();
@@ -166,12 +169,12 @@ constexpr cut_rectangle_result cut_rectangleʹ(bbox input, bbox hole)
     auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
     CORRADE_ASSUME(val < 16);
     const auto elt = elements[val];
+    const auto sz = elt.size;
     cut_rectangle_result res = {
-        .size = elt.size,
+        .size = sz,
         .array = {},
     };
 
-    const auto sz = elt.size;
     CORRADE_ASSUME(sz <= 8);
 
     for (auto i = 0u; i < sz; i++)

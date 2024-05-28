@@ -1,14 +1,15 @@
 #include "app.hpp"
 #include "src/world.hpp"
-#include "loader/loader.hpp"
-#include "loader/scenery-cell.hpp"
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
+#include "src/hole.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/nanosecond.inl"
+#include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {
@@ -98,8 +99,10 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         switch (type)
         {
         case object_type::none:
-        case object_type::COUNT: std::unreachable();
+        case object_type::COUNT:
+            fm_assert(false);
         case object_type::critter: {
+            // todo! remove duplication
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
             const auto p1 = critter_proto(e1), p2 = critter_proto(e2);
@@ -117,6 +120,13 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             const auto& e1 = static_cast<const light&>(ae);
             const auto& e2 = static_cast<const light&>(be);
             const auto p1 = light_proto(e1), p2 = light_proto(e2);
+            fm_assert(p1 == p2);
+            break;
+        }
+        case object_type::hole: {
+            const auto& e1 = static_cast<const hole&>(ae);
+            const auto& e2 = static_cast<const hole&>(be);
+            const auto p1 = hole_proto(e1), p2 = hole_proto(e2);
             fm_assert(p1 == p2);
             break;
         }

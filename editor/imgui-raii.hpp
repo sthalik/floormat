@@ -67,4 +67,11 @@ private:
     float font_size;
 };
 
+template<std::size_t N>
+const char* label_left(StringView label, char(&buf)[N], float width)
+{
+    const char* label_left_(StringView, char*, size_t, float);
+    return label_left_(label, static_cast<char*>(buf), N, width);
+}
+
 } // namespace floormat::imgui

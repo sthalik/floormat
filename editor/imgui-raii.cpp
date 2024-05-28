@@ -1,5 +1,6 @@
 #include "imgui-raii.hpp"
 #include "compat/assert.hpp"
+#include <cstdio>
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Color.h>
@@ -157,6 +158,19 @@ raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int win
 {
     ImGui::BeginChild(name.data(), size, flags, window_flags);
     return {&ImGui::EndChild};
+}
+
+const char* label_left_(StringView label, char* buf, size_t buf_len, float width);
+
+const char* label_left_(StringView label, char* buf, size_t buf_len, float width)
+{
+    std::snprintf(buf, buf_len, "##%s", label.data());
+    float x = ImGui::GetCursorPosX();
+    ImGui::TextEx(label.data(), label.data() + label.size());
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
+    ImGui::SetNextItemWidth(-1);
+    return buf;
 }
 
 } // namespace floormat::imgui

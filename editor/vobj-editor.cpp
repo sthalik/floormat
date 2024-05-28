@@ -1,6 +1,7 @@
 #include "vobj-editor.hpp"
 #include "src/world.hpp"
 #include "src/light.hpp"
+#include "src/hole.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
 #include "app.hpp"
@@ -74,6 +75,8 @@ start:  while (auto id = a.get_object_colliding_with_cursor())
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #endif
 
+namespace {
+
 struct light_factory final : vobj_factory
 {
     object_type type() const override;
@@ -98,6 +101,32 @@ std::shared_ptr<object> light_factory::make(world& w, object_id id, global_coord
     return ret;
 }
 
+struct hole_factory final : vobj_factory
+{
+    object_type type() const override;
+    const vobj_cell& info() const override;
+    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override;
+};
+
+object_type hole_factory::type() const { return object_type::hole; }
+
+const vobj_cell& hole_factory::info() const
+{
+    constexpr auto NAME = "hole"_s;
+    static const vobj_cell& ret = loader.vobj(NAME);
+    fm_debug_assert(ret.name == NAME);
+    fm_debug_assert(ret.atlas != nullptr);
+    return ret;
+}
+
+std::shared_ptr<object> hole_factory::make(world& w, object_id id, global_coords pos) const
+{
+    auto ret = w.make_object<hole>(id, pos, hole_proto{});
+    return ret;
+}
+
+} // namespace
+
 auto vobj_editor::make_vobj_type_map() -> std::map<String, vobj_>
 {
     constexpr auto add = [](auto& m, std::unique_ptr<vobj_factory>&& x) {
@@ -106,6 +135,7 @@ auto vobj_editor::make_vobj_type_map() -> std::map<String, vobj_>
     };
     std::map<String, vobj_> map;
     add(map, std::make_unique<light_factory>());
+    add(map, std::make_unique<hole_factory>());
     return map;
 }
 

@@ -32,7 +32,7 @@ protected:
 
 enum class Test : uint32_t {
     //todo add a speedometer overlay test
-    none, path, raycast, region, walk, COUNT,
+    none, path, raycast, region, walk, hole, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -46,6 +46,7 @@ struct tests_data final : tests_data_
     static Pointer<base_test> make_test_raycast();
     static Pointer<base_test> make_test_region();
     static Pointer<base_test> make_test_walk();
+    static Pointer<base_test> make_test_hole();
 
     Pointer<base_test> current_test;
     Test current_index = Test::none;
@@ -58,11 +59,12 @@ struct tests_data final : tests_data_
     };
 
     static constexpr test_tuple fields[] = {
-        { "None"_s,        Test::none,        make_test_none,   },
-        { "Path search"_s, Test::path,        make_test_path,   },
-        { "Raycasting"_s,  Test::raycast,     make_test_raycast },
-        { "Region"_s,      Test::region,      make_test_region  },
-        { "Walking"_s,     Test::walk,        make_test_walk    },
+        { "None"_s,         Test::none,         make_test_none,   },
+        { "Path search"_s,  Test::path,         make_test_path,   },
+        { "Raycasting"_s,   Test::raycast,      make_test_raycast },
+        { "Region"_s,       Test::region,       make_test_region  },
+        { "Walking"_s,      Test::walk,         make_test_walk    },
+        { "Hole"_s,         Test::hole,         make_test_hole    },
     };
 };
 

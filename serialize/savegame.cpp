@@ -203,6 +203,8 @@ struct visitor_
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
             break;
+        case object_type::hole:
+            fm_abort("todo! not implemented");
         }
         fm_debug_assert(obj.atlas);
 
@@ -448,6 +450,8 @@ struct writer final : visitor_<writer, true>
         case object_type::scenery:
             write_scenery_proto(static_cast<const scenery&>(obj), f);
             goto ok;
+        case object_type::hole:
+            fm_abort("todo! not implemented");
         }
         fm_assert(false);
 ok:     void();
@@ -896,6 +900,8 @@ ok:
             obj = move(objʹ);
             goto ok;
         }
+        case object_type::hole:
+            fm_abort("todo! not implemented");
         }
         fm_throw("invalid object_type {}"_cf, (int)type);
 ok:

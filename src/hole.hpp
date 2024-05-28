@@ -14,18 +14,23 @@ struct hole_proto final : object_proto
     hole_proto& operator=(hole_proto&&) noexcept;
     bool operator==(const hole_proto&) const;
 
+    struct flags
+    {
+        bool operator==(const flags&) const;
+
+        bool on_render  : 1 = true;
+        bool on_physics : 1 = true;
+        bool is_wall    : 1 = false;
+    };
+
     uint8_t height = 0;
-    bool on_render  : 1 = true;
-    bool on_physics : 1 = true;
-    bool is_wall    : 1 = false;
+    struct flags flags;
 };
 
 struct hole final : object
 {
-    uint8_t _height = 0;
-    const bool on_render  : 1 = true;
-    const bool on_physics : 1 = true;
-    const bool is_wall    : 1 = false;
+    const uint8_t height = 0, z_offset = tile_size_z/2;
+    const struct hole_proto::flags flags;
 
     hole(object_id id, class chunk& c, const hole_proto& proto);
     ~hole() noexcept override;
@@ -37,9 +42,16 @@ struct hole final : object
     bool is_dynamic() const override;
     bool is_virtual() const override;
 
+    void set_height(uint8_t height);
+    void set_z_offset(uint8_t z);
+    void set_enabled(bool on_render, bool on_physics);
+
     explicit operator hole_proto() const;
 
     friend class world;
+
+private:
+    void mark_chunk_modified();
 };
 
 struct cut_rectangle_result

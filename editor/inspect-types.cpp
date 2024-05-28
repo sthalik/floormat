@@ -9,6 +9,7 @@
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
+#include "src/hole.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <imgui.h>
 
@@ -134,6 +135,38 @@ template<> struct entity_accessors<door_scenery, inspect_intent_t>
                 [](const door_scenery& x) { return x.interactive; },
                 [](door_scenery& x, bool b) { x.interactive = b; },
                 constantly(st::enabled),
+            },
+        };
+        return std::tuple_cat(tuple0, tuple);
+    }
+};
+
+template<> struct entity_accessors<hole, inspect_intent_t>
+{
+    static constexpr auto accessors()
+    {
+        using E = Entity<hole>;
+        auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
+        auto tuple = std::tuple{
+            E::type<uint8_t>::field{"height"_s,
+                &hole::height,
+                &hole::set_height,
+                [](const hole& x) { return x.flags.is_wall ? st::enabled : st::readonly; },
+            },
+            E::type<uint8_t>::field{"z-offset"_s,
+                &hole::z_offset,
+                &hole::set_z_offset,
+                [](const hole& x) { return x.flags.is_wall ? st::enabled : st::readonly; },
+                constantly(constraints::range<uint8_t>{0, tile_size_z}),
+            },
+            E::type<bool>::field{"on-render"_s,
+                [](const hole& x) { return x.flags.on_render; },
+                [](hole& x, bool value) { x.set_enabled(value, x.flags.on_physics); },
+            },
+            E::type<bool>::field{
+                "on-physics"_s,
+                [](const hole& x) { return x.flags.on_physics; },
+                [](hole& x, bool value) { x.set_enabled(x.flags.on_render, value); },
             },
         };
         return std::tuple_cat(tuple0, tuple);
@@ -318,6 +351,7 @@ bool inspect_object_subtype(object& x)
     }
     case object_type::critter: return inspect_type(static_cast<critter&>(x), inspect_intent_t{});
     case object_type::light:   return inspect_type(static_cast<light&>(x), inspect_intent_t{});
+    case object_type::hole:    return inspect_type(static_cast<hole&>(x), inspect_intent_t{});
     }
     fm_warn_once("unknown object subtype '%d'", (int)type);
     return false;
