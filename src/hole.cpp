@@ -18,7 +18,18 @@ hole_proto::hole_proto(hole_proto&&) noexcept = default;
 hole_proto& hole_proto::operator=(hole_proto&&) noexcept = default;
 
 bool hole_proto::flags::operator==(const struct flags&) const = default;
-bool hole_proto::operator==(const hole_proto&) const = default;
+
+bool hole_proto::operator==(const object_proto& oʹ) const
+{
+    if (type != oʹ.type)
+        return false;
+
+    if (!object_proto::operator==(oʹ))
+        return false;
+
+    const auto& o = static_cast<const hole_proto&>(oʹ);
+    return height == o.height && z_offset == o.z_offset && flags == o.flags;
+}
 
 hole_proto::hole_proto()
 {

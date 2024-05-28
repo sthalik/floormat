@@ -12,7 +12,7 @@ struct hole_proto final : object_proto
     hole_proto& operator=(const hole_proto&);
     hole_proto(hole_proto&&) noexcept;
     hole_proto& operator=(hole_proto&&) noexcept;
-    bool operator==(const hole_proto&) const;
+    bool operator==(const object_proto& proto) const override;
 
     struct flags
     {
@@ -23,7 +23,7 @@ struct hole_proto final : object_proto
         bool is_wall    : 1 = false;
     };
 
-    uint8_t height = 0;
+    uint8_t height = 0, z_offset = tile_size_z/2;
     struct flags flags;
 };
 
