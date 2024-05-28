@@ -36,6 +36,8 @@ concept FieldWriter_memfn = requires(T& x, move_qualified<FieldType> value, F f)
 
 template<typename F, typename T, typename FieldType>
 concept FieldWriter_ptr = requires(T& x, move_qualified<FieldType> value, F f) {
+    requires std::is_reference_v<decltype(x.*f)>;
+    requires !std::is_const_v<std::remove_reference_t<decltype(x.*f)>>;
     { x.*f = value };
 };
 
