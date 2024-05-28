@@ -346,7 +346,7 @@ bool critter_proto::operator==(const object_proto& e0) const
         return false;
 
     const auto& s0 = static_cast<const critter_proto&>(e0);
-    return name == s0.name && playable == s0.playable;
+    return name == s0.name && Math::abs(speed - s0.speed) < 1e-8f && playable == s0.playable;
 }
 
 void critter::set_keys(bool L, bool R, bool U, bool D) { moves = { L, R, U, D, moves.AUTO, }; }

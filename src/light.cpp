@@ -21,7 +21,21 @@ light_proto& light_proto::operator=(const light_proto&) = default;
 light_proto::light_proto(light_proto&&) noexcept = default;
 light_proto& light_proto::operator=(light_proto&&) noexcept = default;
 
-bool light_proto::operator==(const light_proto&) const = default;
+bool light_proto::operator==(const object_proto& oʹ) const
+{
+    if (type != oʹ.type)
+        return false;
+
+    if (!object_proto::operator==(oʹ))
+        return false;
+
+    const auto& o = static_cast<const light_proto&>(oʹ);
+
+    return Math::abs(max_distance - o.max_distance) < 1e-8f &&
+           color == o.color &&
+           falloff == o.falloff &&
+           enabled == o.enabled;
+}
 
 light::light(object_id id, class chunk& c, const light_proto& proto) :
     object{id, c, proto},

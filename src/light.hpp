@@ -15,7 +15,7 @@ struct light_proto : object_proto
     light_proto& operator=(const light_proto&);
     light_proto(light_proto&&) noexcept;
     light_proto& operator=(light_proto&&) noexcept;
-    bool operator==(const light_proto&) const;
+    bool operator==(const object_proto&) const override;
 
     float max_distance = 0;
     Color4ub color{255, 255, 255, 255};
