@@ -312,10 +312,10 @@ constexpr float step_magnitude(Vector2b vec)
 
     if (vec.x() * vec.y() != 0)
         // diagonal
-            return d;
+        return d;
     else
         // axis-aligned
-            return c;
+        return c;
 }
 
 Ns return_unspent_dt(uint32_t nframes, uint32_t i, float speed, Ns frame_duration)
