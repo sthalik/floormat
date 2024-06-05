@@ -268,7 +268,8 @@ void app::draw_editor_pane(float main_menu_height)
         float width = 425 * dpi.x();
 
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
-        ImGui::SetNextFrameWantCaptureKeyboard(false);
+        if (_editor->mode() != editor_mode::tests)
+            ImGui::SetNextFrameWantCaptureKeyboard(false);
         ImGui::SetNextWindowSize({width, window_size.y()-main_menu_height - style.WindowPadding.y});
         if (auto b = begin_window({}, nullptr, igwf))
         {
