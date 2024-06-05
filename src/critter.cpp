@@ -1,6 +1,5 @@
 #include "critter.hpp"
 #include "critter-script.hpp"
-#include "compat/limits.hpp"
 #include "tile-constants.hpp"
 #include "src/point.inl"
 #include "src/anim-atlas.hpp"
@@ -9,6 +8,9 @@
 #include "src/object.hpp"
 #include "src/nanosecond.inl"
 #include "shaders/shader.hpp"
+#include "compat/limits.hpp"
+#include "compat/map.hpp"
+#include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
 #include <utility>
@@ -21,14 +23,10 @@ namespace {
 
 constexpr auto m_auto_mask = critter::move_u { .bits {.AUTO = true} };
 
-constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
+constexpr rotation arrows_to_dir_from_mask(unsigned mask)
 {
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
-    const unsigned bits = left*L | right*R | up*U | down*D;
-    constexpr unsigned mask = L|R|U|D;
-    CORRADE_ASSUME((bits & mask) == bits);
-
-    switch (bits)
+    switch (mask)
     {
     using enum rotation;
     case L | U: return W;
@@ -50,8 +48,20 @@ constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
     case L|R:
         return rotation{rotation_COUNT};
     }
-    std::unreachable();
+    fm_assert(false);
 }
+
+constexpr auto arrows_to_dir_array = map(arrows_to_dir_from_mask, iota_array<uint8_t, 16>);
+
+constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
+{
+    constexpr uint8_t L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
+    const uint8_t bits = left*L | right*R | up*U | down*D;
+    constexpr uint8_t mask = L|R|U|D;
+    CORRADE_ASSUME((bits & mask) == bits);
+    return arrows_to_dir_array.data()[bits];
+}
+
 #if 0
 static_assert(arrows_to_dir(true, false, false, false) == rotation::SW);
 static_assert(arrows_to_dir(true, false, true, true) == rotation::SW);
@@ -80,12 +90,11 @@ constexpr Vector2 rotation_to_vec(rotation r)
     };
 
     CORRADE_ASSUME(r < rotation_COUNT);
-    return array[(size_t)r];
+    return array[(uint8_t)r];
 }
 
-constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
+constexpr std::array<rotation, 3> rotation_to_similar_(rotation r)
 {
-    CORRADE_ASSUME(r < rotation_COUNT);
     switch (r)
     {
     using enum rotation;
@@ -98,7 +107,15 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     case W:  return {  W, SW, NW };
     case NW: return { NW,  W,  N };
     }
-    std::unreachable();
+    fm_assert(false);
+}
+
+constexpr auto rotation_to_similar_array = map(rotation_to_similar_, iota_array<rotation, (size_t)rotation_COUNT>);
+
+constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
+{
+    CORRADE_ASSUME(r < rotation_COUNT);
+    return rotation_to_similar_array.data()[(uint8_t)r];
 }
 
 template<rotation r> constexpr uint8_t get_length_axis()
@@ -270,16 +287,8 @@ constexpr step_s next_step_(Vector2i vec_in)
     }
 }
 
-constexpr rotation dir_from_step(step_s step)
+constexpr rotation dir_from_step_mask(uint8_t val)
 {
-    if (step.direction.isZero()) [[unlikely]]
-        return rotation_COUNT;
-
-    auto x = step.direction.x() + 1;
-    auto y = step.direction.y() + 1;
-    fm_debug_assert((x & 3) == x && (y & 3) == y);
-    auto val = x << 2 | y;
-
     switch (val)
     {
     using enum rotation;
@@ -294,6 +303,20 @@ constexpr rotation dir_from_step(step_s step)
     case 2 << 2 | 2: /*  1  1 */ return SE;
     default: return rotation_COUNT;
     }
+}
+
+constexpr auto dir_from_step_array = map(dir_from_step_mask, iota_array<uint8_t, 1 << 4>);
+
+constexpr rotation dir_from_step(step_s step)
+{
+    if (step.direction.isZero()) [[unlikely]]
+        return rotation_COUNT;
+
+    auto x = uint8_t(step.direction.x() + 1);
+    auto y = uint8_t(step.direction.y() + 1);
+    //fm_debug_assert((x & 3) == x && (y & 3) == y);
+    auto val = uint8_t(x << 2 | y);
+    return dir_from_step_array.data()[val];
 }
 
 constexpr step_s next_step(point from, point to)
