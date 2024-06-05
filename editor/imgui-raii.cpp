@@ -160,6 +160,10 @@ raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int win
     return {&ImGui::EndChild};
 }
 
+} // namespace floormat::imgui
+
+namespace floormat::imgui::detail {
+
 const char* label_left_(StringView label, char* buf, size_t buf_len, float width);
 
 const char* label_left_(StringView label, char* buf, size_t buf_len, float width)
@@ -173,4 +177,4 @@ const char* label_left_(StringView label, char* buf, size_t buf_len, float width
     return buf;
 }
 
-} // namespace floormat::imgui
+} // namespace floormat::imgui::detail
