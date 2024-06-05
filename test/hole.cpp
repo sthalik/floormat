@@ -6,7 +6,7 @@ namespace {
 
 using bbox = cut_rectangle_result::bbox;
 
-constexpr auto cut(bbox rect, bbox hole, Vector2i offset)
+auto cut(bbox rect, bbox hole, Vector2i offset)
 {
     auto rectʹ = bbox { rect.position + offset, rect.bbox_size };
     auto holeʹ = bbox { hole.position + offset, hole.bbox_size };
