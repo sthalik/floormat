@@ -152,12 +152,12 @@ void main_impl::draw_world() noexcept
                  },
                  draw_bounds, z_bounds, sz);
 
+    GL::Renderer::setDepthMask(false);
+
     draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
                      _anim_mesh.draw(_shader, sz, c, _clickable_scenery, _do_render_vobjs);
                  },
                  draw_bounds, z_bounds, sz);
-
-    GL::Renderer::setDepthMask(false);
 
     _shader.set_tint({1, 1, 1, 1});
     GL::Renderer::setDepthMask(true);
