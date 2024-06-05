@@ -170,6 +170,7 @@ const char* label_left_(StringView label, char* buf, size_t buf_len, float width
 {
     std::snprintf(buf, buf_len, "##%s", label.data());
     float x = ImGui::GetCursorPosX();
+    ImGui::AlignTextToFramePadding();
     ImGui::TextEx(label.data(), label.data() + label.size());
     ImGui::SameLine();
     ImGui::SetCursorPosX(x + width + ImGui::GetStyle().ItemInnerSpacing.x);
