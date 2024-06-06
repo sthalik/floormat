@@ -27,14 +27,18 @@ void test1(Vector2i offset)
     fm_assert_not_equal(0, cut(rect, {{ 49, -49}, {50, 50}}, offset));
 #endif
 #if 1
-    fm_assert_equal(1, cut(rect, {{ 0,  0}, {50, 50}}, offset));
+    fm_assert_equal(0, cut(rect, {{ 0,  0}, {50, 50}}, offset));
+    fm_assert_equal(1, cut(rect, {{ 0,  0}, {49, 50}}, offset));
+    fm_assert_equal(1, cut(rect, {{ 1,  0}, {50, 50}}, offset));
     fm_assert_equal(1, cut(rect, {{50,  0}, {50, 50}}, offset));
     fm_assert_equal(1, cut(rect, {{ 0, 50}, {50, 50}}, offset));
     fm_assert_equal(1, cut(rect, {{50, 50}, {50, 50}}, offset));
 #endif
 #if 1
-    fm_assert_equal(1, cut(rect, {{ 9,  9}, {70, 70}}, offset));
-    fm_assert_equal(1, cut(rect, {{10, 10}, {70, 70}}, offset));
+    fm_assert_equal(0, cut(rect, {{ 9,  9}, {70, 70}}, offset));
+    fm_assert_equal(2, cut(rect, {{11, 11}, {70, 70}}, offset));
+    fm_assert_equal(1, cut(rect, {{10, 11}, {70, 70}}, offset));
+    fm_assert_equal(0, cut(rect, {{10, 10}, {70, 70}}, offset));
     fm_assert_equal(2, cut(rect, {{20, 20}, {70, 70}}, offset));
 #endif
 #if 1
