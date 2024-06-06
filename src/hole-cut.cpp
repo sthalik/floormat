@@ -15,9 +15,9 @@
 namespace floormat {
 namespace {
 
-template<typename T> using crr = cut_rectangle_result<T>;
-template<typename T> using bbox = typename cut_rectangle_result<T>::bbox;
-template<typename T> using rect = typename cut_rectangle_result<T>::rect;
+template<typename T> using Cr = CutResult<T>;
+template<typename T> using bbox = typename Cr<T>::bbox;
+template<typename T> using rect = typename Cr<T>::rect;
 
 enum shift : uint8_t { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
 enum class location : uint8_t { R0, R1, H0, H1, };
@@ -151,12 +151,13 @@ constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h
 }
 
 template<typename T>
-constexpr cut_rectangle_result<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
+constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
 {
     if (check_empty<T>(r0, r1, h0, h1))
         return {
-            .size = 1,
             .array = {{ { r0, r1 }, }},
+            .size = 1,
+            .found = false,
         };
 
     const bool sx = h0.x() <= r0.x();
@@ -168,9 +169,10 @@ constexpr cut_rectangle_result<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2
     CORRADE_ASSUME(val < 16);
     const auto elt = elements[val];
     const auto sz = elt.size;
-    cut_rectangle_result<T> res = {
-        .size = sz,
+    Cr<T> res = {
         .array = {},
+        .size = sz,
+        .found = true,
     };
 
     for (auto i = 0u; i < 8; i++)
@@ -180,7 +182,7 @@ constexpr cut_rectangle_result<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2
 }
 
 template<typename T>
-constexpr cut_rectangle_result<T> cut_rectangle(bbox<T> input, bbox<T> hole)
+constexpr Cr<T> cut_rectangle(bbox<T> input, bbox<T> hole)
 {
     using Vec2 = Vec2ʹ<T>;
 
@@ -197,16 +199,10 @@ constexpr cut_rectangle_result<T> cut_rectangle(bbox<T> input, bbox<T> hole)
 
 } // namespace
 
-template struct cut_rectangle_result<Int>;
-template struct cut_rectangle_result<float>;
+template<typename T> Cr<T> CutResult<T>::cut(bbox input, bbox hole) { return cut_rectangle<T>(input, hole); }
+template<typename T> Cr<T> CutResult<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
 
-template<typename T> crr<T> cut_rectangle_result<T>::cut(bbox input, bbox hole) { return cut_rectangle<T>(input, hole); }
-template<typename T> crr<T> cut_rectangle_result<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
-
-template cut_rectangle_result<Int> cut_rectangle_result<Int>::cut(bbox input, bbox hole);
-template cut_rectangle_result<float> cut_rectangle_result<float>::cut(bbox input, bbox hole);
-
-template cut_rectangle_result<Int> cut_rectangle_result<Int>::cut(Vector2i r0, Vector2i r1, Vector2i h0, Vector2i h1);
-template cut_rectangle_result<float> cut_rectangle_result<float>::cut(Vector2 r0, Vector2 r1, Vector2 h0, Vector2 h1);
+template struct CutResult<Int>;
+template struct CutResult<float>;
 
 } // namespace floormat

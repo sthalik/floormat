@@ -4,13 +4,13 @@
 namespace floormat {
 namespace {
 
-using bbox = cut_rectangle_result<Int>::bbox;
+using bbox = CutResult<Int>::bbox;
 
 auto cut(bbox rect, bbox hole, Vector2i offset)
 {
     auto rectʹ = bbox { rect.position + offset, rect.bbox_size };
     auto holeʹ = bbox { hole.position + offset, hole.bbox_size };
-    return cut_rectangle_result<Int>::cut(rectʹ, holeʹ).size;
+    return CutResult<Int>::cut(rectʹ, holeʹ).size;
 }
 
 void test1(Vector2i offset)

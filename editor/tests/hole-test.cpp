@@ -58,8 +58,8 @@ constexpr auto colors = std::array{
 
 void hole_test::draw_ui(app& a, float)
 {
-    using crr = cut_rectangle_result<Int>;
-    using bbox = typename crr::bbox;
+    using Cr = CutResult<Int>;
+    using bbox = Cr::bbox;
     const auto& m = a.main();
     const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
     const auto window_size = ImVec2{width, width};
@@ -76,7 +76,7 @@ void hole_test::draw_ui(app& a, float)
     ImGui::NewLine();
 
     bbox rect{{}, Vector2ub{tile_size_xy}};
-    const auto res = crr::cut(rect, {st.pos, st.size});
+    const auto res = Cr::cut(rect, {st.pos, st.size});
 
     ImGui::SetNextWindowSize({width, width});
     if (auto b1 = imgui::begin_child("Test area"_s, window_size, igcf, igwf))
@@ -110,8 +110,6 @@ void hole_test::draw_ui(app& a, float)
                      to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)*.5f)* mult), red, 0, 0, 1); // hole
     }
 
-    constexpr auto rmin = Int{-tile_size_xy/2}, rmax = Int{(tile_size_xy+1)/2};
-    const bool found = res.size != 1 || res.array[0].min != Vector2i{rmin} || res.array[0].max != Vector2i{rmax};
     const auto label_width = ImGui::CalcTextSize("MMMMMM").x;
 
     ImGui::NewLine();
@@ -135,7 +133,7 @@ void hole_test::draw_ui(app& a, float)
     }
     {
         label_left("found", buf, label_width);
-        ImGui::Text("%s", found ? "true" : "false");
+        ImGui::Text("%s", res.found ? "true" : "false");
     }
 
     ImGui::Unindent(style.FramePadding.x);

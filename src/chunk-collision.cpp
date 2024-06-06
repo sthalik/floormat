@@ -1,8 +1,10 @@
 #include "chunk.hpp"
 #include "ground-atlas.hpp"
 #include "object.hpp"
+#include "world.hpp"
 #include "src/RTree-search.hpp"
 #include "rect-intersects.hpp"
+#include "hole.hpp"
 #include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/hole.hpp"
@@ -10,7 +12,6 @@
 #include <bit>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
-//#include <cr/GrowableArray.h>
 
 namespace floormat {
 
@@ -32,13 +33,6 @@ constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
     return std::bit_cast<object_id>(make_id_(type, p, id));
 }
 
-struct Data
-{
-    object_id id;
-    Vector2 min, max;
-};
-
-#if 0
 template<bool IsNeighbor>
 void add_holes_from(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
@@ -65,35 +59,55 @@ void add_holes_from(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
     }
 }
 
-void filter_through_holes(chunk::RTree& rtree, Data bbox, unsigned stack)
+#if 0
+void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, unsigned stack = 0)
 {
-    using Rect = typename chunk::RTree::Rect;
-    Vector2 hmin, hmax;
+start:
+    CutResult<float>::rect hole;
     bool ret = true;
-    rtree.Search(bbox.min.data(), bbox.max.data(), [&](uint64_t data, const Rect& r) {
+    rtree.Search(min.data(), max.data(), [&](uint64_t data, const chunk::RTree::Rect& r) {
         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
         if (x.pass == (uint64_t)pass_mode::pass && x.tag == (uint64_t)collision_type::none)
         {
-            hmin = Vector2(r.m_min[0], r.m_min[1]);
-            hmax = Vector2(r.m_max[0], r.m_max[1]);
-            return ret = false;
+            CutResult<float>::rect holeʹ {
+                .min = { r.m_min[0], r.m_min[1] },
+                .max = { r.m_max[0], r.m_max[1] },
+            };
+            if (rect_intersects(holeʹ.min, holeʹ.max, min, max))
+            {
+                hole = holeʹ;
+                return ret = false;
+            }
         }
         return true;
     });
 
     if (ret) [[likely]]
-        rtree.Insert(bbox.min.data(), bbox.max.data(), bbox.id);
+        rtree.Insert(min.data(), max.data(), id);
     else
     {
-        //auto res = cut_rectangle_result<float>::cut();
-        //for (auto i = 0uz; i < )
-        fm_assert(++stack <= 4096);
-    }
+        auto res = CutResult<float>::cut(min, max, hole.min, hole.max);
+        if (!res.found)
+        {
+            rtree.Insert(min.data(), max.data(), id);
+        }
+        else if (res.size == 1)
+        {
+            min = res.array[0].min;
+            max = res.array[0].max;
+            goto start;
+        }
+        else
+        {
+            fm_assert(stack <= 1024);
+            for (auto i = 0uz; i < res.size; i++)
+                filter_through_holes(rtree, id, res.array[i].min, res.array[i].max, stack+1);
+        }}
 }
 #else
-void filter_through_holes(chunk::RTree& rtree, Data bbox, unsigned)
+void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, unsigned = 0)
 {
-    rtree.Insert(bbox.min.data(), bbox.max.data(), bbox.id);
+    rtree.Insert(min.data(), max.data(), id);
 }
 #endif
 
@@ -109,13 +123,21 @@ void chunk::ensure_passability() noexcept
 
     _rtree->RemoveAll();
 
+    {
+        add_holes_from<false>(*_rtree, *this, {});
+        const auto nbs = _world->neighbors(_coord);
+        for (auto i = 0u; i < 8; i++)
+            if (nbs[i])
+                add_holes_from<true>(*_rtree, *nbs[i], world::neighbor_offsets[i]);
+    }
+
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
         if (const auto* atlas = ground_atlas_at(i))
         {
             auto [min, max] = whole_tile(i);
             auto id = make_id(collision_type::geometry, atlas->pass_mode(), i+1);
-            filter_through_holes(*_rtree, {id, min, max}, 0);
+            filter_through_holes(*_rtree, id, min, max);
         }
     }
     for (auto i = 0uz; i < TILE_COUNT; i++)
@@ -125,35 +147,31 @@ void chunk::ensure_passability() noexcept
         {
             auto [min, max] = wall_north(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
-            filter_through_holes(*_rtree, {id, min, max}, 0);
+            filter_through_holes(*_rtree, id, min, max);
 
             if (tile.wall_west_atlas())
             {
                 auto [min, max] = wall_pillar(i, (float)atlas->info().depth);
-                filter_through_holes(*_rtree, {id, min, max}, 0);
+                filter_through_holes(*_rtree, id, min, max);
             }
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto [min, max] = wall_west(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            filter_through_holes(*_rtree, {id, min, max}, 0);
+            filter_through_holes(*_rtree, id, min, max);
         }
     }
-    for (const std::shared_ptr<object>& s : objects())
-        if (!s->is_dynamic())
-            if (bbox box; _bbox_for_scenery(*s, box))
-                filter_through_holes(*_rtree, {std::bit_cast<object_id>(box.data), Vector2(box.start), Vector2(box.end)}, 0);
-
-    //for (auto [id, min, max] : vec) _rtree->Insert(min.data(), max.data(), id);
-    //arrayResize(vec, 0); arrayResize(vec2, 0); // done with holes
-
-    for (const std::shared_ptr<object>& s : objects())
+    for (const std::shared_ptr<object>& sʹ : objects())
     {
         bbox box;
-        if (s->is_dynamic())
-            if (_bbox_for_scenery(*s, box))
+        if (sʹ->type() != object_type::hole && _bbox_for_scenery(*sʹ, box))
+        {
+            if (sʹ->is_dynamic())
                 _add_bbox(box);
+            else
+                filter_through_holes(*_rtree, std::bit_cast<object_id>(box.data), Vector2(box.start), Vector2(box.end));
+        }
     }
 }
 
