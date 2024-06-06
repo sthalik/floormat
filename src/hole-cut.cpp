@@ -39,8 +39,7 @@ constexpr element make_element(uint8_t s)
     switch (s)
     {
     using enum location;
-    case x0|x1|y0|y1: return element{1, {{ // 9.1
-        {R0, R1, R0, R1},
+    case x0|x1|y0|y1: return element{0, {{ // 9.1
     }}};
     case __|__|__|__: return element{8, {{ // 14.1
         {R0, H0, R0, H0},
@@ -49,7 +48,7 @@ constexpr element make_element(uint8_t s)
         {R0, H0, H0, H1},
         {H1, R1, H0, H1},
         {R0, H0, H1, R1},
-        {H0, H1, H0, R1},
+        {H0, H1, H1, R1},
         {H1, R1, H1, R1},
     }}};
 
@@ -58,7 +57,7 @@ constexpr element make_element(uint8_t s)
         {R0, R1, H1, R1},
     }}};
     case __|__|y0|y1: return element{2, {{ // 13.2
-        {R0, H0, H1, R1},
+        {R0, H0, R0, R1},
         {H1, R1, R0, R1},
     }}};
 
@@ -87,7 +86,7 @@ constexpr element make_element(uint8_t s)
     }}};
     case __|__|y0|__: return element{3, {{ // 10.3
         {R0, H0, R0, R1},
-        {H0, H1, H0, R1},
+        {H0, H1, H1, R1},
         {H1, R1, R0, R1},
     }}};
     case __|__|__|y1: return element{3, {{ // 10.4
@@ -110,7 +109,7 @@ constexpr element make_element(uint8_t s)
     }}};
     case __|x1|__|y1: return element{2, {{ // 11.4
         {R0, R1, R0, H0},
-        {R0, H0, H0, H1},
+        {R0, H0, H0, R1},
     }}};
     }
     // NOLINTEND(*-simplify)
