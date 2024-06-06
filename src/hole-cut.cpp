@@ -40,8 +40,8 @@ template<typename T> using Vec2ʹ = VectorTypeFor<2, T>;
 
 constexpr element make_element(uint8_t s)
 {
+    // NOLINTBEGIN(*-simplify, *-redundant-expression)
     // ReSharper disable CppIdenticalOperandsInBinaryExpression
-    // NOLINTBEGIN(*-simplify)
     switch (s)
     {
     using enum location;
@@ -118,8 +118,8 @@ constexpr element make_element(uint8_t s)
         {R0, H0, H0, R1},
     }}};
     }
-    // NOLINTEND(*-simplify)
     // ReSharper restore CppIdenticalOperandsInBinaryExpression
+    // NOLINTEND(*-simplify, *-redundant-expression)
     fm_assert(false);
 }
 
