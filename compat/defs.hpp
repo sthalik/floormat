@@ -65,6 +65,7 @@
 #endif
 
 #ifdef _MSC_VER
+#define fm_UNROLL_disable
 #define fm_UNROLL _Pragma("loop(ivdep)")
 #define fm_UNROLL_4 fm_UNROLL
 #define fm_UNROLL_8 fm_UNROLL
@@ -73,6 +74,7 @@
 #ifndef __SIZEOF_POINTER__
 #error "missing __SIZEOF_POINTER__"
 #endif
+#define fm_UNROLL_disable _Pragma("GCC unroll 1")
 #define fm_UNROLL_4 _Pragma("GCC unroll 4")
 #define fm_UNROLL_8 _Pragma("GCC unroll 8")
 #if __SIZEOF_POINTER__ > 4
