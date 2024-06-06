@@ -60,7 +60,6 @@ void hole_test::draw_ui(app& a, float)
 {
     using Cr = CutResult<Int>;
     using bbox = Cr::bbox;
-    const auto& m = a.main();
     const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
     const auto window_size = ImVec2{width, width};
     const auto bgcolor = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
