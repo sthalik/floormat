@@ -56,7 +56,7 @@ constexpr auto colors = std::array{
     0x6dd4ff_rgbf, // rect 8
 };
 
-void hole_test::draw_ui(app& a, float)
+void hole_test::draw_ui(app&, float)
 {
     using Cr = CutResult<Int>;
     using bbox = Cr::bbox;

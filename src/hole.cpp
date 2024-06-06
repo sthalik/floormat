@@ -34,20 +34,19 @@ bool hole_proto::operator==(const object_proto& oʹ) const
 hole_proto::hole_proto()
 {
     atlas = loader.vobj("hole"_s).atlas;
+    pass = pass_mode::pass;
     type = object_type::hole;
 }
 
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
     object{id, c, proto}, height{proto.height}, flags{proto.flags}
 {
-
 }
 
 hole::~hole() noexcept
 {
     if (c->is_teardown()) [[unlikely]]
         return;
-
     mark_chunk_modified();
 }
 
@@ -64,8 +63,8 @@ hole::operator hole_proto() const
 
 void hole::mark_chunk_modified()
 {
-    c->mark_ground_modified(); // todo conditionalize
-    c->mark_walls_modified();  // todo conditionalize
+    //c->mark_ground_modified(); // todo!
+    //c->mark_walls_modified();  // todo!
     c->mark_passability_modified();
 }
 
