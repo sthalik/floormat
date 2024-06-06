@@ -1,7 +1,7 @@
 sets(STRING
      CMAKE_C_FLAGS "-fno-plt -fPIC -m64"
      CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=native -mtune=native -mavx -flto -fipa-pta"
+     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=native -mtune=native -mavx -flto -fipa-pta -fno-semantic-interposition"
 )
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fPIC")
