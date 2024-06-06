@@ -119,6 +119,7 @@ function(fm-userconfig-src)
         -Wno-weak-vtables
         -Wno-c99-compat
         -Wno-switch-default
+        #-Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator
     )
     add_compile_options(
         -Werror
