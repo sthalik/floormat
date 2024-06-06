@@ -64,7 +64,7 @@ uint32_t get_contig_draw_max_len(ArrayView<const chunk::object_draw_order> array
     return len;
 }
 
-minmax_s get_contig_draw_len(ArrayView<const chunk::object_draw_order> array, uint32_t start)
+[[maybe_unused]] minmax_s get_contig_draw_len(ArrayView<const chunk::object_draw_order> array, uint32_t start)
 {
     auto r = minmax_s { .len = 1, .min = array[start].mesh_idx, };
     auto len = get_contig_draw_max_len(array, start);
