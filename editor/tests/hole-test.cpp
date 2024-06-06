@@ -40,7 +40,7 @@ struct hole_test final : base_test
 bool hole_test::handle_key(app&, const key_event&, bool) { return false; }
 bool hole_test::handle_mouse_click(app&, const mouse_button_event&, bool) { return false; }
 bool hole_test::handle_mouse_move(app&, const mouse_move_event&) { return false; }
-void hole_test::draw_overlay(app& a) {}
+void hole_test::draw_overlay(app&) {}
 
 constexpr ImVec2 to_imvec2(Vector2 val) { return {val.x(), val.y()}; }
 uint32_t to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32({ val.r(), val.g(), val.b(), val.a() }); }
