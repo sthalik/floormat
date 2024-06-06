@@ -6,6 +6,7 @@
 #include "world.hpp"
 #include "pass-mode.hpp"
 #include "RTree-search.hpp"
+#include "rect-intersects.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
 #include <bit>

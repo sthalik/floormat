@@ -37,34 +37,13 @@ struct hole_test final : base_test
     State st;
 };
 
-bool hole_test::handle_key(app& a, const key_event& e, bool is_down)
-{
-    return false;
-}
+bool hole_test::handle_key(app&, const key_event&, bool) { return false; }
+bool hole_test::handle_mouse_click(app&, const mouse_button_event&, bool) { return false; }
+bool hole_test::handle_mouse_move(app&, const mouse_move_event&) { return false; }
+void hole_test::draw_overlay(app& a) {}
 
-bool hole_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
-{
-    return false;
-}
-
-bool hole_test::handle_mouse_move(app& a, const mouse_move_event& e)
-{
-    return false;
-}
-
-void hole_test::draw_overlay(app& a)
-{
-}
-
-constexpr ImVec2 to_imvec2(Vector2 val)
-{
-    return {val.x(), val.y()};
-}
-
-auto to_color(Color4 val)
-{
-    return ImGui::ColorConvertFloat4ToU32({ val.r(), val.g(), val.b(), val.a() });
-}
+constexpr ImVec2 to_imvec2(Vector2 val) { return {val.x(), val.y()}; }
+uint32_t to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32({ val.r(), val.g(), val.b(), val.a() }); }
 
 constexpr auto colors = std::array{
     0x488f31_rgbf, // rect 1
@@ -79,6 +58,8 @@ constexpr auto colors = std::array{
 
 void hole_test::draw_ui(app& a, float)
 {
+    using crr = cut_rectangle_result<Int>;
+    using bbox = typename crr::bbox;
     const auto& m = a.main();
     const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
     const auto window_size = ImVec2{width, width};
@@ -92,13 +73,10 @@ void hole_test::draw_ui(app& a, float)
     constexpr auto igwf = 0;//ImGuiWindowFlags_NoDecoration;
     constexpr auto imdf = ImDrawFlags_None;
     char buf[32];
-
     ImGui::NewLine();
 
-    //ImGui::LabelText("##test-area", "Test area");
-    //ImGui::NewLine();
-
-    auto count = -1u;
+    bbox rect{{}, Vector2ub{tile_size_xy}};
+    const auto res = crr::cut(rect, {st.pos, st.size});
 
     ImGui::SetNextWindowSize({width, width});
     if (auto b1 = imgui::begin_child("Test area"_s, window_size, igcf, igwf))
@@ -116,10 +94,6 @@ void hole_test::draw_ui(app& a, float)
         draw.AddRectFilled(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)/2)*mult),
                            to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)/2)*mult), red); // hole
 
-        cut_rectangle_result::bbox rect{{}, Vector2ub{tile_size_xy}};
-        cut_rectangle_result res = cut_rectangle(rect, {st.pos, st.size});
-        count = res.size;
-
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
@@ -135,13 +109,9 @@ void hole_test::draw_ui(app& a, float)
         draw.AddRect(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)*.5f)*mult),
                      to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)*.5f)* mult), red, 0, 0, 1); // hole
     }
-    if (count == -1u)
-    {
-        cut_rectangle_result::bbox rect{{}, Vector2ub{tile_size_xy}};
-        cut_rectangle_result res = cut_rectangle(rect, {st.pos, st.size});
-        count = res.size;
-    }
 
+    constexpr auto rmin = Int{-tile_size_xy/2}, rmax = Int{(tile_size_xy+1)/2};
+    const bool found = res.size != 1 || res.array[0].min != Vector2i{rmin} || res.array[0].max != Vector2i{rmax};
     const auto label_width = ImGui::CalcTextSize("MMMMMM").x;
 
     ImGui::NewLine();
@@ -161,13 +131,17 @@ void hole_test::draw_ui(app& a, float)
     }
     {
         label_left("count", buf, label_width);
-        ImGui::Text("%zu", size_t{count});
+        ImGui::Text("%zu", size_t{res.size});
+    }
+    {
+        label_left("found", buf, label_width);
+        ImGui::Text("%s", found ? "true" : "false");
     }
 
     ImGui::Unindent(style.FramePadding.x);
 }
 
-void hole_test::update_pre(app& a, const Ns& dt)
+void hole_test::update_pre(app&, const Ns&)
 {
 }
 

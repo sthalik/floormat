@@ -4,6 +4,7 @@
 #include "rotation.inl"
 #include "anim-atlas.hpp"
 #include "src/RTree-search.hpp"
+#include "rect-intersects.hpp"
 #include "src/timer.hpp"
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"

@@ -1,6 +1,7 @@
 #pragma once
 #include "object.hpp"
 #include <array>
+#include <Magnum/DimensionTraits.h>
 
 namespace floormat {
 
@@ -54,17 +55,18 @@ private:
     void mark_chunk_modified();
 };
 
-struct cut_rectangle_result
+template<typename T>
+struct cut_rectangle_result // todo rename
 {
-    struct bbox { Vector2i position; Vector2ub bbox_size; };
-    struct rect { Vector2i min, max; };
+    using Vec2 = VectorTypeFor<2, T>;
+    struct bbox { Vec2 position; Vector2ub bbox_size; };
+    struct rect { Vec2 min, max; };
+
+    static cut_rectangle_result cut(bbox input, bbox hole);
+    static cut_rectangle_result cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1);
 
     uint8_t size = 0;
     std::array<rect, 8> array;
-
-    operator ArrayView<const bbox>() const;
 };
-
-cut_rectangle_result cut_rectangle(cut_rectangle_result::bbox input, cut_rectangle_result::bbox hole);
 
 } // namespace floormat

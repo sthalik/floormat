@@ -8,12 +8,16 @@
 #pragma GCC diagnostic ignored "-Wswitch-default"
 //#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wbitwise-instead-of-logical"
+#endif
 
 namespace floormat {
 namespace {
 
-using bbox = cut_rectangle_result::bbox;
-using rect = cut_rectangle_result::rect;
+template<typename T> using crr = cut_rectangle_result<T>;
+template<typename T> using bbox = typename cut_rectangle_result<T>::bbox;
+template<typename T> using rect = typename cut_rectangle_result<T>::rect;
 
 enum shift : uint8_t { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
 enum class location : uint8_t { R0, R1, H0, H1, };
@@ -31,6 +35,8 @@ struct element
     uint8_t size;
     std::array<coords, 8> array;
 };
+
+template<typename T> using Vec2ʹ = VectorTypeFor<2, T>;
 
 constexpr element make_element(uint8_t s)
 {
@@ -114,12 +120,13 @@ constexpr element make_element(uint8_t s)
     }
     // NOLINTEND(*-simplify)
     // ReSharper restore CppIdenticalOperandsInBinaryExpression
-    std::unreachable();
+    fm_assert(false);
 }
 
 constexpr auto elements = map(make_element, iota_array<uint8_t, 16>);
 
-constexpr auto get_value_from_coord(Vector2i r0, Vector2i r1, Vector2i h0, Vector2i h1, coords c)
+template<typename T>
+constexpr auto get_value_from_coord(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, coords c)
 {
     const auto xs = std::array{ r0.x(), r1.x(), h0.x(), h1.x(), };
     const auto ys = std::array{ r0.y(), r1.y(), h0.y(), h1.y(), };
@@ -127,37 +134,29 @@ constexpr auto get_value_from_coord(Vector2i r0, Vector2i r1, Vector2i h0, Vecto
     const auto x1 = xs[(uint8_t)c.x1];
     const auto y0 = ys[(uint8_t)c.y0];
     const auto y1 = ys[(uint8_t)c.y1];
-    return rect{ Vector2i{x0, y0}, Vector2i{x1, y1} };
+    return rect<T>{ {x0, y0}, {x1, y1} };
 }
 
+template<typename T>
 [[nodiscard]]
-constexpr bool
-check_empty(Vector2i r0, Vector2i r1, Vector2i h0, Vector2i h1, Vector2ub input_bb, Vector2ub hole_bb)
+constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
 {
-    bool iempty = Vector2ui{input_bb}.product() == 0;
-    bool hempty = Vector2ui{hole_bb}.product() == 0;
+    bool iempty = r0.x() == r1.x() | r0.y() == r1.y();
+    bool hempty = h0.x() == h1.x() | h0.y() == h1.y();
     bool empty_before_x = h1.x() <= r0.x();
     bool empty_after_x  = h0.x() >= r1.x();
     bool empty_before_y = h1.y() <= r0.y();
     bool empty_after_y  = h0.y() >= r1.y();
-
     return iempty | hempty | empty_before_x | empty_after_x | empty_before_y | empty_after_y;
 }
 
-constexpr cut_rectangle_result cut_rectangleʹ(bbox input, bbox hole)
+template<typename T>
+constexpr cut_rectangle_result<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
 {
-    auto ihalf = Vector2i{input.bbox_size/2};
-    auto r0 = input.position - ihalf;
-    auto r1 = input.position + Vector2i{input.bbox_size} - ihalf;
-
-    auto hhalf = Vector2i{hole.bbox_size/2};
-    auto h0 = hole.position - hhalf;
-    auto h1 = hole.position + Vector2i{hole.bbox_size} - hhalf;
-
-    if (check_empty(r0, r1, h0, h1, input.bbox_size, hole.bbox_size))
+    if (check_empty<T>(r0, r1, h0, h1))
         return {
             .size = 1,
-            .array = {{ rect { r0, r1 }, }},
+            .array = {{ { r0, r1 }, }},
         };
 
     const bool sx = h0.x() <= r0.x();
@@ -169,23 +168,45 @@ constexpr cut_rectangle_result cut_rectangleʹ(bbox input, bbox hole)
     CORRADE_ASSUME(val < 16);
     const auto elt = elements[val];
     const auto sz = elt.size;
-    cut_rectangle_result res = {
+    cut_rectangle_result<T> res = {
         .size = sz,
         .array = {},
     };
 
-    CORRADE_ASSUME(sz <= 8);
-
-    for (auto i = 0u; i < sz; i++)
-        res.array[i] = get_value_from_coord(r0, r1, h0, h1, elt.array[i]);
+    for (auto i = 0u; i < 8; i++)
+        res.array[i] = get_value_from_coord<T>(r0, r1, h0, h1, elt.array[i]);
 
     return res;
 }
 
+template<typename T>
+constexpr cut_rectangle_result<T> cut_rectangle(bbox<T> input, bbox<T> hole)
+{
+    using Vec2 = Vec2ʹ<T>;
+
+    auto ihalf = Vec2{input.bbox_size/2};
+    auto r0 = input.position - ihalf;
+    auto r1 = input.position + Vec2{input.bbox_size} - ihalf;
+
+    auto hhalf = Vec2{hole.bbox_size/2};
+    auto h0 = hole.position - hhalf;
+    auto h1 = hole.position + Vec2{hole.bbox_size} - hhalf;
+
+    return cut_rectangle<T>(r0, r1, h0, h1);
+}
+
 } // namespace
 
-cut_rectangle_result cut_rectangle(bbox input, bbox hole)
-{
-    return cut_rectangleʹ(input, hole);
-}
+template struct cut_rectangle_result<Int>;
+template struct cut_rectangle_result<float>;
+
+template<typename T> crr<T> cut_rectangle_result<T>::cut(bbox input, bbox hole) { return cut_rectangle<T>(input, hole); }
+template<typename T> crr<T> cut_rectangle_result<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
+
+template cut_rectangle_result<Int> cut_rectangle_result<Int>::cut(bbox input, bbox hole);
+template cut_rectangle_result<float> cut_rectangle_result<float>::cut(bbox input, bbox hole);
+
+template cut_rectangle_result<Int> cut_rectangle_result<Int>::cut(Vector2i r0, Vector2i r1, Vector2i h0, Vector2i h1);
+template cut_rectangle_result<float> cut_rectangle_result<float>::cut(Vector2 r0, Vector2 r1, Vector2 h0, Vector2 h1);
+
 } // namespace floormat
