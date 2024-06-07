@@ -19,6 +19,11 @@ using st = field_status;
 
 template<>
 struct entity_accessors<object, inspect_intent_t> {
+    static constexpr bool enable_bbox_editing(const object& x)
+    {
+        return x.updates_passability() || x.pass != pass_mode::pass;
+    }
+
     static constexpr auto accessors()
     {
         using E = Entity<object>;
@@ -76,12 +81,12 @@ struct entity_accessors<object, inspect_intent_t> {
             E::type<Vector2b>::field{"bbox-offset"_s,
                 &object::bbox_offset,
                 [](object& x, Vector2b value)  { x.set_bbox(x.offset, value, x.bbox_size, x.pass); },
-                [](const object& x) { return x.pass == pass_mode::pass ? st::readonly : st::enabled; },
+                [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },
             },
             E::type<Vector2ub>::field{"bbox-size"_s,
                 &object::bbox_size,
                 [](object& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
-                [](const object& x) { return x.pass == pass_mode::pass ? st::readonly : st::enabled; },
+                [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },
                 constantly(constraints::range<Vector2ub>{{1,1}, {255, 255}}),
             },
             E::type<bool>::field{"ephemeral"_s,
