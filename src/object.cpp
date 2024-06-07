@@ -22,8 +22,6 @@ namespace floormat {
 
 namespace {
 
-constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
-
 // todo rewrite using bitwise ops. try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
@@ -74,7 +72,7 @@ object::~object() noexcept
         return;
 #if 0
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
-        c->_remove_bbox(bb);
+        c->_remove_bbox_dynamic(bb);
 #endif
     c->_world->erase_object(id);
     const_cast<object_id&>(id) = 0;
@@ -209,7 +207,7 @@ bool object::can_move_to(Vector2i delta)
 
 void object::teleport_to(size_t& i, point pt, rotation new_r)
 {
-    return teleport_to(i, pt.coord(), pt.offset(), new_r);
+    teleport_to(i, pt.coord(), pt.offset(), new_r);
 }
 
 void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rotation new_r)
@@ -230,8 +228,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     if (coord_ == coord && offset_ == offset)
         return;
 
-    if (!is_dynamic())
-        c->mark_scenery_modified();
+    const bool dynamic = is_dynamic(), upd = updates_passability();
 
     chunk::bbox bb0, bb1;
     const auto bb_offset = rotate_point(bbox_offset, r, new_r);
@@ -241,27 +238,21 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
 
     if (coord_.chunk() == coord.chunk())
     {
-        c->_replace_bbox(bb0, bb1, b0, b1);
-        const_cast<global_coords&>(coord) = coord_;
+        c->_replace_bbox_(bb0, bb1, b0, b1, upd, dynamic);
+        non_const(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
-        const_cast<rotation&>(r) = new_r;
+        non_const(r) = new_r;
     }
     else
     {
         auto& w = *c->_world;
-
-        auto& c2 = w[coord_.chunk3()];
-        if (!is_dynamic())
-            c2.mark_scenery_modified();
-        c2._add_bbox(bb1);
         c->remove_object(i);
-        auto& es = c2._objects;
-        const_cast<global_coords&>(coord) = coord_;
+        auto& c2 = w[coord_.chunk3()];
+        non_const(c) = &c2;
+        non_const(coord) = coord_;
+        non_const(r) = new_r;
         set_bbox_(offset_, bb_offset, bb_size, pass);
-        const_cast<rotation&>(r) = new_r;
-        const_cast<class chunk*&>(c) = &c2;
-        i = (size_t)std::distance(es.cbegin(), std::lower_bound(es.cbegin(), es.cend(), eʹ, object_id_lessp));
-        arrayInsert(es, i, move(eʹ));
+        i = c2.add_objectʹ(eʹ);
     }
 }
 
@@ -314,12 +305,12 @@ uint32_t object::alloc_frame_time(const Ns& dt, T& accum, uint32_t hz, float spe
 template uint32_t object::alloc_frame_time(const Ns& dt, uint16_t& accum, uint32_t hz, float speed);
 template uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& accum, uint32_t hz, float speed);
 
-void object::set_bbox_(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
+void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, pass_mode pass_)
 {
-    const_cast<Vector2b&>(offset) = offset_;
-    const_cast<Vector2b&>(bbox_offset) = bb_offset_;
-    const_cast<Vector2ub&>(bbox_size) = bb_size_;
-    const_cast<pass_mode&>(pass) = pass_;
+    non_const(offset)      = offset_;
+    non_const(bbox_offset) = bb_offset;
+    non_const(bbox_size)   = bb_size;
+    non_const(pass)        = pass_;
 }
 
 object::operator object_proto() const
@@ -341,15 +332,16 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
 {
     fm_assert(Vector2ui(bb_size_).product() != 0);
 
-    if (offset != offset_)
-        if (!is_dynamic())
+    const auto dyn = is_dynamic(), upd = updates_passability();
+    if (!dyn)
+        if (offset != offset_)
             c->mark_scenery_modified();
 
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
     set_bbox_(offset_, bb_offset_, bb_size_, pass);
     const bool b = c->_bbox_for_scenery(*this, bb);
-    c->_replace_bbox(bb0, bb, b0, b);
+    c->_replace_bbox_(bb0, bb, b0, b, upd, dyn);
 }
 
 bool object::can_activate(size_t) const { return false; }

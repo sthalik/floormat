@@ -100,13 +100,12 @@ public:
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
 
-    void add_object(const std::shared_ptr<object>& e);
-    void add_object_unsorted(const std::shared_ptr<object>& e);
-    void sort_objects();
-    void remove_object(size_t i);
     void on_teardown();
     bool is_teardown() const;
     ArrayView<const std::shared_ptr<object>> objects() const;
+
+    void remove_object(size_t i);
+    void sort_objects();
 
     // for drawing only
     static constexpr size_t max_wall_quad_count =
@@ -148,6 +147,11 @@ private:
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
 
+    void add_object(const std::shared_ptr<object>& e);
+    void add_object_pre(const std::shared_ptr<object>& e);
+    [[nodiscard]] size_t add_objectʹ(const std::shared_ptr<object>& e);
+    void add_object_unsorted(const std::shared_ptr<object>& e);
+
     struct bbox final
     {
         collision_data data;
@@ -156,11 +160,25 @@ private:
         bool operator==(const bbox& other) const noexcept;
     };
 
-    static bool _bbox_for_scenery(const object& s, bbox& value) noexcept;
-    static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
-    void _remove_bbox(const bbox& x);
-    void _add_bbox(const bbox& x);
-    void _replace_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
+    [[nodiscard]] static bool _bbox_for_scenery(const object& s, bbox& value) noexcept;
+    [[nodiscard]] static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
+                                                Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
+
+    void _remove_bbox_(const bbox& x, bool upd, bool is_dynamic);
+    void _remove_bbox_dynamic(const bbox& x);
+    void _remove_bbox_static(const bbox& x);
+    void _remove_bbox_static_();
+
+    void _add_bbox_(const bbox& x, bool upd, bool is_dynamic);
+    void _add_bbox_dynamic(const bbox& x);
+    void _add_bbox_static(const bbox& x);
+    void _add_bbox_static_();
+
+    template<bool Dynamic> void _replace_bbox_impl(const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_(const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
+    void _replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_static(const bbox& x0, const bbox& x, bool b0, bool b);
+
     GL::Mesh make_wall_mesh();
 
     template<size_t N> static std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> make_index_array(size_t max);

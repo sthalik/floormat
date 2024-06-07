@@ -127,44 +127,51 @@ chunk::~chunk() noexcept
 chunk::chunk(chunk&&) noexcept = default;
 chunk& chunk::operator=(chunk&&) noexcept = default;
 
-void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
-{
-    fm_assert(!e->gone);
-    _objects_sorted = false;
-    if (!e->is_dynamic())
-        mark_scenery_modified();
-    if (bbox bb; _bbox_for_scenery(*e, bb))
-        _add_bbox(bb);
-    arrayReserve(_objects, 8);
-    arrayAppend(_objects, e);
-}
-
 void chunk::sort_objects()
 {
     if (_objects_sorted)
         return;
     _objects_sorted = true;
     mark_scenery_modified();
-    std::sort(_objects.begin(), _objects.end(), [](const auto& a, const auto& b) {
-        return a->id < b->id;
-    });
+    std::sort(_objects.begin(), _objects.end(), object_id_lessp);
 }
 
-void chunk::add_object(const std::shared_ptr<object>& e)
+void chunk::add_object_pre(const std::shared_ptr<object>& e)
+{
+    fm_assert(!e->gone);
+    fm_assert(&*e->c == this);
+    const auto dyn = e->is_dynamic(), upd = e->updates_passability();
+    if (!dyn)
+        mark_scenery_modified();
+    if (!dyn || upd)
+        _add_bbox_static_();
+    else if (bbox bb; _bbox_for_scenery(*e, bb))
+        _add_bbox_dynamic(bb);
+}
+
+void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
+{
+    add_object_pre(e);
+    _objects_sorted = false;
+    arrayReserve(_objects, 8);
+    arrayAppend(_objects, e);
+}
+
+size_t chunk::add_objectʹ(const std::shared_ptr<object>& e)
 {
     fm_assert(_objects_sorted);
-    fm_assert(!e->gone);
-    if (!e->is_dynamic())
-        mark_scenery_modified();
-    if (bbox bb; _bbox_for_scenery(*e, bb))
-        _add_bbox(bb);
-    arrayReserve(_objects, 8);
+    add_object_pre(e);
     auto& es = _objects;
-    auto it = std::lower_bound(es.cbegin(), es.cend(), e, object_id_lessp);
-    arrayInsert(es, (size_t)std::distance(es.cbegin(), it), e);
+    arrayReserve(es, 8);
+    auto* it = std::lower_bound(es.data(), es.data() + es.size(), e, object_id_lessp);
+    auto i = (size_t)std::distance(es.data(), it);
+    arrayInsert(es, i, e);
+    return i;
 }
 
-void chunk::on_teardown()
+void chunk::add_object(const std::shared_ptr<object>& e) { (void)add_objectʹ(e); }
+
+void chunk::on_teardown() // NOLINT(*-make-member-function-const)
 {
     fm_assert(!_teardown); // too late, some chunks were already erased
 }
@@ -174,15 +181,23 @@ bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
 void chunk::remove_object(size_t i)
 {
     fm_assert(_objects_sorted);
-    auto& es = _objects;
-    fm_debug_assert(i < es.size());
-    auto* e = es[i].get();
-    fm_assert(!e->gone);
-    if (!e->is_dynamic())
-        mark_scenery_modified();
-    if (bbox bb; _bbox_for_scenery(*e, bb))
-        _remove_bbox(bb);
-    arrayRemove(es, i);
+    fm_debug_assert(i < _objects.size());
+
+    {
+        const auto& e = *_objects[i];
+        fm_assert(e.c == this);
+        fm_assert(!e.gone);
+
+        const auto dyn = e.is_dynamic(), upd = e.updates_passability();
+        if (!dyn)
+            mark_scenery_modified();
+        if (!dyn || upd)
+            _remove_bbox_static_();
+        else if (bbox bb; _bbox_for_scenery(e, bb))
+            _remove_bbox_dynamic(bb);
+    }
+
+    arrayRemove(_objects, i);
 }
 
 ArrayView<const std::shared_ptr<object>> chunk::objects() const

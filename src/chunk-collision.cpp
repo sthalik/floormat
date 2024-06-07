@@ -194,7 +194,7 @@ void chunk::ensure_passability() noexcept
             if (!eʹ->is_dynamic())
                 filter_through_holes(*_rtree, std::bit_cast<object_id>(bb.data), Vector2(bb.start), Vector2(bb.end), has_holes);
             else
-                _add_bbox(bb);
+                _add_bbox_dynamic(bb);
         }
     }
     fm_assert(!_pass_modified);
@@ -214,22 +214,53 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
     return _bbox_for_scenery(s, s.coord.local(), s.offset, s.bbox_offset, s.bbox_size, value);
 }
 
-void chunk::_remove_bbox(const bbox& x)
+void chunk::_remove_bbox_static_() { mark_passability_modified(); }
+void chunk::_add_bbox_static_() { mark_passability_modified(); }
+
+void chunk::_remove_bbox_(const bbox& x, bool upd, bool is_dynamic)
+{
+    if (!is_dynamic || upd)
+        _remove_bbox_static(x);
+    else
+        _remove_bbox_dynamic(x);
+}
+
+void chunk::_remove_bbox_dynamic(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree->Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
-    //Debug{} << "bbox <<" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
+    //Debug{} << "bbox <<< dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
-void chunk::_add_bbox(const bbox& x)
+void chunk::_remove_bbox_static([[maybe_unused]] const bbox& x)
+{
+    _remove_bbox_static_();
+    //Debug{} << "bbox <<< static " << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
+}
+
+void chunk::_add_bbox_dynamic(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
-
-    //Debug{} << "bbox >>" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
+    //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
-void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
+void chunk::_add_bbox_static([[maybe_unused]]const bbox& x)
+{
+    _add_bbox_static_();
+    //Debug{} << "bbox >>> static " << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
+}
+
+void chunk::_add_bbox_(const bbox& x, bool upd, bool is_dynamic)
+{
+    if (!is_dynamic || upd)
+        _add_bbox_static(x);
+    else
+        _add_bbox_dynamic(x);
+}
+
+template<bool Dynamic>
+void chunk::_replace_bbox_impl(const bbox& x0, const bbox& x1, bool b0, bool b1)
 {
     if (_pass_modified)
         return;
@@ -242,13 +273,22 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
     case 1 << 1 | 1 << 0:
         if (x1 == x0)
             return;
-        _remove_bbox(x0);
+        if constexpr(Dynamic)
+            _remove_bbox_dynamic(x0);
+        else
+            _remove_bbox_static(x0);
         [[fallthrough]];
     case 1 << 1 | 0 << 0:
-        _add_bbox(x1);
+        if constexpr(Dynamic)
+            _add_bbox_dynamic(x1);
+        else
+            _add_bbox_static(x1);
         return;
     case 0 << 1 | 1 << 0:
-        _remove_bbox(x0);
+        if constexpr(Dynamic)
+            _remove_bbox_dynamic(x0);
+        else
+            _remove_bbox_static(x0);
         return;
     case 0 << 1 | 0 << 0:
         return;
@@ -256,6 +296,17 @@ void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
         break;
     }
     std::unreachable();
+}
+
+void chunk::_replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b) { _replace_bbox_impl<true>(x0, x, b0, b); }
+void chunk::_replace_bbox_static(const bbox& x0, const bbox& x, bool b0, bool b) { _replace_bbox_impl<false>(x0, x, b0, b); }
+
+void chunk::_replace_bbox_(const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic)
+{
+    if (!is_dynamic || upd)
+        _replace_bbox_static(x0, x, b0, b);
+    else
+        _replace_bbox_dynamic(x0, x, b0, b);
 }
 
 bool chunk::can_place_object(const object_proto& proto, local_coords pos)
