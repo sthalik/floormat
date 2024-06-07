@@ -143,10 +143,13 @@ void chunk::add_object_pre(const std::shared_ptr<object>& e)
     const auto dyn = e->is_dynamic(), upd = e->updates_passability();
     if (!dyn)
         mark_scenery_modified();
-    if (!dyn || upd)
-        _add_bbox_static_();
-    else if (bbox bb; _bbox_for_scenery(*e, bb))
-        _add_bbox_dynamic(bb);
+    if (!_pass_modified) [[likely]]
+    {
+        if (!dyn || upd)
+            _add_bbox_static_();
+        else if (bbox bb; _bbox_for_scenery(*e, bb))
+            _add_bbox_dynamic(bb);
+    }
 }
 
 void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
@@ -191,10 +194,13 @@ void chunk::remove_object(size_t i)
         const auto dyn = e.is_dynamic(), upd = e.updates_passability();
         if (!dyn)
             mark_scenery_modified();
-        if (!dyn || upd)
-            _remove_bbox_static_();
-        else if (bbox bb; _bbox_for_scenery(e, bb))
-            _remove_bbox_dynamic(bb);
+        if (!_pass_modified) [[likely]]
+        {
+            if (!dyn || upd)
+                _remove_bbox_static_();
+            else if (bbox bb; _bbox_for_scenery(e, bb))
+                _remove_bbox_dynamic(bb);
+        }
     }
 
     arrayRemove(_objects, i);
