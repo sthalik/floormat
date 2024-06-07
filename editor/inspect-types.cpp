@@ -1,6 +1,6 @@
 #include "entity/metadata.hpp"
 #include "entity/accessor.hpp"
-#include "compat/overloaded.hpp"
+#include "compat/limits.hpp"
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
@@ -51,17 +51,16 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<Vector3i>::field{"chunk"_s,
                 [](const object& x) { return Vector3i(x.chunk().coord()); },
-                [](object& x, Vector3i tile) {
-                    if (tile.z() != x.coord.z()) // todo
-                    {
-                        fm_warn_once("object tried to move to different Z level (from %d to %d)", (int)tile.z(), (int)x.coord.z());
-                        return;
-                    }
-                    auto foo1 = Vector2i{tile.x(), tile.y()};
-                    auto foo2 = Vector2i{x.coord.chunk()};
-                    constexpr auto chunk_size = Vector2i{tile_size_xy} * TILE_MAX_DIM;
-
-                    x.move_to((foo1 - foo2) * chunk_size);
+                [](object& x, Vector3i cʹ) {
+                    constexpr auto cmin = Vector3i(limits<int16_t>::min, limits<int16_t>::min, chunk_z_min);
+                    constexpr auto cmax = Vector3i(limits<int16_t>::max, limits<int16_t>::max, chunk_z_max);
+                    auto i  = x.index();
+                    auto c  = Math::clamp(cʹ, cmin, cmax);
+                    auto ch = chunk_coords_{(int16_t)c.x(), (int16_t)c.y(), (int8_t)c.z()};
+                    auto g0 = x.coord;
+                    auto g  = global_coords{ch, x.coord.local()};
+                    if (g0 != g)
+                        x.teleport_to(i, g, x.offset, x.r);
                 },
             },
             E::type<Vector2i>::field{"tile"_s,

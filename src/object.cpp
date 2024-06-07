@@ -236,7 +236,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     bool b0 = c->_bbox_for_scenery(*this, bb0),
          b1 = c->_bbox_for_scenery(*this, coord_.local(), offset_, bb_offset, bb_size, bb1);
 
-    if (coord_.chunk() == coord.chunk())
+    if (coord_.chunk3() == coord.chunk3())
     {
         c->_replace_bbox_(bb0, bb1, b0, b1, upd, dynamic);
         non_const(coord) = coord_;
