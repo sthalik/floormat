@@ -124,7 +124,7 @@ constexpr auto directions = []() constexpr
 struct heap_comparator
 {
     const Array<visited>& nodes; // NOLINT
-    inline heap_comparator(const Array<visited>& nodes) : nodes{nodes} {}
+    explicit inline heap_comparator(const Array<visited>& nodes) : nodes{nodes} {}
     inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
 };
 
