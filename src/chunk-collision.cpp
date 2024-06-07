@@ -41,11 +41,12 @@ bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
     constexpr auto max_bbox_size = Vector2i{0xff, 0xff};
     constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size/2,
                    chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
-    for (const std::shared_ptr<object>& eʹ : c.objects())
+    for (const std::shared_ptr<object>& eʹʹ : c.objects())
     {
-        const auto& e = static_cast<struct hole&>(*eʹ);
-        if (e.type() != object_type::hole) [[likely]]
+        auto& eʹ = *eʹʹ;
+        if (eʹ.type() != object_type::hole) [[likely]]
             continue;
+        const auto& e = static_cast<struct hole&>(eʹ);
         if (!e.flags.enabled | !e.flags.on_physics)
             continue;
         auto center = Vector2i(e.offset) + Vector2i(e.bbox_offset) + Vector2i(e.coord.local()) * TILE_SIZE2;
