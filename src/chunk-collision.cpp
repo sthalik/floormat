@@ -152,7 +152,10 @@ void chunk::ensure_passability() noexcept
         if (const auto* atlas = ground_atlas_at(i))
         {
             auto [min, max] = whole_tile(i);
-            auto id = make_id(collision_type::geometry, atlas->pass_mode(), i+1);
+            auto pass = atlas->pass_mode();
+            if (pass == pass_mode::pass) [[likely]]
+                continue;
+            auto id = make_id(collision_type::geometry, pass, i+1);
             filter_through_holes(*_rtree, id, min, max, has_holes);
         }
     }
