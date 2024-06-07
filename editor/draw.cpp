@@ -38,14 +38,14 @@ void app::draw_cursor()
     else
         return;
 
+    shader.set_tint({1, 0, 0, 1});
+
     if (!cursor.in_imgui)
     {
         const auto draw = [&, pos = tile](auto& mesh, const auto& size) {
             const auto center = Vector3(pos) * TILE_SIZE;
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
-
-        shader.set_tint({1, 0, 0, 1});
 
         if (const auto* ed = _editor->current_ground_editor())
         {
@@ -96,9 +96,9 @@ void app::draw_cursor()
                 anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
             }
         }
-
-        shader.set_tint({1, 1, 1, 1});
     }
+
+    shader.set_tint({1, 1, 1, 1});
 }
 
 void app::draw_collision_boxes()
