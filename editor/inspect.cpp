@@ -179,6 +179,11 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
         if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
         {
             accessor.write_fun(datum, accessor.writer, &value);
+
+            T new_value{};
+            accessor.read_fun(datum, accessor.reader, &new_value);
+            if (value != new_value)
+                GImGui->ActiveId = 0;
             return true;
         }
     return false;
