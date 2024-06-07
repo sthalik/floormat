@@ -21,6 +21,7 @@ struct hole_proto final : object_proto
 
         bool on_render  : 1 = true;
         bool on_physics : 1 = true;
+        bool enabled    : 1 = true;
         bool is_wall    : 1 = false;
     };
 
@@ -41,11 +42,12 @@ struct hole final : object
     object_type type() const noexcept override;
     void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
     bool is_dynamic() const override;
+    bool updates_passability() const override;
     bool is_virtual() const override;
 
     void set_height(uint8_t height);
     void set_z_offset(uint8_t z);
-    void set_enabled(bool on_render, bool on_physics);
+    void set_enabled(bool on_render, bool on_physics, bool on_both);
 
     explicit operator hole_proto() const;
 

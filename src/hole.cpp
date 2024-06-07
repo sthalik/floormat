@@ -4,10 +4,18 @@
 #include "loader/vobj-cell.hpp"
 #include "shaders/shader.hpp"
 #include "tile-constants.hpp"
+#include "world.hpp"
 #include "compat/non-const.hpp"
 
 namespace floormat {
 namespace {
+
+void mark_chunk_modifiedʹ(chunk& c)
+{
+    c.mark_passability_modified();
+    //c.mark_ground_modified(); // todo!
+    //c.mark_walls_modified();  // todo!
+}
 
 } // namespace
 
@@ -63,9 +71,10 @@ hole::operator hole_proto() const
 
 void hole::mark_chunk_modified()
 {
-    //c->mark_ground_modified(); // todo!
-    //c->mark_walls_modified();  // todo!
-    c->mark_passability_modified();
+    for (auto* const cʹ : c->world().neighbors(c->coord()))
+        if (cʹ)
+            mark_chunk_modifiedʹ(*cʹ);
+    mark_chunk_modifiedʹ(*c);
 }
 
 float hole::depth_offset() const
@@ -84,7 +93,7 @@ void hole::set_height(uint8_t heightʹ)
 {
     if (height != heightʹ)
     {
-        const_cast<uint8_t&>(height) = heightʹ;
+        non_const(height) = heightʹ;
         mark_chunk_modified();
     }
 }
@@ -93,25 +102,28 @@ void hole::set_z_offset(uint8_t z)
 {
     if (z_offset != z)
     {
-        const_cast<uint8_t&>(z_offset) = z;
+        non_const(z_offset) = z;
         mark_chunk_modified();
     }
 }
 
 
-void hole::set_enabled(bool on_render, bool on_physics)
+void hole::set_enabled(bool on_render, bool on_physics, bool on_both)
 {
     non_const(flags).on_render = on_render;
 
-    if (flags.on_physics != on_physics)
+    if (flags.on_physics != on_physics || on_both != flags.enabled)
     {
         non_const(flags).on_physics = on_physics;
         mark_chunk_modified();
     }
+
+    non_const(flags).enabled = on_both;
 }
 
 object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
 bool hole::is_dynamic() const { return true; }
+bool hole::updates_passability() const { return true; }
 
 } // namespace floormat

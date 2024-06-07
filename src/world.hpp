@@ -50,7 +50,7 @@ private:
     explicit world(size_t capacity);
 
     void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
-    void do_kill_object(object_id id);
+    void erase_object(object_id id);
     std::shared_ptr<object> find_object_(object_id id);
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);

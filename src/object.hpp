@@ -88,6 +88,7 @@ struct object
     static point normalize_coords(const point& pt, Vector2i delta);
 
     virtual bool is_dynamic() const;
+    virtual bool updates_passability() const;
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
     bool move_to(size_t& i, Vector2i delta, rotation new_r);

@@ -9,6 +9,7 @@
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
+#include "compat/non-const.hpp"
 #include "nanosecond.inl"
 #include <cmath>
 #include <algorithm>
@@ -71,9 +72,11 @@ object::~object() noexcept
     fm_debug_assert(id);
     if (c->is_teardown()) [[unlikely]]
         return;
+#if 0
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox(bb);
-    c->_world->do_kill_object(id);
+#endif
+    c->_world->erase_object(id);
     const_cast<object_id&>(id) = 0;
 }
 
@@ -357,10 +360,8 @@ bool object::is_virtual() const { return false; }
 point object::position() const { return {coord, offset}; }
 object_type object::type_of() const noexcept { return type(); }
 
-bool object::is_dynamic() const
-{
-    return atlas->info().fps > 0;
-}
+bool object::is_dynamic() const { return atlas->info().fps > 0; }
+bool object::updates_passability() const { return false; }
 
 void object::init_script(const std::shared_ptr<object>&) {}
 void object::destroy_script_pre(const std::shared_ptr<object>&, script_destroy_reason) {}

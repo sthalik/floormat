@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "log.hpp"
 #include "RTree.h"
+#include "compat/non-const.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -33,7 +34,7 @@ bool chunk::empty(bool force) const noexcept
 ground_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
 
 tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
-tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { *const_cast<chunk*>(this), uint8_t(idx) }); }
+tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { non_const(*this), uint8_t(idx) }); }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
 tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 

@@ -81,8 +81,8 @@ world::~world() noexcept
     for (auto& [k, c] : _chunks)
     {
         c._teardown = true;
-        c.mark_scenery_modified();
-        c.mark_passability_modified();
+        //c.mark_scenery_modified(); // XXX why? what for?
+        //c.mark_passability_modified(); // XXX why? what for?
         _last_chunk = {};
         arrayResize(c._objects, 0);
     }
@@ -179,7 +179,7 @@ void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, 
         e->c->add_object_unsorted(e);
 }
 
-void world::do_kill_object(object_id id)
+void world::erase_object(object_id id)
 {
     fm_debug_assert(id != 0);
     auto cnt = _objects->erase(id);

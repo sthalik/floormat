@@ -164,14 +164,17 @@ template<> struct entity_accessors<hole, inspect_intent_t>
                 [](const hole& x) { return x.flags.is_wall ? st::enabled : st::readonly; },
                 constantly(constraints::range<uint8_t>{0, tile_size_z}),
             },
+            E::type<bool>::field{ "enabled"_s,
+                [](const hole& x) { return x.flags.enabled; },
+                [](hole& x, bool value) { x.set_enabled(x.flags.on_render, x.flags.on_physics, value); },
+            },
             E::type<bool>::field{"on-render"_s,
                 [](const hole& x) { return x.flags.on_render; },
-                [](hole& x, bool value) { x.set_enabled(value, x.flags.on_physics); },
+                [](hole& x, bool value) { x.set_enabled(value, x.flags.on_physics, x.flags.enabled); },
             },
-            E::type<bool>::field{
-                "on-physics"_s,
+            E::type<bool>::field{ "on-physics"_s,
                 [](const hole& x) { return x.flags.on_physics; },
-                [](hole& x, bool value) { x.set_enabled(x.flags.on_render, value); },
+                [](hole& x, bool value) { x.set_enabled(x.flags.on_render, value, x.flags.enabled); },
             },
         };
         return std::tuple_cat(tuple0, tuple);

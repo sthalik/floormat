@@ -34,7 +34,7 @@ constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
 }
 
 template<bool IsNeighbor>
-bool add_holes_from(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
+bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
     constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
@@ -43,9 +43,11 @@ bool add_holes_from(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
                    chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
     for (const std::shared_ptr<object>& eʹ : c.objects())
     {
-        if (eʹ->type() != object_type::hole) [[likely]]
-            continue;
         const auto& e = static_cast<struct hole&>(*eʹ);
+        if (e.type() != object_type::hole) [[likely]]
+            continue;
+        if (!e.flags.enabled | !e.flags.on_physics)
+            continue;
         auto center = Vector2i(e.offset) + Vector2i(e.bbox_offset) + Vector2i(e.coord.local()) * TILE_SIZE2;
         if constexpr(IsNeighbor)
         {
@@ -64,7 +66,7 @@ bool add_holes_from(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
 
 #if 0
 CORRADE_NEVER_INLINE
-bool find_hole_in_rtree(CutResult<float>::rect& hole, chunk::RTree& rtree, Vector2 min, Vector2 max)
+bool find_hole_in_bbox(CutResult<float>::rect& hole, chunk::RTree& rtree, Vector2 min, Vector2 max)
 {
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const chunk::RTree::Rect& r) {
@@ -95,7 +97,7 @@ start:
     fm_assert(min != max); // todo!
 
     CutResult<float>::rect hole;
-    bool ret = find_hole_in_rtree(hole, rtree, min, max);
+    bool ret = find_hole_in_bbox(hole, rtree, min, max);
 
     if (ret) [[likely]]
         rtree.Insert(min.data(), max.data(), id);
@@ -120,7 +122,7 @@ start:
     }
 }
 #else
-void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, unsigned = 0)
+void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, bool)
 {
     rtree.Insert(min.data(), max.data(), id);
 }
@@ -137,14 +139,15 @@ void chunk::ensure_passability() noexcept
     _pass_modified = false;
 
     _rtree->RemoveAll();
+    //Debug{} << ".. reset passability";
 
     bool has_holes = false;
     {
-        has_holes |= add_holes_from<false>(*_rtree, *this, {});
+        has_holes |= add_holes_from_chunk<false>(*_rtree, *this, {});
         const auto nbs = _world->neighbors(_coord);
         for (auto i = 0u; i < 8; i++)
             if (nbs[i])
-                has_holes |= add_holes_from<true>(*_rtree, *nbs[i], world::neighbor_offsets[i]);
+                has_holes |= add_holes_from_chunk<true>(*_rtree, *nbs[i], world::neighbor_offsets[i]);
     }
 
     for (auto i = 0uz; i < TILE_COUNT; i++)
@@ -181,17 +184,20 @@ void chunk::ensure_passability() noexcept
             filter_through_holes(*_rtree, id, min, max, has_holes);
         }
     }
-    for (const std::shared_ptr<object>& sʹ : objects())
+    for (const std::shared_ptr<object>& eʹ : objects())
     {
-        bbox box;
-        if (sʹ->type() != object_type::hole && _bbox_for_scenery(*sʹ, box))
+        if (eʹ->updates_passability())
+            continue;
+        bbox bb;
+        if (_bbox_for_scenery(*eʹ, bb))
         {
-            if (sʹ->is_dynamic())
-                _add_bbox(box);
+            if (!eʹ->is_dynamic())
+                filter_through_holes(*_rtree, std::bit_cast<object_id>(bb.data), Vector2(bb.start), Vector2(bb.end), has_holes);
             else
-                filter_through_holes(*_rtree, std::bit_cast<object_id>(box.data), Vector2(box.start), Vector2(box.end), has_holes);
+                _add_bbox(bb);
         }
     }
+    fm_assert(!_pass_modified);
 }
 
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
@@ -212,12 +218,15 @@ void chunk::_remove_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree->Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+    //Debug{} << "bbox <<" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
 void chunk::_add_bbox(const bbox& x)
 {
     auto start = Vector2(x.start), end = Vector2(x.end);
     _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+
+    //Debug{} << "bbox >>" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
 void chunk::_replace_bbox(const bbox& x0, const bbox& x1, bool b0, bool b1)
