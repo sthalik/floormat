@@ -75,46 +75,52 @@ void app::entity_friendly_name(char* buf, size_t len, const object& obj)
 {
     switch (obj.type())
     {
-    default:
-        std::snprintf(buf, len, "(unknown?)");
+    case object_type::none:
+    case object_type::COUNT:
         break;
+    case object_type::hole:
+        std::snprintf(buf, len, "%s", "hole");
+        return;
     case object_type::critter: {
         const auto& c = static_cast<const critter&>(obj);
         std::snprintf(buf, len, "critter %s", c.name.data());
-        break;
+        return;
     }
     case object_type::light: {
         const auto& L = static_cast<const light&>(obj);
-        const char* type;
+        const char* type = "(unknown?)";
         switch (L.falloff)
         {
+        case light_falloff::COUNT: break;
         case light_falloff::constant: type = "constant"; break;
         case light_falloff::linear: type = "linear"; break;
         case light_falloff::quadratic: type = "quadratic"; break;
-        default: type = "(unknown?)"; break;
         }
         std::snprintf(buf, len, "light #%hhx%hhx%hhx%hhx %s:%.2f",
                       L.color.r(), L.color.g(), L.color.b(), L.color.a(),
                       type,
                       L.falloff == light_falloff::constant ? 0. : (double)L.max_distance);
-        break;
+        return;
     }
     case object_type::scenery: {
         const auto& sc = static_cast<const scenery&>(obj);
         switch (sc.scenery_type())
         {
-        default:
-            std::snprintf(buf, len, "(unknown?)");
+        case scenery_type::none:
+        case scenery_type::COUNT:
             break;
         case scenery_type::door:
             std::snprintf(buf, len, "door");
-            break;
+            return;
         case scenery_type::generic:
             std::snprintf(buf, len, "scenery %s", sc.atlas->name().data());
-            break;
+            return;
         }
+        std::snprintf(buf, len, "(scenery?)");
+        return;
     }
     }
+    std::snprintf(buf, len, "(unknown?)");
 }
 
 } // namespace floormat
