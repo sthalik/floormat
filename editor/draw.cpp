@@ -132,8 +132,8 @@ void app::draw_collision_boxes()
                 if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
                 {
                     constexpr float maxf = 1 << 24, max2f[] = { maxf, maxf }, min2f[] = { -maxf, -maxf };
-                    const auto* rtree = c.rtree();
-                    rtree->Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
+                    const auto& rtree = *c.rtree();
+                    rtree.Search(min2f, max2f, [&](object_id data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
 #if 0
                         if (x.tag == (uint64_t)collision_type::geometry)
