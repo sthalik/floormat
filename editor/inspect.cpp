@@ -183,7 +183,11 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             T new_value{};
             accessor.read_fun(datum, accessor.reader, &new_value);
             if (value != new_value)
-                GImGui->ActiveId = 0;
+            {
+                auto* state = ImGui::GetInputTextState(GImGui->ActiveId);
+                if (state)
+                    state->ReloadUserBuf = true;
+            }
             return true;
         }
     return false;
