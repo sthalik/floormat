@@ -225,7 +225,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     neighbor_offset += Vector2((float)half_neighbors);
 
     constexpr auto tile_size = TILE_SIZE2.sum()/2;
-    float range;
+    float range = 0;
 
     fm_assert(light.falloff < light_falloff::COUNT);
     switch (light.falloff)
