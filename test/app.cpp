@@ -65,7 +65,6 @@ int App::exec()
         FM_TEST(test_bptr),
         FM_TEST(test_iptr),
         FM_TEST(test_entity),
-        FM_TEST(test_hash),
         // normal
         FM_TEST(test_bitmask),
         FM_TEST(test_json),
@@ -75,6 +74,7 @@ int App::exec()
         FM_TEST(test_raycast),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
+        FM_TEST(test_hash),
         FM_TEST(test_region),
         // the rest are slow
         FM_TEST(test_rtree),

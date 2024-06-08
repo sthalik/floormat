@@ -10,7 +10,6 @@ namespace {
 
 using namespace floormat::Hash;
 
-// todo implement in terms of fnvhash_buf()
 [[maybe_unused]]
 CORRADE_ALWAYS_INLINE size_t fnvhash_uint_32(uint32_t x)
 {
@@ -80,8 +79,31 @@ fm_UNROLL_8
     return hash;
 }
 
-size_t hash_int(uint32_t x) noexcept { return fnvhash_uint_32(x); }
-size_t hash_int(uint64_t x) noexcept { return fnvhash_uint_64(x); }
+size_t hash_buf(const void* buf, size_t size) noexcept
+{
+#if 1
+    if constexpr(sizeof nullptr > 4)
+        return hash_64(buf, size);
+    else
+#endif
+        return hash_32(buf, size);
+}
+
+size_t hash_int(uint32_t x) noexcept
+{
+#if 1
+    if constexpr(sizeof nullptr > 4)
+        return fnvhash_uint_64(x);
+    else
+#endif
+        return fnvhash_uint_32(x);
+}
+
+size_t hash_int(uint64_t x) noexcept
+{
+    return fnvhash_uint_64(x);
+}
+
 size_t hash_string_view::operator()(StringView s) const noexcept { return Hash::fnvhash_buf(s.data(), s.size()); }
 
 } // namespace floormat

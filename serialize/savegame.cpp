@@ -47,7 +47,6 @@ using floormat::Serialize::binary_reader;
 using floormat::Serialize::binary_writer;
 using floormat::Serialize::atlas_type;
 using floormat::Serialize::maybe_byteswap;
-using floormat::Hash::fnvhash_buf;
 
 namespace {
 
@@ -61,7 +60,7 @@ private:
     FILE* s;
 };
 
-struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) const { return fnvhash_buf(s.data(), s.size()); } };
+struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) const { return hash_buf(s.data(), s.size()); } };
 
 template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 template<typename T> concept Enum = std::is_enum_v<std::remove_cvref_t<T>>;

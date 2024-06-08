@@ -8,13 +8,7 @@ size_t point::hash() const
 {
     constexpr size_t size = 2 * 2 + 1 + 1 + 2;
     static_assert(sizeof *this == size);
-#ifdef FLOORMAT_64
-    static_assert(sizeof nullptr > 4);
-    return hash_64(this, sizeof *this);
-#else
-    static_assert(sizeof nullptr == 4);
-    return hash_32(this, sizeof *this);
-#endif
+    return hash_buf(this, sizeof *this);
 }
 
 Debug& operator<<(Debug& dbg, const point& pt)

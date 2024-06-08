@@ -26,6 +26,8 @@ public:
     static constexpr float max_load_factor = .25;
     static constexpr size_t initial_collect_every = 64;
 
+    struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };
+
 private:
     struct chunk_tuple
     {
@@ -35,9 +37,8 @@ private:
     } _last_chunk;
 
     struct object_id_hasher { size_t operator()(object_id id) const noexcept; };
-    struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };
-    struct robin_map_wrapper;
 
+    struct robin_map_wrapper;
     std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     safe_ptr<robin_map_wrapper> _objects;
     std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
