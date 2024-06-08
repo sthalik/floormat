@@ -38,7 +38,7 @@ bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
     constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-    constexpr auto max_bbox_size = Vector2i{0xff, 0xff};
+    constexpr auto max_bbox_size = Vector2i{0x100};
     constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size/2,
                    chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
     for (const std::shared_ptr<object>& eʹʹ : c.objects())
