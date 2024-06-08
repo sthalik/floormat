@@ -65,6 +65,7 @@ int App::exec()
         FM_TEST(test_bptr),
         FM_TEST(test_iptr),
         FM_TEST(test_entity),
+        FM_TEST(test_hash),
         // normal
         FM_TEST(test_bitmask),
         FM_TEST(test_json),
@@ -72,13 +73,12 @@ int App::exec()
         FM_TEST(test_json3),
         FM_TEST(test_loader),
         FM_TEST(test_region),
-        FM_TEST(test_collisions),
+        FM_TEST(test_rtree),
         FM_TEST(test_raycast),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
         // the rest are slow
         FM_TEST(test_astar),
-        FM_TEST(test_hash),
         FM_TEST(test_critter),
         FM_TEST(test_dijkstra),
         FM_TEST(test_loader2),

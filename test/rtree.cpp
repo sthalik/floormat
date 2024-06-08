@@ -90,7 +90,7 @@ void test2()
 } // namespace
 
 
-void Test::test_collisions()
+void Test::test_rtree()
 {
     test1();
     test2();
