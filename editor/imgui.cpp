@@ -372,8 +372,8 @@ void app::do_popup_menu()
             if (!exists)
                 add_inspector(std::exchange(_popup_target, {}));
             {
-                char buf2[32], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
-                entity_inspector_name(buf2, sizeof buf2, e.id);
+                char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
+                entity_inspector_name(buf2, e.id);
                 entity_friendly_name(buf3, sizeof buf3, e);
                 std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
                 ImGui::SetWindowFocus(buf);

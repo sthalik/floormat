@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "inspect.hpp"
 #include "floormat/main.hpp"
@@ -32,9 +33,9 @@ void app::draw_inspector()
         }
         auto& e = *eʹ;
 
-        char buf2[32], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
+        char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
         ImGui::SetNextWindowSize({375*dpi[0], 0});
-        entity_inspector_name(buf2, sizeof buf2, e.id);
+        entity_inspector_name(buf2, e.id);
         entity_friendly_name(buf3, sizeof buf3, e);
         std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
 
@@ -49,13 +50,11 @@ void app::draw_inspector()
     }
 }
 
-void app::entity_inspector_name(char* buf, size_t len, object_id id)
+void app::entity_inspector_name(char(&buf)[10], object_id id)
 {
-    constexpr auto min_len = sizeof "inspector-" + 8;
-    fm_assert(len >= min_len);
-    auto result = fmt::format_to_n(buf, len, "inspector-{:08x}"_cf, id);
-    fm_assert(result.size < len);
-    buf[result.size] = '\0';
+    auto result = fmt::format_to_n(buf, array_size(buf), "@{:08x}"_cf, id);
+    fm_assert(result.size == 9);
+    buf[array_size(buf)-1] = '\0';
 }
 
 void app::entity_friendly_name(char* buf, size_t len, const object& obj)
