@@ -20,9 +20,6 @@ namespace {
 // compile and run any of them on any platform, but your performance with the
 // non-native version will be less than optimal.
 
-CORRADE_ALWAYS_INLINE uint32_t rotl32(uint32_t x, int shift) { return std::rotl(x, shift); }
-#define ROTL std::rotl
-
 //-----------------------------------------------------------------------------
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
@@ -69,11 +66,11 @@ CORRADE_ALWAYS_INLINE uint32_t fmix32 ( uint32_t h )
     uint32_t k1 = getblock32(blocks,i);
 
     k1 *= c1;
-    k1 = rotl32(k1,15);
+    k1 = std::rotl(k1,15);
     k1 *= c2;
 
     h1 ^= k1;
-    h1 = rotl32(h1,13);
+    h1 = std::rotl(h1,13);
     h1 = h1*5+0xe6546b64;
   }
 
@@ -89,7 +86,7 @@ CORRADE_ALWAYS_INLINE uint32_t fmix32 ( uint32_t h )
   case 3: k1 ^= tail[2] << 16; [[fallthrough]];
   case 2: k1 ^= tail[1] << 8;  [[fallthrough]];
   case 1: k1 ^= tail[0];
-          k1 *= c1; k1 = rotl32(k1,15); k1 *= c2; h1 ^= k1;
+          k1 *= c1; k1 = std::rotl(k1,15); k1 *= c2; h1 ^= k1;
   }
 
   //----------
@@ -136,19 +133,19 @@ constexpr CORRADE_ALWAYS_INLINE uint64_t U8TO64_LE(const uint8_t* __restrict p)
 #define SIPROUND                                                               \
     do {                                                                       \
         v0 += v1;                                                              \
-        v1 = ROTL(v1, 13);                                                     \
+        v1 = std::rotl(v1, 13);                                                \
         v1 ^= v0;                                                              \
-        v0 = ROTL(v0, 32);                                                     \
+        v0 = std::rotl(v0, 32);                                                \
         v2 += v3;                                                              \
-        v3 = ROTL(v3, 16);                                                     \
+        v3 = std::rotl(v3, 16);                                                \
         v3 ^= v2;                                                              \
         v0 += v3;                                                              \
-        v3 = ROTL(v3, 21);                                                     \
+        v3 = std::rotl(v3, 21);                                                \
         v3 ^= v0;                                                              \
         v2 += v1;                                                              \
-        v1 = ROTL(v1, 17);                                                     \
+        v1 = std::rotl(v1, 17);                                                \
         v1 ^= v2;                                                              \
-        v2 = ROTL(v2, 32);                                                     \
+        v2 = std::rotl(v2, 32);                                                \
     } while (0)
 
 struct Key { uint64_t k0, k1; };
