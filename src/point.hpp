@@ -32,7 +32,6 @@ struct point
     constexpr Vector2b offset() const;
     template<size_t N> std::tuple_element_t<N, point> constexpr get() const;
 
-    size_t hash() const;
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
     static constexpr uint32_t distance(point a, point b);

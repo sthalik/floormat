@@ -1,15 +1,7 @@
-#include "compat/hash.hpp"
 #include "point.inl"
 #include "tile-constants.hpp"
 
 namespace floormat {
-
-size_t point::hash() const
-{
-    constexpr size_t size = 2 * 2 + 1 + 1 + 2;
-    static_assert(sizeof *this == size);
-    return hash_buf(this, sizeof *this);
-}
 
 Debug& operator<<(Debug& dbg, const point& pt)
 {
