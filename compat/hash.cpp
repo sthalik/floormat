@@ -1,5 +1,5 @@
 #include "compat/defs.hpp"
-#include "int-hash.hpp"
+#include "hash.hpp"
 #include <Corrade/Containers/StringView.h>
 #include <bit>
 #include <utility>

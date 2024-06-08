@@ -6,7 +6,7 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "compat/shared-ptr-wrapper.hpp"
-#include "compat/int-hash.hpp"
+#include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include <cr/GrowableArray.h>

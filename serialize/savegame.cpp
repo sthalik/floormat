@@ -3,7 +3,7 @@
 #include "compat/defs.hpp"
 #include "compat/non-const.hpp"
 #include "compat/strerror.hpp"
-#include "compat/int-hash.hpp"
+#include "compat/hash.hpp"
 #include "compat/exception.hpp"
 
 #include "src/ground-atlas.hpp"

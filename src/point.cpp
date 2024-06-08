@@ -1,4 +1,4 @@
-#include "compat/int-hash.hpp"
+#include "compat/hash.hpp"
 #include "point.inl"
 #include "tile-constants.hpp"
 

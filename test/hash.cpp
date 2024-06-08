@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "compat/int-hash.hpp"
+#include "compat/hash.hpp"
 #include "compat/array-size.hpp"
 #include "src/global-coords.hpp"
 #include "src/world.hpp"

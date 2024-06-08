@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/int-hash.hpp"
+#include "compat/hash.hpp"
 #include "atlas-loader-fwd.hpp"
 #include <cr/StringView.h>
 #include <cr/Array.h>
