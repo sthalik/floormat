@@ -242,6 +242,8 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
         non_const(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         non_const(r) = new_r;
+        if (!dyn)
+            c->mark_scenery_modified();
     }
     else
     {
