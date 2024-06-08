@@ -164,20 +164,20 @@ private:
     [[nodiscard]] static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                                                 Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
 
-    void _remove_bbox_(const bbox& x, bool upd, bool is_dynamic);
+    void _remove_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _remove_bbox_dynamic(const bbox& x);
-    void _remove_bbox_static(const bbox& x);
-    void _remove_bbox_static_();
+    void _remove_bbox_static(const std::shared_ptr<object>& e, const bbox& x);
+    void _remove_bbox_static_(const std::shared_ptr<object>& e);
 
-    void _add_bbox_(const bbox& x, bool upd, bool is_dynamic);
+    void _add_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _add_bbox_dynamic(const bbox& x);
-    void _add_bbox_static(const bbox& x);
-    void _add_bbox_static_();
+    void _add_bbox_static(const std::shared_ptr<object>& e, const bbox& x);
+    void _add_bbox_static_(const std::shared_ptr<object>& e);
 
-    template<bool Dynamic> void _replace_bbox_impl(const bbox& x0, const bbox& x, bool b0, bool b);
-    void _replace_bbox_(const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
+    template<bool Dynamic> void _replace_bbox_impl(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
     void _replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b);
-    void _replace_bbox_static(const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_static(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
 
     GL::Mesh make_wall_mesh();
 

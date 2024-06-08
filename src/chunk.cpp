@@ -146,7 +146,7 @@ void chunk::add_object_pre(const std::shared_ptr<object>& e)
     if (!_pass_modified) [[likely]]
     {
         if (!dyn || upd)
-            _add_bbox_static_();
+            _add_bbox_static_(e);
         else if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
     }
@@ -186,23 +186,22 @@ void chunk::remove_object(size_t i)
     fm_assert(_objects_sorted);
     fm_debug_assert(i < _objects.size());
 
+    const auto& eʹ = _objects[i];
+    auto& e = *eʹ;
+    fm_assert(e.c == this);
+    fm_assert(!e.gone);
+
+    const auto dyn = e.is_dynamic(), upd = e.updates_passability();
+    if (!dyn)
+        mark_scenery_modified();
+
+    if (!_pass_modified) [[likely]]
     {
-        const auto& e = *_objects[i];
-        fm_assert(e.c == this);
-        fm_assert(!e.gone);
-
-        const auto dyn = e.is_dynamic(), upd = e.updates_passability();
-        if (!dyn)
-            mark_scenery_modified();
-        if (!_pass_modified) [[likely]]
-        {
-            if (!dyn || upd)
-                _remove_bbox_static_();
-            else if (bbox bb; _bbox_for_scenery(e, bb))
-                _remove_bbox_dynamic(bb);
-        }
+        if (!dyn || upd)
+            _remove_bbox_static_(eʹ);
+        else if (bbox bb; _bbox_for_scenery(e, bb))
+            _remove_bbox_dynamic(bb);
     }
-
     arrayRemove(_objects, i);
 }
 

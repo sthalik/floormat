@@ -228,7 +228,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     if (coord_ == coord && offset_ == offset)
         return;
 
-    const bool dynamic = is_dynamic(), upd = updates_passability();
+    const bool dyn = is_dynamic(), upd = updates_passability();
 
     chunk::bbox bb0, bb1;
     const auto bb_offset = rotate_point(bbox_offset, r, new_r);
@@ -238,7 +238,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
 
     if (coord_.chunk3() == coord.chunk3())
     {
-        c->_replace_bbox_(bb0, bb1, b0, b1, upd, dynamic);
+        c->_replace_bbox_(eʹ, bb0, bb1, b0, b1, upd, dyn);
         non_const(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         non_const(r) = new_r;
@@ -343,7 +343,12 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
     set_bbox_(offset_, bb_offset_, bb_size_, pass);
     const bool b = c->_bbox_for_scenery(*this, bb);
-    c->_replace_bbox_(bb0, bb, b0, b, upd, dyn);
+    if (upd)
+        maybe_mark_neighbor_chunks_modified();
+    else if (!dyn)
+        c->mark_passability_modified();
+    else
+        c->_replace_bbox_dynamic(bb0, bb, b0, b);
 }
 
 bool object::can_activate(size_t) const { return false; }
@@ -356,6 +361,7 @@ object_type object::type_of() const noexcept { return type(); }
 
 bool object::is_dynamic() const { return atlas->info().fps > 0; }
 bool object::updates_passability() const { return false; }
+void object::maybe_mark_neighbor_chunks_modified() {}
 
 void object::init_script(const std::shared_ptr<object>&) {}
 void object::destroy_script_pre(const std::shared_ptr<object>&, script_destroy_reason) {}

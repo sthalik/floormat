@@ -54,7 +54,7 @@ struct hole final : object
     friend class world;
 
 private:
-    void mark_chunk_modified();
+    void maybe_mark_neighbor_chunks_modified() override;
 };
 
 template<typename T>

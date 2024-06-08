@@ -55,7 +55,6 @@ hole::~hole() noexcept
 {
     if (c->is_teardown()) [[unlikely]]
         return;
-    mark_chunk_modified();
 }
 
 void hole::update(const std::shared_ptr<object>&, size_t&, const Ns&) {}
@@ -69,7 +68,7 @@ hole::operator hole_proto() const
     return ret;
 }
 
-void hole::mark_chunk_modified()
+void hole::maybe_mark_neighbor_chunks_modified()
 {
     for (auto* const cʹ : c->world().neighbors(c->coord()))
         if (cʹ)
@@ -94,7 +93,7 @@ void hole::set_height(uint8_t heightʹ)
     if (height != heightʹ)
     {
         non_const(height) = heightʹ;
-        mark_chunk_modified();
+        maybe_mark_neighbor_chunks_modified();
     }
 }
 
@@ -103,7 +102,7 @@ void hole::set_z_offset(uint8_t z)
     if (z_offset != z)
     {
         non_const(z_offset) = z;
-        mark_chunk_modified();
+        maybe_mark_neighbor_chunks_modified();
     }
 }
 
@@ -115,7 +114,7 @@ void hole::set_enabled(bool on_render, bool on_physics, bool on_both)
     if (flags.on_physics != on_physics || on_both != flags.enabled)
     {
         non_const(flags).on_physics = on_physics;
-        mark_chunk_modified();
+        maybe_mark_neighbor_chunks_modified();
     }
 
     non_const(flags).enabled = on_both;
