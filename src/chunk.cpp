@@ -94,7 +94,7 @@ void chunk::mark_scenery_modified() noexcept
 void chunk::mark_passability_modified() noexcept
 {
     if (!_pass_modified && is_log_verbose()) [[unlikely]]
-        fm_debug("pass reload %zu", ++_reload_no_);
+        fm_debug("pass reload %zu (%d:%d:%d)", ++_reload_no_, int{_coord.x}, int{_coord.y}, int{_coord.z});
     _pass_modified = true;
 }
 
