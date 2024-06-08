@@ -138,6 +138,8 @@ public:
     constexpr global_coords& operator+=(Vector2i vec) noexcept;
     constexpr global_coords& operator-=(Vector2i vec) noexcept;
     constexpr Vector2i operator-(global_coords other) const noexcept;
+
+    size_t hash() const noexcept;
 };
 
 constexpr local_coords global_coords::local() const noexcept

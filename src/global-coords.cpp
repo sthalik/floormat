@@ -1,5 +1,6 @@
 #include "global-coords.hpp"
 #include "point.inl"
+#include "compat/hash.hpp"
 #include <array>
 #include <algorithm>
 
@@ -30,6 +31,12 @@ Debug& operator<<(Debug& dbg, const chunk_coords_& c)
 
     dbg.setFlags(flags);
     return dbg;
+}
+
+size_t global_coords::hash() const noexcept
+{
+    static_assert(sizeof *this == 4 + 4);
+    return hash_buf(this, sizeof *this);
 }
 
 namespace {

@@ -44,7 +44,7 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
             for (int8_t k = 0; k <= ZMax; k++)
             {
                 auto p = global_coords{i, j, k};
-                auto h = hash_buf(&p, sizeof p);
+                auto h = p.hash();
                 h %= BucketCount;
                 auto ref = bitset[h];
                 if (ref) [[unlikely]]
