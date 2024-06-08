@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "inspect.hpp"
 #include "floormat/main.hpp"
@@ -10,7 +9,6 @@
 #include "src/light.hpp"
 #include "src/anim-atlas.hpp"
 #include "imgui-raii.hpp"
-#include "loader/loader.hpp"
 
 namespace floormat {
 
@@ -34,22 +32,11 @@ void app::draw_inspector()
         }
         auto& e = *eʹ;
 
-        char buf[256], buf2[32], buf3[128];
+        char buf2[32], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
         ImGui::SetNextWindowSize({375*dpi[0], 0});
-#if 0
-        auto name = loader.strip_prefix(e.atlas->name());
-        chunk_coords ch = e.coord.chunk();
-        local_coords pos = e.coord.local();
-auto z = e.coord.z();
-        if (z == 0)
-            snformat(buf, "{} ({}x{} -> {}x{})###inspector-{:08x}"_cf, name, ch.x, ch.y, (int)pos.x, (int)pos.y, e.id);
-        else
-            snformat(buf, "{} ({}x{}:{} -> {}x{})###inspector-{:08x}"_cf, name, ch.x, ch.y, (int)z, (int)pos.x, (int)pos.y, e.id);
-#else
         entity_inspector_name(buf2, sizeof buf2, e.id);
         entity_friendly_name(buf3, sizeof buf3, e);
-        std::snprintf(buf, array_size(buf), "%s###%s", buf3, buf2);
-#endif
+        std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
 
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
@@ -65,7 +52,7 @@ auto z = e.coord.z();
 void app::entity_inspector_name(char* buf, size_t len, object_id id)
 {
     constexpr auto min_len = sizeof "inspector-" + 8;
-    fm_debug_assert(len >= min_len);
+    fm_assert(len >= min_len);
     auto result = fmt::format_to_n(buf, len, "inspector-{:08x}"_cf, id);
     fm_assert(result.size < len);
     buf[result.size] = '\0';
