@@ -72,18 +72,18 @@ int App::exec()
         FM_TEST(test_json2),
         FM_TEST(test_json3),
         FM_TEST(test_loader),
-        FM_TEST(test_region),
-        FM_TEST(test_rtree),
         FM_TEST(test_raycast),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
+        FM_TEST(test_region),
         // the rest are slow
+        FM_TEST(test_rtree),
         FM_TEST(test_astar),
+        FM_TEST(test_save),
         FM_TEST(test_critter),
         FM_TEST(test_dijkstra),
         FM_TEST(test_loader2),
         FM_TEST(test_loader3),
-        FM_TEST(test_save),
         FM_TEST(test_saves),
     };
 
