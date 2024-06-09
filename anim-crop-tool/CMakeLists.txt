@@ -12,7 +12,7 @@ if(OpenCV_FOUND)
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
     add_executable(${self} "${sources}")
-    target_link_libraries(${self} PRIVATE floormat-serialize floormat)
+    target_link_libraries(${self} PRIVATE floormat-serialize floormat floormat-hash)
 
     fm_install_executable(${self})
 endif()

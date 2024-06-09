@@ -264,6 +264,7 @@ endfunction()
 
 add_subdirectory(src)
 add_subdirectory(main)
+add_subdirectory(hash)
 add_subdirectory(draw)
 add_subdirectory(serialize)
 add_subdirectory(editor)

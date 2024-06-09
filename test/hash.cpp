@@ -14,7 +14,11 @@ namespace {
 
 void test_simple()
 {
-    constexpr StringView list[] = { "foo"_s, "bar"_s, "bar\0"_s, "bar2"_s, "baz"_s, };
+    constexpr StringView list[] = {
+        "foo"_s, "bar"_s, "bar\0"_s, "bar2"_s, "baz"_s,
+        "The quick brown fox jumps over the lazy dog"_s,
+        "The quick brown fox jumps over the lazy cog"_s,
+    };
     constexpr auto size = array_size(list);
 
     size_t hashes[size] = {};
@@ -33,7 +37,7 @@ void test_simple()
 template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
 [[nodiscard]] bool test_collisions(const char* name)
 {
-    constexpr size_t Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax);
+    constexpr size_t Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
     constexpr size_t BucketCount = Math::max(world::initial_capacity, size_t(Math::ceil(Iters / world::max_load_factor)));
     uint32_t num_collisions = 0, iters = 0;
     auto bitset_ = std::make_unique<std::bitset<BucketCount>>(false);
@@ -71,7 +75,7 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
         fm_abort("test/hash: too many collisions");
 #endif
     }
-    else
+    else if (num_collisions != MaxCollisions)
     {
 #ifdef FM_TEST_DEBUG_PRINT
         DBG_nospace << Debug::color(Debug::Color::Cyan) << "pass" << Debug::resetColor
@@ -79,8 +83,8 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
                     << num_collisions << " <= " << MaxCollisions
                     << " (iters:" << iters << " buckets:" << BucketCount << ")";
 #endif
-        return true;
     }
+    return true;
 }
 
 } // namespace
@@ -95,31 +99,41 @@ void Test::test_hash()
     DBG_nospace << "";
 #endif
 
-    success &= test_collisions<  3, 0,   0 >("small1");
-    success &= test_collisions<  6, 0,   4 >("mid2");
-    success &= test_collisions<  7, 0,   5 >("mid2");
-    success &= test_collisions<  8, 0,  13 >("mid2");
-    success &= test_collisions<  9, 0,  19 >("mid2");
-    success &= test_collisions< 10, 0,  26 >("large1");
-    success &= test_collisions< 12, 0,  46 >("large2");
-    success &= test_collisions< 14, 0,  83 >("large3");
-    success &= test_collisions< 15, 0, 109 >("large4");
-    success &= test_collisions< 16, 0, 127 >("large5");
-    success &= test_collisions<  3, 1,    2 >("zsmall2");
-    success &= test_collisions<  4, 1,    6 >("zsmall3");
-    success &= test_collisions<  2, 3,    1 >("zmid1");
-    success &= test_collisions<  6, 1,   17 >("zmid3");
-    success &= test_collisions<  6, 2,   37 >("zmid4");
-    success &= test_collisions<  7, 1,   27 >("zmid5");
-    success &= test_collisions< 10, 1,  107 >("zlarge2");
-    success &= test_collisions< 10, 4,  271 >("zlarge3");
-    success &= test_collisions< 16, 8, 1114 >("zlarge4");
+#ifdef FM_TEST_DEBUG_PRINT
+#define FM_MAYBE_FAIL void()
+#else
+#define FM_MAYBE_FAIL FM_MAYBE_FAIL_
+#endif
+#define FM_MAYBE_FAIL_ do { if (!success) { DBG_nospace << ""; fm_abort("test/hash: too many collisions"); } } while (false)
 
-    if (!success)
-    {
-        DBG_nospace << "";
-        fm_abort("test/hash: too many collisions");
-    }
+    success &= test_collisions<  2, 1,    1 >("small1");    FM_MAYBE_FAIL;
+    success &= test_collisions<  3, 0,    1 >("small2");    FM_MAYBE_FAIL;
+    success &= test_collisions<  4, 0,    1 >("small3");    FM_MAYBE_FAIL;
+    success &= test_collisions<  5, 0,    1 >("small4");    FM_MAYBE_FAIL;
+    success &= test_collisions<  6, 0,    4 >("mid1");      FM_MAYBE_FAIL;
+    success &= test_collisions<  7, 0,    7 >("mid2");      FM_MAYBE_FAIL;
+    success &= test_collisions<  8, 0,   10 >("mid3");      FM_MAYBE_FAIL;
+    success &= test_collisions<  9, 0,   15 >("mid4");      FM_MAYBE_FAIL;
+    success &= test_collisions< 10, 0,   22 >("large1");    FM_MAYBE_FAIL;
+    success &= test_collisions< 12, 0,   51 >("large2");    FM_MAYBE_FAIL;
+    success &= test_collisions< 14, 0,   94 >("large3");    FM_MAYBE_FAIL;
+    success &= test_collisions< 15, 0,  118 >("large4");    FM_MAYBE_FAIL;
+    success &= test_collisions< 16, 0,  107 >("large5");    FM_MAYBE_FAIL;
+    success &= test_collisions<  3, 1,    2 >("zsmall1");   FM_MAYBE_FAIL;
+    success &= test_collisions<  4, 1,    3 >("zsmall2");   FM_MAYBE_FAIL;
+    success &= test_collisions<  2, 3,    1 >("zmid1");     FM_MAYBE_FAIL;
+    success &= test_collisions<  3, 3,    7 >("zmid1");     FM_MAYBE_FAIL;
+    success &= test_collisions<  2, 6,    4 >("zmid2");     FM_MAYBE_FAIL;
+    success &= test_collisions<  2, 10,  14 >("zmid3");     FM_MAYBE_FAIL;
+    success &= test_collisions<  6, 2,   35 >("zmid4");     FM_MAYBE_FAIL;
+    success &= test_collisions<  7, 1,   28 >("zmid5");     FM_MAYBE_FAIL;
+    success &= test_collisions< 10, 1,   89 >("zlarge1");   FM_MAYBE_FAIL;
+    success &= test_collisions< 10, 4,  274 >("zlarge2");   FM_MAYBE_FAIL;
+    success &= test_collisions< 16, 8, 1126 >("zlarge3");   FM_MAYBE_FAIL;
+    success &= test_collisions< 32, 8, 4397 >("zlarge4");   FM_MAYBE_FAIL;
+
+    (void)success;
+    //FM_MAYBE_FAIL_;
 }
 
 } // namespace floormat

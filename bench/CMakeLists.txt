@@ -20,5 +20,5 @@ else()
     target_link_libraries(${self}_o PUBLIC benchmark)
 endif()
 
-target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat)
+target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat floormat-hash)
 fm_install_executable(${self})
