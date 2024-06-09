@@ -19,7 +19,6 @@ CORRADE_ALWAYS_INLINE size_t do_xxhash(const void* __restrict buf, size_t size) 
 {
 #ifdef __AVX2__
     return XXH3_64bits(buf, size);
-#error "foo avx"
 #elif __SSE2__
     return (size_t)XXH3_64bits(buf, size);
 #else
