@@ -1,5 +1,4 @@
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    add_compile_options(-mavx2)
     if(FLOORMAT_WITH-COVERAGE)
         set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE)
         add_definitions(
@@ -31,9 +30,9 @@ set(OpenCV_DIR "f:/dev/opentrack-depends/opencv/build-clang-amd64/install" CACHE
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 sets(STRING
-     CMAKE_C_FLAGS "-ggdb3 -gsplit-dwarf -gcolumn-info -gdwarf-aranges -gz=zlib"
-     CMAKE_C_FLAGS_DEBUG "-O0 -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -march=nehalem -mtune=native -mpopcnt -mavx -fomit-frame-pointer -fno-stack-protector"
+     CMAKE_C_FLAGS "-march=x86-64-v2 -mtune=native -mavx2 -maes -ggdb3 -gsplit-dwarf -gcolumn-info -gdwarf-aranges -gz=zlib -fstack-protector-all"
+     CMAKE_C_FLAGS_DEBUG "-O0"
+     CMAKE_C_FLAGS_RELEASE "-Ofast -ffast-math -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
      CMAKE_SHARED_LINKER_FLAGS_DEBUG ""
 )

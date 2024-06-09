@@ -1,31 +1,30 @@
 #include "hash-impl.hpp"
-#include "compat/map.hpp"
 #include "compat/iota.hpp"
+#include <cstdio>
 #include <bit>
 
-#ifdef __GNUG__
-//#pragma GCC diagnostic ignored "-Wdisabled-macro-expansion"
-//#pragma GCC diagnostic ignored "-Wused-but-marked-unused"
-#include "xxhash.inl"
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma GCC diagnostic ignored "-Wused-but-marked-unused"
 #endif
+#include "xxhash.inl"
 
 namespace floormat::xxHash {
 
 namespace {
 
-constexpr inline auto seed = std::bit_cast<uint64_t>(iota_array<uint8_t, 8>);
-
 CORRADE_ALWAYS_INLINE size_t do_xxhash(const void* __restrict buf, size_t size) noexcept
 {
 #ifdef __AVX2__
-    return XXH3_64bits(buf, size);
+    return (size_t)XXH3_64bits(buf, size);
 #elif __SSE2__
     return (size_t)XXH3_64bits(buf, size);
 #else
+    constexpr auto seed = std::bit_cast<size_t>(iota_array<uint8_t, sizeof nullptr>);
     if constexpr(sizeof nullptr > 4)
-        return XXH364(buf, size);
+        return XXH64(buf, size, seed);
     else
-        return XXH32(buf, size);
+        return XXH32(buf, size, seed);
 #endif
 }
 
