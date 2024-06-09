@@ -1,13 +1,11 @@
 #include "hash-impl.hpp"
-#include "compat/defs.hpp"
-#include <utility>
 
 // ReSharper disable CppDefaultCaseNotHandledInSwitchStatement
 // NOLINTBEGIN(*-multiway-paths-covered, *-switch-missing-default-case)
 
 namespace floormat::FNVHash {
-
 namespace {
+
 template<size_t N = sizeof nullptr * 8> struct fnvhash_params;
 template<> struct fnvhash_params<32> { [[maybe_unused]] static constexpr uint32_t a = 0x811c9dc5u, b = 0x01000193u; };
 template<> struct fnvhash_params<64> { [[maybe_unused]] static constexpr uint64_t a = 0xcbf29ce484222325u, b = 0x100000001b3u; };
