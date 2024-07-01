@@ -12,7 +12,7 @@ if(NOT DEFINED OpenCV_DIR)
         #set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-msvc64-debug/install" CACHE PATH "" FORCE)
         sets(PATH OpenCV_DIR "")
     else()
-        set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-amd64/install" CACHE PATH "" FORCE)
+        set(OpenCV_DIR "F:/build/opencv/build-msvc-release-floormat/install" CACHE PATH "" FORCE)
     endif()
 endif()
 
