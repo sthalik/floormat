@@ -143,9 +143,9 @@ Wall::Frame variant_from_frame(ArrayView<const Wall::Frame> frames, global_coord
 {
     auto sz = (unsigned)frames.size();
     if (variant == (variant_t)-1)
-        variant = (variant_t)(Vector2ui(coord.raw()).sum() + is_west);
+        variant = (variant_t)(Vector2ui(coord.raw()).sum() + uint32_t{is_west});
     variant %= sz;
-    return frames[(variant_t)variant];
+    return frames[variant];
 }
 
 } // namespace
@@ -320,7 +320,7 @@ GL::Mesh chunk::make_wall_mesh()
                          tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
         .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
         .setCount(int32_t(6 * N));
-    fm_debug_assert((size_t)mesh.count() == N*6);
+    fm_debug_assert((uint32_t)mesh.count() == N*6);
     return mesh;
 }
 

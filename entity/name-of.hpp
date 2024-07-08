@@ -9,9 +9,8 @@
 #endif
 
 template<typename T>
-static constexpr auto _fm_internal_type_name_of()
+static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-identifier)
 {
-    // NOLINT(bugprone-reserved-identifier)
     using namespace floormat;
     using SVF = StringViewFlag;
     constexpr auto my_strlen = [](const char* str) constexpr -> size_t {
