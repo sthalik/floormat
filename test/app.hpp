@@ -23,6 +23,7 @@ void test_coords();
 void test_critter();
 void test_dijkstra();
 void test_entity();
+void test_handle();
 void test_hash();
 void test_hole();
 void test_iptr();

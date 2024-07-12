@@ -48,7 +48,7 @@ struct A
 {
     int val, serial;
     explicit A(int val) : val{val}, serial{++A_total} { ++A_alive; }
-    ~A() noexcept { --A_alive; fm_assert(A_alive >= 0); }
+    ~A() noexcept override { --A_alive; fm_assert(A_alive >= 0); }
 
     fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(A);
 };
