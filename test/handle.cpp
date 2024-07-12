@@ -32,9 +32,19 @@ namespace {
 void test_page1()
 {
     Page page{start_index};
-    auto& item = page.allocate();
-    fm_assert(item.handle == Handle{start_index});
-    page.deallocate(item.handle);
+    auto& item0 = page.allocate();
+    auto handle0 = item0.handle;
+    fm_assert(item0.handle == Handle{start_index});
+    page.deallocate(item0.handle);
+
+    auto& item1 = page.allocate();
+    auto& item2 = page.allocate();
+    fm_assert(item1.handle.index == start_index || item2.handle.index == start_index);
+    fm_assert(item1.handle.index != item2.handle.index);
+    fm_assert(item1.handle.counter != item2.handle.counter);
+    fm_assert(int{item1.handle.counter != handle0.counter} + int{item2.handle.counter != handle0.counter} == 1);
+    page.deallocate(item2.handle);
+    page.deallocate(item1.handle);
 }
 } // namespace
 

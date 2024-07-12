@@ -56,6 +56,7 @@ void Page<Obj, PageSize>::deallocate(Handle<Obj, PageSize> obj)
     fm_assert(obj.counter == ctr);
     item.next = first_free;
     used_count--;
+    used_map.set(index, false);
     first_free = obj.index;
 }
 
