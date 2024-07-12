@@ -156,6 +156,7 @@ template<> struct entity_accessors<hole, inspect_intent_t>
                 &hole::height,
                 &hole::set_height,
                 [](const hole& x) { return x.flags.is_wall ? st::enabled : st::readonly; },
+                constantly(constraints::range<uint8_t>{0, tile_size_z}),
             },
             E::type<uint8_t>::field{"z-offset"_s,
                 &hole::z_offset,

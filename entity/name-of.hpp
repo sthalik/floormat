@@ -1,12 +1,7 @@
 #pragma once
 #include "compat/assert.hpp"
+#include "compat/pretty-function.hpp"
 #include <cr/StringView.h>
-
-#if defined _MSC_VER
-#define FM_PRETTY_FUNCTION __FUNCSIG__
-#else
-#define FM_PRETTY_FUNCTION __PRETTY_FUNCTION__
-#endif
 
 template<typename T>
 static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-identifier)
