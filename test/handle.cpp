@@ -8,7 +8,7 @@ namespace floormat {
 namespace {
 
 constexpr uint32_t start_index = 1024, page_size = 128;
-struct Foo { int value; };
+struct Foo { int value = 0; };
 using Page = impl_handle::Page<Foo, page_size>;
 using Handle = impl_handle::Handle<Foo, page_size>;
 
@@ -32,14 +32,17 @@ namespace {
 void test_page1()
 {
     Page page{start_index};
-    auto& item0 = page.allocate();
+    auto& item0 = page.allocate(1);
     auto handle0 = item0.handle;
     fm_assert(item0.handle == Handle{start_index});
+    fm_assert(item0.object.value == 1);
     page.deallocate(item0.handle);
 
-    auto& item1 = page.allocate();
-    auto& item2 = page.allocate();
-    fm_assert(item1.handle.index == start_index || item2.handle.index == start_index);
+    auto& item1 = page.allocate(2);
+    auto& item2 = page.allocate(3);
+    fm_assert(item1.object.value == 2);
+    fm_assert(item2.object.value == 3);
+    fm_assert(item1.handle.index == item0.handle.index || item2.handle.index == item0.handle.index);
     fm_assert(item1.handle.index != item2.handle.index);
     fm_assert(item1.handle.counter != item2.handle.counter);
     fm_assert(int{item1.handle.counter != handle0.counter} + int{item2.handle.counter != handle0.counter} == 1);

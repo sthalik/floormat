@@ -6,6 +6,12 @@
 namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
+void Page<Obj, PageSize>::do_deallocate(Item<Obj, PageSize>& item)
+{
+    item.object.~Obj();
+}
+
+template<typename Obj, uint32_t PageSize>
 Page<Obj, PageSize>::~Page() noexcept
 {
     fm_assert(used_count == 0);
@@ -28,7 +34,11 @@ Page<Obj, PageSize>::Page(uint32_t start_index):
 }
 
 template<typename Obj, uint32_t PageSize>
-Item<Obj, PageSize>& Page<Obj, PageSize>::allocate()
+template<typename... Xs>
+requires requires (Xs&&... xs) {
+    Obj{forward<Xs>(xs)...};
+}
+Item<Obj, PageSize>& Page<Obj, PageSize>::allocate(Xs&&... xs)
 {
     fm_assert(used_count < PageSize);
     auto first_freeʹ = first_free - start_index;
@@ -38,6 +48,7 @@ Item<Obj, PageSize>& Page<Obj, PageSize>::allocate()
     first_free = item.next;
     used_count++;
     used_map.set(first_freeʹ, true);
+    new (&item.object) Obj{ forward<Xs>(xs)... };
     return item;
 }
 
@@ -55,9 +66,28 @@ void Page<Obj, PageSize>::deallocate(Handle<Obj, PageSize> obj)
         Debug{} << "counter" << FM_PRETTY_FUNCTION << "overflowed";
     fm_assert(obj.counter == ctr);
     item.next = first_free;
+    first_free = obj.index;
     used_count--;
     used_map.set(index, false);
-    first_free = obj.index;
+    do_deallocate(item);
+}
+
+template<typename Obj, uint32_t PageSize>
+void Page<Obj, PageSize>::deallocate_all()
+{
+    for (auto i = 0u; i < PageSize; i++)
+        if (used_map[i])
+            do_deallocate(storage[i]);
+    auto val = start_index;
+    for (auto i = 0u; i < PageSize; i++)
+    {
+        auto& o = storage.data()[i];
+        o.handle = {val++, 0};
+        o.next = val;
+    }
+    first_free = start_index;
+    used_count = 0;
+    used_map = BitArray{ValueInit, PageSize};
 }
 
 template<typename Obj, uint32_t PageSize>
