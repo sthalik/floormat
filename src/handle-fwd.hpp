@@ -1,11 +1,14 @@
 #pragma once
 
-namespace floormat::Handle {
+namespace floormat::impl_handle {
 
+template<typename OBJ, uint32_t PAGE_SIZE> struct Handle;
 template<typename Obj, uint32_t PageSize> struct Item;
+template<typename Obj, uint32_t PageSize> class Page;
+template<typename Obj, uint32_t PageSize> class Pool;
 
 template<typename OBJ, uint32_t PAGE_SIZE>
-struct Handle
+struct Handle final
 {
     uint32_t index = (uint32_t)-1;
     uint32_t counter = 0;
@@ -26,11 +29,11 @@ private:
     static Item<OBJ, PAGE_SIZE>& get_from_pool(uint32_t index, uint32_t counter);
 };
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle
 
 namespace floormat {
 
 template<typename Obj, uint32_t PageSize>
-using handle = struct Handle::Handle<Obj, PageSize>;
+using handle = struct impl_handle::Handle<Obj, PageSize>;
 
 } // namespace floormat

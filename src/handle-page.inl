@@ -3,7 +3,7 @@
 #include "compat/assert.hpp"
 #include "compat/pretty-function.hpp"
 
-namespace floormat::Handle {
+namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
 Page<Obj, PageSize>::~Page() noexcept
@@ -17,7 +17,7 @@ Page<Obj, PageSize>::Page(uint32_t start_index):
     start_index{start_index},
     first_free{start_index}
 {
-    fm_assert(size_t{start_index} + size_t{PageSize} <= 1<<31 && start_index + PageSize > start_index);
+    fm_assert(size_t{start_index} + size_t{PageSize} <= size_t{1u<<31} && start_index + PageSize > start_index);
     auto val = start_index;
     for (auto i = 0u; i < PageSize; i++)
     {
@@ -50,9 +50,10 @@ void Page<Obj, PageSize>::deallocate(Handle<Obj, PageSize> obj)
     fm_debug_assert(used_count > 0);
     fm_debug_assert(first_free != (uint32_t)-1);
     auto& item = storage[index];
-    auto ctr = ++item.handle.counter;
-    if (ctr == uint32_t{0}) [[unlikely]]
+    auto ctr = item.handle.counter++;
+    if (ctr == (uint32_t)-1) [[unlikely]]
         Debug{} << "counter" << FM_PRETTY_FUNCTION << "overflowed";
+    fm_assert(obj.counter == ctr);
     item.next = first_free;
     used_count--;
     first_free = obj.index;
@@ -70,4 +71,4 @@ bool Page<Obj, PageSize>::is_full()
     return used_count == PageSize;
 }
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle

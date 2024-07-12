@@ -2,25 +2,8 @@
 #include "handle.hpp"
 //#include "handle-pool.inl"
 #include "compat/assert.hpp"
-#include <cr/Pointer.h>
 
-namespace floormat::Handle {
-
-template<typename Obj, uint32_t PageSize> class Pool;
-
-template<typename Obj, uint32_t PageSize>
-bool Handle<Obj, PageSize>::operator==(const Handle& other) const noexcept
-{
-    bool ret = index == other.index;
-    fm_debug_assert(!ret || counter == other.counter);
-    return ret;
-}
-
-template<typename Obj, uint32_t PageSize>
-Handle<Obj, PageSize>::operator bool() const noexcept
-{
-    return index != (uint32_t)-1;
-}
+namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
 const Obj& Handle<Obj, PageSize>::get() const
@@ -48,7 +31,7 @@ Item<Obj, PageSize>& Handle<Obj, PageSize>::get_from_pool(uint32_t index, uint32
     return item.object;
 }
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle
 
 namespace floormat {
 

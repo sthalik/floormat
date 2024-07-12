@@ -1,10 +1,8 @@
 #include "handle.inl"
 
-namespace floormat::Handle {
+namespace floormat::impl_handle {
 
-static_assert(sizeof(Handle) == sizeof(HandleType));
-
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle
 
 
 namespace floormat {

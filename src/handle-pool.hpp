@@ -3,14 +3,12 @@
 #include <cr/Array.h>
 #include <cr/Pointer.h>
 
-namespace floormat::Handle {
-
-template<typename Obj, uint32_t PageSize> class Page;
+namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
 class Pool
 {
-    friend class Handle<Obj, PageSize>;
+    friend class impl_handle<Obj, PageSize>;
 
     static Pointer<Pool<Obj, PageSize>> make_pool();
     static Page<Obj, PageSize>& find_page();
@@ -30,7 +28,7 @@ public:
     requires requires (Xs&&... xs) {
         Obj{forward<Xs>(xs)...};
     }
-    static Handle<Obj, PageSize> make_object(Xs&&... xs);
+    static impl_handle<Obj, PageSize> make_object(Xs&&... xs);
 };
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle

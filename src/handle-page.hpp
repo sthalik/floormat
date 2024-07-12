@@ -4,7 +4,7 @@
 #include <array>
 #include <cr/BitArray.h>
 
-namespace floormat::Handle {
+namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
 struct Item
@@ -17,7 +17,7 @@ struct Item
 template<typename Obj, uint32_t PageSize>
 class Page
 {
-    friend class Handle<Obj, PageSize>;
+    friend struct Handle<Obj, PageSize>;
 
     std::array<Item<Obj, PageSize>, PageSize> storage;
     BitArray used_map; // todo replace with a rewrite of std::bitset
@@ -37,4 +37,4 @@ public:
     bool is_full();
 };
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle

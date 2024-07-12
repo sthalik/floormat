@@ -4,7 +4,7 @@
 #include "compat/move.hpp"
 #include <cr/GrowableArray.h>
 
-namespace floormat::Handle {
+namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
 template<typename... Xs>
@@ -44,4 +44,4 @@ Pool<Obj, PageSize>::find_page()
     return P.pages.back();
 }
 
-} // namespace floormat::Handle
+} // namespace floormat::impl_handle
