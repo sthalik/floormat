@@ -6,6 +6,10 @@
 namespace floormat::impl_handle {
 
 template<typename Obj, uint32_t PageSize>
+Item<Obj, PageSize>::~Item() noexcept
+{}
+
+template<typename Obj, uint32_t PageSize>
 void Page<Obj, PageSize>::do_deallocate(Item<Obj, PageSize>& item)
 {
     item.object.~Obj();

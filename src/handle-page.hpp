@@ -9,6 +9,7 @@ namespace floormat::impl_handle {
 template<typename Obj, uint32_t PageSize>
 struct Item
 {
+    ~Item() noexcept;
     union { char empty = {}; Obj object; };
     Handle<Obj, PageSize> handle;
     uint32_t next;

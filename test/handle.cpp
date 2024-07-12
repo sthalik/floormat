@@ -8,7 +8,13 @@ namespace floormat {
 namespace {
 
 constexpr uint32_t start_index = 1024, page_size = 128;
-struct Foo { int value = 0; };
+
+struct Foo
+{
+    int value = 0;
+    ~Foo() { value = 0; }
+};
+
 using Page = impl_handle::Page<Foo, page_size>;
 using Handle = impl_handle::Handle<Foo, page_size>;
 
