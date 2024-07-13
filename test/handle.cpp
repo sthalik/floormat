@@ -39,13 +39,17 @@ void test_page1()
 {
     Page page{start_index};
     auto& item0 = page.allocate(1);
+    fm_assert(page.use_count() == 1);
     auto handle0 = item0.handle;
     fm_assert(item0.handle == Handle{start_index, 0});
     fm_assert(item0.object.value == 1);
     page.deallocate(item0.handle);
+    fm_assert(page.use_count() == 0);
 
     auto& item1 = page.allocate(2);
+    fm_assert(page.use_count() == 1);
     auto& item2 = page.allocate(3);
+    fm_assert(page.use_count() == 2);
     fm_assert(item1.object.value == 2);
     fm_assert(item2.object.value == 3);
     fm_assert(item1.handle.index == item0.handle.index || item2.handle.index == item0.handle.index);
@@ -57,6 +61,7 @@ void test_page1()
     fm_assert(item0.object.value == 0);
     fm_assert(item1.object.value == 0);
     fm_assert(item2.object.value == 0);
+    fm_assert(page.use_count() == 0);
 }
 } // namespace
 
