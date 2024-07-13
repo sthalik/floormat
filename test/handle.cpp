@@ -7,7 +7,7 @@
 namespace floormat {
 namespace {
 
-constexpr uint32_t start_index = 1024, page_size = 128;
+constexpr uint32_t start_index = 1024, page_size = 256;
 
 struct Foo
 {
