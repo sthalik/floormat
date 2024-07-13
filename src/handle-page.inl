@@ -77,7 +77,7 @@ void Page<Obj, PageSize>::deallocate(Handle<Obj, PageSize> obj)
     auto& item = storage[index];
     auto ctr = item.handle.counter++;
     if (ctr == (uint32_t)-1) [[unlikely]]
-        fm_debug("counter %s overflowed", FM_PRETTY_FUNCTION);
+        fm_debug("counter overflowed: %s", FM_PRETTY_FUNCTION);
     fm_assert(obj.counter == ctr);
     item.next = first_free;
     first_free = obj.index;
