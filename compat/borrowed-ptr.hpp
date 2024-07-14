@@ -4,17 +4,21 @@
 namespace floormat::detail_borrowed_ptr {
 
 struct control_block;
+
+template<typename From, typename To>
+concept StaticCastable = requires(From* from) {
+    static_cast<To*>(from);
+};
+
 template<typename From, typename To>
 concept DerivedFrom = requires(From* x) {
-    requires !std::is_same_v<From, To>;
-    requires std::is_nothrow_convertible_v<From*, To*>;
+    !std::is_same_v<From, To>;
+    std::is_convertible_v<From*, To*>;
 };
 
 } // namespace floormat::detail_borrowed_ptr
 
 namespace floormat {
-
-template<typename T> class bptr;
 
 struct bptr_base
 {
@@ -27,6 +31,7 @@ struct bptr_base
 };
 
 template<typename T>
+requires std::is_convertible_v<T*, const bptr_base*>
 class bptr final // NOLINT(*-special-member-functions)
 {
     detail_borrowed_ptr::control_block* blk;
@@ -58,8 +63,6 @@ public:
     template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr(bptr<Y>&&) noexcept;
     template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr& operator=(bptr<Y>&&) noexcept;
 
-    operator bptr<const T>() const noexcept requires (!std::is_const_v<T>);
-
     void reset() noexcept;
     void destroy() noexcept;
     void swap(bptr& other) noexcept;
@@ -73,8 +76,20 @@ public:
     bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
     bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
 
-    template<typename U> friend class bptr;
-    template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;
+    template<typename U> requires std::is_convertible_v<U*, const bptr_base*> friend class bptr;
+
+    template<typename To, typename From>
+    requires (std::is_convertible_v<To*, const bptr_base*> && detail_borrowed_ptr::StaticCastable<From, To>)
+    friend bptr<To> static_pointer_cast(const bptr<From>& p) noexcept;
 };
+
+template<typename To, typename From>
+requires (std::is_convertible_v<To*, const bptr_base*> && detail_borrowed_ptr::StaticCastable<From, To>)
+bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
+{
+    if (p.blk && p.blk->_ptr) [[likely]]
+        return bptr<To>{p, nullptr};
+    return bptr<To>{nullptr};
+}
 
 } // namespace floormat

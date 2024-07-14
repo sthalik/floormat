@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/borrowed-ptr-cast.hpp"
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
 #include <array>
@@ -376,6 +375,19 @@ void test11()
     auto p3 = static_pointer_cast<bptr_base>(p1);
     fm_assert(p2->x == 1);
     fm_assert(p3);
+    p1.destroy();
+    fm_assert(!p2); fm_assert(!p3);
+}
+
+void test12()
+{
+    auto p1 = bptr<bptr_base>{new Foo{1}};
+    {
+        fm_assert(p1.use_count() == 1);
+        auto p2 = static_pointer_cast<Foo>(p1);
+        fm_assert(p1.use_count() == 2);
+    }
+    fm_assert(p1.use_count() == 1);
 }
 
 } // namespace
@@ -393,6 +405,7 @@ void Test::test_bptr()
     test9();
     test10();
     test11();
+    test12();
 }
 
 } // namespace floormat
