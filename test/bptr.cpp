@@ -8,7 +8,13 @@
 namespace floormat {
 
 namespace {
-struct Foo : bptr_base {};
+struct Foo : bptr_base
+{
+    int x;
+
+    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Foo);
+    Foo(int x) : x{x} {}
+};
 struct Bar : Foo {};
 struct Baz : bptr_base {};
 } // namespace
@@ -334,6 +340,17 @@ void test10()
     fm_assert(bptr<Foo>{} == bptr<Foo>{});
     fm_assert(bptr<const Foo>{} == bptr<const Foo>{});
     fm_assert(bptr<Foo>{} == bptr<const Foo>{});
+
+    auto p1 = bptr<const Foo>{InPlace, 1}; (void)p1;
+    //auto p2 = bptr<Foo>{p1};
+    auto p3 = bptr<const Foo>{p1};      (void)p3;
+    fm_assert(p1->x == 1); fm_assert(p3->x == 1);
+    fm_assert(p1 == p3);
+
+    auto p4 = bptr<Foo>{InPlace, 4};    (void)p4;
+    auto p5 = bptr<const Foo>{p4};      (void)p5;
+    fm_assert(p4->x == 4); fm_assert(p5->x == 4);
+    fm_assert(p4 == p5);
 }
 
 } // namespace

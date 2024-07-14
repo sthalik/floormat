@@ -31,8 +31,6 @@ class bptr final // NOLINT(*-special-member-functions)
 {
     detail_borrowed_ptr::control_block* blk;
 
-    bptr(detail_borrowed_ptr::control_block* blk) noexcept;
-
     template<typename Y> bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
     template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
     template<typename Y> bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
@@ -52,13 +50,13 @@ public:
 
     bptr(const bptr&) noexcept;
     bptr& operator=(const bptr&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr(const bptr<Y>&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr& operator=(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
 
     bptr(bptr&&) noexcept;
     bptr& operator=(bptr&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr(bptr<Y>&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr& operator=(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
     operator bptr<const T>() const noexcept requires (!std::is_const_v<T>);
 
