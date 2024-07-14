@@ -388,9 +388,9 @@ struct box : private Allocator {
       : Allocator(std::move(allocator_)), value_(std::move(value)) {
   }
 
-  box(box&&) = default;
+  box(box&&) noexcept = default;
   box(box const&) = default;
-  box& operator=(box&&) = default;
+  box& operator=(box&&) noexcept = default;
   box& operator=(box const&) = default;
   ~box() = default;
 };
@@ -404,9 +404,9 @@ struct box<false, T, Allocator> : private Allocator {
       : Allocator(std::move(allocator_)), value_(std::move(value)) {
   }
 
-  box(box&&) = default;
+  box(box&&) noexcept = default;
   box(box const&) = delete;
-  box& operator=(box&&) = default;
+  box& operator=(box&&) noexcept = default;
   box& operator=(box const&) = delete;
   ~box() = default;
 };
@@ -775,8 +775,8 @@ class operator_impl;
     ~operator_impl() = default;                                                \
     operator_impl(operator_impl const&) = default;                             \
     operator_impl(operator_impl&&) = default;                                  \
-    operator_impl& operator=(operator_impl const&) = default;                  \
-    operator_impl& operator=(operator_impl&&) = default;                       \
+    operator_impl& operator=(operator_impl const&) noexcept = default;         \
+    operator_impl& operator=(operator_impl&&) noexcept = default;              \
                                                                                \
     using operator_impl<Index + 1, Function, Next, Signatures...>::operator(); \
                                                                                \
@@ -805,8 +805,8 @@ class operator_impl;
     ~operator_impl() = default;                                                \
     operator_impl(operator_impl const&) = default;                             \
     operator_impl(operator_impl&&) = default;                                  \
-    operator_impl& operator=(operator_impl const&) = default;                  \
-    operator_impl& operator=(operator_impl&&) = default;                       \
+    operator_impl& operator=(operator_impl const&) noexcept = default;         \
+    operator_impl& operator=(operator_impl&&) noexcept = default;              \
                                                                                \
     Ret operator()(Args... args) CONST VOLATILE OVL_REF NOEXCEPT {             \
       auto parent =                                                            \
@@ -1605,8 +1605,8 @@ public:
   FU2_DETAIL_CXX14_CONSTEXPR function(std::nullptr_t np) : erasure_(np) {
   }
 
-  constexpr function& operator=(function const& /*right*/) = default;
-  constexpr function& operator=(function&& /*right*/) = default;
+  constexpr function& operator=(function const& /*right*/) noexcept = default;
+  constexpr function& operator=(function&& /*right*/) noexcept = default;
 
   /// Copy assigning from another copyable function
   template <typename RightConfig,
@@ -1622,7 +1622,7 @@ public:
   template <typename RightConfig,
             enable_if_copyable_correct_t<Config, RightConfig>* = nullptr,
             enable_if_owning_correct_t<Config, RightConfig>* = nullptr>
-  constexpr function& operator=(function<RightConfig, property_t>&& right) {
+  constexpr function& operator=(function<RightConfig, property_t>&& right) noexcept {
     erasure_ = std::move(right.erasure_);
     return *this;
   }
