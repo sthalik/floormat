@@ -365,8 +365,17 @@ void test10()
     fm_assert(!p6);
     fm_assert(p5 == p6);
 
-    (void)bptr<const bptr_base>{p6};
-    //(void)bptr<bptr_base>{p6};
+    fm_assert(!bptr<const bptr_base>{p6});
+    //fm_assert(bptr<bptr_base>{p6});
+}
+
+void test11()
+{
+    auto p1 = bptr<bptr_base>{new Foo{1}};
+    auto p2 = static_pointer_cast<Foo>(p1);
+    auto p3 = static_pointer_cast<bptr_base>(p1);
+    fm_assert(p2->x == 1);
+    fm_assert(p3);
 }
 
 } // namespace
@@ -383,6 +392,7 @@ void Test::test_bptr()
     test8();
     test9();
     test10();
+    test11();
 }
 
 } // namespace floormat

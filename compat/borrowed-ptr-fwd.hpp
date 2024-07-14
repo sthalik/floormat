@@ -1,6 +1,7 @@
 #pragma once
 namespace floormat {
 
+struct bptr_base;
 template<typename T> class bptr;
 template<typename To, typename From> bptr<To> static_pointer_cast(const bptr<From>& p) noexcept;
 template<typename T> bptr(T* ptr) -> bptr<T>;

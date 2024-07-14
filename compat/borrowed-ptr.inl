@@ -1,7 +1,6 @@
 #pragma once
 #include "borrowed-ptr.hpp"
 #include "compat/assert.hpp"
-#include <utility>
 
 #define FM_BPTR_DEBUG
 
