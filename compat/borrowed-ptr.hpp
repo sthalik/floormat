@@ -31,37 +31,50 @@ struct bptr_base
 };
 
 template<typename T>
-requires std::is_convertible_v<T*, const bptr_base*>
 class bptr final // NOLINT(*-special-member-functions)
 {
     detail_borrowed_ptr::control_block* blk;
 
-    template<typename Y> bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
+    template<typename Y>
+    requires std::is_convertible_v<T*, const bptr_base*>
+    bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
+
     template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
-    template<typename Y> bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
+
+    template<typename Y>
+    requires std::is_convertible_v<T*, const bptr_base*>
+    bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
+
     template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
 
 public:
     template<typename... Ts>
-    requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+    requires (std::is_constructible_v<std::remove_const_t<T>, Ts&&...> && std::is_convertible_v<T*, const bptr_base*>)
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
-    explicit bptr(T* ptr) noexcept;
-    bptr() noexcept;
+    explicit bptr(T* ptr) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
+    bptr() noexcept requires std::is_convertible_v<T*, const bptr_base*>;
     ~bptr() noexcept;
 
-    bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
-    bptr& operator=(std::nullptr_t) noexcept;
+    bptr(std::nullptr_t) noexcept requires std::is_convertible_v<T*, const bptr_base*>; // NOLINT(*-explicit-conversions)
+    bptr& operator=(std::nullptr_t) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
 
-    bptr(const bptr&) noexcept;
-    bptr& operator=(const bptr&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
+    bptr(const bptr&) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
+    bptr& operator=(const bptr&) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
 
-    bptr(bptr&&) noexcept;
-    bptr& operator=(bptr&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept
+    requires std::is_convertible_v<T*, const bptr_base*>;
+
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept
+    requires std::is_convertible_v<T*, const bptr_base*>;
+
+    bptr(bptr&&) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
+    bptr& operator=(bptr&&) noexcept requires std::is_convertible_v<T*, const bptr_base*>;
+
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept
+    requires std::is_convertible_v<T*, const bptr_base*>;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept
+    requires std::is_convertible_v<T*, const bptr_base*>;
 
     void reset() noexcept;
     void destroy() noexcept;
@@ -76,7 +89,7 @@ public:
     bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
     bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
 
-    template<typename U> requires std::is_convertible_v<U*, const bptr_base*> friend class bptr;
+    template<typename U> friend class bptr;
 
     template<typename To, typename From>
     requires (std::is_convertible_v<To*, const bptr_base*> && detail_borrowed_ptr::StaticCastable<From, To>)
