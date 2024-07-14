@@ -151,6 +151,15 @@ bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
 
 template<typename T>
 template<typename Y>
+requires std::is_convertible_v<T*, const bptr_base*>
+bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
+    blk{other.blk}
+{
+    other.blk = nullptr;
+}
+
+template<typename T>
+template<typename Y>
 bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
@@ -162,15 +171,6 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
             ++blk->_count;
     }
     return *this;
-}
-
-template<typename T>
-template<typename Y>
-requires std::is_convertible_v<T*, const bptr_base*>
-bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    other.blk = nullptr;
 }
 
 template<typename T>

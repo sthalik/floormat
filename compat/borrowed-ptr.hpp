@@ -39,12 +39,11 @@ class bptr final // NOLINT(*-special-member-functions)
     requires std::is_convertible_v<T*, const bptr_base*>
     bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
 
-    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
-
     template<typename Y>
     requires std::is_convertible_v<T*, const bptr_base*>
     bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
 
+    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
     template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
 
 public:
