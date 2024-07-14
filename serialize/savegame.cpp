@@ -123,35 +123,41 @@ struct critter_header_s
 
 using proto_t  = uint16_t;
 
-template<typename Derived, bool IsWriter>
-struct visitor_
+// ---------- proto versions ----------
+// 19: see old-savegame.cpp
+// 20: complete rewrite
+// 21: oops, forgot the object counter
+// 22: add object::speed
+// 23: switch object::delta to 32-bit
+// 24: switch object::offset_frac from Vector2us to uint16_t
+static constexpr proto_t proto_version = 24;
+
+static constexpr size_t string_max          = 512;
+static constexpr proto_t proto_version_min  = 20;
+static constexpr auto file_magic            = ".floormat.save"_s;
+static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
+static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
+
+using tilemeta = uint8_t;
+using atlasid  = uint32_t;
+using chunksiz = uint32_t;
+
+template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
+template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
+
+template<bool IsNewest> struct visitor_base;
+template<> struct visitor_base<true> { [[maybe_unused]] static constexpr proto_t PROTO = proto_version; };
+template<> struct visitor_base<false> { proto_t PROTO = (proto_t)-1; };
+
+template<typename Derived, bool IsWriter, bool IsNewest>
+struct visitor_ : visitor_base<IsNewest>
 {
+    using visitor_base<IsNewest>::PROTO;
+
     explicit visitor_() = default;
 
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(visitor_);
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(visitor_);
-
-    // ---------- proto versions ----------
-    // 19: see old-savegame.cpp
-    // 20: complete rewrite
-    // 21: oops, forgot the object counter
-    // 22: add object::speed
-    // 23: switch object::delta to 32-bit
-    // 24: switch object::offset_frac from Vector2us to uint16_t
-    static constexpr proto_t proto_version = 24;
-
-    static constexpr size_t string_max          = 512;
-    static constexpr proto_t proto_version_min  = 20;
-    static constexpr auto file_magic            = ".floormat.save"_s;
-    static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
-    static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
-
-    using tilemeta = uint8_t;
-    using atlasid  = uint32_t;
-    using chunksiz = uint32_t;
-
-    template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
-    template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
 
     template<typename T, typename U> using qual2 = std::conditional_t<IsWriter, const T, U>;
     template<typename T> using qual = std::conditional_t<IsWriter, const T, T>;
@@ -362,9 +368,9 @@ struct visitor_
 
 constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
 
-struct writer final : visitor_<writer, true>
+struct writer final : visitor_<writer, true, true>
 {
-    using visitor_<writer, true>::visit;
+    using visitor_<writer, true, true>::visit;
 
     struct serialized_atlas
     {
@@ -378,8 +384,6 @@ struct writer final : visitor_<writer, true>
         buffer buf{};
         chunk* c;
     };
-
-    static constexpr proto_t PROTO = proto_version;
 
     const world& w;
 
@@ -552,23 +556,21 @@ ok:     void();
     {
         using INT = std::decay_t<decltype(g(i))>;
         static_assert(std::is_unsigned_v<INT>);
-        constexpr auto highbit = writer::highbit<INT>;
-        constexpr auto null = writer::null<INT>;
         const auto a = INT{ g(i) };
-        fm_assert(a == null || a < null);
+        fm_assert(a == null<INT> || a < null<INT>);
         uint_fast16_t num_idempotent = 0;
 
         for (uint32_t j = i+1; j < TILE_COUNT; j++)
             if (a != g(j))
                 break;
-            else if ((size_t)num_idempotent + 1uz == (size_t)null)
+            else if ((size_t)num_idempotent + 1uz == (size_t)null<INT>)
                 break;
             else
                 num_idempotent++;
 
         if (num_idempotent)
         {
-            INT num = highbit | INT(num_idempotent);
+            INT num = highbit<INT> | INT(num_idempotent);
             visit(num, f);
         }
 
@@ -694,7 +696,7 @@ ok:     void();
     }
 };
 
-template struct visitor_<writer, true>;
+template struct visitor_<writer, true, true>;
 
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
@@ -765,10 +767,14 @@ template<> struct atlas_from_type<atlas_type::wall> { using Type = wall_atlas; }
 template<> struct atlas_from_type<atlas_type::anim> { using Type = anim_atlas; };
 template<> struct atlas_from_type<atlas_type::vobj> { using Type = anim_atlas; };
 
-struct reader final : visitor_<reader, false>
+template<bool IsNewest>
+struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
 {
-    using visitor_<reader, false>::visit;
-    using visitor_<reader, false>::visit_object_proto;
+    using visitor_<reader<IsNewest>, false, IsNewest>::visit;
+    using visitor_<reader<IsNewest>, false, IsNewest>::visit_object_proto;
+    using visitor_<reader<IsNewest>, false, IsNewest>::visit_object_header;
+    using visitor_<reader<IsNewest>, false, IsNewest>::visit_scenery_proto;
+    using visitor_<reader<IsNewest>, false, IsNewest>::PROTO;
 
     struct atlas_pair
     {
@@ -778,7 +784,6 @@ struct reader final : visitor_<reader, false>
 
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
-    proto_t PROTO = (proto_t)-1;
     object_id object_counter = world::object_counter_init;
     uint32_t nstrings = 0, natlases = 0, nchunks = 0;
 
@@ -916,12 +921,22 @@ ok:
             object_counter = Math::max(object_counter, id);
     }
 
-    bool deserialize_header_(binary_reader<const char*>& s, ArrayView<const char> buf)
+    static proto_t deserialize_header_1(binary_reader<const char*>& s)
     {
-        fm_assert(PROTO == (proto_t)-1);
+        proto_t proto;
         auto magic = s.read<file_magic.size()>();
         fm_soft_assert(StringView{magic.data(), magic.size()} == file_magic);
-        PROTO << s;
+        proto << s;
+        return proto;
+    }
+
+    bool deserialize_header_(binary_reader<const char*>& s, ArrayView<const char> buf, proto_t proto)
+    {
+        fm_assert(IsNewest || PROTO == (proto_t)-1);
+
+        if constexpr(!IsNewest)
+            PROTO = proto;
+
         if (PROTO < proto_version_min && PROTO > 0)
         {
             w.deserialize_old(w, buf.exceptPrefix(s.bytes_read()), PROTO, asset_policy);
@@ -1001,21 +1016,18 @@ ok:
 
     template<typename INT> void deserialize_tile_part(auto&& g, uint32_t& i, byte_reader& r)
     {
-        constexpr auto highbit = reader::highbit<INT>;
-        constexpr auto null = reader::null<INT>;
-
         INT num;
         uint32_t num_idempotent = 0;
 
         visit(num, r);
 
-        if (num & highbit)
+        if (num & highbit<INT>)
         {
-            num_idempotent = num & ~highbit;
+            num_idempotent = num & ~highbit<INT>;
             visit(num, r);
         }
 
-        if (num != null)
+        if (num != null<INT>)
             for (uint32_t j = 0; j <= num_idempotent; j++)
                 g(i+j, num);
 
@@ -1086,10 +1098,9 @@ ok:
         deserialize_objects_(c, r);
     }
 
-    void deserialize_world(ArrayView<const char> buf)
+    void deserialize_world(binary_reader<const char*>& s, ArrayView<const char> buf, proto_t proto)
     {
-        binary_reader s{buf.data(), buf.data() + buf.size()};
-        if (deserialize_header_(s, buf))
+        if (deserialize_header_(s, buf, proto))
             return;
         deserialize_strings_(s);
         deserialize_atlases(s);
@@ -1101,7 +1112,8 @@ ok:
     }
 };
 
-template struct visitor_<reader, false>;
+template struct visitor_<reader<true>, false, true>;
+template struct visitor_<reader<false>, false, false>;
 
 } // namespace
 
@@ -1133,8 +1145,18 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
     }
 
     class world w;
-    struct reader r{w, asset_policy};
-    r.deserialize_world(buf);
+    auto s = binary_reader<const char*>{&buf.data[0], &buf.data[buf.size]};
+    auto proto = reader<false>::deserialize_header_1(s);
+    if (proto == proto_version)
+    {
+        struct reader<true> r{w, asset_policy};
+        r.deserialize_world(s, buf, proto);
+    }
+    else
+    {
+        struct reader<false> r{w, asset_policy};
+        r.deserialize_world(s, buf, proto);
+    }
 
     //fm_assert("t o d o && false);
     return w;
