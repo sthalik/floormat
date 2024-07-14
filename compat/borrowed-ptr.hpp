@@ -29,21 +29,18 @@ struct bptr_base
 template<typename T>
 class bptr final // NOLINT(*-special-member-functions)
 {
-    static_assert(std::is_convertible_v<T*, bptr_base*>);
-
     detail_borrowed_ptr::control_block* blk;
 
-    struct private_tag_t final {};
-    static constexpr private_tag_t private_tag{};
+    bptr(detail_borrowed_ptr::control_block* blk) noexcept;
 
-    template<typename Y> bptr(const bptr<Y>& other, private_tag_t) noexcept;
+    template<typename Y> bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
     template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
-    template<typename Y> bptr(bptr<Y>&& other, private_tag_t) noexcept;
+    template<typename Y> bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
     template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
 
 public:
     template<typename... Ts>
-    requires std::is_constructible_v<T, Ts&&...>
+    requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
     explicit bptr(T* ptr) noexcept;
@@ -55,13 +52,15 @@ public:
 
     bptr(const bptr&) noexcept;
     bptr& operator=(const bptr&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr& operator=(const bptr<Y>&) noexcept;
 
     bptr(bptr&&) noexcept;
     bptr& operator=(bptr&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y> bptr& operator=(bptr<Y>&&) noexcept;
+
+    operator bptr<const T>() const noexcept requires (!std::is_const_v<T>);
 
     void reset() noexcept;
     void destroy() noexcept;
@@ -73,7 +72,8 @@ public:
     T& operator*() const noexcept;
 
     explicit operator bool() const noexcept;
-    friend bool operator==<T>(const bptr<T>& a, const bptr<T>& b) noexcept;
+    bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
+    bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
 
     template<typename U> friend class bptr;
     template<typename U, typename Tʹ> friend bptr<U> static_pointer_cast(const bptr<Tʹ>& p) noexcept;

@@ -15,10 +15,6 @@ struct Baz : bptr_base {};
 
 // NOLINTBEGIN(*-use-anonymous-namespace)
 
-template bool operator==(const bptr<Foo>&, const bptr<Foo>&) noexcept;
-template bool operator==(const bptr<Bar>&, const bptr<Bar>&) noexcept;
-template bool operator==(const bptr<Baz>&, const bptr<Baz>&) noexcept;
-
 template class bptr<Foo>;
 template class bptr<Bar>;
 template class bptr<Baz>;
@@ -333,6 +329,13 @@ void test9()
     fm_assert(A_total == 1 && A_alive == 0);
 };
 
+void test10()
+{
+    fm_assert(bptr<Foo>{} == bptr<Foo>{});
+    fm_assert(bptr<const Foo>{} == bptr<const Foo>{});
+    fm_assert(bptr<Foo>{} == bptr<const Foo>{});
+}
+
 } // namespace
 
 void Test::test_bptr()
@@ -346,6 +349,7 @@ void Test::test_bptr()
     test7();
     test8();
     test9();
+    test10();
 }
 
 } // namespace floormat

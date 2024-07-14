@@ -41,7 +41,7 @@ namespace floormat {
 
 template<typename T>
 template<typename... Ts>
-requires std::is_constructible_v<T, Ts&&...>
+requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
 bptr{ new T{ forward<Ts...>(args...) } }
 {
@@ -50,12 +50,7 @@ bptr{ new T{ forward<Ts...>(args...) } }
 template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
-template<typename T>
-bptr<T>::bptr(T* ptr) noexcept:
-    blk{ptr ? new detail_borrowed_ptr::control_block{ptr, 1} : nullptr}
-{
-    fm_bptr_assert(!blk || blk->_count == 1 && blk->_ptr);
-}
+template<typename T> bptr<T>::bptr(T* ptr) noexcept: blk{ptr ? new detail_borrowed_ptr::control_block{ptr, 1} : nullptr} {}
 
 template<typename T>
 bptr<T>::~bptr() noexcept
@@ -64,29 +59,39 @@ bptr<T>::~bptr() noexcept
         blk->decrement(blk);
 }
 
-template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, private_tag} {}
+template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, nullptr} {}
 template<typename T> bptr<T>& bptr<T>::operator=(const bptr& other) noexcept { return _copy_assign(other); }
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
-bptr<T>::bptr(const bptr<Y>& other) noexcept: bptr{other, private_tag} {}
+template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y>
+bptr<T>::bptr(const bptr<Y>& other) noexcept: bptr{other, nullptr} {}
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
+template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y>
 bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
 { return _copy_assign(other); }
 
 template<typename T> bptr<T>& bptr<T>::operator=(bptr&& other) noexcept { return _move_assign(move(other)); }
-template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), private_tag} {}
+template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), nullptr} {}
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
-bptr<T>::bptr(bptr<Y>&& other) noexcept: bptr{move(other), private_tag} {}
+template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y>
+bptr<T>::bptr(bptr<Y>&& other) noexcept: bptr{move(other), nullptr} {}
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
+template<detail_borrowed_ptr::DerivedFrom<std::remove_const_t<T>> Y>
 bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
 { return _move_assign(move(other)); }
+
+template<typename T>
+bptr<T>::operator bptr<const T>() const noexcept requires (!std::is_const_v<T>) {
+    if (blk && blk->_ptr)
+    {
+        ++blk->_count;
+        return bptr<const T>{};
+    }
+    return bptr<const T>{nullptr};
+}
 
 template<typename T>
 void bptr<T>::reset() noexcept
@@ -110,8 +115,11 @@ void bptr<T>::destroy() noexcept
 template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
 
 template<typename T>
+bptr<T>::bptr(detail_borrowed_ptr::control_block* blk) noexcept: blk{blk} { }
+
+template<typename T>
 template<typename Y>
-bptr<T>::bptr(const bptr<Y>& other, private_tag_t) noexcept:
+bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
     if (blk)
@@ -127,7 +135,7 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
-        CORRADE_ASSUME(this != &other); // todo! see if helps
+        CORRADE_ASSUME(this != &other); // todo see if helps
         if (blk)
             blk->decrement(blk);
         blk = other.blk;
@@ -139,7 +147,7 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 
 template<typename T>
 template<typename Y>
-bptr<T>::bptr(bptr<Y>&& other, private_tag_t) noexcept:
+bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
     other.blk = nullptr;
@@ -172,8 +180,10 @@ template<typename T> T* bptr<T>::operator->() const noexcept
 }
 
 template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
-template<typename T> bool operator==(const bptr<T>& a, const bptr<T>& b) noexcept { return a.get() == b.get(); }
+
 template<typename T> bptr<T>::operator bool() const noexcept { return get(); }
+template<typename T> bool bptr<T>::operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
+template<typename T> bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
 
 template<typename T>
 void bptr<T>::swap(bptr& other) noexcept
