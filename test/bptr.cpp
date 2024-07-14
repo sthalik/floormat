@@ -337,6 +337,8 @@ void test9()
 
 void test10()
 {
+    static_assert(std::is_same_v<bptr<const Foo>, std::decay_t<decltype( bptr{std::declval<const Foo*>()} )>>);
+
     fm_assert(bptr<Foo>{} == bptr<Foo>{});
     fm_assert(bptr<const Foo>{} == bptr<const Foo>{});
     fm_assert(bptr<Foo>{} == bptr<const Foo>{});
@@ -349,8 +351,22 @@ void test10()
 
     auto p4 = bptr<Foo>{InPlace, 4};    (void)p4;
     auto p5 = bptr<const Foo>{p4};      (void)p5;
+    //p4 = p5;
     fm_assert(p4->x == 4); fm_assert(p5->x == 4);
     fm_assert(p4 == p5);
+    p5 = p4;
+    fm_assert(p5->x == 4);
+    fm_assert(p4 == p5);
+    auto p6 = bptr<const Foo>{p5};      (void)p6;
+    //p4.swap(p5);
+    p5.swap(p6);
+    fm_assert(p5 == p6);
+    p6.destroy();
+    fm_assert(!p6);
+    fm_assert(p5 == p6);
+
+    (void)bptr<const bptr_base>{p6};
+    //(void)bptr<bptr_base>{p6};
 }
 
 } // namespace

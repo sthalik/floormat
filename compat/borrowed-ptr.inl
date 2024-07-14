@@ -134,7 +134,6 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
-        CORRADE_ASSUME(this != &other); // todo see if helps
         if (blk)
             blk->decrement(blk);
         blk = other.blk;
@@ -187,8 +186,7 @@ template<typename T> bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>
 template<typename T>
 void bptr<T>::swap(bptr& other) noexcept
 {
-    using floormat::swap;
-    swap(blk, other.blk);
+    floormat::swap(blk, other.blk);
 }
 
 template<typename T> uint32_t bptr<T>::use_count() const noexcept
