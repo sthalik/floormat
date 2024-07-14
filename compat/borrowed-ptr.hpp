@@ -16,13 +16,22 @@ namespace floormat {
 
 template<typename T> class bptr;
 
+struct bptr_base
+{
+    virtual ~bptr_base() noexcept;
+    bptr_base() noexcept;
+    bptr_base(const bptr_base&) noexcept;
+    bptr_base(bptr_base&&) noexcept;
+    bptr_base& operator=(const bptr_base&) noexcept;
+    bptr_base& operator=(bptr_base&&) noexcept;
+};
+
 template<typename T>
 class bptr final // NOLINT(*-special-member-functions)
 {
-    mutable T* casted_ptr;
-    detail_borrowed_ptr::control_block* blk;
+    static_assert(std::is_convertible_v<T*, bptr_base*>);
 
-    explicit bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block* blk) noexcept;
+    detail_borrowed_ptr::control_block* blk;
 
     struct private_tag_t final {};
     static constexpr private_tag_t private_tag{};
@@ -55,7 +64,7 @@ public:
     template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
     void reset() noexcept;
-    template<bool MaybeEmpty = true> void destroy() noexcept;
+    void destroy() noexcept;
     void swap(bptr& other) noexcept;
     uint32_t use_count() const noexcept;
 

@@ -8,16 +8,12 @@
 namespace floormat {
 
 namespace {
-struct Foo {};
+struct Foo : bptr_base {};
 struct Bar : Foo {};
-struct Baz {};
+struct Baz : bptr_base {};
 } // namespace
 
 // NOLINTBEGIN(*-use-anonymous-namespace)
-
-template struct detail_borrowed_ptr::control_block_impl<Foo>;
-template struct detail_borrowed_ptr::control_block_impl<Bar>;
-template struct detail_borrowed_ptr::control_block_impl<Baz>;
 
 template bool operator==(const bptr<Foo>&, const bptr<Foo>&) noexcept;
 template bool operator==(const bptr<Bar>&, const bptr<Bar>&) noexcept;
@@ -44,7 +40,7 @@ namespace {
 
 int A_total = 0, A_alive = 0; // NOLINT
 
-struct A
+struct A : bptr_base
 {
     int val, serial;
     explicit A(int val) : val{val}, serial{++A_total} { ++A_alive; }

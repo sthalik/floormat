@@ -26,57 +26,18 @@ namespace floormat::detail_borrowed_ptr {
 #endif
 struct control_block
 {
-    void* _ptr; // todo maybe add directly embeddable objects?
+    bptr_base* _ptr;
     uint32_t _count;
-    virtual void free_ptr() noexcept = 0;
     static void decrement(control_block*& blk) noexcept;
 };
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
+
 #endif
-
-template<typename T>
-struct control_block_impl final: control_block
-{
-    void free_ptr() noexcept override;
-    [[nodiscard]] static control_block* create(T* ptr) noexcept;
-protected:
-    explicit control_block_impl(T* ptr) noexcept;
-};
-
-template <typename T>
-control_block_impl<T>::control_block_impl(T* ptr) noexcept
-{
-    fm_bptr_assert(ptr);
-    _ptr = ptr;
-    _count = 1;
-}
-
-template <typename T>
-void control_block_impl<T>::free_ptr() noexcept
-{
-    delete static_cast<T*>(_ptr);
-}
-
-template <typename T>
-control_block* control_block_impl<T>::create(T* ptr) noexcept
-{
-    if (ptr)
-    {
-        auto* __restrict ret = new control_block_impl<T>{ptr};
-        return ret;
-    }
-    else
-        return nullptr;
-}
 
 } // namespace floormat::detail_borrowed_ptr
 
 namespace floormat {
-
-template<typename T> bptr<T>::bptr(DirectInitT, T* casted_ptr, detail_borrowed_ptr::control_block* blk) noexcept:
-    casted_ptr{casted_ptr}, blk{blk}
-{}
 
 template<typename T>
 template<typename... Ts>
@@ -86,13 +47,12 @@ bptr{ new T{ forward<Ts...>(args...) } }
 {
 }
 
-template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: casted_ptr{nullptr}, blk{nullptr} {}
+template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
 template<typename T>
 bptr<T>::bptr(T* ptr) noexcept:
-    casted_ptr{ptr},
-    blk{detail_borrowed_ptr::control_block_impl<T>::create(ptr)}
+    blk{ptr ? new detail_borrowed_ptr::control_block{ptr, 1} : nullptr}
 {
     fm_bptr_assert(!blk || blk->_count == 1 && blk->_ptr);
 }
@@ -133,23 +93,18 @@ void bptr<T>::reset() noexcept
 {
     if (blk)
     {
-        fm_bptr_assert(casted_ptr);
         blk->decrement(blk);
-        casted_ptr = nullptr;
         blk = nullptr;
     }
 }
 
 template<typename T>
-template<bool MaybeEmpty>
 void bptr<T>::destroy() noexcept
 {
-    if constexpr(MaybeEmpty)
-        if (!blk)
-            return;
-    blk->free_ptr();
+    if (!blk)
+        return;
+    delete blk->_ptr;
     blk->_ptr = nullptr;
-    casted_ptr = nullptr;
 }
 
 template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
@@ -157,7 +112,7 @@ template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { rese
 template<typename T>
 template<typename Y>
 bptr<T>::bptr(const bptr<Y>& other, private_tag_t) noexcept:
-    casted_ptr{other.casted_ptr}, blk{other.blk}
+    blk{other.blk}
 {
     if (blk)
     {
@@ -175,7 +130,6 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
         CORRADE_ASSUME(this != &other); // todo! see if helps
         if (blk)
             blk->decrement(blk);
-        casted_ptr = other.casted_ptr;
         blk = other.blk;
         if (blk)
             ++blk->_count;
@@ -186,9 +140,8 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 template<typename T>
 template<typename Y>
 bptr<T>::bptr(bptr<Y>&& other, private_tag_t) noexcept:
-    casted_ptr{other.casted_ptr}, blk{other.blk}
+    blk{other.blk}
 {
-    other.casted_ptr = nullptr;
     other.blk = nullptr;
 }
 
@@ -198,20 +151,15 @@ bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
 {
     if (blk)
         blk->decrement(blk);
-    casted_ptr = other.casted_ptr;
     blk = other.blk;
-    other.casted_ptr = nullptr;
     other.blk = nullptr;
     return *this;
 }
 
 template<typename T> T* bptr<T>::get() const noexcept
 {
-    if (blk && blk->_ptr) [[likely]]
-    {
-        fm_bptr_assert(casted_ptr);
-        return casted_ptr;
-    }
+    if (blk) [[likely]]
+        return static_cast<T*>(blk->_ptr);
     else
         return nullptr;
 }
@@ -231,7 +179,6 @@ template<typename T>
 void bptr<T>::swap(bptr& other) noexcept
 {
     using floormat::swap;
-    swap(casted_ptr, other.casted_ptr);
     swap(blk, other.blk);
 }
 

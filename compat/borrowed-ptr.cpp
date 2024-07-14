@@ -20,11 +20,11 @@ void control_block::decrement(control_block*& blk) noexcept
     fm_bptr_assert(c != (uint32_t)-1);
     if (c == 0)
     {
-        blk->free_ptr();
+        delete blk->_ptr;
         delete blk;
     }
-    //blk = nullptr;
-    blk = (control_block*)-1;
+    blk = nullptr;
+    //blk = (control_block*)-1;
 }
 
 #ifdef __clang__
@@ -36,3 +36,14 @@ void control_block::decrement(control_block*& blk) noexcept
 #endif
 
 } // namespace floormat::detail_borrowed_ptr
+
+namespace floormat {
+
+bptr_base::~bptr_base() noexcept = default;
+bptr_base::bptr_base() noexcept = default;
+bptr_base::bptr_base(const bptr_base&) noexcept = default;
+bptr_base::bptr_base(bptr_base&&) noexcept = default;
+bptr_base& bptr_base::operator=(const bptr_base&) noexcept = default;
+bptr_base& bptr_base::operator=(bptr_base&&) noexcept = default;
+
+} // namespace floormat

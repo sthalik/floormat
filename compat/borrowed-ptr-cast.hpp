@@ -22,11 +22,7 @@ bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
     if constexpr (detail_borrowed_ptr::StaticCastable<From, To>)
     {
         if (p.blk && p.blk->_ptr) [[likely]]
-        {
-            fm_assert(p.casted_ptr);
-            auto* ret = static_cast<To*>(p.casted_ptr);
-            return bptr<To>{DirectInit, ret, p.blk};
-        }
+            return bptr<To>{p, bptr<To>::private_tag};
     }
     else
     {
