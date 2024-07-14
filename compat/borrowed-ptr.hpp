@@ -53,15 +53,15 @@ public:
     bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     bptr& operator=(std::nullptr_t) noexcept;
 
-    CORRADE_ALWAYS_INLINE bptr(const bptr&) noexcept;
-    CORRADE_ALWAYS_INLINE bptr& operator=(const bptr&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr(const bptr<Y>&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr& operator=(const bptr<Y>&) noexcept;
+    bptr(const bptr&) noexcept;
+    bptr& operator=(const bptr&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
 
-    CORRADE_ALWAYS_INLINE bptr(bptr&&) noexcept;
-    CORRADE_ALWAYS_INLINE bptr& operator=(bptr&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr(bptr<Y>&&) noexcept;
-    template<detail_borrowed_ptr::DerivedFrom<T> Y> CORRADE_ALWAYS_INLINE bptr& operator=(bptr<Y>&&) noexcept;
+    bptr(bptr&&) noexcept;
+    bptr& operator=(bptr&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
+    template<detail_borrowed_ptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
     void reset() noexcept;
     void destroy() noexcept;
