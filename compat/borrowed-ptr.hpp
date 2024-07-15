@@ -13,6 +13,7 @@ concept StaticCastable = requires(From* from) {
 template<typename From, typename To>
 concept DerivedFrom = requires(From* x) {
     std::is_convertible_v<From*, To*>;
+    std::is_convertible_v<From*, const bptr_base*>;
 };
 
 } // namespace floormat::detail_bptr
@@ -34,21 +35,30 @@ class bptr final // NOLINT(*-special-member-functions)
 {
     detail_bptr::control_block* blk;
 
+    template<typename Y> bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
+    template<typename Y> bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
+    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
+    template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
+
 public:
     template<typename... Ts>
     requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
-    explicit bptr(T* ptr) noexcept requires std::is_convertible_v<const T*, const bptr_base*>;
+    template<detail_bptr::DerivedFrom<T> Y> explicit bptr(Y* ptr) noexcept;
     bptr() noexcept;
     ~bptr() noexcept;
 
     bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     bptr& operator=(std::nullptr_t) noexcept;
 
+    bptr(const bptr&) noexcept;
+    bptr& operator=(const bptr&) noexcept;
     template<detail_bptr::DerivedFrom<T> Y> bptr(const bptr<Y>&) noexcept;
     template<detail_bptr::DerivedFrom<T> Y> bptr& operator=(const bptr<Y>&) noexcept;
 
+    bptr(bptr&&) noexcept;
+    bptr& operator=(bptr&&) noexcept;
     template<detail_bptr::DerivedFrom<T> Y> bptr(bptr<Y>&&) noexcept;
     template<detail_bptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 

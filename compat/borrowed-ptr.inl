@@ -12,27 +12,22 @@
 #define fm_bptr_assert(...) void()
 #endif
 
+#if 0
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 #endif
 
 namespace floormat::detail_bptr {
 
-#ifdef __GNUG__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#endif
 struct control_block
 {
     bptr_base* _ptr;
     uint32_t _count;
     static void decrement(control_block*& blk) noexcept;
 };
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
-
-#endif
 
 } // namespace floormat::detail_bptr
 
@@ -48,15 +43,57 @@ bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
 template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
-template<typename T> bptr<T>::bptr(T* ptr) noexcept requires std::is_convertible_v<const T*, const bptr_base*>:
-    blk{ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<T>*>(ptr), 1} : nullptr}
+template<typename T>
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>::bptr(Y* ptr) noexcept:
+    blk{ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<Y>*>(ptr), 1} : nullptr}
 {}
 
 template<typename T> bptr<T>::~bptr() noexcept { if (blk) blk->decrement(blk); }
 
+template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, nullptr} {}
+template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), nullptr} {}
+template<typename T> bptr<T>& bptr<T>::operator=(const bptr& other) noexcept { return _copy_assign(other); }
+template<typename T> bptr<T>& bptr<T>::operator=(bptr&& other) noexcept { return _move_assign(move(other)); }
+
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>::bptr(const bptr<Y>& other) noexcept:
+    bptr{other, nullptr}
+{}
+
+template<typename T>
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
+{ return _copy_assign(other); }
+
+template<typename T>
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>::bptr(bptr<Y>&& other) noexcept:
+    bptr{move(other), nullptr}
+{}
+
+template<typename T>
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
+{ return _move_assign(move(other)); }
+
+template<typename T> void bptr<T>::reset() noexcept { if (blk) blk->decrement(blk); }
+
+template<typename T>
+void bptr<T>::destroy() noexcept
+{
+    if (!blk)
+        return;
+    delete blk->_ptr;
+    blk->_ptr = nullptr;
+}
+
+template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
+
+template<typename T>
+template<typename Y>
+bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
     if (blk)
@@ -64,8 +101,16 @@ bptr<T>::bptr(const bptr<Y>& other) noexcept:
 }
 
 template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
+template<typename Y>
+bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
+    blk{other.blk}
+{
+    other.blk = nullptr;
+}
+
+template<typename T>
+template<typename Y>
+bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
@@ -79,16 +124,8 @@ bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
 }
 
 template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>::bptr(bptr<Y>&& other) noexcept:
-    blk{other.blk}
-{
-    other.blk = nullptr;
-}
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
+template<typename Y>
+bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
 {
     if (blk)
         blk->decrement(blk);
@@ -96,24 +133,6 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
     other.blk = nullptr;
     return *this;
 }
-
-template<typename T>
-void bptr<T>::reset() noexcept
-{
-    if (blk)
-        blk->decrement(blk);
-}
-
-template<typename T>
-void bptr<T>::destroy() noexcept
-{
-    if (!blk)
-        return;
-    delete blk->_ptr;
-    blk->_ptr = nullptr;
-}
-
-template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
 
 template<typename T>
 T* bptr<T>::get() const noexcept
@@ -150,6 +169,8 @@ uint32_t bptr<T>::use_count() const noexcept
 
 } // namespace floormat
 
+#if 0
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
+#endif
 #endif
