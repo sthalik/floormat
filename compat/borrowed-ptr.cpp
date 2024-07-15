@@ -1,7 +1,7 @@
 #include "borrowed-ptr.inl"
 #include "compat/assert.hpp"
 
-namespace floormat::detail_borrowed_ptr {
+namespace floormat::detail_bptr {
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -34,7 +34,7 @@ void control_block::decrement(control_block*& blk) noexcept
 #pragma warning(pop)
 #endif
 
-} // namespace floormat::detail_borrowed_ptr
+} // namespace floormat::detail_bptr
 
 namespace floormat {
 

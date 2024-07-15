@@ -17,7 +17,7 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-namespace floormat::detail_borrowed_ptr {
+namespace floormat::detail_bptr {
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -34,85 +34,46 @@ struct control_block
 
 #endif
 
-} // namespace floormat::detail_borrowed_ptr
+} // namespace floormat::detail_bptr
 
 namespace floormat {
 
 template<typename T>
 template<typename... Ts>
-requires (std::is_constructible_v<std::remove_const_t<T>, Ts&&...> && std::is_convertible_v<T*, const bptr_base*>)
+requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
     bptr{ new std::remove_const_t<T>{ forward<Ts...>(args)... } }
 {}
 
-template<typename T>
-bptr<T>::bptr(std::nullptr_t) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
-    blk{nullptr}
+template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
+template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
+
+template<typename T> bptr<T>::bptr(T* ptr) noexcept requires std::is_convertible_v<const T*, const bptr_base*>:
+    blk{ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<T>*>(ptr), 1} : nullptr}
 {}
 
-template<typename T>
-bptr<T>::bptr() noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
-    bptr{nullptr}
-{}
+template<typename T> bptr<T>::~bptr() noexcept { if (blk) blk->decrement(blk); }
 
 template<typename T>
-bptr<T>::bptr(T* ptr) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
-    blk{ptr ? new detail_borrowed_ptr::control_block{const_cast<std::remove_const_t<T>*>(ptr), 1} : nullptr}
-{}
-
-template<typename T>
-bptr<T>::~bptr() noexcept
-{
-    if (blk)
-        blk->decrement(blk);
-}
-
-template<typename T>
-bptr<T>::bptr(const bptr& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
-    bptr{other, nullptr}
-{}
-
-template<typename T> bptr<T>& bptr<T>::operator=(const bptr& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>
-{ return _copy_assign(other); }
-
-template<typename T> template<detail_borrowed_ptr::DerivedFrom<T> Y>
-bptr<T>::bptr(const bptr<Y>& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>::bptr(const bptr<Y>& other) noexcept:
     bptr{other, nullptr}
 {}
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
+template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>
 { return _copy_assign(other); }
 
 template<typename T>
-bptr<T>& bptr<T>::operator=(bptr&& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>
-{ return _move_assign(move(other)); }
-
-template<typename T>
-bptr<T>::bptr(bptr&& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
-    bptr{move(other), nullptr}
-{}
-
-template<typename T> template<detail_borrowed_ptr::DerivedFrom<T> Y>
-bptr<T>::bptr(bptr<Y>&& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>:
+template<detail_bptr::DerivedFrom<T> Y>
+bptr<T>::bptr(bptr<Y>&& other) noexcept:
     bptr{move(other), nullptr}
 {}
 
 template<typename T>
-template<detail_borrowed_ptr::DerivedFrom<T> Y>
+template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>
 { return _move_assign(move(other)); }
 
 template<typename T>
@@ -131,14 +92,10 @@ void bptr<T>::destroy() noexcept
     blk->_ptr = nullptr;
 }
 
-template<typename T>
-bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept
-requires std::is_convertible_v<T*, const bptr_base*>
-{ reset(); return *this; }
+template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
 
 template<typename T>
 template<typename Y>
-requires std::is_convertible_v<T*, const bptr_base*>
 bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
@@ -148,7 +105,6 @@ bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
 
 template<typename T>
 template<typename Y>
-requires std::is_convertible_v<T*, const bptr_base*>
 bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
@@ -198,23 +154,11 @@ T* bptr<T>::operator->() const noexcept
     return ret;
 }
 
-template<typename T>
-T& bptr<T>::operator*() const noexcept { return *operator->(); }
-
-template<typename T>
-bptr<T>::operator bool() const noexcept { return get(); }
-
-template<typename T>
-bool bptr<T>::operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
-
-template<typename T>
-bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
-
-template<typename T>
-void bptr<T>::swap(bptr& other) noexcept
-{
-    floormat::swap(blk, other.blk);
-}
+template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
+template<typename T> bptr<T>::operator bool() const noexcept { return get(); }
+template<typename T> bool bptr<T>::operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
+template<typename T> bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
+template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
 template<typename T>
 uint32_t bptr<T>::use_count() const noexcept
