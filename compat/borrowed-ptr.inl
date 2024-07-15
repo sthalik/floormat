@@ -22,7 +22,7 @@
 
 namespace floormat::detail_bptr {
 
-struct control_block
+struct control_block final
 {
     bptr_base* _ptr;
     uint32_t _count;
