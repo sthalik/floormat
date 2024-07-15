@@ -20,24 +20,13 @@
 #endif
 #endif
 
-namespace floormat::detail_bptr {
-
-struct control_block final
-{
-    bptr_base* _ptr;
-    uint32_t _count;
-    static void decrement(control_block*& blk) noexcept;
-};
-
-} // namespace floormat::detail_bptr
-
 namespace floormat {
 
 template<typename T>
 template<typename... Ts>
 requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
-    bptr{ new std::remove_const_t<T>{ forward<Ts...>(args)... } }
+    bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
 
 template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
@@ -152,10 +141,17 @@ T* bptr<T>::operator->() const noexcept
 }
 
 template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
+
 template<typename T> bptr<T>::operator bool() const noexcept { return blk && blk->_ptr; }
+
 template<typename T> bool bptr<T>::operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
 template<typename T> bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
 template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->_ptr; }
+
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() <=> other.get(); }
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() <=> other.get(); }
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const std::nullptr_t&) const noexcept { return get() <=> nullptr; }
+
 template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
 template<typename T>

@@ -1,9 +1,17 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
+#include <compare>
+
+namespace floormat { struct bptr_base; }
 
 namespace floormat::detail_bptr {
 
-struct control_block;
+struct control_block final
+{
+    bptr_base* _ptr;
+    uint32_t _count;
+    static void decrement(control_block*& blk) noexcept;
+};
 
 template<typename From, typename To>
 concept StaticCastable = requires(From* from) {
@@ -72,9 +80,14 @@ public:
     T& operator*() const noexcept;
 
     explicit operator bool() const noexcept;
+
     bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
     bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
     bool operator==(const std::nullptr_t& other) const noexcept;
+
+    std::strong_ordering operator<=>(const bptr<const std::remove_const_t<T>>& other) const noexcept;
+    std::strong_ordering operator<=>(const bptr<std::remove_const_t<T>>& other) const noexcept;
+    std::strong_ordering operator<=>(const std::nullptr_t& other) const noexcept;
 
     template<typename U> friend class bptr;
 
