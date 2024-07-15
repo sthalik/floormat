@@ -57,24 +57,45 @@ template<typename T> bptr<T>::~bptr() noexcept { if (blk) blk->decrement(blk); }
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>::bptr(const bptr<Y>& other) noexcept:
-    bptr{other, nullptr}
-{}
+    blk{other.blk}
+{
+    if (blk)
+        ++blk->_count;
+}
 
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
-{ return _copy_assign(other); }
+{
+    if (blk != other.blk)
+    {
+        if (blk)
+            blk->decrement(blk);
+        blk = other.blk;
+        if (blk)
+            ++blk->_count;
+    }
+    return *this;
+}
 
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>::bptr(bptr<Y>&& other) noexcept:
-    bptr{move(other), nullptr}
-{}
+    blk{other.blk}
+{
+    other.blk = nullptr;
+}
 
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
-{ return _move_assign(move(other)); }
+{
+    if (blk)
+        blk->decrement(blk);
+    blk = other.blk;
+    other.blk = nullptr;
+    return *this;
+}
 
 template<typename T>
 void bptr<T>::reset() noexcept
@@ -95,49 +116,6 @@ void bptr<T>::destroy() noexcept
 template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
 
 template<typename T>
-template<typename Y>
-bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    if (blk)
-        ++blk->_count;
-}
-
-template<typename T>
-template<typename Y>
-bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    other.blk = nullptr;
-}
-
-template<typename T>
-template<typename Y>
-bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
-{
-    if (blk != other.blk)
-    {
-        if (blk)
-            blk->decrement(blk);
-        blk = other.blk;
-        if (blk)
-            ++blk->_count;
-    }
-    return *this;
-}
-
-template<typename T>
-template<typename Y>
-bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
-{
-    if (blk)
-        blk->decrement(blk);
-    blk = other.blk;
-    other.blk = nullptr;
-    return *this;
-}
-
-template<typename T>
 T* bptr<T>::get() const noexcept
 {
     if (blk) [[likely]]
@@ -155,9 +133,10 @@ T* bptr<T>::operator->() const noexcept
 }
 
 template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
-template<typename T> bptr<T>::operator bool() const noexcept { return get(); }
+template<typename T> bptr<T>::operator bool() const noexcept { return blk && blk->_ptr; }
 template<typename T> bool bptr<T>::operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
 template<typename T> bool bptr<T>::operator==(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() == other.get(); }
+template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->_ptr; }
 template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
 template<typename T>

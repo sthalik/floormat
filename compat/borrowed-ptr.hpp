@@ -34,11 +34,6 @@ class bptr final // NOLINT(*-special-member-functions)
 {
     detail_bptr::control_block* blk;
 
-    template<typename Y> bptr(const bptr<Y>& other, std::nullptr_t) noexcept;
-    template<typename Y> bptr(bptr<Y>&& other, std::nullptr_t) noexcept;
-    template<typename Y> bptr& _copy_assign(const bptr<Y>& other) noexcept;
-    template<typename Y> bptr& _move_assign(bptr<Y>&& other) noexcept;
-
 public:
     template<typename... Ts>
     requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
@@ -69,6 +64,7 @@ public:
     explicit operator bool() const noexcept;
     bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
     bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
+    bool operator==(const std::nullptr_t& other) const noexcept;
 
     template<typename U> friend class bptr;
 
@@ -82,7 +78,7 @@ requires detail_bptr::StaticCastable<From, To>
 bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
 {
     if (p.blk && p.blk->_ptr) [[likely]]
-        return bptr<To>{p, nullptr};
+        return bptr<To>{p};
     return bptr<To>{nullptr};
 }
 
