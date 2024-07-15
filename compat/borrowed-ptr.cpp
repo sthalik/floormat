@@ -15,7 +15,6 @@ namespace floormat::detail_borrowed_ptr {
 #endif
 void control_block::decrement(control_block*& blk) noexcept
 {
-    fm_bptr_assert(blk);
     auto c = --blk->_count;
     fm_bptr_assert(c != (uint32_t)-1);
     if (c == 0)

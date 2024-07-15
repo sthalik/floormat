@@ -143,10 +143,7 @@ bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
     if (blk)
-    {
         ++blk->_count;
-        fm_bptr_assert(blk->_count > 1);
-    }
 }
 
 template<typename T>
