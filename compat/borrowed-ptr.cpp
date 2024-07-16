@@ -10,8 +10,11 @@ void control_block::decrement(control_block*& blk) noexcept
     {
         delete blk->_ptr;
         blk->_ptr = nullptr;
+#ifdef FM_NO_WEAK_BPTR
+        delete blk;
+#endif
     }
-
+#ifndef FM_NO_WEAK_BPTR
     auto c = --blk->_soft_count;
     fm_bptr_assert(c != (uint32_t)-1);
     if (c == 0)
@@ -19,9 +22,11 @@ void control_block::decrement(control_block*& blk) noexcept
         fm_bptr_assert(!blk->_ptr);
         delete blk;
     }
+#endif
     blk = nullptr;
 }
 
+#ifndef FM_NO_WEAK_BPTR
 void control_block::weak_decrement(control_block*& blk) noexcept
 {
     if (!blk)
@@ -36,6 +41,7 @@ void control_block::weak_decrement(control_block*& blk) noexcept
     }
     blk = nullptr;
 }
+#endif
 
 } // namespace floormat::detail_bptr
 

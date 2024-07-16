@@ -3,6 +3,7 @@
 #include <compare>
 
 #define FM_BPTR_DEBUG
+#define FM_NO_WEAK_BPTR
 
 #ifdef __CLION_IDE__
 #define fm_bptr_assert(...) (void(__VA_ARGS__))
@@ -29,9 +30,14 @@ namespace floormat::detail_bptr {
 struct control_block final
 {
     bptr_base* _ptr;
-    uint32_t _soft_count, _hard_count;
+#ifndef FM_NO_WEAK_BPTR
+    uint32_t _soft_count;
+#endif
+    uint32_t _hard_count;
     static void decrement(control_block*& blk) noexcept;
+#ifndef FM_NO_WEAK_BPTR
     static void weak_decrement(control_block*& blk) noexcept;
+#endif
 };
 
 template<typename From, typename To>
@@ -65,7 +71,7 @@ public:
     //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
-    template<detail_bptr::DerivedFrom<T> Y> explicit bptr(Y* ptr) noexcept;
+    explicit bptr(T* ptr) noexcept;
     bptr() noexcept;
     ~bptr() noexcept;
 
@@ -119,6 +125,24 @@ public:
 
 template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 
+template<typename T>
+template<typename... Ts>
+//requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
+    bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
+{}
+
+template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
+
+template<typename T>
+bptr<T>::bptr(T* ptr) noexcept:
+    blk{ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<T>*>(ptr), 1,
+#ifndef FM_NO_WEAK_BPTR
+        1,
+#endif
+    } : nullptr}
+{}
+
 template<typename To, typename From>
 requires detail_bptr::StaticCastable<From, To>
 bptr<To> static_pointer_cast(bptr<From>&& p) noexcept
@@ -140,7 +164,9 @@ bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
     if (p.blk && p.blk->_ptr) [[likely]]
     {
         bptr<To> ret{nullptr};
+#ifndef FM_NO_WEAK_BPTR
         ++p.blk->_soft_count;
+#endif
         ++p.blk->_hard_count;
         ret.blk = p.blk;
         return ret;

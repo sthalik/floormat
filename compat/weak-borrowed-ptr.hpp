@@ -1,6 +1,10 @@
 #pragma once
 #include "borrowed-ptr.hpp"
 
+#ifdef FM_NO_WEAK_BPTR
+#error weak_bptr not supported!
+#endif
+
 namespace floormat {
 
 template<typename T>
