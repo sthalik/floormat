@@ -145,11 +145,15 @@ template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->
 
 template<typename T> bptr<T>::operator bool() const noexcept { return blk && blk->_ptr; }
 
-template<typename T>
-bool bptr<T>::operator==(const bptr<const T>& other) const noexcept
+template<typename T> bool bptr<T>::operator==(const bptr<const T>& other) const noexcept
 {
-    return !blk == !other.blk && blk->_ptr == other.blk->_ptr;
+    return blk ? (other.blk && blk->_ptr == other.blk->_ptr) : !other.blk;
 }
+template<typename T> bool bptr<T>::operator==(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>) {
+    return blk ? (other.blk && blk->_ptr == other.blk->_ptr) : !other.blk;
+}
+
+template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->_ptr; }
 
 template<typename T>
 std::strong_ordering bptr<T>::operator<=>(const bptr<const T>& other) const noexcept

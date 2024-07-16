@@ -24,25 +24,24 @@ struct control_block final
     static void weak_decrement(control_block*& blk) noexcept;
 };
 
+#if 0
 template<typename From, typename To>
-concept StaticCastable = requires(From* from) {
+concept StaticCastable = requires(From* from, To* to) {
     static_cast<To*>(from);
-    requires std::is_base_of_v<std::remove_cvref_t<From>, std::remove_cvref_t<To>>;
+    static_cast<const bptr_base*>(from);
+    static_cast<const bptr_base*>(to);
 };
 
 template<typename From, typename To>
-concept DerivedFrom = requires(From* x) {
-#if 0
+concept DerivedFrom = requires(From* from, To* to) {
+    static_cast<const bptr_base*>(from);
+    static_cast<const bptr_base*>(to);
     requires std::is_convertible_v<From*, To*>;
-    requires std::is_convertible_v<From*, const bptr_base*>;
-    requires std::is_convertible_v<To*, const bptr_base*>;
-    requires std::is_base_of_v<bptr_base, From>;
-    requires std::is_base_of_v<bptr_base, To>;
-    requires std::is_base_of_v<std::remove_cvref_t<To>, std::remove_cvref_t<From>>;
-#else
-    static_cast<To*>(std::declval<From*>());
-#endif
 };
+#else
+template<typename From, typename To> concept DerivedFrom = true;
+template<typename From, typename To> concept StaticCastable = true;
+#endif
 
 } // namespace floormat::detail_bptr
 
@@ -103,6 +102,9 @@ public:
     explicit operator bool() const noexcept;
 
     bool operator==(const bptr<const T>& other) const noexcept;
+    bool operator==(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>);
+    bool operator==(const std::nullptr_t& other) const noexcept;
+
     std::strong_ordering operator<=>(const bptr<const T>& other) const noexcept;
 
     template<typename U> friend class bptr;
