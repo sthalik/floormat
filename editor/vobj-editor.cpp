@@ -5,8 +5,7 @@
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
 #include "app.hpp"
-#include <array>
-#include <utility>
+#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/StringView.h>
 
 namespace floormat {

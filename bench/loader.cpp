@@ -3,7 +3,6 @@
 #include "loader/wall-cell.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/StringIterable.h>
 #include <benchmark/benchmark.h>

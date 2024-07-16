@@ -1,6 +1,5 @@
 #include "ground-atlas.hpp"
 #include "compat/exception.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "src/ground-atlas.hpp"
 #include "src/ground-def.hpp"
 #include "loader/loader.hpp"

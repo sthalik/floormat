@@ -1,6 +1,6 @@
 #include "wall-cell.hpp"
 #include "compat/exception.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/corrade-array.hpp"

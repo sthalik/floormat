@@ -3,12 +3,16 @@
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/BitArrayView.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
+
+template class bptr<anim_atlas>;
+template class bptr<const anim_atlas>;
 
 static constexpr const char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
 static constexpr inline auto rot_count = size_t(rotation_COUNT);

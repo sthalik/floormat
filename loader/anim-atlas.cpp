@@ -2,7 +2,7 @@
 #include "atlas-loader.inl"
 #include "anim-cell.hpp"
 #include "anim-traits.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 
 namespace floormat::loader_detail {
 

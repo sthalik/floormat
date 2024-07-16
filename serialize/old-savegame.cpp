@@ -1,5 +1,4 @@
 #include "binary-reader.inl"
-#include "compat/limits.hpp"
 #include "src/world.hpp"
 #include "src/scenery.hpp"
 #include "src/critter.hpp"
@@ -9,11 +8,13 @@
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/chunk-scenery.hpp"
-#include "compat/strerror.hpp"
 #include "src/tile.hpp"
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
 #include "src/object-type.hpp"
+#include "compat/limits.hpp"
+#include "compat/strerror.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <bit>
 #include <cerrno>
 #include <cstring>

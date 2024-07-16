@@ -1,7 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"

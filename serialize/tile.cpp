@@ -1,6 +1,5 @@
 #include "tile.hpp"
 #include "ground-atlas.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "src/tile.hpp"
 #include "src/global-coords.hpp"
 #include "src/ground-atlas.hpp"

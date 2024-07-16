@@ -1,12 +1,14 @@
 #include "light.hpp"
-#include "nanosecond.hpp"
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
-#include <cmath>
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
+
+template class bptr<light>;
+template class bptr<const light>;
 
 light_proto::light_proto()
 {

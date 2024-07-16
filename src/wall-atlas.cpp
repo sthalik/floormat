@@ -2,10 +2,17 @@
 #include "tile-constants.hpp"
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
-#include <utility>
+#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/GL/TextureFormat.h>
+
+namespace floormat {
+
+template class bptr<wall_atlas>;
+template class bptr<const wall_atlas>;
+
+} // namespace floormat
 
 namespace floormat::Wall {
 

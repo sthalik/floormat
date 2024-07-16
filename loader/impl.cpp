@@ -1,6 +1,5 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
 #include "wall-traits.hpp"
@@ -9,7 +8,6 @@
 #include "anim-cell.hpp"
 #include "scenery-traits.hpp"
 #include "scenery-cell.hpp"
-// todo scenery_traits
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"

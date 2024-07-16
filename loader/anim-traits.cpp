@@ -7,7 +7,6 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
-#include "compat/borrowed-ptr.inl"
 #include <cr/StringView.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>

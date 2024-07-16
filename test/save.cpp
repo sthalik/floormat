@@ -10,6 +10,7 @@
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <Corrade/Utility/Path.h>
 
 namespace floormat {

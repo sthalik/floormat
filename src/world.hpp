@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
 #include "compat/base-of.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"

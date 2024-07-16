@@ -1,6 +1,5 @@
 #include "shaders/lightmap.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"
 #include "src/tile-bbox.hpp"

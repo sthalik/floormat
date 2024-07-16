@@ -2,7 +2,6 @@
 #include "../app.hpp"
 #include "compat/array-size.hpp"
 #include "compat/vector-wrapper.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"

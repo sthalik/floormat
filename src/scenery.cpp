@@ -2,6 +2,7 @@
 #include "scenery-proto.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
 #include "rotation.inl"
@@ -10,6 +11,13 @@
 #include <mg/Functions.h>
 
 namespace floormat {
+
+template class bptr<generic_scenery>;
+template class bptr<const generic_scenery>;
+template class bptr<scenery>;
+template class bptr<const scenery>;
+template class bptr<door_scenery>;
+template class bptr<const door_scenery>;
 
 // --- scenery ---
 

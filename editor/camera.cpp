@@ -10,7 +10,7 @@
 #include "src/camera-offset.hpp"
 #include "src/timer.hpp"
 #include "compat/enum-bitset.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include <bit>
 #include <Magnum/Math/Functions.h>
 

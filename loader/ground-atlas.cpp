@@ -2,7 +2,7 @@
 #include "atlas-loader.inl"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include <Magnum/Math/Vector2.h>
 
 namespace floormat::loader_detail {

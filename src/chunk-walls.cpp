@@ -3,7 +3,6 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "shaders/shader.hpp"
-#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/Optional.h>

@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "src/tile-constants.hpp"
 #include "floormat/main.hpp"
 #include "floormat/draw-bounds.hpp"

@@ -4,7 +4,6 @@
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "compat/exception.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "loader/vobj-cell.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StridedArrayView.h>

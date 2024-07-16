@@ -8,8 +8,6 @@
 #include "src/scenery.hpp"
 #include "compat/borrowed-ptr.inl"
 
-#include <Magnum/Math/Range.h>
-
 namespace floormat {
 
 using rotation_t = std::underlying_type_t<enum rotation>;

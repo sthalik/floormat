@@ -6,8 +6,13 @@
 #include "tile-constants.hpp"
 #include "world.hpp"
 #include "compat/non-const.hpp"
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
+
+template class bptr<hole>;
+template class bptr<const hole>;
+
 namespace {
 
 void mark_chunk_modifiedʹ(chunk& c)

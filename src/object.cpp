@@ -21,6 +21,9 @@
 
 namespace floormat {
 
+template class bptr<object>;
+template class bptr<const object>;
+
 namespace {
 
 // todo rewrite using bitwise ops. try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1

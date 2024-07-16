@@ -20,6 +20,9 @@
 
 namespace floormat {
 
+template class bptr<critter>;
+template class bptr<const critter>;
+
 namespace {
 
 constexpr auto m_auto_mask = critter::move_u { .bits {.AUTO = true} };

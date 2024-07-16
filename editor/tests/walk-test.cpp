@@ -7,7 +7,6 @@
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
 #include "src/search-astar.hpp"
-#include "compat/borrowed-ptr.inl"
 #include <mg/Functions.h>
 
 namespace floormat::tests {

@@ -1,5 +1,4 @@
 #include "tile-image.hpp"
-#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 

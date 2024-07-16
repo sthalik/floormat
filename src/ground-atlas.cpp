@@ -1,8 +1,9 @@
 #include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "compat/assert.hpp"
-#include "tile-image.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "tile-image.hpp"
 #include "loader/loader.hpp"
 #include <limits>
 #include <Magnum/Math/Color.h>
@@ -10,6 +11,9 @@
 #include <Magnum/GL/TextureFormat.h>
 
 namespace floormat {
+
+template class bptr<ground_atlas>;
+template class bptr<const ground_atlas>;
 
 using namespace floormat::Quads;
 

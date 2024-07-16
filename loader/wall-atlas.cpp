@@ -3,7 +3,6 @@
 #include "loader/wall-cell.hpp"
 #include "loader/wall-traits.hpp"
 #include "loader/atlas-loader.inl"
-#include "compat/borrowed-ptr.inl"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/StringIterable.h>
 #include <Magnum/Trade/ImageData.h>

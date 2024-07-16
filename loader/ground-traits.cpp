@@ -5,7 +5,6 @@
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
 #include <cr/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>

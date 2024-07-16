@@ -1,7 +1,6 @@
 #include "tile.hpp"
 #include "tile-constants.hpp"
 #include "chunk.hpp"
-#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 

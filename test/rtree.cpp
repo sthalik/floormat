@@ -4,6 +4,7 @@
 #include "src/RTree.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 
