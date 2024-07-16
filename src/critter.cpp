@@ -190,7 +190,7 @@ bool update_movement_3way(size_t& i, critter& C, const anim_def& info)
 constexpr bool DoUnroll = true;
 
 template<rotation new_r>
-requires (((int)new_r & 1) % 2 != 0)
+requires ((int)new_r % 2 != 0)
 CORRADE_ALWAYS_INLINE
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes)
 {
