@@ -2,6 +2,16 @@
 #include "borrowed-ptr-fwd.hpp"
 #include <compare>
 
+#define FM_BPTR_DEBUG
+
+#ifdef __CLION_IDE__
+#define fm_bptr_assert(...) (void(__VA_ARGS__))
+#elif defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
+#define fm_bptr_assert(...) fm_assert(__VA_ARGS__)
+#else
+#define fm_bptr_assert(...) void()
+#endif
+
 namespace floormat { struct bptr_base; }
 
 namespace floormat::detail_bptr {
@@ -9,19 +19,29 @@ namespace floormat::detail_bptr {
 struct control_block final
 {
     bptr_base* _ptr;
-    uint32_t _count;
+    uint32_t _soft_count, _hard_count;
     static void decrement(control_block*& blk) noexcept;
+    static void weak_decrement(control_block*& blk) noexcept;
 };
 
 template<typename From, typename To>
 concept StaticCastable = requires(From* from) {
     static_cast<To*>(from);
+    requires std::is_base_of_v<std::remove_cvref_t<From>, std::remove_cvref_t<To>>;
 };
 
 template<typename From, typename To>
 concept DerivedFrom = requires(From* x) {
-    std::is_convertible_v<From*, To*>;
-    std::is_convertible_v<From*, const bptr_base*>;
+#if 0
+    requires std::is_convertible_v<From*, To*>;
+    requires std::is_convertible_v<From*, const bptr_base*>;
+    requires std::is_convertible_v<To*, const bptr_base*>;
+    requires std::is_base_of_v<bptr_base, From>;
+    requires std::is_base_of_v<bptr_base, To>;
+    requires std::is_base_of_v<std::remove_cvref_t<To>, std::remove_cvref_t<From>>;
+#else
+    static_cast<To*>(std::declval<From*>());
+#endif
 };
 
 } // namespace floormat::detail_bptr
@@ -50,7 +70,7 @@ class bptr final // NOLINT(*-special-member-functions)
 
 public:
     template<typename... Ts>
-    requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+    //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
     template<detail_bptr::DerivedFrom<T> Y> explicit bptr(Y* ptr) noexcept;
@@ -82,27 +102,49 @@ public:
 
     explicit operator bool() const noexcept;
 
-    bool operator==(const bptr<const std::remove_const_t<T>>& other) const noexcept;
-    bool operator==(const bptr<std::remove_const_t<T>>& other) const noexcept;
-    bool operator==(const std::nullptr_t& other) const noexcept;
-
-    std::strong_ordering operator<=>(const bptr<const std::remove_const_t<T>>& other) const noexcept;
-    std::strong_ordering operator<=>(const bptr<std::remove_const_t<T>>& other) const noexcept;
-    std::strong_ordering operator<=>(const std::nullptr_t& other) const noexcept;
+    bool operator==(const bptr<const T>& other) const noexcept;
+    std::strong_ordering operator<=>(const bptr<const T>& other) const noexcept;
 
     template<typename U> friend class bptr;
+    template<typename U> friend class weak_bptr;
+
+    template<typename To, typename From>
+    requires detail_bptr::StaticCastable<From, To>
+    friend bptr<To> static_pointer_cast(bptr<From>&& p) noexcept;
 
     template<typename To, typename From>
     requires detail_bptr::StaticCastable<From, To>
     friend bptr<To> static_pointer_cast(const bptr<From>& p) noexcept;
 };
 
+template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
+
+template<typename To, typename From>
+requires detail_bptr::StaticCastable<From, To>
+bptr<To> static_pointer_cast(bptr<From>&& p) noexcept
+{
+    if (p.blk && p.blk->_ptr) [[likely]]
+    {
+        bptr<To> ret{nullptr};
+        ret.blk = p.blk;
+        p.blk = nullptr;
+        return ret;
+    }
+    return bptr<To>{nullptr};
+}
+
 template<typename To, typename From>
 requires detail_bptr::StaticCastable<From, To>
 bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
 {
     if (p.blk && p.blk->_ptr) [[likely]]
-        return bptr<To>{p};
+    {
+        bptr<To> ret{nullptr};
+        ++p.blk->_soft_count;
+        ++p.blk->_hard_count;
+        ret.blk = p.blk;
+        return ret;
+    }
     return bptr<To>{nullptr};
 }
 
