@@ -71,6 +71,7 @@ public:
     template<detail_bptr::DerivedFrom<T> Y> bptr& operator=(bptr<Y>&&) noexcept;
 
     void reset() noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> void reset(Y* ptr) noexcept;
     void destroy() noexcept;
     void swap(bptr& other) noexcept;
     uint32_t use_count() const noexcept;

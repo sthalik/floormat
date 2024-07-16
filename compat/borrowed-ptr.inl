@@ -70,6 +70,15 @@ bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
 template<typename T> void bptr<T>::reset() noexcept { if (blk) blk->decrement(blk); }
 
 template<typename T>
+template<detail_bptr::DerivedFrom<T> Y>
+void bptr<T>::reset(Y* ptr) noexcept
+{
+    if (blk)
+        blk->decrement(blk);
+    blk = ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<Y>*>(ptr), 1} : nullptr;
+}
+
+template<typename T>
 void bptr<T>::destroy() noexcept
 {
     if (!blk)
@@ -150,7 +159,7 @@ template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexc
 
 template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<const std::remove_const_t<T>>& other) const noexcept { return get() <=> other.get(); }
 template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<std::remove_const_t<T>>& other) const noexcept { return get() <=> other.get(); }
-template<typename T> std::strong_ordering bptr<T>::operator<=>(const std::nullptr_t&) const noexcept { return get() <=> nullptr; }
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const std::nullptr_t&) const noexcept { return get() <=> (T*)nullptr; }
 
 template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
