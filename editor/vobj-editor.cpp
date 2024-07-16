@@ -128,13 +128,13 @@ bptr<object> hole_factory::make(world& w, object_id id, global_coords pos) const
 
 auto vobj_editor::make_vobj_type_map() -> std::map<String, vobj_>
 {
-    constexpr auto add = [](auto& m, std::unique_ptr<vobj_factory>&& x) {
+    constexpr auto add = [](auto& m, Pointer<vobj_factory>&& x) {
         StringView name = x->name(), descr = x->descr();
         m[name] = vobj_editor::vobj_{ name, descr, move(x) };
     };
     std::map<String, vobj_> map;
-    add(map, std::make_unique<light_factory>());
-    add(map, std::make_unique<hole_factory>());
+    add(map, Pointer<light_factory>{InPlace});
+    add(map, Pointer<hole_factory>{InPlace});
     return map;
 }
 

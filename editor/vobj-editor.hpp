@@ -2,9 +2,9 @@
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
-#include <memory>
 #include <map>
 #include <cr/String.h>
+#include <cr/Pointer.h>
 
 namespace floormat {
 
@@ -33,7 +33,7 @@ class vobj_editor final
 public:
     struct vobj_ final {
         String name, descr;
-        std::unique_ptr<vobj_factory> factory;
+        Pointer<vobj_factory> factory;
     };
     vobj_editor();
 

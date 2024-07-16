@@ -9,7 +9,6 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
-#include <memory>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Utility/Path.h>
 

@@ -4,8 +4,8 @@
 #include "src/global-coords.hpp"
 #include "src/world.hpp"
 #include <cr/StringView.h>
+#include <cr/Pointer.h>
 #include <bitset>
-#include <memory>
 #include <mg/Functions.h>
 
 #ifdef __GNUG__
@@ -49,7 +49,7 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
     constexpr size_t Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
     constexpr size_t BucketCount = Math::max(world::initial_capacity, size_t(Math::ceil(Iters / 0.2f)));
     uint32_t num_collisions = 0, iters = 0;
-    auto bitset_ = std::make_unique<std::bitset<BucketCount>>(false);
+    auto bitset_ = Pointer<std::bitset<BucketCount>>{InPlace, false};
     auto& bitset = *bitset_;
 
     for (int16_t j = -CoordMax; j <= CoordMax; j++)
