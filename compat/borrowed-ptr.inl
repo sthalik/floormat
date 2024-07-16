@@ -172,6 +172,37 @@ uint32_t bptr<T>::use_count() const noexcept
         return 0;
 }
 
+template<typename To, typename From>
+requires detail_bptr::StaticCastable<From, To>
+bptr<To> static_pointer_cast(bptr<From>&& p) noexcept
+{
+    if (p.blk && p.blk->_ptr) [[likely]]
+    {
+        bptr<To> ret{nullptr};
+        ret.blk = p.blk;
+        p.blk = nullptr;
+        return ret;
+    }
+    return bptr<To>{nullptr};
+}
+
+template<typename To, typename From>
+requires detail_bptr::StaticCastable<From, To>
+bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
+{
+    if (p.blk && p.blk->_ptr) [[likely]]
+    {
+        bptr<To> ret{nullptr};
+#ifndef FM_NO_WEAK_BPTR
+        ++p.blk->_soft_count;
+#endif
+        ++p.blk->_hard_count;
+        ret.blk = p.blk;
+        return ret;
+    }
+    return bptr<To>{nullptr};
+}
+
 } // namespace floormat
 
 #ifdef __GNUG__

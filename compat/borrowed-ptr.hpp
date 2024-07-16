@@ -56,6 +56,12 @@ concept DerivedFrom = requires(From* from, To* to) {
 
 namespace floormat {
 
+template<typename To, typename From> requires detail_bptr::StaticCastable<From, To>
+bptr<To> static_pointer_cast(bptr<From>&& p) noexcept;
+
+template<typename To, typename From> requires detail_bptr::StaticCastable<From, To>
+bptr<To> static_pointer_cast(const bptr<From>& p) noexcept;
+
 template<typename T>
 class bptr final // NOLINT(*-special-member-functions)
 {
@@ -69,13 +75,13 @@ class bptr final // NOLINT(*-special-member-functions)
 public:
     template<typename... Ts>
     //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-    explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
+    CORRADE_ALWAYS_INLINE explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
-    explicit bptr(T* ptr) noexcept;
-    bptr() noexcept;
+    CORRADE_ALWAYS_INLINE explicit bptr(T* ptr) noexcept;
+    CORRADE_ALWAYS_INLINE bptr() noexcept;
+    CORRADE_ALWAYS_INLINE bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     ~bptr() noexcept;
 
-    bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     bptr& operator=(std::nullptr_t) noexcept;
 
     bptr(const bptr<std::remove_const_t<T>>& ptr) noexcept requires std::is_const_v<T>;
@@ -123,7 +129,10 @@ public:
     friend bptr<To> static_pointer_cast(const bptr<From>& p) noexcept;
 };
 
-template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 
 template<typename T>
 template<typename... Ts>
@@ -132,6 +141,7 @@ bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
     bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
 
+template<typename T> bptr<T>::bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 template<typename T> bptr<T>::bptr() noexcept: bptr{nullptr} {}
 
 template<typename T>
@@ -143,35 +153,9 @@ bptr<T>::bptr(T* ptr) noexcept:
     } : nullptr}
 {}
 
-template<typename To, typename From>
-requires detail_bptr::StaticCastable<From, To>
-bptr<To> static_pointer_cast(bptr<From>&& p) noexcept
-{
-    if (p.blk && p.blk->_ptr) [[likely]]
-    {
-        bptr<To> ret{nullptr};
-        ret.blk = p.blk;
-        p.blk = nullptr;
-        return ret;
-    }
-    return bptr<To>{nullptr};
-}
-
-template<typename To, typename From>
-requires detail_bptr::StaticCastable<From, To>
-bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
-{
-    if (p.blk && p.blk->_ptr) [[likely]]
-    {
-        bptr<To> ret{nullptr};
-#ifndef FM_NO_WEAK_BPTR
-        ++p.blk->_soft_count;
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
 #endif
-        ++p.blk->_hard_count;
-        ret.blk = p.blk;
-        return ret;
-    }
-    return bptr<To>{nullptr};
-}
+
 
 } // namespace floormat
