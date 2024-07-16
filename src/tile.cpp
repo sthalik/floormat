@@ -1,7 +1,7 @@
 #include "tile.hpp"
 #include "tile-constants.hpp"
 #include "chunk.hpp"
-#include "ground-atlas.hpp"
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 
@@ -24,13 +24,13 @@ wall_image_proto tile_proto::wall_west() const noexcept  { return { wall_west_at
 
 tile_ref::tile_ref(class chunk& c, uint8_t i) noexcept : _chunk{&c}, i{i} {}
 
-std::shared_ptr<class ground_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground ? _chunk->_ground->atlases[i] : nullptr; }
-std::shared_ptr<class wall_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr; }
-std::shared_ptr<class wall_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr; }
+bptr<class ground_atlas> tile_ref::ground_atlas()     noexcept { return _chunk->_ground ? _chunk->_ground->atlases[i] : nullptr; }
+bptr<class wall_atlas> tile_ref::wall_north_atlas() noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr; }
+bptr<class wall_atlas> tile_ref::wall_west_atlas()  noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr; }
 
-std::shared_ptr<const class ground_atlas> tile_ref::ground_atlas() const noexcept { return _chunk->_ground ? _chunk->_ground->atlases[i] : nullptr; }
-std::shared_ptr<const class wall_atlas> tile_ref::wall_north_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr; }
-std::shared_ptr<const class wall_atlas> tile_ref::wall_west_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr; }
+bptr<const class ground_atlas> tile_ref::ground_atlas() const noexcept { return _chunk->_ground ? _chunk->_ground->atlases[i] : nullptr; }
+bptr<const class wall_atlas> tile_ref::wall_north_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr; }
+bptr<const class wall_atlas> tile_ref::wall_west_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr; }
 
 tile_image_ref tile_ref::ground() noexcept     { _chunk->ensure_alloc_ground(); return {_chunk->_ground->atlases[i], _chunk->_ground->variants[i] };     }
 wall_image_ref tile_ref::wall_north() noexcept { _chunk->ensure_alloc_walls(); return {_chunk->_walls->atlases[i*2+0], _chunk->_walls->variants[i*2+0] }; }

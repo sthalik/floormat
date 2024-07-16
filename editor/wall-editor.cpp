@@ -71,13 +71,13 @@ StringView wall_editor::name() const { return "wall"_s; }
 enum rotation wall_editor::rotation() const { return _r; }
 void wall_editor::set_rotation(enum rotation r) { _r = r; }
 void wall_editor::toggle_rotation() { _r = next_rot(_r); }
-std::shared_ptr<wall_atlas> wall_editor::get_selected() const { return _selected_atlas; }
-void wall_editor::select_atlas(const std::shared_ptr<wall_atlas>& atlas) { _selected_atlas = atlas; }
+bptr<wall_atlas> wall_editor::get_selected() const { return _selected_atlas; }
+void wall_editor::select_atlas(const bptr<wall_atlas>& atlas) { _selected_atlas = atlas; }
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
-bool wall_editor::is_atlas_selected(const std::shared_ptr<wall_atlas>& atlas) const { return _selected_atlas == atlas; }
+bool wall_editor::is_atlas_selected(const bptr<wall_atlas>& atlas) const { return _selected_atlas == atlas; }
 bool wall_editor::is_anything_selected() const { return _selected_atlas != nullptr; }
 
-void wall_editor::place_tile(world& w, global_coords coords, const std::shared_ptr<wall_atlas>& atlas)
+void wall_editor::place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {
     auto [c, t] = w[coords];
     switch (_r)

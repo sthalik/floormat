@@ -70,7 +70,7 @@ light::operator light_proto() const
 }
 
 object_type light::type() const noexcept { return object_type::light; }
-void light::update(const std::shared_ptr<object>&, size_t&, const Ns&) {}
+void light::update(const bptr<object>&, size_t&, const Ns&) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "src/pass-mode.hpp"
-#include <memory>
+#include "compat/borrowed-ptr.hpp"
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 
@@ -10,7 +10,7 @@ class ground_atlas;
 
 struct ground_cell
 {
-    std::shared_ptr<ground_atlas> atlas;
+    bptr<ground_atlas> atlas;
     String name;
     Vector2ub size;
     pass_mode pass = pass_mode::pass;

@@ -7,7 +7,6 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
-#include <memory>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Utility/Path.h>
 
@@ -18,7 +17,7 @@ typename std::map<StringView, ground_cell>::const_iterator ground_editor::end() 
 
 struct ground_editor::tuple
 {
-    std::shared_ptr<ground_atlas> atlas;
+    bptr<ground_atlas> atlas;
     Array<variant_t> variant;
 };
 
@@ -43,7 +42,7 @@ void ground_editor::load_atlases()
     fm_assert(!_atlases.empty());
 }
 
-std::shared_ptr<ground_atlas> ground_editor::maybe_atlas(StringView str)
+bptr<ground_atlas> ground_editor::maybe_atlas(StringView str)
 {
     if (auto it = _atlases.find(str); it != _atlases.end())
         return it->second.atlas;
@@ -51,7 +50,7 @@ std::shared_ptr<ground_atlas> ground_editor::maybe_atlas(StringView str)
         return nullptr;
 }
 
-std::shared_ptr<ground_atlas> ground_editor::atlas(StringView str)
+bptr<ground_atlas> ground_editor::atlas(StringView str)
 {
     if (auto ptr = maybe_atlas(str))
         return ptr;
@@ -68,7 +67,7 @@ void ground_editor::clear_selection()
     _selection_mode = sel_none;
 }
 
-void ground_editor::select_tile(const std::shared_ptr<ground_atlas>& atlas, size_t variant)
+void ground_editor::select_tile(const bptr<ground_atlas>& atlas, size_t variant)
 {
     fm_assert(atlas);
     clear_selection();
@@ -76,7 +75,7 @@ void ground_editor::select_tile(const std::shared_ptr<ground_atlas>& atlas, size
     _selected_tile = { atlas, variant_t(variant % atlas->num_tiles()) };
 }
 
-void ground_editor::select_tile_permutation(const std::shared_ptr<ground_atlas>& atlas)
+void ground_editor::select_tile_permutation(const bptr<ground_atlas>& atlas)
 {
     fm_assert(atlas);
     clear_selection();
@@ -84,19 +83,19 @@ void ground_editor::select_tile_permutation(const std::shared_ptr<ground_atlas>&
     *_permutation = { atlas, {} };
 }
 
-bool ground_editor::is_tile_selected(const std::shared_ptr<const ground_atlas>& atlas, size_t variant) const
+bool ground_editor::is_tile_selected(const bptr<const ground_atlas>& atlas, size_t variant) const
 {
     return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;
 }
 
-bool ground_editor::is_permutation_selected(const std::shared_ptr<const ground_atlas>& atlas) const
+bool ground_editor::is_permutation_selected(const bptr<const ground_atlas>& atlas) const
 {
     const auto& [perm, _] = *_permutation;
     return atlas && _selection_mode == sel_perm && perm == atlas;
 }
 
-bool ground_editor::is_atlas_selected(const std::shared_ptr<const ground_atlas>& atlas) const
+bool ground_editor::is_atlas_selected(const bptr<const ground_atlas>& atlas) const
 {
     switch (_selection_mode)
     {

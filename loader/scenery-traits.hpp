@@ -1,6 +1,6 @@
 #pragma once
 #include "atlas-loader-fwd.hpp"
-#include <memory>
+#include "compat/borrowed-ptr.hpp"
 
 namespace floormat { struct scenery_cell; struct scenery_proto; }
 

@@ -1,17 +1,16 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
 #include "compat/base-of.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
-#include <memory>
 #include <unordered_map>
 
 namespace floormat {
 
-template<typename T> struct shared_ptr_wrapper;
 struct object;
 struct critter;
 struct critter_proto;
@@ -36,12 +35,17 @@ private:
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
 
+    struct unique_id : bptr_base
+    {
+        bool operator==(const unique_id& other) const;
+    };
+
     struct object_id_hasher { size_t operator()(object_id id) const noexcept; };
 
     struct robin_map_wrapper;
     std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     safe_ptr<robin_map_wrapper> _objects;
-    std::shared_ptr<char> _unique_id = std::make_shared<char>('A');
+    bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct object
     bool _teardown : 1 = false;
@@ -50,9 +54,9 @@ private:
 
     explicit world(size_t capacity);
 
-    void do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
+    void do_make_object(const bptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
     void erase_object(object_id id);
-    std::shared_ptr<object> find_object_(object_id id);
+    bptr<object> find_object_(object_id id);
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);
@@ -89,19 +93,19 @@ public:
         T{object_id(), c, std::declval<Xs&&>()...};
         std::is_base_of_v<object, T>;
     }
-    std::shared_ptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
+    bptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)
     {
-        auto ret = std::shared_ptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
-        do_make_object(std::static_pointer_cast<object>(ret), pos, sorted);
+        auto ret = bptr<T>(new T{id, operator[](pos.chunk3()), forward<Xs>(xs)...});
+        do_make_object(ret, pos, sorted);
         return ret;
     }
 
-    template<bool sorted = true> std::shared_ptr<scenery> make_scenery(object_id id, global_coords pos, scenery_proto&& proto);
-    template<typename T = object> std::shared_ptr<T> find_object(object_id id);
-    template<typename T> requires is_strict_base_of<scenery, T> std::shared_ptr<T> find_object(object_id id);
+    template<bool sorted = true> bptr<scenery> make_scenery(object_id id, global_coords pos, scenery_proto&& proto);
+    template<typename T = object> bptr<T> find_object(object_id id);
+    template<typename T> requires is_strict_base_of<scenery, T> bptr<T> find_object(object_id id);
 
-    shared_ptr_wrapper<critter> ensure_player_character(object_id& id, critter_proto p);
-    shared_ptr_wrapper<critter> ensure_player_character(object_id& id);
+    bptr<critter> ensure_player_character(object_id& id, critter_proto p);
+    bptr<critter> ensure_player_character(object_id& id);
     static critter_proto make_player_proto();
 
     struct script_status { bool initialized, finalized; };

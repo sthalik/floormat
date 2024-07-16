@@ -184,7 +184,7 @@ template<> struct entity_accessors<hole, inspect_intent_t>
 template<typename, typename = void> struct has_anim_atlas : std::false_type {};
 
 template<typename T>
-requires requires (const T& x) { { x.atlas } -> std::convertible_to<const std::shared_ptr<anim_atlas>&>; }
+requires requires (const T& x) { { x.atlas } -> std::convertible_to<const bptr<anim_atlas>&>; }
 struct has_anim_atlas<T> : std::true_type {
     static const anim_atlas& get_atlas(const object& x) { return *x.atlas; }
 };

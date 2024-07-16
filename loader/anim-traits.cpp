@@ -7,6 +7,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <cr/StringView.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
@@ -19,8 +20,8 @@ namespace floormat::loader_detail {
 
 using anim_traits = atlas_loader_traits<anim_atlas>;
 StringView anim_traits::loader_name() { return "anim_atlas"_s; }
-auto anim_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
-auto anim_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
+auto anim_traits::atlas_of(const Cell& x) -> const bptr<Atlas>& { return x.atlas; }
+auto anim_traits::atlas_of(Cell& x) -> bptr<Atlas>& { return x.atlas; }
 StringView anim_traits::name_of(const Cell& x) { return x.name; }
 String& anim_traits::name_of(Cell& x) { return x.name; }
 
@@ -57,7 +58,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
         .scale = anim_scale::fixed{size.x(), true},
         .nframes = 1,
     };
-    auto atlas = std::make_shared<class anim_atlas>(loader.INVALID, loader.make_error_texture(size), move(def));
+    auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, loader.make_error_texture(size), move(def)};
     auto info = anim_cell {
         .atlas = atlas,
         .name = loader.INVALID,
@@ -65,7 +66,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     return info;
 }
 
-auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
+auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
 {
     char buf[fm_FILENAME_MAX];
     auto json_path = loader.make_atlas_path(buf, {}, name, ".json"_s);
@@ -96,7 +97,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     const auto width = size[1], height = size[0];
     fm_soft_assert(anim_info.pixel_size[0] == width && anim_info.pixel_size[1] == height);
 
-    auto atlas = std::make_shared<class anim_atlas>(name, tex, move(anim_info));
+    auto atlas = bptr<class anim_atlas>{InPlace, name, tex, move(anim_info)};
     return atlas;
 }
 

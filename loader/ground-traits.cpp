@@ -5,6 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <cr/Optional.h>
 #include <Corrade/Containers/StringView.h>
 #include <Corrade/Containers/Pointer.h>
@@ -15,8 +16,8 @@ namespace floormat::loader_detail {
 
 using ground_traits = atlas_loader_traits<ground_atlas>;
 StringView ground_traits::loader_name() { return "ground_atlas"_s; }
-auto ground_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
-auto ground_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
+auto ground_traits::atlas_of(const Cell& x) -> const bptr<Atlas>& { return x.atlas; }
+auto ground_traits::atlas_of(Cell& x) -> bptr<Atlas>& { return x.atlas; }
 StringView ground_traits::name_of(const Cell& x) { return x.name; }
 String& ground_traits::name_of(Cell& x) { return x.name; }
 
@@ -30,17 +31,17 @@ void ground_traits::atlas_list(Storage& s)
 auto ground_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
-    auto atlas = std::make_shared<Atlas>(
+    auto atlas = bptr<Atlas>{InPlace,
         ground_def{loader.INVALID, Vector2ub{1,1}, pass_mode::pass},
-        loader.make_error_texture(Vector2ui(tile_size_xy)));
+        loader.make_error_texture(Vector2ui(tile_size_xy))};
     return ground_cell{ atlas, atlas->name(), atlas->num_tiles2(), atlas->pass_mode() };
 }
 
-auto ground_traits::make_atlas(StringView name, const Cell& c) -> std::shared_ptr<Atlas>
+auto ground_traits::make_atlas(StringView name, const Cell& c) -> bptr<Atlas>
 {
     auto def = ground_def{name, c.size, c.pass};
     auto tex = loader.texture(loader.GROUND_TILESET_PATH, name);
-    auto atlas = std::make_shared<Atlas>(def, tex);
+    auto atlas = bptr<Atlas>{InPlace, def, tex};
     return atlas;
 }
 

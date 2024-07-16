@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/borrowed-ptr.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
@@ -106,7 +107,7 @@ struct wall_atlas_def final
                           std::array<Wall::DirArrayIndex, Wall::Direction_COUNT> dir_map);
 };
 
-class wall_atlas final
+class wall_atlas final : public bptr_base
 {
     using Frame = Wall::Frame;
     using Group = Wall::Group;
@@ -129,7 +130,7 @@ class wall_atlas final
 public:
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(wall_atlas);
     wall_atlas() noexcept;
-    ~wall_atlas() noexcept;
+    ~wall_atlas() noexcept override;
     wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);
     void serialize(StringView filename) const;
 

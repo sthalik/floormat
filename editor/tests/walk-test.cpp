@@ -1,5 +1,4 @@
 #include "../tests-private.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "editor/app.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
@@ -8,6 +7,7 @@
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
 #include "src/search-astar.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <mg/Functions.h>
 
 namespace floormat::tests {
@@ -43,7 +43,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
     {
         if (auto ptʹ = a.cursor_state().point())
         {
-            auto C = a.ensure_player_character(m.world()).ptr;
+            auto C = a.ensure_player_character(m.world());
             fm_assert(C->is_dynamic());
 
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
@@ -63,7 +63,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
     }
     else if (e.button == mouse_button_right && is_down)
     {
-        auto C = a.ensure_player_character(m.world()).ptr;
+        auto C = a.ensure_player_character(m.world());
         C->script.do_clear(C);
     }
     return false;

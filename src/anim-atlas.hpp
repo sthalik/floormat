@@ -3,6 +3,7 @@
 #include "rotation.hpp"
 #include "anim.hpp"
 #include "src/quads.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include <array>
 #include <Corrade/Containers/BitArray.h>
 #include <Corrade/Containers/String.h>
@@ -12,7 +13,7 @@
 
 namespace floormat {
 
-class anim_atlas final
+class anim_atlas final : public bptr_base
 {
     using texcoords = Quads::texcoords;
     using quad = Quads::quad;
@@ -31,7 +32,7 @@ class anim_atlas final
 public:
     anim_atlas() noexcept;
     anim_atlas(String name, const ImageView2D& tex, anim_def info);
-    ~anim_atlas() noexcept;
+    ~anim_atlas() noexcept override;
 
     anim_atlas(anim_atlas&&) noexcept;
     anim_atlas& operator=(anim_atlas&&) noexcept;

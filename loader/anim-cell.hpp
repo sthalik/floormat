@@ -1,5 +1,5 @@
 #pragma once
-#include <memory>
+#include "compat/borrowed-ptr.hpp"
 #include <Corrade/Containers/String.h>
 
 namespace floormat {
@@ -8,7 +8,7 @@ class anim_atlas;
 
 struct anim_cell
 {
-    std::shared_ptr<anim_atlas> atlas;
+    bptr<anim_atlas> atlas;
     String name;
 };
 

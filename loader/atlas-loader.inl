@@ -5,7 +5,6 @@
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader/loader.hpp"
-#include <memory>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
 #include <cr/GrowableArray.h>

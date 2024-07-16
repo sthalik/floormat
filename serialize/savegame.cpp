@@ -5,6 +5,7 @@
 #include "compat/strerror.hpp"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -23,7 +24,6 @@
 #include <cstdio>
 #include <compare>
 #include <concepts>
-#include <memory>
 #include <vector>
 #include <algorithm>
 #include <Corrade/Utility/Path.h>
@@ -402,7 +402,7 @@ struct writer final : visitor_<writer, true, true>
     template<typename F> static void visit(const local_coords& pt, F&& f) { visit(pt.to_index(), f); }
     template<typename F> void visit(StringView name, F&& f) { visit(intern_string(name), f); }
 
-    template<typename F> void visit(qual<std::shared_ptr<anim_atlas>>& a, atlas_type type, F&& f)
+    template<typename F> void visit(qual<bptr<anim_atlas>>& a, atlas_type type, F&& f)
     { atlasid id = intern_atlas(a, type); visit(id, f); }
 
     template<typename F> void write_scenery_proto(const scenery& obj, F&& f)
@@ -483,7 +483,7 @@ ok:     void();
         visit(intern_string(name), f);
     }
 
-    template<typename T> [[nodiscard]] atlasid intern_atlas(const std::shared_ptr<T>& atlas_, atlas_type type)
+    template<typename T> [[nodiscard]] atlasid intern_atlas(const bptr<T>& atlas_, atlas_type type)
     {
         const void* atlas = atlas_.get();
         atlas_array.reserve(vector_initial_size);
@@ -512,7 +512,7 @@ ok:     void();
         }
     }
 
-    template<typename T> atlasid maybe_intern_atlas(const std::shared_ptr<T>& atlas, atlas_type type)
+    template<typename T> atlasid maybe_intern_atlas(const bptr<T>& atlas, atlas_type type)
     {
         if (!atlas)
             return null<atlasid>;
@@ -533,7 +533,7 @@ ok:     void();
     template<typename F> void serialize_objects_(chunk& c, F&& f)
     {
         uint32_t count = 0;
-        for (const std::shared_ptr<object>& obj : c.objects())
+        for (const bptr<object>& obj : c.objects())
         {
             if (obj->ephemeral)
                 continue;
@@ -541,7 +541,7 @@ ok:     void();
         }
         visit(count, f);
 
-        for (const std::shared_ptr<object>& obj : c.objects())
+        for (const bptr<object>& obj : c.objects())
         {
             fm_assert(obj != nullptr);
             if (obj->ephemeral)
@@ -798,7 +798,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     template<typename F> static void visit(local_coords& pt, F&& f)
     { uint8_t i; f(i); pt = local_coords{i}; }
 
-    template<typename F> void visit(std::shared_ptr<anim_atlas>& a, atlas_type type, F&& f)
+    template<typename F> void visit(bptr<anim_atlas>& a, atlas_type type, F&& f)
     {
         atlasid id = (atlasid)-1;
         f(id);
@@ -819,7 +819,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     }
 
     template<typename F>
-    void read_scenery(std::shared_ptr<scenery>& ret, const object_proto& pʹ, const object_header_s& h, F&& f)
+    void read_scenery(bptr<scenery>& ret, const object_proto& pʹ, const object_header_s& h, F&& f)
     {
         const auto coord = global_coords{h.ch->coord(), h.tile};
         auto sc_type = scenery_type::none;
@@ -852,7 +852,7 @@ ok:
     }
 
     template<typename Obj, typename Proto, typename Header>
-    std::shared_ptr<object> make_object(const object_header_s& h0, object_proto&& p0, Header&& h, auto&& f)
+    bptr<object> make_object(const object_header_s& h0, object_proto&& p0, Header&& h, auto&& f)
     {
         fm_soft_assert(h0.id  != 0);
 
@@ -867,7 +867,7 @@ ok:
 
     template<typename F> void read_object(chunk* ch, F&& f)
     {
-        std::shared_ptr<object> obj;
+        bptr<object> obj;
         object_id id = 0;
         auto type = object_type::none;
         local_coords tile;
@@ -899,7 +899,7 @@ ok:
             obj = make_object<light, light_proto, std::nullptr_t>(s, move(p), {}, f);
             goto ok;
         case object_type::scenery: {
-            std::shared_ptr<scenery> objʹ;
+            bptr<scenery> objʹ;
             read_scenery(objʹ, move(p), s, f);
             obj = move(objʹ);
             goto ok;

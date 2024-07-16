@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
@@ -27,10 +27,11 @@ Optional<struct point> cursor_state::point() const
 floormat_main& app::main() { return *M; }
 const cursor_state& app::cursor_state() { return cursor; }
 
-shared_ptr_wrapper<critter> app::ensure_player_character(world& w)
+bptr<critter> app::ensure_player_character(world& w)
 {
     return w.ensure_player_character(_character_id);
 }
+
 void app::reset_world()
 {
     if (M)

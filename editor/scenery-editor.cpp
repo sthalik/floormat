@@ -6,6 +6,7 @@
 #include "src/rotation.inl"
 #include "app.hpp"
 #include "src/scenery.hpp"
+#include "compat/borrowed-ptr.inl"
 
 #include <Magnum/Math/Range.h>
 
@@ -68,7 +69,7 @@ auto scenery_editor::get_selected() const -> const scenery_&
     return _selected;
 }
 
-bool scenery_editor::is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const
+bool scenery_editor::is_atlas_selected(const bptr<anim_atlas>& atlas) const
 {
     return atlas == _selected.proto.atlas;
 }

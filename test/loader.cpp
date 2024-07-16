@@ -7,6 +7,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/scenery-proto.hpp"
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 

@@ -1,7 +1,8 @@
-#include "serialize/tile.hpp"
+#include "tile.hpp"
+#include "ground-atlas.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/tile.hpp"
 #include "src/global-coords.hpp"
-#include "serialize/ground-atlas.hpp"
 #include "src/ground-atlas.hpp"
 #include <tuple>
 #include <nlohmann/json.hpp>
@@ -9,8 +10,6 @@
 namespace floormat {
 
 using nlohmann::json;
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(tile_image_proto, atlas, variant)
 
 inline void to_json(json& j, const tile_image_ref& val) { j = tile_image_proto(val); }
 inline void from_json(const json& j, tile_image_ref& val) { val = tile_image_proto(j); }
@@ -28,12 +27,26 @@ inline void from_json(const json& j, global_coords& coord) { std::tuple<chunk_co
 
 } // namespace floormat
 
-using namespace floormat;
-
 namespace nlohmann {
+
+using namespace floormat;
 
 void adl_serializer<tile_image_ref>::to_json(json& j, const tile_image_ref& val) { using nlohmann::to_json; if (val.atlas) to_json(j, val); else j = nullptr; }
 void adl_serializer<tile_image_ref>::from_json(const json& j, tile_image_ref& val) { using nlohmann::from_json; if (j.is_null()) val = {}; else from_json(j, val); }
+
+void adl_serializer<tile_image_proto>::to_json(json& j, const floormat::tile_image_proto& val)
+{
+    using nlohmann::to_json;
+    j["atlas"] = val.atlas;
+    j["variant"] = val.variant;
+}
+
+void adl_serializer<tile_image_proto>::from_json(const json& j, floormat::tile_image_proto& val)
+{
+    using nlohmann::from_json;
+    val.atlas = j["atlas"];
+    val.variant = j["variant"];
+}
 
 void adl_serializer<local_coords>::to_json(json& j, const local_coords& val) { using nlohmann::to_json; to_json(j, local_coords_{val.x, val.y}); }
 void adl_serializer<local_coords>::from_json(const json& j, local_coords& val) { using nlohmann::from_json; local_coords_ proxy{}; from_json(j, proxy); val = {proxy.x, proxy.y}; }

@@ -32,7 +32,7 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(const std::shared_ptr<object>& ptr, size_t& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
     void update_movement(size_t& i, const Ns& dt, rotation r);
 
     struct move_result { bool blocked, moved; };
@@ -41,8 +41,8 @@ struct critter final : object
     Vector2 ordinal_offset(Vector2b offset) const override;
     float depth_offset() const override;
 
-    void init_script(const std::shared_ptr<object>& ptr) override;
-    void destroy_script_pre(const std::shared_ptr<object>& ptr, script_destroy_reason r) override;
+    void init_script(const bptr<object>& ptr) override;
+    void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r) override;
     void destroy_script_post() override;
 
     void clear_auto_movement();

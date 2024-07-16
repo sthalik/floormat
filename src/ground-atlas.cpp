@@ -47,10 +47,10 @@ auto ground_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, si
     return texcoords_at(p0, sz, pixel_size);
 }
 
-auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> std::unique_ptr<const texcoords[]>
+auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> Array<texcoords>
 {
     const size_t N = Vector2ui{tile_count}.product();
-    auto ptr = std::make_unique<std::array<Vector2, 4>[]>(N);
+    auto ptr = Array<texcoords>{NoInit, N};
     for (auto i = 0uz; i < N; i++)
         ptr[i] = make_texcoords(pixel_size, tile_count, i);
     return ptr;

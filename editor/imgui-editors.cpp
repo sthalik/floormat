@@ -2,6 +2,7 @@
 #include "src/tile-constants.hpp"
 #include "compat/array-size.hpp"
 #include "compat/format.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "imgui-raii.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"
@@ -44,9 +45,9 @@ StringView scenery_path(const wall_cell& wa) { return wa.atlas->name(); }
 StringView scenery_name(StringView, const scenery_& sc) { return sc.name; }
 StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
 StringView scenery_name(StringView, const wall_cell& w) { return w.name; }
-std::shared_ptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
-std::shared_ptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
-std::shared_ptr<wall_atlas> get_atlas(const wall_cell& w) { return w.atlas; }
+bptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
+bptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
+bptr<wall_atlas> get_atlas(const wall_cell& w) { return w.atlas; }
 Vector2ui get_size(const auto&, anim_atlas& atlas) { return atlas.frame(atlas.first_rotation(), 0).size; }
 Vector2ui get_size(const auto&, wall_atlas& atlas) { auto sz = atlas.image_size(); return { std::max(1u, std::min(sz.y()*3/2, sz.x())), sz.y() }; }
 bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }
@@ -58,7 +59,7 @@ void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atla
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
 auto get_texcoords(const wall_cell& w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); }
 
-void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const std::shared_ptr<ground_atlas>& atlas, Vector2 dpi)
+void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
     const auto b = push_id("tile-pane");
 

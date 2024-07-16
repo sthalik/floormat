@@ -1,14 +1,15 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "compat/array-size.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "compat/vector-wrapper.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
+#include <cstdio>
 #include <cr/Optional.h>
 #include <mg/Functions.h>
 #include <mg/Color.h>
@@ -59,7 +60,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
     case mouse_button_left: {
         auto& M = a.main();
         auto& w = M.world();
-        auto C = a.ensure_player_character(w).ptr;
+        auto C = a.ensure_player_character(w);
         if (auto pt = a.cursor_state().point())
         {
             constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;

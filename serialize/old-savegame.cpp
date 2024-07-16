@@ -18,7 +18,6 @@
 #include <cerrno>
 #include <cstring>
 #include <concepts>
-#include <memory>
 #include <vector>
 
 
@@ -80,7 +79,9 @@ constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
 
 } // namespace
 
-template<typename T> concept object_subtype = std::is_base_of_v<object, T> || std::is_base_of_v<object_proto, T>;
+template<typename T> concept object_subtype = requires {
+    requires std::is_base_of_v<object, T> || std::is_base_of_v<object_proto, T>;
+};
 
 enum : tilemeta {
     meta_ground         = 1 << 2,

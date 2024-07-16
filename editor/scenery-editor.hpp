@@ -1,7 +1,6 @@
 #pragma once
 #include "src/scenery-proto.hpp"
 #include <map>
-#include <memory>
 #include <Corrade/Containers/String.h>
 
 namespace floormat {
@@ -30,7 +29,7 @@ public:
     void select_tile(const scenery_& s);
     void clear_selection();
     const scenery_& get_selected() const;
-    bool is_atlas_selected(const std::shared_ptr<anim_atlas>& atlas) const;
+    bool is_atlas_selected(const bptr<anim_atlas>& atlas) const;
     bool is_item_selected(const scenery_& s) const;
     bool is_anything_selected() const;
     static void place_tile(world& w, global_coords pos, const scenery_& s, app& a);

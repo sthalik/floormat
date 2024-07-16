@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "src/global-coords.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
@@ -7,7 +8,6 @@
 #include "src/object-id.hpp"
 #include "src/point.hpp"
 #include "src/script-enums.hpp"
-#include <memory>
 
 namespace floormat {
 
@@ -18,7 +18,7 @@ struct Ns;
 
 struct object_proto
 {
-    std::shared_ptr<anim_atlas> atlas;
+    bptr<anim_atlas> atlas;
     Vector2b offset, bbox_offset;
     Vector2ub bbox_size = Vector2ub(tile_size_xy);
     uint32_t delta = 0;
@@ -39,7 +39,7 @@ struct object_proto
     object_proto(object_proto&&) noexcept;
 };
 
-struct object
+struct object : bptr_base
 {
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);
     fm_DECLARE_DELETED_MOVE_ASSIGNMENT(object);
@@ -47,9 +47,9 @@ struct object
     const object_id id = 0;
     uint64_t last_frame_no = 0;
     class chunk* const c;
-    const std::shared_ptr<anim_atlas> atlas;
+    const bptr<anim_atlas> atlas;
     const global_coords coord;
-    const std::weak_ptr<object> parent;
+    const bptr<object> parent;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint32_t delta = 0;
@@ -60,7 +60,7 @@ struct object
     bool gone      : 1 = false;
     //char _pad[4]; // got 4 bytes left
 
-    virtual ~object() noexcept;
+    virtual ~object() noexcept override;
 
     virtual Vector2 ordinal_offset(Vector2b offset) const = 0;
     virtual float depth_offset() const = 0;
@@ -77,7 +77,7 @@ struct object
     virtual object_type type() const noexcept = 0;
     virtual bool can_activate(size_t i) const;
     virtual bool activate(size_t i);
-    virtual void update(const std::shared_ptr<object>& self, size_t& i, const Ns& dt) = 0;
+    virtual void update(const bptr<object>& self, size_t& i, const Ns& dt) = 0;
     void rotate(size_t i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
@@ -102,8 +102,8 @@ struct object
     requires std::is_unsigned_v<T>
     static uint32_t alloc_frame_time(const Ns& dt, T& accum, uint32_t hz, float speed);
 
-    virtual void init_script(const std::shared_ptr<object>& ptr);
-    virtual void destroy_script_pre(const std::shared_ptr<object>& ptr, script_destroy_reason r);
+    virtual void init_script(const bptr<object>& ptr);
+    virtual void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r);
     virtual void destroy_script_post();
 
 protected:

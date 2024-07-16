@@ -5,13 +5,11 @@
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
 
-// ReSharper disable CppDFAUnreachableCode
-
 namespace floormat::detail_Script {
 
 template<typename S, typename Obj>
 concept BaseScript =
-requires (S& script, const std::shared_ptr<Obj>& obj, size_t& i, const Ns& ns)
+requires (S& script, const bptr<Obj>& obj, size_t& i, const Ns& ns)
 {
     requires std::is_base_of_v<base_script, S>;
     script.on_init(obj);
@@ -89,7 +87,7 @@ void Script<S, Obj>::do_create(Pointer<S> p)
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
+void Script<S, Obj>::do_initialize(const bptr<Obj>& obj)
 {
     switch (_state)
     {
@@ -108,7 +106,7 @@ void Script<S, Obj>::do_initialize(const std::shared_ptr<Obj>& obj)
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_reassign(S* p, const std::shared_ptr<Obj>& obj)
+void Script<S, Obj>::do_reassign(S* p, const bptr<Obj>& obj)
 {
     if (!p) [[unlikely]]
         return do_clear(obj);
@@ -121,13 +119,13 @@ void Script<S, Obj>::do_reassign(S* p, const std::shared_ptr<Obj>& obj)
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_reassign(Pointer<S> p, const std::shared_ptr<Obj>& obj)
+void Script<S, Obj>::do_reassign(Pointer<S> p, const bptr<Obj>& obj)
 {
     return do_reassign(p.release(), obj);
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_clear(const std::shared_ptr<Obj>& obj)
+void Script<S, Obj>::do_clear(const bptr<Obj>& obj)
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
     fm_debug_assert(ptr);
@@ -137,7 +135,7 @@ void Script<S, Obj>::do_clear(const std::shared_ptr<Obj>& obj)
 }
 
 template <typename S, typename Obj>
-void Script<S, Obj>::do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r)
+void Script<S, Obj>::do_destroy_pre(const bptr<Obj>& obj, script_destroy_reason r)
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
     _state = script_lifecycle::destroying;

@@ -1,5 +1,6 @@
 #pragma once
 #include "tile-image.hpp"
+#include "compat/borrowed-ptr.hpp"
 
 namespace floormat {
 
@@ -8,8 +9,8 @@ class anim_atlas;
 
 struct tile_proto final
 {
-    std::shared_ptr<class ground_atlas> ground_atlas;
-    std::shared_ptr<class wall_atlas> wall_north_atlas, wall_west_atlas;
+    bptr<class ground_atlas> ground_atlas;
+    bptr<class wall_atlas> wall_north_atlas, wall_west_atlas;
     variant_t ground_variant = 0, wall_north_variant = 0, wall_west_variant = 0;
 
     tile_image_proto ground() const noexcept;
@@ -31,13 +32,13 @@ struct tile_ref final
     wall_image_proto wall_north() const noexcept;
     wall_image_proto wall_west() const noexcept;
 
-    std::shared_ptr<class ground_atlas> ground_atlas() noexcept;
-    std::shared_ptr<class wall_atlas> wall_north_atlas() noexcept;
-    std::shared_ptr<class wall_atlas> wall_west_atlas() noexcept;
+    bptr<class ground_atlas> ground_atlas() noexcept;
+    bptr<class wall_atlas> wall_north_atlas() noexcept;
+    bptr<class wall_atlas> wall_west_atlas() noexcept;
 
-    std::shared_ptr<const class ground_atlas> ground_atlas() const noexcept;
-    std::shared_ptr<const class wall_atlas> wall_north_atlas() const noexcept;
-    std::shared_ptr<const class wall_atlas> wall_west_atlas() const noexcept;
+    bptr<const class ground_atlas> ground_atlas() const noexcept;
+    bptr<const class wall_atlas> wall_north_atlas() const noexcept;
+    bptr<const class wall_atlas> wall_west_atlas() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 

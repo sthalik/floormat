@@ -292,7 +292,7 @@ void test_save_objs()
         constexpr auto coord = global_coords{ch, { 3, 4}};
         const auto id = w.make_id();
         const auto objʹ = w.make_scenery(id, coord, move(p));
-        const auto obj = std::static_pointer_cast<generic_scenery>(objʹ);
+        const auto obj = static_pointer_cast<generic_scenery>(objʹ);
         const auto obj2 = w.find_object<generic_scenery>(id);
         //const auto obj3 = w.find_object<door_scenery>(id); // must fail
         fm_assert(obj == obj2);

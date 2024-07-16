@@ -12,6 +12,7 @@
 #include "compat/map.hpp"
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <cmath>
 #include <utility>
 #include <array>
@@ -393,12 +394,12 @@ Vector2 critter::ordinal_offset(Vector2b offset) const
     return Vector2(offset);
 }
 
-void critter::update(const std::shared_ptr<object>& ptrʹ, size_t& i, const Ns& dt)
+void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
 {
     fm_debug_assert(&*ptrʹ == this);
 
     check_script_update_1(script.state());
-    script->on_update(std::static_pointer_cast<critter>(ptrʹ), i, dt);
+    script->on_update(static_pointer_cast<critter>(ptrʹ), i, dt);
 #if 0 // for now, objects can't delete themselves
     if (check_script_update_2(script.state())) [[unlikely]]
         return;
@@ -566,14 +567,14 @@ critter::~critter() noexcept
 {
 }
 
-void critter::init_script(const std::shared_ptr<object>& ptrʹ)
+void critter::init_script(const bptr<object>& ptrʹ)
 {
-    script.do_initialize(std::static_pointer_cast<critter>(ptrʹ));
+    script.do_initialize(static_pointer_cast<critter>(ptrʹ));
 }
 
-void critter::destroy_script_pre(const std::shared_ptr<object>& ptrʹ, script_destroy_reason r)
+void critter::destroy_script_pre(const bptr<object>& ptrʹ, script_destroy_reason r)
 {
-    script.do_destroy_pre(std::static_pointer_cast<critter>(ptrʹ), r);
+    script.do_destroy_pre(static_pointer_cast<critter>(ptrʹ), r);
 }
 
 void critter::destroy_script_post()

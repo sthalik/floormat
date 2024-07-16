@@ -4,6 +4,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "loader/vobj-cell.hpp"
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -49,7 +50,7 @@ void adl_serializer<vobj>::from_json(const json& j, vobj& val)
 
 namespace floormat::loader_detail {
 
-std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
+bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
     auto tex = texture(VOBJ_PATH, image_filename);
     anim_def def;
@@ -72,7 +73,7 @@ std::shared_ptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView n
         def.groups = Array<anim_group>{1};
         def.groups[0] = move(group);
     }
-    auto atlas = std::make_shared<class anim_atlas>(name, tex, move(def));
+    auto atlas = bptr<class anim_atlas>(InPlace, name, tex, move(def));
     return atlas;
 }
 

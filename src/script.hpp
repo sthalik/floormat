@@ -1,8 +1,8 @@
 #pragma once
 #include "script-enums.hpp"
 #include "compat/defs.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "src/object-type.hpp"
-#include <memory>
 
 namespace floormat
 {
@@ -54,11 +54,11 @@ public:
 
     void do_create(S* ptr);
     void do_create(Pointer<S> ptr);
-    void do_initialize(const std::shared_ptr<Obj>& obj);
-    void do_reassign(S* ptr, const std::shared_ptr<Obj>& obj);
-    void do_reassign(Pointer<S> ptr, const std::shared_ptr<Obj>& obj);
-    void do_clear(const std::shared_ptr<Obj>& obj);
-    void do_destroy_pre(const std::shared_ptr<Obj>& obj, script_destroy_reason r);
+    void do_initialize(const bptr<Obj>& obj);
+    void do_reassign(S* ptr, const bptr<Obj>& obj);
+    void do_reassign(Pointer<S> ptr, const bptr<Obj>& obj);
+    void do_clear(const bptr<Obj>& obj);
+    void do_destroy_pre(const bptr<Obj>& obj, script_destroy_reason r);
     void do_finish_destroy();
     void do_ensure_torn_down();
     void do_error_unwind();

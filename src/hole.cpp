@@ -57,7 +57,7 @@ hole::~hole() noexcept
         return;
 }
 
-void hole::update(const std::shared_ptr<object>&, size_t&, const Ns&) {}
+void hole::update(const bptr<object>&, size_t&, const Ns&) {}
 
 hole::operator hole_proto() const
 {

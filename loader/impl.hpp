@@ -1,9 +1,9 @@
 #pragma once
-#include "compat/safe-ptr.hpp"
 #include "loader/loader.hpp"
+#include "compat/safe-ptr.hpp"
+#include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
 #include <tsl/robin_map.h>
-#include <memory>
 #include <vector>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
@@ -45,26 +45,26 @@ struct loader_impl final : loader_
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
     safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{ make_ground_atlas_loader() };
-    const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
+    const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& invalid_ground_atlas() override;
-    std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
+    bptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> walls >----->
     [[nodiscard]] static atlas_loader<class wall_atlas>* make_wall_atlas_loader();
     safe_ptr<atlas_loader<class wall_atlas>> _wall_loader{ make_wall_atlas_loader() };
-    const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
+    const bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_cell> wall_atlas_list() override;
-    std::shared_ptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
+    bptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
     const wall_cell& invalid_wall_atlas() override;
 
     // >-----> anim >----->
     [[nodiscard]] static atlas_loader<class anim_atlas>* make_anim_atlas_loader();
     safe_ptr<atlas_loader<class anim_atlas>> _anim_loader{ make_anim_atlas_loader() };
     ArrayView<const anim_cell> anim_atlas_list() override;
-    std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
+    bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     const anim_cell& invalid_anim_atlas() override;
-    std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
+    bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->
     [[nodiscard]] static atlas_loader<struct scenery_proto>* make_scenery_atlas_loader();
@@ -77,7 +77,7 @@ struct loader_impl final : loader_
     // >-----> vobjs >----->
     tsl::robin_map<StringView, const struct vobj_cell*> vobj_atlas_map;
     std::vector<struct vobj_cell> vobjs;
-    std::shared_ptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
+    bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_cell& vobj(StringView name) override;
     ArrayView<const struct vobj_cell> vobj_list() override;
     void get_vobj_list();

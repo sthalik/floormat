@@ -5,7 +5,8 @@
 #include "scenery.hpp"
 #include "scenery-proto.hpp"
 #include "light.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "compat/weak-borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
@@ -26,10 +27,9 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
 }
 
 namespace floormat {
-
-struct world::robin_map_wrapper final : tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher>
+struct world::robin_map_wrapper final : tsl::robin_map<object_id, weak_bptr<object>, object_id_hasher>
 {
-    using tsl::robin_map<object_id, std::weak_ptr<object>, object_id_hasher>::robin_map;
+    using tsl::robin_map<object_id, weak_bptr<object>, object_id_hasher>::robin_map;
 };
 
 world::world(world&& w) noexcept = default;
@@ -51,11 +51,11 @@ world& world::operator=(world&& w) noexcept
     _script_finalized = false;
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
-    fm_assert(w._unique_id);
     _last_chunk = {};
     _chunks = move(w._chunks);
     _objects = move(w._objects);
     w._objects = {};
+    fm_assert(w._unique_id);
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
     fm_debug_assert(w._unique_id == nullptr);
@@ -78,6 +78,7 @@ world::~world() noexcept
     for (auto& [k, c] : _chunks)
         c.on_teardown();
     _teardown = true;
+    _objects->clear();
     for (auto& [k, c] : _chunks)
     {
         c._teardown = true;
@@ -88,10 +89,11 @@ world::~world() noexcept
     }
     _last_chunk = {};
     _chunks.clear();
-    _objects->clear();
 }
 
-world::world(size_t capacity) : _chunks{capacity}
+bool world::unique_id::operator==(const unique_id& other) const { return this == &other; }
+
+world::world(size_t capacity) : _chunks{capacity}, _unique_id{InPlace}
 {
     _chunks.max_load_factor(max_load_factor);
     _chunks.reserve(initial_capacity);
@@ -162,7 +164,7 @@ void world::collect(bool force)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
-void world::do_make_object(const std::shared_ptr<object>& e, global_coords pos, bool sorted)
+void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
     fm_debug_assert(e->id != 0);
     fm_debug_assert(e->c);
@@ -186,7 +188,7 @@ void world::erase_object(object_id id)
     fm_debug_assert(cnt > 0);
 }
 
-std::shared_ptr<object> world::find_object_(object_id id)
+bptr<object> world::find_object_(object_id id)
 {
     auto it = _objects->find(id);
     auto ret = it == _objects->end() ? nullptr : it->second.lock();
@@ -267,19 +269,19 @@ struct world::script_status world::script_status() const
     return { _script_initialized, _script_finalized };
 }
 
-shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id)
+bptr<critter> world::ensure_player_character(object_id& id)
 {
     return ensure_player_character(id, make_player_proto());
 }
 
-shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critter_proto p)
+bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 {
     if (id_)
     {
-        std::shared_ptr<critter> tmp;
+        bptr<critter> tmp;
         if (auto C = find_object(id_); C && C->type() == object_type::critter)
         {
-            auto ptr = std::static_pointer_cast<critter>(C);
+            auto ptr = static_pointer_cast<critter>(C);
             return {ptr};
         }
     }
@@ -287,7 +289,7 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
 
     auto id = (object_id)-1;
 
-    shared_ptr_wrapper<critter> ret;
+    bptr<critter> ret;
 
     for (auto& [coord, c] : chunks())
     {
@@ -300,7 +302,7 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
                 if (C.playable)
                 {
                     id = std::min(id, C.id);
-                    ret.ptr = std::static_pointer_cast<critter>(eʹ);
+                    ret = static_pointer_cast<critter>(eʹ);
                 }
             }
         }
@@ -311,18 +313,18 @@ shared_ptr_wrapper<critter> world::ensure_player_character(object_id& id_, critt
     else
     {
         p.playable = true;
-        ret.ptr = make_object<critter>(make_id(), global_coords{}, move(p));
-        id_ = ret.ptr->id;
+        ret = make_object<critter>(make_id(), global_coords{}, move(p));
+        id_ = ret->id;
     }
-    fm_debug_assert(ret.ptr);
+    fm_debug_assert(ret);
     return ret;
 }
 
 template<typename T>
-std::shared_ptr<T> world::find_object(object_id id)
+bptr<T> world::find_object(object_id id)
 {
     static_assert(std::is_base_of_v<object, T>);
-    if (std::shared_ptr<object> ptr = find_object_(id); !ptr)
+    if (bptr<object> ptr = find_object_(id); !ptr)
         return {};
     else if constexpr(std::is_same_v<T, object>)
         return ptr;
@@ -334,7 +336,7 @@ std::shared_ptr<T> world::find_object(object_id id)
 
 template<typename T>
 requires is_strict_base_of<scenery, T>
-std::shared_ptr<T> world::find_object(object_id id)
+bptr<T> world::find_object(object_id id)
 {
     if (auto ptr = find_object<scenery>(id); !ptr)
         return {};
@@ -344,17 +346,17 @@ std::shared_ptr<T> world::find_object(object_id id)
         return static_pointer_cast<T>(move(ptr));
 }
 
-template std::shared_ptr<object>  world::find_object<object>(object_id id);
-template std::shared_ptr<critter> world::find_object<critter>(object_id id);
-template std::shared_ptr<scenery> world::find_object<scenery>(object_id id);
-template std::shared_ptr<light>   world::find_object<light>(object_id id);
-template std::shared_ptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
-template std::shared_ptr<door_scenery> world::find_object<door_scenery>(object_id id);
+template bptr<object>  world::find_object<object>(object_id id);
+template bptr<critter> world::find_object<critter>(object_id id);
+template bptr<scenery> world::find_object<scenery>(object_id id);
+template bptr<light>   world::find_object<light>(object_id id);
+template bptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
+template bptr<door_scenery> world::find_object<door_scenery>(object_id id);
 
 template<bool sorted>
-std::shared_ptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)
+bptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)
 {
-    using type = std::shared_ptr<scenery>;
+    using type = bptr<scenery>;
 
     return std::visit(overloaded {
         [&](std::monostate) -> type {
@@ -369,7 +371,7 @@ std::shared_ptr<scenery> world::make_scenery(object_id id, global_coords pos, sc
     }, move(proto.subtype));
 }
 
-template std::shared_ptr<scenery> world::make_scenery<false>(object_id id, global_coords pos, scenery_proto&& proto);
-template std::shared_ptr<scenery> world::make_scenery<true>(object_id id, global_coords pos, scenery_proto&& proto);
+template bptr<scenery> world::make_scenery<false>(object_id id, global_coords pos, scenery_proto&& proto);
+template bptr<scenery> world::make_scenery<true>(object_id id, global_coords pos, scenery_proto&& proto);
 
 } // namespace floormat

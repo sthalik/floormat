@@ -4,6 +4,7 @@
 #include "log.hpp"
 #include "RTree.h"
 #include "compat/non-const.hpp"
+#include "ground-atlas.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -136,7 +137,7 @@ void chunk::sort_objects()
     std::sort(_objects.begin(), _objects.end(), object_id_lessp);
 }
 
-void chunk::add_object_pre(const std::shared_ptr<object>& e)
+void chunk::add_object_pre(const bptr<object>& e)
 {
     fm_assert(!e->gone);
     fm_assert(&*e->c == this);
@@ -152,7 +153,7 @@ void chunk::add_object_pre(const std::shared_ptr<object>& e)
     }
 }
 
-void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
+void chunk::add_object_unsorted(const bptr<object>& e)
 {
     add_object_pre(e);
     _objects_sorted = false;
@@ -160,7 +161,7 @@ void chunk::add_object_unsorted(const std::shared_ptr<object>& e)
     arrayAppend(_objects, e);
 }
 
-size_t chunk::add_objectʹ(const std::shared_ptr<object>& e)
+size_t chunk::add_objectʹ(const bptr<object>& e)
 {
     fm_assert(_objects_sorted);
     add_object_pre(e);
@@ -172,7 +173,7 @@ size_t chunk::add_objectʹ(const std::shared_ptr<object>& e)
     return i;
 }
 
-void chunk::add_object(const std::shared_ptr<object>& e) { (void)add_objectʹ(e); }
+void chunk::add_object(const bptr<object>& e) { (void)add_objectʹ(e); }
 
 void chunk::on_teardown() // NOLINT(*-make-member-function-const)
 {
@@ -186,26 +187,30 @@ void chunk::remove_object(size_t i)
     fm_assert(_objects_sorted);
     fm_debug_assert(i < _objects.size());
 
-    const auto& eʹ = _objects[i];
-    auto& e = *eʹ;
-    fm_assert(e.c == this);
-    fm_assert(!e.gone);
-
-    const auto dyn = e.is_dynamic(), upd = e.updates_passability();
-    if (!dyn)
-        mark_scenery_modified();
-
-    if (!_pass_modified) [[likely]]
+    auto eʹ = _objects[i];
     {
-        if (!dyn || upd)
-            _remove_bbox_static_(eʹ);
-        else if (bbox bb; _bbox_for_scenery(e, bb))
-            _remove_bbox_dynamic(bb);
+        auto& e = *eʹ;
+        fm_assert(e.c == this);
+        fm_assert(!e.gone);
+
+        const auto dyn = e.is_dynamic(), upd = e.updates_passability();
+        if (!dyn)
+            mark_scenery_modified();
+
+        if (!_pass_modified) [[likely]]
+        {
+            if (!dyn || upd)
+                _remove_bbox_static_(eʹ);
+            else if (bbox bb; _bbox_for_scenery(e, bb))
+                _remove_bbox_dynamic(bb);
+        }
+
     }
     arrayRemove(_objects, i);
+    //eʹ.destroy();
 }
 
-ArrayView<const std::shared_ptr<object>> chunk::objects() const
+ArrayView<const bptr<object>> chunk::objects() const
 {
     fm_assert(_objects_sorted);
     return _objects;

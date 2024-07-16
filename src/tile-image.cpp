@@ -1,4 +1,5 @@
 #include "tile-image.hpp"
+#include "compat/borrowed-ptr.inl"
 
 namespace floormat {
 
@@ -17,7 +18,7 @@ image_ref_<Atlas, Proto>::image_ref_(const image_ref_<Atlas, Proto>& o) noexcept
 {}
 
 template<typename Atlas, typename Proto>
-image_ref_<Atlas, Proto>::image_ref_(std::shared_ptr<Atlas>& atlas, variant_t& variant) noexcept
+image_ref_<Atlas, Proto>::image_ref_(bptr<Atlas>& atlas, variant_t& variant) noexcept
     : atlas{atlas}, variant{variant}
 {}
 

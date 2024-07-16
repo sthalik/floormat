@@ -1,12 +1,14 @@
 #pragma once
+#include "compat/borrowed-ptr.hpp"
 #include "src/pass-mode.hpp"
 #include "src/quads.hpp"
 #include "src/ground-def.hpp"
 #include "loader/ground-cell.hpp"
 #include <array>
-#include <memory>
+#include <cr/Array.h>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/String.h>
+#include <cr/Pointer.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/GL/Texture.h>
@@ -15,18 +17,18 @@ namespace floormat {
 
 class ground_atlas;
 
-class ground_atlas final
+class ground_atlas final : public bptr_base
 {
     using quad = Quads::quad;
     using texcoords = std::array<Vector2, 4>;
 
-    static std::unique_ptr<const texcoords[]> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
+    static Array<texcoords> make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count);
     static texcoords make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i);
     static String make_path(StringView name);
 
     ground_def _def;
     String _path;
-    std::unique_ptr<const texcoords[]> _texcoords;
+    Array<texcoords> _texcoords;
     GL::Texture2D _tex;
     Vector2ui _pixel_size;
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "tile-defs.hpp"
-#include <memory>
+#include "compat/borrowed-ptr.hpp"
 
 namespace floormat {
 
@@ -10,7 +10,7 @@ class wall_atlas;
 template<typename Atlas>
 struct image_proto_
 {
-    std::shared_ptr<Atlas> atlas;
+    bptr<Atlas> atlas;
     variant_t variant = 0;
 
     bool operator==(const image_proto_<Atlas>& b) const noexcept;
@@ -20,10 +20,10 @@ struct image_proto_
 template<typename Atlas, typename Proto>
 struct image_ref_ final
 {
-    std::shared_ptr<Atlas>& atlas;
+    bptr<Atlas>& atlas;
     variant_t& variant;
 
-    image_ref_(std::shared_ptr<Atlas>& atlas, variant_t& variant) noexcept;
+    image_ref_(bptr<Atlas>& atlas, variant_t& variant) noexcept;
     image_ref_(const image_ref_&) noexcept;
     image_ref_& operator=(const Proto& proto) noexcept;
     operator Proto() const noexcept;

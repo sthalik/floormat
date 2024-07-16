@@ -10,9 +10,9 @@ struct empty_critter_script final : critter_script
     StringView name() const override;
     const void* id() const override;
 
-    void on_init(const std::shared_ptr<critter>& c) override;
-    void on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt) override;
-    void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
+    void on_init(const bptr<critter>& c) override;
+    void on_update(const bptr<critter>& c, size_t& i, const Ns& dt) override;
+    void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 };
 
@@ -28,9 +28,9 @@ const void* empty_critter_script::id() const
     return &script_name;
 }
 
-void empty_critter_script::on_init(const std::shared_ptr<critter>&) {}
-void empty_critter_script::on_update(const std::shared_ptr<critter>&, size_t&, const Ns&) {}
-void empty_critter_script::on_destroy(const std::shared_ptr<critter>&, script_destroy_reason) {}
+void empty_critter_script::on_init(const bptr<critter>&) {}
+void empty_critter_script::on_update(const bptr<critter>&, size_t&, const Ns&) {}
+void empty_critter_script::on_destroy(const bptr<critter>&, script_destroy_reason) {}
 void empty_critter_script::delete_self() noexcept { }
 
 constinit empty_critter_script empty_script_ = {};

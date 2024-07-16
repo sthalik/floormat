@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/debug.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "compat/function2.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/critter.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/world.hpp"
@@ -118,7 +118,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     mark_all_modified(w);
 
     object_id id = 0;
-    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel)).ptr;
+    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel));
     auto& npc = *npc_;
 
     auto index = npc.index();
@@ -316,7 +316,7 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
     {
         // reproduce the bug from commit 2b5a6e3f
         object_id id = 0;
-        auto npc = w.ensure_player_character(id, make_proto((float)accel)).ptr;
+        auto npc = w.ensure_player_character(id, make_proto((float)accel));
         npc->set_bbox({}, {}, {1,1}, pass_mode::blocked);
     }
 

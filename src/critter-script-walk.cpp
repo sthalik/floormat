@@ -23,16 +23,16 @@ struct walk_script final : critter_script
 
     StringView name() const override;
     const void* id() const override;
-    void on_init(const std::shared_ptr<critter>& c) override;
-    void on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt) override;
-    void on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason reason) override;
+    void on_init(const bptr<critter>& c) override;
+    void on_update(const bptr<critter>& c, size_t& i, const Ns& dt) override;
+    void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
     explicit walk_script(point dest);
     explicit walk_script(psr path);
 
-    bool walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
-    bool walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt);
+    bool walk_line(const bptr<critter>& c, size_t& i, const Ns& dt);
+    bool walk_path(const bptr<critter>& c, size_t& i, const Ns& dt);
 
 private:
     point dest;
@@ -43,10 +43,10 @@ private:
 
 StringView walk_script::name() const { return "walk"_s; }
 const void* walk_script::id() const { return &script_name; }
-void walk_script::on_destroy(const std::shared_ptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
+void walk_script::on_destroy(const bptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
 void walk_script::delete_self() noexcept { delete this; }
 
-void walk_script::on_init(const std::shared_ptr<critter>& c)
+void walk_script::on_init(const bptr<critter>& c)
 {
     Debug{} << "| start walking from" << c->position() << "to" << dest;
     c->moves.AUTO = true;
@@ -65,7 +65,7 @@ void walk_script::on_init(const std::shared_ptr<critter>& c)
     }
 }
 
-void walk_script::on_update(const std::shared_ptr<critter>& c, size_t& i, const Ns& dt)
+void walk_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
 {
     if (c->maybe_stop_auto_movement())
         goto done;
@@ -104,14 +104,14 @@ walk_script::walk_script(psr pathʹ) :
     fm_assert(!path.empty());
 }
 
-bool walk_script::walk_line(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
+bool walk_script::walk_line(const bptr<critter>& c, size_t& i, const Ns& dtʹ)
 {
     auto dt = dtʹ;
     auto res = c->move_toward(i, dt, dest);
     return res.blocked || c->position() == dest;
 }
 
-bool walk_script::walk_path(const std::shared_ptr<critter>& c, size_t& i, const Ns& dtʹ)
+bool walk_script::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ)
 {
     auto dt = dtʹ;
     while (dt != Ns{})

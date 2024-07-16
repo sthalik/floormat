@@ -1,5 +1,6 @@
 #include "ground-atlas.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/ground-atlas.hpp"
 #include "src/ground-def.hpp"
 #include "loader/loader.hpp"
@@ -49,15 +50,15 @@ void adl_serializer<ground_cell>::from_json(const json& j, ground_cell& val)
 }
 
 
-void adl_serializer<std::shared_ptr<ground_atlas>>::to_json(json& j, const std::shared_ptr<const ground_atlas>& x)
+void adl_serializer<bptr<ground_atlas>>::to_json(json& j, const bptr<const ground_atlas>& x)
 {
     j = std::tuple<StringView, Vector2ub, pass_mode>{x->name(), x->num_tiles2(), x->pass_mode()};
 }
 
-void adl_serializer<std::shared_ptr<ground_atlas>>::from_json(const json& j, std::shared_ptr<ground_atlas>& val)
+void adl_serializer<bptr<ground_atlas>>::from_json(const json& j, bptr<ground_atlas>& val)
 {
     ground_def def = j;
-    val = std::make_shared<ground_atlas>(move(def), loader.texture(loader.GROUND_TILESET_PATH, def.name));
+    val = bptr<ground_atlas>(InPlace, move(def), loader.texture(loader.GROUND_TILESET_PATH, def.name));
 }
 
 } // namespace nlohmann

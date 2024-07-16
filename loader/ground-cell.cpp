@@ -4,6 +4,7 @@
 //#include "serialize/corrade-string.hpp"
 #include "serialize/ground-atlas.hpp"
 #include "serialize/corrade-array.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <cr/Array.h>
 
 namespace floormat {

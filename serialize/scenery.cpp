@@ -1,6 +1,7 @@
 #include "scenery.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"

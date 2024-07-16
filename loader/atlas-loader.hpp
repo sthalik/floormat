@@ -2,7 +2,6 @@
 #include "compat/defs.hpp"
 #include "atlas-loader-fwd.hpp"
 #include "policy.hpp"
-#include <memory>
 
 namespace floormat::loader_detail {
 

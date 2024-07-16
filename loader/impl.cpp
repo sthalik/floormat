@@ -1,5 +1,6 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
 #include "wall-traits.hpp"

@@ -6,6 +6,7 @@
 #include "src/wall-atlas.hpp"
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <cr/StringView.h>
 #include <cr/Optional.h>
 #include <mg/ImageData.h>
@@ -15,8 +16,8 @@ namespace floormat::loader_detail {
 
 using wall_traits = atlas_loader_traits<wall_atlas>;
 StringView wall_traits::loader_name() { return "wall_atlas"_s; }
-auto wall_traits::atlas_of(const Cell& x) -> const std::shared_ptr<Atlas>& { return x.atlas; }
-auto wall_traits::atlas_of(Cell& x) -> std::shared_ptr<Atlas>& { return x.atlas; }
+auto wall_traits::atlas_of(const Cell& x) -> const bptr<Atlas>& { return x.atlas; }
+auto wall_traits::atlas_of(Cell& x) -> bptr<Atlas>& { return x.atlas; }
 StringView wall_traits::name_of(const Cell& x) { return x.name; }
 String& wall_traits::name_of(Cell& x) { return x.name; }
 
@@ -33,7 +34,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
     constexpr auto name = loader_::INVALID;
     constexpr auto frame_size = Vector2ui{tile_size_xy, tile_size_z};
 
-    auto a = std::make_shared<class wall_atlas>(
+    auto a = bptr<class wall_atlas>(InPlace,
         wall_atlas_def {
             Wall::Info{.name = name, .depth = 8},
             array<Wall::Frame>({{ {}, frame_size}, }),
@@ -46,7 +47,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
     return { .atlas = move(a), .name = name, };
 }
 
-auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<Atlas>
+auto wall_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
 {
     char file_buf[fm_FILENAME_MAX], json_buf[fm_FILENAME_MAX];
     auto file = loader.make_atlas_path(file_buf, loader.WALL_TILESET_PATH, name);
@@ -57,7 +58,7 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> std::shared_ptr<At
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
     auto tex = loader.texture(""_s, file);
-    auto atlas = std::make_shared<class wall_atlas>(move(def), file, tex);
+    auto atlas = bptr<class wall_atlas>(InPlace, move(def), file, tex);
     return atlas;
 }
 

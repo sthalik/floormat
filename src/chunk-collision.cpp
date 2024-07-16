@@ -41,7 +41,7 @@ bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
     constexpr auto max_bbox_size = Vector2i{0x100};
     constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size/2,
                    chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
-    for (const std::shared_ptr<object>& eʹʹ : c.objects())
+    for (const bptr<object>& eʹʹ : c.objects())
     {
         auto& eʹ = *eʹʹ;
         if (eʹ.type() != object_type::hole) [[likely]]
@@ -185,7 +185,7 @@ void chunk::ensure_passability() noexcept
             filter_through_holes(*_rtree, id, min, max, has_holes);
         }
     }
-    for (const std::shared_ptr<object>& eʹ : objects())
+    for (const bptr<object>& eʹ : objects())
     {
         if (eʹ->updates_passability())
             continue;
@@ -215,19 +215,19 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
     return _bbox_for_scenery(s, s.coord.local(), s.offset, s.bbox_offset, s.bbox_size, value);
 }
 
-void chunk::_remove_bbox_static_(const std::shared_ptr<object>& e)
+void chunk::_remove_bbox_static_(const bptr<object>& e)
 {
     mark_passability_modified();
     e->maybe_mark_neighbor_chunks_modified();
 }
 
-void chunk::_add_bbox_static_(const std::shared_ptr<object>& e)
+void chunk::_add_bbox_static_(const bptr<object>& e)
 {
     mark_passability_modified();
     e->maybe_mark_neighbor_chunks_modified();
 }
 
-void chunk::_remove_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic)
+void chunk::_remove_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic)
 {
     if (!is_dynamic || upd)
         _remove_bbox_static(e, x);
@@ -242,7 +242,7 @@ void chunk::_remove_bbox_dynamic(const bbox& x)
     //Debug{} << "bbox <<< dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
-void chunk::_remove_bbox_static(const std::shared_ptr<object>& e, [[maybe_unused]] const bbox& x)
+void chunk::_remove_bbox_static(const bptr<object>& e, [[maybe_unused]] const bbox& x)
 {
     _remove_bbox_static_(e);
     //Debug{} << "bbox <<< static " << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
@@ -255,13 +255,13 @@ void chunk::_add_bbox_dynamic(const bbox& x)
     //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
-void chunk::_add_bbox_static(const std::shared_ptr<object>& e, [[maybe_unused]]const bbox& x)
+void chunk::_add_bbox_static(const bptr<object>& e, [[maybe_unused]]const bbox& x)
 {
     _add_bbox_static_(e);
     //Debug{} << "bbox >>> static " << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
-void chunk::_add_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic)
+void chunk::_add_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic)
 {
     if (!is_dynamic || upd)
         _add_bbox_static(e, x);
@@ -270,7 +270,7 @@ void chunk::_add_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd
 }
 
 template<bool Dynamic>
-void chunk::_replace_bbox_impl(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x1, bool b0, bool b1)
+void chunk::_replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox& x1, bool b0, bool b1)
 {
     if (_pass_modified)
         return;
@@ -313,12 +313,12 @@ void chunk::_replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b
     _replace_bbox_impl<true>(nullptr, x0, x, b0, b);
 }
 
-void chunk::_replace_bbox_static(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b)
+void chunk::_replace_bbox_static(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b)
 {
     _replace_bbox_impl<false>(e, x0, x, b0, b);
 }
 
-void chunk::_replace_bbox_(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic)
+void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic)
 {
     if (!is_dynamic || upd)
         _replace_bbox_static(e, x0, x, b0, b);

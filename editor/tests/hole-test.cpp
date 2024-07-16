@@ -1,5 +1,4 @@
 #include "../tests-private.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
 #include "src/hole.hpp"

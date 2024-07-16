@@ -1,5 +1,4 @@
 #include "compat/debug.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "compat/function2.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
@@ -109,7 +108,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     mark_all_modified(w);
 
     object_id id = 0;
-    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel)).ptr;
+    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel));
     auto& npc = *npc_;
 
     auto index = npc.index();

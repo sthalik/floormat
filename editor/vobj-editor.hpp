@@ -1,6 +1,7 @@
 #pragma once
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
+#include "compat/borrowed-ptr-fwd.hpp"
 #include <memory>
 #include <map>
 #include <cr/String.h>
@@ -20,11 +21,11 @@ struct vobj_factory
     virtual ~vobj_factory() noexcept;
     virtual const vobj_cell& info() const = 0;
     virtual object_type type() const = 0;
-    virtual std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const = 0;
+    virtual bptr<object> make(world& w, object_id id, global_coords pos) const = 0;
 
     StringView name() const;
     StringView descr() const;
-    std::shared_ptr<anim_atlas> atlas() const;
+    bptr<anim_atlas> atlas() const;
 };
 
 class vobj_editor final

@@ -102,7 +102,7 @@ public:
 
     void on_teardown();
     bool is_teardown() const;
-    ArrayView<const std::shared_ptr<object>> objects() const;
+    ArrayView<const bptr<object>> objects() const;
 
     void remove_object(size_t i);
     void sort_objects();
@@ -117,21 +117,21 @@ public:
 private:
     struct ground_stuff
     {
-        std::array<std::shared_ptr<ground_atlas>, TILE_COUNT> atlases;
+        std::array<bptr<ground_atlas>, TILE_COUNT> atlases;
         std::array<uint8_t, TILE_COUNT> indexes = {};
         std::array<variant_t, TILE_COUNT> variants = {};
     };
 
     struct wall_stuff
     {
-        std::array<std::shared_ptr<wall_atlas>, 2*TILE_COUNT> atlases;
+        std::array<bptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
         std::array<uint_fast16_t, max_wall_quad_count> mesh_indexes;
     };
 
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
-    Array<std::shared_ptr<object>> _objects;
+    Array<bptr<object>> _objects;
     class world* _world;
     GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
     Pointer<RTree> _rtree;
@@ -147,10 +147,10 @@ private:
 
     void ensure_scenery_buffers(scenery_scratch_buffers bufs);
 
-    void add_object(const std::shared_ptr<object>& e);
-    void add_object_pre(const std::shared_ptr<object>& e);
-    [[nodiscard]] size_t add_objectʹ(const std::shared_ptr<object>& e);
-    void add_object_unsorted(const std::shared_ptr<object>& e);
+    void add_object(const bptr<object>& e);
+    void add_object_pre(const bptr<object>& e);
+    [[nodiscard]] size_t add_objectʹ(const bptr<object>& e);
+    void add_object_unsorted(const bptr<object>& e);
 
     struct bbox final
     {
@@ -164,20 +164,20 @@ private:
     [[nodiscard]] static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                                                 Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
 
-    void _remove_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
+    void _remove_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _remove_bbox_dynamic(const bbox& x);
-    void _remove_bbox_static(const std::shared_ptr<object>& e, const bbox& x);
-    void _remove_bbox_static_(const std::shared_ptr<object>& e);
+    void _remove_bbox_static(const bptr<object>& e, const bbox& x);
+    void _remove_bbox_static_(const bptr<object>& e);
 
-    void _add_bbox_(const std::shared_ptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
+    void _add_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _add_bbox_dynamic(const bbox& x);
-    void _add_bbox_static(const std::shared_ptr<object>& e, const bbox& x);
-    void _add_bbox_static_(const std::shared_ptr<object>& e);
+    void _add_bbox_static(const bptr<object>& e, const bbox& x);
+    void _add_bbox_static_(const bptr<object>& e);
 
-    template<bool Dynamic> void _replace_bbox_impl(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
-    void _replace_bbox_(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
+    template<bool Dynamic> void _replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
     void _replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b);
-    void _replace_bbox_static(const std::shared_ptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
+    void _replace_bbox_static(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
 
     GL::Mesh make_wall_mesh();
 

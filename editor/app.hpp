@@ -2,6 +2,7 @@
 #include "compat/defs.hpp"
 #include "compat/enum-bitset-fwd.hpp"
 #include "compat/safe-ptr.hpp"
+#include "compat/borrowed-ptr-fwd.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
 #include "src/global-coords.hpp"
@@ -82,7 +83,7 @@ struct app final : floormat_app
     const struct cursor_state& cursor_state();
     clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
     Vector2 point_screen_pos(point pt);
-    shared_ptr_wrapper<critter> ensure_player_character(world& w);
+    bptr<critter> ensure_player_character(world& w);
 
 private:
     explicit app(fm_settings&& opts);

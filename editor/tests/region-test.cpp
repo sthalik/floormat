@@ -1,5 +1,4 @@
 #include "../tests-private.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
 #include "src/object.hpp"
@@ -153,7 +152,7 @@ void region_test::do_region_extraction(app& a, chunk_coords_ coord)
 {
     auto& M = a.main();
     auto& w = M.world();
-    auto C = a.ensure_player_character(w).ptr;
+    auto C = a.ensure_player_character(w);
     if (auto* c = w.at(coord))
     {
         auto C_coord = Vector2i{ Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };

@@ -20,6 +20,12 @@ struct adl_serializer<floormat::tile_image_ref> {
 };
 
 template<>
+struct adl_serializer<floormat::tile_image_proto> {
+    static void to_json(json& j, const floormat::tile_image_proto& val);
+    static void from_json(const json& j, floormat::tile_image_proto& val);
+};
+
+template<>
 struct adl_serializer<floormat::local_coords> {
     static void to_json(json& j, const floormat::local_coords& val);
     static void from_json(const json& j, floormat::local_coords& val);

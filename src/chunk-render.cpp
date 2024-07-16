@@ -3,6 +3,7 @@
 #include "ground-atlas.hpp"
 #include "quads.hpp"
 #include "shaders/shader.hpp"
+#include "compat/borrowed-ptr.inl"
 #include <algorithm>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>

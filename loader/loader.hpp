@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/borrowed-ptr-fwd.hpp"
 #include "src/pass-mode.hpp"
 #include "loader/policy.hpp"
-#include <memory>
 #include <cr/StringView.h>
 
 //namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
@@ -35,9 +35,9 @@ struct loader_
     virtual Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
 
-    virtual const std::shared_ptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
-    virtual const std::shared_ptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
-    virtual std::shared_ptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual const bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
+    virtual bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual const struct scenery_proto& scenery(StringView name, loader_policy policy = loader_policy::DEFAULT) = 0;
 
     virtual ArrayView<const ground_cell> ground_atlas_list() noexcept(false) = 0;
@@ -58,11 +58,11 @@ struct loader_
     virtual const scenery_cell& invalid_scenery_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    virtual std::shared_ptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
+    virtual bptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    virtual std::shared_ptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false) = 0;
+    virtual bptr<class wall_atlas> get_wall_atlas(StringView name) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
-    virtual std::shared_ptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) = 0;
+    virtual bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) = 0;
     /** \deprecated{internal use only}*/ [[nodiscard]]
     virtual struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) = 0;
 

@@ -10,6 +10,7 @@
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
 #include "compat/non-const.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
 #include <cmath>
 #include <algorithm>
@@ -363,8 +364,8 @@ bool object::is_dynamic() const { return atlas->info().fps > 0; }
 bool object::updates_passability() const { return false; }
 void object::maybe_mark_neighbor_chunks_modified() {}
 
-void object::init_script(const std::shared_ptr<object>&) {}
-void object::destroy_script_pre(const std::shared_ptr<object>&, script_destroy_reason) {}
+void object::init_script(const bptr<object>&) {}
+void object::destroy_script_pre(const bptr<object>&, script_destroy_reason) {}
 void object::destroy_script_post() {}
 
 void object::check_script_update_1(script_lifecycle state)

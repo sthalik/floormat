@@ -3,7 +3,6 @@
 #include "src/rotation.hpp"
 #include "src/global-coords.hpp"
 #include "loader/wall-cell.hpp"
-#include <memory>
 #include <map>
 
 namespace floormat {
@@ -14,7 +13,7 @@ class wall_atlas;
 class wall_editor
 {
     std::map<StringView, wall_cell> _atlases;
-    std::shared_ptr<wall_atlas> _selected_atlas;
+    bptr<wall_atlas> _selected_atlas;
     enum rotation _r = rotation::N;
 
     void load_atlases();
@@ -32,13 +31,13 @@ public:
     void set_rotation(enum rotation r);
     void toggle_rotation();
 
-    std::shared_ptr<wall_atlas> get_selected() const;
-    void select_atlas(const std::shared_ptr<wall_atlas>& atlas);
+    bptr<wall_atlas> get_selected() const;
+    void select_atlas(const bptr<wall_atlas>& atlas);
     void clear_selection();
-    bool is_atlas_selected(const std::shared_ptr<wall_atlas>& atlas) const;
+    bool is_atlas_selected(const bptr<wall_atlas>& atlas) const;
     bool is_anything_selected() const;
 
-    void place_tile(world& w, global_coords coords, const std::shared_ptr<wall_atlas>& atlas);
+    void place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas);
     editor_snap_mode check_snap(int mods) const;
 };
 

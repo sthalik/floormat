@@ -2,12 +2,12 @@
 #include "editor/app.hpp"
 #include "floormat/main.hpp"
 #include "compat/array-size.hpp"
-#include "compat/shared-ptr-wrapper.hpp"
 #include "../imgui-raii.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
 #include <cinttypes>
+#include <cstdio>
 #include <array>
 #include <vector>
 #include <mg/Color.h>
@@ -73,7 +73,7 @@ struct raycast_test final : base_test
             auto& w = M.world();
             if (auto pt_ = a.cursor_state().point())
             {
-                auto C = a.ensure_player_character(w).ptr;
+                auto C = a.ensure_player_character(w);
                 auto pt0 = C->position();
                 pending = { .from = pt0, .to = *pt_, .self = C->id, .exists = true, };
                 return true;

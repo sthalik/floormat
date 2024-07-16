@@ -13,7 +13,7 @@ namespace floormat {
 
 StringView vobj_factory::name() const { return info().name; }
 StringView vobj_factory::descr() const { return info().descr; }
-std::shared_ptr<anim_atlas> vobj_factory::atlas() const { return info().atlas; }
+bptr<anim_atlas> vobj_factory::atlas() const { return info().atlas; }
 vobj_factory::vobj_factory() = default;
 vobj_factory::~vobj_factory() noexcept = default;
 
@@ -81,7 +81,7 @@ struct light_factory final : vobj_factory
 {
     object_type type() const override;
     const vobj_cell& info() const override;
-    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override;
+    bptr<object> make(world& w, object_id id, global_coords pos) const override;
 };
 
 object_type light_factory::type() const { return object_type::light; }
@@ -95,7 +95,7 @@ const vobj_cell& light_factory::info() const
     return ret;
 }
 
-std::shared_ptr<object> light_factory::make(world& w, object_id id, global_coords pos) const
+bptr<object> light_factory::make(world& w, object_id id, global_coords pos) const
 {
     auto ret = w.make_object<light>(id, pos, light_proto{});
     return ret;
@@ -105,7 +105,7 @@ struct hole_factory final : vobj_factory
 {
     object_type type() const override;
     const vobj_cell& info() const override;
-    std::shared_ptr<object> make(world& w, object_id id, global_coords pos) const override;
+    bptr<object> make(world& w, object_id id, global_coords pos) const override;
 };
 
 object_type hole_factory::type() const { return object_type::hole; }
@@ -119,7 +119,7 @@ const vobj_cell& hole_factory::info() const
     return ret;
 }
 
-std::shared_ptr<object> hole_factory::make(world& w, object_id id, global_coords pos) const
+bptr<object> hole_factory::make(world& w, object_id id, global_coords pos) const
 {
     auto ret = w.make_object<hole>(id, pos, hole_proto{});
     return ret;
