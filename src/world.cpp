@@ -6,7 +6,6 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/weak-borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
@@ -27,9 +26,9 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
 }
 
 namespace floormat {
-struct world::robin_map_wrapper final : tsl::robin_map<object_id, weak_bptr<object>, object_id_hasher>
+struct world::robin_map_wrapper final : tsl::robin_map<object_id, bptr<object>, object_id_hasher>
 {
-    using tsl::robin_map<object_id, weak_bptr<object>, object_id_hasher>::robin_map;
+    using tsl::robin_map<object_id, bptr<object>, object_id_hasher>::robin_map;
 };
 
 world::world(world&& w) noexcept = default;
@@ -52,8 +51,8 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
     _last_chunk = {};
-    _chunks = move(w._chunks);
     _objects = move(w._objects);
+    _chunks = move(w._chunks);
     w._objects = {};
     fm_assert(w._unique_id);
     _unique_id = move(w._unique_id);
@@ -191,7 +190,7 @@ void world::erase_object(object_id id)
 bptr<object> world::find_object_(object_id id)
 {
     auto it = _objects->find(id);
-    auto ret = it == _objects->end() ? nullptr : it->second.lock();
+    auto ret = it == _objects->end() ? nullptr : it->second;
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }

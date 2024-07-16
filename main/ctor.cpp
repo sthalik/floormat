@@ -33,7 +33,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
 
     for (auto& [_, cʹ] : _world.chunks())
         for (const auto& eʹ : cʹ.objects())
-            fm_assert(eʹ.use_count() == 1);
+            fm_assert_equal(uint32_t{2}, eʹ.use_count());
 
     _world = move(w);
     _first_frame = true;
