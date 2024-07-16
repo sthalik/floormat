@@ -11,7 +11,7 @@ namespace floormat {
 
 template<typename T>
 template<typename... Ts>
-//requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
     bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
@@ -25,6 +25,9 @@ bptr<T>::bptr(Y* ptr) noexcept:
 {}
 
 template<typename T> bptr<T>::~bptr() noexcept { if (blk) detail_bptr::control_block::decrement(blk); }
+
+template<typename T> bptr<T>::bptr(const bptr<std::remove_const_t<T>>& ptr) noexcept requires std::is_const_v<T>: bptr{ptr, nullptr} {}
+template<typename T> bptr<T>::bptr(bptr<std::remove_const_t<T>>&& ptr) noexcept requires std::is_const_v<T>: bptr{move(ptr), nullptr} {}
 
 template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, nullptr} {}
 template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), nullptr} {}

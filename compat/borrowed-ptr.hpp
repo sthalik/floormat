@@ -12,7 +12,17 @@
 #define fm_bptr_assert(...) void()
 #endif
 
-namespace floormat { struct bptr_base; }
+namespace floormat {
+struct bptr_base
+{
+    virtual ~bptr_base() noexcept;
+    bptr_base() noexcept;
+    bptr_base(const bptr_base&) noexcept;
+    bptr_base(bptr_base&&) noexcept;
+    bptr_base& operator=(const bptr_base&) noexcept;
+    bptr_base& operator=(bptr_base&&) noexcept;
+};
+} // namespace floormat
 
 namespace floormat::detail_bptr {
 
@@ -24,7 +34,6 @@ struct control_block final
     static void weak_decrement(control_block*& blk) noexcept;
 };
 
-#if 0
 template<typename From, typename To>
 concept StaticCastable = requires(From* from, To* to) {
     static_cast<To*>(from);
@@ -34,28 +43,12 @@ concept StaticCastable = requires(From* from, To* to) {
 
 template<typename From, typename To>
 concept DerivedFrom = requires(From* from, To* to) {
-    static_cast<const bptr_base*>(from);
-    static_cast<const bptr_base*>(to);
-    requires std::is_convertible_v<From*, To*>;
+    requires std::is_convertible_v<From&, To&>;
 };
-#else
-template<typename From, typename To> concept DerivedFrom = true;
-template<typename From, typename To> concept StaticCastable = true;
-#endif
 
 } // namespace floormat::detail_bptr
 
 namespace floormat {
-
-struct bptr_base
-{
-    virtual ~bptr_base() noexcept;
-    bptr_base() noexcept;
-    bptr_base(const bptr_base&) noexcept;
-    bptr_base(bptr_base&&) noexcept;
-    bptr_base& operator=(const bptr_base&) noexcept;
-    bptr_base& operator=(bptr_base&&) noexcept;
-};
 
 template<typename T>
 class bptr final // NOLINT(*-special-member-functions)
@@ -69,7 +62,7 @@ class bptr final // NOLINT(*-special-member-functions)
 
 public:
     template<typename... Ts>
-    //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+    requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
     template<detail_bptr::DerivedFrom<T> Y> explicit bptr(Y* ptr) noexcept;
@@ -78,6 +71,9 @@ public:
 
     bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
     bptr& operator=(std::nullptr_t) noexcept;
+
+    bptr(const bptr<std::remove_const_t<T>>& ptr) noexcept requires std::is_const_v<T>;
+    bptr(bptr<std::remove_const_t<T>>&& ptr) noexcept requires std::is_const_v<T>;
 
     bptr(const bptr&) noexcept;
     bptr& operator=(const bptr&) noexcept;
