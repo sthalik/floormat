@@ -11,7 +11,7 @@ namespace floormat {
 
 template<typename T>
 template<typename... Ts>
-requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+//requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
     bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
@@ -160,9 +160,13 @@ template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexc
 
 template<typename T>
 std::strong_ordering bptr<T>::operator<=>(const bptr<const T>& other) const noexcept
-{
-    return get() <=> other.get();
-}
+{ return get() <=> other.get(); }
+
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>)
+{ return get() <=> other.get(); }
+
+template<typename T> std::strong_ordering bptr<T>::operator<=>(const std::nullptr_t&) const noexcept
+{ return get() <=> (T*)nullptr; }
 
 template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 

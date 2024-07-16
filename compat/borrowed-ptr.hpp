@@ -62,7 +62,7 @@ class bptr final // NOLINT(*-special-member-functions)
 
 public:
     template<typename... Ts>
-    requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+    //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
     explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
 
     template<detail_bptr::DerivedFrom<T> Y> explicit bptr(Y* ptr) noexcept;
@@ -102,6 +102,8 @@ public:
     bool operator==(const std::nullptr_t& other) const noexcept;
 
     std::strong_ordering operator<=>(const bptr<const T>& other) const noexcept;
+    std::strong_ordering operator<=>(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>);
+    std::strong_ordering operator<=>(const std::nullptr_t&) const noexcept;
 
     template<typename U> friend class bptr;
     template<typename U> friend class weak_bptr;
