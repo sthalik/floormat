@@ -68,20 +68,13 @@ template<typename T> concept Vector = Math::IsVector<std::remove_cvref_t<T>>::va
 
 struct buffer
 {
-    std::unique_ptr<char[]> data;
+    Array<char> data;
     size_t size;
 
     operator ArrayView<const char>() const { return {&data[0], size}; }
     bool empty() const { return size == 0; }
     buffer() : data{nullptr}, size{0} {}
-    buffer(size_t len) : // todo use allocator
-        data{std::make_unique<char[]>(len)},
-        size{len}
-    {
-#if !fm_ASAN
-        std::memset(&data[0], 0xfe, size);
-#endif
-    }
+    buffer(size_t len) : data{NoInit, len}, size{len} {}
 };
 
 struct size_counter
@@ -651,7 +644,7 @@ ok:     void();
         for (const auto& s : string_array)
             len += s.size() + 1;
         buffer buf{len};
-        binary_writer b{&buf.data[0], buf.size};
+        binary_writer b{buf.data.begin(), buf.size};
         for (const auto& s : string_array)
         {
             fm_assert(s.size() < string_max);
@@ -1136,7 +1129,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
             fm_throw("ftell: {}"_cf, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_SET); ret != 0)
             fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
-        auto buf_ = std::make_unique<char[]>(len+1);
+        auto buf_ = Array<char>(len+1);
         if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
             fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
 
@@ -1145,7 +1138,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
     }
 
     class world w;
-    auto s = binary_reader<const char*>{&buf.data[0], &buf.data[buf.size]};
+    auto s = binary_reader<const char*>{buf.data.begin(), buf.data.begin() + buf.size};
     auto proto = reader<false>::deserialize_header_1(s);
     if (proto == proto_version)
     {
