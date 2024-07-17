@@ -148,16 +148,6 @@ template<typename T> bool bptr<T>::operator==(const bptr<T>& other) const noexce
 
 template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->_ptr; }
 
-template<typename T>
-std::strong_ordering bptr<T>::operator<=>(const bptr<const T>& other) const noexcept
-{ return get() <=> other.get(); }
-
-template<typename T> std::strong_ordering bptr<T>::operator<=>(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>)
-{ return get() <=> other.get(); }
-
-template<typename T> std::strong_ordering bptr<T>::operator<=>(const std::nullptr_t&) const noexcept
-{ return get() <=> (T*)nullptr; }
-
 template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
 template<typename T>

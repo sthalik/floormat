@@ -1,6 +1,5 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
-#include <compare>
 
 #define FM_BPTR_DEBUG
 #define FM_NO_WEAK_BPTR
@@ -112,10 +111,6 @@ public:
     bool operator==(const bptr<const T>& other) const noexcept;
     bool operator==(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>);
     bool operator==(const std::nullptr_t& other) const noexcept;
-
-    std::strong_ordering operator<=>(const bptr<const T>& other) const noexcept;
-    std::strong_ordering operator<=>(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>);
-    std::strong_ordering operator<=>(const std::nullptr_t&) const noexcept;
 
     template<typename U> friend class bptr;
     template<typename U> friend class weak_bptr;

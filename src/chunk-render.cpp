@@ -54,7 +54,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
 
     std::sort(_ground->indexes.begin(), _ground->indexes.begin() + count,
               [this](uint8_t a, uint8_t b) {
-                  return _ground->atlases[a] < _ground->atlases[b];
+                  return _ground->atlases[a].get() < _ground->atlases[b].get();
               });
 
     float hack_offset = _coord.z <= 0 ? -16.f : 0.f; // XXX hack

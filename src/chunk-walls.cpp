@@ -309,7 +309,7 @@ GL::Mesh chunk::make_wall_mesh()
                  [&A = _walls->atlases](const auto& a, const auto& b) {
                      const auto& [av, ai] = a;
                      const auto& [bv, bi] = b;
-                     return A[ai] < A[bi];
+                     return A[ai].get() < A[bi].get();
                  });
 
     auto vertex_view = std::as_const(vertexes).prefix(N);
