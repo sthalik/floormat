@@ -4,6 +4,8 @@ namespace floormat::detail_bptr {
 
 void control_block::decrement(control_block*& blk) noexcept
 {
+    if (!blk)
+        return;
     auto c2 = --blk->_hard_count;
     fm_bptr_assert(c2 != (uint32_t)-1);
     if (c2 == 0)

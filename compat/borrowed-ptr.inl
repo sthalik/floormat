@@ -9,7 +9,7 @@
 
 namespace floormat {
 
-template<typename T> bptr<T>::~bptr() noexcept { if (blk) detail_bptr::control_block::decrement(blk); }
+template<typename T> bptr<T>::~bptr() noexcept { detail_bptr::control_block::decrement(blk); }
 
 template<typename T> bptr<T>::bptr(const bptr<std::remove_const_t<T>>& ptr) noexcept requires std::is_const_v<T>: bptr{ptr, nullptr} {}
 template<typename T> bptr<T>::bptr(bptr<std::remove_const_t<T>>&& ptr) noexcept requires std::is_const_v<T>: bptr{move(ptr), nullptr} {}
@@ -41,14 +41,13 @@ template<detail_bptr::DerivedFrom<T> Y>
 bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
 { return _move_assign(move(other)); }
 
-template<typename T> void bptr<T>::reset() noexcept { if (blk) detail_bptr::control_block::decrement(blk); }
+template<typename T> void bptr<T>::reset() noexcept { detail_bptr::control_block::decrement(blk); }
 
 template<typename T>
 template<detail_bptr::DerivedFrom<T> Y>
 void bptr<T>::reset(Y* ptr) noexcept
 {
-    if (blk)
-        detail_bptr::control_block::decrement(blk);
+    detail_bptr::control_block::decrement(blk);
     blk = ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<Y>*>(ptr), 1,
 #ifndef FM_NO_WEAK_BPTR
         1,
@@ -95,8 +94,7 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
-        if (blk)
-            detail_bptr::control_block::decrement(blk);
+        detail_bptr::control_block::decrement(blk);
         blk = other.blk;
         if (blk)
         {
@@ -113,8 +111,7 @@ template<typename T>
 template<typename Y>
 bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
 {
-    if (blk)
-        detail_bptr::control_block::decrement(blk);
+    detail_bptr::control_block::decrement(blk);
     blk = other.blk;
     other.blk = nullptr;
     return *this;
