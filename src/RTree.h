@@ -40,10 +40,6 @@ template<typename T> struct rtree_pool final
         union { T data; };
         node_u* next;
     };
-    union node_p {
-        T* ptr;
-        node_u* data_ptr;
-    };
 
 private:
     node_u* free_list = nullptr;

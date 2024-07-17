@@ -64,8 +64,7 @@ template<typename T> T* rtree_pool<T>::construct()
 template<typename T> void rtree_pool<T>::free(T* ptr)
 {
     ptr->~T();
-    node_p p = {.ptr = ptr };
-    node_u* n = p.data_ptr;
+    auto* n = reinterpret_cast<node_u*>(ptr);
     n->next = free_list;
     free_list = n;
 }
