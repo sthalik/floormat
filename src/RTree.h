@@ -37,7 +37,7 @@ template<typename T> struct rtree_pool final
     void free(T* pool);
 
     union node_u {
-        union { T data; };
+        union { T data; char _empty = {}; };
         node_u* next;
     };
 
