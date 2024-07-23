@@ -222,7 +222,7 @@ GL::Mesh chunk::make_wall_mesh()
                             { -X - Depth, -Y - Depth, Z },
                             { -X,         -Y - Depth, Z },
                             { -X - Depth, -Y, Z },
-                            { -X,         -Y, Z }
+                            { -X,         -Y, Z },
                         }};
                         fm_assert(frame.size.x() == Depth);
                         fm_assert(frame.size.y() >= Depth);
@@ -233,9 +233,9 @@ GL::Mesh chunk::make_wall_mesh()
                         _walls->mesh_indexes[i] = (uint16_t)k;
                         const auto depth_offset = depth_offset_for_group(Group_::top, is_west);
                         const auto depth = tile_shader::depth_value(pos, depth_offset);
-                        auto& v = vertexes[i];
                         for (auto& v : quad)
                             v += center;
+                        auto& v = vertexes[i];
                         for (uint8_t j = 0; j < 4; j++)
                             v[j] = { quad[j], texcoords[j], depth };
                     }
@@ -253,10 +253,10 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto i = N++;
                         fm_assert(i < vertexes.size());
                         _walls->mesh_indexes[i] = (uint16_t)k;
-                        auto& v = vertexes[i];
                         auto quad = get_quad(D, Group_::corner, (float)Depth);
                         for (auto& v : quad)
                             v += center;
+                        auto& v = vertexes[i];
                         for (uint8_t j = 0; j < 4; j++)
                             v[j] = { quad[j], texcoords[j], depth };
                     }
@@ -272,10 +272,10 @@ GL::Mesh chunk::make_wall_mesh()
                         const auto i = N++;
                         fm_assert(i < vertexes.size());
                         _walls->mesh_indexes[i] = (uint16_t)k;
-                        auto& v = vertexes[i];
                         auto quad = get_quad(D, Group_::corner, (float)Depth);
                         for (auto& v : quad)
                             v += center;
+                        auto& v = vertexes[i];
                         for (uint8_t j = 0; j < 4; j++)
                             v[j] = { quad[j], texcoords[j], depth };
                     }
