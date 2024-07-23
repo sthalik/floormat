@@ -2,7 +2,11 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
+#ifndef FM_NO_WEAK_BPTR
+#include "compat/weak-borrowed-ptr.inl"
+#endif
 #include <array>
+#include <cr/Debug.h>
 
 namespace floormat {
 
@@ -291,7 +295,7 @@ void test8()
     p1 = p2;
     fm_assert(A_total == 2 && A_alive == 1);
 
-    p2 = move(p1);
+    p2 = move(p1); (void)p2;
     fm_assert(A_total == 2 && A_alive == 1);
 
     p1.reset();
@@ -332,7 +336,7 @@ void test9()
     fm_assert(p1.use_count() == 0);
     fm_assert(p2.use_count() == 0);
     fm_assert(A_total == 1 && A_alive == 0);
-};
+}
 
 void test10()
 {
@@ -390,6 +394,48 @@ void test12()
     fm_assert(p1.use_count() == 1);
 }
 
+void test13()
+{
+#ifndef FM_NO_WEAK_BPTR
+    auto p1 = bptr<Foo>{InPlace, 13};
+    fm_assert_equal(13, p1->x);
+    auto w1 = weak_bptr{p1};
+    fm_assert(p1); fm_assert(w1.lock());
+    fm_assert_equal(1u, p1.use_count());
+    auto p2 = p1;
+    fm_assert_equal(2u, p2.use_count());
+    p1 = {};
+    fm_assert_equal(1u, p2.use_count());
+    fm_assert(!p1); fm_assert(p2);
+    fm_assert(w1.lock());
+    fm_assert_equal(13, w1.lock()->x);
+    p2 = {}; (void)p2;
+    fm_assert(!w1.lock());
+#endif
+}
+
+void test14()
+{
+#ifndef FM_NO_WEAK_BPTR
+    auto p1 = bptr<Foo>{InPlace, 14};
+    auto w1 = weak_bptr{p1};
+    auto w2 = weak_bptr{p1};
+    fm_assert_equal(14, w1.lock()->x);
+    fm_assert_equal(14, w2.lock()->x);
+    fm_assert_equal(1u, p1.use_count());
+    w1 = {};
+    fm_assert(p1);
+    fm_assert_equal(1u, p1.use_count());
+    w2 = {}; (void)w2;
+    fm_assert(p1);
+    fm_assert_equal(1u, p1.use_count());
+    auto w3 = weak_bptr{p1};
+    fm_assert_equal(14, w3.lock()->x);
+    p1 = {}; (void)p1;
+    fm_assert(!w1.lock()); fm_assert(!w2.lock()); fm_assert(!w3.lock());
+#endif
+}
+
 } // namespace
 
 void Test::test_bptr()
@@ -406,6 +452,8 @@ void Test::test_bptr()
     test10();
     test11();
     test12();
+    test13();
+    test14();
 }
 
 } // namespace floormat

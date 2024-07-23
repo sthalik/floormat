@@ -1,9 +1,6 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
 
-#define FM_BPTR_DEBUG
-#define FM_NO_WEAK_BPTR
-
 #ifdef __CLION_IDE__
 #define fm_bptr_assert(...) (void(__VA_ARGS__))
 #elif defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
