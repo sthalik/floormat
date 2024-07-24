@@ -117,7 +117,7 @@ start:
         }
         else
         {
-            for (auto i = 0uz; i < res.size; i++)
+            for (auto i = 0u; i < res.size; i++)
                 filter_through_holes(rtree, id, res.array[i].min, res.array[i].max, has_holes);
         }
     }
@@ -151,7 +151,7 @@ void chunk::ensure_passability() noexcept
                 has_holes |= add_holes_from_chunk<true>(*_rtree, *nbs[i], world::neighbor_offsets[i]);
     }
 
-    for (auto i = 0uz; i < TILE_COUNT; i++)
+    for (auto i = 0u; i < TILE_COUNT; i++)
     {
         if (const auto* atlas = ground_atlas_at(i))
         {
@@ -163,7 +163,7 @@ void chunk::ensure_passability() noexcept
             filter_through_holes(*_rtree, id, min, max, has_holes);
         }
     }
-    for (auto i = 0uz; i < TILE_COUNT; i++)
+    for (auto i = 0u; i < TILE_COUNT; i++)
     {
         auto tile = operator[](i);
         if (const auto* atlas = tile.wall_north_atlas().get())
