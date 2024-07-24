@@ -41,7 +41,7 @@ tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[]
 
 chunk_coords_ chunk::coord() const noexcept { return _coord; }
 
-Optional<tile_ref> chunk::at_offset_(local_coords pos, Vector2i off)
+Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 {
     const auto coord = global_coords{_coord, pos};
     const auto coord2 = coord + off;
@@ -56,7 +56,7 @@ Optional<tile_ref> chunk::at_offset_(local_coords pos, Vector2i off)
     }
 }
 
-Optional<tile_ref> chunk::at_offset_(tile_ref r, Vector2i off) { return at_offset_(local_coords{r.index()}, off); }
+Optional<tile_ref> chunk::at_offset(tile_ref r, Vector2i off) { return at_offset(local_coords{r.index()}, off); }
 
 void chunk::mark_ground_modified() noexcept
 {

@@ -186,27 +186,27 @@ GL::Mesh chunk::make_wall_mesh()
 
                 if (!is_west)
                 {
-                    if (auto t = at_offset_(pos, {-1, 0}); !(t && t->wall_north_atlas()))
+                    if (auto t = at_offset(pos, {-1, 0}); !(t && t->wall_north_atlas()))
                     {
                         if (_walls->atlases[k+1]) // west on same tile
                             pillar_ok = true;
-                        if (auto t = at_offset_(pos, {0, -1}); t && t->wall_west_atlas())
+                        if (auto t = at_offset(pos, {0, -1}); t && t->wall_west_atlas())
                             corner_ok = true;
                     }
                     if (side_ok)
-                        if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
+                        if (auto t = at_offset(pos, {1, -1}); t && t->wall_west_atlas())
                             side_ok = false;
                     if (side_ok)
-                        if (auto t = at_offset_(pos, {1, -1}); t && t->wall_west_atlas())
+                        if (auto t = at_offset(pos, {1, -1}); t && t->wall_west_atlas())
                             side_ok = false;
                 }
                 else
                 {
-                    if (auto t = at_offset_(pos, {0, -1}); !(t && t->wall_west_atlas()))
-                        if (auto t = at_offset_(pos, {-1, 0}); t && t->wall_north_atlas())
+                    if (auto t = at_offset(pos, {0, -1}); !(t && t->wall_west_atlas()))
+                        if (auto t = at_offset(pos, {-1, 0}); t && t->wall_north_atlas())
                             corner_ok = true;
                     if (side_ok)
-                        if (auto t = at_offset_(pos, {-1, 1}); t && t->wall_north_atlas())
+                        if (auto t = at_offset(pos, {-1, 1}); t && t->wall_north_atlas())
                             side_ok = false;
                 }
 
