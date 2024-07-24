@@ -34,8 +34,6 @@ public:
     tile_proto operator[](local_coords xy) const noexcept;
 
     chunk_coords_ coord() const noexcept;
-    tile_ref at_offset(local_coords pos, Vector2i off);
-    tile_ref at_offset(tile_ref r, Vector2i off);
     Optional<tile_ref> at_offset_(local_coords pos, Vector2i off);
     Optional<tile_ref> at_offset_(tile_ref r, Vector2i off);
 
