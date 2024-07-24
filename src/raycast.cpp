@@ -168,9 +168,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         .to = to,
         .collision = {},
         .collider = {
-            .tag  = (uint64_t)collision_type::none,
+            .type = (uint64_t)collision_type::none,
             .pass = (uint64_t)pass_mode::pass,
-            .data = ((uint64_t)1 << collision_data_BITS)-1,
+            .id   = ((uint64_t)1 << collision_data_BITS)-1,
         },
         .has_result = true,
         .success = false,
@@ -234,7 +234,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         const auto do_check_collider = [&](uint64_t data, const Rect& r)
         {
             auto x = std::bit_cast<collision_data>(data);
-            if (x.data == self || x.pass == (uint64_t)pass_mode::pass)
+            if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
                 return;
             //Debug{} << "item" << x.data << Vector2(r.m_min[0], r.m_min[1]) << Vector2(r.m_max[0], r.m_max[1]);
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,

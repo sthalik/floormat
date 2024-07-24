@@ -72,7 +72,7 @@ bool find_hole_in_bbox(CutResult<float>::rect& hole, chunk::RTree& rtree, Vector
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const chunk::RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.pass == (uint64_t)pass_mode::pass && x.tag == (uint64_t)collision_type::none)
+        if (x.pass == (uint64_t)pass_mode::pass && x.type == (uint64_t)collision_type::none)
         {
             CutResult<float>::rect holeʹ {
                 .min = { r.m_min[0], r.m_min[1] },

@@ -139,9 +139,9 @@ void app::draw_collision_boxes()
                         if (x.tag == (uint64_t)collision_type::geometry)
                             return true;
 #endif
-                        if (x.tag == (uint64_t)collision_type::geometry)
+                        if (x.type == (uint64_t)collision_type::geometry)
                             if (x.pass == (uint64_t)pass_mode::pass)
-                                if (x.data < TILE_COUNT*2+1)
+                                if (x.id < TILE_COUNT*2+1)
                                     return true;
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = (end - start);
@@ -186,9 +186,9 @@ void app::draw_collision_boxes()
                         if (x.tag == (uint64_t)collision_type::geometry)
                             return true;
 #endif
-                        if (x.tag == (uint64_t)collision_type::geometry)
+                        if (x.type == (uint64_t)collision_type::geometry)
                             if (x.pass == (uint64_t)pass_mode::pass)
-                                if (x.data < TILE_COUNT*2+1)
+                                if (x.id < TILE_COUNT*2+1)
                                     return true;
                         Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
                         auto size = end - start;

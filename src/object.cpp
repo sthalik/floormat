@@ -173,7 +173,7 @@ static bool do_search(class chunk* c, chunk_coords_ coord,
     bool ret = true;
     c->rtree()->Search(min.data(), max.data(), [&](object_id data, const auto& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.data != id && x.pass != (uint64_t)pass_mode::pass &&
+        if (x.id != id && x.pass != (uint64_t)pass_mode::pass &&
             rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
             return ret = false;
         else

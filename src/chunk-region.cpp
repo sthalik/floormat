@@ -119,10 +119,10 @@ auto default_region_predicate(chunk& c) noexcept
     return [&c](collision_data data) {
         auto x = std::bit_cast<collision_data>(data);
         // XXX 'scenery' is used for all object types
-        if (x.tag == (uint64_t)collision_type::scenery)
+        if (x.type == (uint64_t)collision_type::scenery)
         {
             auto& w = c.world();
-            auto obj = w.find_object(x.data);
+            auto obj = w.find_object(x.id);
             if (obj->type() == object_type::critter)
                 return path_search_continue::pass;
         }

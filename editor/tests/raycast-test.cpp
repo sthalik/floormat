@@ -181,7 +181,7 @@ struct raycast_test final : base_test
             {
                 const char* type;
 
-                switch ((collision_type)result.collider.tag)
+                switch ((collision_type)result.collider.type)
                 {
                 using enum collision_type;
                 default: type = "unknown?!"; break;
@@ -199,7 +199,7 @@ struct raycast_test final : base_test
 
                 do_column("collider");
                 std::snprintf(buf, array_size(buf), "%s @ %" PRIu64,
-                              type, uint64_t{result.collider.data});
+                              type, uint64_t{result.collider.id});
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }

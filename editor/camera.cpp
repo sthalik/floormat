@@ -102,15 +102,15 @@ object_id app::get_object_colliding_with_cursor()
                     object_id ret = 0;
                     rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                        if (x.tag == (uint64_t)collision_type::geometry)
+                        if (x.type == (uint64_t)collision_type::geometry)
                             return true;
                         Vector2 min(rect.m_min[0], rect.m_min[1]), max(rect.m_max[0], rect.m_max[1]);
                         if (t0 >= min && t0 <= max)
                         {
-                            if (auto e_ = world.find_object(x.data);
+                            if (auto e_ = world.find_object(x.id);
                                 e_ && Vector2ui(e_->bbox_size).product() != 0)
                             {
-                                ret = x.data;
+                                ret = x.id;
                                 return false;
                             }
                         }

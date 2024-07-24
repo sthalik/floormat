@@ -45,7 +45,7 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
     rt.Search(min.data(), max.data(), [&](uint64_t data, const auto& r)
     {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.data != own_id && x.pass != (uint64_t)pass_mode::pass)
+        if (x.id != own_id && x.pass != (uint64_t)pass_mode::pass)
         {
             if (rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
                 if (p(x) != path_search_continue::pass)
