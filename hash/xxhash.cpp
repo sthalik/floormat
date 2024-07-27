@@ -6,6 +6,8 @@
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wdisabled-macro-expansion"
 #pragma GCC diagnostic ignored "-Wused-but-marked-unused"
+#elif defined _MSC_VER
+#pragma warning(disable: 4310)
 #endif
 #include "xxhash.inl"
 
