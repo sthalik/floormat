@@ -42,7 +42,7 @@ consteval auto operator""_cf() noexcept
     return FMT_COMPILE(s.data);
 }
 #else
-using namespace fmt::literals;
+using fmt::literals::operator""_cf;
 #endif
 
 namespace floormat {
