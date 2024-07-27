@@ -76,17 +76,23 @@ function(fm-userconfig-src)
         -Wswitch-enum -Wlarger-than=8192
         -Wlogical-op
         -Wunsafe-loop-optimizations
+        -Wctor-dtor-privacy -Wno-error=ctor-dtor-privacy
+        -Winvalid-constexpr -Winvalid-imported-macros
+        -Woverloaded-virtual
+
         #-fconcepts-diagnostics-depth=2
     )
     #add_compile_options(-Wuseless-cast)
-    add_link_options(-Wno-lto-type-mismatch -Wno-odr)
+    add_link_options(-Wno-lto-type-mismatch -Wodr -Wno-error=odr)
     add_compile_options(
         #-Wno-c++20-compat
         -Wno-switch-enum
         -Wno-ctad-maybe-unsupported
         -Wno-ignored-attributes
         -Wno-parentheses
-        -Wno-lto-type-mismatch -Wno-odr
+        #-Wno-lto-type-mismatch -Wno-odr
+        -Wno-error=lto-type-mismatch
+        -Wodr -Wno-error=odr
     )
     add_compile_options(
         -Werror=format
