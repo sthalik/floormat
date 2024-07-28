@@ -65,7 +65,6 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
-CORRADE_NEVER_INLINE
 void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes)
 {
     if (!has_holes)
