@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <mg/Vector2.h>
 #include <Magnum/DimensionTraits.h>
 
