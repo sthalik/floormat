@@ -6,6 +6,7 @@
 #include "global-coords.hpp"
 #include "wall-defs.hpp"
 #include "search-pred.hpp"
+#include "hole-cut.hpp"
 #include <type_traits>
 #include <array>
 #include <Corrade/Containers/Array.h>

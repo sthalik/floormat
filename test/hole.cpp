@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/hole.hpp"
+#include "src/hole-cut.hpp"
 
 namespace floormat {
 namespace {

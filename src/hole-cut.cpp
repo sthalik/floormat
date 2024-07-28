@@ -2,6 +2,7 @@
 #include "compat/array-size.hpp"
 #include "compat/iota.hpp"
 #include "compat/map.hpp"
+#include "hole-cut.hpp"
 //#include <mg/Functions.h>
 
 #ifdef __GNUG__
