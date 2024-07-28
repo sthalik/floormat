@@ -132,10 +132,10 @@ constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
     constexpr bool has_writer = !std::is_same_v<std::decay_t<decltype(writer)>, std::nullptr_t>;
 
     constexpr auto c_range_fn = [](const void* obj, const c_range_t* reader) -> erased_constraints::range {
-        return get_range(*static_cast<const Range*>(reader), *reinterpret_cast<const Obj*>(obj));
+        return get_range(*static_cast<const Range*>(reader), *static_cast<const Obj*>(obj));
     };
     constexpr auto c_length_fn = [](const void* obj, const c_length_t* reader) -> erased_constraints::max_length {
-        return get_max_length(*static_cast<const Length*>(reader), *reinterpret_cast<const Obj*>(obj));
+        return get_max_length(*static_cast<const Length*>(reader), *static_cast<const Obj*>(obj));
     };
     return erased_accessor {
         (void*)&reader, has_writer ? (void*)&writer : nullptr,
