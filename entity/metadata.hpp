@@ -264,6 +264,8 @@ public:
     static constexpr auto accessors = entities::entity_accessors<T, Intent>::accessors();
     static constexpr size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
     static constexpr auto erased_accessors = erased_helper(accessors, std::make_index_sequence<size>{});
+
+    entity_metadata() = default;
 };
 
 template<typename T, typename Intent>
