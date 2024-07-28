@@ -2,20 +2,10 @@
 #include "util.hpp"
 #include "erased-constraints.hpp"
 #include "name-of.hpp"
-#include <type_traits>
+#include "field-status.hpp"
 #include <Corrade/Containers/StringView.h>
 
-namespace floormat::erased_constraints {
-
-struct range;
-struct max_length;
-struct group;
-
-} // namespace floormat::erased_constraints
-
 namespace floormat::entities {
-
-enum class field_status : unsigned char { hidden, readonly, enabled, COUNT, };
 
 struct erased_accessor final {
     using reader_t = void;

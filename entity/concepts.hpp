@@ -3,7 +3,6 @@
 #include "compat/function2.hpp"
 #include "compat/assert.hpp"
 #include <concepts>
-#include <type_traits>
 
 namespace floormat::entities {
 
