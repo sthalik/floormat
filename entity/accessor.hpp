@@ -30,7 +30,6 @@ struct erased_accessor final {
     erased_constraints::max_length(*length_fun)(const Object*, const c_length_t*) = nullptr;
 
     explicit constexpr erased_accessor() noexcept = default;
-    constexpr erased_accessor(const erased_accessor&) = default;
     constexpr erased_accessor(const reader_t* reader, const writer_t* writer, const predicate_t* predicate,
                               const c_range_t* range, const c_length_t* length,
                               StringView field_name, StringView object_name, StringView field_type_name,
