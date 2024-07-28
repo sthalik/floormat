@@ -41,10 +41,10 @@ struct refcount_ops
     using Tref = T*;
 #endif
 
-    static constexpr inline auto incr(T* ptr) noexcept -> size_type; // todo! remove constexpr from everywhere, then move everything to .inl
-    static constexpr inline auto decr(Tref ptr) noexcept -> size_type;
-    static constexpr inline auto count(T* ptr) noexcept -> size_type;
-    static constexpr inline void init_to_1(T* ptr) noexcept;
+    static constexpr auto incr(T* ptr) noexcept -> size_type; // todo! remove constexpr from everywhere, then move everything to .inl
+    static constexpr auto decr(Tref ptr) noexcept -> size_type;
+    static constexpr auto count(T* ptr) noexcept -> size_type;
+    static constexpr void init_to_1(T* ptr) noexcept;
 };
 
 template<typename Tag, typename T>

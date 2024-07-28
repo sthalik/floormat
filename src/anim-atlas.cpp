@@ -11,11 +11,13 @@
 
 namespace floormat {
 
+namespace {
+constexpr inline char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
+constexpr inline auto rot_count = size_t(rotation_COUNT);
+} // namespace
+
 template class bptr<anim_atlas>;
 template class bptr<const anim_atlas>;
-
-static constexpr const char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
-static constexpr inline auto rot_count = size_t(rotation_COUNT);
 
 static_assert(array_size(name_array) == rot_count);
 static_assert(rot_count == 8);

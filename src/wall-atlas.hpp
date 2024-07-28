@@ -53,7 +53,7 @@ struct Direction
 
     bool operator==(const Direction&) const noexcept;
 
-    static constexpr inline member_tuple groups[] = {
+    static constexpr member_tuple groups[] = {
         { "wall"_s,     &Direction::wall,     Group_::wall      },
         { "side"_s,     &Direction::side,     Group_::side      },
         { "top"_s,      &Direction::top,      Group_::top       },
@@ -61,7 +61,7 @@ struct Direction
     };
     static_assert(array_size(groups) == (size_t)Group_::COUNT);
 
-    static constexpr inline member_tuple groups_for_draw[] = {
+    static constexpr member_tuple groups_for_draw[] = {
         { "wall"_s,     &Direction::wall,     Group_::wall      },
         { "side"_s,     &Direction::side,     Group_::side      },
         { "top"_s,      &Direction::top,      Group_::top       },
