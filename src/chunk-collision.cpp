@@ -87,6 +87,9 @@ bool find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2
     });
     return ret;
 }
+#else
+bool find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2) { return true; }
+#endif
 
 CORRADE_NEVER_INLINE
 void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes)
@@ -121,15 +124,6 @@ start:
         }
     }
 }
-#else
-
-bool find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2)
-{ return true; }
-
-void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool)
-{ rtree.Insert(min.data(), max.data(), id); }
-
-#endif
 
 } // namespace
 
