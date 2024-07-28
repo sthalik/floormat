@@ -98,6 +98,8 @@ public:
     class world& world() noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
+    [[nodiscard]] bool find_hole_in_bbox(CutResult<float>::rect& hole, Vector2 min, Vector2 max);
+    [[nodiscard]] static bool find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2 min, Vector2 max);
 
     void on_teardown();
     bool is_teardown() const;

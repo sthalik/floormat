@@ -65,32 +65,6 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
-#if 1
-bool find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2 min, Vector2 max)
-{
-    bool ret = true;
-    rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
-        auto x = std::bit_cast<collision_data>(data);
-        if (x.pass == (uint64_t)pass_mode::pass && x.type == (uint64_t)collision_type::none)
-        {
-            CutResult<float>::rect holeʹ {
-                .min = { r.m_min[0], r.m_min[1] },
-                .max = { r.m_max[0], r.m_max[1] },
-            };
-            if (rect_intersects(holeʹ.min, holeʹ.max, min, max))
-            {
-                hole = holeʹ;
-                return ret = false;
-            }
-        }
-        return true;
-    });
-    return ret;
-}
-#else
-bool find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2) { return true; }
-#endif
-
 CORRADE_NEVER_INLINE
 void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes)
 {
@@ -100,7 +74,7 @@ start:
     fm_assert(min != max); // todo!
 
     CutResult<float>::rect hole;
-    bool ret = find_hole_in_bbox(hole, rtree, min, max);
+    bool ret = chunk::find_hole_in_bbox(hole, rtree, min, max);
 
     if (ret) [[likely]]
         rtree.Insert(min.data(), max.data(), id);
@@ -126,6 +100,33 @@ start:
 }
 
 } // namespace
+
+#if 1
+bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2 min, Vector2 max)
+{
+    bool ret = true;
+    rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.pass == (uint64_t)pass_mode::pass && x.type == (uint64_t)collision_type::none)
+        {
+            CutResult<float>::rect holeʹ {
+                .min = { r.m_min[0], r.m_min[1] },
+                .max = { r.m_max[0], r.m_max[1] },
+            };
+            if (rect_intersects(holeʹ.min, holeʹ.max, min, max))
+            {
+                hole = holeʹ;
+                return ret = false;
+            }
+        }
+        return true;
+    });
+    return ret;
+}
+#else
+bool chunk::find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2) { return true; }
+#endif
+bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, Vector2 min, Vector2 max) { return find_hole_in_bbox(hole, *rtree(), min, max); }
 
 void chunk::ensure_passability() noexcept
 {
