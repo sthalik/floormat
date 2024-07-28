@@ -17,7 +17,7 @@ namespace floormat {
 
 bool collision_data::operator==(const collision_data&) const noexcept = default;
 bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
-chunk::RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
+Chunk_RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 world& chunk::world() noexcept { return *_world; }
 
 namespace {
@@ -34,7 +34,7 @@ constexpr object_id make_id(collision_type type, pass_mode p, object_id id)
 }
 
 template<bool IsNeighbor>
-bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
+bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
     constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
@@ -66,11 +66,10 @@ bool add_holes_from_chunk(chunk::RTree& rtree, chunk& c, Vector2b chunk_offset)
 }
 
 #if 1
-CORRADE_NEVER_INLINE
-bool find_hole_in_bbox(CutResult<float>::rect& hole, chunk::RTree& rtree, Vector2 min, Vector2 max)
+bool find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2 min, Vector2 max)
 {
     bool ret = true;
-    rtree.Search(min.data(), max.data(), [&](uint64_t data, const chunk::RTree::Rect& r) {
+    rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (x.pass == (uint64_t)pass_mode::pass && x.type == (uint64_t)collision_type::none)
         {
@@ -90,7 +89,7 @@ bool find_hole_in_bbox(CutResult<float>::rect& hole, chunk::RTree& rtree, Vector
 }
 
 CORRADE_NEVER_INLINE
-void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes)
+void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes)
 {
     if (!has_holes)
         return rtree.Insert(min.data(), max.data(), id);
@@ -123,10 +122,13 @@ start:
     }
 }
 #else
-void filter_through_holes(chunk::RTree& rtree, object_id id, Vector2 min, Vector2 max, bool)
-{
-    rtree.Insert(min.data(), max.data(), id);
-}
+
+bool find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2)
+{ return true; }
+
+void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool)
+{ rtree.Insert(min.data(), max.data(), id); }
+
 #endif
 
 } // namespace
