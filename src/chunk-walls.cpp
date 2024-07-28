@@ -286,7 +286,6 @@ GL::Mesh chunk::make_wall_mesh()
             {
                 const auto& group = dir.*member;
                 const auto frames = atlas->frames(group);
-
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 _walls->mesh_indexes[i] = (uint16_t)k;
