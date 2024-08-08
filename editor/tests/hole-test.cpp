@@ -131,7 +131,7 @@ void hole_test::draw_ui(app&, float)
     }
     {
         label_left("found", buf, label_width);
-        ImGui::Text("%s", res.found ? "true" : "false");
+        ImGui::Text("%s", res.found() ? "true" : "false");
     }
 
     ImGui::Unindent(style.FramePadding.x);
