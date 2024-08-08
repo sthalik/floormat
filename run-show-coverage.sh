@@ -108,7 +108,8 @@ if test $run -gt 0; then
         Windows_NT) profdir="$(cygpath -m -- "$PWD")" ;;
         *) profdir="$PWD" ;;
     esac
-    LLVM_PROFILE_FILE="$profdir/${prof}.profraw" "$exe" --gpu-debug full --vsync on
+    LLVM_PROFILE_FILE="$profdir/${prof}.profraw" \
+        "$exe" --magnum-gpu-validation=full --vsync=1
 fi
 
 if test $generate -gt 0; then
