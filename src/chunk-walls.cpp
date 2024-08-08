@@ -175,7 +175,7 @@ GL::Mesh chunk::make_wall_mesh()
         {
             CORRADE_ASSUME(G < Group_::COUNT);
 
-            bool side_ok = G == Wall::Group_::side;
+            bool side_ok = true;
 
             if (!(dir.*member).is_defined)
                 continue;
@@ -282,7 +282,7 @@ GL::Mesh chunk::make_wall_mesh()
                 }
             }
 
-            if (G != Wall::Group_::side || side_ok) [[likely]]
+            if (side_ok) [[likely]]
             {
                 const auto& group = dir.*member;
                 const auto frames = atlas->frames(group);
