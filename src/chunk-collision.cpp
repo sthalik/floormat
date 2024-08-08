@@ -80,7 +80,7 @@ start:
     else
     {
         auto res = CutResult<float>::cut(min, max, hole.min, hole.max);
-        if (!res.found)
+        if (!res.found())
         {
             rtree.Insert(min.data(), max.data(), id);
         }

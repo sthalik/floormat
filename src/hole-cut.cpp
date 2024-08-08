@@ -33,7 +33,7 @@ struct coords
 
 struct element
 {
-    uint8_t size;
+    uint8_t s, size;
     std::array<coords, 8> array;
 };
 
@@ -46,9 +46,9 @@ constexpr element make_element(uint8_t s)
     switch (s)
     {
     using enum location;
-    case x0|x1|y0|y1: return element{0, {{ // 9.1
+    case x0|x1|y0|y1: return element{s, 0, {{ // 9.1
     }}};
-    case __|__|__|__: return element{8, {{ // 14.1
+    case __|__|__|__: return element{s, 8, {{ // 14.1
         {R0, H0, R0, H0},
         {H0, H1, R0, H0},
         {H1, R1, R0, H0},
@@ -59,62 +59,62 @@ constexpr element make_element(uint8_t s)
         {H1, R1, H1, R1},
     }}};
 
-    case x0|x1|__|__: return element{2, {{ // 13.1
+    case x0|x1|__|__: return element{s, 2, {{ // 13.1
         {R0, R1, R0, H0},
         {R0, R1, H1, R1},
     }}};
-    case __|__|y0|y1: return element{2, {{ // 13.2
+    case __|__|y0|y1: return element{s, 2, {{ // 13.2
         {R0, H0, R0, R1},
         {H1, R1, R0, R1},
     }}};
 
-    case x0|x1|y0|__: return element{1, {{ // 12.1
+    case x0|x1|y0|__: return element{s, 1, {{ // 12.1
         {R0, R1, H1, R1},
     }}};
-    case x0|x1|__|y1: return element{1, {{ // 12.2
+    case x0|x1|__|y1: return element{s, 1, {{ // 12.2
         {R0, R1, R0, H0},
     }}};
-    case x0|__|y0|y1: return element{1, {{ // 12.3
+    case x0|__|y0|y1: return element{s, 1, {{ // 12.3
         {H1, R1, R0, R1},
     }}};
-    case __|x1|y0|y1: return element{1, {{ // 12.4
+    case __|x1|y0|y1: return element{s, 1, {{ // 12.4
         {R0, H0, R0, R1},
     }}};
 
-    case x0|__|__|__: return element{3, {{ // 10.1
+    case x0|__|__|__: return element{s, 3, {{ // 10.1
         {R0, R1, R0, H0},
         {H1, R1, H0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|x1|__|__: return element{3, {{ // 10.2
+    case __|x1|__|__: return element{s, 3, {{ // 10.2
         {R0, R1, R0, H0},
         {R0, H0, H0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|__|y0|__: return element{3, {{ // 10.3
+    case __|__|y0|__: return element{s, 3, {{ // 10.3
         {R0, H0, R0, R1},
         {H0, H1, H1, R1},
         {H1, R1, R0, R1},
     }}};
-    case __|__|__|y1: return element{3, {{ // 10.4
+    case __|__|__|y1: return element{s, 3, {{ // 10.4
         {R0, H0, R0, R1},
         {H0, H1, R0, H0},
         {H1, R1, R0, R1},
     }}};
 
-    case x0|__|y0|__: return element{2, {{ // 11.1
+    case x0|__|y0|__: return element{s, 2, {{ // 11.1
         {H1, R1, R0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|x1|y0|__: return element{2, {{ // 11.2
+    case __|x1|y0|__: return element{s, 2, {{ // 11.2
         {R0, H0, R0, H1},
         {R0, R1, H1, R1},
     }}};
-    case x0|__|__|y1: return element{2, {{ // 11.3
+    case x0|__|__|y1: return element{s, 2, {{ // 11.3
         {R0, R1, R0, H0},
         {H1, R1, H0, R1},
     }}};
-    case __|x1|__|y1: return element{2, {{ // 11.4
+    case __|x1|__|y1: return element{s, 2, {{ // 11.4
         {R0, R1, R0, H0},
         {R0, H0, H0, R1},
     }}};
@@ -152,13 +152,30 @@ constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h
 }
 
 template<typename T>
+constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, uint8_t val)
+{
+    CORRADE_ASSUME(val < 16);
+    const auto elt = elements[val];
+    const auto sz = elt.size;
+    Cr<T> res = {
+        .s = val,
+        .size = sz,
+        .array = {},
+    };
+
+    for (auto i = 0u; i < 8; i++)
+        res.array[i] = get_value_from_coord<T>(r0, r1, h0, h1, elt.array[i]);
+    return res;
+}
+
+template<typename T>
 constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
 {
     if (check_empty<T>(r0, r1, h0, h1))
         return {
-            .array = {{ { r0, r1 }, }},
+            .s = (uint8_t)-1,
             .size = 1,
-            .found = false,
+            .array = {{ { r0, r1 }, }},
         };
 
     const bool sx = h0.x() <= r0.x();
@@ -166,18 +183,9 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
     const bool sy = h0.y() <= r0.y();
     const bool ey = h1.y() >= r1.y();
 
-    auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
+    const auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
     CORRADE_ASSUME(val < 16);
-    const auto elt = elements[val];
-    const auto sz = elt.size;
-    Cr<T> res = {
-        .array = {},
-        .size = sz,
-        .found = true,
-    };
-
-    for (auto i = 0u; i < 8; i++)
-        res.array[i] = get_value_from_coord<T>(r0, r1, h0, h1, elt.array[i]);
+    const auto res = cut_rectangleʹ<T>(r0, r1, h0, h1, val);
 
     return res;
 }
@@ -200,8 +208,15 @@ constexpr Cr<T> cut_rectangle(bbox<T> input, bbox<T> hole)
 
 } // namespace
 
+template<typename T> Cr<T> CutResult<T>::cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1, uint8_t s)
+{
+    return cut_rectangleʹ<T>(r0, r1, h0, h1, s);
+}
+
 template<typename T> Cr<T> CutResult<T>::cut(bbox input, bbox hole) { return cut_rectangle<T>(input, hole); }
 template<typename T> Cr<T> CutResult<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
+
+template<typename T> bool CutResult<T>::found() const { return s != (uint8_t)-1; }
 
 template struct CutResult<Int>;
 template struct CutResult<float>;
