@@ -22,7 +22,6 @@ struct hole_proto final : object_proto
         bool on_render  : 1 = true;
         bool on_physics : 1 = true;
         bool enabled    : 1 = true;
-        bool is_wall    : 1 = false;
     };
 
     uint8_t height = 0, z_offset = tile_size_z/2;
