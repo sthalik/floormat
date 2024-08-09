@@ -205,14 +205,13 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
                 constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-                Quads::quad quad = {
-                    {
-                        {-X - Depth, -Y - Depth, Z},
-                        {-X, -Y - Depth, Z},
-                        {-X - Depth, -Y, Z},
-                        {-X, -Y, Z},
-                    }
-                };
+                const auto Depthʹ = (float)(int)Depth;
+                Quads::quad quad = {{
+                    {-X - Depthʹ, -Y - Depthʹ, Z},
+                    {-X,          -Y - Depthʹ, Z},
+                    {-X - Depthʹ, -Y,          Z},
+                    {-X,          -Y,          Z},
+                }};
                 fm_assert(frame.size.x() == Depth);
                 fm_assert(frame.size.y() >= Depth);
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
