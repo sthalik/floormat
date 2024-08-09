@@ -60,12 +60,6 @@ struct Direction
         { "corner"_s,   &Direction::corner,   Group_::corner    },
     };
     static_assert(array_size(groups) == (size_t)Group_::COUNT);
-
-    static constexpr member_tuple groups_for_draw[] = {
-        { "wall"_s,     &Direction::wall,     Group_::wall      },
-        { "side"_s,     &Direction::side,     Group_::side      },
-        { "top"_s,      &Direction::top,      Group_::top       },
-    };
 };
 
 struct Info

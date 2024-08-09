@@ -115,7 +115,6 @@ public:
     pass_region make_pass_region(bool debug = false, ArrayView<const Vector2i> positions = {});
     pass_region make_pass_region(const Search::pred& f, bool debug = false, ArrayView<const Vector2i> positions = {});
 
-private:
     struct ground_stuff
     {
         std::array<bptr<ground_atlas>, TILE_COUNT> atlases;
@@ -130,6 +129,7 @@ private:
         std::array<uint_fast16_t, max_wall_quad_count> mesh_indexes;
     };
 
+private:
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
     Array<bptr<object>> _objects;
