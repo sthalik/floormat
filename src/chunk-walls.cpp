@@ -33,13 +33,13 @@ namespace {
 using Wall::Group_;
 using Wall::Direction_;
 
-constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
+template<Group_ G, bool IsWest>
+constexpr Quads::quad get_quad(Direction_ D, float depth)
 {
     CORRADE_ASSUME(D < Direction_::COUNT);
     CORRADE_ASSUME(G < Group_::COUNT);
     constexpr Vector2 half_tile = TILE_SIZE2*.5f;
     constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-    const bool is_west = D == Wall::Direction_::W;
 
     fm_assert(G < Group_::COUNT);
     switch (G)
@@ -47,7 +47,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
     using enum Group_;
     case COUNT: std::unreachable();
     case wall:
-        if (!is_west)
+        if (!IsWest)
             return {{
                 { X, -Y, 0 },
                 { X, -Y, Z },
@@ -62,7 +62,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 {-X,  Y, Z },
             }};
     case side:
-        if (!is_west)
+        if (!IsWest)
             return {{
                 { X, -Y - depth, 0 },
                 { X, -Y - depth, Z },
@@ -77,7 +77,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 { -X - depth, Y, Z },
             }};
     case top:
-        if (!is_west)
+        if (!IsWest)
             return {{
                 { -X, -Y - depth, Z },
                 {  X, -Y - depth, Z },
@@ -92,7 +92,7 @@ constexpr Quads::quad get_quad(Direction_ D, Group_ G, float depth)
                 { -X - depth,  Y, Z },
             }};
     case corner:
-        if (!is_west)
+        if (!IsWest)
             return {{
                 {-X, -Y, 0 },
                 {-X, -Y, Z },
@@ -125,10 +125,11 @@ ArrayView<const Quads::indexes> make_indexes(size_t max)
     return indexes.prefix(max);
 }
 
-constexpr float depth_offset_for_group(Group_ G, bool is_west)
+template<Group_ G, bool IsWest>
+constexpr float depth_offset_for_group()
 {
     CORRADE_ASSUME(G < Group_::COUNT);
-    float p = is_west ? tile_shader::wall_west_offset : 0;
+    float p = IsWest ? tile_shader::wall_west_offset : 0;
     switch (G)
     {
     default:
@@ -219,7 +220,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 W.mesh_indexes[i] = (uint16_t)k;
-                const auto depth_offset = depth_offset_for_group(Group_::top, IsWest);
+                const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>();
                 const auto depth = tile_shader::depth_value(pos, depth_offset);
                 for (auto& v : quad)
                     v += center;
@@ -233,7 +234,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
             if (dir.corner.is_defined)
             {
                 const auto frames = A.frames(dir.corner);
-                const auto depth_offset = depth_offset_for_group(Group_::corner, IsWest);
+                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
                 const auto pos_x = !IsWest ? (float)pos.x : (float)pos.x - 1;
                 const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
@@ -241,7 +242,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 W.mesh_indexes[i] = (uint16_t)k;
-                auto quad = get_quad(D, Group_::corner, (float)Depth);
+                auto quad = get_quad<Group_::corner, IsWest>(D, (float)Depth);
                 for (auto& v : quad)
                     v += center;
                 auto& v = vertexes[i];
@@ -251,7 +252,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
             else if (dir.wall.is_defined) [[likely]]
             {
                 const auto frames = A.frames(dir.wall);
-                const auto depth_offset = depth_offset_for_group(Group_::corner, IsWest);
+                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
                 const auto depth = tile_shader::depth_value(!IsWest ? (float)pos.x : (float)pos.x - 1, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
@@ -260,7 +261,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 W.mesh_indexes[i] = (uint16_t)k;
-                auto quad = get_quad(D, Group_::corner, (float)Depth);
+                auto quad = get_quad<Group_::corner, IsWest>(D, (float)Depth);
                 for (auto& v : quad)
                     v += center;
                 auto& v = vertexes[i];
@@ -282,9 +283,9 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
         W.mesh_indexes[i] = (uint16_t)k;
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
-        const auto depth_offset = depth_offset_for_group(G, IsWest);
+        const auto depth_offset = depth_offset_for_group<G, IsWest>();
         const auto depth = tile_shader::depth_value(pos, depth_offset);
-        auto quad = get_quad(D, G, (float)Depth);
+        auto quad = get_quad<G, IsWest>(D, (float)Depth);
         for (auto& v : quad)
             v += center;
         auto& v = vertexes[i];
