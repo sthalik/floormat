@@ -54,13 +54,15 @@ start:
         {
             for (auto i = (int)(es.size()-1); i >= 0; i--)
             {
-                const auto eʹ = es[i];
-                if (eʹ->id == id && eʹ->is_virtual())
+                auto eʹ = es[i];
+                auto& e = *eʹ;
+                if (e.id == id && eʹ->is_virtual())
                 {
-                    eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
+                    e.destroy_script_pre(eʹ, script_destroy_reason::kill);
                     c.remove_object((unsigned)i);
-                    eʹ->destroy_script_post();
-                    eʹ->gone = true;
+                    e.destroy_script_post();
+                    e.gone = true;
+                    eʹ.destroy();
                     goto start;
                 }
             }
