@@ -253,7 +253,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
             {
                 const auto frames = A.frames(dir.wall);
                 const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
-                const auto depth = tile_shader::depth_value(!IsWest ? (float)pos.x : (float)pos.x - 1, depth_offset);
+                const auto depth = tile_shader::depth_value(!IsWest ? (float)pos.x : (float)pos.x - 1, (float)pos.y, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
                 auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
