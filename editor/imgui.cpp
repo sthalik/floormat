@@ -338,7 +338,7 @@ void app::do_popup_menu()
 {
     const auto [id, target] = _popup_target;
     auto& w = M->world();
-    const auto eʹ = w.find_object(id);
+    auto eʹ = w.find_object(id);
 
     if (target == popup_target_type::none || !eʹ)
     {
@@ -394,6 +394,7 @@ void app::do_popup_menu()
             e.chunk().remove_object(e.index());
             e.destroy_script_post();
             e.gone = true;
+            eʹ.destroy();
         }
     }
     else

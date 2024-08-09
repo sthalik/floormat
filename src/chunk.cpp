@@ -196,7 +196,6 @@ void chunk::remove_object(size_t i)
 
     }
     arrayRemove(_objects, i);
-    //eʹ.destroy();
 }
 
 ArrayView<const bptr<object>> chunk::objects() const

@@ -93,12 +93,14 @@ start:
         while (auto id = a.get_object_colliding_with_cursor())
         {
             for (auto i = 0uz; i < sz; i++)
-                if (const auto eʹ = es[i]; eʹ->id == id)
+                if (auto eʹ = es[i]; eʹ->id == id)
                 {
-                    eʹ->destroy_script_pre(eʹ, script_destroy_reason::kill);
+                    auto& e = *eʹ;
+                    e.destroy_script_pre(eʹ, script_destroy_reason::kill);
                     c.remove_object(i);
-                    eʹ->destroy_script_post();
-                    eʹ->gone = true;
+                    e.destroy_script_post();
+                    e.gone = true;
+                    eʹ.destroy();
                     goto start;
                 }
             break;
