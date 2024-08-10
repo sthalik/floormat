@@ -41,6 +41,7 @@ void test_rtree();
 void test_save();
 void test_saves();
 void test_script();
+void test_util();
 void test_wall_atlas();
 void test_wall_atlas2();
 
