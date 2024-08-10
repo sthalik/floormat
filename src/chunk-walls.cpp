@@ -30,8 +30,10 @@ wall_atlas* chunk::wall_atlas_at(size_t i) const noexcept
 
 namespace {
 
+using Wall::Group;
 using Wall::Group_;
 using Wall::Direction_;
+using Wall::Frame;
 
 template<Group_ G, bool IsWest>
 constexpr Quads::quad get_quad(Direction_ D, float depth)
@@ -134,13 +136,13 @@ constexpr float depth_offset_for_group()
     {
     default:
         return tile_shader::wall_depth_offset + p;
-    case Wall::Group_::corner:
-    case Wall::Group_::side:
+    case Group_::corner:
+    case Group_::side:
         return tile_shader::wall_side_offset + p;
     }
 }
 
-Wall::Frame variant_from_frame(ArrayView<const Wall::Frame> frames, global_coords coord, variant_t variant, bool is_west)
+Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, variant_t variant, bool is_west)
 {
     auto sz = (unsigned)frames.size();
     if (variant == (variant_t)-1)
@@ -149,8 +151,8 @@ Wall::Frame variant_from_frame(ArrayView<const Wall::Frame> frames, global_coord
     return frames[variant];
 }
 
-template<Wall::Group_ G, bool IsWest>
-void do_wall_part(const Wall::Group& group, wall_atlas& A,
+template<Group_ G, bool IsWest>
+void do_wall_part(const Group& group, wall_atlas& A,
                   chunk& c, chunk::wall_stuff& W,
                   Array<std::array<chunk::vertex, 4>>& vertexes,
                   global_coords coord, uint32_t& N, uint32_t t)
@@ -159,7 +161,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
         return;
 
     const uint32_t k = t*2 + IsWest;
-    constexpr auto D = IsWest ? Wall::Direction_::W : Wall::Direction_::N;
+    constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto variant_2 = W.variants[k];
     const auto pos = local_coords{t};
     const auto center = Vector3(pos) * TILE_SIZE;
@@ -167,7 +169,7 @@ void do_wall_part(const Wall::Group& group, wall_atlas& A,
     const auto Depth = A.info().depth;
     bool side_ok = true;
 
-    if constexpr(G == Wall::Group_::side) [[unlikely]]
+    if constexpr(G == Group_::side) [[unlikely]]
     {
         bool corner_ok = false, pillar_ok = false;
 
