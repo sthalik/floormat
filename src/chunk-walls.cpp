@@ -152,18 +152,17 @@ Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, var
 }
 
 template<Group_ G, bool IsWest>
-void do_wall_part(const Group& group, wall_atlas& A,
-                  chunk& c, chunk::wall_stuff& W,
+void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                   Array<std::array<chunk::vertex, 4>>& vertexes,
-                  global_coords coord, uint32_t& N, uint32_t t)
+                  global_coords coord, uint32_t& N, uint32_t tile)
 {
     if (!group.is_defined)
         return;
 
-    const uint32_t k = t*2 + IsWest;
+    const uint32_t k = tile*2 + IsWest;
     constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto variant_2 = W.variants[k];
-    const auto pos = local_coords{t};
+    const auto pos = local_coords{tile};
     const auto center = Vector3(pos) * TILE_SIZE;
     const auto& dir = A.calc_direction(D);
     const auto Depth = A.info().depth;
