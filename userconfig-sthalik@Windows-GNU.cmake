@@ -29,8 +29,6 @@ endif()
 add_compile_definitions("$<$<CONFIG:Debug,DEBUG>:_FORTIFY_SOURCE=3>")
 add_compile_definitions("$<IF:$<CONFIG:Debug,DEBUG>,,_FORTIFY_SOURCE=3>")
 
-set(FLOORMAT_SUBMODULE-SDL2 1)
-
 # for building submodule dependencies
 function(fm-userconfig-external)
     add_compile_options(

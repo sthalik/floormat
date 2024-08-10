@@ -46,8 +46,6 @@ if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)
 endif()
 
-set(FLOORMAT_SUBMODULE-SDL2 1)
-
 # for building submodule dependencies
 function(fm-userconfig-external)
     add_compile_options(
@@ -58,7 +56,7 @@ function(fm-userconfig-external)
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
-             FLOORMAT_SUBMODULE-SDL2                            ON
+             #FLOORMAT_SUBMODULE-SDL2                           ON
              SDL_SHARED                                         OFF
              SDL_STATIC                                         ON
              CORRADE_BUILD_STATIC                               ON
