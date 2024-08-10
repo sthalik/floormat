@@ -326,7 +326,7 @@ GL::Mesh chunk::make_wall_mesh()
     }
 
     ranges::sort(ranges::zip_view(vertexes.prefix(N),
-                                  ArrayView<uint_fast16_t>{_walls->mesh_indexes.data(), N}),
+                                  ArrayView{_walls->mesh_indexes.data(), N}),
                  [&A = _walls->atlases](const auto& a, const auto& b) {
                      const auto& [av, ai] = a;
                      const auto& [bv, bi] = b;
