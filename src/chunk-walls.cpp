@@ -307,6 +307,7 @@ GL::Mesh chunk::make_wall_mesh()
     for (uint32_t k = 0; k < TILE_COUNT; k++)
     {
         const auto coord = global_coords{_coord, local_coords{k}};
+        static_assert(Wall::Group_COUNT == 4);
 
         if (auto* A_nʹ = W.atlases[k*2 + 0].get())
         {
