@@ -36,9 +36,8 @@ using Wall::Direction_;
 using Wall::Frame;
 
 template<Group_ G, bool IsWest>
-constexpr Quads::quad get_quad(Direction_ D, float depth)
+constexpr Quads::quad get_quad(float depth)
 {
-    CORRADE_ASSUME(D < Direction_::COUNT);
     CORRADE_ASSUME(G < Group_::COUNT);
     constexpr Vector2 half_tile = TILE_SIZE2*.5f;
     constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
@@ -242,7 +241,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 W.mesh_indexes[i] = (uint16_t)k;
-                auto quad = get_quad<Group_::corner, IsWest>(D, (float)Depth);
+                auto quad = get_quad<Group_::corner, IsWest>((float)Depth);
                 for (auto& v : quad)
                     v += center;
                 auto& v = vertexes[i];
@@ -261,7 +260,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto i = N++;
                 fm_assert(i < vertexes.size());
                 W.mesh_indexes[i] = (uint16_t)k;
-                auto quad = get_quad<Group_::corner, IsWest>(D, (float)Depth);
+                auto quad = get_quad<Group_::corner, IsWest>((float)Depth);
                 for (auto& v : quad)
                     v += center;
                 auto& v = vertexes[i];
@@ -285,7 +284,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
         const auto depth_offset = depth_offset_for_group<G, IsWest>();
         const auto depth = tile_shader::depth_value(pos, depth_offset);
-        auto quad = get_quad<G, IsWest>(D, (float)Depth);
+        auto quad = get_quad<G, IsWest>((float)Depth);
         for (auto& v : quad)
             v += center;
         auto& v = vertexes[i];
@@ -307,7 +306,9 @@ GL::Mesh chunk::make_wall_mesh()
     for (uint32_t k = 0; k < TILE_COUNT; k++)
     {
         const auto coord = global_coords{_coord, local_coords{k}};
+
         static_assert(Wall::Group_COUNT == 4);
+        static_assert((int)Direction_::COUNT == 2);
 
         if (auto* A_nʹ = W.atlases[k*2 + 0].get())
         {
