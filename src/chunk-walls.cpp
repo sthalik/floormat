@@ -307,7 +307,7 @@ GL::Mesh chunk::make_wall_mesh()
     {
         const auto coord = global_coords{_coord, local_coords{k}};
 
-        if (auto A_nʹ = W.atlases[k*2 + 0].get())
+        if (auto* A_nʹ = W.atlases[k*2 + 0].get())
         {
             auto& A_n = *A_nʹ;
             const auto& dir = A_n.calc_direction(Direction_::N);
@@ -315,7 +315,7 @@ GL::Mesh chunk::make_wall_mesh()
             do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, vertexes, coord, N, k);
             do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, vertexes, coord, N, k);
         }
-        if (auto A_wʹ = W.atlases[k*2 + 1].get())
+        if (auto* A_wʹ = W.atlases[k*2 + 1].get())
         {
             auto& A_w = *A_wʹ;
             const auto& dir = A_w.calc_direction(Direction_::W);
