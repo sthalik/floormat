@@ -57,7 +57,6 @@ struct object : bptr_base
     const rotation r = rotation::N; // todo remove bitfield?
     const pass_mode pass = pass_mode::see_through;
     bool ephemeral : 1 = false;
-    bool gone      : 1 = false;
     //char _pad[4]; // got 4 bytes left
 
     virtual ~object() noexcept override;

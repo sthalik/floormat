@@ -393,7 +393,6 @@ void app::do_popup_menu()
             e.destroy_script_pre(eʹ, script_destroy_reason::kill);
             e.chunk().remove_object(e.index());
             e.destroy_script_post();
-            e.gone = true;
             eʹ.destroy();
         }
     }

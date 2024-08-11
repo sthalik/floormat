@@ -128,7 +128,6 @@ void chunk::sort_objects()
 
 void chunk::add_object_pre(const bptr<object>& e)
 {
-    fm_assert(!e->gone);
     fm_assert(&*e->c == this);
     const auto dyn = e->is_dynamic(), upd = e->updates_passability();
     if (!dyn)
@@ -180,7 +179,6 @@ void chunk::remove_object(size_t i)
     {
         auto& e = *eʹ;
         fm_assert(e.c == this);
-        fm_assert(!e.gone);
 
         const auto dyn = e.is_dynamic(), upd = e.updates_passability();
         if (!dyn)
