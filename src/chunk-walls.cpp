@@ -6,7 +6,6 @@
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/Optional.h>
-#include <utility>
 #include <algorithm>
 #include <ranges>
 
