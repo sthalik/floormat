@@ -103,7 +103,6 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         case object_type::COUNT:
             fm_assert(false);
         case object_type::critter: {
-            // todo! remove duplication
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
             const auto p1 = critter_proto(e1), p2 = critter_proto(e2);

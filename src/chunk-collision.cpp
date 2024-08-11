@@ -70,7 +70,7 @@ void filter_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2
     if (!has_holes)
         return rtree.Insert(min.data(), max.data(), id);
 start:
-    fm_assert(min != max); // todo!
+    fm_assert(min != max);
 
     CutResult<float>::rect hole;
     bool ret = chunk::find_hole_in_bbox(hole, rtree, min, max);
