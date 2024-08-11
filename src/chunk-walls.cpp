@@ -270,11 +270,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         }
     }
 
-    if constexpr(G == Group_::side)
-        void();
-    else if (!side_ok) [[unlikely]]
-        return;
-
+    if (G == Group_::side || side_ok)
     {
         const auto frames = A.frames(group);
         const auto i = N++;
