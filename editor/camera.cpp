@@ -104,7 +104,7 @@ object_id app::get_object_colliding_with_cursor()
                         [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
                         if (x.type == (uint64_t)collision_type::geometry)
                             return true;
-                        Vector2 min(rect.m_min[0], rect.m_min[1]), max(rect.m_max[0], rect.m_max[1]);
+                        Vector2 min{rect.m_min}, max{rect.m_max};
                         if (t0 >= min && t0 <= max)
                         {
                             if (auto e_ = world.find_object(x.id);

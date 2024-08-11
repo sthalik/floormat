@@ -143,7 +143,7 @@ void app::draw_collision_boxes()
                             if (x.pass == (uint64_t)pass_mode::pass)
                                 if (x.id < TILE_COUNT*2+1)
                                     return true;
-                        Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                        Vector2 start{rect.m_min}, end{rect.m_max};
                         auto size = (end - start);
                         auto center = Vector3(start + size*.5f, 0.f);
                         shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
@@ -190,7 +190,7 @@ void app::draw_collision_boxes()
                             if (x.pass == (uint64_t)pass_mode::pass)
                                 if (x.id < TILE_COUNT*2+1)
                                     return true;
-                        Vector2 start(rect.m_min[0], rect.m_min[1]), end(rect.m_max[0], rect.m_max[1]);
+                        Vector2 start{rect.m_min}, end{rect.m_max};
                         auto size = end - start;
                         auto center = Vector3(start + size*.5f, 0.f);
                         _wireframe->rect.draw(shader, { center, size, 3 });
