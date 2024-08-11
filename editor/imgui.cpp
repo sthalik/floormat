@@ -107,7 +107,7 @@ float app::draw_main_menu()
                 do_key(key_render_all_z_levels);
         }
 
-        main_menu_height = ImGui::GetContentRegionMax().y;
+        main_menu_height = ImGui::GetContentRegionAvail().y;
     }
     return main_menu_height;
 }
