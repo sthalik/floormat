@@ -42,6 +42,9 @@ sets(STRING
      CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
 )
 
+add_definitions(-D_LIBCPP_ENABLE_ASSERTIONS)
+add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
+
 if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)
 endif()

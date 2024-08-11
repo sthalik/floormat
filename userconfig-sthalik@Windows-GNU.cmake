@@ -13,21 +13,22 @@ sets(STRING
 list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 
-add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
+add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
 add_compile_options(-fdiagnostics-color=always)
-add_compile_options(-fstack-usage -Wstack-usage=16384)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
+
+add_definitions(-D_GLIBCXX_ASSERTIONS)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:-D_GLIBCXX_DEBUG>>)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:-D_GLIBCXX_DEBUG_PEDANTIC>>)
+add_compile_definitions($<$<NOT:$<CONFIG:Debug,DEBUG>>:_FORTIFY_SOURCE=2>)
+add_compile_definitions($<$<CONFIG:Debug,DEBUG>:_FORTIFY_SOURCE=3>)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    add_definitions(-D_GLIBCXX_ASSERTIONS)
-    add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
-    add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
     set(OpenCV_DIR "f:/build/opencv/build-gcc-debug-floormat/install" CACHE PATH "" FORCE)
 else()
     set(BUILD_SHARED_LIBS OFF)
     set(OpenCV_DIR "f:/build/opencv/build-gcc-release-floormat/install" CACHE PATH "" FORCE)
 endif()
-add_compile_definitions("$<$<CONFIG:Debug,DEBUG>:_FORTIFY_SOURCE=3>")
-add_compile_definitions("$<IF:$<CONFIG:Debug,DEBUG>,,_FORTIFY_SOURCE=3>")
 
 # for building submodule dependencies
 function(fm-userconfig-external)
@@ -68,6 +69,7 @@ endfunction()
 
 # for floormat sources only
 function(fm-userconfig-src)
+    add_compile_options(-fstack-usage -Wstack-usage=16384)
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
         -Wstringop-overflow -Wstringop-truncation
