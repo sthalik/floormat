@@ -107,10 +107,6 @@ public:
     void remove_object(size_t i);
     void sort_objects();
 
-    // for drawing only
-    static constexpr size_t max_wall_quad_count =
-        TILE_COUNT*Wall::Direction_COUNT*(Wall::Group_COUNT+4);
-
     pass_region make_pass_region(bool debug = false, ArrayView<const Vector2i> positions = {});
     pass_region make_pass_region(const Search::pred& f, bool debug = false, ArrayView<const Vector2i> positions = {});
 
@@ -125,7 +121,7 @@ public:
     {
         std::array<bptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-        std::array<uint_fast16_t, max_wall_quad_count> mesh_indexes;
+        Array<uint_fast16_t> mesh_indexes;
     };
 
 private:

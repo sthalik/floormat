@@ -3,9 +3,10 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "shaders/shader.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/Optional.h>
+#include <cr/ArrayViewStl.h>
+#include <cr/GrowableArray.h>
+#include <cr/Pair.h>
+#include <cr/Optional.h>
 #include <algorithm>
 #include <ranges>
 
@@ -115,19 +116,31 @@ constexpr Quads::quad get_quad(float depth)
     std::unreachable();
 }
 
-Array<Quads::indexes> make_indexes_()
+ArrayView<const Quads::indexes> make_indexes(uint32_t count)
 {
-    auto array = Array<Quads::indexes>{NoInit, chunk::max_wall_quad_count };
-    for (auto i = 0uz; i < chunk::max_wall_quad_count; i++)
-        array[i] = Quads::quad_indexes(i);
-    return array;
+    static auto array = [] {
+        auto array = Array<Quads::indexes>{};
+        arrayReserve(array, 64);
+        return array;
+    }();
+    auto i = (uint32_t)array.size();
+    if (count > i) [[unlikely]]
+    {
+        arrayResize(array, NoInit, count);
+        for (; i < count; i++)
+            array.data()[i] = Quads::quad_indexes(i);
+    }
+    return array.prefix(count);
 }
 
-ArrayView<const Quads::indexes> make_indexes(size_t max)
+Array<std::array<chunk::vertex, 4>>& make_vertexes()
 {
-    static const auto indexes = make_indexes_();
-    fm_assert(max <= chunk::max_wall_quad_count);
-    return indexes.prefix(max);
+    static auto array = [] {
+        Array<std::array<chunk::vertex, 4>> array;
+        arrayReserve(array, 32);
+        return array;
+    }();
+    return array;
 }
 
 template<Group_ G, bool IsWest>
@@ -153,6 +166,17 @@ Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, var
     variant %= sz;
     return frames[variant];
 }
+
+constexpr std::array<chunk::vertex, 4>& alloc_wall_vertexes(uint32_t& N, auto& V, auto& M, uint32_t k)
+{
+    constexpr uint32_t reserve = 15, mask = ~reserve;
+    const auto i = N, sz = ++N + reserve & mask;
+    fm_assert(uint32_t{(UnsignedShort)sz} == sz);
+    arrayResize(V, NoInit, sz);
+    arrayResize(M, NoInit, sz);
+    M[i] = (uint16_t)k;
+    return V[i];
+};
 
 template<Group_ G, bool IsWest>
 void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
@@ -220,14 +244,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 fm_assert(frame.size.y() >= Depth);
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
-                const auto i = N++;
-                fm_assert(i < vertexes.size());
-                W.mesh_indexes[i] = (uint16_t)k;
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>();
                 const auto depth = tile_shader::depth_value(pos, depth_offset);
                 for (auto& v : quad)
                     v += center;
-                auto& v = vertexes[i];
+                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j], texcoords[j], depth};
             }
@@ -242,13 +263,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
-                const auto i = N++;
-                fm_assert(i < vertexes.size());
-                W.mesh_indexes[i] = (uint16_t)k;
                 auto quad = get_quad<Group_::corner, IsWest>((float)Depth);
                 for (auto& v : quad)
                     v += center;
-                auto& v = vertexes[i];
+                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j], texcoords[j], depth};
             }
@@ -261,13 +279,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 fm_assert(frame.size.x() > Depth);
                 auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
                 const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, A.image_size());
-                const auto i = N++;
-                fm_assert(i < vertexes.size());
-                W.mesh_indexes[i] = (uint16_t)k;
                 auto quad = get_quad<Group_::corner, IsWest>((float)Depth);
                 for (auto& v : quad)
                     v += center;
-                auto& v = vertexes[i];
+                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j], texcoords[j], depth};
             }
@@ -277,9 +292,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     if (G == Group_::side || side_ok)
     {
         const auto frames = A.frames(group);
-        const auto i = N++;
-        fm_assert(i < vertexes.size());
-        W.mesh_indexes[i] = (uint16_t)k;
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
         const auto depth_offset = depth_offset_for_group<G, IsWest>();
@@ -287,7 +299,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         auto quad = get_quad<G, IsWest>((float)Depth);
         for (auto& v : quad)
             v += center;
-        auto& v = vertexes[i];
+        auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
         for (uint8_t j = 0; j < 4; j++)
             v[j] = {quad[j], texcoords[j], depth};
     }
@@ -300,8 +312,10 @@ GL::Mesh chunk::make_wall_mesh()
     fm_debug_assert(_walls);
     uint32_t N = 0;
 
-    static auto vertexes = Array<std::array<vertex, 4>>{NoInit, max_wall_quad_count };
+    auto& vertexes = make_vertexes();
     auto& W = *_walls;
+
+    arrayResize(vertexes, 0);
 
     for (uint32_t k = 0; k < TILE_COUNT; k++)
     {
