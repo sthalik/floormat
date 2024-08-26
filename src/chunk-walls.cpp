@@ -37,11 +37,11 @@ using Wall::Frame;
 template<Group_ G, bool IsWest>
 constexpr Quads::quad get_quad(float depth)
 {
-    CORRADE_ASSUME(G < Group_::COUNT);
+    static_assert(G < Group_::COUNT);
+
     constexpr Vector2 half_tile = TILE_SIZE2*.5f;
     constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
 
-    fm_assert(G < Group_::COUNT);
     switch (G)
     {
     using enum Group_;
@@ -128,7 +128,7 @@ ArrayView<const Quads::indexes> make_indexes(size_t max)
 template<Group_ G, bool IsWest>
 constexpr float depth_offset_for_group()
 {
-    CORRADE_ASSUME(G < Group_::COUNT);
+    static_assert(G < Group_::COUNT);
     float p = IsWest ? tile_shader::wall_west_offset : 0;
     switch (G)
     {
