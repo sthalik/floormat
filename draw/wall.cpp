@@ -16,6 +16,9 @@ wall_mesh::wall_mesh() = default;
 void wall_mesh::draw(tile_shader& shader, chunk& c)
 {
     const auto [mesh_, ids, size] = c.ensure_wall_mesh();
+    if (size == 0)
+        return;
+
     struct { wall_atlas* atlas = nullptr; size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
     [[maybe_unused]] size_t draw_count = 0;

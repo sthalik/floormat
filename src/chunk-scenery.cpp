@@ -177,13 +177,18 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             i++;
         }
 
-        GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-        auto vert_view = ArrayView<const std::array<vertex, 4>>{scenery_vertexes, count};
-        auto index_view = ArrayView<const std::array<UnsignedShort, 6>>{scenery_indexes, count};
-        mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-            .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
-            .setCount(int32_t(6 * count));
-        scenery_mesh = move(mesh);
+        if (count == 0)
+            scenery_mesh = GL::Mesh{NoCreate};
+        else
+        {
+            GL::Mesh mesh{GL::MeshPrimitive::Triangles};
+            auto vert_view = ArrayView<const std::array<vertex, 4>>{scenery_vertexes, count};
+            auto index_view = ArrayView<const std::array<UnsignedShort, 6>>{scenery_indexes, count};
+            mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
+                .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
+                .setCount(int32_t(6 * count));
+            scenery_mesh = move(mesh);
+        }
     }
 
     const auto size = _objects.size();

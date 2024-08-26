@@ -52,6 +52,12 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         if (_ground->atlases[i])
             _ground->indexes[count++] = uint8_t(i);
 
+    if (count == 0)
+    {
+        ground_mesh = GL::Mesh{NoCreate};
+        return { ground_mesh, {}, 0 };
+    }
+
     std::sort(_ground->indexes.begin(), _ground->indexes.begin() + count,
               [this](uint8_t a, uint8_t b) {
                   return _ground->atlases[a].get() < _ground->atlases[b].get();

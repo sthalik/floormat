@@ -323,6 +323,9 @@ GL::Mesh chunk::make_wall_mesh()
         }
     }
 
+    if (N == 0)
+        return GL::Mesh{NoCreate};
+
     ranges::sort(ranges::zip_view(vertexes.prefix(N),
                                   ArrayView{_walls->mesh_indexes.data(), N}),
                  [&A = _walls->atlases](const auto& a, const auto& b) {

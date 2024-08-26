@@ -13,6 +13,8 @@ void ground_mesh::draw(tile_shader& shader, chunk& c)
 {
     constexpr int quad_index_count = 6;
     const auto [mesh_, ids, size] = c.ensure_ground_mesh();
+    if (size == 0)
+        return;
     struct {
         ground_atlas* atlas = nullptr; size_t pos = 0; } last;
     GL::MeshView mesh{mesh_};
