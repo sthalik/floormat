@@ -9,6 +9,11 @@
 #include <algorithm>
 #include <ranges>
 
+#ifdef __CLION_IDE__
+#undef fm_assert
+#define fm_assert(...) ((void)(__VA_ARGS__))
+#endif
+
 namespace floormat {
 
 namespace ranges = std::ranges;
