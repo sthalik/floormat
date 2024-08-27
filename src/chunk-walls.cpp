@@ -41,6 +41,27 @@ using Wall::Direction_;
 using Wall::Frame;
 
 template<Group_ G, bool IsWest>
+constexpr Quads::texcoords hole_to_texcoord(CutResult<float>::rect hole)
+{
+    static_assert(G < Group_::COUNT);
+
+    switch (G)
+    {
+    using enum Group_;
+    case COUNT: fm_assert(false);
+    case wall:
+        fm_assert(false);
+        break;
+    case corner:
+    case side:
+    case top:
+        fm_assert(false);
+    }
+    //std::unreachable();
+    return {};
+}
+
+template<Group_ G, bool IsWest>
 constexpr Quads::quad get_quad(float depth)
 {
     static_assert(G < Group_::COUNT);
