@@ -5,7 +5,6 @@
 #include "shaders/shader.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
-#include <cr/Pair.h>
 #include <cr/Optional.h>
 #include <algorithm>
 #include <ranges>

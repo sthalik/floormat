@@ -101,7 +101,7 @@ start:
 } // namespace
 
 #if 1
-bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, Chunk_RTree& rtree, Vector2 min, Vector2 max)
+bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max)
 {
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
