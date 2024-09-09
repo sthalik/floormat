@@ -213,7 +213,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const auto center = Vector3(pos) * TILE_SIZE;
     const auto& dir = A.calc_direction(D);
     const auto Depth = A.info().depth;
-    bool side_ok = true;
 
     if constexpr(G == Group_::side) [[unlikely]]
     {
@@ -228,21 +227,12 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 if (auto t = c.at_offset(pos, {0, -1}); t && t->wall_west_atlas())
                     corner_ok = true;
             }
-            if (side_ok)
-                if (auto t = c.at_offset(pos, {1, -1}); t && t->wall_west_atlas())
-                    side_ok = false;
-            if (side_ok)
-                if (auto t = c.at_offset(pos, {1, -1}); t && t->wall_west_atlas())
-                    side_ok = false;
         }
         else
         {
             if (auto t = c.at_offset(pos, {0, -1}); !(t && t->wall_west_atlas()))
                 if (auto t = c.at_offset(pos, {-1, 0}); t && t->wall_north_atlas())
                     corner_ok = true;
-            if (side_ok)
-                if (auto t = c.at_offset(pos, {-1, 1}); t && t->wall_north_atlas())
-                    side_ok = false;
         }
 
         if (pillar_ok) [[unlikely]]
@@ -309,7 +299,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         }
     }
 
-    if (G == Group_::side || side_ok)
     {
         const auto frames = A.frames(group);
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
