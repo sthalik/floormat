@@ -64,6 +64,8 @@ auto make_topo_sort_data(object& e, uint32_t mesh_idx) -> topo_sort_data
     return data;
 }
 
+// todo! switch to using a stack as in https://www.geeksforgeeks.org/topological-sorting/
+
 void topo_dfs(Array<chunk::object_draw_order>& array, size_t& output, size_t i, size_t size) // NOLINT(misc-no-recursion)
 {
     using m = typename chunk::topo_sort_data::m;

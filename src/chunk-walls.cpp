@@ -2,10 +2,13 @@
 #include "tile-bbox.hpp"
 #include "quads.hpp"
 #include "wall-atlas.hpp"
+#include "tile-bbox.hpp"
+#include "RTree-search.hpp"
 #include "shaders/shader.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <concepts>
 #include <algorithm>
 #include <ranges>
 
@@ -39,34 +42,16 @@ using Wall::Group_;
 using Wall::Direction_;
 using Wall::Frame;
 
-template<Group_ G, bool IsWest>
-constexpr Quads::texcoords hole_to_texcoord(CutResult<float>::rect hole)
+template<typename T> using Vec2_ = VectorTypeFor<2, T>;
+template<typename T> using Vec3_ = VectorTypeFor<3, T>;
+
+template<Group_ G, bool IsWest, typename F = float>
+constexpr std::array<Vec3_<F>, 4> get_quad(F depth)
 {
     static_assert(G < Group_::COUNT);
 
-    switch (G)
-    {
-    using enum Group_;
-    case COUNT: fm_assert(false);
-    case wall:
-        fm_assert(false);
-        break;
-    case corner:
-    case side:
-    case top:
-        fm_assert(false);
-    }
-    //std::unreachable();
-    return {};
-}
-
-template<Group_ G, bool IsWest>
-constexpr Quads::quad get_quad(float depth)
-{
-    static_assert(G < Group_::COUNT);
-
-    constexpr Vector2 half_tile = TILE_SIZE2*.5f;
-    constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
+    constexpr auto half_tile = Vec2_<F>(TILE_SIZE2*.5f);
+    constexpr auto X = half_tile.x(), Y = half_tile.y(), Z = F(TILE_SIZE.z());
 
     switch (G)
     {
@@ -136,13 +121,68 @@ constexpr Quads::quad get_quad(float depth)
     std::unreachable();
 }
 
+template<bool IsWest>
+CutResult<Int>::rect get_wall_rect(local_coords tile)
+{
+    constexpr auto nʹ = wall_north<Int>(0, 0), wʹ = wall_west<Int>(0, 0);
+    constexpr auto t0 = !IsWest ? nʹ.first() : wʹ.first(),
+                   t1 = !IsWest ? nʹ.second() : wʹ.second();
+    const auto offset = Vector2i{tile} * iTILE_SIZE2;
+    const auto min = offset + t0, max = offset + t1;
+    return { min, max };
+}
+
+template<bool IsWest, std::invocable<Vector2, Vector2> F>
+void cut_holes_in_wall(chunk& c, local_coords tile, Vector2i min, Vector2i max, F&& fun)
+{
+    CutResult<float>::rect hole;
+
+    //constexpr auto eps = Vector2{.125f};
+    if (c.find_hole_in_bbox(hole, Vector2(min) /*- eps*/, Vector2(max) /*+ eps*/))
+    {
+        fun(min, max);
+    }
+    else
+    {
+        fm_assert(Vector2(Vector2i(hole.min)) == hole.min);
+        fm_assert(Vector2(Vector2i(hole.max)) == hole.max);
+        auto res = CutResult<Int>::cut(min, max, Vector2i(hole.min), Vector2i(hole.max));
+        if (!res.found())
+        {
+            fun(min, max);
+        }
+        else
+        {
+            for (auto i = 0u; i < res.size; i++)
+            {
+                const auto [min, max] = res.array[i];
+                cut_holes_in_wall<IsWest>(c, tile, min, max, fun);
+            }
+        }
+    }
+}
+
+struct quad_tuple
+{
+    Vector2ui tex_pos, tex_size;
+    Vector2i min, max;
+};
+
+template<bool IsWest>
+quad_tuple get_wall_quad_stuff(const CutResult<Int>::rect& geom, const CutResult<Int>::rect& orig,
+                               Vector2ui orig_tex_pos, Vector2ui orig_tex_size)
+{
+
+}
+
 ArrayView<const Quads::indexes> make_indexes(uint32_t count)
 {
-    static auto array = [] {
+    static auto arrayʹ = [] {
         auto array = Array<Quads::indexes>{};
         arrayReserve(array, 64);
         return array;
     }();
+    auto& array = arrayʹ;
     auto i = (uint32_t)array.size();
     if (count > i) [[unlikely]]
     {
@@ -319,7 +359,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
 GL::Mesh chunk::make_wall_mesh()
 {
     fm_debug_assert(_walls);
+
     uint32_t N = 0;
+#ifdef __CLION_IDE__
+    extern const uint32_t _foo; N = _foo;
+#endif
 
     auto& vertexes = make_vertexes();
     auto& W = *_walls;
