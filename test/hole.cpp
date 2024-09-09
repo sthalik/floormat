@@ -74,6 +74,25 @@ void test2()
     fm_assert(has({0, -32}, {32, 0}));
 }
 
+void test3()
+{
+    constexpr auto h = tile_size_xy/2;
+
+    {
+        const auto res = CutResult<Int>::cut({-h, -1}, {h, 1}, {-2, -100}, {2, 100});
+        fm_assert(res.found());
+        fm_assert_equal(2, (int)res.size);
+    }
+    {
+        const auto res = CutResult<Int>::cut({-h, 0}, {h, 0}, {-2, -100}, {2, 100});
+        fm_assert(res.found());
+        fm_assert_equal(2, (int)res.size);
+        const auto has = make_search_predicate(res);
+        fm_assert(has({-h, 0}, {-2, 0}));
+        fm_assert(has({ 2, 0}, { h, 0}));
+    }
+}
+
 } // namespace
 
 void Test::test_hole()
@@ -90,6 +109,7 @@ void Test::test_hole()
         test1(offset);
 
     test2();
+    test3();
 }
 
 } // namespace floormat

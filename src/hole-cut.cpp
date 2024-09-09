@@ -142,13 +142,13 @@ template<typename T>
 [[nodiscard]]
 constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1)
 {
-    bool iempty = r0.x() == r1.x() | r0.y() == r1.y();
+    //bool iempty = r0.x() == r1.x() | r0.y() == r1.y();
     bool hempty = h0.x() == h1.x() | h0.y() == h1.y();
     bool empty_before_x = h1.x() <= r0.x();
     bool empty_after_x  = h0.x() >= r1.x();
     bool empty_before_y = h1.y() <= r0.y();
     bool empty_after_y  = h0.y() >= r1.y();
-    return iempty | hempty | empty_before_x | empty_after_x | empty_before_y | empty_after_y;
+    return /*iempty |*/ hempty | empty_before_x | empty_after_x | empty_before_y | empty_after_y;
 }
 
 template<typename T>
