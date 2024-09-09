@@ -8,11 +8,12 @@
 namespace floormat {
 
 template<typename T = float>
-constexpr Vector2 tile_start(size_t k)
+constexpr VectorTypeFor<2, T> tile_start(size_t k)
 {
-    constexpr auto half_tile = VectorTypeFor<2,T>(tile_size_xy/2);
+    using Vec2 = VectorTypeFor<2,T>;
+    constexpr auto half_tile = Vec2{tile_size_xy/2};
     const local_coords coord{k};
-    return TILE_SIZE2 * VectorTypeFor<2,T>(coord) - half_tile;
+    return Vec2(TILE_SIZE2) * Vec2(coord) - half_tile;
 }
 
 constexpr Pair<Vector2i, Vector2i> scenery_tile(local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
@@ -31,24 +32,27 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> whole_tile(size_t k)
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_north(size_t k, float wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_north(size_t k, T wall_depth)
 {
-    auto min = tile_start<T>(k) - VectorTypeFor<2,T>{0, wall_depth};
-    return { min, min + VectorTypeFor<2,T>{TILE_SIZE2.x(), wall_depth} };
+    using Vec2 = VectorTypeFor<2,T>;
+    auto min = tile_start<T>(k) - Vec2{0, wall_depth};
+    return { min, min + Vec2{tile_size_xy, wall_depth} };
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(size_t k, float wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(size_t k, T wall_depth)
 {
-    auto min = tile_start<T>(k) - VectorTypeFor<2,T>{wall_depth, 0};
-    return { min, min + VectorTypeFor<2,T>{wall_depth, TILE_SIZE2.y()} };
+    using Vec2 = VectorTypeFor<2,T>;
+    auto min = tile_start<T>(k) - Vec2{wall_depth, 0};
+    return { min, min + Vec2{wall_depth, tile_size_xy} };
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, float wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T wall_depth)
 {
-    auto min = tile_start<T>(k) - VectorTypeFor<2,T>{wall_depth, 0};
-    return { min - VectorTypeFor<2,T>{0, wall_depth}, min + VectorTypeFor<2,T>{wall_depth, TILE_SIZE2.y()} };
+    using Vec2 = VectorTypeFor<2,T>;
+    auto min = tile_start<T>(k) - Vec2{wall_depth, 0};
+    return { min - Vec2{0, wall_depth}, min + Vec2{wall_depth, tile_size_xy} };
 }
 
 } // namespace floormat
