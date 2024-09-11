@@ -377,10 +377,22 @@ void test11()
     auto p1 = bptr<bptr_base>{new Foo{1}};
     auto p2 = static_pointer_cast<Foo>(p1);
     auto p3 = static_pointer_cast<bptr_base>(p1);
+
     fm_assert(p2->x == 1);
     fm_assert(p3);
     p1.destroy();
     fm_assert(!p2); fm_assert(!p3);
+
+    p1.destroy();
+    p1.destroy();
+    p1.destroy();
+    p2.destroy();
+    p2.destroy();
+    p2.destroy();
+    p3.destroy();
+    p3.destroy();
+    p3.destroy();
+    fm_assert(!p1); fm_assert(!p2); fm_assert(!p3);
 }
 
 void test12()
