@@ -149,7 +149,7 @@ bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
     for (max = 1; max <= 9999; max++)
     {
         char filename[9];
-        sprintf(filename, "%04d.png", max);
+        sprintf(filename, "%04u.png", max);
         if (!Path::exists(Path::join(input_dir, filename)))
             break;
     }
@@ -176,7 +176,7 @@ bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
     for (unsigned i = 1; i < max; i++)
     {
         char filename[9];
-        sprintf(filename, "%04d.png", i);
+        sprintf(filename, "%04u.png", i);
         if (!load_file(group, opts, atlas, Path::join(input_dir, filename)))
             return false;
     }
