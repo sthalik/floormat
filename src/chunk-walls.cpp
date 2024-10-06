@@ -139,18 +139,16 @@ void cut_holes_in_wall(chunk& c, local_coords tile, Vector2i min, Vector2i max, 
 
     //constexpr auto eps = Vector2{.125f};
     if (c.find_hole_in_bbox(hole, Vector2(min) /*- eps*/, Vector2(max) /*+ eps*/))
-    {
         fun(min, max);
-    }
     else
     {
         fm_assert(Vector2(Vector2i(hole.min)) == hole.min);
         fm_assert(Vector2(Vector2i(hole.max)) == hole.max);
         auto res = CutResult<Int>::cut(min, max, Vector2i(hole.min), Vector2i(hole.max));
         if (!res.found())
-        {
             fun(min, max);
-        }
+        else if (res.size == 1)
+            fun(Vector2(res.array[0].min), Vector2(res.array[0].max));
         else
         {
             for (auto i = 0u; i < res.size; i++)
@@ -165,14 +163,57 @@ void cut_holes_in_wall(chunk& c, local_coords tile, Vector2i min, Vector2i max, 
 struct quad_tuple
 {
     Vector2ui tex_pos, tex_size;
-    Vector2i min, max;
+    Vector2i pos_min, pos_max;
 };
 
-template<bool IsWest>
 quad_tuple get_wall_quad_stuff(const CutResult<Int>::rect& geom, const CutResult<Int>::rect& orig,
-                               Vector2ui orig_tex_pos, Vector2ui orig_tex_size)
+                               const Vector2ui orig_tex_pos, const Vector2ui orig_tex_size)
 {
+    fm_debug_assert(geom.max > geom.min);
+    fm_debug_assert(orig.max > orig.max);
+    fm_assert(geom.min >= orig.min);
+    fm_assert(geom.max <= orig.max);
 
+    auto off_min = Vector2ui(geom.min - orig.min), off_max = Vector2ui(orig.max - geom.max);
+    fm_assert(orig_tex_size > off_min + off_max);
+
+    return {
+        .tex_pos  = orig_tex_pos  + off_min,
+        .tex_size = orig_tex_size - off_min - off_max,
+        .pos_min  = geom.min,
+        .pos_max  = geom.max,
+    };
+}
+
+Quads::texcoords texcoords_from_tuple(const wall_atlas& atlas, const quad_tuple& tuple, uint32_t top, uint32_t bottom)
+{
+    fm_assert(tuple.tex_size.y() > top + bottom);
+
+    auto pos  = tuple.tex_pos + Vector2ui{0, top};
+    auto size = tuple.tex_size - Vector2ui{0, top + bottom};
+
+    return Quads::texcoords_at(pos, size, atlas.image_size());
+}
+
+template<bool IsWest>
+Quads::quad get_quad_from_tuple(const quad_tuple& tuple, uint32_t top, uint32_t bottom)
+{
+    constexpr float X = 0, Y = 0, Z = 0;
+    fm_debug_assert(top > bottom && top <= tile_size_z);
+    if constexpr(!IsWest)
+        return {{
+            { X, -Y, 0 },
+            { X, -Y, Z },
+            {-X, -Y, 0 },
+            {-X, -Y, Z },
+        }};
+    else
+        return {{
+            {-X, -Y, 0 },
+            {-X, -Y, Z },
+            {-X,  Y, 0 },
+            {-X,  Y, Z },
+        }};
 }
 
 ArrayView<const Quads::indexes> make_indexes(uint32_t count)
@@ -294,7 +335,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 fm_assert(frame.size.y() >= Depth);
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
-                const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>();
+                constexpr auto depth_offset = depth_offset_for_group<Group_::top, IsWest>();
                 const auto depth = tile_shader::depth_value(pos, depth_offset);
                 for (auto& v : quad)
                     v += center;
@@ -308,7 +349,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             if (dir.corner.is_defined)
             {
                 const auto frames = A.frames(dir.corner);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
+                constexpr auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
                 const auto pos_x = !IsWest ? (float)pos.x : (float)pos.x - 1;
                 const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
@@ -323,7 +364,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             else if (dir.wall.is_defined) [[likely]]
             {
                 const auto frames = A.frames(dir.wall);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
+                constexpr auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
                 const auto depth = tile_shader::depth_value(!IsWest ? (float)pos.x : (float)pos.x - 1, (float)pos.y, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
@@ -343,7 +384,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto frames = A.frames(group);
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
-        const auto depth_offset = depth_offset_for_group<G, IsWest>();
+        constexpr auto depth_offset = depth_offset_for_group<G, IsWest>();
         const auto depth = tile_shader::depth_value(pos, depth_offset);
         auto quad = get_quad<G, IsWest>((float)Depth);
         for (auto& v : quad)
