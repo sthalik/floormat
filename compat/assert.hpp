@@ -39,10 +39,20 @@ void fm_emit_debug_loc0(const char* file, int line, fm_FORMAT_ARG_MSVC const cha
 #define fm_debug_loc(pfx, ...)  (::floormat::fm_emit_debug_loc(pfx, __FILE__, __LINE__,__VA_ARGS__))
 #define fm_debug_loc0(...)      (::floormat::fm_emit_debug_loc0(__FILE__, __LINE__,__VA_ARGS__))
 
+#if defined FM_NO_DEBUG && !defined FM_NO_DEBUG2
+#define FM_NO_DEBUG2
+#endif
+
 #ifndef FM_NO_DEBUG
 #define fm_debug_assert(...) fm_assert(__VA_ARGS__)
 #else
-#define fm_debug_assert(...) void()
+#define fm_debug_assert(...) (void())
+#endif
+
+#ifndef FM_NO_DEBUG2
+#define fm_debug2_assert(...) fm_assert(__VA_ARGS__)
+#else
+#define fm_debug2_assert(...) (void())
 #endif
 
 #define fm_warn_once(...) do {                                          \

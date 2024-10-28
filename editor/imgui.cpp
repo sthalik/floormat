@@ -312,7 +312,7 @@ void app::draw_lightmap_test(float main_menu_height)
 
     if (ImGui::Begin("Lightmap", &is_open, flags))
     {
-        ImGui::Image(&shader.accum_texture(), preview_size, {0, 0}, {1, 1});
+        ImGui::Image(shader.accum_texture().id(), preview_size, {0, 0}, {1, 1});
         ImGui::End();
     }
     else

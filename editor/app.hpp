@@ -108,10 +108,14 @@ private:
 
     void draw() override;
 
-    void on_mouse_move(const mouse_move_event& event) noexcept override;
-    void on_mouse_up_down(const mouse_button_event& event, bool is_down) noexcept override;
-    void on_mouse_scroll(const mouse_scroll_event& event) noexcept override;
-    void on_key_up_down(const key_event& event, bool is_down) noexcept override;
+    [[nodiscard]] bool do_imgui_key(const sdl2::EvKey& ev, bool is_down);
+    [[nodiscard]] bool do_imgui_click(const sdl2::EvClick& ev, bool is_down);
+    [[nodiscard]] bool do_tests_key(const key_event& ev, bool is_down);
+
+    void on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) noexcept override;
+    void on_mouse_up_down(const mouse_button_event& event, bool is_down, const sdl2::EvClick& ev) noexcept override;
+    void on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll& ev) noexcept override;
+    void on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey& ev) noexcept override;
     std::tuple<key, int> resolve_keybinding(int k, int mods);
     void on_text_input_event(const text_input_event& event) noexcept override;
     //bool on_text_editing_event(const text_editing_event& event) noexcept override;
