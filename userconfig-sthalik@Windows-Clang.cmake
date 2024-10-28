@@ -67,7 +67,7 @@ function(fm-userconfig-external)
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
              MAGNUM_BUILD_PLUGINS_STATIC                        ON
              MAGNUM_BUILD_STATIC                                ON
-             MAGNUM_BUILD_TESTS                                 OFF
+             MAGNUM_BUILD_TESTS                                 ON
         )
     else()
         sets(BOOL
@@ -75,7 +75,7 @@ function(fm-userconfig-external)
              SDL_SHARED                                         ON
              SDL_STATIC                                         OFF
              CORRADE_BUILD_STATIC                               OFF
-             CORRADE_BUILD_TESTS                                ON
+             CORRADE_BUILD_TESTS                                OFF
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
              MAGNUM_BUILD_PLUGINS_STATIC                        OFF
              MAGNUM_BUILD_STATIC                                OFF
@@ -85,9 +85,9 @@ function(fm-userconfig-external)
     if(FLOORMAT_ASAN)
         sets(BOOL
              CORRADE_BUILD_STATIC                               ON
-             CORRADE_BUILD_TESTS                                OFF
+             CORRADE_BUILD_TESTS                                ON
              MAGNUM_BUILD_STATIC                                ON
-             MAGNUM_BUILD_TESTS                                 OFF
+             MAGNUM_BUILD_TESTS                                 ON
         )
     endif()
 endfunction()
