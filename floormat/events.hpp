@@ -14,22 +14,25 @@ enum mouse_button : unsigned char {
 };
 
 struct mouse_button_event final {
-    Vector2i position;
+    Vector2 position;
     int mods = 0;
     mouse_button button = mouse_button_none;
     uint8_t click_count = 0;
+    bool is_primary : 1 = false;
 };
 
 struct mouse_move_event final {
-    Vector2i position;
-    mouse_button buttons = mouse_button_none;
+    Vector2 position;
     int mods = 0;
+    mouse_button buttons = mouse_button_none;
+    bool is_primary : 1 = false;
 };
 
 struct mouse_scroll_event final {
     Magnum::Vector2 offset;
-    Vector2i position;
+    Vector2 position;
     int mods = 0;
+    bool is_primary : 1 = false;
 };
 
 struct text_input_event final {

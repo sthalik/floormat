@@ -9,6 +9,7 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
+#include "main/sdl-fwd.hpp"
 #include "main/clickable.hpp"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
@@ -76,10 +77,10 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     const Platform::Sdl2Application& application() const noexcept override;
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
-    [[maybe_unused]] void mousePressEvent(MouseEvent& event) override;
-    [[maybe_unused]] void mouseReleaseEvent(MouseEvent& event) override;
-    [[maybe_unused]] void mouseMoveEvent(MouseMoveEvent& event) override;
-    [[maybe_unused]] void mouseScrollEvent(MouseScrollEvent& event) override;
+    [[maybe_unused]] void pointerPressEvent(PointerEvent& ev) override;
+    [[maybe_unused]] void pointerReleaseEvent(PointerEvent& ev) override;
+    [[maybe_unused]] void pointerMoveEvent(PointerMoveEvent& ev) override;
+    [[maybe_unused]] void scrollEvent(ScrollEvent& ev) override;
     [[maybe_unused]] void textInputEvent(TextInputEvent& event) override;
     //[[maybe_unused]] void textEditingEvent(TextEditingEvent& event) override;
     [[maybe_unused]] void keyPressEvent(KeyEvent& event) override;
