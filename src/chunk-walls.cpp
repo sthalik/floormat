@@ -187,7 +187,7 @@ template<bool IsWest>
 quad_tuple get_wall_quad_stuff(const CutResult<Int>::rect& geom, const CutResult<Int>::rect& orig,
                                Vector2ui orig_tex_pos, Vector2ui orig_tex_size)
 {
-
+    return {};
 }
 
 ArrayView<const Quads::indexes> make_indexes(uint32_t count)
