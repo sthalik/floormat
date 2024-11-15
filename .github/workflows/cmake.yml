@@ -58,6 +58,7 @@ jobs:
     - name: Test
       run: |
         cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
