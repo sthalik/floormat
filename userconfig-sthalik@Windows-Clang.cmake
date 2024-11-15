@@ -11,6 +11,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
             -fcoverage-mapping
         )
     endif()
+    add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
 else()
     set(BUILD_SHARED_LIBS OFF)
     add_compile_options(-march=native -mavx2)
@@ -19,6 +20,7 @@ else()
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
     add_compile_options(-Wno-nan-infinity-disabled)
+    add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
 endif()
 
 if(FLOORMAT_ASAN)
@@ -42,7 +44,6 @@ sets(STRING
      CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
 )
 
-add_definitions(-D_LIBCPP_ENABLE_ASSERTIONS)
 add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
 
 if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
