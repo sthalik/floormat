@@ -15,11 +15,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        #os: [ubuntu-22.04, windows-latest, macos-12]
-        os: [ubuntu-22.04]
+        #os: [ubuntu-24.04, windows-latest, macos-12]
+        os: [ubuntu-24.04]
         include:
-        - os: ubuntu-22.04
-          cmake: /usr/bin/env CC=gcc-13 CXX=g++-13 cmake
+        - os: ubuntu-24.04
+          cmake: /usr/bin/env CC=gcc-14 CXX=g++-14 cmake
         #- os: macos-12
         #  cmake: /usr/bin/env CC="$(brew --prefix llvm@16)/bin/clang" CXX="$(brew --prefix llvm@16)/bin/clang++" cmake
         #- os: windows-latest
@@ -33,16 +33,16 @@ jobs:
     - uses: abdes/gha-setup-ninja@master
       with:
         version: 1.11.1
-      if: matrix.os != 'ubuntu-22.04'
+      if: matrix.os != 'ubuntu-24.04'
 
     - name: Install Linux dependencies
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         sudo apt -q=2 update
-        sudo apt install g++-13 gdb ninja-build libbenchmark-dev
+        sudo apt install g++-14 gdb ninja-build libbenchmark-dev
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
 
     - name: Install OSX dependencies
       run: |
@@ -62,7 +62,7 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
-      if: matrix.os == 'ubuntu-22.04'
+      if: matrix.os == 'ubuntu-24.04'
 
 #    - name: Upload build
 #      uses: actions/upload-artifact@v2.2.4
