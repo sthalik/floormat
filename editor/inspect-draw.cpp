@@ -33,7 +33,7 @@ void app::draw_inspector()
         }
         auto& e = *eʹ;
 
-        char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 - 1];
+        char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 + 3 - 1];
         ImGui::SetNextWindowSize({375*dpi[0], 0});
         entity_inspector_name(buf2, e.id);
         entity_friendly_name(buf3, sizeof buf3, e);
