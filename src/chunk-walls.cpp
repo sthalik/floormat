@@ -3,6 +3,9 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "tile-bbox.hpp"
+#include "compat/iota.hpp"
+#include "compat/map.hpp"
+#include "compat/unroll.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
 #include <cr/ArrayViewStl.h>
@@ -11,11 +14,6 @@
 #include <concepts>
 #include <algorithm>
 #include <ranges>
-
-#ifdef __CLION_IDE__
-#undef fm_assert
-#define fm_assert(...) ((void)(__VA_ARGS__))
-#endif
 
 namespace floormat {
 
@@ -45,19 +43,27 @@ using Wall::Frame;
 template<typename T> using Vec2_ = VectorTypeFor<2, T>;
 template<typename T> using Vec3_ = VectorTypeFor<3, T>;
 
-template<typename F, uint32_t N>
+template<typename F, size_t N>
 struct minmax_v
 {
     VectorTypeFor<N, F> min, max;
 };
 
-template<Group_ G, bool IsWest, typename F = float>
-constexpr std::array<Vec3_<F>, 4> get_quadʹ(minmax_v<F, 3> bounds, F d)
+struct quad_table_entry
 {
-    static_assert(G < Group_::COUNT);
+    bool x : 1, y : 1, z : 1, dmx :1 = false, dmy : 1 = false;
+};
+static_assert(sizeof(quad_table_entry) == sizeof(uint8_t));
 
-    const auto x0 = bounds.min.x(), y0 = bounds.min.y(), z0 = bounds.min.z(),
-               x1 = bounds.max.x(), y1 = bounds.max.y(), z1 = bounds.max.z();
+template<bool IsWest>
+constexpr std::array<quad_table_entry, 4> make_quad_table_entry(Group_ G)
+{
+    fm_assert(G < Group_::COUNT);
+
+    constexpr bool x0 = false, x1 = true,
+                   y0 = false, y1 = true,
+                   z0 = false, z1 = true;
+    constexpr bool t = true, f = false;
 
     switch (G)
     {
@@ -81,54 +87,80 @@ constexpr std::array<Vec3_<F>, 4> get_quadʹ(minmax_v<F, 3> bounds, F d)
     case side:
         if (!IsWest)
             return {{
-                { x1, y0 - d, z0 },
-                { x1, y0 - d, z1 },
-                { x1, y0,     z0 },
-                { x1, y0,     z1 },
+                { x1, y0, z0, f, t },
+                { x1, y0, z1, f, t },
+                { x1, y0, z0       },
+                { x1, y0, z1       },
             }};
         else
             return {{
-                { x0,     y1, z0 },
-                { x0,     y1, z1 },
-                { x0 - d, y1, z0 },
-                { x0 - d, y1, z1 },
+                { x0, y1, z0       },
+                { x0, y1, z1       },
+                { x0, y1, z0, t, f },
+                { x0, y1, z1, t, f },
             }};
     case top:
         if (!IsWest)
             return {{
-                {  x0, y0 - d, z1 },
-                {  x1, y0 - d, z1 },
-                {  x0, y0,     z1 },
-                {  x1, y0,     z1 },
+                { x0, y0, z1, f, t },
+                { x1, y0, z1, f, t },
+                { x0, y0, z1       },
+                { x1, y0, z1       },
             }};
         else
             return {{
-                { x0,     y0, z1 },
-                { x0,     y1, z1 },
-                { x0 - d, y0, z1 },
-                { x0 - d, y1, z1 },
+                { x0, y0, z1       },
+                { x0, y1, z1       },
+                { x0, y0, z1, t, f },
+                { x0, y1, z1, t, f },
             }};
     case corner:
         if (!IsWest)
             return {{
-                { x0,     y0, z0 },
-                { x0,     y0, z1 },
-                { x0 - d, y0, z0 },
-                { x0 - d, y0, z1 },
+                { x0, y0, z0       },
+                { x0, y0, z1       },
+                { x0, y0, z0, t, f },
+                { x0, y0, z1, t, f },
             }};
         else
             return {{
-                { x0, y0 - d, z0 },
-                { x0, y0 - d, z1 },
-                { x0, y0,     z0 },
-                { x0, y0,     z1 },
+                { x0, y0, z0, f, t },
+                { x0, y0, z1, f, t },
+                { x0, y0, z0       },
+                { x0, y0, z1       },
             }};
     }
     std::unreachable();
 }
 
+constexpr auto quad_table = std::array{
+    map(make_quad_table_entry<false>, iota_array<Group_, (size_t)Group_::COUNT>),
+    map(make_quad_table_entry<true>,  iota_array<Group_, (size_t)Group_::COUNT>),
+};
+
 template<Group_ G, bool IsWest, typename F = float>
-constexpr std::array<Vec3_<F>, 4> get_quad(F d)
+constexpr auto get_quadʹ(minmax_v<F, 3> bounds, F d)
+{
+    F x[2] { bounds.min.x(), bounds.max.x() },
+      y[2] { bounds.min.y(), bounds.max.y() },
+      z[2] { bounds.min.z(), bounds.max.z() },
+      dmx[2] { 0, d },
+      dmy[2] { 0, d };
+
+    std::array<Vec3_<F>, 4> array = {};
+
+    unroll<static_array_size<decltype(array)>>([&]<typename Index>(Index) {
+        constexpr size_t i = Index::value;
+        constexpr auto table = quad_table[IsWest][(size_t)G];
+        constexpr auto e = table[i];
+        array.data()[i] = { x[e.x] - dmx[e.dmx], y[e.y] - dmy[e.dmy], z[e.z], };
+    });
+
+    return array;
+}
+
+template<Group_ G, bool IsWest, typename F = float>
+constexpr CORRADE_ALWAYS_INLINE auto get_quad(F d)
 {
     constexpr auto half_tile = Vec2_<F>(TILE_SIZE2*.5f);
     constexpr auto X = half_tile.x(), Y = half_tile.y(), Z = F(TILE_SIZE.z());
