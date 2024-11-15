@@ -45,13 +45,19 @@ using Wall::Frame;
 template<typename T> using Vec2_ = VectorTypeFor<2, T>;
 template<typename T> using Vec3_ = VectorTypeFor<3, T>;
 
+template<typename F, uint32_t N>
+struct minmax_v
+{
+    VectorTypeFor<N, F> min, max;
+};
+
 template<Group_ G, bool IsWest, typename F = float>
-constexpr std::array<Vec3_<F>, 4> get_quad(F depth)
+constexpr std::array<Vec3_<F>, 4> get_quadʹ(minmax_v<F, 3> bounds, F d)
 {
     static_assert(G < Group_::COUNT);
 
-    constexpr auto half_tile = Vec2_<F>(TILE_SIZE2*.5f);
-    constexpr auto X = half_tile.x(), Y = half_tile.y(), Z = F(TILE_SIZE.z());
+    const auto x0 = bounds.min.x(), y0 = bounds.min.y(), z0 = bounds.min.z(),
+               x1 = bounds.max.x(), y1 = bounds.max.y(), z1 = bounds.max.z();
 
     switch (G)
     {
@@ -60,65 +66,74 @@ constexpr std::array<Vec3_<F>, 4> get_quad(F depth)
     case wall:
         if (!IsWest)
             return {{
-                { X, -Y, 0 },
-                { X, -Y, Z },
-                {-X, -Y, 0 },
-                {-X, -Y, Z },
+                { x1, y0, z0 },
+                { x1, y0, z1 },
+                { x0, y0, z0 },
+                { x0, y0, z1 },
             }};
         else
             return {{
-                {-X, -Y, 0 },
-                {-X, -Y, Z },
-                {-X,  Y, 0 },
-                {-X,  Y, Z },
+                { x0, y0, z0 },
+                { x0, y0, z1 },
+                { x0, y1, z0 },
+                { x0, y1, z1 },
             }};
     case side:
         if (!IsWest)
             return {{
-                { X, -Y - depth, 0 },
-                { X, -Y - depth, Z },
-                { X, -Y, 0 },
-                { X, -Y, Z },
+                { x1, y0 - d, z0 },
+                { x1, y0 - d, z1 },
+                { x1, y0,     z0 },
+                { x1, y0,     z1 },
             }};
         else
             return {{
-                { -X, Y, 0 },
-                { -X, Y, Z },
-                { -X - depth, Y, 0 },
-                { -X - depth, Y, Z },
+                { x0,     y1, z0 },
+                { x0,     y1, z1 },
+                { x0 - d, y1, z0 },
+                { x0 - d, y1, z1 },
             }};
     case top:
         if (!IsWest)
             return {{
-                { -X, -Y - depth, Z },
-                {  X, -Y - depth, Z },
-                { -X, -Y, Z },
-                {  X, -Y, Z },
+                {  x0, y0 - d, z1 },
+                {  x1, y0 - d, z1 },
+                {  x0, y0,     z1 },
+                {  x1, y0,     z1 },
             }};
         else
             return {{
-                { -X, -Y, Z },
-                { -X,  Y, Z },
-                { -X - depth, -Y, Z },
-                { -X - depth,  Y, Z },
+                { x0,     y0, z1 },
+                { x0,     y1, z1 },
+                { x0 - d, y0, z1 },
+                { x0 - d, y1, z1 },
             }};
     case corner:
         if (!IsWest)
             return {{
-                {-X, -Y, 0 },
-                {-X, -Y, Z },
-                {-X - depth, -Y, 0 },
-                {-X - depth, -Y, Z },
+                { x0,     y0, z0 },
+                { x0,     y0, z1 },
+                { x0 - d, y0, z0 },
+                { x0 - d, y0, z1 },
             }};
         else
             return {{
-                {-X, -Y - depth, 0 },
-                {-X, -Y - depth, Z },
-                {-X, -Y, 0 },
-                {-X, -Y, Z },
+                { x0, y0 - d, z0 },
+                { x0, y0 - d, z1 },
+                { x0, y0,     z0 },
+                { x0, y0,     z1 },
             }};
     }
     std::unreachable();
+}
+
+template<Group_ G, bool IsWest, typename F = float>
+constexpr std::array<Vec3_<F>, 4> get_quad(F d)
+{
+    constexpr auto half_tile = Vec2_<F>(TILE_SIZE2*.5f);
+    constexpr auto X = half_tile.x(), Y = half_tile.y(), Z = F(TILE_SIZE.z());
+
+    return get_quadʹ<G, IsWest, F>({ { -X, -Y, 0, }, { X, Y, Z, }, }, d);
 }
 
 template<bool IsWest>
