@@ -51,7 +51,7 @@ struct minmax_v
 
 struct quad_table_entry
 {
-    bool x : 1, y : 1, z : 1, dmx :1 = false, dmy : 1 = false;
+    bool x : 1, y : 1, z : 1, dmx :1 = false, dmy : 1 = false, _fuzz : 3 = false;
 };
 static_assert(sizeof(quad_table_entry) == sizeof(uint8_t));
 
