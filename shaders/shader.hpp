@@ -37,7 +37,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
 
-    template<typename T, typename... Xs> decltype(auto) draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
+    template<typename T, typename... Xs> GL::AbstractShaderProgram& draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
 
     static constexpr Vector2s max_screen_tiles = {8, 8};
     static constexpr float character_depth_offset = 1 + 2./64;
@@ -74,7 +74,7 @@ private:
 };
 
 template<typename T, typename... Xs>
-decltype(auto) tile_shader::draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs)
+GL::AbstractShaderProgram& tile_shader::draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs)
 {
     draw_pre(tex);
     decltype(auto) ret = GL::AbstractShaderProgram::draw(forward<T>(mesh), forward<Xs>(xs)...);
