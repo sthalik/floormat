@@ -3,8 +3,6 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "tile-bbox.hpp"
-#include "compat/iota.hpp"
-#include "compat/map.hpp"
 #include "compat/unroll.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
@@ -133,11 +131,6 @@ constexpr std::array<quad_table_entry, 4> make_quad_table_entry(Group_ G)
     std::unreachable();
 }
 
-constexpr auto quad_table = std::array{
-    map(make_quad_table_entry<false>, iota_array<Group_, (size_t)Group_::COUNT>),
-    map(make_quad_table_entry<true>,  iota_array<Group_, (size_t)Group_::COUNT>),
-};
-
 template<Group_ G, bool IsWest, typename F = float>
 constexpr auto get_quadʹ(minmax_v<F, 3> bounds, F d)
 {
@@ -151,7 +144,7 @@ constexpr auto get_quadʹ(minmax_v<F, 3> bounds, F d)
 
     unroll<static_array_size<decltype(array)>>([&]<typename Index>(Index) {
         constexpr size_t i = Index::value;
-        constexpr auto table = quad_table[IsWest][(size_t)G];
+        constexpr auto table = make_quad_table_entry<IsWest>(G);
         constexpr auto e = table[i];
         array.data()[i] = { x[e.x] - dmx[e.dmx], y[e.y] - dmy[e.dmy], z[e.z], };
     });

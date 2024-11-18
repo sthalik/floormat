@@ -55,15 +55,15 @@ constexpr rotation arrows_to_dir_from_mask(unsigned mask)
     fm_assert(false);
 }
 
-constexpr auto arrows_to_dir_array = map(arrows_to_dir_from_mask, iota_array<uint8_t, 16>);
-
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
+    constexpr auto table = map(arrows_to_dir_from_mask, iota_array<uint8_t, 16>);
     constexpr uint8_t L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
-    const uint8_t bits = left*L | right*R | up*U | down*D;
     constexpr uint8_t mask = L|R|U|D;
+
+    const uint8_t bits = left*L | right*R | up*U | down*D;
     CORRADE_ASSUME((bits & mask) == bits);
-    return arrows_to_dir_array.data()[bits];
+    return table.data()[bits];
 }
 
 #if 0
@@ -301,10 +301,10 @@ constexpr rotation dir_from_step_mask(uint8_t val)
     }
 }
 
-constexpr auto dir_from_step_array = map(dir_from_step_mask, iota_array<uint8_t, 1 << 4>);
-
 constexpr rotation dir_from_step(step_s step)
 {
+    constexpr auto table = map(dir_from_step_mask, iota_array<uint8_t, 1 << 4>);
+
     if (step.direction.isZero()) [[unlikely]]
         return rotation_COUNT;
 
@@ -312,7 +312,7 @@ constexpr rotation dir_from_step(step_s step)
     auto y = uint8_t(step.direction.y() + 1);
     //fm_debug_assert((x & 3) == x && (y & 3) == y);
     auto val = uint8_t(x << 2 | y);
-    return dir_from_step_array.data()[val];
+    return table.data()[val];
 }
 
 constexpr step_s next_step(point from, point to)
