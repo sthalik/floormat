@@ -9,12 +9,12 @@ namespace fmt {
 
 template<> struct formatter<Corrade::Containers::StringView> {
   template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-  template<typename FormatContext> auto format(Corrade::Containers::StringView const& s, FormatContext& ctx);
+  template<typename FormatContext> auto format(Corrade::Containers::StringView const& s, FormatContext& ctx) const;
 };
 
 template<> struct formatter<Corrade::Containers::String> {
   template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-  template<typename FormatContext> auto format(Corrade::Containers::String const& s, FormatContext& ctx);
+  template<typename FormatContext> auto format(Corrade::Containers::String const& s, FormatContext& ctx) const;
 };
 
 } // namespace fmt
@@ -66,11 +66,11 @@ size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 } // namespace floormat
 
 template<typename FormatContext>
-auto fmt::formatter<Corrade::Containers::StringView>::format(Corrade::Containers::StringView const& s, FormatContext& ctx) {
+auto fmt::formatter<Corrade::Containers::StringView>::format(Corrade::Containers::StringView const& s, FormatContext& ctx) const {
   return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
 }
 
 template<typename FormatContext>
-auto fmt::formatter<Corrade::Containers::String>::format(Corrade::Containers::String const& s, FormatContext& ctx) {
+auto fmt::formatter<Corrade::Containers::String>::format(Corrade::Containers::String const& s, FormatContext& ctx) const {
   return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
 }
