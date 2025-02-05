@@ -414,7 +414,7 @@ GL::Mesh chunk::make_wall_mesh()
     {
         const auto coord = global_coords{_coord, local_coords{k}};
 
-        static_assert(Wall::Group_COUNT == 4);
+        static_assert(Wall::Group_COUNT == /* 5 */ 4);
         static_assert((int)Direction_::COUNT == 2);
 
         if (auto* A_nʹ = W.atlases[k*2 + 0].get())

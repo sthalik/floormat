@@ -59,7 +59,7 @@ struct Direction
         { "top"_s,      &Direction::top,      Group_::top       },
         { "corner"_s,   &Direction::corner,   Group_::corner    },
     };
-    static_assert(array_size(groups) == (size_t)Group_::COUNT);
+    static_assert(array_size(groups) + /*pillar 1 */ 0 == (size_t)Group_::COUNT);
 };
 
 struct Info
