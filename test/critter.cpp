@@ -18,6 +18,8 @@ namespace floormat {
 
 namespace {
 
+namespace fm_debug = floormat::debug::detail;
+
 using enum rotation;
 using fu2::function_view;
 using Function = function_view<Ns() const>;
@@ -147,7 +149,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (b) [[likely]]
             return false;
         else
-            fm_emit_assert_fail("false", file, line);
+            fm_debug::emit_abort(file, line, "false");
     };
 
     for (i = 0; true; i++)

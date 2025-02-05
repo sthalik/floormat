@@ -5,6 +5,8 @@ namespace floormat {
 
 namespace {
 
+namespace fm_debug = floormat::debug::detail;
+
 constexpr StringView names[(size_t)script_lifecycle::COUNT] =
 {
     "no-init"_s, "initializing"_s, "created"_s, "destroying"_s, "torn-down"_s,
@@ -23,10 +25,10 @@ StringView base_script::state_name(script_lifecycle x)
 void base_script::_assert_state(script_lifecycle old_state, script_lifecycle s, const char* file, int line)
 {
     if (old_state != s) [[unlikely]]
-        fm_emit_abort(file, line,
-                      "invalid state transition from '%s' to '%s'",
-                      state_name(old_state).data(),
-                      state_name(s).data());
+        fm_debug::emit_abort(file, line,
+                             "invalid state transition from '%s' to '%s'",
+                             state_name(old_state).data(),
+                             state_name(s).data());
 }
 
 base_script::~base_script() noexcept = default;
