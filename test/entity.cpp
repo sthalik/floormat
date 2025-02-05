@@ -258,7 +258,7 @@ void test_range2()
     const auto A = m_foo.erased();
     auto r = A.get_range(&x);
     auto i = r.convert<int>();
-    fm_assert(i.second == rʹ.max);
+    fm_assert(i.second() == rʹ.max);
 }
 
 constexpr bool test_range3()
@@ -277,8 +277,8 @@ void test_range4()
     constexpr auto rʹ = f.get_range(f.range, TestAccessors{});
     const auto A = f.erased();
     const auto r = A.get_range(&x).convert<Vector2i>();
-    fm_assert(r.first == rʹ.min);
-    fm_assert(r.second == rʹ.max);
+    fm_assert(r.first() == rʹ.min);
+    fm_assert(r.second() == rʹ.max);
 }
 
 constexpr bool test_enum_range()

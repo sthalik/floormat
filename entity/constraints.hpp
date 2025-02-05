@@ -1,8 +1,7 @@
 #pragma once
 #include "compat/limits.hpp"
 #include "erased-constraints.hpp"
-#include <type_traits>
-#include <utility>
+#include <cr/Pair.h>
 #include <mg/Vector.h>
 
 namespace floormat::entities::limit_detail {
@@ -52,7 +51,7 @@ template<typename T> struct range
     T max = limit_detail::limit_traits<T>::max();
 
     constexpr operator erased_constraints::range() const noexcept;
-    constexpr operator std::pair<T, T>() const noexcept;
+    constexpr operator Pair<T, T>() const noexcept;
     constexpr bool operator==(const range&) const noexcept = default;
 };
 
@@ -125,7 +124,7 @@ template<typename T>
 constexpr range<T>::operator erased_constraints::range() const noexcept
 { return erased_range_from_range(min, max); }
 
-template<typename T> constexpr range<T>::operator std::pair<T, T>() const noexcept { return { min, max }; }
+template<typename T> constexpr range<T>::operator Pair<T, T>() const noexcept { return { min, max }; }
 
 template<> struct range<String> { constexpr operator erased_constraints::range() const noexcept { return {}; } };
 template<> struct range<StringView> { constexpr operator erased_constraints::range() const noexcept { return {}; } };

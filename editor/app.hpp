@@ -116,7 +116,7 @@ private:
     void on_mouse_up_down(const mouse_button_event& event, bool is_down, const sdl2::EvClick& ev) noexcept override;
     void on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll& ev) noexcept override;
     void on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey& ev) noexcept override;
-    std::tuple<key, int> resolve_keybinding(int k, int mods);
+    Pair<key, int> resolve_keybinding(int k, int mods);
     void on_text_input_event(const text_input_event& event) noexcept override;
     //bool on_text_editing_event(const text_editing_event& event) noexcept override;
     void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept override;

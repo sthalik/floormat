@@ -5,6 +5,7 @@
 #include "imgui-raii.hpp"
 #include <cstdio>
 #include <utility>
+#include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Functions.h>

@@ -7,7 +7,8 @@
 #include "keys.hpp"
 #include "editor.hpp"
 #include "compat/enum-bitset.hpp"
-#include <tuple>
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/Containers/StructuredBindings.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 
@@ -141,7 +142,7 @@ void app::on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll&
     while (false);
 }
 
-auto app::resolve_keybinding(int k_, int mods_) -> std::tuple<key, int>
+auto app::resolve_keybinding(int k_, int mods_) -> Pair<key, int>
 {
     [[maybe_unused]] constexpr int CTRL  = kmod_ctrl;
     [[maybe_unused]] constexpr int SHIFT = kmod_shift;

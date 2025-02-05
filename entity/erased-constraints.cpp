@@ -2,17 +2,17 @@
 #include "compat/assert.hpp"
 #include <cmath>
 #include <limits>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Vector4.h>
+#include <cr/Pair.h>
+#include <mg/Vector2.h>
+#include <mg/Vector3.h>
+#include <mg/Vector4.h>
 
 namespace floormat::entities::erased_constraints {
 
 static_assert(sizeof(size_t) == sizeof(uintptr_t));
 static_assert(sizeof(size_t) == sizeof(ptrdiff_t));
 
-template<typename T> std::pair<T, T> range::convert() const
+template<typename T> Pair<T, T> range::convert() const
 {
     static_assert(sizeof(T) <= sizeof(min));
 
@@ -103,7 +103,7 @@ template<typename T> std::pair<T, T> range::convert() const
     }
 }
 
-template<typename T> using pair2 = std::pair<T, T>;
+template<typename T> using pair2 = Pair<T, T>;
 
 template pair2<uint8_t> range::convert() const;
 template pair2<uint16_t> range::convert() const;

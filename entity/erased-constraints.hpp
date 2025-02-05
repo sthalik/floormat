@@ -1,4 +1,5 @@
 #pragma once
+#include <utility>
 #include <Corrade/Containers/StringView.h>
 #include <Magnum/Math/Vector4.h>
 
@@ -25,7 +26,7 @@ struct range final
     element min, max;
     type_ type = type_none;
 
-    template<typename T> std::pair<T, T> convert() const;
+    template<typename T> Pair<T, T> convert() const;
     friend bool operator==(const range& a, const range& b);
 };
 
