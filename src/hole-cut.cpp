@@ -124,8 +124,6 @@ constexpr element make_element(uint8_t s)
     fm_assert(false);
 }
 
-constexpr auto elements = map(make_element, iota_array<uint8_t, 16>);
-
 template<typename T>
 constexpr auto get_value_from_coord(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, coords c)
 {
@@ -154,8 +152,10 @@ constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h
 template<typename T>
 constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, uint8_t val)
 {
+    constexpr auto table = map(make_element, iota_array<uint8_t, 16>);
+
     CORRADE_ASSUME(val < 16);
-    const auto elt = elements[val];
+    const auto elt = table[val];
     const auto sz = elt.size;
     Cr<T> res = {
         .s = val,
