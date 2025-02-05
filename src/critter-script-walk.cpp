@@ -7,6 +7,7 @@
 #include "search-result.hpp"
 #include "search-astar.hpp"
 #include "entity/name-of.hpp"
+#include <utility>
 
 namespace floormat {
 

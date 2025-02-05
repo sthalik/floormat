@@ -30,7 +30,7 @@ struct point
     constexpr chunk_coords_ chunk3() const;
     constexpr local_coords local() const;
     constexpr Vector2b offset() const;
-    template<size_t N> std::tuple_element_t<N, point> constexpr get() const;
+    template<size_t N> typename std::tuple_element<N, point>::type constexpr get() const;
 
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
@@ -59,7 +59,7 @@ constexpr chunk_coords point::chunk() const { return {cx, cy}; }
 constexpr local_coords point::local() const { return tile; }
 constexpr Vector2b point::offset() const { return _offset; }
 
-template<size_t N> std::tuple_element_t<N, point> constexpr point::get() const
+template<size_t N> typename std::tuple_element<N, point>::type constexpr point::get() const
 {
     static_assert(N < 2);
     if constexpr(N == 0)

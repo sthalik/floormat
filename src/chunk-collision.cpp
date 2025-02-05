@@ -10,6 +10,7 @@
 #include "src/hole.hpp"
 #include "src/wall-atlas.hpp"
 #include <bit>
+#include <utility>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
 

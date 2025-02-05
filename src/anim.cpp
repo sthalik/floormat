@@ -1,6 +1,7 @@
 #include "anim.hpp"
 #include "compat/exception.hpp"
 #include <cmath>
+#include <utility>
 
 namespace floormat {
 
