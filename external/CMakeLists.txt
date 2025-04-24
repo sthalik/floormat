@@ -237,9 +237,7 @@ set(system "")
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.25)
     set(system "SYSTEM")
 endif()
-if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES OR NOT FLOORMAT_SUBMODULE-SDL2)
-    add_subdirectory(sdl2 ${system})
-endif()
+
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
