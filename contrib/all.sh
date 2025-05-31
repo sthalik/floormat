@@ -32,19 +32,18 @@ run_test() {
     fi
 }
 
-#cd "$(dirname -- "$0" || exit $?)"
-cd f:/build/floormat
+cd "$(dirname -- "$0" || exit $?)"
+#cd f:/build/floormat
 #set -x
 
 configurations='
-clang64 clang
-mingw64 gcc
-msvc64  msvc-debug
 clang64 clang-asan
-
+msvc64  msvc-debug
+mingw64 gcc-debug
 clang64 clang-release
-msvc64  msvc
+msvc64  msvc-release
 mingw64 gcc-release
+clang64 clang-debug
 '
 
 printf "%s\\n" "$configurations" |
@@ -53,7 +52,7 @@ while read wrapper configs; do
         (
             cd $i
             bprintf -- "***** Entering directory %s\\n" "$i"
-            "$wrapper" cmake c:/repos/floormat >/dev/null
+            "$wrapper" cmake ../.. >/dev/null
             if test $# -eq 0; then
                 printf -- "> Running ninja for %s\\n" "$i"
             else

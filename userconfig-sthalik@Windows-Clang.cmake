@@ -28,7 +28,7 @@ if(FLOORMAT_ASAN)
     add_link_options(-fsanitize=undefined,bounds,address)
 endif()
 
-set(OpenCV_DIR "f:/build/opencv/build-clang-release-floormat/install" CACHE PATH "" FORCE)
+set(OpenCV_DIR "d:/dev/opencv-floormat-clang-release" CACHE PATH "" FORCE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 sets(STRING
