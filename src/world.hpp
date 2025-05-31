@@ -67,7 +67,7 @@ private:
 public:
     explicit world();
     ~world() noexcept;
-    explicit world(std::unordered_map<chunk_coords_, chunk>&& chunks);
+    explicit world(std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>&& chunks);
 
     struct pair_chunk_tile final { chunk& c; tile_ref t; }; // NOLINT
 

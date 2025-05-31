@@ -33,9 +33,12 @@ struct world::robin_map_wrapper final : tsl::robin_map<object_id, bptr<object>, 
 
 world::world(world&& w) noexcept = default;
 
-world::world(std::unordered_map<chunk_coords_, chunk>&& chunks) :
-    world{std::max(initial_capacity, size_t(1/max_load_factor * 2 * chunks.size()))}
+world::world(std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>&& chunks)
 {
+    const auto capʹ = (size_t)(1e-4f + (float)chunks.size() / max_load_factor);
+    const auto cap = std::max(capʹ, initial_capacity);
+    _chunks.reserve(cap);
+    _chunks.max_load_factor(max_load_factor);
     for (auto&& [coord, c] : chunks)
         operator[](coord) = move(c);
 }
