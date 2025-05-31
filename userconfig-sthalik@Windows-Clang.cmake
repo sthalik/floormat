@@ -21,6 +21,7 @@ else()
     add_link_options(-Wl,--gc-sections -Wl,--icf=all)
     add_compile_options(-Wno-nan-infinity-disabled)
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
+    add_compile_options(-fpointer-tbaa)
 endif()
 
 if(FLOORMAT_ASAN)
