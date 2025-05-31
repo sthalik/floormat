@@ -61,11 +61,11 @@ function(fm-userconfig-external)
     )
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
-             #FLOORMAT_SUBMODULE-SDL2                           ON
+             FLOORMAT_SUBMODULE-SDL2                            ON
              SDL_SHARED                                         OFF
              SDL_STATIC                                         ON
              CORRADE_BUILD_STATIC                               ON
-             CORRADE_BUILD_TESTS                                OFF
+             CORRADE_BUILD_TESTS                                ON
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
              MAGNUM_BUILD_PLUGINS_STATIC                        ON
              MAGNUM_BUILD_STATIC                                ON
@@ -73,22 +73,14 @@ function(fm-userconfig-external)
         )
     else()
         sets(BOOL
-             FLOORMAT_SUBMODULE-SDL2                            OFF
+             FLOORMAT_SUBMODULE-SDL2                            ON
              SDL_SHARED                                         ON
              SDL_STATIC                                         OFF
              CORRADE_BUILD_STATIC                               OFF
-             CORRADE_BUILD_TESTS                                OFF
+             CORRADE_BUILD_TESTS                                ON
              CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    OFF
              MAGNUM_BUILD_PLUGINS_STATIC                        OFF
              MAGNUM_BUILD_STATIC                                OFF
-             MAGNUM_BUILD_TESTS                                 ON
-        )
-    endif()
-    if(FLOORMAT_ASAN)
-        sets(BOOL
-             CORRADE_BUILD_STATIC                               ON
-             CORRADE_BUILD_TESTS                                ON
-             MAGNUM_BUILD_STATIC                                ON
              MAGNUM_BUILD_TESTS                                 ON
         )
     endif()
