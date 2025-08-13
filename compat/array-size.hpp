@@ -9,9 +9,9 @@ template<typename T, size_t N> struct array_size_<T(*)[N]> : std::integral_const
 template<typename T, size_t N> struct array_size_<T[N]> : std::integral_constant<size_t, N> {};
 template<typename T, size_t N> struct array_size_<std::array<T, N>> : std::integral_constant<size_t, N> {};
 template<typename T, size_t N> struct array_size_<StaticArray<N, T>> : std::integral_constant<size_t, N> {};
-template<size_t N, class T, class U> constexpr std::size_t arraySize(U(T::*)[N]) { return N; }
 
 template<typename C, typename T> struct array_size_<T C::*> : std::integral_constant<size_t, array_size_<std::remove_cvref_t<T>>::value> {};
+//template<typename T, typename U, size_t N> struct array_size_< T(U::*)[N] > : std::integral_constant<size_t, N> {}; // should be redundant
 
 } // namespace floormat::detail
 

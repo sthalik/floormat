@@ -11,6 +11,7 @@ struct Foo
     static constexpr const void* Array_2[22] = {};
 
     std::array<int, 33> array_3;
+    int array_4[55] = {};
 };
 
 constexpr bool test_array_size()
@@ -26,6 +27,10 @@ constexpr bool test_array_size()
     fm_assert(array_size(&Foo::array_3) == 33);
 
     fm_assert(static_array_size<const int(&)[44]> == 44);
+
+    fm_assert(static_array_size<decltype(Foo::array_4)> == 55);
+    fm_assert(array_size(&Foo::array_4) == 55);
+    fm_assert(array_size(Foo{}.array_4) == 55);
 
     return true;
 }
