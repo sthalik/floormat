@@ -1082,8 +1082,8 @@ struct internal_capacity {
     /// Tag to access the structure in a type-safe way
     data_accessor accessor_;
     /// The internal capacity we use to allocate in-place
-    struct {
-        alignas(Capacity::alignment) unsigned char data[Capacity::capacity];
+    struct alignas(Capacity::alignment) {
+      unsigned char data[Capacity::capacity];
     } capacity_;
   } type;
 };
