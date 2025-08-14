@@ -24,6 +24,11 @@ else()
     add_compile_options(-fpointer-tbaa)
 endif()
 
+# TODO use clang-query to find all global and static function-local variables -sh 20250814
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# match varDecl(isStaticLocal())
+# match varDecl(hasGlobalStorage(), isStaticDataMember())
+
 if(FLOORMAT_ASAN)
     add_compile_options(-fsanitize=undefined,bounds,address)
     add_link_options(-fsanitize=undefined,bounds,address)
