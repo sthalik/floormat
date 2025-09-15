@@ -17,14 +17,14 @@ CORRADE_ALWAYS_INLINE size_t fnvhash_uint(uint64_t x)
     auto hash = a;
     const auto* str = (const uint8_t*)&x;
 
-    hash *= b; hash ^= *str++; // 0
-    hash *= b; hash ^= *str++; // 1
-    hash *= b; hash ^= *str++; // 2
-    hash *= b; hash ^= *str++; // 3
-    hash *= b; hash ^= *str++; // 4
-    hash *= b; hash ^= *str++; // 5
-    hash *= b; hash ^= *str++; // 6
-    hash *= b; hash ^= *str++; // 7
+    hash ^= *str++; hash *= b; // 0
+    hash ^= *str++; hash *= b; // 1
+    hash ^= *str++; hash *= b; // 2
+    hash ^= *str++; hash *= b; // 3
+    hash ^= *str++; hash *= b; // 4
+    hash ^= *str++; hash *= b; // 5
+    hash ^= *str++; hash *= b; // 6
+    hash ^= *str++; hash *= b; // 7
 
     return hash;
 }
@@ -37,10 +37,10 @@ CORRADE_ALWAYS_INLINE size_t fnvhash_uint(uint32_t x)
     auto hash = a;
     const auto* str = (const uint8_t*)&x;
 
-    hash *= b; hash ^= *str++; // 0
-    hash *= b; hash ^= *str++; // 1
-    hash *= b; hash ^= *str++; // 2
-    hash *= b; hash ^= *str++; // 3
+    hash ^= *str++; hash *= b; // 0
+    hash ^= *str++; hash *= b; // 1
+    hash ^= *str++; hash *= b; // 2
+    hash ^= *str++; hash *= b; // 3
 
     return hash;
 }
@@ -55,25 +55,25 @@ CORRADE_ALWAYS_INLINE size_t fnvhash_buf(const void* __restrict buf, size_t size
 
     while (full_rounds--)
     {
-        hash *= b; hash ^= *str++; // 0
-        hash *= b; hash ^= *str++; // 1
-        hash *= b; hash ^= *str++; // 2
-        hash *= b; hash ^= *str++; // 3
-        hash *= b; hash ^= *str++; // 4
-        hash *= b; hash ^= *str++; // 5
-        hash *= b; hash ^= *str++; // 6
-        hash *= b; hash ^= *str++; // 7
+        hash ^= *str++; hash *= b; // 0
+        hash ^= *str++; hash *= b; // 1
+        hash ^= *str++; hash *= b; // 2
+        hash ^= *str++; hash *= b; // 3
+        hash ^= *str++; hash *= b; // 4
+        hash ^= *str++; hash *= b; // 5
+        hash ^= *str++; hash *= b; // 6
+        hash ^= *str++; hash *= b; // 7
     }
 
     switch (rest)
     {
-    case 7: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 6: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 5: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 4: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 3: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 2: hash *= b; hash ^= *str++; [[fallthrough]];
-    case 1: hash *= b; hash ^= *str++; [[fallthrough]];
+    case 7: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 6: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 5: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 4: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 3: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 2: hash ^= *str++; hash *= b; [[fallthrough]];
+    case 1: hash ^= *str++; hash *= b; [[fallthrough]];
     case 0: break;
     }
 
