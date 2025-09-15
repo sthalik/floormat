@@ -103,13 +103,13 @@ constexpr auto directions = []() constexpr
     constexpr auto len2 = (uint32_t)(len1.length() + 1.f); // NOLINT
     std::array<pair, 8> array = {{
         { { -1, -1 }, len2 },
-        { {  1,  1 }, len2 },
-        { { -1,  1 }, len2 },
+        { {  0, -1 }, len1.y() },
         { {  1, -1 }, len2 },
         { { -1,  0 }, len1.x() },
-        { {  0, -1 }, len1.y() },
         { {  1,  0 }, len1.x() },
+        { { -1,  1 }, len2 },
         { {  0,  1 }, len1.y() },
+        { {  1,  1 }, len2 },
     }};
     for (auto& [vec, len] : array)
         vec *= div_size;
