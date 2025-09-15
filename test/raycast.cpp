@@ -101,6 +101,14 @@ void Test::test_raycast()
     { fm_assert(run(      point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
                           point{{  0, - 7, 0}, { 1, 15}, {-11,   5}}, w, true,   6220));
     }
+    {
+        constexpr auto p = point{
+            {1, 2, 3},
+            {4, 5},
+            {6, 7},
+        };
+        run(p, p, w, true, 0);
+    }
 }
 
 } // namespace floormat
