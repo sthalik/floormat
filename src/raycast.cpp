@@ -132,10 +132,24 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     auto V = pt_to_vec(from, to);
     auto ray_len = V.length();
-    auto dir = V.normalized();
 
-    if (abs(dir.x()) < eps && abs(dir.y()) < eps) [[unlikely]]
-        dir = {eps, eps};
+    if (ray_len < eps)
+    {
+        result = {
+            .from = from,
+            .to = to,
+            .collision = {},
+            .collider = {
+                .type = (uint64_t)collision_type::none,
+                .pass = (uint64_t)pass_mode::pass,
+                .id   = ((uint64_t)1 << collision_data_BITS)-1,
+            },
+            .has_result = true,
+            .success = true,
+        };
+        return result;
+    }
+    auto dir = V * (1.f/ray_len);
 
     unsigned major_axis, minor_axis;
 
@@ -159,8 +173,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     size_[minor_axis] = (minor_len + nsteps*2 - 1) / nsteps;
     size_[major_axis] = (major_len + nsteps - 1) / nsteps;
 
-    auto dir_inv_norm = Vector2(abs(dir.x()) < eps ? copysign(inv_eps, dir.x()) : 1 / dir.x(),
-                                abs(dir.y()) < eps ? copysign(inv_eps, dir.y()) : 1 / dir.y());
+    auto dir_inv_norm = Vector2{1} / dir;
     auto signs = ray_aabb_signs(dir_inv_norm);
 
     result = {
