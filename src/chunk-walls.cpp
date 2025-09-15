@@ -2,7 +2,6 @@
 #include "tile-bbox.hpp"
 #include "quads.hpp"
 #include "wall-atlas.hpp"
-#include "tile-bbox.hpp"
 #include "compat/unroll.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
