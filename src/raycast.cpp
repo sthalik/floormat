@@ -193,6 +193,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     auto last_ch = from.chunk3();
     std::array<std::array<chunk*, 3>, 3> nbs = {};
+    std::array<std::array<bool, 3>, 3> nbs_done = {};
 
     //Debug{} << "------";
     for (unsigned k = 0; b && k <= nsteps; k++)
@@ -271,9 +272,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         {
             for (int j = 0; j < 3; j++)
             {
-                auto*& c = nbs[(unsigned)i][(unsigned)j];
-                if (c == (chunk*)-1) [[unlikely]]
+                if (nbs_done[(unsigned)i][(unsigned)j])
                     continue;
+                auto*& c = nbs[(unsigned)i][(unsigned)j];
                 auto off = chunk_offsets[i][j];
                 auto pt0 = pt - Vector2i(size/2), pt1 = pt0 + Vector2i(size);
                 auto pt0_ = pt0 - off, pt1_ = pt1 - off;
@@ -285,7 +286,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     c = w.at({last_ch + Vector2i{i - 1, j - 1}});
                     if (!c)
                     {
-                        c = (chunk*)-1;
+                        nbs_done[(unsigned)i][(unsigned)j] = true;
                         continue;
                     }
                 }
