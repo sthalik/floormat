@@ -151,13 +151,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     }
 
     auto major_len = max(1u, (unsigned)ceil(abs(V[major_axis]))),
-         minor_lenj = max(1u, (unsigned)ceil(abs(V[minor_axis])));
+         minor_len = max(1u, (unsigned)ceil(abs(V[minor_axis])));
     auto nsteps = 1u;
-    nsteps = max(nsteps, (minor_lenj +tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
-    nsteps = max(nsteps, (major_len +chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
+    nsteps = max(nsteps, (minor_len + tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
+    nsteps = max(nsteps, (major_len + chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
     auto size_ = Vector2ui{};
-    size_[minor_axis] = (minor_lenj +nsteps*2-1) / nsteps;
-    size_[major_axis]  = (major_len +nsteps-1) / nsteps;
+    size_[minor_axis] = (minor_len + nsteps*2 - 1) / nsteps;
+    size_[major_axis] = (major_len + nsteps - 1) / nsteps;
 
     auto dir_inv_norm = Vector2(abs(dir.x()) < eps ? copysign(inv_eps, dir.x()) : 1 / dir.x(),
                                 abs(dir.y()) < eps ? copysign(inv_eps, dir.y()) : 1 / dir.y());
