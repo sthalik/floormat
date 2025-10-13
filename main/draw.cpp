@@ -116,13 +116,10 @@ void main_impl::draw_world_0(const Function& fun, const draw_bounds& draw_bounds
                 if (!cʹ)
                     continue;
                 auto& c = *cʹ;
-                bind();
 
                 const with_shifted_camera_offset o{_shader, ch, {minx, miny}, {maxx, maxy}};
                 if (check_chunk_visible(_shader.camera_offset(), window_size))
-                {
                     fun(c, x, y, z);
-                }
             }
     }
 }
@@ -145,6 +142,8 @@ void main_impl::draw_world() noexcept
 #endif
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::setDepthMask(true);
+
+    bind();
 
     draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
                      _ground_mesh.draw(_shader, c);
