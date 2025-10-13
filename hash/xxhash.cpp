@@ -26,7 +26,7 @@ CORRADE_ALWAYS_INLINE size_t do_xxhash(const void* __restrict buf, size_t size) 
     if constexpr(sizeof nullptr > 4)
         return XXH64(buf, size, seed);
     else
-        return XXH32(buf, size, seed);
+        return XXH32(buf, size, (uint32_t)seed);
 #endif
 }
 
