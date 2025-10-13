@@ -14,8 +14,9 @@ layout (location = 0) noperspective out vec2 frag_texcoords;
 layout (location = 1) noperspective out vec2 frag_light_coord;
 
 void main() {
+    const float factor = 0.5625;
     float x = -position.y, y = -position.x, z = position.z;
-    gl_Position = vec4((x-y+offset.x)*scale.x, ((x+y+z*2)*0.578125-offset.y)*scale.y, offset.z + depth, 1);
+    gl_Position = vec4((x-y+offset.x)*scale.x, ((x+y+z*2)*factor-offset.y)*scale.y, offset.z + depth, 1);
     frag_texcoords = texcoords;
     frag_light_coord = light_coord;
 }

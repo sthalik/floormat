@@ -48,7 +48,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr float wall_side_offset = 1 - 4./64;
     static constexpr float z_depth_offset = 1 + 4./64;
     static constexpr float depth_tile_size = 1.f/(TILE_MAX_DIM * 2 * max_screen_tiles.product());
-    static constexpr float foreshortening_factor = float(0.577350269189625764509148780501957456L);
+    static constexpr float foreshortening_factor = float{0.5625};
 
     tile_shader& set_sampler(Int sampler);
     Int sampler() const { return _sampler; }
