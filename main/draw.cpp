@@ -85,7 +85,12 @@ void main_impl::drawEvent()
     app.draw();
     GL::Renderer::flush();
 
-    do_update(timeline.update());
+    auto dt = timeline.update();
+#if 1
+    do_update(dt);
+#else
+    do_update(Second/60 + Ns{1});
+#endif
 
 #ifdef FM_USE_DEPTH32
     GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
