@@ -172,9 +172,8 @@ int app::run_from_argv(const int argc, const char* const* const argv)
 
 int main(int argc, char** argv)
 {
-#ifdef _WIN32
-    floormat::app::set_dpi_aware();
-#endif
+    floormat::floormat_main::init_pre();
+
     return floormat::app::run_from_argv(argc, argv);
 }
 

@@ -84,9 +84,15 @@ auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::Window
 
 auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
+#ifndef __APPLE__
+    constexpr auto dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy::Physical;
+#else
+    constexpr auto dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy::Framebuffer;
+#endif
+
     return Configuration{}
         .setTitle(s.title ? (StringView)s.title : "floormat editor"_s)
-        .setSize(s.resolution)
+        .setSize(s.resolution, dpi_policy)
         .setWindowFlags(make_window_flags(s));
 }
 

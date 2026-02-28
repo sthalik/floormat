@@ -10,3 +10,8 @@ target_link_libraries(${self} PUBLIC
     fmt::fmt
     tsl::robin_map
 )
+
+if(NOT TARGET SDL2::SDL2)
+    find_package(SDL2 QUIET REQUIRED)
+endif()
+target_link_libraries(${self} PRIVATE SDL2::SDL2)
