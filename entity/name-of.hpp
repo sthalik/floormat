@@ -3,6 +3,11 @@
 #include "compat/pretty-function.hpp"
 #include <cr/StringView.h>
 
+#ifdef __GNUG__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnrvo"
+#endif
+
 template<typename T>
 static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-identifier)
 {
@@ -65,6 +70,10 @@ static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-id
     }
     return s;
 }
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
 
 namespace floormat {
 

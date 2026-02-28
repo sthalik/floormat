@@ -141,6 +141,7 @@ function(fm-userconfig-src)
         #-Wno-error=switch
         -Wno-error=global-constructors
         -Wno-error=exit-time-destructors
+        -Wno-error=nrvo
     )
     add_compile_options(
         #-Wglobal-constructors

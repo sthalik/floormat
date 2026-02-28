@@ -79,7 +79,7 @@ function(fm-userconfig-src)
         -Wctor-dtor-privacy -Wno-error=ctor-dtor-privacy
         -Winvalid-constexpr -Winvalid-imported-macros
         -Woverloaded-virtual
-
+        #-Wnrvo
         #-fconcepts-diagnostics-depth=2
     )
     #add_compile_options(-Wuseless-cast)
@@ -108,6 +108,7 @@ function(fm-userconfig-src)
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
         #-Wno-error=switch
+        -Wno-error=nrvo
         -Wlarger-than=65535 -Wno-error=larger-than=65535
     )
     add_compile_options(

@@ -114,8 +114,7 @@ template<typename T, typename Intent>
 template<typename Tuple, std::size_t... Ns>
 consteval auto entity_metadata<T, Intent>::erased_helper(const Tuple& tuple, std::index_sequence<Ns...>)
 {
-    std::array<entities::erased_accessor, sizeof...(Ns)> array { std::get<Ns>(tuple).erased()..., };
-    return array;
+    return std::array<entities::erased_accessor, sizeof...(Ns)> { std::get<Ns>(tuple).erased()..., };
 }
 
 } // namespace floormat
