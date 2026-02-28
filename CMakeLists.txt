@@ -122,11 +122,6 @@ if(NOT APPLE AND NOT WIN32)
     add_link_options(-Wl,-z,noexecstack)
 endif()
 
-add_definitions(
-    -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
-    -DIMGUI_DISABLE_OBSOLETE_KEYIO
-)
-
 if(MSVC)
     add_definitions(-D_USE_MATH_DEFINES=1)
     add_compile_options(-permissive-)
@@ -177,6 +172,10 @@ endif()
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS OFF)
 set_directory_properties(PROPERTIES CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
 set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_STANDARD})
+
+add_definitions(
+    #-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
+)
 
 add_subdirectory(external)
 
