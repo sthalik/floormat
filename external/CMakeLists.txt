@@ -58,8 +58,6 @@ endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     add_definitions(
-        -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
-        -DIMGUI_DISABLE_OBSOLETE_KEYIO
         -DJSON_HAS_THREE_WAY_COMPARISON=1
     )
     sets(STRING
@@ -163,7 +161,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_DART                                   OFF
          MAGNUM_WITH_EIGEN                                  OFF
          MAGNUM_WITH_GLM                                    OFF
+
          MAGNUM_WITH_IMGUI                                  ON
+         MAGNUM_WITH_IMGUIINTEGRATION                       ON
     )
     if(WIN32)
     sets(BOOL
@@ -265,6 +265,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         set(BENCHMARK_INSTALL_DOCS OFF)
         set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+        #add_compile_options(-Wno-error=c2y-extensions)
         add_subdirectory(benchmark ${system})
         install(TARGETS benchmark RUNTIME DESTINATION "bin")
     endfunction()
