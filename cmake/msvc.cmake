@@ -82,7 +82,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG,Debug>:Debug>")
 
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 
-set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -wd4117 -Zi -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
+set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -Zc:static_assert- -Zc:checkGwOdr -Zc:throwingNew -Zc:referenceBinding -Zc:lambda -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zi -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
