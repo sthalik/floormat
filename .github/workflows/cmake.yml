@@ -19,7 +19,7 @@ jobs:
         include:
         - os: ubuntu-latest
           cmake: /usr/bin/env CC=gcc-14 CXX=g++-14 cmake
-        - os: macos-12
+        - os: macos-latest
           cmake: cmake
         - os: windows-latest
           cmake: .\.github\workflows\build-windows.bat cmake
@@ -45,7 +45,7 @@ jobs:
 
     - name: Install OSX dependencies
       run: |
-        brew install SDL2 llvm@16
+        brew install SDL2
       if: matrix.os == 'macos-latest'
 
     - name: Configure
