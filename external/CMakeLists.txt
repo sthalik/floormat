@@ -45,6 +45,7 @@ if(MSVC)
         -wd4910 # warning C4910: '__declspec(dllexport)' and 'extern' are incompatible on an explicit instantiation
         -wd4661 # warning C4661:  no suitable definition provided for explicit template instantiation request
         -wd4267 # warning C4267: 'initializing': conversion from 'size_t' to '_Ty2', possible loss of data
+        -wd5311 # warning C5311: A literal-operator-id of the form 'operator string-literal identifier' has been deprecated
     )
 else()
     add_compile_options(
