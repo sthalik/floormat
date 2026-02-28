@@ -22,6 +22,13 @@ concept string_input_iterator = requires(It it) {
     requires std::is_same_v<char, std::decay_t<decltype(*it)>>;
 };
 
+template<size_t MAX>
+struct fixed_string final {
+    char buf[MAX];
+    size_t len;
+    constexpr operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
+};
+
 template<string_input_iterator It>
 struct binary_reader final {
     template<char_sequence Seq> explicit constexpr binary_reader(const Seq& seq) noexcept;
@@ -31,7 +38,7 @@ struct binary_reader final {
     constexpr size_t bytes_read() const noexcept { return num_bytes_read; }
     template<serializable T> constexpr T read() noexcept(false);
     template<size_t N> constexpr std::array<char, N> read() noexcept(false);
-    template<size_t Max> constexpr auto read_asciiz_string() noexcept(false);
+    template<size_t Max> constexpr fixed_string<Max> read_asciiz_string() noexcept(false);
     constexpr StringView read_asciiz_string_() noexcept(false);
 
     binary_reader(binary_reader&&) noexcept = default;

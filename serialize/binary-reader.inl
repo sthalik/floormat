@@ -62,17 +62,11 @@ constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
 
 template<string_input_iterator It>
 template<size_t MAX>
-constexpr auto binary_reader<It>::read_asciiz_string() noexcept(false)
+constexpr fixed_string<MAX> binary_reader<It>::read_asciiz_string() noexcept(false)
 {
     static_assert(MAX > 0);
 
-    struct fixed_string final {
-        char buf[MAX];
-        size_t len;
-        constexpr operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
-    };
-
-    fixed_string ret;
+    fixed_string<MAX> ret;
     for (auto i = 0uz; i < MAX && it != end; i++)
     {
         const char c = *it++;

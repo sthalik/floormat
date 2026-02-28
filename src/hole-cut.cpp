@@ -185,9 +185,7 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
 
     const auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
     CORRADE_ASSUME(val < 16);
-    const auto res = cut_rectangleʹ<T>(r0, r1, h0, h1, val);
-
-    return res;
+    return cut_rectangleʹ<T>(r0, r1, h0, h1, val);
 }
 
 template<typename T>
