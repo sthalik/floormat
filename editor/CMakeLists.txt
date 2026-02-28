@@ -30,4 +30,8 @@ target_link_libraries(${self} PRIVATE ${self}_o
     floormat
 )
 
+if(WIN32)
+    target_sources(${self} PRIVATE "floormat-editor.manifest")
+endif()
+
 fm_install_executable(${self})

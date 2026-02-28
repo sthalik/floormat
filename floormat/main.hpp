@@ -92,6 +92,8 @@ struct floormat_main
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
     [[maybe_unused]] static void debug_break();
 
+    static void init_pre();
+
 protected:
     Vector2 _dpi_scale{ 1, 1 }, _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;

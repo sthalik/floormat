@@ -114,6 +114,7 @@ endif()
 
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
 endif()
 
 if(NOT APPLE AND NOT WIN32)
