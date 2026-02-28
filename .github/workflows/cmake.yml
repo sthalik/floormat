@@ -2,9 +2,9 @@ name: commit
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, wip ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, wip ]
 
 env:
   BUILD_TYPE: RELEASE
@@ -13,17 +13,26 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
         - os: ubuntu-latest
           cmake: /usr/bin/env CC=gcc-14 CXX=g++-14 cmake
+        - os: macos-12
+          cmake: cmake
+        - os: windows-latest
+          cmake: .\.github\workflows\build-windows.bat cmake
 
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
+
+    - uses: abdes/gha-setup-ninja@master
+      with:
+        version: 1.11.1
+      if: matrix.os != 'ubuntu-latest'
 
     - name: Install Linux dependencies
       run: |
@@ -33,6 +42,11 @@ jobs:
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
       if: matrix.os == 'ubuntu-latest'
+
+    - name: Install OSX dependencies
+      run: |
+        brew install SDL2 llvm@16
+      if: matrix.os == 'macos-latest'
 
     - name: Configure
       run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -48,4 +62,10 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
-      if: matrix.os == 'ubuntu-24.04'
+      if: matrix.os == 'ubuntu-latest'
+
+#    - name: Upload build
+#      uses: actions/upload-artifact@v2.2.4
+#      with:
+#        name: buildoutput
+#        path: ${{github.workspace}}/build/
