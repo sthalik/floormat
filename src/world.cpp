@@ -5,6 +5,7 @@
 #include "scenery.hpp"
 #include "scenery-proto.hpp"
 #include "light.hpp"
+#include "hole.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
@@ -352,6 +353,7 @@ template bptr<object>  world::find_object<object>(object_id id);
 template bptr<critter> world::find_object<critter>(object_id id);
 template bptr<scenery> world::find_object<scenery>(object_id id);
 template bptr<light>   world::find_object<light>(object_id id);
+template bptr<hole>   world::find_object<hole>(object_id id);
 template bptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
 template bptr<door_scenery> world::find_object<door_scenery>(object_id id);
 

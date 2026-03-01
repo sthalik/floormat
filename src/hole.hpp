@@ -30,7 +30,7 @@ struct hole_proto final : object_proto
 
 struct hole final : object
 {
-    const uint8_t height = 0, z_offset = tile_size_z/2;
+    const uint8_t height = tile_size_z, z_offset = 0;
     const struct hole_proto::flags flags;
 
     hole(object_id id, class chunk& c, const hole_proto& proto);
@@ -55,5 +55,8 @@ struct hole final : object
 private:
     void maybe_mark_neighbor_chunks_modified() override;
 };
+
+template<> struct object_type_<struct hole> : std::integral_constant<object_type, object_type::hole> {};
+template<> struct object_type_<struct hole_proto> : std::integral_constant<object_type, object_type::hole> {};
 
 } // namespace floormat
