@@ -93,6 +93,39 @@ void test3()
     }
 }
 
+void test_degenerate()
+{
+    constexpr auto h = tile_size_xy*.5f;
+
+    struct WallPos {
+        Vector2 left, right;
+    };
+
+    constexpr auto w = WallPos {
+        { -h, -h },
+        {  h, -h },
+    };
+
+    {
+        // degenerate case with no area
+        const auto res = CutResult<float>::cut(w.left, w.right, w.left - Vector2{0, 1}, {});
+        fm_assert(res.found());
+        fm_assert_equal(1, res.size);
+        const auto x = res.array[0];
+        constexpr auto expected = CutResult<float>::rect { { 0, -h}, {h, -h} };
+        fm_assert_equal(expected.min, x.min);
+        fm_assert_equal(expected.max, x.max);
+    }
+    {
+        // now hole has no area
+        const auto res = CutResult<float>::cut(w.left, w.right, {-h, -h}, {h, -h});
+        fm_assert(!res.found());
+        fm_assert_equal(1, res.size);
+        fm_assert_equal(w.left, res.array[0].min);
+        fm_assert_equal(w.right, res.array[0].max);
+    }
+}
+
 } // namespace
 
 void Test::test_hole()
@@ -110,6 +143,7 @@ void Test::test_hole()
 
     test2();
     test3();
+    test_degenerate();
 }
 
 } // namespace floormat
