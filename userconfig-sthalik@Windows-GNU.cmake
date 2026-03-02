@@ -38,6 +38,7 @@ function(fm-userconfig-external)
         -Wno-unused-but-set-variable
         -Wno-restrict
         -Wno-uninitialized
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-literal-operator>
     )
     if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
         sets(BOOL
