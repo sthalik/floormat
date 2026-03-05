@@ -132,7 +132,7 @@ void app::on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll&
 
     do
     {
-        if (p >= Vector2i() && p < M->window_size())
+        if (p < Vector2i() || p >= M->window_size())
             break;
         cursor.in_imgui = _imgui->handleScrollEvent(ev.val);
         if (cursor.in_imgui)
