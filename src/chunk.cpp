@@ -90,6 +90,7 @@ void chunk::mark_passability_modified() noexcept
 
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
 bool chunk::is_scenery_modified() const noexcept { return _scenery_modified; }
+bool chunk::are_walls_modified() const noexcept { return _walls_modified; }
 
 void chunk::mark_modified() noexcept
 {
@@ -129,16 +130,20 @@ void chunk::sort_objects()
 void chunk::add_object_pre(const bptr<object>& e)
 {
     fm_assert(&*e->c == this);
-    const auto dyn = e->is_dynamic(), upd = e->updates_passability();
+    const bool dyn = e->is_dynamic();
+    const bool upd_passability = e->updates_passability();
+    const bool upd_walls = e->updates_walls();
     if (!dyn)
         mark_scenery_modified();
     if (!_pass_modified) [[likely]]
     {
-        if (!dyn || upd)
+        if (!dyn || upd_passability)
             _add_bbox_static_(e);
         else if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
     }
+    if (upd_walls)
+        mark_walls_modified();
 }
 
 void chunk::add_object_unsorted(const bptr<object>& e)
@@ -180,17 +185,22 @@ void chunk::remove_object(size_t i)
         auto& e = *eʹ;
         fm_assert(e.c == this);
 
-        const auto dyn = e.is_dynamic(), upd = e.updates_passability();
+        const bool dyn = e.is_dynamic();
+        const bool upd_passability = e.updates_passability();
+        const bool upd_walls = e.updates_walls();
         if (!dyn)
             mark_scenery_modified();
 
         if (!_pass_modified) [[likely]]
         {
-            if (!dyn || upd)
+            if (!dyn || upd_passability)
                 _remove_bbox_static_(eʹ);
             else if (bbox bb; _bbox_for_scenery(e, bb))
                 _remove_bbox_dynamic(bb);
         }
+
+        if (upd_walls)
+            mark_walls_modified();
 
     }
     arrayRemove(_objects, i);

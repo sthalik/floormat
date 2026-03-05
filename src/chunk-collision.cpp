@@ -48,7 +48,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         if (eʹ.type() != object_type::hole) [[likely]]
             continue;
         const auto& e = static_cast<struct hole&>(eʹ);
-        if (!e.flags.enabled | !e.flags.on_physics)
+        if (!e.flags.enabled)
             continue;
         auto center = Vector2i(e.offset) + Vector2i(e.bbox_offset) + Vector2i(e.coord.local()) * TILE_SIZE2;
         if constexpr(IsNeighbor)
@@ -107,7 +107,7 @@ bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& r
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.pass == (uint64_t)pass_mode::pass && x.type == (uint64_t)collision_type::none)
+        if (x.pass != (uint64_t)pass_mode::blocked && x.type == (uint64_t)collision_type::none)
         {
             CutResult<float>::rect holeʹ {
                 .min = { r.m_min[0], r.m_min[1] },
@@ -216,13 +216,13 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
 void chunk::_remove_bbox_static_(const bptr<object>& e)
 {
     mark_passability_modified();
-    e->maybe_mark_neighbor_chunks_modified();
+    e->mark_neighbor_chunks_modified();
 }
 
 void chunk::_add_bbox_static_(const bptr<object>& e)
 {
     mark_passability_modified();
-    e->maybe_mark_neighbor_chunks_modified();
+    e->mark_neighbor_chunks_modified();
 }
 
 void chunk::_remove_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic)

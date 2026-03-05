@@ -19,7 +19,7 @@ void mark_chunk_modifiedʹ(chunk& c)
 {
     c.mark_passability_modified();
     //c.mark_ground_modified(); // todo!
-    //c.mark_walls_modified();  // todo!
+    c.mark_walls_modified();
 }
 
 } // namespace
@@ -29,8 +29,7 @@ hole_proto::hole_proto(const hole_proto&) = default;
 hole_proto& hole_proto::operator=(const hole_proto&) = default;
 hole_proto::hole_proto(hole_proto&&) noexcept = default;
 hole_proto& hole_proto::operator=(hole_proto&&) noexcept = default;
-
-bool hole_proto::flags::operator==(const struct flags&) const = default;
+bool hole_proto::Flags::operator==(const struct Flags&) const noexcept = default;
 
 bool hole_proto::operator==(const object_proto& oʹ) const
 {
@@ -52,7 +51,7 @@ hole_proto::hole_proto()
 }
 
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
-    object{id, c, proto}, height{proto.height}, flags{proto.flags}
+    object{id, c, proto}, height{proto.height}, z_offset{proto.z_offset}, flags{proto.flags}
 {
 }
 
@@ -69,11 +68,12 @@ hole::operator hole_proto() const
     hole_proto ret;
     static_cast<object_proto&>(ret) = object_proto(*this);
     ret.height = height;
+    ret.z_offset = z_offset;
     ret.flags = flags;
     return ret;
 }
 
-void hole::maybe_mark_neighbor_chunks_modified()
+void hole::mark_neighbor_chunks_modified()
 {
     for (auto* const cʹ : c->world().neighbors(c->coord()))
         if (cʹ)
@@ -98,7 +98,7 @@ void hole::set_height(uint8_t heightʹ)
     if (height != heightʹ)
     {
         non_const(height) = heightʹ;
-        maybe_mark_neighbor_chunks_modified();
+        mark_neighbor_chunks_modified();
     }
 }
 
@@ -107,27 +107,23 @@ void hole::set_z_offset(uint8_t z)
     if (z_offset != z)
     {
         non_const(z_offset) = z;
-        maybe_mark_neighbor_chunks_modified();
+        mark_neighbor_chunks_modified();
     }
 }
 
-
-void hole::set_enabled(bool on_render, bool on_physics, bool on_both)
+void hole::set_enabled(bool value)
 {
-    non_const(flags).on_render = on_render;
-
-    if (flags.on_physics != on_physics || on_both != flags.enabled)
+    if (flags.enabled != value)
     {
-        non_const(flags).on_physics = on_physics;
-        maybe_mark_neighbor_chunks_modified();
+        non_const(flags).enabled = value;
+        mark_neighbor_chunks_modified();
     }
-
-    non_const(flags).enabled = on_both;
 }
 
 object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
 bool hole::is_dynamic() const { return true; }
 bool hole::updates_passability() const { return true; }
+bool hole::updates_walls() const { return true; }
 
 } // namespace floormat

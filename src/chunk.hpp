@@ -56,6 +56,7 @@ public:
 
     bool is_passability_modified() const noexcept;
     bool is_scenery_modified() const noexcept;
+    bool are_walls_modified() const noexcept;
 
     struct ground_mesh_tuple final {
         GL::Mesh& mesh;

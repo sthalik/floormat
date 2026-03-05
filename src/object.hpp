@@ -88,7 +88,8 @@ struct object : bptr_base
 
     virtual bool is_dynamic() const;
     virtual bool updates_passability() const;
-    virtual void maybe_mark_neighbor_chunks_modified();
+    virtual bool updates_walls() const;
+    virtual void mark_neighbor_chunks_modified();
 
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
