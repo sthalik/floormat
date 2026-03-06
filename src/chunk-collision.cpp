@@ -9,10 +9,13 @@
 #include "src/tile-bbox.hpp"
 #include "src/hole.hpp"
 #include "src/wall-atlas.hpp"
+#include "src/world.hpp"
+#include "compat/function2.hpp"
 #include <bit>
 #include <utility>
 #include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
+#include <mg/Range.h>
 
 namespace floormat {
 
@@ -101,7 +104,6 @@ start:
 
 } // namespace
 
-#if 1
 bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max)
 {
     bool ret = true;
@@ -123,10 +125,26 @@ bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& r
     });
     return ret;
 }
-#else
-bool chunk::find_hole_in_bbox(CutResult<float>::rect&, Chunk_RTree&, Vector2, Vector2) { return true; }
-#endif
-bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, Vector2 min, Vector2 max) { return find_hole_in_bbox(hole, *rtree(), min, max); }
+void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max)
+{
+    const auto& rtree = *c.rtree();
+    rtree.Search(bb_min.data(), bb_max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.pass != (uint64_t)pass_mode::blocked && x.type == (uint64_t)collision_type::none)
+        {
+            Vector2 hmin = {r.m_min[0], r.m_min[1]}, hmax = {r.m_max[0], r.m_max[1]};
+            if (rect_intersects(hmin, hmax, bb_min, bb_max))
+            {
+                auto obj = c.world().find_object<struct hole>(x.id);
+                fm_assert(obj);
+                int zmaxʹ = (int)obj->z_offset + (int)obj->height;
+                auto zmax = (uint8_t)Math::clamp(zmaxʹ, 0, tile_size_z);
+                fn({hmin, hmax}, {obj->z_offset, zmax});
+            }
+        }
+        return true;
+    });
+}
 
 void chunk::ensure_passability() noexcept
 {

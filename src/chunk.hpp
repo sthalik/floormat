@@ -97,8 +97,9 @@ public:
     class world& world() noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
-    [[nodiscard]] bool find_hole_in_bbox(CutResult<float>::rect& hole, Vector2 min, Vector2 max);
     [[nodiscard]] static bool find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max);
+    using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<uint8_t> z) const>;
+    static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max);
 
     void on_teardown();
     bool is_teardown() const;
