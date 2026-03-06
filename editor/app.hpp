@@ -146,6 +146,7 @@ private:
     void set_cursor_from_imgui();
     void draw_cursor();
     void init_imgui(Vector2i size);
+    void configure_imgui(float scale);
     void draw_ui();
     float draw_main_menu();
     void draw_fps();

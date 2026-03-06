@@ -71,6 +71,11 @@ void main_impl::cache_draw_on_startup()
 
 void main_impl::drawEvent()
 {
+    _dpi_scale = 1;
+    if (float ddpi = 96;
+        !SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(window()), &ddpi, nullptr, nullptr))
+        _dpi_scale = ddpi / 96;
+
     if (_first_frame) [[unlikely]]
     {
         _first_frame = false;

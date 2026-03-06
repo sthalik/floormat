@@ -36,6 +36,10 @@ void app::init_imgui(Vector2i size)
         fm_assert(_imgui->context());
         _imgui->relayout(Vector2{size}, size, size);
     }
+#if 1
+    _imgui->atlasTexture().setMagnificationFilter(Magnum::GL::SamplerFilter::Nearest)
+                          .setMinificationFilter(Magnum::GL::SamplerFilter::Linear);
+#endif
 }
 
 void app::render_menu()
@@ -48,7 +52,8 @@ float app::draw_main_menu()
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
-        ImGui::SetWindowFontScale(M->dpi_scale().min());
+        //ImGui::SetWindowFontScale(M->dpi_scale().min());
+
         if (auto b = begin_menu("File"))
         {
             bool do_new = false, do_quickload = false, do_quit = false;
@@ -112,17 +117,35 @@ float app::draw_main_menu()
     return main_menu_height;
 }
 
+void app::configure_imgui(float scale)
+{
+    if (scale > 2.5f)
+        scale = 4;
+    else if (scale > 1.75f)
+        scale = 3;
+    else if (scale > 1.f)
+        scale = 2;
+    else
+        scale = 1;
+
+    auto& style = ImGui::GetStyle();
+    style = ImGuiStyle();
+    ImGui::StyleColorsDark(&style);
+    style.ScaleAllSizes(scale);
+
+    auto& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
+    io.FontGlobalScale = scale;
+
+    auto& ctx = *ImGui::GetCurrentContext();
+    ctx.FontSize = 13;
+    ctx.FontBaseSize = 13;
+    ctx.FontScale = 1;
+}
+
 void app::draw_ui()
 {
-    const auto dpi = M->dpi_scale().min();
-    [[maybe_unused]] const auto styleʹ = style_saver{};
-    auto& style = ImGui::GetStyle();
-    auto& ctx = *ImGui::GetCurrentContext();
-
-    ImGui::StyleColorsDark(&style);
-    style.ScaleAllSizes(dpi);
-
-    ImGui::GetIO().IniFilename = nullptr;
+    configure_imgui( M->dpi_scaleʹ());
     _imgui->newFrame();
 
     if (_render_clickables)
@@ -133,7 +156,7 @@ void app::draw_ui()
         draw_tests_overlay();
     const float main_menu_height = draw_main_menu();
 
-    [[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
+    //[[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
 
     draw_lightmap_test(main_menu_height);
 
@@ -180,8 +203,8 @@ void app::draw_light_info()
     const ImVec2 pad { style.FramePadding.x*.5f, 0 };
     const auto font_size_ = dpi.sum()*.5f * font_size;
 
-    draw_list_font_saver saver2{font_size_};
-    imgui::font_saver saver{font_size_};
+    //draw_list_font_saver saver2{font_size_};
+    //imgui::font_saver saver{font_size_};
 
     for (const auto& x : M->clickable_scenery())
     {

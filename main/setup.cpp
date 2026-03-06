@@ -12,7 +12,6 @@ namespace floormat {
 
 void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 {
-    _dpi_scale = dpiScaling();
     _virtual_scale = Vector2(fb_size) / Vector2(win_size);
     update_window_state();
     _shader.set_scale(Vector2{fb_size});
