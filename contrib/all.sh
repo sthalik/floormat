@@ -38,10 +38,10 @@ cd "$(dirname -- "$0" || exit $?)"
 
 configurations='
 clang64 clang-asan
-msvc64  msvc-debug
+vc      msvc-debug
 mingw64 gcc-debug
 clang64 clang-release
-msvc64  msvc-release
+vc      msvc-release
 mingw64 gcc-release
 clang64 clang-debug
 '
