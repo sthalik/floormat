@@ -152,14 +152,14 @@ template<> struct entity_accessors<hole, inspect_intent_t>
         using E = Entity<hole>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
+            E::type<uint8_t>::field{"elevation"_s,
+                &hole::z_offset,
+                &hole::set_z_offset,
+                constantly(constraints::range<uint8_t>{0, tile_size_z}),
+            },
             E::type<uint8_t>::field{"height"_s,
                 &hole::height,
                 &hole::set_height,
-                constantly(constraints::range<uint8_t>{0, tile_size_z}),
-            },
-            E::type<uint8_t>::field{"z-offset"_s,
-                &hole::z_offset,
-                &hole::set_z_offset,
                 constantly(constraints::range<uint8_t>{0, tile_size_z}),
             },
             E::type<bool>::field{ "enabled"_s,
