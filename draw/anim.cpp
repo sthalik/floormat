@@ -149,6 +149,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         }
         else
         {
+            k++;
             if (!draw_vobjs) [[likely]]
                 if (e.is_virtual()) [[unlikely]]
                     continue;
@@ -156,7 +157,6 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
             const auto depth0 = e.depth_offset();
             const auto depth = tile_shader::depth_value(e.coord.local(), depth0);
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
-            k++;
         }
     }
     fm_assert(k == es.size());
