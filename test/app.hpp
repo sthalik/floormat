@@ -40,6 +40,7 @@ void test_region();
 void test_rtree();
 void test_save();
 void test_saves();
+void test_spinlock();
 void test_script();
 void test_util();
 void test_wall_atlas();
