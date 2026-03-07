@@ -67,6 +67,7 @@ int App::exec()
         FM_TEST(test_iptr),
         FM_TEST(test_entity),
         // normal
+
         FM_TEST(test_bitmask),
         FM_TEST(test_json),
         FM_TEST(test_json2),
@@ -81,6 +82,7 @@ int App::exec()
         FM_TEST(test_rtree),
         FM_TEST(test_astar),
         FM_TEST(test_save),
+        FM_TEST(test_spinlock),
         FM_TEST(test_critter),
         FM_TEST(test_dijkstra),
         FM_TEST(test_loader2),
