@@ -27,7 +27,7 @@ struct hole_proto final : object_proto
 struct hole final : object
 {
     const uint8_t height = tile_size_z, z_offset = 0;
-    const hole_proto::Flags flags {};
+    const hole_proto::Flags flags;
 
     hole(object_id id, class chunk& c, const hole_proto& proto);
     ~hole() noexcept override;

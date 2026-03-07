@@ -14,6 +14,7 @@
 #include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
+#include "src/hole.hpp"
 #include "src/world.hpp"
 
 #include "loader/loader.hpp"
@@ -123,7 +124,8 @@ using proto_t  = uint16_t;
 // 22: add object::speed
 // 23: switch object::delta to 32-bit
 // 24: switch object::offset_frac from Vector2us to uint16_t
-static constexpr proto_t proto_version = 24;
+// 25: add hole objects
+static constexpr proto_t proto_version = 25;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -159,6 +161,7 @@ struct visitor_ : visitor_base<IsNewest>
     using o_critter = qual2<critter, critter_proto>;
     using o_scenery = qual2<scenery, scenery_proto>;
     using o_light   = qual2<light, light_proto>;
+    using o_hole    = qual2<hole, hole_proto>;
     using o_sc_g    = qual2<generic_scenery, generic_scenery_proto>;
     using o_sc_door = qual2<door_scenery, door_scenery_proto>;
 
@@ -193,16 +196,15 @@ struct visitor_ : visitor_base<IsNewest>
         switch (s.type)
         {
         case object_type::none:
-        case object_type::COUNT: std::unreachable();
+        case object_type::COUNT: fm_assert(false);
         case object_type::light:
+        case object_type::hole:
             self.visit(obj.atlas, atlas_type::vobj, f);
             break;
         case object_type::scenery:
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
             break;
-        case object_type::hole:
-            fm_abort("todo! not implemented");
         }
         fm_debug_assert(obj.atlas);
 
@@ -357,6 +359,27 @@ struct visitor_ : visitor_base<IsNewest>
         visit(s.falloff, f);
         visit(s.enabled, f);
     }
+
+    template<typename F>
+    void visit_object_proto(o_hole& s, std::nullptr_t, F&& f)
+    {
+        uint8_t flags = 0;
+        if constexpr (IsWriter)
+        {
+            flags |= s.flags.enabled << 0;
+            visit(flags, f);
+        }
+        else
+        {
+            visit(flags, f);
+            s.flags.enabled = flags & 1;
+            flags >>= 1;
+            fm_assert(flags == 0);
+        }
+
+        visit(s.z_offset, f);
+        visit(s.height, f);
+    }
 };
 
 constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
@@ -409,7 +432,7 @@ struct writer final : visitor_<writer, true, true>
         case scenery_type::door:    visit_scenery_proto(static_cast<const door_scenery&>(obj), f); break;
         case scenery_type::none:
         case scenery_type::COUNT:
-            std::unreachable();
+            fm_assert(false);
         }
     }
 
@@ -443,11 +466,12 @@ struct writer final : visitor_<writer, true, true>
         case object_type::light:
             visit_object_proto(static_cast<const light&>(obj), {}, f);
             goto ok;
+        case object_type::hole:
+            visit_object_proto(static_cast<const hole&>(obj), {}, f);
+            goto ok;
         case object_type::scenery:
             write_scenery_proto(static_cast<const scenery&>(obj), f);
             goto ok;
-        case object_type::hole:
-            fm_abort("todo! not implemented");
         }
         fm_assert(false);
 ok:     void();
@@ -891,14 +915,15 @@ ok:
         case object_type::light:
             obj = make_object<light, light_proto, std::nullptr_t>(s, move(p), {}, f);
             goto ok;
+        case object_type::hole:
+            obj = make_object<hole, hole_proto, std::nullptr_t>(s, move(p), {}, f);
+            goto ok;
         case object_type::scenery: {
             bptr<scenery> objʹ;
             read_scenery(objʹ, move(p), s, f);
             obj = move(objʹ);
             goto ok;
         }
-        case object_type::hole:
-            fm_abort("todo! not implemented");
         }
         fm_throw("invalid object_type {}"_cf, (int)type);
 ok:
