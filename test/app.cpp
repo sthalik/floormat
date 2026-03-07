@@ -145,7 +145,7 @@ int main(int argc, char** argv)
     if (const auto* s = std::getenv("MAGNUM_LOG"); !s || !*s)
         ::_putenv("MAGNUM_LOG=quiet");
 #else
-        ::setenv("MAGNUM_LOG", "quiet", 0);
+    ::setenv("MAGNUM_LOG", "quiet", 0);
 #endif
     auto app = floormat::Test::App{{argc, argv}};
     return app.exec();
