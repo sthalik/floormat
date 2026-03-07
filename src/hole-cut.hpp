@@ -17,7 +17,7 @@ struct CutResult
     static CutResult cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1, uint8_t s);
 
     uint8_t s = (uint8_t)-1, size = 0;
-    std::array<rect, 8> array;
+    std::array<rect, 4> array;
 
     bool found() const;
 };

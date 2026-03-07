@@ -34,7 +34,7 @@ struct coords
 struct element
 {
     uint8_t s, size;
-    std::array<coords, 8> array;
+    std::array<coords, 4> array;
 };
 
 template<typename T> using Vec2ʹ = VectorTypeFor<2, T>;
@@ -48,15 +48,11 @@ constexpr element make_element(uint8_t s)
     using enum location;
     case x0|x1|y0|y1: return element{s, 0, {{ // 9.1
     }}};
-    case __|__|__|__: return element{s, 8, {{ // 14.1
-        {R0, H0, R0, H0},
-        {H0, H1, R0, H0},
-        {H1, R1, R0, H0},
+    case __|__|__|__: return element{s, 4, {{ // 14.1
+        {R0, R1, R0, H0},
         {R0, H0, H0, H1},
         {H1, R1, H0, H1},
-        {R0, H0, H1, R1},
-        {H0, H1, H1, R1},
-        {H1, R1, H1, R1},
+        {R0, R1, H1, R1},
     }}};
 
     case x0|x1|__|__: return element{s, 2, {{ // 13.1
@@ -163,7 +159,7 @@ constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ
         .array = {},
     };
 
-    for (auto i = 0u; i < 8; i++)
+    for (auto i = 0u; i < res.size; i++)
         res.array[i] = get_value_from_coord<T>(r0, r1, h0, h1, elt.array[i]);
     return res;
 }
