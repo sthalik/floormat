@@ -1,4 +1,5 @@
 #include "main-impl.hpp"
+#include "compat/spinlock.hpp"
 #include <chrono>
 
 namespace floormat {
@@ -8,12 +9,23 @@ using Severity = GL::DebugOutput::Severity;
 CORRADE_NEVER_INLINE void gl_debug_put_breakpoint_here();
 void gl_debug_put_breakpoint_here()  {}
 
+namespace {
+
+auto Clock = std::chrono::steady_clock{};
+Spinlock spl_clock;
+
+auto Now()
+{
+    Locker l{spl_clock};
+    return Clock.now();
+}
+
+} // namespace
+
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
 {
-    static thread_local auto clock = std::chrono::steady_clock{};
-    static const auto t0 = clock.now();
-
+    static const auto t0 = [] { Locker l{spl_clock}; return Now(); }();
 #if 1
     [[maybe_unused]] volatile const auto _type = type;
     [[maybe_unused]] volatile const auto _id = id;
@@ -27,7 +39,8 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
         str = str.exceptPrefix(pfx.size());
 
     using seconds = std::chrono::duration<double>;
-    const auto t = std::chrono::duration_cast<seconds>(clock.now() - t0).count();
+
+    const auto t = std::chrono::duration_cast<seconds>(Now() - t0).count();
     printf("[%10.03f] ", t);
 
     switch (Severity{severity})
