@@ -249,7 +249,8 @@ function(fm_install_executable self)
         endif()
         set(exe "${exe}${CMAKE_EXECUTABLE_SUFFIX}")
         add_custom_command(TARGET ${self} POST_BUILD
-                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug"
+                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug.uncompressed"
+                           COMMAND "${CMAKE_OBJCOPY}" --compress-debug-sections "${exe}.debug.uncompressed" "${exe}.debug"
                            COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}" "${exe}.nodebug"
                            COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${exe}.debug "${exe}.nodebug"
                            # BYPRODUCTS "${exe}.debug" "${exe}.nodebug"
