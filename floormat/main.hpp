@@ -79,8 +79,7 @@ struct floormat_main
     virtual class world& reset_world() noexcept = 0;
     virtual class world& reset_world(class world&& w) noexcept = 0;
     virtual SDL_Window* window() noexcept = 0;
-    Vector2 dpi_scale() const noexcept { return Vector2(_dpi_scale); }
-    float dpi_scaleʹ() const noexcept { return _dpi_scale; }
+    virtual Vector2 dpi_scale() const noexcept = 0;
     static int get_mods() noexcept;
 
     void set_render_vobjs(bool value);
@@ -98,7 +97,6 @@ struct floormat_main
 protected:
     Vector2 _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
-    float _dpi_scale = 1;
     bool _do_render_vobjs : 1 = true;
     bool _first_frame : 1 = true;
 };

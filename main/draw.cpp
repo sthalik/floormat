@@ -71,10 +71,15 @@ void main_impl::cache_draw_on_startup()
 
 void main_impl::drawEvent()
 {
-    _dpi_scale = 1;
-    if (float ddpi = 96;
-        !SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(window()), &ddpi, nullptr, nullptr))
-        _dpi_scale = ddpi / 96;
+    fm_assert(_dpi_user_override == Vector2{-1} || _dpi_user_override > Vector2{0, 0});
+
+    if (_dpi_user_override != Vector2{-1})
+        _dpi_scale = _dpi_user_override;
+    else if (float ddpi = 96, hdpi = 96, vdpi = 96;
+        !SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(window()), &ddpi, &hdpi, &vdpi))
+        _dpi_scale = Vector2{hdpi, vdpi} / 96;
+    else
+        _dpi_scale = Vector2{1};
 
     if (_first_frame) [[unlikely]]
     {

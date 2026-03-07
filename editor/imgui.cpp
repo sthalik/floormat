@@ -13,6 +13,7 @@
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
+#include "loader/loader.hpp"
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <imgui.h>
@@ -27,19 +28,36 @@ void app::init_imgui(Vector2i size)
 {
     if (!_imgui->context()) [[unlikely]]
     {
-        _imgui = safe_ptr<ImGuiIntegration::Context>{InPlaceInit, NoCreate};
-        *_imgui = ImGuiIntegration::Context{Vector2{size}, size, size};
-        fm_assert(_imgui->context());
-    }
-    else
-    {
-        fm_assert(_imgui->context());
-        _imgui->relayout(Vector2{size}, size, size);
-    }
-#if 1
-    _imgui->atlasTexture().setMagnificationFilter(Magnum::GL::SamplerFilter::Nearest)
-                          .setMinificationFilter(Magnum::GL::SamplerFilter::Linear);
+        ImGui::CreateContext();
+
+        {
+            ImFontConfig config;
+            config.OversampleH = 1;
+            config.PixelSnapH = true;
+            config.RasterizerMultiply = 1.0f;
+
+            auto& io = ImGui::GetIO();
+            io.Fonts->Clear();
+#ifdef IMGUI_DISABLE_DEFAULT_FONT
+            auto res = loader.font();
+            void* imgui_font_data = IM_ALLOC(res.size());
+            memcpy(imgui_font_data, res.data(), res.size());
+            io.Fonts->AddFontFromMemoryTTF(imgui_font_data, (int)res.size(), 16, &config);
+#else
+            io.Fonts->AddFontDefault(&config);
 #endif
+            io.Fonts->Build();
+        }
+
+        _imgui = safe_ptr<ImGuiIntegration::Context>{InPlaceInit, NoCreate};
+        *_imgui = ImGuiIntegration::Context{*ImGui::GetCurrentContext(), Vector2{size}, size, size};
+        fm_assert(_imgui->context());
+    }
+
+    _imgui->relayout(Vector2{size}, size, size);
+
+    _imgui->atlasTexture().setMagnificationFilter(Magnum::GL::SamplerFilter::Nearest)
+                          .setMinificationFilter(Magnum::GL::SamplerFilter::Nearest);
 }
 
 void app::render_menu()
@@ -119,11 +137,11 @@ float app::draw_main_menu()
 
 void app::configure_imgui(float scale)
 {
-    if (scale > 2.5f)
+     if (scale > 2.5001f)
         scale = 4;
-    else if (scale > 1.75f)
+    else if (scale > 2.0001f)
         scale = 3;
-    else if (scale > 1.f)
+    else if (scale > 1.5001f)
         scale = 2;
     else
         scale = 1;
@@ -145,7 +163,7 @@ void app::configure_imgui(float scale)
 
 void app::draw_ui()
 {
-    configure_imgui( M->dpi_scaleʹ());
+    configure_imgui( M->dpi_scale().x());
     _imgui->newFrame();
 
     if (_render_clickables)

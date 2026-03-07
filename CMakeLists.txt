@@ -176,6 +176,7 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_S
 
 add_definitions(
     #-DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
+    -DIMGUI_DISABLE_DEFAULT_FONT
 )
 
 add_subdirectory(external)

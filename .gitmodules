@@ -28,3 +28,7 @@
 [submodule "benchmark"]
 	path = external/benchmark
 	url = https://github.com/google/benchmark.git
+[submodule "font"]
+	path = external/font
+	url = https://github.com/sthalik/floormat
+	branch = asset/font/inter/v1

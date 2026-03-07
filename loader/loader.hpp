@@ -31,6 +31,7 @@ struct loader_
     virtual void destroy() = 0;
     static loader_& default_loader() noexcept;
     virtual StringView shader(StringView filename) noexcept = 0;
+    virtual ArrayView<const void> font() noexcept = 0;
     virtual Trade::ImageData2D make_error_texture(Vector2ui size) = 0;
     virtual Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;

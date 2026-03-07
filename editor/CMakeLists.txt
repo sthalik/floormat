@@ -2,10 +2,12 @@ set(self floormat-editor)
 
 file(GLOB sources "*.cpp" "tests/*.cpp" CONFIGURE_ARGS)
 corrade_add_resource(res "../resources.conf")
+corrade_add_resource(fonts "../external/font/fonts.conf")
 
 set_property(SOURCE "${res}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
+set_property(SOURCE "${fonts}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
 
-add_library(${self}_o OBJECT "${res}" "${sources}")
+add_library(${self}_o OBJECT "${res}" "${fonts}" "${sources}")
 target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json tsl::robin_map)
 
 if(WIN32)

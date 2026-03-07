@@ -59,6 +59,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     class world& reset_world() noexcept override;
     class world& reset_world(class world&& w) noexcept override;
     SDL_Window* window() noexcept override;
+    Vector2 dpi_scale() const noexcept override;
     void update_window_state();
     static unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max);
     float smoothed_frame_time() const noexcept override;
@@ -146,6 +147,8 @@ private:
 #endif
     safe_ptr<path_search> _search;
     safe_ptr<class astar> _astar;
+    Vector2 _dpi_user_override = Vector2{-1};
+    Vector2 _dpi_scale = Vector2{1};
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;

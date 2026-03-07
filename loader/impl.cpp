@@ -19,6 +19,12 @@ namespace floormat {
 
 namespace floormat::loader_detail {
 
+namespace {
+
+constexpr auto default_font_filename = "imgui-default-ttf-font"_s;
+
+} // namespace
+
 StringView loader_impl::shader(StringView filename) noexcept
 {
     if (!shader_res)
@@ -26,6 +32,16 @@ StringView loader_impl::shader(StringView filename) noexcept
     auto ret = shader_res->getString(filename);
     if (ret.isEmpty())
         fm_abort("can't find shader resource '%s'", filename.cbegin());
+    return ret;
+}
+
+ArrayView<const void> loader_impl::font() noexcept
+{
+    if (!font_res)
+        font_res = Optional<Utility::Resource>(InPlaceInit, "fonts");
+    auto ret = font_res->getRaw("default-imgui-font");
+    if (ret.isEmpty())
+        fm_abort("can't find font resource '%s'", default_font_filename.data());
     return ret;
 }
 

@@ -3,6 +3,7 @@
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
+#include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
 
@@ -13,6 +14,10 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
                               make_conf(se), make_gl_conf(se)},
     s{move(se)}, app{app}, _shader{_tuc}
 {
+    if (auto scale = dpiScaling();
+        Math::abs(scale - dpiScaling(Configuration{})).max() < 1e-6f)
+        _dpi_user_override = scale;
+
     if (s.vsync)
     {
         (void)setSwapInterval(1);
