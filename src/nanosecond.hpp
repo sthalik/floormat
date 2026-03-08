@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/assert.hpp"
 #include <compare>
 
 namespace floormat {
