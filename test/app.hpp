@@ -20,6 +20,7 @@ void test_astar_pool();
 void test_bitmask();
 void test_bptr();
 void test_coords();
+void test_crc64();
 void test_critter();
 void test_dijkstra();
 void test_entity();

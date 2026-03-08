@@ -7,6 +7,7 @@
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash-table-load-factor.hpp"
+#include "compat/crc64.hpp"
 
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -22,6 +23,7 @@
 #include "loader/vobj-cell.hpp"
 #include "atlas-type.hpp"
 
+#include <bit>
 #include <cstring>
 #include <cstdio>
 #include <compare>
@@ -126,7 +128,8 @@ using proto_t  = uint16_t;
 // 23: switch object::delta to 32-bit
 // 24: switch object::offset_frac from Vector2us to uint16_t
 // 25: add hole objects
-static constexpr proto_t proto_version = 25;
+// 26: add checksum
+static constexpr proto_t proto_version = 26;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -720,12 +723,12 @@ template struct visitor_<writer, true, true>;
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
     if (buf.size > 0) [[likely]]
-    {
-        auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
-        int error = errno;
-        if (len != 1)
+        if (auto len = std::fwrite(&buf.data[0], buf.size, 1, f);
+            len != 1)
+        {
+            int error = errno;
             fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
-    }
+        }
 }
 
 } // namespace
@@ -743,7 +746,18 @@ void world::serialize(StringView filename)
         int error = errno;
         fm_abort("fopen(\"%s\", \"w\"): %s", filename.data(), get_error_string(errbuf, error).data());
     }
+
     {
+        uint64_t crc_state = Hash::CRC64_INITIALIZER;
+
+        const auto write = [&](const buffer& buf) {
+            crc_state = Hash::crc64_update(
+                crc_state,
+                reinterpret_cast<const uint8_t*>(buf.data.data()),
+                buf.size);
+            my_fwrite(file, buf, errbuf);
+        };
+
         struct writer writer{*this};
         const bool is_empty = chunks().empty();
         writer.serialize_world();
@@ -757,17 +771,28 @@ void world::serialize(StringView filename)
             fm_assert(!writer.atlas_map.empty());
             fm_assert(!writer.chunk_array.empty());
         }
-        my_fwrite(file, writer.header_buf, errbuf);
-        my_fwrite(file, writer.string_buf, errbuf);
+        write(writer.header_buf);
+        write(writer.string_buf);
         for (const auto& x : writer.atlas_array)
         {
             fm_assert(!x.buf.empty());
-            my_fwrite(file, x.buf, errbuf);
+            write(x.buf);
         }
         for (const auto& x : writer.chunk_array)
         {
             fm_assert(!x.buf.empty());
-            my_fwrite(file, x.buf, errbuf);
+            write(x.buf);
+        }
+        {
+            struct crc_buf {
+                char buf[sizeof crc_state];
+            } crc = std::bit_cast<crc_buf>(maybe_byteswap(crc_state));
+            if (auto len = std::fwrite(crc.buf, sizeof crc_state, 1, file);
+                len != 1)
+            {
+                int error = errno;
+                fm_abort("fwrite: %s", get_error_string(errbuf, error).data());
+            }
         }
     }
 
@@ -1128,6 +1153,8 @@ ok:
             deserialize_chunk_(s);
         fm_soft_assert(object_counter);
         w.set_object_counter(object_counter);
+        if (PROTO >= 26)
+            (void)s.read<sizeof Hash::CRC64_INITIALIZER>();
         s.assert_end();
     }
 };
@@ -1159,6 +1186,8 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
         auto buf_ = Array<char>(len+1);
         if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
             fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
+        if (len <= sizeof Hash::CRC64_INITIALIZER)
+            fm_throw("buffer too short, len {}"_cf, len);
 
         buf.data = move(buf_);
         buf.size = len;
@@ -1167,6 +1196,24 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
     class world w;
     auto s = binary_reader<const char*>{buf.data.begin(), buf.data.begin() + buf.size};
     auto proto = reader<false>::deserialize_header_1(s);
+
+    if (proto >= 26) // checksum
+    {
+        uint64_t old_state;
+        const auto* const cksum_pos = buf.data + buf.size - sizeof old_state;
+        struct crc_buf {
+            char buf[sizeof old_state];
+        } crc;
+        std::copy(cksum_pos, cksum_pos + sizeof old_state, crc.buf);
+        old_state = std::bit_cast<uint64_t>(crc.buf);
+        auto new_state = Hash::crc64_update( Hash::CRC64_INITIALIZER,
+                                             buf.data.data(), buf.size - sizeof old_state);
+        if (old_state != new_state)
+            fm_throw("CRC64-ECMA checksum for savegame doesn't match"
+                     ": 0x{:016x} vs 0x{:016x} for {}"_cf,
+                     old_state, new_state, filename);
+    }
+
     if (proto == proto_version)
     {
         struct reader<true> r{w, asset_policy};
