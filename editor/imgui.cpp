@@ -137,11 +137,12 @@ float app::draw_main_menu()
 
 void app::configure_imgui(float scale)
 {
-     if (scale > 2.5001f)
+    constexpr auto eps = 1e-5f;
+     if (scale >= 2.75f - eps)
         scale = 4;
-    else if (scale > 2.0001f)
+    else if (scale >= 2.0f - eps)
         scale = 3;
-    else if (scale > 1.5001f)
+    else if (scale >= 1.5f - eps)
         scale = 2;
     else
         scale = 1;

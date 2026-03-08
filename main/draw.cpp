@@ -71,12 +71,12 @@ void main_impl::cache_draw_on_startup()
 
 void main_impl::drawEvent()
 {
-    fm_assert(_dpi_user_override == Vector2{-1} || _dpi_user_override > Vector2{0, 0});
 
-    if (_dpi_user_override != Vector2{-1})
-        _dpi_scale = _dpi_user_override;
-    else if (float ddpi = 96, hdpi = 96, vdpi = 96;
-        !SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(window()), &ddpi, &hdpi, &vdpi))
+    float ddpi = 96, hdpi = 96, vdpi = 96;
+
+    if (auto dpi_override = commandLineDpiScaling())
+        _dpi_scale = *dpi_override;
+    else if (!SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(window()), &ddpi, &hdpi, &vdpi))
         _dpi_scale = Vector2{hdpi, vdpi} / 96;
     else
         _dpi_scale = Vector2{1};

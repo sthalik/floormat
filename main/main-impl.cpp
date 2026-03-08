@@ -58,11 +58,7 @@ struct texture_unit_cache& main_impl::texture_unit_cache() { return _tuc; }
 path_search& main_impl::search() { return *_search; }
 astar& main_impl::astar() { return *_astar; }
 
-Vector2 main_impl::dpi_scale() const noexcept
-{
-    return _dpi_scale;
-}
-
+Vector2 main_impl::dpi_scale() const noexcept { return _dpi_scale; }
 Vector2i floormat_main::window_size() const noexcept { return _framebuffer_size; }
 float main_impl::smoothed_frame_time() const noexcept { return _frame_timings.smoothed_frame_time; }
 void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }

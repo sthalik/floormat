@@ -147,7 +147,6 @@ private:
 #endif
     safe_ptr<path_search> _search;
     safe_ptr<class astar> _astar;
-    Vector2 _dpi_user_override = Vector2{-1};
     Vector2 _dpi_scale = Vector2{1};
 
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
