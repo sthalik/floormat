@@ -1,7 +1,13 @@
 #include "app.hpp"
+#include "run.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "compat/function2.hpp"
+#include "src/nanosecond.inl"
+#include "src/tile-image.hpp"
 #include "src/hole.hpp"
 #include "src/hole-cut.hpp"
-#include "src/tile-constants.hpp"
+#include "src/world.hpp"
+#include "loader/loader.hpp"
 
 namespace floormat {
 namespace {
@@ -127,6 +133,72 @@ void test_degenerate()
 }
 
 } // namespace
+} // namespace floormat
+
+namespace floormat::Run {
+namespace {
+
+void test_walking1(StringView instance_name, Function make_dt, double accel, uint32_t max_steps)
+{
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+
+    {
+        auto w = world();
+        w[{{0,0,0}, {8,8}}].t.wall_west() = W;
+
+        bool ret1 = run(w, make_dt,
+                       Start{
+                           .name = "test_walking1"_s,
+                           .instance = instance_name,
+                           .pt = {{0,0,0}, {0,8}, {}},
+                           .accel = accel,
+                           .rotation = E,
+                       },
+                       Expected{
+                           .pt = {{0,0,0}, {7, 8}, {8,0}}, // distance_L2 == 3
+                           .time = 7600.15*Millisecond,
+                       },
+                       Grace{
+                           .time = 300*Millisecond,
+                           .distance_L2 = 4,
+                           .max_steps = max_steps,
+                       });
+        fm_assert(ret1);
+    }
+    {
+        auto w = world();
+        w[{{0,0,0}, { 8,8}}].t.wall_west() = W;
+        w[{{0,0,0}, {12,8}}].t.wall_west() = W;
+
+        const auto p = hole_proto{};
+        auto h = w.make_object<hole>(w.make_id(), global_coords{{0, 0, 0}, {8, 8}}, p);
+        h->set_bbox({}, {}, {128, 48}, pass_mode::pass);
+
+        bool ret2 = run(w, make_dt,
+                       Start{
+                           .name = "test_walking1_2"_s,
+                           .instance = instance_name,
+                           .pt = {{0,0,0}, {0,8}, {}},
+                           .accel = accel,
+                           .rotation = E,
+                       },
+                       Expected{
+                           .pt = {{0,0,0}, {11, 8}, {8,0}}, // distance_L2 == 3
+                           .time = 11.9*Seconds,
+                       },
+                       Grace{
+                           .time = 300*Millisecond,
+                           .distance_L2 = 4,
+                           .max_steps = max_steps,
+                       });
+        fm_assert(ret2);
+    }
+}
+
+} // namespace
+} // namespace floormat::Run
+
+namespace floormat {
 
 void Test::test_hole()
 {
@@ -144,6 +216,26 @@ void Test::test_hole()
     test2();
     test3();
     test_degenerate();
+
+    using namespace Run;
+
+    test_walking1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1, Grace::default_max_steps);
+    test_walking1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2, Grace::default_max_steps);
+    test_walking1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5, Grace::default_max_steps);
+    test_walking1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5, Grace::default_max_steps*2);
+    test_walking1("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1, Grace::default_max_steps);
+    test_walking1("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2, Grace::default_max_steps);
+    test_walking1("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5, Grace::default_max_steps);
+    test_walking1("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10, Grace::default_max_steps);
+    test_walking1("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1, Grace::default_max_steps);
+    test_walking1("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2, Grace::default_max_steps);
+    test_walking1("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5, Grace::default_max_steps);
+    test_walking1("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1, Grace::default_max_steps);
+    test_walking1("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2, Grace::default_max_steps);
+    test_walking1("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5, Grace::default_max_steps);
+    test_walking1("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1, Grace::default_max_steps);
+    test_walking1("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1, Grace::very_slow_max_steps);
+    test_walking1("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5, Grace::very_slow_max_steps);
 }
 
 } // namespace floormat
