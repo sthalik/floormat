@@ -2,6 +2,7 @@
 #include "ground-atlas.hpp"
 #include "object.hpp"
 #include "world.hpp"
+#include "pass-through.hpp"
 #include "src/RTree-search.hpp"
 #include "rect-intersects.hpp"
 #include "hole.hpp"
@@ -63,7 +64,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         if constexpr(IsNeighbor)
             if (!rect_intersects(min, max, chunk_min, chunk_max)) [[likely]]
                 continue;
-        rtree.Insert(Vector2(min).data(), Vector2(max).data(), make_id(collision_type::none, pass_mode::pass, e.id));
+        rtree.Insert(Vector2(min).data(), Vector2(max).data(), make_id(collision_type::none, e.pass, e.id));
         has_holes = true;
     }
     return has_holes;
@@ -109,7 +110,7 @@ bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& r
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.pass != (uint64_t)pass_mode::blocked && x.type == (uint64_t)collision_type::none)
+        if (can_walk_through(pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
         {
             CutResult<float>::rect holeʹ {
                 .min = { r.m_min[0], r.m_min[1] },
@@ -130,7 +131,7 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
     const auto& rtree = *c.rtree();
     rtree.Search(bb_min.data(), bb_max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.pass != (uint64_t)pass_mode::blocked && x.type == (uint64_t)collision_type::none)
+        if (can_walk_through(pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
         {
             Vector2 hmin = {r.m_min[0], r.m_min[1]}, hmax = {r.m_max[0], r.m_max[1]};
             if (rect_intersects(hmin, hmax, bb_min, bb_max))
