@@ -22,7 +22,6 @@ class world final
 public:
     static constexpr object_id object_counter_init = 1024;
     static constexpr size_t initial_capacity = 4096;
-    static constexpr float max_load_factor = .25;
     static constexpr size_t initial_collect_every = 64;
 
     struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };

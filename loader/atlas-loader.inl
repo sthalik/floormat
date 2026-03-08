@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/os-file.hpp"
+#include "compat/hash-table-load-factor.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader/loader.hpp"
@@ -45,9 +46,8 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
         if (name.isSmall()) name = String{AllocatedInit, name};
     }
 
-    s.name_map.max_load_factor(0.4f);
-    if (!s.cell_array.isEmpty())
-        s.name_map.reserve(s.cell_array.size()*5/2 + 1);
+    Hash::set_open_addressing_load_factor( s.name_map, s.name_map.size()+s.cell_array.size()+1);
+
     for (auto i = 0uz; const auto& c : s.cell_array)
         s.name_map[t.name_of(c)] = i++;
 
@@ -62,6 +62,8 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
 
     fm_debug_assert(!s.name_map.empty());
     fm_debug_assert(!s.cell_array.isEmpty());
+
+    Hash::set_open_addressing_load_factor(s.name_map);
 
     return { s.cell_array.data(), s.cell_array.size() };
 }
@@ -139,6 +141,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         t.atlas_of(c) = make_atlas(name, c);
         fm_debug_assert(t.atlas_of(c));
         s.name_map[t.name_of(c)] = index;
+        Hash::set_open_addressing_load_factor(s.name_map);
         return t.atlas_of(c);
     }
     else

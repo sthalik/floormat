@@ -1,4 +1,5 @@
 #include "impl.hpp"
+#include "compat/hash-table-load-factor.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
 #include "src/anim-atlas.hpp"
@@ -86,7 +87,7 @@ void loader_impl::get_vobj_list()
     vec.shrink_to_fit();
 
     vobjs.reserve(vec.size());
-    vobj_atlas_map.reserve(2*vec.size());
+    Hash::set_separate_chaining_load_factor(vobj_atlas_map, vec.size());
 
     for (const auto& [name, descr, img_name] : vec)
     {

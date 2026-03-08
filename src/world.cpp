@@ -10,6 +10,7 @@
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
+#include "compat/hash-table-load-factor.hpp"
 #include <cr/GrowableArray.h>
 #include <tsl/robin_map.h>
 
@@ -36,12 +37,10 @@ world::world(world&& w) noexcept = default;
 
 world::world(std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>&& chunks)
 {
-    const auto capʹ = (size_t)(1e-4f + (float)chunks.size() / max_load_factor);
-    const auto cap = std::max(capʹ, initial_capacity);
-    _chunks.reserve(cap);
-    _chunks.max_load_factor(max_load_factor);
+    _chunks.reserve(chunks.size());
     for (auto&& [coord, c] : chunks)
         operator[](coord) = move(c);
+    Hash::set_separate_chaining_load_factor(_chunks);
 }
 
 world& world::operator=(world&& w) noexcept
@@ -98,9 +97,9 @@ bool world::unique_id::operator==(const unique_id& other) const { return this ==
 
 world::world(size_t capacity) : _chunks{capacity}, _unique_id{InPlace}
 {
-    _chunks.max_load_factor(max_load_factor);
+    Hash::set_separate_chaining_load_factor(_chunks);
     _chunks.reserve(initial_capacity);
-    _objects->max_load_factor(max_load_factor);
+    Hash::set_open_addressing_load_factor(*_objects);
     _objects->reserve(initial_capacity);
 }
 
@@ -169,6 +168,7 @@ void world::collect(bool force)
 
 void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
+    fm_debug_assert(e);
     fm_debug_assert(e->id != 0);
     fm_debug_assert(e->c);
     fm_debug_assert(pos.chunk3() == e->c->coord());
@@ -182,6 +182,7 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
         e->c->add_object(e);
     else
         e->c->add_object_unsorted(e);
+    Hash::set_open_addressing_load_factor(*_objects);
 }
 
 void world::erase_object(object_id id)

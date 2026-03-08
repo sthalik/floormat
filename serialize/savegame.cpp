@@ -6,6 +6,7 @@
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/hash-table-load-factor.hpp"
 
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -544,6 +545,7 @@ ok:     void();
         auto [pair, fresh] = string_map.try_emplace(str, (uint32_t)string_array.size());
         if (fresh)
             string_array.emplace_back(str);
+        Hash::set_separate_chaining_load_factor(string_map);
         return pair->second;
     }
 
