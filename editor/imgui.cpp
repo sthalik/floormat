@@ -29,6 +29,8 @@ void app::init_imgui(Vector2i size)
     if (!_imgui->context()) [[unlikely]]
     {
         ImGui::CreateContext();
+        auto& io = ImGui::GetIO();
+        io.IniFilename = nullptr;
 
         {
             ImFontConfig config;
@@ -36,7 +38,6 @@ void app::init_imgui(Vector2i size)
             config.PixelSnapH = true;
             config.RasterizerMultiply = 1.0f;
 
-            auto& io = ImGui::GetIO();
             io.Fonts->Clear();
 #ifdef IMGUI_DISABLE_DEFAULT_FONT
             auto res = loader.font();
@@ -70,8 +71,6 @@ float app::draw_main_menu()
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
-        //ImGui::SetWindowFontScale(M->dpi_scale().min());
-
         if (auto b = begin_menu("File"))
         {
             bool do_new = false, do_quickload = false, do_quit = false;
@@ -153,7 +152,6 @@ void app::configure_imgui(float scale)
     style.ScaleAllSizes(scale);
 
     auto& io = ImGui::GetIO();
-    io.IniFilename = nullptr;
     io.FontGlobalScale = scale;
 
     auto& ctx = *ImGui::GetCurrentContext();
