@@ -136,15 +136,21 @@ float app::draw_main_menu()
 
 void app::configure_imgui(float scale)
 {
-    constexpr auto eps = 1e-5f;
-     if (scale >= 2.75f - eps)
-        scale = 4;
-    else if (scale >= 2.0f - eps)
-        scale = 3;
-    else if (scale >= 1.5f - eps)
-        scale = 2;
-    else
-        scale = 1;
+    constexpr struct {
+        float s, ret;
+    } scale_table[] = {
+        { 3.75f, 4 },
+        { 2.75f, 3 },
+        { 1.75f, 2 },
+        { 0    , 1 },
+    };
+
+    for (auto [s, ret] : scale_table)
+        if (scale >= s + 1e-6f)
+        {
+            scale = ret;
+            break;
+        }
 
     auto& style = ImGui::GetStyle();
     style = ImGuiStyle();
