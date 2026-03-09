@@ -164,7 +164,6 @@ void set_result_from_idx(path_search_result& result,
 
 astar::astar()
 {
-    reserve(initial_capacity);
 }
 
 astar::~astar() noexcept = default;
@@ -202,6 +201,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 #ifdef FM_NO_DEBUG
     (void)debug;
 #endif
+    reserve(initial_capacity);
 
     Timeline timeline;
     if (debug > 0) [[unlikely]]
