@@ -12,3 +12,7 @@ target_link_libraries(
 )
 
 #target_precompile_headers(${self} PUBLIC precomp.hpp)
+
+if (WIN32 AND NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    set_property(SOURCE fps-counter.cpp APPEND PROPERTY COMPILE_OPTIONS "-mlong-double-80")
+endif()

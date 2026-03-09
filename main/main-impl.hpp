@@ -3,6 +3,8 @@
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
 #include "src/timer.hpp"
+#include "src/fps-counter.hpp"
+#include "src/nanosecond.inl"
 #include "draw/ground.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
@@ -62,7 +64,8 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     Vector2 dpi_scale() const noexcept override;
     void update_window_state();
     static unsigned get_window_refresh_rate(SDL_Window* window, unsigned min, unsigned max);
-    float smoothed_frame_time() const noexcept override;
+    void reset_fps() noexcept override;
+    float smoothed_fps() const noexcept override;
 
     fm_settings& settings() noexcept override;
     const fm_settings& settings() const noexcept override;
@@ -92,7 +95,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void clear_framebuffer();
     void drawEvent() override;
     void bind() noexcept override;
-    void do_update(const Ns& dt);
+    void do_update(Ns dt);
     struct meshes meshes() noexcept override;
 
     bool is_text_input_active() const noexcept override;
@@ -112,17 +115,17 @@ private:
     struct frame_timings_s
     {
         static constexpr unsigned min_refresh_rate = 20;
-
+        static constexpr Ns settle_delay = Ns{1000*Milliseconds};
+        FPS_Counter fps_counter;
         unsigned refresh_rate;
-        float smoothed_frame_time;
         bool vsync       : 1;
         bool minimized   : 1;
         bool focused     : 1;
     };
 
     frame_timings_s _frame_timings = {
+        .fps_counter = FPS_Counter{frame_timings_s::settle_delay},
         .refresh_rate = frame_timings_s::min_refresh_rate,
-        .smoothed_frame_time = 0,
         .vsync = false,
         .minimized = false,
         .focused = true,

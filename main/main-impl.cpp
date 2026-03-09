@@ -60,7 +60,8 @@ astar& main_impl::astar() { return *_astar; }
 
 Vector2 main_impl::dpi_scale() const noexcept { return _dpi_scale; }
 Vector2i floormat_main::window_size() const noexcept { return _framebuffer_size; }
-float main_impl::smoothed_frame_time() const noexcept { return _frame_timings.smoothed_frame_time; }
+float main_impl::smoothed_fps() const noexcept { return (float)_frame_timings.fps_counter.get(); }
+void main_impl::reset_fps() noexcept { _frame_timings.fps_counter.reset(); }
 void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }
 bool floormat_main::is_rendering_vobjs() const { return _do_render_vobjs; }
 

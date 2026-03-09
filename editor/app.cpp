@@ -63,6 +63,7 @@ void app::reset_world_post()
     ensure_player_character(w);
     update_cursor_tile(cursor.pixel);
     w.init_scripts();
+    M->reset_fps();
 }
 
 void app::reset_world(class world&& wʹ)

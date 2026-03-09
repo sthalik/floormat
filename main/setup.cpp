@@ -142,12 +142,13 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
 
     fm_assert(hz > 0 && hz < 1000);
     _frame_timings = {
+        .fps_counter = _frame_timings.fps_counter, // don't reset it
         .refresh_rate = hz,
-        .smoothed_frame_time = 0,
         .vsync = vsync,
         .minimized = hidden,
         .focused = focused,
     };
+    //_frame_timings.fps_counter.reset();
 
 #if 0
     constexpr auto b = [](bool x) { return x ? "1" : "0"; };

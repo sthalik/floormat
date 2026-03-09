@@ -54,7 +54,8 @@ struct floormat_main
     virtual struct lightmap_shader& lightmap_shader() noexcept = 0;
     virtual const tile_shader& shader() const noexcept = 0;
     virtual void bind() noexcept = 0;
-    virtual float smoothed_frame_time() const noexcept = 0;
+    virtual float smoothed_fps() const noexcept = 0;
+    virtual void reset_fps() noexcept = 0;
     virtual fm_settings& settings() noexcept = 0;
     virtual const fm_settings& settings() const noexcept = 0;
 

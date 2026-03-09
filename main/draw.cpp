@@ -6,6 +6,7 @@
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "src/nanosecond.inl"
+#include "src/fps-counter.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
@@ -21,28 +22,14 @@ constexpr auto clear_color = 0x222222ff_rgbaf;
 
 } // namespace
 
-void main_impl::do_update(const Ns& dtʹ)
+void main_impl::do_update(Ns dt)
 {
-    constexpr auto eps = 1e-5f;
-    constexpr auto max_dt = Milliseconds*100;
-    const auto dt = dtʹ > max_dt ? max_dt : dtʹ;
-    if (float secs{Time::to_seconds(dt)}; secs > eps)
-    {
-#if 1
-        constexpr float RC = 60;
-        constexpr float alpha = 1 / (1 + RC);
-        float& value = _frame_timings.smoothed_frame_time;
-        value = (value*(1 - alpha) + alpha * secs);
-#else
-        value = secs;
-#endif
-        if (secs > 35e-3f /* && !dt_expected.do_sleep */) [[likely]]
-            fm_debug("%zu frame took %.2f milliseconds", bad_frame_counter++, (double)secs*1e3);
-    }
-    else
-        swapBuffers();
-
     app.update(dt);
+    _frame_timings.fps_counter.update(dt);
+
+    if (dt >= 500*Milliseconds) [[unlikely]]
+        fm_debug("%zu frame took %.1f milliseconds",
+                 bad_frame_counter++, (double)(dt/Milliseconds));
 }
 
 void main_impl::clear_framebuffer()
