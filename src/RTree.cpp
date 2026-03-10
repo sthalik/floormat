@@ -18,7 +18,7 @@ static size_t fresh_counter, reuse_counter, dtor_counter; // NOLINT
 template<typename T> rtree_pool<T>::rtree_pool() noexcept = default;
 
 template<typename T>
-rtree_pool<T>::~rtree_pool()
+rtree_pool<T>::~rtree_pool() noexcept
 {
 #ifdef RTREE_POOL_DEBUG
     auto last = dtor_counter;
@@ -40,29 +40,30 @@ rtree_pool<T>::~rtree_pool()
 
 template<typename T> T* rtree_pool<T>::construct()
 {
+    static_assert(offsetof(rtree_pool<T>::node_u, data) == 0);
+    static_assert(offsetof(rtree_pool<T>::node_u, next) == offsetof(rtree_pool<T>::node_u, data));
+
     if (!free_list)
     {
 #ifdef RTREE_POOL_DEBUG
         Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
 #endif
-        auto* ptr = new node_u;
-        auto* ret = new(&ptr->data) T;
-        return ret;
+        return &(new node_u)->data;
     }
-    else
+    else [[likely]]
     {
-        auto* ret = free_list;
-        free_list = free_list->next;
-        new (&ret->data) T();
 #ifdef RTREE_POOL_DEBUG
         Debug{} << "rtree-pool: reused"_s << ++reuse_counter; std::fflush(stdout);
 #endif
-        return &ret->data;
+        auto* n = free_list;
+        free_list = free_list->next;
+        return new (&n->data) T;
     }
 }
 
 template<typename T> void rtree_pool<T>::free(T* ptr)
 {
+    fm_assert(ptr);
     ptr->~T();
     auto* n = reinterpret_cast<node_u*>(ptr);
     n->next = free_list;

@@ -32,7 +32,7 @@ template<typename T> struct rtree_pool final
     rtree_pool() noexcept;
     rtree_pool(const rtree_pool&) = delete;
     rtree_pool& operator=(const rtree_pool&) = delete;
-    ~rtree_pool();
+    ~rtree_pool() noexcept;
     T* construct();
     void free(T* pool);
 
