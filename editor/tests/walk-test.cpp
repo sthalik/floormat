@@ -38,7 +38,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
 {
     auto& m = a.main();
 
-    if (e.button == mouse_button_left && is_down)
+    if ((e.button == mouse_button_left || e.button == mouse_button_middle) && is_down)
     {
         if (auto ptʹ = a.cursor_state().point())
         {
@@ -51,11 +51,19 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             auto dist = (uint32_t)vec.length();
             constexpr auto bb_const = Vector2ui{tile_size_xy / 8};
             auto bb = Vector2ui{C->bbox_size} + bb_const;
-            auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, C->id, dist, bb, 0);
-            if (!res.empty())
+            if (e.button == mouse_button_middle)
             {
-                auto S = critter_script::make_walk_script(move(res));
+                auto S = critter_script::make_walk_script(*ptʹ);
                 C->script.do_reassign(move(S), move(C));
+            }
+            else
+            {
+                auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, C->id, dist, bb, 0);
+                if (!res.empty())
+                {
+                    auto S = critter_script::make_walk_script(move(res));
+                    C->script.do_reassign(move(S), move(C));
+                }
             }
             return true;
         }
