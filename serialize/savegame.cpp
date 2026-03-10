@@ -751,10 +751,7 @@ void world::serialize(StringView filename)
         uint64_t crc_state = Hash::CRC64_INITIALIZER;
 
         const auto write = [&](const buffer& buf) {
-            crc_state = Hash::crc64_update(
-                crc_state,
-                reinterpret_cast<const uint8_t*>(buf.data.data()),
-                buf.size);
+            crc_state = Hash::crc64_update(crc_state, buf.data.data(), buf.size);
             my_fwrite(file, buf, errbuf);
         };
 
@@ -1199,15 +1196,14 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
 
     if (proto >= 26) // checksum
     {
-        uint64_t old_state;
-        const auto* const cksum_pos = buf.data + buf.size - sizeof old_state;
+        const auto* const cksum_pos = buf.data + buf.size - sizeof(uint64_t);
         struct crc_buf {
-            char buf[sizeof old_state];
+            char buf[sizeof(uint64_t)];
         } crc;
-        std::copy(cksum_pos, cksum_pos + sizeof old_state, crc.buf);
-        old_state = std::bit_cast<uint64_t>(crc.buf);
-        auto new_state = Hash::crc64_update( Hash::CRC64_INITIALIZER,
-                                             buf.data.data(), buf.size - sizeof old_state);
+        std::copy(cksum_pos, cksum_pos + sizeof(uint64_t), crc.buf);
+        auto old_state = maybe_byteswap(std::bit_cast<uint64_t>(crc.buf));
+        auto new_state = Hash::crc64_update(Hash::CRC64_INITIALIZER,
+                                            buf.data.data(), buf.size - sizeof old_state);
         if (old_state != new_state)
             fm_throw("CRC64-ECMA checksum for savegame doesn't match"
                      ": 0x{:016x} vs 0x{:016x} for {}"_cf,
