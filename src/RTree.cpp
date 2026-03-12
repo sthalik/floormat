@@ -17,8 +17,7 @@ static size_t fresh_counter, reuse_counter, dtor_counter; // NOLINT
 
 template<typename T> rtree_pool<T>::rtree_pool() noexcept = default;
 
-template<typename T>
-rtree_pool<T>::~rtree_pool() noexcept
+template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 {
 #ifdef RTREE_POOL_DEBUG
     auto last = dtor_counter;
@@ -30,7 +29,6 @@ rtree_pool<T>::~rtree_pool() noexcept
 #endif
         auto* p = free_list;
         free_list = free_list->next;
-        p->data.~T();
         delete p;
     }
 #ifdef RTREE_POOL_DEBUG
@@ -48,7 +46,14 @@ template<typename T> T* rtree_pool<T>::construct()
 #ifdef RTREE_POOL_DEBUG
         Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
 #endif
-        return &(new node_u)->data;
+        node_u* n;
+        n =  new node_u;
+        try {
+            return new (&n->data) T;
+        } catch (...) {
+            delete n;
+            throw;
+        }
     }
     else [[likely]]
     {
@@ -57,15 +62,29 @@ template<typename T> T* rtree_pool<T>::construct()
 #endif
         auto* n = free_list;
         free_list = free_list->next;
-        return new (&n->data) T;
+        try {
+            return new (&n->data) T;
+        } catch (...) {
+            n->next = free_list;
+            free_list = n;
+            throw;
+        }
     }
 }
 
-template<typename T> void rtree_pool<T>::free(T* ptr)
+template<typename T>
+void rtree_pool<T>::free(T* ptr)
+noexcept(std::is_nothrow_destructible_v<T>)
 {
     fm_assert(ptr);
-    ptr->~T();
     auto* n = reinterpret_cast<node_u*>(ptr);
+    try {
+        ptr->~T();
+    } catch (...) {
+        n->next = free_list;
+        free_list = n;
+        throw;
+    }
     n->next = free_list;
     free_list = n;
 }

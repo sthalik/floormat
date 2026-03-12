@@ -34,11 +34,15 @@ template<typename T> struct rtree_pool final
     rtree_pool& operator=(const rtree_pool&) = delete;
     ~rtree_pool() noexcept;
     T* construct();
-    void free(T* pool);
+    void free(T* pool) noexcept(std::is_nothrow_destructible_v<T>);
 
-    union node_u {
-        union { T data; char _empty = {}; };
+    union node_u
+    {
+        T data;
         node_u* next;
+
+        inline node_u() noexcept {}
+        inline ~node_u() noexcept {}
     };
 
 private:
