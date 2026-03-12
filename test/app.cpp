@@ -62,7 +62,6 @@ int App::exec()
         FM_TEST(test_math),
         FM_TEST(test_astar_pool),
         FM_TEST(test_coords),
-        FM_TEST(test_hole),
         FM_TEST(test_crc64),
         FM_TEST(test_bptr),
         FM_TEST(test_iptr),
@@ -82,6 +81,7 @@ int App::exec()
         // the rest are slow
         FM_TEST(test_rtree),
         FM_TEST(test_astar),
+        FM_TEST(test_hole),
         FM_TEST(test_save),
         FM_TEST(test_spinlock),
         FM_TEST(test_critter),
