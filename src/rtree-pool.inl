@@ -1,5 +1,6 @@
 #pragma once
 #include "rtree-pool.hpp"
+#include "compat/assert.hpp"
 #include <new>
 
 namespace floormat::detail {
@@ -8,6 +9,7 @@ template<typename T> rtree_pool<T>::rtree_pool() noexcept = default;
 
 template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 {
+    fm_assert(live_count == 0);
 #ifdef RTREE_POOL_DEBUG
     auto last = dtor_counter;
 #endif
@@ -25,8 +27,12 @@ template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 #endif
 }
 
-template<typename T> T* rtree_pool<T>::construct()
+template<typename T> T*
+rtree_pool<T>::construct()
+noexcept(std::is_nothrow_default_constructible_v<T>)
 {
+    live_count++;
+
     if (!free_list)
     {
 #ifdef RTREE_POOL_DEBUG
@@ -34,12 +40,15 @@ template<typename T> T* rtree_pool<T>::construct()
 #endif
         node_u* n;
         n =  new node_u;
-        try {
+        if constexpr(std::is_nothrow_default_constructible_v<T>)
             return new (&n->data) T;
-        } catch (...) {
-            delete n;
-            throw;
-        }
+        else
+            try {
+                return new (&n->data) T;
+            } catch (...) {
+                delete n;
+                throw;
+            }
     }
     else [[likely]]
     {
@@ -48,13 +57,16 @@ template<typename T> T* rtree_pool<T>::construct()
 #endif
         auto* n = free_list;
         free_list = free_list->next;
-        try {
+        if constexpr(std::is_nothrow_default_constructible_v<T>)
             return new (&n->data) T;
-        } catch (...) {
-            n->next = free_list;
-            free_list = n;
-            throw;
-        }
+        else
+            try {
+                return new (&n->data) T;
+            } catch (...) {
+                n->next = free_list;
+                free_list = n;
+                throw;
+            }
     }
 }
 
@@ -63,15 +75,18 @@ void rtree_pool<T>::free(T* ptr)
 noexcept(std::is_nothrow_destructible_v<T>)
 {
     fm_assert(ptr);
+    live_count--;
     auto* n = std::launder(reinterpret_cast<node_u*>(ptr));
 
-    try {
+    if constexpr(noexcept(std::is_nothrow_destructible_v<T>))
         ptr->~T();
-    } catch (...) {
-        n->next = free_list;
-        free_list = n;
-        throw;
-    }
+    else
+        try {
+            ptr->~T();
+        } catch (...) {
+            delete n;
+            throw;
+        }
     n->next = free_list;
     free_list = n;
 }
