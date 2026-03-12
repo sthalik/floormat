@@ -1,5 +1,7 @@
 #pragma once
 #include "RTree-fwd.h"
+#include "rtree-pool.hpp"
+
 // NOTE This file compiles under MSVC 6 SP5 and MSVC .Net 2003 it may not work on other compilers without modification.
 
 // NOTE These next few lines may be win32 specific, you may need to modify them to compile on other platform
@@ -22,34 +24,10 @@
 class RTFileStream;  // File I/O helper class, look below for implementation and notes.
 #endif
 
+namespace floormat::detail { template<typename T> struct rtree_pool; }
+
 #define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
 #define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
-
-namespace floormat::detail {
-
-template<typename T> struct rtree_pool final
-{
-    rtree_pool() noexcept;
-    rtree_pool(const rtree_pool&) = delete;
-    rtree_pool& operator=(const rtree_pool&) = delete;
-    ~rtree_pool() noexcept;
-    T* construct();
-    void free(T* pool) noexcept(std::is_nothrow_destructible_v<T>);
-
-    union node_u
-    {
-        T data;
-        node_u* next;
-
-        inline node_u() noexcept {}
-        inline ~node_u() noexcept {}
-    };
-
-private:
-    node_u* free_list = nullptr;
-};
-
-} // namespace floormat::detail
 
 /// \class RTree
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
@@ -233,8 +211,8 @@ public:
     Node* m_node;                                 ///< Node
   };
 
-  static floormat::detail::rtree_pool<Node> node_pool;
-  static floormat::detail::rtree_pool<ListNode> list_node_pool;
+  static inline floormat::detail::rtree_pool<Node> node_pool;
+  static inline floormat::detail::rtree_pool<ListNode> list_node_pool;
 
 protected:
   /// Variables for finding a split partition
@@ -303,11 +281,14 @@ public:
   void ListTree(Array<Rect>& vec, Array<Node*>& temp) const;
 };
 
-
 #ifndef RTREE_NO_EXTERN_TEMPLATE
-extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::Node>;
-extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::ListNode>;
+
+namespace floormat::detail {
+extern template struct rtree_pool<RTree<uint64_t, float, 2, float>::Node>;
+extern template struct rtree_pool<RTree<uint64_t, float, 2, float>::ListNode>;
+} // namespace floormat::detail
 extern template class RTree<floormat::uint64_t, float, 2, float>;
+
 #endif
 //#undef RTREE_TEMPLATE
 //#undef RTREE_QUAL

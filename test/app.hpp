@@ -39,6 +39,7 @@ void test_math();
 void test_raycast();
 void test_region();
 void test_rtree();
+void test_rtree_pool();
 void test_save();
 void test_saves();
 void test_spinlock();
