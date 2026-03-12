@@ -63,7 +63,8 @@ void rtree_pool<T>::free(T* ptr)
 noexcept(std::is_nothrow_destructible_v<T>)
 {
     fm_assert(ptr);
-    auto* n = reinterpret_cast<node_u*>(ptr);
+    auto* n = std::launder(reinterpret_cast<node_u*>(ptr));
+
     try {
         ptr->~T();
     } catch (...) {
