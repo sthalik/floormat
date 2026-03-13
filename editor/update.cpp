@@ -14,6 +14,7 @@
 #include "src/critter.hpp"
 #include "src/nanosecond.hpp"
 #include "src/timer.hpp"
+#include "src/tile-constants.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/enum-bitset.hpp"
@@ -229,50 +230,45 @@ void app::update_world(Ns dt)
 {
     auto& world = M->world();
     const auto frame_no = world.increment_frame_no();
-    auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
-    minx--; miny--; maxx++; maxy++;
-    for (int8_t z = chunk_z_min; z <= chunk_z_max; z++)
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
+    auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -iTILE_SIZE2 * TILE_MAX_DIM, iTILE_SIZE2 * TILE_MAX_DIM, });
+    for (auto ch : chunks)
+    {
+            auto* const cʹ = world.at(ch);
+            if (!cʹ)
+                continue;
+            auto& c = *cʹ;
+            auto size = (uint32_t)c.objects().size();
+            for (auto i = 0u; i < size; i++)
             {
-                auto* const cʹ = world.at({x, y, z});
-                if (!cʹ)
+                auto index = size_t{i};
+                auto& e = *c.objects().data()[i].get();
+                if (e.last_frame_no == frame_no) [[unlikely]]
                     continue;
-                auto& c = *cʹ;
-                auto size = (uint32_t)c.objects().size();
-                for (auto i = 0u; i < size; i++)
+                e.last_frame_no = frame_no;
+                e.update(c.objects().data()[i], index, dt); // objects can't delete themselves during update()
+                if (&e.chunk() != cʹ || index > i) [[unlikely]]
                 {
-                    auto index = size_t{i};
-                    auto& e = *c.objects().data()[i].get();
-                    if (e.last_frame_no == frame_no) [[unlikely]]
-                        continue;
-                    e.last_frame_no = frame_no;
-                    e.update(c.objects().data()[i], index, dt); // objects can't delete themselves during update()
-                    if (&e.chunk() != cʹ || index > i) [[unlikely]]
-                    {
-                        i--;
-                        size = (uint32_t)c.objects().size();
-                    }
+                    i--;
+                    size = (uint32_t)c.objects().size();
                 }
             }
+    }
 
 #ifndef FM_NO_DEBUG
-    for (int8_t z = chunk_z_min; z <= chunk_z_max; z++)
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
-            {
-                auto* cʹ = world.at({x, y, z});
-                if (!cʹ)
-                    continue;
-                auto& c = *cʹ;
-                const auto& es = c.objects();
-                auto size = es.size();
-                for (auto i = 0uz; i < size; i++)
-                {
-                    auto& e = *es[i];
-                    fm_assert(e.last_frame_no == frame_no);
-                }
-            }
+    for (auto ch : chunks)
+    {
+        auto* cʹ = world.at(ch);
+        if (!cʹ)
+            continue;
+        auto& c = *cʹ;
+        const auto& es = c.objects();
+        auto size = es.size();
+        for (auto i = 0uz; i < size; i++)
+        {
+            auto& e = *es[i];
+            fm_assert(e.last_frame_no == frame_no);
+        }
+    }
 #endif
 }
 
@@ -303,7 +299,7 @@ void app::set_cursor()
 
 auto app::get_z_bounds() -> z_bounds
 {
-    return { chunk_z_min, chunk_z_max, _z_level, !_render_all_z_levels };
+    return { _z_level, !_render_all_z_levels };
 }
 
 void app::update(Ns dt)

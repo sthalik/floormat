@@ -66,7 +66,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
     float hack_offset = _coord.z <= 0 ? -16.f : 0.f; // XXX hack
     auto& vertexes = static_vertexes;
 
-    for (auto k = 0uz; k < count; k++)
+    for (auto k = 0u; k < count; k++)
     {
         const uint8_t i = _ground->indexes[k];
         const auto& atlas = _ground->atlases[i];

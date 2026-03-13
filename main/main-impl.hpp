@@ -13,6 +13,7 @@
 #include "shaders/lightmap.hpp"
 #include "main/sdl-fwd.hpp"
 #include "main/clickable.hpp"
+#include <concepts>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Range.h>
@@ -133,6 +134,7 @@ private:
 
     Time timeline;
 
+    Array<chunk_coords_> _chunk_bounds_array;
     fm_settings s;
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app;
@@ -155,9 +157,10 @@ private:
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
 
-    template<typename Function> void draw_world_0(const Function& fun, const draw_bounds& d_b, const z_bounds& z_b, Vector2i win_size);
+    template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
+    void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i win_size, bool only_z, int8_t z);
 
-    draw_bounds get_draw_bounds() const noexcept override;
+    ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept override;
 
     void register_debug_callback();
 

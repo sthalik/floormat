@@ -187,6 +187,7 @@ private:
     void erase_inspector(size_t index, ptrdiff_t count = 1);
     void kill_inspectors();
 
+    Array<chunk_coords_> _chunk_bounds_array;
     uint64_t _timestamp = 0;
     floormat_main* M;
     safe_ptr<ImGuiIntegration::Context> _imgui;

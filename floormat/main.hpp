@@ -72,8 +72,9 @@ struct floormat_main
     virtual Vector2d pixel_to_tile_(Vector2d position) const noexcept = 0;
     virtual point pixel_to_point(Vector2d position, int8_t z_level = 0) const noexcept = 0;
 
-    virtual draw_bounds get_draw_bounds() const noexcept = 0;
-    [[nodiscard]] static bool check_chunk_visible(const Vector2d& offset, const Vector2i& size) noexcept;
+    virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_chunks) const noexcept = 0;
+
+    [[nodiscard]] static bool check_chunk_visible(Vector2d offset, Vector2i win) noexcept;
     virtual struct meshes meshes() noexcept = 0;
 
     virtual class world& world() noexcept = 0;

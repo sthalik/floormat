@@ -23,9 +23,12 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
     (void)last_;
     fm_assert(shader.depth_offset() == 0.f);
 
+    // needed because of `hack_offset` in chunk-render.cpp
+    first_.x--; first_.y--; last_.x++; last_.y++;
+
     auto offset = _camera + get_offset(c_);
     auto pos  = chunk_coords(c_) - first_;
-    constexpr auto depth_start = -1 + 1.111e-16f;
+    constexpr auto depth_start = -1 + 1.111e-16f; // todo clipcontrol!
 
     int depth = (int)TILE_MAX_DIM*2 * pos.sum();
 

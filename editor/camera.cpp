@@ -12,6 +12,7 @@
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <bit>
+#include <mg/Range.h>
 #include <Magnum/Math/Functions.h>
 
 namespace floormat {
@@ -67,7 +68,8 @@ void app::reset_camera_offset()
 
 object_id app::get_object_colliding_with_cursor()
 {
-    const auto [minx, maxx, miny, maxy] = M->get_draw_bounds();
+    const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
+
     const auto sz = M->window_size();
     auto& world = M->world();
     auto& shader = M->shader();
@@ -82,44 +84,43 @@ object_id app::get_object_colliding_with_cursor()
         const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
         const auto subpixel = Vector2(subpixelʹ);
 
-        for (int16_t y = miny; y <= maxy; y++)
-            for (int16_t x = minx; x <= maxx; x++)
+        for (auto ch : chunks)
+        {
+            const chunk_coords_ c_pos{ch.x, ch.y, _z_level};
+            auto* cʹ = world.at(c_pos);
+            if (!cʹ)
+                continue;
+            auto& c = *cʹ;
+            c.ensure_passability();
+            const with_shifted_camera_offset o{shader, c_pos};
+            if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
             {
-                const chunk_coords_ c_pos{x, y, _z_level};
-                auto* cʹ = world.at(c_pos);
-                if (!cʹ)
-                    continue;
-                auto& c = *cʹ;
-                c.ensure_passability();
-                const with_shifted_camera_offset o{shader, c_pos};
-                if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-                {
-                    constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
-                    auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
-                    auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
-                    auto t1 = t0+Vector2(1e-4f);
-                    const auto* rtree = c.rtree();
-                    object_id ret = 0;
-                    rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                        [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                        if (x.type == (uint64_t)collision_type::geometry)
-                            return true;
-                        Vector2 min{rect.m_min}, max{rect.m_max};
-                        if (t0 >= min && t0 <= max)
-                        {
-                            if (auto e_ = world.find_object(x.id);
-                                e_ && Vector2ui(e_->bbox_size).product() != 0)
-                            {
-                                ret = x.id;
-                                return false;
-                            }
-                        }
+                constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
+                auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
+                auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
+                auto t1 = t0+Vector2(1e-4f);
+                const auto* rtree = c.rtree();
+                object_id ret = 0;
+                rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+                    [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                    if (x.type == (uint64_t)collision_type::geometry)
                         return true;
-                    });
-                    if (ret)
-                        return ret;
-                }
+                    Vector2 min{rect.m_min}, max{rect.m_max};
+                    if (t0 >= min && t0 <= max)
+                    {
+                        if (auto e_ = world.find_object(x.id);
+                            e_ && Vector2ui(e_->bbox_size).product() != 0)
+                        {
+                            ret = x.id;
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                if (ret)
+                    return ret;
             }
+        }
     }
     return 0;
 }

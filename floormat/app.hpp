@@ -19,7 +19,6 @@ class chunk;
 struct Ns;
 
 struct z_bounds;
-struct draw_bounds;
 
 struct floormat_app
 {
