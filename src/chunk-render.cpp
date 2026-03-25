@@ -58,7 +58,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         return { ground_mesh, {}, 0 };
     }
 
-    std::sort(_ground->indexes.begin(), _ground->indexes.begin() + count,
+    std::sort(_ground->indexes.data(), _ground->indexes.data() + count,
               [this](uint8_t a, uint8_t b) {
                   return _ground->atlases[a].get() < _ground->atlases[b].get();
               });
