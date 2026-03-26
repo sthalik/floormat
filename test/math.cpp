@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include <Magnum/Math/Functions.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 
@@ -89,6 +89,17 @@ constexpr bool test_ceil()
     return true;
 }
 
+template<typename T>
+constexpr bool test_minmax()
+{
+    fm_assert(Math::min(T(1), T(2)) == T(1));
+    fm_assert(Math::max(T(1), T(2)) == T(2));
+    fm_assert(Math::min({T{1}, T{2}, T{3}, T{-4}, T{5}}) == T{-4});
+    fm_assert(Math::max({T{1}, T{2}, T{3}, T{44}, T{5}}) == T{44});
+
+    return true;
+}
+
 } // namespace
 
 void Test::test_math()
@@ -100,6 +111,8 @@ void Test::test_math()
     static_assert(test_floor<double>());
     static_assert(test_ceil<float>());
     static_assert(test_ceil<double>());
+    static_assert(test_minmax<int>());
+    static_assert(test_minmax<float>());
 }
 
 } // namespace floormat
