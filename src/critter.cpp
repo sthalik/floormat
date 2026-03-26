@@ -337,9 +337,9 @@ constexpr float step_magnitude(Vector2b vec)
         return c;
 }
 
-Ns return_unspent_dt(uint32_t nframes, uint32_t i, float speed, Ns frame_duration)
+Ns return_unspent_dt(uint32_t nframes, float speed, Ns frame_duration)
 {
-    return Ns{(uint64_t)((float)(uint64_t)((nframes - i) * frame_duration) / speed)};
+    return Ns{(uint64_t)((double)(uint64_t)(nframes * frame_duration) / (double)speed)};
 }
 
 } // namespace
@@ -452,12 +452,14 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
 {
     fm_assert(is_dynamic());
 
+    if (speed == 0) [[unlikely]]
+        return {.blocked = position() != dest, .moved = false};
+
     const auto& info = atlas->info();
-    const auto anim_frames = info.nframes;
     const auto hz = info.fps;
     constexpr auto ns_in_sec = Ns((int)1e9);
     const auto frame_duration = ns_in_sec / hz;
-    const auto nframes = alloc_frame_time(dt, delta, hz, speed);
+    auto nframes = alloc_frame_time(dt, delta, hz, speed);
     dt = Ns{};
     bool moved = false;
 
@@ -466,7 +468,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
 
     bool ok = true;
 
-    for (uint32_t i = 0; i < nframes; i++)
+    while (nframes > 0)
     {
         chunk().ensure_passability();
 
@@ -475,47 +477,56 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         {
             //Debug{} << "done!" << from;
             //C.set_keys(false, false, false, false);
-            dt = return_unspent_dt(nframes, i, speed, frame_duration);
+            dt = return_unspent_dt(nframes, speed, frame_duration);
+            offset_frac = {};
             return { .blocked = false, .moved = moved, };
         }
         const auto step = next_step(from, dest);
         //Debug{} << "step" << step.direction << step.count << "|" << C.position();
         fm_assert(step.direction != Vector2b{} && step.count > 0);
         const auto new_r = dir_from_step(step);
+        // Max steps for the operation to avoid overshooting
+        const auto len_limit = step.direction.x() * step.direction.y() != 0
+                                   ? (uint32_t)bbox_size.min()
+                                   : (uint32_t)bbox_size.data()[step.direction.x() != 0 ? 0 : 1];
+        const auto nsteps = (uint8_t)Math::min({nframes, step.count, len_limit});
+        fm_assert(nsteps > 0);
         using Frac = decltype(critter::offset_frac);
         constexpr auto frac = (float{limits<Frac>::max}+1)/2;
         constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
         const auto from_accum = offset_frac * inv_frac * vec;
-        auto offset_ = vec + from_accum;
-        auto off_i = Vector2i(offset_);
+        const auto offset_ = vec * float(nsteps) + from_accum;
+        // Clamp to movement budget consumed this iteration
+        const auto abs_limit = Vector2i(Math::abs(step.direction)) * int(nsteps);
+        const auto off_i = Math::clamp(Vector2i(offset_), -abs_limit, abs_limit);
         //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << C.offset_frac_;
+        const auto rem_vec = offset_ - Vector2(off_i);
+        const auto rem_frac = Math::clamp(rem_vec.length() * frac, 0.f, float(limits<Frac>::max));
+        offset_frac = Frac(rem_frac);
+
+        //DBG << "nsteps" << nsteps;
+        nframes -= nsteps;
 
         if (!off_i.isZero())
         {
-            auto rem = Math::fmod(offset_, 1.f).length();
-            offset_frac = Frac(rem * frac);
             //Debug{} << "foo1" << C.offset_frac_;
             if (can_move_to(off_i))
             {
                 move_to(index, off_i, new_r);
                 moved = true;
-                ++frame %= anim_frames;
+                (frame += nsteps) %= info.nframes;
             }
             else
             {
-                dt = return_unspent_dt(nframes, i, speed, frame_duration);
                 ok = false;
                 break;
             }
         }
-        else
-        {
-            auto rem = offset_.length();
-            offset_frac = Frac(rem * frac);
-        }
     }
+
+    dt = return_unspent_dt(nframes, speed, frame_duration);
 
     // todo return unused movement frames into the offset_frac pool
 
