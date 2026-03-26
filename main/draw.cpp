@@ -25,12 +25,15 @@ constexpr auto clear_color = 0x222222ff_rgbaf;
 
 void main_impl::do_update(Ns dt)
 {
+    if (dt >= 500*Milliseconds) [[unlikely]]
+    fm_debug("%zu frame took %.1f milliseconds",
+             bad_frame_counter++, (double)(dt/Milliseconds));
+
+    constexpr auto tenth_of_a_second = uint64_t(1e8);
+    dt.stamp = Math::min(tenth_of_a_second, dt.stamp);
+
     app.update(dt);
     _frame_timings.fps_counter.update(dt);
-
-    if (dt >= 500*Milliseconds) [[unlikely]]
-        fm_debug("%zu frame took %.1f milliseconds",
-                 bad_frame_counter++, (double)(dt/Milliseconds));
 }
 
 void main_impl::clear_framebuffer()
