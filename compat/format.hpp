@@ -35,6 +35,11 @@ struct fmt_string final {
 } // namespace floormat::detail::fmt
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wheader-hygiene"
+#endif
+
 #if !FMT_USE_NONTYPE_TEMPLATE_ARGS
 template<::floormat::detail::fmt::fmt_string s>
 consteval auto operator""_cf() noexcept
@@ -42,7 +47,11 @@ consteval auto operator""_cf() noexcept
     return FMT_COMPILE(s.data);
 }
 #else
-using fmt::literals::operator""_cf;
+using namespace fmt::literals;
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 namespace floormat {
