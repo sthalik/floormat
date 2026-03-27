@@ -16,19 +16,14 @@ namespace floormat {
 
 namespace {
 
-double dot2(const Vector2d& a, const Vector2d& b) noexcept
-{
-    return a[0]*b[0] + a[1]*b[1];
-}
-
 template<size_t N>
 Pair<double, double> project_interval(const std::array<Vector2d, N>& pts, const Vector2d& axis) noexcept
 {
-    double mn = dot2(pts[0], axis);
+    double mn = Math::dot(pts[0], axis);
     double mx = mn;
     for (std::size_t i = 1; i < N; ++i)
     {
-        const double p = dot2(pts[i], axis);
+        const double p = Math::dot(pts[i], axis);
         mn = Math::min(mn, p);
         mx = Math::max(mx, p);
     }
