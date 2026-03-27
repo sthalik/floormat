@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-Vector2d with_shifted_camera_offset::get_offset(chunk_coords_ c)
+Vector2d with_shifted_camera_offset::get_projected_chunk_offset(chunk_coords_ c)
 {
     return tile_shader::project(Vector3d(Vector2d(c.x, c.y) * TILE_MAX_DIM, c.z) * dTILE_SIZE);
 }
@@ -12,7 +12,7 @@ Vector2d with_shifted_camera_offset::get_offset(chunk_coords_ c)
 with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c) :
     _shader{shader}, _camera{shader.camera_offset()}
 {
-    auto offset = _camera + get_offset(c);
+    auto offset = _camera + get_projected_chunk_offset(c);
     _shader.set_camera_offset(offset, float{1 << 24});
 }
 
@@ -26,7 +26,7 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
     // needed because of `hack_offset` in chunk-render.cpp
     first_.x--; first_.y--; last_.x++; last_.y++;
 
-    auto offset = _camera + get_offset(c_);
+    auto offset = _camera + get_projected_chunk_offset(c_);
     auto pos  = chunk_coords(c_) - first_;
     constexpr auto depth_start = -1 + 1.111e-16f; // todo clipcontrol!
 

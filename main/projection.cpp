@@ -141,7 +141,7 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
                 const chunk_coords_ ch{(int16_t)x, (int16_t)y, (int8_t)z};
                 if (_world.contains(ch))
                 {
-                    const Vector2d effective_offset = base_camera + with_shifted_camera_offset::get_offset(ch);
+                    const Vector2d effective_offset = base_camera + with_shifted_camera_offset::get_projected_chunk_offset(ch);
 #if 0
                     if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
                         DBG << "  test" << ch << check_chunk_visible(effective_offset, win);
