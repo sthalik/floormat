@@ -24,6 +24,7 @@ struct point
     constexpr bool operator==(const point&) const noexcept;
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b);
     friend constexpr Vector2i operator-(const point& p1, const point& p2);
+    constexpr explicit operator Vector3i() const;
 
     constexpr global_coords coord() const;
     constexpr chunk_coords chunk() const;
@@ -36,8 +37,6 @@ struct point
 
     static constexpr uint32_t distance(point a, point b);
     static constexpr uint32_t distance_l2(point a, point b);
-
-    friend constexpr Vector2i operator-(const point& p1, const point& p2);
 
 private:
     int16_t cx = 0, cy = 0;

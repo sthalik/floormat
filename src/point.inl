@@ -39,4 +39,20 @@ constexpr Vector2i operator-(const point& p1, const point& p2)
     return sum;
 }
 
+constexpr point::operator Vector3i() const
+{
+    Vector2i c{cx, cy}, t{tile};
+    Vector3i val;
+
+    for (auto i = 0u; i < 2; i++)
+    {
+        val[i] += tile_size_xy * (int)TILE_MAX_DIM * c[i];
+        val[i] += tile_size_xy * t[i];
+        val[i] += _offset[i];
+    }
+    val.z() = cz * tile_size_z;
+
+    return val;
+}
+
 } // namespace floormat
