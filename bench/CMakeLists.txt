@@ -2,7 +2,7 @@ set(self floormat-benchmark)
 
 file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 
-add_library(${self}_o OBJECT "${res}" "${sources}")
+add_library(${self}_o OBJECT "${sources}")
 add_executable(${self} dummy.cc)
 
 target_link_libraries(${self}_o PUBLIC

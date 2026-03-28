@@ -3,6 +3,7 @@ file(GLOB sources *.cpp ../shaders/*.cpp ../compat/*.cpp ../entity/*.cpp CONFIGU
 add_library(${self} OBJECT "${sources}")
 target_link_libraries(
     ${self} PUBLIC
+    floormat-shader-res
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
