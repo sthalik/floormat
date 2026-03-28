@@ -129,7 +129,7 @@ public:
 template<typename T>
 template<typename... Ts>
 //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept:
+bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept: // todo add fused allocation
     bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
 
