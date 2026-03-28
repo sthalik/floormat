@@ -67,6 +67,7 @@ int App::exec()
         FM_TEST(test_bptr),
         FM_TEST(test_iptr),
         FM_TEST(test_entity),
+        FM_TEST(test_float),
         FM_TEST(test_shader),
         // normal
 
