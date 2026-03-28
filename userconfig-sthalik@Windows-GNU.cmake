@@ -1,7 +1,7 @@
 sets(STRING
-     CMAKE_C_FLAGS "-march=x86-64-v2 -mtune=native -mavx2 -maes"
-     CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all" # fstack-reuse=none
-     CMAKE_C_FLAGS_RELEASE "-Ofast -ftree-vectorize -funsafe-loop-optimizations -fmerge-all-constants -fno-stack-protector -static -flto -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively"
+     CMAKE_C_FLAGS ""
+     CMAKE_C_FLAGS_DEBUG "-O0 -ggdb -fstack-protector-all" # fstack-reuse=none
+     CMAKE_C_FLAGS_RELEASE "-Ofast -march=x86-64-v2 -mtune=native -mavx -mavx2 -maes -ftree-vectorize -funsafe-loop-optimizations -fmerge-all-constants -fno-stack-protector -static -flto -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively"
 )
 
 sets(STRING
