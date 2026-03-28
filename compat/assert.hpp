@@ -77,9 +77,9 @@ namespace floormat {
     } while (false)
 
 #define fm_assert_equal(...)                                            \
-    ([](auto a, auto b) -> void                                         \
+    ([](auto expected, auto actual) -> void                             \
     {                                                                   \
-        if (a != b) [[unlikely]]                                        \
+        if (expected != actual) [[unlikely]]                            \
         {                                                               \
             ERR_nospace << Debug::color(Debug::Color::Magenta)          \
                         << "fatal:"                                     \
@@ -87,16 +87,16 @@ namespace floormat {
                         << "Equality assertion failed at "              \
                         << __FILE__ << ":" << __LINE__;                 \
             ERR_nospace << #__VA_ARGS__;                                \
-            ERR_nospace << "    expected: " << a;                       \
-            ERR_nospace << "      actual: " << b;                       \
-            ::floormat::debug::detail::emit_abort();                                            \
+            ERR_nospace << "    expected: " << expected;                \
+            ERR_nospace << "      actual: " << actual;                  \
+            ::floormat::debug::detail::emit_abort();                    \
         }                                                               \
     })(__VA_ARGS__)
 
 #define fm_assert_not_equal(...) \
-    ([](auto a, auto b) -> void                                         \
+    ([](auto not_expected, auto actual) -> void                         \
     {                                                                   \
-        if (a == b) [[unlikely]]                                        \
+        if (not_expected == actual) [[unlikely]]                        \
         {                                                               \
             ERR_nospace << Debug::color(Debug::Color::Magenta)          \
                         << "fatal:"                                     \
@@ -104,9 +104,9 @@ namespace floormat {
                         << "Inequality assertion failed at "            \
                         << __FILE__ << ":" << __LINE__;                 \
             ERR_nospace << #__VA_ARGS__;                                \
-            ERR_nospace << "not expected: " << a;                       \
-            ERR_nospace << "      actual: " << b;                       \
-            ::floormat::debug::detail::emit_abort();                                            \
+            ERR_nospace << "not expected: " << not_expected;            \
+            ERR_nospace << "      actual: " << actual;                  \
+            ::floormat::debug::detail::emit_abort();                    \
         }                                                               \
         })(__VA_ARGS__)
 
