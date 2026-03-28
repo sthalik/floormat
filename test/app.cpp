@@ -144,13 +144,14 @@ int App::exec()
 
 int main(int argc, char** argv)
 {
-#ifdef _WIN32
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     if (const auto* s = std::getenv("MAGNUM_LOG"); !s || !*s)
-        ::_putenv("MAGNUM_LOG=quiet");
+    {
+#ifdef _WIN32
+        ::_putenv("MAGNUM_LOG=default");
 #else
-    ::setenv("MAGNUM_LOG", "quiet", 0);
+        ::setenv("MAGNUM_LOG", "default", 0);
 #endif
+    }
     auto app = floormat::Test::App{{argc, argv}};
     return app.exec();
 }
