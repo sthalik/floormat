@@ -1,6 +1,7 @@
 #include "camera-offset.hpp"
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
+#include "depth.hpp"
 
 namespace floormat {
 
@@ -28,7 +29,6 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
 
     auto offset = _camera + get_projected_chunk_offset(c_);
     auto pos  = chunk_coords(c_) - first_;
-    constexpr auto depth_start = -1 + 1.111e-16f; // todo clipcontrol!
 
     int depth = (int)TILE_MAX_DIM*2 * pos.sum();
 
@@ -37,7 +37,7 @@ with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chun
 #endif
 
     auto z_offset = (int{c_.z}-int{chunk_z_min}) * tile_shader::depth_value({}, tile_shader::z_depth_offset);
-    auto d = depth * tile_shader::depth_tile_size + depth_start + z_offset;
+    auto d = depth * tile_shader::depth_tile_size + Depth::start + z_offset;
 
     if (c_.z == chunk_z_max)
         d = 1;
