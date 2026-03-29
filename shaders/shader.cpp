@@ -75,8 +75,8 @@ tile_shader& tile_shader::set_sampler(Int sampler)
 
 void tile_shader::draw_pre(GL::AbstractTexture& tex)
 {
-    fm_assert(std::fabs(_camera_offset[0]) < 1 << 24 && std::fabs(_camera_offset[1]) < 1 << 24);
-    fm_assert(std::fabs(_depth_offset) < 1 << 24);
+    fm_assert(std::fabs(_camera_offset[0]) <= 1 << 24 && std::fabs(_camera_offset[1]) <= 1 << 24);
+    fm_assert(std::fabs(_depth_offset) <= 1 << 24);
 
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);

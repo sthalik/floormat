@@ -50,7 +50,7 @@ float Time::to_seconds(const Ns& ts) noexcept
     else
     {
         auto x = double(ts.stamp) * 1e-9;
-        fm_assert(x < double{1 << 24});
+        fm_assert(x <= double{1 << 24});
         //fm_assert(x >= 1e-10f);
         return (float)x;
     }
@@ -63,7 +63,7 @@ float Time::to_milliseconds(const Ns& ts) noexcept
     else
     {
         auto x = double(ts.stamp) * 1e-6;
-        fm_assert(x < double{1 << 24});
+        fm_assert(x <= double{1 << 24});
         fm_assert(x >= 1e-10);
         return (float)x;
     }
