@@ -82,6 +82,19 @@ void test_float_upper_bound()
     fm_assert(std::bit_cast<uint32_t>(nth_float(two_prev, 1)) == u + 1u);
     fm_assert(std::bit_cast<uint32_t>(nth_float(two_prev, 2)) == u + 2u);
 }
+
+void test_float_negative()
+{
+    const volatile float a = -FLT_MIN;
+    fm_assert(a > -1e-12f);
+    fm_assert(a < -0.0f);
+    fm_assert_equal(a, nth_float(a, 0));
+    fm_assert_equal(FLT_MIN, nth_float(a, 1));
+    fm_assert_equal(slow_nth_float(FLT_MIN, 1), nth_float(-FLT_MIN, 2));
+    fm_assert_equal(slow_nth_float(FLT_MIN, 1), nth_float(0.f, 2));
+    fm_assert_equal(slow_nth_float(-float{1<<24}, 1), nth_float(-float{1<<24}, 1));
+}
+
 } // namespace
 
 
@@ -91,6 +104,7 @@ void test_float()
     test_float_zero();
     test_float_normal();
     test_float_upper_bound();
+    test_float_negative();
 }
 
 } // namespace floormat::Test

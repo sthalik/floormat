@@ -1,12 +1,10 @@
 #pragma once
 #include "assert.hpp"
 #include <bit>
-#include <cstdint>
 #include <cfloat>
 #include <cmath>
 
 namespace floormat {
-
 constexpr int fpclassify(float x)
 {
     if consteval
@@ -31,17 +29,27 @@ constexpr float nth_float(float x, uint32_t n)
 {
     const uint32_t u = std::bit_cast<uint32_t>(x);
     // map to lexicographic uint32_t order
-    const uint32_t mapped = (u & UINT32_C(0x80000000)) != 0u ? ~u : (u ^ UINT32_C(0x80000000));
-    const uint32_t newMapped = mapped + n;
-    const uint32_t newU = (newMapped & UINT32_C(0x80000000)) != 0 ? newMapped ^ UINT32_C(0x80000000) : ~newMapped;
+    const uint32_t mapped = (u & 0x80000000u) != 0u ? ~u : (u ^ 0x80000000u);
+    constexpr uint32_t HOLE_LO = 0x7F800000u; // mapped(-max_subnormal)
+    constexpr uint32_t HOLE_HI = 0x807FFFFFu; // mapped(+max_subnormal)
+    constexpr uint32_t HOLE_SIZE = 0x01000000u; // neg subnorms + -0 + +0 + pos subnorms
+
+    uint32_t base = mapped;
+    if (base >= HOLE_LO && base <= HOLE_HI)
+        base = HOLE_LO - 1u; // x was zero/subnormal
+
+    uint32_t newMapped = base + n;
+    if (base < HOLE_LO && newMapped >= HOLE_LO)
+    {
+        fm_debug_assert(newMapped <= UINT32_MAX - HOLE_SIZE);
+        newMapped += HOLE_SIZE; // skip denorm block
+    }
+
+    const uint32_t newU = (newMapped & 0x80000000u) != 0 ? newMapped ^ 0x80000000u : ~newMapped;
     const float ret = std::bit_cast<float>(newU);
-#ifndef FM_NO_DEBUG
-    const int type = fpclassify(x);
-#endif
-    fm_debug_assert((type == FP_NORMAL || type == FP_ZERO) && newMapped >= mapped);
+    fm_debug_assert(fpclassify(ret) == FP_NORMAL && newMapped >= mapped);
     return ret;
 }
 
-constexpr float nth_float(uint32_t n) { return nth_float(FLT_MIN, n); }
-
+constexpr float nth_float(uint32_t n) { return nth_float(-1.f, n); }
 } // namespace floormat
