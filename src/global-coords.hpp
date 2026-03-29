@@ -88,8 +88,6 @@ struct chunk_coords_ final {
     }
 };
 
-constexpr inline int8_t chunk_z_min = -1, chunk_z_max = 14;
-
 struct global_coords final
 {
     struct raw_coords { uint32_t &x, &y; operator Vector2ui() const { return {x, y}; } }; // NOLINT

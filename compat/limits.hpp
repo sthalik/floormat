@@ -1,4 +1,5 @@
 #pragma once
+#include <cfloat>
 
 namespace floormat {
 
@@ -13,11 +14,10 @@ struct limits<T>
 };
 
 template<typename T>
-requires (std::is_unsigned_v<T>)
+requires (std::is_unsigned_v<T> && std::is_integral_v<T>)
 struct limits<T>
 {
     using Type = T;
-    static_assert(std::is_integral_v<T>);
     static constexpr T min{0}, max{T(-1)};
 };
 
@@ -26,6 +26,9 @@ template<> struct limits<float>
     using Type = float;
     static constexpr float max{1 << 24}, min{-max};
     using integer_type = int32_t;
+
+    static constexpr float epsilon = FLT_EPSILON;
+    static constexpr float normal = FLT_MIN;
 };
 
 template<> struct limits<double>
@@ -33,6 +36,9 @@ template<> struct limits<double>
     using Type = double;
     static constexpr double max = double{uint64_t{1} << 53}, min{-max};
     using integer_type = int64_t;
+
+    static constexpr double epsilon = DBL_EPSILON;
+    static constexpr double normal = DBL_MIN;
 };
 
 } // namespace floormat
