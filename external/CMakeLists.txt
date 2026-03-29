@@ -68,6 +68,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     sets(BOOL
 
          FMT_SYSTEM_HEADERS                                 ON
+         FMT_MODULE                                         OFF # GCC 14 ICE <https://github.com/sthalik/floormat/actions/runs/23699910581/job/69041568292>
 
          JSON_Diagnostics                                   ON
          JSON_Install                                       ON
