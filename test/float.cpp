@@ -95,6 +95,23 @@ void test_float_negative()
     fm_assert_equal(slow_nth_float(-float{1<<24}, 1), nth_float(-float{1<<24}, 1));
 }
 
+void test_float_denorm()
+{
+    const volatile float a = nth_float(-FLT_MIN, 1);
+    const volatile float b = nth_float(-FLT_MIN, 2);
+    const volatile float c = nth_float(-FLT_MIN, 32);
+    const volatile float d = nth_float(-FLT_MIN, 33);
+    fm_assert(a < b);       // make sure all correctly jump through the 'hole' in FP_NORMAL
+    fm_assert(b > FLT_MIN); // resulting in unique positions after leaving it
+    fm_assert_equal(FLT_MIN, a);
+    fm_assert(b < c);
+    fm_assert(c < d);
+    fm_assert(fpclassify(a) == FP_NORMAL);
+    fm_assert(fpclassify(b) == FP_NORMAL);
+    fm_assert(fpclassify(c) == FP_NORMAL);
+    fm_assert(fpclassify(d) == FP_NORMAL);
+}
+
 } // namespace
 
 
@@ -105,6 +122,7 @@ void test_float()
     test_float_normal();
     test_float_upper_bound();
     test_float_negative();
+    test_float_denorm();
 }
 
 } // namespace floormat::Test
