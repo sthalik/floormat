@@ -26,8 +26,8 @@ scenery_proto::scenery_proto(scenery_proto&&) noexcept = default;
 
 enum scenery_type scenery_proto::scenery_type() const
 {
-    return std::visit(overloaded {
-        [](std::monostate) { return scenery_type::none; },
+    return swl::visit(overloaded {
+        [](swl::monostate) { return scenery_type::none; },
         []<typename T>(const T&) { return T::scenery_type(); },
         }, subtype
     );
@@ -46,7 +46,7 @@ bool scenery_proto::operator==(const object_proto& e0) const
     if (subtype.index() != sc.subtype.index())
         return false;
 
-    return std::visit(
+    return swl::visit(
         [](const auto& a, const auto& b) -> bool {
             if constexpr(std::is_same_v<std::decay_t<decltype(a)>, std::decay_t<decltype(b)>>)
                 return a == b;

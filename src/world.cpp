@@ -363,8 +363,8 @@ bptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto
 {
     using type = bptr<scenery>;
 
-    return std::visit(overloaded {
-        [&](std::monostate) -> type {
+    return swl::visit(overloaded {
+        [&](swl::monostate) -> type {
             throw_on_empty_scenery_proto(id, pos, proto.offset);
         },
         [&](generic_scenery_proto&& p) -> type {

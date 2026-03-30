@@ -170,12 +170,12 @@ bool read_object_flags(binary_reader<T>& s, U& e)
          fm_throw("invalid object type '{}'"_cf, (int)e.type);
     if constexpr(tag == object_type::scenery)
     {
-        if (auto* val = std::get_if<generic_scenery_proto>(&e.subtype))
+        if (auto* val = swl::get_if<generic_scenery_proto>(&e.subtype))
         {
             val->active      = !!(flags & 1 << 2);
             val->interactive = !!(flags & 1 << 4);
         }
-        else if (auto* val = std::get_if<door_scenery_proto>(&e.subtype))
+        else if (auto* val = swl::get_if<door_scenery_proto>(&e.subtype))
         {
             val->active      = !!(flags & 1 << 2);
             val->closing     = !!(flags & 1 << 3);
@@ -577,7 +577,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             sc.bbox_offset[1] << s;
         }
 
-        if (auto* val = std::get_if<generic_scenery_proto>(&sc.subtype))
+        if (auto* val = swl::get_if<generic_scenery_proto>(&sc.subtype))
         {
             if (val->active)
             {
@@ -595,7 +595,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
                 }
             }
         }
-        else if (auto* val = std::get_if<door_scenery_proto>(&sc.subtype))
+        else if (auto* val = swl::get_if<door_scenery_proto>(&sc.subtype))
         {
             if (val->active)
             {

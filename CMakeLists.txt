@@ -271,6 +271,7 @@ set_property(SOURCE "${floormat_shader_res_src}" APPEND PROPERTY COMPILE_OPTIONS
 add_library(floormat-shader-res OBJECT ${floormat_shader_res_src})
 target_link_libraries(floormat-shader-res PRIVATE Corrade::Utility Magnum)
 
+
 add_subdirectory(src)
 add_subdirectory(main)
 add_subdirectory(hash)

@@ -11,6 +11,7 @@
 #include "json-wrapper.hpp"
 #include <Corrade/Containers/String.h>
 #include <nlohmann/json.hpp>
+#include <swl/variant.hpp>
 
 namespace floormat {
 
@@ -103,8 +104,8 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
         j["rotation"] = f.r;
     if (f.pass != default_scenery.pass)
         j["pass-mode"] = f.pass;
-    std::visit(overloaded {
-        [](std::monostate) { fm_soft_assert(false); },
+    swl::visit(overloaded {
+        [](swl::monostate) { fm_soft_assert(false); },
         [&](const generic_scenery_proto& x) {
           if (x.active != default_generic_scenery.active)
               j["active"] = x.active;

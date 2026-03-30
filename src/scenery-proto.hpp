@@ -1,7 +1,7 @@
 #pragma once
 #include "scenery-type.hpp"
 #include "object.hpp"
-#include <variant>
+#include <swl/variant.hpp>
 
 namespace floormat {
 
@@ -24,7 +24,7 @@ struct door_scenery_proto
     static enum scenery_type scenery_type();
 };
 
-using scenery_proto_variants = std::variant<std::monostate, generic_scenery_proto, door_scenery_proto>;
+using scenery_proto_variants = swl::variant<swl::monostate, generic_scenery_proto, door_scenery_proto>;
 
 struct scenery_proto : object_proto
 {

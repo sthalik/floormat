@@ -8,6 +8,7 @@ target_link_libraries(
     nlohmann_json::nlohmann_json
     fmt::fmt
     tsl::robin_map
+    floormat-common
 )
 
 if(MSVC)
