@@ -1,15 +1,21 @@
 #pragma once
 //#include "defs.hpp"
-#if defined __GNUG__ || defined __CLION_IDE__
-#define fm_FORMAT_ARG(n) __attribute__((format (gnu_printf, (n), ((n)+1))))
-#define fm_FORMAT_ARG_MSVC
+#if defined __GNUC__ || defined __clang__
+    // If we're on MinGW, we usually want gnu_printf to support C99 features
+    #if defined(__MINGW32__)
+        #define fm_FORMAT_ARG(n) __attribute__((format(gnu_printf, (n), ((n)+1))))
+    #else
+        // macOS, Linux Clang, and modern GCC are happy with plain 'printf'
+        #define fm_FORMAT_ARG(n) __attribute__((format(printf, (n), ((n)+1))))
+    #endif
+    #define fm_FORMAT_ARG_MSVC
 #elif defined _MSC_VER
-#include <sal.h>
-#define fm_FORMAT_ARG(n)
-#define fm_FORMAT_ARG_MSVC _Printf_format_string_
+    #include <sal.h>
+    #define fm_FORMAT_ARG(n)
+    #define fm_FORMAT_ARG_MSVC _Printf_format_string_
 #else
-#define fm_FORMAT_ARG(n)
-#define fm_FORMAT_ARG_MSVC
+    #define fm_FORMAT_ARG(n)
+    #define fm_FORMAT_ARG_MSVC
 #endif
 
 namespace floormat::debug::detail {
