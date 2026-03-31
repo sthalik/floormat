@@ -9,10 +9,10 @@
 #include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "compat/vector-wrapper.hpp"
-#include "compat/heap.hpp"
+#include "compat/function2.hpp"
 #include <cstdio>
+#include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Containers/StaticArray.h> // todo remove
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
 #include <Magnum/Timeline.h>
@@ -26,7 +26,15 @@ struct astar::visited
     point pt;
 };
 
+struct astar::frontier
+{
+    uint32_t node = (uint32_t)-1;
+    uint32_t f_score = (uint32_t)-1;
+    uint32_t g_score = (uint32_t)-1;
+};
+
 using visited = astar::visited;
+using frontier = astar::frontier;
 using Search::bbox;
 using Search::div_size;
 using Search::div_factor;
@@ -37,8 +45,17 @@ namespace {
 void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
 {
     const auto size = (uint32_t)src.size();
-    fm_assert(size >= 2);
+    dest.clear();
     dest.reserve(size);
+
+    // FIX: Safely handle 0 or 1 element arrays
+    if (size < 2) [[unlikely]]
+    {
+        if (size == 1)
+            dest.push_back(src[0]);
+        return;
+    }
+
     auto last_vec = src[1] - src[0];
 
     dest.clear();
@@ -123,14 +140,18 @@ constexpr auto directions = []() constexpr
 
 struct heap_comparator
 {
-    const Array<visited>& nodes; // NOLINT
-    explicit inline heap_comparator(const Array<visited>& nodes) : nodes{nodes} {}
-    inline bool operator()(uint32_t a, uint32_t b) const { return nodes[b].dist < nodes[a].dist; }
+    static bool operator()(frontier a, frontier b)
+    {
+        if (a.f_score == b.f_score) [[unlikely]]
+            return a.g_score < b.g_score;
+        else
+            return a.f_score > b.f_score;
+    }
 };
 
 void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, const Array<visited>& nodes,
-                         point to, const uint32_t idx)
+                         point from, point to, const uint32_t idx)
 {
     uint32_t len = 0;
     for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
@@ -154,6 +175,9 @@ void set_result_from_idx(path_search_result& result,
         arrayAppend(temp_nodes, node.pt);
         i = node.prev;
     } while (i != (uint32_t)-1);
+
+    if (temp_nodes.back() != from)
+        arrayAppend(temp_nodes, from);
 
     std::reverse(temp_nodes.begin(), temp_nodes.end());
     simplify_path(temp_nodes, result.raw_path().vec);
@@ -180,23 +204,23 @@ void astar::clear()
     arrayResize(Q, 0);
 }
 
-void astar::add_to_heap(uint32_t id)
+void astar::add_to_heap(uint32_t id, uint32_t f_score, uint32_t g_score)
 {
-    arrayAppend(Q, id);
-    Heap::push_heap(Q.begin(), Q.end(), heap_comparator{nodes});
+    arrayAppend(Q, frontier { .node = id, .f_score = f_score, .g_score = g_score, });
+    std::push_heap(Q.begin(), Q.end(), heap_comparator{});
 }
 
-uint32_t astar::pop_from_heap()
+frontier astar::pop_from_heap()
 {
-    Heap::pop_heap(Q.begin(), Q.end(), heap_comparator{nodes});
-    const auto id = Q.back();
+    std::pop_heap(Q.begin(), Q.end(), heap_comparator{});
+    const auto n = Q.back();
     arrayRemoveSuffix(Q);
-    return id;
+    return n;
 }
 
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    object_id own_id, uint32_t max_dist, Vector2ui own_size_,
-                                   int debug, const pred& p)
+                                   int debug, const pred& p, const heuristic& h)
 {
 #ifdef FM_NO_DEBUG
     (void)debug;
@@ -245,7 +269,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 auto idx = (uint32_t)nodes.size();
                 cache.add_index(pt, idx);
                 arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-                add_to_heap(idx);
+                uint32_t f_score = dist + h(pt, to);
+                add_to_heap(idx, f_score, dist);
             }
         }
 
@@ -255,13 +280,15 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 
     while (!Q.isEmpty())
     {
-        const auto cur_idx = pop_from_heap();
+        const auto front = pop_from_heap();
+        const auto cur_idx = front.node;
         point cur_pt;
         uint32_t cur_dist;
-        {   auto& n = nodes[cur_idx];
-            cur_pt = n.pt;
-            cur_dist = n.dist;
-        }
+        auto& n = nodes[cur_idx];
+        if (front.g_score > n.dist)
+            continue;
+        cur_pt = n.pt;
+        cur_dist = n.dist;
 
         if (cur_dist >= max_dist) [[unlikely]]
             continue;
@@ -287,7 +314,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             {
                 goal_idx = cur_idx;
                 max_dist = dist;
-                continue; // path can only get longer
+                break; // path can only get longer
             }
         }
 
@@ -298,6 +325,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 continue;
 
             const auto new_pt = object::normalize_coords(cur_pt, vec);
+
+            uint32_t f_score = dist + h(new_pt, to);
+            if (f_score >= max_dist)
+                continue;
+
             auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
             auto tile_idx = cache.get_tile_index(Vector2i(new_pt.local()), new_pt.offset());
             auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
@@ -337,7 +369,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                             << ";" << new_pt.offset();
 #endif
 
-            add_to_heap(new_idx);
+            add_to_heap(new_idx, f_score, dist);
         }
     }
 
@@ -349,13 +381,13 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     {
         result.set_found(true);
         result.set_distance(0);
-        set_result_from_idx(result, temp_nodes, nodes, to, goal_idx);
+        set_result_from_idx(result, temp_nodes, nodes, from, to, goal_idx);
     }
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
         result.set_distance(closest_dist);
-        set_result_from_idx(result, temp_nodes, nodes, to, closest_idx);
+        set_result_from_idx(result, temp_nodes, nodes, from, to, closest_idx);
     }
 
     result.set_time(timeline.currentFrameTime());
@@ -395,6 +427,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         }
     }
 #endif
+
+    arrayResize(Q, 0);
 
     return result;
 }

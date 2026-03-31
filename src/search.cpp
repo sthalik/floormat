@@ -9,7 +9,9 @@
 #include "rect-intersects.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
+#include "point.inl"
 #include <bit>
+#include <numbers>
 
 namespace floormat::Search {
 
@@ -18,11 +20,35 @@ constexpr auto never_continue_1 = [](collision_data) constexpr { return path_sea
 constexpr auto never_continue_ = pred{never_continue_1};
 constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = pred{always_continue_1};
+
+#if 0
+constexpr auto euclidean_distanceʹʹ  = [](point cur, point goal) constexpr -> uint32_t { return (uint32_t)(cur - goal).length();  };
+constexpr auto euclidean_distanceʹ = heuristic{euclidean_distanceʹʹ};
+constexpr auto manhattan_distanceʹʹ  = [](point cur, point goal) constexpr -> uint32_t { return Vector2ui(Math::abs(cur - goal)).sum();  };
+constexpr auto manhattan_distanceʹ = heuristic{manhattan_distanceʹʹ};
+#endif
+
+constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint32_t {
+    const auto d = Vector2ui{Math::abs(cur - goal)};
+    const uint32_t dx = d.x();
+    const uint32_t dy = d.y();
+    const uint32_t mn = dx < dy ? dx : dy;
+    const uint32_t mx = dx > dy ? dx : dy;
+    constexpr float D2_1 = std::numbers::sqrt2_v<float> - 1.f;
+    return static_cast<uint32_t>((float)mx + D2_1 * (float)mn + 1e-6f);
+};
+constexpr auto octile_distanceʹ = heuristic{octile_distanceʹʹ};
+
 } // namespace
 
 const pred& never_continue() noexcept { return never_continue_; }
 const pred& always_continue() noexcept { return always_continue_; }
-//static_assert(1 << 2 == div_factor);
+
+#if 0
+const heuristic& euclidean_distance() noexcept { return euclidean_distanceʹ; }
+const heuristic& manhattan_distance() noexcept { return manhattan_distanceʹ; }
+#endif
+const heuristic& octile_distance() noexcept { return octile_distanceʹ; }
 
 } // namespace floormat::Search
 
