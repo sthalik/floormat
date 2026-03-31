@@ -15,13 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26]
+        os: [ubuntu-latest, windows-2025-vs2026, macos-26]
         include:
         - os: ubuntu-latest
           cmake: /usr/bin/env CC=gcc-14 CXX=g++-14 cmake
         - os: macos-26
           cmake: /usr/bin/env CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++" cmake
-        - os: windows-latest
+        - os: windows-2025-vs2026
           cmake: .\.github\workflows\build-windows.bat cmake
 
     steps:
