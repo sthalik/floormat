@@ -155,12 +155,21 @@ void region_test::do_region_extraction(app& a, chunk_coords_ coord)
     auto C = a.ensure_player_character(w);
     if (auto* c = w.at(coord))
     {
-        auto C_coord = Vector2i{ Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
-        result = {
-            .region = c->make_pass_region(true, arrayView({C_coord})),
-            .c = coord,
-            .exists = true,
-        };
+        if (C->chunk().coord() == coord)
+        {
+            auto C_coord = Vector2i{ Vector2i(C->coord.local()) * iTILE_SIZE2 + Vector2i(C->offset) };
+            result = {
+                .region = c->make_pass_region(true, arrayView({C_coord})),
+                .c = coord,
+                .exists = true,
+            };
+        }
+        else
+            result = {
+                .region = c->make_pass_region(true, {}),
+                .c = coord,
+                .exists = true,
+            };
     }
 }
 

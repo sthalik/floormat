@@ -175,7 +175,7 @@ auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<const Vector2i
 
     for (auto pos : positions)
     {
-        const auto posʹ = (pos + iTILE_SIZE2)*div_factor / iTILE_SIZE2;
+        const auto posʹ = (pos - div_min) / div_size;
         fm_debug_assert(posʹ >= Vector2i{});
         fm_debug_assert(posʹ < div_count);
         tmp.append(ret.bits, posʹ);
