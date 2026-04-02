@@ -33,7 +33,7 @@ struct coords
 
 struct element
 {
-    uint8_t s, size;
+    uint8_t size;
     std::array<coords, 4> array;
 };
 
@@ -46,71 +46,71 @@ constexpr element make_element(uint8_t s)
     switch (s)
     {
     using enum location;
-    case x0|x1|y0|y1: return element{s, 0, {{ // 9.1
+    case x0|x1|y0|y1: return element{0, {{ // 9.1
     }}};
-    case __|__|__|__: return element{s, 4, {{ // 14.1
+    case __|__|__|__: return element{4, {{ // 14.1
         {R0, R1, R0, H0},
         {R0, H0, H0, H1},
         {H1, R1, H0, H1},
         {R0, R1, H1, R1},
     }}};
 
-    case x0|x1|__|__: return element{s, 2, {{ // 13.1
+    case x0|x1|__|__: return element{2, {{ // 13.1
         {R0, R1, R0, H0},
         {R0, R1, H1, R1},
     }}};
-    case __|__|y0|y1: return element{s, 2, {{ // 13.2
+    case __|__|y0|y1: return element{2, {{ // 13.2
         {R0, H0, R0, R1},
         {H1, R1, R0, R1},
     }}};
 
-    case x0|x1|y0|__: return element{s, 1, {{ // 12.1
+    case x0|x1|y0|__: return element{1, {{ // 12.1
         {R0, R1, H1, R1},
     }}};
-    case x0|x1|__|y1: return element{s, 1, {{ // 12.2
+    case x0|x1|__|y1: return element{1, {{ // 12.2
         {R0, R1, R0, H0},
     }}};
-    case x0|__|y0|y1: return element{s, 1, {{ // 12.3
+    case x0|__|y0|y1: return element{1, {{ // 12.3
         {H1, R1, R0, R1},
     }}};
-    case __|x1|y0|y1: return element{s, 1, {{ // 12.4
+    case __|x1|y0|y1: return element{1, {{ // 12.4
         {R0, H0, R0, R1},
     }}};
 
-    case x0|__|__|__: return element{s, 3, {{ // 10.1
+    case x0|__|__|__: return element{3, {{ // 10.1
         {R0, R1, R0, H0},
         {H1, R1, H0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|x1|__|__: return element{s, 3, {{ // 10.2
+    case __|x1|__|__: return element{3, {{ // 10.2
         {R0, R1, R0, H0},
         {R0, H0, H0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|__|y0|__: return element{s, 3, {{ // 10.3
+    case __|__|y0|__: return element{3, {{ // 10.3
         {R0, H0, R0, R1},
         {H0, H1, H1, R1},
         {H1, R1, R0, R1},
     }}};
-    case __|__|__|y1: return element{s, 3, {{ // 10.4
+    case __|__|__|y1: return element{3, {{ // 10.4
         {R0, H0, R0, R1},
         {H0, H1, R0, H0},
         {H1, R1, R0, R1},
     }}};
 
-    case x0|__|y0|__: return element{s, 2, {{ // 11.1
+    case x0|__|y0|__: return element{2, {{ // 11.1
         {H1, R1, R0, H1},
         {R0, R1, H1, R1},
     }}};
-    case __|x1|y0|__: return element{s, 2, {{ // 11.2
+    case __|x1|y0|__: return element{2, {{ // 11.2
         {R0, H0, R0, H1},
         {R0, R1, H1, R1},
     }}};
-    case x0|__|__|y1: return element{s, 2, {{ // 11.3
+    case x0|__|__|y1: return element{2, {{ // 11.3
         {R0, R1, R0, H0},
         {H1, R1, H0, R1},
     }}};
-    case __|x1|__|y1: return element{s, 2, {{ // 11.4
+    case __|x1|__|y1: return element{2, {{ // 11.4
         {R0, R1, R0, H0},
         {R0, H0, H0, R1},
     }}};
