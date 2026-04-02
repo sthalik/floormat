@@ -247,7 +247,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (from.coord().z() != 0) [[unlikely]]
         return {};
 
-    if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size, own_id, p))
+    if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size_, own_id, p))
         return {};
 
     if (!path_search::is_passable(w, cache, to.coord(), to.offset(), own_size, own_id, p))

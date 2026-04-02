@@ -70,7 +70,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
             has_pending = true;
             pending = { .from = pt0, .to = *pt, .own_id = C->id,
                         .max_dist = dist,
-                        .own_size = Vector2ui(C->bbox_size) + Vector2ui(2), };
+                        .own_size = Vector2ui(C->bbox_size), };
         }
         return true;
     }
