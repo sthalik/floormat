@@ -16,7 +16,6 @@ using namespace floormat::imgui;
 using Search::div_count;
 using Search::div_size;
 
-constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;
 
 struct pending_s
 {
@@ -71,7 +70,7 @@ void region_test::draw_overlay(app& a)
                 auto index = (uint32_t)j * div_count.x() + (uint32_t)i;
                 if (result.region.bits[index])
                     continue;
-                auto pos = div_min + div_size * Vector2i{i, j};
+                auto pos = -iTILE_SIZE2/2 + div_size * Vector2i{i, j} + div_size/2;
                 auto pt = object::normalize_coords(start, pos);
                 auto px = a.point_screen_pos(pt);
                 draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);

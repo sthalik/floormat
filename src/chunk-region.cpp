@@ -27,7 +27,7 @@ static_assert((iTILE_SIZE2 % div_size).isZero());
 
 constexpr auto chunk_bits = div_count.product(),
                visited_bits = div_count.product()*4*4;
-constexpr auto div_min = -iTILE_SIZE2/2 + div_size/2;
+
 
 constexpr bbox<Int> bbox_from_pos1(Vector2i center)
 {
@@ -47,7 +47,7 @@ constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from)
 
 constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
 {
-    auto pos = div_min + div_size * ij;
+    auto pos = -iTILE_SIZE2/2 + div_size/2 + div_size * ij;
     auto pos0 = pos - from*div_size;
     return bbox_from_pos2(pos, pos0);
 }
@@ -175,7 +175,7 @@ auto chunk::make_pass_region(const pred& f, bool debug, ArrayView<const Vector2i
 
     for (auto pos : positions)
     {
-        const auto posʹ = (pos - div_min) / div_size;
+        const auto posʹ = (pos + iTILE_SIZE2/2 - div_size/2) / div_size;
         fm_debug_assert(posʹ >= Vector2i{});
         fm_debug_assert(posʹ < div_count);
         tmp.append(ret.bits, posʹ);
