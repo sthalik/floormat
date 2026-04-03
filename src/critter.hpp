@@ -38,8 +38,7 @@ struct critter final : object
     struct move_result { bool blocked, moved; };
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
 
-    Vector2 ordinal_offset(Vector2b offset) const override;
-    float depth_offset() const override;
+    int32_t depth_offset() const override;
 
     void init_script(const bptr<object>& ptr) override;
     void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r) override;

@@ -18,6 +18,7 @@
 #include "src/critter.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/limits.hpp"
+#include "src/depth.hpp"
 #include <bit>
 #include <Magnum/Math/Color.h>
 #include <Magnum/Math/Vector3.h>
@@ -135,7 +136,7 @@ void app::draw_collision_boxes()
             continue;
         auto& c = *cʹ;
         c.ensure_passability();
-        const with_shifted_camera_offset o{shader, pos, chunk_coords{min.x(), min.y()}, chunk_coords{max.x(), max.y()}};
+        const with_shifted_camera_offset o{shader, pos};
         if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
         {
             constexpr float maxf = 1 << 24, max2f[] = {maxf, maxf}, min2f[] = {-maxf, -maxf};
@@ -180,7 +181,7 @@ void app::draw_collision_boxes()
                 continue;
             auto& c = *cʹ;
             c.ensure_passability();
-            const with_shifted_camera_offset o{shader, c_pos, {min.x(), min.y()}, {max.x(), max.y()}};
+            const with_shifted_camera_offset o{shader, c_pos};
             if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
             {
                 constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
@@ -232,12 +233,15 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
         return nullptr;
 
     clickable* item = nullptr;
-    float depth = -(1 << 24);
 
     const auto array = M->clickable_scenery();
     const auto p = *pixel;
+    uint32_t depth = 0;
+
     for (clickable& c : array)
-        if (c.depth > depth && c.dest.contains(p))
+    {
+        const uint32_t d = Depth::value_atʹ(c.e->position());
+        if (d > depth && c.dest.contains(p))
         {
             const auto posʹ = *pixel - c.dest.min() + Vector2i(c.src.min());
             const auto pos = !c.mirrored ? posʹ : Vector2i(int(c.src.sizeX()) - 1 - posʹ[0], posʹ[1]);
@@ -245,10 +249,11 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
             fm_assert(c.bitmask.isEmpty() || idx < c.bitmask.size());
             if (c.bitmask.isEmpty() || c.bitmask[idx])
             {
-                depth = c.depth;
+                depth = d;
                 item = &c;
             }
         }
+    }
     if (item)
         return item;
     else

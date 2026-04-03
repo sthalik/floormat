@@ -7,6 +7,7 @@
 #include "compat/function2.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
+#include "depth.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -191,20 +192,23 @@ Array<std::array<chunk::vertex, 4>>& make_vertexes()
 }
 
 template<Group_ G, bool IsWest>
-constexpr float depth_offset_for_group()
+constexpr int32_t depth_offset_for_group(uint32_t depth)
 {
+    (void)depth;
     static_assert(G < Group_::COUNT);
-    float p = IsWest ? tile_shader::wall_west_offset : 0;
+    constexpr auto half_tile = tile_size_xy/2;
+    int32_t part_offset = 0;
     switch (G)
     {
-    default:
-        return tile_shader::wall_depth_offset + p;
     case Group_::top:
-        return tile_shader::wall_top_offset + p;
-    case Group_::corner:
     case Group_::side:
-        return tile_shader::wall_side_offset + p;
+        part_offset = -1;
+        break;
+    default:
+        break;
     }
+    auto ret = -half_tile + part_offset;
+    return ret;
 }
 
 Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, variant_t variant, bool is_west)
@@ -287,8 +291,8 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 fm_assert(frame.size.y() >= Depth);
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
-                const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>();
-                const auto depth = tile_shader::depth_value(pos, depth_offset);
+                const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
+                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth};
@@ -299,9 +303,8 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             if (dir.corner.is_defined)
             {
                 const auto frames = A.frames(dir.corner);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
-                const auto pos_x = !IsWest ? (float)pos.x : (float)pos.x - 1;
-                const auto depth = tile_shader::depth_value(pos_x, pos.y, depth_offset);
+                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
+                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
 
@@ -331,8 +334,8 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             else if (dir.wall.is_defined) [[likely]]
             {
                 const auto frames = A.frames(dir.wall);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>();
-                const auto depth = tile_shader::depth_value(!IsWest ? (float)pos.x : (float)pos.x - 1, (float)pos.y, depth_offset);
+                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
+                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
                 auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
@@ -370,8 +373,8 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
 
         const auto frames = A.frames(group);
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
-        const auto depth_offset = depth_offset_for_group<G, IsWest>();
-        const auto depth = tile_shader::depth_value(pos, depth_offset);
+        const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
+        const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
 
         constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
         constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();

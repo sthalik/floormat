@@ -48,16 +48,9 @@ light::light(object_id id, class chunk& c, const light_proto& proto) :
 {
 }
 
-float light::depth_offset() const
+int32_t light::depth_offset() const
 {
-    constexpr auto ret = 4 / tile_shader::depth_tile_size;
-    return ret;
-}
-
-Vector2 light::ordinal_offset(Vector2b) const
-{
-    constexpr auto ret = Vector2(TILE_COUNT, TILE_COUNT) * TILE_SIZE2;
-    return ret;
+    return 0;
 }
 
 light::operator light_proto() const

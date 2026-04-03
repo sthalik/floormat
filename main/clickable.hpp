@@ -13,8 +13,6 @@ struct clickable final {
     Math::Range2D<int> dest;
     BitArrayView bitmask;
     object* e;
-    float depth, slope;
-    Vector2s bb_min, bb_max; // debug only
     uint32_t stride;
     bool mirrored;
 };

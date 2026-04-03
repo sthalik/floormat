@@ -13,7 +13,7 @@ struct door_scenery_proto;
 
 struct scenery : object
 {
-    float depth_offset() const override;
+    int32_t depth_offset() const override;
     enum object_type type() const noexcept override;
     virtual enum scenery_type scenery_type() const = 0;
     virtual explicit operator scenery_proto() const; // todo make protected?
@@ -28,7 +28,6 @@ struct generic_scenery final : scenery
     bool interactive : 1 = false;
 
     void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
-    Vector2 ordinal_offset(Vector2b offset) const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
 
@@ -48,7 +47,7 @@ struct door_scenery final : scenery
     bool interactive : 1 = false;
 
     void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
-    Vector2 ordinal_offset(Vector2b offset) const override;
+    Int depth_offset() const override;
     bool can_activate(size_t i) const override;
     bool activate(size_t i) override;
 

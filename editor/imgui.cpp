@@ -209,11 +209,6 @@ void app::draw_clickables()
         auto min = dest.min(), max = dest.max();
         draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
                      color, 0, ImDrawFlags_None, thickness);
-        if (x.slope != 0.f)
-        {
-            const auto bb_min = min + Vector2(x.bb_min), bb_max = min + Vector2(x.bb_max);
-            draw.AddLine({ bb_min[0], bb_min[1] }, { bb_max[0], bb_max[1] }, color, thickness);
-        }
     }
 }
 

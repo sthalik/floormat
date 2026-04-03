@@ -50,7 +50,7 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
 
         camera_offset -= dir.normalized() * (double)Time::to_seconds(dt) * pixels_per_second;
         camera_offset = Math::clamp(camera_offset, -max_camera_offset, max_camera_offset);
-        shader.set_camera_offset(camera_offset, shader.depth_offset());
+        shader.set_camera_offset(camera_offset);
 
         update_cursor_tile(cursor.pixel);
         do_mouse_move(mods);
@@ -61,7 +61,7 @@ void app::reset_camera_offset()
 {
     constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
     constexpr auto projected = tile_shader::project(size);
-    M->shader().set_camera_offset(projected, 0);
+    M->shader().set_camera_offset(projected);
     _z_level = 0;
     update_cursor_tile(cursor.pixel);
 }

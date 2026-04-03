@@ -10,44 +10,17 @@ Vector2d with_shifted_camera_offset::get_projected_chunk_offset(chunk_coords_ c)
     return tile_shader::project(Vector3d(Vector2d(c.x, c.y) * TILE_MAX_DIM, c.z) * dTILE_SIZE);
 }
 
-with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c) :
-    _shader{shader}, _camera{shader.camera_offset()}
-{
-    auto offset = _camera + get_projected_chunk_offset(c);
-    _shader.set_camera_offset(offset, float{1 << 24});
-}
-
-with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c_, chunk_coords first_, chunk_coords last_) :
+with_shifted_camera_offset::with_shifted_camera_offset(tile_shader& shader, chunk_coords_ c_) :
     _shader{shader},
     _camera{shader.camera_offset()}
 {
-    (void)last_;
-    fm_assert(shader.depth_offset() == 0.f);
-
-    // needed because of `hack_offset` in chunk-render.cpp
-    first_.x--; first_.y--; last_.x++; last_.y++;
-
     auto offset = _camera + get_projected_chunk_offset(c_);
-    auto pos  = chunk_coords(c_) - first_;
-
-    int depth = (int)TILE_MAX_DIM*2 * pos.sum();
-
-#if 0
-    printf("c=(%2hd %2hd %2hhd) pos=(%2d %2d) len=(%d %d) --> %d\n", c_.x, c_.y, c_.z, pos.x(), pos.y(), len.x(), len.y(), depth);
-#endif
-
-    auto z_offset = (int{c_.z}-int{chunk_z_min}) * tile_shader::depth_value({}, tile_shader::z_depth_offset);
-    auto d = depth * tile_shader::depth_tile_size + Depth::start + z_offset;
-
-    if (c_.z == chunk_z_max)
-        d = 1;
-
-    _shader.set_camera_offset(offset, d);
+    _shader.set_camera_offset(offset);
 }
 
-with_shifted_camera_offset::~with_shifted_camera_offset()
+with_shifted_camera_offset::~with_shifted_camera_offset() noexcept
 {
-    _shader.set_camera_offset(_camera, 0);
+    _shader.set_camera_offset(_camera);
 }
 
 } // namespace floormat

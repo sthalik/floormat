@@ -81,16 +81,9 @@ void hole::mark_neighbor_chunks_modified()
     mark_chunk_modifiedʹ(*c);
 }
 
-float hole::depth_offset() const
+int32_t hole::depth_offset() const
 {
-    constexpr auto ret = 4 / tile_shader::depth_tile_size;
-    return ret;
-}
-
-Vector2 hole::ordinal_offset(Vector2b) const
-{
-    constexpr auto ret = Vector2(TILE_COUNT, TILE_COUNT) * TILE_SIZE2;
-    return ret;
+    return 0;
 }
 
 void hole::set_height(uint8_t heightʹ)

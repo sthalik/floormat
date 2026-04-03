@@ -4,6 +4,7 @@
 #include "quads.hpp"
 #include "shaders/shader.hpp"
 #include "compat/borrowed-ptr.hpp"
+#include "src/depth.hpp"
 #include <algorithm>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -63,8 +64,8 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
                   return _ground->atlases[a].get() < _ground->atlases[b].get();
               });
 
-    float hack_offset = _coord.z <= 0 ? -16.f : 0.f; // XXX hack
     auto& vertexes = static_vertexes;
+    const float depth = Depth::value_at(point{_coord, {}, {}}, -tile_size_xy);
 
     for (auto k = 0u; k < count; k++)
     {
@@ -73,7 +74,6 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         const local_coords pos{i};
         const auto quad = floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
         const auto texcoords = atlas->texcoords_for_id(_ground->variants[i] % _ground->atlases[i]->num_tiles());
-        const float depth = tile_shader::depth_value(pos, tile_shader::ground_depth_offset + hack_offset);
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)
             v[j] = { quad[j], texcoords[j], depth };

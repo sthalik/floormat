@@ -378,15 +378,10 @@ bool critter::maybe_stop_auto_movement()
     return !b2;
 }
 
-float critter::depth_offset() const
+int32_t critter::depth_offset() const
 {
-    return tile_shader::character_depth_offset;
-}
-
-Vector2 critter::ordinal_offset(Vector2b offset) const
-{
-    (void)offset;
-    return Vector2(offset);
+    //return tile_shader::character_depth_offset;
+    return 0;
 }
 
 void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)

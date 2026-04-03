@@ -130,7 +130,7 @@ void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunk
             continue;
         auto& c = *cʹ;
 
-        const with_shifted_camera_offset o{_shader, ch, {min.x(), min.y()}, {max.x(), max.y()}};
+        const with_shifted_camera_offset o{_shader, ch};
         if (check_chunk_visible(_shader.camera_offset(), window_size))
             fun(c, ch.x, ch.y, ch.z);
     }

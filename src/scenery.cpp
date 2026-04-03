@@ -23,16 +23,9 @@ template class bptr<const door_scenery>;
 
 enum object_type scenery::type() const noexcept { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
 
-float scenery::depth_offset() const
+int32_t scenery::depth_offset() const
 {
-    constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
-    Vector2 offset;
-    offset += Vector2(atlas->group(r).depth_offset) * inv_tile_size;
-    float ret = 0;
-    ret += offset[1]*TILE_MAX_DIM + offset[0];
-    ret += tile_shader::scenery_depth_offset;
-
-    return ret;
+    return atlas->group(r).depth_offset.sum(); // todo replace with an integer
 }
 
 scenery::operator scenery_proto() const
@@ -54,7 +47,6 @@ scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
 // ---------- generic_scenery ----------
 
 void generic_scenery::update(const bptr<object>&, size_t&, const Ns&) {}
-Vector2 generic_scenery::ordinal_offset(Vector2b offset) const { return Vector2(offset); }
 bool generic_scenery::can_activate(size_t) const { return interactive; }
 bool generic_scenery::activate(size_t) { return false; }
 enum scenery_type generic_scenery::scenery_type() const { return scenery_type::generic; }
@@ -115,16 +107,15 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
     //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (frame == 0 ? "-1" : "1");
 }
 
-Vector2 door_scenery::ordinal_offset(Vector2b offset) const
+int32_t door_scenery::depth_offset() const
 {
     constexpr auto bTILE_SIZE = Vector2b(iTILE_SIZE2);
-
     constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
     constexpr auto off_opened_ = Vector2b(-bTILE_SIZE[0]+2, -bTILE_SIZE[1]/2+2);
     const auto off_closed = rotate_point(off_closed_, rotation::N, r);
     const auto off_opened = rotate_point(off_opened_, rotation::N, r);
     const auto vec = frame == atlas->info().nframes-1 ? off_closed : off_opened;
-    return Vector2(offset) + Vector2(vec);
+    return vec.sum(); // todo replace with scalar
 }
 
 bool door_scenery::can_activate(size_t) const { return interactive; }

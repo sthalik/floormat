@@ -1,7 +1,7 @@
 precision highp float;
 
 layout (location = 0) uniform vec2 scale;
-layout (location = 1) uniform vec3 offset;
+layout (location = 1) uniform vec2 offset;
 layout (location = 2) uniform vec4 tint;
 layout (location = 3) uniform bool enable_lightmap;
 layout (location = 4) uniform sampler2D sampler;

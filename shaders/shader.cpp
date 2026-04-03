@@ -32,7 +32,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
-    setUniform(OffsetUniform, Vector3(Vector2(_camera_offset), _depth_offset));
+    setUniform(OffsetUniform, Vector2(_camera_offset));
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, 1);
@@ -47,10 +47,9 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
     return *this;
 }
 
-tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset, float depth_offset)
+tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset)
 {
     _camera_offset = camera_offset;
-    _depth_offset = depth_offset;
     return *this;
 }
 
@@ -76,12 +75,11 @@ tile_shader& tile_shader::set_sampler(Int sampler)
 void tile_shader::draw_pre(GL::AbstractTexture& tex)
 {
     fm_assert(std::fabs(_camera_offset[0]) <= 1 << 24 && std::fabs(_camera_offset[1]) <= 1 << 24);
-    fm_assert(std::fabs(_depth_offset) <= 1 << 24);
 
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    const auto offset = Vector3(Vector2(_camera_offset), _depth_offset);
+    const auto offset = Vector2(_camera_offset);
     if (offset != _real_camera_offset)
         setUniform(OffsetUniform, _real_camera_offset = offset);
 
@@ -94,16 +92,6 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
 void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
 {
     (void)tex;
-}
-
-float tile_shader::depth_value(const local_coords& xy, float offset) noexcept
-{
-    return depth_value((float)xy.x, (float)xy.y, offset);
-}
-
-float tile_shader::depth_value(float x, float y, float offset) noexcept
-{
-    return (x + y + offset) * depth_tile_size;
 }
 
 } // namespace floormat

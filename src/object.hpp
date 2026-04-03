@@ -61,10 +61,7 @@ struct object : bptr_base
 
     virtual ~object() noexcept override;
 
-    virtual Vector2 ordinal_offset(Vector2b offset) const = 0;
-    virtual float depth_offset() const = 0;
-    float ordinal() const;
-    float ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const;
+    virtual int32_t depth_offset() const = 0;
     class chunk& chunk() const;
     class world& world() const;
     size_t index() const;

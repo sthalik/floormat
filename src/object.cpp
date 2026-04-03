@@ -93,19 +93,6 @@ object::~object() noexcept
     const_cast<object_id&>(id) = 0;
 }
 
-float object::ordinal() const
-{
-    return ordinal(coord.local(), offset, atlas->group(r).z_offset);
-}
-
-float object::ordinal(local_coords xy, Vector2b offset, Vector2s z_offset) const
-{
-    constexpr auto inv_tile_size = 1.f/TILE_SIZE2;
-    auto offset_ = ordinal_offset(offset);
-    auto vec = Vector2(xy) + offset_*inv_tile_size;
-    return vec[0] + vec[1] + Vector2(z_offset).sum();
-}
-
 size_t object::index() const
 {
     auto& c = chunk();

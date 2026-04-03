@@ -68,7 +68,6 @@ public:
         const ArrayView<const uint_fast16_t> indexes;
         const size_t size;
     };
-    struct topo_sort_data;
     struct object_draw_order;
     struct scenery_mesh_tuple;
     struct scenery_scratch_buffers;

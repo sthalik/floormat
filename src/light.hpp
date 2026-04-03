@@ -32,8 +32,7 @@ struct light final : object
 
     light(object_id id, class chunk& c, const light_proto& proto);
 
-    Vector2 ordinal_offset(Vector2b offset) const override;
-    float depth_offset() const override;
+    int32_t depth_offset() const override;
     object_type type() const noexcept override;
     void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
     bool is_dynamic() const override;
