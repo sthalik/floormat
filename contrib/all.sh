@@ -2,7 +2,7 @@
 
 set -eu -o pipefail
 beep() { printf \\a >&2; }
-test -z "$MAGNUM_LOG" && export MAGNUM_LOG=default
+test -z "${MAGNUM_LOG-}" && export MAGNUM_LOG=default
 
 trap 'cleanup $?' exit
 cleanup() {
