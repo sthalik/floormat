@@ -201,7 +201,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
     {
         while (nframes > 1)
         {
-            auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.min());
+            auto len = (uint8_t)Math::min(nframes, (uint32_t)(C.bbox_size.min()+1)/2);
             if (len <= 1)
                 break;
             if (!update_movement_body<true>(i, C, info, len, new_r, new_r))
