@@ -3,11 +3,11 @@
 #include "quads.hpp"
 #include "wall-atlas.hpp"
 #include "hole.hpp"
-#include "compat/unroll.hpp"
 #include "compat/function2.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
 #include "depth.hpp"
+#include "renderer.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -249,6 +249,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const auto pos = local_coords{tile};
     const auto center = Vector3(pos) * TILE_SIZE;
     const auto& dir = A.calc_direction(D);
+    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
 
     if constexpr(G == Group_::side) [[unlikely]]
@@ -292,7 +293,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
-                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
+                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth};
@@ -304,7 +305,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 const auto frames = A.frames(dir.corner);
                 const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
-                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
+                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
 
@@ -335,7 +336,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 const auto frames = A.frames(dir.wall);
                 const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
-                const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
+                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
                 auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
@@ -374,7 +375,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto frames = A.frames(group);
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
-        const auto depth = Depth::value_at({c.coord(), pos, {}}, depth_offset);
+        const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
 
         constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
         constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();

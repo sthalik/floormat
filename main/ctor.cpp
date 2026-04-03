@@ -23,6 +23,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
     }
     else
         (void)setSwapInterval(0);
+    maybe_enable_clipcontrol_zero_to_one();
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
     timeline = Time::now();

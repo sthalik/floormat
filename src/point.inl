@@ -5,6 +5,28 @@
 
 namespace floormat {
 
+constexpr point::point(Vector3i p)
+{
+    constexpr int chunk_pixels = tile_size_xy * (int)TILE_MAX_DIM;
+    Vector2i c, t;
+
+    constexpr int half_tile = tile_size_xy / 2;
+
+    for (auto i = 0u; i < 2; i++)
+    {
+        auto v = p[i] + half_tile;
+        c[i] = v / chunk_pixels - (v % chunk_pixels < 0);
+        auto r = v - c[i] * chunk_pixels;
+        t[i] = r / tile_size_xy;
+        _offset[i] = (int8_t)(r - t[i] * tile_size_xy - half_tile);
+    }
+
+    cx = (int16_t)c.x();
+    cy = (int16_t)c.y();
+    cz = (int8_t)(p.z() / tile_size_z - (p.z() % tile_size_z < 0));
+    tile = local_coords{t};
+}
+
 constexpr uint32_t point::distance(point a, point b)
 {
     Vector2i dist = a - b;

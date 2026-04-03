@@ -7,6 +7,7 @@
 #include "src/chunk-scenery.hpp"
 #include "src/scenery.hpp"
 #include "src/depth.hpp"
+#include "src/renderer.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <Corrade/Containers/Optional.h>
@@ -68,6 +69,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
 
     auto [mesh_, es, size] = c.ensure_scenery_mesh({ _draw_array, _draw_vertexes, _draw_indexes, });
     const auto max_index = uint32_t(size*quad_index_count - 1);
+    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
 
     uint32_t k = 0;
 
@@ -93,7 +95,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         }
         else
         {
-            auto depth = Depth::value_at(e.position(), e.depth_offset());
+            auto depth = Depth::value_at(depth_start, e.position(), e.depth_offset());
             k++;
             if (e.is_virtual()) [[unlikely]]
             {

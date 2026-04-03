@@ -28,19 +28,19 @@ constexpr uint32_t value_atʹ(point pixel)
     return sum;
 }
 
-constexpr float value_at(uint32_t pixel, int32_t offset = 0)
+constexpr float value_at(float start, uint32_t pixel, int32_t offset = 0)
 {
     auto i = (int32_t)pixel;
     i += offset;
     fm_debug2_assert(i >= 0);
-    float val = nth_float(-1.f, (uint32_t)i);
+    float val = nth_float(start, (uint32_t)i);
     return val;
 }
 
-constexpr float value_at(point pixel, int32_t offset = 0)
+constexpr float value_at(float start, point pixel, int32_t offset = 0)
 {
     auto i = value_atʹ(pixel);
-    return value_at(i, offset);
+    return value_at(start, i, offset);
 }
 
 } // namespace floormat::Depth

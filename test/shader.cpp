@@ -7,6 +7,11 @@
 namespace floormat::Test {
 namespace {
 
+float value_at(point p)
+{
+    return Depth::value_at(-1, p, 0);
+}
+
 void test_point()
 {
     constexpr auto chunk_size = tile_size_xy * (int)TILE_MAX_DIM;
@@ -18,16 +23,16 @@ void test_point()
         constexpr auto my_pixel = my_chunk + my_tile + Vector3i{6, 7, 0};
 
         constexpr auto a = point {{1, 2, 0}, {4, 5}, {6, 7}};
-        constexpr auto Va = Depth::value_at(a);
+        const auto Va = value_at(a);
         fm_assert(Vector3i(a) == my_pixel);
 
         constexpr auto b = point {{1, 2, -1}, {4, 5}, {6, 7}};
 
-        constexpr auto Vb = Depth::value_at(b);
+        const auto Vb = value_at(b);
         fm_assert(Va > Vb);
 
         constexpr auto c = point {{1, 2, -1}, {4, 5}, {3, 10}};
-        constexpr auto Vc = Depth::value_at(c);
+        const auto Vc = value_at(c);
         fm_assert(Vc == Vb);
         fm_assert_equal(Vector3i{1  * chunk_size + 4 * tile_size_xy + 3,
                                  2  * chunk_size + 5 * tile_size_xy + 10,
@@ -35,30 +40,30 @@ void test_point()
                         Vector3i(c));
 
         constexpr auto d = point {{1, 2, 0}, {4, 5}, {6, 5}};
-        constexpr auto Vd = Depth::value_at(d);
+        const auto Vd = value_at(d);
         fm_assert(Vd < Va);
         fm_assert(Vd > Vb);
 
         constexpr auto e = point {{1, 2, -1}, {4, 5}, {6, 5}};
-        constexpr auto Ve = Depth::value_at(e);
+        const auto Ve = value_at(e);
         fm_assert(Ve < Vb);
     }
 
     {
         constexpr auto a = point {{1, 2, 0}, {1, 2}, {}};
-        constexpr auto Va = Depth::value_at(a);
+        const auto Va = value_at(a);
         constexpr auto b = point {{2, 1, 0}, {2, 1}, {}};
-        constexpr auto Vb = Depth::value_at(b);
+        const auto Vb = value_at(b);
         fm_assert(Va == Vb);
         constexpr auto c = point {{2, 1, 0}, {2, 1}, {1, 0}};
-        constexpr auto Vc = Depth::value_at(c);
+        const auto Vc = value_at(c);
         fm_assert(Vc > Vb);
         fm_assert(Va < Vc);
         constexpr auto d = point {{2, 1, 0}, {1, 1}, {}};
-        constexpr auto Vd = Depth::value_at(d);
+        const auto Vd = value_at(d);
         fm_assert(Vd < Vc);
         constexpr auto e = point {{2, 1, 0}, {1, 1}, {1, 0}};
-        constexpr auto Ve = Depth::value_at(e);
+        const auto Ve = value_at(e);
         fm_assert(Ve > Vd);
         fm_assert(Ve < Vc);
     }
@@ -88,6 +93,12 @@ void test_point()
     }
 }
 
+void test_clip_depth()
+{
+    const volatile float f = Depth::value_at(0, point{most_positive_point});
+    fm_assert(f < 1.0f);
+}
+
 void test_shader_program()
 {
     texture_unit_cache tuc;
@@ -99,6 +110,7 @@ void test_shader()
 {
     test_point();
     test_shader_program();
+    test_clip_depth();
 }
 
 } // namespace floormat::Test

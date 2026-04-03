@@ -4,7 +4,8 @@
 #include "quads.hpp"
 #include "shaders/shader.hpp"
 #include "compat/borrowed-ptr.hpp"
-#include "src/depth.hpp"
+#include "depth.hpp"
+#include "renderer.hpp"
 #include <algorithm>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayViewStl.h>
@@ -48,6 +49,8 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         return { ground_mesh, _ground->indexes, size_t(ground_mesh.count()/6) };
     _ground_modified = false;
 
+    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
+
     size_t count = 0;
     for (auto i = 0uz; i < TILE_COUNT; i++)
         if (_ground->atlases[i])
@@ -65,7 +68,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
               });
 
     auto& vertexes = static_vertexes;
-    const float depth = Depth::value_at(point{_coord, {}, {}}, -tile_size_xy);
+    const float depth = Depth::value_at(depth_start, point{_coord, {}, {}}, -tile_size_xy);
 
     for (auto k = 0u; k < count; k++)
     {

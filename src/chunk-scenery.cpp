@@ -6,6 +6,7 @@
 #include "scenery.hpp"
 #include "quads.hpp"
 #include "depth.hpp"
+#include "renderer.hpp"
 #include <bit>
 #include <algorithm>
 #include <Corrade/Containers/ArrayView.h>
@@ -28,6 +29,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     ensure_scenery_buffers(buffers);
 
     fm_assert(_objects_sorted);
+
+    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
 
     if (_scenery_modified)
     {
@@ -55,7 +58,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
             const auto& group = atlas->group(fr.r);
             const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
-            const float depth = Depth::value_at(e->position(), e->depth_offset());
+            const float depth = Depth::value_at(depth_start, e->position(), e->depth_offset());
 
             for (auto j = 0u; j < 4; j++)
                 scenery_vertexes[i][j] = { quad[j], texcoords[j], depth };
@@ -86,8 +89,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         array[i++] = { e.get(), index };
     }
     std::sort(array.data(), array.data() + i,
-              [](const object_draw_order& a, const object_draw_order& b) {
-                  return Depth::value_at(a.e->position()) < Depth::value_at(b.e->position());
+              [d=depth_start](const object_draw_order& a, const object_draw_order& b) {
+                  return Depth::value_at(d, a.e->position()) < Depth::value_at(d, b.e->position());
               });
 
     return { scenery_mesh, ArrayView<object_draw_order>{array, size}, j };

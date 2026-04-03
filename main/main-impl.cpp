@@ -1,7 +1,10 @@
 #include "main-impl.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
-#include <Magnum/Platform/Sdl2Application.h>
+#include "src/renderer.hpp"
+#include <mg/Renderer.h>
+#include <mg/Extensions.h>
+#include <mg/Sdl2Application.h>
 
 namespace floormat {
 
@@ -41,6 +44,17 @@ uint32_t main_impl::cursor() const noexcept
     return (uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
 }
 
+void main_impl::maybe_enable_clipcontrol_zero_to_one()
+{
+    bool status = GL::Context::current().isExtensionSupported<GL::Extensions::ARB::clip_control>();
+    if (status)
+        GL::Renderer::setClipControl(GL::Renderer::ClipOrigin::LowerLeft, GL::Renderer::ClipDepth::ZeroToOne);
+    else
+        fm_warn("GL_ARB_clip_control not supported, depth precision may be reduced");
+
+    Render::detail::set_clipcontrol_clipdepth_zero_one_status(status);
+}
+
 void main_impl::quit(int status) { Platform::Sdl2Application::exit(status); }
 class world& main_impl::world() noexcept { return _world; }
 SDL_Window* main_impl::window() noexcept { return Sdl2Application::window(); }
@@ -63,6 +77,7 @@ Vector2i floormat_main::window_size() const noexcept { return _framebuffer_size;
 float main_impl::smoothed_fps() const noexcept { return (float)_frame_timings.fps_counter.get(); }
 void main_impl::reset_fps() noexcept { _frame_timings.fps_counter.reset(); }
 void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }
+bool floormat_main::is_clipcontrol_zero_to_one_enabled() const noexcept { return _is_clipcontroL_zero_to_one_enabled; }
 bool floormat_main::is_rendering_vobjs() const { return _do_render_vobjs; }
 
 } // namespace floormat

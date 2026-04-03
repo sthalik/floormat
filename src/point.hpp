@@ -20,6 +20,7 @@ struct point
     constexpr point();
     constexpr point(global_coords coord, Vector2b offset);
     constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset);
+    explicit constexpr point(Vector3i pixel);
 
     constexpr bool operator==(const point&) const noexcept;
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b);
@@ -50,6 +51,7 @@ constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk
 constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
     cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
 {}
+
 constexpr bool point::operator==(const point&) const noexcept = default;
 
 constexpr global_coords point::coord() const { return {{cx, cy}, tile, cz}; }

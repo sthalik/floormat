@@ -87,6 +87,8 @@ struct floormat_main
     void set_render_vobjs(bool value);
     bool is_rendering_vobjs() const;
 
+    bool is_clipcontrol_zero_to_one_enabled() const noexcept;
+
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
     virtual path_search& search() = 0;
     virtual class astar& astar() = 0;
@@ -101,6 +103,7 @@ protected:
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true;
     bool _first_frame : 1 = true;
+    bool _is_clipcontroL_zero_to_one_enabled = false;
 };
 
 } // namespace floormat

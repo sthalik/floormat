@@ -51,5 +51,4 @@ constexpr float nth_float(float x, uint32_t n)
     return ret;
 }
 
-constexpr float nth_float(uint32_t n) { return nth_float(-1.f, n); }
 } // namespace floormat

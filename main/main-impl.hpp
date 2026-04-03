@@ -167,6 +167,8 @@ private:
     static Configuration make_conf(const fm_settings& s);
     static GLConfiguration make_gl_conf(const fm_settings& s);
     static Configuration::WindowFlags make_window_flags(const fm_settings& s);
+
+    void maybe_enable_clipcontrol_zero_to_one();
 };
 
 } // namespace floormat
