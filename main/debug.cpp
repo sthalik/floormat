@@ -1,5 +1,4 @@
 #include "main-impl.hpp"
-#include "compat/spinlock.hpp"
 #include <chrono>
 
 namespace floormat {
@@ -12,11 +11,9 @@ void gl_debug_put_breakpoint_here()  {}
 namespace {
 
 auto Clock = std::chrono::steady_clock{};
-Spinlock spl_clock;
 
 auto Now()
 {
-    Locker l{spl_clock};
     return Clock.now();
 }
 
@@ -25,7 +22,7 @@ auto Now()
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
 {
-    static const auto t0 = [] { Locker l{spl_clock}; return Now(); }();
+    static const auto t0 = [] { return Now(); }();
 #if 1
     [[maybe_unused]] volatile const auto _type = type;
     [[maybe_unused]] volatile const auto _id = id;
