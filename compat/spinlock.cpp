@@ -16,14 +16,8 @@ namespace floormat {
 
 void Spinlock::lock() noexcept
 {
-    for (;;)
-    {
-        while (state != 0)
-            YieldProcessor();
-        if (InterlockedExchange(&state, 1) == 0)
-            return;
+    while (InterlockedCompareExchange(&state, 1, 0) != 0)
         YieldProcessor();
-    }
 }
 
 bool Spinlock::try_lock() noexcept
