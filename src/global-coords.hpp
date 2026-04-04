@@ -71,7 +71,7 @@ struct chunk_coords_ final {
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator-=(Math::Vector3<T> off) noexcept
     {
-        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
+        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - int{off.z()}); return *this;
     }
 
     constexpr Vector3i operator-(chunk_coords_ other) const noexcept
