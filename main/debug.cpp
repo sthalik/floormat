@@ -10,11 +10,9 @@ void gl_debug_put_breakpoint_here()  {}
 
 namespace {
 
-auto Clock = std::chrono::steady_clock{};
-
 auto Now()
 {
-    return Clock.now();
+    return std::chrono::steady_clock::now();
 }
 
 } // namespace
