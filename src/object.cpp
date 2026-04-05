@@ -12,6 +12,7 @@
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
+#include <bit>
 #include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
@@ -26,22 +27,32 @@ template class bptr<const object>;
 
 namespace {
 
-// todo rewrite using bitwise ops. try this instead: x = 31; int((x+64+32)/64), (x + 64 + 32)%64 - 1
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
 {
-    constexpr int8_t half_tile = tile_size/2;
-    const int tmp = cur + new_off;
-    auto x = (int8_t)(tmp % tile_size);
-    auto t = tmp / tile_size;
-    auto a = Math::abs(x);
-    auto s = Math::sign(x);
-    bool b = x >= half_tile | x < -half_tile;
-    auto tmask = -(int)b;
-    auto xmask = (int8_t)-(int8_t)b;
-    t += s & tmask;
-    x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
-    return { t, x };
+    if constexpr(tile_size > 0 && (tile_size & tile_size-1) == 0)
+    {
+        constexpr int half = tile_size / 2;
+        constexpr int mask = tile_size - 1;
+        constexpr int shift = std::countr_zero((unsigned)tile_size);
+        const int val = cur + new_off + half;
+        return { val >> shift, (int8_t)((val & mask) - half) };
+    }
+    else
+    {
+        constexpr int8_t half_tile = tile_size/2;
+        const int tmp = cur + new_off;
+        auto x = (int8_t)(tmp % tile_size);
+        auto t = tmp / tile_size;
+        auto a = Math::abs(x);
+        auto s = Math::sign(x);
+        bool b = x >= half_tile | x < -half_tile;
+        auto tmask = -(int)b;
+        auto xmask = (int8_t)-(int8_t)b;
+        t += s & tmask;
+        x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
+        return { t, x };
+    }
 }
 
 } // namespace
