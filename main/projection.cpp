@@ -174,12 +174,11 @@ bool floormat_main::check_chunk_visible(Vector2d offset, Vector2i win) noexcept
     };
 
     // Same mapping used by rendering / pixel_to_tile inverse:
-    // screen = project(world)*2 + win*0.5 + camera_offset
+    // screen = project(world) + win*0.5 + camera_offset
     const Vector2d origin = Vector2d{win}*.5 + offset;
     for (Vector2d& p : rhombus)
         p += origin;
 
-    // Only top vertical expansion by one z tile.
     const Range2Di screen_rect{
         Vector2i{-tile_size_xy, -tile_size_z},
         Vector2i{ tile_size_xy +  win.x(), tile_size_z + win.y()},
