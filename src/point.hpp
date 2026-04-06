@@ -42,6 +42,9 @@ struct point
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     static point normalize_coords(point pt, Vector2i delta);
 
+    friend point operator+(point pt, Vector2i delta);
+    friend point operator+(Vector2i delta, point pt);
+
 private:
     int16_t cx = 0, cy = 0;
     int8_t cz = 0;

@@ -24,6 +24,9 @@ Debug& operator<<(Debug& dbg, const point& pt)
     return dbg;
 }
 
+point operator+(point pt, Vector2i delta) { return point::normalize_coords(pt, delta); }
+point operator+(Vector2i delta, point pt) { return point::normalize_coords(pt, delta); }
+
 namespace {
 template<int tile_size>
 constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
