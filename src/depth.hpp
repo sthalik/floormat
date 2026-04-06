@@ -6,9 +6,6 @@
 
 namespace floormat::Depth {
 
-constexpr inline float startʹ = 1.1920929e-7f;
-constexpr inline float start  = -1 + startʹ; // todo clipcontrol!
-
 constexpr uint32_t value_atʹ(point pixel)
 {
     constexpr uint32_t extra_spacing = 4096;
