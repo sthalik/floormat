@@ -16,7 +16,6 @@
 #include <cmath>
 #include <algorithm>
 #include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Containers/StructuredBindings.h>
 #include <Corrade/Containers/Pair.h>
 #include <Magnum/Math/Functions.h>
 
@@ -24,38 +23,6 @@ namespace floormat {
 
 template class bptr<object>;
 template class bptr<const object>;
-
-namespace {
-
-template<int tile_size>
-constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
-{
-    if constexpr(tile_size > 0 && (tile_size & tile_size-1) == 0)
-    {
-        constexpr int half = tile_size / 2;
-        constexpr int mask = tile_size - 1;
-        constexpr int shift = std::countr_zero((unsigned)tile_size);
-        const int val = cur + new_off + half;
-        return { val >> shift, (int8_t)((val & mask) - half) };
-    }
-    else
-    {
-        constexpr int8_t half_tile = tile_size/2;
-        const int tmp = cur + new_off;
-        auto x = (int8_t)(tmp % tile_size);
-        auto t = tmp / tile_size;
-        auto a = Math::abs(x);
-        auto s = Math::sign(x);
-        bool b = x >= half_tile | x < -half_tile;
-        auto tmask = -(int)b;
-        auto xmask = (int8_t)-(int8_t)b;
-        t += s & tmask;
-        x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
-        return { t, x };
-    }
-}
-
-} // namespace
 
 bool object_proto::operator==(const object_proto&) const = default;
 object_proto::object_proto(const object_proto&) noexcept = default;
@@ -137,19 +104,6 @@ void object::rotate(size_t, rotation new_r)
     const_cast<rotation&>(r) = new_r;
 }
 
-point object::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
-{
-    auto [cx, ox] = normalize_coord<iTILE_SIZE2.x()>(cur.x(), new_off.x());
-    auto [cy, oy] = normalize_coord<iTILE_SIZE2.y()>(cur.y(), new_off.y());
-    coord += Vector2i(cx, cy);
-    return { coord, { ox, oy }, };
-}
-
-point object::normalize_coords(const point& pt, Vector2i delta)
-{
-    return object::normalize_coords(pt.coord(), pt.offset(), delta);
-}
-
 template<bool neighbor = true>
 static bool do_search(class chunk* c, chunk_coords_ coord,
                       object_id id, Vector2 min, Vector2 max, Vector2b off = {})
@@ -183,7 +137,7 @@ static bool do_search(class chunk* c, chunk_coords_ coord,
 bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
                          Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    auto [coord_, offset_] = normalize_coords(coord2, offset, delta);
+    auto [coord_, offset_] = point::normalize_coords(coord2, offset, delta);
 
     if (coord_.z() != coord.z()) [[unlikely]]
         return false;
@@ -268,7 +222,7 @@ bool object::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
         return false;
-    const auto [coord_, offset_] = normalize_coords(coord, offset, delta);
+    const auto [coord_, offset_] = point::normalize_coords(coord, offset, delta);
     teleport_to(i, coord_, offset_, new_r);
     return true;
 }

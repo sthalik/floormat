@@ -107,7 +107,7 @@ struct raycast_test final : base_test
         {
             auto p0 = a.point_screen_pos(result.from),
                  p1 = a.point_screen_pos(result.success
-                                         ? object::normalize_coords(result.from, Vector2i(diag.V))
+                                         ? point::normalize_coords(result.from, Vector2i(diag.V))
                                          : result.collision);
             draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
         }
@@ -117,10 +117,10 @@ struct raycast_test final : base_test
             //auto c = a.point_screen_pos(center);
             //draw.AddCircleFilled({c.x(), c.y()}, 3, color);
             const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
-            auto p00 = a.point_screen_pos(object::normalize_coords(center, {-hx, -hy})),
-                 p10 = a.point_screen_pos(object::normalize_coords(center, {hx, -hy})),
-                 p01 = a.point_screen_pos(object::normalize_coords(center, {-hx, hy})),
-                 p11 = a.point_screen_pos(object::normalize_coords(center, {hx, hy}));
+            auto p00 = a.point_screen_pos(point::normalize_coords(center, {-hx, -hy})),
+                 p10 = a.point_screen_pos(point::normalize_coords(center, {hx, -hy})),
+                 p01 = a.point_screen_pos(point::normalize_coords(center, {-hx, hy})),
+                 p11 = a.point_screen_pos(point::normalize_coords(center, {hx, hy}));
             draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, 2);
             draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 2);
             draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 2);

@@ -3,7 +3,6 @@
 #include "search-constants.hpp"
 #include "search-cache.hpp"
 #include "search-result.hpp"
-#include "object.hpp"
 #include "world.hpp"
 #include "point.inl"
 #include "compat/array-size.hpp"
@@ -260,7 +259,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         {
             constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
             auto off = Vector2i(x, y) * div_size;
-            auto pt = object::normalize_coords({from.coord(), {}}, off);
+            auto pt = point::normalize_coords({from.coord(), {}}, off);
             auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
             auto dist = point::distance(from, pt) + min_dist;
 
@@ -324,7 +323,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             if (dist >= max_dist)
                 continue;
 
-            const auto new_pt = object::normalize_coords(cur_pt, vec);
+            const auto new_pt = point::normalize_coords(cur_pt, vec);
 
             uint32_t f_score = dist + h(new_pt, to);
             if (f_score >= max_dist)

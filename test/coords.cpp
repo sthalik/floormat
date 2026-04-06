@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "src/object.hpp"
 #include "src/point.inl"
 
 namespace floormat {
@@ -8,7 +7,7 @@ namespace {
 
 point norm(const point& pt, Vector2i delta)
 {
-    return object::normalize_coords(pt, delta);
+    return point::normalize_coords(pt, delta);
 };
 
 void test_normalize_point()

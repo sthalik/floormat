@@ -2,14 +2,12 @@
 #include "tile-constants.hpp"
 #include "pass-mode.hpp"
 #include "world.hpp"
-#include "object.hpp"
 #include "RTree-search.hpp"
 #include <cfloat>
 #include <bit>
 #include <cr/StructuredBindings.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
-#include <mg/Vector2.h>
 #include <mg/Timeline.h>
 
 namespace floormat::rc {
@@ -262,13 +260,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if (ret.tmin < min_tmin) [[likely]]
             {
                 min_tmin = ret.tmin;
-                result.collision = object::normalize_coords(from, Vector2i(dir * min_tmin));
+                result.collision = point::normalize_coords(from, Vector2i(dir * min_tmin));
                 result.collider = x;
                 b = false;
             }
         };
 
-        auto center = object::normalize_coords(from, pos);
+        auto center = point::normalize_coords(from, pos);
 
         if constexpr(EnableDiagnostics)
             arrayAppend(diag.path, bbox{center, size});

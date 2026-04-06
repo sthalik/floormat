@@ -80,8 +80,6 @@ struct object : bptr_base
     void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;
-    static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
-    static point normalize_coords(const point& pt, Vector2i delta);
 
     virtual bool is_dynamic() const;
     virtual bool updates_passability() const;

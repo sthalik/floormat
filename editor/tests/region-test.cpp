@@ -1,7 +1,6 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
-#include "src/object.hpp"
 #include "src/world.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
@@ -71,7 +70,7 @@ void region_test::draw_overlay(app& a)
                 if (result.region.bits[index])
                     continue;
                 auto pos = -iTILE_SIZE2/2 + div_size * Vector2i{i, j} + div_size/2;
-                auto pt = object::normalize_coords(start, pos);
+                auto pt = point::normalize_coords(start, pos);
                 auto px = a.point_screen_pos(pt);
                 draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);
             }
