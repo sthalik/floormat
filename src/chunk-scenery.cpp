@@ -30,7 +30,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
     fm_assert(_objects_sorted);
 
-    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
+    const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
 
     if (_scenery_modified)
     {

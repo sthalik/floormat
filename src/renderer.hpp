@@ -10,7 +10,7 @@ namespace floormat::Render {
 
 struct Status
 {
-    bool is_clipcontrol_clipdepth_zero_one_enabled = false;
+    bool is_clipdepth01_enabled = false;
 };
 
 Status get_status();

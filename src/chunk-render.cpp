@@ -49,7 +49,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         return { ground_mesh, _ground->indexes, size_t(ground_mesh.count()/6) };
     _ground_modified = false;
 
-    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
+    const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
 
     size_t count = 0;
     for (auto i = 0uz; i < TILE_COUNT; i++)

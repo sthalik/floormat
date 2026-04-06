@@ -249,7 +249,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const auto pos = local_coords{tile};
     const auto center = Vector3(pos) * TILE_SIZE;
     const auto& dir = A.calc_direction(D);
-    const float depth_start = Render::get_status().is_clipcontrol_clipdepth_zero_one_enabled ? 0.f : -1.f;
+    const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
 
     if constexpr(G == Group_::side) [[unlikely]]

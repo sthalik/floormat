@@ -20,7 +20,7 @@ Status get_status()
 {
     Locker l{spl};
     return {
-        .is_clipcontrol_clipdepth_zero_one_enabled = clipcontrol_clipdepth_zero_one_status,
+        .is_clipdepth01_enabled = clipcontrol_clipdepth_zero_one_status,
     };
 }
 
