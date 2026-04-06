@@ -60,7 +60,7 @@ template<size_t N, typename Fmt, typename... Xs>
 size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 {
     constexpr size_t n = N > 0 ? N - 1 : 0;
-    auto result = fmt::format_to_n(buf, n, forward<Fmt>(fmt), forward<Xs>(args)...);
+    auto result = fmt::format_to_n(buf, n, floormat::forward<Fmt>(fmt), floormat::forward<Xs>(args)...);
     const auto len = n < result.size ? n : result.size;
     fm_assert(len > 0);
 #if 0
