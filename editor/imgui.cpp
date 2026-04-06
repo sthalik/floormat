@@ -312,7 +312,7 @@ void app::do_lightmap_test()
             auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
             if (auto* chunk = w.at(c))
             {
-                auto offset = Vector2(Vector2i(c.x) - Vector2i(x, y));
+                auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
                 for (const auto& eʹ : chunk->objects())
                 {
                     if (eʹ->type() == object_type::light)
