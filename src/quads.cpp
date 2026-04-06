@@ -1,4 +1,8 @@
 #include "quads.hpp"
+#include "depth.hpp"
+#include "renderer.hpp"
+#include <mg/Vector2.h>
+#include <mg/Vector3.h>
 
 namespace floormat::Quads {
 
@@ -34,5 +38,28 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_)
         { x0.x(), 1.f - x0.y() }, // top left
     }};
 }
+
+template<bool LR_1, bool LR_2, bool LR_3, bool LR_4>
+depths depth_quad(point L, point R, int32_t depth_offset)
+{
+    static const float S = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
+
+    const float LR[2] = {
+        Depth::value_at(S, L, depth_offset),
+        Depth::value_at(S, R, depth_offset),
+    };
+
+    return {
+        LR[LR_1],
+        LR[LR_2],
+        LR[LR_3],
+        LR[LR_4],
+    };
+}
+
+template depths depth_quad<>(point, point, int32_t);
+template depths depth_quad<0, 1, 0, 1>(point, point, int32_t);
+template depths depth_quad<1, 0, 1, 0>(point, point, int32_t);
+template depths depth_quad<0, 0, 1, 1>(point, point, int32_t);
 
 } // namespace floormat::Quads
