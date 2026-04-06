@@ -30,7 +30,7 @@ constexpr float value_at(float start, uint32_t pixel, int32_t offset = 0)
     auto i = (int32_t)pixel;
     i += offset;
     fm_debug2_assert(i >= 0);
-    float val = nth_float(start, (uint32_t)i);
+    float val = nth_float(start, 15*(uint32_t)i);
     return val;
 }
 

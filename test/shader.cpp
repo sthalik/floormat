@@ -95,7 +95,7 @@ void test_point()
 
 void test_clip_depth()
 {
-    const volatile float f = Depth::value_at(0, point{most_positive_point});
+    const volatile float f = Depth::value_at(0, point{most_positive_point}, 1024);
     fm_assert(f < 1.0f);
 }
 
