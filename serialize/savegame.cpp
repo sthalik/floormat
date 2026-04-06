@@ -129,7 +129,8 @@ using proto_t  = uint16_t;
 // 24: switch object::offset_frac from Vector2us to uint16_t
 // 25: add hole objects
 // 26: add checksum
-static constexpr proto_t proto_version = 26;
+// 27: add light radius
+static constexpr proto_t proto_version = 27;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -359,6 +360,8 @@ struct visitor_ : visitor_base<IsNewest>
     void visit_object_proto(o_light& s, std::nullptr_t, F&& f)
     {
         visit(s.max_distance, f);
+        if (PROTO >= 27) [[likely]]
+            visit(s.radius, f);
         visit(s.color, f);
         visit(s.falloff, f);
         visit(s.enabled, f);

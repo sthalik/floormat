@@ -14,6 +14,8 @@
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
 #include "loader/loader.hpp"
+#include <tuple>
+#include <fmt/ranges.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/ImGuiIntegration/Context.h>
 #include <imgui.h>
@@ -240,13 +242,19 @@ void app::draw_light_info()
             case light_falloff::quadratic: falloff = "quadratic"_s; break;
             }
 
-            char buf[128];
+            StringView s, s_falloff, s_range, s_radius;
+            char buf[64], buf1[32], buf2[32], buf3[32];
 
-            if (e.falloff == light_falloff::constant || e.max_distance < 1e-6f)
-                snformat(buf, "{}"_cf, falloff);
-            else
-                snformat(buf, "{} range={}"_cf, falloff, e.max_distance);
-            auto text_size = ImGui::CalcTextSize(buf);
+            s_falloff    = { buf1, snformat(buf1, "{}"_cf, falloff) };
+            if (e.max_distance > 0)
+                s_range  = { buf2, snformat(buf2, "range={}"_cf, e.max_distance) };
+            if (e.radius > 0)
+                s_radius = { buf3, snformat(buf3, "radius={}"_cf, e.radius) };
+
+            constexpr auto space = fmt::string_view{" "};
+            s = { buf, snformat(buf, "{}"_cf, fmt::join(std::tuple{s_falloff, s_range, s_radius}, space)) };
+
+            auto text_size = ImGui::CalcTextSize(s.begin(), s.end());
 
             float offy = dest.max().y() + 5 * dpi.y();
             float offx = dest.min().x() + (dest.max().x() - dest.min().x())*.5f - text_size.x*.5f + 9*dpi.x()*.5f;
@@ -258,7 +266,7 @@ void app::draw_light_info()
             draw.AddRectFilled({offx-pad.x - 9 * dpi.x(), offy-pad.y},
                                {offx + text_size.x + pad.x, offy + text_size.y + pad.y},
                                ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
-            draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), buf);
+            draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), s.begin(), s.end());
             draw.AddRectFilled({offx-pad.x - 5 * dpi.x(), offy-pad.y + color_pad_y},
                                {offx-pad.x + 0 * dpi.x(), offy-pad.y + text_size.y - color_pad_y + 1},
                                ImGui::ColorConvertFloat4ToU32({color.x(), color.y(), color.z(), 1}));
@@ -318,6 +326,7 @@ void app::do_lightmap_test()
                         light_s L {
                             .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
                             .dist = li.max_distance,
+                            .radius = li.radius,
                             .color = li.color,
                             .falloff = li.falloff,
                         };

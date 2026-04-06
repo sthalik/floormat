@@ -34,6 +34,7 @@ bool light_proto::operator==(const object_proto& oʹ) const
     const auto& o = static_cast<const light_proto&>(oʹ);
 
     return Math::abs(max_distance - o.max_distance) < 1e-8f &&
+           Math::abs(radius - o.radius) < 1e-8f &&
            color == o.color &&
            falloff == o.falloff &&
            enabled == o.enabled;
@@ -42,6 +43,7 @@ bool light_proto::operator==(const object_proto& oʹ) const
 light::light(object_id id, class chunk& c, const light_proto& proto) :
     object{id, c, proto},
     max_distance{proto.max_distance},
+    radius{proto.radius},
     color{proto.color},
     falloff{proto.falloff},
     enabled{proto.enabled}
@@ -58,6 +60,7 @@ light::operator light_proto() const
     light_proto ret;
     static_cast<object_proto&>(ret) = object_proto(*this);
     ret.max_distance = max_distance;
+    ret.radius = radius;
     ret.color = color;
     ret.falloff = falloff;
     ret.enabled = enabled;

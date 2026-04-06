@@ -18,6 +18,7 @@ struct light_proto : object_proto
     bool operator==(const object_proto&) const override;
 
     float max_distance = 0;
+    float radius = 0;
     Color4ub color{255, 255, 255, 255};
     light_falloff falloff = light_falloff::linear;
     bool enabled = true;
@@ -26,6 +27,7 @@ struct light_proto : object_proto
 struct light final : object
 {
     float max_distance;
+    float radius;
     Color4ub color;
     light_falloff falloff : 2;
     bool enabled : 1;

@@ -12,7 +12,6 @@
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Framebuffer.h>
 #include <Magnum/GL/Mesh.h>
-//#include <Magnum/GL/Renderbuffer.h>
 #include <Magnum/GL/Texture.h>
 
 namespace floormat {
@@ -23,7 +22,7 @@ struct light_s final
 {
     Vector2 center;
     float dist = 1;
-    //float depth = -1 + 1e-4f;
+    float radius = 0;
     Math::Color4<uint8_t> color;
     light_falloff falloff = light_falloff::linear;
 
@@ -39,8 +38,12 @@ struct lightmap_shader final : GL::AbstractShaderProgram
 
     struct Framebuffer final {
         GL::Framebuffer fb{NoCreate};
-        //GL::Renderbuffer depth{NoCreate};
         GL::Texture2D scratch{NoCreate}, accum{NoCreate};
+    };
+
+    struct shadow_vertex {
+        Vector4 segment;      // endpoint_a.xy, endpoint_b.xy
+        Vector2 shadow_coord; // x: endpoint select (0/1), y: near/far (0/1)
     };
 
     void begin_occlusion();
@@ -53,6 +56,10 @@ struct lightmap_shader final : GL::AbstractShaderProgram
 
     GL::Texture2D& accum_texture();
 
+    using Segment    = GL::Attribute<0, Vector4>;
+    using ShadowCoord = GL::Attribute<1, Vector2>;
+
+    // for the full-screen light quad (mode 2)
     using Position = GL::Attribute<0, Vector3>;
 
 private:
@@ -65,9 +72,8 @@ private:
 
     enum ShaderMode : uint32_t
     {
-        DrawShadowsMode   = 0,
-        DrawLightmapMode  = 1,
-        BlendLightmapMode = 2,
+        DrawShadowsMode      = 0,
+        BlendLightmapMode    = 2,
     };
 
     static Framebuffer make_framebuffer(Vector2i size);
@@ -75,14 +81,13 @@ private:
 
     void add_objects(Vector2 neighbor_offset, chunk& c);
     void add_geometry(Vector2 neighbor_offset, chunk& c);
-    void add_rect(Vector2 neighbor_offset, Vector2 min, Vector2 max);
-    void add_rect(Vector2 neighbor_offset, Pair<Vector2, Vector2> minmax);
-    [[nodiscard]] std::array<Vector3, 4>& alloc_rect();
+    void add_segment(Vector2 neighbor_offset, Vector2 endpoint_a, Vector2 endpoint_b);
+    [[nodiscard]] std::array<shadow_vertex, 4>& alloc_quad();
 
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
     GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate},
                block_uniform_buf{GL::Buffer::TargetHint::Uniform, };
-    Array<std::array<Vector3, 4>> vertexes; // todo make a contiguous allocation
+    Array<std::array<shadow_vertex, 4>> vertexes;
     Array<std::array<UnsignedShort, 6>> indexes;
     size_t count = 0, capacity = 0;
     Framebuffer framebuffer;
