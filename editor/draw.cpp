@@ -81,7 +81,7 @@ void app::draw_cursor()
                 auto [ch, t] = w[tile];
                 if (!ch.can_place_object(sel, tile.local()))
                     shader.set_tint({1, 0, 1, 0.5f});
-                anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), 1);
+                anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
             }
         }
         else if (const auto* vo = _editor->current_vobj_editor())
@@ -95,7 +95,7 @@ void app::draw_cursor()
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [_g, _w, anim_mesh] = M->meshes();
                 const auto pos = Vector3i(tile)*iTILE_SIZE;
-                anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), 1);
+                anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
             }
         }
     }

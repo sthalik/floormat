@@ -92,33 +92,42 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         }
         else
         {
-            auto depth = Depth::value_at(depth_start, e.position(), e.depth_offset());
+            const auto& frame = atlas.frame(e.r, e.frame);
+            const auto center_pt = e.position();
+            const int left_offset = -frame.ground.x();
+            const int right_offset = int(frame.size.x()) - frame.ground.x();
+            const auto left_pt  = center_pt + Vector2i{left_offset, 0};
+            const auto right_pt = center_pt + Vector2i{right_offset, 0};
+            auto left_depth  = Depth::value_at(depth_start, left_pt,  e.depth_offset());
+            auto right_depth = Depth::value_at(depth_start, right_pt, e.depth_offset());
             k++;
             if (e.is_virtual()) [[unlikely]]
             {
-                depth = 1;
+                left_depth = 1;
+                right_depth = 1;
                 if (!draw_vobjs) [[likely]]
                     continue;
             }
+            const Quads::depths depth = {right_depth, right_depth, left_depth, left_depth};
             draw(shader, atlas, e.r, e.frame, e.coord.local(), e.offset, depth);
         }
     }
     fm_assert(k == es.size());
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, float depth)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth)
 {
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
     const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
     quad_data array;
     for (auto i = 0uz; i < 4; i++)
-        array[i] = { pos[i], texcoords[i], depth };
+        array[i] = { pos[i], texcoords[i], depth[i] };
     _vertex_buffer.setSubData(0, array);
     shader.draw(atlas.texture(), _mesh);
 }
 
-void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, float depth)
+void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, const Quads::depths& depth)
 {
     const auto pos = Vector3(xy) * TILE_SIZE + Vector3(Vector2(offset), 0);
     draw(shader, atlas, r, frame, pos, depth);
