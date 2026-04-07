@@ -196,7 +196,6 @@ constexpr int32_t depth_offset_for_group(uint32_t depth)
 {
     (void)depth;
     static_assert(G < Group_::COUNT);
-    constexpr auto half_tile = tile_size_xy/2;
     int32_t part_offset = 0;
     switch (G)
     {
@@ -207,7 +206,7 @@ constexpr int32_t depth_offset_for_group(uint32_t depth)
     default:
         break;
     }
-    auto ret = -half_tile + part_offset;
+    auto ret = part_offset;
     return ret;
 }
 
@@ -251,6 +250,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const auto& dir = A.calc_direction(D);
     const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
+    const auto Depthʹ = (float)(int)Depth;
+    constexpr auto half = iTILE_SIZE2/2;
+    constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
 
     if constexpr(G == Group_::side) [[unlikely]]
     {
@@ -279,9 +281,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 const auto frames = A.frames(dir.top);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
-                constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
-                constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-                const auto Depthʹ = (float)(int)Depth;
                 Quads::quad quad = {{
                     {-X - Depthʹ, -Y - Depthʹ, Z},
                     {-X,          -Y - Depthʹ, Z},
@@ -293,77 +292,70 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
-                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
+                const point tile_center {c.coord(), pos, {}};
+                const Quads::depths depth = {
+                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() - (int)Depth}, depth_offset),
+                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y() - (int)Depth}, depth_offset),
+                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
+                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
+                };
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
         }
         if (corner_ok) [[unlikely]]
         {
+            const point tile_center{c.coord(), pos, {}};
+            const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
+
+            Quads::quad quad;
+            if constexpr (!IsWest)
+                quad = {
+                    {
+                        {-X, -Y, 0},
+                        {-X, -Y, Z},
+                        {-X - Depthʹ, -Y, 0},
+                        {-X - Depthʹ, -Y, Z},
+                    }
+                };
+            else
+                quad = {{
+                    {-X, -Y - Depthʹ, 0},
+                    {-X, -Y - Depthʹ, Z},
+                    {-X, -Y, 0},
+                    {-X, -Y, Z},
+                }};
+
+            Quads::depths depth;
+            if constexpr (!IsWest)
+                depth = Quads::depth_quad<0, 0, 1, 1>(tile_center + Vector2i{-half.x(), -half.y()},
+                                                      tile_center + Vector2i{-half.x() - (int)Depth, -half.y()},
+                                                      depth_offset);
+            else
+                depth = Quads::depth_quad(tile_center + Vector2i{-half.x(), -half.y()},
+                                          tile_center + Vector2i{-half.x(), -half.y() - (int)Depth},
+                                          depth_offset);
+
             if (dir.corner.is_defined)
             {
                 const auto frames = A.frames(dir.corner);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
-                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
                 const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
-
-                constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
-                constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-                const auto Depthʹ = (float)(int)Depth;
-                Quads::quad quad = {};
-                if constexpr (!IsWest)
-                    quad = {{
-                        {-X,          -Y, 0},
-                        {-X,          -Y, Z},
-                        {-X - Depthʹ, -Y, 0},
-                        {-X - Depthʹ, -Y, Z},
-                    }};
-                else
-                    quad = {{
-                        {-X, -Y - Depthʹ, 0},
-                        {-X, -Y - Depthʹ, Z},
-                        {-X, -Y,          0},
-                        {-X, -Y,          Z},
-                    }};
-
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if (dir.wall.is_defined) [[likely]]
             {
                 const auto frames = A.frames(dir.wall);
-                const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
-                const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
                 const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
                 fm_assert(frame.size.x() > Depth);
                 auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
                 const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, A.image_size());
-
-                constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
-                constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-                const auto Depthʹ = (float)(int)Depth;
-                Quads::quad quad = {};
-                if constexpr (!IsWest)
-                    quad = {{
-                        {-X,          -Y, 0},
-                        {-X,          -Y, Z},
-                        {-X - Depthʹ, -Y, 0},
-                        {-X - Depthʹ, -Y, Z},
-                    }};
-                else
-                    quad = {{
-                        {-X, -Y - Depthʹ, 0},
-                        {-X, -Y - Depthʹ, Z},
-                        {-X, -Y,          0},
-                        {-X, -Y,          Z},
-                    }};
-
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
         }
     }
@@ -375,12 +367,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto frames = A.frames(group);
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
-        const auto depth = Depth::value_at(depth_start, {c.coord(), pos, {}}, depth_offset);
 
-        constexpr Vector2 half_tile = TILE_SIZE2 * .5f;
-        constexpr float X = half_tile.x(), Y = half_tile.y(), Z = TILE_SIZE.z();
-        const auto Depthʹ = (float)(int)Depth;
         const auto image_size = A.image_size();
+        const point tile_center {c.coord(), pos, {}};
 
         for (const auto& frag : fragdata)
         {
@@ -402,7 +391,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     continue;
                 const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, image_size);
 
-                Quads::quad quad = {};
+                Quads::quad quad;
                 if constexpr (!IsWest)
                     quad = {{
                         { X - re.x(), -Y, rs.y()},
@@ -418,9 +407,19 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                         {-X,  Y - re.x(), Z - re.y()},
                     }};
 
+                Quads::depths depth;
+                if constexpr (!IsWest)
+                    depth = Quads::depth_quad(tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()},
+                                              tile_center + Vector2i{half.x() - (int)re.x(), -half.y()},
+                                              depth_offset);
+                else
+                    depth = Quads::depth_quad(tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
+                                              tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()},
+                                              depth_offset);
+
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if constexpr (G == Group_::side)
             {
@@ -433,7 +432,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto frag_x1 =  X - re.x();
                 const auto frag_y1 =  Y - re.x();
 
-                Quads::quad quad = {};
+                Quads::quad quad;
                 if constexpr (!IsWest)
                     quad = {{
                         {frag_x1, -Y - Depthʹ, rs.y()},
@@ -449,9 +448,19 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                         {-X - Depthʹ, frag_y1, Z - re.y()},
                     }};
 
+                Quads::depths depth;
+                if constexpr (!IsWest)
+                    depth = Quads::depth_quad<0,0,1,1>(tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth},
+                                                       tile_center + Vector2i{half.x() - (int)re.x(), -half.y()},
+                                                       depth_offset);
+                else
+                    depth = Quads::depth_quad<0,0,1,1>(tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
+                                                       tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()},
+                                                       depth_offset);
+
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if constexpr (G == Group_::top)
             {
@@ -462,7 +471,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, image_size);
 
                 const auto frag_z = Z - re.y();
-                Quads::quad quad = {};
+                Quads::quad quad;
                 if constexpr (!IsWest)
                     quad = {{
                         {-X + rs.x(), -Y - Depthʹ, frag_z},
@@ -478,37 +487,28 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                         {-X - Depthʹ,  Y - re.x(), frag_z},
                     }};
 
+                Quads::depths depth;
+                if constexpr (!IsWest)
+                    depth = {
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y() - (int)Depth}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{half.x() - (int)re.x(), -half.y()}, depth_offset),
+                    };
+                else
+                    depth = {
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), half.y() - (int)re.x()}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() + (int)rs.x()}, depth_offset),
+                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()}, depth_offset),
+                    };
+
                 auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
+                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else
-            {
-                static_assert(G == Group_::corner);
-                if (&frag != fragdata.data())
-                    continue;
-
-                const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, image_size);
-                Quads::quad quad = {};
-                if constexpr (!IsWest)
-                    quad = {{
-                        {-X,          -Y, 0},
-                        {-X,          -Y, Z},
-                        {-X - Depthʹ, -Y, 0},
-                        {-X - Depthʹ, -Y, Z},
-                    }};
-                else
-                    quad = {{
-                        {-X, -Y - Depthʹ, 0},
-                        {-X, -Y - Depthʹ, Z},
-                        {-X, -Y,          0},
-                        {-X, -Y,          Z},
-                    }};
-
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
-                for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth};
-            }
+                static_assert(false);
         }
     }
 }
