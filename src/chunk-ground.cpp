@@ -68,7 +68,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
               });
 
     auto& vertexes = static_vertexes;
-    const float depth = Depth::value_at(depth_start, point{_coord, {}, {}}, -tile_size_xy);
+    const float depth = Depth::value_at(depth_start, point{_coord, {}, {}}, -tile_size_xy * 4);
 
     for (auto k = 0u; k < count; k++)
     {
