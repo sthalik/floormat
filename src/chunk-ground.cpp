@@ -13,26 +13,24 @@
 
 namespace floormat {
 
-using namespace floormat::Quads;
-
 namespace {
 
-static Array<std::array<chunk::vertex, 4>> static_vertexes{NoInit, TILE_COUNT};
+Array<Quads::vertexes> static_vertexes{NoInit, TILE_COUNT};
 
 } // namespace
 
 template<size_t N>
-std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT>
+std::array<Quads::indexes, N*TILE_COUNT>
 chunk::make_index_array(size_t max)
 {
-    std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
+    std::array<Quads::indexes, N*TILE_COUNT> array; // NOLINT(cppcoreguidelines-pro-type-member-init)
     for (auto i = 0uz; i < max; i++)
-        array[i] = quad_indexes(i);
+        array[i] = Quads::quad_indexes(i);
     return array;
 }
 
-template std::array<std::array<UnsignedShort, 6>, 1*TILE_COUNT> chunk::make_index_array<1>(size_t);
-template std::array<std::array<UnsignedShort, 6>, 2*TILE_COUNT> chunk::make_index_array<2>(size_t);
+template std::array<Quads::indexes, 1*TILE_COUNT> chunk::make_index_array<1>(size_t);
+template std::array<Quads::indexes, 2*TILE_COUNT> chunk::make_index_array<2>(size_t);
 
 void chunk::ensure_alloc_ground()
 {
@@ -75,7 +73,7 @@ auto chunk::ensure_ground_mesh() noexcept -> ground_mesh_tuple
         const uint8_t i = _ground->indexes[k];
         const auto& atlas = _ground->atlases[i];
         const local_coords pos{i};
-        const auto quad = floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
+        const auto quad = Quads::floor_quad(Vector3(pos) * TILE_SIZE, TILE_SIZE2);
         const auto texcoords = atlas->texcoords_for_id(_ground->variants[i] % _ground->atlases[i]->num_tiles());
         auto& v = vertexes[k];
         for (auto j = 0uz; j < 4; j++)

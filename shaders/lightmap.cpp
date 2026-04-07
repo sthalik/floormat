@@ -24,8 +24,6 @@
 
 namespace floormat {
 
-using namespace floormat::Quads;
-
 namespace {
 
 constexpr auto neighbor_count = 4;
@@ -148,12 +146,12 @@ std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
         auto vertexes_ = move(vertexes);
         auto indexes_ = move(indexes);
         vertexes = Array<std::array<shadow_vertex, 4>>{ValueInit, capacity};
-        indexes = Array<std::array<UnsignedShort, 6>>{ValueInit, capacity};
+        indexes = Array<Quads::indexes>{ValueInit, capacity};
         for (auto i = 0uz; i < count; i++)
             vertexes[i] = vertexes_[i];
         for (auto i = 0uz; i < count; i++)
             indexes[i] = indexes_[i];
-        indexes[count] = quad_indexes(count);
+        indexes[count] = Quads::quad_indexes(count);
         auto& ret = vertexes[count];
         count++;
         return ret;
@@ -162,7 +160,7 @@ std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
     {
         fm_debug_assert(count < capacity);
         auto& ret = vertexes[count];
-        indexes[count] = quad_indexes(count);
+        indexes[count] = Quads::quad_indexes(count);
         count++;
         return ret;
     }
@@ -189,13 +187,13 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
 
     framebuffer = make_framebuffer(Vector2i((int)real_image_size));
 
-    auto blend_vertexes = quad {{
+    auto blend_vertexes = Quads::quad {{
         {  1, -1, 0 }, /* 3--1  1 */
         {  1,  1, 0 }, /* | /  /| */
         { -1, -1, 0 }, /* |/  / | */
         { -1,  1, 0 }, /* 2  2--0 */
     }};
-    light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{quad_indexes(0)});
+    light_mesh = make_light_mesh(GL::Buffer{blend_vertexes}, GL::Buffer{Quads::quad_indexes(0)});
 
     setUniform(SamplerUniform, 0);
     setUniform(ModeUniform, DrawShadowsMode);

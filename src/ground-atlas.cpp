@@ -15,8 +15,6 @@ namespace floormat {
 template class bptr<ground_atlas>;
 template class bptr<const ground_atlas>;
 
-using namespace floormat::Quads;
-
 ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     _def{move(info)}, _path{make_path(_def.name)},
     _texcoords{make_texcoords_array(Vector2ui(image.size()), _def.size)},
@@ -48,7 +46,7 @@ auto ground_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, si
     const auto sz = pixel_size/Vector2ui{tile_count};
     const auto id = Vector2ui{ uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
     const auto p0 = id * sz;
-    return texcoords_at(p0, sz, pixel_size);
+    return Quads::texcoords_at(p0, sz, pixel_size);
 }
 
 auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> Array<texcoords>

@@ -181,10 +181,10 @@ ArrayView<const Quads::indexes> make_indexes(uint32_t count)
     return array.prefix(count);
 }
 
-Array<std::array<chunk::vertex, 4>>& make_vertexes()
+Array<Quads::vertexes>& make_vertexes()
 {
     static auto array = [] {
-        Array<std::array<chunk::vertex, 4>> array;
+        Array<Quads::vertexes> array;
         arrayReserve(array, 32);
         return array;
     }();
@@ -221,7 +221,7 @@ Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, var
 
 Array<HoleData> hole_data;
 
-std::array<chunk::vertex, 4>& alloc_wall_vertexes(uint32_t& N, auto& V, auto& M, uint32_t k)
+Quads::vertexes& alloc_wall_vertexes(uint32_t& N, auto& V, auto& M, uint32_t k)
 {
     constexpr uint32_t reserve = 15, mask = ~reserve;
     const auto i = N, sz = ++N + reserve & mask;
@@ -236,7 +236,7 @@ Array<WallFragment> fragdata;
 
 template<Group_ G, bool IsWest>
 void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
-                  Array<std::array<chunk::vertex, 4>>& vertexes,
+                  Array<Quads::vertexes>& vertexes,
                   global_coords coord, uint32_t& N, uint32_t tile)
 {
     if (!group.is_defined)

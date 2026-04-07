@@ -6,6 +6,7 @@
 #include "global-coords.hpp"
 #include "search-pred.hpp"
 #include "hole-cut.hpp"
+#include "quads.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Pointer.h>
@@ -72,12 +73,6 @@ public:
     struct scenery_mesh_tuple;
     struct scenery_scratch_buffers;
     struct pass_region;
-
-    struct vertex {
-        Vector3 position;
-        Vector2 texcoords;
-        float depth = -1;
-    };
 
     using RTree = ::RTree<object_id, float, 2, float>;
 
@@ -177,7 +172,7 @@ private:
 
     GL::Mesh make_wall_mesh();
 
-    template<size_t N> static std::array<std::array<UnsignedShort, 6>, N*TILE_COUNT> make_index_array(size_t max);
+    template<size_t N> static std::array<Quads::indexes, N*TILE_COUNT> make_index_array(size_t max);
 };
 
 } // namespace floormat

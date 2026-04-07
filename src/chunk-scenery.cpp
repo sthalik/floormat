@@ -14,13 +14,11 @@
 
 namespace floormat {
 
-using namespace floormat::Quads;
-
 auto chunk::ensure_scenery_mesh() noexcept -> scenery_mesh_tuple
 {
     Array<object_draw_order> array;
-    Array<std::array<vertex, 4>> scenery_vertexes;
-    Array<std::array<UnsignedShort, 6>> scenery_indexes;
+    Array<Quads::vertexes> scenery_vertexes;
+    Array<Quads::indexes> scenery_indexes;
     return ensure_scenery_mesh({array, scenery_vertexes, scenery_indexes});
 }
 
@@ -98,14 +96,14 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             scenery_vertexes[i][1] = { right_split_pos,  right_split_uv,  front_depth };  // right split
             scenery_vertexes[i][2] = { quad[2],          texcoords[2],    front_depth };  // BL
             scenery_vertexes[i][3] = { left_split_pos,   left_split_uv,   front_depth };  // left split
-            scenery_indexes[i] = quad_indexes(i);
+            scenery_indexes[i] = Quads::quad_indexes(i);
 
             // back quad (above slope line, further from camera)
             scenery_vertexes[i+1][0] = { right_split_pos,  right_split_uv,  back_depth };  // right split
             scenery_vertexes[i+1][1] = { quad[1],          texcoords[1],    back_depth };  // TR
             scenery_vertexes[i+1][2] = { left_split_pos,   left_split_uv,   back_depth };  // left split
             scenery_vertexes[i+1][3] = { quad[3],          texcoords[3],    back_depth };  // TL
-            scenery_indexes[i+1] = quad_indexes(i+1);
+            scenery_indexes[i+1] = Quads::quad_indexes(i+1);
             // --- end slope split ---
 
             i += 2;
@@ -117,8 +115,8 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
         else
         {
             GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-            auto vert_view = ArrayView<const std::array<vertex, 4>>{scenery_vertexes, quad_count};
-            auto index_view = ArrayView<const std::array<UnsignedShort, 6>>{scenery_indexes, quad_count};
+            auto vert_view = ArrayView<const Quads::vertexes>{scenery_vertexes, quad_count};
+            auto index_view = ArrayView<const Quads::indexes>{scenery_indexes, quad_count};
             mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
                 .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
                 .setCount(int32_t(6 * quad_count));
@@ -158,8 +156,8 @@ void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
         len = std::bit_ceil(lenʹ);
 
     bufs.array = Array<object_draw_order>{NoInit, len};
-    bufs.scenery_vertexes = Array<std::array<vertex, 4>>{NoInit, len};
-    bufs.scenery_indexes = Array<std::array<UnsignedShort, 6>>{NoInit, len};
+    bufs.scenery_vertexes = Array<Quads::vertexes>{NoInit, len};
+    bufs.scenery_indexes = Array<Quads::indexes>{NoInit, len};
 }
 
 } // namespace floormat

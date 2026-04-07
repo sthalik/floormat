@@ -1,13 +1,21 @@
 #pragma once
 #include <array>
+#include <mg/Vector3.h>
 
 namespace floormat { struct point; }
 
 namespace floormat::Quads {
 
+struct vertex {
+    Vector3 position;
+    Vector2 texcoords;
+    float depth = -1;
+};
+
 using quad = std::array<Vector3, 4>;
 using texcoords = std::array<Vector2, 4>;
 using indexes = std::array<UnsignedShort, 6>;
+using vertexes = std::array<vertex, 4>;
 using depths = std::array<float, 4>;
 
 quad floor_quad(Vector3 center, Vector2 size);

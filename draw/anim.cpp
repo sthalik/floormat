@@ -18,7 +18,7 @@ namespace floormat {
 
 namespace {
 
-std::array<UnsignedShort, 6> make_index_array()
+Quads::indexes make_index_array()
 {
     return {{
         0, 1, 2,

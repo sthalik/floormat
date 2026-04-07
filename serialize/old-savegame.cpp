@@ -140,8 +140,8 @@ private:
     loader_policy asset_policy;
 
     Array<chunk::object_draw_order> draw_array;
-    Array<std::array<chunk::vertex, 4>> draw_vertexes;
-    Array<std::array<UnsignedShort, 6>> draw_indexes;
+    Array<Quads::vertexes> draw_vertexes;
+    Array<Quads::indexes> draw_indexes;
 };
 
 reader_state::reader_state(world& world, loader_policy p) noexcept : _world{&world}, asset_policy{p} {}

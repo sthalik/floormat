@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/light-falloff.hpp"
+#include "src/quads.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
@@ -88,7 +89,7 @@ private:
     GL::Buffer vertex_buf{NoCreate}, index_buf{NoCreate},
                block_uniform_buf{GL::Buffer::TargetHint::Uniform, };
     Array<std::array<shadow_vertex, 4>> vertexes;
-    Array<std::array<UnsignedShort, 6>> indexes;
+    Array<Quads::indexes> indexes;
     size_t count = 0, capacity = 0;
     Framebuffer framebuffer;
     GL::Mesh occlusion_mesh{NoCreate};
