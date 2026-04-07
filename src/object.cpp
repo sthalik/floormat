@@ -314,6 +314,8 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
         c->_replace_bbox_dynamic(bb0, bb, b0, b);
     if (!c->are_walls_modified() && upd_walls)
         c->mark_walls_modified();
+    if (!dyn && !is_virtual())
+        c->mark_scenery_modified();
 }
 
 bool object::can_activate(size_t) const { return false; }

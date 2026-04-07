@@ -58,24 +58,70 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
             const auto quad = atlas->frame_quad(coord, fr.r, fr.frame);
             const auto& group = atlas->group(fr.r);
             const auto texcoords = atlas->texcoords_for_frame(fr.r, fr.frame, !group.mirror_from.isEmpty());
-            const float depth = Depth::value_at(depth_start, e->position(), e->depth_offset());
+            const float back_depth  = Depth::value_at(depth_start, e->position(), e->depth_offset());
+            const float front_depth = Depth::value_at(depth_start, e->position(), e->depth_offset() + 2);
 
-            for (auto j = 0u; j < 4; j++)
-                scenery_vertexes[i][j] = { quad[j], texcoords[j], depth };
+            // --- slope-based sprite split ---
+            const auto& frame = atlas->frame(fr.r, fr.frame);
+            const auto bb_half = Vector2(e->bbox_size) * 0.5f;
+            const float denom = bb_half.x() + bb_half.y();
+            const float slope = denom > 0.f
+                ? tile_shader::foreshortening_factor * (bb_half.x() - bb_half.y()) / denom
+                : 0.f;
+
+            // bbox center screen offset from projected object center
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e->bbox_offset), 0.f));
+
+            // sprite screen extent (pixel offsets from projected center)
+            const float left_x   = float(-frame.ground.x());
+            const float right_x  = float(frame.size.x()) - float(frame.ground.x());
+            const float sprite_h = float(frame.size.y());
+            const float bottom_y = float(frame.size.y()) - float(frame.ground.y());
+
+            // slope line y-value at left and right sprite edges
+            const float y_at_left  = bbox_scr.y() + slope * (left_x  - bbox_scr.x());
+            const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
+
+            // t-values on left/right edges: 0 = bottom, 1 = top
+            const float t_left  = Math::clamp((bottom_y - y_at_left)  / sprite_h, 0.f, 1.f);
+            const float t_right = Math::clamp((bottom_y - y_at_right) / sprite_h, 0.f, 1.f);
+
+            // split points on left edge (BL→TL) and right edge (BR→TR)
+            // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
+            const auto right_split_uv  = texcoords[0] + t_right * (texcoords[1] - texcoords[0]);
+            const auto right_split_pos = quad[0]      + t_right * (quad[1]      - quad[0]);
+            const auto left_split_uv   = texcoords[2] + t_left  * (texcoords[3] - texcoords[2]);
+            const auto left_split_pos  = quad[2]      + t_left  * (quad[3]      - quad[2]);
+
+            // front quad (below slope line, closer to camera)
+            scenery_vertexes[i][0] = { quad[0],          texcoords[0],    front_depth };  // BR
+            scenery_vertexes[i][1] = { right_split_pos,  right_split_uv,  front_depth };  // right split
+            scenery_vertexes[i][2] = { quad[2],          texcoords[2],    front_depth };  // BL
+            scenery_vertexes[i][3] = { left_split_pos,   left_split_uv,   front_depth };  // left split
             scenery_indexes[i] = quad_indexes(i);
-            i++;
+
+            // back quad (above slope line, further from camera)
+            scenery_vertexes[i+1][0] = { right_split_pos,  right_split_uv,  back_depth };  // right split
+            scenery_vertexes[i+1][1] = { quad[1],          texcoords[1],    back_depth };  // TR
+            scenery_vertexes[i+1][2] = { left_split_pos,   left_split_uv,   back_depth };  // left split
+            scenery_vertexes[i+1][3] = { quad[3],          texcoords[3],    back_depth };  // TL
+            scenery_indexes[i+1] = quad_indexes(i+1);
+            // --- end slope split ---
+
+            i += 2;
         }
 
-        if (count == 0)
+        const auto quad_count = count * 2;
+        if (quad_count == 0)
             scenery_mesh = GL::Mesh{NoCreate};
         else
         {
             GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-            auto vert_view = ArrayView<const std::array<vertex, 4>>{scenery_vertexes, count};
-            auto index_view = ArrayView<const std::array<UnsignedShort, 6>>{scenery_indexes, count};
+            auto vert_view = ArrayView<const std::array<vertex, 4>>{scenery_vertexes, quad_count};
+            auto index_view = ArrayView<const std::array<UnsignedShort, 6>>{scenery_indexes, quad_count};
             mesh.addVertexBuffer(GL::Buffer{vert_view}, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
                 .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
-                .setCount(int32_t(6 * count));
+                .setCount(int32_t(6 * quad_count));
             scenery_mesh = move(mesh);
         }
     }
@@ -85,8 +131,9 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
     uint32_t j = 0, i = 0;
     for (const auto& e : _objects)
     {
-        auto index = e->is_dynamic() ? (uint32_t)-1 : j++;
+        auto index = e->is_dynamic() ? (uint32_t)-1 : j;
         array[i++] = { e.get(), index };
+        if (!e->is_dynamic()) j += 2;
     }
     std::sort(array.data(), array.data() + i,
               [d=depth_start](const object_draw_order& a, const object_draw_order& b) {
@@ -98,7 +145,7 @@ auto chunk::ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept -> sce
 
 void chunk::ensure_scenery_buffers(scenery_scratch_buffers bufs)
 {
-    const size_t lenʹ = _objects.size();
+    const size_t lenʹ = _objects.size() * 2;
 
     if (lenʹ <= bufs.array.size())
         return;

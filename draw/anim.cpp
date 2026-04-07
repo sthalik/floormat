@@ -84,14 +84,11 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
         fm_assert(e.is_dynamic() == (x.mesh_idx == (uint32_t)-1));
         if (!e.is_dynamic())
         {
-            const auto r = minmax_s{1, x.mesh_idx};
-            uint32_t count = r.len;
             GL::MeshView mesh{mesh_};
-            mesh.setCount(quad_index_count * (Int)count);
-            mesh.setIndexOffset((int)(r.min*quad_index_count), 0, max_index);
+            mesh.setCount(quad_index_count * 2);
+            mesh.setIndexOffset((int)(x.mesh_idx*quad_index_count), 0, max_index);
             shader.draw(atlas.texture(), mesh);
-            //if (count > 1) Debug{} << "foo" << atlas.name() << count;
-            k += count;
+            k++;
         }
         else
         {
