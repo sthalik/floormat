@@ -25,7 +25,7 @@ constexpr uint32_t value_atʹ(point pixel)
     return sum;
 }
 
-constexpr float value_at(float start, uint32_t pixel, int32_t offset = 0)
+constexpr float value_at(float start, uint32_t pixel, int32_t offset)
 {
     auto i = (int32_t)pixel;
     i += offset;
@@ -34,7 +34,7 @@ constexpr float value_at(float start, uint32_t pixel, int32_t offset = 0)
     return val;
 }
 
-constexpr float value_at(float start, point pixel, int32_t offset = 0)
+constexpr float value_at(float start, point pixel, int32_t offset)
 {
     auto i = value_atʹ(pixel);
     return value_at(start, i, offset);

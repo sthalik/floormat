@@ -27,6 +27,7 @@ class astar;
 struct point;
 struct z_bounds;
 struct draw_bounds;
+class SpriteBatch;
 
 struct floormat_main
 {
@@ -35,6 +36,7 @@ struct floormat_main
         ground_mesh& ground;
         wall_mesh& wall;
         anim_mesh& anim;
+        SpriteBatch& sb;
     };
 
     floormat_main() noexcept;

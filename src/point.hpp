@@ -26,6 +26,7 @@ struct point
     friend constexpr std::strong_ordering operator<=>(const point& a, const point& b);
     friend constexpr Vector2i operator-(const point& p1, const point& p2);
     constexpr explicit operator Vector3i() const;
+    constexpr explicit operator Vector3() const;
 
     constexpr global_coords coord() const;
     constexpr chunk_coords chunk() const;

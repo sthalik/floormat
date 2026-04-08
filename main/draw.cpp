@@ -129,9 +129,12 @@ void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunk
         if (!cʹ)
             continue;
         auto& c = *cʹ;
-
-        const with_shifted_camera_offset o{_shader, ch};
-        if (check_chunk_visible(_shader.camera_offset(), window_size))
+        bool is_visible;
+        {
+            const with_shifted_camera_offset o{_shader, ch};
+            is_visible = check_chunk_visible(_shader.camera_offset(), window_size);
+        }
+        if (is_visible)
             fun(c, ch.x, ch.y, ch.z);
     }
 }
@@ -144,9 +147,9 @@ void main_impl::draw_world() noexcept
 
     arrayResize(_clickable_scenery, 0);
 #ifdef FM_USE_DEPTH32
-        framebuffer.fb.clearDepth(0);
+    framebuffer.fb.clearDepth(0);
 #else
-        GL::defaultFramebuffer.clearDepth(0);
+    GL::defaultFramebuffer.clearDepth(0);
 #endif
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::setDepthMask(true);
@@ -154,17 +157,22 @@ void main_impl::draw_world() noexcept
     bind();
 
     draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
-                     _ground_mesh.draw(_shader, c);
-                     _wall_mesh.draw(_shader, c);
+                    const with_shifted_camera_offset o{_shader, c.coord()};
+                    _ground_mesh.draw(_shader, c);
+                    _wall_mesh.draw(_shader, c);
                  },
                  chunks, sz, z_bounds.only, z_bounds.cur);
 
     GL::Renderer::setDepthMask(false);
+    _sprite_batch.clear();
+    draw_world_0(
+        [&](chunk& c, int16_t, int16_t, int8_t) {
+            c.ensure_scenery_mesh(_sprite_batch, _do_render_vobjs);
+            c.add_clickables(_shader, sz, _clickable_scenery, _do_render_vobjs);
+        },
+        chunks, sz, z_bounds.only, z_bounds.cur);
 
-    draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
-                     _anim_mesh.draw(_shader, sz, c, _clickable_scenery, _do_render_vobjs);
-                 },
-                 chunks, sz, z_bounds.only, z_bounds.cur);
+    _sprite_batch.draw(_shader);
 
     _shader.set_tint({1, 1, 1, 1});
     GL::Renderer::setDepthMask(true);
