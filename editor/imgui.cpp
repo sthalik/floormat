@@ -14,6 +14,7 @@
 #include "imgui-raii.hpp"
 #include "src/light.hpp"
 #include "loader/loader.hpp"
+#include "src/point.inl"
 #include <tuple>
 #include <fmt/ranges.h>
 #include <Magnum/GL/Renderer.h>
@@ -211,6 +212,45 @@ void app::draw_clickables()
         auto min = dest.min(), max = dest.max();
         draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
                      color, 0, ImDrawFlags_None, thickness);
+    }
+
+    // draw slope lines on static scenery
+    const auto& shader = M->shader();
+    const auto win_size = M->window_size();
+    for (const auto& [coord, ch] : M->world().chunks())
+    {
+        for (const auto& eʹ : ch.objects())
+        {
+            const auto& e = *eʹ;
+
+            if (e.is_dynamic())
+                continue;
+
+            constexpr auto f = tile_shader::foreshortening_factor;
+            const auto& atlas = e.atlas;
+            const auto& frame = atlas->frame(e.r, e.frame);
+            const auto bb_half = Vector2(e.bbox_size) * 0.5f;
+            const float denom = bb_half.x() + bb_half.y();
+            const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
+
+            // bbox center screen offset from projected object center
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(eʹ->bbox_offset), 0.f));
+
+            // sprite screen extent (pixel offsets from projected center)
+            const float left_x   = float(-frame.ground.x());
+            const float right_x  = float(frame.size.x()) - float(frame.ground.x());
+
+            // slope line y-value at left and right sprite edges
+            const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
+            const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
+
+            const Vector2 offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
+                                 + shader.project(Vector3(e.position())) - Vector2(frame.ground));
+            const auto center = offset + Vector2(frame.ground);
+            const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
+            const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
+            draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);
+        }
     }
 }
 

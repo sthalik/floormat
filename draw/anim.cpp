@@ -1,7 +1,7 @@
 #include "anim.hpp"
 #include "src/tile-constants.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/chunk.hpp"
+//#include "src/chunk.hpp"
 #include "shaders/shader.hpp"
 #include "main/clickable.hpp"
 #include "src/chunk-scenery.hpp"
@@ -63,6 +63,7 @@ void anim_mesh::add_clickable(tile_shader& shader, const Vector2i& win_size, obj
     }
 }
 
+#if 0
 void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Array<clickable>& list, bool draw_vobjs)
 {
     constexpr auto quad_index_count = 6;
@@ -114,6 +115,7 @@ void anim_mesh::draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Ar
     }
     fm_assert(k == es.size());
 }
+#endif
 
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth)
 {
@@ -127,10 +129,12 @@ void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t 
     shader.draw(atlas.texture(), _mesh);
 }
 
+#if 0
 void anim_mesh::draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, const Quads::depths& depth)
 {
     const auto pos = Vector3(xy) * TILE_SIZE + Vector3(Vector2(offset), 0);
     draw(shader, atlas, r, frame, pos, depth);
 }
+#endif
 
 } // namespace floormat

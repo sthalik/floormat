@@ -77,4 +77,6 @@ constexpr point::operator Vector3i() const
     return val;
 }
 
+constexpr point::operator Vector3() const { return Vector3{Vector3i(*this)}; }
+
 } // namespace floormat

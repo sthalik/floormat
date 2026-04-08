@@ -539,7 +539,6 @@ void reader_state::preload_chunks()
         fm_assert(c);
         c->ensure_ground_mesh();
         c->ensure_wall_mesh();
-        c->ensure_scenery_mesh({ draw_array, draw_vertexes, draw_indexes });
         c->ensure_passability();
     }
 }

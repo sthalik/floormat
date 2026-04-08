@@ -345,8 +345,6 @@ void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
 
 bool chunk::can_place_object(const object_proto& proto, local_coords pos)
 {
-    (void)ensure_scenery_mesh();
-
     fm_assert(proto.pass < pass_mode::COUNT);
     switch (proto.pass)
     {

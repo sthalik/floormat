@@ -22,13 +22,13 @@ class chunk;
 struct clickable;
 struct object;
 
-struct anim_mesh
+struct anim_mesh // todo remove it
 {
     anim_mesh();
 
-    void draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Array<clickable>& list, bool draw_vobjs);
+    //void draw(tile_shader& shader, const Vector2i& win_size, chunk& c, Array<clickable>& list, bool draw_vobjs);
     void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& pos, const Quads::depths& depth);
-    void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, const Quads::depths& depth);
+    //void draw(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, local_coords xy, Vector2b offset, const Quads::depths& depth);
     static void add_clickable(tile_shader& shader, const Vector2i& win_size, object* s, Array<clickable>& list);
 
 private:

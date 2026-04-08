@@ -165,28 +165,22 @@ bool floormat_main::check_chunk_visible(Vector2d offset, Vector2i win) noexcept
 {
     // Chunk footprint in world XY, projected to an isometric rhombus.
     constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
+    const Vector2d origin = Vector2d{win}*.5 + offset;
 
     std::array<Vector2d, 4> rhombus = {
-        tile_shader::project(Vector3d{0.,       0.,       0.}),
-        tile_shader::project(Vector3d{len.x(),  0.,       0.}),
-        tile_shader::project(Vector3d{len.x(),  len.y(),  0.}),
-        tile_shader::project(Vector3d{0.,       len.y(),  0.}),
+        tile_shader::project(Vector3d{0.,       0.,       0.}) + origin,
+        tile_shader::project(Vector3d{len.x(),  0.,       0.}) + origin,
+        tile_shader::project(Vector3d{len.x(),  len.y(),  0.}) + origin,
+        tile_shader::project(Vector3d{0.,       len.y(),  0.}) + origin,
     };
 
     // Same mapping used by rendering / pixel_to_tile inverse:
     // screen = project(world) + win*0.5 + camera_offset
-    const Vector2d origin = Vector2d{win}*.5 + offset;
-    for (Vector2d& p : rhombus)
-        p += origin;
 
     const Range2Di screen_rect{
         Vector2i{-tile_size_xy, -tile_size_z},
-        Vector2i{ tile_size_xy +  win.x(), tile_size_z + win.y()},
+        Vector2i{ tile_size_xy + win.x(), win.y()},
     };
-
-#if 0
-    DBG << "rhombus" << rhombus;
-#endif
 
     return sat_rhombus_vs_rect(rhombus, screen_rect);
 }

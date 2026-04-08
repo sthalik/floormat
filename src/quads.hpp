@@ -9,7 +9,7 @@ namespace floormat::Quads {
 struct vertex {
     Vector3 position;
     Vector2 texcoords;
-    float depth = -1;
+    float depth;
 };
 
 using quad = std::array<Vector3, 4>;

@@ -6,11 +6,13 @@
 #include "global-coords.hpp"
 #include "search-pred.hpp"
 #include "hole-cut.hpp"
-#include "quads.hpp"
+#include "sprite-list.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/GL/Mesh.h>
+
+namespace floormat::Quads { using indexes = std::array<UnsignedShort, 6>; }
 
 namespace floormat {
 
@@ -20,6 +22,9 @@ struct object;
 struct object_proto;
 class tile_iterator;
 class tile_const_iterator;
+class SpriteBatch;
+struct tile_shader;
+struct clickable;
 
 class chunk final
 {
@@ -71,7 +76,6 @@ public:
     };
     struct object_draw_order;
     struct scenery_mesh_tuple;
-    struct scenery_scratch_buffers;
     struct pass_region;
 
     using RTree = ::RTree<object_id, float, 2, float>;
@@ -83,8 +87,10 @@ public:
     wall_atlas* wall_atlas_at(size_t i) const noexcept;
     wall_mesh_tuple ensure_wall_mesh() noexcept;
 
-    scenery_mesh_tuple ensure_scenery_mesh(scenery_scratch_buffers buffers) noexcept;
-    scenery_mesh_tuple ensure_scenery_mesh() noexcept;
+    SpriteList scenery_static_mesh;
+
+    void ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs);
+    void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
 
     void ensure_passability() noexcept;
     RTree* rtree() noexcept;
@@ -124,7 +130,7 @@ private:
     Pointer<wall_stuff> _walls;
     Array<bptr<object>> _objects;
     class world* _world;
-    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate}, scenery_mesh{NoCreate};
+    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     Pointer<RTree> _rtree;
     chunk_coords_ _coord;
 
@@ -135,8 +141,6 @@ private:
                  _pass_modified    : 1 = true,
                  _teardown         : 1 = false,
                  _objects_sorted   : 1 = true;
-
-    void ensure_scenery_buffers(scenery_scratch_buffers bufs);
 
     void add_object(const bptr<object>& e);
     void add_object_pre(const bptr<object>& e);

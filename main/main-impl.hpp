@@ -5,6 +5,7 @@
 #include "src/timer.hpp"
 #include "src/fps-counter.hpp"
 #include "src/nanosecond.inl"
+#include "src/spritebatch.hpp"
 #include "draw/ground.hpp"
 #include "draw/wall.hpp"
 #include "draw/anim.hpp"
@@ -147,6 +148,7 @@ private:
     ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
     anim_mesh _anim_mesh;
+    SpriteBatch _sprite_batch;
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
 #endif

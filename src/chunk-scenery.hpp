@@ -5,6 +5,7 @@
 
 namespace floormat {
 
+#if 0
 struct chunk::object_draw_order
 {
     object *e;
@@ -23,5 +24,6 @@ struct chunk::scenery_scratch_buffers
     Array<Quads::vertexes>& scenery_vertexes;
     Array<Quads::indexes>& scenery_indexes;
 };
+#endif
 
 } // namespace floormat
