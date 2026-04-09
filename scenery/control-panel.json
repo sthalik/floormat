@@ -13,7 +13,8 @@
 				0,
 				0,
 				22
-			]
+			],
+                        "depth-offset": "12 x 0"
 		},
 		{
 			"mirror-from": "n",
@@ -22,7 +23,8 @@
 				0,
 				0,
 				22
-			]
+			],
+                        "depth-offset": "0 x 12"
 		}
 	],
 	"nframes": 1,
