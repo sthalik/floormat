@@ -298,10 +298,6 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     const bool upd_pass = updates_passability();
     const bool upd_walls = updates_walls();
 
-    if (!dyn)
-        if (offset != offset_)
-            c->mark_scenery_modified();
-
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
     set_bbox_(offset_, bb_offset_, bb_size_, pass);

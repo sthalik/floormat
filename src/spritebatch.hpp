@@ -28,7 +28,7 @@ class anim_atlas;
 class chunk;
 struct SpriteList;
 
-class SpriteBatch // rename to SpriteBatch
+class SpriteBatch
 {
     struct Impl;
 

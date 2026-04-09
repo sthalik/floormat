@@ -121,7 +121,7 @@ cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coor
 #if 0
             if (frags.s != (uint8_t)-1)
                 for (auto i = 0u; i < frags.size; i++)
-                    DBG << "good frag" << i << frags.array[i].min << frags.array[i].max;
+                    DBG << "good frag" << i << frags.array[i].min() << frags.array[i].max();
 #endif
         }
 
