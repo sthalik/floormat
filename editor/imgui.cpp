@@ -258,13 +258,8 @@ void app::draw_light_info()
 {
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto dpi = M->dpi_scale();
-    constexpr float font_size = 12;
     const auto& style = ImGui::GetStyle();
     const ImVec2 pad { style.FramePadding.x*.5f, 0 };
-    const auto font_size_ = dpi.sum()*.5f * font_size;
-
-    //draw_list_font_saver saver2{font_size_};
-    //imgui::font_saver saver{font_size_};
 
     for (const auto& x : M->clickable_scenery())
     {
