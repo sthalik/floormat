@@ -8,7 +8,6 @@
 #include "src/spritebatch.hpp"
 #include "draw/ground.hpp"
 #include "draw/wall.hpp"
-#include "draw/anim.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
@@ -99,6 +98,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void bind() noexcept override;
     void do_update(Ns dt);
     struct meshes meshes() noexcept override;
+    ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept override;
 
     bool is_text_input_active() const noexcept override;
     void start_text_input() noexcept override;
@@ -147,7 +147,6 @@ private:
     uint32_t _mouse_cursor = (uint32_t)-1;
     ground_mesh _ground_mesh;
     wall_mesh _wall_mesh;
-    anim_mesh _anim_mesh;
     SpriteBatch _sprite_batch;
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
@@ -161,8 +160,6 @@ private:
 
     template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
     void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i win_size, bool only_z, int8_t z);
-
-    ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept override;
 
     void register_debug_callback();
 

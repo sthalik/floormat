@@ -11,12 +11,12 @@
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 #include "src/anim-atlas.hpp"
-#include "draw/anim.hpp"
 #include "draw/wireframe-meshes.hpp"
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
 #include "src/RTree-search.hpp"
+#include "src/spritebatch.hpp"
 #include "compat/limits.hpp"
 #include "src/depth.hpp"
 #include <bit>
@@ -32,11 +32,11 @@ void app::draw_cursor()
     auto& w = M->world();
     const auto inactive_color = 0xff00ffff_rgbaf;
 
-    global_coords tile;
+    global_coords pt;
     if (auto pos = _editor->mouse_drag_pos())
-        tile = *pos;
+        pt = *pos;
     else if (cursor.tile)
-        tile = *cursor.tile;
+        pt = *cursor.tile;
     else
         return;
 
@@ -44,7 +44,7 @@ void app::draw_cursor()
 
     if (!cursor.in_imgui)
     {
-        const auto draw = [&, pos = tile](auto& mesh, const auto& size) {
+        const auto draw = [&, pos = pt](auto& mesh, const auto& size) {
             const auto center = Vector3(pos) * TILE_SIZE;
             mesh.draw(shader, {center, size, LINE_WIDTH});
         };
@@ -75,13 +75,13 @@ void app::draw_cursor()
             if (ed->is_anything_selected())
             {
                 shader.set_tint({1, 1, 1, 0.75f});
-                auto [_g, _w, anim_mesh, _sb] = M->meshes();
+                auto [_g, _w, sb] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
-                const auto pos = Vector3i(tile)*iTILE_SIZE + offset;
-                auto [ch, t] = w[tile];
-                if (!ch.can_place_object(sel, tile.local()))
+                const auto pos = Vector3i(pt)*iTILE_SIZE + offset;
+                auto [ch, t] = w[pt];
+                if (!ch.can_place_object(sel, pt.local()))
                     shader.set_tint({1, 0, 1, 0.5f});
-                anim_mesh.draw(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
+                sb.emit_quick(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
             }
         }
         else if (const auto* vo = _editor->current_vobj_editor())
@@ -93,9 +93,9 @@ void app::draw_cursor()
                 const auto& atlas = vo->get_selected()->factory->atlas();
                 draw(_wireframe->quad, TILE_SIZE2);
                 shader.set_tint({1, 1, 1, 0.75f});
-                auto [_g, _w, anim_mesh, _sb] = M->meshes();
-                const auto pos = Vector3i(tile)*iTILE_SIZE;
-                anim_mesh.draw(shader, *atlas, rotation::N, 0, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
+                auto [_g, _w, sb] = M->meshes();
+                const auto pos = Vector3i(pt)*iTILE_SIZE;
+                sb.emit_quick(shader, *atlas, rotation::N, 0, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
             }
         }
     }

@@ -35,7 +35,6 @@ struct floormat_main
     {
         ground_mesh& ground;
         wall_mesh& wall;
-        anim_mesh& anim;
         SpriteBatch& sb;
     };
 

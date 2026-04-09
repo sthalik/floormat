@@ -40,18 +40,26 @@ struct merge_state
     Array<uint32_t> tree;
 };
 
-} // namespace
+struct quick_draw
+{
+    GL::Mesh _mesh{NoCreate};
+    GL::Buffer _vertex_buffer{NoCreate}, _index_buffer{NoCreate};
+};
 
-struct SpriteBatch::draw_item
+struct draw_item
 {
     Quads::vertexes vertexes;
     GL::Texture2D* texture = nullptr;
     float depth;
 };
 
+} // namespace
+
 struct SpriteBatch::Impl
 {
     merge_state m;
+
+    quick_draw quick;
 
     Array<Quads::vertexes> vertex_buffer;
     Array<Quads::indexes> index_buffer;
@@ -311,6 +319,7 @@ void SpriteBatch::draw(tile_shader& shader)
         mesh.setIndexBuffer(impl.index_buffer_handle, 0, GL::MeshIndexType::UnsignedShort);
     }
     mesh.setCount(6 * (Int)V.size());
+    fm_assert(mesh.isIndexed());
 
     for (auto i = 0u; i < size; i++)
     {
@@ -322,6 +331,38 @@ void SpriteBatch::draw(tile_shader& shader)
     }
 
     clear();
+}
+
+void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth)
+{
+    auto& impl = *this->impl;
+    const auto pos = atlas.frame_quad(center, r, frame);
+    const auto& g = atlas.group(r);
+    const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
+    Quads::vertexes vertexes;
+    for (auto i = 0uz; i < 4; i++)
+        vertexes[i] = { pos[i], texcoords[i], depth[i] };
+    const auto indexes = Quads::quad_indexes(0);
+    auto& quick = impl.quick;
+    auto& mesh = quick._mesh;
+
+    if (!quick._vertex_buffer.id())
+        quick._vertex_buffer = GL::Buffer{{nullptr, sizeof vertexes}, GL::BufferUsage::DynamicDraw};
+    quick._vertex_buffer.setSubData(0, {&vertexes, 1});
+
+    if (!quick._index_buffer.id())
+        quick._index_buffer = GL::Buffer{{nullptr, sizeof indexes}, GL::BufferUsage::DynamicDraw};
+    quick._index_buffer.setSubData(0, {&indexes, 1});
+
+    if (!mesh.id())
+    {
+        mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
+        mesh.addVertexBuffer(quick._vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
+        mesh.setIndexBuffer(quick._index_buffer, 0, GL::MeshIndexType::UnsignedShort);
+        mesh.setCount(6);
+        fm_assert(mesh.isIndexed());
+    }
+    shader.draw(atlas.texture(), quick._mesh);
 }
 
 void SpriteBatch::add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array)

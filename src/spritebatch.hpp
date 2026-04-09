@@ -14,6 +14,7 @@ struct vertex;
 using vertexes = std::array<vertex, 4>;
 using indexes = std::array<UnsignedShort, 6>;
 using texcoords = std::array<Vector2, 4>;
+using depths = std::array<float, 4>;
 } // namespace floormat::Quads
 
 namespace floormat {
@@ -29,7 +30,6 @@ struct SpriteList;
 
 class SpriteBatch // rename to SpriteBatch
 {
-    struct draw_item;
     struct Impl;
 
     void ensure_allocated(uint32_t count);
@@ -46,6 +46,8 @@ public:
     static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(GL::Texture2D& tex, const Quads::vertexes& vertexes, float depth);
     void emit(SpriteList& list, bool render_vobjs);
+
+    void emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth);
 
     explicit SpriteBatch();
     ~SpriteBatch() noexcept;
