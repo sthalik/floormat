@@ -109,13 +109,12 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
 
 int32_t door_scenery::depth_offset() const
 {
-    constexpr auto bTILE_SIZE = Vector2b(iTILE_SIZE2);
-    constexpr auto off_closed_ = Vector2b(0, -bTILE_SIZE[1]/2+2);
-    constexpr auto off_opened_ = Vector2b(-bTILE_SIZE[0]+2, -bTILE_SIZE[1]/2+2);
-    const auto off_closed = rotate_point(off_closed_, rotation::N, r);
-    const auto off_opened = rotate_point(off_opened_, rotation::N, r);
-    const auto vec = frame == atlas->info().nframes-1 ? off_closed : off_opened;
-    return vec.sum(); // todo replace with scalar
+    constexpr Vector2i off_closed{0, 0}, off_opened{tile_size_xy+1, 0}, off_swing{0, 0};
+    const auto swing_frame = atlas->info().action_frame;
+    const auto vecʹ =
+        frame == atlas->info().nframes-1 ? off_closed : frame >= swing_frame ? off_swing : off_opened;
+    const auto vec = rotate_point(vecʹ, rotation::W, r);
+    return vec.sum();
 }
 
 bool door_scenery::can_activate(size_t) const { return interactive; }
