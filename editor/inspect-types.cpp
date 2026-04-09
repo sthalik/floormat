@@ -10,10 +10,24 @@
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
+#include <concepts>
 #include <Corrade/Containers/ArrayViewStl.h>
 #include <imgui.h>
 
 namespace floormat::entities {
+
+namespace {
+
+[[maybe_unused]]
+constexpr int32_t wraparound(int32_t n, int32_t N) // for object::frame
+{
+    fm_assert(N > 0);
+    fm_assert(N <= limits<int32_t>::max/2);
+    const auto ret = ((n % N) + N) % N;
+    return ret;
+}
+
+} // namespace
 
 using st = field_status;
 
