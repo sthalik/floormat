@@ -229,14 +229,15 @@ void app::draw_clickables()
             constexpr auto f = tile_shader::foreshortening_factor;
             const auto& atlas = *e.atlas;
             const auto& frame = atlas.frame(e.r, e.frame);
+            const auto& g = atlas.group(e.r);
             const auto bb_half = Vector2(e.bbox_size) * 0.5f;
             const float denom = bb_half.x() + bb_half.y();
             const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
 
-            // bbox center screen offset from projected object center
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(eʹ->bbox_offset), 0.f));
+            // bbox center screen offset from sprite's ground anchor
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(eʹ->bbox_offset), 0.f) - Vector3(g.offset));
 
-            // sprite screen extent (pixel offsets from projected center)
+            // sprite screen extent (pixel offsets from ground anchor)
             const float left_x   = float(-frame.ground.x());
             const float right_x  = float(frame.size.x()) - float(frame.ground.x());
 
@@ -244,10 +245,9 @@ void app::draw_clickables()
             const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
             const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
 
-            const auto& g = atlas.group(e.r);
-            const Vector2 offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
-                                 + shader.project(Vector3(e.position()) + Vector3(g.offset)) - Vector2(frame.ground));
-            const auto center = offset + Vector2(frame.ground);
+            // sprite's ground anchor on screen
+            const Vector2 center = Vector2(shader.camera_offset()) + Vector2(win_size)*.5f
+                                 + shader.project(Vector3(e.position()) + Vector3(g.offset));
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
             draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);

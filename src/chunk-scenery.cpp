@@ -68,8 +68,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const float denom = bb_half.x() + bb_half.y();
             const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
 
-            // bbox center screen offset from projected object center
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f));
+            // bbox center screen offset from sprite's ground anchor
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f) - Vector3(group.offset));
 
             // sprite screen extent (pixel offsets from projected center)
             const float left_x   = float(-frame.ground.x());
