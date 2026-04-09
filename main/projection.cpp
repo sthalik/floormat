@@ -179,7 +179,7 @@ bool floormat_main::check_chunk_visible(Vector2d offset, Vector2i win) noexcept
 
     const Range2Di screen_rect{
         Vector2i{-tile_size_xy, -tile_size_z},
-        Vector2i{ tile_size_xy + win.x(), win.y()},
+        Vector2i{ tile_size_xy + win.x(), tile_size_z + win.y()},
     };
 
     return sat_rhombus_vs_rect(rhombus, screen_rect);
