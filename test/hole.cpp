@@ -65,7 +65,7 @@ auto make_search_predicate(const CutResult<int>& res)
 {
     return [&](Vector2i min, Vector2i max) -> bool {
         for (auto i = 0u; i < res.size; i++)
-            if (res.array[i].min == min && res.array[i].max == max)
+            if (res.array[i].min() == min && res.array[i].max() == max)
                 return true;
         return false;
     };
@@ -118,17 +118,17 @@ void test_degenerate()
         fm_assert(res.found());
         fm_assert_equal(1, res.size);
         const auto x = res.array[0];
-        constexpr auto expected = CutResult<float>::rect { { 0, -h}, {h, -h} };
-        fm_assert_equal(expected.min, x.min);
-        fm_assert_equal(expected.max, x.max);
+        constexpr auto expected = Range2D { { 0, -h}, {h, -h} };
+        fm_assert_equal(expected.min(), x.min());
+        fm_assert_equal(expected.max(), x.max());
     }
     {
         // now hole has no area
         const auto res = CutResult<float>::cut(w.left, w.right, {-h, -h}, {h, -h});
         fm_assert(!res.found());
         fm_assert_equal(1, res.size);
-        fm_assert_equal(w.left, res.array[0].min);
-        fm_assert_equal(w.right, res.array[0].max);
+        fm_assert_equal(w.left, res.array[0].min());
+        fm_assert_equal(w.right, res.array[0].max());
     }
 }
 

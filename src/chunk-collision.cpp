@@ -6,11 +6,10 @@
 #include "src/RTree-search.hpp"
 #include "rect-intersects.hpp"
 #include "hole.hpp"
+#include "hole-cut.hpp"
 #include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
-#include "src/hole.hpp"
 #include "src/wall-atlas.hpp"
-#include "src/world.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <utility>
@@ -77,46 +76,46 @@ void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Ve
 start:
     fm_assert(min != max);
 
-    CutResult<float>::rect hole;
+    Range2D hole;
     bool ret = chunk::find_hole_in_bbox(hole, rtree, min, max);
 
     if (ret) [[likely]]
         rtree.Insert(min.data(), max.data(), id);
     else
     {
-        auto res = CutResult<float>::cut(min, max, hole.min, hole.max);
+        auto res = CutResult<float>::cut(min, max, hole.min(), hole.max());
         if (!res.found())
         {
             rtree.Insert(min.data(), max.data(), id);
         }
         else if (res.size == 1)
         {
-            min = res.array[0].min;
-            max = res.array[0].max;
+            min = res.array[0].min();
+            max = res.array[0].max();
             goto start;
         }
         else
         {
             for (auto i = 0u; i < res.size; i++)
-                filter_bbox_through_holes(rtree, id, res.array[i].min, res.array[i].max, has_holes);
+                filter_bbox_through_holes(rtree, id, res.array[i].min(), res.array[i].max(), has_holes);
         }
     }
 }
 
 } // namespace
 
-bool chunk::find_hole_in_bbox(CutResult<float>::rect& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max)
+bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max)
 {
     bool ret = true;
     rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (can_walk_through(pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
         {
-            CutResult<float>::rect holeʹ {
-                .min = { r.m_min[0], r.m_min[1] },
-                .max = { r.m_max[0], r.m_max[1] },
+            Range2D holeʹ {
+                { r.m_min[0], r.m_min[1] },
+                { r.m_max[0], r.m_max[1] },
             };
-            if (rect_intersects(holeʹ.min, holeʹ.max, min, max))
+            if (rect_intersects(holeʹ.min(), holeʹ.max(), min, max))
             {
                 hole = holeʹ;
                 return ret = false;
