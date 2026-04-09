@@ -214,10 +214,6 @@ void SpriteBatch::sort_vertex_buffer()
     reserve(runs, k);
     reserve(tree, k);
 
-    if (arrayCapacity(runs) < k)
-        arrayReserve(runs, (uint32_t)((float)k * 1.5f));
-    arrayResize(runs, k);
-
     // --- k-way merge via loser tree ---
 
     for (auto i = 0u; i < k; i++)
