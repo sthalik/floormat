@@ -26,8 +26,6 @@ Quads::indexes make_index_array()
     }};
 }
 
-struct minmax_s { uint32_t len, min; };
-
 } // namespace
 
 anim_mesh::anim_mesh() :

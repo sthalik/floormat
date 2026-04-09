@@ -3,6 +3,7 @@
 #include "compat/iota.hpp"
 #include "compat/map.hpp"
 #include "hole-cut.hpp"
+#include <mg/Range.h>
 //#include <mg/Functions.h>
 
 #ifdef __GNUG__
@@ -17,8 +18,7 @@ namespace floormat {
 namespace {
 
 template<typename T> using Cr = CutResult<T>;
-template<typename T> using bbox = typename Cr<T>::bbox;
-template<typename T> using rect = typename Cr<T>::rect;
+template<typename T> using bbox = Cr<T>::bbox;
 
 enum shift : uint8_t { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
 enum class location : uint8_t { R0, R1, H0, H1, };
@@ -129,7 +129,7 @@ constexpr auto get_value_from_coord(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Ve
     const auto x1 = xs[(uint8_t)c.x1];
     const auto y0 = ys[(uint8_t)c.y0];
     const auto y1 = ys[(uint8_t)c.y1];
-    return rect<T>{ {x0, y0}, {x1, y1} };
+    return Math::Range2D<T>{ {x0, y0}, {x1, y1} };
 }
 
 template<typename T>
@@ -154,9 +154,9 @@ constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ
     const auto elt = table[val];
     const auto sz = elt.size;
     Cr<T> res = {
+        .array = {},
         .s = val,
         .size = sz,
-        .array = {},
     };
 
     for (auto i = 0u; i < res.size; i++)
@@ -169,9 +169,9 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
 {
     if (check_empty<T>(r0, r1, h0, h1))
         return {
+            .array = {{ { r0, r1 }, }},
             .s = (uint8_t)-1,
             .size = 1,
-            .array = {{ { r0, r1 }, }},
         };
 
     const bool sx = h0.x() <= r0.x();

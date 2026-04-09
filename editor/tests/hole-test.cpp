@@ -2,6 +2,7 @@
 #include "src/tile-constants.hpp"
 #include "src/chunk-region.hpp"
 #include "src/hole.hpp"
+#include "src/hole-cut.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "../app.hpp"
@@ -95,13 +96,13 @@ void hole_test::draw_ui(app&, float)
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRectFilled(to_imvec2(center + Vector2(r.min)*mult), to_imvec2(center + Vector2(r.max)*mult), to_color(colors[i])); // rects filled
+            draw.AddRectFilled(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), to_color(colors[i])); // rects filled
         }
 
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRect(to_imvec2(center + Vector2(r.min)*mult), to_imvec2(center + Vector2(r.max)*mult), blue, 0, 0, 3); // rects
+            draw.AddRect(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), blue, 0, 0, 3); // rects
         }
 
         draw.AddRect(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)*.5f)*mult),

@@ -2,20 +2,18 @@
 #include "tile-bbox.hpp"
 #include "quads.hpp"
 #include "wall-atlas.hpp"
-#include "hole.hpp"
 #include "compat/function2.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
 #include "depth.hpp"
 #include "renderer.hpp"
+#include "hole-cut.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
-#include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 #include <utility>
 #include <concepts>
-#include <tuple>
 #include <algorithm>
 #include <ranges>
 
@@ -87,7 +85,7 @@ struct WallFragment
     Range3D world_coords;
 };
 
-Array<CutResult<float>::rect> wall_fragments, next_wall_fragments;
+Array<Range2D> wall_fragments, next_wall_fragments;
 
 ArrayView<WallFragment>
 cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coords tile_pos, bool IsWest)
@@ -117,7 +115,7 @@ cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coor
 
         for (auto x : wall_fragments)
         {
-            const auto frags = CutResult<float>::cut(x.min, x.max, hole_min, hole_max);
+            const auto frags = CutResult<float>::cut(x.min(), x.max(), hole_min, hole_max);
             for (auto i = 0u; i < frags.size; i++)
                 arrayAppend(next_wall_fragments, frags.array[i]);
 #if 0
@@ -141,17 +139,17 @@ cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coor
     for (auto w : wall_fragments)
     {
         Vector3 w_min{NoInit}, w_max{NoInit};
-        w_min[XAxis] = w.min.x();
-        w_max[XAxis] = w.max.x();
+        w_min[XAxis] = w.min().x();
+        w_max[XAxis] = w.max().x();
         w_min[1-XAxis] = -half_tile;
         w_max[1-XAxis] = -half_tile;
-        w_min[2] = w.min.y();
-        w_max[2] = w.max.y();
+        w_min[2] = w.min().y();
+        w_max[2] = w.max().y();
 
         auto frag = WallFragment {
-            .remove_from_start_xz = w.min - bb_min,
-            .remove_from_end_xz = bb_max - w.max,
-            .face_coords = { w.min, w.max },
+            .remove_from_start_xz = w.min() - bb_min,
+            .remove_from_end_xz = bb_max - w.max(),
+            .face_coords = { w.min(), w.max() },
             .world_coords = { w_min, w_max },
         };
         arrayAppend(output, frag);
