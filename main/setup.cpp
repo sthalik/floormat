@@ -161,7 +161,7 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
 
 auto main_impl::meshes() noexcept -> struct meshes
 {
-    return { _ground_mesh, _wall_mesh, _anim_mesh, _sprite_batch, };
+    return { _ground_mesh, _wall_mesh, _sprite_batch, };
 };
 
 class world& main_impl::reset_world() noexcept

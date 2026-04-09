@@ -244,8 +244,10 @@ void app::draw_clickables()
             const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
             const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
 
+            const auto& a = *e.atlas;
+            const auto& g = a.group(e.r);
             const Vector2 offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
-                                 + shader.project(Vector3(e.position())) - Vector2(frame.ground));
+                                 + shader.project(Vector3(e.position()) + Vector3(g.offset)) - Vector2(frame.ground));
             const auto center = offset + Vector2(frame.ground);
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
