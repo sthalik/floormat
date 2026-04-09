@@ -227,8 +227,8 @@ void app::draw_clickables()
                 continue;
 
             constexpr auto f = tile_shader::foreshortening_factor;
-            const auto& atlas = e.atlas;
-            const auto& frame = atlas->frame(e.r, e.frame);
+            const auto& atlas = *e.atlas;
+            const auto& frame = atlas.frame(e.r, e.frame);
             const auto bb_half = Vector2(e.bbox_size) * 0.5f;
             const float denom = bb_half.x() + bb_half.y();
             const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
@@ -244,8 +244,7 @@ void app::draw_clickables()
             const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
             const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
 
-            const auto& a = *e.atlas;
-            const auto& g = a.group(e.r);
+            const auto& g = atlas.group(e.r);
             const Vector2 offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
                                  + shader.project(Vector3(e.position()) + Vector3(g.offset)) - Vector2(frame.ground));
             const auto center = offset + Vector2(frame.ground);

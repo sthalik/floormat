@@ -301,14 +301,9 @@ void SpriteBatch::draw(tile_shader& shader)
 
     auto& I = impl.index_buffer;
     const auto Isz = (uint32_t)I.size();
-    if (arrayCapacity(I) < size)
-        arrayReserve(I, (uint32_t)((float)size*1.5f));
-    if (size > Isz)
-    {
-        arrayResize(I, NoInit, size);
-        for (auto i = Isz; i < size; i++)
-            I[i] = Quads::quad_indexes(i);
-    }
+    reserve(I, size);
+    for (auto i = Isz; i < size; i++)
+        I[i] = Quads::quad_indexes(i);
 
     impl.index_buffer_handle.setSubData(0, ArrayView{ I.data(), size });
 
