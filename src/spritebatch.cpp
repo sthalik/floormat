@@ -4,6 +4,7 @@
 #include "src/tile-constants.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/point.inl"
+#include "src/sprite-list.hpp"
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
 #include <cfloat>
@@ -11,8 +12,8 @@
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/MeshView.h>
-
-#include "src/chunk.hpp"
+#include <mg/Mesh.h>
+#include <mg/Buffer.h>
 
 namespace floormat {
 
