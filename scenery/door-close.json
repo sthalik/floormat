@@ -1151,6 +1151,7 @@
     }
   ],
   "nframes": 55,
+  "action-frame": 16,
   "object_name": "door",
   "pixel_size": "3809 x 507",
   "scale": [
