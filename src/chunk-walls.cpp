@@ -249,6 +249,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
     const auto Depthʹ = (float)(int)Depth;
+    const point tile_center {c.coord(), pos, {}};
     constexpr auto half = iTILE_SIZE2/2;
     constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
 
@@ -290,7 +291,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
                 const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
-                const point tile_center {c.coord(), pos, {}};
                 const Quads::depths depth = {
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() - (int)Depth}, depth_offset),
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y() - (int)Depth}, depth_offset),
@@ -304,7 +304,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         }
         if (corner_ok) [[unlikely]]
         {
-            const point tile_center{c.coord(), pos, {}};
             const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
 
             Quads::quad quad;
@@ -366,9 +365,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
 
-        const auto image_size = A.image_size();
-        const point tile_center {c.coord(), pos, {}};
-
         for (const auto& frag : fragdata)
         {
             const auto& rs = frag.remove_from_start_xz;
@@ -387,7 +383,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto sub_size   = frame.size - Vector2ui(tex_left + tex_right, (unsigned)rs.y() + (unsigned)re.y());
                 if (!sub_size.x() || !sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, image_size);
+                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
 
                 Quads::quad quad;
                 if constexpr (!IsWest)
@@ -425,7 +421,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto sub_size   = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y());
                 if (!sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, image_size);
+                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
 
                 const auto frag_x1 =  X - re.x();
                 const auto frag_y1 =  Y - re.x();
@@ -466,7 +462,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 auto sub_size   = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
                 if (!sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, image_size);
+                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
 
                 const auto frag_z = Z - re.y();
                 Quads::quad quad;
@@ -518,10 +514,6 @@ GL::Mesh chunk::make_wall_mesh()
     fm_debug_assert(_walls);
 
     uint32_t N = 0;
-#ifdef __CLION_IDE__
-    extern const uint32_t _foo; N = _foo;
-#endif
-
     auto& vertexes = make_vertexes();
     auto& W = *_walls;
 
