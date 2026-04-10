@@ -290,8 +290,11 @@ object::operator object_proto() const
     return ret;
 }
 
-void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass)
+void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
+    if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && pass_ == pass)
+        return;
+
     fm_assert(Vector2ui(bb_size_).product() != 0);
 
     const bool dyn = is_dynamic();
@@ -300,7 +303,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
 
     chunk::bbox bb0, bb;
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
-    set_bbox_(offset_, bb_offset_, bb_size_, pass);
+    set_bbox_(offset_, bb_offset_, bb_size_, pass_);
     const bool b = c->_bbox_for_scenery(*this, bb);
     if (upd_pass)
         mark_neighbor_chunks_modified();
