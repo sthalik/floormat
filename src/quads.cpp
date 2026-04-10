@@ -39,6 +39,42 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_)
     }};
 }
 
+// Vertex order: {0:BR, 1:TR, 2:BL, 3:TL}.
+//
+// Atlas rotation convention: 90° CCW.
+//   Original pixel (x, y) is stored at atlas-local (y, W-1-x).
+//   A W×H sprite occupies an H×W rectangle in the atlas.
+//   The pixel data must be rotated before uploading via glTexSubImage.
+//
+// UV permutations — derived from mapping each screen vertex
+// to its corresponding atlas corner after CCW rotation:
+//   normal  = {0,1,2,3}    (identity)
+//   mirror  = {2,3,0,1}    (swap L↔R pairs)
+//   rotated = {1,3,0,2}    (CCW: BR→TR, TR→TL, BL→BR, TL→BL)
+//   both    = {3,1,2,0}    (mirror then rotation)
+texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, bool mirror, bool rotated)
+{
+    auto pos = Vector2(pos_), size = Vector2(size_), image_size = Vector2(image_size_);
+    auto offset = pos + Vector2(.5f), end = offset + size - Vector2(1);
+    auto x0 = offset / image_size, x1 = end / image_size;
+
+    const Vector2 corners[4] = {
+        { x1.x(), 1.f - x1.y() }, // 0: BR
+        { x1.x(), 1.f - x0.y() }, // 1: TR
+        { x0.x(), 1.f - x1.y() }, // 2: BL
+        { x0.x(), 1.f - x0.y() }, // 3: TL
+    };
+
+    constexpr uint8_t perm[4][4] = {
+        {0, 1, 2, 3},  // normal
+        {1, 3, 0, 2},  // rotated only
+        {2, 3, 0, 1},  // mirrored only
+        {3, 1, 2, 0},  // mirror + rotated
+    };
+    const auto* p = perm[(unsigned)mirror << 1 | (unsigned)rotated];
+    return {{ corners[p[0]], corners[p[1]], corners[p[2]], corners[p[3]] }};
+}
+
 template<bool LR_1, bool LR_2, bool LR_3, bool LR_4>
 depths depth_quad(point L, point R, int32_t depth_offset)
 {

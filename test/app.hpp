@@ -47,6 +47,7 @@ void test_shader();
 void test_spinlock();
 void test_script();
 void test_util();
+void test_texcoords();
 void test_wall_atlas();
 void test_wall_atlas2();
 
