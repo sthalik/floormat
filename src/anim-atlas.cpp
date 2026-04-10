@@ -117,6 +117,33 @@ auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const no
         }};
 }
 
+// See Quads::texcoords_at (src/quads.cpp) for atlas rotation and UV permutation conventions.
+auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror, bool rotated) const noexcept -> texcoords
+{
+    const auto f = frame(r, i);
+    const Vector2 p0(f.offset), p1(f.size);
+    const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
+    const auto size = _info.pixel_size;
+
+    const Vector2 corners[4] = {
+        { (x0+x1) / size.x(), 1 - (y0+y1) / size.y() }, // 0: BR
+        { (x0+x1) / size.x(), 1 -      y0 / size.y() }, // 1: TR
+        {      x0 / size.x(), 1 - (y0+y1) / size.y() }, // 2: BL
+        {      x0 / size.x(), 1 -      y0 / size.y() }, // 3: TL
+    };
+
+    constexpr struct {
+        uint8_t a:2, b:2, c:2, d:2;
+    } perm[4] = {
+        {0, 1, 2, 3}, // normal
+        {1, 3, 0, 2}, // rotated only
+        {2, 3, 0, 1}, // mirrored only
+        {0, 2, 1, 3}, // mirror + rotated (i ^ 2 swap of rotated-only)
+    };
+    const auto p = perm[(unsigned)mirror << 1 | (unsigned)rotated];
+    return {{ corners[p.a], corners[p.b], corners[p.c], corners[p.d] }};
+}
+
 // get vertexes for atlas frame
 // ORDER: bottom left, top right, bottom left, top left
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const noexcept -> quad
