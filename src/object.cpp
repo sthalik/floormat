@@ -36,8 +36,8 @@ object_type object_proto::type_of() const noexcept { return type; }
 object::object(object_id id, class chunk& c, const object_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{proto.bbox_offset},
-    bbox_size{proto.bbox_size}, delta{proto.delta},
-    frame{proto.frame}, r{proto.r}, pass{proto.pass}
+    bbox_size{proto.bbox_size}, frame{proto.frame},
+    delta{proto.delta}, r{proto.r}, pass{proto.pass}
 {
     if (id != 0)
     {

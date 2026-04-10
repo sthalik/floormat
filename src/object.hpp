@@ -52,8 +52,8 @@ struct object : bptr_base
     const bptr<object> parent;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
-    uint32_t delta = 0;
     uint16_t frame = 0;
+    uint32_t delta = 0;
     const rotation r = rotation::N; // todo remove bitfield?
     const pass_mode pass = pass_mode::see_through;
     bool ephemeral : 1 = false;
