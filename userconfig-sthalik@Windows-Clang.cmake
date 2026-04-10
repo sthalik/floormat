@@ -37,7 +37,15 @@ if(FLOORMAT_ASAN)
     add_link_options(-fsanitize=undefined,bounds,address)
 endif()
 
-set(OpenCV_DIR "d:/dev/opencv-floormat-clang-release" CACHE PATH "" FORCE)
+if(FLOORMAT_ASAN AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-asan/.")
+    sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-asan")
+elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-debug/.")
+    sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-debug")
+elseif(EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-release/.")
+    sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-release")
+endif()
+set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
+
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
 sets(STRING
