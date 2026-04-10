@@ -59,7 +59,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             for (uint8_t j = 0; j < 4; j++)
                 v[j] = {quad[j], texcoords[j], depth};
             sb.emit(atlas->texture(), v, depth);
-            //scenery_dynamic_mesh.add(v, &atlas->texture(), depth);
         }
         else
         {
@@ -94,8 +93,9 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
             //const auto depth_bias = int32_t((uint32_t)e.bbox_size.min());
             const auto depth_bias = int32_t((Vector2ui(e.bbox_size)/2).sum());
-            const auto front_depth = Depth::value_at(depth_start, pt, depth_offset + depth_bias);
-            const auto back_depth = Depth::value_at(depth_start, pt, depth_offset);
+            const auto front_depth      = Depth::value_at(depth_start, pt, depth_offset + depth_bias);
+            const auto back_left_depth  = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.y()) - int(bb_half.x()));
+            const auto back_right_depth = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.x()) - int(bb_half.y()));
 
 #if 0
             const auto vec = Vector3i(pt);
@@ -112,22 +112,39 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const auto back_depth  = Depth::value_at(depth_start, front_pt, depth_offset);
 #endif
 
-            Quads::vertexes v1, v2;
-
             // front quad (below slope line, closer to camera)
-            v1[0] = {quad[0], texcoords[0], front_depth}; // BR
-            v1[1] = {right_split_pos, right_split_uv, front_depth}; // right split
-            v1[2] = {quad[2], texcoords[2], front_depth}; // BL
-            v1[3] = {left_split_pos, left_split_uv, front_depth}; // left split
+            Quads::vertexes v1 = {{
+                {quad[0], texcoords[0], front_depth},           // BR
+                {right_split_pos, right_split_uv, front_depth}, // right split
+                {quad[2], texcoords[2], front_depth},           // BL
+                {left_split_pos, left_split_uv, front_depth},   // left split
+            }};
             scenery_static_mesh.add(v1, &atlas->texture(), front_depth, &e);
 
-            // back quad (above slope line, further from camera)
-            v2[0] = {right_split_pos, right_split_uv, back_depth}; // right split
-            v2[1] = {quad[1], texcoords[1], back_depth}; // TR
-            v2[2] = {left_split_pos, left_split_uv, back_depth}; // left split
-            v2[3] = {quad[3], texcoords[3], back_depth}; // TL
-            scenery_static_mesh.add(v2, &atlas->texture(), back_depth, &e);
-            // --- end slope split ---
+            // midpoints for vertical split of back quad
+            const auto center_split_pos = (left_split_pos + right_split_pos) * 0.5f;
+            const auto center_split_uv  = (left_split_uv + right_split_uv) * 0.5f;
+            const auto center_top_pos   = (quad[3] + quad[1]) * 0.5f;
+            const auto center_top_uv    = (texcoords[3] + texcoords[1]) * 0.5f;
+
+            // back-left quad (above slope, screen-left half)
+            Quads::vertexes v2 = {{
+                {center_split_pos, center_split_uv, back_left_depth},  // BR
+                {center_top_pos, center_top_uv, back_left_depth},      // TR
+                {left_split_pos, left_split_uv, back_left_depth},      // BL
+                {quad[3], texcoords[3], back_left_depth},              // TL
+            }};
+            scenery_static_mesh.add(v2, &atlas->texture(), back_left_depth, &e);
+
+            // back-right quad (above slope, screen-right half)
+            Quads::vertexes v3 = {{
+                {right_split_pos, right_split_uv, back_right_depth},   // BR
+                {quad[1], texcoords[1], back_right_depth},             // TR
+                {center_split_pos, center_split_uv, back_right_depth}, // BL
+                {center_top_pos, center_top_uv, back_right_depth},     // TL
+            }};
+            scenery_static_mesh.add(v3, &atlas->texture(), back_right_depth, &e);
+            // --- end 3-piece split ---
 
             //i += 2;
         }

@@ -251,6 +251,14 @@ void app::draw_clickables()
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
             draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);
+
+            // vertical split midpoint (between slope line and top edge)
+            const float mid_x = (left_x + right_x) * 0.5f;
+            const float y_at_mid = bbox_scr.y() + slope * (mid_x - bbox_scr.x());
+            const float top_y = -float(frame.ground.y());
+            const auto vsplit_start = Vector2{center.x() + mid_x, center.y() + y_at_mid};
+            const auto vsplit_end   = Vector2{center.x() + mid_x, center.y() + top_y};
+            draw.AddLine({vsplit_start.x(), vsplit_start.y()}, {vsplit_end.x(), vsplit_end.y()}, color, thickness);
         }
     }
 }
