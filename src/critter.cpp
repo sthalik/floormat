@@ -558,7 +558,6 @@ critter::critter(object_id id, class chunk& c, critter_proto proto) :
         name = "(Unnamed)"_s;
     fm_soft_assert(atlas->check_rotation(r));
     fm_soft_assert(speed >= 0);
-    object::set_bbox_(offset, bbox_offset, Vector2ub(iTILE_SIZE2/2), pass);
 }
 
 critter::~critter() noexcept
