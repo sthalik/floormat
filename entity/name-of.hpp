@@ -39,7 +39,7 @@ static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-id
         return true;
     };
     const char* str = FM_PRETTY_FUNCTION;
-    auto s = StringView{ str, my_strlen(str), SVF::Global|SVF::NullTerminated };
+    auto s = StringView{ str, my_strlen(str), SVF::Global };
     strip_prefix(s, "constexpr "_s);
 
     if (strip_prefix(s, "auto "_s))
