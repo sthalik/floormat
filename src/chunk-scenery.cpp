@@ -29,7 +29,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     _scenery_modified = false;
     if (modify_static)
         scenery_static_mesh.clear();
-    //scenery_dynamic_mesh.clear();
 
     sb.begin_chunk();
 
@@ -96,21 +95,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const auto front_depth      = Depth::value_at(depth_start, pt, depth_offset + depth_bias);
             const auto back_left_depth  = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.y()) - int(bb_half.x()));
             const auto back_right_depth = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.x()) - int(bb_half.y()));
-
-#if 0
-            const auto vec = Vector3i(pt);
-            const auto center = Vector2i(vec.x(), vec.y()) + Vector2i(e.bbox_offset);
-            const auto hx = (Int)bb_half.x(), hy = (Int)bb_half.y();
-            const auto h_3 = Vector2i{hx, hy} / 3;
-            // diagonal from NW corner (-hx, -hy) to SE corner (+hx, +hy)
-            // front triangle (SE half): average of (hx,hy), (hx,-hy), (-hx,hy)
-            const auto front_pt = point(Vector3i(center + h_3, _coord.z));
-            // back triangle (NW half): average of (-hx,-hy), (hx,-hy), (-hx,hy)
-            const auto back_pt = point(Vector3i(center - h_3, _coord.z));
-            const auto line_length = (int32_t)(2.f * Math::sqrt((float)(hx*hx + hy*hy) + 0.5f));
-            const auto front_depth = Depth::value_at(depth_start, back_pt, depth_offset); // flipped - not a typo
-            const auto back_depth  = Depth::value_at(depth_start, front_pt, depth_offset);
-#endif
 
             // front quad (below slope line, closer to camera)
             Quads::vertexes v1 = {{
