@@ -23,11 +23,6 @@
 
 #include "compat/assert.hpp"
 
-#ifndef RTREE_NO_EXTERN_TEMPLATE
-extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::Node>;
-extern template struct floormat::detail::rtree_pool<RTree<floormat::uint64_t, float, 2, float>::ListNode>;
-#endif
-
 #ifdef RTREE_STDIO
 // Because there is not stream support, this is a quick and dirty file I/O helper.
 // Users will likely replace its usage with a Stream implementation from their favorite API.
