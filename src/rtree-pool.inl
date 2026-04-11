@@ -39,6 +39,15 @@ noexcept(std::is_nothrow_constructible_v<T, decltype(forward<Xs>(args))...>)
 
     if (!free_list)
     {
+        constexpr uint32_t alloc_batch = 1024;
+
+        for (auto i = 0u; i < alloc_batch-1; i++)
+        {
+            auto* n = new node_u;
+            n->next = free_list;
+            free_list = n;
+        }
+
 #ifdef RTREE_POOL_DEBUG
         Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
 #endif
