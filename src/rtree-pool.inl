@@ -82,7 +82,7 @@ noexcept(std::is_nothrow_destructible_v<T>)
     live_count--;
     auto* n = std::launder(reinterpret_cast<node_u*>(ptr));
 
-    if constexpr(noexcept(std::is_nothrow_destructible_v<T>))
+    if constexpr(std::is_nothrow_destructible_v<T>)
         ptr->~T();
     else
         try {
