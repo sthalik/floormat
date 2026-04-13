@@ -35,6 +35,7 @@ struct loader_
     virtual Trade::ImageData2D make_error_texture(Vector2ui size) = 0;
     virtual Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) = 0;
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
+    virtual Trade::ImageData2D image(StringView path) noexcept(false) = 0;
 
     virtual const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual const bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;

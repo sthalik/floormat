@@ -77,6 +77,7 @@ int App::exec()
         FM_TEST(test_json2),
         FM_TEST(test_json3),
         FM_TEST(test_loader),
+        FM_TEST(test_sprite_atlas),
         FM_TEST(test_raycast),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
@@ -93,6 +94,7 @@ int App::exec()
         FM_TEST(test_loader2),
         FM_TEST(test_loader3),
         FM_TEST(test_saves),
+        FM_TEST(test_sprites),
     };
 
     if (is_log_quiet())

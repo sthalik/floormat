@@ -41,6 +41,7 @@ struct loader_impl final : loader_
     Trade::ImageData2D make_error_texture(Vector2ui size) override;
     Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
+    Trade::ImageData2D image(StringView path) noexcept(false) override;
 
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();

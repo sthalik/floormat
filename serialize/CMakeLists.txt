@@ -18,6 +18,7 @@ endif()
 if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
     target_link_libraries(${self} PUBLIC
         MagnumPlugins::StbImageImporter
+        MagnumPlugins::StbImageConverter
         Magnum::AnyImageConverter
         Magnum::TgaImporter
         tsl::robin_map
