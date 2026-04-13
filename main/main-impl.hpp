@@ -117,7 +117,7 @@ private:
     struct frame_timings_s
     {
         static constexpr unsigned min_refresh_rate = 20;
-        static constexpr Ns settle_delay = Ns{1000*Milliseconds};
+        static constexpr Ns settle_delay = Ns{500*Milliseconds};
         FPS_Counter fps_counter;
         unsigned refresh_rate;
         bool vsync       : 1;
