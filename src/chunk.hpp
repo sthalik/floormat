@@ -19,8 +19,6 @@ class anim_atlas;
 class wall_atlas;
 struct object;
 struct object_proto;
-class tile_iterator;
-class tile_const_iterator;
 class SpriteBatch;
 struct tile_shader;
 struct clickable;
@@ -40,9 +38,6 @@ public:
     chunk_coords_ coord() const noexcept;
     Optional<tile_ref> at_offset(local_coords pos, Vector2i off);
     Optional<tile_ref> at_offset(tile_ref r, Vector2i off);
-
-    using iterator = tile_iterator;
-    using const_iterator = tile_const_iterator;
 
     bool empty(bool force = false) const noexcept;
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "compat/defs.hpp"
-#include "src/global-coords.hpp"
 #include <Magnum/Math/Vector2.h>
 
 struct SDL_Window;
@@ -27,6 +26,8 @@ struct point;
 struct z_bounds;
 struct draw_bounds;
 class SpriteBatch;
+struct global_coords;
+struct chunk_coords_;
 
 struct floormat_main
 {

@@ -125,7 +125,6 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
     {
         const auto& def = atlas->info();
         auto pixels = tex.pixels();
-        const auto full_width = (uint32_t)size[1];
         const auto format = tex.format();
         // Use the view's byte strides, not full_width * channel_count — the view
         // may carry alignment padding, row-length adjustments, or Y-flip that would
