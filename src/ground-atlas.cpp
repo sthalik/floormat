@@ -5,10 +5,12 @@
 #include "compat/borrowed-ptr.inl"
 #include "tile-image.hpp"
 #include "loader/loader.hpp"
+#include <cstring>
 #include <limits>
-#include <Magnum/Math/Color.h>
+#include <cr/GrowableArray.h>
+#include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
-#include <Magnum/GL/TextureFormat.h>
+#include <Magnum/PixelStorage.h>
 
 namespace floormat {
 
@@ -16,49 +18,57 @@ template class bptr<ground_atlas>;
 template class bptr<const ground_atlas>;
 
 ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
-    _def{move(info)}, _path{make_path(_def.name)},
-    _texcoords{make_texcoords_array(Vector2ui(image.size()), _def.size)},
-    _pixel_size{image.size()}
+    _def{move(info)}, _path{make_path(_def.name)}
 {
     //Debug{} << "make ground_atlas" << _def.name;
     constexpr auto variant_max = std::numeric_limits<variant_t>::max();
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);
-    fm_soft_assert(_pixel_size % Vector2ui{_def.size} == Vector2ui());
-    const ImageView3D image3d{image.storage(), image.format(),
-                              {image.size(), 1}, image.data()};
-    _tex.setLabel(_path)
-        .setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Nearest)
-        .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setMaxAnisotropy(1)
-        .setBorderColor(Color4{1, 0, 0, 1})
-        .setStorage(1, GL::textureFormat(image.format()), {image.size(), 1})
-        .setSubImage(0, {}, image3d);
+
+    const Vector2ui img_size{(uint32_t)image.size().x(), (uint32_t)image.size().y()};
+    fm_soft_assert(img_size.product() > 0);
+    fm_soft_assert(img_size % Vector2ui{_def.size} == Vector2ui());
+    const Vector2ui tile_px = img_size / Vector2ui{_def.size};
+
+    const auto pixels = image.pixels();
+    const auto px_size = (size_t)pixels.size()[2];
+    const auto row_stride = (size_t)pixels.stride()[0];
+    const auto* src_base = (const char*)pixels.data();
+    PixelStorage storage;
+    storage.setAlignment(1);
+
+    arrayReserve(_frame_sprites, num_tiles());
+    for (size_t i = 0; i < num_tiles(); i++)
+    {
+        const uint32_t gx = (uint32_t)(i % _def.size.x());
+        const uint32_t gy = (uint32_t)(i / _def.size.x());
+        const uint32_t td_x = gx * tile_px.x();
+        const uint32_t td_y = gy * tile_px.y();
+        // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
+        const uint32_t mem_y_start = img_size.y() - td_y - tile_px.y();
+        Array<char> packed{NoInit, (size_t)tile_px.product() * px_size};
+        for (uint32_t yy = 0; yy < tile_px.y(); yy++)
+        {
+            const auto* src_row = src_base
+                                + ((size_t)mem_y_start + yy) * row_stride
+                                + (size_t)td_x * px_size;
+            auto* dst_row = packed.data() + (size_t)yy * (size_t)tile_px.x() * px_size;
+            std::memcpy(dst_row, src_row, (size_t)tile_px.x() * px_size);
+        }
+        const ImageView2D view{storage, image.format(),
+                               {(Int)tile_px.x(), (Int)tile_px.y()},
+                               ArrayView<const void>{packed.data(), packed.size()}};
+        arrayAppend(_frame_sprites, loader.atlas().add(view, true));
+    }
 }
 
 Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
-    return _texcoords[i];
+    return loader.atlas().texcoords_for(_frame_sprites[i], false);
 }
 
-auto ground_atlas::make_texcoords(Vector2ui pixel_size, Vector2ub tile_count, size_t i) -> texcoords
-{
-    const auto sz = pixel_size/Vector2ui{tile_count};
-    const auto id = Vector2ui{ uint32_t(i % tile_count[0]), uint32_t(i / tile_count[0]) };
-    const auto p0 = id * sz;
-    return Quads::texcoords_at(p0, sz, pixel_size);
-}
-
-auto ground_atlas::make_texcoords_array(Vector2ui pixel_size, Vector2ub tile_count) -> Array<texcoords>
-{
-    const size_t N = Vector2ui{tile_count}.product();
-    auto ptr = Array<texcoords>{NoInit, N};
-    for (auto i = 0uz; i < N; i++)
-        ptr[i] = make_texcoords(pixel_size, tile_count, i);
-    return ptr;
-}
+auto ground_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
 
 size_t ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
 enum pass_mode ground_atlas::pass_mode() const { return _def.pass; }

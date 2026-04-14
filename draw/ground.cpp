@@ -3,6 +3,8 @@
 #include "src/chunk.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
+#include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <Magnum/GL/MeshView.h>
 
 namespace floormat {
@@ -29,7 +31,7 @@ void ground_mesh::draw(tile_shader& shader, chunk& c)
         {
             mesh.setCount((int)(quad_index_count * len));
             mesh.setIndexOffset((int)(last.pos*quad_index_count), 0, max_index);
-            shader.draw(last.atlas->texture(), mesh);
+            shader.draw(loader.atlas().texture(), mesh);
             draw_count++;
         }
         last = { atlas, i };

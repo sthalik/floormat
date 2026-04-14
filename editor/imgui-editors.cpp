@@ -68,6 +68,7 @@ auto get_texcoords(const wall_cell&, wall_atlas& atlas)
 
 GL::Texture2DArray& palette_source(anim_atlas& atlas) { return atlas.texture(); }
 GL::Texture2DArray& palette_source(wall_atlas&) { return static_cast<GL::Texture2DArray&>(loader.atlas().texture()); }
+GL::Texture2DArray& palette_source(ground_atlas&) { return static_cast<GL::Texture2DArray&>(loader.atlas().texture()); }
 
 void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
@@ -125,7 +126,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
             snformat(buf, "##item_{}"_cf, i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, e.palette_texture(atlas->texture()).id(),
+            ImGui::ImageButton(buf, e.palette_texture(palette_source(*atlas)).id(),
                                ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))

@@ -77,7 +77,7 @@ void Test::test_loader2()
         auto& A = *loader.ground_atlas(x.name);
         fm_assert(A.num_tiles2() == x.size);
         fm_assert(A.pass_mode() == x.pass);
-        fm_assert(A.texture().id());
+        fm_assert(!A.raw_sprite_array().isEmpty());
     }
     for (const auto& name : wall_atlases)
     {
@@ -104,8 +104,7 @@ void Test::test_loader3()
         {
             auto atlas = loader.ground_atlas(x.name, loader_policy::error);
             fm_assert(atlas->name() == x.name);
-            fm_assert(atlas->texture().id());
-            fm_assert(!atlas->pixel_size().isZero());
+            fm_assert(!atlas->raw_sprite_array().isEmpty());
             fm_assert(Vector2ui{atlas->num_tiles2()}.product());
         }
     }
