@@ -153,6 +153,7 @@ function(fm-userconfig-src)
         -Wno-error=global-constructors
         -Wno-error=exit-time-destructors
         -Wno-error=nrvo
+        -Wno-error=missing-noreturn
     )
     add_compile_options(
         #-Wglobal-constructors
