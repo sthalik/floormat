@@ -4,6 +4,7 @@
 #include "src/global-coords.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <cr/Optional.h>
 #include <mg/Texture.h>
 #include <tsl/robin_map.h>
@@ -40,6 +41,7 @@ class editor final
     safe_ptr<vobj_editor> _vobj;
 
     tsl::robin_map<GL::Texture2DArray*, GL::Texture2D> _palette_textures;
+    tsl::robin_map<const SpriteAtlas::Sprite*, GL::Texture2D> _sprite_palette_textures;
 
     struct drag_pos final {
         global_coords coord, draw_coord;
@@ -58,6 +60,7 @@ public:
     ~editor() noexcept;
 
     GL::Texture2D& palette_texture(GL::Texture2DArray& src);
+    GL::Texture2D& palette_texture(sprite s);
 
     [[nodiscard]] bool dirty() const noexcept { return _dirty; }
     void set_dirty(bool value) noexcept { _dirty = value; }

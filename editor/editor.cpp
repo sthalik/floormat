@@ -5,10 +5,14 @@
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 #include "compat/hash-table-load-factor.hpp"
+#include "loader/loader.hpp"
 #include <algorithm>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
 #include <Magnum/GL/Framebuffer.h>
+#include <Magnum/PixelFormat.h>
+#include <mg/ImageView.h>
+#include <Magnum/Image.h>
 
 namespace floormat {
 
@@ -195,6 +199,7 @@ void editor::set_mode(editor_mode mode)
 {
     _mode = mode;
     _palette_textures.clear();
+    _sprite_palette_textures.clear();
     on_release();
 }
 
@@ -226,6 +231,38 @@ GL::Texture2D& editor::palette_texture(GL::Texture2DArray& src)
         GL::AbstractFramebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
 
         it = _palette_textures.insert({&src, move(dst)}).first;
+    }
+    return it.value();
+}
+
+GL::Texture2D& editor::palette_texture(sprite s)
+{
+    auto it = _sprite_palette_textures.find(s.raw());
+    if (it == _sprite_palette_textures.end())
+    {
+        Hash::set_open_addressing_load_factor(_sprite_palette_textures,
+            _sprite_palette_textures.size()+1);
+
+        const Vector2i size{(int)s.width(), (int)s.height()};
+        GL::Texture2D dst;
+        dst.setWrapping(GL::SamplerWrapping::ClampToEdge)
+           .setMagnificationFilter(GL::SamplerFilter::Nearest)
+           .setMinificationFilter(GL::SamplerFilter::Nearest)
+           .setStorage(1, GL::TextureFormat::RGBA8, size);
+
+        // Read the sprite's pixels from the shared atlas via subImage (same
+        // path as SpriteAtlas::dump_sprite), then upload into the per-sprite
+        // Texture2D. Avoids FBO blit + viewport pitfalls — subImage reads
+        // pixels directly from the texture in absolute coordinates.
+        auto& src = static_cast<GL::Texture2DArray&>(loader.atlas().texture());
+        auto img = src.subImage(0,
+            Range3Di{{(int)s.x(), (int)s.y(), (int)s.layer()},
+                     {(int)s.x() + size.x(), (int)s.y() + size.y(), (int)s.layer() + 1}},
+            Image3D{PixelFormat::RGBA8Unorm});
+        ImageView2D view{img.format(), size, img.data()};
+        dst.setSubImage(0, {}, view);
+
+        it = _sprite_palette_textures.insert({s.raw(), move(dst)}).first;
     }
     return it.value();
 }

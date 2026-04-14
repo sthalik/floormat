@@ -58,17 +58,26 @@ void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
 void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
 void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
-auto get_texcoords(const wall_cell&, wall_atlas& atlas)
+
+// Emits ImGui::Image with the thumbnail appropriate for the atlas type.
+// Anim atlases still own their own Texture2DArray; wall atlases live in the
+// shared sprite_atlas and render via per-sprite Texture2D. UVs differ because
+// the per-sprite blit targets a fresh Texture2D covering just that sprite
+// (bottom-up GL storage → ImGui needs Y-flipped uv0/uv1).
+void palette_image(editor& e, ImVec2 img_size, const auto& scenery, anim_atlas& atlas)
+{
+    const auto texcoords = get_texcoords(scenery, atlas);
+    const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
+    ImGui::Image(e.palette_texture(atlas.texture()).id(), img_size, uv0, uv1);
+}
+
+void palette_image(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
 {
     const auto sprites = atlas.raw_sprite_array();
     if (sprites.isEmpty()) [[unlikely]]
-        return std::array<Vector3, 4>{};
-    return loader.atlas().texcoords_for(sprites[0], false);
+        return;
+    ImGui::Image(e.palette_texture(sprites[0]).id(), img_size, {0.f, 1.f}, {1.f, 0.f});
 }
-
-GL::Texture2DArray& palette_source(anim_atlas& atlas) { return atlas.texture(); }
-GL::Texture2DArray& palette_source(wall_atlas&) { return static_cast<GL::Texture2DArray&>(loader.atlas().texture()); }
-GL::Texture2DArray& palette_source(ground_atlas&) { return static_cast<GL::Texture2DArray&>(loader.atlas().texture()); }
 
 void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
@@ -110,6 +119,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
         constexpr size_t per_row = 8;
+        const auto sprites = atlas->raw_sprite_array();
         for (auto i = 0uz; i < N; i++)
         {
             const bool selected = ed.is_tile_selected(atlas, i);
@@ -124,11 +134,10 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
             };
 
             snformat(buf, "##item_{}"_cf, i);
-            const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, e.palette_texture(palette_source(*atlas)).id(),
+            ImGui::ImageButton(buf, e.palette_texture(sprites[i]).id(),
                                ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
-                               { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
+                               {0.f, 1.f}, {1.f, 0.f});
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
             else
@@ -189,12 +198,10 @@ void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
             auto& atlas = *atlasʹ;
             const auto size = Vector2(get_size(scenery, atlas));
             const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
-            const auto texcoords = get_texcoords(scenery, atlas);
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
-            const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*std::max(0.f, row_height - img_size.y));
-            ImGui::Image(e.palette_texture(palette_source(atlas)).id(), img_size, uv0, uv1);
+            palette_image(e, img_size, scenery, atlas);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(1))
