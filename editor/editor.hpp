@@ -2,11 +2,18 @@
 #include "compat/defs.hpp"
 #include "compat/safe-ptr.hpp"
 #include "src/global-coords.hpp"
-#include "src/tile-image.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/StringView.h>
+#include <cr/Optional.h>
+#include <mg/Texture.h>
+#include <tsl/robin_map.h>
+
+namespace Magnum::GL {
+template<UnsignedInt dimensions> class TextureArray;
+typedef TextureArray<2> Texture2DArray;
+template<UnsignedInt> class Texture;
+typedef Texture<2> Texture2D;
+} // namespace Magnum::GL
 
 namespace floormat {
 
@@ -32,6 +39,8 @@ class editor final
     safe_ptr<scenery_editor> _scenery;
     safe_ptr<vobj_editor> _vobj;
 
+    tsl::robin_map<GL::Texture2DArray*, GL::Texture2D> _palette_textures;
+
     struct drag_pos final {
         global_coords coord, draw_coord;
         editor_snap_mode snap = editor_snap_mode::none;
@@ -47,6 +56,8 @@ public:
     editor(editor&&) noexcept;
     editor& operator=(editor&&) noexcept;
     ~editor() noexcept;
+
+    GL::Texture2D& palette_texture(GL::Texture2DArray& src);
 
     [[nodiscard]] bool dirty() const noexcept { return _dirty; }
     void set_dirty(bool value) noexcept { _dirty = value; }

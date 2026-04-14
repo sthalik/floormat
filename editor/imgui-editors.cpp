@@ -58,7 +58,7 @@ void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atla
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
 auto get_texcoords(const wall_cell& w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); }
 
-void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
+void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
     const auto b = push_id("tile-pane");
 
@@ -114,7 +114,8 @@ void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const bptr<
             snformat(buf, "##item_{}"_cf, i);
             const auto uv = atlas->texcoords_for_id(i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, atlas->texture().id(), ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
+            ImGui::ImageButton(buf, e.palette_texture(atlas->texture()).id(),
+                               ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
                                { uv[3][0], uv[3][1] }, { uv[0][0], uv[0][1] });
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
@@ -129,7 +130,7 @@ void draw_editor_tile_pane_atlas(ground_editor& ed, StringView name, const bptr<
 }
 
 template<typename T>
-void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
+void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
 {
     const auto b1 = push_id("scenery-pane");
 
@@ -181,7 +182,7 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
             const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*std::max(0.f, row_height - img_size.y));
-            ImGui::Image(atlas.texture().id(), img_size, uv0, uv1);
+            ImGui::Image(e.palette_texture(atlas.texture()).id(), img_size, uv0, uv1);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(1))
@@ -228,9 +229,9 @@ void impl_draw_editor_scenery_pane(T& ed, Vector2 dpi)
     }
 }
 
-template void impl_draw_editor_scenery_pane(scenery_editor&, Vector2);
-template void impl_draw_editor_scenery_pane(vobj_editor&, Vector2);
-template void impl_draw_editor_scenery_pane(wall_editor&, Vector2);
+template void impl_draw_editor_scenery_pane(editor&, scenery_editor&, Vector2);
+template void impl_draw_editor_scenery_pane(editor&, vobj_editor&, Vector2);
+template void impl_draw_editor_scenery_pane(editor&, wall_editor&, Vector2);
 
 } // namespace
 
@@ -278,13 +279,13 @@ void app::draw_editor_pane(float main_menu_height)
             {
                 if (ed)
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*ed, k, v.atlas, dpi);
+                        draw_editor_tile_pane_atlas(*_editor, *ed, k, v.atlas, dpi);
                 else if (sc)
-                    impl_draw_editor_scenery_pane<scenery_editor>(*sc, dpi);
+                    impl_draw_editor_scenery_pane<scenery_editor>(*_editor, *sc, dpi);
                 else if (vo)
-                    impl_draw_editor_scenery_pane<vobj_editor>(*vo, dpi);
+                    impl_draw_editor_scenery_pane<vobj_editor>(*_editor, *vo, dpi);
                 else if (wa)
-                    impl_draw_editor_scenery_pane<wall_editor>(*wa, dpi);
+                    impl_draw_editor_scenery_pane<wall_editor>(*_editor, *wa, dpi);
                 else if (_editor->mode() == editor_mode::tests)
                     draw_tests_pane(width);
             }

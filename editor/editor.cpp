@@ -1,12 +1,14 @@
 #include "editor.hpp"
-#include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
+#include "compat/hash-table-load-factor.hpp"
 #include <algorithm>
-#include <Corrade/Containers/StringView.h>
+#include <mg/TextureFormat.h>
+#include <mg/TextureArray.h>
+#include <Magnum/GL/Framebuffer.h>
 
 namespace floormat {
 
@@ -192,7 +194,40 @@ editor::~editor() noexcept = default;
 void editor::set_mode(editor_mode mode)
 {
     _mode = mode;
+    _palette_textures.clear();
     on_release();
+}
+
+GL::Texture2D& editor::palette_texture(GL::Texture2DArray& src)
+{
+    auto it = _palette_textures.find(&src);
+    if (it == _palette_textures.end())
+    {
+        Hash::set_open_addressing_load_factor(_palette_textures, _palette_textures.size()+1);
+
+        // Can't use Texture2D::view — the source may be RGB8 (ground/wall/vobj
+        // images come through as PixelFormat::RGB8Unorm) while we want RGBA8
+        // on the view side, and glTextureView requires the view format to be
+        // in the same class as the source's internal format. FBO blit into a
+        // fresh RGBA8 Texture2D works regardless of source format; the driver
+        // does the RGB→RGBA expansion (alpha filled to 1.0).
+        const auto size = src.imageSize(0).xy();
+        GL::Texture2D dst;
+        dst.setWrapping(GL::SamplerWrapping::ClampToEdge)
+           .setMagnificationFilter(GL::SamplerFilter::Nearest)
+           .setMinificationFilter(GL::SamplerFilter::Nearest)
+           .setStorage(1, GL::TextureFormat::RGBA8, size);
+
+        const auto rect = Range2Di{{}, size};
+        constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
+        GL::Framebuffer src_fb{rect}, dst_fb{rect};
+        src_fb.attachTextureLayer(attachment, src, 0, 0);
+        dst_fb.attachTexture(attachment, dst, 0);
+        GL::AbstractFramebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
+
+        it = _palette_textures.insert({&src, move(dst)}).first;
+    }
+    return it.value();
 }
 
 const ground_editor* editor::current_ground_editor() const noexcept
