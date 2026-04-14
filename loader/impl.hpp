@@ -45,7 +45,7 @@ struct loader_impl final : loader_
     Trade::ImageData2D image(StringView path) noexcept(false) override;
 
     // >-----> sprite atlas >----->
-    sprite_atlas _sprite_atlas{SpriteAtlas::max_texture_xy};
+    sprite_atlas _sprite_atlas{};
     sprite_atlas& atlas() noexcept override { return _sprite_atlas; }
 
     // Frame registry: (anim_atlas*, rotation, frame_idx) → atlas sprite.

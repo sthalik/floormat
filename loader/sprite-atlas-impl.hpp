@@ -44,12 +44,13 @@ struct Atlas
     Array<Layer> layers {};
     Array<Pointer<HeightClass>> height_classes {};
     GL::Texture2DArray texture{NoCreate};
-    uint16_t layer_size;
+    uint16_t layer_size = 0;
     uint16_t n_layers = 0;
 
     struct ShelfPair { Shelf* p; uint32_t index; };
 };
 
+uint32_t max_2d_texture_size();
 uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A);
 void realloc_atlas(Atlas& atlas, uint16_t new_n_layers);
 void free_atlas(Atlas& atlas);

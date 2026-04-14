@@ -35,6 +35,7 @@ private:
 class sprite_atlas
 {
 public:
+    explicit sprite_atlas();
     explicit sprite_atlas(uint16_t layer_size);
     ~sprite_atlas() noexcept;
 

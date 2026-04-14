@@ -20,6 +20,13 @@
 
 namespace floormat::SpriteAtlas {
 
+uint32_t max_2d_texture_size()
+{
+    auto size = GL::Texture2D::maxSize();
+    fm_assert(size.x() == size.y() && size.x() > 0);
+    return (uint32_t)size.x();
+}
+
 uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
 {
     // Growth policy: double while VRAM footprint is modest, switch to 1.5x
@@ -446,10 +453,17 @@ uint32_t sprite::width() const       { return (uint32_t)_s->width + 1; }
 uint32_t sprite::height() const      { return (uint32_t)_s->height + 1; }
 bool     sprite::is_rotated() const  { return _s->is_rotated != 0; }
 
+sprite_atlas::sprite_atlas()
+    : _atlas{InPlaceInit}
+{
+    // layer_size stays 0 until first add() resolves it against the
+    // live GL context — ctor runs during loader singleton static-init,
+    // before the GL context exists.
+}
+
 sprite_atlas::sprite_atlas(uint16_t layer_size)
     : _atlas{InPlaceInit}
 {
-    fm_assert(layer_size > 0 && layer_size <= SpriteAtlas::max_texture_xy);
     _atlas->layer_size = layer_size;
 }
 
@@ -462,6 +476,13 @@ uint16_t sprite_atlas::n_layers() const   { return _atlas->n_layers; }
 
 sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
 {
+    if (_atlas->layer_size == 0)
+    {
+        auto ls = SpriteAtlas::max_2d_texture_size();
+        ls = std::min<uint32_t>(ls, 1u << 14);
+        fm_assert(ls > 0);
+        _atlas->layer_size = (uint16_t)ls;
+    }
     auto size = pixels.size();
     auto* s = SpriteAtlas::alloc_sprite(*_atlas,
                                         (uint32_t)size.x(),
