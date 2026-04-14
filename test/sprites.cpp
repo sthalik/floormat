@@ -147,7 +147,7 @@ void test_sprites()
     // layer_size matches max_texture_xy in sprite-atlas-impl.hpp — the
     // 10-bit Sprite::width/height storage caps individual sprites at 1024.
     SpriteAtlas::Atlas atlas;
-    atlas.layer_size = 1024;
+    atlas.layer_size = (uint16_t)Math::min<unsigned>(1u << 14, SpriteAtlas::max_2d_texture_size());
 
     uint32_t png_count = 0, alloc_count = 0;
     for (const String& path : files)

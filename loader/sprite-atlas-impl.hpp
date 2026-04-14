@@ -22,9 +22,14 @@ struct Sprite {
 struct Shelf
 {
     Array<Pointer<Sprite>> sprites {};
-    uint64_t y : 14, height_class : 10, next_x : 14;
+    // next_x needs 15 bits: it represents one-past-end and must reach
+    // layer_size (up to 16384, the runtime cap on 14-bit Sprite::x). A
+    // 14-bit next_x truncates 16384 to 0 and re-allocates from x=0,
+    // causing every sprite past the shelf-full boundary to collide with
+    // the first sprite on the same shelf.
+    uint64_t y : 14, height_class : 10, next_x : 15;
 
-    uint64_t _pad0 : 26 = 0;
+    uint64_t _pad0 : 25 = 0;
 };
 
 struct Layer
