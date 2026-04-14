@@ -155,7 +155,7 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
         const auto& u = list.UVs[i];
         const auto& d = list.Depths[i];
         auto* obj = list.Objects[i];
-        if (!render_vobjs && obj->is_virtual())
+        if (obj && !render_vobjs && obj->is_virtual())
             continue;
         emit(v, u, d);
     }
@@ -196,7 +196,7 @@ template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this
     arrayResize(A, NoInit, size);
 }
 
-void SpriteBatch::sort_vertex_buffer()
+void SpriteBatch::sort_vertex_buffer(bool do_sort)
 {
     auto& impl = *this->impl;
     const auto& D = impl.data;
@@ -215,9 +215,10 @@ void SpriteBatch::sort_vertex_buffer()
     reserve(V, size);
 
     const auto k = (uint32_t)Starts.size() - 1; // number of runs
-    if (k <= 1)
+    if (!do_sort || k <= 1)
     {
-        // single chunk or empty — already sorted, just copy vertices
+        // sort skipped (depth-buffered opaque pass), single chunk, or empty —
+        // copy vertices in input order.
         for (auto i = 0u; i < size; i++)
             V[i] = D[S[i]].vertexes;
         return;
@@ -285,7 +286,7 @@ void SpriteBatch::sort_vertex_buffer()
 #endif
 }
 
-void SpriteBatch::draw(tile_shader& shader)
+void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 {
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
@@ -304,7 +305,7 @@ void SpriteBatch::draw(tile_shader& shader)
     fm_debug_assert(impl.merge_output.isEmpty());
     arrayAppend(impl.starts, impl.last_start);
 
-    sort_vertex_buffer(); // modifies V
+    sort_vertex_buffer(do_sort); // modifies V
     ensure_allocated(size);
     impl.vertex_buffer_handle.setSubData(0, ArrayView{ V.data(), size });
 

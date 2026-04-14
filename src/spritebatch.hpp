@@ -28,7 +28,7 @@ class SpriteBatch
     struct Impl;
 
     void ensure_allocated(uint32_t count);
-    void sort_vertex_buffer();
+    void sort_vertex_buffer(bool do_sort);
 
     safe_ptr<Impl> impl;
 
@@ -36,7 +36,7 @@ public:
     void begin_chunk();
     void end_chunk(bool do_sort);
     void clear();
-    void draw(tile_shader& shader);
+    void draw(tile_shader& shader, bool do_sort = true);
 
     static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, const Quads::texcoords& uv, float depth);

@@ -2,6 +2,8 @@
 #include "tile-bbox.hpp"
 #include "quads.hpp"
 #include "wall-atlas.hpp"
+#include "spritebatch.hpp"
+#include "point.inl"
 #include "compat/function2.hpp"
 #include "RTree-search.hpp"
 #include "shaders/shader.hpp"
@@ -151,34 +153,6 @@ cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coor
     return output;
 }
 
-ArrayView<const Quads::indexes> make_indexes(uint32_t count)
-{
-    static auto arrayʹ = [] {
-        auto array = Array<Quads::indexes>{};
-        arrayReserve(array, 64);
-        return array;
-    }();
-    auto& array = arrayʹ;
-    auto i = (uint32_t)array.size();
-    if (count > i) [[unlikely]]
-    {
-        arrayResize(array, NoInit, count);
-        for (; i < count; i++)
-            array.data()[i] = Quads::quad_indexes(i);
-    }
-    return array.prefix(count);
-}
-
-Array<Quads::vertexes>& make_vertexes()
-{
-    static auto array = [] {
-        Array<Quads::vertexes> array;
-        arrayReserve(array, 32);
-        return array;
-    }();
-    return array;
-}
-
 template<Group_ G, bool IsWest>
 constexpr int32_t depth_offset_for_group(uint32_t depth)
 {
@@ -207,21 +181,12 @@ uint32_t variant_index(uint32_t frame_count, global_coords coord, variant_t vari
 
 Array<HoleData> hole_data;
 
-Quads::vertexes& alloc_wall_vertexes(uint32_t& N, auto& V)
-{
-    constexpr uint32_t reserve = 15, mask = ~reserve;
-    const auto i = N, sz = ++N + reserve & mask;
-    fm_assert(uint32_t{(UnsignedShort)sz} == sz);
-    arrayResize(V, NoInit, sz);
-    return V[i];
-}
-
 Array<WallFragment> fragdata;
 
 template<Group_ G, bool IsWest>
 void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
-                  Array<Quads::vertexes>& vertexes,
-                  global_coords coord, uint32_t& N, uint32_t tile)
+                  SpriteList& wsl,
+                  global_coords coord, uint32_t tile)
 {
     if (!group.is_defined)
         return;
@@ -230,7 +195,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto variant_2 = W.variants[k];
     const auto pos = local_coords{tile};
-    const auto center = Vector3(pos) * TILE_SIZE;
+    const auto center = Vector3(point{c.coord(), pos, {}});
     const auto& dir = A.calc_direction(D);
     const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
@@ -289,9 +254,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
                 };
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
         }
         if (corner_ok) [[unlikely]]
@@ -335,9 +301,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto& sp = sprites[v2];
                 const auto texcoords = loader.atlas().texcoords_for(
                     sp, Vector2ui{0, 0}, frame.size, dir.corner.mirrored);
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
             else if (dir.wall.is_defined) [[likely]]
             {
@@ -352,9 +319,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     Vector2ui{frame.size.x() - Depth, 0},
                     Vector2ui{Depth, frame.size.y()},
                     dir.wall.mirrored);
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
         }
     }
@@ -416,9 +384,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                                               tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()},
                                               depth_offset);
 
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
             else if constexpr (G == Group_::side)
             {
@@ -457,9 +426,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                                                        tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()},
                                                        depth_offset);
 
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
             else if constexpr (G == Group_::top)
             {
@@ -502,9 +472,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                         Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()}, depth_offset),
                     };
 
-                auto& v = alloc_wall_vertexes(N, vertexes);
+                Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                wsl.add(v, texcoords, depth[0], nullptr);
             }
             else
                 static_assert(false);
@@ -514,65 +485,41 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
 
 } // namespace
 
-GL::Mesh chunk::make_wall_mesh()
-{
-    fm_debug_assert(_walls);
-
-    uint32_t N = 0;
-    auto& vertexes = make_vertexes();
-    auto& W = *_walls;
-
-    arrayResize(vertexes, 0);
-
-    for (uint32_t k = 0; k < TILE_COUNT; k++)
-    {
-        const auto coord = global_coords{_coord, local_coords{k}};
-
-        static_assert(Wall::Group_COUNT == /* 5 */ 4);
-        static_assert((int)Direction_::COUNT == 2);
-
-        if (auto* A_nʹ = W.atlases[k*2 + 0].get())
-        {
-            auto& A_n = *A_nʹ;
-            const auto& dir = A_n.calc_direction(Direction_::N);
-            do_wall_part<Group_::wall, false>(dir.wall, A_n, *this, W, vertexes, coord, N, k);
-            do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, vertexes, coord, N, k);
-            do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, vertexes, coord, N, k);
-        }
-        if (auto* A_wʹ = W.atlases[k*2 + 1].get())
-        {
-            auto& A_w = *A_wʹ;
-            const auto& dir = A_w.calc_direction(Direction_::W);
-            do_wall_part<Group_::wall,  true>(dir.wall, A_w, *this, W, vertexes, coord, N, k);
-            do_wall_part<Group_::side,  true>(dir.side, A_w, *this, W, vertexes, coord, N, k);
-            do_wall_part<Group_::top,   true>(dir.top,  A_w, *this, W, vertexes, coord, N, k);
-        }
-    }
-
-    if (N == 0)
-        return GL::Mesh{NoCreate};
-
-    auto vertex_view = std::as_const(vertexes).prefix(N);
-    auto index_view = make_indexes(N);
-
-    GL::Mesh mesh{GL::MeshPrimitive::Triangles};
-    mesh.addVertexBuffer(GL::Buffer{vertex_view}, 0,
-                         tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{})
-        .setIndexBuffer(GL::Buffer{index_view}, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(int32_t(6 * N));
-    fm_debug_assert((uint32_t)mesh.count() == N*6);
-    return mesh;
-}
-
-GL::Mesh& chunk::ensure_wall_mesh() noexcept
+void chunk::ensure_wall_mesh(SpriteBatch& sb)
 {
     if (!_walls)
-        return wall_mesh;
-    if (!_walls_modified)
-        return wall_mesh;
-    _walls_modified = false;
-    wall_mesh = make_wall_mesh();
-    return wall_mesh;
+        return;
+    if (_walls_modified)
+    {
+        _walls_modified = false;
+        wall_static_mesh.clear();
+        auto& W = *_walls;
+        for (uint32_t k = 0; k < TILE_COUNT; k++)
+        {
+            const auto coord = global_coords{_coord, local_coords{k}};
+
+            static_assert(Wall::Group_COUNT == /* 5 */ 4);
+            static_assert((int)Direction_::COUNT == 2);
+
+            if (auto* A_nʹ = W.atlases[k*2 + 0].get())
+            {
+                auto& A_n = *A_nʹ;
+                const auto& dir = A_n.calc_direction(Direction_::N);
+                do_wall_part<Group_::wall, false>(dir.wall, A_n, *this, W, wall_static_mesh, coord, k);
+                do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, wall_static_mesh, coord, k);
+                do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, wall_static_mesh, coord, k);
+            }
+            if (auto* A_wʹ = W.atlases[k*2 + 1].get())
+            {
+                auto& A_w = *A_wʹ;
+                const auto& dir = A_w.calc_direction(Direction_::W);
+                do_wall_part<Group_::wall,  true>(dir.wall, A_w, *this, W, wall_static_mesh, coord, k);
+                do_wall_part<Group_::side,  true>(dir.side, A_w, *this, W, wall_static_mesh, coord, k);
+                do_wall_part<Group_::top,   true>(dir.top,  A_w, *this, W, wall_static_mesh, coord, k);
+            }
+        }
+    }
+    sb.emit(wall_static_mesh, false);
 }
 
 } // namespace floormat

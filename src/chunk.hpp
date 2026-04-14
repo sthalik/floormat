@@ -9,7 +9,6 @@
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Pointer.h>
-#include <Magnum/GL/Mesh.h>
 
 namespace floormat::Quads { using indexes = std::array<UnsignedShort, 6>; }
 
@@ -58,11 +57,6 @@ public:
     bool is_scenery_modified() const noexcept;
     bool are_walls_modified() const noexcept;
 
-    struct ground_mesh_tuple final {
-        GL::Mesh& mesh;
-        const ArrayView<const uint8_t> ids;
-        const size_t size;
-    };
     struct object_draw_order;
     struct scenery_mesh_tuple;
     struct pass_region;
@@ -71,11 +65,13 @@ public:
 
     void ensure_alloc_ground();
     void ensure_alloc_walls();
-    ground_mesh_tuple ensure_ground_mesh() noexcept;
+    void ensure_ground_mesh(SpriteBatch& sb);
     ground_atlas* ground_atlas_at(size_t i) const noexcept;
-    GL::Mesh& ensure_wall_mesh() noexcept;
+    void ensure_wall_mesh(SpriteBatch& sb);
 
     SpriteList scenery_static_mesh;
+    SpriteList wall_static_mesh;
+    SpriteList ground_static_mesh;
 
     void ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs);
     void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
@@ -102,7 +98,6 @@ public:
     struct ground_stuff
     {
         std::array<bptr<ground_atlas>, TILE_COUNT> atlases;
-        std::array<uint8_t, TILE_COUNT> indexes = {};
         std::array<variant_t, TILE_COUNT> variants = {};
     };
 
@@ -117,7 +112,6 @@ private:
     Pointer<wall_stuff> _walls;
     Array<bptr<object>> _objects;
     class world* _world;
-    GL::Mesh ground_mesh{NoCreate}, wall_mesh{NoCreate};
     Pointer<RTree> _rtree;
     chunk_coords_ _coord;
 
@@ -161,9 +155,6 @@ private:
     void _replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b);
     void _replace_bbox_static(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
 
-    GL::Mesh make_wall_mesh();
-
-    template<size_t N> static std::array<Quads::indexes, N*TILE_COUNT> make_index_array(size_t max);
 };
 
 } // namespace floormat

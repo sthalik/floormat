@@ -161,14 +161,13 @@ void main_impl::draw_world() noexcept
 
     bind();
 
+    _sprite_batch.clear();
     draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
-                    const with_shifted_camera_offset o{_shader, c.coord()};
-                    _ground_mesh.draw(_shader, c);
-                    auto& wmesh = c.ensure_wall_mesh();
-                    if (wmesh.count() > 0)
-                        _shader.draw(loader.atlas().texture(), wmesh);
+                    c.ensure_ground_mesh(_sprite_batch);
+                    c.ensure_wall_mesh(_sprite_batch);
                  },
                  chunks, sz, z_bounds.only, z_bounds.cur);
+    _sprite_batch.draw(_shader, false);  // depth-buffered opaque pass; no painter sort needed
 
     GL::Renderer::setDepthMask(false);
     _sprite_batch.clear();

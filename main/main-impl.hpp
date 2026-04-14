@@ -6,7 +6,6 @@
 #include "src/fps-counter.hpp"
 #include "src/nanosecond.inl"
 #include "src/spritebatch.hpp"
-#include "draw/ground.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
@@ -144,7 +143,6 @@ private:
     Array<clickable> _clickable_scenery;
     class world _world{};
     uint32_t _mouse_cursor = (uint32_t)-1;
-    ground_mesh _ground_mesh;
     SpriteBatch _sprite_batch;
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;

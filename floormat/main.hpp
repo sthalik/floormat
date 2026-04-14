@@ -17,7 +17,6 @@ class world;
 struct scenery;
 class anim_atlas;
 struct clickable;
-struct ground_mesh;
 struct anim_mesh;
 struct texture_unit_cache;
 class path_search;
@@ -33,7 +32,6 @@ struct floormat_main
 {
     struct meshes final
     {
-        ground_mesh& ground;
         SpriteBatch& sb;
     };
 
