@@ -13,7 +13,6 @@
 #include <ranges>
 #include <algorithm>
 #include <cr/GrowableArray.h>
-#include <mg/MeshView.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
 
@@ -327,14 +326,7 @@ void SpriteBatch::draw(tile_shader& shader)
     mesh.setCount(6 * (Int)V.size());
     fm_assert(mesh.isIndexed());
 
-    auto& atlas_tex = loader.atlas().texture();
-    for (auto i = 0u; i < size; i++)
-    {
-        GL::MeshView m{mesh};
-        m.setIndexOffset(6 * (Int)i, 0, 6*impl.buffer_capacity);
-        m.setCount(6);
-        shader.draw(atlas_tex, m);
-    }
+    shader.draw(loader.atlas().texture(), mesh);
 
     clear();
 }
