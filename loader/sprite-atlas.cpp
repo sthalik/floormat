@@ -173,71 +173,40 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     return { shelf_ptr, layer_idx };
 }
 
+static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t h)
+{
+    // Shelf::height_class stores `q_height - 1` (lets 1024 fit in 10 bits),
+    // so we compute the same encoding here for the lookup comparison.
+    const uint32_t q_height_m1 =
+        (h + size_class_size - 1) / size_class_size * size_class_size - 1;
+    for (uint32_t li = 0; li < atlas.layers.size(); li++)
+        for (auto& sh : atlas.layers[li].shelves)
+            if ((uint32_t)sh->height_class == q_height_m1
+                && atlas.layer_size - (uint32_t)sh->next_x >= w)
+                return { &*sh, li };
+    return { nullptr, 0 };
+}
+
 Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
 {
     fm_assert(w > 0 && h > 0);
     fm_assert(w <= max_texture_xy && h <= max_texture_xy);
     fm_assert(w <= atlas.layer_size && h <= atlas.layer_size);
 
-    // Decide orientation: when rotation is allowed, always take it for now
-    // (simplest policy — rotate every eligible sprite). The caller's (w, h)
-    // are the ORIGINAL dims; the atlas slot reserves (h, w) when rotated.
-    // Callers with pre-rotated pixel data (wall-tileset-tool's top group)
-    // must pass allow_rotate=false to preserve their orientation.
-    bool is_rotated = allow_rotate;
-#if 0
-    // DEBUG stress test: force every sprite rotated, overriding
-    // allow_rotate=false. All sprites should still display normally —
-    // rotation is invisible because texcoords_for_subrect's rotated
-    // branch maps caller-space sub_offset/sub_size to the transposed
-    // atlas storage correctly, regardless of whether the caller's pixel
-    // data was already pre-rotated (wall tops) or not. Exercises the
-    // rotation path for ALL registration sites (anim, scenery, wall
-    // tops, walls, sides, corners).
-    is_rotated = true;
-#endif
-    const uint32_t slot_w = is_rotated ? h : w;
-    const uint32_t slot_h = is_rotated ? w : h;
-
-    // Shelf::height_class stores `q_height - 1` (lets 1024 fit in 10 bits),
-    // so we compute the same encoding here for the lookup comparison below.
-    const uint32_t q_height_m1 =
-        (slot_h + size_class_size - 1) / size_class_size * size_class_size - 1;
-
-    // Step 1: first-fit search over EXISTING shelves of the matching size
-    // class. Walking atlas.layers[] directly lets `layer_idx` fall out of
-    // the loop index — no need to derive layer ownership separately.
-    // Exact-class match (not >=) is intentional: tall shelves never accept
-    // shorter sprites, which is what bounds vertical waste at <8px.
-    Shelf* shelf = nullptr;
-    uint32_t layer_idx = 0;
-    for (uint32_t li = 0; li < atlas.layers.size() && !shelf; li++)
-        for (auto& sh : atlas.layers[li].shelves)
-            if ((uint32_t)sh->height_class == q_height_m1
-                && atlas.layer_size - (uint32_t)sh->next_x >= slot_w)
-            {
-                shelf = &*sh;
-                layer_idx = li;
-                break;
-            }
-
-    // Step 2: nothing fit. Delegate to alloc_new_shelf, which handles the
-    // three "construct on demand" branches (HeightClass missing, all layers
-    // full, GL storage exhausted) in one place. ShelfPair gives us back the
-    // layer index of the freshly-created shelf without a follow-up scan.
-    if (!shelf)
+    bool is_rotated = false;
+    auto fit = find_shelf_with_space(atlas, w, h);
+    if (!fit.p && allow_rotate)
     {
-        auto [p, i] = alloc_new_shelf(atlas, slot_h);
-        shelf = p;
-        layer_idx = i;
+        fit = find_shelf_with_space(atlas, h, w);
+        if (fit.p)
+            is_rotated = true;
     }
+    if (!fit.p)
+        fit = alloc_new_shelf(atlas, h);
 
-    // Step 3: reserve horizontal range on the chosen shelf and record the
-    // sprite. width/height are stored as size-1 of the ORIGINAL dims
-    // (10-bit field represents 1..1024) so `sprite::width()` / `height()`
-    // return what the caller passed in — consumers don't see the rotation.
-    // Sprite::layer is what render-side code consults to find the slice;
-    // it must match the layer the pixels were uploaded to.
+    Shelf* shelf = fit.p;
+    const uint32_t layer_idx = fit.index;
+    const uint32_t slot_w = is_rotated ? h : w;
     uint32_t x = shelf->next_x;
     shelf->next_x = (uint32_t)(x + slot_w);
     arrayReserve(shelf->sprites, 16);
