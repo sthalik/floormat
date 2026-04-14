@@ -32,10 +32,10 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_)
     auto offset = pos + Vector2(.5f), end = offset + size - Vector2(1);
     auto x0 = offset / image_size, x1 = end / image_size;
     return {{
-        { x1.x(), 1.f - x1.y() }, // bottom right
-        { x1.x(), 1.f - x0.y() }, // top right
-        { x0.x(), 1.f - x1.y() }, // bottom left
-        { x0.x(), 1.f - x0.y() }, // top left
+        { x1.x(), 1.f - x1.y(), 0.f }, // bottom right
+        { x1.x(), 1.f - x0.y(), 0.f }, // top right
+        { x0.x(), 1.f - x1.y(), 0.f }, // bottom left
+        { x0.x(), 1.f - x0.y(), 0.f }, // top left
     }};
 }
 
@@ -58,11 +58,11 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, b
     auto offset = pos + Vector2(.5f), end = offset + size - Vector2(1);
     auto x0 = offset / image_size, x1 = end / image_size;
 
-    const Vector2 corners[4] = {
-        { x1.x(), 1.f - x1.y() }, // 0: BR
-        { x1.x(), 1.f - x0.y() }, // 1: TR
-        { x0.x(), 1.f - x1.y() }, // 2: BL
-        { x0.x(), 1.f - x0.y() }, // 3: TL
+    const Vector3 corners[4] = {
+        { x1.x(), 1.f - x1.y(), 0.f }, // 0: BR
+        { x1.x(), 1.f - x0.y(), 0.f }, // 1: TR
+        { x0.x(), 1.f - x1.y(), 0.f }, // 2: BL
+        { x0.x(), 1.f - x0.y(), 0.f }, // 3: TL
     };
 
     constexpr struct {

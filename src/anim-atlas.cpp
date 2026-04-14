@@ -61,14 +61,16 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
             fm_soft_assert(fr.offset + fr.size <= pixel_size);
         }
 
+    const ImageView3D image3d{image.storage(), image.format(),
+                              {image.size(), 1}, image.data()};
     _tex.setLabel(_name)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMaxAnisotropy(1)
         .setBorderColor(Color4{1, 0, 0, 1})
-        .setStorage(1, GL::textureFormat(image.format()), image.size())
-        .setSubImage(0, {}, image);
+        .setStorage(1, GL::textureFormat(image.format()), {image.size(), 1})
+        .setSubImage(0, {}, image3d);
 }
 
 anim_atlas::~anim_atlas() noexcept = default;
@@ -76,7 +78,7 @@ anim_atlas::anim_atlas(anim_atlas&&) noexcept = default;
 anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
-GL::Texture2D& anim_atlas::texture() noexcept { return _tex; }
+GL::Texture2DArray& anim_atlas::texture() noexcept { return _tex; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
 
 auto anim_atlas::group(rotation r) const -> const anim_group&
@@ -103,17 +105,17 @@ auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const no
     const auto size = _info.pixel_size;
     if (!mirror)
         return {{
-            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y()  }, // bottom right
-            { (x0+x1) / size.x(), 1 -      y0 / size.y()  }, // top right
-            {      x0 / size.x(), 1 - (y0+y1) / size.y()  }, // bottom left
-            {      x0 / size.x(), 1 -      y0 / size.y()  }, // top left
+            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f  }, // bottom right
+            { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f  }, // top right
+            {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f  }, // bottom left
+            {      x0 / size.x(), 1 -      y0 / size.y(), 0.f  }, // top left
         }};
     else
         return {{
-            {      x0 / size.x(), 1 - (y0+y1) / size.y() }, // bottom right
-            {      x0 / size.x(), 1 -      y0 / size.y() }, // top right
-            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y() }, // bottom left
-            { (x0+x1) / size.x(), 1 -      y0 / size.y() }, // top left
+            {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // bottom right
+            {      x0 / size.x(), 1 -      y0 / size.y(), 0.f }, // top right
+            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // bottom left
+            { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f }, // top left
         }};
 }
 
@@ -125,11 +127,11 @@ auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror, bool rot
     const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
     const auto size = _info.pixel_size;
 
-    const Vector2 corners[4] = {
-        { (x0+x1) / size.x(), 1 - (y0+y1) / size.y() }, // 0: BR
-        { (x0+x1) / size.x(), 1 -      y0 / size.y() }, // 1: TR
-        {      x0 / size.x(), 1 - (y0+y1) / size.y() }, // 2: BL
-        {      x0 / size.x(), 1 -      y0 / size.y() }, // 3: TL
+    const Vector3 corners[4] = {
+        { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // 0: BR
+        { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f }, // 1: TR
+        {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // 2: BL
+        {      x0 / size.x(), 1 -      y0 / size.y(), 0.f }, // 3: TL
     };
 
     constexpr struct {

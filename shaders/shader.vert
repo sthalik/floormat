@@ -6,11 +6,11 @@ layout (location = 2) uniform vec4 tint;
 layout (location = 3) uniform bool enable_lightmap;
 
 layout (location = 0) in vec4 position;
-layout (location = 1) in vec2 texcoords;
+layout (location = 1) in vec3 texcoords;
 layout (location = 2) in vec2 light_coord;
 layout (location = 3) in float depth;
 
-layout (location = 0) noperspective out vec2 frag_texcoords;
+layout (location = 0) noperspective out vec3 frag_texcoords;
 layout (location = 1) noperspective out vec2 frag_light_coord;
 
 void main() {

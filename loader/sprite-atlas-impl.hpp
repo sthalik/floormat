@@ -7,7 +7,6 @@
 
 namespace floormat::SpriteAtlas {
 
-constexpr inline uint32_t max_texture_xy = 1024;
 constexpr inline uint32_t size_class_size = 8;
 //constexpr inline uint16_t n_size_classes = max_texture_xy/size_class_size;
 

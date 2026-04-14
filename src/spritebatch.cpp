@@ -7,6 +7,8 @@
 #include "src/sprite-list.hpp"
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
+#include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <cfloat>
 #include <ranges>
 #include <algorithm>
@@ -47,10 +49,19 @@ struct quick_draw
     GL::Buffer _vertex_buffer{NoCreate}, _index_buffer{NoCreate};
 };
 
+struct sprite_vertex
+{
+    Vector3 position;
+    Vector3 texcoords;
+    float depth;
+};
+using sprite_vertexes = std::array<sprite_vertex, 4>;
+static_assert(sizeof(sprite_vertex) == 28);
+static_assert(sizeof(sprite_vertexes) == 112);
+
 struct draw_item
 {
-    Quads::vertexes vertexes;
-    GL::Texture2D* texture = nullptr;
+    sprite_vertexes vertexes;
     float depth;
 };
 
@@ -62,7 +73,7 @@ struct SpriteBatch::Impl
 
     quick_draw quick;
 
-    Array<Quads::vertexes> vertex_buffer;
+    Array<sprite_vertexes> vertex_buffer;
     Array<Quads::indexes> index_buffer;
 
     Array<draw_item> data;
@@ -114,22 +125,25 @@ void SpriteBatch::clear()
 void SpriteBatch::ensure_allocated(uint32_t count)
 {
     auto& impl = *this->impl;
-    auto cap  = ensure_buffer_size<Quads::vertexes>(impl.vertex_buffer_handle, impl.buffer_capacity, count);
+    auto cap  = ensure_buffer_size<sprite_vertexes>(impl.vertex_buffer_handle, impl.buffer_capacity, count);
     auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
     fm_debug_assert(cap == cap2);
     impl.buffer_capacity = cap;
 }
 
-void SpriteBatch::emit(GL::Texture2D& tex, const Quads::vertexes& vertexes, float depth)
+void SpriteBatch::emit(const Quads::vertexes& vertexes, const Quads::texcoords& uv, float depth)
 {
     auto& impl = *this->impl;
     fm_assert(impl.in_chunk);
     arrayAppend(impl.data, NoInit, 1);
-    impl.data.back() = {
-        .vertexes = vertexes,
-        .texture = &tex,
-        .depth = depth,
-    };
+    auto& item = impl.data.back();
+    for (uint8_t j = 0; j < 4; j++)
+    {
+        item.vertexes[j].position  = vertexes[j].position;
+        item.vertexes[j].texcoords = uv[j];
+        item.vertexes[j].depth     = vertexes[j].depth;
+    }
+    item.depth = depth;
 }
 
 void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
@@ -139,12 +153,12 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
     for (auto i = 0u; i < size; i++)
     {
         const auto& v = list.Vertexes[i];
-        const auto& t = list.Textures[i];
+        const auto& u = list.UVs[i];
         const auto& d = list.Depths[i];
         auto* obj = list.Objects[i];
         if (!render_vobjs && obj->is_virtual())
             continue;
-        emit(*t, v, d);
+        emit(v, u, d);
     }
     end_chunk(false);
 }
@@ -313,13 +327,13 @@ void SpriteBatch::draw(tile_shader& shader)
     mesh.setCount(6 * (Int)V.size());
     fm_assert(mesh.isIndexed());
 
+    auto& atlas_tex = loader.atlas().texture();
     for (auto i = 0u; i < size; i++)
     {
-        const auto j = impl.sort_indexes[i];
         GL::MeshView m{mesh};
         m.setIndexOffset(6 * (Int)i, 0, 6*impl.buffer_capacity);
         m.setCount(6);
-        shader.draw(*D[j].texture, m);
+        shader.draw(atlas_tex, m);
     }
 
     clear();
@@ -330,10 +344,12 @@ void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r,
     auto& impl = *this->impl;
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
-    const auto texcoords = atlas.texcoords_for_frame(r, frame, !g.mirror_from.isEmpty());
-    Quads::vertexes vertexes;
+    const auto* sp = loader.find_sprite(atlas, r, (uint32_t)frame);
+    fm_assert(sp);
+    const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !g.mirror_from.isEmpty());
+    sprite_vertexes vertexes;
     for (auto i = 0uz; i < 4; i++)
-        vertexes[i] = { pos[i], texcoords[i], depth[i] };
+        vertexes[i] = { pos[i], uv3[i], depth[i] };
     const auto indexes = Quads::quad_indexes(0);
     auto& quick = impl.quick;
     auto& mesh = quick._mesh;
@@ -354,7 +370,7 @@ void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r,
         mesh.setCount(6);
         fm_assert(mesh.isIndexed());
     }
-    shader.draw(atlas.texture(), quick._mesh);
+    shader.draw(loader.atlas().texture(), quick._mesh);
 }
 
 void SpriteBatch::add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array)

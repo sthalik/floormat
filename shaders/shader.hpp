@@ -15,7 +15,7 @@ struct local_coords;
 struct tile_shader final : private GL::AbstractShaderProgram
 {
     using Position           = GL::Attribute<0, Vector3>;
-    using TextureCoordinates = GL::Attribute<1, Vector2>;
+    using TextureCoordinates = GL::Attribute<1, Vector3>;
     using LightCoord         = GL::Attribute<2, Vector2>;
     using Depth              = GL::Attribute<3, float>;
 

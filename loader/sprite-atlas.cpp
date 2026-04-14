@@ -63,7 +63,10 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     // the old contents over.
     GL::Texture2DArray new_texture;
     new_texture.setStorage(1, GL::TextureFormat::RGBA8,
-                           {layer_size, layer_size, (Int)new_n_layers});
+                           {layer_size, layer_size, (Int)new_n_layers})
+               .setMagnificationFilter(GL::SamplerFilter::Nearest)
+               .setMinificationFilter(GL::SamplerFilter::Nearest)
+               .setWrapping(GL::SamplerWrapping::ClampToEdge);
 
     auto rect = Range2Di{{}, {layer_size, layer_size}};
     constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
@@ -304,29 +307,56 @@ void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels
 
 std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror)
 {
-    // Sprite stores width/height as `size - 1` (10-bit fields, represent 1..1024);
-    // recover the pixel extent for the UV math. The per-layer "image size"
-    // handed to Quads::texcoords_at is just the atlas's square layer
-    // dimension — every layer of the Texture2DArray is layer_size × layer_size.
-    // Quads::texcoords_at handles the 4-way rotation permutation internally
-    // via the same convention `is_rotated` was stored under. `mirror` is a
-    // render-time choice (E/SE/S/SW rotation groups reuse W/NW/N/NE packed
-    // frames with mirror=true), not a property stored on the sprite itself.
-    const Vector2ui pos{(uint32_t)sprite.x, (uint32_t)sprite.y};
-    const Vector2ui size{(uint32_t)sprite.width + 1, (uint32_t)sprite.height + 1};
-    const Vector2ui atlas_size{atlas.layer_size, atlas.layer_size};
-    const auto uv = Quads::texcoords_at(pos, size, atlas_size,
-                                        mirror,
-                                        /*rotated=*/ sprite.is_rotated != 0);
-    // Pack as the 3D texcoord `sampler2DArray` expects: xy = UV within the
-    // layer, z = layer index as float (rounded to int on the GPU side).
-    // 14-bit layer values fit in float mantissa exactly.
+    // Sub-rect UVs into the shared atlas. Quads::texcoords_at's `1 - y/size`
+    // Y-flip assumes a whole-image upload (sprite fills the texture). For a
+    // sub-rect inside a larger atlas, the right UV math is the raw positional
+    // form — GL bottom-up sampling, PNG row 0 stored at atlas GL y=sprite.y+fh-1
+    // (via the Y-flipped sub-rect upload at loader/anim-traits.cpp), so top
+    // vertices sample UV.v=(sprite.y+fh-0.5)/atlas_H and bottom vertices sample
+    // (sprite.y+0.5)/atlas_H.
     const float layer = (float)sprite.layer;
+    const float atlas_size = (float)atlas.layer_size;
+    const float w = (float)sprite.width + 1;
+    const float h = (float)sprite.height + 1;
+    const float u0 = ((float)sprite.x + 0.5f) / atlas_size;
+    const float u1 = ((float)sprite.x + w - 0.5f) / atlas_size;
+    const float v0 = ((float)sprite.y + 0.5f) / atlas_size;   // bottom of sprite (GL bottom-up = low v)
+    const float v1 = ((float)sprite.y + h - 0.5f) / atlas_size; // top of sprite (high v)
+
+    // Vertex order per Quads::quad convention: {0=BR, 1=TR, 2=BL, 3=TL}.
+    // Top vertices (TR, TL) get v1, bottom vertices (BR, BL) get v0.
+    // Right vertices (BR, TR) get u1, left (BL, TL) get u0.
+    Vector2 corners[4] = {
+        {u1, v0}, // 0: BR
+        {u1, v1}, // 1: TR
+        {u0, v0}, // 2: BL
+        {u0, v1}, // 3: TL
+    };
+
+    // Mirror and rotation permutations over vertex order:
+    // - normal:        {0,1,2,3}
+    // - rotated only:  {1,3,0,2}  — CCW rotation of vertex→corner mapping
+    // - mirrored only: {2,3,0,1}  — horizontal flip (vertex i <-> i XOR 2)
+    // - both:          {0,2,1,3}  — mirror applied on top of rotated
+    //                               (derived: {1,3,0,2} with pairs swapped
+    //                               via XOR 2)
+    //
+    // Note: the last row differs from Quads::texcoords_at's {3,1,2,0} —
+    // that would 180°-rotate the result relative to this setup, which
+    // produced visibly upside-down scenery under force-rotate stress test.
+    constexpr uint8_t perm[4][4] = {
+        {0, 1, 2, 3},
+        {1, 3, 0, 2},
+        {2, 3, 0, 1},
+        {0, 2, 1, 3},
+    };
+    const auto* p = perm[(unsigned)mirror << 1 | (unsigned)(sprite.is_rotated != 0)];
+
     return {{
-        {uv[0], layer},
-        {uv[1], layer},
-        {uv[2], layer},
-        {uv[3], layer},
+        {corners[p[0]], layer},
+        {corners[p[1]], layer},
+        {corners[p[2]], layer},
+        {corners[p[3]], layer},
     }};
 }
 
@@ -428,7 +458,7 @@ sprite_atlas::sprite_atlas(uint16_t layer_size)
     _atlas->layer_size = layer_size;
 }
 
-sprite_atlas::~sprite_atlas() = default;
+sprite_atlas::~sprite_atlas() noexcept = default;
 sprite_atlas::sprite_atlas(sprite_atlas&&) noexcept = default;
 sprite_atlas& sprite_atlas::operator=(sprite_atlas&&) noexcept = default;
 
@@ -451,9 +481,24 @@ std::array<Vector3, 4> sprite_atlas::texcoords_for(sprite s, bool mirror) const
     return SpriteAtlas::texcoords_for_sprite(*_atlas, *s.raw(), mirror);
 }
 
+GL::AbstractTexture& sprite_atlas::texture()
+{
+    return _atlas->texture;
+}
+
 void sprite_atlas::reset()
 {
     SpriteAtlas::free_atlas(*_atlas);
+}
+
+void sprite_atlas::dump(StringView out_path)
+{
+    SpriteAtlas::dump_atlas(*_atlas, out_path);
+}
+
+void sprite_atlas::dump_sprite(sprite s, StringView out_path)
+{
+    SpriteAtlas::dump_sprite(*_atlas, *s.raw(), out_path);
 }
 
 } // namespace floormat

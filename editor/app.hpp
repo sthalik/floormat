@@ -14,14 +14,14 @@
 #include <Magnum/Math/Vector2.h>
 
 namespace Magnum::GL {
-template<UnsignedInt dimensions> class Texture;
-typedef Texture<2> Texture2D;
+template<UnsignedInt dimensions> class TextureArray;
+typedef TextureArray<2> Texture2DArray;
 } // namespace Magnum::GL
 
 namespace Magnum::ImGuiIntegration { class Context; }
 
 namespace floormat::wireframe {
-GL::Texture2D make_constant_texture();
+GL::Texture2DArray make_constant_texture();
 struct meshes;
 } // namespace floormat::wireframe
 

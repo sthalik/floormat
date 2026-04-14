@@ -25,17 +25,19 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);
     fm_soft_assert(_pixel_size % Vector2ui{_def.size} == Vector2ui());
+    const ImageView3D image3d{image.storage(), image.format(),
+                              {image.size(), 1}, image.data()};
     _tex.setLabel(_path)
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setMaxAnisotropy(1)
         .setBorderColor(Color4{1, 0, 0, 1})
-        .setStorage(1, GL::textureFormat(image.format()), image.size())
-        .setSubImage(0, {}, image);
+        .setStorage(1, GL::textureFormat(image.format()), {image.size(), 1})
+        .setSubImage(0, {}, image3d);
 }
 
-std::array<Vector2, 4> ground_atlas::texcoords_for_id(size_t i) const
+Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
     return _texcoords[i];

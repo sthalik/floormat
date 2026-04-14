@@ -9,7 +9,7 @@
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/ImageView.h>
-#include <Magnum/GL/Texture.h>
+#include <mg/TextureArray.h>
 
 namespace floormat {
 
@@ -24,12 +24,13 @@ class anim_atlas final : public bptr_base
     std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
-    GL::Texture2D _tex;
+    GL::Texture2DArray _tex;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
-    static uint8_t rotation_to_index(StringView name);
 
 public:
+    static uint8_t rotation_to_index(StringView name);
+
     anim_atlas() noexcept;
     anim_atlas(String name, const ImageView2D& tex, anim_def info);
     ~anim_atlas() noexcept override;
@@ -38,7 +39,7 @@ public:
     anim_atlas& operator=(anim_atlas&&) noexcept;
 
     StringView name() const noexcept;
-    GL::Texture2D& texture() noexcept;
+    GL::Texture2DArray& texture() noexcept;
     const anim_def& info() const noexcept;
 
     const anim_group& group(rotation r) const;

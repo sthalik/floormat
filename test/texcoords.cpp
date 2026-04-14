@@ -10,10 +10,11 @@ using Quads::texcoords;
 
 constexpr float eps = 1e-6f;
 
-void assert_near(Vector2 expected, Vector2 actual, unsigned i, const char* label)
+void assert_near(Vector3 expected, Vector3 actual, unsigned i, const char* label)
 {
     if (Math::abs(expected.x() - actual.x()) > eps ||
-        Math::abs(expected.y() - actual.y()) > eps)
+        Math::abs(expected.y() - actual.y()) > eps ||
+        Math::abs(expected.z() - actual.z()) > eps)
     {
         ERR_nospace << "fatal: raw texcoord mismatch at [" << i << "] (" << label << ")";
         ERR_nospace << "  expected: " << expected;
@@ -158,10 +159,10 @@ void test_raw_set1()
 
     // --- normal: literal check ---
     constexpr texcoords expected_normal = {{
-        {u1, v0}, // BR
-        {u1, v1}, // TR
-        {u0, v0}, // BL
-        {u0, v1}, // TL
+        {u1, v0, 0.f}, // BR
+        {u1, v1, 0.f}, // TR
+        {u0, v0, 0.f}, // BL
+        {u0, v1, 0.f}, // TL
     }};
     auto got = Quads::texcoords_at({11,23}, {37,51}, {97,113}, false, false);
     for (unsigned i = 0; i < 4; i++)
@@ -169,10 +170,10 @@ void test_raw_set1()
 
     // --- rotated: same literals, reordered as {1,3,0,2} ---
     constexpr texcoords expected_rot = {{
-        {u1, v1}, // BR ← TR
-        {u0, v1}, // TR ← TL
-        {u1, v0}, // BL ← BR
-        {u0, v0}, // TL ← BL
+        {u1, v1, 0.f}, // BR ← TR
+        {u0, v1, 0.f}, // TR ← TL
+        {u1, v0, 0.f}, // BL ← BR
+        {u0, v0, 0.f}, // TL ← BL
     }};
     auto got_rot = Quads::texcoords_at({11,23}, {37,51}, {97,113}, false, true);
     for (unsigned i = 0; i < 4; i++)
@@ -180,10 +181,10 @@ void test_raw_set1()
 
     // --- mirrored: reordered as {2,3,0,1} ---
     constexpr texcoords expected_mir = {{
-        {u0, v0}, // BR ← BL
-        {u0, v1}, // TR ← TL
-        {u1, v0}, // BL ← BR
-        {u1, v1}, // TL ← TR
+        {u0, v0, 0.f}, // BR ← BL
+        {u0, v1, 0.f}, // TR ← TL
+        {u1, v0, 0.f}, // BL ← BR
+        {u1, v1, 0.f}, // TL ← TR
     }};
     auto got_mir = Quads::texcoords_at({11,23}, {37,51}, {97,113}, true, false);
     for (unsigned i = 0; i < 4; i++)
@@ -191,10 +192,10 @@ void test_raw_set1()
 
     // --- both: reordered as {0,2,1,3} ---
     constexpr texcoords expected_both = {{
-        {u1, v0}, // BR ← BR
-        {u0, v0}, // TR ← BL
-        {u1, v1}, // BL ← TR
-        {u0, v1}, // TL ← TL
+        {u1, v0, 0.f}, // BR ← BR
+        {u0, v0, 0.f}, // TR ← BL
+        {u1, v1, 0.f}, // BL ← TR
+        {u0, v1, 0.f}, // TL ← TL
     }};
     auto got_both = Quads::texcoords_at({11,23}, {37,51}, {97,113}, true, true);
     for (unsigned i = 0; i < 4; i++)
@@ -208,14 +209,14 @@ void test_raw_set2()
     constexpr float v0 = 0.374015748031496f, v1 = 0.846456692913386f;
 
     constexpr texcoords expected_normal = {{
-        {u1, v0}, {u1, v1}, {u0, v0}, {u0, v1},
+        {u1, v0, 0.f}, {u1, v1, 0.f}, {u0, v0, 0.f}, {u0, v1, 0.f},
     }};
     auto got = Quads::texcoords_at({7,19}, {43,61}, {89,127}, false, false);
     for (unsigned i = 0; i < 4; i++)
         assert_near(expected_normal[i], got[i], i, "set2 normal");
 
     constexpr texcoords expected_rot = {{
-        {u1, v1}, {u0, v1}, {u1, v0}, {u0, v0},
+        {u1, v1, 0.f}, {u0, v1, 0.f}, {u1, v0, 0.f}, {u0, v0, 0.f},
     }};
     auto got_rot = Quads::texcoords_at({7,19}, {43,61}, {89,127}, false, true);
     for (unsigned i = 0; i < 4; i++)
@@ -231,7 +232,7 @@ void test_raw_scale20()
     constexpr float v0 = 0.345353982300885f, v1 = 0.796238938053097f;
 
     constexpr texcoords expected_normal = {{
-        {u1, v0}, {u1, v1}, {u0, v0}, {u0, v1},
+        {u1, v0, 0.f}, {u1, v1, 0.f}, {u0, v0, 0.f}, {u0, v1, 0.f},
     }};
     auto got = Quads::texcoords_at({220,460}, {740,1020}, {1940,2260}, false, false);
     for (unsigned i = 0; i < 4; i++)
@@ -247,14 +248,14 @@ void test_raw_scale20()
     fm_assert(any_differ);
 
     constexpr texcoords expected_rot = {{
-        {u1, v1}, {u0, v1}, {u1, v0}, {u0, v0},
+        {u1, v1, 0.f}, {u0, v1, 0.f}, {u1, v0, 0.f}, {u0, v0, 0.f},
     }};
     auto got_rot = Quads::texcoords_at({220,460}, {740,1020}, {1940,2260}, false, true);
     for (unsigned i = 0; i < 4; i++)
         assert_near(expected_rot[i], got_rot[i], i, "scale20 rotated");
 
     constexpr texcoords expected_both = {{
-        {u1, v0}, {u0, v0}, {u1, v1}, {u0, v1},
+        {u1, v0, 0.f}, {u0, v0, 0.f}, {u1, v1, 0.f}, {u0, v1, 0.f},
     }};
     auto got_both = Quads::texcoords_at({220,460}, {740,1020}, {1940,2260}, true, true);
     for (unsigned i = 0; i < 4; i++)

@@ -73,8 +73,22 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
         def.groups = Array<anim_group>{1};
         def.groups[0] = move(group);
     }
-    auto atlas = bptr<class anim_atlas>(InPlace, name, tex, move(def));
-    return atlas;
+    auto atl = bptr<class anim_atlas>(InPlace, name, tex, move(def));
+
+    const auto format = tex.format();
+    const auto px_size = (size_t)tex.pixels().size()[2];  // 3 for RGB, 4 for RGBA
+    const auto row_stride = (size_t)width * px_size;
+    const auto* src_base = (const char*)tex.pixels().data();
+    PixelStorage storage;
+    storage.setRowLength((Int)width);
+    storage.setAlignment(1);
+    const ImageView2D view{storage, format,
+                           {(Int)width, (Int)height},
+                           ArrayView<const void>{src_base, (size_t)height * row_stride}};
+    auto sp = atlas().add(view);
+    register_sprite(*atl, rotation::N, 0, sp.raw());
+
+    return atl;
 }
 
 void loader_impl::get_vobj_list()

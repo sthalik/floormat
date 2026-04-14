@@ -1,5 +1,6 @@
 #pragma once
 #include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
@@ -42,6 +43,30 @@ struct loader_impl final : loader_
     Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
     Trade::ImageData2D image(StringView path) noexcept(false) override;
+
+    // >-----> sprite atlas >----->
+    sprite_atlas _sprite_atlas{SpriteAtlas::max_texture_xy};
+    sprite_atlas& atlas() noexcept override { return _sprite_atlas; }
+
+    // Frame registry: (anim_atlas*, rotation, frame_idx) → atlas sprite.
+    // Populated during anim-atlas load (see loader/anim-traits.cpp).
+    struct frame_key {
+        const class anim_atlas* atlas;
+        rotation r;
+        uint32_t frame_idx;
+        bool operator==(const frame_key&) const noexcept = default;
+    };
+    struct frame_key_hash {
+        size_t operator()(const frame_key& k) const noexcept {
+            auto h = (size_t)k.atlas;
+            h ^= (size_t)k.r + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            h ^= (size_t)k.frame_idx + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+    tsl::robin_map<frame_key, const SpriteAtlas::Sprite*, frame_key_hash> _sprite_registry;
+    void register_sprite(const class anim_atlas&, rotation, uint32_t frame_idx, const SpriteAtlas::Sprite*) noexcept override;
+    const SpriteAtlas::Sprite* find_sprite(const class anim_atlas&, rotation, uint32_t frame_idx) noexcept override;
 
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();

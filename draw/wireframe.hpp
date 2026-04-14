@@ -3,13 +3,13 @@
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Mesh.h>
-#include "Magnum/GL/Texture.h"
+#include <mg/TextureArray.h>
 
 namespace floormat { struct tile_shader; }
 
 namespace floormat::wireframe {
 
-GL::Texture2D make_constant_texture();
+GL::Texture2DArray make_constant_texture();
 
 struct mesh_base
 {
@@ -17,11 +17,11 @@ struct mesh_base
 
 protected:
     GL::Buffer _vertex_buffer{{}, GL::BufferUsage::DynamicDraw}, _constant_buffer, _index_buffer;
-    GL::Texture2D* _texture;
+    GL::Texture2DArray* _texture;
     GL::Mesh _mesh;
 
     mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-              size_t num_vertices, size_t num_indexes, GL::Texture2D* texture);
+              size_t num_vertices, size_t num_indexes, GL::Texture2DArray* texture);
     void draw(tile_shader& shader);
     void set_subdata(ArrayView<const void> array);
 };
@@ -29,12 +29,12 @@ protected:
 template<typename T>
 struct wireframe_mesh final : private wireframe::mesh_base
 {
-    wireframe_mesh(GL::Texture2D& constant_texture);
+    wireframe_mesh(GL::Texture2DArray& constant_texture);
     void draw(tile_shader& shader, T traits);
 };
 
 template<typename T>
-wireframe_mesh<T>::wireframe_mesh(GL::Texture2D& constant_texture) :
+wireframe_mesh<T>::wireframe_mesh(GL::Texture2DArray& constant_texture) :
     wireframe::mesh_base{T::primitive, T::make_index_array(), T::num_vertices, T::num_indexes, &constant_texture}
 {
 }

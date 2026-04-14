@@ -3,36 +3,39 @@
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/Math/Range.h>
-#include <Magnum/ImageView.h>
+#include <mg/ImageView.h>
 #include <Magnum/PixelFormat.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Trade/ImageData.h>
+#include <mg/TextureArray.h>
 
 namespace floormat::wireframe {
 
-GL::Texture2D make_constant_texture()
+GL::Texture2DArray make_constant_texture()
 {
     const Vector4ub data[] = { {255, 255, 255, 255} };
     Trade::ImageData2D img{PixelFormat::RGBA8Unorm, {1, 1}, {},
                            Containers::arrayView(data, 1), {}, {}};
-    GL::Texture2D tex;
+    const ImageView3D img3d{img.storage(), img.format(),
+                            {img.size(), 1}, img.data()};
+    GL::Texture2DArray tex;
     tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
        .setMinificationFilter(GL::SamplerFilter::Nearest)
-       .setStorage(1, GL::textureFormat(img.format()), img.size())
-       .setSubImage(0, {}, move(img));
+       .setStorage(1, GL::textureFormat(img.format()), {img.size(), 1})
+       .setSubImage(0, {}, img3d);
     return tex;
 }
 
 struct constant_buf {
-    Vector2 texcoords;
+    Vector3 texcoords;
     float depth = 1;
 };
 
 mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-                     size_t num_vertices, size_t num_indexes, GL::Texture2D* texture) :
+                     size_t num_vertices, size_t num_indexes, GL::Texture2DArray* texture) :
     _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
     _constant_buffer{Containers::Array<constant_buf>{ValueInit, num_vertices}},
     _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}},

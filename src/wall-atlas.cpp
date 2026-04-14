@@ -151,14 +151,16 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
 
     resolve_wall_rotations(_dir_array, _direction_map);
 
+    const ImageView3D img3d{img.storage(), img.format(),
+                            {img.size(), 1}, img.data()};
     _texture.setLabel(_path)
             .setWrapping(GL::SamplerWrapping::ClampToEdge)
             .setMagnificationFilter(GL::SamplerFilter::Nearest)
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setMaxAnisotropy(1) // todo?
             .setBorderColor(Color4{1, 0, 0, 1})
-            .setStorage(1, GL::textureFormat(img.format()), img.size())
-            .setSubImage(0, {}, img);
+            .setStorage(1, GL::textureFormat(img.format()), {img.size(), 1})
+            .setSubImage(0, {}, img3d);
 }
 
 auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
@@ -237,7 +239,7 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
-GL::Texture2D& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
+GL::Texture2DArray& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
 Vector2ui wall_atlas::image_size() const { return _image_size; }
 
 size_t wall_atlas::enum_to_index(enum rotation r)

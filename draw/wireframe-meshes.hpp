@@ -6,7 +6,7 @@
 #include "quad-wall-n.hpp"
 #include "quad-wall-w.hpp"
 #include "quad.hpp"
-#include <Magnum/GL/Texture.h>
+#include <mg/TextureArray.h>
 
 namespace floormat::wireframe {
 
@@ -17,7 +17,7 @@ struct meshes final
 
     meshes();
 
-    GL::Texture2D _wireframe_texture;
+    GL::Texture2DArray _wireframe_texture;
     wireframe_mesh<struct wireframe::quad_floor>  quad;
     wireframe_mesh<struct wireframe::quad_wall_n> wall_n;
     wireframe_mesh<struct wireframe::quad_wall_w> wall_w;

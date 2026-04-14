@@ -125,15 +125,16 @@ void texcoords_encode_expected_corners()
     constexpr uint32_t w = 30, h = 40;
     Sprite* s = alloc_sprite(a, w, h);
 
-    // Quads::texcoords_at samples centre-of-pixel (half-pixel inset on both
-    // sides) and flips V to OpenGL texture-space, so expected UVs are:
+    // texcoords_for_sprite uses direct positional UV (no 1-y flip) because
+    // sub-rect atlas uploads place PNG row 0 at GL texel y=sprite.y+h-1 (top
+    // of the sub-region in GL bottom-up). Expected UVs:
     //   u in [(x+0.5)/ls, (x+w-0.5)/ls]
-    //   v in [1 - (y+h-0.5)/ls, 1 - (y+0.5)/ls]
+    //   v in [(y+0.5)/ls, (y+h-0.5)/ls]
     const auto ls = (float)a.layer_size;
     const float ul = ((float)s->x + 0.5f) / ls;
     const float ur = ((float)s->x + (float)w - 0.5f) / ls;
-    const float vl = 1.f - ((float)s->y + (float)h - 0.5f) / ls;
-    const float vh = 1.f - ((float)s->y + 0.5f) / ls;
+    const float vl = ((float)s->y + 0.5f) / ls;
+    const float vh = ((float)s->y + (float)h - 0.5f) / ls;
     const float layer = (float)s->layer;
 
     const auto coords = texcoords_for_sprite(a, *s, /*mirror=*/ false);

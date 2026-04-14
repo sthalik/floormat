@@ -8,6 +8,8 @@
 #include "depth.hpp"
 #include "renderer.hpp"
 #include "spritebatch.hpp"
+#include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -45,7 +47,9 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         const auto pt = e.position();
         const auto quad = atlas->frame_quad(Vector3(pt), e.r, e.frame);
         const auto& group = atlas->group(e.r);
-        const auto texcoords = atlas->texcoords_for_frame(e.r, e.frame, !group.mirror_from.isEmpty());
+        const auto* sp = loader.find_sprite(*atlas, e.r, (uint32_t)e.frame);
+        fm_assert(sp);
+        const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !group.mirror_from.isEmpty());
         const auto& frame = atlas->frame(e.r, e.frame);
         const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
         const auto depth_offset = e.depth_offset();
@@ -56,8 +60,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const auto depth = Depth::value_at(depth_start, pt, depth_offset);
             Quads::vertexes v;
             for (uint8_t j = 0; j < 4; j++)
-                v[j] = {quad[j], texcoords[j], depth};
-            sb.emit(atlas->texture(), v, depth);
+                v[j] = {quad[j], uv3[j], depth};
+            sb.emit(v, uv3, depth);
         }
         else
         {
@@ -85,9 +89,9 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
             // split points on left edge (BL→TL) and right edge (BR→TR)
             // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
-            const auto right_split_uv  = texcoords[0] + t_right * (texcoords[1] - texcoords[0]);
+            const auto right_split_uv  = uv3[0] + t_right * (uv3[1] - uv3[0]);
             const auto right_split_pos = quad[0] + t_right * (quad[1] - quad[0]);
-            const auto left_split_uv   = texcoords[2] + t_left * (texcoords[3] - texcoords[2]);
+            const auto left_split_uv   = uv3[2] + t_left * (uv3[3] - uv3[2]);
             const auto left_split_pos  = quad[2] + t_left * (quad[3] - quad[2]);
 
             //const auto depth_bias = int32_t((uint32_t)e.bbox_size.min());
@@ -98,36 +102,39 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
             // front quad (below slope line, closer to camera)
             Quads::vertexes v1 = {{
-                {quad[0], texcoords[0], front_depth},           // BR
-                {right_split_pos, right_split_uv, front_depth}, // right split
-                {quad[2], texcoords[2], front_depth},           // BL
-                {left_split_pos, left_split_uv, front_depth},   // left split
+                {quad[0], uv3[0], front_depth},                   // BR
+                {right_split_pos, right_split_uv, front_depth},   // right split
+                {quad[2], uv3[2], front_depth},                   // BL
+                {left_split_pos, left_split_uv, front_depth},     // left split
             }};
-            scenery_static_mesh.add(v1, &atlas->texture(), front_depth, &e);
+            Quads::texcoords u1 = {{ uv3[0], right_split_uv, uv3[2], left_split_uv }};
+            scenery_static_mesh.add(v1, u1, front_depth, &e);
 
             // midpoints for vertical split of back quad
             const auto center_split_pos = (left_split_pos + right_split_pos) * 0.5f;
             const auto center_split_uv  = (left_split_uv + right_split_uv) * 0.5f;
             const auto center_top_pos   = (quad[3] + quad[1]) * 0.5f;
-            const auto center_top_uv    = (texcoords[3] + texcoords[1]) * 0.5f;
+            const auto center_top_uv    = (uv3[3] + uv3[1]) * 0.5f;
 
             // back-left quad (above slope, screen-left half)
             Quads::vertexes v2 = {{
                 {center_split_pos, center_split_uv, back_left_depth},  // BR
                 {center_top_pos, center_top_uv, back_left_depth},      // TR
                 {left_split_pos, left_split_uv, back_left_depth},      // BL
-                {quad[3], texcoords[3], back_left_depth},              // TL
+                {quad[3], uv3[3], back_left_depth},                    // TL
             }};
-            scenery_static_mesh.add(v2, &atlas->texture(), back_left_depth, &e);
+            Quads::texcoords u2 = {{ center_split_uv, center_top_uv, left_split_uv, uv3[3] }};
+            scenery_static_mesh.add(v2, u2, back_left_depth, &e);
 
             // back-right quad (above slope, screen-right half)
             Quads::vertexes v3 = {{
                 {right_split_pos, right_split_uv, back_right_depth},   // BR
-                {quad[1], texcoords[1], back_right_depth},             // TR
+                {quad[1], uv3[1], back_right_depth},                   // TR
                 {center_split_pos, center_split_uv, back_right_depth}, // BL
                 {center_top_pos, center_top_uv, back_right_depth},     // TL
             }};
-            scenery_static_mesh.add(v3, &atlas->texture(), back_right_depth, &e);
+            Quads::texcoords u3 = {{ right_split_uv, uv3[1], center_split_uv, center_top_uv }};
+            scenery_static_mesh.add(v3, u3, back_right_depth, &e);
             // --- end 3-piece split ---
 
             //i += 2;
@@ -136,13 +143,13 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     sb.end_chunk(true);
 
     constexpr auto less = [](const auto& a, const auto& b) {
-        const auto& [av, at, ad, ao] = a;
-        const auto& [bv, bt, bd, bo] = b;
+        const auto& [av, au, ad, ao] = a;
+        const auto& [bv, bu, bd, bo] = b;
         return ad < bd;
     };
     if (modify_static)
         ranges::sort(ranges::zip_view(scenery_static_mesh.Vertexes,
-                                      scenery_static_mesh.Textures,
+                                      scenery_static_mesh.UVs,
                                       scenery_static_mesh.Depths,
                                       scenery_static_mesh.Objects),
                      less);

@@ -8,12 +8,12 @@ namespace floormat::Quads {
 
 struct vertex {
     Vector3 position;
-    Vector2 texcoords;
+    Vector3 texcoords;
     float depth;
 };
 
 using quad = std::array<Vector3, 4>;
-using texcoords = std::array<Vector2, 4>;
+using texcoords = std::array<Vector3, 4>;
 using indexes = std::array<UnsignedShort, 6>;
 using vertexes = std::array<vertex, 4>;
 using depths = std::array<float, 4>;

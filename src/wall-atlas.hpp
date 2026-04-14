@@ -10,7 +10,7 @@
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
-#include <Magnum/GL/Texture.h>
+#include <mg/TextureArray.h>
 
 namespace floormat { class wall_atlas; }
 
@@ -116,7 +116,7 @@ class wall_atlas final : public bptr_base
     Info _info;
     String _path;
     Vector2ui _image_size;
-    GL::Texture2D _texture;
+    GL::Texture2DArray _texture;
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
     Direction* get_Direction(Direction_ num) const;
@@ -145,7 +145,7 @@ public:
     StringView name() const { return _info.name; }
     //StringView path() const { return _path; }
 
-    GL::Texture2D& texture();
+    GL::Texture2DArray& texture();
     Vector2ui image_size() const;
 
     static size_t enum_to_index(enum rotation x);
