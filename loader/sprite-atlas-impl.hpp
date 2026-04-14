@@ -57,6 +57,9 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height);
 Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate = false);
 void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror);
+std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& sprite,
+                                             Vector2ui sub_offset, Vector2ui sub_size,
+                                             bool mirror);
 void dump_atlas(Atlas& atlas, StringView out_path);
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path);
 

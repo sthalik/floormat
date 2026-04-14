@@ -68,11 +68,6 @@ public:
         const ArrayView<const uint8_t> ids;
         const size_t size;
     };
-    struct wall_mesh_tuple final {
-        GL::Mesh& mesh;
-        const ArrayView<const uint_fast16_t> indexes;
-        const size_t size;
-    };
     struct object_draw_order;
     struct scenery_mesh_tuple;
     struct pass_region;
@@ -83,8 +78,7 @@ public:
     void ensure_alloc_walls();
     ground_mesh_tuple ensure_ground_mesh() noexcept;
     ground_atlas* ground_atlas_at(size_t i) const noexcept;
-    wall_atlas* wall_atlas_at(size_t i) const noexcept;
-    wall_mesh_tuple ensure_wall_mesh() noexcept;
+    GL::Mesh& ensure_wall_mesh() noexcept;
 
     SpriteList scenery_static_mesh;
 
@@ -121,7 +115,6 @@ public:
     {
         std::array<bptr<wall_atlas>, 2*TILE_COUNT> atlases;
         std::array<variant_t, 2*TILE_COUNT> variants;
-        Array<uint_fast16_t> mesh_indexes;
     };
 
 private:

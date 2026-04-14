@@ -83,7 +83,7 @@ void Test::test_loader2()
     {
         auto& A = *loader.wall_atlas(name);
         fm_assert(!A.raw_frame_array().isEmpty());
-        fm_assert(A.texture().id());
+        fm_assert(!A.raw_sprite_array().isEmpty());
     }
     fm_assert(!loader.scenery_list().isEmpty());
     for (const auto& name : sceneries)
@@ -118,7 +118,7 @@ void Test::test_loader3()
         {
             auto atlas = loader.wall_atlas(x.name, loader_policy::error);
             fm_assert(atlas->name() == x.name);
-            fm_assert(atlas->texture().id());
+            fm_assert(!atlas->raw_sprite_array().isEmpty());
             fm_assert(!atlas->raw_frame_array().isEmpty());
             fm_assert(atlas->calc_direction(Wall::Direction_::N).wall.count);
         }

@@ -7,10 +7,15 @@
 #include "main/clickable.hpp"
 #include "src/nanosecond.inl"
 #include "src/fps-counter.hpp"
+#include "shaders/shader.hpp"
+#include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
+#include "src/chunk.hpp"
 #include "compat/limits.hpp"
 #include <Corrade/Containers/GrowableArray.h>
 #include <Corrade/Containers/ArrayView.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
 
@@ -159,7 +164,9 @@ void main_impl::draw_world() noexcept
     draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
                     const with_shifted_camera_offset o{_shader, c.coord()};
                     _ground_mesh.draw(_shader, c);
-                    _wall_mesh.draw(_shader, c);
+                    auto& wmesh = c.ensure_wall_mesh();
+                    if (wmesh.count() > 0)
+                        _shader.draw(loader.atlas().texture(), wmesh);
                  },
                  chunks, sz, z_bounds.only, z_bounds.cur);
 

@@ -3,9 +3,12 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "loader/loader.hpp"
+#include <cstring>
+#include <cr/GrowableArray.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
-#include <Magnum/GL/TextureFormat.h>
+#include <Magnum/PixelStorage.h>
 
 namespace floormat {
 
@@ -69,19 +72,6 @@ namespace floormat {
 
 using namespace floormat::Wall;
 
-namespace {
-
-Vector2ui get_image_size(const ImageView2D& img)
-{
-    const Size<3> size = img.pixels().size();
-    const auto width = size[1], height = size[0];
-    fm_soft_assert(size[2] >= 3 && size[2] <= 4);
-    fm_soft_assert(width > 0 && height > 0);
-    return { (unsigned)width, (unsigned)height };
-}
-
-} // namespace
-
 wall_atlas::wall_atlas() noexcept = default;
 wall_atlas::~wall_atlas() noexcept = default;
 
@@ -113,10 +103,12 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     : _dir_array{move(def.direction_array)},
       _frame_array{move(def.frames)},
       _info{move(def.header)}, _path{move(path)},
-      _image_size{get_image_size(img)},
       _direction_map{def.direction_map}
 {
     //Debug{} << "make wall_atlas" << _info.name;
+    const Vector2ui img_size{(uint32_t)img.size().x(), (uint32_t)img.size().y()};
+    fm_soft_assert(img.pixelSize() >= 3 && img.pixelSize() <= 4);
+    fm_soft_assert(img_size.product() > 0);
     {
         const auto frame_count = _frame_array.size();
         fm_soft_assert(frame_count > 0);
@@ -141,7 +133,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 for (const auto& frame : ArrayView { &_frame_array[G.index], G.count })
                 {
                     fm_soft_assert(frame.size == size);
-                    fm_soft_assert(frame.offset + frame.size <= _image_size);
+                    fm_soft_assert(frame.offset + frame.size <= img_size);
                 }
             }
         }
@@ -149,18 +141,63 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             fm_throw("wall_atlas '{}' is empty!"_cf, _path);
     }
 
-    resolve_wall_rotations(_dir_array, _direction_map);
+    // Walls→sprite_atlas registration. Rendering path sources texcoords
+    // via loader.atlas().texcoords_for.
+    //
+    // Top-group frames are pre-rotated 90° CCW by wall-tileset-tool, and
+    // the render path at chunk-walls.cpp:459–494 compensates via axis
+    // swap. Packer rotation would land pixels at 180°, so top-group
+    // frames opt out via allow_rotate=false. Non-top frames accept
+    // rotation.
+    {
+        Array<bool> top_frame_mask{ValueInit, _frame_array.size()};
+        for (const Direction& D : _dir_array)
+        {
+            // Only a group without from_rotation owns its frame range.
+            // Mirrored directions point at the source; iterating the source
+            // direction alone covers their frames.
+            if (!D.top.is_defined || D.top.from_rotation != (uint8_t)-1)
+                continue;
+            const auto lo = D.top.index;
+            const auto hi = lo + D.top.count;
+            fm_assert(hi <= _frame_array.size());
+            for (auto i = lo; i < hi; i++)
+                top_frame_mask[i] = true;
+        }
 
-    const ImageView3D img3d{img.storage(), img.format(),
-                            {img.size(), 1}, img.data()};
-    _texture.setLabel(_path)
-            .setWrapping(GL::SamplerWrapping::ClampToEdge)
-            .setMagnificationFilter(GL::SamplerFilter::Nearest)
-            .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setMaxAnisotropy(1) // todo?
-            .setBorderColor(Color4{1, 0, 0, 1})
-            .setStorage(1, GL::textureFormat(img.format()), {img.size(), 1})
-            .setSubImage(0, {}, img3d);
+        const auto pixels = img.pixels();
+        const auto px_size = (size_t)pixels.size()[2];
+        const auto row_stride = (size_t)pixels.stride()[0];
+        const auto* src_base = (const char*)pixels.data();
+        const uint32_t full_height = img_size.y();
+        PixelStorage storage;
+        storage.setAlignment(1);
+        arrayReserve(_frame_sprites, _frame_array.size());
+        for (size_t fi = 0; fi < _frame_array.size(); fi++)
+        {
+            const Frame& f = _frame_array[fi];
+            const uint32_t fw = f.size.x();
+            const uint32_t fh = f.size.y();
+            // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
+            const uint32_t mem_y_start = full_height - f.offset.y() - fh;
+            Array<char> packed{NoInit, (size_t)fw * (size_t)fh * px_size};
+            for (uint32_t yy = 0; yy < fh; yy++)
+            {
+                const auto* src_row = src_base
+                                    + ((size_t)mem_y_start + yy) * row_stride
+                                    + (size_t)f.offset.x() * px_size;
+                auto* dst_row = packed.data() + (size_t)yy * (size_t)fw * px_size;
+                std::memcpy(dst_row, src_row, (size_t)fw * px_size);
+            }
+            const ImageView2D view{storage, img.format(),
+                                   {(Int)fw, (Int)fh},
+                                   ArrayView<const void>{packed.data(), packed.size()}};
+            const bool allow_rotate = !top_frame_mask[fi];
+            arrayAppend(_frame_sprites, loader.atlas().add(view, allow_rotate));
+        }
+    }
+
+    resolve_wall_rotations(_dir_array, _direction_map);
 }
 
 auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
@@ -181,6 +218,16 @@ auto wall_atlas::frames(const Group& group) const -> ArrayView<const Frame>
     const auto index = group.index, count = group.count;
     fm_assert(index < size && index <= index + count && index + count <= size);
     return { &_frame_array[index], count };
+}
+
+auto wall_atlas::sprites(const Group& group) const -> ArrayView<const sprite>
+{
+    if (_frame_sprites.isEmpty()) [[unlikely]]
+        return {};
+    const auto size = _frame_sprites.size(); (void)size;
+    const auto index = group.index, count = group.count;
+    fm_assert(index < size && index <= index + count && index + count <= size);
+    return { &_frame_sprites[index], count };
 }
 
 auto wall_atlas::frames(Direction_ dir, Group_ gr) const -> ArrayView<const Frame>
@@ -239,17 +286,14 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
-GL::Texture2DArray& wall_atlas::texture() { fm_debug_assert(_texture.id()); return _texture; }
-Vector2ui wall_atlas::image_size() const { return _image_size; }
+auto wall_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
 
-size_t wall_atlas::enum_to_index(enum rotation r)
+Vector2ui wall_atlas::image_size() const
 {
-    static_assert(rotation_COUNT == rotation{8});
-    fm_debug_assert(r < rotation_COUNT);
-
-    auto x = uint8_t(r);
-    x >>= 1;
-    return x;
+    if (_frame_sprites.isEmpty()) [[unlikely]]
+        return {};
+    const auto& s = _frame_sprites[0];
+    return { s.width(), s.height() };
 }
 
 } // namespace floormat

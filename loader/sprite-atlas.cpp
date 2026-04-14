@@ -305,27 +305,44 @@ void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels
     }
 }
 
-std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror)
+std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& sprite,
+                                             Vector2ui sub_offset, Vector2ui sub_size,
+                                             bool mirror)
 {
-    // Sub-rect UVs into the shared atlas. Quads::texcoords_at's `1 - y/size`
-    // Y-flip assumes a whole-image upload (sprite fills the texture). For a
-    // sub-rect inside a larger atlas, the right UV math is the raw positional
-    // form — GL bottom-up sampling, PNG row 0 stored at atlas GL y=sprite.y+fh-1
-    // (via the Y-flipped sub-rect upload at loader/anim-traits.cpp), so top
-    // vertices sample UV.v=(sprite.y+fh-0.5)/atlas_H and bottom vertices sample
-    // (sprite.y+0.5)/atlas_H.
+    const auto full_w = (uint32_t)sprite.width + 1;
+    const auto full_h = (uint32_t)sprite.height + 1;
+    fm_assert(sub_size.x() > 0 && sub_size.y() > 0);
+    fm_assert(sub_offset.x() + sub_size.x() <= full_w);
+    fm_assert(sub_offset.y() + sub_size.y() <= full_h);
+
     const float layer = (float)sprite.layer;
     const float atlas_size = (float)atlas.layer_size;
-    const float w = (float)sprite.width + 1;
-    const float h = (float)sprite.height + 1;
-    const float u0 = ((float)sprite.x + 0.5f) / atlas_size;
-    const float u1 = ((float)sprite.x + w - 0.5f) / atlas_size;
-    const float v0 = ((float)sprite.y + 0.5f) / atlas_size;   // bottom of sprite (GL bottom-up = low v)
-    const float v1 = ((float)sprite.y + h - 0.5f) / atlas_size; // top of sprite (high v)
+
+    float u0, u1, v0, v1;
+    if (!sprite.is_rotated)
+    {
+        const float left      = (float)sprite.x + (float)sub_offset.x();
+        const float right     = left + (float)sub_size.x();
+        const float top_gl    = (float)sprite.y + (float)full_h - (float)sub_offset.y();
+        const float bottom_gl = top_gl - (float)sub_size.y();
+        u0 = (left + 0.5f) / atlas_size;
+        u1 = (right - 0.5f) / atlas_size;
+        v0 = (bottom_gl + 0.5f) / atlas_size; // low v (GL bottom-up)
+        v1 = (top_gl - 0.5f) / atlas_size;    // high v
+    }
+    else
+    {
+        const float atlas_u_lo = (float)sprite.x + (float)sub_offset.y();
+        const float atlas_u_hi = atlas_u_lo + (float)sub_size.y();
+        const float atlas_v_lo = (float)sprite.y + (float)sub_offset.x();
+        const float atlas_v_hi = atlas_v_lo + (float)sub_size.x();
+        u0 = (atlas_u_lo + 0.5f) / atlas_size;
+        u1 = (atlas_u_hi - 0.5f) / atlas_size;
+        v0 = (atlas_v_lo + 0.5f) / atlas_size;
+        v1 = (atlas_v_hi - 0.5f) / atlas_size;
+    }
 
     // Vertex order per Quads::quad convention: {0=BR, 1=TR, 2=BL, 3=TL}.
-    // Top vertices (TR, TL) get v1, bottom vertices (BR, BL) get v0.
-    // Right vertices (BR, TR) get u1, left (BL, TL) get u0.
     Vector2 corners[4] = {
         {u1, v0}, // 0: BR
         {u1, v1}, // 1: TR
@@ -344,20 +361,29 @@ std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sp
     // Note: the last row differs from Quads::texcoords_at's {3,1,2,0} —
     // that would 180°-rotate the result relative to this setup, which
     // produced visibly upside-down scenery under force-rotate stress test.
-    constexpr uint8_t perm[4][4] = {
+    constexpr struct {
+        uint8_t a:2, b:2, c:2, d:2;
+    } perm[4] = {
         {0, 1, 2, 3},
         {1, 3, 0, 2},
         {2, 3, 0, 1},
         {0, 2, 1, 3},
     };
-    const auto* p = perm[(unsigned)mirror << 1 | (unsigned)(sprite.is_rotated != 0)];
+    const auto p = perm[(unsigned)mirror << 1 | (unsigned)(sprite.is_rotated != 0)];
 
     return {{
-        {corners[p[0]], layer},
-        {corners[p[1]], layer},
-        {corners[p[2]], layer},
-        {corners[p[3]], layer},
+        {corners[p.a], layer},
+        {corners[p.b], layer},
+        {corners[p.c], layer},
+        {corners[p.d], layer},
     }};
+}
+
+std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror)
+{
+    const auto full_w = (uint32_t)sprite.width + 1;
+    const auto full_h = (uint32_t)sprite.height + 1;
+    return texcoords_for_subrect(atlas, sprite, {0, 0}, {full_w, full_h}, mirror);
 }
 
 void dump_atlas(Atlas& atlas, StringView out_path)
@@ -479,6 +505,14 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
 std::array<Vector3, 4> sprite_atlas::texcoords_for(sprite s, bool mirror) const
 {
     return SpriteAtlas::texcoords_for_sprite(*_atlas, *s.raw(), mirror);
+}
+
+std::array<Vector3, 4> sprite_atlas::texcoords_for(sprite s,
+                                                   Vector2ui sub_offset,
+                                                   Vector2ui sub_size,
+                                                   bool mirror) const
+{
+    return SpriteAtlas::texcoords_for_subrect(*_atlas, *s.raw(), sub_offset, sub_size, mirror);
 }
 
 GL::AbstractTexture& sprite_atlas::texture()

@@ -8,31 +8,21 @@
 #include "depth.hpp"
 #include "renderer.hpp"
 #include "hole-cut.hpp"
-#include <cr/ArrayViewStl.h>
+#include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Range.h>
 #include <utility>
 #include <concepts>
 #include <algorithm>
-#include <ranges>
 
 namespace floormat {
-
-namespace ranges = std::ranges;
 
 void chunk::ensure_alloc_walls()
 {
     if (!_walls) [[unlikely]]
         _walls = Pointer<wall_stuff>{InPlaceInit};
-}
-
-wall_atlas* chunk::wall_atlas_at(size_t i) const noexcept
-{
-    if (!_walls) [[unlikely]]
-        return {};
-    fm_debug_assert(i < TILE_COUNT*2);
-    return _walls->atlases[i].get();
 }
 
 namespace {
@@ -208,27 +198,23 @@ constexpr int32_t depth_offset_for_group(uint32_t depth)
     return ret;
 }
 
-Frame variant_from_frame(ArrayView<const Frame> frames, global_coords coord, variant_t variant, bool is_west)
+uint32_t variant_index(uint32_t frame_count, global_coords coord, variant_t variant, bool is_west)
 {
-    auto sz = (unsigned)frames.size();
     if (variant == (variant_t)-1)
         variant = (variant_t)(Vector2ui(coord.raw()).sum() + uint32_t{is_west});
-    variant %= sz;
-    return frames[variant];
+    return variant % frame_count;
 }
 
 Array<HoleData> hole_data;
 
-Quads::vertexes& alloc_wall_vertexes(uint32_t& N, auto& V, auto& M, uint32_t k)
+Quads::vertexes& alloc_wall_vertexes(uint32_t& N, auto& V)
 {
     constexpr uint32_t reserve = 15, mask = ~reserve;
     const auto i = N, sz = ++N + reserve & mask;
     fm_assert(uint32_t{(UnsignedShort)sz} == sz);
     arrayResize(V, NoInit, sz);
-    arrayResize(M, NoInit, sz);
-    M[i] = (uint16_t)k;
     return V[i];
-};
+}
 
 Array<WallFragment> fragdata;
 
@@ -279,7 +265,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             if (dir.top.is_defined)
             {
                 const auto frames = A.frames(dir.top);
-                const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
+                const auto sprites = A.sprites(dir.top);
+                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+                const auto& frame = frames[v2];
+                const auto& sp = sprites[v2];
                 Quads::quad quad = {{
                     {-X - Depthʹ, -Y - Depthʹ, Z},
                     {-X,          -Y - Depthʹ, Z},
@@ -288,8 +277,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 }};
                 fm_assert(frame.size.x() == Depth);
                 fm_assert(frame.size.y() >= Depth);
-                auto start = frame.offset + Vector2ui{0, frame.size.y()} - Vector2ui{0, Depth};
-                const auto texcoords = Quads::texcoords_at(start, Vector2ui{Depth, Depth}, A.image_size());
+                const auto texcoords = loader.atlas().texcoords_for(
+                    sp,
+                    Vector2ui{0, frame.size.y() - Depth},
+                    Vector2ui{Depth, Depth},
+                    dir.top.mirrored);
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
                 const Quads::depths depth = {
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() - (int)Depth}, depth_offset),
@@ -297,7 +289,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
                 };
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
@@ -337,20 +329,30 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             if (dir.corner.is_defined)
             {
                 const auto frames = A.frames(dir.corner);
-                const auto& frame = variant_from_frame(frames, coord, variant_2, IsWest);
-                const auto texcoords = Quads::texcoords_at(frame.offset, frame.size, A.image_size());
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                const auto sprites = A.sprites(dir.corner);
+                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+                const auto& frame = frames[v2];
+                const auto& sp = sprites[v2];
+                const auto texcoords = loader.atlas().texcoords_for(
+                    sp, Vector2ui{0, 0}, frame.size, dir.corner.mirrored);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if (dir.wall.is_defined) [[likely]]
             {
                 const auto frames = A.frames(dir.wall);
-                const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
+                const auto sprites = A.sprites(dir.wall);
+                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+                const auto& frame = frames[v2];
+                const auto& sp = sprites[v2];
                 fm_assert(frame.size.x() > Depth);
-                auto start = frame.offset + Vector2ui{frame.size.x(), 0} - Vector2ui{Depth, 0};
-                const auto texcoords = Quads::texcoords_at(start, {Depth, frame.size.y()}, A.image_size());
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                const auto texcoords = loader.atlas().texcoords_for(
+                    sp,
+                    Vector2ui{frame.size.x() - Depth, 0},
+                    Vector2ui{Depth, frame.size.y()},
+                    dir.wall.mirrored);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
@@ -362,7 +364,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         cut_wall_face(fragdata, holes, pos, IsWest);
 
         const auto frames = A.frames(group);
-        const auto frame = variant_from_frame(frames, coord, variant_2, IsWest);
+        const auto sprites = A.sprites(group);
+        const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+        const auto& frame = frames[v2];
+        const auto& sp = sprites[v2];
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
 
         for (const auto& frag : fragdata)
@@ -379,11 +384,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 // wall texture: {tile_size_xy, tile_size_z}
                 // pixel x = primary axis, pixel y = z (low pixel y = high z)
-                auto sub_offset = frame.offset + Vector2ui(tex_left, (unsigned)re.y());
-                auto sub_size   = frame.size - Vector2ui(tex_left + tex_right, (unsigned)rs.y() + (unsigned)re.y());
+                const auto sub_offset_loc = Vector2ui(tex_left, (unsigned)re.y());
+                const auto sub_size = frame.size - Vector2ui(tex_left + tex_right, (unsigned)rs.y() + (unsigned)re.y());
                 if (!sub_size.x() || !sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
+                const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 Quads::quad quad;
                 if constexpr (!IsWest)
@@ -411,17 +416,17 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                                               tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()},
                                               depth_offset);
 
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if constexpr (G == Group_::side)
             {
-                auto sub_offset = frame.offset + Vector2ui(0, (unsigned)re.y());
-                auto sub_size   = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y());
+                const auto sub_offset_loc = Vector2ui(0, (unsigned)re.y());
+                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y());
                 if (!sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
+                const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 const auto frag_x1 =  X - re.x();
                 const auto frag_y1 =  Y - re.x();
@@ -452,17 +457,17 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                                                        tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()},
                                                        depth_offset);
 
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
             else if constexpr (G == Group_::top)
             {
-                auto sub_offset = frame.offset + Vector2ui(0, tex_right);
-                auto sub_size   = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
+                const auto sub_offset_loc = Vector2ui(0, tex_right);
+                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
                 if (!sub_size.y())
                     continue;
-                const auto texcoords = Quads::texcoords_at(sub_offset, sub_size, A.image_size());
+                const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 const auto frag_z = Z - re.y();
                 Quads::quad quad;
@@ -497,7 +502,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                         Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()}, depth_offset),
                     };
 
-                auto& v = alloc_wall_vertexes(N, vertexes, W.mesh_indexes, k);
+                auto& v = alloc_wall_vertexes(N, vertexes);
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
             }
@@ -547,14 +552,6 @@ GL::Mesh chunk::make_wall_mesh()
     if (N == 0)
         return GL::Mesh{NoCreate};
 
-    ranges::sort(ranges::zip_view(vertexes.prefix(N),
-                                  ArrayView{_walls->mesh_indexes.data(), N}),
-                 [&A = _walls->atlases](const auto& a, const auto& b) {
-                     const auto& [av, ai] = a;
-                     const auto& [bv, bi] = b;
-                     return A[ai].get() < A[bi].get();
-                 });
-
     auto vertex_view = std::as_const(vertexes).prefix(N);
     auto index_view = make_indexes(N);
 
@@ -567,17 +564,15 @@ GL::Mesh chunk::make_wall_mesh()
     return mesh;
 }
 
-auto chunk::ensure_wall_mesh() noexcept -> wall_mesh_tuple
+GL::Mesh& chunk::ensure_wall_mesh() noexcept
 {
     if (!_walls)
-        return {wall_mesh, {}, 0};
-
+        return wall_mesh;
     if (!_walls_modified)
-        return { wall_mesh, _walls->mesh_indexes, (size_t)wall_mesh.count()/6u };
-
+        return wall_mesh;
     _walls_modified = false;
     wall_mesh = make_wall_mesh();
-    return { wall_mesh, _walls->mesh_indexes, (size_t)wall_mesh.count()/6u };
+    return wall_mesh;
 }
 
 } // namespace floormat

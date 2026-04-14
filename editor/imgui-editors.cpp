@@ -12,8 +12,10 @@
 #include "src/wall-atlas.hpp"
 #include "editor.hpp"
 #include "loader/loader.hpp"
+#include "loader/sprite-atlas.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>
+#include <mg/TextureArray.h>
 
 namespace floormat {
 
@@ -56,7 +58,16 @@ void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
 void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
 void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
 auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
-auto get_texcoords(const wall_cell& w, wall_atlas& atlas) { auto sz = get_size(w, atlas); return Quads::texcoords_at({}, sz, atlas.image_size()); }
+auto get_texcoords(const wall_cell&, wall_atlas& atlas)
+{
+    const auto sprites = atlas.raw_sprite_array();
+    if (sprites.isEmpty()) [[unlikely]]
+        return std::array<Vector3, 4>{};
+    return loader.atlas().texcoords_for(sprites[0], false);
+}
+
+GL::Texture2DArray& palette_source(anim_atlas& atlas) { return atlas.texture(); }
+GL::Texture2DArray& palette_source(wall_atlas&) { return static_cast<GL::Texture2DArray&>(loader.atlas().texture()); }
 
 void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
@@ -182,7 +193,7 @@ void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
             const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*std::max(0.f, row_height - img_size.y));
-            ImGui::Image(e.palette_texture(atlas.texture()).id(), img_size, uv0, uv1);
+            ImGui::Image(e.palette_texture(palette_source(atlas)).id(), img_size, uv0, uv1);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(1))

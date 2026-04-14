@@ -5,12 +5,12 @@
 #include "wall-defs.hpp"
 #include "compat/defs.hpp"
 #include "compat/array-size.hpp"
+#include "loader/sprite-atlas.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Color.h>
-#include <mg/TextureArray.h>
 
 namespace floormat { class wall_atlas; }
 
@@ -113,10 +113,9 @@ class wall_atlas final : public bptr_base
 
     Array<Direction> _dir_array;
     Array<Frame> _frame_array;
+    Array<sprite> _frame_sprites;
     Info _info;
     String _path;
-    Vector2ui _image_size;
-    GL::Texture2DArray _texture;
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
     Direction* get_Direction(Direction_ num) const;
@@ -139,16 +138,16 @@ public:
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> frames(Direction_ dir, Group_ g) const noexcept(false);
     ArrayView<const Frame> raw_frame_array() const;
+    ArrayView<const sprite> sprites(const Group& a) const;
+    ArrayView<const sprite> raw_sprite_array() const;
 
     unsigned depth() const { return _info.depth; } // todo use it in more places
     const Info& info() const { return _info; }
     StringView name() const { return _info.name; }
     //StringView path() const { return _path; }
 
-    GL::Texture2DArray& texture();
     Vector2ui image_size() const;
 
-    static size_t enum_to_index(enum rotation x);
     static Vector2ui expected_size(unsigned depth, Group_ group);
 
     struct dir_tuple
