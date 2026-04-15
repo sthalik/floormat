@@ -78,7 +78,7 @@ public:
 
     class chunks_iterator
     {
-        alignas(void*) unsigned char _buf[sizeof(void*)] = {};
+        alignas(void*) unsigned char _buf[2*sizeof(void*)] = {};
         friend class world;
     public:
         chunks_iterator() noexcept = default;

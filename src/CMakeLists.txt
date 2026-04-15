@@ -19,6 +19,7 @@ target_link_libraries(
     tsl::robin_map
 )
 
+target_include_directories(${self} SYSTEM PUBLIC ../external/gtl/include)
 #target_precompile_headers(${self} PUBLIC precomp.hpp)
 
 if (WIN32 AND NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")

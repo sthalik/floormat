@@ -13,6 +13,7 @@
 #include "compat/hash-table-load-factor.hpp"
 #include <unordered_map>
 #include <cr/GrowableArray.h>
+#include <gtl/phmap.hpp>
 #include <tsl/robin_map.h>
 
 using namespace floormat;
@@ -33,7 +34,7 @@ world::world(world&& w) noexcept = default;
 
 struct world::Impl
 {
-    std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
+    gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     tsl::robin_map<object_id, bptr<object>, object_id_hasher> _objects;
 };
 
@@ -93,7 +94,7 @@ bool world::unique_id::operator==(const unique_id& other) const { return this ==
 world::world(size_t capacity) : _unique_id{InPlace}
 {
     auto& impl = *this->impl;
-    impl._chunks = std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>{capacity};
+    impl._chunks = gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher>{capacity};
     Hash::set_separate_chaining_load_factor(impl._chunks);
     impl._chunks.reserve(initial_capacity);
     Hash::set_open_addressing_load_factor(impl._objects);
@@ -171,8 +172,9 @@ void world::collect(bool force)
 size_t world::size() const noexcept { auto& impl = *this->impl; return impl._chunks.size(); }
 
 namespace {
-using chunks_map_iter = std::unordered_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
-static_assert(sizeof(chunks_map_iter) <= sizeof(void*));
+using chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
+static_assert(sizeof(chunks_map_iter) <= 2*sizeof(void*));
+
 static_assert(alignof(chunks_map_iter) <= alignof(void*));
 static_assert(std::is_trivially_copyable_v<chunks_map_iter>);
 static_assert(std::is_trivially_destructible_v<chunks_map_iter>);

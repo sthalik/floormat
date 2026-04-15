@@ -35,3 +35,6 @@
 [submodule "swl-variant"]
 	path = external/swl-variant
 	url = https://github.com/groundswellaudio/swl-variant.git
+[submodule "gtl"]
+	path = external/gtl
+	url = https://github.com/greg7mdp/gtl
