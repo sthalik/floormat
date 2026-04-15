@@ -33,7 +33,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
 {
     arrayResize(_clickable_scenery, 0);
 
-    for (auto& [_, cʹ] : _world.chunks())
+    for (auto& cʹ : _world.chunks())
         for (const auto& eʹ : cʹ.objects())
             fm_assert_equal(uint32_t{2}, eʹ.use_count());
 

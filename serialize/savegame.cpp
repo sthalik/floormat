@@ -694,7 +694,7 @@ ok:     void();
         fm_assert(atlas_array.empty());
         fm_assert(chunk_array.empty());
 
-        for (auto& [coord, c] : non_const(w.chunks()))
+        for (auto& c : non_const(w).chunks())
             chunk_array.push_back({.c = &c });
 
         std::sort(chunk_array.begin(), chunk_array.end(), [](const auto& c1, const auto& c2) {
@@ -759,7 +759,7 @@ void world::serialize(StringView filename)
         };
 
         struct writer writer{*this};
-        const bool is_empty = chunks().empty();
+        const bool is_empty = size() == 0;
         writer.serialize_world();
         fm_assert(!writer.header_buf.empty());
         if (!is_empty)

@@ -7,7 +7,6 @@
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
-#include <unordered_map>
 
 namespace floormat {
 
@@ -41,9 +40,9 @@ private:
 
     struct object_id_hasher { size_t operator()(object_id id) const noexcept; };
 
-    struct robin_map_wrapper;
-    std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
-    safe_ptr<robin_map_wrapper> _objects;
+    struct Impl;
+    safe_ptr<Impl> impl;
+
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct object
@@ -66,7 +65,6 @@ private:
 public:
     explicit world();
     ~world() noexcept;
-    explicit world(std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>&& chunks);
 
     struct pair_chunk_tile final { chunk& c; tile_ref t; }; // NOLINT
 
@@ -76,10 +74,31 @@ public:
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false);
-    size_t size() const noexcept { return _chunks.size(); }
+    size_t size() const noexcept;
 
-    const auto& chunks() const noexcept { return _chunks; }
-    auto& chunks() noexcept { return _chunks; }
+    class chunks_iterator
+    {
+        alignas(void*) unsigned char _buf[sizeof(void*)] = {};
+        friend class world;
+    public:
+        chunks_iterator() noexcept = default;
+        chunks_iterator& operator++() noexcept;
+        chunk& operator*() const noexcept;
+        bool operator==(const chunks_iterator& o) const noexcept;
+        bool operator!=(const chunks_iterator& o) const noexcept { return !(*this == o); }
+    };
+
+    class chunks_range
+    {
+        chunks_iterator _begin, _end;
+        friend class world;
+        chunks_range(chunks_iterator b, chunks_iterator e) noexcept : _begin{b}, _end{e} {}
+    public:
+        chunks_iterator begin() const noexcept { return _begin; }
+        chunks_iterator end() const noexcept { return _end; }
+    };
+
+    chunks_range chunks() noexcept;
 
     void serialize(StringView filename);
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);

@@ -31,7 +31,7 @@ critter_proto make_proto(float accel)
 
 void mark_all_modified(world& w)
 {
-    for (auto& [coord, ch] : w.chunks())
+    for (auto& ch : w.chunks())
         ch.mark_modified();
 }
 

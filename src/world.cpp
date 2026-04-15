@@ -11,6 +11,7 @@
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/hash-table-load-factor.hpp"
+#include <unordered_map>
 #include <cr/GrowableArray.h>
 #include <tsl/robin_map.h>
 
@@ -28,23 +29,17 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
 }
 
 namespace floormat {
-struct world::robin_map_wrapper final : tsl::robin_map<object_id, bptr<object>, object_id_hasher>
-{
-    using tsl::robin_map<object_id, bptr<object>, object_id_hasher>::robin_map;
-};
-
 world::world(world&& w) noexcept = default;
 
-world::world(std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>&& chunks)
+struct world::Impl
 {
-    _chunks.reserve(chunks.size());
-    for (auto&& [coord, c] : chunks)
-        operator[](coord) = move(c);
-    Hash::set_separate_chaining_load_factor(_chunks);
-}
+    std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
+    tsl::robin_map<object_id, bptr<object>, object_id_hasher> _objects;
+};
 
 world& world::operator=(world&& w) noexcept
 {
+    auto& impl = *this->impl;
     fm_debug_assert(&w != this);
     fm_assert(!w._script_initialized);
     fm_assert(!w._script_finalized);
@@ -54,9 +49,9 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
     _last_chunk = {};
-    _objects = move(w._objects);
-    _chunks = move(w._chunks);
-    w._objects = {};
+    impl._objects = move(w.impl->_objects);
+    impl._chunks = move(w.impl->_chunks);
+    w.impl->_objects = {};
     fm_assert(w._unique_id);
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
@@ -65,7 +60,7 @@ world& world::operator=(world&& w) noexcept
     w._object_counter = 0;
     _current_frame = w._current_frame;
 
-    for (auto& [id, c] : _chunks)
+    for (auto& [id, c] : impl._chunks)
         c._world = this;
     return *this;
 }
@@ -77,11 +72,11 @@ world::world() : world{initial_capacity}
 world::~world() noexcept
 {
     fm_assert(_script_finalized || !_script_initialized);
-    for (auto& [k, c] : _chunks)
+    for (auto& [k, c] : impl->_chunks)
         c.on_teardown();
     _teardown = true;
-    _objects->clear();
-    for (auto& [k, c] : _chunks)
+    impl->_objects.clear();
+    for (auto& [k, c] : impl->_chunks)
     {
         c._teardown = true;
         //c.mark_scenery_modified(); // XXX why? what for?
@@ -90,25 +85,28 @@ world::~world() noexcept
         arrayResize(c._objects, 0);
     }
     _last_chunk = {};
-    _chunks.clear();
+    impl->_chunks.clear();
 }
 
 bool world::unique_id::operator==(const unique_id& other) const { return this == &other; }
 
-world::world(size_t capacity) : _chunks{capacity}, _unique_id{InPlace}
+world::world(size_t capacity) : _unique_id{InPlace}
 {
-    Hash::set_separate_chaining_load_factor(_chunks);
-    _chunks.reserve(initial_capacity);
-    Hash::set_open_addressing_load_factor(*_objects);
-    _objects->reserve(initial_capacity);
+    auto& impl = *this->impl;
+    impl._chunks = std::unordered_map<chunk_coords_, chunk, chunk_coords_hasher>{capacity};
+    Hash::set_separate_chaining_load_factor(impl._chunks);
+    impl._chunks.reserve(initial_capacity);
+    Hash::set_open_addressing_load_factor(impl._objects);
+    impl._objects.reserve(initial_capacity);
 }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
+    auto& impl = *this->impl;
     fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
-        c = &_chunks.try_emplace(coord, *this, coord).first->second;
+        c = &impl._chunks.try_emplace(coord, *this, coord).first->second;
     coord2 = coord;
     return *c;
 }
@@ -121,8 +119,9 @@ auto world::operator[](global_coords pt) noexcept -> pair_chunk_tile
 
 chunk* world::at(chunk_coords_ c) noexcept
 {
-    auto it = _chunks.find(c);
-    if (it != _chunks.end())
+    auto& impl = *this->impl;
+    auto it = impl._chunks.find(c);
+    if (it != impl._chunks.end())
         return &it->second;
     else
         return nullptr;
@@ -130,16 +129,18 @@ chunk* world::at(chunk_coords_ c) noexcept
 
 bool world::contains(chunk_coords_ c) const noexcept
 {
-    return _chunks.contains(c);
+    auto& impl = *this->impl;
+    return impl._chunks.contains(c);
 }
 
 void world::clear()
 {
+    auto& impl = *this->impl;
     fm_assert(!_teardown);
-    _chunks.clear();
-    _chunks.rehash(initial_capacity);
-    _objects->clear();
-    _objects->rehash(initial_capacity);
+    impl._chunks.clear();
+    impl._chunks.rehash(initial_capacity);
+    impl._objects.clear();
+    impl._objects.rehash(initial_capacity);
     _object_counter = object_counter_init;
     auto& [c, pos] = _last_chunk;
     c = nullptr;
@@ -148,12 +149,13 @@ void world::clear()
 
 void world::collect(bool force)
 {
-    const auto len0 = _chunks.size();
-    for (auto it = _chunks.begin(); it != _chunks.end(); (void)0)
+    auto& impl = *this->impl;
+    const auto len0 = impl._chunks.size();
+    for (auto it = impl._chunks.begin(); it != impl._chunks.end(); (void)0)
     {
         const auto& [_, c] = *it;
         if (c.empty(force))
-            it = _chunks.erase(it);
+            it = impl._chunks.erase(it);
         else
             ++it;
     }
@@ -161,13 +163,50 @@ void world::collect(bool force)
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
-    const auto len = len0 - _chunks.size();
+    const auto len = len0 - impl._chunks.size();
     if (len > 1)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
+size_t world::size() const noexcept { auto& impl = *this->impl; return impl._chunks.size(); }
+
+namespace {
+using chunks_map_iter = std::unordered_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
+static_assert(sizeof(chunks_map_iter) <= sizeof(void*));
+static_assert(alignof(chunks_map_iter) <= alignof(void*));
+static_assert(std::is_trivially_copyable_v<chunks_map_iter>);
+static_assert(std::is_trivially_destructible_v<chunks_map_iter>);
+} // namespace
+
+world::chunks_iterator& world::chunks_iterator::operator++() noexcept
+{
+    ++*reinterpret_cast<chunks_map_iter*>(_buf);
+    return *this;
+}
+
+chunk& world::chunks_iterator::operator*() const noexcept
+{
+    return (*reinterpret_cast<const chunks_map_iter*>(_buf))->second;
+}
+
+bool world::chunks_iterator::operator==(const chunks_iterator& o) const noexcept
+{
+    return *reinterpret_cast<const chunks_map_iter*>(_buf)
+        == *reinterpret_cast<const chunks_map_iter*>(o._buf);
+}
+
+world::chunks_range world::chunks() noexcept
+{
+    auto& impl = *this->impl;
+    chunks_iterator b, e;
+    new (b._buf) chunks_map_iter{impl._chunks.begin()};
+    new (e._buf) chunks_map_iter{impl._chunks.end()};
+    return { b, e };
+}
+
 void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
+    auto& impl = *this->impl;
     fm_debug_assert(e);
     fm_debug_assert(e->id != 0);
     fm_debug_assert(e->c);
@@ -175,27 +214,29 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
-    auto [_, fresh] = _objects->try_emplace(e->id, e);
+    auto [_, fresh] = impl._objects.try_emplace(e->id, e);
     if (!fresh) [[unlikely]]
         fm_throw("object already initialized id:{}"_cf, e->id);
     if (sorted)
         e->c->add_object(e);
     else
         e->c->add_object_unsorted(e);
-    Hash::set_open_addressing_load_factor(*_objects);
+    Hash::set_open_addressing_load_factor(impl._objects);
 }
 
 void world::erase_object(object_id id)
 {
+    auto& impl = *this->impl;
     fm_debug_assert(id != 0);
-    auto cnt = _objects->erase(id);
+    auto cnt = impl._objects.erase(id);
     fm_debug_assert(cnt > 0);
 }
 
 bptr<object> world::find_object_(object_id id)
 {
-    auto it = _objects->find(id);
-    auto ret = it == _objects->end() ? nullptr : it->second;
+    auto& impl = *this->impl;
+    auto it = impl._objects.find(id);
+    auto ret = it == impl._objects.end() ? nullptr : it->second;
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }
@@ -247,23 +288,25 @@ bool world::is_teardown() const { return _teardown; }
 
 void world::init_scripts()
 {
+    auto& impl = *this->impl;
     fm_assert(!_script_initialized);
     _script_initialized = true;
-    for (auto& [k, c] : _chunks)
+    for (auto& [k, c] : impl._chunks)
         for (const auto& obj : c.objects())
             obj->init_script(obj);
 }
 
 void world::finish_scripts()
 {
+    auto& impl = *this->impl;
     fm_assert(_script_initialized);
     fm_assert(!_script_finalized);
     _script_finalized = true;
 
-    for (auto& [k, c] : _chunks)
+    for (auto& [k, c] : impl._chunks)
         for (const auto& obj : c.objects())
             obj->destroy_script_pre(obj, script_destroy_reason::quit);
-    for (auto& [k, c] : _chunks)
+    for (auto& [k, c] : impl._chunks)
         for (const auto& obj : c.objects())
             obj->destroy_script_post();
 }
@@ -295,7 +338,7 @@ bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 
     bptr<critter> ret;
 
-    for (auto& [coord, c] : chunks())
+    for (auto& c : chunks())
     {
         for (const auto& eʹ : c.objects())
         {

@@ -217,7 +217,7 @@ void app::draw_clickables()
     // draw slope lines on static scenery
     const auto& shader = M->shader();
     const auto win_size = M->window_size();
-    for (const auto& [coord, ch] : M->world().chunks())
+    for (const auto& ch : M->world().chunks())
     {
         for (const auto& eʹ : ch.objects())
         {

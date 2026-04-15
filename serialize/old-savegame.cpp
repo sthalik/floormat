@@ -533,14 +533,8 @@ void reader_state::read_chunks(reader_t& s)
 
 void reader_state::preload_chunks()
 {
-    for (auto& [coord, _] : _world->chunks())
-    {
-        auto* c = _world->at(coord);
-        fm_assert(c);
-        c->ensure_ground_mesh();
-        c->ensure_wall_mesh();
-        c->ensure_passability();
-    }
+    for (auto& c : _world->chunks())
+        c.ensure_passability();
 }
 
 void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
