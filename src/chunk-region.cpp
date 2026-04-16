@@ -26,7 +26,7 @@ static_assert(div_count.x() == div_count.y());
 static_assert((iTILE_SIZE2 % div_size).isZero());
 
 constexpr auto chunk_bits = div_count.product(),
-               visited_bits = div_count.product()*4*4;
+               visited_bits = div_count.product()*4;
 
 
 constexpr bbox<Int> bbox_from_pos1(Vector2i center)
