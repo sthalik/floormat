@@ -55,6 +55,7 @@ struct Atlas
     struct ShelfPair { Shelf* p; uint32_t index; };
 };
 
+uint32_t quantize_height(uint32_t h);
 uint32_t max_2d_texture_size();
 uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A);
 void realloc_atlas(Atlas& atlas, uint16_t new_n_layers);
@@ -69,4 +70,4 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
 void dump_atlas(Atlas& atlas, StringView out_path);
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path);
 
-} // namespace floormat:SpriteAtlas
+} // namespace floormat::SpriteAtlas

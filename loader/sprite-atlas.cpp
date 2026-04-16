@@ -20,6 +20,12 @@
 
 namespace floormat::SpriteAtlas {
 
+uint32_t quantize_height(uint32_t h)
+{
+    fm_debug_assert(h > 0);
+    return (h + size_class_size - 1) / size_class_size * size_class_size;
+}
+
 uint32_t max_2d_texture_size()
 {
     auto size = GL::Texture2D::maxSize();
@@ -126,8 +132,7 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     // (8). All sprites placed in this shelf will be padded to q_height so
     // they share a single height class — keeps per-shelf vertical waste
     // bounded by (size_class_size - 1) regardless of sprite distribution.
-    const uint32_t q_height = (height + size_class_size - 1) / size_class_size * size_class_size;
-    fm_debug_assert(q_height > 0);
+    const uint32_t q_height = quantize_height(height);
     fm_debug_assert((uint16_t)q_height == q_height);
 
     // locate the HeightClass for this q_height.
@@ -184,8 +189,7 @@ static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t
 {
     // Shelf::height_class stores `q_height - 1` (lets 1024 fit in 10 bits),
     // so we compute the same encoding here for the lookup comparison.
-    const uint32_t q_height_m1 =
-        (h + size_class_size - 1) / size_class_size * size_class_size - 1;
+    const uint32_t q_height_m1 = quantize_height(h) - 1;
     for (uint32_t li = 0; li < atlas.layers.size(); li++)
         for (auto& sh : atlas.layers[li].shelves)
             if ((uint32_t)sh->height_class == q_height_m1
