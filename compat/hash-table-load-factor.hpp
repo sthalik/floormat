@@ -9,7 +9,7 @@ namespace floormat::Hash {
 namespace floormat::Hash::detail {
 
 template<typename T>
-concept HashTableC = requires (T& hash, const typename T::key_type& key) {
+concept HashTableC = requires (T& hash, const T::key_type& key) {
     typename T::value_type;
     { hash[key] };
     { hash.size() };
@@ -18,10 +18,9 @@ concept HashTableC = requires (T& hash, const typename T::key_type& key) {
 };
 
 template<typename T>
-float set_hash_table_buckets(T& hash_table, float factor)
+float set_hash_table_buckets(T& hash_table, float factor, size_t element_count)
 {
-    size_t size    = hash_table.size();
-    size_t buckets = (size_t)std::ceil((float)size / factor);
+    size_t buckets = (size_t)std::ceil((float)element_count / factor);
     hash_table.max_load_factor(factor);
     if (hash_table.bucket_count() < buckets)
         hash_table.rehash(buckets);
@@ -33,12 +32,13 @@ float set_hash_table_buckets(T& hash_table, float factor)
 namespace floormat::Hash {
 
 float set_open_addressing_load_factor(detail::HashTableC auto& hash_table, size_t element_count)
-{ return detail::set_hash_table_buckets(hash_table, open_addressing_load_factor(element_count)); }
+{ return detail::set_hash_table_buckets(hash_table, open_addressing_load_factor(element_count), element_count); }
 float set_open_addressing_load_factor(detail::HashTableC auto& hash_table)
 { return set_open_addressing_load_factor(hash_table, hash_table.size()); }
 
 float set_separate_chaining_load_factor(detail::HashTableC auto& hash_table, size_t element_count)
-{ return detail::set_hash_table_buckets(hash_table, separate_chaining_load_factor(element_count)); }
+//{ return detail::set_hash_table_buckets(hash_table, separate_chaining_load_factor(element_count), element_count); }
+{ return detail::set_hash_table_buckets(hash_table, open_addressing_load_factor(element_count), element_count); }
 float set_separate_chaining_load_factor(detail::HashTableC auto& hash_table)
 { return set_separate_chaining_load_factor(hash_table, hash_table.size()); }
 

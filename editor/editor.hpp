@@ -7,7 +7,7 @@
 #include "loader/sprite-atlas.hpp"
 #include <cr/Optional.h>
 #include <mg/Texture.h>
-#include <tsl/robin_map.h>
+#include <gtl/phmap.hpp>
 
 namespace Magnum::GL {
 template<UnsignedInt dimensions> class TextureArray;
@@ -40,8 +40,8 @@ class editor final
     safe_ptr<scenery_editor> _scenery;
     safe_ptr<vobj_editor> _vobj;
 
-    tsl::robin_map<GL::Texture2DArray*, GL::Texture2D> _palette_textures;
-    tsl::robin_map<const SpriteAtlas::Sprite*, GL::Texture2D> _sprite_palette_textures;
+    gtl::flat_hash_map<GL::Texture2DArray*, GL::Texture2D> _palette_textures;
+    gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> _sprite_palette_textures;
 
     struct drag_pos final {
         global_coords coord, draw_coord;

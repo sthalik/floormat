@@ -4,7 +4,7 @@
 #include <cr/StringView.h>
 #include <cr/Array.h>
 #include <cr/Optional.h>
-#include <tsl/robin_map.h>
+#include <gtl/phmap.hpp>
 
 namespace floormat::loader_detail {
 
@@ -19,7 +19,7 @@ struct atlas_storage
     using Atlas = typename Traits::Atlas;
     using Cell = typename Traits::Cell;
 
-    tsl::robin_map<StringView, size_t, hash_string_view, string_equals> name_map;
+    gtl::flat_hash_map<StringView, size_t, hash_string_view, string_equals> name_map;
     Array<Cell> cell_array;
     Array<String> missing_atlas_names;
     Optional<Cell> invalid_atlas;

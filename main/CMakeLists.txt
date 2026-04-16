@@ -7,8 +7,7 @@ target_link_libraries(${self} PUBLIC
     Corrade::Containers
     Magnum::GL
     Magnum::Trade
-    fmt::fmt
-    tsl::robin_map
+    floormat-common
 )
 
 if(NOT TARGET SDL2::SDL2)

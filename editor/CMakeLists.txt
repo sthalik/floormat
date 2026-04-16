@@ -5,7 +5,7 @@ corrade_add_resource(floormat_editor_fonts_src "../external/font/fonts.conf")
 set_property(SOURCE "${floormat_editor_fonts_src}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
 
 add_library(${self}_o OBJECT "${sources}")
-target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui fmt::fmt nlohmann_json::nlohmann_json tsl::robin_map floormat-common)
+target_link_libraries(${self}_o PUBLIC MagnumIntegration::ImGui nlohmann_json::nlohmann_json floormat-common)
 
 add_library(${self}-fonts-res OBJECT "${floormat_editor_fonts_src}")
 target_link_libraries(${self}-fonts-res PUBLIC Corrade::Utility Magnum)

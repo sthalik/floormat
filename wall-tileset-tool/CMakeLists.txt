@@ -5,9 +5,10 @@ if(OpenCV_FOUND)
     set(self "floormat-wall-tileset-tool")
 
     include_directories(SYSTEM "${OpenCV_INCLUDE_DIRS}")
-    link_libraries(Corrade::Containers Corrade::Utility Magnum::Magnum Magnum::GL fmt::fmt)
+    link_libraries(Corrade::Containers Corrade::Utility Magnum::Magnum Magnum::GL)
     link_libraries(opencv_imgproc opencv_imgcodecs opencv_core)
     link_libraries(nlohmann_json::nlohmann_json)
+    link_libraries(floormat-common)
 
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 

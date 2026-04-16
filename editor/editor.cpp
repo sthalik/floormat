@@ -232,7 +232,7 @@ GL::Texture2D& editor::palette_texture(GL::Texture2DArray& src)
 
         it = _palette_textures.insert({&src, move(dst)}).first;
     }
-    return it.value();
+    return it->second;
 }
 
 GL::Texture2D& editor::palette_texture(sprite s)
@@ -264,7 +264,7 @@ GL::Texture2D& editor::palette_texture(sprite s)
 
         it = _sprite_palette_textures.insert({s.raw(), move(dst)}).first;
     }
-    return it.value();
+    return it->second;
 }
 
 const ground_editor* editor::current_ground_editor() const noexcept

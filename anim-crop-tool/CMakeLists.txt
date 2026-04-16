@@ -8,6 +8,7 @@ if(OpenCV_FOUND)
     link_libraries(Corrade::Utility Magnum::Magnum)
     link_libraries(opencv_imgproc opencv_imgcodecs opencv_core)
     link_libraries(nlohmann_json::nlohmann_json)
+    link_libraries(floormat-common)
 
     file(GLOB sources "*.cpp" CONFIGURE_ARGS)
 

@@ -32,7 +32,7 @@
 #include <algorithm>
 #include <Corrade/Utility/Path.h>
 //#include <Magnum/Math/Functions.h>
-#include <tsl/robin_map.h>
+#include <gtl/phmap.hpp>
 
 // ReSharper disable CppDFAUnreachableCode
 // ReSharper disable CppDFAUnreachableFunctionCall
@@ -411,10 +411,10 @@ struct writer final : visitor_<writer, true, true>
     const world& w;
 
     std::vector<StringView> string_array{};
-    tsl::robin_map<StringView, uint32_t, string_hasher> string_map{hash_initial_size};
+    gtl::flat_hash_map<StringView, uint32_t, string_hasher> string_map{hash_initial_size};
 
     std::vector<serialized_atlas> atlas_array{};
-    tsl::robin_map<const void*, uint32_t> atlas_map{hash_initial_size};
+    gtl::flat_hash_map<const void*, uint32_t> atlas_map{hash_initial_size};
 
     std::vector<serialized_chunk> chunk_array{};
 
@@ -515,7 +515,7 @@ ok:     void();
         auto [kv, fresh] = atlas_map.try_emplace(atlas, (uint32_t)-1);
         if (!fresh)
         {
-            fm_debug_assert(kv.value() != (uint32_t)-1);
+            fm_debug_assert(kv->second != (uint32_t)-1);
             return kv->second;
         }
         else
@@ -530,7 +530,7 @@ ok:     void();
             auto id = (uint32_t)atlas_array.size();
             fm_assert(s.bytes_written() == s.bytes_allocated());
             atlas_array.emplace_back(move(buf), atlas, type);
-            kv.value() = id;
+            kv->second = id;
             fm_assert(id < null<atlasid>);
             return atlasid{id};
         }

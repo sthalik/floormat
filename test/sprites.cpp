@@ -9,7 +9,7 @@
 #include <Corrade/Utility/Path.h>
 #include <mg/ImageView.h>
 #include <Magnum/Trade/ImageData.h>
-#include <tsl/robin_set.h>
+#include <gtl/phmap.hpp>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -38,7 +38,7 @@ struct file_id_eq {
         return a.dev == b.dev && a.ino == b.ino;
     }
 };
-using visited_set = tsl::robin_set<file_id, file_id_hash, file_id_eq>;
+using visited_set = gtl::flat_hash_set<file_id, file_id_hash, file_id_eq>;
 
 constexpr uint32_t max_depth = 64;
 

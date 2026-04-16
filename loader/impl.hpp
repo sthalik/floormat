@@ -4,7 +4,7 @@
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
-#include <tsl/robin_map.h>
+#include <gtl/phmap.hpp>
 #include <vector>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/StringView.h>
@@ -64,7 +64,7 @@ struct loader_impl final : loader_
             return h;
         }
     };
-    tsl::robin_map<frame_key, const SpriteAtlas::Sprite*, frame_key_hash> _sprite_registry;
+    gtl::flat_hash_map<frame_key, const SpriteAtlas::Sprite*, frame_key_hash> _sprite_registry;
     void register_sprite(const class anim_atlas&, rotation, uint32_t frame_idx, const SpriteAtlas::Sprite*) noexcept override;
     const SpriteAtlas::Sprite* find_sprite(const class anim_atlas&, rotation, uint32_t frame_idx) noexcept override;
 
@@ -101,7 +101,7 @@ struct loader_impl final : loader_
     struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) override;
 
     // >-----> vobjs >----->
-    tsl::robin_map<StringView, const struct vobj_cell*> vobj_atlas_map;
+    gtl::flat_hash_map<StringView, const struct vobj_cell*> vobj_atlas_map;
     std::vector<struct vobj_cell> vobjs;
     bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_cell& vobj(StringView name) override;

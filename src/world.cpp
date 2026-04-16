@@ -14,7 +14,6 @@
 #include <unordered_map>
 #include <cr/GrowableArray.h>
 #include <gtl/phmap.hpp>
-#include <tsl/robin_map.h>
 
 using namespace floormat;
 
@@ -35,7 +34,7 @@ world::world(world&& w) noexcept = default;
 struct world::Impl
 {
     gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
-    tsl::robin_map<object_id, bptr<object>, object_id_hasher> _objects;
+    gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
 };
 
 world& world::operator=(world&& w) noexcept

@@ -10,8 +10,6 @@ target_link_libraries(${self}_o PUBLIC
     Magnum::Magnum
     Magnum::Trade
     nlohmann_json::nlohmann_json
-    fmt::fmt
-    tsl::robin_map
     floormat-common
 )
 

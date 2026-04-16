@@ -314,7 +314,6 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     fm_add_libs()
 endif()
 
-add_subdirectory(robin-map ${system})
 add_subdirectory(swl-variant)
 target_compile_definitions(swl-variant INTERFACE -DSWL_VARIANT_NO_CONSTEXPR_EMPLACE -DSWL_VARIANT_NO_STD_HASH)
 

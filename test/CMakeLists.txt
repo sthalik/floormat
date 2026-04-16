@@ -8,7 +8,6 @@ target_link_libraries(${self}_o PUBLIC
     ${floormat_headless-library}
     Magnum::GL Magnum::Trade
     nlohmann_json::nlohmann_json
-    fmt::fmt tsl::robin_map
     floormat-common
 )
 

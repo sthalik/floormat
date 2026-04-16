@@ -6,8 +6,6 @@ target_link_libraries(
     Magnum::Magnum
     Magnum::Trade
     nlohmann_json::nlohmann_json
-    fmt::fmt
-    tsl::robin_map
     floormat-common
 )
 
@@ -21,7 +19,6 @@ if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
         MagnumPlugins::StbImageConverter
         Magnum::AnyImageConverter
         Magnum::TgaImporter
-        tsl::robin_map
     )
 endif()
 if(WIN32)
