@@ -60,17 +60,6 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
             fm_soft_assert(fr.offset < pixel_size);
             fm_soft_assert(fr.offset + fr.size <= pixel_size);
         }
-
-    const ImageView3D image3d{image.storage(), image.format(),
-                              {image.size(), 1}, image.data()};
-    _tex.setLabel(_name)
-        .setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Nearest)
-        .setMinificationFilter(GL::SamplerFilter::Nearest)
-        .setMaxAnisotropy(1)
-        .setBorderColor(Color4{1, 0, 0, 1})
-        .setStorage(1, GL::textureFormat(image.format()), {image.size(), 1})
-        .setSubImage(0, {}, image3d);
 }
 
 anim_atlas::~anim_atlas() noexcept = default;
@@ -78,7 +67,6 @@ anim_atlas::anim_atlas(anim_atlas&&) noexcept = default;
 anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
-GL::Texture2DArray& anim_atlas::texture() noexcept { return _tex; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
 
 auto anim_atlas::group(rotation r) const -> const anim_group&
@@ -93,55 +81,6 @@ auto anim_atlas::frame(rotation r, size_t frame) const -> const anim_frame&
     const anim_group& g = group(r);
     fm_soft_assert(frame < g.frames.size());
     return g.frames[frame];
-}
-
-auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const noexcept -> texcoords
-{
-    const auto f = frame(r, i);
-    const Vector2 p0(f.offset), p1(f.size);
-    const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
-    const auto size = _info.pixel_size;
-    if (!mirror)
-        return {{
-            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f  }, // bottom right
-            { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f  }, // top right
-            {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f  }, // bottom left
-            {      x0 / size.x(), 1 -      y0 / size.y(), 0.f  }, // top left
-        }};
-    else
-        return {{
-            {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // bottom right
-            {      x0 / size.x(), 1 -      y0 / size.y(), 0.f }, // top right
-            { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // bottom left
-            { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f }, // top left
-        }};
-}
-
-// See Quads::texcoords_at (src/quads.cpp) for atlas rotation and UV permutation conventions.
-auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror, bool rotated) const noexcept -> texcoords
-{
-    const auto f = frame(r, i);
-    const Vector2 p0(f.offset), p1(f.size);
-    const auto x0 = p0.x()+.5f, x1 = p1.x()-1, y0 = p0.y()+.5f, y1 = p1.y()-1;
-    const auto size = _info.pixel_size;
-
-    const Vector3 corners[4] = {
-        { (x0+x1) / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // 0: BR
-        { (x0+x1) / size.x(), 1 -      y0 / size.y(), 0.f }, // 1: TR
-        {      x0 / size.x(), 1 - (y0+y1) / size.y(), 0.f }, // 2: BL
-        {      x0 / size.x(), 1 -      y0 / size.y(), 0.f }, // 3: TL
-    };
-
-    constexpr struct {
-        uint8_t a:2, b:2, c:2, d:2;
-    } perm[4] = {
-        {0, 1, 2, 3}, // normal
-        {1, 3, 0, 2}, // rotated only
-        {2, 3, 0, 1}, // mirrored only
-        {0, 2, 1, 3}, // mirror + rotated (i ^ 2 swap of rotated-only)
-    };
-    const auto p = perm[(unsigned)mirror << 1 | (unsigned)rotated];
-    return {{ corners[p.a], corners[p.b], corners[p.c], corners[p.d] }};
 }
 
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const noexcept -> quad

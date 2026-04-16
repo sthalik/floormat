@@ -131,7 +131,6 @@ void Test::test_loader3()
         fm_assert(atlas_);
         auto& atlas = *atlas_;
         fm_assert(atlas.name() == x.name);
-        fm_assert(atlas.texture().id());
         fm_assert(atlas.info().nframes > 0);
     }
     // todo scenery_cell

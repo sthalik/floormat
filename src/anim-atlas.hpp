@@ -24,7 +24,6 @@ class anim_atlas final : public bptr_base
     std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
-    GL::Texture2DArray _tex;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
 
@@ -39,7 +38,6 @@ public:
     anim_atlas& operator=(anim_atlas&&) noexcept;
 
     StringView name() const noexcept;
-    GL::Texture2DArray& texture() noexcept;
     const anim_def& info() const noexcept;
 
     const anim_group& group(rotation r) const;

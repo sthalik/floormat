@@ -57,18 +57,19 @@ bool is_selected(const wall_editor& wa, const wall_cell& sc) {  return wa.is_atl
 void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
 void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
 void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
-auto get_texcoords(const auto&, anim_atlas& atlas) { return atlas.texcoords_for_frame(atlas.first_rotation(), 0, !atlas.group(atlas.first_rotation()).mirror_from.isEmpty()); }
 
 // Emits ImGui::Image with the thumbnail appropriate for the atlas type.
 // Anim atlases still own their own Texture2DArray; wall atlases live in the
 // shared sprite_atlas and render via per-sprite Texture2D. UVs differ because
 // the per-sprite blit targets a fresh Texture2D covering just that sprite
 // (bottom-up GL storage → ImGui needs Y-flipped uv0/uv1).
-void palette_image(editor& e, ImVec2 img_size, const auto& scenery, anim_atlas& atlas)
+void palette_image(editor& e, ImVec2 img_size, const auto&, anim_atlas& atlas)
 {
-    const auto texcoords = get_texcoords(scenery, atlas);
-    const ImVec2 uv0 {texcoords[3][0], texcoords[3][1]}, uv1 {texcoords[0][0], texcoords[0][1]};
-    ImGui::Image(e.palette_texture(atlas.texture()).id(), img_size, uv0, uv1);
+    const auto r = atlas.first_rotation();
+    const auto* sp = loader.find_sprite(atlas, r, 0);
+    if (!sp)
+        return;
+    ImGui::Image(e.palette_texture(sprite{sp}).id(), img_size, {0.f,1.f}, {1.f,0.f});
 }
 
 void palette_image(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
@@ -78,6 +79,7 @@ void palette_image(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atl
         return;
     ImGui::Image(e.palette_texture(sprites[0]).id(), img_size, {0.f, 1.f}, {1.f, 0.f});
 }
+
 
 void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
 {
