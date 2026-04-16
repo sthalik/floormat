@@ -18,6 +18,8 @@ endif()
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(BUILD_SHARED_LIBS OFF)
+else()
+    add_definitions(-D_MSVC_STL_HARDENING=1)
 endif()
 
 list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64")
