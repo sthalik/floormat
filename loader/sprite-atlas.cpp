@@ -114,10 +114,6 @@ void free_atlas(Atlas& atlas)
     // emptied, n_layers reset so any future alloc_new_shelf rebootstraps
     // via realloc_atlas. layer_size is deliberately preserved — the caller
     // configured it and may want to reuse the same atlas for another batch.
-    //
-    // arrayClear destructs every element and sets size=0 but keeps the
-    // growable capacity intact — cheaper than `= {}` for the reuse case,
-    // equivalent when the atlas is about to go out of scope anyway.
     atlas.texture = GL::Texture2DArray{NoCreate};
     atlas.layers = {};
     atlas.height_classes = {};
@@ -128,10 +124,6 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
 {
     fm_assert(height > 0 && height <= max_texture_xy);
 
-    // Round the requested height UP to the next multiple of size_class_size
-    // (8). All sprites placed in this shelf will be padded to q_height so
-    // they share a single height class — keeps per-shelf vertical waste
-    // bounded by (size_class_size - 1) regardless of sprite distribution.
     const uint32_t q_height = quantize_height(height);
     fm_debug_assert((uint16_t)q_height == q_height);
 
@@ -335,12 +327,6 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
     // - rotated only:  {1,3,0,2}  — CCW rotation of vertex→corner mapping
     // - mirrored only: {2,3,0,1}  — horizontal flip (vertex i <-> i XOR 2)
     // - both:          {0,2,1,3}  — mirror applied on top of rotated
-    //                               (derived: {1,3,0,2} with pairs swapped
-    //                               via XOR 2)
-    //
-    // Note: the last row differs from Quads::texcoords_at's {3,1,2,0} —
-    // that would 180°-rotate the result relative to this setup, which
-    // produced visibly upside-down scenery under force-rotate stress test.
     constexpr struct {
         uint8_t a:2, b:2, c:2, d:2;
     } perm[4] = {

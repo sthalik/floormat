@@ -95,8 +95,6 @@ auto anim_atlas::frame(rotation r, size_t frame) const -> const anim_frame&
     return g.frames[frame];
 }
 
-// get uv's for atlas frame
-// ORDER: bottom left, top right, bottom left, top left
 auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror) const noexcept -> texcoords
 {
     const auto f = frame(r, i);
@@ -146,8 +144,6 @@ auto anim_atlas::texcoords_for_frame(rotation r, size_t i, bool mirror, bool rot
     return {{ corners[p.a], corners[p.b], corners[p.c], corners[p.d] }};
 }
 
-// get vertexes for atlas frame
-// ORDER: bottom left, top right, bottom left, top left
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const noexcept -> quad
 {
     enum : size_t { x, y, z };
