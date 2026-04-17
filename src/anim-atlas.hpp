@@ -42,8 +42,6 @@ public:
 
     const anim_group& group(rotation r) const;
     const anim_frame& frame(rotation r, size_t frame) const;
-    texcoords texcoords_for_frame(rotation r, size_t frame, bool mirror) const noexcept;
-    texcoords texcoords_for_frame(rotation r, size_t frame, bool mirror, bool rotated) const noexcept;
     quad frame_quad(const Vector3& center, rotation r, size_t frame) const noexcept;
 
     BitArrayView bitmask() const;
