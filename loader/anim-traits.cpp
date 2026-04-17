@@ -144,9 +144,8 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const anim_frame& f = g.frames[fi];
                 const uint32_t fw = (uint32_t)f.size.x();
                 const uint32_t fh = (uint32_t)f.size.y();
-                if (fw == 0 || fh == 0) continue;
-                if (fw > SpriteAtlas::max_texture_xy || fh > SpriteAtlas::max_texture_xy)
-                    continue;
+                fm_soft_assert(fw > 0 && fh > 0);
+                fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
                 // Manually pack the sub-rect into a tight buffer.
                 // Source memory is Y-inverted relative to JSON offsets.
                 const auto full_height = (uint32_t)size[0];
