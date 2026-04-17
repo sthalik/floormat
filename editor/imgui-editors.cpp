@@ -50,7 +50,26 @@ bptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
 bptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
 bptr<wall_atlas> get_atlas(const wall_cell& w) { return w.atlas; }
 Vector2ui get_size(const auto&, anim_atlas& atlas) { return atlas.frame(atlas.first_rotation(), 0).size; }
-Vector2ui get_size(const auto&, wall_atlas& atlas) { auto sz = atlas.image_size(); return { std::max(1u, std::min(sz.y()*3/2, sz.x())), sz.y() }; }
+
+const sprite* canonical_wall_sprite(wall_atlas& atlas)
+{
+    using namespace floormat::Wall;
+    for (auto dir : { Direction_::N, Direction_::W })
+        if (const auto* g = atlas.group(dir, Group_::wall); g && g->count > 0)
+        {
+            auto sprites = atlas.sprites(*g);
+            if (!sprites.isEmpty())
+                return &sprites[0];
+        }
+    return nullptr;
+}
+
+Vector2ui get_size(const auto&, wall_atlas& atlas)
+{
+    if (const sprite* s = canonical_wall_sprite(atlas))
+        return { s->width(), s->height() };
+    return {1, 1};
+}
 bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }
 bool is_selected(const vobj_editor& vo, const vobj_& sc) { return vo.is_item_selected(sc); }
 bool is_selected(const wall_editor& wa, const wall_cell& sc) {  return wa.is_atlas_selected(sc.atlas); }
@@ -74,10 +93,8 @@ void palette_image(editor& e, ImVec2 img_size, const auto&, anim_atlas& atlas)
 
 void palette_image(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
 {
-    const auto sprites = atlas.raw_sprite_array();
-    if (sprites.isEmpty()) [[unlikely]]
-        return;
-    ImGui::Image(e.palette_texture(sprites[0]).id(), img_size, {0.f, 1.f}, {1.f, 0.f});
+    if (const sprite* s = canonical_wall_sprite(atlas)) [[likely]]
+        ImGui::Image(e.palette_texture(*s).id(), img_size, {0.f, 1.f}, {1.f, 0.f});
 }
 
 

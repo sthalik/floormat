@@ -243,24 +243,50 @@ GL::Texture2D& editor::palette_texture(sprite s)
         Hash::set_open_addressing_load_factor(_sprite_palette_textures,
             _sprite_palette_textures.size()+1);
 
-        const Vector2i size{(int)s.width(), (int)s.height()};
+        // sprite::width/height always report the ORIGINAL dims. When the
+        // packer stored the sprite rotated, the atlas slot is transposed
+        // (slot_w = orig_h, slot_h = orig_w); the read region must match
+        // the slot, and we un-rotate before upload.
+        const uint32_t orig_w = s.width(), orig_h = s.height();
+        const bool rotated = s.is_rotated();
+        const uint32_t slot_w = rotated ? orig_h : orig_w;
+        const uint32_t slot_h = rotated ? orig_w : orig_h;
+
+        const Vector2i dst_size{(int)orig_w, (int)orig_h};
         GL::Texture2D dst;
         dst.setWrapping(GL::SamplerWrapping::ClampToEdge)
            .setMagnificationFilter(GL::SamplerFilter::Nearest)
            .setMinificationFilter(GL::SamplerFilter::Nearest)
-           .setStorage(1, GL::TextureFormat::RGBA8, size);
+           .setStorage(1, GL::TextureFormat::RGBA8, dst_size);
 
-        // Read the sprite's pixels from the shared atlas via subImage (same
-        // path as SpriteAtlas::dump_sprite), then upload into the per-sprite
-        // Texture2D. Avoids FBO blit + viewport pitfalls — subImage reads
-        // pixels directly from the texture in absolute coordinates.
         auto& src = static_cast<GL::Texture2DArray&>(loader.atlas().texture());
         auto img = src.subImage(0,
             Range3Di{{(int)s.x(), (int)s.y(), (int)s.layer()},
-                     {(int)s.x() + size.x(), (int)s.y() + size.y(), (int)s.layer() + 1}},
+                     {(int)s.x() + (int)slot_w, (int)s.y() + (int)slot_h, (int)s.layer() + 1}},
             Image3D{PixelFormat::RGBA8Unorm});
-        ImageView2D view{img.format(), size, img.data()};
-        dst.setSubImage(0, {}, view);
+
+        if (!rotated) [[likely]]
+        {
+            const ImageView2D view{img.format(), dst_size, img.data()};
+            dst.setSubImage(0, {}, view);
+        }
+        else
+        {
+            // Invert upload_sprite's 90° CCW (loader/sprite-atlas.cpp:303):
+            //   src[y_o][x_o] = slot[x_o][orig_h - 1 - y_o]
+            // Both sides are GL bottom-up. RGBA8 → 4 bytes/px.
+            Array<uint32_t> unrotated{NoInit, (size_t)orig_w * (size_t)orig_h};
+            const auto* slot = reinterpret_cast<const uint32_t*>(img.data().data());
+            for (uint32_t y_o = 0; y_o < orig_h; y_o++)
+            {
+                uint32_t* dst_row = unrotated.data() + (size_t)y_o * (size_t)orig_w;
+                const uint32_t slot_col = orig_h - 1 - y_o;
+                for (uint32_t x_o = 0; x_o < orig_w; x_o++)
+                    dst_row[x_o] = slot[(size_t)x_o * slot_w + slot_col];
+            }
+            const ImageView2D view{img.format(), dst_size, {unrotated.data(), unrotated.size()}};
+            dst.setSubImage(0, {}, view);
+        }
 
         it = _sprite_palette_textures.insert({s.raw(), move(dst)}).first;
     }
