@@ -141,14 +141,6 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             fm_throw("wall_atlas '{}' is empty!"_cf, _path);
     }
 
-    // Walls→sprite_atlas registration. Rendering path sources texcoords
-    // via loader.atlas().texcoords_for.
-    //
-    // Top-group frames are pre-rotated 90° CCW by wall-tileset-tool, and
-    // the render path at chunk-walls.cpp:459–494 compensates via axis
-    // swap. Packer rotation would land pixels at 180°, so top-group
-    // frames opt out via allow_rotate=false. Non-top frames accept
-    // rotation.
     {
         Array<bool> top_frame_mask{ValueInit, _frame_array.size()};
         for (const Direction& D : _dir_array)
@@ -192,8 +184,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             const ImageView2D view{storage, img.format(),
                                    {(Int)fw, (Int)fh},
                                    ArrayView<const void>{packed.data(), packed.size()}};
-            const bool allow_rotate = !top_frame_mask[fi];
-            arrayAppend(_frame_sprites, loader.atlas().add(view, allow_rotate));
+            arrayAppend(_frame_sprites, loader.atlas().add(view, true));
         }
     }
 
