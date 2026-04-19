@@ -60,14 +60,11 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
         .nframes = 1,
     };
     auto err_tex = loader.make_error_texture(size);
-    auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, err_tex, move(def)};
 
-    // Register the invalid atlas's single frame in the shared sprite atlas so
-    // render-path find_sprite lookups succeed for any object that ended up
-    // using this placeholder (e.g., missing asset with loader_policy::warn).
-    // Without this, any such object trips fm_assert(sp) at chunk-scenery.cpp.
-    // Same pattern as loader/vobj.cpp — third anim_atlas construction site,
-    // NOT routed through make_atlas's registration loop.
+    // Allocate the single frame in the shared sprite atlas so render-path
+    // lookups succeed for any object that ended up using this placeholder
+    // (e.g. missing asset with loader_policy::warn). Must happen before the
+    // atlas ctor consumes `def`. Same pattern as loader/vobj.cpp.
     {
         const auto px_size = (size_t)err_tex.pixels().size()[2];
         const auto row_stride = (size_t)size.x() * px_size;
@@ -79,8 +76,11 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
                                {(Int)size.x(), (Int)size.y()},
                                ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
         auto sp = loader.atlas().add(view);
-        loader.register_sprite(*atlas, rotation::N, 0, sp.raw());
+        def.groups[0].sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
+        def.groups[0].sprites[0] = sp.raw();
     }
+
+    auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, err_tex, move(def)};
 
     auto info = anim_cell {
         .atlas = atlas,
@@ -120,20 +120,16 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
     const auto width = size[1], height = size[0];
     fm_soft_assert(anim_info.pixel_size[0] == width && anim_info.pixel_size[1] == height);
 
-    auto atlas = bptr<class anim_atlas>{InPlace, name, tex, move(anim_info)};
-
     {
-        const auto& def = atlas->info();
         const auto format = tex.format();
         const auto full_width  = (uint32_t)size[1];
         const auto full_height = (uint32_t)size[0];
 
-        // Pass 1: non-mirrored groups — add pixels to atlas, register sprites.
-        for (const anim_group& g : def.groups)
+        for (anim_group& g : anim_info.groups)
         {
             if (!g.mirror_from.isEmpty())
                 continue;
-            const auto r = (rotation)anim_atlas::rotation_to_index(g.name);
+            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
             for (uint32_t fi = 0; fi < g.frames.size(); fi++)
             {
                 const anim_frame& f = g.frames[fi];
@@ -141,7 +137,6 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const uint32_t fh = (uint32_t)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
                 fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
-                // Y-flip: Magnum stores bottom-up, JSON offsets are top-down.
                 const uint32_t mem_y_start = full_height - (uint32_t)f.offset.y() - fh;
                 PixelStorage sub_storage = tex.storage();
                 sub_storage.setRowLength((Int)full_width)
@@ -149,27 +144,28 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const ImageView2D view{sub_storage, format,
                                        {(Int)fw, (Int)fh}, tex.data()};
                 auto sp = loader.atlas().add(view);
-                loader.register_sprite(*atlas, r, fi, sp.raw());
+                g.sprites[fi] = sp.raw();
             }
         }
 
-        // Pass 2: mirrored groups — alias each frame to the source rotation's
-        // registry entry.
-        for (const anim_group& g : def.groups)
+        for (anim_group& g : anim_info.groups)
         {
             if (g.mirror_from.isEmpty())
                 continue;
-            const auto r = (rotation)anim_atlas::rotation_to_index(g.name);
-            const auto source_r = (rotation)anim_atlas::rotation_to_index(g.mirror_from);
+            const auto* begin = anim_info.groups.data(), *end = begin + anim_info.groups.size();
+            const auto* src = std::find_if(begin, end, [&](const anim_group& x) { return x.name == g.mirror_from; });
+            fm_debug_assert(src != end);
+            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
             for (uint32_t fi = 0; fi < g.frames.size(); fi++)
             {
-                const auto* s = loader.find_sprite(*atlas, source_r, fi);
-                if (!s) continue;   // source frame was skipped (oversize) — skip mirror too
-                loader.register_sprite(*atlas, r, fi, s);
+                const auto* s = src->sprites[fi];
+                if (!s) continue;
+                g.sprites[fi] = s;
             }
         }
     }
 
+    auto atlas = bptr<class anim_atlas>{InPlace, name, tex, move(anim_info)};
     return atlas;
 }
 

@@ -8,7 +8,6 @@
 
 //namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }
 namespace Magnum::Trade { template<uint32_t> class ImageData; using ImageData2D = ImageData<2>; }
-namespace floormat::SpriteAtlas { struct Sprite; }
 
 namespace floormat {
 
@@ -40,9 +39,6 @@ struct loader_
     virtual Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) = 0;
     virtual Trade::ImageData2D image(StringView path) noexcept(false) = 0;
     virtual sprite_atlas& atlas() noexcept = 0;
-
-    virtual void register_sprite(const anim_atlas&, rotation, uint32_t frame_idx, const SpriteAtlas::Sprite*) noexcept = 0;
-    virtual const SpriteAtlas::Sprite* find_sprite(const anim_atlas&, rotation, uint32_t frame_idx) noexcept = 0;
 
     virtual const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;
     virtual const bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy = loader_policy::DEFAULT) noexcept(false) = 0;

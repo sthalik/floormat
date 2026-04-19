@@ -6,6 +6,8 @@
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector3.h>
 
+namespace floormat::SpriteAtlas { struct Sprite; }
+
 namespace floormat {
 
 struct anim_frame final
@@ -24,6 +26,7 @@ struct anim_group final
 {
     String name{}, mirror_from{};
     Array<anim_frame> frames{};
+    Array<const SpriteAtlas::Sprite*> sprites{};
     Vector2ui ground{}; // for use in anim-crop-tool only
     Vector2s z_offset{}, depth_offset{};
     Vector3b offset{};

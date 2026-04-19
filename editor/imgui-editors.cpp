@@ -85,7 +85,8 @@ void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atla
 void palette_image(editor& e, ImVec2 img_size, const auto&, anim_atlas& atlas)
 {
     const auto r = atlas.first_rotation();
-    const auto* sp = loader.find_sprite(atlas, r, 0);
+    const auto& g = atlas.group(r);
+    const auto* sp = g.sprites.isEmpty() ? nullptr : g.sprites[0];
     if (!sp)
         return;
     ImGui::Image(e.palette_texture(sprite{sp}).id(), img_size, {0.f,1.f}, {1.f,0.f});

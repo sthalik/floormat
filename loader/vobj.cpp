@@ -73,7 +73,6 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
         def.groups = Array<anim_group>{1};
         def.groups[0] = move(group);
     }
-    auto atl = bptr<class anim_atlas>(InPlace, name, tex, move(def));
 
     const auto format = tex.format();
     const auto px_size = (size_t)tex.pixels().size()[2];  // 3 for RGB, 4 for RGBA
@@ -86,9 +85,10 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
                            {(Int)width, (Int)height},
                            ArrayView<const void>{src_base, (size_t)height * row_stride}};
     auto sp = atlas().add(view);
-    register_sprite(*atl, rotation::N, 0, sp.raw());
+    def.groups[0].sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
+    def.groups[0].sprites[0] = sp.raw();
 
-    return atl;
+    return bptr<class anim_atlas>(InPlace, name, tex, move(def));
 }
 
 void loader_impl::get_vobj_list()

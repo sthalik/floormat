@@ -337,7 +337,7 @@ void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r,
     auto& impl = *this->impl;
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
-    const auto* sp = loader.find_sprite(atlas, r, (uint32_t)frame);
+    const auto* sp = g.sprites[frame];
     fm_assert(sp);
     const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !g.mirror_from.isEmpty());
     sprite_vertexes vertexes;

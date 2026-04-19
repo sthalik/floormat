@@ -74,13 +74,7 @@ void loader_impl::destroy()
     _scenery_loader = {InPlace};
     vobj_atlas_map.clear();
     vobjs.clear();
-    // Free the GL texture while the context is still alive. The static
-    // loader_impl's destructor fires at program exit — long after the GL
-    // context is gone — so doing this in ~sprite_atlas() would be too late.
-    // Also drop registry entries, since they point into the (now-empty)
-    // atlas and would dangle if we kept them around.
-    _sprite_registry.clear();
-    _sprite_atlas.reset();
+    _sprite_atlas.reset(); // free it while the GL context is still alive
 }
 
 

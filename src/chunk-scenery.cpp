@@ -47,7 +47,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         const auto pt = e.position();
         const auto quad = atlas->frame_quad(Vector3(pt), e.r, e.frame);
         const auto& group = atlas->group(e.r);
-        const auto* sp = loader.find_sprite(*atlas, e.r, (uint32_t)e.frame);
+        const auto* sp = group.sprites[e.frame];
         fm_assert(sp);
         const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !group.mirror_from.isEmpty());
         const auto& frame = atlas->frame(e.r, e.frame);
