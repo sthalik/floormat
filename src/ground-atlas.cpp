@@ -43,7 +43,7 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
                    .setSkip({(Int)td_x, (Int)mem_y_start, 0});
         const ImageView2D view{sub_storage, image.format(),
                                {(Int)tile_px.x(), (Int)tile_px.y()}, image.data()};
-        arrayAppend(_frame_sprites, loader.atlas().add(view, true));
+        arrayAppend(_frame_sprites, loader.atlas().add(view));
     }
 }
 

@@ -170,7 +170,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                        .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
             const ImageView2D view{sub_storage, img.format(),
                                    {(Int)fw, (Int)fh}, img.data()};
-            arrayAppend(_frame_sprites, loader.atlas().add(view, true));
+            arrayAppend(_frame_sprites, loader.atlas().add(view));
         }
     }
 

@@ -198,6 +198,7 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
     fm_assert(w <= atlas.layer_size && h <= atlas.layer_size);
 
     bool is_rotated = false;
+#if 1
     auto fit = find_shelf_with_space(atlas, w, h);
     if (!fit.p && allow_rotate)
     {
@@ -207,6 +208,14 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
     }
     if (!fit.p)
         fit = alloc_new_shelf(atlas, h);
+#else
+    // debug force-rotating all sprites
+    (void)allow_rotate;
+    auto fit = find_shelf_with_space(atlas, h, w);
+    if (!fit.p)
+        fit = alloc_new_shelf(atlas, w);
+    is_rotated = true;
+#endif
 
     Shelf* shelf = fit.p;
     const uint32_t layer_idx = fit.index;
@@ -408,21 +417,43 @@ void dump_atlas(Atlas& atlas, StringView out_path)
 
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
 {
-    // Decode the sprite's stored (x, y, layer, width-1, height-1) back to
-    // real pixel extents, then read that single rectangle from one layer of
-    // the atlas texture and write it as an image via AnyImageConverter.
-    const Int w = (Int)sprite.width + 1;
-    const Int h = (Int)sprite.height + 1;
+    // sprite.width/height are always the ORIGINAL dims. When the packer
+    // stores the sprite rotated, the atlas slot is transposed
+    // (slot_w = orig_h, slot_h = orig_w); read the slot and un-rotate
+    // before writing so the output matches what the caller expects.
+    const uint32_t orig_w = (uint32_t)sprite.width + 1;
+    const uint32_t orig_h = (uint32_t)sprite.height + 1;
+    const bool rotated = sprite.is_rotated != 0;
+    const uint32_t slot_w = rotated ? orig_h : orig_w;
+    const uint32_t slot_h = rotated ? orig_w : orig_h;
     const Int x = (Int)sprite.x;
     const Int y = (Int)sprite.y;
     const Int layer = (Int)sprite.layer;
 
     auto img = atlas.texture.subImage(0,
-        Range3Di{{x, y, layer}, {x + w, y + h, layer + 1}},
+        Range3Di{{x, y, layer}, {x + (Int)slot_w, y + (Int)slot_h, layer + 1}},
         Image3D{PixelFormat::RGBA8Unorm});
 
-    // The returned Image3D is 1-deep; re-view as plain 2D for the converter.
-    ImageView2D view{img.format(), {w, h}, img.data()};
+    const Vector2i dst_size{(Int)orig_w, (Int)orig_h};
+    Array<uint32_t> unrotated;
+    ArrayView<const char> pixels = img.data();
+    if (rotated)
+    {
+        // Invert upload_sprite's 90° CCW.
+        unrotated = Array<uint32_t>{NoInit, (size_t)orig_w * (size_t)orig_h};
+        const auto* slot = reinterpret_cast<const uint32_t*>(img.data().data());
+        for (uint32_t y_o = 0; y_o < orig_h; y_o++)
+        {
+            uint32_t* dst_row = unrotated.data() + (size_t)y_o * (size_t)orig_w;
+            const uint32_t slot_col = orig_h - 1 - y_o;
+            for (uint32_t x_o = 0; x_o < orig_w; x_o++)
+                dst_row[x_o] = slot[(size_t)x_o * (size_t)slot_w + (size_t)slot_col];
+        }
+        pixels = {reinterpret_cast<const char*>(unrotated.data()),
+                  unrotated.size() * sizeof(uint32_t)};
+    }
+
+    ImageView2D view{img.format(), dst_size, pixels};
 
     PluginManager::Manager<Trade::AbstractImageConverter> mgr;
     auto conv = mgr.loadAndInstantiate("AnyImageConverter");

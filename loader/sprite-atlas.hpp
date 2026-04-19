@@ -47,7 +47,7 @@ public:
     uint16_t layer_size() const;
     uint16_t n_layers() const;
 
-    sprite add(const ImageView2D& pixels, bool allow_rotate = false);
+    sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 
     std::array<Vector3, 4> texcoords_for(sprite s, bool mirror) const;
 
