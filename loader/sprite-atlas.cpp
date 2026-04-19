@@ -6,6 +6,7 @@
 #include <cr/GrowableArray.h>
 #include <Corrade/PluginManager/PluginManager.h>
 #include <cr/Path.h>
+#include <cr/StridedArrayView.h>
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
@@ -249,8 +250,9 @@ void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels
         // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
         // Slot dims are (slot_w=orig_h, slot_h=orig_w).
         const auto px_size = (size_t)pixels.pixelSize();
-        const size_t src_row_stride = (size_t)orig_w * px_size;
-        const auto* src_base = (const char*)pixels.data();
+        const auto src_view = pixels.pixels();
+        const size_t src_row_stride = (size_t)src_view.stride()[0];
+        const auto* src_base = (const char*)src_view.data();
         const uint32_t slot_w = orig_h;
         const uint32_t slot_h = orig_w;
         Array<char> rotated{NoInit, (size_t)slot_w * (size_t)slot_h * px_size};
