@@ -40,7 +40,6 @@ class editor final
     safe_ptr<scenery_editor> _scenery;
     safe_ptr<vobj_editor> _vobj;
 
-    gtl::flat_hash_map<GL::Texture2DArray*, GL::Texture2D> _palette_textures;
     gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> _sprite_palette_textures;
 
     struct drag_pos final {
@@ -59,7 +58,6 @@ public:
     editor& operator=(editor&&) noexcept;
     ~editor() noexcept;
 
-    GL::Texture2D& palette_texture(GL::Texture2DArray& src);
     GL::Texture2D& palette_texture(sprite s);
 
     [[nodiscard]] bool dirty() const noexcept { return _dirty; }
