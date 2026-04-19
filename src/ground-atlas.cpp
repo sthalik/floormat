@@ -5,7 +5,6 @@
 #include "compat/borrowed-ptr.inl"
 #include "tile-image.hpp"
 #include "loader/loader.hpp"
-#include <cstring>
 #include <limits>
 #include <cr/GrowableArray.h>
 #include <Corrade/Containers/StridedArrayView.h>
@@ -30,13 +29,6 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     fm_soft_assert(img_size % Vector2ui{_def.size} == Vector2ui());
     const Vector2ui tile_px = img_size / Vector2ui{_def.size};
 
-    const auto pixels = image.pixels();
-    const auto px_size = (size_t)pixels.size()[2];
-    const auto row_stride = (size_t)pixels.stride()[0];
-    const auto* src_base = (const char*)pixels.data();
-    PixelStorage storage;
-    storage.setAlignment(1);
-
     arrayReserve(_frame_sprites, num_tiles());
     for (size_t i = 0; i < num_tiles(); i++)
     {
@@ -46,18 +38,11 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
         const uint32_t td_y = gy * tile_px.y();
         // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
         const uint32_t mem_y_start = img_size.y() - td_y - tile_px.y();
-        Array<char> packed{NoInit, (size_t)tile_px.product() * px_size};
-        for (uint32_t yy = 0; yy < tile_px.y(); yy++)
-        {
-            const auto* src_row = src_base
-                                + ((size_t)mem_y_start + yy) * row_stride
-                                + (size_t)td_x * px_size;
-            auto* dst_row = packed.data() + (size_t)yy * (size_t)tile_px.x() * px_size;
-            std::memcpy(dst_row, src_row, (size_t)tile_px.x() * px_size);
-        }
-        const ImageView2D view{storage, image.format(),
-                               {(Int)tile_px.x(), (Int)tile_px.y()},
-                               ArrayView<const void>{packed.data(), packed.size()}};
+        PixelStorage sub_storage = image.storage();
+        sub_storage.setRowLength((Int)img_size.x())
+                   .setSkip({(Int)td_x, (Int)mem_y_start, 0});
+        const ImageView2D view{sub_storage, image.format(),
+                               {(Int)tile_px.x(), (Int)tile_px.y()}, image.data()};
         arrayAppend(_frame_sprites, loader.atlas().add(view, true));
     }
 }

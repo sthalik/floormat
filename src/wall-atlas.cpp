@@ -4,7 +4,6 @@
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "loader/loader.hpp"
-#include <cstring>
 #include <cr/GrowableArray.h>
 #include <Corrade/Containers/StridedArrayView.h>
 #include <Magnum/ImageView.h>
@@ -157,13 +156,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 top_frame_mask[i] = true;
         }
 
-        const auto pixels = img.pixels();
-        const auto px_size = (size_t)pixels.size()[2];
-        const auto row_stride = (size_t)pixels.stride()[0];
-        const auto* src_base = (const char*)pixels.data();
         const uint32_t full_height = img_size.y();
-        PixelStorage storage;
-        storage.setAlignment(1);
         arrayReserve(_frame_sprites, _frame_array.size());
         for (size_t fi = 0; fi < _frame_array.size(); fi++)
         {
@@ -172,18 +165,11 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             const uint32_t fh = f.size.y();
             // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
             const uint32_t mem_y_start = full_height - f.offset.y() - fh;
-            Array<char> packed{NoInit, (size_t)fw * (size_t)fh * px_size};
-            for (uint32_t yy = 0; yy < fh; yy++)
-            {
-                const auto* src_row = src_base
-                                    + ((size_t)mem_y_start + yy) * row_stride
-                                    + (size_t)f.offset.x() * px_size;
-                auto* dst_row = packed.data() + (size_t)yy * (size_t)fw * px_size;
-                std::memcpy(dst_row, src_row, (size_t)fw * px_size);
-            }
-            const ImageView2D view{storage, img.format(),
-                                   {(Int)fw, (Int)fh},
-                                   ArrayView<const void>{packed.data(), packed.size()}};
+            PixelStorage sub_storage = img.storage();
+            sub_storage.setRowLength((Int)img_size.x())
+                       .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
+            const ImageView2D view{sub_storage, img.format(),
+                                   {(Int)fw, (Int)fh}, img.data()};
             arrayAppend(_frame_sprites, loader.atlas().add(view, true));
         }
     }

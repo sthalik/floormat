@@ -124,14 +124,9 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
 
     {
         const auto& def = atlas->info();
-        auto pixels = tex.pixels();
         const auto format = tex.format();
-        // Use the view's byte strides, not full_width * channel_count — the view
-        // may carry alignment padding, row-length adjustments, or Y-flip that would
-        // make a width * px_size assumption wrong. size[2] is bytes-per-pixel.
-        const auto px_size = (size_t)size[2];
-        const auto row_stride = (size_t)pixels.stride()[0];
-        const auto* src_base = (const char*)pixels.data();
+        const auto full_width  = (uint32_t)size[1];
+        const auto full_height = (uint32_t)size[0];
 
         // Pass 1: non-mirrored groups — add pixels to atlas, register sprites.
         for (const anim_group& g : def.groups)
@@ -146,22 +141,13 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const uint32_t fh = (uint32_t)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
                 fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
-                // Manually pack the sub-rect into a tight buffer.
-                // Source memory is Y-inverted relative to JSON offsets.
-                const auto full_height = (uint32_t)size[0];
+                // Y-flip: Magnum stores bottom-up, JSON offsets are top-down.
                 const uint32_t mem_y_start = full_height - (uint32_t)f.offset.y() - fh;
-                Array<char> packed{NoInit, (size_t)fw * (size_t)fh * px_size};
-                for (uint32_t yy = 0; yy < fh; yy++)
-                {
-                    const auto* src_row = src_base
-                                        + ((size_t)mem_y_start + yy) * row_stride
-                                        + (size_t)f.offset.x() * px_size;
-                    auto* dst_row = packed.data() + (size_t)yy * (size_t)fw * px_size;
-                    std::memcpy(dst_row, src_row, (size_t)fw * px_size);
-                }
-                const ImageView2D view{format,
-                                       {(Int)fw, (Int)fh},
-                                       ArrayView<const void>{packed.data(), packed.size()}};
+                PixelStorage sub_storage = tex.storage();
+                sub_storage.setRowLength((Int)full_width)
+                           .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
+                const ImageView2D view{sub_storage, format,
+                                       {(Int)fw, (Int)fh}, tex.data()};
                 auto sp = loader.atlas().add(view);
                 loader.register_sprite(*atlas, r, fi, sp.raw());
             }
