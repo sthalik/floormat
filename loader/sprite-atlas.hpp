@@ -7,9 +7,6 @@ namespace Magnum::GL { class AbstractTexture; }
 namespace floormat::SpriteAtlas {
 struct Atlas;
 struct Sprite;
-
-// Limit on per-sprite width/height.
-constexpr inline uint16_t max_texture_xy = 1024;
 } // namespace floormat::SpriteAtlas
 
 namespace floormat {

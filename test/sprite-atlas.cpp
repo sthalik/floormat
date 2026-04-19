@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "loader/sprite-atlas.hpp"
 #include "loader/sprite-atlas-impl.hpp"
+#include "loader/sprite-constants.hpp"
 #include <algorithm>
 #include <mg/Functions.h>
 #include <mg/ImageView.h>

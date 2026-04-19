@@ -5,6 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "loader.hpp"
 #include "loader/sprite-atlas.hpp"
+#include "loader/sprite-constants.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"

@@ -1,5 +1,6 @@
 #include "sprite-atlas.hpp"
 #include "sprite-atlas-impl.hpp"
+#include "sprite-constants.hpp"
 #include "compat/exception.hpp"
 #include "src/quads.hpp"
 #include <cstdio>
@@ -20,6 +21,8 @@
 #include <algorithm>
 
 namespace floormat::SpriteAtlas {
+
+constexpr inline uint32_t size_class_size = 4;
 
 uint32_t quantize_height(uint32_t h)
 {
@@ -502,7 +505,7 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
     if (_atlas->layer_size == 0)
     {
         auto ls = SpriteAtlas::max_2d_texture_size();
-        ls = std::min<uint32_t>(ls, 1u << 14);
+        ls = std::min<uint32_t>(ls, SpriteAtlas::max_layer_size);
         fm_assert(ls > 0);
         _atlas->layer_size = (uint16_t)ls;
     }

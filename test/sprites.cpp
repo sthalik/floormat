@@ -2,7 +2,7 @@
 #include "loader/loader.hpp"
 #include "loader/sprite-atlas-impl.hpp"
 #include "loader/sprite-atlas.hpp"
-#include "compat/array-size.hpp"
+#include "loader/sprite-constants.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cr/String.h>
@@ -140,6 +140,8 @@ void test_sprites()
     const char* env = std::getenv("PNG_SPRITES_LOCATION");
     if (!env || !*env)
         return;
+    const char* output = std::getenv("OUTPUT_PNG_FILE");
+    fm_assert(output && *output && "missing env var OUTPUT_PNG_FILE");
 
     Array<String> files = walk_directory_tree(env);
     fm_assert(files.size() > 0);
@@ -147,7 +149,7 @@ void test_sprites()
     // layer_size matches max_texture_xy in sprite-atlas-impl.hpp — the
     // 10-bit Sprite::width/height storage caps individual sprites at 1024.
     SpriteAtlas::Atlas atlas;
-    atlas.layer_size = (uint16_t)Math::min<unsigned>(1u << 14, SpriteAtlas::max_2d_texture_size());
+    atlas.layer_size = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_size, SpriteAtlas::max_2d_texture_size());
 
     uint32_t png_count = 0, alloc_count = 0;
     for (const String& path : files)
@@ -181,7 +183,7 @@ void test_sprites()
         DBG_nospace << "sprites: last shelf layer:" << atlas.layers.size()-1 <<  " y:" << shelf.y;
     }
 
-    SpriteAtlas::dump_atlas(atlas, "D:/dev/floormat/atlas.png"_s);
+    SpriteAtlas::dump_atlas(atlas, output);
 }
 
 } // namespace floormat::Test

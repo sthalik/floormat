@@ -7,9 +7,6 @@
 
 namespace floormat::SpriteAtlas {
 
-constexpr inline uint32_t size_class_size = 8;
-//constexpr inline uint16_t n_size_classes = max_texture_xy/size_class_size;
-
 struct Sprite {
     // store width/height - 1 so that exactly 1024x1024 fits as 1023x1023.
     // before that assert that stored size isn't 0.

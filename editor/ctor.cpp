@@ -4,6 +4,8 @@
 #include "editor.hpp"
 #include "tests.hpp"
 #include "draw/wireframe-meshes.hpp"
+#include "loader/sprite-atlas-impl.hpp"
+#include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/ImGuiIntegration/Context.h>
 
@@ -25,6 +27,11 @@ app::app(fm_settings&& opts) :
     reset_camera_offset();
     M->set_render_vobjs(_render_vobjs);
     reserve_inspector_array();
+
+#if 0
+    SpriteAtlas::dump_atlas(*loader.atlas().raw(), "d:/dev/floormat/editor-atlas.png");
+    M->quit(0);
+#endif
 }
 
 app::~app()
