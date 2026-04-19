@@ -36,9 +36,9 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
 {
     Atlas a;
     a.layer_size = 256;
-    alloc_sprite(a, 10, 10);  // quantized height 16
-    alloc_sprite(a, 10, 20);  // quantized height 24
-    alloc_sprite(a, 10, 40);  // quantized height 40
+    alloc_sprite(a, 100, 10);  // quantized height 16
+    alloc_sprite(a, 100, 20);  // quantized height 24
+    alloc_sprite(a, 100, 40);  // quantized height 40
     fm_assert(a.height_classes.size() == 3);
 }
 
@@ -123,7 +123,7 @@ void texcoords_encode_expected_corners()
     Atlas a;
     a.layer_size = 256;
     constexpr uint32_t w = 30, h = 40;
-    Sprite* s = alloc_sprite(a, w, h);
+    Sprite* s = alloc_sprite(a, w, h, false);
 
     // texcoords_for_sprite uses direct positional UV (no 1-y flip) because
     // sub-rect atlas uploads place PNG row 0 at GL texel y=sprite.y+h-1 (top
@@ -161,7 +161,7 @@ void wrapper_accessors_roundtrip_values()
     unsigned char buf[w * h * 4]{};
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, buf};
 
-    auto s = atlas.add(view);
+    auto s = atlas.add(view, false);
     fm_assert(s.width() == w);
     fm_assert(s.height() == h);
     fm_assert(s.x() < atlas.layer_size());
@@ -204,7 +204,7 @@ void sprites_do_not_overlap_pairwise()
     {
         const uint32_t w = 5 + (i * 7) % 80;
         const uint32_t h = 3 + (i * 11) % 60;
-        const Sprite* s = alloc_sprite(a, w, h);
+        const Sprite* s = alloc_sprite(a, w, h, false);
         rects[i] = R{ (uint32_t)s->x, (uint32_t)s->y, (uint32_t)s->layer, w, h };
     }
 

@@ -61,7 +61,7 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A);
 void realloc_atlas(Atlas& atlas, uint16_t new_n_layers);
 void free_atlas(Atlas& atlas);
 Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height);
-Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate = false);
+Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate = true);
 void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror);
 std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& sprite,
