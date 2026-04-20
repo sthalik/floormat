@@ -170,6 +170,7 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
         layer_idx = (uint32_t)(atlas.layers.size() - 1);
     }
 
+    fm_debug_assert(layer_idx < 1u << 14);
     // place the new Shelf at the layer's vertical watermark and advance it.
     Layer& L = atlas.layers[layer_idx];
     arrayReserve(L.shelves, 16);
@@ -177,6 +178,7 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
         .y = L.next_y,
         .height_class = q_height - 1,
         .next_x = 0,
+        .layer = layer_idx,
     });
     L.next_y = (uint16_t)(L.next_y + q_height);
     arrayAppend(hc.shelves, shelf_ptr);
@@ -186,14 +188,18 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
 
 static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t h)
 {
-    // Shelf::height_class stores `q_height - 1` (lets 1024 fit in 10 bits),
-    // so we compute the same encoding here for the lookup comparison.
-    const uint32_t q_height_m1 = quantize_height(h) - 1;
-    for (uint32_t li = 0; li < atlas.layers.size(); li++)
-        for (auto& sh : atlas.layers[li].shelves)
-            if ((uint32_t)sh->height_class == q_height_m1
-                && atlas.layer_size - (uint32_t)sh->next_x >= w)
-                return { &*sh, li };
+    const uint32_t q_height = quantize_height(h);
+
+    auto& hcs = atlas.height_classes;
+    auto* it = std::lower_bound(hcs.data(), hcs.data() + hcs.size(), q_height,
+                                [](const Pointer<HeightClass>& p, uint32_t hh) { return p->height < hh; });
+    if (it == hcs.data() + hcs.size() || (*it)->height != q_height)
+        return { nullptr, 0 };
+
+    for (auto* sh : (*it)->shelves)
+        if (atlas.layer_size - (uint32_t)sh->next_x >= w)
+            return { sh, (uint32_t)sh->layer };
+
     return { nullptr, 0 };
 }
 

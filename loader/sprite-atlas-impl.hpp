@@ -24,9 +24,9 @@ struct Shelf
     // 14-bit next_x truncates 16384 to 0 and re-allocates from x=0,
     // causing every sprite past the shelf-full boundary to collide with
     // the first sprite on the same shelf.
-    uint64_t y : 14, height_class : 10, next_x : 15;
+    uint64_t y : 14, height_class : 10, next_x : 15, layer : 14;
 
-    uint64_t _pad0 : 25 = 0;
+    uint64_t _pad0 : 11 = 0;
 };
 
 struct Layer
