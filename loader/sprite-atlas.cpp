@@ -48,13 +48,18 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
     constexpr uint64_t gibibyte = 1024*1024*1024;
     if (cur_layers == 0)
     {
-        constexpr auto initial_size = 64 * 1024 * 1024;
-        const auto layer = A.layer_size * A.layer_size * 4;
+#if 1
+        return 1;
+#else
+        constexpr uint32_t initial_size = 64 * 1024 * 1024;
+        const uint32_t layer = A.layer_size * A.layer_size * 4;
         fm_assert(A.layer_size > 0);
-        auto num_layers = (initial_size + layer - 1) / layer;
-        num_layers = std::max<int>(num_layers, 1);
+        uint32_t num_layers = (initial_size + layer - 1) / layer;
+        num_layers = std::max<uint32_t>(num_layers, 1);
+        num_layers = std::bit_ceil(num_layers);
         fm_assert((int)num_layers == (int)(uint16_t)num_layers);
         return (uint16_t)num_layers;
+#endif
     }
     else if (cur_bytes >= gibibyte)
     {
@@ -65,8 +70,9 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
     else
     {
         fm_debug_assert(cur_layers && (cur_layers & cur_layers-1) == 0);
-        cur_layers <<= 1;
-        return cur_layers;
+        auto x = (uint32_t)cur_layers * 2;
+        fm_assert(x == (uint16_t)x);
+        return (uint16_t)x;
     }
 }
 
