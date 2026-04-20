@@ -11,13 +11,13 @@
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
-#include <mg/Functions.h>
 #include <mg/Color.h>
 #include <Magnum/GL/Framebuffer.h>
 #include <mg/ImageView.h>
 #include <Magnum/Image.h>
 #include <Magnum/PixelFormat.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
+#include <cmath>
 #include <algorithm>
 
 namespace floormat::SpriteAtlas {
@@ -55,7 +55,7 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
     }
     else if (cur_bytes >= gibibyte)
     {
-        auto new_size = (uint32_t)Math::ceil((float)cur_layers*1.5f) + 1;
+        auto new_size = (uint32_t)std::ceil((float)cur_layers*1.5f) + 1;
         fm_assert(new_size == (uint32_t)(uint16_t)new_size);
         return (uint16_t)new_size;
     }

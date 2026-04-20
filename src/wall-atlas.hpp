@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/borrowed-ptr.hpp"
-#include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
 #include "wall-defs.hpp"
 #include "compat/defs.hpp"
@@ -9,8 +8,7 @@
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Color.h>
+#include <mg/Vector2.h>
 
 namespace floormat { class wall_atlas; }
 
@@ -30,10 +28,8 @@ struct Group
 {
     uint32_t index = (uint32_t)-1, count = 0;
     Vector2ui pixel_size;
-    Color4 tint_mult{1,1,1,1};
     uint8_t from_rotation = (uint8_t)-1;
     bool mirrored     : 1 = false,
-         default_tint : 1 = true,
          is_defined   : 1 = false;
 
     bool operator==(const Group&) const noexcept;

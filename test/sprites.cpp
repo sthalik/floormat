@@ -165,8 +165,6 @@ void test_sprites()
         // worldmap/splash PNGs exceed 1024 in either dimension.
         if ((uint32_t)size.max() > SpriteAtlas::max_texture_xy)
             continue;
-        if ((uint32_t)size.max() > 128)
-            continue; // todo? maybe sprites beyond a certain size should go mismatched big shelves more?
         auto* sprite = SpriteAtlas::alloc_sprite(atlas, (uint32_t)size.x(), (uint32_t)size.y());
         SpriteAtlas::upload_sprite(atlas, *sprite, img);
         alloc_count++;

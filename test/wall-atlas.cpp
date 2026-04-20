@@ -58,12 +58,8 @@ void test_read_groups(StringView filename)
     const auto dir = read_direction_metadata(jroot, Direction_::W);
     fm_assert(is_direction_defined(dir));
     fm_assert(dir.wall.pixel_size   == Vector2ui{42, 192}                 );
-    fm_assert(dir.wall.tint_mult    == Vector4{0.125f, 0.25f, 0.5f, 1.f } );
     fm_assert(dir.wall.mirrored     == true                               );
-    fm_assert(dir.wall.default_tint == false                              );
     fm_assert(dir.side.pixel_size   == Vector2ui{42, 192}                 );
-    fm_assert(dir.side.default_tint == true                               );
-    fm_assert(dir.top.default_tint  == true                               );
     fm_assert(dir.corner.index == 2);
     fm_assert(dir.corner.count == 1);
 
