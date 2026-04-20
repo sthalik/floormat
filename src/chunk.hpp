@@ -58,8 +58,6 @@ public:
     bool is_scenery_modified() const noexcept;
     bool are_walls_modified() const noexcept;
 
-    struct pass_region;
-
     using RTree = ::RTree<object_id, float, 2, float>;
 
     void ensure_alloc_ground();
@@ -76,6 +74,7 @@ public:
     void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
 
     void ensure_passability() noexcept;
+    uint32_t pass_gen_counter() const;
     RTree* rtree() noexcept;
     class world& world() noexcept;
 
@@ -90,9 +89,6 @@ public:
 
     void remove_object(size_t i);
     void sort_objects();
-
-    pass_region make_pass_region(bool debug = false, ArrayView<const Vector2i> positions = {});
-    pass_region make_pass_region(const Search::pred& f, bool debug = false, ArrayView<const Vector2i> positions = {});
 
     struct ground_stuff
     {
@@ -113,6 +109,7 @@ private:
     class world* _world;
     Pointer<RTree> _rtree;
     chunk_coords_ _coord;
+    uint32_t _pass_gen_ctr = 0;
 
     mutable bool _maybe_empty      : 1 = true,
                  _ground_modified  : 1 = true,

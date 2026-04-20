@@ -81,8 +81,8 @@ int App::exec()
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
         FM_TEST(test_hash),
-        FM_TEST(test_region),
         // the rest are slow
+        FM_TEST(test_grid),
         FM_TEST(test_rtree),
         FM_TEST(test_astar),
         FM_TEST(test_hole),

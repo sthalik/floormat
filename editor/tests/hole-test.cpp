@@ -1,6 +1,5 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
-#include "src/chunk-region.hpp"
 #include "src/hole.hpp"
 #include "src/hole-cut.hpp"
 #include "src/object.hpp"

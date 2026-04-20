@@ -33,6 +33,12 @@ Debug& operator<<(Debug& dbg, const chunk_coords_& c)
     return dbg;
 }
 
+size_t chunk_coords_::hash() const noexcept
+{
+    static_assert(sizeof *this == 6);
+    return hash_buf(this, sizeof *this);
+}
+
 size_t global_coords::hash() const noexcept
 {
     static_assert(sizeof *this == 4 + 4);
@@ -102,5 +108,7 @@ constexpr bool test_comparison1()
 static_assert(test_comparison1());
 
 } // namespace
+
+size_t Hash::chunk_coord_hasher::operator()(chunk_coords_ coord) noexcept { return coord.hash(); }
 
 } // namespace floormat

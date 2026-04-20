@@ -86,6 +86,8 @@ struct chunk_coords_ final {
         static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(int16_t));
         return Math::Vector3<T>(x, y, z);
     }
+
+    size_t hash() const noexcept;
 };
 
 struct global_coords final
@@ -203,5 +205,7 @@ constexpr Vector2i global_coords::operator-(global_coords other) const noexcept
 {
     return Vector2i(*this) - Vector2i(other);
 }
+
+namespace Hash { struct chunk_coord_hasher { static size_t operator()(chunk_coords_ coord) noexcept; }; }
 
 } // namespace floormat
