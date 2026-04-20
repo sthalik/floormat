@@ -1,8 +1,8 @@
 #include "search-astar.hpp"
-#include "search-bbox.hpp"
 #include "search-constants.hpp"
 #include "search-cache.hpp"
 #include "search-result.hpp"
+#include "search.hpp"
 #include "world.hpp"
 #include "point.inl"
 #include "compat/array-size.hpp"
@@ -14,6 +14,7 @@
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Functions.h>
+#include <mg/Range.h>
 #include <Magnum/Timeline.h>
 
 namespace floormat {
@@ -34,7 +35,6 @@ struct astar::frontier
 
 using visited = astar::visited;
 using frontier = astar::frontier;
-using Search::bbox;
 using Search::div_size;
 using Search::div_factor;
 using Search::min_size;
@@ -83,7 +83,7 @@ void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
         dest.push_back(src.back());
 }
 
-constexpr bbox<Int> bbox_from_pos1(point pt, Vector2ui size)
+constexpr Range2Di bbox_from_pos1(point pt, Vector2ui size)
 {
     auto center = Vector2i(pt.local()) * iTILE_SIZE2 + Vector2i(pt.offset());
     auto top_left = center - Vector2i(size / 2);
@@ -91,26 +91,26 @@ constexpr bbox<Int> bbox_from_pos1(point pt, Vector2ui size)
     return { top_left, bottom_right };
 }
 
-constexpr bbox<Int> bbox_from_pos2(point pt, point from, Vector2ui size)
+constexpr Range2Di bbox_from_pos2(point pt, point from, Vector2ui size)
 {
     constexpr auto chunk_size = iTILE_SIZE2 * (int)TILE_MAX_DIM;
     auto nchunks = from.chunk() - pt.chunk();
     auto chunk_pixels = nchunks * chunk_size;
 
     auto bb0_ = bbox_from_pos1(from, size);
-    auto bb0 = bbox<Int>{ bb0_.min + chunk_pixels, bb0_.max + chunk_pixels };
+    auto bb0 = Range2Di{ bb0_.min() + chunk_pixels, bb0_.max() + chunk_pixels };
     auto bb = bbox_from_pos1(pt, size);
 
-    auto min = Math::min(bb0.min, bb.min);
-    auto max = Math::max(bb0.max, bb.max);
+    auto min = Math::min(bb0.min(), bb.min());
+    auto max = Math::max(bb0.max(), bb.max());
 
     return { min, max };
 }
 
-static_assert(bbox_from_pos1({{}, {0, 0}, {15, 35}}, {10, 20}) == bbox<Int>{{10, 25}, {20, 45}});
+static_assert(bbox_from_pos1({{}, {0, 0}, {15, 35}}, {10, 20}) == Range2Di{{10, 25}, {20, 45}});
 static_assert(bbox_from_pos2({{{1, 1}, {1, 15}, 0}, {1, -1}},
                              {{{1, 2}, {1,  0}, 0}, {1, -1}},
-                             {256, 256}) == bbox<Int>{{-63, 831}, {193, 1151}});
+                             {256, 256}) == Range2Di{{-63, 831}, {193, 1151}});
 
 constexpr auto directions = []() constexpr
 {
@@ -260,7 +260,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
             auto off = Vector2i(x, y) * div_size;
             auto pt = point::normalize_coords({from.coord(), {}}, off);
-            auto bb = bbox<float>(bbox_from_pos2(from, pt, own_size));
+            auto bb = Range2D(bbox_from_pos2(from, pt, own_size));
             auto dist = point::distance(from, pt) + min_dist;
 
             if (path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p))
@@ -308,7 +308,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (auto dist_to_goal = point::distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist + dist_to_goal;
-            if (auto bb = bbox<float>(bbox_from_pos2(to, cur_pt, own_size));
+            if (auto bb = Range2D(bbox_from_pos2(to, cur_pt, own_size));
                 path_search::is_passable(w, cache, to.chunk3(), bb, own_id, p))
             {
                 goal_idx = cur_idx;
@@ -339,7 +339,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                     continue;
             }
 
-            if (auto bb = bbox<float>(bbox_from_pos2(new_pt, cur_pt, own_size));
+            if (auto bb = Range2D(bbox_from_pos2(new_pt, cur_pt, own_size));
                 !path_search::is_passable(w, cache, new_pt.chunk3(), bb, own_id, p))
                 continue;
 

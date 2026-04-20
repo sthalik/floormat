@@ -5,23 +5,23 @@
 #include "loader/wall-cell.hpp"
 #include "src/world.hpp"
 #include "src/scenery-proto.hpp"
-#include "src/search-bbox.hpp"
 #include "src/search-constants.hpp"
+#include "src/search.hpp"
 #include <Magnum/Math/Functions.h>
+#include <mg/Range.h>
 
 namespace floormat {
 
 using namespace floormat::Search;
-using Search::bbox;
 
 namespace {
 
-constexpr bbox<int> get_value(Vector2i sz, Vector2ui div, rotation r)
+constexpr Range2Di get_value(Vector2i sz, Vector2ui div, rotation r)
 {
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
     const auto rʹ = (uint8_t)r;
-    CORRADE_ASSUME(rʹ <= (uint8_t)rotation_COUNT);
+    [[assume(rʹ <= (uint8_t)rotation_COUNT)]];
 
     switch (rʹ)
     {
@@ -66,22 +66,22 @@ constexpr bool test_offsets()
     constexpr Vector2i shift = Vector2i(0, 0) * iTILE_SIZE2 + Vector2i(0, 0);
 
     [[maybe_unused]] constexpr auto N = get_value(sz, {1,1}, rotation::N);
-    [[maybe_unused]] constexpr auto min_N = N.min + shift, max_N = N.max + shift;
+    [[maybe_unused]] constexpr auto min_N = N.min() + shift, max_N = N.max() + shift;
     [[maybe_unused]] constexpr auto N_min_x = min_N.x(), N_min_y = min_N.y();
     [[maybe_unused]] constexpr auto N_max_x = max_N.x(), N_max_y = max_N.y();
 
     [[maybe_unused]] constexpr auto E = get_value(sz, {1,1}, rotation::E);
-    [[maybe_unused]] constexpr auto min_E = E.min + shift, max_E = E.max + shift;
+    [[maybe_unused]] constexpr auto min_E = E.min() + shift, max_E = E.max() + shift;
     [[maybe_unused]] constexpr auto E_min_x = min_E.x(), E_min_y = min_E.y();
     [[maybe_unused]] constexpr auto E_max_x = max_E.x(), E_max_y = max_E.y();
 
     [[maybe_unused]] constexpr auto S = get_value(sz, {1,1}, rotation::S);
-    [[maybe_unused]] constexpr auto min_S = S.min + shift, max_S = S.max + shift;
+    [[maybe_unused]] constexpr auto min_S = S.min() + shift, max_S = S.max() + shift;
     [[maybe_unused]] constexpr auto S_min_x = min_S.x(), S_min_y = min_S.y();
     [[maybe_unused]] constexpr auto S_max_x = max_S.x(), S_max_y = max_S.y();
 
     [[maybe_unused]] constexpr auto W = get_value(sz, {1,1}, rotation::W);
-    [[maybe_unused]] constexpr auto min_W = W.min + shift, max_W = W.max + shift;
+    [[maybe_unused]] constexpr auto min_W = W.min() + shift, max_W = W.max() + shift;
     [[maybe_unused]] constexpr auto W_min_x = min_W.x(), W_min_y = min_W.y();
     [[maybe_unused]] constexpr auto W_max_x = max_W.x(), W_max_y = max_W.y();
 
@@ -100,7 +100,7 @@ constexpr bool test_offsets2()
 
     {
         constexpr auto bb = get_value(sz, Vector2ui(div_factor), N);
-        constexpr auto min = tile_start + bb.min, max = tile_start + Vector2i(bb.max);
+        constexpr auto min = tile_start + bb.min(), max = tile_start + Vector2i(bb.max());
         static_assert(min.x() == -32 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);
         static_assert(min.y() == -48 - sz.y()/2);
@@ -108,7 +108,7 @@ constexpr bool test_offsets2()
     }
     {
         constexpr auto bb = get_value(sz, Vector2ui(div_factor), W);
-        constexpr auto min = tile_start + bb.min, max = tile_start + bb.max;
+        constexpr auto min = tile_start + bb.min(), max = tile_start + bb.max();
         static_assert(min.x() == -32 - 16 - sz.x()/2);
         static_assert(max.x() == -32 + sz.x()/2);
         static_assert(min.y() == -32 - sz.y()/2);
@@ -124,11 +124,12 @@ struct neighbors final
     uint8_t size = 0;
 };
 
-auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotation r) -> bbox<float>
+auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotation r) -> Range2D
 {
     own_size = Math::max(own_size, Vector2i(min_size));
     const auto shift = coord * iTILE_SIZE2;
-    auto [min, max] = get_value(own_size, div, r);
+    auto range = get_value(own_size, div, r);
+    auto min = range.min(), max = range.max();
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
@@ -153,8 +154,8 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
 
     for (auto [off, r] : nbs)
     {
-        auto [min, max] = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
-        if (path_search::is_passable(w, ch, {min, max}, own_id, p))
+        auto range = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
+        if (path_search::is_passable(w, ch, range, own_id, p))
             ns.data[ns.size++] = { coord + off, {} };
     }
 
@@ -163,11 +164,11 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
 
 void test_bbox()
 {
-    static constexpr auto is_passable_1 = [](chunk& c, bbox<float> bb) {
-        return path_search::is_passable_1(c, bb.min, bb.max, (object_id)-1);
+    static constexpr auto is_passable_1 = [](chunk& c, Range2D bb) {
+        return path_search::is_passable_1(c, bb.min(), bb.max(), (object_id)-1);
     };
 
-    static constexpr auto is_passable = [](world& w, chunk_coords_ ch, bbox<float> bb) {
+    static constexpr auto is_passable = [](world& w, chunk_coords_ ch, Range2D bb) {
         return path_search::is_passable(w, ch, bb, (object_id)-1);
     };
 

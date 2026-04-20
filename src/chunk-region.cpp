@@ -1,14 +1,15 @@
 #include "chunk-region.hpp"
-#include "search-bbox.hpp"
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
+#include "search.hpp"
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>
 #include <cr/GrowableArray.h>
 #include <cr/String.h>
+#include <mg/Range.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>
 
@@ -16,7 +17,6 @@ namespace floormat {
 
 namespace {
 
-using Search::bbox;
 using Search::div_size;
 using Search::div_count;
 using Search::div_factor;
@@ -29,23 +29,23 @@ constexpr auto chunk_bits = div_count.product(),
                visited_bits = div_count.product()*4;
 
 
-constexpr bbox<Int> bbox_from_pos1(Vector2i center)
+constexpr Range2Di bbox_from_pos1(Vector2i center)
 {
     constexpr auto half = div_size/2;
     auto start = center - half;
     return { start, start + div_size };
 }
 
-constexpr bbox<Int> bbox_from_pos2(Vector2i pt, Vector2i from)
+constexpr Range2Di bbox_from_pos2(Vector2i pt, Vector2i from)
 {
     auto bb0 = bbox_from_pos1(from);
     auto bb = bbox_from_pos1(pt);
-    auto min = Math::min(bb0.min, bb.min);
-    auto max = Math::max(bb0.max, bb.max);
+    auto min = Math::min(bb0.min(), bb.min());
+    auto max = Math::max(bb0.max(), bb.max());
     return { min, max };
 }
 
-constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
+constexpr Range2Di make_pos(Vector2i ij, Vector2i from)
 {
     auto pos = -iTILE_SIZE2/2 + div_size/2 + div_size * ij;
     auto pos0 = pos - from*div_size;
@@ -55,7 +55,7 @@ constexpr bbox<Int> make_pos(Vector2i ij, Vector2i from)
 bool check_pos(chunk& c, const std::array<chunk*, 8>& nbs, Vector2i ij, Vector2i from, const pred& p)
 {
     auto pos = make_pos(ij, from);
-    bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min), Vector2(pos.max), 0, p);
+    bool ret = path_search::is_passable_(&c, nbs, Vector2(pos.min()), Vector2(pos.max()), 0, p);
     //if (ret) Debug{} << "check" << ij << pos.min << pos.max << ret;
     //Debug{} << "check" << ij << pos.min << pos.max << ret;
     return ret;

@@ -1,12 +1,10 @@
 #pragma once
-#include "tile-constants.hpp"
 #include "global-coords.hpp"
 #include "object-id.hpp"
 #include "search-pred.hpp"
 #include <array>
 
 namespace floormat::Search {
-template<typename T> struct bbox;
 struct cache;
 } // namespace floormat::Search
 
@@ -18,7 +16,6 @@ class chunk;
 
 class path_search final
 {
-    template<typename T> using bbox = Search::bbox<T>;
     using pred = Search::pred;
 
 public:
@@ -27,8 +24,8 @@ public:
                              Vector2 min, Vector2 max, object_id own_id, const pred& p = Search::never_continue());
     static bool is_passable(world& w, global_coords coord, Vector2b offset, Vector2ui size, object_id own_id, const pred& p = Search::never_continue());
     static bool is_passable(world& w, struct Search::cache& cache, global_coords coord, Vector2b offset, Vector2ui size, object_id own_id, const pred& p = Search::never_continue());
-    static bool is_passable(world& w, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p = Search::never_continue());
-    static bool is_passable(world& w, struct Search::cache& cache, chunk_coords_ ch0, const bbox<float>& bb, object_id own_id, const pred& p = Search::never_continue());
+    static bool is_passable(world& w, chunk_coords_ ch0, const Range2D& bb, object_id own_id, const pred& p = Search::never_continue());
+    static bool is_passable(world& w, struct Search::cache& cache, chunk_coords_ ch0, const Range2D& bb, object_id own_id, const pred& p = Search::never_continue());
 };
 
 } // namespace floormat

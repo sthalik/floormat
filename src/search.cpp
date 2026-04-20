@@ -1,5 +1,4 @@
 #include "search.hpp"
-#include "search-bbox.hpp"
 #include "search-astar.hpp"
 #include "search-cache.hpp"
 #include "global-coords.hpp"
@@ -12,6 +11,7 @@
 #include "point.inl"
 #include <bit>
 #include <numbers>
+#include <mg/Range.h>
 
 namespace floormat::Search {
 
@@ -59,11 +59,11 @@ using namespace Search;
 bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
 {
     constexpr auto bbox_size = Vector2{0xff, 0xff};
-    constexpr auto chunk_bounds = bbox<float>{
+    constexpr auto chunk_bounds = Range2D{
         -TILE_SIZE2/2 - bbox_size/2,
         TILE_MAX_DIM*TILE_SIZE2 - TILE_SIZE2/2 + bbox_size,
     };
-    if (!rect_intersects(min, max, chunk_bounds.min, chunk_bounds.max))
+    if (!rect_intersects(min, max, chunk_bounds.min(), chunk_bounds.max()))
         return true;
 
     auto& rt = *c.rtree();
@@ -137,20 +137,20 @@ bool path_search::is_passable(world& w, struct Search::cache& cache, global_coor
     return is_passable(w, cache, coord, {min, max}, own_id, p);
 }
 
-bool path_search::is_passable(world& w, chunk_coords_ ch, const bbox<float>& bb,
+bool path_search::is_passable(world& w, chunk_coords_ ch, const Range2D& bb,
                               object_id own_id, const pred& p)
 {
     auto* c = w.at(ch);
     auto neighbors = w.neighbors(ch);
-    return is_passable_(c, neighbors, bb.min, bb.max, own_id, p);
+    return is_passable_(c, neighbors, bb.min(), bb.max(), own_id, p);
 }
 
-bool path_search::is_passable(world& w, struct Search::cache& cache, chunk_coords_ ch0,
-                              const bbox<float>& bb, object_id own_id, const pred& p)
+bool path_search::is_passable(world& w, Search::cache& cache, chunk_coords_ ch0,
+                              const Range2D& bb, object_id own_id, const pred& p)
 {
     auto* c = cache.try_get_chunk(w, ch0);
     auto nbs = cache.get_neighbors(w, ch0);
-    return is_passable_(c, nbs, bb.min, bb.max, own_id, p);
+    return is_passable_(c, nbs, bb.min(), bb.max(), own_id, p);
 }
 
 } // namespace floormat
