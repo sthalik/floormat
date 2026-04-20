@@ -12,6 +12,7 @@
 #include "src/hole.hpp"
 #include <concepts>
 #include <Corrade/Containers/ArrayViewStl.h>
+#include <mg/Color.h>
 #include <imgui.h>
 
 namespace floormat::entities {

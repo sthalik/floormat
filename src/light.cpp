@@ -4,6 +4,7 @@
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
 #include "compat/borrowed-ptr.inl"
+#include <mg/Functions.h>
 
 namespace floormat {
 

@@ -14,6 +14,7 @@
 #include <Corrade/Containers/Pair.h>
 #include <Corrade/Containers/Iterable.h>
 #include <Magnum/Math/Functions.h>
+#include <mg/Color.h>
 #include <Magnum/GL/Context.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/MeshView.h>

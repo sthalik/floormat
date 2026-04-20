@@ -1,8 +1,7 @@
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
 #include <cr/StringView.h>
-#include <cr/StringIterable.h>
-#include <mg/Functions.h>
+#include <mg/Color.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/RenderbufferFormat.h>
 #include <Magnum/GL/TextureFormat.h>

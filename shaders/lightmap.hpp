@@ -6,9 +6,7 @@
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Optional.h>
-#include <Magnum/Math/Vector2.h>
 #include <Magnum/Math/Vector4.h>
-#include <Magnum/Math/Color.h>
 #include <Magnum/GL/AbstractShaderProgram.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Framebuffer.h>
@@ -24,7 +22,7 @@ struct light_s final
     Vector2 center;
     float dist = 1;
     float radius = 0;
-    Math::Color4<uint8_t> color;
+    Vector4ub color;
     light_falloff falloff = light_falloff::linear;
 
     bool operator==(const light_s&) const noexcept;

@@ -1,9 +1,7 @@
 #pragma once
 #include "src/light-falloff.hpp"
 #include "src/object.hpp"
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Color.h>
+#include <mg/Vector4.h>
 
 namespace floormat {
 
@@ -19,7 +17,7 @@ struct light_proto : object_proto
 
     float max_distance = 0;
     float radius = 0;
-    Color4ub color{255, 255, 255, 255};
+    Vector4ub color{255};
     light_falloff falloff = light_falloff::linear;
     bool enabled = true;
 };
@@ -28,7 +26,7 @@ struct light final : object
 {
     float max_distance;
     float radius;
-    Color4ub color;
+    Vector4ub color{255};
     light_falloff falloff : 2;
     bool enabled : 1;
 
