@@ -197,31 +197,49 @@ static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t
     return { nullptr, 0 };
 }
 
+static Atlas::ShelfPair get_shelf(Atlas& atlas, uint32_t w, uint32_t h, bool& is_rotated)
+{
+    if (auto fit = find_shelf_with_space(atlas, w, h); fit.p)
+        return fit;
+    if (auto fit = find_shelf_with_space(atlas, h, w); fit.p)
+    {
+        is_rotated = !is_rotated;
+        return fit;
+    }
+    auto fit = alloc_new_shelf(atlas, h);
+    return fit;
+}
+
 Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
 {
     fm_assert(w > 0 && h > 0);
     fm_assert(w <= max_texture_xy && h <= max_texture_xy);
     fm_assert(w <= atlas.layer_size && h <= atlas.layer_size);
 
-    bool is_rotated = false;
+    Atlas::ShelfPair fit{};
+    bool is_rotated;
 #if 1
-    auto fit = find_shelf_with_space(atlas, w, h);
-    if (!fit.p && allow_rotate)
+    if (!allow_rotate) [[unlikely]]
     {
-        fit = find_shelf_with_space(atlas, h, w);
-        if (fit.p)
-            is_rotated = true;
+        is_rotated = false;
+        fit = find_shelf_with_space(atlas, w, h);
+        if (!fit.p)
+            fit = alloc_new_shelf(atlas, h);
     }
-    if (!fit.p)
-        fit = alloc_new_shelf(atlas, h);
+    else
+    {
+        const auto [min, max] = std::minmax(w, h);
+        fit = get_shelf(atlas, max, min, is_rotated = h > w);
+    }
 #else
     // debug force-rotating all sprites
     (void)allow_rotate;
-    auto fit = find_shelf_with_space(atlas, h, w);
+    fit = find_shelf_with_space(atlas, h, w);
     if (!fit.p)
         fit = alloc_new_shelf(atlas, w);
     is_rotated = true;
 #endif
+    fm_debug_assert(fit.p);
 
     Shelf* shelf = fit.p;
     const uint32_t layer_idx = fit.index;
