@@ -17,17 +17,20 @@
 #include <Magnum/Image.h>
 #include <Magnum/PixelFormat.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
+#include <bit>
 #include <cmath>
 #include <algorithm>
 
 namespace floormat::SpriteAtlas {
 
-constexpr inline uint32_t size_class_size = 4;
+constexpr uint32_t size_class_divisor = 16; // height classes per octave = divisor/2 (recommended: 16)
 
 uint32_t quantize_height(uint32_t h)
 {
+    constexpr uint32_t min_height_class = 4;
     fm_debug_assert(h > 0);
-    return (h + size_class_size - 1) / size_class_size * size_class_size;
+    uint32_t bucket = std::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
+    return (h + bucket - 1) / bucket * bucket;
 }
 
 uint32_t max_2d_texture_size()
