@@ -57,8 +57,6 @@ public:
     bool is_scenery_modified() const noexcept;
     bool are_walls_modified() const noexcept;
 
-    struct object_draw_order;
-    struct scenery_mesh_tuple;
     struct pass_region;
 
     using RTree = ::RTree<object_id, float, 2, float>;

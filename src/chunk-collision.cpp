@@ -7,7 +7,6 @@
 #include "rect-intersects.hpp"
 #include "hole.hpp"
 #include "hole-cut.hpp"
-#include "src/chunk-scenery.hpp"
 #include "src/tile-bbox.hpp"
 #include "src/wall-atlas.hpp"
 #include "compat/function2.hpp"

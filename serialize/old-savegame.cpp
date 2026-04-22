@@ -7,7 +7,6 @@
 #include "loader/scenery-cell.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/chunk-scenery.hpp"
 #include "src/tile.hpp"
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
@@ -101,6 +100,12 @@ namespace floormat {
 
 namespace {
 
+struct object_draw_order
+{
+    object* e;
+    uint32_t mesh_idx;
+};
+
 } // namespace
 
 } // namespace floormat
@@ -139,7 +144,7 @@ private:
     uint16_t PROTO = proto_version;
     loader_policy asset_policy;
 
-    Array<chunk::object_draw_order> draw_array;
+    Array<object_draw_order> draw_array;
     Array<Quads::vertexes> draw_vertexes;
     Array<Quads::indexes> draw_indexes;
 };
@@ -272,7 +277,7 @@ StringView reader_state::lookup_string(uint32_t idx)
 
 void reader_state::read_chunks(reader_t& s)
 {
-    Array<typename chunk::object_draw_order> array;
+    Array<object_draw_order> array;
     const auto N = s.read<chunksiz>();
 #ifndef FM_NO_DEBUG
     [[maybe_unused]] size_t nbytes_read = 0;
