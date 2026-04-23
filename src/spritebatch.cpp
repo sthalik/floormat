@@ -8,7 +8,7 @@
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "src/sprite-atlas.hpp"
 #include <cfloat>
 #include <ranges>
 #include <algorithm>

@@ -4,7 +4,7 @@
 #include "editor.hpp"
 #include "tests.hpp"
 #include "draw/wireframe-meshes.hpp"
-#include "loader/sprite-atlas-impl.hpp"
+#include "src/sprite-atlas-impl.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/ImGuiIntegration/Context.h>

@@ -12,7 +12,7 @@
 #include "src/wall-atlas.hpp"
 #include "editor.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "src/sprite-atlas.hpp"
 #include "floormat/main.hpp"
 #include <Magnum/Math/Color.h>
 #include <mg/TextureArray.h>

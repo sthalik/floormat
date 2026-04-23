@@ -1,8 +1,8 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas-impl.hpp"
-#include "loader/sprite-atlas.hpp"
-#include "loader/sprite-constants.hpp"
+#include "src/sprite-atlas-impl.hpp"
+#include "src/sprite-atlas.hpp"
+#include "src/sprite-constants.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cr/String.h>

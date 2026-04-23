@@ -11,7 +11,7 @@
 #include "renderer.hpp"
 #include "hole-cut.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "sprite-atlas.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Range.h>

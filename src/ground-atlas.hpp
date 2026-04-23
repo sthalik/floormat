@@ -4,7 +4,7 @@
 #include "src/quads.hpp"
 #include "src/ground-def.hpp"
 #include "loader/ground-cell.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "sprite-atlas.hpp"
 #include <array>
 #include <cr/Array.h>
 #include <Corrade/Containers/Optional.h>

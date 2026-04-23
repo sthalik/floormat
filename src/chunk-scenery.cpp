@@ -9,7 +9,7 @@
 #include "renderer.hpp"
 #include "spritebatch.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "sprite-atlas.hpp"
 #include <algorithm>
 #include <ranges>
 

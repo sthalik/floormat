@@ -4,7 +4,6 @@
 #include "src/global-coords.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
-#include "loader/sprite-atlas.hpp"
 #include <cr/Optional.h>
 #include <mg/Texture.h>
 #include <gtl/phmap.hpp>
@@ -16,11 +15,16 @@ template<UnsignedInt> class Texture;
 typedef Texture<2> Texture2D;
 } // namespace Magnum::GL
 
+namespace floormat::SpriteAtlas {
+struct Sprite;
+} // namespace floormat::SpriteAtlas
+
 namespace floormat {
 
 class world;
 class anim_atlas;
 class ground_atlas;
+class sprite;
 struct app;
 
 class ground_editor;

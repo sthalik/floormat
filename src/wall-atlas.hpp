@@ -4,7 +4,7 @@
 #include "wall-defs.hpp"
 #include "compat/defs.hpp"
 #include "compat/array-size.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "sprite-atlas.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/String.h>

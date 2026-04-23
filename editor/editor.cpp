@@ -1,5 +1,6 @@
 #include "editor.hpp"
 #include "src/world.hpp"
+#include "src/sprite-atlas.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"
 #include "scenery-editor.hpp"

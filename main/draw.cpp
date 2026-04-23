@@ -9,7 +9,7 @@
 #include "src/fps-counter.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "src/sprite-atlas.hpp"
 #include "src/chunk.hpp"
 #include "compat/limits.hpp"
 #include <Corrade/Containers/GrowableArray.h>

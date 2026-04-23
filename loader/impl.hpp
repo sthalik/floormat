@@ -1,6 +1,6 @@
 #pragma once
 #include "loader/loader.hpp"
-#include "loader/sprite-atlas.hpp"
+#include "src/sprite-atlas.hpp"
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
