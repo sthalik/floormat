@@ -13,7 +13,6 @@
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
-#include <cmath>
 #include <utility>
 #include <array>
 #include <mg/Functions.h>

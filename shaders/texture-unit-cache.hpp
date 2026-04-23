@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include <Corrade/Containers/Array.h>
+#include <cr/Array.h>
 
 namespace Magnum::GL { class AbstractTexture; }
 

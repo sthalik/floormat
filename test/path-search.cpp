@@ -7,7 +7,7 @@
 #include "src/scenery-proto.hpp"
 #include "src/search-constants.hpp"
 #include "src/search.hpp"
-#include <Magnum/Math/Functions.h>
+#include <mg/Functions.h>
 #include <mg/Range.h>
 
 namespace floormat {

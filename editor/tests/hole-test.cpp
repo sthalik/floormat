@@ -1,12 +1,10 @@
 #include "../tests-private.hpp"
 #include "src/tile-constants.hpp"
-#include "src/hole.hpp"
 #include "src/hole-cut.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
-#include "floormat/main.hpp"
 #include "src/critter.hpp"
 #include <mg/Color.h>
 

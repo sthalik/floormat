@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/prelude.hpp"
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Magnum.h>
+#include <cr/StringView.h>
+#include <mg/Magnum.h>
 #include <imgui.h>
 #include <imgui_internal.h>
 

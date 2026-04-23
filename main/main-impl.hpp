@@ -9,21 +9,17 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
-#include "main/sdl-fwd.hpp"
 #include "main/clickable.hpp"
 #include <concepts>
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/String.h>
-#include <Magnum/Math/Range.h>
-#include <Magnum/GL/DebugOutput.h>
-#include <Magnum/Platform/Sdl2Application.h>
+#include <mg/DebugOutput.h>
+#include <mg/Sdl2Application.h>
 
 #define FM_USE_DEPTH32
 
 #ifdef FM_USE_DEPTH32
-#include <Magnum/GL/Framebuffer.h>
-#include <Magnum/GL/Renderbuffer.h>
-#include <Magnum/GL/Texture.h>
+#include <mg/Framebuffer.h>
+#include <mg/Renderbuffer.h>
+#include <mg/Texture.h>
 #endif
 
 namespace floormat {

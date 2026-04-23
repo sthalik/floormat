@@ -20,8 +20,7 @@
 #include "compat/limits.hpp"
 #include "src/depth.hpp"
 #include <bit>
-#include <Magnum/Math/Color.h>
-#include <Magnum/Math/Vector3.h>
+#include <mg/Color.h>
 
 namespace floormat {
 

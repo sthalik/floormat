@@ -5,7 +5,7 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
-#include <Corrade/Containers/ArrayView.h>
+#include <cr/ArrayView.h>
 
 namespace floormat {
 

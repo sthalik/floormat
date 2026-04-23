@@ -8,10 +8,8 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
-#include <cstdlib>
-#include <cstring>
-#include <Corrade/Containers/StringIterable.h>
-#include <Corrade/Utility/Arguments.h>
+#include <cr/StringIterable.h>
+#include <cr/Arguments.h>
 
 namespace floormat {
 

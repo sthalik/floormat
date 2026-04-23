@@ -1,6 +1,6 @@
 #include "quad.hpp"
 #include "wireframe.hpp"
-#include <Magnum/GL/Renderer.h>
+#include <mg/Renderer.h>
 
 namespace floormat::wireframe {
 

@@ -1,7 +1,5 @@
 #pragma once
 #include "global-coords.hpp"
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
 
 namespace floormat {
 

@@ -1,14 +1,15 @@
 #include "../tests-private.hpp"
+#include "compat/array-size.hpp"
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
+#include "src/point.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
-#include "compat/array-size.hpp"
-#include <cr/BitArray.h>
 #include <cstdio>
+#include <cr/BitArray.h>
 
 namespace floormat::tests {
 

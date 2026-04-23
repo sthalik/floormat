@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/format.hpp"
-#include <type_traits>
 #include <iterator>
 #include <exception>
 

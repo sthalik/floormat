@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "rotation.hpp"
-#include <Magnum/Math/Vector2.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

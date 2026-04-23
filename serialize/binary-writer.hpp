@@ -1,7 +1,7 @@
 #pragma once
 #include "binary-serializer.hpp"
 #include <iterator>
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
 
 namespace floormat::Serialize {
 

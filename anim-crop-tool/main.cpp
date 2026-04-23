@@ -1,28 +1,17 @@
 #include "atlas.hpp"
-#include "compat/assert.hpp"
-#include "compat/defs.hpp"
 #include "compat/debug.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
 #include "loader/loader.hpp"
-#include "serialize/magnum-vector.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-
-#include <tuple>
 #include <algorithm>
-
-#include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/String.h>
-
-#include <Corrade/Utility/Arguments.h>
-#include <Corrade/Utility/DebugStl.h>
-#include <Corrade/Utility/Path.h>
-
-#include <Magnum/Math/Functions.h>
-
+#include <cr/GrowableArray.h>
+#include <cr/Pair.h>
+#include <cr/Arguments.h>
+#include <cr/Path.h>
+#include <cr/DebugStl.h>
+#include <mg/Functions.h>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>

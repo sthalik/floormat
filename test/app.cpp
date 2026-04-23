@@ -4,10 +4,10 @@
 #include "compat/headless.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Timeline.h>
-#include <Magnum/GL/Context.h>
+#include <cr/StringView.h>
+#include <mg/Functions.h>
+#include <mg/Timeline.h>
+#include <mg/Context.h>
 
 namespace floormat::Test {
 

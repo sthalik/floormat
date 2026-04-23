@@ -1,7 +1,6 @@
 #include "impl.hpp"
 
 #ifdef _WIN32
-#include <cstdio>
 #include <windows.h>
 #if __has_include(<ntddk.h>)
 #include <ntddk.h>

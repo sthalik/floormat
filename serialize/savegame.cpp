@@ -23,15 +23,14 @@
 #include "loader/vobj-cell.hpp"
 #include "atlas-type.hpp"
 
+#include <utility>
 #include <bit>
-#include <cstring>
-#include <cstdio>
 #include <compare>
 #include <concepts>
+#include <cstdio>
 #include <vector>
 #include <algorithm>
-#include <Corrade/Utility/Path.h>
-//#include <Magnum/Math/Functions.h>
+#include <cr/Path.h>
 #include <gtl/phmap.hpp>
 
 // ReSharper disable CppDFAUnreachableCode

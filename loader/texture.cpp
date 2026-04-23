@@ -5,9 +5,8 @@
 #include "compat/exception.hpp"
 #include "compat/strerror.hpp"
 #include <cstring>
-//#include <cstdio>
-#include <Corrade/Utility/Path.h>
-#include <Magnum/Trade/ImageData.h>
+#include <cr/Path.h>
+#include <mg/ImageData.h>
 
 namespace floormat::loader_detail {
 

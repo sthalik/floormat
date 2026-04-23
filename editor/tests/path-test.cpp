@@ -10,7 +10,6 @@
 #include "../imgui-raii.hpp"
 #include <cstdio>
 #include <cr/Optional.h>
-#include <mg/Functions.h>
 #include <mg/Color.h>
 
 namespace floormat::tests {

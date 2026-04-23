@@ -1,10 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include <type_traits>
-#include <Magnum/Math/Vector.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Vector4.h>
+#include <mg/Vector4.h>
 
 namespace floormat {
 

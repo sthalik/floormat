@@ -1,13 +1,12 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
-#include <cerrno>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/String.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/Pair.h>
+#include <cr/String.h>
+#include <cr/Path.h>
 #ifdef _WIN32
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Utility/Unicode.h>
+#include <cr/Array.h>
+#include <cr/Unicode.h>
 #include <direct.h>
 #else
 #include <unistd.h>

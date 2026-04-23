@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/borrowed-ptr.hpp"
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 
 namespace floormat {
 

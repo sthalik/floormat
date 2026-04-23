@@ -2,8 +2,6 @@
 #include "chunk.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
-#include "shaders/shader.hpp"
-#include "tile-constants.hpp"
 #include "world.hpp"
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"

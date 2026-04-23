@@ -3,9 +3,8 @@
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
-#include <cmath>
 #include <algorithm>
-#include <Corrade/Containers/GrowableArray.h>
+#include <cr/GrowableArray.h>
 
 namespace floormat {
 

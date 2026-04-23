@@ -1,4 +1,5 @@
 #include "borrowed-ptr.inl"
+#include "assert.hpp"
 
 namespace floormat::detail_bptr {
 

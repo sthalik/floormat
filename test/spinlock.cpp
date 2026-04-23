@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "compat/spinlock.hpp"
-//#include <cr/Debug.h>
 #include <array>
 #include <latch>
 #include <thread>

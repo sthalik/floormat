@@ -1,6 +1,6 @@
 #pragma once
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/StringView.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

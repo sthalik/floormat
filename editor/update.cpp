@@ -18,7 +18,6 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "compat/enum-bitset.hpp"
-#include <cmath>
 
 namespace floormat {
 

@@ -2,9 +2,9 @@
 #include "floormat/app.hpp"
 #include <cr/StringView.h>
 #include <mg/Color.h>
-#include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/RenderbufferFormat.h>
-#include <Magnum/GL/TextureFormat.h>
+#include <mg/Renderer.h>
+#include <mg/RenderbufferFormat.h>
+#include <mg/TextureFormat.h>
 #include <algorithm> // todo std::minmax
 
 namespace floormat {

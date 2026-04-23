@@ -3,8 +3,8 @@
 #include "compat/assert.hpp"
 #include <cstdio>
 #include <chrono>
-#include <Corrade/Containers/String.h>
-#include <Magnum/GL/Texture.h>
+#include <cr/String.h>
+#include <mg/Texture.h>
 
 namespace floormat {
 

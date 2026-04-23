@@ -1,7 +1,7 @@
 #include "impl.hpp"
 #include "compat/exception.hpp"
-#include <Magnum/Trade/ImageData.h>
-#include <Magnum/Trade/AbstractImporter.h>
+#include <mg/ImageData.h>
+#include <mg/AbstractImporter.h>
 
 namespace floormat::loader_detail {
 

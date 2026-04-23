@@ -17,8 +17,8 @@
 #include "src/point.inl"
 #include <tuple>
 #include <fmt/ranges.h>
-#include <Magnum/GL/Renderer.h>
-#include <Magnum/ImGuiIntegration/Context.h>
+#include <mg/Renderer.h>
+#include <mg/ImGuiIntegration/Context.h>
 #include <imgui.h>
 
 namespace floormat {

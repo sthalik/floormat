@@ -6,7 +6,7 @@
 #include "loader/vobj-cell.hpp"
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
 
 namespace floormat {
 

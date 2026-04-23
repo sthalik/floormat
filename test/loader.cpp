@@ -1,13 +1,14 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "loader/loader.hpp"
-#include "loader/wall-cell.hpp"
-#include "loader/anim-cell.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/scenery-proto.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "loader/loader.hpp"
+#include "loader/ground-cell.hpp"
+#include "loader/wall-cell.hpp"
+#include "loader/anim-cell.hpp"
 
 namespace floormat {
 

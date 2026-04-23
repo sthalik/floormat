@@ -12,10 +12,10 @@
 #include "src/wall-atlas.hpp"
 #include "editor.hpp"
 #include "loader/loader.hpp"
+#include "loader/ground-cell.hpp"
 #include "src/sprite-atlas.hpp"
 #include "floormat/main.hpp"
-#include <Magnum/Math/Color.h>
-#include <mg/TextureArray.h>
+#include <mg/Color.h>
 
 namespace floormat {
 

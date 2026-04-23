@@ -2,11 +2,8 @@
 
 #include "integer-types.hpp"
 #include "move.hpp"
-#include <type_traits>
-#include <Corrade/Tags.h>
-#include <Corrade/Utility/Macros.h>
-#include <Corrade/Containers/Containers.h>
-#include <Magnum/Magnum.h>
+#include <cr/Tags.h>
+#include <mg/Magnum.h>
 
 // todo add colors prefix thing
 #define DBG_nospace (::Corrade::Utility::Debug{::Corrade::Utility::Debug::Flag::NoSpace})

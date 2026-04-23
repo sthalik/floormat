@@ -1,9 +1,6 @@
 #pragma once
-#include "src/tile-defs.hpp"
-#include <Magnum/GL/AbstractShaderProgram.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Vector4.h>
+#include <mg/AbstractShaderProgram.h>
+#include <mg/Vector4.h>
 
 namespace Magnum::GL { class AbstractTexture; }
 

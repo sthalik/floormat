@@ -5,10 +5,8 @@
 #include "src/quads.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <array>
-#include <Corrade/Containers/BitArray.h>
-#include <Corrade/Containers/String.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/ImageView.h>
+#include <cr/BitArray.h>
+#include <cr/String.h>
 #include <mg/TextureArray.h>
 
 namespace floormat {

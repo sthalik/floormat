@@ -1,7 +1,7 @@
 #pragma once
 #include "assert.hpp"
-#include <Magnum/Math/TypeTraits.h>
 #include <initializer_list>
+#include <mg/Math/TypeTraits.h>
 
 namespace Magnum::Math {
 

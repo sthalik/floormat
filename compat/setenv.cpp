@@ -2,8 +2,8 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <Corrade/Containers/String.h>
-#include <Corrade/Containers/StringIterable.h>
+#include <cr/String.h>
+#include <cr/StringIterable.h>
 
 namespace floormat {
 

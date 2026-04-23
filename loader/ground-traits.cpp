@@ -6,10 +6,8 @@
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
 #include <cr/Optional.h>
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/Pointer.h>
-#include <Magnum/ImageView.h>
-#include <Magnum/Trade/ImageData.h>
+#include <mg/ImageView.h>
+#include <mg/ImageData.h>
 
 namespace floormat::loader_detail {
 

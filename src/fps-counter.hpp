@@ -1,6 +1,5 @@
 #pragma once
 #include "nanosecond.hpp"
-#include <cr/Macros.h>
 
 namespace floormat {
 

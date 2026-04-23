@@ -1,8 +1,6 @@
 #pragma once
-#include "src/global-coords.hpp"
-#include <Corrade/Containers/BitArrayView.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Range.h>
+#include <cr/BitArrayView.h>
+#include <mg/Range.h>
 
 namespace floormat {
 

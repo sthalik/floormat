@@ -8,7 +8,6 @@
 #include "src/raycast-diag.hpp"
 #include <cinttypes>
 #include <cstdio>
-#include <array>
 #include <vector>
 #include <mg/Color.h>
 

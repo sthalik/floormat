@@ -4,14 +4,12 @@
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
-#include <gtl/phmap.hpp>
 #include <vector>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/StringStlHash.h>
-#include <Corrade/Utility/Resource.h>
-#include <Corrade/PluginManager/PluginManager.h>
-#include <Magnum/Trade/AbstractImporter.h>
+#include <gtl/phmap.hpp>
+#include <cr/Optional.h>
+#include <cr/StringStlHash.h>
+#include <cr/Resource.h>
+#include <mg/AbstractImporter.h>
 
 namespace floormat::loader_detail {
 

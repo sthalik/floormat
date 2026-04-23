@@ -2,7 +2,7 @@
 #include "compat/exception.hpp"
 #include "serialize/corrade-string.hpp"
 #include <nlohmann/json.hpp>
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 
 namespace nlohmann {
 

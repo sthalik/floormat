@@ -1,5 +1,5 @@
 #pragma once
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace nlohmann {

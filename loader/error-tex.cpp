@@ -1,9 +1,9 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
-#include <Corrade/Containers/Array.h>
-#include <Magnum/Math/Vector4.h>
-#include <Magnum/PixelFormat.h>
-#include <Magnum/Trade/ImageData.h>
+#include <cr/Array.h>
+#include <mg/Vector4.h>
+#include <mg/PixelFormat.h>
+#include <mg/ImageData.h>
 
 namespace floormat::loader_detail {
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "borrowed-ptr.hpp"
-#include "compat/assert.hpp"
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push

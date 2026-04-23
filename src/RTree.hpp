@@ -1,14 +1,9 @@
 #pragma once
-
 #include "RTree.h"
-//#include "RTree-search.hpp"
-
 #include <cmath>
 #include <cstddef>
-#include <Corrade/Containers/ArrayView.h>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Utility/Math.h>
-#include <Corrade/Utility/Algorithms.h>
+#include <cr/GrowableArray.h>
+#include <cr/Algorithms.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push

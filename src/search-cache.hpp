@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/defs.hpp"
 #include <array>
-#include <Corrade/Containers/Array.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/Array.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 class world;

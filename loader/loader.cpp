@@ -1,8 +1,4 @@
 #include "impl.hpp"
-#include "ground-cell.hpp"
-#include "loader/wall-cell.hpp"
-#include "anim-cell.hpp"
-#include "scenery-cell.hpp"
 
 namespace floormat {
 

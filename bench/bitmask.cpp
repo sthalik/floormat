@@ -1,9 +1,7 @@
-#include "compat/assert.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
-#include <Corrade/Containers/Optional.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Trade/ImageData.h>
+#include <mg/ImageData.h>
+#include <mg/ImageView.h>
 #include <benchmark/benchmark.h>
 
 namespace floormat {

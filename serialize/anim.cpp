@@ -3,8 +3,7 @@
 #include "serialize/anim.hpp"
 #include "serialize/corrade-array.hpp"
 #include "compat/exception.hpp"
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <cr/Array.h>
 #include <nlohmann/json.hpp>
 #include <tuple>
 

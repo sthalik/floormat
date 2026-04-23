@@ -1,15 +1,14 @@
 #include "wireframe.hpp"
 #include "shaders/shader.hpp"
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/ArrayView.h>
-#include <Magnum/Math/Range.h>
-#include <mg/ImageView.h>
-#include <Magnum/PixelFormat.h>
-#include <Magnum/GL/Context.h>
-#include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/TextureFormat.h>
-#include <Magnum/Trade/ImageData.h>
+#include <cr/Array.h>
+#include <mg/Range.h>
 #include <mg/TextureArray.h>
+#include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
+#include <mg/Context.h>
+#include <mg/Renderer.h>
+#include <mg/TextureFormat.h>
+#include <mg/ImageData.h>
 
 namespace floormat::wireframe {
 

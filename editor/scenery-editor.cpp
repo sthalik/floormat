@@ -2,7 +2,6 @@
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "src/world.hpp"
-#include "src/RTree-search.hpp"
 #include "src/rotation.inl"
 #include "app.hpp"
 #include "src/scenery.hpp"

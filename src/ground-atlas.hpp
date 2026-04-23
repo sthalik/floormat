@@ -3,15 +3,11 @@
 #include "src/pass-mode.hpp"
 #include "src/quads.hpp"
 #include "src/ground-def.hpp"
-#include "loader/ground-cell.hpp"
 #include "sprite-atlas.hpp"
 #include <array>
 #include <cr/Array.h>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/String.h>
-#include <cr/Pointer.h>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/String.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

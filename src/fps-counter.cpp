@@ -1,7 +1,6 @@
 #include "fps-counter.hpp"
 #include "nanosecond.inl"
 #include <cmath>
-#include <utility>
 
 #include "compat/debug.hpp"
 

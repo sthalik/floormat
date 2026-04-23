@@ -14,9 +14,6 @@
 #include "compat/limits.hpp"
 #include "compat/strerror.hpp"
 #include "compat/borrowed-ptr.inl"
-#include <bit>
-#include <cerrno>
-#include <cstring>
 #include <concepts>
 #include <vector>
 

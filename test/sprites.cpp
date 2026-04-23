@@ -6,17 +6,15 @@
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cr/String.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/Path.h>
+#include <mg/ImageData.h>
 #include <mg/ImageView.h>
-#include <Magnum/Trade/ImageData.h>
 #include <gtl/phmap.hpp>
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <sys/stat.h>
 #endif
-#include <cstdio>
-#include <cstdlib>
 
 namespace floormat::Test {
 namespace {

@@ -3,7 +3,6 @@
 #include <type_traits>
 #include <array>
 #include <concepts>
-#include <Corrade/Utility/Macros.h>
 
 namespace floormat::detail::map {
 

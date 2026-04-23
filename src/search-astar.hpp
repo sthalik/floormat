@@ -3,7 +3,7 @@
 #include "search-constants.hpp"
 #include "search-pred.hpp"
 #include "object-id.hpp"
-#include <Corrade/Containers/Array.h>
+#include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
 

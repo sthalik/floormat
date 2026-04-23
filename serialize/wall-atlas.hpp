@@ -1,6 +1,6 @@
 #pragma once
 #include "src/wall-atlas.hpp"
-#include <Corrade/Containers/Array.h>
+#include <cr/Array.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat::Wall::detail {

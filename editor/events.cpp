@@ -7,10 +7,10 @@
 #include "keys.hpp"
 #include "editor.hpp"
 #include "compat/enum-bitset.hpp"
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/StructuredBindings.h>
-#include <Magnum/Platform/Sdl2Application.h>
-#include <Magnum/ImGuiIntegration/Context.hpp>
+#include <cr/Pair.h>
+#include <cr/StructuredBindings.h>
+#include <mg/Sdl2Application.h>
+#include <mg/ImGuiIntegration/Context.hpp>
 
 namespace floormat {
 

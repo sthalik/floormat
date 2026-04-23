@@ -1,5 +1,4 @@
 #include "search-result.hpp"
-//#include "search.hpp"
 #include "compat/assert.hpp"
 #include "compat/vector-wrapper.hpp"
 #include "search-node.hpp"

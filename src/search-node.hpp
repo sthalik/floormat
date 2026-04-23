@@ -3,7 +3,7 @@
 #include "search-result.hpp"
 #include "point.hpp"
 #include <vector>
-#include <Corrade/Containers/Pointer.h>
+#include <cr/Pointer.h>
 
 namespace floormat {
 

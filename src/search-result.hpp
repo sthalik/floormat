@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/vector-wrapper-fwd.hpp"
-#include "src/global-coords.hpp"
 #include <cr/Pointer.h>
 
 namespace floormat {

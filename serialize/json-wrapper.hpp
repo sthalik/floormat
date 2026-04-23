@@ -1,5 +1,4 @@
 #pragma once
-#include "loader/scenery-cell.hpp"
 #include <nlohmann/json.hpp>
 
 namespace floormat {

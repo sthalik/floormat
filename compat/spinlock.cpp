@@ -1,5 +1,4 @@
 #include "spinlock.hpp"
-#include "defs.hpp"
 #include "assert.hpp"
 
 #ifdef _MSC_VER

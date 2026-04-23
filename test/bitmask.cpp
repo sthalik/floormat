@@ -5,6 +5,7 @@
 #include "compat/array-size.hpp"
 #include <mg/Functions.h>
 #include <mg/ImageData.h>
+#include <mg/ImageView.h>
 
 namespace floormat {
 

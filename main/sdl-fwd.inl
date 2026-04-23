@@ -1,6 +1,6 @@
 #pragma once
 #include "sdl-fwd.hpp"
-#include <Magnum/Platform/Sdl2Application.h>
+#include <mg/Sdl2Application.h>
 
 namespace floormat::sdl2 {
 

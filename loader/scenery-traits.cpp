@@ -6,13 +6,10 @@
 #include "anim-cell.hpp"
 #include "src/tile-defs.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/scenery.hpp"
-#include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "serialize/scenery.hpp"
 #include "serialize/json-wrapper.hpp"
 #include <cr/Optional.h>
-#include <Corrade/Containers/StringView.h>
 
 namespace floormat::loader_detail {
 

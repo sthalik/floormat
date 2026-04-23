@@ -7,9 +7,9 @@
 #include "loader/loader.hpp"
 #include <limits>
 #include <cr/GrowableArray.h>
-#include <Corrade/Containers/StridedArrayView.h>
-#include <Magnum/ImageView.h>
-#include <Magnum/PixelStorage.h>
+#include <cr/StridedArrayView.h>
+#include <mg/ImageView.h>
+#include <mg/PixelStorage.h>
 
 namespace floormat {
 

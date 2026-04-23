@@ -1,5 +1,4 @@
 #pragma once
-
 #include "constraints.hpp"
 #include "concepts.hpp"
 #include "accessor.hpp"

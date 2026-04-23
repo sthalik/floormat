@@ -1,7 +1,6 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "compat/os-file.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"

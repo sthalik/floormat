@@ -3,8 +3,6 @@
 #include <cmath>
 #include <limits>
 #include <cr/Pair.h>
-#include <mg/Vector2.h>
-#include <mg/Vector3.h>
 #include <mg/Vector4.h>
 
 namespace floormat::entities::erased_constraints {

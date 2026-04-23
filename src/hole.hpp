@@ -1,7 +1,6 @@
 #pragma once
 #include "object.hpp"
 #include <array>
-#include <Magnum/DimensionTraits.h>
 
 namespace floormat {
 

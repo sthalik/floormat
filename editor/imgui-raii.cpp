@@ -2,9 +2,8 @@
 #include "compat/assert.hpp"
 #include <cstdio>
 #include <utility>
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Color.h>
+#include <cr/StringView.h>
+#include <mg/Color.h>
 
 namespace floormat::imgui {
 

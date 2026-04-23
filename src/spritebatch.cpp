@@ -1,7 +1,6 @@
 #include "spritebatch.hpp"
 #include "src/quads.hpp"
 #include "src/object.hpp"
-#include "src/tile-constants.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/point.inl"
 #include "src/sprite-list.hpp"

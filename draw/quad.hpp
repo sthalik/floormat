@@ -1,8 +1,8 @@
 #pragma once
 #include <array>
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/GL/Mesh.h>
+#include <cr/ArrayViewStl.h>
+#include <mg/Vector3.h>
+#include <mg/Mesh.h>
 
 namespace floormat::wireframe {
 

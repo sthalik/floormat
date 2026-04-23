@@ -1,9 +1,8 @@
 #include "debug.hpp"
 #include "compat/strerror.hpp"
 #include <cerrno>
-#include <cstdio>
 #include <iostream>
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
 
 
 // Error{} << "error" << colon() << "can't open file" << colon() << quoted("foo") << error_string(EINVAL);

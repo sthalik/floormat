@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/assert.hpp"
 #include <type_traits>
-#include <Corrade/Tags.h>
+#include <cr/Tags.h>
 
 namespace floormat {
 

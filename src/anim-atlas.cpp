@@ -4,10 +4,11 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
-#include <Corrade/Containers/BitArrayView.h>
-#include <Corrade/Containers/StridedArrayView.h>
-#include <Magnum/Math/Color.h>
-#include <Magnum/GL/TextureFormat.h>
+#include <cr/BitArrayView.h>
+#include <cr/StridedArrayView.h>
+#include <mg/Color.h>
+#include <mg/TextureFormat.h>
+#include <mg/ImageView.h>
 
 namespace floormat {
 

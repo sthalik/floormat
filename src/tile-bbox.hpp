@@ -1,9 +1,8 @@
 #pragma once
 #include "tile-constants.hpp"
 #include "src/local-coords.hpp"
-#include <Corrade/Containers/Pair.h>
-#include <Magnum/DimensionTraits.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/Pair.h>
+#include <mg/DimensionTraits.h>
 
 namespace floormat {
 

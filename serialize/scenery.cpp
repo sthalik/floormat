@@ -9,7 +9,7 @@
 #include "serialize/pass-mode.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "json-wrapper.hpp"
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 #include <nlohmann/json.hpp>
 #include <swl/variant.hpp>
 

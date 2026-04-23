@@ -3,7 +3,7 @@
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
 #include "compat/borrowed-ptr.hpp"
-#include <Magnum/Math/Vector2.h>
+#include <mg/Vector2.h>
 
 namespace floormat::loader_detail {
 

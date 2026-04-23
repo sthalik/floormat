@@ -1,18 +1,15 @@
 #include "inspect.hpp"
 #include "compat/assert.hpp"
-#include "compat/defs.hpp"
 #include "entity/accessor.hpp"
 #include "imgui-raii.hpp"
 #include <cstdio>
 #include <utility>
-#include <Corrade/Containers/StructuredBindings.h>
-#include <Corrade/Containers/ArrayView.h>
-#include <Corrade/Containers/String.h>
-#include <Magnum/Math/Functions.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/Math/Vector4.h>
-#include <Magnum/Math/Color.h>
+#include <cr/StructuredBindings.h>
+#include <cr/ArrayView.h>
+#include <cr/String.h>
+#include <mg/Functions.h>
+#include <mg/Vector3.h>
+#include <mg/Color.h>
 
 namespace floormat::entities {
 

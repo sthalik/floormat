@@ -1,4 +1,3 @@
-#include "compat/defs.hpp"
 #include "compat/exception.hpp"
 #include "anim-atlas.hpp"
 #include <cstring>

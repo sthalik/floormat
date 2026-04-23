@@ -3,7 +3,7 @@
 #include "compat/array-size.hpp"
 #include "nanosecond.hpp"
 #include <ctime>
-#include <cstdio>
+#include <compare>
 #include <chrono>
 #include <mg/Time.h>
 

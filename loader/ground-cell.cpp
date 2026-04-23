@@ -1,7 +1,6 @@
 #include "ground-cell.hpp"
 #include "loader/loader.hpp"
 #include "serialize/json-helper.hpp"
-//#include "serialize/corrade-string.hpp"
 #include "serialize/ground-atlas.hpp"
 #include "serialize/corrade-array.hpp"
 #include <cr/Array.h>

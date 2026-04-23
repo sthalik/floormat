@@ -1,8 +1,8 @@
 #pragma once
 #include "src/pass-mode.hpp"
 #include "compat/borrowed-ptr.hpp"
-#include <Corrade/Containers/String.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/String.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

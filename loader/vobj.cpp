@@ -1,15 +1,16 @@
 #include "impl.hpp"
+#include "compat/exception.hpp"
 #include "compat/hash-table-load-factor.hpp"
-#include "serialize/json-helper.hpp"
-#include "serialize/corrade-string.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
-#include "compat/exception.hpp"
+#include "serialize/json-helper.hpp"
+#include "serialize/corrade-string.hpp"
 #include "loader/vobj-cell.hpp"
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/StridedArrayView.h>
-#include <Corrade/Utility/Path.h>
-#include <Magnum/Trade/ImageData.h>
+#include <cr/ArrayViewStl.h>
+#include <cr/StridedArrayView.h>
+#include <cr/Path.h>
+#include <mg/ImageData.h>
+#include <mg/ImageView.h>
 
 namespace floormat::loader_detail {
 struct vobj {

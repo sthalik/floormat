@@ -4,8 +4,8 @@
 #include "src/tile-image.hpp"
 #include "src/global-coords.hpp"
 #include <map>
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/String.h>
+#include <cr/Array.h>
+#include <cr/String.h>
 
 namespace floormat {
 

@@ -5,12 +5,12 @@
 #include "serialize/json-helper.hpp"
 #include "compat/assert.hpp"
 #include "src/ground-atlas.hpp"
-#include "src/chunk.hpp"
+#include "loader/ground-cell.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/StringView.h>
+#include <cr/Path.h>
 
 namespace floormat {
 

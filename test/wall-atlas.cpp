@@ -4,8 +4,8 @@
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
 #include "compat/exception.hpp"
-#include <Corrade/Containers/String.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/String.h>
+#include <cr/Path.h>
 
 namespace floormat::Wall::detail {
 

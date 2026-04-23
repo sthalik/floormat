@@ -1,10 +1,8 @@
 #pragma once
 
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/String.h>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
+#include <cr/Array.h>
+#include <cr/String.h>
+#include <mg/Vector3.h>
 
 namespace floormat::SpriteAtlas { struct Sprite; }
 

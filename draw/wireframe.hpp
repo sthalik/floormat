@@ -1,8 +1,5 @@
 #pragma once
-#include "src/tile-defs.hpp"
-#include <Corrade/Containers/ArrayView.h>
-#include <Magnum/GL/Buffer.h>
-#include <Magnum/GL/Mesh.h>
+#include <mg/Mesh.h>
 #include <mg/TextureArray.h>
 
 namespace floormat { struct tile_shader; }

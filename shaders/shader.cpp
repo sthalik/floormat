@@ -1,14 +1,13 @@
 #include "shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
-#include "src/local-coords.hpp"
 #include "texture-unit-cache.hpp"
 #include <cmath>
-#include <Corrade/Containers/Iterable.h>
-#include <Magnum/Math/Vector4.h>
-#include <Magnum/GL/Context.h>
-#include <Magnum/GL/Shader.h>
-#include <Magnum/GL/Version.h>
+#include <cr/Iterable.h>
+#include <mg/Vector4.h>
+#include <mg/Context.h>
+#include <mg/Shader.h>
+#include <mg/GL/Version.h>
 
 namespace floormat {
 

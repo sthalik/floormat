@@ -1,5 +1,4 @@
 #include "entity/metadata.hpp"
-#include "entity/accessor.hpp"
 #include "compat/limits.hpp"
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
@@ -11,7 +10,7 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include <concepts>
-#include <Corrade/Containers/ArrayViewStl.h>
+#include <cr/ArrayViewStl.h>
 #include <mg/Color.h>
 #include <imgui.h>
 

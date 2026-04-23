@@ -9,14 +9,12 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
-#include <cr/StringView.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
-#include <cr/Pointer.h>
 #include <cr/Optional.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
-#include <Magnum/PixelStorage.h>
+#include <mg/PixelStorage.h>
 
 namespace floormat::loader_detail {
 

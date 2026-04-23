@@ -9,19 +9,17 @@
 #include "src/object.hpp"
 #include "loader/loader.hpp"
 #include <utility>
-#include <Corrade/Containers/StructuredBindings.h>
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/Containers/Iterable.h>
-#include <Magnum/Math/Functions.h>
+#include <cr/StructuredBindings.h>
+#include <cr/ArrayViewStl.h>
+#include <cr/Pair.h>
+#include <cr/Iterable.h>
 #include <mg/Color.h>
-#include <Magnum/GL/Context.h>
-#include <Magnum/GL/Buffer.h>
-#include <Magnum/GL/MeshView.h>
-#include <Magnum/GL/Shader.h>
-#include <Magnum/GL/Version.h>
-#include <Magnum/GL/Renderer.h>
-#include <Magnum/GL/TextureFormat.h>
+#include <mg/Context.h>
+#include <mg/MeshView.h>
+#include <mg/Shader.h>
+#include <mg/GL/Version.h>
+#include <mg/Renderer.h>
+#include <mg/TextureFormat.h>
 
 namespace floormat {
 

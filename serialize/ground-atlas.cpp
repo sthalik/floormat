@@ -8,8 +8,8 @@
 #include "serialize/magnum-vector.hpp"
 #include "serialize/pass-mode.hpp"
 #include <tuple>
-#include <Magnum/Trade/ImageData.h>
-#include <Magnum/ImageView.h>
+#include <mg/ImageData.h>
+#include <mg/ImageView.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {

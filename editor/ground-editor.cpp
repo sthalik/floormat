@@ -7,8 +7,8 @@
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
-#include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/GrowableArray.h>
+#include <cr/Path.h>
 
 namespace floormat {
 

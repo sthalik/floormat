@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/exception.hpp"
-#include <Corrade/Containers/Array.h>
+#include <cr/Array.h>
 #include <nlohmann/json.hpp>
 
 namespace nlohmann {

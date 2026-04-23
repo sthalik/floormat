@@ -6,7 +6,6 @@
 #include "src/wall-atlas.hpp"
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
-#include <cr/StringView.h>
 #include <cr/Optional.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>

@@ -4,7 +4,6 @@
 #include "compat/map.hpp"
 #include "hole-cut.hpp"
 #include <mg/Range.h>
-//#include <mg/Functions.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic ignored "-Wswitch-default"

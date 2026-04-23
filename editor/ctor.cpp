@@ -7,7 +7,7 @@
 #include "src/sprite-atlas-impl.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
-#include <Magnum/ImGuiIntegration/Context.h>
+#include <mg/ImGuiIntegration/Context.h>
 
 namespace floormat {
 

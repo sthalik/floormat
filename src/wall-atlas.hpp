@@ -6,8 +6,8 @@
 #include "compat/array-size.hpp"
 #include "sprite-atlas.hpp"
 #include <array>
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/String.h>
+#include <cr/Array.h>
+#include <cr/String.h>
 #include <mg/Vector2.h>
 
 namespace floormat { class wall_atlas; }

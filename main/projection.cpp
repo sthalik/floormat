@@ -1,16 +1,13 @@
 #include "main-impl.hpp"
 #include "src/tile-constants.hpp"
 #include "src/point.hpp"
-#include "compat/limits.hpp"
 #include "src/camera-offset.hpp"
-#include <floormat/draw-bounds.hpp>
 #include <cr/Pair.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 #include <mg/Functions.h>
 #include <algorithm>
-#include <limits>
 #include <array>
 
 namespace floormat {

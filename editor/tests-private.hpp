@@ -1,7 +1,6 @@
 #pragma once
 #include "tests.hpp"
 #include "compat/defs.hpp"
-#include "src/point.hpp"
 #include "src/object-id.hpp"
 #include "floormat/events.hpp"
 #include <cr/StringView.h>

@@ -1,6 +1,6 @@
 #pragma once
-#include <Corrade/Utility/Debug.h>
-#include <Corrade/Containers/StringView.h>
+#include <cr/Debug.h>
+#include <cr/StringView.h>
 #include <concepts>
 
 namespace floormat {

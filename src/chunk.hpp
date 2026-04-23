@@ -8,8 +8,8 @@
 #include "sprite-list.hpp"
 #include "pass-through.hpp"
 #include <array>
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/Pointer.h>
+#include <cr/Array.h>
+#include <cr/Pointer.h>
 
 namespace floormat::Quads { using indexes = std::array<UnsignedShort, 6>; }
 

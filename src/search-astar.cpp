@@ -11,11 +11,10 @@
 #include "compat/function2.hpp"
 #include <cstdio>
 #include <algorithm>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Functions.h>
+#include <cr/GrowableArray.h>
+#include <mg/Functions.h>
 #include <mg/Range.h>
-#include <Magnum/Timeline.h>
+#include <mg/Timeline.h>
 
 namespace floormat {
 

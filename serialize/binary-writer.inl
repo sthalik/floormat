@@ -2,8 +2,7 @@
 #include "binary-writer.hpp"
 #include "binary-serializer.hpp"
 #include "compat/assert.hpp"
-#include <type_traits>
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
 
 namespace floormat::Serialize {
 

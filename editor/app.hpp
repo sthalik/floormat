@@ -8,10 +8,8 @@
 #include "src/global-coords.hpp"
 #include "src/object-id.hpp"
 #include "editor-enums.hpp"
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/Pointer.h>
-#include <Corrade/Containers/Optional.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/Array.h>
+#include <cr/Optional.h>
 
 namespace Magnum::GL {
 template<UnsignedInt dimensions> class TextureArray;

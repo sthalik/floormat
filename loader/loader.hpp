@@ -2,7 +2,6 @@
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "src/pass-mode.hpp"
-#include "src/rotation.hpp"
 #include "loader/policy.hpp"
 #include <cr/StringView.h>
 

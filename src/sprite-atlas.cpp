@@ -3,23 +3,22 @@
 #include "sprite-constants.hpp"
 #include "compat/exception.hpp"
 #include "src/quads.hpp"
+#include <cmath>
 #include <cstdio>
+#include <bit>
+#include <algorithm>
 #include <cr/GrowableArray.h>
-#include <Corrade/PluginManager/PluginManager.h>
 #include <cr/Path.h>
 #include <cr/StridedArrayView.h>
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
 #include <mg/Color.h>
-#include <Magnum/GL/Framebuffer.h>
+#include <mg/Framebuffer.h>
 #include <mg/ImageView.h>
-#include <Magnum/Image.h>
-#include <Magnum/PixelFormat.h>
-#include <Magnum/Trade/AbstractImageConverter.h>
-#include <bit>
-#include <cmath>
-#include <algorithm>
+#include <mg/Image.h>
+#include <mg/PixelFormat.h>
+#include <mg/AbstractImageConverter.h>
 
 namespace floormat::SpriteAtlas {
 

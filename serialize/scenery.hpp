@@ -1,6 +1,5 @@
 #pragma once
 #include "src/scenery.hpp"
-#include <Corrade/Containers/String.h>
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat { struct scenery_cell; }

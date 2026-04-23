@@ -3,10 +3,7 @@
 #include "loader/wall-cell.hpp"
 #include "loader/wall-traits.hpp"
 #include "loader/atlas-loader.inl"
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/StringIterable.h>
-#include <Magnum/Trade/ImageData.h>
-#include <Magnum/ImageView.h>
+#include <cr/StringIterable.h>
 
 namespace floormat::loader_detail {
 

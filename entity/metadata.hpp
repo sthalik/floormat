@@ -6,7 +6,7 @@
 #include <utility>
 #include <array>
 #include <compat/function2.hpp>
-#include <Corrade/Containers/StringView.h>
+#include <cr/StringView.h>
 
 namespace floormat::entities::detail {
 

@@ -12,8 +12,8 @@
 #include "compat/function2.hpp"
 #include <bit>
 #include <utility>
-#include <Corrade/Containers/StructuredBindings.h>
-#include <Corrade/Containers/Pair.h>
+#include <cr/StructuredBindings.h>
+#include <cr/Pair.h>
 #include <mg/Range.h>
 
 namespace floormat {

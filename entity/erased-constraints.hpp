@@ -1,7 +1,6 @@
 #pragma once
-#include <utility>
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Math/Vector4.h>
+#include <cr/StringView.h>
+#include <mg/Vector4.h>
 
 namespace floormat::entities::erased_constraints {
 

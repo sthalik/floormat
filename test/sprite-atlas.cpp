@@ -4,10 +4,10 @@
 #include "src/sprite-constants.hpp"
 #include <algorithm>
 #include <mg/Functions.h>
-#include <mg/ImageView.h>
 #include <mg/Range.h>
-#include <Magnum/Image.h>
-#include <Magnum/PixelFormat.h>
+#include <mg/PixelFormat.h>
+#include <mg/ImageView.h>
+#include <mg/Image.h>
 
 namespace floormat::SpriteAtlas {
 namespace {

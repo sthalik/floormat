@@ -1,5 +1,4 @@
 #include "main-impl.hpp"
-#include "src/tile-constants.hpp"
 #include "floormat/app.hpp"
 #include "floormat/draw-bounds.hpp"
 #include "src/camera-offset.hpp"
@@ -8,16 +7,13 @@
 #include "src/nanosecond.inl"
 #include "src/fps-counter.hpp"
 #include "shaders/shader.hpp"
-#include "loader/loader.hpp"
-#include "src/sprite-atlas.hpp"
 #include "src/chunk.hpp"
 #include "compat/limits.hpp"
-#include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Containers/ArrayView.h>
-#include <Magnum/GL/DefaultFramebuffer.h>
-#include <Magnum/GL/Mesh.h>
-#include <Magnum/GL/Renderer.h>
-#include <Magnum/Math/Color.h>
+#include <cr/GrowableArray.h>
+#include <cr/ArrayView.h>
+#include <mg/DefaultFramebuffer.h>
+#include <mg/Renderer.h>
+#include <mg/Color.h>
 
 namespace floormat {
 

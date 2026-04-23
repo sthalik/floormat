@@ -1,5 +1,4 @@
 #include "critter-script.hpp"
-//#include "raycast.hpp"
 #include "compat/failwith.hpp"
 #include "point.inl"
 #include "nanosecond.hpp"

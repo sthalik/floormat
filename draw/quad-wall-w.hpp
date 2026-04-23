@@ -1,8 +1,7 @@
 #pragma once
-
 #include <array>
-#include <Magnum/Math/Vector3.h>
-#include <Magnum/GL/Mesh.h>
+#include <mg/Vector3.h>
+#include <mg/Mesh.h>
 
 namespace floormat::wireframe {
 

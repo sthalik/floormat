@@ -1,8 +1,6 @@
 #pragma once
 #include "local-coords.hpp"
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
+#include <mg/Vector3.h>
 
 namespace floormat {
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
-#include <Corrade/Containers/String.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/String.h>
+#include <mg/Vector2.h>
 
 namespace floormat {
 

@@ -7,12 +7,11 @@
 #include "json-helper.hpp"
 #include "corrade-array.hpp"
 #include "compat/array-size.hpp"
-#include <utility>
 #include <string_view>
-#include <Corrade/Containers/ArrayViewStl.h>
-#include <Corrade/Containers/StringStl.h>
-#include <Magnum/ImageView.h>
-#include <Magnum/Trade/ImageData.h>
+#include <cr/ArrayViewStl.h>
+#include <cr/StringStl.h>
+#include <mg/ImageView.h>
+#include <mg/ImageData.h>
 #include <nlohmann/json.hpp>
 
 namespace floormat::Wall {

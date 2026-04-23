@@ -1,16 +1,6 @@
 #include "impl.hpp"
-//#include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "loader/loader.hpp"
-//#include "src/emplacer.hpp"
-//#include "src/anim-atlas.hpp"
-#include <cstring>
-//#include <cstdio>
-//#include <Corrade/Containers/ArrayView.h>
-//#include <Corrade/Containers/Pair.h>
-//#include <Corrade/Containers/StridedArrayView.h>
-//#include <Corrade/Containers/String.h>
-//#include <Magnum/Trade/ImageData.h>
 
 namespace floormat {
 

@@ -2,7 +2,7 @@
 #include "compat/format.hpp"
 #include "compat/exception.hpp"
 #include "corrade-string.hpp"
-#include <Magnum/Math/Vector.h>
+#include <mg/Vector.h>
 #include <cstdio>
 #include <string>
 #include <nlohmann/json.hpp>

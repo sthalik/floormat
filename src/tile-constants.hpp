@@ -1,7 +1,6 @@
 #pragma once
 #include "tile-defs.hpp"
-#include <Magnum/Math/Vector2.h>
-#include <Magnum/Math/Vector3.h>
+#include <mg/Vector3.h>
 
 namespace floormat {
 

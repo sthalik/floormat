@@ -2,7 +2,7 @@
 #include "global-coords.hpp"
 #include <compare>
 #include <type_traits>
-#include <Corrade/Utility/StlForwardTupleSizeElement.h>
+#include <cr/StlForwardTupleSizeElement.h>
 
 namespace floormat { struct point; }
 

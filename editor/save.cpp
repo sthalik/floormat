@@ -3,8 +3,8 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include <cstdio>
-#include <Corrade/Containers/String.h>
-#include <Corrade/Utility/Path.h>
+#include <cr/String.h>
+#include <cr/Path.h>
 
 namespace floormat {
 

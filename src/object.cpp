@@ -13,11 +13,10 @@
 #include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
 #include <bit>
-#include <cmath>
 #include <algorithm>
-#include <Corrade/Containers/GrowableArray.h>
-#include <Corrade/Containers/Pair.h>
-#include <Magnum/Math/Functions.h>
+#include <iterator>
+#include <cr/GrowableArray.h>
+#include <cr/Pair.h>
 
 namespace floormat {
 

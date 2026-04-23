@@ -1,8 +1,7 @@
 #pragma once
 #include <vector>
-#include <Corrade/Containers/StringView.h>
-#include <Magnum/Magnum.h>
-#include <Magnum/Math/Vector2.h>
+#include <cr/StringView.h>
+#include <mg/Vector2.h>
 #include <opencv2/core/mat.hpp>
 
 namespace floormat { struct anim_frame; }

@@ -2,7 +2,7 @@
 #include "global-coords.hpp"
 #include "object.hpp"
 #include "script.hpp"
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 
 namespace floormat {
 

@@ -2,7 +2,6 @@
 #include "ground-atlas.hpp"
 #include "src/tile.hpp"
 #include "src/global-coords.hpp"
-#include "src/ground-atlas.hpp"
 #include <tuple>
 #include <nlohmann/json.hpp>
 

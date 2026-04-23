@@ -1,12 +1,12 @@
 #pragma once
 
 #ifdef __APPLE__
-#include <Magnum/Platform/WindowlessCglApplication.h>
+#include <mg/WindowlessCglApplication.h>
 #define FM_APPLICATION Platform::WindowlessCglApplication
 #elif defined _WIN32
-#include <Magnum/Platform/WindowlessWglApplication.h>
+#include <mg/WindowlessWglApplication.h>
 #define FM_APPLICATION Platform::WindowlessWglApplication
 #else
-#include <Magnum/Platform/WindowlessGlxApplication.h>
+#include <mg/WindowlessGlxApplication.h>
 #define FM_APPLICATION Platform::WindowlessGlxApplication
 #endif

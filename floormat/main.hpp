@@ -1,7 +1,7 @@
 #pragma once
 
 #include "compat/defs.hpp"
-#include <Magnum/Math/Vector2.h>
+#include <mg/Vector2.h>
 
 struct SDL_Window;
 namespace Magnum::Platform { class Sdl2Application; }

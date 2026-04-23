@@ -1,19 +1,19 @@
 #include "editor.hpp"
-#include "src/world.hpp"
-#include "src/sprite-atlas.hpp"
+#include "compat/hash-table-load-factor.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
-#include "compat/hash-table-load-factor.hpp"
+#include "src/world.hpp"
+#include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
 #include <algorithm>
 #include <mg/Range.h>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
-#include <Magnum/PixelFormat.h>
+#include <mg/PixelFormat.h>
 #include <mg/ImageView.h>
-#include <Magnum/Image.h>
+#include <mg/Image.h>
 
 namespace floormat {
 

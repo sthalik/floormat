@@ -2,8 +2,7 @@
 #include "compat/assert.hpp"
 #include <fmt/core.h>
 #include <fmt/compile.h>
-#include <Corrade/Containers/StringView.h>
-#include <Corrade/Containers/String.h>
+#include <cr/String.h>
 
 namespace fmt {
 
