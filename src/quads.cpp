@@ -6,6 +6,16 @@
 
 namespace floormat::Quads {
 
+namespace {
+
+float depth_start()
+{
+    static const float S = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
+    return S;
+}
+
+} // namespace
+
 indexes quad_indexes(size_t N)
 {
     using u16 = UnsignedShort;
@@ -80,7 +90,7 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, b
 template<bool LR_1, bool LR_2, bool LR_3, bool LR_4>
 depths depth_quad(point L, point R, int32_t depth_offset)
 {
-    static const float S = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
+    const float S = depth_start();
 
     const float LR[2] = {
         Depth::value_at(S, L, depth_offset),
