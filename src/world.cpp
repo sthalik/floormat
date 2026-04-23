@@ -143,7 +143,7 @@ void world::clear()
     pos = chunk_tuple::invalid_coords;
 }
 
-void world::collect(bool force)
+void world::collect(bool force, bool quiet)
 {
     auto& impl = *this->impl;
     const auto len0 = impl._chunks.size();
@@ -160,7 +160,7 @@ void world::collect(bool force)
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
     const auto len = len0 - impl._chunks.size();
-    if (len > 1)
+    if (!quiet && len > 1)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 

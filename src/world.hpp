@@ -70,7 +70,7 @@ public:
     chunk* at(chunk_coords_ c) noexcept;
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
-    void collect(bool force = false);
+    void collect(bool force = false, bool quiet = false);
     size_t size() const noexcept;
 
     class chunks_iterator
