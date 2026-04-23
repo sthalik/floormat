@@ -6,6 +6,7 @@
 #include "global-coords.hpp"
 #include "search-pred.hpp"
 #include "sprite-list.hpp"
+#include "pass-through.hpp"
 #include <array>
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Pointer.h>
@@ -79,9 +80,9 @@ public:
     class world& world() noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
-    [[nodiscard]] static bool find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max);
+    [[nodiscard]] static bool find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max, pass_through_mask mask);
     using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<uint8_t> z) const>;
-    static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max);
+    static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max, pass_through_mask mask);
 
     void on_teardown();
     bool is_teardown() const;

@@ -61,7 +61,7 @@ ArrayView<HoleData> find_wall_holes_in_world_coords(Array<HoleData>& output, chu
     {
         c.get_all_holes_in_bbox([&](Math::Range2D<float> bb, Math::Range1D<uint8_t> z) {
             arrayAppend(output, HoleData{ .min = bb.min(), .max = bb.max(), .zmin = z.min(), .zmax = z.max()});
-        }, c, wall_bb->first(), wall_bb->second());
+        }, c, wall_bb->first(), wall_bb->second(), can_see_through_mask);
     }
 
     return output;
