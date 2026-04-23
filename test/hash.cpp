@@ -47,7 +47,7 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
 [[nodiscard]] bool test_collisions(const char* name)
 {
     constexpr size_t Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
-    constexpr size_t BucketCount = Math::max(world::initial_capacity, size_t(Math::ceil(Iters / 0.2f)));
+    constexpr size_t BucketCount = Math::max(4096uz, size_t(Math::ceil(Iters / 0.2f)));
     uint32_t num_collisions = 0, iters = 0;
     auto bitset_ = Pointer<std::bitset<BucketCount>>{InPlace, false};
     auto& bitset = *bitset_;

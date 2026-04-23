@@ -20,7 +20,6 @@ class world final
 {
 public:
     static constexpr object_id object_counter_init = 1024;
-    static constexpr size_t initial_capacity = 4096;
     static constexpr size_t initial_collect_every = 64;
 
     struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };
@@ -49,8 +48,6 @@ private:
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
-
-    explicit world(size_t capacity);
 
     void do_make_object(const bptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
     void erase_object(object_id id);

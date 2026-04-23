@@ -65,8 +65,11 @@ world& world::operator=(world&& w) noexcept
     return *this;
 }
 
-world::world() : world{initial_capacity}
+world::world() : _unique_id{InPlace}
 {
+    auto& impl = *this->impl;
+    Hash::set_separate_chaining_load_factor(impl._chunks);
+    Hash::set_open_addressing_load_factor(impl._objects);
 }
 
 world::~world() noexcept
@@ -90,23 +93,16 @@ world::~world() noexcept
 
 bool world::unique_id::operator==(const unique_id& other) const { return this == &other; }
 
-world::world(size_t capacity) : _unique_id{InPlace}
-{
-    auto& impl = *this->impl;
-    impl._chunks = gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher>{capacity};
-    Hash::set_separate_chaining_load_factor(impl._chunks);
-    impl._chunks.reserve(initial_capacity);
-    Hash::set_open_addressing_load_factor(impl._objects);
-    impl._objects.reserve(initial_capacity);
-}
-
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
     auto& impl = *this->impl;
     fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
+    {
+        Hash::set_separate_chaining_load_factor(impl._chunks, impl._chunks.size()+1);
         c = &impl._chunks.try_emplace(coord, *this, coord).first->second;
+    }
     coord2 = coord;
     return *c;
 }
@@ -138,9 +134,9 @@ void world::clear()
     auto& impl = *this->impl;
     fm_assert(!_teardown);
     impl._chunks.clear();
-    impl._chunks.rehash(initial_capacity);
     impl._objects.clear();
-    impl._objects.rehash(initial_capacity);
+    Hash::set_separate_chaining_load_factor(impl._chunks);
+    Hash::set_open_addressing_load_factor(impl._objects);
     _object_counter = object_counter_init;
     auto& [c, pos] = _last_chunk;
     c = nullptr;
