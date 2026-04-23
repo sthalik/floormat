@@ -115,7 +115,7 @@ void hole::set_enabled(bool value)
 
 object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
-bool hole::is_dynamic() const { return true; }
+bool hole::is_dynamic() const { return false; }
 bool hole::updates_passability() const { return true; }
 bool hole::updates_walls() const { return true; }
 
