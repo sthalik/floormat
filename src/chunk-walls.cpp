@@ -76,8 +76,7 @@ struct WallFragment
 
 Array<Range2D> wall_fragments, next_wall_fragments;
 
-ArrayView<WallFragment>
-cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coords tile_pos, bool IsWest)
+ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<const HoleData> holes, local_coords tile_pos, bool IsWest)
 {
     arrayResize(wall_fragments, 0);
     arrayReserve(wall_fragments, 16);
@@ -205,6 +204,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     constexpr auto half = iTILE_SIZE2/2;
     constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
 
+    const auto holes = find_wall_holes_in_world_coords(hole_data, c, pos, IsWest);
+    const auto fragments = cut_wall_face(fragdata, holes, pos, IsWest);
+
     if constexpr(G == Group_::side) [[unlikely]]
     {
         bool corner_ok = false, pillar_ok = false;
@@ -235,12 +237,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
                 const auto& frame = frames[v2];
                 const auto& sp = sprites[v2];
-                Quads::quad quad = {{
-                    {-X - Depthʹ, -Y - Depthʹ, Z},
-                    {-X,          -Y - Depthʹ, Z},
-                    {-X - Depthʹ, -Y,          Z},
-                    {-X,          -Y,          Z},
-                }};
                 fm_assert(frame.size.x() == Depth);
                 fm_assert(frame.size.y() >= Depth);
                 const auto texcoords = loader.atlas().texcoords_for(
@@ -255,36 +251,30 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
                     Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
                 };
-                Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
+                for (const auto& frag : fragments)
                 {
-                    const auto k = Quads::ccw_order[j];
-                    v[j] = {quad[k] + center, texcoords[k], depth[k]};
+                    if (frag.remove_from_start_xz.x() != 0.f)
+                        continue;
+                    const float frag_top_z = Z - frag.remove_from_end_xz.y();
+                    const Quads::quad quad = {{
+                        {-X - Depthʹ, -Y - Depthʹ, frag_top_z},
+                        {-X,          -Y - Depthʹ, frag_top_z},
+                        {-X - Depthʹ, -Y,          frag_top_z},
+                        {-X,          -Y,          frag_top_z},
+                    }};
+                    Quads::vertexes v;
+                    for (uint8_t j = 0; j < 4; j++)
+                    {
+                        const auto k = Quads::ccw_order[j];
+                        v[j] = {quad[k] + center, texcoords[k], depth[k]};
+                    }
+                    wsl.add(v, depth[0], nullptr);
                 }
-                wsl.add(v, depth[0], nullptr);
             }
         }
         if (corner_ok) [[unlikely]]
         {
             const auto depth_offset = depth_offset_for_group<Group_::corner, IsWest>(A.depth());
-
-            Quads::quad quad;
-            if constexpr (!IsWest)
-                quad = {
-                    {
-                        {-X, -Y, 0},
-                        {-X, -Y, Z},
-                        {-X - Depthʹ, -Y, 0},
-                        {-X - Depthʹ, -Y, Z},
-                    }
-                };
-            else
-                quad = {{
-                    {-X, -Y - Depthʹ, 0},
-                    {-X, -Y - Depthʹ, Z},
-                    {-X, -Y, 0},
-                    {-X, -Y, Z},
-                }};
 
             Quads::depths depth;
             if constexpr (!IsWest)
@@ -303,12 +293,41 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
                 const auto& frame = frames[v2];
                 const auto& sp = sprites[v2];
-                const auto texcoords = loader.atlas().texcoords_for(
-                    sp, Vector2ui{0, 0}, frame.size, dir.corner.mirrored);
-                Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, depth[0], nullptr);
+                for (const auto& frag : fragments)
+                {
+                    const auto& rs = frag.remove_from_start_xz;
+                    const auto& re = frag.remove_from_end_xz;
+                    if (rs.x() != 0.f)
+                        continue;
+                    const auto sub_size = Vector2ui{frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y()};
+                    if (!sub_size.y())
+                        continue;
+                    const auto texcoords = loader.atlas().texcoords_for(
+                        sp, Vector2ui{0, (unsigned)re.y()}, sub_size, dir.corner.mirrored);
+                    const auto frag_zmin = rs.y();
+                    const auto frag_zmax = Z - re.y();
+                    Quads::quad quad;
+                    if constexpr (!IsWest)
+                        quad = {
+                            {
+                                {-X, -Y, frag_zmin},
+                                {-X, -Y, frag_zmax},
+                                {-X - Depthʹ, -Y, frag_zmin},
+                                {-X - Depthʹ, -Y, frag_zmax},
+                            }
+                        };
+                    else
+                        quad = {{
+                            {-X, -Y - Depthʹ, frag_zmin},
+                            {-X, -Y - Depthʹ, frag_zmax},
+                            {-X, -Y, frag_zmin},
+                            {-X, -Y, frag_zmax},
+                        }};
+                    Quads::vertexes v;
+                    for (uint8_t j = 0; j < 4; j++)
+                        v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                    wsl.add(v, depth[0], nullptr);
+                }
             }
             else if (dir.wall.is_defined) [[likely]]
             {
@@ -318,23 +337,49 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 const auto& frame = frames[v2];
                 const auto& sp = sprites[v2];
                 fm_assert(frame.size.x() > Depth);
-                const auto texcoords = loader.atlas().texcoords_for(
-                    sp,
-                    Vector2ui{frame.size.x() - Depth, 0},
-                    Vector2ui{Depth, frame.size.y()},
-                    dir.wall.mirrored);
-                Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, depth[0], nullptr);
+                for (const auto& frag : fragments)
+                {
+                    const auto& rs = frag.remove_from_start_xz;
+                    const auto& re = frag.remove_from_end_xz;
+                    if (rs.x() != 0.f)
+                        continue;
+                    const auto sub_size = Vector2ui{Depth, frame.size.y() - (unsigned)rs.y() - (unsigned)re.y()};
+                    if (!sub_size.y())
+                        continue;
+                    const auto texcoords = loader.atlas().texcoords_for(
+                        sp,
+                        Vector2ui{frame.size.x() - Depth, (unsigned)re.y()},
+                        sub_size,
+                        dir.wall.mirrored);
+                    const auto frag_zmin = rs.y();
+                    const auto frag_zmax = Z - re.y();
+                    Quads::quad quad;
+                    if constexpr (!IsWest)
+                        quad = {
+                            {
+                                {-X, -Y, frag_zmin},
+                                {-X, -Y, frag_zmax},
+                                {-X - Depthʹ, -Y, frag_zmin},
+                                {-X - Depthʹ, -Y, frag_zmax},
+                            }
+                        };
+                    else
+                        quad = {{
+                            {-X, -Y - Depthʹ, frag_zmin},
+                            {-X, -Y - Depthʹ, frag_zmax},
+                            {-X, -Y, frag_zmin},
+                            {-X, -Y, frag_zmax},
+                        }};
+                    Quads::vertexes v;
+                    for (uint8_t j = 0; j < 4; j++)
+                        v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                    wsl.add(v, depth[0], nullptr);
+                }
             }
         }
     }
 
     {
-        auto holes = find_wall_holes_in_world_coords(hole_data, c, pos, IsWest);
-        cut_wall_face(fragdata, holes, pos, IsWest);
-
         const auto frames = A.frames(group);
         const auto sprites = A.sprites(group);
         const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
@@ -342,7 +387,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
         const auto& sp = sprites[v2];
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
 
-        for (const auto& frag : fragdata)
+        for (const auto& frag : fragments)
         {
             const auto& rs = frag.remove_from_start_xz;
             const auto& re = frag.remove_from_end_xz;
