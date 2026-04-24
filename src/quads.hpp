@@ -18,6 +18,9 @@ using indexes = std::array<UnsignedShort, 6>;
 using vertexes = std::array<vertex, 4>;
 using depths = std::array<float, 4>;
 
+// Reorders horizontal-plane quads to CCW winding in NDC for GL_CCW face culling
+constexpr inline std::array<uint8_t, 4> ccw_order = { 1, 0, 3, 2 };
+
 quad floor_quad(Vector3 center, Vector2 size);
 indexes quad_indexes(size_t N);
 texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size);

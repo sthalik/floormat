@@ -47,8 +47,10 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     using DepthFunction   = GL::Renderer::DepthFunction;
     using ProvokingVertex = GL::Renderer::ProvokingVertex;
     using Feature         = GL::Renderer::Feature;
+    using FrontFace       = GL::Renderer::FrontFace;
     GL::Renderer::setBlendEquation(BlendEquation::Add, BlendEquation::Add);
     GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
+    GL::Renderer::setFrontFace(FrontFace::CounterClockWise);
     GL::Renderer::disable(Feature::FaceCulling);
     GL::Renderer::disable(Feature::DepthTest);
     GL::Renderer::enable(Feature::Blending);

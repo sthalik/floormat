@@ -257,7 +257,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 };
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                {
+                    const auto k = Quads::ccw_order[j];
+                    v[j] = {quad[k] + center, texcoords[k], depth[k]};
+                }
                 wsl.add(v, depth[0], nullptr);
             }
         }
@@ -475,7 +478,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
 
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                {
+                    const auto k = Quads::ccw_order[j];
+                    v[j] = {quad[k] + center, texcoords[k], depth[k]};
+                }
                 wsl.add(v, depth[0], nullptr);
             }
             else

@@ -39,7 +39,10 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             const auto texcoords = atlas->texcoords_for_id(_ground->variants[i] % atlas->num_tiles());
             Quads::vertexes v;
             for (auto j = 0uz; j < 4; j++)
-                v[j] = { quad[j], texcoords[j], depth };
+            {
+                const auto k = Quads::ccw_order[j];
+                v[j] = { quad[k], texcoords[k], depth };
+            }
             ground_static_mesh.add(v, depth, nullptr);
         }
     }

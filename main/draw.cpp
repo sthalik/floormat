@@ -153,6 +153,7 @@ void main_impl::draw_world() noexcept
     GL::defaultFramebuffer.clearDepth(0);
 #endif
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::setDepthMask(true);
 
     bind();
@@ -179,6 +180,7 @@ void main_impl::draw_world() noexcept
     _shader.set_tint({1, 1, 1, 1});
     GL::Renderer::setDepthMask(true);
 
+    GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
