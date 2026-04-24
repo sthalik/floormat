@@ -375,9 +375,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 // wall texture: {tile_size_xy, tile_size_z}
                 // pixel x = primary axis, pixel y = z (low pixel y = high z)
                 const auto sub_offset_loc = Vector2ui(tex_left, (unsigned)re.y());
-                const auto sub_size = frame.size - Vector2ui(tex_left + tex_right, (unsigned)rs.y() + (unsigned)re.y());
-                if (!sub_size.x() || !sub_size.y())
-                    continue;
+                const unsigned z_trim = (unsigned)rs.y() + (unsigned)re.y();
+                const unsigned x_trim = tex_left + tex_right;
+                if (x_trim >= frame.size.x() || z_trim >= frame.size.y())
+                     continue;
+                const auto sub_size = frame.size - Vector2ui(x_trim, z_trim);
                 const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 Quads::quad quad;
@@ -414,9 +416,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             else if constexpr (G == Group_::side)
             {
                 const auto sub_offset_loc = Vector2ui(0, (unsigned)re.y());
-                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y());
-                if (!sub_size.y())
+                const unsigned z_trim = (unsigned)rs.y() + (unsigned)re.y();
+                if (z_trim >= frame.size.y())
                     continue;
+                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - z_trim);
                 const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 const auto frag_x1 =  X - re.x();
