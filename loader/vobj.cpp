@@ -7,6 +7,7 @@
 #include "serialize/corrade-string.hpp"
 #include "loader/vobj-cell.hpp"
 #include <cr/ArrayViewStl.h>
+#include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <cr/Path.h>
 #include <mg/ImageData.h>
@@ -94,39 +95,38 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
 
 void loader_impl::get_vobj_list()
 {
-    fm_assert(vobjs.empty());
+    fm_assert(vobjs.isEmpty());
 
-    vobjs.clear();
+    arrayClear(vobjs);
     vobj_atlas_map.clear();
     auto vec = json_helper::from_json<std::vector<struct vobj>>(Path::join(VOBJ_PATH, "vobj.json"));
-    vec.shrink_to_fit();
 
-    vobjs.reserve(vec.size());
+    arrayReserve(vobjs, vec.size());
     Hash::set_separate_chaining_load_factor(vobj_atlas_map, vec.size());
 
     for (const auto& [name, descr, img_name] : vec)
     {
         auto atlas = make_vobj_anim_atlas(name, img_name);
         auto info = vobj_cell{name, descr, atlas};
-        vobjs.push_back(move(info));
+        arrayAppend(vobjs, move(info));
         const auto& x = vobjs.back();
         vobj_atlas_map[x.atlas->name()] = &x;
     }
 
-    fm_assert(!vobjs.empty());
+    fm_assert(!vobjs.isEmpty());
 }
 
 ArrayView<const vobj_cell> loader_impl::vobj_list()
 {
-    if (vobjs.empty())
+    if (vobjs.isEmpty())
         get_vobj_list();
-    fm_assert(!vobjs.empty());
+    fm_assert(!vobjs.isEmpty());
     return vobjs;
 }
 
 const struct vobj_cell& loader_impl::vobj(StringView name)
 {
-    if (vobjs.empty())
+    if (vobjs.isEmpty())
         get_vobj_list();
     auto it = vobj_atlas_map.find(name);
     if (it == vobj_atlas_map.end())

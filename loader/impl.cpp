@@ -12,6 +12,7 @@
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "serialize/json-wrapper.hpp"
+#include <cr/GrowableArray.h>
 
 namespace floormat {
 
@@ -73,7 +74,7 @@ void loader_impl::destroy()
     _anim_loader = {InPlace};
     _scenery_loader = {InPlace};
     vobj_atlas_map.clear();
-    vobjs.clear();
+    arrayClear(vobjs);
     _sprite_atlas.reset(); // free it while the GL context is still alive
 }
 

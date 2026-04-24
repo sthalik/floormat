@@ -4,9 +4,9 @@
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
-#include <vector>
 #include <gtl/phmap.hpp>
 #include <cr/Optional.h>
+#include <cr/Array.h>
 #include <cr/StringStlHash.h>
 #include <cr/Resource.h>
 #include <mg/AbstractImporter.h>
@@ -80,7 +80,7 @@ struct loader_impl final : loader_
 
     // >-----> vobjs >----->
     gtl::flat_hash_map<StringView, const struct vobj_cell*> vobj_atlas_map;
-    std::vector<struct vobj_cell> vobjs;
+    Array<struct vobj_cell> vobjs;
     bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_cell& vobj(StringView name) override;
     ArrayView<const struct vobj_cell> vobj_list() override;
