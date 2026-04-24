@@ -54,4 +54,12 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T w
     return { min - Vec2{0, wall_depth}, min + Vec2{wall_depth, tile_size_xy} };
 }
 
+template<typename T = float>
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_corner(size_t k, T wall_depth)
+{
+    using Vec2 = VectorTypeFor<2,T>;
+    auto min = tile_start<T>(k) - Vec2{wall_depth, wall_depth};
+    return { min, min + Vec2{wall_depth, wall_depth} };
+}
+
 } // namespace floormat
