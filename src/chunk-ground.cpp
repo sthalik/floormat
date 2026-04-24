@@ -40,7 +40,7 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             Quads::vertexes v;
             for (auto j = 0uz; j < 4; j++)
                 v[j] = { quad[j], texcoords[j], depth };
-            ground_static_mesh.add(v, texcoords, depth, nullptr);
+            ground_static_mesh.add(v, depth, nullptr);
         }
     }
     sb.emit(ground_static_mesh, false);

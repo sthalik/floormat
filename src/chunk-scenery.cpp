@@ -63,7 +63,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                 v[j] = {quad[j], uv3[j], depth};
             if (!render_vobjs && e.is_virtual())
                 continue;
-            sb.emit(v, uv3, depth);
+            sb.emit(v, depth);
         }
         else
         {
@@ -109,8 +109,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                 {quad[2], uv3[2], front_depth},                   // BL
                 {left_split_pos, left_split_uv, front_depth},     // left split
             }};
-            Quads::texcoords u1 = {{ uv3[0], right_split_uv, uv3[2], left_split_uv }};
-            scenery_static_mesh.add(v1, u1, front_depth, &e);
+            scenery_static_mesh.add(v1, front_depth, &e);
 
             // midpoints for vertical split of back quad
             const auto center_split_pos = (left_split_pos + right_split_pos) * 0.5f;
@@ -125,8 +124,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                 {left_split_pos, left_split_uv, back_left_depth},      // BL
                 {quad[3], uv3[3], back_left_depth},                    // TL
             }};
-            Quads::texcoords u2 = {{ center_split_uv, center_top_uv, left_split_uv, uv3[3] }};
-            scenery_static_mesh.add(v2, u2, back_left_depth, &e);
+            scenery_static_mesh.add(v2, back_left_depth, &e);
 
             // back-right quad (above slope, screen-right half)
             Quads::vertexes v3 = {{
@@ -135,23 +133,19 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                 {center_split_pos, center_split_uv, back_right_depth}, // BL
                 {center_top_pos, center_top_uv, back_right_depth},     // TL
             }};
-            Quads::texcoords u3 = {{ right_split_uv, uv3[1], center_split_uv, center_top_uv }};
-            scenery_static_mesh.add(v3, u3, back_right_depth, &e);
+            scenery_static_mesh.add(v3, back_right_depth, &e);
             // --- end 3-piece split ---
-
-            //i += 2;
         }
     }
     sb.end_chunk(true);
 
     constexpr auto less = [](const auto& a, const auto& b) {
-        const auto& [av, au, ad, ao] = a;
-        const auto& [bv, bu, bd, bo] = b;
+        const auto& [av, ad, ao] = a;
+        const auto& [bv, bd, bo] = b;
         return ad < bd;
     };
     if (modify_static)
         ranges::sort(ranges::zip_view(scenery_static_mesh.Vertexes,
-                                      scenery_static_mesh.UVs,
                                       scenery_static_mesh.Depths,
                                       scenery_static_mesh.Objects),
                      less);

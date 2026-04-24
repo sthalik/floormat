@@ -10,11 +10,10 @@ struct object;
 struct SpriteList
 {
     Array<Quads::vertexes> Vertexes;
-    Array<Quads::texcoords> UVs;
     Array<float> Depths;
     Array<object*> Objects;
 
-    void add(const Quads::vertexes& vertexes, const Quads::texcoords& uv, float depth, object* obj);
+    void add(const Quads::vertexes& vertexes, float depth, object* obj);
     void clear();
     uint32_t size() const;
 

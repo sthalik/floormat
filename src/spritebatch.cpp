@@ -47,19 +47,9 @@ struct quick_draw
     GL::Buffer _vertex_buffer{NoCreate}, _index_buffer{NoCreate};
 };
 
-struct sprite_vertex
-{
-    Vector3 position;
-    Vector3 texcoords;
-    float depth;
-};
-using sprite_vertexes = std::array<sprite_vertex, 4>;
-static_assert(sizeof(sprite_vertex) == 28);
-static_assert(sizeof(sprite_vertexes) == 112);
-
 struct draw_item
 {
-    sprite_vertexes vertexes;
+    Quads::vertexes vertexes;
     float depth;
 };
 
@@ -71,7 +61,7 @@ struct SpriteBatch::Impl
 
     quick_draw quick;
 
-    Array<sprite_vertexes> vertex_buffer;
+    Array<Quads::vertexes> vertex_buffer;
     Array<Quads::indexes> index_buffer;
 
     Array<draw_item> data;
@@ -123,24 +113,19 @@ void SpriteBatch::clear()
 void SpriteBatch::ensure_allocated(uint32_t count)
 {
     auto& impl = *this->impl;
-    auto cap  = ensure_buffer_size<sprite_vertexes>(impl.vertex_buffer_handle, impl.buffer_capacity, count);
+    auto cap  = ensure_buffer_size<Quads::vertexes>(impl.vertex_buffer_handle, impl.buffer_capacity, count);
     auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
     fm_debug_assert(cap == cap2);
     impl.buffer_capacity = cap;
 }
 
-void SpriteBatch::emit(const Quads::vertexes& vertexes, const Quads::texcoords& uv, float depth)
+void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
 {
     auto& impl = *this->impl;
     fm_assert(impl.in_chunk);
     arrayAppend(impl.data, NoInit, 1);
     auto& item = impl.data.back();
-    for (uint8_t j = 0; j < 4; j++)
-    {
-        item.vertexes[j].position  = vertexes[j].position;
-        item.vertexes[j].texcoords = uv[j];
-        item.vertexes[j].depth     = vertexes[j].depth;
-    }
+    item.vertexes = vertexes;
     item.depth = depth;
 }
 
@@ -151,12 +136,11 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
     for (auto i = 0u; i < size; i++)
     {
         const auto& v = list.Vertexes[i];
-        const auto& u = list.UVs[i];
         const auto& d = list.Depths[i];
         auto* obj = list.Objects[i];
         if (obj && !render_vobjs && obj->is_virtual())
             continue;
-        emit(v, u, d);
+        emit(v, d);
     }
     end_chunk(false);
 }
@@ -339,7 +323,7 @@ void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r,
     const auto* sp = g.sprites[frame];
     fm_assert(sp);
     const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !g.mirror_from.isEmpty());
-    sprite_vertexes vertexes;
+    Quads::vertexes vertexes;
     for (auto i = 0uz; i < 4; i++)
         vertexes[i] = { pos[i], uv3[i], depth[i] };
     const auto indexes = Quads::quad_indexes(0);

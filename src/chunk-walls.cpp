@@ -258,7 +258,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
         }
         if (corner_ok) [[unlikely]]
@@ -305,7 +305,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
             else if (dir.wall.is_defined) [[likely]]
             {
@@ -323,7 +323,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
         }
     }
@@ -388,7 +388,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
             else if constexpr (G == Group_::side)
             {
@@ -430,7 +430,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
             else if constexpr (G == Group_::top)
             {
@@ -476,7 +476,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 Quads::vertexes v;
                 for (uint8_t j = 0; j < 4; j++)
                     v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                wsl.add(v, texcoords, depth[0], nullptr);
+                wsl.add(v, depth[0], nullptr);
             }
             else
                 static_assert(false);

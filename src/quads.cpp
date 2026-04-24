@@ -6,6 +6,8 @@
 
 namespace floormat::Quads {
 
+static_assert(sizeof(vertex) == 28);
+
 namespace {
 
 float depth_start()
