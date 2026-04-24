@@ -329,53 +329,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     wsl.add(v, depth[0], nullptr);
                 }
             }
-            else if (dir.wall.is_defined) [[likely]]
-            {
-                const auto frames = A.frames(dir.wall);
-                const auto sprites = A.sprites(dir.wall);
-                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
-                const auto& frame = frames[v2];
-                const auto& sp = sprites[v2];
-                fm_assert(frame.size.x() > Depth);
-                for (const auto& frag : fragments)
-                {
-                    const auto& rs = frag.remove_from_start_xz;
-                    const auto& re = frag.remove_from_end_xz;
-                    if (rs.x() != 0.f)
-                        continue;
-                    const auto sub_size = Vector2ui{Depth, frame.size.y() - (unsigned)rs.y() - (unsigned)re.y()};
-                    if (!sub_size.y())
-                        continue;
-                    const auto texcoords = loader.atlas().texcoords_for(
-                        sp,
-                        Vector2ui{frame.size.x() - Depth, (unsigned)re.y()},
-                        sub_size,
-                        dir.wall.mirrored);
-                    const auto frag_zmin = rs.y();
-                    const auto frag_zmax = Z - re.y();
-                    Quads::quad quad;
-                    if constexpr (!IsWest)
-                        quad = {
-                            {
-                                {-X, -Y, frag_zmin},
-                                {-X, -Y, frag_zmax},
-                                {-X - Depthʹ, -Y, frag_zmin},
-                                {-X - Depthʹ, -Y, frag_zmax},
-                            }
-                        };
-                    else
-                        quad = {{
-                            {-X, -Y - Depthʹ, frag_zmin},
-                            {-X, -Y - Depthʹ, frag_zmax},
-                            {-X, -Y, frag_zmin},
-                            {-X, -Y, frag_zmax},
-                        }};
-                    Quads::vertexes v;
-                    for (uint8_t j = 0; j < 4; j++)
-                        v[j] = {quad[j] + center, texcoords[j], depth[j]};
-                    wsl.add(v, depth[0], nullptr);
-                }
-            }
         }
     }
 
