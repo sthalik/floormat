@@ -31,9 +31,9 @@ bptr<const class ground_atlas> tile_ref::ground_atlas() const noexcept { return 
 bptr<const class wall_atlas> tile_ref::wall_north_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr; }
 bptr<const class wall_atlas> tile_ref::wall_west_atlas() const noexcept { return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr; }
 
-tile_image_ref tile_ref::ground() noexcept     { _chunk->ensure_alloc_ground(); return {_chunk->_ground->atlases[i], _chunk->_ground->variants[i] };     }
-wall_image_ref tile_ref::wall_north() noexcept { _chunk->ensure_alloc_walls(); return {_chunk->_walls->atlases[i*2+0], _chunk->_walls->variants[i*2+0] }; }
-wall_image_ref tile_ref::wall_west() noexcept  { _chunk->ensure_alloc_walls(); return {_chunk->_walls->atlases[i*2+1],  _chunk->_walls->variants[i*2+1] };  }
+tile_image_ref tile_ref::ground() noexcept     { _chunk->ensure_alloc_ground(); return {_chunk->_ground->atlases[i], _chunk->_ground->variants[i] }; }
+wall_image_ref tile_ref::wall_north() noexcept { _chunk->ensure_alloc_walls(); return{_chunk->_walls->atlases[i*2+0],_chunk->_walls->variants[i*2+0]};}
+wall_image_ref tile_ref::wall_west() noexcept  { _chunk->ensure_alloc_walls(); return {_chunk->_walls->atlases[i*2+1],_chunk->_walls->variants[i*2+1]};}
 
 tile_image_proto tile_ref::ground() const noexcept
 {
