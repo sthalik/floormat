@@ -10,9 +10,8 @@ template<typename T>
 struct CutResult
 {
     using Vec2 = VectorTypeFor<2, T>;
-    struct bbox { Vec2 position; Vector2ub bbox_size; }; // todo use Range2D
 
-    static CutResult cut(bbox input, bbox hole) requires std::is_signed_v<T>;
+    static CutResult cut(Math::Range2D<T> input, Math::Range2D<T> hole);
     static CutResult cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1);
     static CutResult cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1, uint8_t s);
 

@@ -12,7 +12,17 @@
 namespace floormat {
 namespace {
 
-using bbox = CutResult<Int>::bbox;
+struct bbox
+{
+    Vector2i position;
+    Vector2ub bbox_size;
+
+    constexpr operator Math::Range2D<Int>() const
+    {
+        auto min = position - Vector2i{bbox_size/2};
+        return { min, min + Vector2i{bbox_size} };
+    }
+};
 
 auto cut(bbox rect, bbox hole, Vector2i offset)
 {
@@ -73,7 +83,7 @@ auto make_search_predicate(const CutResult<int>& res)
 
 void test2()
 {
-    const auto res = CutResult<int>::cut({{}, Vector2ub{tile_size_xy}}, {Vector2i(-tile_size_xy/2), Vector2ub{tile_size_xy}});
+    const auto res = CutResult<int>::cut(bbox{{}, Vector2ub{tile_size_xy}}, bbox{Vector2i(-tile_size_xy/2), Vector2ub{tile_size_xy}});
     fm_assert(res.size == 2);
     const auto has = make_search_predicate(res);
     fm_assert(has({-32, 0}, {32, 32}));

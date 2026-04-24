@@ -7,6 +7,7 @@
 #include "../imgui-raii.hpp"
 #include "src/critter.hpp"
 #include <mg/Color.h>
+#include <mg/Range.h>
 
 namespace floormat::tests {
 namespace {
@@ -55,8 +56,6 @@ constexpr auto colors = std::array{
 
 void hole_test::draw_ui(app&, float)
 {
-    using Cr = CutResult<Int>;
-    using bbox = Cr::bbox;
     const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
     const auto window_size = ImVec2{width, width};
     const auto bgcolor = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
@@ -64,15 +63,15 @@ void hole_test::draw_ui(app&, float)
     const auto red = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
     const auto gray = ImGui::ColorConvertFloat4ToU32({.7f, .7f, .7f, 1});
     const auto& style = ImGui::GetStyle();
-    //const auto dpi = m.dpi_scale();
     constexpr auto igcf = ImGuiChildFlags_None;
     constexpr auto igwf = 0;//ImGuiWindowFlags_NoDecoration;
     constexpr auto imdf = ImDrawFlags_None;
     char buf[32];
     ImGui::NewLine();
 
-    bbox rect{{}, Vector2ub{tile_size_xy}};
-    const auto res = Cr::cut(rect, {st.pos, st.size});
+    const auto rect = Range2Di::fromCenter({}, Vector2i{tile_size_xy/2});
+    const auto s = Range2Di::fromCenter(st.pos, Vector2i{st.size/2});
+    const auto res = CutResult<Int>::cut(rect, s);
 
     ImGui::SetNextWindowSize({width, width});
     if (auto b1 = imgui::begin_child("Test area"_s, window_size, igcf, igwf))

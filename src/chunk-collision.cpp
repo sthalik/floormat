@@ -68,45 +68,44 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
-void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Vector2 min, Vector2 max, bool has_holes, pass_through_mask mask)
+void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Range2D bbox, bool has_holes, pass_through_mask mask)
 {
     if (!has_holes)
-        return rtree.Insert(min.data(), max.data(), id);
+        return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
 start:
-    fm_assert(min != max);
+    fm_assert(bbox.min() != bbox.max());
 
     Range2D hole;
-    bool ret = chunk::find_hole_in_bbox(hole, rtree, min, max, mask);
+    bool ret = chunk::find_hole_in_bbox(hole, rtree, bbox, mask);
 
     if (ret) [[likely]]
-        rtree.Insert(min.data(), max.data(), id);
+        rtree.Insert(bbox.min().data(), bbox.max().data(), id);
     else
     {
-        auto res = CutResult<float>::cut(min, max, hole.min(), hole.max());
+        auto res = CutResult<float>::cut(bbox, hole);
         if (!res.found())
         {
-            rtree.Insert(min.data(), max.data(), id);
+            rtree.Insert(bbox.min().data(), bbox.max().data(), id);
         }
         else if (res.size == 1)
         {
-            min = res.array[0].min();
-            max = res.array[0].max();
+            bbox = res.array[0];
             goto start;
         }
         else
         {
             for (auto i = 0u; i < res.size; i++)
-                filter_bbox_through_holes(rtree, id, res.array[i].min(), res.array[i].max(), has_holes, mask);
+                filter_bbox_through_holes(rtree, id, res.array[i], has_holes, mask);
         }
     }
 }
 
 } // namespace
 
-bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Vector2 min, Vector2 max, pass_through_mask mask)
+bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask)
 {
     bool ret = true;
-    rtree.Search(min.data(), max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
+    rtree.Search(bbox.min().data(), bbox.max().data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (can_pass_through_mask(mask, pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
         {
@@ -114,7 +113,7 @@ bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Vector2 m
                 { r.m_min[0], r.m_min[1] },
                 { r.m_max[0], r.m_max[1] },
             };
-            if (rect_intersects(holeʹ.min(), holeʹ.max(), min, max))
+            if (rect_intersects(holeʹ.min(), holeʹ.max(), bbox.min(), bbox.max()))
             {
                 hole = holeʹ;
                 return ret = false;
@@ -171,12 +170,11 @@ void chunk::ensure_passability() noexcept
     {
         if (const auto* atlas = ground_atlas_at(i))
         {
-            auto [min, max] = whole_tile(i);
             auto pass = atlas->pass_mode();
             if (pass == pass_mode::pass) [[likely]]
                 continue;
             auto id = make_id(collision_type::geometry, pass, i+1);
-            filter_bbox_through_holes(rtree, id, min, max, has_holes, can_walk_through_mask);
+            filter_bbox_through_holes(rtree, id, whole_tile(i), has_holes, can_walk_through_mask);
         }
     }
     for (auto i = 0u; i < TILE_COUNT; i++)
@@ -184,21 +182,17 @@ void chunk::ensure_passability() noexcept
         auto tile = operator[](i);
         if (const auto* atlas = tile.wall_north_atlas().get())
         {
-            auto [min, max] = wall_north(i, (float)atlas->info().depth);
+            auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
-            filter_bbox_through_holes(rtree, id, min, max, has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, id, wall_north(i, depth), has_holes, not_blocked_pass_through_mask);
 
             if (tile.wall_west_atlas())
-            {
-                auto [min, max] = wall_pillar(i, (float)atlas->info().depth);
-                filter_bbox_through_holes(rtree, id, min, max, has_holes, not_blocked_pass_through_mask);
-            }
+                filter_bbox_through_holes(rtree, id, wall_pillar(i, depth), has_holes, not_blocked_pass_through_mask);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
-            auto [min, max] = wall_west(i, (float)atlas->info().depth);
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            filter_bbox_through_holes(rtree, id, min, max, has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, id, wall_west(i, (float)atlas->info().depth), has_holes, not_blocked_pass_through_mask);
         }
     }
     for (const bptr<object>& eʹ : objects())
@@ -210,7 +204,7 @@ void chunk::ensure_passability() noexcept
         {
             if (!eʹ->is_dynamic())
                 filter_bbox_through_holes(rtree, std::bit_cast<object_id>(bb.data),
-                                          Vector2(bb.start), Vector2(bb.end),
+                                          Math::Range2D<float>{bb.pos},
                                           has_holes, not_blocked_pass_through_mask);
             else
                 _add_bbox_dynamic(bb);
@@ -226,7 +220,7 @@ bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offs
 {
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id_(collision_type::scenery, s.pass, s.id);
-    value = { .data = id, .start = start, .end = end };
+    value = { .data = id, .pos = { start, end } };
     return Vector2ui(s.bbox_size).product() > 0 && s.atlas;
 }
 
@@ -257,7 +251,7 @@ void chunk::_remove_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool i
 
 void chunk::_remove_bbox_dynamic(const bbox& x)
 {
-    auto start = Vector2(x.start), end = Vector2(x.end);
+    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
     _rtree->Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
     //Debug{} << "bbox <<< dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
@@ -270,7 +264,7 @@ void chunk::_remove_bbox_static(const bptr<object>& e, [[maybe_unused]] const bb
 
 void chunk::_add_bbox_dynamic(const bbox& x)
 {
-    auto start = Vector2(x.start), end = Vector2(x.end);
+    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
     _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
     //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }

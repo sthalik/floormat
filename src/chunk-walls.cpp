@@ -33,8 +33,8 @@ using Wall::Frame;
 
 struct HoleData
 {
-    Vector2 min, max;
-    uint8_t zmin = 0, zmax = 0;
+    Range2D pos;
+    Math::Range1D<uint8_t> z;
 };
 
 ArrayView<HoleData> find_wall_holes_in_world_coords(Array<HoleData>& output, chunk& c, local_coords tile_pos, bool IsWest)
@@ -60,7 +60,7 @@ ArrayView<HoleData> find_wall_holes_in_world_coords(Array<HoleData>& output, chu
     if (wall_bb)
     {
         c.get_all_holes_in_bbox([&](Math::Range2D<float> bb, Math::Range1D<uint8_t> z) {
-            arrayAppend(output, HoleData{ .min = bb.min(), .max = bb.max(), .zmin = z.min(), .zmax = z.max()});
+            arrayAppend(output, { bb, z });
         }, c, wall_bb->first(), wall_bb->second(), can_see_through_mask);
     }
 
@@ -95,16 +95,20 @@ cut_wall_face(Array<WallFragment>& output, ArrayView<HoleData> holes, local_coor
          bb_max = Vector2{half_tile + off_x, tile_size_z};
     arrayAppend(wall_fragments, {bb_min, bb_max});
 
+
     for (auto hole : holes)
     {
-        arrayResize(next_wall_fragments, 0);
+        const auto hole_slice = Range2D{
+            {hole.pos.min()[XAxis], (float)hole.z.min()},
+            {hole.pos.max()[XAxis], (float)hole.z.max()},
+        };
 
-        const auto hole_min = Vector2{hole.min[XAxis], (float)hole.zmin},
-                   hole_max = Vector2{hole.max[XAxis], (float)hole.zmax};
+        arrayResize(next_wall_fragments, 0);
 
         for (auto x : wall_fragments)
         {
-            const auto frags = CutResult<float>::cut(x.min(), x.max(), hole_min, hole_max);
+            const auto frags = CutResult<float>::cut(x, hole_slice);
+
             for (auto i = 0u; i < frags.size; i++)
                 arrayAppend(next_wall_fragments, frags.array[i]);
 #if 0

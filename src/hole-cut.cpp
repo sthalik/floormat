@@ -17,7 +17,6 @@ namespace floormat {
 namespace {
 
 template<typename T> using Cr = CutResult<T>;
-template<typename T> using bbox = Cr<T>::bbox;
 
 enum shift : uint8_t { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
 enum class location : uint8_t { R0, R1, H0, H1, };
@@ -184,19 +183,9 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
 }
 
 template<typename T>
-constexpr Cr<T> cut_rectangle(bbox<T> input, bbox<T> hole)
+constexpr Cr<T> cut_rectangle(Math::Range2D<T> input, Math::Range2D<T> hole)
 {
-    using Vec2 = Vec2ʹ<T>;
-
-    auto ihalf = Vec2{input.bbox_size/2};
-    auto r0 = input.position - ihalf;
-    auto r1 = input.position + Vec2{input.bbox_size} - ihalf;
-
-    auto hhalf = Vec2{hole.bbox_size/2};
-    auto h0 = hole.position - hhalf;
-    auto h1 = hole.position + Vec2{hole.bbox_size} - hhalf;
-
-    return cut_rectangle<T>(r0, r1, h0, h1);
+    return cut_rectangle<T>(input.min(), input.max(), hole.min(), hole.max());
 }
 
 } // namespace
@@ -206,7 +195,7 @@ template<typename T> Cr<T> CutResult<T>::cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h
     return cut_rectangleʹ<T>(r0, r1, h0, h1, s);
 }
 
-template<typename T> Cr<T> CutResult<T>::cut(bbox input, bbox hole) requires std::is_signed_v<T> { return cut_rectangle<T>(input, hole); }
+template<typename T> Cr<T> CutResult<T>::cut(Math::Range2D<T> input, Math::Range2D<T> hole) { return cut_rectangle<T>(input, hole); }
 template<typename T> Cr<T> CutResult<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
 
 template<typename T> bool CutResult<T>::found() const { return s != (uint8_t)-1; }
