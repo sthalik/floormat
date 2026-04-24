@@ -153,7 +153,11 @@ void chunk::ensure_passability() noexcept
     _pass_modified = false;
 
     _rtree->RemoveAll();
+
     _pass_gen_ctr++;
+    if (_pass_gen_ctr == (uint32_t)-1) [[unlikely]]
+        _pass_gen_ctr = 0;
+
     //Debug{} << ".. reset passability" << _coord;
 
     bool has_holes = false;
