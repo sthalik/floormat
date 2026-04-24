@@ -35,8 +35,9 @@ Debug& operator<<(Debug& dbg, const chunk_coords_& c)
 
 size_t chunk_coords_::hash() const noexcept
 {
-    static_assert(sizeof *this == 6);
-    return hash_buf(this, sizeof *this);
+    int16_t buf[3] = { x, y, (int16_t)z, };
+    static_assert(sizeof buf == 6);
+    return hash_buf(buf, sizeof buf);
 }
 
 size_t global_coords::hash() const noexcept
