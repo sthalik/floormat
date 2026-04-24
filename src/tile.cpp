@@ -4,8 +4,10 @@
 
 namespace floormat {
 
-// no avoiding it with rotations
-static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y());
+static_assert(iTILE_SIZE2 == Vector2i{tile_size_xy});
+static_assert(iTILE_SIZE == Vector3i{tile_size_xy, tile_size_xy, tile_size_z});
+static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y()); // no avoiding it with rotations
+static_assert(tile_size_xy % 2 == 0);
 
 bool operator==(const tile_proto& a, const tile_proto& b) noexcept {
     if (const auto &A = a.ground(), &B = b.ground(); A != B)
