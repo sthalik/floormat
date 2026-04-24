@@ -52,7 +52,7 @@ light::light(object_id id, class chunk& c, const light_proto& proto) :
 
 int32_t light::depth_offset() const
 {
-    return 0;
+    return tile_size_xy * 4;
 }
 
 light::operator light_proto() const

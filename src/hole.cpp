@@ -1,4 +1,5 @@
 #include "hole.hpp"
+#include "tile-defs.hpp"
 #include "chunk.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
@@ -81,7 +82,7 @@ void hole::mark_neighbor_chunks_modified()
 
 int32_t hole::depth_offset() const
 {
-    return 0;
+    return tile_size_xy * 4;
 }
 
 void hole::set_height(uint8_t heightʹ)
@@ -113,7 +114,7 @@ void hole::set_enabled(bool value)
 
 object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
-bool hole::is_dynamic() const { return false; }
+bool hole::is_dynamic() const { return true; }
 bool hole::updates_passability() const { return true; }
 bool hole::updates_walls() const { return true; }
 
