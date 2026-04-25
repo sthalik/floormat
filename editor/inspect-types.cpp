@@ -13,6 +13,7 @@
 #include <cr/ArrayViewStl.h>
 #include <mg/Color.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace floormat::entities {
 
@@ -25,6 +26,17 @@ constexpr int32_t wraparound(int32_t n, int32_t N) // for object::frame
     fm_assert(N <= limits<int32_t>::max/2);
     const auto ret = ((n % N) + N) % N;
     return ret;
+}
+
+template<typename T>
+constexpr T round_to_even(T value, T old_value)
+{
+    constexpr T hi = T(limits<T>::max & ~T{1});
+    constexpr T lo = std::is_unsigned_v<T> ? T{2} : limits<T>::min;
+    T even    = T(value & T(~T{1}));
+    T rounded = value >= old_value && value < hi ? T(even + T{2}) : even;
+    T result  = value & 1 ? rounded : even;
+    return Math::clamp(result, lo, hi);
 }
 
 } // namespace
@@ -98,7 +110,15 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<Vector2ub>::field{"bbox-size"_s,
                 &object::bbox_size,
-                [](object& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
+                [](object& x, Vector2ub value)
+                {
+                    if (!ImGui::GetInputTextState(ImGui::GetActiveID()) || ImGui::IsItemDeactivatedAfterEdit())
+                    {
+                        value.x() = round_to_even(value.x(), x.bbox_size.x());
+                        value.y() = round_to_even(value.y(), x.bbox_size.y());
+                    }
+                    x.set_bbox(x.offset, x.bbox_offset, value, x.pass);
+                },
                 [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },
                 constantly(constraints::range<Vector2ub>{{1,1}, {255, 255}}),
             },

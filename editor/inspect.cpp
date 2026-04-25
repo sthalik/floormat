@@ -170,6 +170,15 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
+        if (ImGui::IsItemDeactivatedAfterEdit() && !should_disable
+            && accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
+        {
+            T current{};
+            accessor.read_fun(datum, accessor.reader, &current);
+            accessor.write_fun(datum, accessor.writer, &current);
+            return true;
+        }
+
         value = Math::clamp(value, min, max);
     }
 
