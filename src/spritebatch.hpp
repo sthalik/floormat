@@ -40,7 +40,7 @@ public:
     void emit(const Quads::vertexes& vertexes, float depth);
     void emit(SpriteList& list, bool render_vobjs);
 
-    void emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth);
+    void emit_quick(tile_shader& shader, const anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth);
 
     explicit SpriteBatch();
     ~SpriteBatch() noexcept;

@@ -47,6 +47,14 @@ struct quick_draw
     GL::Buffer _vertex_buffer{NoCreate}, _index_buffer{NoCreate};
 };
 
+constexpr uint32_t slot_count = 3;
+
+struct slot
+{
+    GL::Mesh mesh{NoCreate};
+    GL::Buffer vertex_buffer_handle{NoCreate};
+};
+
 struct draw_item
 {
     Quads::vertexes vertexes;
@@ -67,8 +75,9 @@ struct SpriteBatch::Impl
     Array<draw_item> data;
     Array<uint32_t> starts, sort_indexes, merge_output;
 
-    GL::Mesh mesh{NoCreate};
-    GL::Buffer vertex_buffer_handle{NoCreate}, index_buffer_handle{NoCreate};
+    slot slots[slot_count];
+    GL::Buffer index_buffer_handle{NoCreate};
+    uint32_t slot_idx = 0;
     uint32_t buffer_capacity = 0;
     uint32_t last_start = 0;
     bool in_chunk = false;
@@ -113,10 +122,17 @@ void SpriteBatch::clear()
 void SpriteBatch::ensure_allocated(uint32_t count)
 {
     auto& impl = *this->impl;
-    auto cap  = ensure_buffer_size<Quads::vertexes>(impl.vertex_buffer_handle, impl.buffer_capacity, count);
-    auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
-    fm_debug_assert(cap == cap2);
-    impl.buffer_capacity = cap;
+    if (count <= impl.buffer_capacity) [[likely]]
+        return;
+    uint32_t new_cap = 0;
+    const auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
+    for (auto& s : impl.slots)
+    {
+        auto cap  = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
+        fm_debug_assert(cap == cap2);
+        new_cap = cap;
+    }
+    impl.buffer_capacity = new_cap;
 }
 
 void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
@@ -290,21 +306,23 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 
     sort_vertex_buffer(do_sort); // modifies V
     ensure_allocated(size);
-    impl.vertex_buffer_handle.setSubData(0, ArrayView{ V.data(), size });
+
+    auto& slot = impl.slots[impl.slot_idx];
+
+    slot.vertex_buffer_handle.setSubData(0, ArrayView{ V.data(), size });
 
     auto& I = impl.index_buffer;
     const auto Isz = (uint32_t)I.size();
     reserve(I, size);
     for (auto i = Isz; i < size; i++)
         I[i] = Quads::quad_indexes(i);
-
     impl.index_buffer_handle.setSubData(0, ArrayView{ I.data(), size });
 
-    auto& mesh = impl.mesh;
+    auto& mesh = slot.mesh;
     if (!mesh.id())
     {
         mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
-        mesh.addVertexBuffer(impl.vertex_buffer_handle, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
+        mesh.addVertexBuffer(slot.vertex_buffer_handle, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
         mesh.setIndexBuffer(impl.index_buffer_handle, 0, GL::MeshIndexType::UnsignedShort);
     }
     mesh.setCount(6 * (Int)V.size());
@@ -312,10 +330,12 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 
     shader.draw(loader.atlas().texture(), mesh);
 
+    impl.slot_idx = (impl.slot_idx + 1) % slot_count;
     clear();
 }
 
-void SpriteBatch::emit_quick(tile_shader& shader, anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth)
+void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotation r, size_t frame,
+                             const Vector3& center, const Quads::depths& depth)
 {
     auto& impl = *this->impl;
     const auto pos = atlas.frame_quad(center, r, frame);
