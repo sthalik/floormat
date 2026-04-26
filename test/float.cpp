@@ -36,7 +36,7 @@ void test_float_zero()
     {
         const volatile float got = nth_float(FLT_MIN, n);
         const volatile float expected = slow_nth_float(FLT_MIN, n);
-        fm_assert_equal(got, expected);
+        fm_assert_equal(expected, got);
         //fm_assert(std::bit_cast<uint32_t>(got) == n);
     }
 }
@@ -55,7 +55,7 @@ void test_float_normal()
         const float expected = slow_nth_float(x, n);
         const uint32_t ugot = std::bit_cast<uint32_t>(got);
 
-        fm_assert_equal(got, expected);
+        fm_assert_equal(expected, got);
         fm_assert(ugot == ux + n);
         fm_assert(n == 0 ? got == x : got > x);
         fm_assert(got < 1.f);
