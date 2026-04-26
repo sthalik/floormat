@@ -6,6 +6,7 @@
 #include "imgui-text.hpp"
 #include "draw/wireframe-meshes.hpp"
 #include "src/sprite-atlas-impl.hpp"
+#include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
 #include <mg/ImGuiIntegration/Context.h>
