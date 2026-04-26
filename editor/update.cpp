@@ -23,20 +23,6 @@ namespace floormat {
 
 //#define FM_NO_BINDINGS
 
-void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
-{
-    auto floor1 = loader.ground_atlas("floor-tiles");
-
-    for (auto k = 0u; k < TILE_COUNT; k++)
-        c[k].ground() = { floor1, variant_t(k % floor1->num_tiles()) };
-    c.mark_modified();
-}
-
-void app::maybe_initialize_chunk([[maybe_unused]] const chunk_coords_& pos, [[maybe_unused]] chunk& c)
-{
-    //maybe_initialize_chunk_(pos, c);
-}
-
 void app::do_mouse_move(int mods)
 {
     if (cursor.tile && !cursor.in_imgui)
