@@ -483,7 +483,7 @@ constexpr bool assert_divisor_table()
 constexpr bool assert_inverse_divisor_table()
 {
     constexpr auto divisors = make_divisor_table();
-     constexpr auto inv = make_inverse_divisor_table();
+    constexpr auto inv = make_inverse_divisor_table();
     using T = std::remove_cvref_t<decltype(inv[0])>;
     constexpr T sentinel = (T)-1;
 

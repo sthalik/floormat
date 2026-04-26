@@ -33,7 +33,7 @@ constexpr uint32_t point::distance(point a, point b)
     return (uint32_t)Math::ceil(Math::sqrt(Vector2(dist).dot()));
 }
 
-constexpr uint32_t point::distance_l2(point a, point b)
+constexpr uint32_t point::distance_l1(point a, point b)
 {
     Vector2i dist = a - b;
     return (uint32_t)Math::abs(dist).sum();

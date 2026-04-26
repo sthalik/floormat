@@ -30,12 +30,12 @@ void test1(StringView instance_name, const Function& make_dt, double accel, uint
                        .rotation = N,
                    },
                    Expected{
-                       .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L2 == 3
+                       .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L1 == 3
                        .time = 6950*Millisecond,
                    },
                    Grace{
                        .time = 300*Millisecond,
-                       .distance_L2 = 4,
+                       .distance_L1 = 4,
                        .max_steps = max_steps,
                    });
     fm_assert(ret);
@@ -65,7 +65,7 @@ void test2(StringView instance_name, const Function& make_dt, double accel, uint
                },
                Grace{
                    .time = 500*Millisecond,
-                   .distance_L2 = 4,
+                   .distance_L1 = 4,
                    .max_steps = max_steps,
                });
     fm_assert(ret);
@@ -110,7 +110,7 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
            },
            Grace{
                //.time = 15*Second,
-               //.distance_L2 = (uint32_t)-1,
+               //.distance_L1 = (uint32_t)-1,
                .max_steps = 1000,
                .no_crash = true,
            });

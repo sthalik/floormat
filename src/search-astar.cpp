@@ -304,7 +304,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 #endif
         }
 
-        if (auto dist_to_goal = point::distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
+        if (auto dist_to_goal = point::distance_l1(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist + dist_to_goal;
             if (auto bb = Range2D(bbox_from_pos2(to, cur_pt, own_size));
@@ -348,7 +348,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 new_idx = (uint32_t)sz;
                 cache.add_index(chunk_idx, tile_idx, new_idx);
                 auto new_node = visited {
-                    .dist = dist, .prev = cur_idx,
+                    .dist = dist,
+                    .prev = cur_idx,
                     .pt = new_pt,
                 };
                 arrayAppend(nodes, new_node);

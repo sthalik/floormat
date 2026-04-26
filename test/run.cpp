@@ -55,8 +55,8 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     fm_assert(start.rotation < rotation_COUNT);
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    if (grace.distance_L2 != (uint32_t)-1) [[unlikely]]
-        fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
+    if (grace.distance_L1 != (uint32_t)-1) [[unlikely]]
+        fm_assert(grace.distance_L1 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
 
     mark_all_modified(w);
 
@@ -81,7 +81,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     << " " << pos
                     << " time:" << time
                     << " dt:" << dt
-                    << " dist:" << point::distance_l2(pos, start)
+                    << " dist:" << point::distance_l1(pos, start)
                     << " delta:" << npc.delta
                     << " frac:" << npc.offset_frac;
     };
@@ -124,7 +124,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     DBG_nospace << "===>"
                         << " iters,"
                         << " time:" << time
-                        << " distance:" << point::distance_l2(last_pos, expected.pt) << " px"
+                        << " distance:" << point::distance_l1(last_pos, expected.pt) << " px"
                         << Debug::newline;
                 }
                 break;
@@ -154,14 +154,14 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         }
     }
 
-    if (const auto dist_l2 = point::distance_l2(last_pos, expected.pt);
-        dist_l2 > grace.distance_L2) [[unlikely]]
+    if (const auto dist_l1 = point::distance_l1(last_pos, expected.pt);
+        dist_l1 > grace.distance_L1) [[unlikely]]
     {
-        Error{standard_error()} << "!!! fatal: distance" << dist_l2 << "pixels" << "over grace distance of" <<  grace.distance_L2;
+        Error{standard_error()} << "!!! fatal: distance" << dist_l1 << "pixels" << "over grace distance of" <<  grace.distance_L1;
         return fail(__FILE__, __LINE__);
     }
     else if (start.verbose) [[unlikely]]
-        Debug{} << "*" << "distance:" << dist_l2 << "pixels";
+        Debug{} << "*" << "distance:" << dist_l1 << "pixels";
 
     if (expected.time != Ns{}) [[likely]]
     {

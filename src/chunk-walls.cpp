@@ -334,8 +334,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     };
                     if (!sub_size.x() || !sub_size.y())
                         continue;
+                    const auto sub_offset_loc = Vector2ui{(unsigned)rs.x(), (unsigned)re.y()};
                     const auto texcoords = loader.atlas().texcoords_for(
-                        sp, Vector2ui{(unsigned)rs.x(), (unsigned)re.y()}, sub_size, dir.corner.mirrored);
+                        sp, sub_offset_loc, sub_size, dir.corner.mirrored);
                     const auto frag_zmin = rs.y();
                     const auto frag_zmax = Z - re.y();
                     Quads::quad quad;

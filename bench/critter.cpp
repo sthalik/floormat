@@ -83,7 +83,7 @@ struct Expected
 struct Grace
 {
     Ns time = Ns{250};
-    uint32_t distance_L2 = 24;
+    uint32_t distance_L1 = 24;
     static constexpr bool no_crash = true;
 };
 
@@ -105,7 +105,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     fm_assert(start.rotation < rotation_COUNT);
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    fm_assert(grace.distance_L2 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
+    fm_assert(grace.distance_L1 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
 
     mark_all_modified(w);
 
@@ -130,7 +130,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     << " " << pos
                     << " time:" << time
                     << " dt:" << dt
-                    << " dist:" << point::distance_l2(pos, start)
+                    << " dist:" << point::distance_l1(pos, start)
                     << " delta:" << npc.delta
                     << " frac:" << npc.offset_frac;
     };
@@ -173,7 +173,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     DBG_nospace << "===>"
                         << " iters,"
                         << " time:" << time
-                        << " distance:" << point::distance_l2(last_pos, expected.pt) << " px"
+                        << " distance:" << point::distance_l1(last_pos, expected.pt) << " px"
                         << Debug::newline;
                 }
                 break;
@@ -202,14 +202,14 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         }
     }
 
-    if (const auto dist_l2 = point::distance_l2(last_pos, expected.pt);
-        dist_l2 > grace.distance_L2) [[unlikely]]
+    if (const auto dist_l1 = point::distance_l1(last_pos, expected.pt);
+        dist_l1 > grace.distance_L1) [[unlikely]]
     {
-        Error{standard_error()} << "!!! fatal: distance" << dist_l2 << "pixels" << "over grace distance of" <<  grace.distance_L2;
+        Error{standard_error()} << "!!! fatal: distance" << dist_l1 << "pixels" << "over grace distance of" <<  grace.distance_L1;
         return fail(__FILE__, __LINE__);
     }
     else if (start.verbose) [[unlikely]]
-        Debug{} << "*" << "distance:" << dist_l2 << "pixels";
+        Debug{} << "*" << "distance:" << dist_l1 << "pixels";
 
     if (expected.time != Ns{}) [[likely]]
     {
@@ -245,7 +245,7 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
                        .rotation = N,
                    },
                    Expected{
-                       .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L2 == 3
+                       .pt = {{0,0,0}, {8, 9}, {-6,-15}}, // distance_L1 == 3
                        .time = 6950*Millisecond,
                    },
                    Grace{
@@ -279,7 +279,7 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
                },
                Grace{
                    .time = 500*Millisecond,
-                   .distance_L2 = 8,
+                   .distance_L1 = 8,
                });
     //fm_assert(ret);
     (void)ret;

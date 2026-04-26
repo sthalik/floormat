@@ -165,12 +165,12 @@ void test_walking1(StringView instance_name, Function make_dt, double accel, uin
                            .rotation = E,
                        },
                        Expected{
-                           .pt = {{0,0,0}, {7, 8}, {8,0}}, // distance_L2 == 3
+                           .pt = {{0,0,0}, {7, 8}, {8,0}}, // distance_L1 == 3
                            .time = 7600.15*Millisecond,
                        },
                        Grace{
                            .time = 300*Millisecond,
-                           .distance_L2 = 4,
+                           .distance_L1 = 4,
                            .max_steps = max_steps,
                        });
         fm_assert(ret1);
@@ -193,12 +193,12 @@ void test_walking1(StringView instance_name, Function make_dt, double accel, uin
                            .rotation = E,
                        },
                        Expected{
-                           .pt = {{0,0,0}, {11, 8}, {8,0}}, // distance_L2 == 3
+                           .pt = {{0,0,0}, {11, 8}, {8,0}}, // distance_L1 == 3
                            .time = 11.9*Seconds,
                        },
                        Grace{
                            .time = 300*Millisecond,
-                           .distance_L2 = 4,
+                           .distance_L1 = 4,
                            .max_steps = max_steps,
                        });
         fm_assert(ret2);

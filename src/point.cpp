@@ -77,22 +77,22 @@ namespace krap {
 
 constexpr auto Ch = iTILE_SIZE2 * TILE_MAX_DIM;
 
-static_assert(point::distance_l2(
+static_assert(point::distance_l1(
     point{{ 1,  2, 0}, {3, 4}, {32, 32}},
     point{{ 0,  0, 0}, {0, 0}, {32, 32}}
 ) == (uint32_t)Math::abs((Vector2i(1, 2)*Ch + Vector2i{3, 4} * iTILE_SIZE2 + Vector2i{0, 0}).sum()));
 
-static_assert(point::distance_l2(
+static_assert(point::distance_l1(
     point{{ 0,  0, 0}, {0, 0}, {30, 30}},
     point{{ 1,  2, 0}, {3, 4}, {31, 31}}
 ) == (uint32_t)Math::abs((Vector2i(1, 2)*Ch + Vector2i{3, 4} * iTILE_SIZE2 + Vector2i{1, 1}).sum()));
 
-static_assert(point::distance_l2(
+static_assert(point::distance_l1(
     point{{ 2,  3, 0}, {4, 5}, {32, 32}},
     point{{ 1,  2, 0}, {3, 4}, {31, 31}}
 ) == (uint32_t)Math::abs((Vector2i(1, 1)*Ch + Vector2i{1, 1} * iTILE_SIZE2 + Vector2i{1, 1}).sum()));
 
-static_assert(point::distance_l2(
+static_assert(point::distance_l1(
     point{{ 1,  2, 0}, {3, 4}, {31, 31}},
     point{{ 2,  3, 0}, {4, 5}, {32, 32}}
 ) == (uint32_t)Math::abs((Vector2i(1, 1)*Ch + Vector2i{1, 1} * iTILE_SIZE2 + Vector2i{1, 1}).sum()));
