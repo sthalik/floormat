@@ -182,9 +182,88 @@ void set_result_from_idx(path_search_result& result,
     arrayResize(temp_nodes, 0);
 }
 
+struct bake_search_cache
+{
+    Pass::Pool* pool = nullptr;
+    Pass::Grid last_grid{nullptr, nullptr};
+    chunk_coords_ last_ch{};
+    bool valid = false;
+
+    void ensure_pool(Pass::PoolRegistry& reg, uint32_t bbox_size)
+    {
+        auto& np = reg.pool_for(bbox_size);
+        if (&np != pool) [[unlikely]]
+        {
+            pool = &np;
+            valid = false;
+        }
+    }
+
+    Pass::Grid operator[](chunk& c)
+    {
+        const auto ch = c.coord();
+        if (valid && ch == last_ch)
+            return last_grid;
+        last_grid = (*pool)[c];
+        last_ch = ch;
+        valid = true;
+        return last_grid;
+    }
+};
+
+[[maybe_unused]] bool bake_point_passable(Pass::PoolRegistry& reg,
+                                       world& w, point pt,
+                                       Vector2ui own_size,
+                                       bake_search_cache& bc)
+{
+    const auto bbox = (uint32_t)Math::max(own_size.x(), own_size.y());
+    bc.ensure_pool(reg, bbox);
+    auto* c = w.at(pt.chunk3());
+    if (!c)
+        return true;
+    auto g = bc[*c];
+    g.build_if_stale();
+    return g.bit(g.get_bitmask_index_from_coord(pt.local(), pt.offset()));
+}
+
+[[maybe_unused]] bool bake_edge_passable(Pass::PoolRegistry& reg,
+                                         world& w, point from, point to,
+                                         Vector2ui own_size,
+                                         bake_search_cache& bc)
+{
+    const auto bbox = (uint32_t)Math::max(own_size.x(), own_size.y());
+    bc.ensure_pool(reg, bbox);
+
+    auto cell_clear = [&](point pt) -> bool
+    {
+        auto* c = w.at(pt.chunk3());
+        if (!c)
+            return true;
+        auto g = bc[*c];
+        g.build_if_stale();
+        return g.bit(g.get_bitmask_index_from_coord(pt.local(), pt.offset()));
+    };
+
+    if (!cell_clear(to))
+        return false;
+
+    auto delta = to - from;
+    if (delta.x() != 0 && delta.y() != 0)
+    {
+        auto corner_a = point::normalize_coords(from, {delta.x(), 0});
+        auto corner_b = point::normalize_coords(from, {0, delta.y()});
+        if (!cell_clear(corner_a))
+            return false;
+        if (!cell_clear(corner_b))
+            return false;
+    }
+
+    return true;
+}
+
 } // namespace
 
-astar::astar()
+astar::astar(): _pool_registry(Search::div_size.max())
 {
 }
 
@@ -216,14 +295,21 @@ frontier astar::pop_from_heap()
     return n;
 }
 
+#undef FLOORMAT_NEW_PASSABILITY
+#define FLOORMAT_NEW_PASSABILITY
+
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
-                                   object_id own_id, uint32_t max_dist, Vector2ui own_size_,
-                                   int debug, const pred& p, const heuristic& h)
+                                   [[maybe_unused]] object_id own_id, uint32_t max_dist, Vector2ui own_size_,
+                                   int debug, [[maybe_unused]] const pred& p, const heuristic& h)
 {
 #ifdef FM_NO_DEBUG
     (void)debug;
 #endif
     reserve(initial_capacity);
+
+    _pool_registry.maybe_mark_stale_all(w.frame_no());
+    _pool_registry.build_if_stale_all();
+    [[maybe_unused]] bake_search_cache bc;
 
     Timeline timeline;
     if (debug > 0) [[unlikely]]
@@ -245,11 +331,21 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (from.coord().z() != 0) [[unlikely]]
         return {};
 
+#ifdef FLOORMAT_NEW_PASSABILITY
+    if (!bake_point_passable(_pool_registry, w, from, own_size_, bc))
+        return {};
+#else
     if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size_, own_id, p))
         return {};
+#endif
 
+#ifdef FLOORMAT_NEW_PASSABILITY
+    if (!bake_point_passable(_pool_registry, w, to, own_size, bc))
+        return {};
+#else
     if (!path_search::is_passable(w, cache, to.coord(), to.offset(), own_size, own_id, p))
         return {};
+#endif
 
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
 
@@ -259,10 +355,15 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
             auto off = Vector2i(x, y) * div_size;
             auto pt = point::normalize_coords({from.coord(), {}}, off);
-            auto bb = Range2D(bbox_from_pos2(from, pt, own_size));
             auto dist = point::distance(from, pt) + min_dist;
 
-            if (path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p))
+#ifdef FLOORMAT_NEW_PASSABILITY
+            const bool ok = bake_edge_passable(_pool_registry, w, from, pt, own_size, bc);
+#else
+            auto bb = Range2D(bbox_from_pos2(from, pt, own_size));
+            const bool ok = path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p);
+#endif
+            if (ok)
             {
                 auto idx = (uint32_t)nodes.size();
                 cache.add_index(pt, idx);
@@ -307,8 +408,13 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (auto dist_to_goal = point::distance_l2(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist + dist_to_goal;
-            if (auto bb = Range2D(bbox_from_pos2(to, cur_pt, own_size));
-                path_search::is_passable(w, cache, to.chunk3(), bb, own_id, p))
+#ifdef FLOORMAT_NEW_PASSABILITY
+            const bool ok = bake_edge_passable(_pool_registry, w, cur_pt, to, own_size, bc);
+#else
+            auto bb = Range2D(bbox_from_pos2(to, cur_pt, own_size));
+            const bool ok = path_search::is_passable(w, cache, to.chunk3(), bb, own_id, p);
+#endif
+            if (ok)
             {
                 goal_idx = cur_idx;
                 max_dist = dist;
@@ -338,8 +444,13 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                     continue;
             }
 
-            if (auto bb = Range2D(bbox_from_pos2(new_pt, cur_pt, own_size));
-                !path_search::is_passable(w, cache, new_pt.chunk3(), bb, own_id, p))
+#ifdef FLOORMAT_NEW_PASSABILITY
+            const bool blocked = !bake_edge_passable(_pool_registry, w, cur_pt, new_pt, own_size, bc);
+#else
+            auto bb = Range2D(bbox_from_pos2(new_pt, cur_pt, own_size));
+            const bool blocked = !path_search::is_passable(w, cache, new_pt.chunk3(), bb, own_id, p);
+#endif
+            if (blocked)
                 continue;
 
             if (new_idx == (uint32_t)-1)
@@ -403,7 +514,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (goal_idx != (uint32_t)-1)
         {
             auto d = nodes[goal_idx].dist;
-            len = snformat(buf, "Dijkstra: found in {:.1f} ms "
+            len = snformat(buf, "Dijkstra: found in {:.2f} ms "
                                 "len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, d, d0,
                            d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
@@ -412,7 +523,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         {
             const auto& closest = nodes[closest_idx];
             fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
-            len = snformat(buf, "Dijkstra: no path found in {:.1f} ms "
+            len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, closest_dist, closest.dist, d0,
                            d0 > 0 ? (float)closest.dist/(float)d0 : 1);

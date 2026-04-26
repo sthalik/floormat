@@ -36,6 +36,7 @@ void test_loader();
 void test_loader2();
 void test_loader3();
 void test_local();
+void test_path_pool();
 void test_magnum_math();
 void test_math();
 void test_raycast();

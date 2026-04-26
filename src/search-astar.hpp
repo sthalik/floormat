@@ -3,6 +3,7 @@
 #include "search-constants.hpp"
 #include "search-pred.hpp"
 #include "object-id.hpp"
+#include "search-pool.hpp"
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
@@ -41,6 +42,7 @@ private:
     frontier pop_from_heap();
 
     safe_ptr<struct Search::cache> _cache;
+    Pass::PoolRegistry _pool_registry{(uint32_t)Search::div_size.x()};
     Array<visited> nodes;
     Array<frontier> Q;
     Array<point> temp_nodes;

@@ -572,7 +572,7 @@ bool Params::operator==(const Params&) const noexcept = default;
 Params Params::validate() const
 {
     using detail::grid::calc_div_size;
-    constexpr uint32_t min_bbox_size = 8;
+    constexpr uint32_t min_bbox_size = 4;
 
     auto bbox_sizeʹ = Math::max(min_bbox_size, bbox_size);
     auto div_sizeʹ  = calc_div_size(div_size, bbox_sizeʹ);
