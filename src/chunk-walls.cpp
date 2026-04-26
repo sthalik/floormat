@@ -489,7 +489,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 fm_debug2_assert(frame.size == Vector2ui{Depth, tile_size_xy});
                 fm_debug2_assert(tex_left + tex_right <= frame.size.y());
-                const auto sub_offset_loc = Vector2ui(0, tex_right);
+                const auto sub_offset_loc = Vector2ui(0, tex_left);
                 const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
                 if (!sub_size.y())
                     continue;
