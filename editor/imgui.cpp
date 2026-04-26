@@ -136,6 +136,10 @@ float app::draw_main_menu()
                 _test_text_painter = !_test_text_painter;
             if (ImGui::MenuItem("Wall + hole scene with UV bug"))
                 populate_dev_test_world_2();
+            if (ImGui::MenuItem("Build UV repro scene"))
+                populate_uv_repro_world();
+            if (ImGui::MenuItem("Build UV repro scene 2 (corners)"))
+                populate_uv_repro_world_2();
         }
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
