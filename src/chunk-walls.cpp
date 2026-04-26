@@ -111,6 +111,9 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
 
     for (auto hole : holes)
     {
+        hole.z.max() = Math::min(hole.z.max(), uint8_t{tile_size_z});
+        hole.z.min() = Math::min({hole.z.min(), uint8_t{tile_size_z}, hole.z.max()});
+
         fm_debug2_assert(hole.pos.min().x() <= hole.pos.max().x());
         fm_debug2_assert(hole.pos.min().y() <= hole.pos.max().y());
         fm_debug2_assert(hole.z.min() <= hole.z.max());
