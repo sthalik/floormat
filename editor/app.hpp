@@ -103,6 +103,8 @@ private:
     void reset_world();
     void reset_world(class world&& w);
     void populate_dev_test_world_2();
+    void populate_uv_repro_world();
+    void populate_uv_repro_world_2();
 
     void draw() override;
 
