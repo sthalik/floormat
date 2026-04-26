@@ -90,7 +90,7 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     new_texture.setStorage(1, GL::TextureFormat::RGBA8,
                            {layer_size, layer_size, (Int)new_n_layers})
                .setMagnificationFilter(GL::SamplerFilter::Nearest)
-               .setMinificationFilter(GL::SamplerFilter::Nearest)
+               .setMinificationFilter(GL::SamplerFilter::Linear)
                .setWrapping(GL::SamplerWrapping::ClampToEdge);
 
     auto rect = Range2Di{{}, {layer_size, layer_size}};
