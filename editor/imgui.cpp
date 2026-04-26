@@ -129,9 +129,13 @@ float app::draw_main_menu()
                 do_key(key_render_vobjs);
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
-            ImGui::SeparatorText("Tests");
-            if (ImGui::MenuItem("Text Painter Test", nullptr, _test_text_painter))
+        }
+        if (auto b = begin_menu("Tests"))
+        {
+            if (ImGui::MenuItem("Text painter test", nullptr, _test_text_painter))
                 _test_text_painter = !_test_text_painter;
+            if (ImGui::MenuItem("Wall + hole scene with UV bug"))
+                populate_dev_test_world_2();
         }
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
