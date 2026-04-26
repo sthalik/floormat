@@ -25,6 +25,8 @@ struct meshes;
 
 namespace floormat::tests { struct tests_data; }
 
+namespace floormat::imgui { class text_painter_pool; }
+
 namespace floormat {
 
 struct fm_settings;
@@ -133,6 +135,7 @@ private:
     void draw_collision_boxes();
     void draw_clickables();
     void draw_light_info();
+    void draw_text_painter_test();
     void draw_lightmap_test(float main_menu_height);
     void do_lightmap_test();
 
@@ -193,6 +196,7 @@ private:
     safe_ptr<tests_data_> _tests;
     safe_ptr<editor> _editor;
     safe_ptr<key_set> keys_;
+    safe_ptr<imgui::text_painter_pool> _text_pool;
     struct key_modifiers_ { int data[key_COUNT]; } key_modifiers;
     Array<popup_target> inspectors;
     object_id _character_id = 0;
@@ -203,11 +207,12 @@ private:
 
     int8_t _z_level = 0;
 
-    bool _pending_popup         : 1 = false;
-    bool _render_bboxes         : 1 = false;
-    bool _render_clickables     : 1 = false;
-    bool _render_vobjs          : 1 = true;
-    bool _render_all_z_levels   : 1 = true;
+    bool _pending_popup       : 1 = false;
+    bool _render_bboxes       : 1 = false;
+    bool _render_clickables   : 1 = false;
+    bool _render_vobjs        : 1 = true;
+    bool _render_all_z_levels : 1 = true;
+    bool _test_text_painter   : 1 = false;
 };
 
 } // namespace floormat

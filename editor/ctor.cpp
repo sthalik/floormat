@@ -3,6 +3,7 @@
 #include "src/world.hpp"
 #include "editor.hpp"
 #include "tests.hpp"
+#include "imgui-text.hpp"
 #include "draw/wireframe-meshes.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "loader/loader.hpp"
@@ -18,6 +19,7 @@ app::app(fm_settings&& opts) :
     _tests{tests_data_::make()},
     _editor{InPlaceInit, this},
     keys_{InPlaceInit, 0u},
+    _text_pool{InPlaceInit},
     key_modifiers{}
 {
     reset_world_post();

@@ -12,11 +12,10 @@
 #include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
 #include "imgui-raii.hpp"
+#include "imgui-text.hpp"
 #include "src/light.hpp"
 #include "loader/loader.hpp"
 #include "src/point.inl"
-#include <tuple>
-#include <fmt/ranges.h>
 #include <mg/Renderer.h>
 #include <mg/ImGuiIntegration/Context.h>
 #include <imgui.h>
@@ -130,6 +129,9 @@ float app::draw_main_menu()
                 do_key(key_render_vobjs);
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
+            ImGui::SeparatorText("Tests");
+            if (ImGui::MenuItem("Text Painter Test", nullptr, _test_text_painter))
+                _test_text_painter = !_test_text_painter;
         }
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
@@ -178,6 +180,8 @@ void app::draw_ui()
         draw_clickables();
     if (_render_vobjs)
         draw_light_info();
+    if (_test_text_painter)
+        draw_text_painter_test();
     if (_editor->mode() == editor_mode::tests)
         draw_tests_overlay();
     const float main_menu_height = draw_main_menu();
@@ -268,53 +272,266 @@ void app::draw_light_info()
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto dpi = M->dpi_scale();
     const auto& style = ImGui::GetStyle();
-    const ImVec2 pad { style.FramePadding.x*.5f, 0 };
+    const float pad_x = style.FramePadding.x * .5f;
+
+    const auto yellow = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
+    const auto bg_col = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
+    const float font_size = ImGui::GetCurrentContext()->FontSize;
 
     for (const auto& x : M->clickable_scenery())
     {
-        if (x.e->type() == object_type::light)
+        if (x.e->type() != object_type::light)
+            continue;
+        const auto& e = static_cast<const light&>(*x.e);
+        const auto dest = Math::Range2D<float>(x.dest);
+
+        StringView falloff;
+        switch (e.falloff)
         {
-            const auto dest = Math::Range2D<float>(x.dest);
-            const auto& e = static_cast<const light&>(*x.e);
-
-            StringView falloff;
-            switch (e.falloff)
-            {
-            default: falloff = "?"_s; break;
-            case light_falloff::constant: falloff = "constant"_s; break;
-            case light_falloff::linear: falloff = "linear"_s; break;
-            case light_falloff::quadratic: falloff = "quadratic"_s; break;
-            }
-
-            StringView s, s_falloff, s_range, s_radius;
-            char buf[64], buf1[32], buf2[32], buf3[32];
-
-            s_falloff    = { buf1, snformat(buf1, "{}"_cf, falloff) };
-            if (e.max_distance > 0)
-                s_range  = { buf2, snformat(buf2, "range={}"_cf, e.max_distance) };
-            if (e.radius > 0)
-                s_radius = { buf3, snformat(buf3, "radius={}"_cf, e.radius) };
-
-            constexpr auto space = fmt::string_view{" "};
-            s = { buf, snformat(buf, "{}"_cf, fmt::join(std::tuple{s_falloff, s_range, s_radius}, space)) };
-
-            auto text_size = ImGui::CalcTextSize(s.begin(), s.end());
-
-            float offy = dest.max().y() + 5 * dpi.y();
-            float offx = dest.min().x() + (dest.max().x() - dest.min().x())*.5f - text_size.x*.5f + 9*dpi.x()*.5f;
-
-            constexpr auto inv_255 = 1.f/255;
-            auto color = Vector4(e.color)*inv_255 * e.color.a()*inv_255;
-            auto color_pad_y = 3 * dpi.y();
-
-            draw.AddRectFilled({offx-pad.x - 9 * dpi.x(), offy-pad.y},
-                               {offx + text_size.x + pad.x, offy + text_size.y + pad.y},
-                               ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1}));
-            draw.AddText({offx, offy}, ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1}), s.begin(), s.end());
-            draw.AddRectFilled({offx-pad.x - 5 * dpi.x(), offy-pad.y + color_pad_y},
-                               {offx-pad.x + 0 * dpi.x(), offy-pad.y + text_size.y - color_pad_y + 1},
-                               ImGui::ColorConvertFloat4ToU32({color.x(), color.y(), color.z(), 1}));
+        default: falloff = "?"_s; break;
+        case light_falloff::constant: falloff = "constant"_s; break;
+        case light_falloff::linear: falloff = "linear"_s; break;
+        case light_falloff::quadratic: falloff = "quadratic"_s; break;
         }
+
+        constexpr auto inv_255 = 1.f/255;
+        const auto col = Vector4(e.color)*inv_255 * float(e.color.a())*inv_255;
+        const auto swatch_col = ImGui::ColorConvertFloat4ToU32({col.x(), col.y(), col.z(), 1});
+
+        auto p = _text_pool->make(font_size);
+        p.with_background(bg_col, {pad_x, 0});
+        p.rect(swatch_col, 5*dpi.x(), 3*dpi.y());
+        p.gap(pad_x);
+        p.text(yellow, falloff);
+        if (e.max_distance > 0)
+            p.text(yellow, " "_s).format(yellow, "range={}", e.max_distance);
+        if (e.radius > 0)
+            p.text(yellow, " "_s).format(yellow, "radius={}", e.radius);
+
+        const auto sz = p.size();
+        const float offx = (dest.min().x() + dest.max().x())*.5f - sz.x()*.5f;
+        const float offy = dest.max().y() + 5 * dpi.y();
+
+        p.render(draw, {offx, offy});
+    }
+}
+
+void app::draw_text_painter_test()
+{
+    ImDrawList& draw = *ImGui::GetForegroundDrawList();
+    const auto dpi = M->dpi_scale();
+    const auto& style = ImGui::GetStyle();
+    const float pad_x = style.FramePadding.x * .5f;
+    const float font_size = ImGui::GetCurrentContext()->FontSize;
+    const float line_h = font_size + 6 * dpi.y();
+
+    const auto white   = ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 1.0f, 1.0f });
+    const auto gray    = ImGui::ColorConvertFloat4ToU32({ 0.55f, 0.55f, 0.55f, 1.0f });
+    const auto yellow  = ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 0.2f, 1.0f });
+    const auto red     = ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.3f, 0.3f, 1.0f });
+    const auto green   = ImGui::ColorConvertFloat4ToU32({ 0.3f, 1.0f, 0.3f, 1.0f });
+    const auto blue    = ImGui::ColorConvertFloat4ToU32({ 0.4f, 0.6f, 1.0f, 1.0f });
+    const auto cyan    = ImGui::ColorConvertFloat4ToU32({ 0.3f, 1.0f, 1.0f, 1.0f });
+    const auto magenta = ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.3f, 1.0f, 1.0f });
+    const auto black   = ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.0f, 0.0f, 1.0f });
+    const auto darkbg  = ImGui::ColorConvertFloat4ToU32({ 0.10f, 0.10f, 0.20f, 0.85f });
+    const auto frame_c = ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.7f, 0.7f, 1.0f });
+
+    Vector2 cursor{ 60 * dpi.x(), 70 * dpi.y() };
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow,  "[1] "_s);
+        p.text(white,   "multi-color text: "_s);
+        p.text(red,     "red "_s);
+        p.text(green,   "green "_s);
+        p.text(blue,    "blue "_s);
+        p.text(cyan,    "cyan "_s);
+        p.text(magenta, "magenta"_s);
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[2] "_s);
+        p.text(white,  "rect, full height: "_s);
+        p.rect(red,     14*dpi.x(), 0);
+        p.gap(3*dpi.x());
+        p.rect(green,   14*dpi.x(), 0);
+        p.gap(3*dpi.x());
+        p.rect(blue,    14*dpi.x(), 0);
+        p.gap(3*dpi.x());
+        p.rect(magenta, 14*dpi.x(), 0);
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[3] "_s);
+        p.text(white,  "rect, vert_pad=3*dpi: "_s);
+        p.rect(red,   14*dpi.x(), 3*dpi.y());
+        p.gap(3*dpi.x());
+        p.rect(green, 14*dpi.x(), 3*dpi.y());
+        p.gap(3*dpi.x());
+        p.rect(blue,  14*dpi.x(), 3*dpi.y());
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[4] "_s);
+        p.text(white,  "gap + bounds_of: "_s);
+        const auto x_slot = p.gap(20*dpi.x());
+        p.gap(3*dpi.x());
+        p.text(white,  "(slot rendered by caller)"_s);
+        p.render(draw, cursor);
+        const auto r = p.bounds_of(x_slot);
+        draw.AddLine({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 1.5f);
+        draw.AddLine({r.min().x(), r.max().y()}, {r.max().x(), r.min().y()}, magenta, 1.5f);
+        draw.AddRect({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 0, 0, 1);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[5] "_s);
+        p.text(white,  "three slots: "_s);
+        const auto s_circle = p.gap(20*dpi.x());
+        p.gap(3*dpi.x());
+        const auto s_tri    = p.gap(20*dpi.x());
+        p.gap(3*dpi.x());
+        const auto s_sqr    = p.gap(20*dpi.x());
+        p.text(gray,   "  (circle, triangle, square)"_s);
+        p.render(draw, cursor);
+        const auto rc = p.bounds_of(s_circle);
+        const auto cc = (rc.min() + rc.max()) * 0.5f;
+        draw.AddCircleFilled({cc.x(), cc.y()}, 7*dpi.x(), red);
+        const auto rt = p.bounds_of(s_tri);
+        const auto ct = (rt.min() + rt.max()) * 0.5f;
+        const float t = 7*dpi.x();
+        draw.AddTriangleFilled({ct.x(), ct.y() - t},
+                               {ct.x() - t, ct.y() + t},
+                               {ct.x() + t, ct.y() + t}, green);
+        const auto rs = p.bounds_of(s_sqr);
+        const auto cs = (rs.min() + rs.max()) * 0.5f;
+        draw.AddRectFilled({cs.x() - 7*dpi.x(), cs.y() - 7*dpi.y()},
+                           {cs.x() + 7*dpi.x(), cs.y() + 7*dpi.y()}, blue);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.with_background(darkbg, {pad_x, 1*dpi.y()});
+        p.text(yellow, "[6] "_s);
+        p.text(white,  "with_background, small pad"_s);
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.with_background(darkbg, {8*dpi.x(), 4*dpi.y()});
+        p.text(yellow, "[7] "_s);
+        p.text(white,  "with_background, large pad (8, 4)"_s);
+        p.render(draw, cursor);
+        cursor.y() += line_h * 1.7f;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[8] "_s);
+        p.text(white,  "format(): "_s);
+        p.format(cyan, "ts={}, fps={:.1f}, dpi=({:.2f},{:.2f})",
+                 _timestamp, M->smoothed_fps(), dpi.x(), dpi.y());
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.text(yellow, "[9] "_s);
+        p.text(gray,   "frame="_s);
+        p.format(green, "{}", _timestamp);
+        p.text(gray,   "  fps="_s);
+        p.format(green, "{:.1f}", M->smoothed_fps());
+        p.text(gray,   "  cycle="_s);
+        p.format(green, "{}", _timestamp % 60);
+        p.text(gray,   "  hex="_s);
+        p.format(magenta, "{:x}", _timestamp);
+        p.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.with_background(black, {pad_x, 2*dpi.y()});
+        p.text(yellow, "[10] "_s);
+        p.text(white,  "bounds() draws cyan frame around me"_s);
+        p.render(draw, cursor);
+        const auto bb = p.bounds();
+        draw.AddRect({bb.min().x(), bb.min().y()}, {bb.max().x(), bb.max().y()},
+                     frame_c, 0, 0, 2);
+        cursor.y() += line_h * 1.4f;
+    }
+
+    {
+        Vector2 sz, tsz;
+        {
+            auto p = _text_pool->make(font_size);
+            p.with_background(black, {6*dpi.x(), 3*dpi.y()});
+            p.rect(red,   12*dpi.x(), 2*dpi.y());
+            p.gap(pad_x);
+            p.text(white, "[11] some content"_s);
+            p.render(draw, cursor);
+            sz = p.size();
+            tsz = p.total_size();
+        }
+        cursor.y() += line_h * 1.4f;
+        auto p2 = _text_pool->make(font_size);
+        p2.text(gray,   "      "_s);
+        p2.format(white, "size()=({:.0f}, {:.0f})  total_size()=({:.0f}, {:.0f})",
+                  sz.x(), sz.y(), tsz.x(), tsz.y());
+        p2.render(draw, cursor);
+        cursor.y() += line_h;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.with_background(darkbg, {pad_x, 2*dpi.y()});
+        p.text(yellow, "[12] "_s);
+        p.rect(red,   10*dpi.x(), 3*dpi.y());
+        p.gap(pad_x);
+        p.text(white, "combined: "_s);
+        const auto dot_slot = p.gap(8*dpi.x());
+        p.gap(pad_x);
+        p.format(green, "(frame={})", _timestamp);
+        p.render(draw, cursor);
+        const auto rd = p.bounds_of(dot_slot);
+        const auto cd = (rd.min() + rd.max()) * 0.5f;
+        draw.AddCircleFilled({cd.x(), cd.y()}, 3*dpi.x(), magenta);
+        cursor.y() += line_h * 1.4f;
+    }
+
+    {
+        auto p = _text_pool->make(font_size);
+        p.with_background(darkbg, {pad_x, 4*dpi.y()});
+        p.text(yellow, "[13] "_s);
+        p.text(white,  "filled diamond drawn ON TOP of bg, inside gap: "_s);
+        const auto diamond_slot = p.gap(32*dpi.x());
+        p.gap(pad_x);
+        p.text(gray,   "(magenta diamond, white outline)"_s);
+        p.render(draw, cursor);
+        const auto rd = p.bounds_of(diamond_slot);
+        const auto cd = (rd.min() + rd.max()) * 0.5f;
+        const float s = 9*dpi.x();
+        draw.AddQuadFilled({cd.x(),     cd.y() - s}, {cd.x() + s, cd.y()    },
+                           {cd.x(),     cd.y() + s}, {cd.x() - s, cd.y()    }, magenta);
+        draw.AddQuad      ({cd.x(),     cd.y() - s}, {cd.x() + s, cd.y()    },
+                           {cd.x(),     cd.y() + s}, {cd.x() - s, cd.y()    }, white, 1.5f);
+        cursor.y() += line_h * 1.4f;
     }
 }
 
