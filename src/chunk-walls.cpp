@@ -111,6 +111,10 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
 
     for (auto hole : holes)
     {
+        fm_debug2_assert(hole.pos.min().x() <= hole.pos.max().x());
+        fm_debug2_assert(hole.pos.min().y() <= hole.pos.max().y());
+        fm_debug2_assert(hole.z.min() <= hole.z.max());
+
         const auto hole_slice = Range2D{
             {hole.pos.min()[XAxis], (float)hole.z.min()},
             {hole.pos.max()[XAxis], (float)hole.z.max()},
@@ -120,10 +124,19 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
 
         for (auto x : wall_fragments)
         {
+            fm_debug2_assert(x.min().x() <= x.max().x());
+            fm_debug2_assert(x.min().y() <= x.max().y());
             const auto frags = CutResult<float>::cut(x, hole_slice);
 
             for (auto i = 0u; i < frags.size; i++)
-                arrayAppend(next_wall_fragments, frags.array[i]);
+            {
+                const auto& f = frags.array[i];
+                fm_debug2_assert(f.min().x() <= f.max().x());
+                fm_debug2_assert(f.min().y() <= f.max().y());
+                fm_debug2_assert(f.min().x() >= bb_min.x() && f.max().x() <= bb_max.x());
+                fm_debug2_assert(f.min().y() >= bb_min.y() && f.max().y() <= bb_max.y());
+                arrayAppend(next_wall_fragments, f);
+            }
 #if 0
             if (frags.s != (uint8_t)-1)
                 for (auto i = 0u; i < frags.size; i++)
@@ -158,6 +171,10 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
             .face_coords = { w.min(), w.max() },
             .world_coords = { w_min, w_max },
         };
+        fm_debug2_assert(frag.remove_from_start_xz.x() >= 0 && frag.remove_from_end_xz.x() >= 0);
+        fm_debug2_assert(frag.remove_from_start_xz.y() >= 0 && frag.remove_from_end_xz.y() >= 0);
+        fm_debug2_assert(frag.remove_from_start_xz.x() + frag.remove_from_end_xz.x() <= bb_max.x() - bb_min.x());
+        fm_debug2_assert(frag.remove_from_start_xz.y() + frag.remove_from_end_xz.y() <= bb_max.y() - bb_min.y());
         arrayAppend(output, frag);
     }
 
@@ -305,6 +322,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                 {
                     const auto& rs = frag.remove_from_start_xz;
                     const auto& re = frag.remove_from_end_xz;
+                    fm_debug2_assert(frame.size.y() == tile_size_z);
+                    fm_debug2_assert((unsigned)rs.x() + (unsigned)re.x() <= frame.size.x());
+                    fm_debug2_assert((unsigned)rs.y() + (unsigned)re.y() <= frame.size.y());
                     const auto sub_size = Vector2ui{
                         frame.size.x() - (unsigned)rs.x() - (unsigned)re.x(),
                         frame.size.y() - (unsigned)rs.y() - (unsigned)re.y(),
@@ -365,6 +385,10 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             const auto& rs = frag.remove_from_start_xz;
             const auto& re = frag.remove_from_end_xz;
 
+            fm_debug2_assert(rs.x() >= 0 && re.x() >= 0 && rs.y() >= 0 && re.y() >= 0);
+            fm_debug2_assert(rs.x() + re.x() <= (float)tile_size_xy);
+            fm_debug2_assert(rs.y() + re.y() <= (float)tile_size_z);
+
             // face-start maps to texture-left for north, texture-right for west.
             // tex_left/tex_right are the pixel-x trims from left/right of the texture.
             const auto tex_left  = !IsWest ? (unsigned)rs.x() : (unsigned)re.x();
@@ -374,12 +398,13 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             {
                 // wall texture: {tile_size_xy, tile_size_z}
                 // pixel x = primary axis, pixel y = z (low pixel y = high z)
+                fm_debug2_assert(frame.size == Vector2ui{tile_size_xy, tile_size_z});
+                fm_debug2_assert(tex_left + tex_right <= frame.size.x());
+                fm_debug2_assert((unsigned)rs.y() + (unsigned)re.y() <= frame.size.y());
                 const auto sub_offset_loc = Vector2ui(tex_left, (unsigned)re.y());
-                const unsigned z_trim = (unsigned)rs.y() + (unsigned)re.y();
-                const unsigned x_trim = tex_left + tex_right;
-                if (x_trim >= frame.size.x() || z_trim >= frame.size.y())
-                     continue;
-                const auto sub_size = frame.size - Vector2ui(x_trim, z_trim);
+                const auto sub_size = frame.size - Vector2ui(tex_left + tex_right, (unsigned)rs.y() + (unsigned)re.y());
+                if (!sub_size.x() || !sub_size.y())
+                    continue;
                 const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 Quads::quad quad;
@@ -415,11 +440,12 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             }
             else if constexpr (G == Group_::side)
             {
+                fm_debug2_assert(frame.size.y() == tile_size_z);
+                fm_debug2_assert((unsigned)rs.y() + (unsigned)re.y() <= frame.size.y());
                 const auto sub_offset_loc = Vector2ui(0, (unsigned)re.y());
-                const unsigned z_trim = (unsigned)rs.y() + (unsigned)re.y();
-                if (z_trim >= frame.size.y())
+                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.y() - (unsigned)re.y());
+                if (!sub_size.y())
                     continue;
-                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - z_trim);
                 const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
 
                 const auto frag_x1 =  X - re.x();
@@ -458,6 +484,8 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             }
             else if constexpr (G == Group_::top)
             {
+                fm_debug2_assert(frame.size == Vector2ui{Depth, tile_size_xy});
+                fm_debug2_assert(tex_left + tex_right <= frame.size.y());
                 const auto sub_offset_loc = Vector2ui(0, tex_right);
                 const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
                 if (!sub_size.y())
