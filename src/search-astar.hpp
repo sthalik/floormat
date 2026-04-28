@@ -6,6 +6,7 @@
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
+namespace floormat::Grid::Pass { class PoolRegistry; }
 
 namespace floormat {
 
@@ -29,9 +30,9 @@ public:
 
     // todo add simple bresenham short-circuit
     path_search_result Dijkstra(world& w, point from, point to,
-                                object_id own_id, uint32_t max_dist, Vector2ui own_size,
-                                int debug = 0,
-                                const pred& p = Search::never_continue(),
+                                uint32_t max_dist, Vector2ui own_size,
+                                int debug,
+                                const pred& p,
                                 const heuristic& h = Search::octile_distance());
 
 private:
@@ -41,6 +42,7 @@ private:
     frontier pop_from_heap();
 
     safe_ptr<struct Search::cache> _cache;
+    safe_ptr<Grid::Pass::PoolRegistry> _registry;
     Array<visited> nodes;
     Array<frontier> Q;
     Array<point> temp_nodes;

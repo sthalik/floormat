@@ -5,7 +5,9 @@
  */
 
 #include "compat/defs.hpp"
+#include "compat/function2.hpp"
 #include "tile-defs.hpp"
+#include "search-pred.hpp"
 
 namespace floormat {
 struct local_coords;
@@ -17,7 +19,13 @@ struct Grid;
 struct Pool;
 }
 
+namespace floormat::Search { struct cache; }
+
 namespace floormat::Grid::Pass {
+
+using pred = Search::pred;
+
+const pred& is_passable_without_critters();
 
 struct BitView
 {
@@ -49,10 +57,10 @@ class Grid
     detail::grid::Pool* pool;
 
 public:
-    ~Grid() noexcept;
+    ~Grid() noexcept = default;
     explicit Grid(detail::grid::Grid* grid, detail::grid::Pool* pool);
-    Grid(const Grid&) noexcept;
-    Grid& operator=(const Grid&) & noexcept;
+    Grid(const Grid&) noexcept = default;
+    Grid& operator=(const Grid&) & noexcept = default;
 
     static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_bitmask_index_from_coord(local_coords local, Vector2b offset) const;
@@ -68,15 +76,20 @@ public:
 
     uint32_t div_count() const;
 
+    explicit operator bool() const noexcept;
+    detail::grid::Grid* raw() const noexcept;
+
     /// Cascade-marks all 8 neighbors stale.
     void mark_stale();
 
     /// Checks self + 8 neighbors for pointer swap, `pass_gen_counter` bump, or
     /// `is_passability_modified`. Cascades only on not-stale → stale transition.
     void maybe_mark_stale();
+    void maybe_mark_stale(Search::cache& cache);
 
     /// Synchronous; auto-triggers `chunk::ensure_passability` via `rtree()`.
-    void build_if_stale();
+    void build_if_stale(pred predicate);
+    void build_if_stale(Search::cache& cache, pred predicate);
 };
 
 /// Per-frame: `maybe_mark_stale_all(w.frame_no())` then `build_if_stale_all()`
@@ -93,12 +106,15 @@ public:
     /// Newly-inserted grid is stale until @ref build_if_stale_all or an
     /// explicit `grid.build_if_stale()`.
     [[nodiscard]] Grid operator[](chunk& c);
+    [[nodiscard]] Grid wrap(detail::grid::Grid* g) const noexcept;
 
     /// Stores `frame_no`, sweeps staleness, GCs collected chunks' grids.
     /// Pass `+1` if called before an upcoming `world::increment_frame_no()`.
     void maybe_mark_stale_all(uint64_t frame_no);
+    void maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache);
 
-    void build_if_stale_all();
+    void build_if_stale_all(pred predicate);
+    void build_if_stale_all(Search::cache& cache, pred predicate);
 
     Params params() const;
     uint32_t pooled_count() const;

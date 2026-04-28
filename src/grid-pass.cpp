@@ -3,6 +3,7 @@
 #include "collision.hpp"
 #include "object.hpp"
 #include "search.hpp"
+#include "search-cache.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
 #include "compat/hash-table-load-factor.hpp"
@@ -108,22 +109,6 @@ constexpr auto calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
     return div_size;
 }
 
-auto is_passable_without_critters(chunk& c) noexcept
-{
-    return [&c](collision_data data) {
-        // XXX 'scenery' is used for all object types
-        if (data.type == (uint64_t)collision_type::scenery)
-        {
-            auto& w = c.world();
-            auto obj = w.find_object(data.id);
-            fm_assert(obj);
-            if (obj->type() == object_type::critter)
-                return path_search_continue::pass;
-        }
-        return path_search_continue::blocked;
-    };
-}
-
 #ifdef FLOORMAT_GRID_PASS_DEBUG
 unsigned grid_total_count = 0;
 unsigned grid_alive_count = 0;
@@ -134,6 +119,7 @@ unsigned pool_alive_count = 0;
 } // namespace
 
 using floormat::Grid::Pass::Params;
+using floormat::Grid::Pass::pred;
 
 struct Grid
 {
@@ -154,10 +140,16 @@ struct Grid
     bool is_stale() const;
     void mark_stale();
     void maybe_mark_stale();
-    void build_if_stale();
+    void maybe_mark_stale(Search::cache& cache);
+    void build_if_stale(pred predicate);
+    void build_if_stale(Search::cache& cache, pred predicate);
 
     Grid(chunk& c, Params params);
     ~Grid() noexcept;
+
+private:
+    void maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk);
+    void build_impl(chunk* self, pred predicate);
 };
 
 uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
@@ -211,9 +203,9 @@ void Grid::mark_stale()
     versions[8] = (uint32_t)-1;
 }
 
-void Grid::maybe_mark_stale()
+void Grid::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk)
 {
-    auto* current = w->at(coord);
+    auto* current = at_chunk(coord);
     if (c != current)
     {
         c = current;
@@ -239,7 +231,7 @@ void Grid::maybe_mark_stale()
 
     for (auto i = 0u; i < 8; i++)
     {
-        auto* nb = w->at(coord + world::neighbor_offsets[i]);
+        auto* nb = at_chunk(coord + world::neighbor_offsets[i]);
 
         if (nb != neighbors[i])
         {
@@ -261,7 +253,17 @@ void Grid::maybe_mark_stale()
     }
 }
 
-void Grid::build_if_stale()
+void Grid::maybe_mark_stale()
+{
+    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->at(ch); });
+}
+
+void Grid::maybe_mark_stale(Search::cache& cache)
+{
+    maybe_mark_stale_impl([this, &cache](chunk_coords_ ch) { return cache.try_get_chunk(*w, ch); });
+}
+
+void Grid::build_if_stale(pred predicate)
 {
     if (!is_stale())
         return;
@@ -270,41 +272,105 @@ void Grid::build_if_stale()
     fm_assert(self);
 
     neighbors = w->neighbors(coord);
+    build_impl(self, predicate);
+}
+
+void Grid::build_if_stale(Search::cache& cache, pred predicate)
+{
+    if (!is_stale())
+        return;
+
+    auto* self = cache.try_get_chunk(*w, coord);
+    fm_assert(self);
+
+    neighbors = cache.get_neighbors(*w, coord);
+    build_impl(self, predicate);
+}
+
+void Grid::build_impl(chunk* self, pred predicate)
+{
     for (auto i = 0u; i < 8; i++)
         versions[i] = neighbors[i] ? neighbors[i]->pass_gen_counter() : (uint32_t)-1;
     versions[8] = self->pass_gen_counter();
-    bitmask.resetAll();
+    bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
     uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
 
     const auto div_countʹ = div_count;
     const auto div_size  = params.div_size;
-    const auto idx = div_countʹ * (div_countʹ-1) + (div_countʹ-1);
-    fm_assert(idx < div_countʹ*div_countʹ);
+    fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
-    const auto function = is_passable_without_critters(*self);
-    const auto half = (float)params.bbox_size*.5f;
+    const auto half = ((float)params.bbox_size + (float)div_size) * .5f;
     constexpr auto half_tile = tile_size_xy*.5f;
     const auto half_div = (float)(div_size / 2);
     const auto half_div_minus_half_tile = half_div - half_tile;
 
-    for (auto j = 0u; j < div_countʹ; j++)
-    {
-        const auto py = j * div_size + half_div_minus_half_tile;
-        const auto sy = (float)py - half;
-        const auto ey = (float)py + half;
-        const auto by = j * div_countʹ;
+    chunk* const chunks[9] = {
+        self,
+        neighbors[0], neighbors[1], neighbors[2], neighbors[3],
+        neighbors[4], neighbors[5], neighbors[6], neighbors[7],
+    };
+    static constexpr auto offsets = []() {
+        constexpr float chunk_size = (float)tile_size_xy * (float)TILE_MAX_DIM;
+        std::array<Vector2, 9> a{};
+        for (auto i = 0u; i < 8; i++)
+            a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size;
+        return a;
+    }();
+    static constexpr auto nb_dxdy = []() {
+        std::array<Vector2b, 9> a{};
+        for (auto i = 0u; i < 8; i++)
+            a[i+1] = world::neighbor_offsets[i];
+        return a;
+    }();
 
-        for (auto i = 0u; i < div_countʹ; i++)
+    constexpr float chunk_size = (float)tile_size_xy * (float)TILE_MAX_DIM;
+    constexpr float cb_min = -(float)tile_size_xy*.5f - 255.f*.5f;
+    constexpr float cb_max = chunk_size - (float)tile_size_xy*.5f + 255.f*.5f;
+    struct strip { uint32_t lo, hi; };
+    const auto compute_strip = [&](int32_t d) -> strip {
+        const float c_lo = (float)d * chunk_size + cb_min - half;
+        const float c_hi = (float)d * chunk_size + cb_max + half;
+        int32_t k_lo = (int32_t)Math::ceil((c_lo - half_div_minus_half_tile) / (float)div_size);
+        int32_t k_hi = (int32_t)Math::floor((c_hi - half_div_minus_half_tile) / (float)div_size);
+        k_lo = Math::max(0, k_lo);
+        k_hi = Math::min((int32_t)div_countʹ - 1, k_hi);
+        if (k_lo > k_hi)
+            return {1u, 0u};
+        return {(uint32_t)k_lo, (uint32_t)(k_hi + 1)};
+    };
+    const strip strips[3] = { compute_strip(-1), compute_strip(0), compute_strip(1) };
+
+    for (auto n = 0u; n < 9; n++)
+    {
+        auto* c = chunks[n];
+        if (!c)
+            continue;
+        const auto off = offsets[n];
+        const auto sx_strip = strips[nb_dxdy[n].x() + 1];
+        const auto sy_strip = strips[nb_dxdy[n].y() + 1];
+        if (sx_strip.lo >= sx_strip.hi || sy_strip.lo >= sy_strip.hi)
+            continue;
+
+        for (auto j = sy_strip.lo; j < sy_strip.hi; j++)
         {
-            const auto px = i * div_size + half_div_minus_half_tile;
-            const auto sx = (float)px - half;
-            const auto ex = (float)px + half;
-            const auto ss = Vector2{sx, sy};
-            const auto ee = Vector2{ex, ey};
-            const bool value = path_search::is_passable_(self, neighbors, ss, ee, 0, function);
-            const auto bit   = by + i;
-            bits[bit >> 3] |= uint8_t(value) << (bit & 7);
+            const auto py = (float)(j * div_size) + half_div_minus_half_tile;
+            const auto sy = py - half - off.y();
+            const auto ey = py + half - off.y();
+            const auto by = j * div_countʹ;
+
+            for (auto i = sx_strip.lo; i < sx_strip.hi; i++)
+            {
+                const auto bit = by + i;
+                const auto mask = uint8_t(1u << (bit & 7));
+                if (!(bits[bit >> 3] & mask))
+                    continue;
+                const auto px = (float)(i * div_size) + half_div_minus_half_tile;
+                const auto sx = px - half - off.x();
+                const auto ex = px + half - off.x();
+                if (!path_search::is_passable_1(*c, {sx, sy}, {ex, ey}, predicate))
+                    bits[bit >> 3] = uint8_t(bits[bit >> 3] & ~mask);
+            }
         }
     }
 }
@@ -569,6 +635,23 @@ void BitView::write(uint32_t i, bool value)
 
 bool Params::operator==(const Params&) const noexcept = default;
 
+namespace {
+constexpr auto without_critters_lambda = [](chunk& self, collision_data data) -> path_search_continue {
+    // 'scenery' covers all object types here, including critters
+    if (data.type == (uint64_t)collision_type::scenery)
+    {
+        auto obj = self.world().find_object(data.id);
+        fm_assert(obj);
+        if (obj->type() == object_type::critter)
+            return path_search_continue::pass;
+    }
+    return path_search_continue::blocked;
+};
+constexpr pred without_critters_pred{without_critters_lambda};
+} // namespace
+
+const pred& is_passable_without_critters() { return without_critters_pred; }
+
 Params Params::validate() const
 {
     using detail::grid::calc_div_size;
@@ -595,6 +678,8 @@ Grid Pool::operator[](chunk& c)
         fm_debug2_assert(it->second);
     return Grid{it->second, pool};
 }
+
+Grid Pool::wrap(detail::grid::Grid* g) const noexcept { return Grid{g, pool}; }
 
 Grid::Grid(detail::grid::Grid* grid_, detail::grid::Pool* pool_):
     grid{grid_}, pool{pool_}
@@ -637,8 +722,6 @@ uint32_t Grid::div_count() const
     return grid->div_count;
 }
 
-Grid::Grid(const Grid&) noexcept = default;
-Grid& Grid::operator=(const Grid&) & noexcept = default;
 
 namespace {
 void cascade_mark_neighbors_stale(detail::grid::Pool* pool, chunk_coords_ coord)
@@ -672,8 +755,18 @@ void Grid::maybe_mark_stale()
         cascade_mark_neighbors_stale(pool, grid->coord);
 }
 
-Grid::~Grid() noexcept = default;
-void Grid::build_if_stale() { grid->build_if_stale(); }
+void Grid::maybe_mark_stale(Search::cache& cache)
+{
+    bool was_stale = grid->is_stale();
+    grid->maybe_mark_stale(cache);
+    if (!was_stale && grid->is_stale())
+        cascade_mark_neighbors_stale(pool, grid->coord);
+}
+
+Grid::operator bool() const noexcept { return grid != nullptr; }
+detail::grid::Grid* Grid::raw() const noexcept { return grid; }
+void Grid::build_if_stale(pred predicate) { grid->build_if_stale(predicate); }
+void Grid::build_if_stale(Search::cache& cache, pred predicate) { grid->build_if_stale(cache, predicate); }
 
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
@@ -699,10 +792,60 @@ void Pool::maybe_mark_stale_all(uint64_t frame_no)
     }
 }
 
-void Pool::build_if_stale_all()
+void Pool::maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache)
+{
+    pool->frame_no = frame_no;
+    for (auto it = pool->grids.begin(); it != pool->grids.end(); )
+    {
+        auto* g = it->second;
+        const bool in_rect = cache.contains_chunk(g->coord);
+
+        if (in_rect)
+            Grid{g, pool}.maybe_mark_stale(cache);
+        else
+            Grid{g, pool}.maybe_mark_stale();
+
+        if (!g->c)
+        {
+            it = pool->grids.erase(it);
+            pool->put(g);
+        }
+        else
+        {
+            ++it;
+
+            g->c->ensure_passability();
+            if (in_rect)
+            {
+                for (auto* nb : cache.get_neighbors(*g->w, g->coord))
+                    if (nb)
+                        nb->ensure_passability();
+            }
+            else
+            {
+                for (auto* nb : g->w->neighbors(g->coord))
+                    if (nb)
+                        nb->ensure_passability();
+            }
+        }
+    }
+}
+
+void Pool::build_if_stale_all(pred predicate)
 {
     for (auto [k, grid] : pool->grids)
-        grid->build_if_stale();
+        grid->build_if_stale(predicate);
+}
+
+void Pool::build_if_stale_all(Search::cache& cache, pred predicate)
+{
+    for (auto [k, grid] : pool->grids)
+    {
+        if (cache.contains_chunk(k))
+            grid->build_if_stale(cache, predicate);
+        else
+            grid->build_if_stale(predicate);
+    }
 }
 
 Pool::Pool(Params params): pool{new detail::grid::Pool{params}} { }

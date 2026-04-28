@@ -5,6 +5,7 @@
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
+#include "src/grid-pass.hpp"
 #include "src/critter.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
@@ -29,7 +30,6 @@ struct path_test final : base_test
     struct pending_s
     {
         point from, to;
-        object_id own_id;
         uint32_t max_dist;
         Vector2ui own_size;
     } pending = {};
@@ -67,7 +67,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
             auto dist = (uint32_t)vec.length();
 
             has_pending = true;
-            pending = { .from = pt0, .to = *pt, .own_id = C->id,
+            pending = { .from = pt0, .to = *pt,
                         .max_dist = dist,
                         .own_size = Vector2ui(C->bbox_size), };
         }
@@ -158,7 +158,8 @@ void path_test::update_pre(app& a, const Ns&)
     auto& astar = M.astar();
 
     result.res = {}; // return back to the pool to preserve cpu cache
-    auto res = astar.Dijkstra(w, pending.from, pending.to, pending.own_id, pending.max_dist, pending.own_size, 1);
+    auto res = astar.Dijkstra(w, pending.from, pending.to, pending.max_dist, pending.own_size, 1,
+                              Pass::is_passable_without_critters());
     has_result = !!res;
     result = {
         .from = pending.from,

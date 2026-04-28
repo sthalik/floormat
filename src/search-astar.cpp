@@ -1,6 +1,7 @@
 #include "search-astar.hpp"
 #include "search-constants.hpp"
 #include "search-cache.hpp"
+#include "search-pool.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
@@ -82,35 +83,6 @@ void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
         dest.push_back(src.back());
 }
 
-constexpr Range2Di bbox_from_pos1(point pt, Vector2ui size)
-{
-    auto center = Vector2i(pt.local()) * iTILE_SIZE2 + Vector2i(pt.offset());
-    auto top_left = center - Vector2i(size / 2);
-    auto bottom_right = top_left + Vector2i(size);
-    return { top_left, bottom_right };
-}
-
-constexpr Range2Di bbox_from_pos2(point pt, point from, Vector2ui size)
-{
-    constexpr auto chunk_size = iTILE_SIZE2 * (int)TILE_MAX_DIM;
-    auto nchunks = from.chunk() - pt.chunk();
-    auto chunk_pixels = nchunks * chunk_size;
-
-    auto bb0_ = bbox_from_pos1(from, size);
-    auto bb0 = Range2Di{ bb0_.min() + chunk_pixels, bb0_.max() + chunk_pixels };
-    auto bb = bbox_from_pos1(pt, size);
-
-    auto min = Math::min(bb0.min(), bb.min());
-    auto max = Math::max(bb0.max(), bb.max());
-
-    return { min, max };
-}
-
-static_assert(bbox_from_pos1({{}, {0, 0}, {15, 35}}, {10, 20}) == Range2Di{{10, 25}, {20, 45}});
-static_assert(bbox_from_pos2({{{1, 1}, {1, 15}, 0}, {1, -1}},
-                             {{{1, 2}, {1,  0}, 0}, {1, -1}},
-                             {256, 256}) == Range2Di{{-63, 831}, {193, 1151}});
-
 constexpr auto directions = []() constexpr
 {
     struct pair { Vector2i dir; uint32_t len; };
@@ -184,7 +156,9 @@ void set_result_from_idx(path_search_result& result,
 
 } // namespace
 
-astar::astar()
+astar::astar() :
+    _cache{InPlaceInit, (uint32_t)Search::div_size.x()},
+    _registry{InPlaceInit, (uint32_t)Search::div_size.x()}
 {
 }
 
@@ -217,12 +191,9 @@ frontier astar::pop_from_heap()
 }
 
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
-                                   object_id own_id, uint32_t max_dist, Vector2ui own_size_,
+                                   uint32_t max_dist, Vector2ui own_size_,
                                    int debug, const pred& p, const heuristic& h)
 {
-#ifdef FM_NO_DEBUG
-    (void)debug;
-#endif
     reserve(initial_capacity);
 
     Timeline timeline;
@@ -245,10 +216,14 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (from.coord().z() != 0) [[unlikely]]
         return {};
 
-    if (!path_search::is_passable(w, cache, from.coord(), from.offset(), own_size_, own_id, p))
+    const auto bbox_size = Math::max(own_size.x(), own_size.y());
+    auto& pool = _registry->pool_for(bbox_size);
+    pool.maybe_mark_stale_all(w.frame_no(), cache);
+
+    if (!cache.is_passable_for_bbox(w, pool, from, p))
         return {};
 
-    if (!path_search::is_passable(w, cache, to.coord(), to.offset(), own_size, own_id, p))
+    if (!cache.is_passable_for_bbox(w, pool, to, p))
         return {};
 
     constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
@@ -259,10 +234,9 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
             auto off = Vector2i(x, y) * div_size;
             auto pt = point::normalize_coords({from.coord(), {}}, off);
-            auto bb = Range2D(bbox_from_pos2(from, pt, own_size));
             auto dist = point::distance(from, pt) + min_dist;
 
-            if (path_search::is_passable(w, cache, from.chunk3(), bb, own_id, p))
+            if (cache.is_passable_for_bbox(w, pool, pt, p))
             {
                 auto idx = (uint32_t)nodes.size();
                 cache.add_index(pt, idx);
@@ -307,8 +281,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (auto dist_to_goal = point::distance_l1(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
         {
             auto dist = cur_dist + dist_to_goal;
-            if (auto bb = Range2D(bbox_from_pos2(to, cur_pt, own_size));
-                path_search::is_passable(w, cache, to.chunk3(), bb, own_id, p))
+            if (cache.is_passable_between(w, pool, cur_pt, to, p))
             {
                 goal_idx = cur_idx;
                 max_dist = dist;
@@ -329,7 +302,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 continue;
 
             auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
-            auto tile_idx = cache.get_tile_index(Vector2i(new_pt.local()), new_pt.offset());
+            auto tile_idx = cache.get_tile_index(new_pt.local(), new_pt.offset());
             auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
             if (new_idx != (uint32_t)-1)
@@ -338,8 +311,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                     continue;
             }
 
-            if (auto bb = Range2D(bbox_from_pos2(new_pt, cur_pt, own_size));
-                !path_search::is_passable(w, cache, new_pt.chunk3(), bb, own_id, p))
+            if (!cache.is_passable_between(w, pool, cur_pt, new_pt, p))
                 continue;
 
             if (new_idx == (uint32_t)-1)

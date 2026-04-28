@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
+#include "src/grid-pass.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
@@ -53,8 +54,9 @@ void Test::test_dijkstra()
         return A.Dijkstra(w,
                           {{0,0,0}, {11,9}},    // from
                           {wpos, {wox, woy}},   // to
-                          0, max_dist, {16,16}, // size
-                          debug ? 1 : 0);
+                          max_dist, {16,16}, // size
+                          debug ? 1 : 0,
+                          Pass::is_passable_without_critters());
     };
 
     {

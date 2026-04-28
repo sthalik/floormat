@@ -163,9 +163,9 @@ void grid_test::extract(app& a, chunk_coords_ coord)
         return;
 
     pool.maybe_mark_stale_all(w.frame_no());
-    pool.build_if_stale_all();
+    pool.build_if_stale_all(Pass::is_passable_without_critters());
     Pass::Grid g = pool[*c];
-    g.build_if_stale();
+    g.build_if_stale(Pass::is_passable_without_critters());
 
     const auto dc = g.div_count();
     BitArray bits{ValueInit, dc * dc};

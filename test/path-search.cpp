@@ -133,7 +133,7 @@ auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotati
     return { Vector2(min + shift), Vector2(max + shift) };
 }
 
-auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_id, const pred& p) -> neighbors
+auto neighbor_tiles(world& w, global_coords coord, Vector2i size, const pred& p) -> neighbors
 {
     auto ch = chunk_coords_{ coord.chunk(), coord.z() };
     auto pos = Vector2i(coord.local());
@@ -155,7 +155,7 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
     for (auto [off, r] : nbs)
     {
         auto range = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
-        if (path_search::is_passable(w, ch, range, own_id, p))
+        if (path_search::is_passable(w, ch, range, p))
             ns.data[ns.size++] = { coord + off, {} };
     }
 
@@ -165,11 +165,11 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, object_id own_
 void test_bbox()
 {
     static constexpr auto is_passable_1 = [](chunk& c, Range2D bb) {
-        return path_search::is_passable_1(c, bb.min(), bb.max(), (object_id)-1);
+        return path_search::is_passable_1(c, bb.min(), bb.max());
     };
 
     static constexpr auto is_passable = [](world& w, chunk_coords_ ch, Range2D bb) {
-        return path_search::is_passable(w, ch, bb, (object_id)-1);
+        return path_search::is_passable(w, ch, bb);
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
@@ -177,7 +177,7 @@ void test_bbox()
     };
 
     constexpr auto neighbors = [](world& w, chunk_coords_ ch, Vector2i pos) {
-        return neighbor_tiles(w, { ch, pos }, {}, (object_id)-1, never_continue());
+        return neighbor_tiles(w, { ch, pos }, {}, never_continue());
     };
 
     const auto wall = loader.invalid_wall_atlas().atlas;

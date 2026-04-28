@@ -16,9 +16,9 @@
 namespace floormat::Search {
 
 namespace {
-constexpr auto never_continue_1 = [](collision_data) constexpr { return path_search_continue::blocked; };
+constexpr auto never_continue_1 = [](chunk&, collision_data) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = pred{never_continue_1};
-constexpr auto always_continue_1 = [](collision_data) constexpr { return path_search_continue::pass; };
+constexpr auto always_continue_1 = [](chunk&, collision_data) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = pred{always_continue_1};
 
 #if 0
@@ -56,7 +56,7 @@ namespace floormat {
 
 using namespace Search;
 
-bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id own_id, const pred& p)
+bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
 {
     constexpr auto bbox_size = Vector2{0xff, 0xff};
     constexpr auto chunk_bounds = Range2D{
@@ -71,10 +71,10 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
     rt.Search(min.data(), max.data(), [&](uint64_t data, const auto& r)
     {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.id != own_id && x.pass != (uint64_t)pass_mode::pass)
+        if (x.pass != (uint64_t)pass_mode::pass)
         {
             if (rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
-                if (p(x) != path_search_continue::pass)
+                if (p(c, x) != path_search_continue::pass)
                 {
                     is_passable = false;
                     //[[maybe_unused]] auto obj = c.world().find_object(x.data);
@@ -87,14 +87,14 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, object_id ow
 }
 
 bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors,
-                               Vector2 min, Vector2 max, object_id own_id, const pred& p)
+                               Vector2 min, Vector2 max, const pred& p)
 {
     fm_debug_assert(max >= min);
 
     if (c0)
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
-        if (!is_passable_1(*c0, min, max, own_id, p))
+        if (!is_passable_1(*c0, min, max, p))
             return false;
 
     for (auto i = 0uz; i < 8; i++)
@@ -109,7 +109,7 @@ bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors
             const auto off = Vector2(nb)*Vector2(chunk_size);
             const auto min_ = min - off, max_ = max - off;
 
-            if (!is_passable_1(*c2, min_, max_, own_id, p))
+            if (!is_passable_1(*c2, min_, max_, p))
                 return false;
         }
     }
@@ -117,40 +117,11 @@ bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors
     return true;
 }
 
-bool path_search::is_passable(world& w, global_coords coord,
-                              Vector2b offset, Vector2ui size_,
-                              object_id own_id, const pred& p)
-{
-    auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
-    auto size = Vector2(size_);
-    auto min = Vector2(center) - size*.5f, max = min + size;
-    return is_passable(w, coord, {min, max}, own_id, p);
-}
-
-bool path_search::is_passable(world& w, struct Search::cache& cache, global_coords coord,
-                              Vector2b offset, Vector2ui size_,
-                              object_id own_id, const pred& p)
-{
-    auto center = iTILE_SIZE2 * Vector2i(coord.local()) + Vector2i(offset);
-    auto size = Vector2(size_);
-    auto min = Vector2(center) - size*.5f, max = min + size;
-    return is_passable(w, cache, coord, {min, max}, own_id, p);
-}
-
-bool path_search::is_passable(world& w, chunk_coords_ ch, const Range2D& bb,
-                              object_id own_id, const pred& p)
+bool path_search::is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 {
     auto* c = w.at(ch);
     auto neighbors = w.neighbors(ch);
-    return is_passable_(c, neighbors, bb.min(), bb.max(), own_id, p);
-}
-
-bool path_search::is_passable(world& w, Search::cache& cache, chunk_coords_ ch0,
-                              const Range2D& bb, object_id own_id, const pred& p)
-{
-    auto* c = cache.try_get_chunk(w, ch0);
-    auto nbs = cache.get_neighbors(w, ch0);
-    return is_passable_(c, nbs, bb.min(), bb.max(), own_id, p);
+    return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }
 
 } // namespace floormat

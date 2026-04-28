@@ -1,5 +1,6 @@
 #include "src/search-result.hpp"
 #include "src/search-astar.hpp"
+#include "src/grid-pass.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
@@ -53,10 +54,11 @@ void Dijkstra(benchmark::State& state)
 
     auto run = [&] {
       return A.Dijkstra(w,
-                        {{0,0,0}, {11,9}},    // from
-                        {wpos, {wox, woy}},   // to
-                        0, max_dist, {16,16}, // size
-                        first_run ? 1 : 0);
+                        {{0,0,0}, {11,9}},  // from
+                        {wpos, {wox, woy}}, // to
+                        max_dist, {16,16},  // size
+                        first_run ? 1 : 0,
+                        Pass::is_passable_without_critters());
     };
 
     {

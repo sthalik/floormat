@@ -7,6 +7,7 @@
 #include "floormat/main.hpp"
 #include "../imgui-raii.hpp"
 #include "src/search-astar.hpp"
+#include "src/grid-pass.hpp"
 #include <mg/Functions.h>
 
 namespace floormat::tests {
@@ -57,7 +58,8 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             }
             else
             {
-                auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, C->id, dist, bb, 0);
+                auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, dist, bb, 0,
+                                              Pass::is_passable_without_critters());
                 if (!res.empty())
                 {
                     auto S = critter_script::make_walk_script(move(res));
