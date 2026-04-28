@@ -130,6 +130,7 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
         }
+#if 0
         if (auto b = begin_menu("Tests"))
         {
             if (ImGui::MenuItem("Text painter test", nullptr, _test_text_painter))
@@ -137,6 +138,7 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Hole stress test"))
                 populate_hole_stress_test();
         }
+#endif
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
     }
