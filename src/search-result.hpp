@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/vector-wrapper-fwd.hpp"
 #include <cr/Pointer.h>
 
 namespace floormat {
@@ -24,13 +23,11 @@ struct path_search_result final
     uint32_t distance() const;
     void set_distance(uint32_t dist);
 
-    vector_wrapper<point, vector_wrapper_repr::ref> raw_path();
+    Array<point>& raw_path();
     ArrayView<const point> path() const;
     explicit operator bool() const;
 
     path_search_result();
-    explicit path_search_result(const path_search_result& x) noexcept;
-    path_search_result& operator=(const path_search_result& x) noexcept;
     path_search_result(path_search_result&&) noexcept;
     path_search_result& operator=(path_search_result&&) noexcept;
     ~path_search_result() noexcept;

@@ -46,6 +46,9 @@ struct point
     friend point operator+(point pt, Vector2i delta);
     friend point operator+(Vector2i delta, point pt);
 
+    friend point operator-(point pt, Vector2i delta);
+    friend point operator-(Vector2i delta, point pt);
+
 private:
     int16_t cx = 0, cy = 0;
     int8_t cz = 0;

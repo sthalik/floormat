@@ -29,14 +29,14 @@ public:
     void clear();
 
     // todo add simple bresenham short-circuit
+    template<int Debug = 0>
     path_search_result Dijkstra(world& w, point from, point to,
                                 uint32_t max_dist, Vector2ui own_size,
-                                int debug,
                                 const pred& p,
                                 const heuristic& h = Search::octile_distance());
 
 private:
-    static constexpr auto initial_capacity = TILE_COUNT * 16 * Search::div_factor*Search::div_factor;
+    static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
 
     void add_to_heap(uint32_t id, uint32_t f_score, uint32_t g_score);
     frontier pop_from_heap();

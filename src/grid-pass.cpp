@@ -289,9 +289,6 @@ void Grid::build_if_stale(Search::cache& cache, pred predicate)
 
 void Grid::build_impl(chunk* self, pred predicate)
 {
-    for (auto i = 0u; i < 8; i++)
-        versions[i] = neighbors[i] ? neighbors[i]->pass_gen_counter() : (uint32_t)-1;
-    versions[8] = self->pass_gen_counter();
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
     uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
@@ -300,6 +297,7 @@ void Grid::build_impl(chunk* self, pred predicate)
     const auto div_size  = params.div_size;
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
+    // +div_size: bit must hold for any critter position in the cell, not just the centre
     const auto half = ((float)params.bbox_size + (float)div_size) * .5f;
     constexpr auto half_tile = tile_size_xy*.5f;
     const auto half_div = (float)(div_size / 2);
@@ -373,6 +371,10 @@ void Grid::build_impl(chunk* self, pred predicate)
             }
         }
     }
+
+    for (auto i = 0u; i < 8; i++)
+        versions[i] = neighbors[i] ? neighbors[i]->pass_gen_counter() : (uint32_t)-1;
+    versions[8] = self->pass_gen_counter();
 }
 
 Grid::Grid(chunk& c, Params params):

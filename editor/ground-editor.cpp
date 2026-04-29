@@ -164,7 +164,8 @@ tile_image_proto ground_editor::get_selected()
 
 void ground_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
 {
-    auto [c, t] = world[pos];
+    auto& c = world[pos.chunk3()];
+    auto t = c[pos.local()];
     c.mark_ground_modified();
     t.ground() = img;
 }

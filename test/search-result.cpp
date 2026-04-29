@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "src/search-result.hpp"
 #include "src/search-node.hpp"
 

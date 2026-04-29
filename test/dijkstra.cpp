@@ -29,7 +29,7 @@ void Test::test_dijkstra()
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
         {
-            auto &c = w[chunk_coords_{i, j, 0}];
+            auto &c = w[{i, j, 0}];
             for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
             {
                 c[{ k, k }].wall_north() = wall;
@@ -45,24 +45,24 @@ void Test::test_dijkstra()
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
         {
-            auto& c = w[chunk_coords_{i, j, 0}];
+            auto& c = w[{i, j, 0}];
             c.mark_passability_modified();
             c.ensure_passability();
         }
 
-    const auto run = [&](int debug) {
-        return A.Dijkstra(w,
-                          {{0,0,0}, {11,9}},    // from
-                          {wpos, {wox, woy}},   // to
-                          max_dist, {16,16}, // size
-                          debug ? 1 : 0,
-                          Pass::is_passable_without_critters());
+    const auto run = [&]<bool debug> {
+            return A.Dijkstra<debug ? 1 : 0>(
+                w,
+                {{0, 0, 0}, {11, 9}}, // from
+                {wpos, {wox, woy}}, // to
+                max_dist, {16, 16}, // size
+                Pass::is_passable_without_critters());
     };
 
     {
         constexpr auto min = (uint32_t)(TILE_SIZE2.length()*.25f) - uint32_t{1},
                        max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
-        auto result = run(debug);
+        auto result = run.operator()<debug>();
 
         fm_assert(!result.is_found());
         fm_assert(!result.path().isEmpty());
@@ -77,7 +77,7 @@ void Test::test_dijkstra()
         ch[{ wtx,   wty +1}].wall_north() = {};
         ch.mark_passability_modified();
         ch.ensure_passability();
-        auto result = run(debug);
+        auto result = run.operator()<debug>();
 
         fm_assert(result.is_found());
         fm_assert(!result.path().isEmpty());

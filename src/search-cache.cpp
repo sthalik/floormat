@@ -194,14 +194,14 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     return path_search::is_passable_(nullptr, nbs, center - Vector2{half}, center + Vector2{half}, p);
 }
 
-bool cache::is_passable_between(world& w, Grid::Pass::Pool& pool,
-                                point a, point b, const pred& p)
+bool cache::is_passable_between(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p)
 {
     if (!is_passable_for_bbox(w, pool, b, p))
         return false;
-    const auto vec = b - a;
+    Vector2i vec = b - a;
     if (vec.product() != 0)
     {
+        // off-axis cells; coverage relies on the +div_size inflation in grid-pass.cpp
         if (!is_passable_for_bbox(w, pool, a + Vector2i{vec.x(), 0}, p))
             return false;
         if (!is_passable_for_bbox(w, pool, a + Vector2i{0, vec.y()}, p))

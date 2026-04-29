@@ -154,7 +154,7 @@ void test_walking1(StringView instance_name, Function make_dt, double accel, uin
 
     {
         auto w = world();
-        w[{{0,0,0}, {8,8}}].t.wall_west() = W;
+        w[{0,0,0}][{8,8}].wall_west() = W;
 
         bool ret1 = run(w, make_dt,
                        Start{
@@ -177,8 +177,8 @@ void test_walking1(StringView instance_name, Function make_dt, double accel, uin
     }
     {
         auto w = world();
-        w[{{0,0,0}, { 8,8}}].t.wall_west() = W;
-        w[{{0,0,0}, {12,8}}].t.wall_west() = W;
+        w[{0,0,0}][{ 8,8}].wall_west() = W;
+        w[{0,0,0}][{12,8}].wall_west() = W;
 
         const auto p = hole_proto{};
         auto h = w.make_object<hole>(w.make_id(), global_coords{{0, 0, 0}, {8, 8}}, p);

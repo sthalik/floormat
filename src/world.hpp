@@ -63,10 +63,7 @@ public:
     explicit world();
     ~world() noexcept;
 
-    struct pair_chunk_tile final { chunk& c; tile_ref t; }; // NOLINT
-
     chunk& operator[](chunk_coords_ c) noexcept;
-    pair_chunk_tile operator[](global_coords pt) noexcept; // todo maybe remove this overload?
     chunk* at(chunk_coords_ c) noexcept;
     bool contains(chunk_coords_ c) const noexcept;
     void clear();

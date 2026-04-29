@@ -79,7 +79,8 @@ bool wall_editor::is_anything_selected() const { return _selected_atlas != nullp
 
 void wall_editor::place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {
-    auto [c, t] = w[coords];
+    auto& c = w[coords.chunk3()];
+    auto t = c[coords.local()];
     switch (_r)
     {
     case rotation::N: t.wall_north() = { atlas, (variant_t)-1 }; break;

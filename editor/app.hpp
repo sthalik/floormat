@@ -103,6 +103,7 @@ private:
     void reset_world();
     void reset_world(class world&& w);
     void populate_hole_stress_test();
+    void populate_labyrinth();
 
     void draw() override;
 

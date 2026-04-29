@@ -398,7 +398,7 @@ void test_multi_chunk_3x3_sanity(uint32_t div_size)
     for (auto y = -1; y <= 1; y++)
         for (auto x = -1; x <= 1; x++)
         {
-            auto& c = w[chunk_coords_{(int16_t)x, (int16_t)y, 0}];
+            auto& c = w[{(int16_t)x, (int16_t)y, 0}];
             add_ground_all(c);
             rebuild_passability(c);
         }
@@ -632,7 +632,7 @@ void test_collect_all_chunks_no_crash(uint32_t div_size)
     for (auto y = -1; y <= 1; y++)
         for (auto x = -1; x <= 1; x++)
         {
-            auto& c = w[chunk_coords_{(int16_t)x, (int16_t)y, 0}];
+            auto& c = w[{(int16_t)x, (int16_t)y, 0}];
             add_ground_all(c);
             rebuild_passability(c);
         }

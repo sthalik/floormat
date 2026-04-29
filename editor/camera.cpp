@@ -73,7 +73,7 @@ object_id app::get_object_colliding_with_cursor()
     auto& world = M->world();
     auto& shader = M->shader();
 
-    using rtree_type = std::decay_t<decltype(*world[chunk_coords_{}].rtree())>;
+    using rtree_type = std::decay_t<decltype(*world[{}].rtree())>;
     using rect_type = rtree_type::Rect;
 
     if (cursor.pixel)

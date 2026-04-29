@@ -107,12 +107,6 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
     return *c;
 }
 
-auto world::operator[](global_coords pt) noexcept -> pair_chunk_tile
-{
-    auto& c = operator[](pt.chunk3());
-    return { c, c[pt.local()] };
-}
-
 chunk* world::at(chunk_coords_ c) noexcept
 {
     auto& impl = *this->impl;

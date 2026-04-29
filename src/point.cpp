@@ -26,6 +26,8 @@ Debug& operator<<(Debug& dbg, const point& pt)
 
 point operator+(point pt, Vector2i delta) { return point::normalize_coords(pt, delta); }
 point operator+(Vector2i delta, point pt) { return point::normalize_coords(pt, delta); }
+point operator-(point pt, Vector2i delta) { return point::normalize_coords(pt, -delta); }
+point operator-(Vector2i delta, point pt) { return point::normalize_coords(pt, -delta); }
 
 namespace {
 template<int tile_size>

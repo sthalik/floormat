@@ -47,7 +47,7 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
 {
     if (!x)
     {
-        auto [c, t] = w[pos];
+        auto& c = w[pos.chunk3()];
 start:
         const auto& es = c.objects();
         while (auto id = a.get_object_colliding_with_cursor())

@@ -24,27 +24,33 @@ world make_world()
     auto wall2 = wall_image_proto{wall2_, var};
 
     auto w = world{};
-    w[global_coords{{0, 3, 0}, {15,  0}}].t.wall_north() = wall1;
-    w[global_coords{{1, 3, 0}, { 0,  0}}].t.wall_north() = wall1;
-    w[global_coords{{1, 3, 0}, { 0,  0}}].t.wall_north() = wall1;
-    w[global_coords{{1, 2, 0}, { 1, 15}}].t.wall_west()  = wall1;
-    w[global_coords{{1, 2, 0}, { 1, 14}}].t.wall_west()  = wall1;
 
-    w[global_coords{{0, 1, 0}, { 8, 11}}].t.wall_west()  = wall2;
-    w[global_coords{{0, 1, 0}, { 8, 10}}].t.wall_west()  = wall2;
-    w[global_coords{{0, 1, 0}, { 7, 10}}].t.wall_north() = wall2;
-    w[global_coords{{0, 1, 0}, { 6, 10}}].t.wall_north() = wall2;
+    const auto tile = [&w](global_coords pt) {
+        auto& c = w[pt.chunk3()];
+        return c[pt.local()];
+    };
 
-    w[global_coords{{0, 1, 0}, { 9,  8}}].t.wall_north() = wall1;
-    w[global_coords{{0, 1, 0}, {10,  8}}].t.wall_north() = wall1;
-    w[global_coords{{0, 1, 0}, {11,  8}}].t.wall_west()  = wall1;
+    tile(global_coords{{0, 3, 0}, {15,  0}}).wall_north() = wall1;
+    tile(global_coords{{1, 3, 0}, { 0,  0}}).wall_north() = wall1;
+    tile(global_coords{{1, 3, 0}, { 0,  0}}).wall_north() = wall1;
+    tile(global_coords{{1, 2, 0}, { 1, 15}}).wall_west()  = wall1;
+    tile(global_coords{{1, 2, 0}, { 1, 14}}).wall_west()  = wall1;
 
-    w[global_coords{{0, 2, 0}, { 9,  0}}].t.wall_north() = wall1;
-    w[global_coords{{0, 2, 0}, {10,  0}}].t.wall_north() = wall1;
+    tile(global_coords{{0, 1, 0}, { 8, 11}}).wall_west()  = wall2;
+    tile(global_coords{{0, 1, 0}, { 8, 10}}).wall_west()  = wall2;
+    tile(global_coords{{0, 1, 0}, { 7, 10}}).wall_north() = wall2;
+    tile(global_coords{{0, 1, 0}, { 6, 10}}).wall_north() = wall2;
+
+    tile(global_coords{{0, 1, 0}, { 9,  8}}).wall_north() = wall1;
+    tile(global_coords{{0, 1, 0}, {10,  8}}).wall_north() = wall1;
+    tile(global_coords{{0, 1, 0}, {11,  8}}).wall_west()  = wall1;
+
+    tile(global_coords{{0, 2, 0}, { 9,  0}}).wall_north() = wall1;
+    tile(global_coords{{0, 2, 0}, {10,  0}}).wall_north() = wall1;
 
     for (int16_t k = -5; k <= -1; k++)
     {
-        auto& ch = w[chunk_coords_{-5, -5, 0}];
+        auto& ch = w[{-5, -5, 0}];
         for (unsigned i = 0; i < TILE_MAX_DIM; i++)
         {
             ch[{(uint8_t)i, 0}].wall_west()  = wall1;

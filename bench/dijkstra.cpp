@@ -17,7 +17,6 @@ void Dijkstra(benchmark::State& state)
     (void)loader.wall_atlas_list();
     auto w = world();
     auto A = astar();
-    bool first_run = false;
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
     constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*TILE_MAX_DIM*iTILE_SIZE2).length();
@@ -31,7 +30,7 @@ void Dijkstra(benchmark::State& state)
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
         {
-            auto &c = w[chunk_coords_{i, j, 0}];
+            auto &c = w[{i, j, 0}];
             for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
             {
                 c[{ k, k }].wall_north() = metal2;
@@ -47,22 +46,20 @@ void Dijkstra(benchmark::State& state)
     for (int16_t j = wcy - 1; j <= wcy + 1; j++)
         for (int16_t i = wcx - 1; i <= wcx + 1; i++)
         {
-            auto& c = w[chunk_coords_{i, j, 0}];
+            auto& c = w[{i, j, 0}];
             c.mark_passability_modified();
             c.ensure_passability();
         }
 
-    auto run = [&] {
-      return A.Dijkstra(w,
-                        {{0,0,0}, {11,9}},  // from
-                        {wpos, {wox, woy}}, // to
-                        max_dist, {16,16},  // size
-                        first_run ? 1 : 0,
-                        Pass::is_passable_without_critters());
+    auto run = [&]<int Debug> {
+        return A.Dijkstra<Debug>(w, {{0,0,0}, {11,9}}, // from
+                                 {wpos, {wox, woy}},   // to
+                                 max_dist, {16, 16},   // size
+                                 Pass::is_passable_without_critters());
     };
 
     {
-        auto res = run();
+        auto res = run.operator()<1>();
         fm_assert(!res.is_found());
         fm_assert(res.distance() < 128);
         fm_assert(res.distance() > 8);
@@ -70,11 +67,10 @@ void Dijkstra(benchmark::State& state)
         fm_assert(res.cost() < 3000);
     }
 
-    first_run = false;
     for (int i = 0; i < 3; i++)
-        run();
+        run.operator()<0>();
     for (auto _ : state)
-        run();
+        run.operator()<0>();
 }
 
 } // namespace

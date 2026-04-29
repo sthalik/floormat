@@ -1,10 +1,8 @@
 #include "search-result.hpp"
 #include "compat/assert.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "search-node.hpp"
 #include "src/point.inl"
-#include <cr/ArrayView.h>
-#include <mg/Functions.h>
+#include <cr/GrowableArray.h>
 
 namespace floormat {
 
@@ -14,31 +12,12 @@ path_search_result::path_search_result() = default;
 
 path_search_result::~path_search_result() noexcept
 {
-    if (_node && _node->vec.capacity() > 0)
+    if (_node && arrayCapacity(_node->vec) > 0)
     {
-        _node->vec.clear();
+        arrayClear(_node->vec);
         _node->_next = move(_pool);
         _pool = move(_node);
     }
-}
-
-path_search_result::path_search_result(const path_search_result& x) noexcept
-{
-    fm_debug_assert(x._node);
-    auto self = path_search_result{};
-    self._node->vec = x._node->vec;
-    _node = move(self._node);
-    _cost = x._cost;
-}
-
-path_search_result& path_search_result::operator=(const path_search_result& x) noexcept
-{
-    fm_debug_assert(_node);
-    fm_debug_assert(!_node->_next);
-    if (&x != this) [[likely]]
-        _node->vec = x._node->vec;
-    _cost = x._cost;
-    return *this;
 }
 
 path_search_result::path_search_result(path_search_result&& other) noexcept
@@ -50,7 +29,7 @@ path_search_result& path_search_result::operator=(path_search_result&& other) no
 {
     if (_node)
     {
-        _node->vec.clear();
+        arrayClear(_node->vec);
         _node->_next = move(_pool);
         _pool = move(_node);
     }
@@ -72,7 +51,7 @@ void path_search_result::allocate_node()
     if (_pool)
     {
         auto ptr = move(_pool);
-        fm_debug_assert(ptr->vec.empty());
+        fm_debug_assert(ptr->vec.isEmpty());
         auto next = move(ptr->_next);
         _node = move(ptr);
         _pool = move(next);
@@ -80,7 +59,7 @@ void path_search_result::allocate_node()
     else
     {
         _node = Pointer<node>{InPlaceInit};
-        _node->vec.reserve(min_length);
+        arrayReserve(_node->vec, min_length);
     }
 }
 
@@ -91,11 +70,11 @@ ArrayView<const point> path_search_result::path() const
     return { _node->vec.data(), _node->vec.size() };
 }
 
-vector_wrapper<point, vector_wrapper_repr::ref> path_search_result::raw_path()
+Array<point>& path_search_result::raw_path()
 {
     if (!_node)
         allocate_node();
-    return {_node->vec};
+    return _node->vec;
 }
 
 size_t path_search_result::size() const
@@ -105,12 +84,12 @@ size_t path_search_result::size() const
 
 bool path_search_result::empty() const
 {
-    return !_node || _node->vec.empty();
+    return !_node || _node->vec.isEmpty();
 }
 
 path_search_result::operator bool() const
 {
-    return _node && !_node->vec.empty();
+    return _node && !_node->vec.isEmpty();
 }
 
 path_search_result::node::node() noexcept = default;

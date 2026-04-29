@@ -233,8 +233,8 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
     auto w = world();
-    w[{{0,0,0}, {8,9}}].t.wall_north() = W;
-    w[{{0,1,0}, {8,0}}].t.wall_north() = W;
+    w[{0,0,0}][{8,9}].wall_north() = W;
+    w[{0,1,0}][{8,0}].wall_north() = W;
 
     bool ret = run(w, make_dt,
                    Start{
@@ -260,10 +260,10 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
     auto w = world();
-    w[{{-1,-1,0}, {13,13}}].t.wall_north() = W;
-    w[{{-1,-1,0}, {13,13}}].t.wall_west() = W;
-    w[{{1,1,0}, {4,5}}].t.wall_north() = W;
-    w[{{1,1,0}, {5,4}}].t.wall_west() = W;
+    w[{-1,-1,0}][{13,13}].wall_north() = W;
+    w[{-1,-1,0}][{13,13}].wall_west() = W;
+    w[{1,1,0}][{4,5}].wall_north() = W;
+    w[{1,1,0}][{5,4}].wall_west() = W;
 
     bool ret = run(w, make_dt,
                Start{

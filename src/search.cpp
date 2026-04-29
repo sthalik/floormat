@@ -10,7 +10,6 @@
 #include "compat/function2.hpp"
 #include "point.inl"
 #include <bit>
-#include <numbers>
 #include <mg/Range.h>
 
 namespace floormat::Search {
@@ -34,8 +33,10 @@ constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint
     const uint32_t dy = d.y();
     const uint32_t mn = dx < dy ? dx : dy;
     const uint32_t mx = dx > dy ? dx : dy;
-    constexpr float D2_1 = std::numbers::sqrt2_v<float> - 1.f;
-    return static_cast<uint32_t>((float)mx + D2_1 * (float)mn + 1e-6f);
+    // step costs must match search-astar.cpp directions[]
+    constexpr uint32_t axial = (uint32_t)div_size.x();
+    constexpr uint32_t diag  = (uint32_t)(div_size.length() + 1.f);
+    return mx + (diag - axial) * mn / axial;
 };
 constexpr auto octile_distanceʹ = heuristic{octile_distanceʹʹ};
 

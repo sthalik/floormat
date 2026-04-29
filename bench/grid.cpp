@@ -67,13 +67,13 @@ void rebuild(chunk& c)
 void Grid_Build(benchmark::State& state)
 {
     auto w = world();
-    auto& c1 = w[chunk_coords_{1, 0, 0}];
-    auto& c2 = make_chunk1(w[chunk_coords_{2, 0, 0}], true, false);
-    auto& c3 = make_chunk3(w[chunk_coords_{3, 0, 0}], false);
-    auto& c4 = make_chunk3(w[chunk_coords_{4, 0, 0}], true);
-    auto& c5 = make_chunk1(w[chunk_coords_{5, 0, 0}], false, true);
-    auto& c6 = make_chunk1(w[chunk_coords_{6, 0, 0}], false, false);
-    auto& c7 = make_chunk1(w[chunk_coords_{7, 0, 0}], true, true);
+    auto& c1 = w[{1, 0, 0}];
+    auto& c2 = make_chunk1(w[{2, 0, 0}], true, false);
+    auto& c3 = make_chunk3(w[{3, 0, 0}], false);
+    auto& c4 = make_chunk3(w[{4, 0, 0}], true);
+    auto& c5 = make_chunk1(w[{5, 0, 0}], false, true);
+    auto& c6 = make_chunk1(w[{6, 0, 0}], false, false);
+    auto& c7 = make_chunk1(w[{7, 0, 0}], true, true);
 
     for (auto* cʹ : { &c1, &c2, &c3, &c4, &c5, &c6, &c7 })
         rebuild(*cʹ);

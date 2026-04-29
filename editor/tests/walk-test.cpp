@@ -58,7 +58,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             }
             else
             {
-                auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, dist, bb, 0,
+                auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, dist, bb,
                                               Pass::is_passable_without_critters());
                 if (!res.empty())
                 {

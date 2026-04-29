@@ -1,7 +1,6 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "compat/array-size.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
@@ -158,8 +157,8 @@ void path_test::update_pre(app& a, const Ns&)
     auto& astar = M.astar();
 
     result.res = {}; // return back to the pool to preserve cpu cache
-    auto res = astar.Dijkstra(w, pending.from, pending.to, pending.max_dist, pending.own_size, 1,
-                              Pass::is_passable_without_critters());
+    auto res = astar.Dijkstra<1>(w, pending.from, pending.to, pending.max_dist, pending.own_size,
+                                 Pass::is_passable_without_critters());
     has_result = !!res;
     result = {
         .from = pending.from,

@@ -137,6 +137,8 @@ float app::draw_main_menu()
                 _test_text_painter = !_test_text_painter;
             if (ImGui::MenuItem("Hole stress test"))
                 populate_hole_stress_test();
+            if (ImGui::MenuItem("Labyrinth"))
+                populate_labyrinth();
         }
 #endif
 

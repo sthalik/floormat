@@ -85,7 +85,7 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, 
 {
     if (!s)
     {
-        auto [c, t] = w[pos];
+        auto& c = w[pos.chunk3()];
 start:
         const auto& es = c.objects();
         const auto sz = es.size();

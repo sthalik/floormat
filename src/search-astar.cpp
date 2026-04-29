@@ -8,7 +8,6 @@
 #include "point.inl"
 #include "compat/array-size.hpp"
 #include "compat/format.hpp"
-#include "compat/vector-wrapper.hpp"
 #include "compat/function2.hpp"
 #include <cstdio>
 #include <algorithm>
@@ -41,24 +40,20 @@ using Search::min_size;
 
 namespace {
 
-void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
+void simplify_path(ArrayView<const point> src, Array<point>& dest)
 {
     const auto size = (uint32_t)src.size();
-    dest.clear();
-    dest.reserve(size);
+    arrayClear(dest);
+    arrayReserve(dest, size);
 
-    // FIX: Safely handle 0 or 1 element arrays
-    if (size < 2) [[unlikely]]
+    if (size < 2) [[unlikely]] // Safely handle 0 or 1 element arrays
     {
         if (size == 1)
-            dest.push_back(src[0]);
+            arrayAppend(dest, src[0]);
         return;
     }
 
     auto last_vec = src[1] - src[0];
-
-    dest.clear();
-    dest.reserve(src.size());
 
     if (last_vec.isZero()) [[unlikely]]
     {
@@ -66,21 +61,22 @@ void simplify_path(ArrayView<const point> src, std::vector<point>& dest)
         return;
     }
 
-    dest.push_back(src[1]);
+    arrayAppend(dest, src[1]);
 
     for (auto i = 2u; i < size; i++)
     {
         const auto pos = src[i];
         const auto vec = pos - src[i-1];
-        if (vec != last_vec || Math::abs(vec).max() != div_size.x())
+
+        if (vec != last_vec)
         {
-            dest.push_back(pos);
+            arrayAppend(dest, src[i-1]);
             last_vec = vec;
         }
     }
 
     if (dest.back() != src.back())
-        dest.push_back(src.back());
+        arrayAppend(dest, src.back());
 }
 
 constexpr auto directions = []() constexpr
@@ -100,11 +96,9 @@ constexpr auto directions = []() constexpr
     }};
     for (auto& [vec, len] : array)
         vec *= div_size;
-#if 0
     for (auto i = 0uz; i < array.size(); i++)
         for (auto j = 0uz; j < i; j++)
             fm_assert(array[i].dir != array[j].dir);
-#endif
     return array;
 }();
 
@@ -150,8 +144,14 @@ void set_result_from_idx(path_search_result& result,
         arrayAppend(temp_nodes, from);
 
     std::reverse(temp_nodes.begin(), temp_nodes.end());
-    simplify_path(temp_nodes, result.raw_path().vec);
+    simplify_path(temp_nodes, result.raw_path());
     arrayResize(temp_nodes, 0);
+}
+
+uint32_t distance_sq(point a, point b)
+{
+    Vector2i dist = a - b;
+    return (uint32_t)Vector2(dist).dot();
 }
 
 } // namespace
@@ -190,14 +190,15 @@ frontier astar::pop_from_heap()
     return n;
 }
 
+template<int Debug>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size_,
-                                   int debug, const pred& p, const heuristic& h)
+                                   const pred& p, const heuristic& h)
 {
     reserve(initial_capacity);
 
     Timeline timeline;
-    if (debug > 0) [[unlikely]]
+    if constexpr(Debug > 0) [[unlikely]]
         timeline.start();
 
     clear();
@@ -207,7 +208,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
     fm_assert(own_size_ < Vector2ui{size_max});
     const auto own_size = Math::max(own_size_, min_size);
-    constexpr auto goal_thres = (uint32_t)(div_size.length() + 1.5f);
+    constexpr auto goal_thres_lin = div_size.length() + 1.5f;
+    constexpr auto goal_thres = (uint32_t)(goal_thres_lin * goal_thres_lin);
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]
         return {};
@@ -226,25 +228,28 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     if (!cache.is_passable_for_bbox(w, pool, to, p))
         return {};
 
-    constexpr int8_t div_min = -div_factor*2, div_max = div_factor*2;
+    constexpr Vector2i seed_offsets[4] = {
+        { 0, -div_size.y() },
+        { -div_size.x(),  0 },
+        {  div_size.x(),  0 },
+        { 0,  div_size.y() },
+    };
 
-    for (int8_t y = div_min; y <= div_max; y++)
-        for (int8_t x = div_min; x <= div_max; x++)
+    for (auto off : seed_offsets)
+    {
+        constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
+        auto pt = point::normalize_coords({from.coord(), {}}, off);
+        auto dist = h(from, pt) + min_dist;
+
+        if (cache.is_passable_for_bbox(w, pool, pt, p))
         {
-            constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
-            auto off = Vector2i(x, y) * div_size;
-            auto pt = point::normalize_coords({from.coord(), {}}, off);
-            auto dist = point::distance(from, pt) + min_dist;
-
-            if (cache.is_passable_for_bbox(w, pool, pt, p))
-            {
-                auto idx = (uint32_t)nodes.size();
-                cache.add_index(pt, idx);
-                arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-                uint32_t f_score = dist + h(pt, to);
-                add_to_heap(idx, f_score, dist);
-            }
+            auto idx = (uint32_t)nodes.size();
+            cache.add_index(pt, idx);
+            arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+            uint32_t f_score = dist + h(pt, to);
+            add_to_heap(idx, f_score, dist);
         }
+    }
 
     auto closest_dist = (uint32_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
@@ -265,26 +270,24 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         if (cur_dist >= max_dist) [[unlikely]]
             continue;
 
-        if (auto d = point::distance(cur_pt, to); d < closest_dist) [[unlikely]]
+        const auto d = distance_sq(cur_pt, to);
+
+        if (d < closest_dist) [[unlikely]]
         {
             closest_dist = d;
             closest_idx = cur_idx;
 
-#ifndef FM_NO_DEBUG
-            if (debug >= 2) [[unlikely]]
+            if constexpr (Debug >= 2) [[unlikely]]
                 DBG_nospace << "closest node"
-                            << " px:" << closest_dist << " path:" << cur_dist
+                            << " px:" << Math::sqrt(closest_dist) << " path:" << cur_dist
                             << " pos:" << cur_pt;
-#endif
         }
 
-        if (auto dist_to_goal = point::distance_l1(cur_pt, to); dist_to_goal < goal_thres) [[unlikely]]
+        if (d < goal_thres) [[unlikely]]
         {
-            auto dist = cur_dist + dist_to_goal;
             if (cache.is_passable_between(w, pool, cur_pt, to, p))
             {
                 goal_idx = cur_idx;
-                max_dist = dist;
                 break; // path can only get longer
             }
         }
@@ -333,12 +336,10 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                 n.prev = cur_idx;
             }
 
-#ifndef FM_NO_DEBUG
-            if (debug >= 3) [[unlikely]]
+            if constexpr(Debug >= 3) [[unlikely]]
                 DBG_nospace << " path:" << dist
                             << " pos:" << Vector3i(new_pt.coord())
                             << ";" << new_pt.offset();
-#endif
 
             add_to_heap(new_idx, f_score, dist);
         }
@@ -357,14 +358,13 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
-        result.set_distance(closest_dist);
+        result.set_distance(Math::sqrt(closest_dist));
         set_result_from_idx(result, temp_nodes, nodes, from, to, closest_idx);
     }
 
     result.set_time(timeline.currentFrameTime());
 
-#ifndef FM_NO_DEBUG
-    if (debug >= 1) [[unlikely]]
+    if constexpr (Debug >= 1) [[unlikely]]
     {
         auto d0_ =
             Vector2i(Math::abs(from.coord() - to.coord())) * iTILE_SIZE2
@@ -387,7 +387,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
             len = snformat(buf, "Dijkstra: no path found in {:.1f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           time, closest_dist, closest.dist, d0,
+                           time, Math::sqrt(closest_dist), closest.dist, d0,
                            d0 > 0 ? (float)closest.dist/(float)d0 : 1);
         }
         if (len)
@@ -397,11 +397,15 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             std::fflush(stdout);
         }
     }
-#endif
 
     arrayResize(Q, 0);
 
     return result;
 }
+
+template path_search_result astar::Dijkstra<0>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<1>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<2>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<3>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 
 } // namespace floormat

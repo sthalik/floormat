@@ -183,6 +183,49 @@ void app::populate_hole_stress_test()
     place({7,7}, {-tile_size_xy/4,  tile_size_xy/4}, {tile_size_xy/2, tile_size_xy/2});
 }
 
+void app::populate_labyrinth()
+{
+    reset_world();
+    auto& w = M->world();
+
+    auto wall   = loader.wall_atlas("test1", loader_policy::warn);
+    auto ground = loader.ground_atlas("floor-tiles");
+
+    constexpr int cols = 5, rows = 8;
+    constexpr int W = cols * 16, H = rows * 16;
+    constexpr int step = 4;
+
+    for (int16_t cx = 0; cx < cols; cx++)
+        for (int16_t cy = 0; cy < rows; cy++) {
+            auto& c = w[{cx, cy, 0}];
+            for (auto k = 0u; k < TILE_COUNT; k++)
+                c[k].ground() = {ground, variant_t(k % ground->num_tiles())};
+            c.mark_modified();
+        }
+
+    auto GN = [&](int gx, int gy) {
+        w[{int16_t(gx/16), int16_t(gy/16), 0}][{uint8_t(gx%16), uint8_t(gy%16)}].wall_north() = {wall, 0};
+    };
+    auto GW = [&](int gx, int gy) {
+        w[{int16_t(gx/16), int16_t(gy/16), 0}][{uint8_t(gx%16), uint8_t(gy%16)}].wall_west() = {wall, 0};
+    };
+
+    for (int x = step; x < W; x++) GN(x, 0);
+    for (int x = step; x < W; x++)
+        w[{int16_t(x/16), int16_t(rows), 0}][{uint8_t(x%16), 0}].wall_north() = {wall, 0};
+    for (int y = 0; y < H; y++) GW(0, y);
+    for (int cy = 0; cy < rows; cy++)
+        for (int y = 0; y < 16; y++)
+            w[{int16_t(cols), int16_t(cy), 0}][{0, uint8_t(y)}].wall_west() = {wall, 0};
+
+    for (int wy = step; wy < H; wy += step) {
+        int gap = ((wy/step - 1) % 2 == 0) ? W - step : 0;
+        for (int x = 0; x < W; x++)
+            if (x < gap || x >= gap + step)
+                GN(x, wy);
+    }
+}
+
 void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
 {
     auto floor1 = loader.ground_atlas("floor-tiles");

@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "search-result.hpp"
 #include "point.hpp"
-#include <vector>
+#include <cr/Array.h>
 #include <cr/Pointer.h>
 
 namespace floormat {
@@ -18,7 +18,7 @@ struct path_search_result::node
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
     fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
 
-    std::vector<point> vec;
+    Array<point> vec;
     Pointer<node> _next;
 };
 
