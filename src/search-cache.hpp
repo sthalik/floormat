@@ -49,7 +49,7 @@ struct cache
     std::array<chunk*, 8> get_neighbors(world& w, chunk_coords_ ch0);
 
     bool is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p);
-    bool is_passable_between(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p);
+    bool is_passable_between_diag(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p);
 };
 
 } // namespace floormat::Search

@@ -38,9 +38,6 @@ public:
 private:
     static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
 
-    void add_to_heap(uint32_t id, uint32_t f_score, uint32_t g_score);
-    frontier pop_from_heap();
-
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::Pass::PoolRegistry> _registry;
     Array<visited> nodes;

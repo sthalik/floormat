@@ -70,7 +70,8 @@ void simplify_path(ArrayView<const point> src, Array<point>& dest)
 
         if (vec != last_vec)
         {
-            arrayAppend(dest, src[i-1]);
+            if (dest.back() != src[i-1])
+                arrayAppend(dest, src[i-1]);
             last_vec = vec;
         }
     }
@@ -79,20 +80,21 @@ void simplify_path(ArrayView<const point> src, Array<point>& dest)
         arrayAppend(dest, src.back());
 }
 
+struct dir_step { Vector2i dir; uint32_t len; };
+
 constexpr auto directions = []() constexpr
 {
-    struct pair { Vector2i dir; uint32_t len; };
     constexpr auto len1 = div_size;
     constexpr auto len2 = (uint32_t)(len1.length() + 1.f); // NOLINT
-    std::array<pair, 8> array = {{
+    std::array<dir_step, 8> array = {{
         { { -1, -1 }, len2 },
         { {  0, -1 }, len1.y() },
         { {  1, -1 }, len2 },
         { { -1,  0 }, len1.x() },
+        { {  1,  1 }, len2 },
         { {  1,  0 }, len1.x() },
         { { -1,  1 }, len2 },
         { {  0,  1 }, len1.y() },
-        { {  1,  1 }, len2 },
     }};
     for (auto& [vec, len] : array)
         vec *= div_size;
@@ -106,10 +108,9 @@ struct heap_comparator
 {
     static bool operator()(frontier a, frontier b)
     {
-        if (a.f_score == b.f_score) [[unlikely]]
-            return a.g_score < b.g_score;
-        else
-            return a.f_score > b.f_score;
+        const auto ka = (uint64_t{a.f_score} << 32) | uint64_t{~a.g_score};
+        const auto kb = (uint64_t{b.f_score} << 32) | uint64_t{~b.g_score};
+        return ka > kb;
     }
 };
 
@@ -148,11 +149,76 @@ void set_result_from_idx(path_search_result& result,
     arrayResize(temp_nodes, 0);
 }
 
-uint32_t distance_sq(point a, point b)
+void add_to_heap(Array<frontier>& Q, uint32_t id, uint32_t f_score, uint32_t g_score)
 {
-    Vector2i dist = a - b;
-    return (uint32_t)Vector2(dist).dot();
+    arrayAppend(Q, frontier { .node = id, .f_score = f_score, .g_score = g_score, });
+    std::push_heap(Q.begin(), Q.end(), heap_comparator{});
 }
+
+frontier pop_from_heap(Array<frontier>& Q)
+{
+    std::pop_heap(Q.begin(), Q.end(), heap_comparator{});
+    const auto n = Q.back();
+    arrayRemoveSuffix(Q);
+    return n;
+}
+
+template<bool IsDiagonal, int Debug>
+CORRADE_ALWAYS_INLINE
+void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
+            Array<visited>& nodes, Array<frontier>& Q,
+            const astar::pred& p, const astar::heuristic& h,
+            dir_step dirs,
+            point to, point cur_pt,
+            uint32_t cur_idx, uint32_t cur_dist,
+            uint32_t max_dist)
+{
+    const auto [vec, len] = dirs;
+
+    const auto dist = cur_dist + len;
+    const auto new_pt = point::normalize_coords(cur_pt, vec);
+    uint32_t f_score = dist + h(new_pt, to);
+    if (f_score >= max_dist) [[unlikely]]
+        return;
+
+    auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
+    auto tile_idx = cache.get_tile_index(new_pt.local(), new_pt.offset());
+    auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
+
+    if (new_idx != (uint32_t)-1)
+        if (nodes[new_idx].dist <= dist)
+            return;
+
+    if (IsDiagonal ? !cache.is_passable_between_diag(w, pool, cur_pt, new_pt, p)
+                   : !cache.is_passable_for_bbox(w, pool, new_pt, p))
+        return;
+
+    if (new_idx == (uint32_t)-1)
+    {
+        const auto sz = nodes.size();
+        new_idx = (uint32_t)sz;
+        cache.add_index(chunk_idx, tile_idx, new_idx);
+        auto new_node = visited{
+            .dist = dist,
+            .prev = cur_idx,
+            .pt = new_pt,
+        };
+        arrayAppend(nodes, new_node);
+    }
+    else
+    {
+        auto& n = nodes[new_idx];
+        n.dist = dist;
+        n.prev = cur_idx;
+    }
+
+    if constexpr (Debug >= 3) [[unlikely]]
+        DBG_nospace << " path:" << dist
+        << " pos:" << Vector3i(new_pt.coord())
+        << ";" << new_pt.offset();
+
+    add_to_heap(Q, new_idx, f_score, dist);
+};
 
 } // namespace
 
@@ -176,20 +242,6 @@ void astar::clear()
     arrayResize(Q, 0);
 }
 
-void astar::add_to_heap(uint32_t id, uint32_t f_score, uint32_t g_score)
-{
-    arrayAppend(Q, frontier { .node = id, .f_score = f_score, .g_score = g_score, });
-    std::push_heap(Q.begin(), Q.end(), heap_comparator{});
-}
-
-frontier astar::pop_from_heap()
-{
-    std::pop_heap(Q.begin(), Q.end(), heap_comparator{});
-    const auto n = Q.back();
-    arrayRemoveSuffix(Q);
-    return n;
-}
-
 template<int Debug>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size_,
@@ -208,8 +260,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
     fm_assert(own_size_ < Vector2ui{size_max});
     const auto own_size = Math::max(own_size_, min_size);
-    constexpr auto goal_thres_lin = div_size.length() + 1.5f;
-    constexpr auto goal_thres = (uint32_t)(goal_thres_lin * goal_thres_lin);
+    constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]
         return {};
@@ -222,24 +273,32 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto& pool = _registry->pool_for(bbox_size);
     pool.maybe_mark_stale_all(w.frame_no(), cache);
 
-    if (!cache.is_passable_for_bbox(w, pool, from, p))
+    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset()), Vector2(own_size/2));
+        !path_search::is_passable_(cache.try_get_chunk(w, from.chunk3()), cache.get_neighbors(w, from.chunk3()), R.min(), R.max(), p))
         return {};
 
-    if (!cache.is_passable_for_bbox(w, pool, to, p))
+#if 0
+    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), Vector2(own_size/2));
+        !path_search::is_passable_(cache.try_get_chunk(w, to.chunk3()), cache.get_neighbors(w, to.chunk3()), R.min(), R.max(), p))
         return {};
+#endif
 
-    constexpr Vector2i seed_offsets[4] = {
-        { 0, -div_size.y() },
-        { -div_size.x(),  0 },
-        {  div_size.x(),  0 },
-        { 0,  div_size.y() },
+    constexpr Vector2i seed_offsets[9] = {
+        {  0,             0            },
+        {  0,            -div_size.y() },
+        { -div_size.x(),  0            },
+        {  div_size.x(),  0            },
+        {  0,             div_size.y() },
+        { -div_size.x(), -div_size.y() },
+        {  div_size.x(), -div_size.y() },
+        { -div_size.x(),  div_size.y() },
+        {  div_size.x(),  div_size.y() },
     };
 
     for (auto off : seed_offsets)
     {
-        constexpr auto min_dist = (uint32_t)((TILE_SIZE2*2.f).length() + 1.f);
         auto pt = point::normalize_coords({from.coord(), {}}, off);
-        auto dist = h(from, pt) + min_dist;
+        auto dist = h(from, pt);
 
         if (cache.is_passable_for_bbox(w, pool, pt, p))
         {
@@ -247,17 +306,18 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             cache.add_index(pt, idx);
             arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             uint32_t f_score = dist + h(pt, to);
-            add_to_heap(idx, f_score, dist);
+            if (dist < max_dist && f_score < max_dist)
+                add_to_heap(Q, idx, f_score, dist);
         }
     }
 
-    auto closest_dist = (uint32_t)-1;
+    auto closest_h = (uint32_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
 
     while (!Q.isEmpty())
     {
-        const auto front = pop_from_heap();
+        const auto front = pop_from_heap(Q);
         const auto cur_idx = front.node;
         point cur_pt;
         uint32_t cur_dist;
@@ -267,85 +327,36 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         cur_pt = n.pt;
         cur_dist = n.dist;
 
-        if (cur_dist >= max_dist) [[unlikely]]
-            continue;
+        const uint32_t h_remaining = front.f_score - front.g_score;
 
-        const auto d = distance_sq(cur_pt, to);
-
-        if (d < closest_dist) [[unlikely]]
+        if (h_remaining < closest_h)
         {
-            closest_dist = d;
+            closest_h = h_remaining;
             closest_idx = cur_idx;
 
             if constexpr (Debug >= 2) [[unlikely]]
                 DBG_nospace << "closest node"
-                            << " px:" << Math::sqrt(closest_dist) << " path:" << cur_dist
+                            << " px:" << closest_h << " path:" << cur_dist
                             << " pos:" << cur_pt;
         }
 
-        if (d < goal_thres) [[unlikely]]
+        if (h_remaining < goal_thres_lin) [[unlikely]]
         {
-            if (cache.is_passable_between(w, pool, cur_pt, to, p))
+            if (cache.is_passable_between_diag(w, pool, cur_pt, to, p))
             {
                 goal_idx = cur_idx;
                 break; // path can only get longer
             }
         }
 
-        for (auto [vec, len] : directions)
+        for (auto i = 0u; i < 8; i += 2)
         {
-            const auto dist = cur_dist + len;
-            if (dist >= max_dist)
-                continue;
-
-            const auto new_pt = point::normalize_coords(cur_pt, vec);
-
-            uint32_t f_score = dist + h(new_pt, to);
-            if (f_score >= max_dist)
-                continue;
-
-            auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
-            auto tile_idx = cache.get_tile_index(new_pt.local(), new_pt.offset());
-            auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
-
-            if (new_idx != (uint32_t)-1)
-            {
-                if (nodes[new_idx].dist <= dist)
-                    continue;
-            }
-
-            if (!cache.is_passable_between(w, pool, cur_pt, new_pt, p))
-                continue;
-
-            if (new_idx == (uint32_t)-1)
-            {
-                const auto sz = nodes.size();
-                new_idx = (uint32_t)sz;
-                cache.add_index(chunk_idx, tile_idx, new_idx);
-                auto new_node = visited {
-                    .dist = dist,
-                    .prev = cur_idx,
-                    .pt = new_pt,
-                };
-                arrayAppend(nodes, new_node);
-            }
-            else
-            {
-                auto& n = nodes[new_idx];
-                n.dist = dist;
-                n.prev = cur_idx;
-            }
-
-            if constexpr(Debug >= 3) [[unlikely]]
-                DBG_nospace << " path:" << dist
-                            << " pos:" << Vector3i(new_pt.coord())
-                            << ";" << new_pt.offset();
-
-            add_to_heap(new_idx, f_score, dist);
+            const auto d1 = directions.data()[i + 0],
+                       d2 = directions.data()[i + 1];
+            do_dir<1, Debug>(w, pool, cache, nodes, Q, p, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist);
+            do_dir<0, Debug>(w, pool, cache, nodes, Q, p, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist);
         }
     }
-
-    //fm_debug_assert(nodes.size() == indexes.size());
 
     path_search_result result;
 
@@ -358,7 +369,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
-        result.set_distance(Math::sqrt(closest_dist));
+        result.set_distance(closest_h);
         set_result_from_idx(result, temp_nodes, nodes, from, to, closest_idx);
     }
 
@@ -387,7 +398,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
             len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           time, Math::sqrt(closest_dist), closest.dist, d0,
+                           time, closest_h, closest.dist, d0,
                            d0 > 0 ? (float)closest.dist/(float)d0 : 1);
         }
         if (len)
