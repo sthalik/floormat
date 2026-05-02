@@ -9,6 +9,7 @@
 #include "loader/loader.hpp"
 #include "src/sprite-atlas.hpp"
 #include <cfloat>
+#include <utility>
 #include <ranges>
 #include <algorithm>
 #include <cr/GrowableArray.h>
