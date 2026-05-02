@@ -36,9 +36,8 @@ jobs:
 
     - name: Install Linux dependencies
       run: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         sudo apt -q=2 update
-        sudo apt install g++-14 gdb ninja-build libbenchmark-dev
+        sudo apt -q install g++-14 gdb ninja-build libbenchmark-dev
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
       if: matrix.os == 'ubuntu-latest'
