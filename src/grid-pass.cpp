@@ -308,56 +308,44 @@ void Grid::build_impl(chunk* self, const pred& predicate)
         neighbors[0], neighbors[1], neighbors[2], neighbors[3],
         neighbors[4], neighbors[5], neighbors[6], neighbors[7],
     };
-    static constexpr auto offsets = []() {
+    static constexpr auto nb_offsets = []() {
         constexpr float chunk_size = (float)tile_size_xy * (float)TILE_MAX_DIM;
         std::array<Vector2, 9> a{};
         for (auto i = 0u; i < 8; i++)
             a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size;
         return a;
     }();
-    static constexpr auto nb_dxdy = []() {
+    static constexpr auto ch_offsets = []() {
         std::array<Vector2b, 9> a{};
         for (auto i = 0u; i < 8; i++)
             a[i+1] = world::neighbor_offsets[i];
         return a;
     }();
 
-    constexpr float chunk_size = (float)tile_size_xy * (float)TILE_MAX_DIM;
-    constexpr float cb_min = -(float)tile_size_xy*.5f - 255.f*.5f;
-    constexpr float cb_max = chunk_size - (float)tile_size_xy*.5f + 255.f*.5f;
-    struct strip { uint32_t lo, hi; };
-    const auto compute_strip = [&](int32_t d) -> strip {
-        const float c_lo = (float)d * chunk_size + cb_min - half;
-        const float c_hi = (float)d * chunk_size + cb_max + half;
-        int32_t k_lo = (int32_t)Math::ceil((c_lo - half_div_minus_half_tile) / (float)div_size);
-        int32_t k_hi = (int32_t)Math::floor((c_hi - half_div_minus_half_tile) / (float)div_size);
-        k_lo = Math::max(0, k_lo);
-        k_hi = Math::min((int32_t)div_countʹ - 1, k_hi);
-        if (k_lo > k_hi)
-            return {1u, 0u};
-        return {(uint32_t)k_lo, (uint32_t)(k_hi + 1)};
-    };
-    const strip strips[3] = { compute_strip(-1), compute_strip(0), compute_strip(1) };
+    // cull radius: max world distance from a cell to an obstacle for collision.
+    // = obstacle half (127.5) + critter half (127.5) + cell pad (div_size/2)
+    const auto cull_radius = 255.f + (float)div_size * .5f;
+    const auto K = Math::min(div_countʹ, (uint32_t)Math::ceil(cull_radius / (float)div_size));
+    const uint32_t lo[3] = { 0u, 0u, div_countʹ - K };
+    const uint32_t hi[3] = { K,  div_countʹ, div_countʹ };
 
     for (auto n = 0u; n < 9; n++)
     {
         auto* c = chunks[n];
         if (!c)
             continue;
-        const auto off = offsets[n];
-        const auto sx_strip = strips[nb_dxdy[n].x() + 1];
-        const auto sy_strip = strips[nb_dxdy[n].y() + 1];
-        if (sx_strip.lo >= sx_strip.hi || sy_strip.lo >= sy_strip.hi)
-            continue;
+        const auto off = nb_offsets[n];
+        const auto sx_lo = lo[ch_offsets[n].x() + 1], sx_hi = hi[ch_offsets[n].x() + 1];
+        const auto sy_lo = lo[ch_offsets[n].y() + 1], sy_hi = hi[ch_offsets[n].y() + 1];
 
-        for (auto j = sy_strip.lo; j < sy_strip.hi; j++)
+        for (auto j = sy_lo; j < sy_hi; j++)
         {
             const auto py = (float)(j * div_size) + half_div_minus_half_tile;
             const auto sy = py - half - off.y();
             const auto ey = py + half - off.y();
             const auto by = j * div_countʹ;
 
-            for (auto i = sx_strip.lo; i < sx_strip.hi; i++)
+            for (auto i = sx_lo; i < sx_hi; i++)
             {
                 const auto bit = by + i;
                 const auto mask = uint8_t(1u << (bit & 7));
