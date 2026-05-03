@@ -88,8 +88,8 @@ public:
     void maybe_mark_stale(Search::cache& cache);
 
     /// Synchronous; auto-triggers `chunk::ensure_passability` via `rtree()`.
-    void build_if_stale(pred predicate);
-    void build_if_stale(Search::cache& cache, pred predicate);
+    void build_if_stale(const pred& predicate);
+    void build_if_stale(Search::cache& cache, const pred& predicate);
 };
 
 /// Per-frame: `maybe_mark_stale_all(w.frame_no())` then `build_if_stale_all()`
@@ -113,8 +113,8 @@ public:
     void maybe_mark_stale_all(uint64_t frame_no);
     void maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache);
 
-    void build_if_stale_all(pred predicate);
-    void build_if_stale_all(Search::cache& cache, pred predicate);
+    void build_if_stale_all(const pred& predicate);
+    void build_if_stale_all(Search::cache& cache, const pred& predicate);
 
     Params params() const;
     uint32_t pooled_count() const;

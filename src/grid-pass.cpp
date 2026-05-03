@@ -141,15 +141,15 @@ struct Grid
     void mark_stale();
     void maybe_mark_stale();
     void maybe_mark_stale(Search::cache& cache);
-    void build_if_stale(pred predicate);
-    void build_if_stale(Search::cache& cache, pred predicate);
+    void build_if_stale(const pred& predicate);
+    void build_if_stale(Search::cache& cache, const pred& predicate);
 
     Grid(chunk& c, Params params);
     ~Grid() noexcept;
 
 private:
     void maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk);
-    void build_impl(chunk* self, pred predicate);
+    void build_impl(chunk* self, const pred& predicate);
 };
 
 uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
@@ -263,7 +263,7 @@ void Grid::maybe_mark_stale(Search::cache& cache)
     maybe_mark_stale_impl([this, &cache](chunk_coords_ ch) { return cache.try_get_chunk(*w, ch); });
 }
 
-void Grid::build_if_stale(pred predicate)
+void Grid::build_if_stale(const pred& predicate)
 {
     if (!is_stale())
         return;
@@ -275,7 +275,7 @@ void Grid::build_if_stale(pred predicate)
     build_impl(self, predicate);
 }
 
-void Grid::build_if_stale(Search::cache& cache, pred predicate)
+void Grid::build_if_stale(Search::cache& cache, const pred& predicate)
 {
     if (!is_stale())
         return;
@@ -287,7 +287,7 @@ void Grid::build_if_stale(Search::cache& cache, pred predicate)
     build_impl(self, predicate);
 }
 
-void Grid::build_impl(chunk* self, pred predicate)
+void Grid::build_impl(chunk* self, const pred& predicate)
 {
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
@@ -767,8 +767,8 @@ void Grid::maybe_mark_stale(Search::cache& cache)
 
 Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::Grid* Grid::raw() const noexcept { return grid; }
-void Grid::build_if_stale(pred predicate) { grid->build_if_stale(predicate); }
-void Grid::build_if_stale(Search::cache& cache, pred predicate) { grid->build_if_stale(cache, predicate); }
+void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
+void Grid::build_if_stale(Search::cache& cache, const pred& predicate) { grid->build_if_stale(cache, predicate); }
 
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
@@ -833,13 +833,13 @@ void Pool::maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache)
     }
 }
 
-void Pool::build_if_stale_all(pred predicate)
+void Pool::build_if_stale_all(const pred& predicate)
 {
     for (auto [k, grid] : pool->grids)
         grid->build_if_stale(predicate);
 }
 
-void Pool::build_if_stale_all(Search::cache& cache, pred predicate)
+void Pool::build_if_stale_all(Search::cache& cache, const pred& predicate)
 {
     for (auto [k, grid] : pool->grids)
     {
