@@ -76,7 +76,7 @@ struct object : bptr_base
     virtual void update(const bptr<object>& self, size_t& i, const Ns& dt) = 0;
     void rotate(size_t i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
-    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_aize);
+    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;
