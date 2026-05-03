@@ -43,31 +43,19 @@ namespace {
 void simplify_path(ArrayView<const point> src, Array<point>& dest)
 {
     const auto size = (uint32_t)src.size();
-    arrayClear(dest);
-    arrayReserve(dest, size);
 
-    if (size < 2) [[unlikely]] // Safely handle 0 or 1 element arrays
-    {
-        if (size == 1)
-            arrayAppend(dest, src[0]);
+    if (size == 0) [[unlikely]]
         return;
-    }
+
+    arrayAppend(dest, src[0]);
+    if (size < 2) [[unlikely]]
+        return;
 
     auto last_vec = src[1] - src[0];
 
-    if (last_vec.isZero()) [[unlikely]]
-    {
-        fm_assert(size <= 2);
-        return;
-    }
-
-    arrayAppend(dest, src[1]);
-
     for (auto i = 2u; i < size; i++)
     {
-        const auto pos = src[i];
-        const auto vec = pos - src[i-1];
-
+        const auto vec = src[i] - src[i-1];
         if (vec != last_vec)
         {
             if (dest.back() != src[i-1])
@@ -126,27 +114,24 @@ void set_result_from_idx(path_search_result& result,
         return;
 
     fm_debug_assert(idx != (uint32_t)-1);
-    arrayResize(temp_nodes, 0);
-    arrayReserve(temp_nodes, len+1);
 
     const auto& to_node = nodes[idx];
-    if (result.is_found() && to != to_node.pt)
+    result.set_cost(to_node.dist + point::distance(to, to_node.pt));
+
+    arrayClear(temp_nodes);
+    arrayReserve(temp_nodes, len + 2);
+    arrayClear(result.raw_path());
+    arrayReserve(result.raw_path(), len + 2);
+
+    if (result.is_found())
         arrayAppend(temp_nodes, to);
-    result.set_cost(to_node.dist);
-
-    auto i = idx;
-    do {
-        const auto& node = nodes[i];
-        arrayAppend(temp_nodes, node.pt);
-        i = node.prev;
-    } while (i != (uint32_t)-1);
-
-    if (temp_nodes.back() != from)
-        arrayAppend(temp_nodes, from);
+    for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
+        arrayAppend(temp_nodes, nodes[i].pt);
+    arrayAppend(temp_nodes, from);
 
     std::reverse(temp_nodes.begin(), temp_nodes.end());
     simplify_path(temp_nodes, result.raw_path());
-    arrayResize(temp_nodes, 0);
+    arrayClear(temp_nodes);
 }
 
 void add_to_heap(Array<frontier>& Q, uint32_t id, uint32_t f_score, uint32_t g_score)
@@ -327,11 +312,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         cur_pt = n.pt;
         cur_dist = n.dist;
 
-        const uint32_t h_remaining = front.f_score - front.g_score;
+        const uint32_t goal_dist = point::distance(cur_pt, to);
 
-        if (h_remaining < closest_h)
+        if (goal_dist < closest_h)
         {
-            closest_h = h_remaining;
+            closest_h = goal_dist;
             closest_idx = cur_idx;
 
             if constexpr (Debug >= 2) [[unlikely]]
@@ -340,7 +325,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                             << " pos:" << cur_pt;
         }
 
-        if (h_remaining < goal_thres_lin) [[unlikely]]
+        if (goal_dist < goal_thres_lin) [[unlikely]]
         {
             if (cache.is_passable_between_diag(w, pool, cur_pt, to, p))
             {
