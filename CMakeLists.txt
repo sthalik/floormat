@@ -113,7 +113,7 @@ if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
 endif()
 
 if(WIN32)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0 -D_USE_MATH_DEFINES=1)
     add_compile_definitions(_WIN32_WINNT=0x0A00)
 endif()
 
@@ -124,7 +124,6 @@ if(NOT APPLE AND NOT WIN32)
 endif()
 
 if(MSVC)
-    add_definitions(-D_USE_MATH_DEFINES=1)
     add_compile_options(-permissive-)
     add_compile_options(-Zc:preprocessor -Zc:inline -Zc:lambda -Zc:throwingNew -Zc:__cplusplus)
     add_compile_options(-external:W0 -external:anglebrackets)

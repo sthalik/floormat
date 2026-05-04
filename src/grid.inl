@@ -4,8 +4,25 @@
 #include "search-cache.hpp"
 #include "compat/assert.hpp"
 #include "compat/hash-table-load-factor.hpp"
+#include <gtl/phmap.hpp>
 
 namespace floormat::detail::grid {
+
+template <typename T>
+struct Pool
+{
+    free_list freelist;
+    gtl::flat_hash_map<chunk_coords_, T*, Hash::chunk_coord_hasher> grids{};
+    T::Params params;
+    uint64_t frame_no = (uint64_t)-1;
+
+    explicit Pool(T::Params p) requires BitGrid<T>;
+    ~Pool() noexcept;
+    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Pool);
+
+    void put(T* p) requires BitGrid<T>;
+    T* take(chunk& ch) requires BitGrid<T>;
+};
 
 template <BitGrid Self, typename... Args>
 requires requires(Self& s, chunk* sc, Args&&... a) {

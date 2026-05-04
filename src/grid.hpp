@@ -4,7 +4,6 @@
 #include "global-coords.hpp"
 #include <array>
 #include <concepts>
-#include <gtl/phmap.hpp>
 
 namespace floormat {
 class chunk;
@@ -78,21 +77,7 @@ public:
 
 void cascade_mark_neighbors_stale(chunk_coords_ coord, fu2::function_view<GridBase*(chunk_coords_)> find);
 
-template <typename T>
-struct Pool
-{
-    free_list freelist;
-    gtl::flat_hash_map<chunk_coords_, T*, Hash::chunk_coord_hasher> grids{};
-    T::Params params;
-    uint64_t frame_no = (uint64_t)-1;
-
-    explicit Pool(T::Params p) requires BitGrid<T>;
-    ~Pool() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Pool);
-
-    void put(T* p) requires BitGrid<T>;
-    T* take(chunk& ch) requires BitGrid<T>;
-};
+template <typename T> struct Pool;
 
 struct BitView
 {
