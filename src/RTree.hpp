@@ -1,15 +1,16 @@
 #pragma once
-#include "RTree.h"
-#include <cmath>
-#include <cstddef>
-#include <cr/GrowableArray.h>
-#include <cr/Algorithms.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
+
+#include "RTree.h"
+#include <cmath>
+#include <cstddef>
+#include <cr/GrowableArray.h>
+#include <cr/Algorithms.h>
 
 #undef RTREE_DEBUG
 #ifndef FM_NO_DEBUG

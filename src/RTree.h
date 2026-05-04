@@ -189,7 +189,7 @@ public:
   struct Branch
   {
     Rect m_rect;                                  ///< Bounds
-    Node* m_child;                                ///< Child node
+    Node* m_child = NULL;                         ///< Child node
     DATATYPE m_data;                              ///< Data Id
   };
 
