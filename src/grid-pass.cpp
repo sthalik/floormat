@@ -1,4 +1,5 @@
 #include "grid-pass.hpp"
+#include "grid.inl"
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
@@ -13,8 +14,6 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 #include <gtl/phmap.hpp>
-
-#include "Corrade/Utility/Path.h"
 
 //#define FLOORMAT_GRID_PASS_DEBUG 1
 
@@ -121,44 +120,32 @@ unsigned pool_alive_count = 0;
 using floormat::Grid::Pass::Params;
 using floormat::Grid::Pass::pred;
 
-struct Grid
+struct PassGrid : GridBase
 {
-    Grid* next = nullptr;
+    using Params = Grid::Pass::Params;
+
     Params params;
-    chunk* c;
-    world* w;
-    std::array<chunk*, 8> neighbors{};
-    std::array<uint32_t, 9> versions{};
-    chunk_coords_ coord;
     uint32_t div_count;
     BitArray bitmask;
+
+    PassGrid(chunk& c, Params params);
+    ~PassGrid() noexcept;
+
+    void reset_for_reuse(chunk& ch, Params new_params);
 
     static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_bitmask_index_from_coord(local_coords local, Vector2b offset) const;
     Range2D get_coord_from_div(uint32_t x, uint32_t y) const;
 
-    bool is_stale() const;
-    void mark_stale();
-    void maybe_mark_stale();
-    void maybe_mark_stale(Search::cache& cache);
-    void build_if_stale(const pred& predicate);
-    void build_if_stale(Search::cache& cache, const pred& predicate);
-
-    Grid(chunk& c, Params params);
-    ~Grid() noexcept;
-
-private:
-    void maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk);
     void build_impl(chunk* self, const pred& predicate);
 };
 
-uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
+uint32_t PassGrid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 {
-    auto idx = y * div_count + x;
-    return idx;
+    return GridBase::pack_bit_index(x, y, div_count);
 }
 
-uint32_t Grid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
+uint32_t PassGrid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
 {
     constexpr auto half_tile = tile_size_xy/2;
     Vector2i posʹ;
@@ -176,7 +163,7 @@ uint32_t Grid::get_bitmask_index_from_coord(local_coords local, Vector2b offset)
     return idx;
 }
 
-Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
+Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
     constexpr auto half_tile = Vector2i{tile_size_xy/2};
     const auto bbox_size = Vector2(params.bbox_size);
@@ -193,101 +180,7 @@ Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
     return { min, max };
 }
 
-bool Grid::is_stale() const
-{
-    return versions[8] == (uint32_t)-1;
-}
-
-void Grid::mark_stale()
-{
-    versions[8] = (uint32_t)-1;
-}
-
-void Grid::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk)
-{
-    auto* current = at_chunk(coord);
-    if (c != current)
-    {
-        c = current;
-        mark_stale();
-        return;
-    }
-
-    if (is_stale())
-        return;
-
-    if (current && current->is_passability_modified())
-    {
-        mark_stale();
-        return;
-    }
-
-    auto cur_ver = current ? current->pass_gen_counter() : (uint32_t)-1;
-    if (versions[8] != cur_ver)
-    {
-        mark_stale();
-        return;
-    }
-
-    for (auto i = 0u; i < 8; i++)
-    {
-        auto* nb = at_chunk(coord + world::neighbor_offsets[i]);
-
-        if (nb != neighbors[i])
-        {
-            neighbors[i] = nb;
-            mark_stale();
-            return;
-        }
-        if (nb && nb->is_passability_modified())
-        {
-            mark_stale();
-            return;
-        }
-        auto nb_ver = nb ? nb->pass_gen_counter() : (uint32_t)-1;
-        if (nb_ver != versions[i])
-        {
-            mark_stale();
-            return;
-        }
-    }
-}
-
-void Grid::maybe_mark_stale()
-{
-    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->at(ch); });
-}
-
-void Grid::maybe_mark_stale(Search::cache& cache)
-{
-    maybe_mark_stale_impl([this, &cache](chunk_coords_ ch) { return cache.try_get_chunk(*w, ch); });
-}
-
-void Grid::build_if_stale(const pred& predicate)
-{
-    if (!is_stale())
-        return;
-
-    auto* self = w->at(coord);
-    fm_assert(self);
-
-    neighbors = w->neighbors(coord);
-    build_impl(self, predicate);
-}
-
-void Grid::build_if_stale(Search::cache& cache, const pred& predicate)
-{
-    if (!is_stale())
-        return;
-
-    auto* self = cache.try_get_chunk(*w, coord);
-    fm_assert(self);
-
-    neighbors = cache.get_neighbors(*w, coord);
-    build_impl(self, predicate);
-}
-
-void Grid::build_impl(chunk* self, const pred& predicate)
+void PassGrid::build_impl(chunk* self, const pred& predicate)
 {
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
@@ -365,157 +258,40 @@ void Grid::build_impl(chunk* self, const pred& predicate)
     versions[8] = self->pass_gen_counter();
 }
 
-Grid::Grid(chunk& c, Params params):
+PassGrid::PassGrid(chunk& c, Params params):
+    GridBase{c},
     params{params},
-    c{&c},
-    w{&c.world()},
-    coord{c.coord()},
     div_count{chunk_size_xy / params.div_size},
     bitmask{ValueInit, div_count*div_count}
 {
-    versions.fill((uint32_t)-1);
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
     ++grid_alive_count;
-    DBG_nospace << "Grid ctor: total=" << grid_total_count << " alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
+    DBG_nospace << "PassGrid ctor: total=" << grid_total_count << " alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
 #endif
 }
 
-Grid::~Grid() noexcept
+PassGrid::~PassGrid() noexcept
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     --grid_alive_count;
-    DBG_nospace << "Grid dtor: alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
+    DBG_nospace << "PassGrid dtor: alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
 #endif
 }
 
-template <typename T>
-class free_list
+void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 {
-    T* list = nullptr;
-
-public:
-    T* take();
-    void put(T* p);
-
-    bool is_empty() const;
-    uint32_t size() const;
-    static T*& next(T* p);
-};
-
-template <typename T> bool free_list<T>::is_empty() const { return !list; }
-
-template <typename T> uint32_t free_list<T>::size() const
-{
-    uint32_t n = 0;
-    for (auto* p = list; p; p = next(p))
-        n++;
-    return n;
-}
-
-template <typename T> void free_list<T>::put(T* p)
-{
-    next(p) = list;
-    list = p;
-}
-
-template <typename T> T* free_list<T>::take()
-{
-    auto* p = list;
-    if (p)
-    {
-        list = next(p);
-        next(p) = nullptr;
-    }
-    return p;
-}
-
-template<> Grid*& free_list<Grid>::next(Grid* grid) { return grid->next; }
-
-struct Pool
-{
-    class free_list<Grid> free_list;
-    gtl::flat_hash_map<chunk_coords_, Grid*, Hash::chunk_coord_hasher> grids{};
-    Params params;
-    uint64_t frame_no = (uint64_t)-1;
-
-    explicit Pool(Params params);
-    ~Pool() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Pool);
-
-    void put(Grid* p);
-    Grid* take(chunk& ch);
-};
-
-Pool::~Pool() noexcept
-{
-    for (auto& [_, g] : grids)
-        delete g;
-    while (auto* g = free_list.take())
-    {
-        fm_assert(!g->c);
-#ifdef FLOORMAT_GRID_PASS_DEBUG
-        --grid_pooled_count;
-#endif
-        delete g;
-    }
-#ifdef FLOORMAT_GRID_PASS_DEBUG
-    --pool_alive_count;
-    DBG_nospace << "Pool dtor: alive=" << pool_alive_count << " pooled_grids=" << grid_pooled_count;
-#endif
-}
-
-Pool::Pool(Params param):
-    params{param.validate()}
-{
-    Hash::set_open_addressing_load_factor(grids);
-#ifdef FLOORMAT_GRID_PASS_DEBUG
-    ++pool_total_count;
-    ++pool_alive_count;
-    DBG_nospace << "Pool ctor: total=" << pool_total_count << " alive=" << pool_alive_count << " pooled_grids=" << grid_pooled_count;
-#endif
-}
-
-void Pool::put(Grid* p)
-{
-    fm_assert(p);
-    fm_assert(!p->c);
-    const auto div_size = p->params.div_size;
-    const auto div_count = chunk_size_xy / div_size;
-    fm_debug2_assert(p->div_count == div_count);
-    fm_assert(div_count*div_count <= p->bitmask.size());
-#ifdef FLOORMAT_GRID_PASS_DEBUG
-    ++grid_pooled_count;
-    DBG_nospace << "Pool put: alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
-#endif
-    free_list.put(p);
-}
-
-Grid* Pool::take(chunk& ch)
-{
-    if (auto p = free_list.take())
-    {
-#ifdef FLOORMAT_GRID_PASS_DEBUG
-        --grid_pooled_count;
-        DBG_nospace << "Pool take (reuse): alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
-#endif
-        p->params = params;
-        p->c = &ch;
-        p->w = &ch.world();
-        p->neighbors = {};
-        p->versions.fill((uint32_t)-1);
-        p->coord = ch.coord();
-        p->div_count = chunk_size_xy / params.div_size;
-        const auto bits = p->div_count * p->div_count;
-        if (p->bitmask.size() < bits) [[unlikely]]
-            p->bitmask = BitArray{ValueInit, bits};
-        else
-            p->bitmask.resetAll();
-        return p;
-    }
+    reset_base_for_reuse(ch);
+    params = new_params;
+    div_count = chunk_size_xy / params.div_size;
+    const auto bits = div_count * div_count;
+    if (bitmask.size() < bits) [[unlikely]]
+        bitmask = BitArray{ValueInit, bits};
     else
-        return new Grid{ch, params};
+        bitmask.resetAll();
 }
+
+template struct Pool<PassGrid>;
 
 namespace {
 namespace Tests {
@@ -543,11 +319,9 @@ constexpr bool assert_inverse_divisor_table()
     using T = std::remove_cvref_t<decltype(inv[0])>;
     constexpr T sentinel = (T)-1;
 
-    // every divisor round-trips to its index
     for (auto i = 0u; i < array_size(divisors); i++)
         fm_assert(inv[divisors[i] - 1] == (T)i);
 
-    // every non-divisor stays sentinel
     for (auto n = 1u; n <= chunk_size_xy; n++)
         if (chunk_size_xy % n != 0)
             fm_assert(inv[n - 1] == sentinel);
@@ -565,28 +339,23 @@ constexpr bool assert_get_divisor_index()
 
 constexpr bool assert_calc_div_size()
 {
-    // valid input: pass through unchanged
     fm_assert(calc_div_size(1, 8) == 1);
     fm_assert(calc_div_size(8, 8) == 8);
     fm_assert(calc_div_size(64, 64) == 64);
     fm_assert(calc_div_size(64, 128) == 64);
     fm_assert(calc_div_size(chunk_size_xy, chunk_size_xy) == chunk_size_xy);
 
-    // div_size=0: snap to largest divisor ≤ bbox
     fm_assert(calc_div_size(0, 64) == 64);
-    fm_assert(calc_div_size(0, 100) == 64); // 100 isn't a divisor; largest ≤ 100 is 64
+    fm_assert(calc_div_size(0, 100) == 64);
     fm_assert(calc_div_size(0, 8) == 8);
 
-    // div_size > bbox: clamp to largest divisor ≤ bbox
     fm_assert(calc_div_size(1024, 64) == 64);
     fm_assert(calc_div_size(128, 100) == 64);
 
-    // div_size doesn't divide chunk_size_xy: snap down
     fm_assert(calc_div_size(100, 200) == 64);
     fm_assert(calc_div_size(3, 8) == 2);
     fm_assert(calc_div_size(7, 8) == 4);
 
-    // output is always a valid divisor, always ≤ bbox, always > 0
     return true;
 }
 
@@ -600,30 +369,6 @@ static_assert(assert_calc_div_size());
 } // namespace floormat::detail::grid
 
 namespace floormat::Grid::Pass {
-
-bool BitView::read(uint32_t i) const
-{
-    return data[i >> 3] & (1u << (i & 7));
-}
-
-void BitView::set(uint32_t i)
-{
-    data[i >> 3] |= uint8_t(1u << (i & 7));
-}
-
-void BitView::reset(uint32_t i)
-{
-    data[i >> 3] &= uint8_t(~(1u << (i & 7)));
-}
-
-void BitView::write(uint32_t i, bool value)
-{
-    auto& byte = data[i >> 3];
-    auto mask = uint8_t(1u << (i & 7));
-    byte = uint8_t((byte & ~mask) | (uint8_t(value) << (i & 7)));
-}
-
-bool Params::operator==(const Params&) const noexcept = default;
 
 namespace {
 constexpr auto without_critters_lambda = [](chunk& self, collision_data data) -> path_search_continue {
@@ -657,6 +402,8 @@ Params Params::validate() const
     return p;
 }
 
+bool Params::operator==(const Params&) const noexcept = default;
+
 Grid Pool::operator[](chunk& c)
 {
     fm_assert(pool->frame_no == c.world().frame_no());
@@ -669,16 +416,16 @@ Grid Pool::operator[](chunk& c)
     return Grid{it->second, pool};
 }
 
-Grid Pool::wrap(detail::grid::Grid* g) const noexcept { return Grid{g, pool}; }
+Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
 
-Grid::Grid(detail::grid::Grid* grid_, detail::grid::Pool* pool_):
+Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::Pool<detail::grid::PassGrid>* pool_):
     grid{grid_}, pool{pool_}
 {
 }
 
 uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 {
-    return detail::grid::Grid::get_bitmask_index(x, y, div_count);
+    return detail::grid::PassGrid::get_bitmask_index(x, y, div_count);
 }
 
 uint32_t Grid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
@@ -713,28 +460,13 @@ uint32_t Grid::div_count() const
 }
 
 
-namespace {
-void cascade_mark_neighbors_stale(detail::grid::Pool* pool, chunk_coords_ coord)
-{
-    constexpr Vector2i offsets[] {
-        {-1,-1}, { 0,-1}, { 1,-1},
-        {-1, 0},          { 1, 0},
-        {-1, 1}, { 0, 1}, { 1, 1},
-    };
-    for (auto off : offsets)
-    {
-        auto nb = coord + off;
-        auto it = pool->grids.find(nb, nb.hash());
-        if (it != pool->grids.end())
-            it->second->mark_stale();
-    }
-}
-} // namespace
-
 void Grid::mark_stale()
 {
     grid->mark_stale();
-    cascade_mark_neighbors_stale(pool, grid->coord);
+    detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
+        auto it = pool->grids.find(ch, ch.hash());
+        return it != pool->grids.end() ? it->second : nullptr;
+    });
 }
 
 void Grid::maybe_mark_stale()
@@ -742,7 +474,10 @@ void Grid::maybe_mark_stale()
     bool was_stale = grid->is_stale();
     grid->maybe_mark_stale();
     if (!was_stale && grid->is_stale())
-        cascade_mark_neighbors_stale(pool, grid->coord);
+        detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
+            auto it = pool->grids.find(ch, ch.hash());
+            return it != pool->grids.end() ? it->second : nullptr;
+        });
 }
 
 void Grid::maybe_mark_stale(Search::cache& cache)
@@ -750,11 +485,14 @@ void Grid::maybe_mark_stale(Search::cache& cache)
     bool was_stale = grid->is_stale();
     grid->maybe_mark_stale(cache);
     if (!was_stale && grid->is_stale())
-        cascade_mark_neighbors_stale(pool, grid->coord);
+        detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
+            auto it = pool->grids.find(ch, ch.hash());
+            return it != pool->grids.end() ? it->second : nullptr;
+        });
 }
 
 Grid::operator bool() const noexcept { return grid != nullptr; }
-detail::grid::Grid* Grid::raw() const noexcept { return grid; }
+detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
 void Grid::build_if_stale(Search::cache& cache, const pred& predicate) { grid->build_if_stale(cache, predicate); }
 
@@ -838,9 +576,9 @@ void Pool::build_if_stale_all(Search::cache& cache, const pred& predicate)
     }
 }
 
-Pool::Pool(Params params): pool{new detail::grid::Pool{params}} { }
+Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
-uint32_t Pool::pooled_count() const { return pool->free_list.size(); }
+uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

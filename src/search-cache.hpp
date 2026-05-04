@@ -25,8 +25,8 @@ struct cache
     uint32_t div_size_;
     uint32_t div_count_;
     Array<chunk_cache> array;
-    /// `nullptr` = unresolved, `(Grid*)-1` = looked-up-missing, else valid.
-    Array<detail::grid::Grid*> grids;
+    /// `nullptr` = unresolved, `(PassGrid*)-1` = looked-up-missing, else valid.
+    Array<detail::grid::PassGrid*> grids;
     Array<uint32_t> indexes;
     BitArray exists;
 

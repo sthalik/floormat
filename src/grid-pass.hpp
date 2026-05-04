@@ -1,12 +1,5 @@
 #pragma once
-
-/** @file
- *  @brief Per-chunk passability bitmask (one bit per `div_size` cell; critters pass-through). Consumed by cover-mask / pathfinding.
- */
-
-#include "compat/defs.hpp"
-#include "compat/function2.hpp"
-#include "tile-defs.hpp"
+#include "grid.hpp"
 #include "search-pred.hpp"
 
 namespace floormat {
@@ -15,8 +8,7 @@ class chunk;
 }
 
 namespace floormat::detail::grid {
-struct Grid;
-struct Pool;
+struct PassGrid;
 }
 
 namespace floormat::Search { struct cache; }
@@ -24,18 +16,9 @@ namespace floormat::Search { struct cache; }
 namespace floormat::Grid::Pass {
 
 using pred = Search::pred;
+using BitView = detail::grid::BitView;
 
 const pred& is_passable_without_critters();
-
-struct BitView
-{
-    uint8_t* data;
-
-    bool read(uint32_t i) const;
-    void set(uint32_t i);
-    void reset(uint32_t i);
-    void write(uint32_t i, bool value);
-};
 
 /// `div_size` must divide `chunk_size_xy` (=1024) exactly and be `<= bbox_size`;
 /// `validate()` snaps it down to the largest legal divisor.
@@ -53,12 +36,12 @@ struct Params
 /// `pool.frame_no == chunk.world().frame_no()`.
 class Grid
 {
-    detail::grid::Grid* grid;
-    detail::grid::Pool* pool;
+    detail::grid::PassGrid* grid;
+    detail::grid::Pool<detail::grid::PassGrid>* pool;
 
 public:
     ~Grid() noexcept = default;
-    explicit Grid(detail::grid::Grid* grid, detail::grid::Pool* pool);
+    explicit Grid(detail::grid::PassGrid* grid, detail::grid::Pool<detail::grid::PassGrid>* pool);
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;
 
@@ -77,7 +60,7 @@ public:
     uint32_t div_count() const;
 
     explicit operator bool() const noexcept;
-    detail::grid::Grid* raw() const noexcept;
+    detail::grid::PassGrid* raw() const noexcept;
 
     /// Cascade-marks all 8 neighbors stale.
     void mark_stale();
@@ -96,7 +79,7 @@ public:
 /// before any `pool[c]` access (which asserts frame-no sync).
 class Pool final
 {
-    detail::grid::Pool* pool;
+    detail::grid::Pool<detail::grid::PassGrid>* pool;
 
 public:
     explicit Pool(Params params);
@@ -106,7 +89,7 @@ public:
     /// Newly-inserted grid is stale until @ref build_if_stale_all or an
     /// explicit `grid.build_if_stale()`.
     [[nodiscard]] Grid operator[](chunk& c);
-    [[nodiscard]] Grid wrap(detail::grid::Grid* g) const noexcept;
+    [[nodiscard]] Grid wrap(detail::grid::PassGrid* g) const noexcept;
 
     /// Stores `frame_no`, sweeps staleness, GCs collected chunks' grids.
     /// Pass `+1` if called before an upcoming `world::increment_frame_no()`.

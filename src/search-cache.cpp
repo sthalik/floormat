@@ -43,7 +43,7 @@ void cache::allocate(point from, uint32_t max_dist)
     if (len > array.size())
     {
         array = Array<chunk_cache>{ValueInit, len};
-        grids = Array<detail::grid::Grid*>{ValueInit, len};
+        grids = Array<detail::grid::PassGrid*>{ValueInit, len};
         indexes = Array<uint32_t>{NoInit, total_cells};
         exists = BitArray{ValueInit, total_cells};
     }
@@ -152,7 +152,10 @@ std::array<chunk*, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
     fm_debug_assert(!size.isZero());
     std::array<chunk*, 8> neighbors;
     for (auto i = 0u; i < 8; i++)
-        neighbors[i] = try_get_chunk(w, ch0 + world::neighbor_offsets[i]);
+    {
+        auto nb = ch0 + world::neighbor_offsets[i];
+        neighbors[i] = contains_chunk(nb) ? try_get_chunk(w, nb) : w.at(nb);
+    }
     return neighbors;
 }
 
@@ -162,7 +165,7 @@ floormat::Grid::Pass::Grid cache::try_get_grid(world& w, floormat::Grid::Pass::P
     auto idx = get_chunk_index({ch.x, ch.y});
     auto*& slot = grids[idx];
 
-    if (slot == (detail::grid::Grid*)-1)
+    if (slot == (detail::grid::PassGrid*)-1)
         return floormat::Grid::Pass::Grid{nullptr, nullptr};
     if (slot)
         return pool.wrap(slot);
@@ -170,7 +173,7 @@ floormat::Grid::Pass::Grid cache::try_get_grid(world& w, floormat::Grid::Pass::P
     auto* c = try_get_chunk(w, ch);
     if (!c)
     {
-        slot = (detail::grid::Grid*)-1;
+        slot = (detail::grid::PassGrid*)-1;
         return floormat::Grid::Pass::Grid{nullptr, nullptr};
     }
 
