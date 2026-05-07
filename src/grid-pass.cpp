@@ -7,10 +7,8 @@
 #include "src/RTree-search.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
-#include "compat/hash-table-load-factor.hpp"
 #include <bit>
 #include <array>
-#include <chrono>
 #include <cr/BitArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -159,26 +157,6 @@ Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
 
 void PassGrid::build_impl(chunk* self, const pred& predicate)
 {
-#if 0
-    struct bench_scope
-    {
-        std::chrono::steady_clock::time_point t0;
-        chunk_coords_ coord;
-        Params params;
-        bool& all_empty;
-        ~bench_scope()
-        {
-            const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now() - t0).count();
-            DBG_nospace << "grid-pass build " << coord
-                        << " div=" << params.div_size
-                        << " bbox=" << params.bbox_size
-                        << " all_empty=" << all_empty
-                        << " " << us << "us";
-        }
-    } _bench{ std::chrono::steady_clock::now(), coord, params, all_empty };
-#endif
-
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
     uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
