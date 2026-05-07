@@ -4,12 +4,13 @@
 #include "collision.hpp"
 #include "object.hpp"
 #include "search.hpp"
-#include "search-cache.hpp"
+#include "src/RTree-search.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include <bit>
 #include <array>
+#include <chrono>
 #include <cr/BitArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -18,7 +19,6 @@
 //#define FLOORMAT_GRID_PASS_DEBUG 1
 
 namespace floormat {
-namespace { constexpr inline auto chunk_size_xy = tile_size_xy*TILE_MAX_DIM; } // namespace
 } // namespace floormat
 
 namespace floormat::detail::grid {
@@ -125,8 +125,8 @@ struct PassGrid : GridBase
     using Params = Grid::Pass::Params;
 
     Params params;
-    uint32_t div_count;
     BitArray bitmask;
+    bool all_empty;
 
     PassGrid(chunk& c, Params params);
     ~PassGrid() noexcept;
@@ -136,6 +136,7 @@ struct PassGrid : GridBase
     static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_bitmask_index_from_coord(local_coords local, Vector2b offset) const;
     Range2D get_coord_from_div(uint32_t x, uint32_t y) const;
+    bool is_all_empty() const noexcept { return all_empty; }
 
     void build_impl(chunk* self, const pred& predicate);
 };
@@ -147,46 +148,42 @@ uint32_t PassGrid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t PassGrid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
 {
-    constexpr auto half_tile = tile_size_xy/2;
-    Vector2i posʹ;
-    posʹ += Vector2i(local) * tile_size_xy;
-    posʹ += Vector2i(offset);
-    posʹ += Vector2i(half_tile);
-    fm_debug2_assert(posʹ >= Vector2i{0});
-    Vector2ui pos{NoInit}; (void)pos;
-    if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-        pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(params.div_size);
-    else
-        pos = Vector2ui(posʹ) / params.div_size;
-    auto idx = get_bitmask_index(pos.x(), pos.y(), div_count);
-    fm_assert(idx < div_count*div_count);
-    return idx;
+    const auto div_count = chunk_size_xy / params.div_size;
+    return GridBase::pack_bit_index_from_coord(local, offset, params.div_size, div_count);
 }
 
 Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    constexpr auto half_tile = Vector2i{tile_size_xy/2};
-    const auto bbox_size = Vector2(params.bbox_size);
-    const auto half_bbox = bbox_size*.5f;
-    auto pos = Vector2i{(int32_t)x, (int32_t)y};
-    pos *= Vector2i{(int32_t)params.div_size};
-    pos += Vector2i(params.div_size / 2);
-    pos -= half_tile;
-    fm_debug_assert(pos >= -half_tile);
-    fm_debug_assert(pos < Vector2i((int32_t)chunk_size_xy) - half_tile);
-    auto posʹ = Vector2(pos);
-    auto min = posʹ - half_bbox;
-    auto max = min + bbox_size;
-    return { min, max };
+    return GridBase::coord_range_from_div(x, y, params.div_size, params.bbox_size);
 }
 
 void PassGrid::build_impl(chunk* self, const pred& predicate)
 {
+#if 0
+    struct bench_scope
+    {
+        std::chrono::steady_clock::time_point t0;
+        chunk_coords_ coord;
+        Params params;
+        bool& all_empty;
+        ~bench_scope()
+        {
+            const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - t0).count();
+            DBG_nospace << "grid-pass build " << coord
+                        << " div=" << params.div_size
+                        << " bbox=" << params.bbox_size
+                        << " all_empty=" << all_empty
+                        << " " << us << "us";
+        }
+    } _bench{ std::chrono::steady_clock::now(), coord, params, all_empty };
+#endif
+
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
     uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
 
-    const auto div_countʹ = div_count;
+    const auto div_countʹ = chunk_size_xy / params.div_size;
     const auto div_size  = params.div_size;
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
@@ -208,19 +205,13 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
             a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size;
         return a;
     }();
-    static constexpr auto ch_offsets = []() {
-        std::array<Vector2b, 9> a{};
-        for (auto i = 0u; i < 8; i++)
-            a[i+1] = world::neighbor_offsets[i];
-        return a;
-    }();
-
-    // cull radius: max world distance from a cell to an obstacle for collision.
-    // = obstacle half (127.5) + critter half (127.5) + cell pad (div_size/2)
-    const auto cull_radius = 255.f + (float)div_size * .5f;
-    const auto K = Math::min(div_countʹ, (uint32_t)Math::ceil(cull_radius / (float)div_size));
-    const uint32_t lo[3] = { 0u, 0u, div_countʹ - K };
-    const uint32_t hi[3] = { K,  div_countʹ, div_countʹ };
+    const auto half_bbox = (float)params.bbox_size * .5f;
+    const float pmin_self[2] = { -half_tile - half_bbox, -half_tile - half_bbox };
+    const float pmax_self[2] = { (float)chunk_size_xy - half_tile + half_bbox,
+                                 (float)chunk_size_xy - half_tile + half_bbox };
+    const float inv_div = 1.f / (float)div_size;
+    const int idiv_count = (int)div_countʹ;
+    all_empty = true;
 
     for (auto n = 0u; n < 9; n++)
     {
@@ -228,29 +219,43 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         if (!c)
             continue;
         const auto off = nb_offsets[n];
-        const auto sx_lo = lo[ch_offsets[n].x() + 1], sx_hi = hi[ch_offsets[n].x() + 1];
-        const auto sy_lo = lo[ch_offsets[n].y() + 1], sy_hi = hi[ch_offsets[n].y() + 1];
+        const float pmin[2] = { pmin_self[0] - off.x(), pmin_self[1] - off.y() };
+        const float pmax[2] = { pmax_self[0] - off.x(), pmax_self[1] - off.y() };
+        c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
+            const auto x = std::bit_cast<collision_data>(data);
+            if (x.pass == (uint64_t)pass_mode::pass)
+                return true;
+            if (predicate(*c, x) == path_search_continue::pass)
+                return true;
+            all_empty = false;
 
-        for (auto j = sy_lo; j < sy_hi; j++)
-        {
-            const auto py = (float)(j * div_size) + half_div_minus_half_tile;
-            const auto sy = py - half - off.y();
-            const auto ey = py + half - off.y();
-            const auto by = j * div_countʹ;
+            const float bx0 = r.m_min[0] + off.x() - half;
+            const float by0 = r.m_min[1] + off.y() - half;
+            const float bx1 = r.m_max[0] + off.x() + half;
+            const float by1 = r.m_max[1] + off.y() + half;
 
-            for (auto i = sx_lo; i < sx_hi; i++)
+            // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
+            int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
+            int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
+            int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;
+            int j_hi = (int)Math::ceil ((by1 - half_div_minus_half_tile) * inv_div) - 1;
+
+            if (i_lo < 0) i_lo = 0;
+            if (j_lo < 0) j_lo = 0;
+            if (i_hi >= idiv_count) i_hi = idiv_count - 1;
+            if (j_hi >= idiv_count) j_hi = idiv_count - 1;
+
+            for (int j = j_lo; j <= j_hi; j++)
             {
-                const auto bit = by + i;
-                const auto mask = uint8_t(1u << (bit & 7));
-                if (!(bits[bit >> 3] & mask))
-                    continue;
-                const auto px = (float)(i * div_size) + half_div_minus_half_tile;
-                const auto sx = px - half - off.x();
-                const auto ex = px + half - off.x();
-                if (!path_search::is_passable_1(*c, {sx, sy}, {ex, ey}, predicate))
-                    bits[bit >> 3] = uint8_t(bits[bit >> 3] & ~mask);
+                const uint32_t by = (uint32_t)j * div_countʹ;
+                for (int i = i_lo; i <= i_hi; i++)
+                {
+                    const uint32_t bit = by + (uint32_t)i;
+                    bits[bit >> 3] = uint8_t(bits[bit >> 3] & ~(1u << (bit & 7)));
+                }
             }
-        }
+            return true;
+        });
     }
 
     for (auto i = 0u; i < 8; i++)
@@ -261,8 +266,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
 PassGrid::PassGrid(chunk& c, Params params):
     GridBase{c},
     params{params},
-    div_count{chunk_size_xy / params.div_size},
-    bitmask{ValueInit, div_count*div_count}
+    bitmask{ValueInit, (chunk_size_xy / params.div_size) * (chunk_size_xy / params.div_size)}
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
@@ -283,7 +287,7 @@ void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 {
     reset_base_for_reuse(ch);
     params = new_params;
-    div_count = chunk_size_xy / params.div_size;
+    const auto div_count = chunk_size_xy / params.div_size;
     const auto bits = div_count * div_count;
     if (bitmask.size() < bits) [[unlikely]]
         bitmask = BitArray{ValueInit, bits};
@@ -406,14 +410,7 @@ bool Params::operator==(const Params&) const noexcept = default;
 
 Grid Pool::operator[](chunk& c)
 {
-    fm_assert(pool->frame_no == c.world().frame_no());
-    Hash::set_open_addressing_load_factor(pool->grids, pool->grids.size() + 1);
-    auto [it, inserted] = pool->grids.try_emplace(c.coord(), nullptr);
-    if (inserted)
-        it->second = pool->take(c);
-    else
-        fm_debug2_assert(it->second);
-    return Grid{it->second, pool};
+    return Grid{detail::grid::pool_subscript(pool, c), pool};
 }
 
 Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
@@ -430,33 +427,43 @@ uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
 {
-    fm_assert(pool->frame_no == grid->w->frame_no());
+    detail::grid::check_frame_sync(pool, grid);
     return grid->get_bitmask_index_from_coord(local, offset);
 }
 
 Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    fm_assert(pool->frame_no == grid->w->frame_no());
+    detail::grid::check_frame_sync(pool, grid);
     return grid->get_coord_from_div(x, y);
 }
 
 bool Grid::bit(uint32_t index) const
 {
-    fm_assert(pool->frame_no == grid->w->frame_no());
-    fm_assert(index < grid->bitmask.size());
-    return grid->bitmask[index];
+    return detail::grid::grid_bit_at(pool, grid, index);
 }
 
 BitView Grid::bits() const
 {
-    fm_assert(pool->frame_no == grid->w->frame_no());
+    detail::grid::check_frame_sync(pool, grid);
     fm_debug_assert(grid->bitmask.offset() == 0);
     return { reinterpret_cast<uint8_t*>(grid->bitmask.data()) };
 }
 
 uint32_t Grid::div_count() const
 {
-    return grid->div_count;
+    return chunk_size_xy / grid->params.div_size;
+}
+
+uint64_t Grid::build_no() const
+{
+    detail::grid::check_frame_sync(pool, grid);
+    return grid->build_no;
+}
+
+bool Grid::is_all_empty() const
+{
+    detail::grid::check_frame_sync(pool, grid);
+    return grid->is_all_empty();
 }
 
 
@@ -464,7 +471,7 @@ void Grid::mark_stale()
 {
     grid->mark_stale();
     detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-        auto it = pool->grids.find(ch, ch.hash());
+        auto it = pool->grids.find(ch);
         return it != pool->grids.end() ? it->second : nullptr;
     });
 }
@@ -475,18 +482,7 @@ void Grid::maybe_mark_stale()
     grid->maybe_mark_stale();
     if (!was_stale && grid->is_stale())
         detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-            auto it = pool->grids.find(ch, ch.hash());
-            return it != pool->grids.end() ? it->second : nullptr;
-        });
-}
-
-void Grid::maybe_mark_stale(Search::cache& cache)
-{
-    bool was_stale = grid->is_stale();
-    grid->maybe_mark_stale(cache);
-    if (!was_stale && grid->is_stale())
-        detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-            auto it = pool->grids.find(ch, ch.hash());
+            auto it = pool->grids.find(ch);
             return it != pool->grids.end() ? it->second : nullptr;
         });
 }
@@ -494,7 +490,6 @@ void Grid::maybe_mark_stale(Search::cache& cache)
 Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
-void Grid::build_if_stale(Search::cache& cache, const pred& predicate) { grid->build_if_stale(cache, predicate); }
 
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
@@ -520,65 +515,16 @@ void Pool::maybe_mark_stale_all(uint64_t frame_no)
     }
 }
 
-void Pool::maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache)
-{
-    pool->frame_no = frame_no;
-    for (auto it = pool->grids.begin(); it != pool->grids.end(); )
-    {
-        auto* g = it->second;
-        const bool in_rect = cache.contains_chunk(g->coord);
-
-        if (in_rect)
-            Grid{g, pool}.maybe_mark_stale(cache);
-        else
-            Grid{g, pool}.maybe_mark_stale();
-
-        if (!g->c)
-        {
-            it = pool->grids.erase(it);
-            pool->put(g);
-        }
-        else
-        {
-            ++it;
-
-            g->c->ensure_passability();
-            if (in_rect)
-            {
-                for (auto* nb : cache.get_neighbors(*g->w, g->coord))
-                    if (nb)
-                        nb->ensure_passability();
-            }
-            else
-            {
-                for (auto* nb : g->w->neighbors(g->coord))
-                    if (nb)
-                        nb->ensure_passability();
-            }
-        }
-    }
-}
-
 void Pool::build_if_stale_all(const pred& predicate)
 {
     for (auto [k, grid] : pool->grids)
         grid->build_if_stale(predicate);
 }
 
-void Pool::build_if_stale_all(Search::cache& cache, const pred& predicate)
-{
-    for (auto [k, grid] : pool->grids)
-    {
-        if (cache.contains_chunk(k))
-            grid->build_if_stale(cache, predicate);
-        else
-            grid->build_if_stale(predicate);
-    }
-}
-
 Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
+uint64_t Pool::frame_no() const { return pool->frame_no; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

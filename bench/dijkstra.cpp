@@ -59,7 +59,7 @@ void Dijkstra(benchmark::State& state)
     };
 
     {
-        auto res = run.operator()<1>();
+        auto res = run.operator()<0>();
         fm_assert(!res.is_found());
         fm_assert(res.distance() < 128);
         fm_assert(res.distance() > 8);

@@ -49,7 +49,7 @@ Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
         return operator[](coord2.local());
     else
     {
-        if (auto* ch = _world->at(coord2.chunk3()))
+        if (auto* ch = _world->chunk_at_memo(coord2.chunk3()))
             return (*ch)[coord2.local()];
         else
             return NullOpt;
@@ -105,18 +105,17 @@ chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
     _rtree{InPlaceInit},
     _coord{ch}
 {
+    _world->memo_update_slot(_coord, this);
 }
 
 chunk::~chunk() noexcept
 {
+    _world->memo_update_slot(_coord, nullptr);
     _teardown = true;
     arrayResize(_objects, 0);
     arrayShrink(_objects);
     _rtree->RemoveAll();
 }
-
-chunk::chunk(chunk&&) noexcept = default;
-chunk& chunk::operator=(chunk&&) noexcept = default;
 
 void chunk::sort_objects()
 {

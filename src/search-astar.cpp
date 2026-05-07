@@ -123,8 +123,6 @@ void set_result_from_idx(path_search_result& result,
     arrayClear(result.raw_path());
     arrayReserve(result.raw_path(), len + 2);
 
-    if (result.is_found())
-        arrayAppend(temp_nodes, to);
     for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
         arrayAppend(temp_nodes, nodes[i].pt);
     arrayAppend(temp_nodes, from);
@@ -146,6 +144,40 @@ frontier pop_from_heap(Array<frontier>& Q)
     const auto n = Q.back();
     arrayRemoveSuffix(Q);
     return n;
+}
+
+bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
+                       point a, point b, const astar::pred& p)
+{
+    constexpr int div = (int)div_size.x();
+    constexpr int half_tile = tile_size_xy / 2;
+
+    const Vector2i a_pix = iTILE_SIZE2 * Vector2i(a.local()) + Vector2i(a.offset());
+    const Vector2i b_pix = a_pix + (b - a);
+    const Vector2i lo_pix = Math::min(a_pix, b_pix);
+    const Vector2i hi_pix = Math::max(a_pix, b_pix);
+
+    constexpr auto floor_div = [](int s) constexpr -> int
+    {
+        const int q = s / div;
+        return (s < 0 && s % div) ? q - 1 : q;
+    };
+
+    const int idx_x_lo = floor_div(lo_pix.x() + half_tile);
+    const int idx_x_hi = floor_div(hi_pix.x() + half_tile);
+    const int idx_y_lo = floor_div(lo_pix.y() + half_tile);
+    const int idx_y_hi = floor_div(hi_pix.y() + half_tile);
+
+    for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
+        for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
+        {
+            const Vector2i cell_pix{ix * div - half_tile + div/2,
+                                    iy * div - half_tile + div/2};
+            const auto pt_in_cell = point::normalize_coords(a, cell_pix - a_pix);
+            if (!cache.is_passable_for_bbox(w, pool, pt_in_cell, p))
+                return false;
+        }
+    return true;
 }
 
 template<bool IsDiagonal, int Debug>
@@ -208,8 +240,7 @@ void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
 } // namespace
 
 astar::astar() :
-    _cache{InPlaceInit, (uint32_t)Search::div_size.x()},
-    _registry{InPlaceInit, (uint32_t)Search::div_size.x()}
+    _cache{InPlaceInit, (uint32_t)Search::div_size.x()}
 {
 }
 
@@ -226,6 +257,8 @@ void astar::clear()
     arrayResize(nodes, 0);
     arrayResize(Q, 0);
 }
+
+Search::cache* astar::cache() { return &*_cache; }
 
 template<int Debug>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
@@ -255,18 +288,16 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         return {};
 
     const auto bbox_size = Math::max(own_size.x(), own_size.y());
-    auto& pool = _registry->pool_for(bbox_size);
-    pool.maybe_mark_stale_all(w.frame_no(), cache);
+    auto& pool = w.pass_pool_registry().pool_for(bbox_size);
+    pool.maybe_mark_stale_all(w.frame_no());
 
     if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset()), Vector2(own_size/2));
-        !path_search::is_passable_(cache.try_get_chunk(w, from.chunk3()), cache.get_neighbors(w, from.chunk3()), R.min(), R.max(), p))
+        !path_search::is_passable_(w.chunk_at_memo(from.chunk3()), w.neighbors(from.chunk3()), R.min(), R.max(), p))
         return {};
 
-#if 0
     if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), Vector2(own_size/2));
-        !path_search::is_passable_(cache.try_get_chunk(w, to.chunk3()), cache.get_neighbors(w, to.chunk3()), R.min(), R.max(), p))
+        !path_search::is_passable_(w.chunk_at_memo(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
         return {};
-#endif
 
     constexpr Vector2i seed_offsets[9] = {
         {  0,             0            },
@@ -299,6 +330,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto closest_h = (uint32_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
+    auto to_idx = (uint32_t)-1;
 
     while (!Q.isEmpty())
     {
@@ -311,6 +343,12 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             continue;
         cur_pt = n.pt;
         cur_dist = n.dist;
+
+        if (cur_idx == to_idx) [[unlikely]]
+        {
+            goal_idx = cur_idx;
+            break;
+        }
 
         const uint32_t goal_dist = point::distance(cur_pt, to);
 
@@ -327,10 +365,22 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 
         if (goal_dist < goal_thres_lin) [[unlikely]]
         {
-            if (cache.is_passable_between_diag(w, pool, cur_pt, to, p))
+            if (is_passable_swept(w, cache, pool, cur_pt, to, p))
             {
-                goal_idx = cur_idx;
-                break; // path can only get longer
+                const auto new_dist = cur_dist + goal_dist;
+                if (to_idx == (uint32_t)-1)
+                {
+                    to_idx = (uint32_t)nodes.size();
+                    arrayAppend(nodes, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
+                    add_to_heap(Q, to_idx, new_dist, new_dist);
+                }
+                else if (new_dist < nodes[to_idx].dist)
+                {
+                    auto& tn = nodes[to_idx];
+                    tn.dist = new_dist;
+                    tn.prev = cur_idx;
+                    add_to_heap(Q, to_idx, new_dist, new_dist);
+                }
             }
         }
 

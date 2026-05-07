@@ -120,7 +120,7 @@ bool path_search::is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors
 
 bool path_search::is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 {
-    auto* c = w.at(ch);
+    auto* c = w.chunk_at_memo(ch);
     auto neighbors = w.neighbors(ch);
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }

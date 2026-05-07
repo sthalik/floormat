@@ -16,7 +16,6 @@
 #include "src/timer.hpp"
 #include "src/tile-constants.hpp"
 #include "keys.hpp"
-#include "loader/loader.hpp"
 #include "compat/enum-bitset.hpp"
 
 namespace floormat {
@@ -218,7 +217,7 @@ void app::update_world(Ns dt)
     auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -iTILE_SIZE2 * TILE_MAX_DIM, iTILE_SIZE2 * TILE_MAX_DIM, });
     for (auto ch : chunks)
     {
-            auto* const cʹ = world.at(ch);
+            auto* const cʹ = world.chunk_at_memo(ch);
             if (!cʹ)
                 continue;
             auto& c = *cʹ;
@@ -242,7 +241,7 @@ void app::update_world(Ns dt)
 #ifndef FM_NO_DEBUG
     for (auto ch : chunks)
     {
-        auto* cʹ = world.at(ch);
+        auto* cʹ = world.chunk_at_memo(ch);
         if (!cʹ)
             continue;
         auto& c = *cʹ;

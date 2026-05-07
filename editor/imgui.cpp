@@ -550,7 +550,7 @@ void app::do_lightmap_test()
 
     auto& w = M->world();
 
-    if (!w.at(*tested_light_chunk))
+    if (!w.chunk_at_memo(*tested_light_chunk))
     {
         tested_light_chunk = {};
         return;
@@ -568,7 +568,7 @@ void app::do_lightmap_test()
         for (int i = x - ns; i < x + ns; i++)
         {
             auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
-            if (auto* chunk = w.at(c))
+            if (auto* chunk = w.chunk_at_memo(c))
             {
                 auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
                 shader.add_chunk(offset, *chunk);
@@ -582,7 +582,7 @@ void app::do_lightmap_test()
         for (int i = x - ns; i < x + ns; i++)
         {
             auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
-            if (auto* chunk = w.at(c))
+            if (auto* chunk = w.chunk_at_memo(c))
             {
                 auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
                 for (const auto& eʹ : chunk->objects())

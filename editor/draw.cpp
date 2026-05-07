@@ -129,7 +129,7 @@ void app::draw_collision_boxes()
         const auto tint = ch.z == _z_level ? Vector4{0, .5f, 1, 1} : Vector4{.7f, .7f, .7f, .6f};
 
         const chunk_coords_ pos{ch.x, ch.y, ch.z};
-        auto* cʹ = world.at(pos);
+        auto* cʹ = world.chunk_at_memo(pos);
         if (!cʹ)
             continue;
         auto& c = *cʹ;
@@ -174,7 +174,7 @@ void app::draw_collision_boxes()
             if (ch.z != _z_level)
                 continue;
             const chunk_coords_ c_pos{ch.x, ch.y, _z_level};
-            auto* cʹ = world.at(c_pos);
+            auto* cʹ = world.chunk_at_memo(c_pos);
             if (!cʹ)
                 continue;
             auto& c = *cʹ;

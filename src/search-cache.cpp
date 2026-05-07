@@ -1,5 +1,6 @@
 #include "search-cache.hpp"
 #include "search.hpp"
+#include "search-pool.hpp"
 #include "object.hpp"
 #include "point.inl"
 #include "world.hpp"
@@ -22,6 +23,8 @@ cache::cache(uint32_t div_size)
     fm_assert(chunk_size_xy % div_size == 0);
 }
 
+cache::~cache() noexcept = default;
+
 Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
 {
     constexpr auto chunk_size = Vector2ui{chunk_size_xy};
@@ -40,20 +43,13 @@ void cache::allocate(point from, uint32_t max_dist)
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
     auto total_cells = len * cells_per_chunk;
 
-    if (len > array.size())
+    if (total_cells > exists.size())
     {
-        array = Array<chunk_cache>{ValueInit, len};
-        grids = Array<detail::grid::PassGrid*>{ValueInit, len};
         indexes = Array<uint32_t>{NoInit, total_cells};
         exists = BitArray{ValueInit, total_cells};
     }
     else
     {
-        for (auto i = 0uz; i < len; i++)
-        {
-            array[i].chunk = {};
-            grids[i] = nullptr;
-        }
         exists.resetAll();
     }
 }
@@ -68,17 +64,6 @@ size_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 }
 
 size_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
-
-bool cache::contains_chunk(chunk_coords_ ch) const
-{
-    if (ch.z != 0)
-        return false;
-    auto dx = (int32_t)ch.x - start.x();
-    auto dy = (int32_t)ch.y - start.y();
-    if (dx < 0 || dy < 0)
-        return false;
-    return (uint32_t)dx < size.x() && (uint32_t)dy < size.y();
-}
 
 size_t cache::get_tile_index(local_coords local, Vector2b offset_) const
 {
@@ -126,72 +111,17 @@ uint32_t cache::lookup_index(size_t chunk_index, size_t tile_index)
         return (uint32_t)-1;
 }
 
-chunk* cache::try_get_chunk(world& w, floormat::chunk_coords_ ch)
-{
-    fm_assert(ch.z == 0);
-    auto idx = get_chunk_index({ch.x, ch.y});
-    auto& page = array[idx];
-    if (page.chunk == (chunk*)-1)
-        return nullptr;
-    else if (!page.chunk)
-    {
-        page.chunk = w.at(ch);
-        if (!page.chunk)
-        {
-            page.chunk = (chunk*)-1;
-            return nullptr;
-        }
-        return page.chunk;
-    }
-    else
-        return page.chunk;
-}
-
-std::array<chunk*, 8> cache::get_neighbors(world& w, chunk_coords_ ch0)
-{
-    fm_debug_assert(!size.isZero());
-    std::array<chunk*, 8> neighbors;
-    for (auto i = 0u; i < 8; i++)
-    {
-        auto nb = ch0 + world::neighbor_offsets[i];
-        neighbors[i] = contains_chunk(nb) ? try_get_chunk(w, nb) : w.at(nb);
-    }
-    return neighbors;
-}
-
-floormat::Grid::Pass::Grid cache::try_get_grid(world& w, floormat::Grid::Pass::Pool& pool, chunk_coords_ ch)
-{
-    fm_assert(ch.z == 0);
-    auto idx = get_chunk_index({ch.x, ch.y});
-    auto*& slot = grids[idx];
-
-    if (slot == (detail::grid::PassGrid*)-1)
-        return floormat::Grid::Pass::Grid{nullptr, nullptr};
-    if (slot)
-        return pool.wrap(slot);
-
-    auto* c = try_get_chunk(w, ch);
-    if (!c)
-    {
-        slot = (detail::grid::PassGrid*)-1;
-        return floormat::Grid::Pass::Grid{nullptr, nullptr};
-    }
-
-    auto pg = pool[*c];
-    slot = pg.raw();
-    return pg;
-}
-
 bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p)
 {
-    auto grid = try_get_grid(w, pool, pt.chunk3());
+    auto* c = w.chunk_at_memo(pt.chunk3());
+    auto grid = c ? pool[*c] : Grid::Pass::Grid{nullptr, nullptr};
     if (grid)
     {
-        grid.build_if_stale(*this, p);
+        grid.build_if_stale(p);
         return grid.bit(grid.get_bitmask_index_from_coord(pt.local(), pt.offset()));
     }
 
-    auto nbs = get_neighbors(w, pt.chunk3());
+    auto nbs = w.neighbors(pt.chunk3());
     auto half = (float)pool.params().bbox_size * .5f;
     auto center = Vector2(Vector2i(pt.local()) * (int32_t)tile_size_xy + Vector2i(pt.offset()));
     return path_search::is_passable_(nullptr, nbs, center - Vector2{half}, center + Vector2{half}, p);

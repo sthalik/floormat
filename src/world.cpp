@@ -1,17 +1,22 @@
 #include "world.hpp"
 #include "chunk.hpp"
+#include "memo-chunk.hpp"
 #include "object.hpp"
 #include "critter.hpp"
 #include "scenery.hpp"
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "hole.hpp"
+#include "grid-pass.hpp"
+#include "search-pool.hpp"
+#include "search-constants.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include <unordered_map>
+#include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
 #include <gtl/phmap.hpp>
 
@@ -35,7 +40,15 @@ struct world::Impl
 {
     gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
+    Pointer<Grid::Pass::PoolRegistry> _pass_registry;
 };
+
+Grid::Pass::PoolRegistry& world::pass_pool_registry()
+{
+    if (!impl->_pass_registry)
+        impl->_pass_registry.reset(new Grid::Pass::PoolRegistry{(uint32_t)Search::div_size.x()});
+    return *impl->_pass_registry;
+}
 
 world& world::operator=(world&& w) noexcept
 {
@@ -61,7 +74,10 @@ world& world::operator=(world&& w) noexcept
     _current_frame = w._current_frame;
 
     for (auto& [id, c] : impl._chunks)
+    {
         c._world = this;
+        memo_update_slot(c._coord, &c);
+    }
     return *this;
 }
 
@@ -153,6 +169,7 @@ void world::collect(bool force, bool quiet)
     auto& [c, pos] = _last_chunk;
     c = nullptr;
     pos = chunk_tuple::invalid_coords;
+    _chunk_memo->prepare_next_frame(*this);
     const auto len = len0 - impl._chunks.size();
     if (!quiet && len > 1)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
@@ -260,10 +277,24 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
 
 auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>
 {
-    std::array<chunk*, 8> ret;
-    for (auto i = 0u; i < 8; i++)
-        ret[i] = at(coord + neighbor_offsets[i]);
-    return ret;
+    return _chunk_memo->neighbors(*this, coord);
+}
+
+chunk* world::chunk_at_memo(chunk_coords_ ch)
+{
+    return _chunk_memo->chunk_at(*this, ch);
+}
+
+void world::chunk_memo_prepare_frame()
+{
+    _chunk_memo->prepare_next_frame(*this);
+}
+
+void world::memo_update_slot(chunk_coords_ ch, chunk* p) noexcept
+{
+    if (_teardown)
+        return;
+    _chunk_memo->update_slot(*this, ch, p);
 }
 
 critter_proto world::make_player_proto()

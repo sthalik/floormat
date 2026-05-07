@@ -46,8 +46,8 @@ public:
     ~chunk() noexcept;
     chunk(const chunk&) = delete;
     chunk& operator=(const chunk&) = delete;
-    chunk(chunk&&) noexcept;
-    chunk& operator=(chunk&&) noexcept;
+    chunk(chunk&&) noexcept = delete;
+    chunk& operator=(chunk&&) noexcept = delete;
 
     void mark_ground_modified() noexcept;
     void mark_walls_modified() noexcept;

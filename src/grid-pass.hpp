@@ -11,7 +11,6 @@ namespace floormat::detail::grid {
 struct PassGrid;
 }
 
-namespace floormat::Search { struct cache; }
 
 namespace floormat::Grid::Pass {
 
@@ -25,7 +24,7 @@ const pred& is_passable_without_critters();
 struct Params
 {
     uint32_t div_size = tile_size_xy;
-    uint32_t bbox_size = tile_size_xy;
+    uint32_t bbox_size = div_size;
 
     Params validate() const;
 
@@ -58,6 +57,8 @@ public:
     BitView bits() const;
 
     uint32_t div_count() const;
+    uint64_t build_no() const;
+    bool is_all_empty() const;
 
     explicit operator bool() const noexcept;
     detail::grid::PassGrid* raw() const noexcept;
@@ -68,11 +69,9 @@ public:
     /// Checks self + 8 neighbors for pointer swap, `pass_gen_counter` bump, or
     /// `is_passability_modified`. Cascades only on not-stale → stale transition.
     void maybe_mark_stale();
-    void maybe_mark_stale(Search::cache& cache);
 
     /// Synchronous; auto-triggers `chunk::ensure_passability` via `rtree()`.
     void build_if_stale(const pred& predicate);
-    void build_if_stale(Search::cache& cache, const pred& predicate);
 };
 
 /// Per-frame: `maybe_mark_stale_all(w.frame_no())` then `build_if_stale_all()`
@@ -94,12 +93,11 @@ public:
     /// Stores `frame_no`, sweeps staleness, GCs collected chunks' grids.
     /// Pass `+1` if called before an upcoming `world::increment_frame_no()`.
     void maybe_mark_stale_all(uint64_t frame_no);
-    void maybe_mark_stale_all(uint64_t frame_no, Search::cache& cache);
 
     void build_if_stale_all(const pred& predicate);
-    void build_if_stale_all(Search::cache& cache, const pred& predicate);
 
     Params params() const;
+    uint64_t frame_no() const;
     uint32_t pooled_count() const;
 };
 

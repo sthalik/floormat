@@ -86,7 +86,7 @@ object_id app::get_object_colliding_with_cursor()
         for (auto ch : chunks)
         {
             const chunk_coords_ c_pos{ch.x, ch.y, _z_level};
-            auto* cʹ = world.at(c_pos);
+            auto* cʹ = world.chunk_at_memo(c_pos);
             if (!cʹ)
                 continue;
             auto& c = *cʹ;

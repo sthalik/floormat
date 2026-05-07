@@ -8,6 +8,9 @@
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
 
+namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
+namespace floormat::detail { class memo_chunk; }
+
 namespace floormat {
 
 struct object;
@@ -41,6 +44,7 @@ private:
 
     struct Impl;
     safe_ptr<Impl> impl;
+    safe_ptr<detail::memo_chunk> _chunk_memo;
 
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
@@ -131,6 +135,12 @@ public:
     void set_object_counter(object_id value);
 
     std::array<chunk*, 8> neighbors(chunk_coords_ coord);
+
+    chunk* chunk_at_memo(chunk_coords_ ch);
+    void chunk_memo_prepare_frame();
+    void memo_update_slot(chunk_coords_ ch, chunk* p) noexcept;
+
+    Grid::Pass::PoolRegistry& pass_pool_registry();
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
         {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},

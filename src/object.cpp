@@ -117,7 +117,7 @@ static bool do_search(class chunk* c, chunk_coords_ coord,
         if (!(min + grace >= Vector2{} && max - grace <= size)) [[likely]]
             return true;
         auto& w = c->world();
-        c = w.at({ch, coord.z});
+        c = w.chunk_at_memo({ch, coord.z});
         if (!c) [[unlikely]]
             return true;
     }

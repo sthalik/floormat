@@ -2,6 +2,7 @@
 #include "compat/defs.hpp"
 #include "compat/function2.fwd.hpp"
 #include "global-coords.hpp"
+#include "tile-defs.hpp"
 #include <array>
 #include <concepts>
 
@@ -9,9 +10,8 @@ namespace floormat {
 class chunk;
 class world;
 struct local_coords;
+inline constexpr uint32_t chunk_size_xy = (uint32_t)tile_size_xy * (uint32_t)TILE_MAX_DIM;
 } // namespace floormat
-
-namespace floormat::Search { struct cache; }
 
 namespace floormat::detail::grid {
 
@@ -32,6 +32,7 @@ struct GridBase
     chunk_coords_ coord;
     std::array<chunk*, 8> neighbors{};
     std::array<uint32_t, 9> versions;   // [0..7]=neighbors, [8]=self; -1 = stale
+    uint64_t build_no = 0;
 
     explicit GridBase(chunk& ch);
     fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(GridBase);
@@ -40,29 +41,24 @@ struct GridBase
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
     void maybe_mark_stale();
-    void maybe_mark_stale(Search::cache& cache);
 
     static uint32_t pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count);
+    static uint32_t pack_bit_index_from_coord(local_coords local, Vector2b offset, uint32_t div_size, uint32_t div_count);
+    static Range2D coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size);
     static std::pair<uint32_t, uint8_t> byte_and_mask(uint32_t bit_index);
+    static uint64_t next_build_no();
+
+    template <BitGrid Self, typename... Args>
+requires requires(Self& s, chunk* sc, Args&&... a) {
+        s.build_impl(sc, forward<Args>(a)...);
+}
+    void build_if_stale(this Self& self, Args&&... args);
 
 protected:
     ~GridBase() noexcept = default;
 
 private:
     void maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk);
-
-public:
-    template <BitGrid Self, typename... Args>
-    requires requires(Self& s, chunk* sc, Args&&... a) {
-        s.build_impl(sc, forward<Args>(a)...);
-    }
-    void build_if_stale(this Self& self, Args&&... args);
-
-    template <BitGrid Self, typename... Args>
-    requires requires(Self& s, chunk* sc, Args&&... a) {
-        s.build_impl(sc, forward<Args>(a)...);
-    }
-    void build_if_stale(this Self& self, Search::cache& cache, Args&&... args);
 };
 
 class free_list

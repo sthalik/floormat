@@ -158,7 +158,7 @@ void grid_test::extract(app& a, chunk_coords_ coord)
 {
     auto& M = a.main();
     auto& w = M.world();
-    auto* c = w.at(coord);
+    auto* c = w.chunk_at_memo(coord);
     if (!c)
         return;
 

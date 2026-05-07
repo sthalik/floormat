@@ -1,7 +1,6 @@
 #pragma once
 #include "grid.hpp"
 #include "world.hpp"
-#include "search-cache.hpp"
 #include "compat/assert.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include <gtl/phmap.hpp>
@@ -33,28 +32,12 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
     if (!self.is_stale())
         return;
 
-    chunk* sc = self.w->at(self.coord);
+    chunk* sc = self.w->chunk_at_memo(self.coord);
     fm_assert(sc);
 
     self.neighbors = self.w->neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);
-}
-
-template <BitGrid Self, typename... Args>
-requires requires(Self& s, chunk* sc, Args&&... a) {
-    s.build_impl(sc, forward<Args>(a)...);
-}
-void GridBase::build_if_stale(this Self& self, Search::cache& cache, Args&&... args)
-{
-    if (!self.is_stale())
-        return;
-
-    fm_assert(cache.contains_chunk(self.coord));
-    chunk* sc = cache.try_get_chunk(*self.w, self.coord);
-    fm_assert(sc);
-
-    self.neighbors = cache.get_neighbors(*self.w, self.coord);
-    self.build_impl(sc, forward<Args>(args)...);
+    self.build_no = GridBase::next_build_no();
 }
 
 template <typename T>
@@ -95,6 +78,38 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
         return t;
     }
     return new T{ch, params};
+}
+
+template <typename T>
+void check_frame_sync(Pool<T>* pool, T* grid)
+{
+    fm_assert(pool->frame_no == grid->w->frame_no());
+}
+
+template <typename T>
+T* pool_subscript(Pool<T>* p, chunk& c)
+{
+    fm_assert(p->frame_no == c.world().frame_no());
+    auto coord = c.coord();
+    if (auto it = p->grids.find(coord); it != p->grids.end())
+    {
+        fm_debug2_assert(it->second);
+        return it->second;
+    }
+    Hash::set_open_addressing_load_factor(p->grids, p->grids.size() + 1);
+    auto [it, inserted] = p->grids.try_emplace(coord, nullptr);
+    fm_debug_assert(inserted);
+    it->second = p->take(c);
+    return it->second;
+}
+
+template <typename T>
+bool grid_bit_at(Pool<T>* pool, T* grid, uint32_t index)
+{
+    (void)pool;
+    //check_frame_sync(pool, grid);
+    //fm_assert(index < grid->bitmask.size());
+    return grid->bitmask[index];
 }
 
 } // namespace floormat::detail::grid

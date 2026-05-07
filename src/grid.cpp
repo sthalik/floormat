@@ -1,10 +1,22 @@
 #include "grid.hpp"
 #include "chunk.hpp"
 #include "world.hpp"
-#include "search-cache.hpp"
 #include "compat/function2.hpp"
+#include "compat/spinlock.hpp"
+#include <bit>
 
 namespace floormat::detail::grid {
+
+namespace {
+Spinlock g_build_seq_lock;
+uint64_t g_build_seq = 0;
+} // namespace
+
+uint64_t GridBase::next_build_no()
+{
+    Locker<Spinlock> guard{g_build_seq_lock};
+    return ++g_build_seq;
+}
 
 GridBase::GridBase(chunk& ch):
     c{&ch}, w{&ch.world()}, coord{ch.coord()}
@@ -83,19 +95,47 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
 
 void GridBase::maybe_mark_stale()
 {
-    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->at(ch); });
-}
-
-void GridBase::maybe_mark_stale(Search::cache& cache)
-{
-    maybe_mark_stale_impl([this, &cache](chunk_coords_ ch) {
-        return cache.contains_chunk(ch) ? cache.try_get_chunk(*w, ch) : w->at(ch);
-    });
+    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->chunk_at_memo(ch); });
 }
 
 uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)
 {
     return j * div_count + i;
+}
+
+uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset, uint32_t div_size, uint32_t div_count)
+{
+    constexpr auto half_tile = tile_size_xy/2;
+    Vector2i posʹ;
+    posʹ += Vector2i(local) * tile_size_xy;
+    posʹ += Vector2i(offset);
+    posʹ += Vector2i(half_tile);
+    fm_debug2_assert(posʹ >= Vector2i{0});
+    Vector2ui pos{NoInit}; (void)pos;
+    if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
+        pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size);
+    else
+        pos = Vector2ui(posʹ) / div_size;
+    auto idx = pack_bit_index(pos.x(), pos.y(), div_count);
+    fm_assert(idx < div_count*div_count);
+    return idx;
+}
+
+Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size)
+{
+    constexpr auto half_tile = Vector2i{tile_size_xy/2};
+    const auto bbox = Vector2(bbox_size);
+    const auto half_bbox = bbox*.5f;
+    auto pos = Vector2i{(int32_t)x, (int32_t)y};
+    pos *= Vector2i{(int32_t)div_size};
+    pos += Vector2i(div_size / 2);
+    pos -= half_tile;
+    fm_debug_assert(pos >= -half_tile);
+    fm_debug_assert(pos < Vector2i((int32_t)chunk_size_xy) - half_tile);
+    auto posʹ = Vector2(pos);
+    auto min = posʹ - half_bbox;
+    auto max = min + bbox;
+    return { min, max };
 }
 
 std::pair<uint32_t, uint8_t> GridBase::byte_and_mask(uint32_t bit_index)

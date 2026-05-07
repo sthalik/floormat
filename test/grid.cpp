@@ -620,7 +620,7 @@ void test_neighbor_mark_only_without_ensure_detected(uint32_t div_size)
 
 void test_params_preserved_through_pool(uint32_t div_size)
 {
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, tile_size_xy}};
     const auto p = pool.params();
     fm_assert(p.div_size == div_size);
     fm_assert(p.bbox_size == tile_size_xy);
