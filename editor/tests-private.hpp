@@ -31,7 +31,7 @@ protected:
 
 enum class Test : uint32_t {
     //todo add a speedometer overlay test
-    none, path, raycast, grid, walk, hole, COUNT,
+    none, path, raycast, grid, walk, hole, cover, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -46,6 +46,7 @@ struct tests_data final : tests_data_
     static Pointer<base_test> make_test_grid();
     static Pointer<base_test> make_test_walk();
     static Pointer<base_test> make_test_hole();
+    static Pointer<base_test> make_test_cover();
 
     Pointer<base_test> current_test;
     Test current_index = Test::none;
@@ -64,6 +65,7 @@ struct tests_data final : tests_data_
         { "Grid"_s,         Test::grid,    make_test_grid    },
         { "Walking"_s,      Test::walk,    make_test_walk    },
         { "Hole"_s,         Test::hole,    make_test_hole    },
+        { "Cover"_s,        Test::cover,   make_test_cover   },
     };
 };
 
