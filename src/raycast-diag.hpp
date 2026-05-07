@@ -17,9 +17,8 @@ namespace floormat::rc {
 struct raycast_diag_s
 {
     Array<floormat::detail_rc::bbox> path{};
+    Array<floormat::detail_rc::bbox> queries{};
     Vector2 V, dir, dir_inv_norm;
-    Vector2ui size;
-    //unsigned short_steps, long_steps;
     float tmin;
 };
 

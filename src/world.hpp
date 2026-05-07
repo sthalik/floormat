@@ -140,6 +140,7 @@ public:
     void chunk_memo_prepare_frame();
     void memo_update_slot(chunk_coords_ ch, chunk* p) noexcept;
 
+    Grid::Pass::Pool& raycast_pass_pool();
     Grid::Pass::PoolRegistry& pass_pool_registry();
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{

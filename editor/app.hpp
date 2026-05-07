@@ -104,6 +104,7 @@ private:
     void reset_world(class world&& w);
     void populate_hole_stress_test();
     void populate_labyrinth();
+    void populate_raycast_fractal();
 
     void draw() override;
 

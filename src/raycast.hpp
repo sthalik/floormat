@@ -9,6 +9,10 @@ class world;
 
 } // namespace floormat
 
+namespace floormat::Grid::Pass {
+class Pool;
+}
+
 namespace floormat::rc {
 
 struct raycast_diag_s;
@@ -23,7 +27,9 @@ struct raycast_result_s
 };
 
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self);
+[[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self, Grid::Pass::Pool& skip_pool);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self);
+[[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self, Grid::Pass::Pool& skip_pool);
 
 } // namespace floormat::rc
 

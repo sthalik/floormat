@@ -10,6 +10,7 @@
 #include "grid-pass.hpp"
 #include "search-pool.hpp"
 #include "search-constants.hpp"
+#include "tile-defs.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
@@ -48,6 +49,11 @@ Grid::Pass::PoolRegistry& world::pass_pool_registry()
     if (!impl->_pass_registry)
         impl->_pass_registry.reset(new Grid::Pass::PoolRegistry{(uint32_t)Search::div_size.x()});
     return *impl->_pass_registry;
+}
+
+Grid::Pass::Pool& world::raycast_pass_pool()
+{
+    return pass_pool_registry().pool_for(tile_size_xy);
 }
 
 world& world::operator=(world&& w) noexcept

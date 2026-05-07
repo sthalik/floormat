@@ -100,7 +100,8 @@ struct raycast_test final : base_test
 
         const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1}),
                    color2 = ImGui::ColorConvertFloat4ToU32({1, 0, 0.75, 1}),
-                   color3 = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
+                   color3 = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1}),
+                   color_query = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
         {
@@ -113,17 +114,28 @@ struct raycast_test final : base_test
 
         for (auto [center, size] : diag.path)
         {
-            //auto c = a.point_screen_pos(center);
-            //draw.AddCircleFilled({c.x(), c.y()}, 3, color);
             const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
             auto p00 = a.point_screen_pos(point::normalize_coords(center, {-hx, -hy})),
                  p10 = a.point_screen_pos(point::normalize_coords(center, {hx, -hy})),
                  p01 = a.point_screen_pos(point::normalize_coords(center, {-hx, hy})),
                  p11 = a.point_screen_pos(point::normalize_coords(center, {hx, hy}));
-            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, 2);
-            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 2);
-            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 2);
-            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, 2);
+            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, 1);
+            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 1);
+            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 1);
+            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, 1);
+        }
+
+        for (auto [center, size] : diag.queries)
+        {
+            const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
+            auto p00 = a.point_screen_pos(point::normalize_coords(center, {-hx, -hy})),
+                 p10 = a.point_screen_pos(point::normalize_coords(center, {hx, -hy})),
+                 p01 = a.point_screen_pos(point::normalize_coords(center, {-hx, hy})),
+                 p11 = a.point_screen_pos(point::normalize_coords(center, {hx, hy}));
+            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color_query, 2);
+            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color_query, 2);
+            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color_query, 2);
+            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color_query, 2);
         }
 
         if (!result.success)
@@ -238,12 +250,12 @@ struct raycast_test final : base_test
 
             ImGui::NewLine();
 
-            do_column("bbox-size");
-            std::snprintf(buf, array_size(buf), "(%u x %u)", diag.size.x(), diag.size.y());
+            do_column("cells");
+            std::snprintf(buf, array_size(buf), "%zu", diag.path.size());
             text(buf);
 
-            do_column("path-len");
-            std::snprintf(buf, array_size(buf), "%zu", diag.path.size());
+            do_column("queries");
+            std::snprintf(buf, array_size(buf), "%zu", diag.queries.size());
             text(buf);
 
             do_column("time");

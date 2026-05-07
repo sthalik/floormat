@@ -226,6 +226,49 @@ void app::populate_labyrinth()
     }
 }
 
+void app::populate_raycast_fractal()
+{
+    reset_world();
+    auto& w = M->world();
+
+    auto wall1  = loader.wall_atlas("test1", loader_policy::warn);
+    auto wall2  = loader.wall_atlas("concrete1", loader_policy::warn);
+    auto ground = loader.ground_atlas("floor-tiles");
+
+    constexpr int16_t cmin = -10, cmax = 10;
+
+    auto hash2 = [](uint32_t x, uint32_t y) -> uint32_t {
+        uint32_t h = x * 0x9E3779B1u + y * 0x85EBCA77u;
+        h ^= h >> 16; h *= 0xC2B2AE3Du;
+        h ^= h >> 13; h *= 0x27D4EB2Du;
+        h ^= h >> 16;
+        return h;
+    };
+
+    for (int16_t cx = cmin; cx <= cmax; cx++)
+        for (int16_t cy = cmin; cy <= cmax; cy++)
+        {
+            auto& ch = w[{cx, cy, 0}];
+
+            for (auto k = 0u; k < TILE_COUNT; k++)
+                ch[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
+
+            for (uint8_t lx = 0; lx < 16; lx++)
+                for (uint8_t ly = 0; ly < 16; ly++)
+                {
+                    uint32_t fx = (uint32_t)(cx + 16) * 16 + lx;
+                    uint32_t fy = (uint32_t)(cy + 16) * 16 + ly;
+
+                    if ((hash2(fx,             fy ^ 0xA5A5u) & 0x1Fu) == 0u)
+                        ch[{lx, ly}].wall_north() = { wall1, 0 };
+                    if ((hash2(fx ^ 0x5A5Au,   fy)           & 0x1Fu) == 0u)
+                        ch[{lx, ly}].wall_west()  = { wall2, 0 };
+                }
+
+            ch.mark_modified();
+        }
+}
+
 void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
 {
     auto floor1 = loader.ground_atlas("floor-tiles");
