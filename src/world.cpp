@@ -42,6 +42,7 @@ struct world::Impl
     gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
     Pointer<Grid::Pass::PoolRegistry> _pass_registry;
+    Pointer<Grid::Pass::Pool> _cover_pass_pool;
 };
 
 Grid::Pass::PoolRegistry& world::pass_pool_registry()
@@ -49,6 +50,13 @@ Grid::Pass::PoolRegistry& world::pass_pool_registry()
     if (!impl->_pass_registry)
         impl->_pass_registry.reset(new Grid::Pass::PoolRegistry{(uint32_t)Search::div_size.x()});
     return *impl->_pass_registry;
+}
+
+Grid::Pass::Pool& world::cover_pass_pool()
+{
+    if (!impl->_cover_pass_pool)
+        impl->_cover_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{8, 8}.validate()});
+    return *impl->_cover_pass_pool;
 }
 
 Grid::Pass::Pool& world::raycast_pass_pool()

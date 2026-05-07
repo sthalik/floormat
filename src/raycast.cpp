@@ -6,6 +6,7 @@
 #include "search-pred.hpp"
 #include "search.hpp"
 #include "RTree-search.hpp"
+#include "compat/function2.hpp"
 #include <cfloat>
 #include <bit>
 #include <cr/StructuredBindings.h>
@@ -90,13 +91,11 @@ template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int>
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool)
+                               Grid::Pass::Pool& pool, const Search::pred& pred)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);
 
-    using Math::max;
-    using Math::min;
     using Math::abs;
     using Math::floor;
 
@@ -327,6 +326,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         auto x = std::bit_cast<collision_data>(data);
                         if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
                             return true;
+                        if (pred(*nb, x) == path_search_continue::pass)
+                            return true;
                         auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                                          {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
                                                            {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
@@ -427,32 +428,34 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
 } // namespace
 
-raycast_result_s raycast(world& w, point from, point to, object_id self, Grid::Pass::Pool& skip_pool)
+raycast_result_s raycast(world& w, point from, point to, object_id self,
+                         Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred)
 {
     Timeline timeline;
     timeline.start();
-    auto ret = do_raycasting<false>(nullptr, w, from, to, self, skip_pool);
+    auto ret = do_raycasting<false>(nullptr, w, from, to, self, pass_grid_pool, pred);
     ret.time = timeline.currentFrameDuration();
     return ret;
 }
 
 raycast_result_s raycast(world& w, point from, point to, object_id self)
 {
-    return raycast(w, from, to, self, w.raycast_pass_pool());
+    return raycast(w, from, to, self, w.raycast_pass_pool(), Search::never_continue());
 }
 
-raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self, Grid::Pass::Pool& skip_pool)
+raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
+                                   Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred)
 {
     Timeline timeline;
     timeline.start();
-    auto ret = do_raycasting<true>(diag, w, from, to, self, skip_pool);
+    auto ret = do_raycasting<true>(diag, w, from, to, self, pass_grid_pool, pred);
     ret.time = timeline.currentFrameDuration();
     return ret;
 }
 
 raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self)
 {
-    return raycast_with_diag(diag, w, from, to, self, w.raycast_pass_pool());
+    return raycast_with_diag(diag, w, from, to, self, w.raycast_pass_pool(), Search::never_continue());
 }
 
 } // namespace floormat::rc
