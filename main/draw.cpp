@@ -31,10 +31,10 @@ void main_impl::do_update(Ns dt)
              bad_frame_counter++, (double)(dt/Milliseconds));
 
     constexpr auto tenth_of_a_second = uint64_t(1e8);
+    _frame_timings.fps_counter.update(dt);
     dt.stamp = Math::min(tenth_of_a_second, dt.stamp);
 
     app.update(dt);
-    _frame_timings.fps_counter.update(dt);
 }
 
 void main_impl::clear_framebuffer()
