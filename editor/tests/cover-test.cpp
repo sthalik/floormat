@@ -6,6 +6,7 @@
 #include "src/grid-cover.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
+#include <mg/Color.h>
 #include <mg/Functions.h>
 
 namespace floormat::tests {
@@ -14,6 +15,20 @@ namespace {
 using namespace floormat::imgui;
 
 constexpr inline uint32_t div_size = 8;
+
+struct dir_button { const char* name; uint32_t k; bool large; };
+constexpr dir_button compass_rose[3][3] = {
+    {{"NW", 20, false}, {"N",  24, true},  {"NE", 28, false}},
+    {{"W",  16, true},  {nullptr, 0, false}, {"E",  0,  true}},
+    {{"SW", 12, false}, {"S",  8,  true},  {"SE", 4,  false}},
+};
+
+constexpr const char* compass_names_16[16] = {
+    "E",   "ESE", "SE",  "SSE", "S",   "SSW", "SW",  "WSW",
+    "W",   "WNW", "NW",  "NNW", "N",   "NNE", "NE",  "ENE",
+};
+
+constexpr Color4 color_selected{1, 0.843f, 0, 0.8f};
 
 struct cover_test final : base_test
 {
@@ -279,13 +294,75 @@ void cover_test::draw_ui(app&, float)
         text(buf);
 
         do_column("octant");
-        int sel = selected_octant;
-        ImGui::SetNextItemWidth(140);
+
+        constexpr auto fmt_octant_label = [](auto&& out, uint32_t kk) {
+            const float dd = 360.f * float(kk) / float(Cover::octant_count);
+            snformat(out, "{} (k={}, {:.1f}°)"_cf, compass_names_16[kk / 2], kk, dd);
+        };
+
+        fmt_octant_label(buf, (uint32_t)selected_octant);
+        text(buf);
+
+        static const float label_max_w = [&] {
+            char tmp[64];
+            float w = 0;
+            for (uint32_t kk = 0; kk < Cover::octant_count; kk++)
+            {
+                fmt_octant_label(tmp, kk);
+                w = Math::max(w, ImGui::CalcTextSize(tmp).x);
+            }
+            return w;
+        }();
+        ImGui::SameLine(label_max_w + ImGui::GetStyle().ItemSpacing.x);
+
         {
-            auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
-            ImGui::SliderInt("##sel_octant", &sel, 0, (int)Cover::octant_count - 1);
+            int sel = selected_octant;
+            ImGui::SetNextItemWidth(180);
+            {
+                auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
+                ImGui::SliderInt("##sel_octant", &sel, 0, (int)Cover::octant_count - 1);
+            }
+            selected_octant = sel;
         }
-        selected_octant = sel;
+
+        {
+            ImGui::Dummy({0, 10});
+
+            const float row_h = ImGui::GetFrameHeight();
+            const ImVec2 big_sz{40, row_h};
+            constexpr ImGuiTableFlags rose_flags = ImGuiTableFlags_SizingFixedFit;
+            if (auto b2 = begin_table("##rose", 3, rose_flags))
+            {
+                for (auto& row : compass_rose)
+                {
+                    ImGui::TableNextRow();
+                    for (auto& cell : row)
+                    {
+                        ImGui::TableNextColumn();
+                        if (!cell.name)
+                        {
+                            ImGui::Dummy(big_sz);
+                            continue;
+                        }
+                        const bool is_selected = (uint32_t)selected_octant == cell.k;
+                        [[maybe_unused]] const raii_wrapper colors[] = {
+                            is_selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
+                            is_selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
+                        };
+                        if (cell.large)
+                        {
+                            if (ImGui::Button(cell.name, big_sz))
+                                selected_octant = (int32_t)cell.k;
+                        }
+                        else
+                        {
+                            if (ImGui::SmallButton(cell.name))
+                                selected_octant = (int32_t)cell.k;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
