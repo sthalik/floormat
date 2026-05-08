@@ -10,6 +10,8 @@ namespace floormat::detail {
 
 namespace {
 inline chunk* uninit_sentinel() noexcept { return reinterpret_cast<chunk*>(~uintptr_t{0}); }
+
+unsigned max_power_of_2 = 0;
 } // namespace
 
 memo_chunk::memo_chunk()
@@ -64,6 +66,16 @@ void memo_chunk::grow_for(world& w, chunk_coords_ trigger_ch)
                 };
                 _data[index_of(ch)] = slot;
             }
+
+    if (_extent >= 2048)
+    {
+        auto POT = Math::log2(Math::max(1u, (unsigned)_extent));
+        if (POT > max_power_of_2)
+        {
+            max_power_of_2 = POT;
+            ERR_nospace << "warning: memo-chunk size is now " << _extent << " >= 2^" << POT;
+        }
+    }
 }
 
 chunk* memo_chunk::chunk_at(world& w, chunk_coords_ ch)
