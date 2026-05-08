@@ -70,7 +70,6 @@ endfunction()
 
 # for floormat sources only
 function(fm-userconfig-src)
-    add_compile_options(-fstack-usage -Wstack-usage=16384)
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
         -Wstringop-overflow -Wstringop-truncation
