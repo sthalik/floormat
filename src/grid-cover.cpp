@@ -6,6 +6,8 @@
 #include "raycast.hpp"
 #include "point.inl"
 #include "compat/function2.hpp"
+#include <cfloat>
+#include <array>
 #include <cr/Array.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>
@@ -48,6 +50,13 @@ Vector2 direction_for_octant(uint32_t k)
     const auto theta = Rad{(float)k * step};
     return {Math::cos(theta), Math::sin(theta)};
 }
+
+constexpr std::array<uint8_t, octant_count> octant_order = {
+    0, 8, 16, 24,
+    4, 12, 20, 28,
+    1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15,
+    17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
+};
 
 uint8_t raycast_one(chunk& self,
                     uint32_t cell_x, uint32_t cell_y,
@@ -148,12 +157,85 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
 
     const uint32_t div_size = params.div_size;
     const uint32_t dc = chunk_size_xy / div_size;
-    for (uint32_t cy = 0; cy < dc; ++cy)
-        for (uint32_t cx = 0; cx < dc; ++cx)
+
+    const auto dir = direction_for_octant(k);
+    const float ax = Math::abs(dir.x()), ay = Math::abs(dir.y());
+    const int32_t sx = ax < 1e-6f ? 0 : dir.x() > 0 ? 1 : -1;
+    const int32_t sy = ay < 1e-6f ? 0 : dir.y() > 0 ? 1 : -1;
+    const bool aligned = (sx == 0) || (sy == 0)
+                      || Math::abs(ax - ay) < 1e-4f;
+
+    if (aligned)
+    {
+        const float t_delta_x = ax > 1e-6f ? (float)div_size / ax : FLT_MAX;
+        const float t_delta_y = ay > 1e-6f ? (float)div_size / ay : FLT_MAX;
+
+        enum step_kind { sk_x, sk_y, sk_diag };
+        step_kind sk;
+        float step_t;
+        if (sx == 0)         { sk = sk_y;    step_t = t_delta_y; }
+        else if (sy == 0)    { sk = sk_x;    step_t = t_delta_x; }
+        else                 { sk = sk_diag; step_t = t_delta_x; }
+
+        auto pass_grid = pass_pool[self];
+        pass_grid.build_if_stale(can_shoot_through);
+
+        Array<uint16_t> px_dist{ValueInit, dc * dc};
+
+        const int32_t dc_i = (int32_t)dc;
+        for (int32_t y_idx = 0; y_idx < dc_i; ++y_idx)
         {
-            const auto idx = get_cell_index(cx, cy, dc);
-            cells[idx].distance[k] = raycast_one(self, cx, cy, div_size, k, pass_pool);
+            const int32_t cy = sy > 0 ? dc_i - 1 - y_idx : y_idx;
+            for (int32_t x_idx = 0; x_idx < dc_i; ++x_idx)
+            {
+                const int32_t cx = sx > 0 ? dc_i - 1 - x_idx : x_idx;
+                const uint32_t idx = get_cell_index((uint32_t)cx, (uint32_t)cy, dc);
+
+                const auto bit_idx = Pass::Grid::get_bitmask_index((uint32_t)cx, (uint32_t)cy, dc);
+                const bool passable = pass_grid.bit(bit_idx);
+
+                uint32_t dist_px;
+                if (!passable)
+                    dist_px = 0;
+                else
+                {
+                    int32_t nx, ny;
+                    switch (sk)
+                    {
+                    case sk_x:    nx = cx + sx; ny = cy;      break;
+                    case sk_y:    nx = cx;      ny = cy + sy; break;
+                    case sk_diag: nx = cx + sx; ny = cy + sy; break;
+                    }
+
+                    if (nx >= 0 && nx < dc_i && ny >= 0 && ny < dc_i)
+                    {
+                        const uint32_t n_idx = get_cell_index((uint32_t)nx, (uint32_t)ny, dc);
+                        dist_px = (uint32_t)px_dist[n_idx] + (uint32_t)step_t;
+                    }
+                    else
+                    {
+                        const auto u = raycast_one(self, (uint32_t)cx, (uint32_t)cy, div_size, k, pass_pool);
+                        dist_px = (uint32_t)u * div_size;
+                    }
+                }
+
+                dist_px = Math::min<uint32_t>(dist_px, 65535u);
+                px_dist[idx] = (uint16_t)dist_px;
+
+                const uint32_t units = Math::min<uint32_t>(dist_px, chunk_size_xy) / div_size;
+                cells[idx].distance[k] = (uint8_t)Math::min<uint32_t>(units, 255);
+            }
         }
+    }
+    else
+    {
+        for (uint32_t cy = 0; cy < dc; ++cy)
+            for (uint32_t cx = 0; cx < dc; ++cx)
+            {
+                const auto idx = get_cell_index(cx, cy, dc);
+                cells[idx].distance[k] = raycast_one(self, cx, cy, div_size, k, pass_pool);
+            }
+    }
 
     built_octants |= (1u << k);
 #if 0
@@ -165,7 +247,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
 
 bool CoverGrid::fill_next_unfilled(chunk& self)
 {
-    for (uint32_t k = 0; k < octant_count; k++)
+    for (auto k : octant_order)
         if (!(built_octants & (1u << k)))
             return fill_octant(k, self);
     return false;
