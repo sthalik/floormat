@@ -291,7 +291,9 @@ object::operator object_proto() const
 
 void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
-    if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && pass_ == pass)
+    const bool pass_changed = pass_ != pass;
+
+    if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && !pass_changed)
         return;
 
     fm_assert(Vector2ui(bb_size_).product() != 0);
@@ -309,7 +311,11 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     else if (!dyn)
         c->mark_passability_modified();
     else
+    {
+        if (pass_changed) // doors
+            c->mark_passability_modified();
         c->_replace_bbox_dynamic(bb0, bb, b0, b);
+    }
     if (!c->are_walls_modified() && upd_walls)
         c->mark_walls_modified();
     if (!dyn && !is_virtual())
