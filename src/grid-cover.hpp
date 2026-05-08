@@ -6,14 +6,9 @@ struct local_coords;
 class chunk;
 }
 
-namespace floormat::Grid::Pass {
-class Pool;
-}
-
 namespace floormat::detail::grid {
 struct CoverGrid;
 struct CoverCell;
-
 } // namespace
 
 

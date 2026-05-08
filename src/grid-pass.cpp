@@ -466,7 +466,6 @@ void Grid::maybe_mark_stale()
         });
 }
 
-Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
 

@@ -38,12 +38,10 @@ object::object(object_id id, class chunk& c, const object_proto& proto) :
     bbox_size{proto.bbox_size}, frame{proto.frame},
     delta{proto.delta}, r{proto.r}, pass{proto.pass}
 {
-    if (id != 0)
-    {
-        fm_soft_assert(atlas);
-        fm_soft_assert(atlas->check_rotation(r));
-        fm_soft_assert(frame < atlas->info().nframes);
-    }
+    fm_assert(id);
+    fm_assert(atlas);
+    fm_soft_assert(atlas->check_rotation(r));
+    fm_soft_assert(frame < atlas->info().nframes);
 }
 
 object::~object() noexcept

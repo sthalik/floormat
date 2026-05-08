@@ -109,7 +109,7 @@ void app::tests_reset_mode()
 
 void app::draw_tests_pane(float width)
 {
-    ImGui::SeparatorText("Functional tests");
+    ImGui::SeparatorText("Tests");
     auto& t = tests();
 
     constexpr int selectable_flags = ImGuiSelectableFlags_SpanAvailWidth;

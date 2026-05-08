@@ -9,7 +9,6 @@
 #include "src/point.inl"
 #include "loader/loader.hpp"
 #include <cinttypes>
-#include <cstdio>
 #include <benchmark/benchmark.h>
 
 namespace floormat {

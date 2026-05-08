@@ -255,8 +255,8 @@ void cover_test::extract(app& a, point pt)
 void cover_test::draw_ui(app&, float)
 {
     constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
-    constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
+    constexpr auto col1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
+    constexpr auto col0 = col1 | ImGuiTableColumnFlags_WidthFixed;
 
     char buf[128];
 
@@ -282,8 +282,8 @@ void cover_test::draw_ui(app&, float)
 
     if (auto b1 = begin_table("##cover_results", 2, table_flags))
     {
-        ImGui::TableSetupColumn("##name", colflags_0);
-        ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("##name", col0);
+        ImGui::TableSetupColumn("##value", col1 | ImGuiTableColumnFlags_WidthStretch);
 
         do_column("from");
         print_coord(buf, from_c, from_l, from_p);

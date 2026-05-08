@@ -1,6 +1,5 @@
 #include "critter.hpp"
 #include "critter-script.hpp"
-#include "tile-constants.hpp"
 #include "src/point.inl"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
@@ -481,8 +480,8 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         const auto new_r = dir_from_step(step);
         // Max steps for the operation to avoid overshooting
         const auto len_limit = step.direction.x() * step.direction.y() != 0
-                                   ? (uint32_t)bbox_size.min()
-                                   : (uint32_t)bbox_size.data()[step.direction.x() != 0 ? 0 : 1];
+                               ? (uint32_t)bbox_size.min()
+                               : (uint32_t)bbox_size.data()[step.direction.x() != 0 ? 0 : 1];
         const auto nsteps = (uint8_t)Math::min({nframes, step.count, len_limit});
         fm_assert(nsteps > 0);
         using Frac = decltype(critter::offset_frac);
@@ -490,7 +489,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         constexpr auto inv_frac = 1 / frac;
         const auto mag = step_magnitude(step.direction);
         const auto vec = Vector2(step.direction) * mag;
-        const auto from_accum = offset_frac * inv_frac * vec;
+        const auto from_accum = (float)offset_frac * inv_frac * vec;
         const auto offset_ = vec * float(nsteps) + from_accum;
         // Clamp to movement budget consumed this iteration
         const auto abs_limit = Vector2i(Math::abs(step.direction)) * int(nsteps);

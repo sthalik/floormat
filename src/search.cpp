@@ -35,7 +35,7 @@ constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint
     const uint32_t mx = dx > dy ? dx : dy;
     // step costs must match search-astar.cpp directions[]
     constexpr uint32_t axial = (uint32_t)div_size.x();
-    constexpr uint32_t diag  = (uint32_t)(div_size.length() + 1.f);
+    constexpr uint32_t diag  = (uint32_t)(div_size.length() + 1);
     return mx + (diag - axial) * mn / axial;
 };
 constexpr auto octile_distanceʹ = heuristic{octile_distanceʹʹ};

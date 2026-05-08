@@ -53,7 +53,6 @@ public:
     uint64_t build_no() const;
     bool is_all_empty() const;
 
-    explicit operator bool() const noexcept;
     detail::grid::PassGrid* raw() const noexcept;
 
     void mark_stale();

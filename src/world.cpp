@@ -16,14 +16,13 @@
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/hash-table-load-factor.hpp"
-#include <unordered_map>
 #include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
 #include <gtl/phmap.hpp>
 
 using namespace floormat;
 
-size_t world::object_id_hasher::operator()(object_id id) const noexcept { return hash_int(id); }
+size_t world::object_id_hasher::operator()(object_id id) const noexcept { return gtl::Hash<object_id>{}(id); }
 
 size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const noexcept
 {
@@ -31,7 +30,7 @@ size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const 
     x |= uint64_t((uint16_t)coord.x) << 0;
     x |= uint64_t((uint16_t)coord.y) << 16;
     x |= uint64_t( (uint8_t)coord.z) << 32;
-    return hash_int(x);
+    return gtl::Hash<uint64_t>{}(x);
 }
 
 namespace floormat {
@@ -41,8 +40,8 @@ struct world::Impl
 {
     gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
-    Pointer<Grid::Pass::PoolRegistry> _pass_registry;
-    Pointer<Grid::Pass::Pool> _cover_pass_pool;
+    Pointer<Pass::PoolRegistry> _pass_registry;
+    Pointer<Pass::Pool> _cover_pass_pool;
 };
 
 Grid::Pass::PoolRegistry& world::pass_pool_registry()
@@ -149,7 +148,7 @@ chunk* world::at(chunk_coords_ c) noexcept
 
 bool world::contains(chunk_coords_ c) const noexcept
 {
-    auto& impl = *this->impl;
+    const auto& impl = *this->impl;
     return impl._chunks.contains(c);
 }
 
@@ -189,7 +188,7 @@ void world::collect(bool force, bool quiet)
         fm_debug("world: collected %zu/%zu chunks", len, len0);
 }
 
-size_t world::size() const noexcept { auto& impl = *this->impl; return impl._chunks.size(); }
+size_t world::size() const noexcept { const auto& impl = *this->impl; return impl._chunks.size(); }
 
 namespace {
 using chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
@@ -286,7 +285,8 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
                 << " pos:" << point{pos, offset};
     auto ch = Vector3i(pos.chunk3());
     auto t = Vector2i(pos.local());
-    fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}"_cf, id, ch.x(), ch.y(), ch.z(), t.x(), t.y());
+    fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}"_cf,
+             id, ch.x(), ch.y(), ch.z(), t.x(), t.y());
 }
 
 auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>

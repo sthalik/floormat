@@ -68,7 +68,8 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
-void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Range2D bbox, bool has_holes, pass_through_mask mask)
+void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Range2D bbox, bool has_holes,
+                               pass_through_mask mask)
 {
     if (!has_holes)
         return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
@@ -123,7 +124,8 @@ bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D b
     });
     return ret;
 }
-void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max, pass_through_mask mask)
+void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max,
+                                  pass_through_mask mask)
 {
     const auto& rtree = *c.rtree();
     rtree.Search(bb_min.data(), bb_max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
@@ -195,8 +197,9 @@ void chunk::ensure_passability() noexcept
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
+            auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            filter_bbox_through_holes(rtree, id, wall_west(i, (float)atlas->info().depth), has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, id, wall_west(i, depth), has_holes, not_blocked_pass_through_mask);
         }
     }
     for (const bptr<object>& eʹ : objects())
@@ -336,7 +339,8 @@ void chunk::_replace_bbox_static(const bptr<object>& e, const bbox& x0, const bb
     _replace_bbox_impl<false>(e, x0, x, b0, b);
 }
 
-void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic)
+void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
+                           bool b0, bool b, bool upd, bool is_dynamic)
 {
     if (!is_dynamic || upd)
         _replace_bbox_static(e, x0, x, b0, b);

@@ -45,7 +45,7 @@ void memo_chunk::grow_for(world& w, chunk_coords_ trigger_ch)
     Array<chunk*> old_data = move(_data);
 
     _extent = needed + needed/2 + 4;
-    size_t new_side = (size_t)(2*_extent + 1);
+    size_t new_side = (unsigned)(2*_extent + 1);
     _data = Array<chunk*>{NoInit, new_side*new_side*(size_t)z_count};
     for (auto& p : _data) p = uninit_sentinel();
 

@@ -8,6 +8,7 @@
 #include "compat/function2.hpp"
 #include <cr/Array.h>
 #include <mg/Functions.h>
+#include <mg/Timeline.h>
 #include <gtl/phmap.hpp>
 
 namespace floormat::detail::grid {
@@ -26,7 +27,7 @@ static_assert(sizeof(CoverCell) == Cover::octant_count);
 using Cover::Params;
 using Cover::octant_count;
 
-constexpr auto can_shoot_through_lambda = [](chunk& self, collision_data data) -> path_search_continue {
+constexpr auto can_shoot_through_lambda = [](chunk& self, collision_data data) {
     if (data.pass == (uint64_t)pass_mode::shoot_through)
         return path_search_continue::pass;
     if (data.type == (uint64_t)collision_type::scenery)
@@ -142,6 +143,8 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
 
     auto& pass_pool = w->cover_pass_pool();
     pass_pool.maybe_mark_stale_all(w->frame_no());
+    Timeline timeline;
+    timeline.start();
 
     const uint32_t div_size = params.div_size;
     const uint32_t dc = chunk_size_xy / div_size;
@@ -153,6 +156,10 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         }
 
     built_octants |= (1u << k);
+#if 0
+    DBG << "{fill octant}" << coord << "k=" << k
+        << "took" << (int)(timeline.currentFrameDuration() * 1e6f) << "us";
+#endif
     return true;
 }
 

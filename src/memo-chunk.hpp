@@ -16,7 +16,7 @@ class memo_chunk
 {
     static constexpr int z_count = chunk_z_max - chunk_z_min + 1;
 
-    Array<chunk*> _data;
+    Array<chunk*> _data; // todo add superpages
     int _extent = 0;
 
     size_t index_of(chunk_coords_ ch) const;

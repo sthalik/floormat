@@ -49,9 +49,9 @@ struct GridBase
     static uint64_t next_build_no();
 
     template <BitGrid Self, typename... Args>
-requires requires(Self& s, chunk* sc, Args&&... a) {
+    requires requires(Self& s, chunk* sc, Args&&... a) {
         s.build_impl(sc, forward<Args>(a)...);
-}
+    }
     void build_if_stale(this Self& self, Args&&... args);
 
 protected:

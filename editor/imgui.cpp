@@ -115,7 +115,7 @@ float app::draw_main_menu()
                 do_key(key_mode_scenery);
             if (ImGui::MenuItem("Virtual objects", "5", m_vobjs))
                 do_key(key_mode_vobj);
-            if (ImGui::MenuItem("Functional tests", "6", m_tests))
+            if (ImGui::MenuItem("Tests", "6", m_tests))
                 do_key(key_mode_tests);
             ImGui::SeparatorText("Modify");
             if (ImGui::MenuItem("Rotate", "R", false, b_rotate))
