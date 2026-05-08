@@ -35,10 +35,10 @@ class Grid
     detail::grid::Pool<detail::grid::CoverGrid>* pool;
 
 public:
-    ~Grid() noexcept = default;
+    ~Grid() noexcept;
     explicit Grid(detail::grid::CoverGrid* grid, detail::grid::Pool<detail::grid::CoverGrid>* pool);
-    Grid(const Grid&) noexcept = default;
-    Grid& operator=(const Grid&) & noexcept = default;
+    Grid(const Grid&) noexcept;
+    Grid& operator=(const Grid&) & noexcept;
 
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_cell_index_from_coord(local_coords local, Vector2b offset) const;

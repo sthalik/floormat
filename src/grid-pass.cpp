@@ -124,7 +124,7 @@ struct PassGrid : GridBase
 
     Params params;
     BitArray bitmask;
-    bool all_empty;
+    bool all_empty = false;
 
     PassGrid(chunk& c, Params params);
     ~PassGrid() noexcept;
@@ -392,6 +392,7 @@ Grid Pool::operator[](chunk& c)
 }
 
 Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
+Grid::~Grid() noexcept = default;
 
 Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::Pool<detail::grid::PassGrid>* pool_):
     grid{grid_}, pool{pool_}

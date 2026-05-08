@@ -35,7 +35,7 @@ class Grid
     detail::grid::Pool<detail::grid::PassGrid>* pool;
 
 public:
-    ~Grid() noexcept = default;
+    ~Grid() noexcept;
     explicit Grid(detail::grid::PassGrid* grid, detail::grid::Pool<detail::grid::PassGrid>* pool);
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;

@@ -199,6 +199,9 @@ Params Params::validate() const
 }
 
 bool Params::operator==(const Params&) const noexcept = default;
+Grid::~Grid() noexcept = default;
+Grid::Grid(const Grid&) noexcept = default;
+Grid& Grid::operator=(const Grid&) & noexcept = default;
 
 Grid::Grid(detail::grid::CoverGrid* grid_, detail::grid::Pool<detail::grid::CoverGrid>* pool_):
     grid{grid_}, pool{pool_}
