@@ -150,7 +150,7 @@ void memo_chunk::prepare_next_frame(world& w)
 }
 
 #ifndef FM_NO_DEBUG2
-void memo_chunk::check_in_sync(world& w) const
+void memo_chunk::check_in_sync(const world& w) const
 {
     int x_side = _x_max - _x_min + 1;
     int y_side = _y_max - _y_min + 1;
