@@ -203,7 +203,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
             const auto x = std::bit_cast<collision_data>(data);
             if (x.pass == (uint64_t)pass_mode::pass)
                 return true;
-            if (predicate(*c, x) == path_search_continue::pass)
+            auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+            if (predicate(*c, x, range) == path_search_continue::pass)
                 return true;
             all_empty = false;
 
@@ -353,7 +354,7 @@ static_assert(assert_calc_div_size());
 namespace floormat::Grid::Pass {
 
 namespace {
-constexpr auto without_critters_lambda = [](chunk& self, collision_data data) -> path_search_continue {
+constexpr auto without_critters_lambda = [](chunk& self, collision_data data, Range2D) -> path_search_continue {
     // 'scenery' covers all object types here, including critters
     if (data.type == (uint64_t)collision_type::scenery)
     {

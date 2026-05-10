@@ -15,9 +15,9 @@
 namespace floormat::Search {
 
 namespace {
-constexpr auto never_continue_1 = [](chunk&, collision_data) constexpr { return path_search_continue::blocked; };
+constexpr auto never_continue_1 = [](chunk&, collision_data, Range2D) constexpr { return path_search_continue::blocked; };
 constexpr auto never_continue_ = pred{never_continue_1};
-constexpr auto always_continue_1 = [](chunk&, collision_data) constexpr { return path_search_continue::pass; };
+constexpr auto always_continue_1 = [](chunk&, collision_data, Range2D) constexpr { return path_search_continue::pass; };
 constexpr auto always_continue_ = pred{always_continue_1};
 
 #if 0
@@ -69,20 +69,16 @@ bool path_search::is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& 
 
     auto& rt = *c.rtree();
     bool is_passable = true;
-    rt.Search(min.data(), max.data(), [&](uint64_t data, const auto& r)
-    {
-        auto x = std::bit_cast<collision_data>(data);
-        if (x.pass != (uint64_t)pass_mode::pass)
-        {
-            if (rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
-                if (p(c, x) != path_search_continue::pass)
-                {
-                    is_passable = false;
-                    //[[maybe_unused]] auto obj = c.world().find_object(x.data);
-                    return false;
-                }
-        }
-        return true;
+    rt.Search(min.data(), max.data(), [&](uint64_t x, const auto& r) {
+        auto data = std::bit_cast<collision_data>(x);
+        if (data.pass == (uint64_t)pass_mode::pass)
+            return true;
+        auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+        if (!rect_intersects(min, max, range.min(), range.max()))
+            return true;
+        if (p(c, data, range) == path_search_continue::pass)
+            return true;
+        return is_passable = false;
     });
     return is_passable;
 }

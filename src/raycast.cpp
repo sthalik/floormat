@@ -326,7 +326,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         auto x = std::bit_cast<collision_data>(data);
                         if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
                             return true;
-                        if (pred(*nb, x) == path_search_continue::pass)
+                        auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                        if (pred(*nb, x, range) == path_search_continue::pass)
                             return true;
                         auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                                          {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},

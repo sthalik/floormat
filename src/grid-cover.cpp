@@ -29,7 +29,7 @@ static_assert(sizeof(CoverCell) == Cover::octant_count);
 using Cover::Params;
 using Cover::octant_count;
 
-constexpr auto can_shoot_through_lambda = [](chunk& self, collision_data data) {
+constexpr auto can_shoot_through_lambda = [](chunk& self, collision_data data, Range2D) {
     if (data.pass == (uint64_t)pass_mode::shoot_through)
         return path_search_continue::pass;
     if (data.type == (uint64_t)collision_type::scenery)
