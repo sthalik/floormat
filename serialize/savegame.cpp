@@ -63,6 +63,19 @@ private:
     FILE* s;
 };
 
+Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
+{
+    for (auto i = 0u; i < 2; i++)
+    {
+        auto& val = bbox_size[i];
+        if (val == 1)
+            val = 2;
+        else
+            bbox_size[i] &= ~1u;
+    }
+    return bbox_size;
+}
+
 struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) const { return hash_buf(s.data(), s.size()); } };
 
 template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
@@ -129,7 +142,8 @@ using proto_t  = uint16_t;
 // 25: add hole objects
 // 26: add checksum
 // 27: add light radius
-static constexpr proto_t proto_version = 27;
+// 28: no longer tolerate bbox_size as an odd number
+static constexpr proto_t proto_version = 28;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -444,6 +458,14 @@ struct writer final : visitor_<writer, true, true>
 
     template<typename F> void write_object(o_object& obj, chunk* c, F&& f)
     {
+        if (PROTO >= 28) [[unlikely]]
+            if (obj.bbox_size != fix_stupid_bbox(obj.bbox_size))
+            {
+                ERR_nospace << "fatal: object '" << obj.atlas->name()
+                            << "' has invalid bounding box size " << obj.bbox_size;
+                fm_soft_assert(obj.bbox_size == fix_stupid_bbox(obj.bbox_size));
+                fm_assert(false);
+            }
         auto id = obj.id;
         auto type = obj.type();
         auto tile = obj.coord.local();
@@ -924,6 +946,8 @@ ok:
 
         object_proto p;
         visit_object_header(p, s, f);
+        if (PROTO < 28) [[unlikely]]
+            non_const_(p.bbox_size) = fix_stupid_bbox(p.bbox_size);
 
         switch (type)
         {
