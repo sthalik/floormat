@@ -38,6 +38,7 @@ void test_loader3();
 void test_local();
 void test_magnum_math();
 void test_math();
+void test_passability_bbox();
 void test_raycast();
 void test_rtree();
 void test_rtree_pool();
