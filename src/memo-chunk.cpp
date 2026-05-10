@@ -145,7 +145,7 @@ void memo_chunk::prepare_next_frame(world& w)
 {
     (void)w;
 #ifndef FM_NO_DEBUG2
-    check_in_sync(w);
+    check_in_sync(w); // todo debug3
 #endif
 }
 
@@ -159,7 +159,7 @@ void memo_chunk::check_in_sync(world& w) const
             for (int xi = 0; xi < x_side; xi++)
             {
                 size_t idx = ((size_t)zi * (size_t)y_side + (size_t)yi) * (size_t)x_side + (size_t)xi;
-                chunk* slot = _data[idx];
+                const chunk* slot = _data[idx];
                 if (slot == uninit_sentinel())
                     continue;
                 chunk_coords_ ch{
