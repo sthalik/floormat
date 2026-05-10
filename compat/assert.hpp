@@ -74,6 +74,12 @@ namespace floormat {
 #define fm_debug2_assert(...) (void())
 #endif
 
+#ifndef FM_NO_DEBUG3
+#define fm_debug3_assert(...) fm_assert(__VA_ARGS__)
+#else
+#define fm_debug3_assert(...) (void())
+#endif
+
 #define fm_warn_once(...) do {                                          \
         static bool _fm_once_flag = false;                              \
         if (!_fm_once_flag) [[unlikely]] {                              \
