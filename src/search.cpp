@@ -23,9 +23,11 @@ constexpr auto always_continue_1 = [](chunk&, collision_data, Range2D) constexpr
 constexpr auto always_continue_ = pred{always_continue_1};
 
 #if 0
-constexpr auto euclidean_distanceʹʹ  = [](point cur, point goal) constexpr -> uint32_t { return (uint32_t)(cur - goal).length();  };
+constexpr auto euclidean_distanceʹʹ  =
+    [](point cur, point goal) constexpr -> uint32_t { return (uint32_t)(cur - goal).length();  };
 constexpr auto euclidean_distanceʹ = heuristic{euclidean_distanceʹʹ};
-constexpr auto manhattan_distanceʹʹ  = [](point cur, point goal) constexpr -> uint32_t { return Vector2ui(Math::abs(cur - goal)).sum();  };
+constexpr auto manhattan_distanceʹʹ  =
+    [](point cur, point goal) constexpr -> uint32_t { return Vector2ui(Math::abs(cur - goal)).sum();  };
 constexpr auto manhattan_distanceʹ = heuristic{manhattan_distanceʹʹ};
 #endif
 
@@ -95,7 +97,7 @@ bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min
         if (!is_passable_1(*c0, min, max, p))
             return false;
 
-    for (auto i = 0uz; i < 8; i++)
+    for (auto i = 0u; i < 8; i++)
     {
         auto nb = world::neighbor_offsets[i];
         auto* c2 = neighbors[i];

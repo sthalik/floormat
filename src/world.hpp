@@ -106,8 +106,8 @@ public:
     auto increment_frame_no() { return _current_frame++; }
 
     template<typename T, bool sorted = true, typename... Xs>
-    requires requires(chunk& c) {
-        T{object_id(), c, std::declval<Xs&&>()...};
+    requires requires(chunk& c, Xs&&... xs) {
+        T{object_id(), c, forward<Xs>(xs)...};
         std::is_base_of_v<object, T>;
     }
     bptr<T> make_object(object_id id, global_coords pos, Xs&&... xs)

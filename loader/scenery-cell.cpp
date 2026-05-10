@@ -1,10 +1,9 @@
 #include "scenery-cell.hpp"
-#include "src/anim-atlas.hpp"
-#include "loader/loader.hpp"
-#include "serialize/json-helper.hpp"
+#include "loader.hpp"
 #include "serialize/scenery.hpp"
-#include "serialize/json-wrapper.hpp"
 #include "serialize/corrade-array.hpp"
+#include "serialize/json-helper.hpp"
+#include "serialize/json-wrapper.hpp"
 
 namespace floormat {
 

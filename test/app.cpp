@@ -78,9 +78,9 @@ int App::exec()
         FM_TEST(test_json3),
         FM_TEST(test_loader),
         FM_TEST(test_raycast),
+        FM_TEST(test_hash),
         FM_TEST(test_wall_atlas),
         FM_TEST(test_wall_atlas2),
-        FM_TEST(test_hash),
         // the rest are slow
         FM_TEST(test_grid),
         FM_TEST(test_rtree),
