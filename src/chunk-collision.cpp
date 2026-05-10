@@ -23,6 +23,12 @@ bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept 
 Chunk_RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 world& chunk::world() noexcept { return *_world; }
 
+const chunk::RTree* chunk::rtree() const noexcept
+{
+    fm_assert(!is_passability_modified());
+    return _rtree.get();
+}
+
 namespace {
 
 constexpr collision_data make_id_(collision_type type, pass_mode p, object_id id)

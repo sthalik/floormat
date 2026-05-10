@@ -77,6 +77,7 @@ public:
     void ensure_passability() noexcept;
     uint32_t pass_gen_counter() const;
     RTree* rtree() noexcept;
+    const RTree* rtree() const noexcept;
     class world& world() noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
