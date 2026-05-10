@@ -5,6 +5,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
+#include "src/sweep-aabb.hpp"
 #include "src/nanosecond.inl"
 #include "shaders/shader.hpp"
 #include "compat/limits.hpp"
@@ -12,6 +13,7 @@
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/function2.hpp"
 #include <utility>
 #include <array>
 #include <mg/Functions.h>
@@ -136,6 +138,22 @@ constexpr uint8_t get_length_axis(rotation r)
     return table.data()[(size_t)r];
 }
 
+Range2D critter_bbox_local(const critter& C)
+{
+    const auto center = Vector2(C.coord.local())*TILE_SIZE2 + Vector2(C.offset) + Vector2(C.bbox_offset);
+    const auto half_bbox = Vector2(C.bbox_size)*0.5f;
+    return Range2D{center - half_bbox, center + half_bbox};
+}
+
+sweep_result sweep_critter(critter& C, Vector2 displacement)
+{
+    const auto self_id = C.id;
+    auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    return find_swept_collider(C.chunk(), critter_bbox_local(C), displacement, pred);
+}
+
 template<bool MultiStep>
 CORRADE_NEVER_INLINE
 bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps, rotation new_r, rotation visible_r)
@@ -157,7 +175,7 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t n
     {
         auto rem = Math::fmod(offset_, 1.f).length();
         C.offset_frac = Frac(rem * frac);
-        if (C.can_move_to(off_i))
+        if (!sweep_critter(C, Vector2(off_i)).has_collider)
         {
             C.move_to(i, off_i, visible_r);
             if constexpr(MultiStep)
@@ -506,7 +524,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         if (!off_i.isZero())
         {
             //Debug{} << "foo1" << C.offset_frac_;
-            if (can_move_to(off_i))
+            if (!sweep_critter(*this, Vector2(off_i)).has_collider)
             {
                 move_to(index, off_i, new_r);
                 moved = true;
