@@ -155,7 +155,7 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, const pred& p)
     for (auto [off, r] : nbs)
     {
         auto range = neighbor_tile_bbox(pos, size, { 1, 1 }, r);
-        if (path_search::is_passable(w, ch, range, p))
+        if (Search::is_passable(w, ch, range, p))
             ns.data[ns.size++] = { coord + off, {} };
     }
 
@@ -165,11 +165,11 @@ auto neighbor_tiles(world& w, global_coords coord, Vector2i size, const pred& p)
 void test_bbox()
 {
     static constexpr auto is_passable_1 = [](chunk& c, Range2D bb) {
-        return path_search::is_passable_1(c, bb.min(), bb.max());
+        return Search::is_passable_1(c, bb.min(), bb.max());
     };
 
     static constexpr auto is_passable = [](world& w, chunk_coords_ ch, Range2D bb) {
-        return path_search::is_passable(w, ch, bb);
+        return Search::is_passable(w, ch, bb);
     };
 
     static constexpr auto bbox = [](Vector2i coord, rotation r) {
@@ -281,16 +281,16 @@ void test_bbox()
         c[{K,   K+1}].wall_north() = { metal2, 0 };
         c[{K+1, K  }].wall_west()  = { metal2, 0 };
 
-        path_search search;
+        Search search;
         search.ensure_allocated({}, {});
         search.fill_cache_(w, {0, 0, 0}, {}, {});
 
-        constexpr auto check_N = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
+        constexpr auto check_N = [&](Search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
             auto c = search.cache_chunk_index(ch);
             auto t = search.cache_tile_index(tile, subdiv);
             return search.cache.array[c].can_go_north[t];
         };
-        constexpr auto check_W = [&](path_search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
+        constexpr auto check_W = [&](Search& search, chunk_coords ch, local_coords tile, Vector2i subdiv) {
             auto c = search.cache_chunk_index(ch);
             auto t = search.cache_tile_index(tile, subdiv);
             return search.cache.array[c].can_go_west[t];

@@ -122,7 +122,7 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     auto nbs = w.neighbors(pt.chunk3());
     auto half = (float)pool.params().bbox_size * .5f;
     auto center = Vector2(Vector2i(pt.local()) * (int32_t)tile_size_xy + Vector2i(pt.offset()));
-    return path_search::is_passable_(nullptr, nbs, center - Vector2{half}, center + Vector2{half}, p);
+    return Search::is_passable_(nullptr, nbs, center - Vector2{half}, center + Vector2{half}, p);
 }
 
 bool cache::is_passable_between_diag(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p)

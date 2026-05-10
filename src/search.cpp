@@ -52,9 +52,7 @@ const heuristic& manhattan_distance() noexcept { return manhattan_distanceʹ; }
 #endif
 const heuristic& octile_distance() noexcept { return octile_distanceʹ; }
 
-} // namespace floormat::Search
 
-namespace floormat::path_search {
 
 bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
 {
@@ -119,4 +117,4 @@ bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }
 
-} // namespace floormat::path_search
+} // namespace floormat::Search
