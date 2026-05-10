@@ -74,6 +74,19 @@ constexpr T lowbits = N == sizeof(T)*8 ? (T)-1 : T((T{1} << N)-T{1});
 
 constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
 
+Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
+{
+    for (auto i = 0u; i < 2; i++)
+    {
+        auto& val = bbox_size[i];
+        if (val == 1)
+            val = 2;
+        else
+            bbox_size[i] &= ~1u;
+    }
+    return bbox_size;
+}
+
 } // namespace
 
 template<typename T> concept object_subtype = requires {
@@ -394,6 +407,7 @@ void reader_state::read_chunks(reader_t& s)
                 s >> e.bbox_offset[1];
                 s >> e.bbox_size[0];
                 s >> e.bbox_size[1];
+                e.bbox_size = fix_stupid_bbox(e.bbox_size);
             };
             SET_CHUNK_SIZE();
 

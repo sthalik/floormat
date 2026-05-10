@@ -110,7 +110,7 @@ struct entity_accessors<object, inspect_intent_t> {
                     x.set_bbox(x.offset, x.bbox_offset, value, x.pass);
                 },
                 [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },
-                constantly(constraints::range<Vector2ub>{{1,1}, {255, 255}}),
+                constantly(constraints::range<Vector2ub>{{2,2}, {255, 255}}),
             },
             E::type<bool>::field{"ephemeral"_s,
                 [](const object& x) { return x.ephemeral; },

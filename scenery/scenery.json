@@ -19,7 +19,7 @@
     "atlas-name": "table",
     "pass-mode": "shoot-through",
     "bbox-offset": "0 x 0",
-    "bbox-size": "60 x 115"
+    "bbox-size": "60 x 116"
   },
   {
     "name": "bench1",
@@ -27,7 +27,7 @@
     "atlas-name": "furniture/bench1",
     "pass-mode": "shoot-through",
     "bbox-offset": "-1 x -3",
-    "bbox-size": "92 x 65"
+    "bbox-size": "92 x 66"
   },
   {
     "name": "bench4",
@@ -35,7 +35,7 @@
     "atlas-name": "furniture/bench4",
     "pass-mode": "shoot-through",
     "bbox-offset": "0 x -5",
-    "bbox-size": "97 x 46"
+    "bbox-size": "98 x 46"
   },
   {
     "name": "chair1",
@@ -73,7 +73,7 @@
     "atlas-name": "furniture/shelf4",
     "pass-mode": "shoot-through",
     "bbox-offset": "4 x 0",
-    "bbox-size": "107 x 64"
+    "bbox-size": "108 x 64"
   },
   {
     "name": "shelf6",
@@ -99,7 +99,7 @@
     "atlas-name": "furniture/table1",
     "pass-mode": "shoot-through",
     "bbox-offset": "0 x 0",
-    "bbox-size": "77 x 98"
+    "bbox-size": "78 x 98"
   },
   {
     "name": "table4",

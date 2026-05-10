@@ -233,6 +233,7 @@ uint32_t chunk::pass_gen_counter() const { return _pass_gen_ctr; }
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                               Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept
 {
+    fm_assert(bbox_size % Vector2ub{2} == Vector2ub{0});
     auto [start, end] = scenery_tile(local, offset, bbox_offset, bbox_size);
     auto id = make_id_(collision_type::scenery, s.pass, s.id);
     value = { .data = id, .pos = { start, end } };
