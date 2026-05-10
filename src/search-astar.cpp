@@ -1,7 +1,7 @@
 #include "search-astar.hpp"
 #include "search-constants.hpp"
 #include "search-cache.hpp"
-#include "search-pool.hpp"
+#include "grid-pass-pool.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"

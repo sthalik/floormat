@@ -8,7 +8,7 @@
 #include "light.hpp"
 #include "hole.hpp"
 #include "grid-pass.hpp"
-#include "search-pool.hpp"
+#include "grid-pass-pool.hpp"
 #include "search-constants.hpp"
 #include "tile-defs.hpp"
 #include "compat/borrowed-ptr.inl"
