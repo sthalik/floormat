@@ -19,7 +19,6 @@ class anim_atlas;
 struct clickable;
 struct anim_mesh;
 struct texture_unit_cache;
-class path_search;
 class astar;
 struct point;
 struct z_bounds;
@@ -88,7 +87,6 @@ struct floormat_main
     bool is_clipcontrol_zero_to_one_enabled() const noexcept;
 
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
-    virtual path_search& search() = 0;
     virtual class astar& astar() = 0;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);

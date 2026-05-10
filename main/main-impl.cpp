@@ -69,7 +69,6 @@ void main_impl::stop_text_input() noexcept { stopTextInput(); }
 Platform::Sdl2Application& main_impl::application() noexcept { return *this; }
 const Platform::Sdl2Application& main_impl::application() const noexcept { return *this; }
 struct texture_unit_cache& main_impl::texture_unit_cache() { return _tuc; }
-path_search& main_impl::search() { return *_search; }
 astar& main_impl::astar() { return *_astar; }
 
 Vector2 main_impl::dpi_scale() const noexcept { return _dpi_scale; }

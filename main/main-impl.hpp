@@ -28,7 +28,6 @@ struct floormat_app;
 struct scenery;
 class anim_atlas;
 struct clickable;
-class path_search;
 class astar;
 
 struct main_impl final : private Platform::Sdl2Application, public floormat_main
@@ -104,7 +103,6 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     uint32_t cursor() const noexcept override;
 
     struct texture_unit_cache& texture_unit_cache() override;
-    path_search& search() override;
     class astar& astar() override;
 
 private:
@@ -143,7 +141,6 @@ private:
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
 #endif
-    safe_ptr<path_search> _search;
     safe_ptr<class astar> _astar;
     Vector2 _dpi_scale = Vector2{1};
 
