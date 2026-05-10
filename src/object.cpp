@@ -3,8 +3,8 @@
 #include "world.hpp"
 #include "rotation.inl"
 #include "anim-atlas.hpp"
-#include "src/RTree-search.hpp"
-#include "rect-intersects.hpp"
+#include "search.hpp"
+#include "compat/function2.hpp"
 #include "src/timer.hpp"
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"
@@ -12,7 +12,6 @@
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
-#include <bit>
 #include <algorithm>
 #include <iterator>
 #include <cr/GrowableArray.h>
@@ -101,36 +100,6 @@ void object::rotate(size_t, rotation new_r)
     const_cast<rotation&>(r) = new_r;
 }
 
-template<bool neighbor = true>
-static bool do_search(class chunk* c, chunk_coords_ coord,
-                      object_id id, Vector2 min, Vector2 max, Vector2b off = {})
-{
-    if constexpr(neighbor)
-    {
-        const auto ch = chunk_coords{(int16_t)(coord.x + off[0]), (int16_t)(coord.y + off[1])};
-        constexpr auto size = TILE_SIZE2 * TILE_MAX_DIM, grace = TILE_SIZE2 * 4;
-        const auto off_ = Vector2(off) * size;
-        min -= off_;
-        max -= off_;
-        if (!(min + grace >= Vector2{} && max - grace <= size)) [[likely]]
-            return true;
-        auto& w = c->world();
-        c = w.chunk_at_memo({ch, coord.z});
-        if (!c) [[unlikely]]
-            return true;
-    }
-    bool ret = true;
-    c->rtree()->Search(min.data(), max.data(), [&](object_id data, const auto& r) {
-        auto x = std::bit_cast<collision_data>(data);
-        if (x.id != id && x.pass != (uint64_t)pass_mode::pass &&
-            rect_intersects(min, max, {r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}))
-            return ret = false;
-        else
-            return true;
-    });
-    return ret;
-}
-
 bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
                          Vector2b bbox_offset, Vector2ub bbox_size)
 {
@@ -145,12 +114,13 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
-    if (!do_search<false>(&cʹ, coord_, id, min, max))
-        return false;
-    for (const auto& off : world::neighbor_offsets)
-        if (!do_search(&cʹ, coord_, id, min, max, off))
-            return false;
-    return true;
+    if (min == max)
+        return true;
+    const auto self_id = id;
+    auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    return path_search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), min, max, pred);
 }
 
 bool object::can_move_to(Vector2i delta)
