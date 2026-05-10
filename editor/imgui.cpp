@@ -141,6 +141,8 @@ float app::draw_main_menu()
                 populate_labyrinth();
             if (ImGui::MenuItem("Raycast fractal"))
                 populate_raycast_fractal();
+            if (ImGui::MenuItem("Sweep AABB slit"))
+                populate_sweep_aabb_slit();
         }
 #endif
 

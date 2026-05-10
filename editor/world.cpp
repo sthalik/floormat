@@ -1,12 +1,16 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "src/hole.hpp"
+#include "src/critter.hpp"
+#include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "floormat/main.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 
 namespace floormat {
 
@@ -267,6 +271,38 @@ void app::populate_raycast_fractal()
 
             ch.mark_modified();
         }
+}
+
+void app::populate_sweep_aabb_slit()
+{
+    reset_world();
+    auto& w = M->world();
+
+    constexpr chunk_coords_ ch{0, 0, 0};
+    auto& c = w[ch];
+
+    auto ground = loader.ground_atlas("floor-tiles");
+    for (auto k = 0u; k < TILE_COUNT; k++)
+        c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
+
+    // Edge contact only at spawn; strict-< overlap finds nothing, swept-AABB does.
+    auto add_pillar = [&](local_coords tile, Vector2b bb_off) {
+        scenery_proto p;
+        p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype     = generic_scenery_proto{};
+        p.bbox_offset = bb_off;
+        p.bbox_size   = Vector2ub{2, 2};
+        p.pass        = pass_mode::blocked;
+        w.make_scenery(w.make_id(), {ch, tile}, move(p));
+    };
+    add_pillar({0, 0}, { 0, -1});
+    add_pillar({1, 1}, { 1,  0});
+
+    auto C = ensure_player_character(w);
+    auto i = C->index();
+    C->teleport_to(i, global_coords{ch, {1, 1}}, Vector2b{-32, -32}, rotation_COUNT);
+
+    c.mark_modified();
 }
 
 void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
