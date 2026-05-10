@@ -380,7 +380,7 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
     const auto bbox_size = Vector2(proto.bbox_size);
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset);
     const auto min = center - bbox_size*.5f, max = min + bbox_size;
-    return path_search::is_passable_(this, _world->neighbors(_coord), min, max, constantly(path_search_continue::blocked));
+    return Search::is_passable_(this, _world->neighbors(_coord), min, max, constantly(path_search_continue::blocked));
 }
 
 } // namespace floormat
