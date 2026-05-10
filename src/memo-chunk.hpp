@@ -29,7 +29,9 @@ public:
     fm_DECLARE_DELETED_COPY_ASSIGNMENT(memo_chunk);
 
     chunk* chunk_at(world& w, chunk_coords_ ch);
+    const chunk* chunk_at(const world& w, chunk_coords_ ch) const;
     std::array<chunk*, 8> neighbors(world& w, chunk_coords_ ch0);
+    std::array<const chunk*, 8> neighbors(const world& w, chunk_coords_ ch0) const;
     void update_slot(world& w, chunk_coords_ ch, chunk* p);
     void prepare_next_frame(world& w);
 #ifndef FM_NO_DEBUG2

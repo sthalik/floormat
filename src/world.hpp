@@ -69,6 +69,7 @@ public:
 
     chunk& operator[](chunk_coords_ c) noexcept;
     chunk* at(chunk_coords_ c) noexcept;
+    const chunk* at(chunk_coords_ c) const noexcept;
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false, bool quiet = false);
@@ -135,8 +136,10 @@ public:
     void set_object_counter(object_id value);
 
     std::array<chunk*, 8> neighbors(chunk_coords_ coord);
+    std::array<const chunk*, 8> neighbors(chunk_coords_ coord) const;
 
     chunk* chunk_at_memo(chunk_coords_ ch);
+    const chunk* chunk_at_memo(chunk_coords_ ch) const;
     void chunk_memo_prepare_frame();
     void memo_update_slot(chunk_coords_ ch, chunk* p) noexcept;
 

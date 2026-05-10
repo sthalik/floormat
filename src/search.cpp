@@ -9,6 +9,7 @@
 #include "rect-intersects.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
+#include "compat/non-const.hpp"
 #include "point.inl"
 #include <bit>
 #include <mg/Range.h>
@@ -52,8 +53,6 @@ const heuristic& manhattan_distance() noexcept { return manhattan_distanceʹ; }
 #endif
 const heuristic& octile_distance() noexcept { return octile_distanceʹ; }
 
-
-
 bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
 {
     constexpr auto bbox_size = Vector2{0xff, 0xff};
@@ -79,8 +78,14 @@ bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
     return ret;
 }
 
-bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors,
-                               Vector2 min, Vector2 max, const pred& p)
+bool is_passable_1(const chunk& c, Vector2 min, Vector2 max, const const_pred& p)
+{
+    return is_passable_1(non_const(c), min, max, [&](chunk& self, collision_data data, Range2D rect) {
+        return p(std::as_const(self), data, rect);
+    });
+}
+
+bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
 {
     fm_debug_assert(max >= min);
 
@@ -110,9 +115,28 @@ bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors,
     return true;
 }
 
+bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& nbs,
+                  Vector2 min, Vector2 max, const const_pred& p)
+{
+    std::array<chunk*, array_size(nbs)> nbsʹ;
+    for (auto i = 0u; i < array_size(nbs); i++)
+        nbsʹ.data()[i] = non_const(nbs.data()[i]);
+
+    return is_passable_(non_const_(c0), nbsʹ, min, max, [&](chunk& self, collision_data data, Range2D rect) {
+        return p(std::as_const(self), data, rect);
+    });
+}
+
 bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 {
     auto* c = w.chunk_at_memo(ch);
+    auto neighbors = w.neighbors(ch);
+    return is_passable_(c, neighbors, bb.min(), bb.max(), p);
+}
+
+bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const const_pred& p)
+{
+    const auto* c = w.chunk_at_memo(ch);
     auto neighbors = w.neighbors(ch);
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }
