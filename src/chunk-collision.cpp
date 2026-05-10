@@ -70,6 +70,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         if constexpr(IsNeighbor)
             if (!rect_intersects(min, max, chunk_min, chunk_max)) [[likely]]
                 continue;
+        fm_assert(min != max);
         rtree.Insert(Vector2(min).data(), Vector2(max).data(), make_id(collision_type::none, e.pass, e.id));
         has_holes = true;
     }
@@ -79,6 +80,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Range2D bbox, bool has_holes,
                                pass_through_mask mask)
 {
+    fm_assert(bbox.min() != bbox.max());
     if (!has_holes)
         return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
 start:
@@ -212,12 +214,15 @@ void chunk::ensure_passability() noexcept
     }
     for (const bptr<object>& eʹ : objects())
     {
-        if (eʹ->updates_passability())
+        auto& e = *eʹ;
+        if (e.updates_passability())
+            continue;
+        if (Vector2ui{e.bbox_size}.product() == 0)
             continue;
         bbox bb;
-        if (_bbox_for_scenery(*eʹ, bb))
+        if (_bbox_for_scenery(e, bb))
         {
-            if (!eʹ->is_dynamic())
+            if (!e.is_dynamic())
                 filter_bbox_through_holes(rtree, std::bit_cast<object_id>(bb.data),
                                           Math::Range2D<float>{bb.pos},
                                           has_holes, not_blocked_pass_through_mask);
@@ -280,6 +285,7 @@ void chunk::_remove_bbox_static(const bptr<object>& e, [[maybe_unused]] const bb
 
 void chunk::_add_bbox_dynamic(const bbox& x)
 {
+    fm_assert(x.pos.min() != x.pos.max());
     auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
     _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
     //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();

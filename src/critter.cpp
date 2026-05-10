@@ -444,6 +444,7 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
 auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_result
 {
     fm_assert(is_dynamic());
+    fm_assert(bbox_size.x() && bbox_size.y());
 
     if (speed == 0) [[unlikely]]
         return {.blocked = position() != dest, .moved = false};
@@ -556,6 +557,7 @@ critter::critter(object_id id, class chunk& c, critter_proto proto) :
         name = "(Unnamed)"_s;
     fm_soft_assert(atlas->check_rotation(r));
     fm_soft_assert(speed >= 0);
+    fm_assert(bbox_size.x() && bbox_size.y());
 }
 
 critter::~critter() noexcept

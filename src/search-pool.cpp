@@ -10,6 +10,7 @@ PoolRegistry::~PoolRegistry() noexcept = default;
 
 Pool& PoolRegistry::pool_for(uint32_t bbox_size)
 {
+    fm_assert(bbox_size > 0);
     auto bbox = round_to_even(bbox_size, bbox_size);
     if (bbox < min_bbox_size)
         bbox = min_bbox_size;
