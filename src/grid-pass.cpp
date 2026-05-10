@@ -373,9 +373,8 @@ const pred& is_passable_without_critters() { return without_critters_pred; }
 Params Params::validate() const
 {
     using detail::grid::calc_div_size;
-    constexpr uint32_t min_bbox_size = 8;
 
-    auto bbox_sizeʹ = Math::max(min_bbox_size, bbox_size);
+    auto bbox_sizeʹ = Math::max(Grid::min_bbox_size, bbox_size);
     auto div_sizeʹ  = calc_div_size(div_size, bbox_sizeʹ);
     Params p{ div_sizeʹ, bbox_sizeʹ, };
     fm_assert(p.div_size > 0);
