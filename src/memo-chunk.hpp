@@ -35,7 +35,7 @@ public:
     void update_slot(world& w, chunk_coords_ ch, chunk* p);
     void prepare_next_frame(world& w);
 #ifndef FM_NO_DEBUG2
-    void check_in_sync(world& w) const;
+    void check_in_sync(const world& w) const;
 #endif
 };
 

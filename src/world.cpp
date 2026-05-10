@@ -11,6 +11,7 @@
 #include "grid-pass-pool.hpp"
 #include "search-constants.hpp"
 #include "tile-defs.hpp"
+#include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
@@ -202,6 +203,7 @@ size_t world::size() const noexcept { const auto& impl = *this->impl; return imp
 
 namespace {
 using chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
+using const_chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::const_iterator;
 static_assert(sizeof(chunks_map_iter) <= 2*sizeof(void*));
 
 static_assert(alignof(chunks_map_iter) <= alignof(void*));
@@ -209,29 +211,53 @@ static_assert(std::is_trivially_copyable_v<chunks_map_iter>);
 static_assert(std::is_trivially_destructible_v<chunks_map_iter>);
 } // namespace
 
-world::chunks_iterator& world::chunks_iterator::operator++() noexcept
+template<typename Chunk>
+world::chunks_iterator<Chunk>::chunks_iterator() noexcept
+{
+    static_assert(static_array_size<decltype(_buf)> >= Math::max(sizeof(chunks_map_iter), sizeof(const_chunks_map_iter)));
+    static_assert(alignof(decltype(_buf)) <= Math::max(alignof(chunks_map_iter), alignof(const_chunks_map_iter)));
+}
+
+template<typename Chunk>
+world::chunks_iterator<Chunk>& world::chunks_iterator<Chunk>::operator++() noexcept
 {
     ++*reinterpret_cast<chunks_map_iter*>(_buf);
     return *this;
 }
 
-chunk& world::chunks_iterator::operator*() const noexcept
+template<typename Chunk>
+Chunk& world::chunks_iterator<Chunk>::operator*() const noexcept
 {
     return (*reinterpret_cast<const chunks_map_iter*>(_buf))->second;
 }
 
-bool world::chunks_iterator::operator==(const chunks_iterator& o) const noexcept
+template<typename Chunk>
+bool world::chunks_iterator<Chunk>::operator==(const chunks_iterator<Chunk>& o) const noexcept
 {
     return *reinterpret_cast<const chunks_map_iter*>(_buf)
         == *reinterpret_cast<const chunks_map_iter*>(o._buf);
 }
 
-world::chunks_range world::chunks() noexcept
+template class world::chunks_iterator<chunk>;
+template class world::chunks_iterator<const chunk>;
+template class world::chunks_range<chunk>;
+template class world::chunks_range<const chunk>;
+
+world::chunks_range<chunk> world::chunks() noexcept
 {
     auto& impl = *this->impl;
-    chunks_iterator b, e;
+    chunks_iterator<chunk> b, e;
     new (b._buf) chunks_map_iter{impl._chunks.begin()};
     new (e._buf) chunks_map_iter{impl._chunks.end()};
+    return { b, e };
+}
+
+world::chunks_range<const chunk> world::chunks() const noexcept
+{
+    const auto& impl = *this->impl;
+    chunks_iterator<const chunk> b, e;
+    new (b._buf) const_chunks_map_iter{impl._chunks.cbegin()};
+    new (e._buf) const_chunks_map_iter{impl._chunks.cend()};
     return { b, e };
 }
 

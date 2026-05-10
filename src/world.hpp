@@ -75,29 +75,31 @@ public:
     void collect(bool force = false, bool quiet = false);
     size_t size() const noexcept;
 
+    template<typename Chunk>
     class chunks_iterator
     {
         alignas(void*) unsigned char _buf[2*sizeof(void*)] = {};
         friend class world;
     public:
-        chunks_iterator() noexcept = default;
+        chunks_iterator() noexcept;
         chunks_iterator& operator++() noexcept;
-        chunk& operator*() const noexcept;
+        Chunk& operator*() const noexcept;
         bool operator==(const chunks_iterator& o) const noexcept;
-        bool operator!=(const chunks_iterator& o) const noexcept { return !(*this == o); }
     };
 
+    template<typename Chunk>
     class chunks_range
     {
-        chunks_iterator _begin, _end;
+        chunks_iterator<Chunk> _begin, _end;
         friend class world;
-        chunks_range(chunks_iterator b, chunks_iterator e) noexcept : _begin{b}, _end{e} {}
+        chunks_range(chunks_iterator<Chunk> b, chunks_iterator<Chunk> e) noexcept : _begin{b}, _end{e} {}
     public:
-        chunks_iterator begin() const noexcept { return _begin; }
-        chunks_iterator end() const noexcept { return _end; }
+        chunks_iterator<Chunk> begin() const noexcept { return _begin; }
+        chunks_iterator<Chunk> end() const noexcept { return _end; }
     };
 
-    chunks_range chunks() noexcept;
+    chunks_range<chunk> chunks() noexcept;
+    chunks_range<const chunk> chunks() const noexcept;
 
     void serialize(StringView filename);
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);
