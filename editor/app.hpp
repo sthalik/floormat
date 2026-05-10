@@ -105,6 +105,7 @@ private:
     void populate_hole_stress_test();
     void populate_labyrinth();
     void populate_raycast_fractal();
+    void populate_sweep_aabb_slit();
 
     void draw() override;
 
