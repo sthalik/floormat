@@ -24,7 +24,6 @@ public:
 
     static constexpr uint32_t direct_count = 127;
     static constexpr uint32_t direct_max_bbox = 254;
-    static constexpr uint32_t min_bbox_size = 4;        // mirrors Params::validate()
 
 private:
     uint64_t last_frame_no_ = (uint64_t)-1;

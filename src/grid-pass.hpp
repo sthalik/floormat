@@ -60,6 +60,8 @@ public:
     void maybe_mark_stale();
 
     void build_if_stale(const pred& predicate);
+
+    static constexpr uint32_t min_bbox_size = 4;
 };
 
 class Pool final
