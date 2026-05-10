@@ -316,13 +316,28 @@ void cover_test::draw_ui(app&, float)
         ImGui::SameLine(label_max_w + ImGui::GetStyle().ItemSpacing.x);
 
         {
+            auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
+
+            if (ImGui::ArrowButton("##oct_dec", ImGuiDir_Left))
+                selected_octant = (int32_t)(((uint32_t)selected_octant + Cover::octant_count - 1) % Cover::octant_count);
+            ImGui::SameLine();
+
             int sel = selected_octant;
             ImGui::SetNextItemWidth(180);
             {
-                auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
+                [[maybe_unused]] const raii_wrapper slider_colors[] = {
+                    push_style_color(ImGuiCol_SliderGrab,       Color4{1.0f,  0.55f, 0.0f,  1.0f}),
+                    push_style_color(ImGuiCol_SliderGrabActive, Color4{1.0f,  0.85f, 0.2f,  1.0f}),
+                    push_style_color(ImGuiCol_FrameBg,          Color4{0.10f, 0.12f, 0.18f, 1.0f}),
+                    push_style_color(ImGuiCol_FrameBgHovered,   Color4{0.16f, 0.20f, 0.30f, 1.0f}),
+                };
                 ImGui::SliderInt("##sel_octant", &sel, 0, (int)Cover::octant_count - 1);
             }
             selected_octant = sel;
+
+            ImGui::SameLine();
+            if (ImGui::ArrowButton("##oct_inc", ImGuiDir_Right))
+                selected_octant = (int32_t)(((uint32_t)selected_octant + 1u) % Cover::octant_count);
         }
 
         {

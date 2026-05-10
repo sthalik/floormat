@@ -170,6 +170,15 @@ void app::configure_imgui(float scale)
     auto& style = ImGui::GetStyle();
     style = ImGuiStyle();
     ImGui::StyleColorsDark(&style);
+
+    style.FramePadding      = {6, 5};
+    style.ItemSpacing       = {10, 6};
+    style.ItemInnerSpacing  = {6, 4};
+    style.ScrollbarSize     = 16;
+    style.GrabMinSize       = 14;
+    style.IndentSpacing     = 22;
+    style.WindowPadding     = {10, 10};
+
     style.ScaleAllSizes(scale);
 
     auto& io = ImGui::GetIO();
