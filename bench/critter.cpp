@@ -1,6 +1,7 @@
 #include "compat/debug.hpp"
 #include "compat/assert.hpp"
 #include "compat/function2.hpp"
+#include "compat/constantly.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
@@ -19,14 +20,6 @@ namespace fm_debug = floormat::debug::detail;
 using enum rotation;
 using fu2::function_view;
 using Function = function_view<Ns() const>;
-
-#ifndef __CLION_IDE__
-constexpr auto constantly(const auto& x) noexcept {
-    return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
-}
-#else
-constexpr auto constantly(Ns x) noexcept { return [x] { return x; }; }
-#endif
 
 critter_proto make_proto(float accel)
 {

@@ -6,6 +6,7 @@
 #include "src/tile-image.hpp"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
+#include "compat/constantly.hpp"
 #include <cinttypes>
 #include <cstdio>
 

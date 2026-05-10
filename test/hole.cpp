@@ -2,6 +2,7 @@
 #include "run.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include "compat/constantly.hpp"
 #include "src/nanosecond.inl"
 #include "src/tile-image.hpp"
 #include "src/hole.hpp"

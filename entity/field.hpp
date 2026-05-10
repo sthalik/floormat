@@ -4,6 +4,7 @@
 #include "accessor.hpp"
 #include "field-status.hpp"
 #include "compat/defs.hpp"
+#include "compat/constantly.hpp"
 
 namespace floormat::entities::detail {
 template<typename Obj, typename Type, typename Default, size_t I, typename... Fs> struct find_reader;
@@ -26,10 +27,6 @@ struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static con
 } // namespace floormat::entities::detail
 
 namespace floormat::entities {
-
-constexpr auto constantly(const auto& x) noexcept {
-    return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
-}
 
 template<typename Obj, typename Type> struct entity_field_base {};
 

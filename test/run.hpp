@@ -60,12 +60,4 @@ struct Grace
 bool run(world& w, const function_view<Ns() const>& make_dt,
          Start start, Expected expected, Grace grace = {});
 
-#ifndef __CLION_IDE__
-constexpr auto constantly(const auto& x) noexcept {
-    return [x]<typename... Ts> (const Ts&...) constexpr -> const auto& { return x; };
-}
-#else
-constexpr auto constantly(Ns x) noexcept { return [x] { return x; }; }
-#endif
-
 } // namespace floormat::Run
