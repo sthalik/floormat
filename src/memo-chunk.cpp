@@ -106,9 +106,28 @@ chunk* memo_chunk::chunk_at(world& w, chunk_coords_ ch)
     return slot;
 }
 
+const chunk* memo_chunk::chunk_at(const world& w, chunk_coords_ ch) const
+{
+    fm_debug_assert(ch.z >= chunk_z_min && ch.z <= chunk_z_max);
+    if (ch.x < _x_min || ch.x > _x_max || ch.y < _y_min || ch.y > _y_max)
+        return w.at(ch);
+    const auto& slot = _data[index_of(ch)];
+    if (slot == uninit_sentinel())
+        return w.at(ch);
+    return slot;
+}
+
 std::array<chunk*, 8> memo_chunk::neighbors(world& w, chunk_coords_ ch0)
 {
     std::array<chunk*, 8> ret;
+    for (auto i = 0u; i < 8; i++)
+        ret[i] = chunk_at(w, ch0 + world::neighbor_offsets[i]);
+    return ret;
+}
+
+std::array<const chunk*, 8> memo_chunk::neighbors(const world& w, chunk_coords_ ch0) const
+{
+    std::array<const chunk*, 8> ret;
     for (auto i = 0u; i < 8; i++)
         ret[i] = chunk_at(w, ch0 + world::neighbor_offsets[i]);
     return ret;

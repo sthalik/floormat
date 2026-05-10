@@ -146,6 +146,16 @@ chunk* world::at(chunk_coords_ c) noexcept
         return nullptr;
 }
 
+const chunk* world::at(chunk_coords_ c) const noexcept
+{
+    auto& impl = *this->impl;
+    auto it = impl._chunks.find(c);
+    if (it != impl._chunks.end())
+        return &it->second;
+    else
+        return nullptr;
+}
+
 bool world::contains(chunk_coords_ c) const noexcept
 {
     const auto& impl = *this->impl;
@@ -289,12 +299,22 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
              id, ch.x(), ch.y(), ch.z(), t.x(), t.y());
 }
 
-auto world::neighbors(chunk_coords_ coord) -> std::array<chunk*, 8>
+std::array<chunk*, 8> world::neighbors(chunk_coords_ coord)
+{
+    return _chunk_memo->neighbors(*this, coord);
+}
+
+std::array<const chunk*, 8> world::neighbors(chunk_coords_ coord) const
 {
     return _chunk_memo->neighbors(*this, coord);
 }
 
 chunk* world::chunk_at_memo(chunk_coords_ ch)
+{
+    return _chunk_memo->chunk_at(*this, ch);
+}
+
+const chunk* world::chunk_at_memo(chunk_coords_ ch) const
 {
     return _chunk_memo->chunk_at(*this, ch);
 }
