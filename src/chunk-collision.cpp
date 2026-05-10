@@ -3,7 +3,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "pass-through.hpp"
-#include "src/RTree-search.hpp"
+#include "src/search-common.hpp"
 #include "rect-intersects.hpp"
 #include "hole.hpp"
 #include "hole-cut.hpp"
@@ -374,12 +374,26 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset),
                min = center - Vector2(bbox_size)*.5f, max = min + Vector2(bbox_size);
     bool ret = true;
-    _rtree->Search(min.data(), max.data(), [&](uint64_t data, const auto&) {
-          [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-          if (x.pass == (uint64_t)pass_mode::pass || x.pass == (uint64_t)pass_mode::shoot_through)
-              return true;
-          return ret = false;
-    });
+    auto cb = [&](uint64_t data, const auto&) {
+        auto x = std::bit_cast<collision_data>(data);
+        if (x.pass == (uint64_t)pass_mode::pass || x.pass == (uint64_t)pass_mode::shoot_through)
+            return true;
+        return ret = false;
+    };
+    path_search::is_passable_common(*this, min, max, cb);
+    if (ret)
+    {
+        const auto nbs = _world->neighbors(_coord);
+        constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
+        for (auto i = 0uz; i < 8 && ret; i++)
+        {
+            auto* c2 = nbs[i];
+            if (!c2)
+                continue;
+            const auto off = Vector2(world::neighbor_offsets[i]) * Vector2(chunk_size);
+            path_search::is_passable_common(*c2, min - off, max - off, cb);
+        }
+    }
     return ret;
 }
 
