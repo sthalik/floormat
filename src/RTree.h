@@ -107,6 +107,13 @@ public:
   bool Save(RTFileStream& a_stream);
 #endif
 
+  /// Minimal bounding rectangle (n-dimensional)
+  struct Rect
+  {
+    ELEMTYPE m_min[NUMDIMS];                      ///< Min dimensions of bounding box
+    ELEMTYPE m_max[NUMDIMS];                      ///< Max dimensions of bounding box
+  };
+
   /// Iterator is not remove safe.
   class Iterator
   {
@@ -175,13 +182,6 @@ public:
 
   /// Get object at iterator position
   DATATYPE& GetAt(Iterator& a_it)                 { return *a_it; }
-
-  /// Minimal bounding rectangle (n-dimensional)
-  struct Rect
-  {
-    ELEMTYPE m_min[NUMDIMS];                      ///< Min dimensions of bounding box
-    ELEMTYPE m_max[NUMDIMS];                      ///< Max dimensions of bounding box
-  };
 
   /// May be data or may be another subtree
   /// The parents level determines this.
