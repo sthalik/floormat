@@ -11,8 +11,8 @@ struct fm_settings
 {
     inline fm_settings() noexcept = default;
     virtual ~fm_settings() noexcept;
-    fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(fm_settings);
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(fm_settings);
+    fm_DEPRECATED_COPY(fm_settings);
+    fm_DEFAULT_MOVE_(fm_settings);
 
     String title = "floormat editor"_s;
     const char* const* argv = nullptr; int argc = 0;

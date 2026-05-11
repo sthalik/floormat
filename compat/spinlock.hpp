@@ -33,7 +33,7 @@ class Locker
     bool locked = false;
 
 public:
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Locker);
+    fm_DISABLE_MOVE_COPY(Locker);
 
     Locker(T& lock) noexcept;
     ~Locker() noexcept;

@@ -64,7 +64,7 @@ public:
     [[fm_no_unique_address]] Range range;
     [[fm_no_unique_address]] Length length;
 
-    fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(entity_field);
+    fm_DEFAULT_MOVE_COPY(entity_field);
 
     static constexpr decltype(auto) read(const R& reader, const Obj& x) { return detail::read_field<Obj, Type, R>::read(x, reader); }
     static constexpr void write(const W& writer, Obj& x, Type v);

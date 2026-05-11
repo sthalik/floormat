@@ -169,8 +169,8 @@ struct visitor_ : visitor_base<IsNewest>
 
     explicit visitor_() = default;
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(visitor_);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(visitor_);
+    fm_DISABLE_COPY(visitor_);
+    fm_DISABLE_MOVE(visitor_);
 
     template<typename T, typename U> using qual2 = std::conditional_t<IsWriter, const T, U>;
     template<typename T> using qual = std::conditional_t<IsWriter, const T, T>;

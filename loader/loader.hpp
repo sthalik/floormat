@@ -71,8 +71,8 @@ struct loader_
     virtual struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) = 0;
 
     virtual ~loader_() noexcept;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(loader_);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(loader_);
+    fm_DISABLE_COPY(loader_);
+    fm_DISABLE_MOVE(loader_);
 
     static constexpr StringView INVALID = "<invalid>"_s;
     static const StringView ANIM_PATH;

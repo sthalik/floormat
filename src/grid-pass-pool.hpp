@@ -14,7 +14,7 @@ public:
     PoolRegistry();
     explicit PoolRegistry(uint32_t div_size);
     ~PoolRegistry() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(PoolRegistry);
+    fm_DISABLE_MOVE_COPY(PoolRegistry);
 
     Pool& pool_for(uint32_t bbox_size);
 

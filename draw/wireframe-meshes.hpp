@@ -12,8 +12,8 @@ namespace floormat::wireframe {
 
 struct meshes final
 {
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(meshes);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(meshes);
+    fm_DISABLE_COPY(meshes);
+    fm_DISABLE_MOVE(meshes);
 
     meshes();
 

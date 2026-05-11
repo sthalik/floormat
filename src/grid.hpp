@@ -35,7 +35,7 @@ struct GridBase
     uint64_t build_no = 0;
 
     explicit GridBase(chunk& ch);
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(GridBase);
+    fm_DISABLE_MOVE_COPY(GridBase);
 
     bool is_stale() const;
     void mark_stale();

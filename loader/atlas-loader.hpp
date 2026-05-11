@@ -18,8 +18,8 @@ public:
     using AtlasPtr = std::decay_t<decltype(t.atlas_of(std::declval<const Cell&>()))>;
 
     ~atlas_loader() noexcept = default;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(atlas_loader);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(atlas_loader);
+    fm_DISABLE_COPY(atlas_loader);
+    fm_DISABLE_MOVE(atlas_loader);
 
     atlas_loader(TRAITS&& traits);
     atlas_loader() requires std::is_default_constructible_v<TRAITS>;

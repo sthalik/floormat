@@ -15,8 +15,8 @@ struct path_search_result::node
     template<typename T> friend struct path_search_result_pool_access;
 
     node() noexcept;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(node);
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(node);
+    fm_DISABLE_COPY(node);
+    fm_DEFAULT_MOVE_(node);
 
     Array<point> vec;
     Pointer<node> _next;

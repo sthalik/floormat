@@ -63,7 +63,7 @@ class Pool final
 public:
     explicit Pool(Params params);
     ~Pool() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Pool);
+    fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
     [[nodiscard]] Grid wrap(detail::grid::CoverGrid* g) const noexcept;

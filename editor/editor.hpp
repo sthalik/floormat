@@ -56,7 +56,7 @@ class editor final
     bool _dirty = false;
 
 public:
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(editor);
+    fm_DISABLE_COPY(editor);
     editor(app* a);
     editor(editor&&) noexcept;
     editor& operator=(editor&&) noexcept;

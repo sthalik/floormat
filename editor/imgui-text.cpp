@@ -58,7 +58,7 @@ struct text_painter_state
         last_anchor = Vector2{0};
     }
 
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(text_painter_state);
+    fm_DISABLE_MOVE_COPY(text_painter_state);
 };
 
 } // namespace detail

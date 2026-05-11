@@ -11,7 +11,7 @@ struct Ns;
 
 struct base_script
 {
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(base_script);
+    fm_DISABLE_MOVE_COPY(base_script);
 
     virtual StringView name() const = 0;
     virtual const void* id() const = 0;
@@ -32,7 +32,7 @@ class Script final
     static S* make_empty();
 
 public:
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Script);
+    fm_DISABLE_MOVE_COPY(Script);
 
     Script();
     ~Script() noexcept;

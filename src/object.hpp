@@ -41,8 +41,8 @@ struct object_proto
 
 struct object : bptr_base
 {
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(object);
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(object);
+    fm_DISABLE_COPY(object);
+    fm_DISABLE_MOVE(object);
 
     const object_id id = 0;
     uint64_t last_frame_no = 0;

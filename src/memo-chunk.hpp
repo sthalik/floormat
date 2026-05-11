@@ -26,7 +26,7 @@ class memo_chunk
 public:
     explicit memo_chunk();
     ~memo_chunk() noexcept;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(memo_chunk);
+    fm_DISABLE_COPY(memo_chunk);
 
     chunk* chunk_at(world& w, chunk_coords_ ch);
     const chunk* chunk_at(const world& w, chunk_coords_ ch) const;
