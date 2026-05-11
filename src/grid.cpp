@@ -95,7 +95,7 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
 
 void GridBase::maybe_mark_stale()
 {
-    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->chunk_at_memo(ch); });
+    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->at(ch); });
 }
 
 uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)

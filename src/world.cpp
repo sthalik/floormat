@@ -1,6 +1,6 @@
 #include "world.hpp"
 #include "chunk.hpp"
-#include "memo-chunk.hpp"
+#include "chunk-table.hpp"
 #include "object.hpp"
 #include "critter.hpp"
 #include "scenery.hpp"
@@ -26,21 +26,10 @@ using namespace floormat;
 
 size_t world::object_id_hasher::operator()(object_id id) const noexcept { return gtl::Hash<object_id>{}(id); }
 
-size_t world::chunk_coords_hasher::operator()(const chunk_coords_& coord) const noexcept
-{
-    uint64_t x = 0;
-    x |= uint64_t((uint16_t)coord.x) << 0;
-    x |= uint64_t((uint16_t)coord.y) << 16;
-    x |= uint64_t( (uint8_t)coord.z) << 32;
-    return gtl::Hash<uint64_t>{}(x);
-}
-
 namespace floormat {
-world::world(world&& w) noexcept = default;
 
 struct world::Impl
 {
-    gtl::node_hash_map<chunk_coords_, chunk, chunk_coords_hasher> _chunks;
     gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
     Pointer<Pass::PoolRegistry> _pass_registry;
     Pointer<Pass::Pool> _cover_pass_pool;
@@ -65,6 +54,33 @@ Grid::Pass::Pool& world::raycast_pass_pool()
     return pass_pool_registry().pool_for(tile_size_xy);
 }
 
+world::world() : _unique_id{InPlace}
+{
+    auto& impl = *this->impl;
+    Hash::set_open_addressing_load_factor(impl._objects);
+}
+
+world::world(world&& w) noexcept :
+    _last_chunk{w._last_chunk},
+    impl{move(w.impl)},
+    _chunk_table{move(w._chunk_table)},
+    _head{w._head},
+    _tail{w._tail},
+    _unique_id{move(w._unique_id)},
+    _object_counter{w._object_counter},
+    _current_frame{w._current_frame},
+    _teardown{w._teardown},
+    _script_initialized{w._script_initialized},
+    _script_finalized{w._script_finalized}
+{
+    w._head = nullptr;
+    w._tail = nullptr;
+    w._last_chunk = {};
+    w._object_counter = 0;
+    for (chunk* c = _head; c; c = c->_next)
+        c->_world = this;
+}
+
 world& world::operator=(world&& w) noexcept
 {
     auto& impl = *this->impl;
@@ -78,8 +94,29 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!_teardown);
     _last_chunk = {};
     impl._objects = move(w.impl->_objects);
-    impl._chunks = move(w.impl->_chunks);
     w.impl->_objects = {};
+
+    // suppress unregister; _chunk_table is replaced wholesale below
+    _teardown = true;
+    while (_head)
+    {
+        chunk* next = _head->_next;
+        _head->_teardown = true;
+        arrayResize(_head->_objects, 0);
+        delete _head;
+        _head = next;
+    }
+    _tail = nullptr;
+    _teardown = false;
+
+    _chunk_table = move(w._chunk_table);
+    _head = w._head;
+    _tail = w._tail;
+    w._head = nullptr;
+    w._tail = nullptr;
+    for (chunk* c = _head; c; c = c->_next)
+        c->_world = this;
+
     fm_assert(w._unique_id);
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
@@ -87,156 +124,120 @@ world& world::operator=(world&& w) noexcept
     _object_counter = w._object_counter;
     w._object_counter = 0;
     _current_frame = w._current_frame;
-
-    for (auto& [id, c] : impl._chunks)
-    {
-        c._world = this;
-        memo_update_slot(c._coord, &c);
-    }
     return *this;
-}
-
-world::world() : _unique_id{InPlace}
-{
-    auto& impl = *this->impl;
-    Hash::set_separate_chaining_load_factor(impl._chunks);
-    Hash::set_open_addressing_load_factor(impl._objects);
 }
 
 world::~world() noexcept
 {
     fm_assert(_script_finalized || !_script_initialized);
-    for (auto& [k, c] : impl->_chunks)
-        c.on_teardown();
+    for (chunk* c = _head; c; c = c->_next)
+        c->on_teardown();
     _teardown = true;
     impl->_objects.clear();
-    for (auto& [k, c] : impl->_chunks)
+    chunk* c = _head;
+    while (c)
     {
-        c._teardown = true;
-        //c.mark_scenery_modified(); // XXX why? what for?
-        //c.mark_passability_modified(); // XXX why? what for?
-        _last_chunk = {};
-        arrayResize(c._objects, 0);
+        chunk* next = c->_next;
+        c->_teardown = true;
+        arrayResize(c->_objects, 0);
+        delete c;
+        c = next;
     }
+    _head = nullptr;
+    _tail = nullptr;
     _last_chunk = {};
-    impl->_chunks.clear();
 }
 
 bool world::unique_id::operator==(const unique_id& other) const { return this == &other; }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
-    auto& impl = *this->impl;
     fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     auto& [c, coord2] = _last_chunk;
     if (coord != coord2)
     {
-        Hash::set_separate_chaining_load_factor(impl._chunks, impl._chunks.size()+1);
-        c = &impl._chunks.try_emplace(coord, *this, coord).first->second;
+        c = _chunk_table->chunk_at(coord);
+        if (!c)
+            c = new chunk(*this, coord);
+        coord2 = coord;
     }
-    coord2 = coord;
     return *c;
 }
 
 chunk* world::at(chunk_coords_ c) noexcept
 {
-    auto& impl = *this->impl;
-    auto it = impl._chunks.find(c);
-    if (it != impl._chunks.end())
-        return &it->second;
-    else
-        return nullptr;
+    return _chunk_table->chunk_at(c);
 }
 
 const chunk* world::at(chunk_coords_ c) const noexcept
 {
-    auto& impl = *this->impl;
-    auto it = impl._chunks.find(c);
-    if (it != impl._chunks.end())
-        return &it->second;
-    else
-        return nullptr;
+    return _chunk_table->chunk_at(c);
 }
 
 bool world::contains(chunk_coords_ c) const noexcept
 {
-    const auto& impl = *this->impl;
-    return impl._chunks.contains(c);
+    return _chunk_table->chunk_at(c) != nullptr;
 }
 
 void world::clear()
 {
     auto& impl = *this->impl;
     fm_assert(!_teardown);
-    impl._chunks.clear();
+    while (_head)
+    {
+        chunk* next = _head->_next;
+        delete _head;
+        _head = next;
+    }
+    _tail = nullptr;
     impl._objects.clear();
-    Hash::set_separate_chaining_load_factor(impl._chunks);
     Hash::set_open_addressing_load_factor(impl._objects);
     _object_counter = object_counter_init;
-    auto& [c, pos] = _last_chunk;
-    c = nullptr;
-    pos = chunk_tuple::invalid_coords;
+    _last_chunk = {};
 }
 
 void world::collect(bool force, bool quiet)
 {
-    auto& impl = *this->impl;
-    const auto len0 = impl._chunks.size();
-    for (auto it = impl._chunks.begin(); it != impl._chunks.end(); (void)0)
+    size_t len0 = 0, deleted = 0;
+    chunk* c = _head;
+    while (c)
     {
-        const auto& [_, c] = *it;
-        if (c.empty(force))
-            it = impl._chunks.erase(it);
-        else
-            ++it;
+        len0++;
+        chunk* next = c->_next;
+        if (c->empty(force))
+        {
+            delete c;
+            deleted++;
+        }
+        c = next;
     }
-
-    auto& [c, pos] = _last_chunk;
-    c = nullptr;
-    pos = chunk_tuple::invalid_coords;
-    _chunk_memo->prepare_next_frame(*this);
-    const auto len = len0 - impl._chunks.size();
-    if (!quiet && len > 1)
-        fm_debug("world: collected %zu/%zu chunks", len, len0);
+    _last_chunk = {};
+    chunk_table_prepare_frame();
+    if (!quiet && deleted > 1)
+        fm_debug("world: collected %zu/%zu chunks", deleted, len0);
 }
 
-size_t world::size() const noexcept { const auto& impl = *this->impl; return impl._chunks.size(); }
-
-namespace {
-using chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::iterator;
-using const_chunks_map_iter = gtl::node_hash_map<chunk_coords_, chunk, world::chunk_coords_hasher>::const_iterator;
-static_assert(sizeof(chunks_map_iter) <= 2*sizeof(void*));
-
-static_assert(alignof(chunks_map_iter) <= alignof(void*));
-static_assert(std::is_trivially_copyable_v<chunks_map_iter>);
-static_assert(std::is_trivially_destructible_v<chunks_map_iter>);
-} // namespace
-
-template<typename Chunk>
-world::chunks_iterator<Chunk>::chunks_iterator() noexcept
+size_t world::size() const noexcept
 {
-    static_assert(static_array_size<decltype(_buf)> >= Math::max(sizeof(chunks_map_iter), sizeof(const_chunks_map_iter)));
-    static_assert(alignof(decltype(_buf)) <= Math::max(alignof(chunks_map_iter), alignof(const_chunks_map_iter)));
+    size_t n = 0;
+    for (const chunk* c = _head; c; c = c->_next)
+        n++;
+    return n;
 }
 
 template<typename Chunk>
 world::chunks_iterator<Chunk>& world::chunks_iterator<Chunk>::operator++() noexcept
 {
-    ++*reinterpret_cast<chunks_map_iter*>(_buf);
+    _cur = _cur->_next;
     return *this;
 }
 
 template<typename Chunk>
-Chunk& world::chunks_iterator<Chunk>::operator*() const noexcept
+world::chunks_iterator<Chunk> world::chunks_range<Chunk>::begin() const noexcept
 {
-    return (*reinterpret_cast<const chunks_map_iter*>(_buf))->second;
-}
-
-template<typename Chunk>
-bool world::chunks_iterator<Chunk>::operator==(const chunks_iterator<Chunk>& o) const noexcept
-{
-    return *reinterpret_cast<const chunks_map_iter*>(_buf)
-        == *reinterpret_cast<const chunks_map_iter*>(o._buf);
+    chunks_iterator<Chunk> it;
+    it._cur = _head_;
+    return it;
 }
 
 template class world::chunks_iterator<chunk>;
@@ -244,23 +245,8 @@ template class world::chunks_iterator<const chunk>;
 template class world::chunks_range<chunk>;
 template class world::chunks_range<const chunk>;
 
-world::chunks_range<chunk> world::chunks() noexcept
-{
-    auto& impl = *this->impl;
-    chunks_iterator<chunk> b, e;
-    new (b._buf) chunks_map_iter{impl._chunks.begin()};
-    new (e._buf) chunks_map_iter{impl._chunks.end()};
-    return { b, e };
-}
-
-world::chunks_range<const chunk> world::chunks() const noexcept
-{
-    const auto& impl = *this->impl;
-    chunks_iterator<const chunk> b, e;
-    new (b._buf) const_chunks_map_iter{impl._chunks.cbegin()};
-    new (e._buf) const_chunks_map_iter{impl._chunks.cend()};
-    return { b, e };
-}
+world::chunks_range<chunk> world::chunks() noexcept { return {_head}; }
+world::chunks_range<const chunk> world::chunks() const noexcept { return {_head}; }
 
 void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
@@ -328,34 +314,48 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
 
 std::array<chunk*, 8> world::neighbors(chunk_coords_ coord)
 {
-    return _chunk_memo->neighbors(*this, coord);
+    return _chunk_table->neighbors(coord);
 }
 
 std::array<const chunk*, 8> world::neighbors(chunk_coords_ coord) const
 {
-    return _chunk_memo->neighbors(*this, coord);
+    return _chunk_table->neighbors(coord);
 }
 
-chunk* world::chunk_at_memo(chunk_coords_ ch)
+void world::chunk_table_prepare_frame()
 {
-    return _chunk_memo->chunk_at(*this, ch);
+#ifndef FM_NO_DEBUG2
+    _chunk_table->check_in_sync(*this);
+#endif
 }
 
-const chunk* world::chunk_at_memo(chunk_coords_ ch) const
+void world::register_chunk(chunk* c) noexcept
 {
-    return _chunk_memo->chunk_at(*this, ch);
+    fm_debug_assert(c->_prev == nullptr && c->_next == nullptr);
+    _chunk_table->update_slot(c->_coord, c);
+    c->_prev = _tail;
+    if (_tail)
+        _tail->_next = c;
+    else
+        _head = c;
+    _tail = c;
 }
 
-void world::chunk_memo_prepare_frame()
-{
-    _chunk_memo->prepare_next_frame(*this);
-}
-
-void world::memo_update_slot(chunk_coords_ ch, chunk* p) noexcept
+void world::unregister_chunk(chunk* c) noexcept
 {
     if (_teardown)
         return;
-    _chunk_memo->update_slot(*this, ch, p);
+    _chunk_table->update_slot(c->_coord, nullptr);
+    if (c->_prev)
+        c->_prev->_next = c->_next;
+    else
+        _head = c->_next;
+    if (c->_next)
+        c->_next->_prev = c->_prev;
+    else
+        _tail = c->_prev;
+    c->_prev = nullptr;
+    c->_next = nullptr;
 }
 
 critter_proto world::make_player_proto()
@@ -371,25 +371,23 @@ bool world::is_teardown() const { return _teardown; }
 
 void world::init_scripts()
 {
-    auto& impl = *this->impl;
     fm_assert(!_script_initialized);
     _script_initialized = true;
-    for (auto& [k, c] : impl._chunks)
+    for (auto& c : chunks())
         for (const auto& obj : c.objects())
             obj->init_script(obj);
 }
 
 void world::finish_scripts()
 {
-    auto& impl = *this->impl;
     fm_assert(_script_initialized);
     fm_assert(!_script_finalized);
     _script_finalized = true;
 
-    for (auto& [k, c] : impl._chunks)
+    for (auto& c : chunks())
         for (const auto& obj : c.objects())
             obj->destroy_script_pre(obj, script_destroy_reason::quit);
-    for (auto& [k, c] : impl._chunks)
+    for (auto& c : chunks())
         for (const auto& obj : c.objects())
             obj->destroy_script_post();
 }

@@ -340,7 +340,7 @@ bool Grid::ensure_octant(uint32_t k)
     fm_debug_assert(k < octant_count);
     detail::grid::check_frame_sync(pool, grid);
     grid->build_if_stale();
-    auto* sc = grid->w->chunk_at_memo(grid->coord);
+    auto* sc = grid->w->at(grid->coord);
     fm_assert(sc);
     return grid->fill_octant(k, *sc);
 }
@@ -349,7 +349,7 @@ bool Grid::fill_next_unfilled()
 {
     detail::grid::check_frame_sync(pool, grid);
     grid->build_if_stale();
-    auto* sc = grid->w->chunk_at_memo(grid->coord);
+    auto* sc = grid->w->at(grid->coord);
     fm_assert(sc);
     return grid->fill_next_unfilled(*sc);
 }
@@ -377,7 +377,7 @@ void Pool::maybe_mark_stale_all(uint64_t frame_no)
     {
         auto* g = it->second;
         g->maybe_mark_stale();
-        if (!g->w->chunk_at_memo(g->coord))
+        if (!g->w->at(g->coord))
         {
             g->c = nullptr;
             it = pool->grids.erase(it);

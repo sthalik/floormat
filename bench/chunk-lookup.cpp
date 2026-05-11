@@ -78,16 +78,16 @@ void Lookup_ChunkAtMemo(benchmark::State& state)
 {
     fixture f;
     for (auto& q : f.queries)
-        (void)f.w.chunk_at_memo(q);
-    f.w.chunk_memo_prepare_frame();
+        (void)f.w.at(q);
+    f.w.chunk_table_prepare_frame();
     for (auto& q : f.queries)
-        (void)f.w.chunk_at_memo(q);
+        (void)f.w.at(q);
 
     for (auto _ : state)
     {
         for (auto& q : f.queries)
         {
-            chunk* c = f.w.chunk_at_memo(q);
+            chunk* c = f.w.at(q);
             benchmark::DoNotOptimize(c);
         }
     }

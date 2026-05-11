@@ -32,7 +32,7 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
     if (!self.is_stale())
         return;
 
-    chunk* sc = self.w->chunk_at_memo(self.coord);
+    chunk* sc = self.w->at(self.coord);
     fm_assert(sc);
 
     self.neighbors = self.w->neighbors(self.coord);

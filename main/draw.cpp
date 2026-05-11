@@ -126,7 +126,7 @@ void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunk
         else
             _shader.set_tint({1, 1, 1, 1});
 
-        auto* cʹ = _world.chunk_at_memo(ch);
+        auto* cʹ = _world.at(ch);
         if (!cʹ)
             continue;
         auto& c = *cʹ;

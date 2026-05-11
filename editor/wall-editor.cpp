@@ -90,7 +90,7 @@ void wall_editor::place_tile(world& w, global_coords coords, const bptr<wall_atl
     //c.mark_walls_modified();
     for (int y = -1; y <= 1; y++)
         for (int x = -1; x <= 1; x++)
-            if (auto* ch = w.chunk_at_memo(coords + Vector2i(x, y)))
+            if (auto* ch = w.at(coords + Vector2i(x, y)))
                 ch->mark_walls_modified();
 }
 

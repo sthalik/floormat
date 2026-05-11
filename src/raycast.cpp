@@ -230,7 +230,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         (int16_t)(from.chunk().x + chunk_off_x + i - 1),
                         (int16_t)(from.chunk().y + chunk_off_y + j - 1),
                         from.chunk3().z };
-                    last_nb[j*3 + i] = w.chunk_at_memo(co);
+                    last_nb[j*3 + i] = w.at(co);
                 }
             last_c = last_nb[4];
             last_g_built = false;

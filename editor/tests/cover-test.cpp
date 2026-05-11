@@ -117,7 +117,7 @@ void cover_test::draw_overlay(app& a)
         return;
 
     auto& w = a.main().world();
-    auto* c = w.chunk_at_memo(result.from.chunk3());
+    auto* c = w.at(result.from.chunk3());
     if (!c)
         return;
 
@@ -220,7 +220,7 @@ void cover_test::update_post(app& a, const Ns&)
     if (!has_result)
         return;
     auto& w = a.main().world();
-    auto* c = w.chunk_at_memo(result.from.chunk3());
+    auto* c = w.at(result.from.chunk3());
     if (!c)
         return;
     pool.maybe_mark_stale_all(w.frame_no());
@@ -234,7 +234,7 @@ void cover_test::update_post(app& a, const Ns&)
 void cover_test::extract(app& a, point pt)
 {
     auto& w = a.main().world();
-    auto* c = w.chunk_at_memo(pt.chunk3());
+    auto* c = w.at(pt.chunk3());
     if (!c)
         return;
 

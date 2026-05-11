@@ -117,7 +117,7 @@ bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min
 template<typename World, typename Chunk>
 bool is_passable(World& w, chunk_coords_ ch, const Range2D& bb, const Pred<Chunk>& p)
 {
-    Chunk* c = w.chunk_at_memo(ch);
+    Chunk* c = w.at(ch);
     auto neighbors = w.neighbors(ch);
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }

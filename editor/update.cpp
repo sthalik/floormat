@@ -217,7 +217,7 @@ void app::update_world(Ns dt)
     auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -iTILE_SIZE2 * TILE_MAX_DIM, iTILE_SIZE2 * TILE_MAX_DIM, });
     for (auto ch : chunks)
     {
-            auto* const cʹ = world.chunk_at_memo(ch);
+            auto* const cʹ = world.at(ch);
             if (!cʹ)
                 continue;
             auto& c = *cʹ;
@@ -241,7 +241,7 @@ void app::update_world(Ns dt)
 #ifndef FM_NO_DEBUG
     for (auto ch : chunks)
     {
-        auto* cʹ = world.chunk_at_memo(ch);
+        auto* cʹ = world.at(ch);
         if (!cʹ)
             continue;
         auto& c = *cʹ;

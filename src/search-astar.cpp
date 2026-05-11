@@ -292,11 +292,11 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     pool.maybe_mark_stale_all(w.frame_no());
 
     if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset()), Vector2(own_size/2));
-        !Search::is_passable_(w.chunk_at_memo(from.chunk3()), w.neighbors(from.chunk3()), R.min(), R.max(), p))
+        !Search::is_passable_(w.at(from.chunk3()), w.neighbors(from.chunk3()), R.min(), R.max(), p))
         return {};
 
     if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), Vector2(own_size/2));
-        !Search::is_passable_(w.chunk_at_memo(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
+        !Search::is_passable_(w.at(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
         return {};
 
     constexpr Vector2i seed_offsets[9] = {
