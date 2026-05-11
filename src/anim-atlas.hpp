@@ -49,7 +49,7 @@ public:
     [[nodiscard]] bool check_rotation(rotation r) const noexcept;
     rotation first_rotation() const noexcept;
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(anim_atlas);
+    fm_DISABLE_COPY(anim_atlas);
 
     static void make_bitmask_(const ImageView2D& tex, BitArray& array);
     static BitArray make_bitmask(const ImageView2D& tex);

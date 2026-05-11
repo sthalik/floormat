@@ -8,8 +8,8 @@ namespace floormat {
 
 struct texture_unit_cache final
 {
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(texture_unit_cache);
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(texture_unit_cache);
+    fm_DISABLE_COPY(texture_unit_cache);
+    fm_DEFAULT_MOVE(texture_unit_cache);
 
     struct statistics { size_t cache_hit, cache_miss; };
 

@@ -14,7 +14,7 @@ struct Counter
     Counter() noexcept = default;
     ~Counter() noexcept { (*p)++; }
 
-    fm_DECLARE_DEFAULT_COPY_ASSIGNMENT(Counter);
+    fm_DEFAULT_COPY(Counter);
 
     int* p = nullptr;
 };

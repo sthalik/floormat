@@ -19,8 +19,8 @@ struct SpriteList
 
     SpriteList();
 
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(SpriteList);
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(SpriteList);
+    fm_DEFAULT_MOVE(SpriteList);
+    fm_DISABLE_COPY(SpriteList);
 };
 
 } // namespace floormat

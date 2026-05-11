@@ -6,49 +6,49 @@
 #   define fm_FUNCTION_NAME __PRETTY_FUNCTION__
 #endif
 
-#define fm_DECLARE_DEPRECATED_COPY_ASSIGNMENT(type)                                 \
-    [[deprecated, maybe_unused]] type(const type&) noexcept = default;              \
+#define fm_DEPRECATED_COPY(type)                                                \
+    [[deprecated, maybe_unused]] type(const type&) noexcept = default;          \
     [[deprecated, maybe_unused]] type& operator=(const type&) noexcept = default
 
-#define fm_DECLARE_DEFAULT_COPY_ASSIGNMENT(type)                                    \
-    [[maybe_unused]] constexpr type(const type&) noexcept = default;                \
+#define fm_DEFAULT_COPY(type)                                                   \
+    [[maybe_unused]] constexpr type(const type&) noexcept = default;            \
     [[maybe_unused]] constexpr type& operator=(const type&) noexcept = default
 
-#define fm_DECLARE_DEFAULT_COPY_ASSIGNMENT_(type)                                   \
-    [[maybe_unused]] type(const type&) noexcept = default;                          \
+#define fm_DEFAULT_COPY_(type)                                                  \
+    [[maybe_unused]] type(const type&) noexcept = default;                      \
     [[maybe_unused]] type& operator=(const type&) noexcept = default
 
-#define fm_DECLARE_DELETED_COPY_ASSIGNMENT(type)                                    \
-    type(const type&) = delete;                                                     \
+#define fm_DISABLE_COPY(type)                                                   \
+    type(const type&) = delete;                                                 \
     type& operator=(const type&) = delete
 
-#define fm_DECLARE_DELETED_MOVE_ASSIGNMENT(type)                                    \
-    type(type&&) = delete;                                                          \
+#define fm_DISABLE_MOVE(type)                                                   \
+    type(type&&) = delete;                                                      \
     type& operator=(type&&) = delete
 
-#define fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(type)                                 \
-    [[deprecated, maybe_unused]] type(type&&) = default;                            \
+#define fm_DEPRECATED_MOVE(type)                                                \
+    [[deprecated, maybe_unused]] type(type&&) = default;                        \
     [[deprecated, maybe_unused]] type& operator=(type&&) = default
 
-#define fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT(type)                                    \
-    [[maybe_unused]] constexpr type(type&&) noexcept = default;                     \
+#define fm_DEFAULT_MOVE(type)                                                   \
+    [[maybe_unused]] constexpr type(type&&) noexcept = default;                 \
     [[maybe_unused]] constexpr type& operator=(type&&) noexcept = default
 
-#define fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(type)                                   \
-    [[maybe_unused]] type(type&&) noexcept = default;                               \
+#define fm_DEFAULT_MOVE_(type)                                                  \
+    [[maybe_unused]] type(type&&) noexcept = default;                           \
     [[maybe_unused]] type& operator=(type&&) noexcept = default
 
-#define fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS(type)                              \
-    [[maybe_unused]] fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT(type);                      \
-    [[maybe_unused]] fm_DECLARE_DEFAULT_COPY_ASSIGNMENT(type)
+#define fm_DEFAULT_MOVE_COPY(type)                                              \
+    [[maybe_unused]] fm_DEFAULT_MOVE(type);                                     \
+    [[maybe_unused]] fm_DEFAULT_COPY(type)
 
-#define fm_DECLARE_DEFAULT_MOVE_COPY_ASSIGNMENTS_(type)                             \
-    [[maybe_unused]] fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(type);                     \
-    [[maybe_unused]] fm_DECLARE_DEFAULT_COPY_ASSIGNMENT_(type)
+#define fm_DEFAULT_MOVE_COPY_(type)                                             \
+    [[maybe_unused]] fm_DEFAULT_MOVE_(type);                                    \
+    [[maybe_unused]] fm_DEFAULT_COPY_(type)
 
-#define fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(type)                              \
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(type);                                       \
-    fm_DECLARE_DELETED_MOVE_ASSIGNMENT(type)
+#define fm_DISABLE_MOVE_COPY(type)                                              \
+    fm_DISABLE_COPY(type);                                                      \
+    fm_DISABLE_MOVE(type)
 
 #ifdef _MSC_VER
 #   define fm_noinline __declspec(noinline)

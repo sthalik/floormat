@@ -37,8 +37,8 @@ struct floormat_main
     floormat_main() noexcept;
     virtual ~floormat_main() noexcept;
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(floormat_main);
-    fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(floormat_main);
+    fm_DISABLE_COPY(floormat_main);
+    fm_DEPRECATED_MOVE(floormat_main);
 
     virtual Platform::Sdl2Application& application() noexcept = 0;
     virtual const Platform::Sdl2Application& application() const noexcept = 0;

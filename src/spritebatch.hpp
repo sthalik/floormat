@@ -44,7 +44,7 @@ public:
 
     explicit SpriteBatch();
     ~SpriteBatch() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(SpriteBatch);
+    fm_DISABLE_MOVE_COPY(SpriteBatch);
 };
 
 } // namespace floormat

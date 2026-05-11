@@ -25,8 +25,8 @@ struct non_copyable
     int value = 0;
     explicit constexpr non_copyable(DirectInitT) {}
     explicit constexpr non_copyable(DirectInitT, int value) : value{value} {}
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT(non_copyable);
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(non_copyable);
+    fm_DEFAULT_MOVE(non_copyable);
+    fm_DISABLE_COPY(non_copyable);
 };
 
 struct S { // todo fm_assert_equal

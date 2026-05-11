@@ -9,7 +9,7 @@ template<typename T> class safe_ptr;
 
 struct tests_data_
 {
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(tests_data_);
+    fm_DISABLE_COPY(tests_data_);
 
     virtual ~tests_data_() noexcept;
     [[nodiscard]] static safe_ptr<tests_data_> make();

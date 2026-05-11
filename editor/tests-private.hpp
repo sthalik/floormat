@@ -12,8 +12,8 @@ namespace floormat::tests {
 
 struct base_test
 {
-    fm_DECLARE_DEFAULT_MOVE_ASSIGNMENT_(base_test);
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(base_test);
+    fm_DEFAULT_MOVE(base_test);
+    fm_DISABLE_COPY(base_test);
 
     virtual bool handle_key(app& a, const key_event& e, bool is_down) = 0;
     virtual bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) = 0;

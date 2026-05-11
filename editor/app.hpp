@@ -85,8 +85,8 @@ struct app final : floormat_app
 private:
     explicit app(fm_settings&& opts);
 
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(app);
-    fm_DECLARE_DEPRECATED_MOVE_ASSIGNMENT(app);
+    fm_DISABLE_COPY(app);
+    fm_DEPRECATED_MOVE(app);
 
     int exec();
 

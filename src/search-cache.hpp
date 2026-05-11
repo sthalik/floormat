@@ -24,7 +24,7 @@ struct cache
 
     explicit cache(uint32_t div_size);
     ~cache() noexcept;
-    fm_DECLARE_DELETED_COPY_ASSIGNMENT(cache);
+    fm_DISABLE_COPY(cache);
 
     size_t get_chunk_index(Vector2i chunk) const;
     static size_t get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord);

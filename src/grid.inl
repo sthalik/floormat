@@ -17,7 +17,7 @@ struct Pool
 
     explicit Pool(T::Params p) requires BitGrid<T>;
     ~Pool() noexcept;
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Pool);
+    fm_DISABLE_MOVE_COPY(Pool);
 
     void put(T* p) requires BitGrid<T>;
     T* take(chunk& ch) requires BitGrid<T>;

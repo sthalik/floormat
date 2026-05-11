@@ -15,7 +15,7 @@ struct Foo : bptr_base
 {
     int x;
 
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(Foo);
+    fm_DISABLE_MOVE_COPY(Foo);
     Foo(int x) : x{x} {}
 };
 struct Bar : Foo {};
@@ -51,7 +51,7 @@ struct A : bptr_base
     explicit A(int val) : val{val}, serial{++A_total} { ++A_alive; }
     ~A() noexcept override { --A_alive; fm_assert(A_alive >= 0); }
 
-    fm_DECLARE_DELETED_COPY_MOVE_ASSIGNMENTS(A);
+    fm_DISABLE_MOVE_COPY(A);
 };
 
 void test1()
