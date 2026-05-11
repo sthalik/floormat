@@ -11,13 +11,10 @@ namespace floormat::detail::grid {
 struct PassGrid;
 }
 
-
 namespace floormat::Grid::Pass {
 
 using pred = Search::pred;
 using BitView = detail::grid::BitView;
-
-const pred& is_passable_without_critters();
 
 struct Params
 {

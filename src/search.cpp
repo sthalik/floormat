@@ -5,31 +5,31 @@
 #include "global-coords.hpp"
 #include "world.hpp"
 #include "pass-mode.hpp"
+#include "object.hpp"
 #include "RTree-search.hpp"
 #include "rect-intersects.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
-#include "compat/non-const.hpp"
 #include "point.inl"
 #include <bit>
 #include <mg/Range.h>
 
 namespace floormat::Search {
 
-namespace {
-constexpr auto never_continue_1 = [](chunk&, collision_data, Range2D) constexpr { return path_search_continue::blocked; };
-constexpr auto never_continue_ = pred{never_continue_1};
-constexpr auto always_continue_1 = [](chunk&, collision_data, Range2D) constexpr { return path_search_continue::pass; };
-constexpr auto always_continue_ = pred{always_continue_1};
+using psc = path_search_continue;
 
-#if 0
-constexpr auto euclidean_distanceʹʹ  =
-    [](point cur, point goal) constexpr -> uint32_t { return (uint32_t)(cur - goal).length();  };
-constexpr auto euclidean_distanceʹ = heuristic{euclidean_distanceʹʹ};
-constexpr auto manhattan_distanceʹʹ  =
-    [](point cur, point goal) constexpr -> uint32_t { return Vector2ui(Math::abs(cur - goal)).sum();  };
-constexpr auto manhattan_distanceʹ = heuristic{manhattan_distanceʹʹ};
-#endif
+namespace {
+namespace detail {
+
+template<typename Chunk>
+constexpr inline auto never_continueʹʹ = [](Chunk&, collision_data, Range2D) constexpr { return psc::blocked; };
+
+template<typename Chunk>
+constexpr inline auto never_continueʹ = Pred<Chunk>{never_continueʹʹ<Chunk>};
+template<typename Chunk>
+constexpr inline auto always_continueʹʹ = [](Chunk&, collision_data, Range2D) constexpr { return psc::pass; };
+template<typename Chunk>
+constexpr inline auto always_continueʹ = Pred<Chunk>{always_continueʹʹ<Chunk>};
 
 constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint32_t {
     const auto d = Vector2ui{Math::abs(cur - goal)};
@@ -42,20 +42,24 @@ constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint
     constexpr uint32_t diag  = (uint32_t)(div_size.length() + 1);
     return mx + (diag - axial) * mn / axial;
 };
-constexpr auto octile_distanceʹ = heuristic{octile_distanceʹʹ};
+constexpr inline const auto octile_distanceʹ = heuristic{octile_distanceʹʹ};
 
-} // namespace
+template<typename Chunk>
+constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
+    // 'scenery' covers all object types here, including critters
+    if (data.type == (uint64_t)collision_type::scenery)
+    {
+        auto obj = self.world().find_object(data.id);
+        fm_assert(obj);
+        if (obj->type() == object_type::critter)
+            return path_search_continue::pass;
+    }
+    return path_search_continue::blocked;
+};
+template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{without_crittersʹʹ<Chunk>};
 
-const pred& never_continue() noexcept { return never_continue_; }
-const pred& always_continue() noexcept { return always_continue_; }
-
-#if 0
-const heuristic& euclidean_distance() noexcept { return euclidean_distanceʹ; }
-const heuristic& manhattan_distance() noexcept { return manhattan_distanceʹ; }
-#endif
-const heuristic& octile_distance() noexcept { return octile_distanceʹ; }
-
-bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
+template<typename Chunk>
+bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
     constexpr auto bbox_size = Vector2{0xff, 0xff};
     constexpr auto chunk_bounds = Range2D{
@@ -80,14 +84,8 @@ bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
     return ret;
 }
 
-bool is_passable_1(const chunk& c, Vector2 min, Vector2 max, const const_pred& p)
-{
-    return is_passable_1(non_const(c), min, max, [&](chunk& self, collision_data data, Range2D rect) {
-        return p(std::as_const(self), data, rect);
-    });
-}
-
-bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
+template<typename Chunk>
+bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
     fm_debug_assert(max >= min);
 
@@ -113,34 +111,44 @@ bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min
                 return false;
         }
     }
-
     return true;
 }
 
-bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& nbs,
-                  Vector2 min, Vector2 max, const const_pred& p)
+template<typename World, typename Chunk>
+bool is_passable(World& w, chunk_coords_ ch, const Range2D& bb, const Pred<Chunk>& p)
 {
-    std::array<chunk*, array_size(nbs)> nbsʹ;
-    for (auto i = 0u; i < array_size(nbs); i++)
-        nbsʹ.data()[i] = non_const(nbs.data()[i]);
-
-    return is_passable_(non_const_(c0), nbsʹ, min, max, [&](chunk& self, collision_data data, Range2D rect) {
-        return p(std::as_const(self), data, rect);
-    });
-}
-
-bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
-{
-    auto* c = w.chunk_at_memo(ch);
+    Chunk* c = w.chunk_at_memo(ch);
     auto neighbors = w.neighbors(ch);
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }
+} // namespace detail
+} // namespace
 
-bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const const_pred& p)
-{
-    const auto* c = w.chunk_at_memo(ch);
-    auto neighbors = w.neighbors(ch);
-    return is_passable_(c, neighbors, bb.min(), bb.max(), p);
-}
+bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const Pred<chunk>& p)
+{ return detail::is_passable_1(c, min, max, p); }
+bool is_passable_1(const chunk& c, Vector2 min, Vector2 max, const Pred<const chunk>& p)
+{ return detail::is_passable_1(c, min, max, p); }
+
+bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<chunk>& p)
+{ return detail::is_passable_(c0, neighbors, min, max, p); }
+bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<const chunk>& p)
+{ return detail::is_passable_(c0, neighbors, min, max, p); }
+
+bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk>& p)
+{ return detail::is_passable(w, ch, bb, p); }
+bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred<const chunk>& p)
+{ return detail::is_passable(w, ch, bb, p); }
+
+template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }
+template<typename Chunk> const Pred<Chunk>& always_continue() noexcept { return detail::always_continueʹ<Chunk>; }
+template<typename Chunk> const Pred<Chunk>& without_critters() noexcept { return detail::without_crittersʹ<Chunk>; }
+const heuristic& octile_distance() noexcept { return detail::octile_distanceʹ; }
+
+template const Pred<chunk>& never_continue() noexcept;
+template const Pred<const chunk>& never_continue() noexcept;
+template const Pred<chunk>& always_continue() noexcept;
+template const Pred<const chunk>& always_continue() noexcept;
+template const Pred<chunk>& without_critters() noexcept;
+template const Pred<const chunk>& without_critters() noexcept;
 
 } // namespace floormat::Search

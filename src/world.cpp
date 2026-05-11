@@ -17,6 +17,7 @@
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/hash-table-load-factor.hpp"
+#include "compat/non-const.hpp"
 #include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
 #include <gtl/phmap.hpp>
@@ -464,6 +465,12 @@ bptr<T> world::find_object(object_id id)
 }
 
 template<typename T>
+bptr<const T> world::find_object(object_id id) const
+{
+    return non_const(*this).find_object<T>(id);
+}
+
+template<typename T>
 requires is_strict_base_of<scenery, T>
 bptr<T> world::find_object(object_id id)
 {
@@ -475,6 +482,13 @@ bptr<T> world::find_object(object_id id)
         return static_pointer_cast<T>(move(ptr));
 }
 
+template<typename T>
+requires is_strict_base_of<scenery, T>
+bptr<const T> world::find_object(object_id id) const
+{
+    return non_const(*this).find_object<T>(id);
+}
+
 template bptr<object>  world::find_object<object>(object_id id);
 template bptr<critter> world::find_object<critter>(object_id id);
 template bptr<scenery> world::find_object<scenery>(object_id id);
@@ -482,6 +496,14 @@ template bptr<light>   world::find_object<light>(object_id id);
 template bptr<hole>   world::find_object<hole>(object_id id);
 template bptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
 template bptr<door_scenery> world::find_object<door_scenery>(object_id id);
+
+template bptr<const object>  world::find_object<object>(object_id id) const;
+template bptr<const critter> world::find_object<critter>(object_id id) const;
+template bptr<const scenery> world::find_object<scenery>(object_id id) const;
+template bptr<const light>   world::find_object<light>(object_id id) const;
+template bptr<const hole>   world::find_object<hole>(object_id id) const;
+template bptr<const generic_scenery> world::find_object<generic_scenery>(object_id id) const;
+template bptr<const door_scenery> world::find_object<door_scenery>(object_id id) const;
 
 template<bool sorted>
 bptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)

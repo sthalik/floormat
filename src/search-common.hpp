@@ -6,11 +6,6 @@
 #include <mg/Vector2.h>
 
 namespace floormat::Search {
-namespace detail {
-
-
-
-} // namespace detail
 
 template<std::invocable<object_id, const Chunk_RTree::Rect&> Function, Qualified<chunk> Chunk>
 CORRADE_ALWAYS_INLINE
