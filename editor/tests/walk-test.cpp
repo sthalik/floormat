@@ -59,7 +59,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             else
             {
                 auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, dist, bb,
-                                              Pass::is_passable_without_critters());
+                                              Search::without_critters());
                 if (!res.empty())
                 {
                     auto S = critter_script::make_walk_script(move(res));

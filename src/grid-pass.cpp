@@ -353,23 +353,6 @@ static_assert(assert_calc_div_size());
 
 namespace floormat::Grid::Pass {
 
-namespace {
-constexpr auto without_critters_lambda = [](chunk& self, collision_data data, Range2D) -> path_search_continue {
-    // 'scenery' covers all object types here, including critters
-    if (data.type == (uint64_t)collision_type::scenery)
-    {
-        auto obj = self.world().find_object(data.id);
-        fm_assert(obj);
-        if (obj->type() == object_type::critter)
-            return path_search_continue::pass;
-    }
-    return path_search_continue::blocked;
-};
-constexpr pred without_critters_pred{without_critters_lambda};
-} // namespace
-
-const pred& is_passable_without_critters() { return without_critters_pred; }
-
 Params Params::validate() const
 {
     using detail::grid::calc_div_size;

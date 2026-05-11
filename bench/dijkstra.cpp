@@ -55,7 +55,7 @@ void Dijkstra(benchmark::State& state)
         return A.Dijkstra<Debug>(w, {{0,0,0}, {11,9}}, // from
                                  {wpos, {wox, woy}},   // to
                                  max_dist, {16, 16},   // size
-                                 Pass::is_passable_without_critters());
+                                 Search::without_critters());
     };
 
     {

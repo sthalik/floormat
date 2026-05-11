@@ -24,6 +24,7 @@ bool collision_data::operator==(const collision_data&) const noexcept = default;
 bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
 Chunk_RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 world& chunk::world() noexcept { return *_world; }
+const class world& chunk::world() const noexcept { return *_world; }
 
 const chunk::RTree* chunk::rtree() const noexcept
 {

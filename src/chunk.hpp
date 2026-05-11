@@ -79,6 +79,7 @@ public:
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;
     class world& world() noexcept;
+    const class world& world() const noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
     [[nodiscard]] static bool find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask);

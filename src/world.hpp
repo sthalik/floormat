@@ -120,8 +120,11 @@ public:
     }
 
     template<bool sorted = true> bptr<scenery> make_scenery(object_id id, global_coords pos, scenery_proto&& proto);
+
     template<typename T = object> bptr<T> find_object(object_id id);
     template<typename T> requires is_strict_base_of<scenery, T> bptr<T> find_object(object_id id);
+    template<typename T = object> bptr<const T> find_object(object_id id) const;
+    template<typename T> requires is_strict_base_of<scenery, T> bptr<const T> find_object(object_id id) const;
 
     bptr<critter> ensure_player_character(object_id& id, critter_proto p);
     bptr<critter> ensure_player_character(object_id& id);
