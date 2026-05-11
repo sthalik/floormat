@@ -238,7 +238,7 @@ struct visitor_ : visitor_base<IsNewest>
             {
                 auto delta_ = uint16_t(obj.delta >> 16);
                 visit(delta_, f);
-                non_const_(obj.delta) = delta_ * 65536u;
+                obj.delta = delta_ * 65536u;
             }
             else
             {
@@ -947,7 +947,7 @@ ok:
         object_proto p;
         visit_object_header(p, s, f);
         if (PROTO < 28) [[unlikely]]
-            non_const_(p.bbox_size) = fix_stupid_bbox(p.bbox_size);
+            p.bbox_size = fix_stupid_bbox(p.bbox_size);
 
         switch (type)
         {

@@ -6,7 +6,6 @@
 #define my_strcasecmp _stricmp
 #else
 #include <strings.h>
-#define my_strcasecmp strcasecmp
 #endif
 
 namespace floormat {

@@ -74,7 +74,8 @@ struct DirArrayIndex {
     bool operator==(const DirArrayIndex&) const noexcept;
 };
 
-void resolve_wall_rotations(Array<Wall::Direction>& dirs, const std::array<DirArrayIndex, Direction_COUNT>& map) noexcept(false);
+void resolve_wall_rotations(Array<Wall::Direction>& dirs, const std::array<DirArrayIndex,
+                            Direction_COUNT>& map) noexcept(false);
 
 } // namespace floormat::Wall
 

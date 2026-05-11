@@ -103,7 +103,8 @@ public:
 
     void serialize(StringView filename);
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);
-    static void deserialize_old(class world& w, ArrayView<const char> buf, uint16_t proto, enum loader_policy asset_policy) noexcept(false);
+    static void deserialize_old(world& w, ArrayView<const char> buf, uint16_t proto,
+                                loader_policy asset_policy) noexcept(false);
     auto frame_no() const { return _current_frame; }
     auto increment_frame_no() { return _current_frame++; }
 
