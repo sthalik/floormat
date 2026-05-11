@@ -61,6 +61,8 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         const auto& e = static_cast<struct hole&>(eʹ);
         if (!e.flags.enabled)
             continue;
+        if (Vector2ui(e.bbox_size).product() == 0)
+            continue;
         auto center = Vector2i(e.offset) + Vector2i(e.bbox_offset) + Vector2i(e.coord.local()) * TILE_SIZE2;
         if constexpr(IsNeighbor)
         {
