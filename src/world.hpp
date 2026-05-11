@@ -9,7 +9,7 @@
 #include "loader/policy.hpp"
 
 namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
-namespace floormat::detail { class memo_chunk; }
+namespace floormat::detail { class chunk_table; }
 
 namespace floormat {
 
@@ -24,8 +24,6 @@ class world final
 public:
     static constexpr object_id object_counter_init = 1024;
     static constexpr size_t initial_collect_every = 64;
-
-    struct chunk_coords_hasher { size_t operator()(const chunk_coords_& coord) const noexcept; };
 
 private:
     struct chunk_tuple
@@ -44,7 +42,9 @@ private:
 
     struct Impl;
     safe_ptr<Impl> impl;
-    safe_ptr<detail::memo_chunk> _chunk_memo;
+    safe_ptr<detail::chunk_table> _chunk_table;
+    chunk* _head = nullptr;
+    chunk* _tail = nullptr;
 
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
@@ -57,11 +57,15 @@ private:
     void erase_object(object_id id);
     bptr<object> find_object_(object_id id);
 
+    void register_chunk(chunk* c) noexcept;
+    void unregister_chunk(chunk* c) noexcept;
+
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);
     [[noreturn]] static void throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset);
 
     friend struct object;
+    friend class chunk;
 
 public:
     explicit world();
@@ -78,24 +82,24 @@ public:
     template<typename Chunk>
     class chunks_iterator
     {
-        alignas(void*) unsigned char _buf[2*sizeof(void*)] = {};
+        Chunk* _cur = nullptr;
         friend class world;
     public:
-        chunks_iterator() noexcept;
+        chunks_iterator() noexcept = default;
         chunks_iterator& operator++() noexcept;
-        Chunk& operator*() const noexcept;
-        bool operator==(const chunks_iterator& o) const noexcept;
+        Chunk& operator*() const noexcept { return *_cur; }
+        bool operator==(const chunks_iterator& o) const noexcept { return _cur == o._cur; }
     };
 
     template<typename Chunk>
     class chunks_range
     {
-        chunks_iterator<Chunk> _begin, _end;
+        Chunk* _head_ = nullptr;
         friend class world;
-        chunks_range(chunks_iterator<Chunk> b, chunks_iterator<Chunk> e) noexcept : _begin{b}, _end{e} {}
+        chunks_range(Chunk* h) noexcept : _head_{h} {}
     public:
-        chunks_iterator<Chunk> begin() const noexcept { return _begin; }
-        chunks_iterator<Chunk> end() const noexcept { return _end; }
+        chunks_iterator<Chunk> begin() const noexcept;
+        chunks_iterator<Chunk> end() const noexcept { return {}; }
     };
 
     chunks_range<chunk> chunks() noexcept;
@@ -144,10 +148,7 @@ public:
     std::array<chunk*, 8> neighbors(chunk_coords_ coord);
     std::array<const chunk*, 8> neighbors(chunk_coords_ coord) const;
 
-    chunk* chunk_at_memo(chunk_coords_ ch);
-    const chunk* chunk_at_memo(chunk_coords_ ch) const;
-    void chunk_memo_prepare_frame();
-    void memo_update_slot(chunk_coords_ ch, chunk* p) noexcept;
+    void chunk_table_prepare_frame();
 
     Grid::Pass::Pool& raycast_pass_pool();
     Grid::Pass::PoolRegistry& pass_pool_registry();

@@ -111,6 +111,8 @@ private:
     Array<bptr<object>> _objects;
     class world* _world;
     Pointer<RTree> _rtree;
+    chunk* _next = nullptr;
+    chunk* _prev = nullptr;
     chunk_coords_ _coord;
     uint32_t _pass_gen_ctr = 0;
 

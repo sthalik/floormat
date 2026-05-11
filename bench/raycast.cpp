@@ -476,7 +476,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
                     continue;
                 if (!c)
                 {
-                    c = w.chunk_at_memo({last_ch + Vector2i{i - 1, j - 1}});
+                    c = w.at({last_ch + Vector2i{i - 1, j - 1}});
                     if (!c)
                     {
                         nbs_done[(unsigned)i][(unsigned)j] = true;

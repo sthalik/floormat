@@ -112,7 +112,7 @@ uint32_t cache::lookup_index(size_t chunk_index, size_t tile_index)
 
 bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p)
 {
-    if (auto* c = w.chunk_at_memo(pt.chunk3()))
+    if (auto* c = w.at(pt.chunk3()))
     {
         auto grid = pool[*c];
         grid.build_if_stale(p);
