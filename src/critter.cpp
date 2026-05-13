@@ -114,28 +114,10 @@ constexpr std::array<rotation, 3> rotation_to_similar_(rotation r)
     fm_assert(false);
 }
 
-constexpr auto rotation_to_similar_array = map(rotation_to_similar_, iota_array<rotation, (size_t)rotation_COUNT>);
-
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 {
-    return rotation_to_similar_array.data()[(uint8_t)r];
-}
-
-constexpr uint8_t get_length_axisʹ(rotation r)
-{
-    using enum rotation;
-    if (r == N || r == S)
-        return 1;
-    else if (r == W || r == E)
-        return 0;
-    else
-        return 0; // garbage in, garbage out
-}
-
-constexpr uint8_t get_length_axis(rotation r)
-{
-    constexpr auto table = map(get_length_axisʹ, iota_array<rotation, (size_t)rotation_COUNT>);
-    return table.data()[(size_t)r];
+    constexpr auto array = map(rotation_to_similar_, iota_array<rotation, (size_t)rotation_COUNT>);
+    return array.data()[(uint8_t)r];
 }
 
 Range2D critter_bbox_local(const critter& C)
@@ -154,110 +136,66 @@ sweep_result sweep_critter(critter& C, Vector2 displacement)
     return find_swept_collider(C.chunk(), critter_bbox_local(C), displacement, pred);
 }
 
-template<bool MultiStep>
-CORRADE_NEVER_INLINE
-bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint8_t nsteps, rotation new_r, rotation visible_r)
+enum class step_result : uint8_t { blocked, moved, accumulated };
+
+// offset_frac: scalar magnitude of pending sub-pixel motion.
+// update_movement clears on stuck so alternatives()' alt-direction isZero writes don't leak.
+step_result update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
 {
     const auto vec = rotation_to_vec(new_r);
     using Frac = decltype(critter::offset_frac);
     constexpr auto frac = (float{limits<Frac>::max}+1)/2;
     constexpr auto inv_frac = 1 / frac;
     const auto from_accum = C.offset_frac * inv_frac * vec;
+    const auto offset_ = vec * float(nsteps) + from_accum;
+    const auto off_i = Vector2i(offset_);
 
-    Vector2 offset_{NoInit};
-    if constexpr(MultiStep)
-        offset_ = vec * float(nsteps) + from_accum;
-    else
-        offset_ = vec + from_accum;
+    if (off_i.isZero())
+    {
+        const auto rem = offset_.length();
+        C.offset_frac = Frac(rem * frac);
+        return step_result::accumulated;
+    }
 
-    auto off_i = Vector2i(offset_);
-    if (!off_i.isZero())
-    {
-        auto rem = Math::fmod(offset_, 1.f).length();
-        C.offset_frac = Frac(rem * frac);
-        if (!sweep_critter(C, Vector2(off_i)).has_collider)
-        {
-            C.move_to(i, off_i, visible_r);
-            if constexpr(MultiStep)
-                (C.frame += nsteps) %= info.nframes;
-            else
-                ++C.frame %= info.nframes;
-            return true;
-        }
-    }
-    else
-    {
-        auto rem = offset_.length();
-        C.offset_frac = Frac(rem * frac);
-        return true;
-    }
-    return false;
+    // blocked: leave offset_frac untouched so the caller can try an alternative direction
+    if (sweep_critter(C, Vector2(off_i)).has_collider)
+        return step_result::blocked;
+
+    const auto rem = Math::fmod(offset_, 1.f).length();
+    C.offset_frac = Frac(rem * frac);
+    C.move_to(i, off_i, visible_r);
+    (C.frame += nsteps) %= info.nframes;
+    return step_result::moved;
 }
 
-bool update_movement_3way(size_t& i, critter& C, const anim_def& info, rotation new_r)
+// Only `moved` counts: accepting `accumulated` would let a cardinal critter stuck
+// at a wall drift diagonally via offset_frac reinterpreted into the alt direction.
+bool update_movement_alternatives(size_t& i, critter& C, const anim_def& info, rotation new_r)
 {
+    // rotations[0] == new_r; the caller just tried that, skip it
     const auto rotations = rotation_to_similar(new_r);
-    if (update_movement_body<false>(i, C, info, 0, rotations.data()[0], new_r))
+    if (update_movement_body(i, C, info, 1, rotations.data()[1], new_r) == step_result::moved)
         return true;
-    if (update_movement_body<false>(i, C, info, 0, rotations.data()[1], new_r))
-        return true;
-    if (update_movement_body<false>(i, C, info, 0, rotations.data()[2], new_r))
+    if (update_movement_body(i, C, info, 1, rotations.data()[2], new_r) == step_result::moved)
         return true;
     return false;
 }
 
-constexpr bool DoUnroll = true;
-
-template<bool IsEven>
-requires (!IsEven)
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes, rotation new_r)
 {
-    //Debug{} << "< nframes" << nframes;
-    if constexpr(DoUnroll)
+    while (nframes > 0)
     {
-        while (nframes > 1)
+        constexpr uint32_t max = TILE_MAX_DIM * tile_size_xy / 2;
+        auto cur = Math::min(max, nframes);
+        if (update_movement_body(i, C, info, cur, new_r, new_r) != step_result::blocked)
         {
-            auto len = (uint8_t)Math::min(nframes, (uint32_t)(C.bbox_size.min()/2));
-            if (len <= 1)
-                break;
-            if (!update_movement_body<true>(i, C, info, len, new_r, new_r))
-                break;
-            //Debug{} << " " << len;
-            nframes -= len;
+            nframes -= cur;
+            continue;
         }
-    }
-    //Debug{} << ">" << nframes;
-
-    for (auto k = 0u; k < nframes; k++)
-        if (!update_movement_3way(i, C, info, new_r))
+        if (!update_movement_alternatives(i, C, info, new_r))
             return false;
-    return true;
-}
-
-template<bool IsEven>
-requires IsEven
-bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes, rotation new_r)
-{
-    if constexpr(DoUnroll)
-    {
-        //Debug{} << "< nframes" << nframes;
-        while (nframes > 1)
-        {
-            const auto len_axis = get_length_axis(new_r);
-            auto len = (uint8_t)Math::min(nframes, (uint32_t)C.bbox_size.data()[len_axis]);
-            if (len <= 1) [[unlikely]]
-                break;
-            if (!update_movement_body<true>(i, C, info, len, new_r, new_r))
-                break;
-            //Debug{} << " " << len;
-            nframes -= len;
-        }
-        //Debug{} << ">" << nframes;
+        nframes--;
     }
-
-    for (auto k = 0u; k < nframes; k++)
-        if (!update_movement_body<false>(i, C, info, 0, new_r, new_r))
-            return false;
     return true;
 }
 
@@ -445,11 +383,10 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
     switch (new_r)
     {
     using enum rotation;
-    default: std::unreachable();
+    default: fm_abort("bad rotation '%u'", (unsigned)new_r);
     case N: case E: case S: case W:
-        ret = update_movement_1<true >(*this, i, info, nframes, new_r); break;
     case NW: case NE: case SE: case SW:
-        ret = update_movement_1<false>(*this, i, info, nframes, new_r); break;
+        ret = update_movement_1(*this, i, info, nframes, new_r); break;
     }
 
     if (!ret) [[unlikely]]
