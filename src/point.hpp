@@ -60,7 +60,11 @@ constexpr point::point() = default;
 constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk3(), coord.local(), offset} {}
 constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
     cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
-{}
+{
+    fm_assert(uint32_t(coord.x + (1 << 14)) <= (1u << 15)
+           && uint32_t(coord.y + (1 << 14)) <= (1u << 15)
+           && uint32_t(coord.z - chunk_z_min) < uint32_t(chunk_z_max - chunk_z_min + 1));
+}
 
 constexpr bool point::operator==(const point&) const noexcept = default;
 

@@ -1,8 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/superpage.hpp"
 #include <array>
-#include <cr/Array.h>
-#include <cr/Pointer.h>
 
 namespace floormat {
 class world;
@@ -12,7 +11,7 @@ struct chunk_coords_;
 
 namespace floormat::detail {
 
-struct chunk_table_leaf;
+struct chunk_table_outer;
 
 class chunk_table
 {
@@ -34,7 +33,8 @@ public:
 #endif
 
 private:
-    Array<Pointer<chunk_table_leaf>> _outer;
+    chunk_table_outer* _outer;
+    superpage_alloc_t _outer_alloc;
 };
 
 } // namespace floormat::detail

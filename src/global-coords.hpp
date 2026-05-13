@@ -108,13 +108,23 @@ public:
             uint32_t(((int)z + z0::value) & 0x0f) << 20
         },
         y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
-    {}
-    constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y} {}
+    {
+        fm_assert(uint32_t(c.x + (1 << 14)) <= (1u << 15)
+               && uint32_t(c.y + (1 << 14)) <= (1u << 15));
+    }
+    constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y}
+    {
+        fm_assert(((x & ~z_mask::value) >> 4) - (u0::value - (1u << 14)) <= (1u << 15)
+               && (y >> 4)                    - (u0::value - (1u << 14)) <= (1u << 15));
+    }
     constexpr global_coords(uint32_t, uint32_t, uint32_t) = delete;
     constexpr global_coords(int32_t x, int32_t y, int8_t z) noexcept :
         x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
         y{uint32_t(y + (s0::value<<4))}
-    {}
+    {
+        fm_assert(uint32_t((x >> 4) + (1 << 14)) <= (1u << 15)
+               && uint32_t((y >> 4) + (1 << 14)) <= (1u << 15));
+    }
     constexpr global_coords(chunk_coords_ c, local_coords xy) noexcept :
         global_coords{chunk_coords{c.x, c.y}, xy, c.z}
     {}

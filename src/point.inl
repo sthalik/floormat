@@ -25,6 +25,10 @@ constexpr point::point(Vector3i p)
     cy = (int16_t)c.y();
     cz = (int8_t)(p.z() / tile_size_z - (p.z() % tile_size_z < 0));
     tile = local_coords{t};
+
+    fm_assert(uint32_t(cx + (1 << 14)) <= (1u << 15)
+           && uint32_t(cy + (1 << 14)) <= (1u << 15)
+           && uint32_t(cz - chunk_z_min) < uint32_t(chunk_z_max - chunk_z_min + 1));
 }
 
 constexpr uint32_t point::distance(point a, point b)
