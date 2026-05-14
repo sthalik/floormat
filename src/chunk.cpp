@@ -36,9 +36,9 @@ bool chunk::empty(bool force) const noexcept
 ground_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
 
 tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
-tile_proto chunk::operator[](size_t idx) const noexcept { return tile_proto(tile_ref { non_const(*this), uint8_t(idx) }); }
+const_tile_ref chunk::operator[](size_t idx) const noexcept { return { *this, uint8_t(idx) }; }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
-tile_proto chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
+const_tile_ref chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
 chunk_coords_ chunk::coord() const noexcept { return _coord; }
 
@@ -58,6 +58,15 @@ Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 }
 
 Optional<tile_ref> chunk::at_offset(tile_ref r, Vector2i off) { return at_offset(local_coords{r.index()}, off); }
+
+Optional<const_tile_ref> chunk::at_offset(local_coords pos, Vector2i off) const
+{
+    if (auto r = non_const(*this).at_offset(pos, off))
+        return const_tile_ref{r->chunk(), uint8_t(r->index())};
+    return NullOpt;
+}
+
+Optional<const_tile_ref> chunk::at_offset(const_tile_ref r, Vector2i off) const { return at_offset(local_coords{r.index()}, off); }
 
 void chunk::mark_ground_modified() noexcept
 {

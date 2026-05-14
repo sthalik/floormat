@@ -6,6 +6,8 @@ namespace floormat {
 
 class chunk;
 class anim_atlas;
+template<typename Chunk> struct tile_ref_;
+template<typename Chunk> bool operator==(const tile_ref_<Chunk>& a, const tile_ref_<Chunk>& b) noexcept;
 
 struct tile_proto final
 {
@@ -20,37 +22,39 @@ struct tile_proto final
     friend bool operator==(const tile_proto& a, const tile_proto& b) noexcept;
 };
 
-struct tile_ref final
+template<typename Chunk>
+struct tile_ref_ final
 {
-    tile_ref(class chunk& c, uint8_t i) noexcept;
+    tile_ref_(Chunk& c, uint8_t i) noexcept;
 
-    tile_image_ref ground() noexcept;
-    wall_image_ref wall_north() noexcept;
-    wall_image_ref wall_west() noexcept;
+    tile_image_ref ground() noexcept requires(!std::is_const_v<Chunk>);
+    wall_image_ref wall_north() noexcept requires(!std::is_const_v<Chunk>);
+    wall_image_ref wall_west() noexcept requires(!std::is_const_v<Chunk>);
 
     tile_image_proto ground() const noexcept;
     wall_image_proto wall_north() const noexcept;
     wall_image_proto wall_west() const noexcept;
 
-    bptr<class ground_atlas> ground_atlas() noexcept;
-    bptr<class wall_atlas> wall_north_atlas() noexcept;
-    bptr<class wall_atlas> wall_west_atlas() noexcept;
-
-    bptr<const class ground_atlas> ground_atlas() const noexcept;
-    bptr<const class wall_atlas> wall_north_atlas() const noexcept;
-    bptr<const class wall_atlas> wall_west_atlas() const noexcept;
+    bptr<class ground_atlas> ground_atlas() const noexcept;
+    bptr<class wall_atlas> wall_north_atlas() const noexcept;
+    bptr<class wall_atlas> wall_west_atlas() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 
-    class chunk& chunk() noexcept { return *_chunk; }
-    const class chunk& chunk() const noexcept { return *_chunk; }
-    size_t index() const noexcept { return i; }
+    Chunk& chunk() const noexcept;
+    size_t index() const noexcept;
 
-    friend bool operator==(const tile_ref& a, const tile_ref& b) noexcept;
+    friend bool operator==<Chunk>(const tile_ref_& a, const tile_ref_& b) noexcept;
 
 private:
-    class chunk* _chunk;
+    Chunk* _chunk;
     uint8_t i;
 };
+
+using tile_ref = tile_ref_<chunk>;
+using const_tile_ref = tile_ref_<const chunk>;
+
+extern template struct tile_ref_<chunk>;
+extern template struct tile_ref_<const chunk>;
 
 } //namespace floormat

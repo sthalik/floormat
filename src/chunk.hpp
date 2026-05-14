@@ -28,18 +28,20 @@ class const_objects_view;
 class chunk final
 {
 public:
-    friend struct tile_ref;
+    template<typename Chunk> friend struct tile_ref_;
     friend struct object;
     friend class world;
 
     tile_ref operator[](size_t idx) noexcept;
-    tile_proto operator[](size_t idx) const noexcept;
+    const_tile_ref operator[](size_t idx) const noexcept;
     tile_ref operator[](local_coords xy) noexcept;
-    tile_proto operator[](local_coords xy) const noexcept;
+    const_tile_ref operator[](local_coords xy) const noexcept;
 
     chunk_coords_ coord() const noexcept;
     Optional<tile_ref> at_offset(local_coords pos, Vector2i off);
     Optional<tile_ref> at_offset(tile_ref r, Vector2i off);
+    Optional<const_tile_ref> at_offset(local_coords pos, Vector2i off) const;
+    Optional<const_tile_ref> at_offset(const_tile_ref r, Vector2i off) const;
 
     bool empty(bool force = false) const noexcept;
 
