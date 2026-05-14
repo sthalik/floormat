@@ -2,7 +2,7 @@
 
 namespace floormat {
 
-template<typename Atlas> bool image_proto_<Atlas>::operator==(const image_proto_<Atlas>& b) const noexcept = default;
+template<typename Atlas> bool image_proto_<Atlas>::operator==(const image_proto_& b) const noexcept = default;
 template<typename Atlas> image_proto_<Atlas>::operator bool() const noexcept { return atlas != nullptr; }
 
 template<typename Atlas, typename Proto>

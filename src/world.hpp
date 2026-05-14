@@ -87,8 +87,8 @@ public:
     public:
         chunks_iterator() noexcept = default;
         chunks_iterator& operator++() noexcept;
-        Chunk& operator*() const noexcept { return *_cur; }
-        bool operator==(const chunks_iterator& o) const noexcept { return _cur == o._cur; }
+        Chunk& operator*() const noexcept;
+        bool operator==(const chunks_iterator& o) const noexcept;
     };
 
     template<typename Chunk>
@@ -109,8 +109,8 @@ public:
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);
     static void deserialize_old(world& w, ArrayView<const char> buf, uint16_t proto,
                                 loader_policy asset_policy) noexcept(false);
-    auto frame_no() const { return _current_frame; }
-    auto increment_frame_no() { return _current_frame++; }
+    uint64_t frame_no() const;
+    uint64_t increment_frame_no() { return _current_frame++; }
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {
@@ -141,8 +141,8 @@ public:
     struct script_status script_status() const;
 
     bool is_teardown() const;
-    object_id object_counter() const { return _object_counter; }
-    [[nodiscard]] object_id make_id() { return ++_object_counter; }
+    object_id object_counter() const;
+    [[nodiscard]] object_id make_id();
     void set_object_counter(object_id value);
 
     std::array<chunk*, 8> neighbors(chunk_coords_ coord);

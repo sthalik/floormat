@@ -228,6 +228,11 @@ world::chunks_iterator<Chunk>& world::chunks_iterator<Chunk>::operator++() noexc
     return *this;
 }
 
+template <typename Chunk> Chunk& world::chunks_iterator<Chunk>::operator*() const noexcept { return *_cur; }
+
+template <typename Chunk>
+bool world::chunks_iterator<Chunk>::operator==(const chunks_iterator& o) const noexcept { return _cur == o._cur; }
+
 template<typename Chunk>
 world::chunks_iterator<Chunk> world::chunks_range<Chunk>::begin() const noexcept
 {
@@ -364,6 +369,8 @@ critter_proto world::make_player_proto()
 }
 
 bool world::is_teardown() const { return _teardown; }
+object_id world::object_counter() const { return _object_counter; }
+object_id world::make_id() { return ++_object_counter; }
 
 void world::init_scripts()
 {
@@ -398,11 +405,12 @@ bptr<critter> world::ensure_player_character(object_id& id)
     return ensure_player_character(id, make_player_proto());
 }
 
+uint64_t world::frame_no() const { return _current_frame; }
+
 bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 {
     if (id_)
     {
-        bptr<critter> tmp;
         if (auto C = find_object(id_); C && C->type() == object_type::critter)
         {
             auto ptr = static_pointer_cast<critter>(C);
