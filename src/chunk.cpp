@@ -1,4 +1,5 @@
 #include "chunk.hpp"
+#include "chunk-iter.hpp"
 #include "object.hpp"
 #include "world.hpp"
 #include "log.hpp"
@@ -205,7 +206,13 @@ void chunk::remove_object(size_t i)
     arrayRemove(_objects, i);
 }
 
-ArrayView<const bptr<object>> chunk::objects() const
+const_objects_view chunk::objects() const
+{
+    fm_assert(_objects_sorted);
+    return {_objects.data(), _objects.data() + _objects.size()};
+}
+
+ArrayView<const bptr<object>> chunk::objects()
 {
     fm_assert(_objects_sorted);
     return _objects;

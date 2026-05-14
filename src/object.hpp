@@ -62,8 +62,10 @@ struct object : bptr_base
     virtual ~object() noexcept override;
 
     virtual int32_t depth_offset() const = 0;
-    class chunk& chunk() const;
-    class world& world() const;
+    const class chunk& chunk() const;
+    const class world& world() const;
+    class chunk& chunk();
+    class world& world();
     size_t index() const;
     virtual bool is_virtual() const;
     point position() const;

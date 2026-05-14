@@ -23,6 +23,7 @@ struct object_proto;
 class SpriteBatch;
 struct tile_shader;
 struct clickable;
+class const_objects_view;
 
 class chunk final
 {
@@ -88,7 +89,8 @@ public:
 
     void on_teardown();
     bool is_teardown() const;
-    ArrayView<const bptr<object>> objects() const;
+    const_objects_view objects() const;
+    ArrayView<const bptr<object>> objects();
 
     void remove_object(size_t i);
     void sort_objects();

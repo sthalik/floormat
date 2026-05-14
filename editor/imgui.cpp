@@ -7,6 +7,7 @@
 #include "scenery-editor.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
+#include "src/chunk-iter.hpp"
 #include "src/anim-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
@@ -244,10 +245,8 @@ void app::draw_clickables()
     const auto win_size = M->window_size();
     for (const auto& ch : M->world().chunks())
     {
-        for (const auto& eʹ : ch.objects())
+        for (const object& e : ch.objects())
         {
-            const auto& e = *eʹ;
-
             if (e.is_dynamic())
                 continue;
 
@@ -260,7 +259,7 @@ void app::draw_clickables()
             const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
 
             // bbox center screen offset from sprite's ground anchor
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(eʹ->bbox_offset), 0.f) - Vector3(g.offset));
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f) - Vector3(g.offset));
 
             // sprite screen extent (pixel offsets from ground anchor)
             const float left_x   = float(-frame.ground.x());
