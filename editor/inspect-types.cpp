@@ -297,6 +297,10 @@ struct entity_accessors<critter, inspect_intent_t> {
                 [](const critter& x) { return x.speed; },
                 [](critter& x, float value) { x.speed = Math::clamp(value, 0.f, 1e6f); }
             },
+            E::type<float>::field{"anim-speed"_s,
+                [](const critter& x) { return x.anim_speed; },
+                [](critter& x, float value) { x.anim_speed = Math::clamp(value, 0.f, 64.f); }
+            },
         };
         auto t1 = std::tuple{
             E::type<bool>::field{"playable"_s,

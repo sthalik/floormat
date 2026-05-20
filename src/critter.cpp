@@ -79,7 +79,7 @@ static_assert(arrows_to_dir(true, true, false, false) == rotation_COUNT);
 
 constexpr Vector2 rotation_to_vec(rotation r)
 {
-    constexpr double c = critter::move_speed * critter::frame_time;
+    constexpr double c = 1.0;
     constexpr double d = c / Vector2d{1,  1}.length();
 
     constexpr Vector2 array[8] = {
@@ -138,6 +138,16 @@ sweep_result sweep_critter(critter& C, Vector2 displacement)
 
 enum class step_result : uint8_t { blocked, moved, accumulated };
 
+void advance_anim_frames(critter& C, uint32_t nsteps, float anim_speed, uint32_t nframes_atlas)
+{
+    fm_debug_assert(anim_speed >= 0 && anim_speed <= 64);
+    const auto adv = uint64_t(float(nsteps) * anim_speed * float(anim_speed_unit));
+    const auto total = uint64_t(C.anim_progress) + adv;
+    const auto whole = uint32_t(total / anim_speed_unit);
+    C.anim_progress = uint32_t(total % anim_speed_unit);
+    C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
+}
+
 // offset_frac: scalar magnitude of pending sub-pixel motion.
 // update_movement clears on stuck so alternatives()' alt-direction isZero writes don't leak.
 step_result update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
@@ -164,7 +174,7 @@ step_result update_movement_body(size_t& i, critter& C, const anim_def& info, ui
     const auto rem = Math::fmod(offset_, 1.f).length();
     C.offset_frac = Frac(rem * frac);
     C.move_to(i, off_i, visible_r);
-    (C.frame += nsteps) %= info.nframes;
+    advance_anim_frames(C, nsteps, C.anim_speed, info.nframes);
     return step_result::moved;
 }
 
@@ -279,7 +289,7 @@ constexpr step_s next_step(point from, point to)
 
 constexpr float step_magnitude(Vector2b vec)
 {
-    constexpr double cʹ = critter::move_speed * critter::frame_time;
+    constexpr double cʹ = 1.0;
     constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
     constexpr auto c = (float)cʹ, d = (float)dʹ;
 
@@ -319,7 +329,8 @@ bool critter_proto::operator==(const object_proto& e0) const
         return false;
 
     const auto& s0 = static_cast<const critter_proto&>(e0);
-    return name == s0.name && Math::abs(speed - s0.speed) < 1e-8f && playable == s0.playable;
+    return name == s0.name && Math::abs(speed - s0.speed) < 1e-8f
+           && Math::abs(anim_speed - s0.anim_speed) < 1e-8f && playable == s0.playable;
 }
 
 void critter::set_keys(bool L, bool R, bool U, bool D) { moves = { L, R, U, D, moves.AUTO, }; }
@@ -465,7 +476,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
             {
                 move_to(index, off_i, new_r);
                 moved = true;
-                (frame += nsteps) %= info.nframes;
+                advance_anim_frames(*this, nsteps, anim_speed, info.nframes);
             }
             else
             {
@@ -506,6 +517,7 @@ critter::critter(object_id id, class chunk& c, critter_proto proto) :
     object{id, c, proto},
     name{move(proto.name)},
     speed{proto.speed},
+    anim_speed{proto.anim_speed},
     playable{proto.playable}
 {
     if (!name)

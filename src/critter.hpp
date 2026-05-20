@@ -10,10 +10,13 @@ class anim_atlas;
 class world;
 struct critter_script;
 
+constexpr uint32_t anim_speed_unit = 1u << 16;
+
 struct critter_proto : object_proto
 {
     String name;
     float speed = 1;
+    float anim_speed = 1;
     bool playable = false;
 
     critter_proto();
@@ -25,9 +28,6 @@ struct critter_proto : object_proto
 
 struct critter final : object
 {
-    static constexpr double framerate = 60, move_speed = 60;
-    static constexpr double frame_time = 1/framerate;
-
     ~critter() noexcept override;
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
@@ -52,6 +52,8 @@ struct critter final : object
     Script<critter_script, critter> script;
     String name;
     float speed = 1;
+    float anim_speed = 1;
+    uint32_t anim_progress = 0;
     uint16_t offset_frac = 0;
 
     bool playable : 1 = false;

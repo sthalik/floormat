@@ -128,6 +128,7 @@ struct object_header_s
 struct critter_header_s
 {
     uint16_t& offset_frac;
+    uint32_t& anim_progress;
 };
 
 using proto_t  = uint16_t;
@@ -143,7 +144,8 @@ using proto_t  = uint16_t;
 // 26: add checksum
 // 27: add light radius
 // 28: no longer tolerate bbox_size as an odd number
-static constexpr proto_t proto_version = 28;
+// 29: add critter::anim_speed
+static constexpr proto_t proto_version = 29;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -358,6 +360,22 @@ struct visitor_ : visitor_base<IsNewest>
             visit(obj.speed, f);
         fm_soft_assert(obj.speed >= 0);
 
+        if (self.PROTO >= 29) [[likely]]
+            visit(obj.anim_speed, f);
+        else if constexpr(IsWriter)
+            fm_assert(false);
+        else
+            obj.anim_speed = 1;
+        fm_soft_assert(obj.anim_speed >= 0 && obj.anim_speed <= 64);
+
+        if (self.PROTO >= 29) [[likely]]
+            visit(s.anim_progress, f);
+        else if constexpr(IsWriter)
+            fm_assert(false);
+        else
+            s.anim_progress = 0;
+        fm_soft_assert(s.anim_progress < anim_speed_unit);
+
         if (self.PROTO >= 24) [[likely]]
             visit(s.offset_frac, f);
         else
@@ -484,11 +502,14 @@ struct writer final : visitor_<writer, true, true>
             break;
         case object_type::critter:
         {
+            const auto& C = static_cast<const critter&>(obj);
             uint16_t offset_frac = 0;
+            uint32_t anim_progress = C.anim_progress;
             critter_header_s cr = {
                 .offset_frac = offset_frac,
+                .anim_progress = anim_progress,
             };
-            visit_object_proto(static_cast<const critter&>(obj), move(cr), f);
+            visit_object_proto(C, move(cr), f);
             goto ok;
         }
         case object_type::light:
@@ -956,10 +977,13 @@ ok:
             break;
         case object_type::critter: {
             uint16_t offset_frac = 0;
+            uint32_t anim_progress = 0;
             critter_header_s h{
                 .offset_frac = offset_frac,
+                .anim_progress = anim_progress,
             };
             obj = make_object<critter, critter_proto, critter_header_s>(s, move(p), move(h), f);
+            static_cast<critter&>(*obj).anim_progress = anim_progress;
             goto ok;
         }
         case object_type::light:
