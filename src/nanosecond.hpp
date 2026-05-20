@@ -29,6 +29,7 @@ struct Ns
 
     friend constexpr Ns operator%(const Ns& lhs, uint64_t b);
     friend constexpr Ns& operator+=(Ns& lhs, const Ns& rhs);
+    friend constexpr Ns& operator-=(Ns& lhs, const Ns& rhs);
 
     friend constexpr bool operator==(const Ns& lhs, const Ns& rhs) = default;
     friend constexpr std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs);

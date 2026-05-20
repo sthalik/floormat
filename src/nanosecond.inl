@@ -97,6 +97,14 @@ constexpr Ns& operator+=(Ns& lhs, const Ns& rhs)
     return lhs;
 }
 
+constexpr Ns& operator-=(Ns& lhs, const Ns& rhs)
+{
+    auto b = rhs.stamp;
+    fm_assert(lhs.stamp >= b);
+    lhs.stamp -= b;
+    return lhs;
+}
+
 constexpr std::strong_ordering operator<=>(const Ns& lhs, const Ns& rhs)
 {
     auto a = lhs.stamp, b = rhs.stamp;
