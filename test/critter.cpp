@@ -1,7 +1,9 @@
 #include "app.hpp"
 #include "run.hpp"
 #include "src/nanosecond.inl"
+#include "src/point.inl"
 #include "src/world.hpp"
+#include "src/critter.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
 #include "compat/function2.hpp"
@@ -118,6 +120,37 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
     fm_assert(!ret); // tiemout 300s reached
 }
 
+point walk_for(Ns dt_per_step, Ns total)
+{
+    auto w = world();
+    object_id id = 0;
+    auto npc_ = w.ensure_player_character(id, make_proto(1.f));
+    auto& npc = *npc_;
+    auto idx = npc.index();
+    npc.teleport_to(idx, {{0, 0, 0}, {8, 8}, {0, 0}}, rotation_COUNT);
+    Ns elapsed{0};
+    while (elapsed < total)
+    {
+        npc.update_movement(idx, dt_per_step, rotation::N);
+        elapsed = elapsed + dt_per_step;
+    }
+    return npc.position();
+}
+
+void test_dt_invariance()
+{
+    constexpr Ns total = Second;
+    const auto p_1ms   = walk_for(Millisecond * 1.0,    total);
+    const auto p_60fps = walk_for(Millisecond * 16.667, total);
+    const auto p_30fps = walk_for(Millisecond * 33.334, total);
+    const auto p_10fps = walk_for(Millisecond * 100.0,  total);
+
+    constexpr uint32_t tol = 2;
+    fm_assert(point::distance_l1(p_1ms,   p_60fps) <= tol);
+    fm_assert(point::distance_l1(p_30fps, p_60fps) <= tol);
+    fm_assert(point::distance_l1(p_10fps, p_60fps) <= tol);
+}
+
 } // namespace
 
 } // namespace floormat::Run
@@ -172,6 +205,8 @@ void Test::test_critter()
     test3("dt=16.667 accel=50 r=NE no-unroll=false", constantly(Millisecond * 16.667), 50, NE, false);
     test3("dt=16.667 accel=50 r=E  no-unroll=true",  constantly(Millisecond * 16.667), 50, E , true);
     test3("dt=16.667 accel=50 r=NE no-unroll=true",  constantly(Millisecond * 16.667), 50, NE, true);
+
+    test_dt_invariance();
 
     if (is_noisy)
     {
