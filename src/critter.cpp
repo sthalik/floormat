@@ -236,10 +236,6 @@ constexpr rotation dir_from_step_mask(uint8_t val)
 constexpr rotation dir_from_step(step_s step)
 {
     constexpr auto table = map(dir_from_step_mask, iota_array<uint8_t, 1 << 4>);
-
-    if (step.direction.isZero()) [[unlikely]]
-        return rotation_COUNT;
-
     auto x = uint8_t(step.direction.x() + 1);
     auto y = uint8_t(step.direction.y() + 1);
     //fm_debug_assert((x & 3) == x && (y & 3) == y);
@@ -278,20 +274,6 @@ constexpr step_s next_step(point from, point to)
     // xor is 1 iff exactly one ge holds (single-axis dominant); 0 if both (x==y diagonal)
     const uint32_t count = max_xy - min_xy * uint32_t(x_ge_y ^ y_ge_x);
     return { count, step };
-}
-
-constexpr float step_magnitude(Vector2b vec)
-{
-    constexpr double cʹ = 1.0;
-    constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
-    constexpr auto c = (float)cʹ, d = (float)dʹ;
-
-    if (Vector2i(vec).product() != 0)
-        // diagonal
-        return d;
-    else
-        // axis-aligned
-        return c;
 }
 
 Ns return_unspent_dt(uint32_t nframes, float speed, Ns frame_duration)
@@ -382,16 +364,8 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
         rotate(i, new_r);
     c->ensure_passability();
 
-    bool ret;
-
-    switch (new_r)
-    {
-    using enum rotation;
-    default: fm_abort("bad rotation '%u'", (unsigned)new_r);
-    case N: case E: case S: case W:
-    case NW: case NE: case SE: case SW:
-        ret = update_movement_1(*this, i, info, nframes, new_r); break;
-    }
+    fm_debug2_assert(new_r < rotation_COUNT);
+    const bool ret = update_movement_1(*this, i, info, nframes, new_r);
 
     if (!ret) [[unlikely]]
     {
@@ -439,16 +413,13 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         fm_assert(step.direction != Vector2b{} && step.count > 0);
         const auto new_r = dir_from_step(step);
         // Max steps for the operation to avoid overshooting
-        const auto len_limit = step.direction.x() * step.direction.y() != 0
-                               ? (uint32_t)bbox_size.min()
-                               : (uint32_t)bbox_size.data()[step.direction.x() != 0 ? 0 : 1];
+        constexpr uint32_t len_limit = tile_size_xy;
         const auto nsteps = (uint8_t)Math::min({nframes, step.count, len_limit});
         fm_assert(nsteps > 0);
         using Frac = decltype(critter::offset_frac);
         constexpr auto frac = (float{limits<Frac>::max}+1)/2;
         constexpr auto inv_frac = 1 / frac;
-        const auto mag = step_magnitude(step.direction);
-        const auto vec = Vector2(step.direction) * mag;
+        const auto vec = rotation_to_vec(new_r);
         const auto from_accum = (float)offset_frac * inv_frac * vec;
         const auto offset_ = vec * float(nsteps) + from_accum;
         // Clamp to movement budget consumed this iteration
