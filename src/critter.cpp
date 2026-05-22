@@ -215,38 +215,6 @@ struct step_s
     Vector2b direction;
 };
 
-constexpr step_s next_step_(Vector2i vec_in)
-{
-    const auto vec = Vector2ui(Math::abs(vec_in));
-    const auto signs = Vector2b(Math::sign(vec_in));
-
-    if (vec.x() == vec.y())
-        return { vec.x(), Vector2b{1, 1} * signs };
-    else if (vec.y() == 0)
-        return { vec.x(), Vector2b{1, 0} * signs };
-    else if (vec.x() == 0)
-        return { vec.y(), Vector2b{0, 1} * signs };
-    else
-    {
-        uint32_t major_idx, minor_idx;
-        if (vec.x() > vec.y())
-        {
-            major_idx = 0;
-            minor_idx = 1;
-        }
-        else
-        {
-            major_idx = 1;
-            minor_idx = 0;
-        }
-        const auto major = vec[major_idx], minor = vec[minor_idx];
-        const auto num_axis_aligned = (uint32_t)Math::abs((int)major - (int)minor);
-        auto axis_aligned = Vector2b{};
-        axis_aligned[major_idx] = 1;
-        return { num_axis_aligned, axis_aligned * signs };
-    }
-}
-
 constexpr rotation dir_from_step_mask(uint8_t val)
 {
     switch (val)
@@ -281,10 +249,35 @@ constexpr rotation dir_from_step(step_s step)
 
 constexpr step_s next_step(point from, point to)
 {
+    // Returns one segment of an octant-style walk from `from` to `to`. The walk is
+    // decomposed "axis-aligned first, diagonal second": when |x| != |y| the call
+    // returns the axis-aligned step count needed to equalise the two magnitudes;
+    // the next call (on the now-diagonal remainder) returns the diagonal segment.
+    //
+    //   x-dominant   |x| >  |y|    step=(sx,  0)    count = |x| - |y|
+    //   y-dominant   |y| >  |x|    step=( 0, sy)    count = |y| - |x|
+    //   xy-equal     |x| == |y|    step=(sx, sy)    count = |x|         (== |y|)
+    //
+    // sx, sy are per-axis signs of vec_in (each in {-1, 0, +1}). Pure-axis walks
+    // (vec.x()==0 or vec.y()==0) are the dominant case with min_xy=0, so the
+    // subtraction is a no-op.
+
     fm_debug_assert(from.chunk3().z == to.chunk3().z);
-    const auto vec = to - from;
-    fm_debug_assert(!vec.isZero());
-    return next_step_(vec);
+    const auto vec_in = to - from;
+    fm_debug_assert(!vec_in.isZero());
+
+    const auto vec = Vector2ui(Math::abs(vec_in));
+    const auto signs = Vector2b(Math::sign(vec_in));
+
+    const bool x_ge_y = vec.x() >= vec.y();
+    const bool y_ge_x = vec.y() >= vec.x();
+    const auto step = Vector2b{(signed char)x_ge_y, (signed char)y_ge_x} * signs;
+
+    const auto max_xy = Math::max(vec.x(), vec.y());
+    const auto min_xy = Math::min(vec.x(), vec.y());
+    // xor is 1 iff exactly one ge holds (single-axis dominant); 0 if both (x==y diagonal)
+    const uint32_t count = max_xy - min_xy * uint32_t(x_ge_y ^ y_ge_x);
+    return { count, step };
 }
 
 constexpr float step_magnitude(Vector2b vec)
@@ -293,7 +286,7 @@ constexpr float step_magnitude(Vector2b vec)
     constexpr double dʹ = cʹ / Vector2d{1,  1}.length();
     constexpr auto c = (float)cʹ, d = (float)dʹ;
 
-    if (vec.x() * vec.y() != 0)
+    if (Vector2i(vec).product() != 0)
         // diagonal
         return d;
     else
