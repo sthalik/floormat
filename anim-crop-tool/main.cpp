@@ -105,8 +105,37 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
         return false;
     }
 
-    cv::Mat4b resized{size};
-    cv::resize(mat({start, size}), resized, dest_size, 0, 0, cv::INTER_LANCZOS4);
+    // Premultiply before resizing, else Lanczos bleeds transparent texels' junk
+    // RGB into opaque edges as dark fringes. Float round-trip: 8-bit premultiply
+    // would crush low-alpha RGB. Divide back out so the PNG stays straight-alpha.
+    cv::Mat4f srcf;
+    mat({start, size}).convertTo(srcf, CV_32FC4, 1./255);
+    srcf.forEach([](cv::Vec4f& px, const int*) {
+        px[0] *= px[3];
+        px[1] *= px[3];
+        px[2] *= px[3];
+    });
+
+    cv::Mat4f resizedf;
+    cv::resize(srcf, resizedf, dest_size, 0, 0, cv::INTER_LANCZOS4);
+
+    resizedf.forEach([](cv::Vec4f& px, const int*) {
+        // Can't lean on cv::divide: for float, 0/0 -> NaN (only the *integer*
+        // overload maps div-by-zero to 0), and every transparent texel has
+        // premultiplied RGB exactly 0. Guard explicitly.
+        const float a = px[3];
+        if (a > 1e-6f)
+        {
+            px[0] /= a;
+            px[1] /= a;
+            px[2] /= a;
+        }
+        else
+            px[0] = px[1] = px[2] = 0.f;
+    });
+
+    cv::Mat4b resized;
+    resizedf.convertTo(resized, CV_8UC4, 255.); // saturate_cast clamps Lanczos overshoot
 
     const Vector2i ground = {
         (int)Math::round(((int)group.ground[0] - start[0]) * factor),
