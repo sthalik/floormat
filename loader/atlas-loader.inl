@@ -74,6 +74,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
     const AtlasPtr& invalid_atlas = t.atlas_of(get_invalid_atlas());
 
     fm_assert(p < loader_policy::COUNT);
+
     if (name == loader.INVALID) [[unlikely]]
     {
         switch (p)
@@ -159,7 +160,6 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         }
         std::unreachable();
     }
-    std::unreachable();
     fm_assert(false);
 
 error:

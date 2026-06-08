@@ -343,7 +343,7 @@ void chunk::_replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox
     default:
         break;
     }
-    std::unreachable();
+    fm_assert(false);
 }
 
 void chunk::_replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b)

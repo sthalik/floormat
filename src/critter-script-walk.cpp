@@ -60,7 +60,6 @@ void walk_script::on_init(const bptr<critter>& c)
         dest = path.path().back();
         break;
     default:
-        std::unreachable();
         fm_assert(false);
     }
 }

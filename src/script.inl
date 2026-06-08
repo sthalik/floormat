@@ -102,7 +102,7 @@ void Script<S, Obj>::do_initialize(const bptr<Obj>& obj)
         ptr->on_init(obj);
         return;
     }
-    std::unreachable();
+    fm_assert(false);
 }
 
 template <typename S, typename Obj>
