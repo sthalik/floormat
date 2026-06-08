@@ -26,6 +26,7 @@ void base_script::_assert_state(script_lifecycle old_state, script_lifecycle s, 
 {
     if (old_state != s) [[unlikely]]
         fm_debug::emit_abort(file, line,
+                             FM_PRETTY_FUNCTION,
                              "invalid state transition from '%s' to '%s'",
                              state_name(old_state).data(),
                              state_name(s).data());

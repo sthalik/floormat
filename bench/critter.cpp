@@ -127,11 +127,11 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                     << " frac:" << npc.offset_frac;
     };
 
-    auto fail = [b = grace.no_crash](const char* file, int line) {
+    auto fail = [b = grace.no_crash](const char* file, int line, const char* function) {
         if (b) [[likely]]
             return false;
         else
-            fm_debug::emit_abort(file, line, "false");
+            fm_debug::emit_abort(file, line, function, "false");
     };
 
     for (i = 0; true; i++)
@@ -182,7 +182,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
             if (!start.quiet) [[unlikely]]
                 print_pos("*", start.pt, last_pos, time, dt, npc);
             Error{standard_error()} << "!!! fatal: timeout" << max_time << "reached!";
-            return fail(__FILE__, __LINE__);
+            return fail(__FILE__, __LINE__, FM_PRETTY_FUNCTION);
         }
         if (i > max_steps) [[unlikely]]
         {
@@ -190,7 +190,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                 print_pos("*", start.pt, last_pos, time, dt, npc);
             if (!start.silent)
                 Error{ standard_error()} << "!!! fatal: position doesn't converge after" << i << "iterations!";
-            return fail(__FILE__, __LINE__);
+            return fail(__FILE__, __LINE__, FM_PRETTY_FUNCTION);
         }
     }
 
@@ -198,7 +198,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         dist_l1 > grace.distance_L1) [[unlikely]]
     {
         Error{standard_error()} << "!!! fatal: distance" << dist_l1 << "pixels" << "over grace distance of" <<  grace.distance_L1;
-        return fail(__FILE__, __LINE__);
+        return fail(__FILE__, __LINE__, FM_PRETTY_FUNCTION);
     }
     else if (start.verbose) [[unlikely]]
         Debug{} << "*" << "distance:" << dist_l1 << "pixels";
@@ -213,7 +213,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                 << " expected:" << expected.time
                 << " diff:" << time_diff
                 << " for " << start.name << "/" << start.instance;
-            return fail(__FILE__, __LINE__);
+            return fail(__FILE__, __LINE__, FM_PRETTY_FUNCTION);
         }
     }
 
