@@ -74,7 +74,8 @@ bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
 {
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
-    const auto offset_ = rotate_point(offset, old_r, new_r);
+    // rotate() only rotates the sub-tile offset for non-dynamic objects; mirror that
+    const auto offset_ = !is_dynamic() ? rotate_point(offset, old_r, new_r) : offset;
     const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
     return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
