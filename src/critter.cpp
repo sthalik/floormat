@@ -171,9 +171,12 @@ step_result update_movement_body(size_t& i, critter& C, const anim_def& info, ui
     if (sweep_critter(C, Vector2(off_i)).has_collider)
         return step_result::blocked;
 
+    // move_to() can refuse the implied rotation (non-square bbox against an obstacle)
+    if (!C.move_to(i, off_i, visible_r)) [[unlikely]]
+        return step_result::blocked;
+
     const auto rem = Math::fmod(offset_, 1.f).length();
     C.offset_frac = Frac(rem * frac);
-    C.move_to(i, off_i, visible_r);
     advance_anim_frames(C, nsteps, C.anim_speed, info.nframes);
     return step_result::moved;
 }
@@ -361,7 +364,15 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
     fm_assert(is_dynamic());
 
     if (r != new_r)
+    {
+        if (!can_rotate(new_r)) [[unlikely]]
+        {
+            delta = {};
+            offset_frac = {};
+            return;
+        }
         rotate(i, new_r);
+    }
     c->ensure_passability();
 
     fm_debug2_assert(new_r < rotation_COUNT);
@@ -380,7 +391,10 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     fm_assert(bbox_size.x() && bbox_size.y());
 
     if (speed == 0) [[unlikely]]
+    {
+        dt = Ns{};
         return {.blocked = position() != dest, .moved = false};
+    }
 
     const auto& info = atlas->info();
     const auto hz = info.fps;
@@ -436,9 +450,9 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         if (!off_i.isZero())
         {
             //Debug{} << "foo1" << C.offset_frac_;
-            if (!sweep_critter(*this, Vector2(off_i)).has_collider)
+            if (!sweep_critter(*this, Vector2(off_i)).has_collider &&
+                move_to(index, off_i, new_r))
             {
-                move_to(index, off_i, new_r);
                 moved = true;
                 advance_anim_frames(*this, nsteps, anim_speed, info.nframes);
             }
