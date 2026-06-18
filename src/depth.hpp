@@ -6,6 +6,10 @@
 
 namespace floormat::Depth {
 
+// largest per-pixel ULP step that keeps the depth float below 1.0 across the full
+// coordinate extent (most_positive_point). M=8 would overflow at the SE corner.
+constexpr uint32_t depth_step = 7;
+
 constexpr uint32_t value_atʹ(point pixel)
 {
     constexpr uint32_t extra_spacing = 4096;
@@ -30,7 +34,7 @@ constexpr float value_at(float start, uint32_t pixel, int32_t offset)
     auto i = (int32_t)pixel;
     i += offset;
     fm_debug2_assert(i >= 0);
-    float val = nth_float(start, 15*(uint32_t)i);
+    float val = nth_float(start, depth_step*(uint32_t)i);
     return val;
 }
 

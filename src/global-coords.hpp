@@ -94,7 +94,7 @@ struct global_coords final
     struct raw_coords_ { uint32_t x, y; operator Vector2ui() const { return {x, y}; } };
 
 private:
-    using u0 = std::integral_constant<uint32_t, (1<<15)>;
+    using u0 = std::integral_constant<uint32_t, chunk_xy_bias>;
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
     using z0 = std::integral_constant<int32_t, (1 << 0)>;
     using z_mask = std::integral_constant<uint32_t, (1u << 4) - 1u << 20>;
@@ -109,21 +109,20 @@ public:
         },
         y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {
-        fm_assert(uint32_t(c.x + (1 << 14)) <= (1u << 15)
-               && uint32_t(c.y + (1 << 14)) <= (1u << 15));
+        // cast to int32_t: comparing int16_t against the bounds trips -Wtautological-type-limit-compare
+        fm_assert((int32_t)c.x >= chunk_xy_min && (int32_t)c.x <= chunk_xy_max && (int32_t)c.y >= chunk_xy_min && (int32_t)c.y <= chunk_xy_max);
     }
     constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y}
     {
-        fm_assert(((x & ~z_mask::value) >> 4) - (u0::value - (1u << 14)) <= (1u << 15)
-               && (y >> 4)                    - (u0::value - (1u << 14)) <= (1u << 15));
+        int32_t cx = int32_t((x & ~z_mask::value) >> 4) - s0::value, cy = int32_t(y >> 4) - s0::value;
+        fm_assert(cx >= chunk_xy_min && cx <= chunk_xy_max && cy >= chunk_xy_min && cy <= chunk_xy_max);
     }
     constexpr global_coords(uint32_t, uint32_t, uint32_t) = delete;
     constexpr global_coords(int32_t x, int32_t y, int8_t z) noexcept :
         x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
         y{uint32_t(y + (s0::value<<4))}
     {
-        fm_assert(uint32_t((x >> 4) + (1 << 14)) <= (1u << 15)
-               && uint32_t((y >> 4) + (1 << 14)) <= (1u << 15));
+        fm_assert((x>>4) >= chunk_xy_min && (x>>4) <= chunk_xy_max && (y>>4) >= chunk_xy_min && (y>>4) <= chunk_xy_max);
     }
     constexpr global_coords(chunk_coords_ c, local_coords xy) noexcept :
         global_coords{chunk_coords{c.x, c.y}, xy, c.z}
