@@ -1154,6 +1154,9 @@ ok:
 
         chunk_coords_ coord;
         visit(coord, r);
+        fm_soft_assert((int32_t)coord.x >= chunk_xy_min && (int32_t)coord.x <= chunk_xy_max
+                    && (int32_t)coord.y >= chunk_xy_min && (int32_t)coord.y <= chunk_xy_max
+                    && coord.z >= chunk_z_min && coord.z <= chunk_z_max);
         auto& c = w[coord];
 
         for (uint32_t i = 0; i < TILE_COUNT; i++)

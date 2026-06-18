@@ -21,14 +21,15 @@ constexpr point::point(Vector3i p)
         _offset[i] = (int8_t)(r - t[i] * tile_size_xy - half_tile);
     }
 
-    cx = (int16_t)c.x();
-    cy = (int16_t)c.y();
     cz = (int8_t)(p.z() / tile_size_z - (p.z() % tile_size_z < 0));
     tile = local_coords{t};
 
-    fm_assert(uint32_t(cx + (1 << 14)) <= (1u << 15)
-           && uint32_t(cy + (1 << 14)) <= (1u << 15)
-           && uint32_t(cz - chunk_z_min) < uint32_t(chunk_z_max - chunk_z_min + 1));
+    // a pixel past the chunk range would wrap silently into int16_t, so assert before the cast
+    fm_assert(c.x() >= chunk_xy_min && c.x() <= chunk_xy_max && c.y() >= chunk_xy_min && c.y() <= chunk_xy_max
+           && cz >= chunk_z_min && cz <= chunk_z_max);
+
+    cx = (int16_t)c.x();
+    cy = (int16_t)c.y();
 }
 
 constexpr uint32_t point::distance(point a, point b)
