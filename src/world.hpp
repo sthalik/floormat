@@ -28,7 +28,8 @@ public:
 private:
     struct chunk_tuple
     {
-        static constexpr chunk_coords_ invalid_coords = { -1 << 15, -1 << 15, chunk_z_min };
+        // z is out of [chunk_z_min, chunk_z_max], so this never equals a real coord.
+        static constexpr chunk_coords_ invalid_coords = { chunk_xy_min, chunk_xy_min, (int8_t)(chunk_z_min - 1) };
         chunk* c = nullptr;
         chunk_coords_ pos = invalid_coords;
     } _last_chunk;
