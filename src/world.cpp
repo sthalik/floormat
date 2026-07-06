@@ -269,12 +269,15 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
     Hash::set_open_addressing_load_factor(impl._objects);
 }
 
-void world::erase_object(object_id id)
+void world::erase_object(object_id id, const object* self)
 {
     auto& impl = *this->impl;
     fm_debug_assert(id != 0);
-    auto cnt = impl._objects.erase(id);
-    fm_debug_assert(cnt > 0);
+    auto it = impl._objects.find(id);
+    fm_debug_assert(it != impl._objects.end());
+    // a failed do_make_object() dies with the entry still owned by the original object
+    if (it != impl._objects.end() && &*it->second == self)
+        impl._objects.erase(it);
 }
 
 bptr<object> world::find_object_(object_id id)

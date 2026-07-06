@@ -53,7 +53,7 @@ object::~object() noexcept
     if (chunk::bbox bb; c->_bbox_for_scenery(*this, bb))
         c->_remove_bbox_dynamic(bb);
 #endif
-    c->_world->erase_object(id);
+    c->_world->erase_object(id, this);
     const_cast<object_id&>(id) = 0;
 }
 

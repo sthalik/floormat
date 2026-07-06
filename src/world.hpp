@@ -55,7 +55,7 @@ private:
     bool _script_finalized : 1 = false;
 
     void do_make_object(const bptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
-    void erase_object(object_id id);
+    void erase_object(object_id id, const object* self);
     bptr<object> find_object_(object_id id);
 
     void register_chunk(chunk* c) noexcept;
