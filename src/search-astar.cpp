@@ -272,13 +272,6 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         timeline.start();
 
     clear();
-    auto& cache = *_cache;
-    cache.allocate(from, max_dist);
-
-    constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
-    fm_assert(own_size_ < Vector2ui{size_max});
-    const auto own_size = Math::max(own_size_, min_size);
-    constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]
         return {};
@@ -286,6 +279,14 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     // todo try removing this eventually
     if (from.coord().z() != 0) [[unlikely]]
         return {};
+
+    auto& cache = *_cache;
+    cache.allocate(from, max_dist);
+
+    constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
+    fm_assert(own_size_ < Vector2ui{size_max});
+    const auto own_size = Math::max(own_size_, min_size);
+    constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
 
     const auto bbox_size = Math::max(own_size.x(), own_size.y());
     auto& pool = w.pass_pool_registry().pool_for(bbox_size);
