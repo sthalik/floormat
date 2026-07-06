@@ -292,11 +292,16 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto& pool = w.pass_pool_registry().pool_for(bbox_size);
     pool.maybe_mark_stale_all(w.frame_no());
 
-    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset()), Vector2(own_size/2));
-        !Search::is_passable_(w.at(from.chunk3()), w.neighbors(from.chunk3()), R.min(), R.max(), p))
+    auto* const from_chunk = w.at(from.chunk3());
+    const auto from_neighbors = w.neighbors(from.chunk3());
+    const auto from_center = TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset());
+    const auto own_half = Vector2(own_size/2);
+
+    if (auto R = Range2D::fromCenter(from_center, own_half);
+        !Search::is_passable_(from_chunk, from_neighbors, R.min(), R.max(), p))
         return {};
 
-    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), Vector2(own_size/2));
+    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), own_half);
         !Search::is_passable_(w.at(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
         return {};
 
@@ -316,8 +321,14 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     {
         auto pt = point::normalize_coords({from.coord(), {}}, off);
         auto dist = h(from, pt);
+        // the cell bit only covers the seed itself, so sweep the bbox over the
+        // from -> seed motion, like the goal hop does with is_passable_swept()
+        const auto seed_center = TILE_SIZE2 * Vector2(from.local()) + Vector2(off);
 
-        if (cache.is_passable_for_bbox(w, pool, pt, p))
+        if (cache.is_passable_for_bbox(w, pool, pt, p)
+            && Search::is_passable_(from_chunk, from_neighbors,
+                                    Math::min(from_center, seed_center) - own_half,
+                                    Math::max(from_center, seed_center) + own_half, p))
         {
             auto idx = (uint32_t)nodes.size();
             cache.add_index(pt, idx);
