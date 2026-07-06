@@ -8,7 +8,6 @@
 #include "src/fps-counter.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
-#include "compat/limits.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/ArrayView.h>
 #include <mg/DefaultFramebuffer.h>
@@ -103,29 +102,10 @@ void main_impl::drawEvent()
 }
 
 template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
-void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i window_size, bool only, int8_t z_cur)
+void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i window_size)
 {
-    if (chunks.isEmpty())
-        return;
-
-    Vector2s min{limits<int16_t>::max, limits<int16_t>::max},
-             max{limits<int16_t>::min, limits<int16_t>::min};
-
     for (auto ch : chunks)
     {
-        min = Math::min(min, {ch.x, ch.y});
-        max = Math::max(max, {ch.x, ch.y});
-    }
-
-    fm_assert(max >= min);
-
-    for (auto ch : chunks)
-    {
-        if (only && ch.z != z_cur)
-            _shader.set_tint({1, 1, 1, 0.75});
-        else
-            _shader.set_tint({1, 1, 1, 1});
-
         auto* cʹ = _world.at(ch);
         if (!cʹ)
             continue;
@@ -158,26 +138,41 @@ void main_impl::draw_world() noexcept
 
     bind();
 
-    _sprite_batch.clear();
-    draw_world_0([&](chunk& c, int16_t, int16_t, int8_t) {
-                    c.ensure_ground_mesh(_sprite_batch);
-                    c.ensure_wall_mesh(_sprite_batch);
-                 },
-                 chunks, sz, z_bounds.only, z_bounds.cur);
-    _sprite_batch.draw(_shader, false);  // depth-buffered opaque pass; no painter sort needed
+    // The tint uniform uploads once per SpriteBatch::draw, so dimming other
+    // z-levels needs its own batch, drawn underneath the current level's.
+    const auto draw_batches = [&](const auto& emit, bool do_sort)
+    {
+        if (z_bounds.only)
+        {
+            _sprite_batch.clear();
+            draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
+                if (z != z_bounds.cur)
+                    emit(c, x, y, z);
+            }, chunks, sz);
+            _shader.set_tint({1, 1, 1, 0.75});
+            _sprite_batch.draw(_shader, do_sort);
+        }
+        _sprite_batch.clear();
+        draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
+            if (!z_bounds.only || z == z_bounds.cur)
+                emit(c, x, y, z);
+        }, chunks, sz);
+        _shader.set_tint({1, 1, 1, 1});
+        _sprite_batch.draw(_shader, do_sort);
+    };
+
+    draw_batches([&](chunk& c, int16_t, int16_t, int8_t) {
+        c.ensure_ground_mesh(_sprite_batch);
+        c.ensure_wall_mesh(_sprite_batch);
+    }, false);  // depth-buffered opaque pass; no painter sort needed
 
     GL::Renderer::setDepthMask(false);
-    _sprite_batch.clear();
-    draw_world_0(
-        [&](chunk& c, int16_t, int16_t, int8_t) {
-            c.ensure_scenery_mesh(_sprite_batch, _do_render_vobjs);
-            c.add_clickables(_shader, sz, _clickable_scenery, _do_render_vobjs);
-        },
-        chunks, sz, z_bounds.only, z_bounds.cur);
 
-    _sprite_batch.draw(_shader);
+    draw_batches([&](chunk& c, int16_t, int16_t, int8_t) {
+        c.ensure_scenery_mesh(_sprite_batch, _do_render_vobjs);
+        c.add_clickables(_shader, sz, _clickable_scenery, _do_render_vobjs);
+    }, true);
 
-    _shader.set_tint({1, 1, 1, 1});
     GL::Renderer::setDepthMask(true);
 
     GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
