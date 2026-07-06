@@ -33,6 +33,7 @@ struct world::Impl
     gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
     Pointer<Pass::PoolRegistry> _pass_registry;
     Pointer<Pass::Pool> _cover_pass_pool;
+    Pointer<Pass::Pool> _raycast_pass_pool;
 };
 
 Grid::Pass::PoolRegistry& world::pass_pool_registry()
@@ -51,7 +52,11 @@ Grid::Pass::Pool& world::cover_pass_pool()
 
 Grid::Pass::Pool& world::raycast_pass_pool()
 {
-    return pass_pool_registry().pool_for(tile_size_xy);
+    // raycast builds grids with never_continue() but Dijkstra builds with the
+    // caller's predicate. sharing a registry pool would mix the two.
+    if (!impl->_raycast_pass_pool)
+        impl->_raycast_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy}.validate()});
+    return *impl->_raycast_pass_pool;
 }
 
 world::world() : _unique_id{InPlace}
