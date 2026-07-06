@@ -114,6 +114,7 @@ struct CoverGrid : GridBase
     ~CoverGrid() noexcept = default;
 
     void reset_for_reuse(chunk& ch, Params new_params);
+    void clear_cells();
 
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_cell_index_from_coord(local_coords local, Vector2b offset) const;
@@ -134,9 +135,18 @@ uint32_t CoverGrid::get_cell_index_from_coord(local_coords local, Vector2b offse
     return GridBase::pack_bit_index_from_coord(local, offset, params.div_size, dc);
 }
 
+void CoverGrid::clear_cells()
+{
+    for (auto& cc : cells)
+        for (auto& d : cc.distance)
+            d = 0;
+}
+
 void CoverGrid::build_impl(chunk* self)
 {
     built_octants = 0;
+    // else a rebuild serves the previous build's octants 1..31 until re-filled
+    clear_cells();
     fill_octant(0, *self);
 
     for (auto i = 0u; i < 8; i++)
@@ -270,8 +280,7 @@ void CoverGrid::reset_for_reuse(chunk& ch, Params new_params)
     if (cells.size() < count) [[unlikely]]
         cells = Array<CoverCell>{ValueInit, count};
     else
-        for (auto& cc : cells)
-            for (auto& d : cc.distance) d = 0;
+        clear_cells();
 }
 
 template struct Pool<CoverGrid>;
