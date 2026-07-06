@@ -477,6 +477,7 @@ void reader_state::read_chunks(reader_t& s)
                     id &= ~scenery_id_flag_mask_;
                 }
                 auto sc = lookup_scenery(id);
+                fm_soft_assert(sc);
                 sc.offset = offset;
                 (void)sc.atlas->group(r);
                 sc.r = r;
@@ -493,8 +494,28 @@ void reader_state::read_chunks(reader_t& s)
                         s >> sc.offset[1];
                     }
                     read_bbox(s, sc);
-                    _world->make_scenery<false>(oid, {ch, local}, move(sc));
+                    if (const auto* val = swl::get_if<generic_scenery_proto>(&sc.subtype))
+                    {
+                        if (val->active)
+                        {
+                            uint16_t delta_;
+                            delta_ << s;
+                            sc.delta = uint32_t(delta_) * 65536u;
+                        }
+                    }
+                    else if (const auto* val = swl::get_if<door_scenery_proto>(&sc.subtype))
+                    {
+                        if (val->active)
+                        {
+                            uint16_t delta_;
+                            delta_ << s;
+                            sc.delta = uint32_t(delta_) * 65536u;
+                        }
+                    }
+                    else
+                        fm_soft_assert(false);
                 }
+                _world->make_scenery<false>(oid, {ch, local}, move(sc));
                 break;
             }
             case object_type::light: {
@@ -561,6 +582,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
     const global_coords coord{ch, local_coords{i}};
     id &= ~scenery_id_flag_mask_;
     auto sc = lookup_scenery(id);
+    fm_soft_assert(sc);
     sc.r = r;
     (void)sc.atlas->group(r);
 
@@ -579,6 +601,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
         {
             sc.bbox_size[0] << s;
             sc.bbox_size[1] << s;
+            sc.bbox_size = fix_stupid_bbox(sc.bbox_size);
         }
         if (PROTO >= 7) [[likely]]
         {
@@ -625,10 +648,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
         else
             fm_soft_assert(false);
     }
-    else
-    {
-        _world->make_scenery(_world->make_id(), coord, move(sc));
-    }
+    _world->make_scenery(_world->make_id(), coord, move(sc));
 }
 
 void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)
