@@ -74,7 +74,7 @@ texture_unit_cache::texture_unit_cache() :
 
 void texture_unit_cache::invalidate()
 {
-    units = {};
+    units = Array<unit_data>{ValueInit, unit_count};
     lru_counter = 0;
     cache_miss_count = 0;
 }
