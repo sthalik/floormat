@@ -271,7 +271,18 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             }
         }
         else
-            last_chunk_empty = true;
+        {
+            if (!last_g_built)
+            {
+                // colliders overhang from loaded neighbors into a missing chunk.
+                // skip it only when the whole 3x3 area is unloaded.
+                last_chunk_empty = true;
+                for (auto* nb : last_nb)
+                    last_chunk_empty &= !nb;
+                last_g_built = true;
+            }
+            bit = last_chunk_empty;
+        }
 
         if (!bit)
         {
