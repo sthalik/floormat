@@ -241,8 +241,10 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
         const uint32_t d = Depth::value_atʹ(c.e->position());
         if (d > depth && c.dest.contains(p))
         {
-            const auto posʹ = *pixel - c.dest.min() + Vector2i(c.src.min());
-            const auto pos = !c.mirrored ? posʹ : Vector2i(int(c.src.sizeX()) - 1 - posʹ[0], posʹ[1]);
+            // mirror inside the frame, before adding the frame's atlas offset
+            const auto posʹ = *pixel - c.dest.min();
+            const auto posʹʹ = !c.mirrored ? posʹ : Vector2i(int(c.src.sizeX()) - 1 - posʹ[0], posʹ[1]);
+            const auto pos = posʹʹ + Vector2i(c.src.min());
             size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
             fm_assert(c.bitmask.isEmpty() || idx < c.bitmask.size());
             if (c.bitmask.isEmpty() || c.bitmask[idx])
