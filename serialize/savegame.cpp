@@ -1060,8 +1060,8 @@ ok:
     template<atlas_type Type> StringView get_atlas(atlasid id)
     {
         using atlas_type = typename atlas_from_type<Type>::Type;
-        auto [atlas, type] = atlases[id];
         fm_soft_assert(id < atlases.size());
+        auto [atlas, type] = atlases[id];
         fm_soft_assert(type == Type);
         const auto* atlasʹ = static_cast<const atlas_type*>(atlas);
         return atlasʹ->name();
