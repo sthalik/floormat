@@ -334,7 +334,9 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
                     };
                     if (!sub_size.x() || !sub_size.y())
                         continue;
-                    const auto sub_offset_loc = Vector2ui{(unsigned)rs.x(), (unsigned)re.y()};
+                    // same face-start/texture-side flip rule as the wall group
+                    const bool tex_flip = IsWest != dir.corner.mirrored;
+                    const auto sub_offset_loc = Vector2ui{!tex_flip ? (unsigned)rs.x() : (unsigned)re.x(), (unsigned)re.y()};
                     const auto texcoords = loader.atlas().texcoords_for(
                         sp, sub_offset_loc, sub_size, dir.corner.mirrored);
                     const auto frag_zmin = rs.y();
@@ -393,10 +395,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             fm_debug2_assert(rs.x() + re.x() <= (float)tile_size_xy);
             fm_debug2_assert(rs.y() + re.y() <= (float)tile_size_z);
 
-            // face-start maps to texture-left for north, texture-right for west.
-            // tex_left/tex_right are the pixel-x trims from left/right of the texture.
-            const auto tex_left  = !IsWest ? (unsigned)rs.x() : (unsigned)re.x();
-            const auto tex_right = !IsWest ? (unsigned)re.x() : (unsigned)rs.x();
+            // face-start maps to texture-left for north, texture-right for west,
+            // and group.mirrored flips the texture again, swapping the sides back.
+            const bool tex_flip = IsWest != group.mirrored;
+            const auto tex_left  = !tex_flip ? (unsigned)rs.x() : (unsigned)re.x();
+            const auto tex_right = !tex_flip ? (unsigned)re.x() : (unsigned)rs.x();
 
             if constexpr (G == Group_::wall)
             {
@@ -489,9 +492,11 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
             else if constexpr (G == Group_::top)
             {
                 fm_debug2_assert(frame.size == Vector2ui{Depth, tile_size_xy});
-                fm_debug2_assert(tex_left + tex_right <= frame.size.y());
-                const auto sub_offset_loc = Vector2ui(0, tex_right);
-                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - tex_left - tex_right);
+                fm_debug2_assert((unsigned)rs.x() + (unsigned)re.x() <= frame.size.y());
+                // the top texture's y axis runs along the wall for both directions,
+                // and mirror flips only its x axis, so the y trims never swap.
+                const auto sub_offset_loc = Vector2ui(0, (unsigned)re.x());
+                const auto sub_size = Vector2ui(frame.size.x(), frame.size.y() - (unsigned)rs.x() - (unsigned)re.x());
                 if (!sub_size.y())
                     continue;
                 const auto texcoords = loader.atlas().texcoords_for(sp, sub_offset_loc, sub_size, group.mirrored);
