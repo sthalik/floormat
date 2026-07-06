@@ -142,7 +142,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     if (pool.frame_no() != w.frame_no())
         pool.maybe_mark_stale_all(w.frame_no());
-    const auto& bit_pred = Search::never_continue();
 
     constexpr auto half_tile_i = tile_size<int>.x() / 2;
     const auto div_size_i = (int32_t)pool.params().div_size;
@@ -259,7 +258,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if (!last_g_built)
             {
                 last_g = pool[*last_c];
-                last_g.build_if_stale(bit_pred);
+                // a pool holds bitmaps built for one predicate only (see grid-pass.hpp)
+                last_g.build_if_stale(pred);
                 last_chunk_empty = last_g.is_all_empty();
                 last_g_built = true;
             }

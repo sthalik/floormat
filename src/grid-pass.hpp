@@ -61,6 +61,8 @@ public:
     static constexpr uint32_t min_bbox_size = 4;
 };
 
+// The build predicate is not part of a grid's staleness key. Use each Pool
+// with a single predicate, or consumers read bitmaps built for another one.
 class Pool final
 {
     detail::grid::Pool<detail::grid::PassGrid>* pool;
