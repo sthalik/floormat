@@ -116,9 +116,9 @@ uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset
         pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size);
     else
         pos = Vector2ui(posʹ) / div_size;
-    auto idx = pack_bit_index(pos.x(), pos.y(), div_count);
-    fm_assert(idx < div_count*div_count);
-    return idx;
+    // per-axis: an out-of-range x with a small y still packs below div_count²
+    fm_assert(pos.x() < div_count && pos.y() < div_count);
+    return pack_bit_index(pos.x(), pos.y(), div_count);
 }
 
 Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size)
