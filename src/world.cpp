@@ -179,6 +179,8 @@ void world::clear()
 {
     auto& impl = *this->impl;
     fm_assert(!_teardown);
+    // ~object dereferences its chunk; drop the map's refs before chunks are deleted
+    impl._objects.clear();
     while (_head)
     {
         chunk* next = _head->_next;
@@ -186,7 +188,6 @@ void world::clear()
         _head = next;
     }
     _tail = nullptr;
-    impl._objects.clear();
     Hash::set_open_addressing_load_factor(impl._objects);
     _object_counter = object_counter_init;
     _last_chunk = {};
