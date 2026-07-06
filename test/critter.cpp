@@ -6,6 +6,7 @@
 #include "src/critter.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
 #include "compat/constantly.hpp"
@@ -151,6 +152,20 @@ void test_dt_invariance()
     fm_assert(point::distance_l1(p_10fps, p_60fps) <= tol);
 }
 
+void test_player_character_id_lowest()
+{
+    auto w = world();
+    auto p = world::make_player_proto();
+    auto a = w.make_object<critter>(w.make_id(), {{0, 0, 0}, {1, 1}}, critter_proto{p});
+    auto b = w.make_object<critter>(w.make_id(), {{0, 0, 0}, {2, 2}}, critter_proto{p});
+    fm_assert(a->id < b->id);
+
+    object_id id = 0;
+    auto C = w.ensure_player_character(id);
+    fm_assert(C->id == id);
+    fm_assert(id == a->id);
+}
+
 } // namespace
 
 } // namespace floormat::Run
@@ -207,6 +222,7 @@ void Test::test_critter()
     test3("dt=16.667 accel=50 r=NE no-unroll=true",  constantly(Millisecond * 16.667), 50, NE, true);
 
     test_dt_invariance();
+    test_player_character_id_lowest();
 
     if (is_noisy)
     {

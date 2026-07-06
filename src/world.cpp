@@ -434,9 +434,9 @@ bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
             if (e.type() == object_type::critter)
             {
                 const auto& C = static_cast<const critter&>(e);
-                if (C.playable)
+                if (C.playable && C.id < id)
                 {
-                    id = std::min(id, C.id);
+                    id = C.id;
                     ret = static_pointer_cast<critter>(eʹ);
                 }
             }
