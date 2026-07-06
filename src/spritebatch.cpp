@@ -296,6 +296,10 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     if (size == 0)
         return;
 
+    // quad_indexes() truncates to UnsignedShort, 4 vertices per quad.
+    // todo the index buffer should move to UnsignedInt eventually.
+    fm_assert(size <= 0x10000u/4);
+
     const auto& S = impl.sort_indexes;
     auto& V = impl.vertex_buffer;
     fm_debug_assert(V.isEmpty());
