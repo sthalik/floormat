@@ -14,6 +14,11 @@ namespace floormat {
 
 namespace {
 
+// The visibility test only sees a chunk's floor rhombus, but sprites anchored
+// inside it overhang it: tall or wide frames, wall tops, group.offset shifts.
+constexpr int chunk_overhang_x = tile_size_xy * 4;
+constexpr int chunk_overhang_y = tile_size_z * 2;
+
 template<size_t N>
 Pair<double, double> project_interval(const std::array<Vector2d, N>& pts, const Vector2d& axis) noexcept
 {
@@ -102,10 +107,10 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
     constexpr auto z_height = (chunk_z_max - chunk_z_min + 1)*tile_size_z;
     static_assert(z_height >= 0);
 
-    const auto p00 = pixel_to_chunk({         -tile_size_xy + extra_pixels.min().x(),          -z_height + extra_pixels.min().y()});
-    const auto p10 = pixel_to_chunk({win.x() + tile_size_xy + extra_pixels.max().x(),          -z_height + extra_pixels.min().y()});
-    const auto p01 = pixel_to_chunk({         -tile_size_xy + extra_pixels.min().x(), win.y() + z_height + extra_pixels.max().y()});
-    const auto p11 = pixel_to_chunk({win.x() + tile_size_xy + extra_pixels.max().x(), win.y() + z_height + extra_pixels.max().y()});
+    const auto p00 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(),          -z_height - chunk_overhang_y + extra_pixels.min().y()});
+    const auto p10 = pixel_to_chunk({win.x() + chunk_overhang_x + extra_pixels.max().x(),          -z_height - chunk_overhang_y + extra_pixels.min().y()});
+    const auto p01 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
+    const auto p11 = pixel_to_chunk({win.x() + chunk_overhang_x + extra_pixels.max().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
 
     Vector2i min_xy = Math::min(Math::min(p00, p10), Math::min(p01, p11));
     Vector2i max_xy = Math::max(Math::max(p00, p10), Math::max(p01, p11));
@@ -176,8 +181,8 @@ bool floormat_main::check_chunk_visible(Vector2d offset, Vector2i win) noexcept
     // screen = project(world) + win*0.5 + camera_offset
 
     const Range2Di screen_rect{
-        Vector2i{-tile_size_xy, -tile_size_z},
-        Vector2i{ tile_size_xy + win.x(), tile_size_z + win.y()},
+        Vector2i{-chunk_overhang_x, -chunk_overhang_y},
+        Vector2i{ chunk_overhang_x + win.x(), chunk_overhang_y + win.y()},
     };
 
     return sat_rhombus_vs_rect(rhombus, screen_rect);
