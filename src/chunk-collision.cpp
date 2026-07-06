@@ -51,7 +51,8 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     bool has_holes = false;
     constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
     constexpr auto max_bbox_size = Vector2i{0x100};
-    constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size/2,
+    // same slack on both sides as the chunk_bounds cull in search.cpp
+    constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size,
                    chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
     for (const bptr<object>& eʹʹ : c.objects())
     {

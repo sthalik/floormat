@@ -7,6 +7,7 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/object.hpp"
+#include "src/critter.hpp"
 #include "src/hole.hpp"
 #include "src/scenery-proto.hpp"
 #include "loader/scenery-cell.hpp"
@@ -214,6 +215,24 @@ void test_hole_zero_bbox_skipped_at_build()
     fm_assert(!c.is_passability_modified());
 }
 
+void test_nw_cull_covers_bbox_offset()
+{
+    auto w = world();
+    constexpr chunk_coords_ ch{0, 0, 0};
+    auto& c = w[ch];
+
+    critter_proto p;
+    p.bbox_size = Vector2ub{254, 254};
+    p.bbox_offset = Vector2b{-127, -127};
+    auto C = w.make_object<critter>(w.make_id(), {ch, {0, 0}}, p);
+    fm_assert(C);
+
+    // entry rect is [-254, 0]² in c's frame, entirely NW of the chunk's tiles
+    auto pred = [](chunk&, collision_data, Range2D) { return path_search_continue::blocked; };
+    constexpr Vector2 q_min{-250, -250}, q_max{-240, -240};
+    fm_assert(!Search::is_passable_1(c, q_min, q_max, pred));
+}
+
 void test_can_move_to_zero_bbox()
 {
     auto w = world();
@@ -242,6 +261,7 @@ void Test::test_passability_bbox()
     test_pred_rect_is_in_self_chunk_frame();
     test_chunk_bounds_early_out();
     test_hole_zero_bbox_skipped_at_build();
+    test_nw_cull_covers_bbox_offset();
     test_can_move_to_zero_bbox();
 }
 
