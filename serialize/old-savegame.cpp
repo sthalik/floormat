@@ -153,10 +153,6 @@ private:
     world* _world;
     uint16_t PROTO = proto_version;
     loader_policy asset_policy;
-
-    Array<object_draw_order> draw_array;
-    Array<Quads::vertexes> draw_vertexes;
-    Array<Quads::indexes> draw_indexes;
 };
 
 reader_state::reader_state(world& world, loader_policy p) noexcept : _world{&world}, asset_policy{p} {}
