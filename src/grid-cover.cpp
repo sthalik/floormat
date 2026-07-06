@@ -220,7 +220,8 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
                     if (nx >= 0 && nx < dc_i && ny >= 0 && ny < dc_i)
                     {
                         const uint32_t n_idx = get_cell_index((uint32_t)nx, (uint32_t)ny, dc);
-                        dist_px = (uint32_t)px_dist[n_idx] + (uint32_t)step_t;
+                        // round: truncating div_size*sqrt2 loses ~2.8% per diagonal step
+                        dist_px = (uint32_t)px_dist[n_idx] + (uint32_t)(step_t + .5f);
                     }
                     else
                     {
