@@ -431,7 +431,9 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
         else if (closest_idx != (uint32_t)-1)
         {
             const auto& closest = nodes[closest_idx];
-            fm_assert(closest.dist != 0 && closest.dist != (uint32_t)-1);
+            // dist == 0 is legitimate: the {0,0} seed costs nothing when the
+            // start has no sub-tile offset, and it can remain the closest node
+            fm_assert(closest.dist != (uint32_t)-1);
             len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
                            time, closest_h, closest.dist, d0,
