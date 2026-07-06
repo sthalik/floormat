@@ -503,7 +503,7 @@ struct writer final : visitor_<writer, true, true>
         case object_type::critter:
         {
             const auto& C = static_cast<const critter&>(obj);
-            uint16_t offset_frac = 0;
+            uint16_t offset_frac = C.offset_frac;
             uint32_t anim_progress = C.anim_progress;
             critter_header_s cr = {
                 .offset_frac = offset_frac,
@@ -984,6 +984,7 @@ ok:
             };
             obj = make_object<critter, critter_proto, critter_header_s>(s, move(p), move(h), f);
             static_cast<critter&>(*obj).anim_progress = anim_progress;
+            static_cast<critter&>(*obj).offset_frac = offset_frac;
             goto ok;
         }
         case object_type::light:

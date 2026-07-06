@@ -214,7 +214,7 @@ void test_save_objs()
         fm_assert(ctrʹʹ == ctrʹ + 2);
 
         auto w2 = reload_from_save(tmp, w);
-        const auto ctrʹʹʹ = w.object_counter();
+        const auto ctrʹʹʹ = w2.object_counter();
         fm_assert(ctrʹʹʹ == ctrʹʹ);
     }
 
@@ -243,7 +243,7 @@ void test_save_objs()
         const auto& obj = *objʹ;
         const_cast<uint16_t&>(obj.offset_frac) = offset_frac;
         auto w2 = reload_from_save(tmp, w);
-        const auto& obj2ʹ = w.find_object<critter>(obj.id);
+        const auto& obj2ʹ = w2.find_object<critter>(obj.id);
         fm_assert(obj2ʹ);
         const auto& obj2 = *obj2ʹ;
         fm_assert(p.name == obj2.name);
@@ -273,7 +273,7 @@ void test_save_objs()
         const auto id = w.make_id();
         const auto objʹ = w.make_object<light>(id, coord, p);
         auto w2 = reload_from_save(tmp, w);
-        const auto& obj2ʹ = w.find_object<light>(id);
+        const auto& obj2ʹ = w2.find_object<light>(id);
         fm_assert(obj2ʹ);
         const auto& obj2 = *obj2ʹ;
         fm_assert(p.max_distance == obj2.max_distance);
