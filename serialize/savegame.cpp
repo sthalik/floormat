@@ -969,6 +969,8 @@ ok:
         visit_object_header(p, s, f);
         if (PROTO < 28) [[unlikely]]
             p.bbox_size = fix_stupid_bbox(p.bbox_size);
+        else
+            fm_soft_assert(p.bbox_size == fix_stupid_bbox(p.bbox_size));
 
         switch (type)
         {
@@ -1119,6 +1121,7 @@ ok:
             num_idempotent = num & ~highbit<INT>;
             visit(num, r);
         }
+        fm_soft_assert(i + num_idempotent < TILE_COUNT);
 
         if (num != null<INT>)
             for (uint32_t j = 0; j <= num_idempotent; j++)
@@ -1142,7 +1145,7 @@ ok:
         }
 
         c.sort_objects();
-        fm_assert(count == c.objects().size());
+        fm_soft_assert(count == c.objects().size());
     }
 
     void deserialize_chunk_(binary_reader<const char*>& s)
