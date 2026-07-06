@@ -642,12 +642,8 @@ void app::draw_lightmap_test(float main_menu_height)
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Appearing);
 
     if (ImGui::Begin("Lightmap", &is_open, flags))
-    {
         ImGui::Image(shader.accum_texture().id(), preview_size, {0, 0}, {1, 1});
-        ImGui::End();
-    }
-    else
-        is_open = false;
+    ImGui::End();
 
     if (!is_open)
         tested_light_chunk = {};
