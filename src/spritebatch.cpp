@@ -80,6 +80,7 @@ struct SpriteBatch::Impl
     GL::Buffer index_buffer_handle{NoCreate};
     uint32_t slot_idx = 0;
     uint32_t buffer_capacity = 0;
+    uint32_t index_uploaded = 0;
     uint32_t last_start = 0;
     bool in_chunk = false;
 };
@@ -127,6 +128,7 @@ void SpriteBatch::ensure_allocated(uint32_t count)
         return;
     uint32_t new_cap = 0;
     const auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
+    impl.index_uploaded = 0; // setData() orphaned the old contents
     for (auto& s : impl.slots)
     {
         auto cap  = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
@@ -321,7 +323,13 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     reserve(I, size);
     for (auto i = Isz; i < size; i++)
         I[i] = Quads::quad_indexes(i);
-    impl.index_buffer_handle.setSubData(0, ArrayView{ I.data(), size });
+    // quad_indexes(i) depends only on i, so already-uploaded entries never go stale
+    if (size > impl.index_uploaded)
+    {
+        impl.index_buffer_handle.setSubData(impl.index_uploaded * sizeof(Quads::indexes),
+                                            ArrayView{ I.data() + impl.index_uploaded, size - impl.index_uploaded });
+        impl.index_uploaded = size;
+    }
 
     auto& mesh = slot.mesh;
     if (!mesh.id())
