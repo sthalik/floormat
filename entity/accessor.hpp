@@ -75,7 +75,7 @@ template<typename T, typename FieldType>
 constexpr bool erased_accessor::check_name_static()
 {
     return !std::is_pointer_v<T> && !std::is_reference_v<T> &&
-           !std::is_pointer_v<FieldType> && !std::is_reference_v<T>;
+           !std::is_pointer_v<FieldType> && !std::is_reference_v<FieldType>;
 }
 
 template<typename Obj>

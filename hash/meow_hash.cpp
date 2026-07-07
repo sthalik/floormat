@@ -8,14 +8,14 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 #endif
 
-#define fm_MeowU64From(A, I) (*(meow_u64 *)&(A) + (I))
+#define fm_MeowU64From(A, I) (*((meow_u64 *)&(A) + (I)))
 
 namespace floormat::meow_hash {
 namespace {
 
 CORRADE_ALWAYS_INLINE size_t hash(void* __restrict buf, size_t size)
 {
-#ifndef fm_NO_DEBUG
+#ifndef FM_NO_DEBUG
     if (size % 16 != 0) [[unlikely]]
         fm_abort("size %zu %% 16 == %zu", size, size % 16);
 #endif

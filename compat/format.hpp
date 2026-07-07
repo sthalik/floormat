@@ -61,7 +61,6 @@ size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
     constexpr size_t n = N > 0 ? N - 1 : 0;
     auto result = fmt::format_to_n(buf, n, floormat::forward<Fmt>(fmt), floormat::forward<Xs>(args)...);
     const auto len = n < result.size ? n : result.size;
-    fm_assert(len > 0);
 #if 0
     if constexpr(N > 0)
         buf[len] = '\0';

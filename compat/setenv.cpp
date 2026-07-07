@@ -10,7 +10,7 @@ namespace floormat {
 #ifdef _WIN32
 int setenv(const char* name, const char* value, int overwrite)
 {
-    if (!std::strchr(name, '=') || !value || !*value)
+    if (!name || !*name || std::strchr(name, '=') || !value)
     {
         errno = EINVAL;
         return -1;
