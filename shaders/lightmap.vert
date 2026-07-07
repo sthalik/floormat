@@ -56,7 +56,7 @@ void main() {
         // shadow wrap-around without it). The break point is:
         //   lr_clip_max = min_dist * tan((π - α) / 2)
         // where α is the segment's angular span seen from the light.
-        // The 0.9 factor keeps a safety margin below the degeneration boundary.
+        // The 0.98 factor keeps a safety margin below the degeneration boundary.
         float len_a = length(delta_a);
         float len_b = length(delta_b);
         float min_dist = min(len_a, len_b);
