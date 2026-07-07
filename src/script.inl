@@ -175,6 +175,9 @@ void Script<S, Obj>::do_error_unwind()
     case torn_down:
         break;
     }
+    // Contract (script.hpp): unwinding from any state ends torn-down, so the
+    // destructor's created/initializing/destroying abort cases can't fire.
+    _state = script_lifecycle::torn_down;
 }
 
 #undef FM_ASSERT_SCRIPT_STATE
