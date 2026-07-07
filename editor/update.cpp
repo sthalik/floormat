@@ -99,7 +99,7 @@ void app::do_rotate(bool backward)
     {
         if (ed->is_anything_selected())
             backward ? ed->prev_rotation() : ed->next_rotation();
-        else if (auto* cl = find_clickable_scenery(*cursor.pixel))
+        else if (auto* cl = find_clickable_scenery(cursor.pixel))
         {
             auto& e = *cl->e;
             auto i = e.index();
