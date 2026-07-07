@@ -88,8 +88,6 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
     arrayReserve(wall_fragments, 16);
     arrayResize(next_wall_fragments, 0);
     arrayReserve(next_wall_fragments, 16);
-    arrayResize(output, 0);
-    arrayReserve(output, 16);
 
     constexpr auto half_tile = tile_size_xy*.5f;
     const unsigned XAxis = !IsWest ? 0 : 1;
@@ -221,7 +219,7 @@ Array<WallFragment> corner_fragdata;
 template<Group_ G, bool IsWest>
 void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                   SpriteList& wsl,
-                  global_coords coord, uint32_t tile)
+                  global_coords coord, uint32_t tile, ArrayView<const WallFragment> fragments)
 {
     if (!group.is_defined)
         return;
@@ -238,9 +236,6 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     const point tile_center {c.coord(), pos, {}};
     constexpr auto half = iTILE_SIZE2/2;
     constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
-
-    const auto holes = find_wall_holes_in_world_coords(hole_data, c, pos, IsWest, HoleRegion::Wall);
-    const auto fragments = cut_wall_face(fragdata, holes, pos, Depthʹ, IsWest, HoleRegion::Wall);
 
     if constexpr(G == Group_::side) [[unlikely]]
     {
@@ -570,17 +565,23 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
             {
                 auto& A_n = *A_nʹ;
                 const auto& dir = A_n.calc_direction(Direction_::N);
-                do_wall_part<Group_::wall, false>(dir.wall, A_n, *this, W, wall_static_mesh, coord, k);
-                do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, wall_static_mesh, coord, k);
-                do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, wall_static_mesh, coord, k);
+                const auto pos = local_coords{k};
+                const auto holes = find_wall_holes_in_world_coords(hole_data, *this, pos, false, HoleRegion::Wall);
+                const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A_n.info().depth, false, HoleRegion::Wall);
+                do_wall_part<Group_::wall, false>(dir.wall, A_n, *this, W, wall_static_mesh, coord, k, fragments);
+                do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, wall_static_mesh, coord, k, fragments);
+                do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, wall_static_mesh, coord, k, fragments);
             }
             if (auto* A_wʹ = W.atlases[k*2 + 1].get())
             {
                 auto& A_w = *A_wʹ;
                 const auto& dir = A_w.calc_direction(Direction_::W);
-                do_wall_part<Group_::wall,  true>(dir.wall, A_w, *this, W, wall_static_mesh, coord, k);
-                do_wall_part<Group_::side,  true>(dir.side, A_w, *this, W, wall_static_mesh, coord, k);
-                do_wall_part<Group_::top,   true>(dir.top,  A_w, *this, W, wall_static_mesh, coord, k);
+                const auto pos = local_coords{k};
+                const auto holes = find_wall_holes_in_world_coords(hole_data, *this, pos, true, HoleRegion::Wall);
+                const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A_w.info().depth, true, HoleRegion::Wall);
+                do_wall_part<Group_::wall,  true>(dir.wall, A_w, *this, W, wall_static_mesh, coord, k, fragments);
+                do_wall_part<Group_::side,  true>(dir.side, A_w, *this, W, wall_static_mesh, coord, k, fragments);
+                do_wall_part<Group_::top,   true>(dir.top,  A_w, *this, W, wall_static_mesh, coord, k, fragments);
             }
         }
     }
