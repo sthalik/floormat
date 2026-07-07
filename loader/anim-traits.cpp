@@ -12,6 +12,7 @@
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <cr/Optional.h>
+#include <cr/Path.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 #include <mg/PixelStorage.h>
@@ -136,7 +137,11 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const uint32_t fh = (uint32_t)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
                 fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
-                const uint32_t mem_y_start = full_height - (uint32_t)f.offset.y() - fh;
+                const uint32_t ox = (uint32_t)f.offset.x(), oy = (uint32_t)f.offset.y();
+                // Subtraction form keeps offset+size from wrapping past the texture.
+                fm_soft_assert(ox <= full_width && fw <= full_width - ox);
+                fm_soft_assert(oy <= full_height && fh <= full_height - oy);
+                const uint32_t mem_y_start = full_height - oy - fh;
                 PixelStorage sub_storage = tex.storage();
                 sub_storage.setRowLength((Int)full_width)
                            .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
@@ -170,6 +175,12 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
 
 auto anim_traits::make_cell(StringView name) -> Optional<Cell>
 {
+    // Anims have no pre-loaded name list. Probe the file so a missing asset
+    // returns {} and honors loader_policy instead of throwing from make_atlas().
+    char buf[fm_FILENAME_MAX];
+    auto json_path = loader.make_atlas_path(buf, {}, name, ".json"_s);
+    if (!Path::exists(json_path))
+        return {};
     return { InPlace, Cell { .atlas = {}, .name = name } };
 }
 

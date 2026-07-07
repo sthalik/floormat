@@ -133,13 +133,15 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         fm_assert(t.name_of(*cʹ));
         fm_assert(!t.atlas_of(*cʹ));
         fm_assert(t.name_of(*cʹ) == name);
+        String& name_{t.name_of(*cʹ)};
+        if (name_.isSmall()) name_ = String{AllocatedInit, name_};
+        // Build the atlas before publishing the cell, so a make_atlas() throw
+        // can't leave a null-atlas cell behind or grow the array on every retry.
+        t.atlas_of(*cʹ) = make_atlas(name, *cʹ);
+        fm_debug_assert(t.atlas_of(*cʹ));
         const size_t index{s.cell_array.size()};
         arrayAppend(s.cell_array, move(*cʹ));
         Cell& c{s.cell_array.back()};
-        String& name_{t.name_of(c)};
-        if (name_.isSmall()) name_ = String{AllocatedInit, name_};
-        t.atlas_of(c) = make_atlas(name, c);
-        fm_debug_assert(t.atlas_of(c));
         s.name_map[t.name_of(c)] = index;
         Hash::set_open_addressing_load_factor(s.name_map);
         return t.atlas_of(c);
@@ -202,14 +204,16 @@ auto atlas_loader<ATLAS, TRAITS>::get_invalid_atlas() -> const Cell&
 template<typename ATLAS, typename TRAITS>
 bool atlas_loader<ATLAS, TRAITS>::cell_exists(Corrade::Containers::StringView name)
 {
-    return s.name_map.contains(name);
+    // -1uz marks a name looked up under warn/ignore that has no backing cell.
+    auto it = s.name_map.find(name);
+    return it != s.name_map.end() && it->second != -1uz;
 }
 
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::get_cell(StringView name) -> const Cell&
 {
     auto it = s.name_map.find(name);
-    fm_assert(it != s.name_map.end());
+    fm_assert(it != s.name_map.end() && it->second != -1uz);
     return s.cell_array[ it->second ];
 }
 
