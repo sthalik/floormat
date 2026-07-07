@@ -89,6 +89,7 @@ private:
     size_t count = 0, capacity = 0;
     Framebuffer framebuffer;
     GL::Mesh occlusion_mesh{NoCreate};
+    Vector4i saved_scissor; // GL_SCISSOR_BOX layout: x, y, width, height
     static constexpr auto starting_capacity = 32;
 
     GL::Buffer light_vertex_buf{NoCreate};

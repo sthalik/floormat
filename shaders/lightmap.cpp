@@ -86,6 +86,12 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.fb
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
         .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
+        // clearColor() indexes by draw buffer, and a fresh FBO maps only
+        // draw buffer 0. Map both so the accum clear here and in bind() lands.
+        .mapForDraw({
+            { 0u, GL::Framebuffer::ColorAttachment{0} },
+            { 1u, GL::Framebuffer::ColorAttachment{1} },
+        })
         .clearColor(0, Color4{0, 0, 0, 1})
         .clearColor(1, Color4{0, 0, 0, 1});
 
@@ -138,6 +144,8 @@ std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
         else
             capacity <<= 1;
         fm_debug_assert(count < capacity);
+        // quad_indexes() truncates to UnsignedShort, 4 vertices per quad.
+        fm_assert(capacity <= 0x10000u/4);
 
         occlusion_mesh = GL::Mesh{NoCreate};
         vertex_buf = GL::Buffer{NoCreate};
@@ -285,7 +293,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 void lightmap_shader::bind()
 {
     framebuffer.fb.bind();
-    GL::Renderer::setScissor({{}, Vector2i(image_size)});
+    // Widen the scissor to the whole lightmap FBO so a leftover window-sized
+    // scissor can't clip the render. Restored in finish().
+    { GLint box[4]; glGetIntegerv(GL_SCISSOR_BOX, box); saved_scissor = {box[0], box[1], box[2], box[3]}; }
+    GL::Renderer::setScissor({{}, Vector2i((int)real_image_size)});
     framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::One);
@@ -293,10 +304,12 @@ void lightmap_shader::bind()
     setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
 }
 
-void lightmap_shader::finish() // NOLINT(*-convert-member-functions-to-static)
+void lightmap_shader::finish()
 {
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
+    GL::Renderer::setScissor({{saved_scissor[0], saved_scissor[1]},
+                              {saved_scissor[0] + saved_scissor[2], saved_scissor[1] + saved_scissor[3]}});
 }
 
 GL::Texture2D& lightmap_shader::accum_texture()
