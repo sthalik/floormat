@@ -15,7 +15,7 @@ using std::chrono::duration;
 using Clock = std::chrono::high_resolution_clock;
 using SystemClock = std::chrono::system_clock;
 using Nsecs = duration<uint64_t, std::nano>;
-using Millis = duration<unsigned, std::milli>;
+using Millis = duration<uint64_t, std::milli>; // 32-bit rep would truncate ms-since-epoch before the %1000
 
 namespace {
 
@@ -80,7 +80,7 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
     const auto* tm  = std::localtime(&time);
     auto len = std::strftime(buf, array_size(buf), fmt, tm);
     fm_assert(len > 0 && len <= fmtsize);
-    auto len2 = std::sprintf(buf + len, "%03u", unsigned{ms.count()});
+    auto len2 = std::sprintf(buf + len, "%03u", (unsigned)ms.count());
     fm_assert(len2 > 0 && len + (size_t)len2 < array_size(buf));
     return buf;
 }

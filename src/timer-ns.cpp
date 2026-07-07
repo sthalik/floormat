@@ -47,7 +47,7 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         char buf[64];
         std::snprintf(buf, sizeof buf, "%" PRIu64 "_%" PRIu64 " ₙₛ",
                       val.stamp / 1000, val.stamp % 1000);
-        return dbg;
+        return dbg << Debug::nospace << buf;
     }
     else
     {
