@@ -40,6 +40,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         const bool is_dynamic = e.is_dynamic();
         if (!is_dynamic && !modify_static)
             continue;
+        if (is_dynamic && !render_vobjs && e.is_virtual())
+            continue;
 
         const auto& atlas = e.atlas;
         //const auto pos = e->coord.local();
@@ -61,8 +63,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             Quads::vertexes v;
             for (uint8_t j = 0; j < 4; j++)
                 v[j] = {quad[j], uv3[j], depth};
-            if (!render_vobjs && e.is_virtual())
-                continue;
             sb.emit(v, depth);
         }
         else
