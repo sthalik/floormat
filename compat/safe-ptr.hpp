@@ -27,9 +27,11 @@ public:
         ptr(new T{ forward<Ts>(args)... })
     {}
 
-    safe_ptr(const safe_ptr& other) noexcept:
-          ptr{new T{*other.ptr}}
-    {}
+    safe_ptr(const safe_ptr& other) noexcept: ptr{nullptr}
+    {
+        fm_assert(other.ptr); // copying a moved-from safe_ptr breaks the never-null invariant
+        ptr = new T{*other.ptr};
+    }
 
     safe_ptr& operator=(safe_ptr&& other) noexcept
     {
@@ -42,12 +44,11 @@ public:
 
     safe_ptr& operator=(const safe_ptr& other) noexcept
     {
+        fm_assert(other.ptr);
         if (ptr != other.ptr)
         {
             delete ptr;
-            ptr = nullptr;
-            if (other.ptr)
-                ptr = new T{*other.ptr};
+            ptr = new T{*other.ptr};
         }
         return *this;
     }

@@ -228,9 +228,10 @@ fm_template constexpr fm_basic_iptr::basic_iptr(const fm_basic_iptr& other) noex
         ops_t::incr(_ptr);
 }
 
-fm_template constexpr fm_basic_iptr::basic_iptr(T* ptr) noexcept
+fm_template constexpr fm_basic_iptr::basic_iptr(T* ptr) noexcept: _ptr{ptr}
 {
-    ops_t::init_to_1(ptr);
+    if (_ptr)
+        ops_t::init_to_1(_ptr);
 }
 
 // ----- destructor -----
@@ -276,8 +277,8 @@ noexcept(std::is_nothrow_constructible_v<T, Ts&&...>):
     ops_t::init_to_1(_ptr);
 }
 
-fm_template constexpr void fm_basic_iptr::reset() noexcept { if (_ptr) ops_t::decr(_ptr); }
-fm_template constexpr void fm_basic_iptr::reset(T* ptr) noexcept { reset(); _ptr = ptr; }
+fm_template constexpr void fm_basic_iptr::reset() noexcept { if (_ptr) { ops_t::decr(_ptr); _ptr = nullptr; } }
+fm_template constexpr void fm_basic_iptr::reset(T* ptr) noexcept { reset(); _ptr = ptr; if (_ptr) ops_t::init_to_1(_ptr); }
 fm_template constexpr void fm_basic_iptr::swap(basic_iptr& other) noexcept { auto p = _ptr; _ptr = other._ptr; other._ptr = p; }
 
 fm_template constexpr T* fm_basic_iptr::get() const noexcept
