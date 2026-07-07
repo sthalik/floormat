@@ -116,13 +116,10 @@ unsigned main_impl::get_window_refresh_rate(SDL_Window* window, unsigned min, un
         fm_warn_once("SDL_GetWindowDisplayIndex: %s", SDL_GetError());
     else if (SDL_DisplayMode dpymode{}; SDL_GetCurrentDisplayMode(index, &dpymode) < 0)
         fm_warn_once("SDL_GetCurrentDisplayMode: %s", SDL_GetError());
-    else
-    {
-        auto hz = (unsigned)dpymode.refresh_rate;
-        fm_assert(dpymode.refresh_rate > 0);
-        fm_assert(hz < max);
-        return hz;
-    }
+    // SDL reports refresh_rate == 0 for "unspecified" (headless, RDP, some VMs),
+    // so clamp into [min, max] instead of asserting on the reported value.
+    else if (dpymode.refresh_rate > 0)
+        return std::clamp((unsigned)dpymode.refresh_rate, min, max);
     return min;
 }
 
@@ -136,12 +133,12 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
     if (interval < 0) [[unlikely]]
         fm_warn_once("bad swap interval %d", interval);
 
-    auto hz      = get_window_refresh_rate(window(), _frame_timings.min_refresh_rate, 10000);
+    auto hz      = get_window_refresh_rate(window(), _frame_timings.min_refresh_rate, 100'000);
     bool hidden  = flags & (SDL_WINDOW_HIDDEN|SDL_WINDOW_MINIMIZED);
     bool focused = flags & SDL_WINDOW_INPUT_FOCUS;
     focused &= !hidden;
 
-    fm_assert(hz > 0 && hz < 1000);
+    fm_assert(hz > 0 && hz <= 1000);
     _frame_timings = {
         .fps_counter = _frame_timings.fps_counter, // don't reset it
         .refresh_rate = hz,
