@@ -60,7 +60,7 @@ static void to_json(json& j, const anim_group& val)
 static void from_json(const json& j, anim_group& val)
 {
     val = {};
-    val.name = j["name"];
+    val.name = j.at("name");
     fm_soft_assert(!val.name.isEmpty());
     if (j.contains("mirror-from"))
     {
@@ -68,7 +68,7 @@ static void from_json(const json& j, anim_group& val)
         val.mirror_from = j["mirror-from"];
     }
     else
-        val.frames = j["frames"];
+        val.frames = j.at("frames");
     if (j.contains("ground"))
         val.ground = j["ground"];
     if (j.contains("offset"))
@@ -103,7 +103,7 @@ static void to_json(json& j, const anim_def& val)
 static void from_json(const json& j, anim_def& val)
 {
     val = {};
-    val.object_name = j["object_name"];
+    val.object_name = j.at("object_name");
     fm_soft_assert(!val.object_name.isEmpty());
     if (j.contains("anim_name")) // todo underscore to hyphen
         val.anim_name = j["anim_name"];
@@ -118,9 +118,9 @@ static void from_json(const json& j, anim_def& val)
     if (j.contains("fps"))
         val.fps = j["fps"];
 
-    val.groups = j["groups"];
+    val.groups = j.at("groups");
     fm_soft_assert(!val.groups.isEmpty());
-    val.scale = j["scale"];
+    val.scale = j.at("scale");
     fm_soft_assert(val.scale.type != anim_scale_type::invalid);
 }
 
@@ -162,8 +162,11 @@ void adl_serializer<anim_scale>::from_json(const json& j, anim_scale& val)
     }
     else if (bool is_width = type == "width"_s; is_width || type == "height"_s)
     {
-        val = anim_scale::fixed{(unsigned)j[1], is_width};
-        fm_soft_assert(val.f.width_or_height > 0);
+        // Read signed first: nlohmann wraps a negative JSON number into a huge
+        // unsigned that would slip past the width_or_height > 0 check.
+        const int64_t v = j.at(1);
+        fm_soft_assert(v > 0 && v <= 0xffffffffLL);
+        val = anim_scale::fixed{(unsigned)v, is_width};
     }
     else
         fm_throw("invalid anim_scale_type '{}'"_cf, type);

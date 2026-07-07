@@ -42,8 +42,8 @@ void adl_serializer<tile_image_proto>::to_json(json& j, const floormat::tile_ima
 void adl_serializer<tile_image_proto>::from_json(const json& j, floormat::tile_image_proto& val)
 {
     using nlohmann::from_json;
-    val.atlas = j["atlas"];
-    val.variant = j["variant"];
+    val.atlas = j.at("atlas");
+    val.variant = j.at("variant");
 }
 
 void adl_serializer<local_coords>::to_json(json& j, const local_coords& val) { using nlohmann::to_json; to_json(j, local_coords_{val.x, val.y}); }

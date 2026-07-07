@@ -138,7 +138,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
             value = j[s];
     };
 
-    StringView atlas_name = j["atlas-name"];
+    StringView atlas_name = j.at("atlas-name");
     fm_soft_assert(!atlas_name.isEmpty());
     f = {};
     f.atlas = loader.anim_atlas(atlas_name, loader_::SCENERY_PATH);
@@ -216,7 +216,7 @@ void adl_serializer<scenery_cell>::from_json(const json& j, scenery_cell& val)
     if (j.contains("name"))
         val.name = j["name"];
     else
-        val.name = j["atlas-name"];
+        val.name = j.at("atlas-name");
 }
 
 } // namespace nlohmann

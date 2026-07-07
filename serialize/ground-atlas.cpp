@@ -26,8 +26,8 @@ void adl_serializer<ground_def>::from_json(const json& j, ground_def& val)
 {
     using nlohmann::from_json;
     val = {};
-    val.name = j["name"];
-    val.size = j["size"];
+    val.name = j.at("name");
+    val.size = j.at("size");
     if (j.contains("pass-mode"))
         val.pass = j["pass-mode"];
 }
@@ -41,9 +41,9 @@ void adl_serializer<ground_cell>::from_json(const json& j, ground_cell& val)
 {
     using nlohmann::from_json;
     val = {};
-    val.name = j["name"];
+    val.name = j.at("name");
     fm_soft_assert(loader.check_atlas_name(val.name));
-    val.size = j["size"];
+    val.size = j.at("size");
     if (j.contains("pass-mode"))
         val.pass = j["pass-mode"];
 }
