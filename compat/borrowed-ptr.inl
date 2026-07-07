@@ -93,15 +93,18 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
 {
     if (blk != other.blk)
     {
-        detail_bptr::control_block::decrement(blk);
-        blk = other.blk;
-        if (blk)
+        // Retain other's block before releasing ours: an aliased assignment
+        // (a = a->child) can destroy the object holding other when we decrement.
+        auto* new_blk = other.blk;
+        if (new_blk)
         {
 #ifndef FM_NO_WEAK_BPTR
-            ++blk->_soft_count;
+            ++new_blk->_soft_count;
 #endif
-            ++blk->_hard_count;
+            ++new_blk->_hard_count;
         }
+        detail_bptr::control_block::decrement(blk);
+        blk = new_blk;
     }
     return *this;
 }
@@ -110,9 +113,13 @@ template<typename T>
 template<typename Y>
 bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
 {
-    detail_bptr::control_block::decrement(blk);
-    blk = other.blk;
-    other.blk = nullptr;
+    if (blk != other.blk)
+    {
+        auto* new_blk = other.blk;
+        other.blk = nullptr;
+        detail_bptr::control_block::decrement(blk);
+        blk = new_blk;
+    }
     return *this;
 }
 

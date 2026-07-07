@@ -11,8 +11,11 @@ void control_block::decrement(control_block*& blk) noexcept
     fm_bptr_assert(c2 != (uint32_t)-1);
     if (c2 == 0)
     {
-        delete blk->_ptr;
+        // Null before delete so a weak_bptr::lock() from within the destructor
+        // sees an expired block instead of resurrecting a dying object.
+        auto* ptr = blk->_ptr;
         blk->_ptr = nullptr;
+        delete ptr;
 #ifdef FM_NO_WEAK_BPTR
         delete blk;
 #endif
