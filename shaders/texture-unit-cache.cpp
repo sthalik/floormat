@@ -40,8 +40,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
     {
         units[unbound_id] = {tex, ++lru_counter};
         tex->bind((Int)unbound_id);
-        ++cache_hit_count;
-        auto label = tex->label();
+        ++cache_miss_count;
         //Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << unbound_id;
         return (int32_t)unbound_id;
     }
@@ -77,6 +76,7 @@ void texture_unit_cache::invalidate()
     units = Array<unit_data>{ValueInit, unit_count};
     lru_counter = 0;
     cache_miss_count = 0;
+    cache_hit_count = 0;
 }
 
 void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
