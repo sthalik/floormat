@@ -302,9 +302,10 @@ constexpr Vector2i chunk_offsets[3][3] = {
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
-    constexpr auto max_bb_size = Math::Vector2<T>{T{0xff}, T{0xff}};
-    constexpr auto half_bb = (max_bb_size + Math::Vector2{T{1}}) / T{2};
-    constexpr auto start = -half_bb, end = chunk_size<T> + half_bb;
+    // same slack on both sides as the chunk_bounds cull in search.cpp
+    constexpr auto max_bb_size = Math::Vector2<T>{T{0x100}, T{0x100}};
+    constexpr auto start = -tile_size<T>/T{2} - max_bb_size,
+                   end = chunk_size<T> - tile_size<T>/T{2} + max_bb_size;
 
     return start.x() <= p1.x() && end.x() >= p0.x() &&
            start.y() <= p1.y() && end.y() >= p0.y();

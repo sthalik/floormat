@@ -78,9 +78,10 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
-    constexpr auto max_bb_size = Math::Vector2<T>{T{0xff}, T{0xff}};
-    constexpr auto half_bb = (max_bb_size + Math::Vector2{T{1}}) / T{2};
-    constexpr auto start = -half_bb, end = chunk_size<T> + half_bb;
+    // same slack on both sides as the chunk_bounds cull in search.cpp
+    constexpr auto max_bb_size = Math::Vector2<T>{T{0x100}, T{0x100}};
+    constexpr auto start = -tile_size<T>/T{2} - max_bb_size,
+                   end = chunk_size<T> - tile_size<T>/T{2} + max_bb_size;
 
     return start.x() <= p1.x() && end.x() >= p0.x() &&
            start.y() <= p1.y() && end.y() >= p0.y();
@@ -216,7 +217,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     bool b = true;
     float t_entry = 0;
 
-    while (t_entry <= ray_len + eps && b)
+    // a hit's tmin can lie up to a full rect extent past the cell that found it,
+    // so keep walking until the cell entry distance passes the best hit
+    while (t_entry <= ray_len + eps && (b || t_entry <= min_tmin))
     {
         Vector2i this_chunk_off{chunk_off_x, chunk_off_y};
         if (this_chunk_off != last_chunk_off)

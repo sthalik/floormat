@@ -1,7 +1,9 @@
 #include "app.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/world.hpp"
+#include "src/critter.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include <mg/Functions.h>
@@ -114,6 +116,46 @@ void Test::test_raycast()
             {6, 7},
         };
         run(p, p, w, true, 0);
+    }
+    {   // the nearest collider must win even when a farther rect's entry into an
+        // early cell puts it into the result before the walk reaches the near one
+        auto w2 = world{};
+        constexpr auto ch = chunk_coords_{8, 8, 0};
+
+        auto decoy = critter_proto{};
+        decoy.bbox_offset = Vector2b{0, 50};
+        decoy.bbox_size = Vector2ub{240, 44};
+        (void)w2.make_object<critter>(w2.make_id(), {ch, {5, 2}}, decoy);
+
+        auto blocker = critter_proto{};
+        blocker.offset = Vector2b{-17, 18};
+        blocker.bbox_size = Vector2ub{22, 12};
+        auto B = w2.make_object<critter>(w2.make_id(), {ch, {4, 2}}, blocker);
+
+        auto diag = rc::raycast_diag_s{};
+        auto res = raycast_with_diag(diag, w2, point{ch, {2, 2}, {}}, point{ch, {12, 4}, {}}, 0);
+        fm_assert(res.has_result);
+        fm_assert(!res.success);
+        fm_assert(res.collider.id == B->id);
+        fm_assert(Math::abs(diag.tmin - 101.5f) < 16);
+    }
+    {   // an entry rect reaches offset + bbox_offset + bbox_size/2 past the owner
+        // chunk's edge, farther than the neighbor cull's old 128px margin
+        auto w2 = world{};
+        constexpr auto ch = chunk_coords_{8, 10, 0};
+        constexpr auto ch2 = chunk_coords_{9, 10, 0};
+        (void)w2[ch2];
+
+        auto p = critter_proto{};
+        p.offset = Vector2b{31, 0};
+        p.bbox_offset = Vector2b{127, 0};
+        p.bbox_size = Vector2ub{200, 60};
+        auto C = w2.make_object<critter>(w2.make_id(), {ch, {15, 8}}, p);
+
+        auto res = raycast(w2, point{ch2, {3, 1}, {-2, 0}}, point{ch2, {3, 12}, {-2, 0}}, 0);
+        fm_assert(res.has_result);
+        fm_assert(!res.success);
+        fm_assert(res.collider.id == C->id);
     }
 }
 
