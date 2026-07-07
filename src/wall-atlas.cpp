@@ -163,6 +163,10 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             const Frame& f = _frame_array[fi];
             const uint32_t fw = f.size.x();
             const uint32_t fh = f.size.y();
+            // Every frame is uploaded, not just group-referenced ones, so validate
+            // here. Subtraction form avoids the wrap that offset+size can hide.
+            fm_soft_assert(f.offset.x() <= img_size.x() && fw <= img_size.x() - f.offset.x());
+            fm_soft_assert(f.offset.y() <= full_height && fh <= full_height - f.offset.y());
             // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
             const uint32_t mem_y_start = full_height - f.offset.y() - fh;
             PixelStorage sub_storage = img.storage();
@@ -256,7 +260,7 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
     default: other = Direction_::COUNT;
     }
     if (other != Direction_::COUNT)
-        if (auto dai = _direction_map[(size_t)Direction_::N])
+        if (auto dai = _direction_map[(size_t)other])
             return _dir_array[dai.val];
     fm_abort("wall_atlas: can't find direction '%d'", (int)dir);
 }
