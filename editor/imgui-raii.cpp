@@ -45,15 +45,17 @@ void text(StringView str, ImGuiTextFlags flags)
     ImGui::TextEx(str.data(), str.data() + str.size(), flags);
 }
 
-raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn} {}
+raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn}, truthy{fn != nullptr} {}
+raii_wrapper::raii_wrapper(raii_wrapper::F fn, bool truthy) : dtor{fn}, truthy{truthy} {}
 raii_wrapper::~raii_wrapper() { if (dtor) dtor(); }
-raii_wrapper::raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor} { other.dtor = nullptr; }
+raii_wrapper::raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor}, truthy{other.truthy} { other.dtor = nullptr; other.truthy = false; }
 raii_wrapper& raii_wrapper::operator=(raii_wrapper&& other) noexcept
 {
     dtor = std::exchange(other.dtor, nullptr);
+    truthy = std::exchange(other.truthy, false);
     return *this;
 }
-raii_wrapper::operator bool() const noexcept { return dtor != nullptr; }
+raii_wrapper::operator bool() const noexcept { return truthy; }
 
 raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
 {
@@ -151,10 +153,10 @@ raii_wrapper begin_window(Containers::StringView name, bool* p_open, ImGuiWindow
 {
     if (name.isEmpty())
         name = "floormat editor";
-    if (ImGui::Begin(name.data(), p_open, flags))
-        return {&ImGui::End};
-    else
-        return {};
+    // Unlike the other Begin/End pairs, ImGui::End() must be called for every
+    // ImGui::Begin() even when it returns false (collapsed window).
+    bool visible = ImGui::Begin(name.data(), p_open, flags);
+    return {&ImGui::End, visible};
 }
 
 raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int window_flags)

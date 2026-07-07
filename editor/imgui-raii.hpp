@@ -11,6 +11,7 @@ struct raii_wrapper final
 {
     using F = void(*)(void);
     raii_wrapper(F fn);
+    raii_wrapper(F fn, bool truthy);
     raii_wrapper() = default;
     ~raii_wrapper();
     raii_wrapper(const raii_wrapper&) = delete;
@@ -21,6 +22,9 @@ struct raii_wrapper final
 
 private:
     F dtor = nullptr;
+    // Separate from dtor: begin_window() must always run End() but is falsy
+    // when the window is collapsed so callers skip content submission.
+    bool truthy = false;
 };
 
 [[nodiscard]] raii_wrapper begin_window(StringView name = {}, bool* p_open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_None);
