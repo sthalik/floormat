@@ -152,6 +152,9 @@ void CoverGrid::build_impl(chunk* self)
     for (auto i = 0u; i < 8; i++)
         versions[i] = neighbors[i] ? neighbors[i]->pass_gen_counter() : (uint32_t)-1;
     versions[8] = self->pass_gen_counter();
+    for (auto i = 0u; i < 8; i++)
+        instance_ids[i] = neighbors[i] ? neighbors[i]->instance_id() : 0;
+    instance_ids[8] = self->instance_id();
 }
 
 bool CoverGrid::fill_octant(uint32_t k, chunk& self)

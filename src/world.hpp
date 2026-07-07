@@ -60,6 +60,7 @@ private:
 
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
+    static uint64_t next_chunk_instance_id() noexcept;
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);

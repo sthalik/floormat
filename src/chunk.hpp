@@ -79,6 +79,7 @@ public:
 
     void ensure_passability() noexcept;
     uint32_t pass_gen_counter() const;
+    uint64_t instance_id() const noexcept;
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;
     class world& world() noexcept;
@@ -118,6 +119,7 @@ private:
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;
+    uint64_t _instance_id;
     uint32_t _pass_gen_ctr = 0;
 
     mutable bool _maybe_empty      : 1 = true,

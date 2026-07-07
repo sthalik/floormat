@@ -22,6 +22,7 @@ GridBase::GridBase(chunk& ch):
     c{&ch}, w{&ch.world()}, coord{ch.coord()}
 {
     versions.fill((uint32_t)-1);
+    instance_ids[8] = ch.instance_id();
 }
 
 bool GridBase::is_stale() const
@@ -41,14 +42,18 @@ void GridBase::reset_base_for_reuse(chunk& ch)
     coord = ch.coord();
     neighbors = {};
     versions.fill((uint32_t)-1);
+    instance_ids = {};
+    instance_ids[8] = ch.instance_id();
 }
 
 void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk)
 {
     auto* current = at_chunk(coord);
-    if (c != current)
+    auto current_id = current ? current->instance_id() : 0;
+    if (c != current || instance_ids[8] != current_id)
     {
         c = current;
+        instance_ids[8] = current_id;
         mark_stale();
         return;
     }
@@ -72,10 +77,12 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
     for (auto i = 0u; i < 8; i++)
     {
         auto* nb = at_chunk(coord + world::neighbor_offsets[i]);
+        auto nb_id = nb ? nb->instance_id() : 0;
 
-        if (nb != neighbors[i])
+        if (nb != neighbors[i] || instance_ids[i] != nb_id)
         {
             neighbors[i] = nb;
+            instance_ids[i] = nb_id;
             mark_stale();
             return;
         }

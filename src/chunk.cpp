@@ -41,6 +41,7 @@ tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_i
 const_tile_ref chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
 chunk_coords_ chunk::coord() const noexcept { return _coord; }
+uint64_t chunk::instance_id() const noexcept { return _instance_id; }
 
 Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 {
@@ -113,7 +114,8 @@ void chunk::mark_modified() noexcept
 chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
     _world{&w},
     _rtree{InPlaceInit},
-    _coord{ch}
+    _coord{ch},
+    _instance_id{world::next_chunk_instance_id()}
 {
     _world->register_chunk(this);
 }

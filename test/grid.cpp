@@ -450,6 +450,21 @@ void test_chunk_reinsertion_after_collect(uint32_t div_size)
     fm_assert(count_passable(g2) == dc * dc);
 }
 
+void test_chunk_instance_id_unique_after_collect()
+{
+    auto w = world();
+
+    auto id1 = w[COORD].instance_id();
+    fm_assert(id1 != 0);
+
+    w.collect(true, true);
+    fm_assert(w.at(COORD) == nullptr);
+
+    auto id2 = w[COORD].instance_id();
+    fm_assert(id2 != 0);
+    fm_assert(id1 != id2);
+}
+
 void test_frame_counter_ticks_independently(uint32_t div_size)
 {
     auto w = world();
@@ -965,6 +980,7 @@ void test_grid()
         test_partial_collect_then_collect_survivors(ds);
     }
     test_pool_destruction_with_live_grids();
+    test_chunk_instance_id_unique_after_collect();
 }
 
 } // namespace floormat::Test

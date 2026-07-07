@@ -339,6 +339,15 @@ void world::chunk_table_prepare_frame()
 #endif
 }
 
+namespace {
+uint64_t g_next_chunk_instance_id = 0;
+} // namespace
+
+uint64_t world::next_chunk_instance_id() noexcept
+{
+    return ++g_next_chunk_instance_id;
+}
+
 void world::register_chunk(chunk* c) noexcept
 {
     fm_debug_assert(c->_prev == nullptr && c->_next == nullptr);
