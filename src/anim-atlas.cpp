@@ -59,7 +59,9 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
         {
             fm_soft_assert(fr.size.product() != 0);
             fm_soft_assert(fr.offset < pixel_size);
-            fm_soft_assert(fr.offset + fr.size <= pixel_size);
+            // Subtraction form avoids the wrap that offset+size can hide. Safe
+            // because the assert above already established offset < pixel_size.
+            fm_soft_assert(fr.size <= pixel_size - fr.offset);
         }
 }
 
