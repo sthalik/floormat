@@ -66,7 +66,7 @@ function(fm-userconfig-external)
 endfunction()
 
 function(fm-userconfig-src)
-    add_compile_options(-W4 -Qvec-report:1)
+    add_compile_options(-W4)
     add_compile_options(
         -wd4702 # warning C4702: unreachable code
     )
