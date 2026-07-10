@@ -71,7 +71,7 @@ class bptr final // NOLINT(*-special-member-functions)
 public:
     template<typename... Ts>
     //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-    CORRADE_ALWAYS_INLINE explicit bptr(InPlaceInitT, Ts&&... args) noexcept;
+    CORRADE_ALWAYS_INLINE explicit bptr(InPlaceInitT, Ts&&... args) noexcept(std::is_nothrow_constructible_v<T, Ts&&...>);
 
     CORRADE_ALWAYS_INLINE explicit bptr(T* ptr) noexcept;
     CORRADE_ALWAYS_INLINE bptr() noexcept;
@@ -129,7 +129,7 @@ public:
 template<typename T>
 template<typename... Ts>
 //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept: // todo add fused allocation
+bptr<T>::bptr(InPlaceInitT, Ts&&... args) noexcept(std::is_nothrow_constructible_v<T, Ts&&...>): // todo add fused allocation
     bptr{ new std::remove_const_t<T>{ forward<Ts>(args)... } }
 {}
 

@@ -18,16 +18,17 @@ public:
     }
 
     safe_ptr(std::nullptr_t) = delete;
-    safe_ptr(T* ptr) noexcept: ptr{ptr} { fm_assert(ptr != nullptr); }
+    explicit safe_ptr(T* ptr) noexcept: ptr{ptr} { fm_assert(ptr != nullptr); }
     safe_ptr(safe_ptr&& other) noexcept: ptr{other.ptr} { other.ptr = nullptr; }
 
-    safe_ptr() noexcept: safe_ptr{InPlaceInit} {}
+    safe_ptr() noexcept(noexcept(safe_ptr{InPlaceInit})): safe_ptr{InPlaceInit} {}
 
-    template<typename... Ts> safe_ptr(InPlaceInitT, Ts&&... args) noexcept:
+    template<typename... Ts>
+    safe_ptr(InPlaceInitT, Ts&&... args) noexcept(std::is_nothrow_constructible_v<T, Ts&&...>):
         ptr(new T{ forward<Ts>(args)... })
     {}
 
-    safe_ptr(const safe_ptr& other) noexcept: ptr{nullptr}
+    safe_ptr(const safe_ptr& other) noexcept(std::is_nothrow_copy_constructible_v<T>)
     {
         fm_assert(other.ptr); // copying a moved-from safe_ptr breaks the never-null invariant
         ptr = new T{*other.ptr};
@@ -42,7 +43,7 @@ public:
         return *this;
     }
 
-    safe_ptr& operator=(const safe_ptr& other) noexcept
+    safe_ptr& operator=(const safe_ptr& other) noexcept(std::is_nothrow_copy_constructible_v<T>)
     {
         fm_assert(other.ptr);
         if (ptr != other.ptr)
