@@ -3,7 +3,7 @@
 #include "src/global-coords.hpp"
 #include "src/tile-defs.hpp"
 #include <benchmark/benchmark.h>
-#include <array>
+#include <vector>
 #include <random>
 
 namespace floormat {
@@ -19,8 +19,8 @@ constexpr size_t K = 100'000;
 struct fixture
 {
     world w;
-    std::array<chunk_coords_, K> queries{};
-    std::array<chunk*, rect_n> arr{};
+    std::vector<chunk_coords_> queries{K};
+    std::vector<chunk*> arr{rect_n};
 
     static size_t flat_index(chunk_coords_ ch)
     {
