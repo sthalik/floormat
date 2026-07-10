@@ -233,6 +233,14 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 function(fm_install_executable self)
+    get_property(self_ TARGET "${self}" PROPERTY OUTPUT_NAME)
+    if (NOT "${self_}" STREQUAL "")
+        set(exe "${self_}")
+    else()
+        set(exe "${self}")
+    endif()
+    set(exe "${exe}${CMAKE_EXECUTABLE_SUFFIX}")
+
     if(NOT MSVC AND NOT APPLE AND FLOORMAT_SPLIT-DEBUG-INFO)
         if(CMAKE_RUNTIME_OUTPUT_DIRECTORY STREQUAL "")
             message(FATAL_ERROR "")
@@ -240,13 +248,6 @@ function(fm_install_executable self)
         if(NOT CMAKE_OBJCOPY)
             message(FATAL_ERROR "objcopy missing")
         endif()
-        get_property(self_ TARGET "${self}" PROPERTY OUTPUT_NAME)
-        if (NOT "${self_}" STREQUAL "")
-            set(exe "${self_}")
-        else()
-            set(exe "${self}")
-        endif()
-        set(exe "${exe}${CMAKE_EXECUTABLE_SUFFIX}")
         add_custom_command(TARGET ${self} POST_BUILD
                            COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug.uncompressed"
                            COMMAND "${CMAKE_OBJCOPY}" --compress-debug-sections "${exe}.debug.uncompressed" "${exe}.debug"
