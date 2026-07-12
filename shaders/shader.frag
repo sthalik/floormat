@@ -1,11 +1,11 @@
 precision highp float;
 
-layout (location = 0) uniform vec2 scale;
-layout (location = 1) uniform vec2 offset;
-layout (location = 2) uniform vec4 tint;
-layout (location = 3) uniform bool enable_lightmap;
-layout (location = 4) uniform sampler2DArray sampler;
-layout (location = 5) uniform sampler2D lightmap_sampler;
+uniform vec2 scale;
+uniform vec2 offset;
+uniform vec4 tint;
+uniform bool enable_lightmap;
+uniform sampler2DArray sampler;
+uniform sampler2D lightmap_sampler;
 
 layout (location = 0) noperspective in vec3 frag_texcoords;
 layout (location = 1) noperspective in vec2 frag_light_coord;

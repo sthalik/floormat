@@ -1,6 +1,7 @@
 #include "shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
+#include "compat/array-size.hpp"
 #include "texture-unit-cache.hpp"
 #include <cmath>
 #include <cr/Iterable.h>
@@ -27,7 +28,17 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile());
     CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
+
+    for (auto i = 0u; i < array_size(attribute_names); i++)
+        bindAttributeLocation(i, attribute_names[i]);
+
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
+
+    for (auto i = 0u; i < UNIFORM_COUNT; i++)
+    {
+        uniform_locations[i] = uniformLocation(uniform_names[i]);
+        fm_assert(uniform_locations[i] != -1);
+    }
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
@@ -91,6 +102,13 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
 void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
 {
     (void)tex;
+}
+
+void tile_shader::setUniform(Uniform u, auto value)
+{
+    fm_assert(u < UNIFORM_COUNT);
+    Int loc = uniform_locations[u];
+    AbstractShaderProgram::setUniform(loc, value);
 }
 
 } // namespace floormat

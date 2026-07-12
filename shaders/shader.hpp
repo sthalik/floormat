@@ -1,4 +1,5 @@
 #pragma once
+#include <cr/StringView.h>
 #include <mg/AbstractShaderProgram.h>
 #include <mg/Vector4.h>
 
@@ -42,6 +43,33 @@ private:
     void draw_pre(GL::AbstractTexture& tex);
     void draw_post(GL::AbstractTexture& tex);
 
+    enum Uniform : uint8_t {
+        ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
+        EnableLightmapUniform = 3,
+        SamplerUniform = 4, LightmapSamplerUniform = 5,
+        UNIFORM_COUNT = 6
+    };
+
+    void setUniform(Uniform u, auto value);
+
+    Int uniform_locations[UNIFORM_COUNT] = {};
+
+    static constexpr StringView uniform_names[UNIFORM_COUNT] = {
+        "scale"_s,
+        "offset"_s,
+        "tint"_s,
+        "enable_lightmap"_s,
+        "sampler"_s,
+        "lightmap_sampler"_s,
+    };
+
+    static constexpr StringView attribute_names[] = {
+        "position"_s,
+        "texcoords"_s,
+        "light_coord"_s,
+        "depth"_s,
+    };
+
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
     Vector2d _camera_offset;
     Vector4 _tint, _real_tint;
@@ -49,12 +77,6 @@ private:
     Vector2 _real_camera_offset;
     bool _enable_lightmap : 1 = false;
     Int _sampler = 0, _real_sampler;
-
-    enum : uint8_t {
-        ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
-        EnableLightmapUniform = 3,
-        SamplerUniform = 4, LightmapSamplerUniform = 5,
-    };
 };
 
 template<typename T, typename... Xs>
