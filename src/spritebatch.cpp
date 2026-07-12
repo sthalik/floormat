@@ -1,5 +1,5 @@
 #include "spritebatch.hpp"
-#include "src/quads.hpp"
+#include "src/quads-gl.hpp"
 #include "src/object.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/point.inl"
@@ -298,9 +298,8 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     if (size == 0)
         return;
 
-    // quad_indexes() truncates to UnsignedShort, 4 vertices per quad.
-    // todo the index buffer should move to UnsignedInt eventually.
-    fm_assert(size <= 0x10000u/4);
+    // raise the per-draw cap by widening Quads::index_type in src/quads.hpp.
+    fm_assert(size <= Quads::max_quads_per_buffer);
 
     const auto& S = impl.sort_indexes;
     auto& V = impl.vertex_buffer;
@@ -336,9 +335,9 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     {
         mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
         mesh.addVertexBuffer(slot.vertex_buffer_handle, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
-        mesh.setIndexBuffer(impl.index_buffer_handle, 0, GL::MeshIndexType::UnsignedShort);
+        mesh.setIndexBuffer(impl.index_buffer_handle, 0, Quads::index_gl_type);
     }
-    mesh.setCount(6 * (Int)V.size());
+    mesh.setCount((Int)(Quads::indexes_per_quad * V.size()));
     fm_assert(mesh.isIndexed());
 
     shader.draw(loader.atlas().texture(), mesh);
@@ -375,8 +374,8 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
     {
         mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
         mesh.addVertexBuffer(quick._vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
-        mesh.setIndexBuffer(quick._index_buffer, 0, GL::MeshIndexType::UnsignedShort);
-        mesh.setCount(6);
+        mesh.setIndexBuffer(quick._index_buffer, 0, Quads::index_gl_type);
+        mesh.setCount((Int)Quads::indexes_per_quad);
         fm_assert(mesh.isIndexed());
     }
     shader.draw(loader.atlas().texture(), quick._mesh);

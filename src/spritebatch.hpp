@@ -2,14 +2,7 @@
 #include "compat/defs.hpp"
 #include "compat/safe-ptr.hpp"
 #include "src/rotation.hpp"
-#include <array>
-
-namespace floormat::Quads {
-struct vertex;
-using vertexes = std::array<vertex, 4>;
-using indexes = std::array<UnsignedShort, 6>;
-using depths = std::array<float, 4>;
-} // namespace floormat::Quads
+#include "src/quads.hpp"
 
 namespace floormat {
 

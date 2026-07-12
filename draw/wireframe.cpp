@@ -34,7 +34,8 @@ struct constant_buf {
 };
 
 mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-                     size_t num_vertices, size_t num_indexes, GL::Texture2DArray* texture) :
+                     size_t num_vertices, size_t num_indexes, GL::MeshIndexType index_type,
+                     GL::Texture2DArray* texture) :
     _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
     _constant_buffer{Containers::Array<constant_buf>{ValueInit, num_vertices}},
     _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}},
@@ -45,7 +46,7 @@ mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_da
         .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
         .addVertexBuffer(_constant_buffer, 0, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
     if (num_indexes > 0)
-        _mesh.setIndexBuffer(_index_buffer, 0, GL::MeshIndexType::UnsignedShort);
+        _mesh.setIndexBuffer(_index_buffer, 0, index_type);
 }
 
 void mesh_base::draw(tile_shader& shader)

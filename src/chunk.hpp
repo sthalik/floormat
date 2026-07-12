@@ -12,8 +12,6 @@
 #include <cr/Pointer.h>
 #include <mg/Range.h>
 
-namespace floormat::Quads { using indexes = std::array<UnsignedShort, 6>; }
-
 namespace floormat {
 
 class anim_atlas;

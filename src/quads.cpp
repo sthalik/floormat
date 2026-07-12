@@ -8,6 +8,8 @@ namespace floormat::Quads {
 
 static_assert(sizeof(vertex) == 28);
 
+static_assert(sizeof(index_type) <= 4); // GL index types are <= 32-bit
+
 namespace {
 
 float depth_start()
@@ -20,10 +22,11 @@ float depth_start()
 
 indexes quad_indexes(size_t N)
 {
-    using u16 = UnsignedShort;
+    using I = index_type;
+    const auto b = N * vertexes_per_quad;
     return {                                        /* 3--1  1 */
-        (u16)(0+N*4), (u16)(1+N*4), (u16)(2+N*4),   /* | /  /| */
-        (u16)(2+N*4), (u16)(1+N*4), (u16)(3+N*4),   /* |/  / | */
+        (I)(0+b), (I)(1+b), (I)(2+b),               /* | /  /| */
+        (I)(2+b), (I)(1+b), (I)(3+b),               /* |/  / | */
     };                                              /* 2  2--0 */
 }
 

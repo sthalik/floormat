@@ -5,7 +5,7 @@
 #include "src/tile-bbox.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
-#include "src/quads.hpp"
+#include "src/quads-gl.hpp"
 #include "src/object.hpp"
 #include "loader/loader.hpp"
 #include <utility>
@@ -45,8 +45,8 @@ GL::Mesh make_light_mesh(T&& vert, U&& index)
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(forward<T>(vert), 0, lightmap_shader::Position{})
-        .setIndexBuffer(forward<U>(index), 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(6);
+        .setIndexBuffer(forward<U>(index), 0, Quads::index_gl_type)
+        .setCount((int32_t)Quads::indexes_per_quad);
     return mesh;
 }
 
@@ -102,8 +102,8 @@ GL::Mesh lightmap_shader::make_occlusion_mesh()
 {
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(vertex_buf, 0, Segment{}, ShadowCoord{})
-        .setIndexBuffer(index_buf, 0, GL::MeshIndexType::UnsignedShort)
-        .setCount(int32_t(6 * capacity));
+        .setIndexBuffer(index_buf, 0, Quads::index_gl_type)
+        .setCount(int32_t(Quads::indexes_per_quad * capacity));
     return mesh;
 }
 
@@ -144,8 +144,7 @@ std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
         else
             capacity <<= 1;
         fm_debug_assert(count < capacity);
-        // quad_indexes() truncates to UnsignedShort, 4 vertices per quad.
-        fm_assert(capacity <= 0x10000u/4);
+        fm_assert(capacity <= Quads::max_quads_per_buffer);
 
         occlusion_mesh = GL::Mesh{NoCreate};
         vertex_buf = GL::Buffer{NoCreate};
@@ -277,7 +276,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     setUniform(ModeUniform, DrawShadowsMode);
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
-    mesh_view.setCount((int32_t)count*6);
+    mesh_view.setCount((int32_t)(count * Quads::indexes_per_quad));
     AbstractShaderProgram::draw(mesh_view);
 
     // --- Pass 2: compute light * (1 - shadow), accumulate to attachment 1 ---
