@@ -271,7 +271,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
 
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
-    GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::One);
+    GL::Renderer::setBlendFunction(BlendFunction::One, BlendFunction::One);
 
     setUniform(ModeUniform, DrawShadowsMode);
     fm_assert(occlusion_mesh.id());
@@ -298,8 +298,7 @@ void lightmap_shader::bind()
     GL::Renderer::setScissor({{}, Vector2i((int)real_image_size)});
     framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
-    GL::Renderer::setBlendFunction(0, BlendFunction::One, BlendFunction::One);
-    GL::Renderer::setBlendFunction(1, BlendFunction::One, BlendFunction::One);
+    GL::Renderer::setBlendFunction(BlendFunction::One, BlendFunction::One);
     setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
 }
 
