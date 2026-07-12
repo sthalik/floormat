@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "compat/defs.hpp"
 #ifndef FM_NO_WEAK_BPTR
 #include "compat/weak-borrowed-ptr.inl"
@@ -448,6 +449,25 @@ void test14()
 #endif
 }
 
+struct throwing_ctor : bptr_base
+{
+    throwing_ctor() { fm_throw("bptr in-place ctor must propagate exception {}"_cf, 15); }
+};
+
+// regression: a throwing T ctor inside bptr{InPlace} must propagate a catchable
+// exception rather than terminate (was terminate under unconditional noexcept)
+void test15()
+{
+    bool caught = false;
+    try {
+        auto p = bptr<throwing_ctor>{InPlace};
+        (void)p;
+    } catch (const floormat::exception&) {
+        caught = true;
+    }
+    fm_assert(caught);
+}
+
 } // namespace
 
 void Test::test_bptr()
@@ -466,6 +486,7 @@ void Test::test_bptr()
     test12();
     test13();
     test14();
+    test15();
 }
 
 } // namespace floormat

@@ -48,8 +48,9 @@ public:
         fm_assert(other.ptr);
         if (ptr != other.ptr)
         {
+            T* p = new T{*other.ptr}; // may throw; keep ptr valid until it succeeds
             delete ptr;
-            ptr = new T{*other.ptr};
+            ptr = p;
         }
         return *this;
     }

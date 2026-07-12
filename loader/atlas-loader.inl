@@ -26,9 +26,6 @@ atlas_loader<ATLAS, TRAITS>::atlas_loader(TRAITS&& traits): // NOLINT(*-rvalue-r
 template<typename ATLAS, typename TRAITS>
 atlas_loader<ATLAS, TRAITS>::atlas_loader() requires std::is_default_constructible_v<TRAITS>: atlas_loader{TRAITS{}} {}
 
-template<typename TRAITS>
-atlas_loader(TRAITS&& traits) noexcept -> atlas_loader<TRAITS, typename TRAITS::Atlas>;
-
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
 {
