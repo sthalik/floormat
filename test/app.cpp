@@ -77,6 +77,7 @@ int App::exec()
         FM_TEST(test_json2),
         FM_TEST(test_json3),
         FM_TEST(test_loader),
+        FM_TEST(test_scenery),
         FM_TEST(test_raycast),
         FM_TEST(test_passability_bbox),
         FM_TEST(test_hash),

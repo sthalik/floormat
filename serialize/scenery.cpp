@@ -162,7 +162,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
         fm_assert(false);
     }
 
-    fm_assert(type < scenery_type::COUNT);
+    fm_soft_assert(type > scenery_type::none && type < scenery_type::COUNT);
     switch (type)
     {
     case scenery_type::none:
@@ -183,12 +183,14 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
         break;
     }
     case scenery_type::door: {
-        fm_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
+        fm_soft_assert(f.atlas->info().fps > 0 && f.atlas->info().nframes > 0);
         constexpr door_scenery_proto D;
         auto s = D;
         f.type = object_type::scenery;
         f.r = r;
-        f.frame = uint16_t(f.atlas->group(r).frames.size()-1);
+        const auto& frames = f.atlas->group(r).frames;
+        fm_soft_assert(!frames.isEmpty());
+        f.frame = uint16_t(frames.size()-1);
         f.pass = pass_mode::blocked;
         s.closing = false;
         f.offset = Vector2b(offset);

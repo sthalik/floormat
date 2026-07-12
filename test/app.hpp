@@ -44,6 +44,7 @@ void test_rtree();
 void test_rtree_pool();
 void test_save();
 void test_saves();
+void test_scenery();
 void test_script();
 void test_shader();
 void test_spinlock();

@@ -16,7 +16,6 @@
 
 namespace floormat::Wall {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Frame, offset, size)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Info, name, depth)
 } // namespace floormat::Wall
 
 namespace nlohmann {
@@ -162,14 +161,14 @@ Array<Frame> read_all_frames(const json& jroot)
     Array<Frame> frames;
     const auto& jframes = jroot["frames"];
 
-    fm_assert(jframes.is_array());
+    fm_soft_assert(jframes.is_array());
     const auto sz = jframes.size();
     frames = Array<Frame>{sz};
 
     for (auto i = 0uz; i < sz; i++)
     {
         const auto& jframe = jframes[i];
-        fm_assert(jframe.is_object());
+        fm_soft_assert(jframe.is_object());
         frames[i] = jframe;
     }
 
@@ -191,7 +190,7 @@ bool is_direction_defined(const Direction& dir)
 
 Group read_group_metadata(const json& jgroup)
 {
-    fm_assert(jgroup.is_object());
+    fm_soft_assert(jgroup.is_object());
     Group val;
 
     {
@@ -248,8 +247,10 @@ Info read_info_header(const json& jroot)
 {
     fm_soft_assert(jroot.contains(("name")));
     fm_soft_assert(jroot.contains(("depth")));
-    Info val = {std::string{jroot["name"]}, jroot["depth"]};
-    fm_soft_assert(val.depth > 0);
+    // read signed first to catch nlohmann's negative→huge-unsigned wrap, as in serialize/anim.cpp
+    const int64_t d = jroot["depth"];
+    fm_soft_assert(d > 0 && d < 1<<15);
+    Info val = {std::string{jroot["name"]}, (unsigned)d};
     if (jroot.contains("pass-mode"))
         val.passability = jroot["pass-mode"];
     return val;

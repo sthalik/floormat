@@ -412,7 +412,7 @@ struct visitor_ : visitor_base<IsNewest>
             visit(flags, f);
             s.flags.enabled = flags & 1;
             flags >>= 1;
-            fm_assert(flags == 0);
+            fm_soft_assert(flags == 0);
         }
 
         visit(s.z_offset, f);

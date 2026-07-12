@@ -410,7 +410,7 @@ void reader_state::read_chunks(reader_t& s)
             switch (type)
             {
             case object_type::hole:
-                fm_abort("not implemented");
+                fm_throw("hole objects not supported in old savegames (type {})"_cf, (int)type);
             case object_type::critter: {
                 critter_proto proto;
                 proto.offset = offset;
