@@ -29,7 +29,6 @@ void test_float();
 void test_grid();
 void test_hash();
 void test_hole();
-void test_iptr();
 void test_json();
 void test_json2();
 void test_json3();
