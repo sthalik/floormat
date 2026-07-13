@@ -12,8 +12,8 @@ in vec3 texcoords;
 in vec2 light_coord;
 in float depth;
 
-layout (location = 0) noperspective out vec3 frag_texcoords;
-layout (location = 1) noperspective out vec2 frag_light_coord;
+noperspective out vec3 frag_texcoords;
+noperspective out vec2 frag_light_coord;
 
 void main() {
     const float factor = 0.5;

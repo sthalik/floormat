@@ -7,8 +7,8 @@ uniform bool enable_lightmap;
 uniform sampler2DArray sampler;
 uniform sampler2D lightmap_sampler;
 
-layout (location = 0) noperspective in vec3 frag_texcoords;
-layout (location = 1) noperspective in vec2 frag_light_coord;
+noperspective in vec3 frag_texcoords;
+noperspective in vec2 frag_light_coord;
 out vec4 color;
 //layout (depth_greater) out float gl_FragDepth;
 
