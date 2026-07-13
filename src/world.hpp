@@ -50,6 +50,7 @@ private:
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
     uint64_t _current_frame = 1; // zero is special for struct object
+    uint64_t _pass_gen = 0;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -60,7 +61,10 @@ private:
 
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
-    static uint64_t next_chunk_instance_id() noexcept;
+    /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at
+    /// construction and on each change, and grids compare per-chunk stamps for staleness.
+    /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
+    uint64_t next_pass_gen() noexcept { return ++_pass_gen; }
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);

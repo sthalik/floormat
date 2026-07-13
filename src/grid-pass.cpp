@@ -238,11 +238,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     }
 
     for (auto i = 0u; i < 8; i++)
-        versions[i] = neighbors[i] ? neighbors[i]->pass_gen_counter() : (uint32_t)-1;
-    versions[8] = self->pass_gen_counter();
-    for (auto i = 0u; i < 8; i++)
-        instance_ids[i] = neighbors[i] ? neighbors[i]->instance_id() : 0;
-    instance_ids[8] = self->instance_id();
+        versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
+    versions[8] = self->pass_gen();
 }
 
 PassGrid::PassGrid(chunk& c, Params params):

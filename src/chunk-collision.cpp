@@ -170,10 +170,6 @@ void chunk::ensure_passability() noexcept
 
     _rtree->RemoveAll();
 
-    _pass_gen_ctr++;
-    if (_pass_gen_ctr == (uint32_t)-1) [[unlikely]]
-        _pass_gen_ctr = 0;
-
     //Debug{} << ".. reset passability" << _coord;
 
     bool has_holes = false;
@@ -237,7 +233,7 @@ void chunk::ensure_passability() noexcept
     fm_assert(!_pass_modified);
 }
 
-uint32_t chunk::pass_gen_counter() const { return _pass_gen_ctr; }
+uint64_t chunk::pass_gen() const noexcept { return _pass_gen; }
 
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                               Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept

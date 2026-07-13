@@ -41,7 +41,6 @@ tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_i
 const_tile_ref chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
 chunk_coords_ chunk::coord() const noexcept { return _coord; }
-uint64_t chunk::instance_id() const noexcept { return _instance_id; }
 
 Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 {
@@ -97,6 +96,7 @@ void chunk::mark_passability_modified() noexcept
     if (!_pass_modified && is_log_verbose()) [[unlikely]]
         fm_debug("pass reload %zu (%d:%d:%d)", ++_reload_no_, int{_coord.x}, int{_coord.y}, int{_coord.z});
     _pass_modified = true;
+    _pass_gen = _world->next_pass_gen();
 }
 
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
@@ -115,7 +115,7 @@ chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
     _world{&w},
     _rtree{InPlaceInit},
     _coord{ch},
-    _instance_id{world::next_chunk_instance_id()}
+    _pass_gen{w.next_pass_gen()}
 {
     _world->register_chunk(this);
 }

@@ -21,18 +21,17 @@ uint64_t GridBase::next_build_no()
 GridBase::GridBase(chunk& ch):
     c{&ch}, w{&ch.world()}, coord{ch.coord()}
 {
-    versions.fill((uint32_t)-1);
-    instance_ids[8] = ch.instance_id();
+    versions.fill((uint64_t)-1);
 }
 
 bool GridBase::is_stale() const
 {
-    return versions[8] == (uint32_t)-1;
+    return versions[8] == (uint64_t)-1;
 }
 
 void GridBase::mark_stale()
 {
-    versions[8] = (uint32_t)-1;
+    versions[8] = (uint64_t)-1;
 }
 
 void GridBase::reset_base_for_reuse(chunk& ch)
@@ -41,19 +40,15 @@ void GridBase::reset_base_for_reuse(chunk& ch)
     w = &ch.world();
     coord = ch.coord();
     neighbors = {};
-    versions.fill((uint32_t)-1);
-    instance_ids = {};
-    instance_ids[8] = ch.instance_id();
+    versions.fill((uint64_t)-1);
 }
 
 void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk)
 {
     auto* current = at_chunk(coord);
-    auto current_id = current ? current->instance_id() : 0;
-    if (c != current || instance_ids[8] != current_id)
+    if (c != current)
     {
         c = current;
-        instance_ids[8] = current_id;
         mark_stale();
         return;
     }
@@ -61,13 +56,7 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
     if (is_stale())
         return;
 
-    if (current && current->is_passability_modified())
-    {
-        mark_stale();
-        return;
-    }
-
-    auto cur_ver = current ? current->pass_gen_counter() : (uint32_t)-1;
+    auto cur_ver = current ? current->pass_gen() : (uint64_t)-1;
     if (versions[8] != cur_ver)
     {
         mark_stale();
@@ -77,21 +66,13 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
     for (auto i = 0u; i < 8; i++)
     {
         auto* nb = at_chunk(coord + world::neighbor_offsets[i]);
-        auto nb_id = nb ? nb->instance_id() : 0;
-
-        if (nb != neighbors[i] || instance_ids[i] != nb_id)
+        if (nb != neighbors[i])
         {
             neighbors[i] = nb;
-            instance_ids[i] = nb_id;
             mark_stale();
             return;
         }
-        if (nb && nb->is_passability_modified())
-        {
-            mark_stale();
-            return;
-        }
-        auto nb_ver = nb ? nb->pass_gen_counter() : (uint32_t)-1;
+        auto nb_ver = nb ? nb->pass_gen() : (uint64_t)-1;
         if (nb_ver != versions[i])
         {
             mark_stale();

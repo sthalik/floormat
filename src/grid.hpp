@@ -31,8 +31,7 @@ struct GridBase
     world* w;
     chunk_coords_ coord;
     std::array<chunk*, 8> neighbors{};
-    std::array<uint32_t, 9> versions;   // [0..7]=neighbors, [8]=self; -1 = stale
-    std::array<uint64_t, 9> instance_ids{};  // [0..7]=neighbors, [8]=self; 0 = no chunk bound
+    std::array<uint64_t, 9> versions;   // [0..7]=neighbors, [8]=self; -1 = stale
     uint64_t build_no = 0;
 
     explicit GridBase(chunk& ch);
