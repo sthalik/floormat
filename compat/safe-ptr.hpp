@@ -34,7 +34,7 @@ public:
         ptr = new T{*other.ptr};
     }
 
-    safe_ptr& operator=(safe_ptr&& other) noexcept
+    safe_ptr& operator=(safe_ptr&& other) noexcept(std::is_nothrow_destructible_v<T>)
     {
         fm_assert(this != &other);
         delete ptr;
