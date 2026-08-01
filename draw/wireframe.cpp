@@ -64,9 +64,11 @@ void mesh_base::set_line_width(float width)
     if (GL::Context::current().detectedDriver() == GL::Context::DetectedDriver::Svga3D)
         return;
 
-    auto range = GL::Renderer::lineWidthRange();
-    if (range.contains(width))
-        GL::Renderer::setLineWidth(width);
+    // forward-compatible contexts reject any width above 1 with GL_INVALID_VALUE
+    if (GL::Context::current().flags() & GL::Context::Flag::ForwardCompatible)
+        return;
+
+    GL::Renderer::setLineWidth(width);
 }
 
 } // namespace floormat::wireframe

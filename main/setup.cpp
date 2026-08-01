@@ -5,6 +5,8 @@
 #include <mg/Renderer.h>
 #include <mg/RenderbufferFormat.h>
 #include <mg/TextureFormat.h>
+#include <mg/Version.h>
+#include <SDL.h>
 #include <algorithm> // todo std::minmax
 
 namespace floormat {
@@ -96,12 +98,62 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
         .setWindowFlags(make_window_flags(s));
 }
 
+// Must run before the Sdl2Application base ctor: main_impl's shader members are in
+// the init list and need a live context, so a tryCreate() retry loop can't work.
+GL::Version main_impl::probe_max_gl_version()
+{
+    static constexpr GL::Version versions[] = {
+        GL::Version::GL460, GL::Version::GL450, GL::Version::GL440, GL::Version::GL430,
+        GL::Version::GL420, GL::Version::GL410, GL::Version::GL400, GL::Version::GL330,
+    };
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        fm_warn_once("SDL_Init: %s", SDL_GetError());
+        return GL::Version::None;
+    }
+
+    auto ret = GL::Version::None;
+
+    for (auto version : versions)
+    {
+        const auto major_minor = GL::version(version);
+        SDL_GL_ResetAttributes();
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, major_minor.first());
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, major_minor.second());
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+
+        // SDL applies GL attributes when the window is created, not when the context
+        // is, so a rejected version needs a fresh window rather than a second try.
+        auto* window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                        1, 1, SDL_WINDOW_OPENGL|SDL_WINDOW_HIDDEN);
+        if (!window)
+            continue;
+        if (auto* context = SDL_GL_CreateContext(window))
+        {
+            SDL_GL_DeleteContext(context);
+            ret = version;
+        }
+        SDL_DestroyWindow(window);
+        if (ret != GL::Version::None)
+            break;
+    }
+
+    SDL_GL_ResetAttributes();
+    return ret;
+}
+
 auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     flags |= GLConfiguration::Flag::ForwardCompatible;
+    auto version = probe_max_gl_version();
+    if (version == GL::Version::None)
+        version = GL::Version::GL330;
     return GLConfiguration{}
         .setFlags(flags)
+        .setVersion(version)
 #ifdef FM_USE_DEPTH32
         .setDepthBufferSize(0)
 #endif
