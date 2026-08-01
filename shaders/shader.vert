@@ -2,10 +2,6 @@ precision highp float;
 
 uniform vec2 scale;
 uniform vec2 offset;
-uniform vec4 tint;
-uniform bool enable_lightmap;
-uniform sampler2DArray sampler;
-uniform sampler2D lightmap_sampler;
 
 in vec4 position;
 in vec3 texcoords;

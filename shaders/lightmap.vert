@@ -1,7 +1,6 @@
-precision mediump float;
+precision highp float;
 
-layout (location = 2) uniform sampler2D sampler0;
-layout (location = 3) uniform uint mode;
+uniform uint mode;
 
 layout (std140)
 uniform Lightmap {

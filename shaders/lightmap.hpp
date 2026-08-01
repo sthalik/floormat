@@ -5,6 +5,7 @@
 #include "shaders/texture-unit-cache.hpp"
 #include <array>
 #include <cr/Optional.h>
+#include <cr/StringView.h>
 #include <mg/Vector4.h>
 #include <mg/AbstractShaderProgram.h>
 #include <mg/Framebuffer.h>
@@ -60,11 +61,24 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     using Position = GL::Attribute<0, Vector3>;
 
 private:
-    enum : Int {
-        SamplerUniform         = 2,
-        ModeUniform            = 3,
-        // GL_MAX_UNIFORM_BUFFER_BINDINGS must be at least 36
-        BlockUniform           = 35,
+    enum Uniform : uint8_t {
+        SamplerUniform = 0, ModeUniform = 1,
+        UNIFORM_COUNT = 2
+    };
+
+    // a separate index space from the uniform locations above.
+    // GL_MAX_UNIFORM_BUFFER_BINDINGS must be at least 36
+    enum BlockBinding : UnsignedInt {
+        BlockUniform = 35,
+    };
+
+    void setUniform(Uniform u, auto value);
+
+    Int uniform_locations[UNIFORM_COUNT] = {};
+
+    static constexpr StringView uniform_names[UNIFORM_COUNT] = {
+        "sampler0"_s,
+        "mode"_s,
     };
 
     enum ShaderMode : uint32_t

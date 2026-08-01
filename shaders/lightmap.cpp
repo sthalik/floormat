@@ -191,6 +191,12 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
     attachShaders({vert, frag});
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
+    for (auto i = 0u; i < UNIFORM_COUNT; i++)
+    {
+        uniform_locations[i] = uniformLocation(uniform_names[i]);
+        fm_assert(uniform_locations[i] != -1);
+    }
+
     framebuffer = make_framebuffer(Vector2i((int)real_image_size));
 
     auto blend_vertexes = Quads::quad {{
@@ -409,6 +415,13 @@ void lightmap_shader::add_objects(Vector2 neighbor_offset, chunk& c)
         add_segment(neighbor_offset, {max.x(), min.y()}, {min.x(), min.y()}); // south
         add_segment(neighbor_offset, {min.x(), min.y()}, {min.x(), max.y()}); // west
     }
+}
+
+void lightmap_shader::setUniform(Uniform u, auto value)
+{
+    fm_assert(u < UNIFORM_COUNT);
+    Int loc = uniform_locations[u];
+    AbstractShaderProgram::setUniform(loc, value);
 }
 
 bool light_s::operator==(const light_s&) const noexcept = default;
