@@ -1,7 +1,6 @@
 #pragma once
 #include "wireframe.hpp"
 #include "compat/defs.hpp"
-#include "box.hpp"
 #include "quad-floor.hpp"
 #include "quad-wall-n.hpp"
 #include "quad-wall-w.hpp"
@@ -21,7 +20,6 @@ struct meshes final
     wireframe_mesh<struct wireframe::quad_floor>  quad;
     wireframe_mesh<struct wireframe::quad_wall_n> wall_n;
     wireframe_mesh<struct wireframe::quad_wall_w> wall_w;
-    wireframe_mesh<struct wireframe::box>         box;
     wireframe_mesh<struct wireframe::quad>        rect;
 };
 

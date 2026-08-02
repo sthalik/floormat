@@ -1,7 +1,6 @@
 #include "wireframe.hpp"
 #include "shaders/shader.hpp"
 #include <cr/Array.h>
-#include <mg/Range.h>
 #include <mg/TextureArray.h>
 #include <mg/ImageView.h>
 #include <mg/PixelFormat.h>
