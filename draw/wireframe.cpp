@@ -20,7 +20,7 @@ void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, floa
 
     // background list, so imgui windows stay on top as they did when this was a GL draw
     ImGui::GetBackgroundDrawList()->AddPolyline(points, (int)num_corners, color,
-                                               ImDrawFlags_Closed, line_width);
+                                               line_width, ImDrawFlags_Closed);
 }
 
 } // namespace floormat::wireframe

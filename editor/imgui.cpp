@@ -50,7 +50,6 @@ void app::init_imgui(Vector2i size)
 #else
             io.Fonts->AddFontDefault(&config);
 #endif
-            io.Fonts->Build();
         }
 
         _imgui = safe_ptr<ImGuiIntegration::Context>{InPlaceInit, NoCreate};
@@ -183,14 +182,7 @@ void app::configure_imgui(float scale)
     style.WindowPadding     = {10, 10};
 
     style.ScaleAllSizes(scale);
-
-    auto& io = ImGui::GetIO();
-    io.FontGlobalScale = scale;
-
-    auto& ctx = *ImGui::GetCurrentContext();
-    ctx.FontSize = 13;
-    ctx.FontBaseSize = 13;
-    ctx.FontScale = 1;
+    style.FontScaleMain = scale;
 }
 
 void app::draw_ui()
@@ -234,7 +226,7 @@ void app::draw_clickables()
         auto dest = Math::Range2D<float>(x.dest);
         auto min = dest.min(), max = dest.max();
         draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
-                     color, 0, ImDrawFlags_None, thickness);
+                     color, 0, thickness);
     }
 
     // draw slope lines on static scenery
@@ -408,7 +400,7 @@ void app::draw_text_painter_test()
         const auto r = p.bounds_of(x_slot);
         draw.AddLine({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 1.5f);
         draw.AddLine({r.min().x(), r.max().y()}, {r.max().x(), r.min().y()}, magenta, 1.5f);
-        draw.AddRect({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 0, 0, 1);
+        draw.AddRect({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 0, 1);
         cursor.y() += line_h;
     }
 
@@ -490,7 +482,7 @@ void app::draw_text_painter_test()
         p.render(draw, cursor);
         const auto bb = p.bounds();
         draw.AddRect({bb.min().x(), bb.min().y()}, {bb.max().x(), bb.max().y()},
-                     frame_c, 0, 0, 2);
+                     frame_c, 0, 2);
         cursor.y() += line_h * 1.4f;
     }
 

@@ -85,7 +85,7 @@ void hole_test::draw_ui(app&, float)
         ImDrawList& draw = *win.DrawList;
 
         draw.AddRectFilled(to_imvec2(min), to_imvec2(maxʹ), bgcolor, 0, imdf); // black
-        draw.AddRect(to_imvec2(center - TILE_SIZE2*.5f*mult), to_imvec2(center + TILE_SIZE2*.5f*mult), gray, 0, imdf); // standard tile
+        draw.AddRect(to_imvec2(center - TILE_SIZE2*.5f*mult), to_imvec2(center + TILE_SIZE2*.5f*mult), gray, 0); // standard tile
         draw.AddRectFilled(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)/2)*mult),
                            to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)/2)*mult), red); // hole
 
@@ -98,11 +98,11 @@ void hole_test::draw_ui(app&, float)
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRect(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), blue, 0, 0, 3); // rects
+            draw.AddRect(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), blue, 0, 3); // rects
         }
 
         draw.AddRect(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)*.5f)*mult),
-                     to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)*.5f)* mult), red, 0, 0, 1); // hole
+                     to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)*.5f)* mult), red, 0, 1); // hole
     }
 
     const auto label_width = ImGui::CalcTextSize("MMMMMM").x;

@@ -16,7 +16,7 @@ font_saver::~font_saver()
 
 font_saver::font_saver(float size) :
     font_size{ImGui::GetCurrentContext()->FontSize},
-    font_base_size{ImGui::GetCurrentContext()->FontBaseSize}
+    font_base_size{ImGui::GetCurrentContext()->FontSizeBase}
 {
     auto& ctx = *ImGui::GetCurrentContext();
     ctx.FontSize = size;
