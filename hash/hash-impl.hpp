@@ -1,7 +1,7 @@
 #pragma once
 
 #if (defined __x86_64__ || defined __i386__ || defined _M_AMD64 || defined _M_IX86) && \
-    (defined __AES__ || defined _MSC_VER && defined __AVX__)
+    (defined __AES__ || defined _MSC_VER && !defined __clang__ && defined __AVX__)
 #define FM_HASH_HAVE_MEOWHASH 1
 #else
 #define FM_HASH_HAVE_MEOWHASH 0
