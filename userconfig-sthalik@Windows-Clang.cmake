@@ -130,7 +130,8 @@ function(fm-userconfig-src)
         -Wno-weak-vtables
         -Wno-c99-compat
         -Wno-switch-default
-        #-Wno-deprecated-literal-operator -Wno-error=deprecated-literal-operator
+        -Wno-lifetime-safety-cross-tu-suggestions
+        -Wno-lifetime-safety-intra-tu-suggestions
     )
     add_compile_options(
         -Werror
@@ -155,6 +156,8 @@ function(fm-userconfig-src)
         -Wno-error=exit-time-destructors
         -Wno-error=nrvo
         -Wno-error=missing-noreturn
+        -Wno-error=lifetime-safety-cross-tu-suggestions
+        -Wno-error=lifetime-safety-intra-tu-suggestions
     )
     add_compile_options(
         #-Wglobal-constructors

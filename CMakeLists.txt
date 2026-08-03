@@ -248,9 +248,19 @@ function(fm_install_executable self)
         if(NOT CMAKE_OBJCOPY)
             message(FATAL_ERROR "objcopy missing")
         endif()
+        if(NOT WIN32 OR NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
+            add_custom_command(TARGET ${self} POST_BUILD
+                               COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug.uncompressed"
+                               WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+            add_custom_command(TARGET ${self} POST_BUILD
+                               COMMAND "${CMAKE_OBJCOPY}" --compress-debug-sections "${exe}.debug.uncompressed" "${exe}.debug"
+                               WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+        else()
+            add_custom_command(TARGET ${self} POST_BUILD
+                               COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug"
+                               WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+        endif()
         add_custom_command(TARGET ${self} POST_BUILD
-                           COMMAND "${CMAKE_OBJCOPY}" --only-keep-debug "${exe}" "${exe}.debug.uncompressed"
-                           COMMAND "${CMAKE_OBJCOPY}" --compress-debug-sections "${exe}.debug.uncompressed" "${exe}.debug"
                            COMMAND "${CMAKE_OBJCOPY}" --strip-all "${exe}" "${exe}.nodebug"
                            COMMAND "${CMAKE_OBJCOPY}" --add-gnu-debuglink=${exe}.debug "${exe}.nodebug"
                            # BYPRODUCTS "${exe}.debug" "${exe}.nodebug"
