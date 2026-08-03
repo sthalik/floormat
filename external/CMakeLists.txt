@@ -94,6 +94,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          CORRADE_WITH_TESTSUITE                             ON
          CORRADE_WITH_INTERCONNECT                          OFF
          MAGNUM_BUILD_TESTS                                 ON
+         MAGNUM_BUILD_GL_TESTS                              ON
          MAGNUM_BUILD_DEPRECATED                            OFF
 
          MAGNUM_WITH_SDL2APPLICATION                        ON
