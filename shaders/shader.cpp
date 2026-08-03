@@ -20,8 +20,8 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     if (version < min_version)
         fm_abort("floormat requires OpenGL version %d, only %d is supported", (int)min_version, (int)version);
 
-    GL::Shader vert{version, GL::Shader::Type::Vertex};
-    GL::Shader frag{version, GL::Shader::Type::Fragment};
+    GL::Shader vert{min_version, GL::Shader::Type::Vertex};
+    GL::Shader frag{min_version, GL::Shader::Type::Fragment};
 
     vert.addSource(loader.shader("shaders/shader.vert"));
     frag.addSource(loader.shader("shaders/shader.frag"));
