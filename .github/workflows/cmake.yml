@@ -58,6 +58,10 @@ jobs:
         cd ${{github.workspace}}/build/install
         export MAGNUM_LOG=default
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        # llvmpipe hands back 4.5 core, which hides every use of GL above the 3.3
+        # floor. Pin it so the runner is the conformance oracle it looks like.
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
