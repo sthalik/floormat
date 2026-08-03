@@ -5,8 +5,6 @@
 
 namespace floormat {
 
-enum class fm_gpu_debug : char { no_error = 1, off, on, robust, };
-
 struct fm_settings
 {
     inline fm_settings() noexcept = default;
