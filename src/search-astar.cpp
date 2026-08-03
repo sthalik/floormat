@@ -229,7 +229,7 @@ void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
         n.prev = cur_idx;
     }
 
-    if constexpr (Debug >= 3) [[unlikely]]
+    if constexpr (Debug >= 3)
         DBG_nospace << " path:" << dist
         << " pos:" << Vector3i(new_pt.coord())
         << ";" << new_pt.offset();
@@ -268,7 +268,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     reserve(initial_capacity);
 
     Timeline timeline;
-    if constexpr(Debug > 0) [[unlikely]]
+    if constexpr(Debug > 0)
         timeline.start();
 
     clear();
@@ -369,7 +369,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
             closest_h = goal_dist;
             closest_idx = cur_idx;
 
-            if constexpr (Debug >= 2) [[unlikely]]
+            if constexpr (Debug >= 2)
                 DBG_nospace << "closest node"
                             << " px:" << closest_h << " path:" << cur_dist
                             << " pos:" << cur_pt;
@@ -422,7 +422,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 
     result.set_time(timeline.currentFrameTime());
 
-    if constexpr (Debug >= 1) [[unlikely]]
+    if constexpr (Debug >= 1)
     {
         auto d0_ =
             Vector2i(Math::abs(from.coord() - to.coord())) * iTILE_SIZE2

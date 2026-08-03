@@ -33,7 +33,7 @@ endif()
 # for building submodule dependencies
 function(fm-userconfig-external)
     add_compile_options(
-        -Wno-ignored-attributes
+        #-Wno-ignored-attributes
         -Wno-unused-function
         -Wno-unused-but-set-variable
         -Wno-restrict

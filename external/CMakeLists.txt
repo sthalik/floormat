@@ -53,6 +53,9 @@ else()
         -Wno-undef
         -Wno-cast-function-type
     )
+    if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-sfinae-incomplete>)
+    endif()
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-old-style-cast")
 endif()
 

@@ -237,7 +237,7 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     constexpr auto half = iTILE_SIZE2/2;
     constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
 
-    if constexpr(G == Group_::side) [[unlikely]]
+    if constexpr(G == Group_::side)
     {
         bool corner_ok = false, pillar_ok = false;
 

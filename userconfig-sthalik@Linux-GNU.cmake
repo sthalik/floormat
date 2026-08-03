@@ -85,7 +85,7 @@ function(fm-userconfig-src)
         #-Wno-c++20-compat
         -Wno-switch-enum
         -Wno-ctad-maybe-unsupported
-        -Wno-ignored-attributes
+        #-Wno-ignored-attributes
         -Wno-parentheses
         -Wno-lto-type-mismatch -Wno-odr
     )
