@@ -19,7 +19,7 @@ struct adl_serializer<Corrade::Containers::Array<T, D>>
     {
         fm_soft_assert(j.is_array());
         auto size = (uint32_t)j.size();
-        array = Corrade::Containers::Array<T>{size};
+        array = Corrade::Containers::Array<T>{Corrade::ValueInit, size};
         for (uint32_t i = 0; i < size; i++)
             array[i] = j[i];
     }

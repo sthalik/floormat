@@ -1237,7 +1237,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
             fm_throw("ftell: {}"_cf, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_SET); ret != 0)
             fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
-        auto buf_ = Array<char>(len+1);
+        auto buf_ = Array<char>(ValueInit, len+1);
         if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
             fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
         if (len <= sizeof Hash::CRC64_INITIALIZER)
@@ -1253,7 +1253,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
 
     if (proto >= 26) // checksum
     {
-        const auto* const cksum_pos = buf.data + buf.size - sizeof(uint64_t);
+        const auto* const cksum_pos = buf.data.data() + buf.size - sizeof(uint64_t);
         struct crc_buf {
             char buf[sizeof(uint64_t)];
         } crc;

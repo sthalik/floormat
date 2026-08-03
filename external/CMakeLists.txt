@@ -53,6 +53,9 @@ else()
         -Wno-undef
         -Wno-cast-function-type
     )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-template>)
+    endif()
     if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
         add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-sfinae-incomplete>)
     endif()
@@ -89,6 +92,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          CORRADE_MSVC_COMPATIBILITY                         OFF
          CORRADE_UTILITY_USE_ANSI_COLORS                    ON
          CORRADE_WITH_TESTSUITE                             ON
+         CORRADE_WITH_INTERCONNECT                          OFF
          MAGNUM_BUILD_TESTS                                 ON
          MAGNUM_BUILD_DEPRECATED                            OFF
 
@@ -131,7 +135,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_TGAIMPORTER                            ON
 
          MAGNUM_WITH_GL_INFO                                ON
-         MAGNUM_WITH_MAGNUMFONT                             ON
+         MAGNUM_WITH_MAGNUMFONT                             OFF
          MAGNUM_WITH_OPENGLTESTER                           ON
          MAGNUM_WITH_SHADERS                                ON
          MAGNUM_WITH_SHADERTOOLS                            ON
@@ -157,7 +161,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_STBTRUETYPEFONT                        OFF
          MAGNUM_WITH_TGAIMAGECONVERTER                      ON
 
-         MAGNUM_WITH_MAGNUMFONTCONVERTER                    ON
+         MAGNUM_WITH_MAGNUMFONTCONVERTER                    OFF
          MAGNUM_WITH_SHADERCONVERTER                        ON
          MAGNUM_WITH_STBDXTIMAGECONVERTER                   ON
          MAGNUM_WITH_STBIMAGECONVERTER                      ON

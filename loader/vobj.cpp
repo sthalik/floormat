@@ -72,7 +72,7 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
                 }},
             },
         };
-        def.groups = Array<anim_group>{1};
+        def.groups = Array<anim_group>{ValueInit, 1};
         def.groups[0] = move(group);
     }
 

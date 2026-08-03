@@ -23,7 +23,7 @@ bool loader_impl::chdir(StringView pathname)
     fm_assert(pathname.flags() & StringViewFlag::NullTerminated);
     int ret;
 #ifdef _WIN32
-    ret = ::_wchdir(Unicode::widen(pathname));
+    ret = ::_wchdir(Unicode::widen(pathname).data());
 #else
     ret = ::chdir(pathname.data());
 #endif

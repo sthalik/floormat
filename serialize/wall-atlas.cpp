@@ -53,7 +53,7 @@ direction_triple read_all_directions(const json& jroot)
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
-    direction_triple ret = { Array<Direction>{count}, {}, {}, };
+    direction_triple ret = { Array<Direction>{ValueInit, count}, {}, {}, };
     auto& [array, map, mask] = ret;
     for (uint8_t i = 0, pos = 0; i < array_size(wall_atlas::directions); i++)
     {
@@ -163,7 +163,7 @@ Array<Frame> read_all_frames(const json& jroot)
 
     fm_soft_assert(jframes.is_array());
     const auto sz = jframes.size();
-    frames = Array<Frame>{sz};
+    frames = Array<Frame>{ValueInit, sz};
 
     for (auto i = 0uz; i < sz; i++)
     {

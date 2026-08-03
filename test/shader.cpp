@@ -2,6 +2,7 @@
 #include "src/point.inl"
 #include "src/depth.hpp"
 #include "shaders/shader.hpp"
+#include "shaders/lightmap.hpp"
 #include "shaders/texture-unit-cache.hpp"
 
 namespace floormat::Test {
@@ -103,6 +104,8 @@ void test_shader_program()
 {
     texture_unit_cache tuc;
     tile_shader S{tuc};
+    // the only place lightmap_shader's GLSL gets compiled outside the editor
+    lightmap_shader L{tuc};
 }
 } // namespace
 
