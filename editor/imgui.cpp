@@ -195,9 +195,6 @@ void app::configure_imgui(float scale)
 
 void app::draw_ui()
 {
-    configure_imgui( M->dpi_scale().x());
-    _imgui->newFrame();
-
     if (_render_clickables)
         draw_clickables();
     if (_render_vobjs)

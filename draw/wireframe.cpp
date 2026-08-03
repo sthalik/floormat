@@ -1,73 +1,26 @@
 #include "wireframe.hpp"
 #include "shaders/shader.hpp"
-#include <cr/Array.h>
-#include <mg/TextureArray.h>
-#include <mg/ImageView.h>
-#include <mg/PixelFormat.h>
-#include <mg/Context.h>
-#include <mg/Renderer.h>
-#include <mg/TextureFormat.h>
-#include <mg/ImageData.h>
+#include <imgui.h>
 
 namespace floormat::wireframe {
 
-GL::Texture2DArray make_constant_texture()
+void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, float line_width)
 {
-    const Vector4ub data[] = { {255, 255, 255, 255} };
-    Trade::ImageData2D img{PixelFormat::RGBA8Unorm, {1, 1}, {},
-                           Containers::arrayView(data, 1), {}, {}};
-    const ImageView3D img3d{img.storage(), img.format(),
-                            {img.size(), 1}, img.data()};
-    GL::Texture2DArray tex;
-    tex.setWrapping(GL::SamplerWrapping::ClampToEdge)
-       .setMagnificationFilter(GL::SamplerFilter::Nearest)
-       .setMinificationFilter(GL::SamplerFilter::Nearest)
-       .setStorage(1, GL::textureFormat(img.format()), {img.size(), 1})
-       .setSubImage(0, {}, img3d);
-    return tex;
-}
+    // same world->screen mapping as app::point_screen_pos()
+    const auto origin = Vector2(shader.camera_offset()) + shader.scale()*.5f;
+    const auto tint = shader.tint();
+    const auto color = ImGui::ColorConvertFloat4ToU32({tint[0], tint[1], tint[2], tint[3]});
 
-struct constant_buf {
-    Vector3 texcoords;
-    float depth = 1;
-};
+    ImVec2 points[num_corners];
+    for (auto i = 0u; i < num_corners; i++)
+    {
+        const auto pt = origin + tile_shader::project(corners[i]);
+        points[i] = { pt[0], pt[1] };
+    }
 
-mesh_base::mesh_base(GL::MeshPrimitive primitive, ArrayView<const void> index_data,
-                     size_t num_vertices, size_t num_indexes, GL::MeshIndexType index_type,
-                     GL::Texture2DArray* texture) :
-    _vertex_buffer{Containers::Array<Vector3>{ValueInit, num_vertices}, GL::BufferUsage::DynamicDraw},
-    _constant_buffer{Containers::Array<constant_buf>{ValueInit, num_vertices}},
-    _index_buffer{num_indexes == 0 ? GL::Buffer{NoCreate} : GL::Buffer{index_data}},
-    _texture{texture}
-{
-    _mesh.setCount((int)(num_indexes > 0 ? num_indexes : num_vertices))
-        .setPrimitive(primitive)
-        .addVertexBuffer(_vertex_buffer, 0, tile_shader::Position{})
-        .addVertexBuffer(_constant_buffer, 0, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
-    if (num_indexes > 0)
-        _mesh.setIndexBuffer(_index_buffer, 0, index_type);
-}
-
-void mesh_base::draw(tile_shader& shader)
-{
-    shader.draw(*_texture, _mesh);
-}
-
-void mesh_base::set_subdata(ArrayView<const void> array)
-{
-    _vertex_buffer.setSubData(0, array);
-}
-
-void mesh_base::set_line_width(float width)
-{
-    if (GL::Context::current().detectedDriver() == GL::Context::DetectedDriver::Svga3D)
-        return;
-
-    // forward-compatible contexts reject any width above 1 with GL_INVALID_VALUE
-    if (GL::Context::current().flags() & GL::Context::Flag::ForwardCompatible)
-        return;
-
-    GL::Renderer::setLineWidth(width);
+    // background list, so imgui windows stay on top as they did when this was a GL draw
+    ImGui::GetBackgroundDrawList()->AddPolyline(points, (int)num_corners, color,
+                                               ImDrawFlags_Closed, line_width);
 }
 
 } // namespace floormat::wireframe

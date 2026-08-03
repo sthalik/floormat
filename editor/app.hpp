@@ -11,17 +11,9 @@
 #include <cr/Array.h>
 #include <cr/Optional.h>
 
-namespace Magnum::GL {
-template<UnsignedInt dimensions> class TextureArray;
-typedef TextureArray<2> Texture2DArray;
-} // namespace Magnum::GL
-
 namespace Magnum::ImGuiIntegration { class Context; }
 
-namespace floormat::wireframe {
-GL::Texture2DArray make_constant_texture();
-struct meshes;
-} // namespace floormat::wireframe
+namespace floormat::wireframe { struct meshes; }
 
 namespace floormat::tests { struct tests_data; }
 

@@ -1,27 +1,20 @@
 #pragma once
-#include <array>
-#include <mg/Vector3.h>
-#include <mg/Mesh.h>
+#include "wireframe.hpp"
 
 namespace floormat::wireframe {
 
 struct quad_wall_n
 {
-    quad_wall_n(Vector3 center, Vector3 size, float line_width);
-
-    static constexpr size_t num_vertices = 4, num_indexes = 0;
-    static constexpr auto primitive = GL::MeshPrimitive::LineLoop;
-
-    using vertex_array = std::array<Vector3, num_vertices>;
-
-    static ArrayView<const void> make_index_array() { return {}; }
-    vertex_array make_vertex_array() const;
-    void on_draw() const;
-
-private:
     Vector3 center;
     Vector3 size;
     float line_width;
+
+    vertex_array make_vertex_array() const;
+};
+
+struct mesh_wall_n
+{
+    void draw(tile_shader& shader, quad_wall_n x);
 };
 
 } // namespace floormat::wireframe

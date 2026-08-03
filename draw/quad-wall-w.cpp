@@ -1,9 +1,8 @@
 #include "quad-wall-w.hpp"
-#include "wireframe.hpp"
 
 namespace floormat::wireframe {
 
-auto quad_wall_w::make_vertex_array() const -> vertex_array
+vertex_array quad_wall_w::make_vertex_array() const
 {
     const float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
     const auto cx = center[0], cy = center[1], cz = center[2];
@@ -15,13 +14,9 @@ auto quad_wall_w::make_vertex_array() const -> vertex_array
     }};
 }
 
-quad_wall_w::quad_wall_w(Vector3 center, Vector3 size, float line_width) :
-      center(center), size(size), line_width{line_width}
-{}
-
-void quad_wall_w::on_draw() const
+void mesh_wall_w::draw(tile_shader& shader, quad_wall_w x)
 {
-    mesh_base::set_line_width(line_width);
+    draw_closed_polyline(shader, x.make_vertex_array(), x.line_width);
 }
 
 } // namespace floormat::wireframe

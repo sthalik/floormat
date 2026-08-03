@@ -21,6 +21,7 @@
 #include "src/depth.hpp"
 #include <bit>
 #include <mg/Color.h>
+#include <mg/ImGuiIntegration/Context.h>
 
 namespace floormat {
 
@@ -212,6 +213,10 @@ void app::draw_collision_boxes()
 
 void app::draw()
 {
+    // the wireframe overlays below emit into imgui draw lists, so the frame has to be open first
+    configure_imgui(M->dpi_scale().x());
+    _imgui->newFrame();
+
     do_lightmap_test();
     if (_render_bboxes)
         draw_collision_boxes();
