@@ -125,8 +125,12 @@ endif()
 
 if(MSVC)
     add_compile_options(-permissive-)
-    add_compile_options(-Zc:preprocessor -Zc:inline -Zc:lambda -Zc:throwingNew -Zc:__cplusplus)
-    add_compile_options(-external:W0 -external:anglebrackets)
+    add_compile_options( -Zc:inline -Zc:__cplusplus)
+    add_compile_options(-external:W0)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
+        add_compile_options(-external:anglebrackets)
+        add_compile_options(-Zc:preprocessor -Zc:lambda -Zc:throwingNew)
+    endif()
     add_compile_options(
         #-wd4244 # warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
         #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
