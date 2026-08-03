@@ -102,6 +102,11 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
 // the init list and need a live context, so a tryCreate() retry loop can't work.
 GL::Version main_impl::probe_max_gl_version()
 {
+#ifdef __APPLE__
+    // Cocoa returns the driver max (4.1) for any core request and only checks the
+    // requested version afterwards, so each rejected probe costs a whole window.
+    return GL::Version::GL330;
+#else
     static constexpr GL::Version versions[] = {
         GL::Version::GL460, GL::Version::GL450, GL::Version::GL440, GL::Version::GL430,
         GL::Version::GL420, GL::Version::GL410, GL::Version::GL400, GL::Version::GL330,
@@ -142,6 +147,7 @@ GL::Version main_impl::probe_max_gl_version()
 
     SDL_GL_ResetAttributes();
     return ret;
+#endif
 }
 
 auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
