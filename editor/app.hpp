@@ -98,6 +98,8 @@ private:
     void populate_labyrinth();
     void populate_raycast_fractal();
     void populate_sweep_aabb_slit();
+    void populate_scene_benchmark();
+    void populate_scene_benchmark_all_z();
 
     void draw() override;
 

@@ -143,6 +143,10 @@ float app::draw_main_menu()
                 populate_raycast_fractal();
             if (ImGui::MenuItem("Sweep AABB slit"))
                 populate_sweep_aabb_slit();
+            if (ImGui::MenuItem("Scene benchmark (flat)"))
+                populate_scene_benchmark();
+            if (ImGui::MenuItem("Scene benchmark (all Z)"))
+                populate_scene_benchmark_all_z();
         }
 #endif
 
