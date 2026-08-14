@@ -12,7 +12,8 @@ struct vertex {
     float depth;
 };
 
-using index_type = UnsignedShort; // widen (e.g. UnsignedInt) to raise the per-buffer cap
+using index_type = UnsignedInt; // widen (e.g. UnsignedInt) to raise the per-buffer cap
+
 constexpr inline uint32_t vertexes_per_quad = 4;
 constexpr inline uint32_t indexes_per_quad  = 6;
 
