@@ -48,20 +48,12 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
     if (!x)
     {
         auto& c = w[pos.chunk3()];
-start:
-        const auto& es = c.objects();
         while (auto id = a.get_object_colliding_with_cursor())
         {
-            for (auto i = (int)(es.size()-1); i >= 0; i--)
-            {
-                auto eʹ = es[i];
-                if (eʹ->id == id && eʹ->is_virtual())
-                {
-                    c.kill_object((size_t)i);
-                    goto start;
-                }
-            }
-            break;
+            auto eʹ = w.find_object(id);
+            if (!eʹ || &eʹ->chunk() != &c || !eʹ->is_virtual())
+                break;
+            c.kill_object(eʹ->index());
         }
     }
     else
