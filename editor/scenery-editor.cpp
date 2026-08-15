@@ -95,10 +95,7 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, 
         }
     }
     else
-    {
-        auto sc = w.make_scenery(w.make_id(), pos, scenery_proto(s.proto));
-        sc->init_script(sc);
-    }
+        w.make_scenery(w.make_id(), pos, scenery_proto(s.proto));
 }
 
 } // namespace floormat

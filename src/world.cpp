@@ -273,6 +273,9 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
     else
         e->c->add_object_unsorted(e);
     Hash::set_open_addressing_load_factor(impl._objects);
+    // objects made before init_scripts() are covered by its sweep instead
+    if (_script_initialized && !_script_finalized) [[unlikely]]
+        e->init_script(e);
 }
 
 void world::erase_object(object_id id, const object* self)
