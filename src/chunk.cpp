@@ -219,6 +219,17 @@ void chunk::remove_object(size_t i)
     arrayRemove(_objects, i);
 }
 
+void chunk::kill_object(size_t i, script_destroy_reason r)
+{
+    fm_debug_assert(i < _objects.size());
+    auto eʹ = _objects[i];
+    // the script is handed a live bptr, so the object can only be deleted after it's torn down
+    eʹ->destroy_script_pre(eʹ, r);
+    remove_object(i);
+    eʹ->destroy_script_post();
+    eʹ.destroy();
+}
+
 const_objects_view chunk::objects() const
 {
     fm_assert(_objects_sorted);

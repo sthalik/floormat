@@ -94,11 +94,7 @@ start:
             for (auto i = 0uz; i < sz; i++)
                 if (auto eʹ = es[i]; eʹ->id == id)
                 {
-                    auto& e = *eʹ;
-                    e.destroy_script_pre(eʹ, script_destroy_reason::kill);
-                    c.remove_object(i);
-                    e.destroy_script_post();
-                    eʹ.destroy();
+                    c.kill_object(i);
                     goto start;
                 }
             break;
