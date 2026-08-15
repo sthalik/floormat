@@ -709,12 +709,7 @@ void app::do_popup_menu()
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
             e.rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
-        {
-            e.destroy_script_pre(eʹ, script_destroy_reason::kill);
-            e.chunk().remove_object(e.index());
-            e.destroy_script_post();
-            eʹ.destroy();
-        }
+            e.chunk().kill_object(i);
     }
     else
         _popup_target = {};

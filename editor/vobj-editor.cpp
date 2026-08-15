@@ -55,13 +55,9 @@ start:
             for (auto i = (int)(es.size()-1); i >= 0; i--)
             {
                 auto eʹ = es[i];
-                auto& e = *eʹ;
-                if (e.id == id && eʹ->is_virtual())
+                if (eʹ->id == id && eʹ->is_virtual())
                 {
-                    e.destroy_script_pre(eʹ, script_destroy_reason::kill);
-                    c.remove_object((unsigned)i);
-                    e.destroy_script_post();
-                    eʹ.destroy();
+                    c.kill_object((size_t)i);
                     goto start;
                 }
             }
