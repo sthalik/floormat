@@ -143,6 +143,34 @@ void test_degenerate()
     }
 }
 
+void test_neighbor_dirty()
+{
+    auto w = world();
+    constexpr chunk_coords_ C{0, 0, 0}, N{1, 0, 0};
+
+    auto& c = w[C];
+    auto& n = w[N];
+
+    n.ensure_passability();
+    fm_assert(!n.is_passability_modified());
+    // _pass_modified starts out set, which is what used to swallow the neighbor marking
+    fm_assert(c.is_passability_modified());
+
+    const auto gen0 = n.pass_gen();
+    auto h = w.make_object<hole>(w.make_id(), global_coords{C, {8, 8}}, hole_proto{});
+    fm_assert(n.is_passability_modified());
+    fm_assert_not_equal(gen0, n.pass_gen());
+
+    n.ensure_passability();
+    fm_assert(!n.is_passability_modified());
+    fm_assert(c.is_passability_modified());
+
+    const auto gen1 = n.pass_gen();
+    c.remove_object(h->index());
+    fm_assert(n.is_passability_modified());
+    fm_assert_not_equal(gen1, n.pass_gen());
+}
+
 } // namespace
 } // namespace floormat
 
@@ -227,6 +255,7 @@ void Test::test_hole()
     test2();
     test3();
     test_degenerate();
+    test_neighbor_dirty();
 
     using namespace Run;
 

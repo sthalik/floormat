@@ -146,11 +146,13 @@ void chunk::add_object_pre(const bptr<object>& e)
     const bool upd_walls = e->updates_walls();
     if (!dyn)
         mark_scenery_modified();
-    if (!_pass_modified) [[likely]]
+    // the static path isn't gated on _pass_modified because it only sets dirty flags,
+    // and one of them lands on the neighbor chunks
+    if (!dyn || upd_passability)
+        _add_bbox_static_(e);
+    else if (!_pass_modified) [[likely]]
     {
-        if (!dyn || upd_passability)
-            _add_bbox_static_(e);
-        else if (bbox bb; _bbox_for_scenery(*e, bb))
+        if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
     }
     if (upd_walls)
@@ -202,11 +204,11 @@ void chunk::remove_object(size_t i)
         if (!dyn)
             mark_scenery_modified();
 
-        if (!_pass_modified) [[likely]]
+        if (!dyn || upd_passability)
+            _remove_bbox_static_(eʹ);
+        else if (!_pass_modified) [[likely]]
         {
-            if (!dyn || upd_passability)
-                _remove_bbox_static_(eʹ);
-            else if (bbox bb; _bbox_for_scenery(e, bb))
+            if (bbox bb; _bbox_for_scenery(e, bb))
                 _remove_bbox_dynamic(bb);
         }
 
