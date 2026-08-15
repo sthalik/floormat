@@ -68,6 +68,7 @@ int App::exec()
         FM_TEST(test_chunk_iter),
         FM_TEST(test_entity),
         FM_TEST(test_float),
+        FM_TEST(test_fps),
         FM_TEST(test_texcoords),
         FM_TEST(test_shader),
         // normal
