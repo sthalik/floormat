@@ -51,7 +51,9 @@ void main_impl::cache_draw_on_startup()
     clear_framebuffer();
     for (int i = 0; i < 3; i++)
     {
-        do_update(Ns{1});
+        // Not do_update(): these synthetic ticks aren't real frame times and
+        // would otherwise seed the FPS counter's settle-phase average with 1e9.
+        app.update(Ns{1});
         draw_world();
     }
     clear_framebuffer();
