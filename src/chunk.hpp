@@ -5,6 +5,7 @@
 #include "src/RTree-fwd.h"
 #include "global-coords.hpp"
 #include "search-pred.hpp"
+#include "script-enums.hpp"
 #include "sprite-list.hpp"
 #include "pass-through.hpp"
 #include <array>
@@ -93,6 +94,8 @@ public:
     ArrayView<const bptr<object>> objects();
 
     void remove_object(size_t i);
+    // unlike remove_object(), tears the script down and deletes the object
+    void kill_object(size_t i, script_destroy_reason r = script_destroy_reason::kill);
     void sort_objects();
 
     struct ground_stuff
