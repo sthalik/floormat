@@ -19,7 +19,6 @@ class SpriteBatch
     struct Impl;
 
     void ensure_allocated(uint32_t count);
-    void sort_vertex_buffer(bool do_sort);
 
     safe_ptr<Impl> impl;
 
@@ -28,6 +27,11 @@ public:
     void end_chunk(bool do_sort);
     void clear();
     void draw(tile_shader& shader, bool do_sort = true);
+
+    // Needs no GL. Together these let a test observe the merge; without merged_order() a
+    // dropped or duplicated quad is unobservable from outside.
+    void sort_vertex_buffer(bool do_sort);
+    ArrayView<const uint32_t> merged_order() const;
 
     static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);

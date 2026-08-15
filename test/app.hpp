@@ -49,6 +49,7 @@ void test_script();
 void test_shader();
 void test_spinlock();
 void test_sprite_atlas();
+void test_spritebatch();
 void test_sprites();
 void test_sweep_aabb();
 void test_util();
