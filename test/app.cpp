@@ -59,6 +59,7 @@ int App::exec()
         // fast
         FM_TEST(test_magnum_math),
         FM_TEST(test_util),
+        FM_TEST(test_split),
         FM_TEST(test_math),
         FM_TEST(test_rtree_pool),
         FM_TEST(test_astar_pool),
