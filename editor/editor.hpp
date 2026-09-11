@@ -81,6 +81,7 @@ public:
     void on_release();
     void clear_selection();
     Optional<global_coords> mouse_drag_pos();
+    [[nodiscard]] bool is_dragging() const noexcept { return _last_pos && _last_pos->btn != editor_button::none; }
 
     using snap_mode = editor_snap_mode;
     using button = editor_button;

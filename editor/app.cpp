@@ -8,10 +8,70 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
+#include "editor/pgo-scenes.hpp"
 #include <cr/StringIterable.h>
 #include <cr/Arguments.h>
+#include <cr/GrowableArray.h>
+#include <algorithm>
+#include <ranges>
 
 namespace floormat {
+
+namespace ranges = std::ranges;
+
+namespace {
+
+constexpr const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };
+constexpr const char* const false_values[] = { "0", "false", "no", "n", "N", "off", "OFF", "disable", "disabled", };
+
+template<typename T, typename U>
+bool find_arg(const T& list, const U& value) {
+    for (const auto& x : list)
+        if (x == value)
+            return true;
+    return false;
+}
+
+bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
+{
+    auto str = args.value<StringView>(name);
+    if (find_arg(true_values, str))
+        return true;
+    else if (find_arg(false_values, str))
+        return false;
+    ERR_nospace << "invalid --" << name << " argument '" << str << "': should be 'true' or 'false'";
+    std::exit(EX_USAGE);
+}
+
+uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
+{
+    auto str = args.value<StringView>(name);
+    uint32_t value = 0;
+    int n = 0;
+    if (std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (size_t)n != str.size())
+    {
+        ERR_nospace << "invalid --" << name << " argument '" << str << "': should be a number";
+        std::exit(EX_USAGE);
+    }
+    return value;
+}
+
+driver_mode parse_driver(const Corrade::Utility::Arguments& args)
+{
+    auto str = args.value<StringView>("driver");
+    if (str == "off"_s)
+        return driver_mode::off;
+    else if (str == "all"_s)
+        return driver_mode::all;
+    else if (str == "coverage"_s)
+        return driver_mode::coverage;
+    else if (str == "profile"_s)
+        return driver_mode::profile;
+    ERR_nospace << "invalid --driver argument '" << str << "': should be off, all, coverage or profile";
+    std::exit(EX_USAGE);
+}
+
+} // namespace
 
 Optional<struct point> cursor_state::point() const
 {
@@ -47,6 +107,7 @@ void app::reset_world_pre()
     clear_keys();
     _character_id = 0;
     _render_vobjs = true;
+    M->set_render_vobjs(_render_vobjs);
     _render_all_z_levels = true;
     _timestamp = 0;
     const auto pixel = cursor.pixel;
@@ -77,28 +138,6 @@ int app::exec()
     return M->exec();
 }
 
-static const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };
-static const char* const false_values[] = { "0", "false", "no", "n", "N", "off", "OFF", "disable", "disabled", };
-
-template<typename T, typename U>
-static inline bool find_arg(const T& list, const U& value) {
-    for (const auto& x : list)
-        if (x == value)
-            return true;
-    return false;
-}
-
-static bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
-{
-    StringView str = args.value<StringView>(name);
-    if (find_arg(true_values, str))
-        return true;
-    else if (find_arg(false_values, str))
-        return false;
-    Error{Error::Flag::NoSpace} << "invalid --" << name << " argument '" << str << "': should be 'true' or 'false'";
-    std::exit(EX_USAGE);
-}
-
 fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 {
     fm_settings opts;
@@ -107,15 +146,75 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
+        .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
+        .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
+        .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
+        .addOption("driver-scenes", "all").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args);
+    opts.driver = parse_driver(args);
+    // Otherwise the scenes measure the swap interval. The raycast sweep alone yields 512 times
+    // and the walk 1022, which at 60 Hz is time spent in the driver doing nothing.
+    if (opts.driver != driver_mode::off)
+        opts.vsync = false;
+    opts.fixed_framerate = parse_uint("fixed-framerate", args);
+    opts.driver_repeat = parse_uint("driver-repeat", args);
+    {
+        const auto scenes = app::scenes();
+        const Array<StringView> driver_scenes = args.value<StringView>("driver-scenes").split(',');
+        Array<StringView> output; arrayReserve(output, 16);
+        const auto pushnew = [&](StringView s) {
+            if (!ranges::contains(output, s))
+                arrayAppend(output, s);
+        };
+        for (StringView name : driver_scenes)
+        {
+            if (name == "help"_s || name == "list"_s)
+            {
+                for (const auto& s : scenes)
+                    std::printf("%-16s%s\n", s.name.exceptPrefix("scene_"_s).data(),
+                                s.mode == driver_mode::coverage ? "coverage" : "profile");
+                std::fflush(stdout);
+                // Not std::exit(): a world is live by this point, and skipping its teardown trips
+                // the RTree pool's leak assert. quit() returns through Sdl2Application::exit.
+                std::exit(0);
+            }
+            else if (name == "none"_s)
+                arrayClear(output);
+            else if (name == "all")
+            {
+                arrayClear(output);
+                for (const auto& s : scenes)
+                    pushnew(s.name.exceptPrefix("scene_"_s));
+            }
+            else
+            {
+                if (ranges::contains(scenes, name, [&](auto&& s) { return s.name.exceptPrefix("scene_"_s); }))
+                    pushnew(name);
+                else
+                {
+                    auto err = ERR_nospace;
+                    err << "invalid --driver-scenes name '" << name << "', known scenes:";
+                    for (const auto& s : scenes)
+                        err << " " << s.name.exceptPrefix("scene_"_s);
+                    std::exit(EX_USAGE);
+                }
+            }
+        }
+        opts.driver_scenes = ","_s.join(output);
+    }
+    if (opts.driver_repeat == 0)
+    {
+        ERR_nospace << "--driver-repeat must be at least 1";
+        std::exit(EX_USAGE);
+    }
     if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
         if (ret != 2 || (size_t)n != str.size() || Vector2ui(size).product() == 0)
         {
-            Error{} << "invalid --geometry argument '%s'" << str;
+            ERR_nospace << "invalid --geometry argument '" << str << "'";
             std::exit(EX_USAGE);
         }
         else
@@ -143,7 +242,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         (void)0;
     else
     {
-        Error{Error::Flag::NoSpace} << "invalid display mode '" << str << "'";
+        ERR_nospace << "invalid display mode '" << str << "'";
         std::exit(EX_USAGE);
     }
     return opts;

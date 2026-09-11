@@ -89,11 +89,9 @@ void main_impl::drawEvent()
     GL::Renderer::flush();
 
     auto dt = timeline.update();
-#if 1
+    if (const auto hz = s.fixed_framerate) [[unlikely]]
+        dt = Second/hz + Ns{1};
     do_update(dt);
-#else
-    do_update(Second/60 + Ns{1});
-#endif
 
 #ifdef FM_USE_DEPTH32
     GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);

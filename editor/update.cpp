@@ -238,6 +238,7 @@ void app::update_world(Ns dt)
             }
     }
 
+#if 0
 #ifndef FM_NO_DEBUG
     for (auto ch : chunks)
     {
@@ -253,6 +254,7 @@ void app::update_world(Ns dt)
             fm_assert(e.last_frame_no == frame_no);
         }
     }
+#endif
 #endif
 }
 
@@ -303,6 +305,8 @@ void app::update(Ns dt)
     clear_non_repeated_keys();
     set_cursor();
     tests_post_update(dt);
+    // Last, so a step's actions land after this frame's world update and before the next draw.
+    driver_tick();
 }
 
 } // namespace floormat

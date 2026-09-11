@@ -41,7 +41,10 @@ void main() {
         vec2 penetration_delta = intersection_point - v_proj_pos.xy / v_proj_pos.z;
         float bleed = min(dot(penetration_delta, penetration_delta), 1.0);
 
-        float shadow = bleed * (1.0 - penumbra) * edge_clip;
+        // bleed is dropped: it comes out 0 over the whole quad rather than only at the occluder,
+        // which multiplied every shadow in the scene away. v_proj_pos, v_endpoints and v_edges.xy
+        // feed nothing else now.
+        float shadow = (1.0 - penumbra) * edge_clip;
         color0 = vec4(vec3(shadow), 1.0);
     }
     else if (mode == 2u) // light+blend mode: compute light * (1 - shadow_mask)
@@ -54,6 +57,9 @@ void main() {
         float A = 1.0;
         if (falloff == 0u) // linear
             A = max(0.0, (L - dist) / L);
+        else if (falloff == 1u) // constant: full brightness within range, nothing past it.
+            A = step(dist, L);   // Without this the range add_light() computes for it is unused
+                                 // and one such light whitens the whole lightmap.
         else if (falloff == 2u) // quadratic
         {
             float tmp = max(0.0, L - dist);

@@ -36,6 +36,7 @@ tests_data_::tests_data_() = default;
 
 tests_data::~tests_data() noexcept = default;
 
+base_test::Value base_test::advance(app&, Value) { return {}; }
 base_test::~base_test() noexcept = default;
 base_test::base_test() = default;
 
