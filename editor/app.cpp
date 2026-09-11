@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
+#include "compat/split-string.hpp"
 #include "editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
@@ -161,7 +162,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     opts.driver_repeat = parse_uint("driver-repeat", args);
     {
         const auto scenes = app::scenes();
-        const Array<StringView> driver_scenes = args.value<StringView>("driver-scenes").split(',');
+        const auto driver_scenes = split_string(args.value<StringView>("driver-scenes"), ',');
         Array<StringView> output; arrayReserve(output, 16);
         const auto pushnew = [&](StringView s) {
             if (!ranges::contains(output, s))
