@@ -73,11 +73,13 @@ void main_impl::resize_window(Vector2i size)
     // Direct rather than Sdl2Application::setWindowSize(), which scales by dpiScaling() and would
     // reintroduce the rounding make_conf() just removed.
     SDL_SetWindowSize(window(), size.x(), size.y());
+    const auto win_size = windowSize();
     _framebuffer_size = framebufferSize();
-    if (_framebuffer_size != size)
+    // Window units, not the framebuffer -- the two differ on a Retina display.
+    if (win_size != size)
         fm_warn("window manager gave %dx%d for a %dx%d request",
-                _framebuffer_size.x(), _framebuffer_size.y(), size.x(), size.y());
-    recalc_viewport(_framebuffer_size, windowSize());
+                win_size.x(), win_size.y(), size.x(), size.y());
+    recalc_viewport(_framebuffer_size, win_size);
     app.on_viewport_event(_framebuffer_size);
 }
 
@@ -100,15 +102,11 @@ auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::Window
 
 auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
-#ifndef __APPLE__
-    constexpr auto dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy::Physical;
-#else
-    constexpr auto dpi_policy = Platform::Implementation::Sdl2DpiScalingPolicy::Framebuffer;
-#endif
-
     return Configuration{}
         .setTitle(s.title ? (StringView)s.title : "floormat editor"_s)
-        .setSize(s.resolution, dpi_policy)
+        // --geometry is in pixels. The DpiScalingPolicy overload scales it by the primary monitor's
+        // raw physical DPI rather than the desktop scale factor, so it never comes back exact.
+        .setSize(s.resolution, Vector2{1})
         .setWindowFlags(make_window_flags(s));
 }
 
