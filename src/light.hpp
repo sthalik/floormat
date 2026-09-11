@@ -24,7 +24,7 @@ struct light_proto : object_proto
 
 struct light final : object
 {
-    float max_distance;
+    float max_distance; // in tiles!
     float radius;
     Vector4ub color{255};
     light_falloff falloff : 2;

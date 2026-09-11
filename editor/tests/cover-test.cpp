@@ -44,6 +44,7 @@ struct cover_test final : base_test
     void draw_ui(app& a, float width) override;
     void update_pre(app&, const Ns&) override {}
     void update_post(app& a, const Ns&) override;
+    Value advance(app& a, Value) override;
 
     void extract(app& a, point pt);
 
@@ -229,6 +230,26 @@ void cover_test::update_post(app& a, const Ns&)
     if (cg.ensure_octant(sk))
         return;
     cg.fill_next_unfilled();
+}
+
+base_test::Value cover_test::advance(app& a, Value)
+{
+    Value ret;
+    ret.type = ValueType::u64;
+    ret.u64 = 0;
+
+    selected_octant = (int32_t)(((uint32_t)selected_octant + 1u) % Cover::octant_count);
+    if (!has_result)
+        return ret;
+    auto& w = a.main().world();
+    auto* c = w.at(result.from.chunk3());
+    if (!c)
+        return ret;
+    // The handle has to come after the stale sweep -- a pooled grid can be recycled by it.
+    pool.maybe_mark_stale_all(w.frame_no());
+    ret.u32 = pool[*c].built_octants();
+    ret.type = ValueType::u32;
+    return ret;
 }
 
 void cover_test::extract(app& a, point pt)

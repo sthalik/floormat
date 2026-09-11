@@ -84,6 +84,15 @@ struct floormat_main
     void set_render_vobjs(bool value);
     bool is_rendering_vobjs() const;
 
+    // Set for a driver run: viewport events are dropped so the framebuffer keeps the size the run
+    // started at, and real input never reaches the editor. Ctrl+Q still gets through.
+    virtual void set_events_ignored(bool value);
+    bool are_events_ignored() const;
+
+    // Applies the framebuffer rebuild directly rather than through an event, so it works while
+    // events are ignored.
+    virtual void resize_window(Vector2i size) = 0;
+
     bool is_clipcontrol_zero_to_one_enabled() const noexcept;
 
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
@@ -99,6 +108,7 @@ protected:
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true;
     bool _first_frame : 1 = true;
+    bool _events_ignored : 1 = false;
     bool _is_clipcontroL_zero_to_one_enabled = false;
 };
 
