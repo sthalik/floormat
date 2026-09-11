@@ -1267,8 +1267,8 @@ void app::driver_draw_overlay()
     // thousands of pixels long, so without the line there is nothing saying where the rest runs.
     if (!D.route.isEmpty())
     {
-        const auto route_color = ImGui::ColorConvertFloat4ToU32({0, 1, .25f, 1}),
-                   goal_color  = ImGui::ColorConvertFloat4ToU32({1, .3f, 0, 1});
+        const auto route_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0.25f, 1}),
+                   goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
         const auto n = (uint32_t)D.route.size();
         auto prev = point_screen_pos(D.route.front());
         draw.AddCircle({prev.x(), prev.y()}, 9, route_color, 0, 3);
