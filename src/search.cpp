@@ -92,7 +92,7 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 template<typename Chunk>
 bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
-    fm_debug_assert(max >= min);
+    fm_debug3_assert(max >= min);
 
     if (c0)
         // it's not correct to return true if c == nullptr

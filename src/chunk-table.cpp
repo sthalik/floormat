@@ -86,7 +86,7 @@ chunk_table::~chunk_table() noexcept
 
 chunk* chunk_table::chunk_at(chunk_coords_ ch) noexcept
 {
-    fm_assert(ch.z >= chunk_z_min && ch.z <= chunk_z_max);
+    fm_debug3_assert(ch.z >= chunk_z_min && ch.z <= chunk_z_max);
     fm_assert(uint32_t(ch.x + chunk_xbias) < uint32_t(chunk_xbias) * 2u
            && uint32_t(ch.y + chunk_ybias) < uint32_t(chunk_ybias) * 2u);
 
@@ -207,7 +207,7 @@ std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noex
     return ret;
 }
 
-#ifndef FM_NO_DEBUG2
+#ifndef FM_NO_DEBUG3
 void chunk_table::check_in_sync(const world& w) const
 {
     for (const auto& c : w.chunks())
