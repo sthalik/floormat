@@ -62,6 +62,9 @@ namespace floormat {
 #if defined FM_NO_DEBUG && !defined FM_NO_DEBUG2
 #define FM_NO_DEBUG2
 #endif
+#if defined FM_NO_DEBUG2 && !defined FM_NO_DEBUG3
+#define FM_NO_DEBUG3
+#endif
 
 #ifndef FM_NO_DEBUG
 #define fm_debug_assert(...) fm_assert(__VA_ARGS__)
