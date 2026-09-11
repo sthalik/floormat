@@ -8,6 +8,7 @@
 #include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
 #include <algorithm>
+#include <gtl/phmap.hpp>
 #include <mg/Range.h>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
@@ -16,6 +17,11 @@
 #include <mg/Image.h>
 
 namespace floormat {
+
+struct editor::palette_cache
+{
+    gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> textures;
+};
 
 void editor::on_release()
 {
@@ -199,17 +205,17 @@ editor::~editor() noexcept = default;
 void editor::set_mode(editor_mode mode)
 {
     _mode = mode;
-    _sprite_palette_textures.clear();
+    _palette_cache->textures.clear();
     on_release();
 }
 
 GL::Texture2D& editor::palette_texture(sprite s)
 {
-    auto it = _sprite_palette_textures.find(s.raw());
-    if (it == _sprite_palette_textures.end())
+    auto& textures = _palette_cache->textures;
+    auto it = textures.find(s.raw());
+    if (it == textures.end())
     {
-        Hash::set_open_addressing_load_factor(_sprite_palette_textures,
-            _sprite_palette_textures.size()+1);
+        Hash::set_open_addressing_load_factor(textures, textures.size()+1);
 
         // sprite::width/height always report the ORIGINAL dims. When the
         // packer stored the sprite rotated, the atlas slot is transposed
@@ -256,7 +262,7 @@ GL::Texture2D& editor::palette_texture(sprite s)
             dst.setSubImage(0, {}, view);
         }
 
-        it = _sprite_palette_textures.insert({s.raw(), move(dst)}).first;
+        it = textures.insert({s.raw(), move(dst)}).first;
     }
     return it->second;
 }
