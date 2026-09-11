@@ -57,6 +57,13 @@ struct slot
     GL::Buffer vertex_buffer_handle{NoCreate};
 };
 
+template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this, many places naively reserve without 1.5
+{
+    if (arrayCapacity(A) < size)
+        arrayReserve(A, (uint32_t)((float)size * 1.5f));
+    arrayResize(A, NoInit, size);
+}
+
 } // namespace
 
 struct SpriteBatch::Impl
@@ -195,13 +202,6 @@ void SpriteBatch::end_chunk(bool do_sort)
 
     arrayAppend(impl.starts, first);
     impl.last_start = last;
-}
-
-template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this, many places naively reserve without 1.5
-{
-    if (arrayCapacity(A) < size)
-        arrayReserve(A, (uint32_t)((float)size * 1.5f));
-    arrayResize(A, NoInit, size);
 }
 
 void SpriteBatch::sort_vertex_buffer(bool do_sort)
