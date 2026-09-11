@@ -231,8 +231,8 @@ void test_spritebatch()
         f.check();
     }
 
-    {   // Empty chunks between real ones must not open a run, or the terminator lands in
-        // the wrong slot and every subsequent run reads the wrong bounds.
+    {   // Empty chunks between real ones must not append a run bound. The merge assumes
+        // nonempty runs and would read outside a zero-length one.
         fixture f;
         f.add_empty_run(true);
         f.add_run({5, 1});

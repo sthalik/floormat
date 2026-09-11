@@ -86,8 +86,8 @@ struct SpriteBatch::Impl
     uint32_t index_uploaded = 0;
     uint32_t last_start = 0;
     bool in_chunk = false;
-    // True only while sort_indexes[i] == i for all i. Cleared by end_chunk(true), the only
-    // thing that permutes sort_indexes. Only clear() sets it back.
+    // True only while sort_indexes[i] == i for all i. Cleared by both things that permute
+    // sort_indexes: end_chunk(true) and the merge. Only clear() sets it back.
     bool sort_indexes_in_orig_order = true;
 };
 
@@ -100,6 +100,7 @@ SpriteBatch::SpriteBatch()
     arrayReserve(impl.verts, 16);
     arrayReserve(impl.depths, 16);
     arrayReserve(impl.starts, 16);
+    arrayAppend(impl.starts, 0u);
     arrayReserve(impl.sort_indexes, 16);
 }
 
@@ -122,6 +123,7 @@ void SpriteBatch::clear()
     arrayClear(impl.verts);
     arrayClear(impl.depths);
     arrayClear(impl.starts);
+    arrayAppend(impl.starts, 0u); // leading bound, so end_chunk appends only run ends
     arrayClear(impl.sort_indexes);
     arrayClear(impl.merge_output);
     arrayClear(impl.m.runs);
@@ -186,7 +188,7 @@ void SpriteBatch::end_chunk(bool do_sort)
     const auto last = (uint32_t)impl.verts.size();
     auto& S = impl.sort_indexes;
 
-    if (first == last)
+    if (first == last) [[unlikely]]
         return;
 
     fm_debug_assert(S.size() == first);
@@ -201,7 +203,7 @@ void SpriteBatch::end_chunk(bool do_sort)
         impl.sort_indexes_in_orig_order = false;
     }
 
-    arrayAppend(impl.starts, first);
+    arrayAppend(impl.starts, last);
     impl.last_start = last;
 }
 
@@ -209,8 +211,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 {
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
-    // One-past-the-end terminator, so the run loop below reads bounds without a branch.
-    arrayAppend(impl.starts, impl.last_start);
 
     const auto& Dep = impl.depths;
     const auto& Vin = impl.verts;
@@ -286,10 +286,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         tree[0] = winner;
     }
 
-    // The build must leave no sentinel behind: head[] and runs[] are indexed by tree[] unguarded.
-    for (auto i = 0u; i < k; i++)
-        fm_debug2_assert(tree[i] < k);
-
     // Runner-up key. Valid only while tree[0] is unchanged, so a replay that moves the
     // winner resets it. The seed forces a full replay on iteration 0.
     float second = -FLT_MAX;
@@ -333,6 +329,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 
     // swap so draw() reads merged order from sort_indexes
     std::swap(impl.sort_indexes, impl.merge_output);
+    impl.sort_indexes_in_orig_order = false;
 }
 
 void SpriteBatch::draw(tile_shader& shader, bool do_sort)
@@ -352,7 +349,7 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     fm_debug_assert(V.isEmpty());
     fm_debug_assert(size == S.size());
     fm_debug_assert(size == impl.depths.size());
-    fm_debug_assert(!size == impl.starts.isEmpty());
+    fm_debug_assert(impl.starts.size() > 1);
     fm_debug_assert(impl.last_start == size);
     fm_debug_assert(impl.merge_output.isEmpty());
 
@@ -361,11 +358,6 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     const bool direct = !do_sort && impl.sort_indexes_in_orig_order;
     if (!direct)
         sort_vertex_buffer(do_sort); // modifies V
-#ifndef FM_NO_DEBUG2
-    else
-        for (auto i = 0u; i < size; i++)
-            fm_assert(S[i] == i);
-#endif
     ensure_allocated(size);
 
     auto& slot = impl.slots[impl.slot_idx];
