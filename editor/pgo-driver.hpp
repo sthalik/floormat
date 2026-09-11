@@ -92,6 +92,9 @@ struct state final
     uint32_t pass_index = 0;
     uint32_t frames_run = 0;
     uint32_t scene_first_frame = 0;
+    // What the frame-0 pin actually produced. Not settings().resolution: that is in window
+    // units and window_size() is in framebuffer units, which differ under HiDPI.
+    Vector2i base_window_size;
     // All ones means --driver-scenes was not given.
     uint32_t scene_mask = (uint32_t)-1;
     // scene_raycast raycasts and draws its own sweep. Going through the raycast test would have
