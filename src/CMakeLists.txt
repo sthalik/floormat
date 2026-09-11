@@ -23,3 +23,11 @@ target_link_libraries(
 if (WIN32 AND NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
     set_property(SOURCE fps-counter.cpp APPEND PROPERTY COMPILE_OPTIONS "-mlong-double-80")
 endif()
+
+# Vendored musl C awaiting adaptation. Shrinks as the C-isms go; clang-cl reports
+# CMAKE_CXX_COMPILER_ID as Clang, so testing MSVC would wrongly exclude it.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set_property(SOURCE musl_getopt.cpp APPEND PROPERTY COMPILE_OPTIONS
+        -Wno-sign-conversion -Wno-zero-as-null-pointer-constant -Wno-cast-qual
+        -Wno-shorten-64-to-32 -Wno-conditional-uninitialized -Wno-comma -Wno-unused-macros)
+endif()
