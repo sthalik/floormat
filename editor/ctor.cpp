@@ -2,7 +2,9 @@
 #include "compat/enum-bitset.hpp"
 #include "src/world.hpp"
 #include "editor.hpp"
+#include "pgo-driver.hpp"
 #include "tests.hpp"
+#include "floormat/settings.hpp"
 #include "imgui-text.hpp"
 #include "draw/wireframe-meshes.hpp"
 #include "src/sprite-atlas-impl.hpp"
@@ -21,6 +23,7 @@ app::app(fm_settings&& opts) :
     _editor{InPlaceInit, this},
     keys_{InPlaceInit, 0u},
     _text_pool{InPlaceInit},
+    _driver{InPlaceInit},
     key_modifiers{}
 {
     reset_world_post();
@@ -30,6 +33,8 @@ app::app(fm_settings&& opts) :
     reset_camera_offset();
     M->set_render_vobjs(_render_vobjs);
     reserve_inspector_array();
+    if (M->settings().driver != driver_mode::off)
+        driver_start();
 
 #if 0
     SpriteAtlas::dump_atlas(*loader.atlas().raw(), "d:/dev/floormat/editor-atlas.png");

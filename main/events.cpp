@@ -26,9 +26,26 @@ any_event make_any_event(const SDL_Event& e)
 
 void main_impl::viewportEvent(ViewportEvent& event)
 {
+    // The scene renders into framebuffer.fb, not into the window, so keeping the old size costs
+    // nothing but a clipped blit at the end of the frame.
+    if (_events_ignored) [[unlikely]]
+        return;
     _framebuffer_size = event.framebufferSize();
     recalc_viewport(event.framebufferSize(), event.windowSize());
     app.on_viewport_event(event.framebufferSize());
+}
+
+void main_impl::set_events_ignored(bool value)
+{
+    const bool was_ignoring = are_events_ignored();
+    floormat_main::set_events_ignored(value);
+    // Nothing re-sends a viewport event, so a resize that arrived while they were ignored would
+    // leave the framebuffer stale until the next one.
+    if (!was_ignoring || value || _framebuffer_size == framebufferSize())
+        return;
+    _framebuffer_size = framebufferSize();
+    recalc_viewport(_framebuffer_size, windowSize());
+    app.on_viewport_event(_framebuffer_size);
 }
 
 void main_impl::pointerPressEvent(PointerEvent& ev)

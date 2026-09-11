@@ -78,5 +78,7 @@ void main_impl::reset_fps() noexcept { _frame_timings.fps_counter.reset(); }
 void floormat_main::set_render_vobjs(bool value) { _do_render_vobjs = value; }
 bool floormat_main::is_clipcontrol_zero_to_one_enabled() const noexcept { return _is_clipcontroL_zero_to_one_enabled; }
 bool floormat_main::is_rendering_vobjs() const { return _do_render_vobjs; }
+void floormat_main::set_events_ignored(bool value) { _events_ignored = value; }
+bool floormat_main::are_events_ignored() const { return _events_ignored; }
 
 } // namespace floormat
