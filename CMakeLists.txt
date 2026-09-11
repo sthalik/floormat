@@ -2,6 +2,15 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
+# Claim the prefix before project(), not after. project() writes the platform default into
+# the cache even when the configure then fails, and it does so without FORCE -- so a single
+# failed first configure leaves C:/Program Files in the cache and permanently clears
+# CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT, killing any guard placed below.
+if(NOT DEFINED CMAKE_INSTALL_PREFIX)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "")
+endif()
+
 project(floormat C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
