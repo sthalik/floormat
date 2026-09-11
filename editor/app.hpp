@@ -19,6 +19,8 @@ namespace floormat::tests { struct tests_data; }
 
 namespace floormat::imgui { class text_painter_pool; }
 
+namespace floormat::pgo { struct task; struct state; struct scene; }
+
 namespace floormat {
 
 struct fm_settings;
@@ -99,6 +101,19 @@ private:
     void populate_raycast_fractal();
     void populate_sweep_aabb_slit();
     void populate_scene_benchmark();
+    void populate_scene_benchmark_walkable(uint8_t width);
+    void populate_scene_diagonal(uint8_t half_width);
+    void populate_scene_maze();
+    void populate_scene_maze2();
+    void populate_scene_grids(uint32_t num_pins = 0);
+    void add_grid_pin(uint32_t n);
+    void populate_scene_raycast_pins();
+    void populate_scene_lightmap();
+    void populate_scene_cover();
+    static point maze_corner(uint32_t k);
+    static point lightmap_light(uint32_t k);
+    static point maze2_start();
+    static point maze2_goal();
     void populate_scene_benchmark_all_z();
 
     void draw() override;
@@ -170,6 +185,37 @@ private:
 
     void do_camera(const Ns& dt, const key_set& cmds, int mods);
     void reset_camera_offset();
+    void center_camera_on(point pt);
+    void set_cursor_at(point pt);
+
+    void set_key_state(key k, bool is_pressed);
+    void set_modifier_state(int kmod, bool is_pressed);
+    void set_mouse_button_state(uint8_t button, bool is_pressed);
+    void move_cursor_to(point pt);
+    void scroll(int8_t offset);
+    void release_all_input();
+    point cursor_point();
+    void driver_start();
+    void driver_tick();
+    void driver_draw_overlay();
+    [[nodiscard]] bool driver_stop(StringView why);
+    pgo::task click_at_cursor(uint8_t button);
+    pgo::task click_at(point pt, uint8_t button);
+    pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
+    pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
+    pgo::task pan_along_path(ArrayView<const point> path);
+    pgo::task scene_modes();
+    pgo::task scene_ground_editor();
+    pgo::task scene_drag_paint();
+    pgo::task scene_benchmark();
+    pgo::task scene_walk();
+    pgo::task scene_maze();
+    pgo::task scene_raycast();
+    pgo::task scene_object_ids();
+    pgo::task scene_maze2();
+    pgo::task scene_grids();
+    pgo::task scene_lightmap();
+    pgo::task scene_cover();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
@@ -186,6 +232,8 @@ private:
     void erase_inspector(size_t index, ptrdiff_t count = 1);
     void kill_inspectors();
 
+    static ArrayView<const struct pgo::scene> scenes() noexcept;
+
     Array<chunk_coords_> _chunk_bounds_array;
     uint64_t _timestamp = 0;
     floormat_main* M;
@@ -195,6 +243,7 @@ private:
     safe_ptr<editor> _editor;
     safe_ptr<key_set> keys_;
     safe_ptr<imgui::text_painter_pool> _text_pool;
+    safe_ptr<pgo::state> _driver;
     struct key_modifiers_ { int data[key_COUNT]; } key_modifiers;
     Array<popup_target> inspectors;
     object_id _character_id = 0;

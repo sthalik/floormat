@@ -451,7 +451,7 @@ void test14()
 
 struct throwing_ctor : bptr_base
 {
-    throwing_ctor() { fm_throw("bptr in-place ctor must propagate exception {}"_cf, 15); }
+    [[noreturn]] throwing_ctor() { fm_throw("bptr in-place ctor must propagate exception {}"_cf, 15); }
 };
 
 // regression: a throwing T ctor inside bptr{InPlace} must propagate a catchable

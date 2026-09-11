@@ -7,6 +7,7 @@
 #include "keys.hpp"
 #include "editor.hpp"
 #include "compat/enum-bitset.hpp"
+#include "pgo-driver.hpp"
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Sdl2Application.h>
@@ -89,6 +90,11 @@ void app::clear_keys()
 
 void app::on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) noexcept
 {
+    // A driver run owns the cursor, the held buttons and the key bitset. Real input reaching any
+    // of the handlers below would fight it, so it is dropped here rather than merged.
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     do
     {
         cursor.in_imgui = _imgui->handlePointerMoveEvent(ev.val);
@@ -108,6 +114,9 @@ void app::on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) n
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down, const sdl2::EvClick& ev) noexcept
 {
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     const auto p = Vector2i(event.position);
 
     if (!(p >= Vector2i{} && p < M->window_size()))
@@ -128,6 +137,9 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down, const 
 
 void app::on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll& ev) noexcept
 {
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     const auto p = Vector2i(event.position);
 
     do
@@ -231,6 +243,10 @@ void app::on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
+    // Quitting stays reachable so a runaway run is killable without the window manager.
+    if (M->are_events_ignored() && x != key_quit) [[unlikely]]
+        return;
+
     if ((x == key_COUNT || x < key_GLOBAL) && do_imgui_key(ev, is_down) ||
         (x == key_COUNT || x == key_escape) && do_tests_key(event, is_down))
         clear_non_global_keys();
@@ -245,6 +261,9 @@ void app::on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey
 
 void app::on_text_input_event(const text_input_event& event) noexcept
 {
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     struct {
         accessor(Containers::StringView, text)
     } e = {event.text};
@@ -259,12 +278,19 @@ void app::on_viewport_event(const Math::Vector2<int>& size) noexcept
 
 void app::on_focus_out() noexcept
 {
+    // clear_keys() would wipe whatever the running scene is holding down.
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     update_cursor_tile(NullOpt);
     clear_keys();
 }
 
 void app::on_mouse_leave() noexcept
 {
+    if (M->are_events_ignored()) [[unlikely]]
+        return;
+
     update_cursor_tile(NullOpt);
 }
 
@@ -275,6 +301,11 @@ void app::do_key(key k)
 
 int app::get_key_modifiers()
 {
+    // SDL_GetModState() reads the keyboard directly, so blocking events isn't enough to keep a
+    // physically-held Ctrl out of a driver run. do_camera() feeds this into do_mouse_move()
+    // every pan, which is where it would flip ground-mode snap mid-drag.
+    if (_driver->running) [[unlikely]]
+        return _driver->mods;
     return fixup_mods(M->get_mods());
 }
 

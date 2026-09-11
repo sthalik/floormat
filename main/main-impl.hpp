@@ -75,6 +75,8 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     const Platform::Sdl2Application& application() const noexcept override;
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
+    void set_events_ignored(bool value) override;
+    void resize_window(Vector2i size) override;
     [[maybe_unused]] void pointerPressEvent(PointerEvent& ev) override;
     [[maybe_unused]] void pointerReleaseEvent(PointerEvent& ev) override;
     [[maybe_unused]] void pointerMoveEvent(PointerMoveEvent& ev) override;

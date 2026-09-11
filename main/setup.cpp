@@ -67,6 +67,20 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     timeline = Time::now();
 }
 
+void main_impl::resize_window(Vector2i size)
+{
+    fm_assert(size.x() > 0 && size.y() > 0);
+    // Direct rather than Sdl2Application::setWindowSize(), which scales by dpiScaling() and would
+    // reintroduce the rounding make_conf() just removed.
+    SDL_SetWindowSize(window(), size.x(), size.y());
+    _framebuffer_size = framebufferSize();
+    if (_framebuffer_size != size)
+        fm_warn("window manager gave %dx%d for a %dx%d request",
+                _framebuffer_size.x(), _framebuffer_size.y(), size.x(), size.y());
+    recalc_viewport(_framebuffer_size, windowSize());
+    app.on_viewport_event(_framebuffer_size);
+}
+
 auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::WindowFlags
 {
     using flag = Configuration::WindowFlag;

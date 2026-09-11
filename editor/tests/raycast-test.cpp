@@ -6,8 +6,10 @@
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
+#include "../raycast-draw.hpp"
 #include <cinttypes>
 #include <cstdio>
+#include <array>
 #include <vector>
 #include <mg/Color.h>
 
@@ -22,7 +24,6 @@ struct pending_s
 {
     point from, to;
     object_id self;
-    bool exists : 1 = false;
 };
 
 void print_coord(auto&& buf, Vector3i c, Vector2i l, Vector2i p)
@@ -54,7 +55,8 @@ void do_column(StringView name)
 struct raycast_test final : base_test
 {
     raycast_result_s result;
-    pending_s pending;
+    std::array<pending_s, max_pending_rays> pending;
+    uint32_t num_pending = 0;
     raycast_diag_s diag;
 
     ~raycast_test() noexcept override;
@@ -74,14 +76,15 @@ struct raycast_test final : base_test
             {
                 auto C = a.ensure_player_character(w);
                 auto pt0 = C->position();
-                pending = { .from = pt0, .to = *pt_, .self = C->id, .exists = true, };
+                if (num_pending < max_pending_rays)
+                    pending[num_pending++] = { .from = pt0, .to = *pt_, .self = C->id, };
                 return true;
             }
         }
         else if (e.button == mouse_button_right && is_down)
         {
             result.has_result = false;
-            pending.exists = false;
+            num_pending = 0;
         }
         return false;
     }
@@ -98,59 +101,8 @@ struct raycast_test final : base_test
         if (!result.has_result)
             return;
 
-        const auto color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1}),
-                   color2 = ImGui::ColorConvertFloat4ToU32({1, 0, 0.75, 1}),
-                   color3 = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1}),
-                   color_query = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
-        ImDrawList& draw = *ImGui::GetForegroundDrawList();
-
-        {
-            auto p0 = a.point_screen_pos(result.from),
-                 p1 = a.point_screen_pos(result.success
-                                         ? point::normalize_coords(result.from, Vector2i(diag.V))
-                                         : result.collision);
-            draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, color2, 2);
-        }
-
-        for (auto [center, size] : diag.path)
-        {
-            const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
-            auto p00 = a.point_screen_pos(point::normalize_coords(center, {-hx, -hy})),
-                 p10 = a.point_screen_pos(point::normalize_coords(center, {hx, -hy})),
-                 p01 = a.point_screen_pos(point::normalize_coords(center, {-hx, hy})),
-                 p11 = a.point_screen_pos(point::normalize_coords(center, {hx, hy}));
-            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, 1);
-            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, 1);
-            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, 1);
-            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, 1);
-        }
-
-        for (auto [center, size] : diag.queries)
-        {
-            const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
-            auto p00 = a.point_screen_pos(point::normalize_coords(center, {-hx, -hy})),
-                 p10 = a.point_screen_pos(point::normalize_coords(center, {hx, -hy})),
-                 p01 = a.point_screen_pos(point::normalize_coords(center, {-hx, hy})),
-                 p11 = a.point_screen_pos(point::normalize_coords(center, {hx, hy}));
-            draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color_query, 2);
-            draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color_query, 2);
-            draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color_query, 2);
-            draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color_query, 2);
-        }
-
-        if (!result.success)
-        {
-            auto p = a.point_screen_pos(result.collision);
-            draw.AddCircleFilled({p.x(), p.y()}, 10, color3);
-            draw.AddCircleFilled({p.x(), p.y()}, 7, color);
-        }
-        else
-        {
-            auto color4 = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1});
-            auto p = a.point_screen_pos(result.to);
-            draw.AddCircleFilled({p.x(), p.y()}, 10, color3);
-            draw.AddCircleFilled({p.x(), p.y()}, 7, color4);
-        }
+        draw_raycast_line(a, result);
+        draw_raycast_diag(a, diag);
     }
 
     void draw_ui(app&, float) override
@@ -271,16 +223,18 @@ struct raycast_test final : base_test
 
     void update_post(app& a, const Ns&) override
     {
-        if (pending.exists)
+        auto& w = a.main().world();
+        for (auto i = 0u; i < num_pending; i++)
         {
-            pending.exists = false;
-            if (pending.from.chunk3().z != pending.to.chunk3().z)
+            const auto& p = pending[i];
+            if (p.from.chunk3().z != p.to.chunk3().z)
             {
                 fm_warn("raycast: wrong Z value");
-                return;
+                continue;
             }
-            result = raycast_with_diag(diag, a.main().world(), pending.from, pending.to, pending.self);
+            result = raycast_with_diag(diag, w, p.from, p.to, p.self);
         }
+        num_pending = 0;
     }
 };
 

@@ -10,6 +10,10 @@ namespace floormat { struct app; struct Ns; }
 
 namespace floormat::tests {
 
+// A fast drag delivers several mouse-move events in one frame, and each is a distinct ray. The
+// test used to keep only the last of them.
+constexpr inline uint32_t max_pending_rays = 16;
+
 struct base_test
 {
     fm_DEFAULT_MOVE_(base_test);
@@ -22,6 +26,34 @@ struct base_test
     virtual void draw_ui(app& a, float width) = 0;
     virtual void update_pre(app& a, const Ns& dt) = 0;
     virtual void update_post(app& a, const Ns& dt) = 0;
+
+    enum class ValueType : uint8_t { none, ptr, usize, intptr, uintptr, i64, u64, i32, u32, f, b, ai32, au32, af };
+    struct monostate {};
+
+    struct Value {
+        union {
+            struct monostate empty = {};
+            void* ptr;
+            size_t usize;
+            intptr_t intptr;
+            uintptr_t uintptr;
+            int64_t i64;
+            uint64_t u64;
+            int32_t i32;
+            uint32_t u32;
+            float f;
+            bool b;
+            int32_t ai32[4];
+            uint32_t au32[4];
+            float af[4];
+        };
+
+        ValueType type = ValueType::none;
+    };
+
+    // The driver cannot click an ImGui widget, and cover_test's octant selector is one. Steps it
+    // and hands back the octants built so far as a bitmask. No other test has a selection.
+    virtual Value advance(app& a, Value);
 
     virtual ~base_test() noexcept;
 
