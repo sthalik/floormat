@@ -6,7 +6,6 @@
 #include "editor-enums.hpp"
 #include <cr/Optional.h>
 #include <mg/Texture.h>
-#include <gtl/phmap.hpp>
 
 namespace Magnum::GL {
 template<UnsignedInt dimensions> class TextureArray;
@@ -14,10 +13,6 @@ typedef TextureArray<2> Texture2DArray;
 template<UnsignedInt> class Texture;
 typedef Texture<2> Texture2D;
 } // namespace Magnum::GL
-
-namespace floormat::SpriteAtlas {
-struct Sprite;
-} // namespace floormat::SpriteAtlas
 
 namespace floormat {
 
@@ -44,7 +39,8 @@ class editor final
     safe_ptr<scenery_editor> _scenery;
     safe_ptr<vobj_editor> _vobj;
 
-    gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> _sprite_palette_textures;
+    struct palette_cache;
+    safe_ptr<palette_cache> _palette_cache;
 
     struct drag_pos final {
         global_coords coord, draw_coord;
