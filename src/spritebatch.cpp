@@ -242,7 +242,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     reserve(M, size);
     reserve(runs, k);
     reserve(tree, k);
-    reserve(head, k);
+    reserve(head, k + 1);
 
     // --- k-way merge via loser tree ---
 
@@ -254,7 +254,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     }
 
     const uint32_t sentinel = k;
-    auto depth_of = [&](uint32_t r) -> float { return r >= k ? -FLT_MAX : head[r]; };
+    head[sentinel] = -FLT_MAX; // wins every comparison, so the build displaces it out of tree[]
 
     // build tree: insert runs back to front
     for (auto i = 0u; i < k; i++)
@@ -262,10 +262,10 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     for (auto i = k - 1; i != (uint32_t)-1; i--)
     {
         uint32_t winner = i;
-        float wd = depth_of(i);
+        float wd = head[i];
         for (uint32_t p = (k + i) / 2; p > 0; p /= 2)
         {
-            const float pd = depth_of(tree[p]);
+            const float pd = head[tree[p]];
             if (wd > pd)
             {
                 std::swap(winner, tree[p]);
@@ -275,6 +275,10 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         tree[0] = winner;
     }
 
+    // The build must leave no sentinel behind: head[] and runs[] are indexed by tree[] unguarded.
+    for (auto i = 0u; i < k; i++)
+        fm_debug2_assert(tree[i] < k);
+
     // Runner-up key. Valid only while tree[0] is unchanged, so a replay that moves the
     // winner resets it. The seed forces a full replay on iteration 0.
     float second = -FLT_MAX;
@@ -283,9 +287,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     for (auto i = 0u; i < size; i++)
     {
         const auto w = tree[0];
-        fm_debug2_assert(w < k);
         auto& rw = runs[w];
-        fm_debug2_assert(rw.pos < rw.end);
         M[i] = S[rw.pos];
         rw.pos++;
         head[w] = rw.pos < rw.end ? Dep[S[rw.pos]] : FLT_MAX;
@@ -299,7 +301,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         float wd = head[w], lo = FLT_MAX;
         for (uint32_t p = (k + w) / 2; p > 0; p /= 2)
         {
-            const float pd = depth_of(tree[p]);
+            const float pd = head[tree[p]];
             if (wd > pd)
             {
                 std::swap(winner, tree[p]);
