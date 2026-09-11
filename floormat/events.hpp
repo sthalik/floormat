@@ -29,7 +29,7 @@ struct mouse_move_event final {
 };
 
 struct mouse_scroll_event final {
-    Magnum::Vector2 offset;
+    Vector2 offset;
     Vector2 position;
     int mods = 0;
     bool is_primary : 1 = false;
