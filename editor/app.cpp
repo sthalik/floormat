@@ -49,7 +49,9 @@ uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
     auto str = args.value<StringView>(name);
     uint32_t value = 0;
     int n = 0;
-    if (std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (size_t)n != str.size())
+    // %u accepts a leading '-' and wraps, so a digit must come first
+    if (str.isEmpty() || str[0] < '0' || str[0] > '9' ||
+        std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (size_t)n != str.size())
     {
         ERR_nospace << "invalid --" << name << " argument '" << str << "': should be a number";
         std::exit(EX_USAGE);
