@@ -283,10 +283,12 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     for (auto i = 0u; i < size; i++)
     {
         const auto w = tree[0];
-        fm_debug_assert(w < k && runs[w].pos < runs[w].end);
-        M[i] = S[runs[w].pos];
-        runs[w].pos++;
-        head[w] = runs[w].pos < runs[w].end ? Dep[S[runs[w].pos]] : FLT_MAX;
+        fm_debug2_assert(w < k);
+        auto& rw = runs[w];
+        fm_debug2_assert(rw.pos < rw.end);
+        M[i] = S[rw.pos];
+        rw.pos++;
+        head[w] = rw.pos < rw.end ? Dep[S[rw.pos]] : FLT_MAX;
 
         // Still the winner, so the tree, tree[0] and `second` are all unchanged.
         if (head[w] <= second)
