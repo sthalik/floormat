@@ -16,6 +16,7 @@ struct path_search_result_pool_access<Test_PathPool> final
     static const Pointer<node>& get_node(const path_search_result& p) { return p._node; }
     static const auto& get_pool() { return path_search_result::_pool; }
     static size_t pool_size();
+    static void clear_pool() { path_search_result::_pool = {}; }
 };
 
 size_t path_search_result_pool_access<Test_PathPool>::pool_size()
@@ -29,6 +30,9 @@ size_t path_search_result_pool_access<Test_PathPool>::pool_size()
 void Test::test_astar_pool()
 {
     const auto& pool = psrpa::get_pool();
+
+    // dijkstra and astar leave nodes in the pool, and so does this test on a second pass
+    psrpa::clear_pool();
     fm_assert(psrpa::pool_size() == 0);
 
     auto a = path_search_result{};
