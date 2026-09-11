@@ -58,7 +58,7 @@ exe_tag() {
     echo "${_x#floormat-}"
 }
 
-# floormat-test aborts on an unknown option, so these can't be passed to everything
+# Each binary rejects the others' options, so these are per-exe
 exe_args() {
     case "$(exe_tag "$1")" in
         editor) echo "--magnum-gpu-validation=full --vsync=off --driver=all --driver-repeat 2" ;;
