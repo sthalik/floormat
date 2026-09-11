@@ -1,5 +1,5 @@
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    if(FLOORMAT_WITH-COVERAGE)
+if(CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(FLOORMAT_COVERAGE)
         set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE)
         add_definitions(
             -fprofile-instr-generate
@@ -10,9 +10,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
             -fprofile-instr-generate
             -fcoverage-mapping
         )
+        set(BUILD_SHARED_LIBS OFF)
+    else()
+        add_link_options(-Wl,--gc-sections)
     endif()
     add_compile_options(-ffunction-sections -fdata-sections)
-    add_link_options(-Wl,--gc-sections -Wl,--as-needed)
+    add_link_options(-Wl,--as-needed)
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
 else()
     set(BUILD_SHARED_LIBS OFF)
@@ -165,8 +168,21 @@ function(fm-userconfig-src)
         #-Wexit-time-destructors
         -Wno-exit-time-destructors
     )
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-ftime-trace)
     endif()
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-Xclang -flifetime-safety-inference>")
+    #add_link_options(-Wl,-mllvm,-pass-remarks=wholeprogramdevirt)
     add_compile_definitions("$<$<CONFIG:Release,RELEASE>:-DFM_NO_DEBUG3>")
+
+    if(FLOORMAT_COVERAGE)
+        sets(BOOL
+             FLOORMAT_SUBMODULE-SDL2                            ON
+             SDL_SHARED                                         OFF
+             SDL_STATIC                                         ON
+             CORRADE_BUILD_STATIC                               ON
+             MAGNUM_BUILD_PLUGINS_STATIC                        ON
+             MAGNUM_BUILD_STATIC                                ON
+        )
+    endif()
 endfunction()
