@@ -4,7 +4,7 @@
 #ifdef __CLION_IDE__
 #define fm_bptr_assert(...) (void(__VA_ARGS__))
 #elif defined FM_BPTR_DEBUG && !defined FM_NO_DEBUG
-#define fm_bptr_assert(...) fm_assert(__VA_ARGS__)
+#define fm_bptr_assert(...) fm_debug3_assert(__VA_ARGS__)
 #else
 #define fm_bptr_assert(...) void()
 #endif

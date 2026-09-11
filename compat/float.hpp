@@ -41,13 +41,13 @@ constexpr float nth_float(float x, uint32_t n)
     uint32_t newMapped = base + n;
     if (base < HOLE_LO && newMapped >= HOLE_LO)
     {
-        fm_debug_assert(newMapped <= UINT32_MAX - HOLE_SIZE);
+        fm_debug3_assert(newMapped <= UINT32_MAX - HOLE_SIZE);
         newMapped += HOLE_SIZE; // skip denorm block
     }
 
     const uint32_t newU = (newMapped & 0x80000000u) != 0 ? newMapped ^ 0x80000000u : ~newMapped;
     const float ret = std::bit_cast<float>(newU);
-    fm_debug_assert(fpclassify(ret) == FP_NORMAL && newMapped >= mapped);
+    fm_debug3_assert(fpclassify(ret) == FP_NORMAL && newMapped >= mapped);
     return ret;
 }
 
