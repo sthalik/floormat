@@ -58,9 +58,6 @@ void app::init_imgui(Vector2i size)
     }
 
     _imgui->relayout(Vector2{size}, size, size);
-
-    _imgui->atlasTexture().setMagnificationFilter(Magnum::GL::SamplerFilter::Nearest)
-                          .setMinificationFilter(Magnum::GL::SamplerFilter::Nearest);
 }
 
 void app::render_menu()
