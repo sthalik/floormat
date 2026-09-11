@@ -265,6 +265,15 @@ void app::scroll(int8_t offset)
     do_mouse_scroll(offset);
 }
 
+void app::set_window_size(Vector2i size)
+{
+    M->resize_window(size);
+    // pixel_to_tile_() subtracts window_size()*.5, so the same pixel names a different world
+    // point afterwards. update_cursor_tile() does no bounds check, so a stale cursor.tile is
+    // silently wrong rather than empty.
+    update_cursor_tile(cursor.pixel);
+}
+
 // `path` is borrowed for the whole pan. A coroutine frame copies the view and not the array
 // behind it, so whatever owns the path has to outlive the co_await.
 task app::pan_along_path(ArrayView<const point> path)
@@ -1338,6 +1347,7 @@ void app::driver_tick()
         // window can only be pinned here.
         M->resize_window(M->settings().resolution);
         const auto size = M->window_size();
+        D.base_window_size = size;
         std::printf("driver: %dx%d framebuffer, events ignored\n", size.x(), size.y());
         std::fflush(stdout);
 
@@ -1375,6 +1385,11 @@ void app::driver_tick()
                         (double)Time::to_milliseconds(D.scene_started.update()),
                         D.frames_run - D.scene_first_frame, D.pass_index + 1);
             std::fflush(stdout);
+            // A leaked window size would silently change every later scene's fill rate, and the
+            // line above would not say so. Restored after the print, so neither scene's timing
+            // carries the framebuffer rebuild.
+            if (M->window_size() != D.base_window_size)
+                set_window_size(M->settings().resolution);
         }
         const auto mode = M->settings().driver;
         for (;;)

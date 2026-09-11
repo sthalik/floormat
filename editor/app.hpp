@@ -195,6 +195,7 @@ private:
     void scroll(int8_t offset);
     void release_all_input();
     point cursor_point();
+    void set_window_size(Vector2i size);
     void driver_start();
     void driver_tick();
     void driver_draw_overlay();
