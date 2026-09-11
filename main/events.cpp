@@ -52,7 +52,7 @@ void main_impl::pointerPressEvent(PointerEvent& ev)
 {
     app.on_mouse_up_down({
         ev.position() * _virtual_scale,
-        (SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
         pointer_to_button_mask(ev.pointer()),
         uint8_t(std::min(255, ev.clickCount())),
     }, true, {ev});
@@ -62,7 +62,7 @@ void main_impl::pointerReleaseEvent(PointerEvent& ev)
 {
     app.on_mouse_up_down({
         ev.position() * _virtual_scale,
-        (SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
         pointer_to_button_mask(ev.pointer()),
         uint8_t(std::min(255, ev.clickCount())),
     }, false, {ev});
@@ -72,7 +72,7 @@ void main_impl::pointerMoveEvent(PointerMoveEvent& ev)
 {
     app.on_mouse_move({
         ev.position() * _virtual_scale,
-        (SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
         pointer_to_button_mask(ev.pointers()),
         ev.isPrimary(),
     }, {ev});
@@ -82,7 +82,7 @@ void main_impl::scrollEvent(ScrollEvent& ev)
 {
     app.on_mouse_scroll({
         ev.offset(), ev.position() * _virtual_scale,
-        (SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
     }, {ev});
 }
 
@@ -101,8 +101,8 @@ void main_impl::textEditingEvent(TextEditingEvent& event)
 void main_impl::keyPressEvent(KeyEvent& event)
 {
     app.on_key_up_down({
-        (SDL_Keycode)(uint32_t)event.key(),
-        (SDL_Keymod)(uint16_t)event.modifiers(),
+        (int)(SDL_Keycode)(uint32_t)event.key(),
+        (int)(uint16_t)event.modifiers(),
         event.isRepeated()
     }, true, {event});
 }
@@ -110,8 +110,8 @@ void main_impl::keyPressEvent(KeyEvent& event)
 void main_impl::keyReleaseEvent(KeyEvent& event)
 {
     app.on_key_up_down({
-        (SDL_Keycode)(uint32_t)event.key(),
-        (SDL_Keymod)(uint16_t)event.modifiers(),
+        (int)(SDL_Keycode)(uint32_t)event.key(),
+        (int)(SDL_Keymod)(uint16_t)event.modifiers(),
         event.isRepeated()
     }, false, {event});
 }
