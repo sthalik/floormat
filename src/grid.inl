@@ -33,7 +33,7 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
         return;
 
     chunk* sc = self.w->at(self.coord);
-    fm_assert(sc);
+    fm_debug3_assert(sc);
 
     self.neighbors = self.w->neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);
@@ -81,24 +81,24 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
 }
 
 template <typename T>
-void check_frame_sync(Pool<T>* pool, T* grid)
+void check_frame_sync([[maybe_unused]] Pool<T>* pool, [[maybe_unused]] T* grid)
 {
-    fm_assert(pool->frame_no == grid->w->frame_no());
+    fm_debug3_assert(pool->frame_no == grid->w->frame_no());
 }
 
 template <typename T>
 T* pool_subscript(Pool<T>* p, chunk& c)
 {
-    fm_assert(p->frame_no == c.world().frame_no());
+    fm_debug3_assert(p->frame_no == c.world().frame_no());
     auto coord = c.coord();
     if (auto it = p->grids.find(coord); it != p->grids.end())
     {
-        fm_debug2_assert(it->second);
+        fm_debug3_assert(it->second);
         return it->second;
     }
     Hash::set_open_addressing_load_factor(p->grids, p->grids.size() + 1);
     auto [it, inserted] = p->grids.try_emplace(coord, nullptr);
-    fm_debug_assert(inserted);
+    fm_debug3_assert(inserted);
     it->second = p->take(c);
     return it->second;
 }

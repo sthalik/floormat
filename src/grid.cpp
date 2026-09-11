@@ -98,14 +98,14 @@ uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset
     posʹ += Vector2i(local) * tile_size_xy;
     posʹ += Vector2i(offset);
     posʹ += Vector2i(half_tile);
-    fm_debug2_assert(posʹ >= Vector2i{0});
+    fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos{NoInit}; (void)pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
         pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size);
     else
         pos = Vector2ui(posʹ) / div_size;
     // per-axis: an out-of-range x with a small y still packs below div_count²
-    fm_assert(pos.x() < div_count && pos.y() < div_count);
+    fm_debug3_assert(pos.x() < div_count && pos.y() < div_count);
     return pack_bit_index(pos.x(), pos.y(), div_count);
 }
 

@@ -283,8 +283,8 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto& cache = *_cache;
     cache.allocate(from, max_dist);
 
-    constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
-    fm_assert(own_size_ < Vector2ui{size_max});
+    [[maybe_unused]] constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
+    fm_debug3_assert(own_size_ < Vector2ui{size_max});
     const auto own_size = Math::max(own_size_, min_size);
     constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
 

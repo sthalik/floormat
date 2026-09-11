@@ -6,7 +6,7 @@ RTREE_TEMPLATE
 template<typename F>
 int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const
 {
-#ifndef FM_NO_DEBUG
+#ifndef FM_NO_DEBUG3
   for(int index=0; index<NUMDIMS; ++index)
   {
     fm_assert(a_min[index] <= a_max[index]);
@@ -34,9 +34,9 @@ RTREE_TEMPLATE
 template<typename F>
 bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const
 {
-  fm_assert(a_node);
-  fm_assert(a_node->m_level >= 0);
-  fm_assert(a_rect);
+  fm_debug3_assert(a_node);
+  fm_debug3_assert(a_node->m_level >= 0);
+  fm_debug3_assert(a_rect);
 
   if(a_node->IsInternalNode())
   {
