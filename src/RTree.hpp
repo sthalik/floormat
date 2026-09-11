@@ -13,7 +13,7 @@
 #include <cr/Algorithms.h>
 
 #undef RTREE_DEBUG
-#ifndef FM_NO_DEBUG
+#ifndef FM_NO_DEBUG3
 #define RTREE_DEBUG
 #endif
 

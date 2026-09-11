@@ -230,6 +230,16 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     reserve(V, size);
 
     const auto k = (uint32_t)Starts.size() - 1; // number of runs
+
+#ifndef FM_NO_DEBUG3
+    // end_chunk(false) trusts the caller to have sorted the run. The only such caller feeding
+    // a sorted batch is chunk::scenery_static_mesh, sorted under `if (modify_static)`.
+    if (do_sort)
+        for (auto r = 0u; r < k; r++)
+            for (auto i = Starts[r] + 1; i < Starts[r + 1]; i++)
+                fm_assert(Dep[S[i-1]] <= Dep[S[i]]);
+#endif
+
     if (!do_sort || k <= 1)
     {
         // sort skipped (depth-buffered opaque pass), single chunk, or empty —
@@ -322,15 +332,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 
     // swap so draw() reads merged order from sort_indexes
     std::swap(impl.sort_indexes, impl.merge_output);
-
-#if !defined FM_NO_DEBUG2 && !defined __FAST_MATH__ /* hack */
-    for (auto i = 1u; i < size; i++)
-    {
-        const auto &a = S[i-1], &b = S[i];
-        const auto ad = Dep[a], bd = Dep[b];
-        fm_assert(ad <= bd);
-    }
-#endif
 }
 
 void SpriteBatch::draw(tile_shader& shader, bool do_sort)

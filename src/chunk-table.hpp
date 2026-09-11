@@ -28,7 +28,7 @@ public:
 
     void update_slot(chunk_coords_ ch, chunk* p) noexcept;
 
-#ifndef FM_NO_DEBUG2
+#ifndef FM_NO_DEBUG3
     void check_in_sync(const world& w) const;
 #endif
 

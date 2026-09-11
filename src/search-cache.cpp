@@ -56,9 +56,9 @@ void cache::allocate(point from, uint32_t max_dist)
 size_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 {
     auto off = Vector2ui(coord - start);
-    fm_assert(off < size);
+    fm_debug3_assert(off < size);
     auto index = off.y() * size.x() + off.x();
-    fm_debug_assert(index < size.product());
+    fm_debug3_assert(index < size.product());
     return index;
 }
 
@@ -71,23 +71,23 @@ size_t cache::get_tile_index(local_coords local, Vector2b offset_) const
     posʹ += Vector2i(local) * (int32_t)tile_size_xy;
     posʹ += Vector2i(offset_);
     posʹ += Vector2i(half_tile);
-    fm_debug_assert(posʹ >= Vector2i{0});
+    fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
         pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size_);
     else
         pos = Vector2ui(posʹ) / div_size_;
     auto idx = (size_t)pos.y() * div_count_ + (size_t)pos.x();
-    fm_debug_assert(idx < (size_t)div_count_ * div_count_);
+    fm_debug3_assert(idx < (size_t)div_count_ * div_count_);
     return idx;
 }
 
 void cache::add_index(size_t chunk_index, size_t tile_index, uint32_t index)
 {
-    fm_debug_assert(index != (uint32_t)-1);
+    fm_debug3_assert(index != (uint32_t)-1);
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
     auto flat = chunk_index * cells_per_chunk + tile_index;
-    fm_debug_assert(!exists[flat]);
+    fm_debug3_assert(!exists[flat]);
     exists.set(flat);
     indexes[flat] = index;
 }

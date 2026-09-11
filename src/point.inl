@@ -58,7 +58,7 @@ constexpr std::strong_ordering operator<=>(const point& p1, const point& p2)
 
 constexpr Vector2i operator-(const point& p1, const point& p2)
 {
-    fm_debug_assert(p1.cz == p2.cz);
+    fm_debug3_assert(p1.cz == p2.cz);
     Vector2i sum;
     sum += iTILE_SIZE2 * TILE_MAX_DIM * (Vector2i(p1.cx, p1.cy) - Vector2i(p2.cx, p2.cy));
     sum += iTILE_SIZE2 * (Vector2i(p1.tile.x, p1.tile.y) - Vector2i(p2.tile.x, p2.tile.y));

@@ -330,7 +330,7 @@ std::array<const chunk*, 8> world::neighbors(chunk_coords_ coord) const
 
 void world::chunk_table_prepare_frame()
 {
-#ifndef FM_NO_DEBUG2
+#ifndef FM_NO_DEBUG3
     _chunk_table->check_in_sync(*this);
 #endif
 }
