@@ -66,7 +66,6 @@ world::world() : _unique_id{InPlace}
 }
 
 world::world(world&& w) noexcept :
-    _last_chunk{w._last_chunk},
     impl{move(w.impl)},
     _chunk_table{move(w._chunk_table)},
     _head{w._head},
@@ -80,7 +79,6 @@ world::world(world&& w) noexcept :
 {
     w._head = nullptr;
     w._tail = nullptr;
-    w._last_chunk = {};
     w._object_counter = 0;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
@@ -97,7 +95,6 @@ world& world::operator=(world&& w) noexcept
     _script_finalized = false;
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
-    _last_chunk = {};
     impl._objects = move(w.impl->_objects);
     w.impl->_objects = {};
 
@@ -146,23 +143,21 @@ world::~world() noexcept
     }
     _head = nullptr;
     _tail = nullptr;
-    _last_chunk = {};
 }
 
 bool world::unique_id::operator==(const unique_id& other) const { return this == &other; }
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
-    fm_debug_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
-    auto& [c, coord2] = _last_chunk;
-    if (coord != coord2)
-    {
-        c = _chunk_table->chunk_at(coord);
-        if (!c)
-            c = new chunk(*this, coord);
-        coord2 = coord;
-    }
-    return *c;
+    if (auto* c = _chunk_table->chunk_at(coord))
+        return *c;
+    else
+        return make_chunk_(coord);
+}
+
+chunk& world::make_chunk_(chunk_coords_ coord)
+{
+    return *new chunk(*this, coord);
 }
 
 chunk* world::at(chunk_coords_ c) noexcept
@@ -195,7 +190,6 @@ void world::clear()
     _tail = nullptr;
     Hash::set_open_addressing_load_factor(impl._objects);
     _object_counter = object_counter_init;
-    _last_chunk = {};
 }
 
 void world::collect(bool force, bool quiet)
@@ -213,7 +207,6 @@ void world::collect(bool force, bool quiet)
         }
         c = next;
     }
-    _last_chunk = {};
     chunk_table_prepare_frame();
     if (!quiet && deleted > 1)
         fm_debug("world: collected %zu/%zu chunks", deleted, len0);

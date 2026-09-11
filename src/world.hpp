@@ -26,14 +26,6 @@ public:
     static constexpr size_t initial_collect_every = 64;
 
 private:
-    struct chunk_tuple
-    {
-        // z is out of [chunk_z_min, chunk_z_max], so this never equals a real coord.
-        static constexpr chunk_coords_ invalid_coords = { chunk_xy_min, chunk_xy_min, (int8_t)(chunk_z_min - 1) };
-        chunk* c = nullptr;
-        chunk_coords_ pos = invalid_coords;
-    } _last_chunk;
-
     struct unique_id : bptr_base
     {
         bool operator==(const unique_id& other) const;
@@ -61,6 +53,7 @@ private:
 
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
+    CORRADE_NEVER_INLINE chunk& make_chunk_(chunk_coords_ coord);
     /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at
     /// construction and on each change, and grids compare per-chunk stamps for staleness.
     /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
