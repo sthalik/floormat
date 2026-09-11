@@ -11,6 +11,11 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "")
 endif()
 
+# Before project(), which is where CMAKE_SYSTEM_PREFIX_PATH is built. Otherwise find_package()
+# searches our own install prefix, and a fresh cache finds the packages this build installed
+# rather than the ones in external/.
+set(CMAKE_FIND_NO_INSTALL_PREFIX TRUE)
+
 project(floormat C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
