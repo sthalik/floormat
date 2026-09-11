@@ -141,6 +141,25 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     }
 }
 
+void app::center_camera_on(point pt)
+{
+    // point_screen_pos() is affine in camera_offset with coefficient 1, so feeding the error
+    // straight back lands exactly. Inverting tile_shader::project by hand would duplicate it.
+    // Solve towards the integer pixel rather than the true centre: an odd window size makes
+    // win/2 fractional, and half a pixel is still a whole unit of point::offset.
+    _z_level = pt.chunk3().z;
+    auto& shader = M->shader();
+    const auto target = M->window_size()/2;
+    shader.set_camera_offset(shader.camera_offset() + (Vector2d{target} - Vector2d{point_screen_pos(pt)}));
+    update_cursor_tile(target);
+}
+
+void app::set_cursor_at(point pt)
+{
+    fm_assert(pt.chunk3().z == _z_level);
+    update_cursor_tile(Vector2i{Math::round(point_screen_pos(pt))});
+}
+
 Vector2 app::point_screen_pos(point pt)
 {
     auto& shader = M->shader();
