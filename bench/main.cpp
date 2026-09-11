@@ -52,6 +52,5 @@ int main(int argc, char** argv)
     {   auto app = bench_app{argc, argv};
         status = app.exec();
     }
-    loader.destroy();
     return status;
 }
