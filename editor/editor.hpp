@@ -53,7 +53,6 @@ class editor final
     };
     Optional<drag_pos> _last_pos;
     editor_mode _mode = editor_mode::none;
-    bool _dirty = false;
 
 public:
     fm_DISABLE_COPY(editor);
@@ -64,8 +63,6 @@ public:
 
     GL::Texture2D& palette_texture(sprite s);
 
-    [[nodiscard]] bool dirty() const noexcept { return _dirty; }
-    void set_dirty(bool value) noexcept { _dirty = value; }
     [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
     void set_mode(editor_mode mode);
 
