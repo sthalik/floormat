@@ -29,6 +29,80 @@ else()
     add_compile_options(-Wno-nan-infinity-disabled)
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
     add_compile_options(-fpointer-tbaa)
+    # Line discriminators for AutoFDO
+    add_compile_options(-fdebug-info-for-profiling)
+    if(FLOORMAT_PGO STREQUAL "generate" OR FLOORMAT_PGO STREQUAL "cs" OR FLOORMAT_PGO STREQUAL "use") # instrumented PGO, not AutoFDO
+        if(NOT FLOORMAT_PGO_PROFDATA)
+            set(FLOORMAT_PGO_PROFDATA "${CMAKE_CURRENT_LIST_DIR}/build/pgo.profdata" CACHE FILEPATH "" FORCE)
+        endif()
+        add_compile_options(-Wno-error=profile-instr-out-of-date -Wno-error=profile-instr-unprofiled
+                            -Wno-error=backend-plugin)
+        # Only cs and use read the file. A generate tree writes counters and ignores it,
+        # so following it there rebuilds every object per re-merge for identical codegen.
+        if(NOT FLOORMAT_PGO STREQUAL "generate" AND EXISTS "${FLOORMAT_PGO_PROFDATA}")
+            # Unread by any source. The compile line is what makes ninja rebuild, and the
+            # profile path does not change when run-pgo.sh re-merges in place.
+            file(SHA256 "${FLOORMAT_PGO_PROFDATA}" FLOORMAT_PGO_PROFDATA_SHA)
+            string(SUBSTRING "${FLOORMAT_PGO_PROFDATA_SHA}" 0 16 FLOORMAT_PGO_PROFDATA_SHA)
+            add_compile_options(-DFM_PGO_PROFILE_HASH=0x${FLOORMAT_PGO_PROFDATA_SHA})
+        endif()
+    endif()
+    # Builds profile-cold functions for size: optsize, minsize, optnone, or default for none.
+    # The full-LTO post-link pipeline does not contain it, so these must stay on the compile line.
+    # Empty builds cold functions with the normal -O3 pipeline. minsize measured 5.81% smaller
+    # and 2.73% slower. The MinGW lld link strips the $unlikely suffix off COMDAT sections, so
+    # clang's hot/cold split is lost. Ordering is still available: with a profile the objects
+    # carry .llvm.call-graph-profile and lld sorts .text by it, and an explicit order file goes
+    # through -Wl,--Xlink=-order:@file.
+    if(NOT DEFINED FLOORMAT_PGO_COLD)
+        set(FLOORMAT_PGO_COLD "" CACHE STRING "")
+    endif()
+    if(NOT "${FLOORMAT_PGO_COLD}" STREQUAL "")
+        add_compile_options("SHELL:-mllvm -pgo-cold-func-opt=${FLOORMAT_PGO_COLD}")
+    endif()
+    # Integer, LLVM default 45. Applied as a minimum, so anything above 45 does nothing.
+    if(NOT "${FLOORMAT_PGO_COLD_INLINE}" STREQUAL "")
+        add_compile_options("SHELL:-mllvm -inline-cold-callsite-threshold=${FLOORMAT_PGO_COLD_INLINE}")
+    endif()
+    if(FLOORMAT_PGO STREQUAL "generate") # IR instrumentation
+        add_compile_options(-fprofile-generate)
+        add_link_options(-fprofile-generate)
+    elseif(FLOORMAT_PGO STREQUAL "cs") # IR instrumentation again, after inlining
+        if(EXISTS "${FLOORMAT_PGO_PROFDATA}")
+            add_compile_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA} -fcs-profile-generate)
+            add_link_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA} -fcs-profile-generate)
+            add_link_options(-Wl,--whole-archive,-lclang_rt.profile-x86_64,--no-whole-archive)
+        else()
+            message(FATAL_ERROR "FLOORMAT_PGO=cs needs a profile at '${FLOORMAT_PGO_PROFDATA}'; "
+                                "run './run-pgo.sh generate' first")
+        endif()
+    elseif(FLOORMAT_PGO STREQUAL "use") # consume an instrumented profile
+        if(EXISTS "${FLOORMAT_PGO_PROFDATA}")
+            add_compile_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA})
+            add_link_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA})
+        else()
+            message(STATUS "FLOORMAT_PGO=use: no profile at '${FLOORMAT_PGO_PROFDATA}'; "
+                           "train in build/clang-pgo-gen first, then re-run cmake")
+        endif()
+    elseif(FLOORMAT_PGO STREQUAL "sample") # AutoFDO, sampled from an uninstrumented binary
+        if(NOT FLOORMAT_PGO_SAMPLE)
+            set(FLOORMAT_PGO_SAMPLE "${CMAKE_CURRENT_LIST_DIR}/build/sample.prof" CACHE FILEPATH "" FORCE)
+        endif()
+        if(EXISTS "${FLOORMAT_PGO_SAMPLE}")
+            add_compile_options(-Wno-error=backend-plugin)
+            file(SHA256 "${FLOORMAT_PGO_SAMPLE}" FLOORMAT_PGO_SAMPLE_SHA)
+            string(SUBSTRING "${FLOORMAT_PGO_SAMPLE_SHA}" 0 16 FLOORMAT_PGO_SAMPLE_SHA)
+            add_compile_options(-DFM_PGO_PROFILE_HASH=0x${FLOORMAT_PGO_SAMPLE_SHA})
+            add_compile_options(-fprofile-sample-use=${FLOORMAT_PGO_SAMPLE})
+            message(STATUS "FLOORMAT_PGO=sample: using '${FLOORMAT_PGO_SAMPLE}'")
+        else()
+            message(STATUS "FLOORMAT_PGO=sample: no profile at '${FLOORMAT_PGO_SAMPLE}'; "
+                           "trace RELEASE/bin with contrib/xperf-trace.sh, then re-run cmake")
+        endif()
+    elseif(NOT "${FLOORMAT_PGO}" STREQUAL "")
+        message(FATAL_ERROR "FLOORMAT_PGO must be 'generate', 'cs', 'use', 'sample' or empty, "
+                            "got '${FLOORMAT_PGO}'")
+    endif()
 endif()
 
 # TODO use clang-query to find all global and static function-local variables -sh 20250814
