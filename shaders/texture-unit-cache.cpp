@@ -11,6 +11,7 @@ namespace floormat {
 struct texture_unit_cache::unit_data final
 {
     GL::AbstractTexture* ptr;
+    uint32_t id;
     size_t lru_val;
 };
 
@@ -29,16 +30,24 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
             unbound_id = i;
         else if (ptr == tex)
         {
-            unit.lru_val = ++lru_counter;
-            ++cache_hit_count;
-            //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
+            if (unit.id == tex->id()) [[likely]]
+            {
+                unit.lru_val = ++lru_counter;
+                ++cache_hit_count;
+                //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
+                return (int32_t)i;
+            }
+            // realloc_atlas() move-assigns a new GL name into the same wrapper
+            units[i] = {tex, tex->id(), ++lru_counter};
+            tex->bind((Int)i);
+            ++cache_miss_count;
             return (int32_t)i;
         }
     }
 
     if (unbound_id != invalid)
     {
-        units[unbound_id] = {tex, ++lru_counter};
+        units[unbound_id] = {tex, tex->id(), ++lru_counter};
         tex->bind((Int)unbound_id);
         ++cache_miss_count;
         //Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << unbound_id;
@@ -58,7 +67,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
         }
         fm_assert(min_index != invalid);
         ++cache_miss_count;
-        units[min_index] = {tex, ++lru_counter};
+        units[min_index] = {tex, tex->id(), ++lru_counter};
         tex->bind((Int)min_index);
         //Debug{Debug::Flag::NoSpace} << "rebinding '" << tex->label() << "' to " << min_index;
         return (int32_t)min_index;
@@ -82,7 +91,9 @@ void texture_unit_cache::invalidate()
 void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
 {
     fm_assert(i < unit_count);
-    units[i] = { .ptr = tex, .lru_val = (uint64_t)-1, };
+    // id stays 0: the (AbstractTexture*)-1 sentinel is rejected by bind()'s
+    // assert, so a locked entry can never match
+    units[i] = { .ptr = tex, .id = 0, .lru_val = (uint64_t)-1, };
 }
 
 void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
@@ -90,7 +101,8 @@ void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
     fm_assert(i < unit_count);
     if (units[i].ptr == (GL::AbstractTexture*)-1)
         reuse_immediately = true;
-    units[i] = { .ptr = units[i].ptr, .lru_val = reuse_immediately ? 0 : ++lru_counter };
+    units[i] = { .ptr = units[i].ptr, .id = units[i].id,
+                 .lru_val = reuse_immediately ? 0 : ++lru_counter };
 }
 
 void texture_unit_cache::output_stats()

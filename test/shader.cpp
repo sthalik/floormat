@@ -4,6 +4,8 @@
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "shaders/texture-unit-cache.hpp"
+#include <mg/Texture.h>
+#include <mg/TextureFormat.h>
 
 namespace floormat::Test {
 namespace {
@@ -107,12 +109,38 @@ void test_shader_program()
     // the only place lightmap_shader's GLSL gets compiled outside the editor
     lightmap_shader L{tuc};
 }
+
+void test_tuc_stale_binding()
+{
+    texture_unit_cache tuc;
+
+    auto make_tex = [] {
+        auto tex = GL::Texture2D{};
+        tex.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1, 1});
+        return tex;
+    };
+
+    auto tex = make_tex();
+    const auto unit = tuc.bind(tex);
+    fm_assert_equal(1uz, tuc.stats().cache_miss);
+
+    fm_assert_equal(unit, tuc.bind(tex));
+    fm_assert_equal(1uz, tuc.stats().cache_hit);
+    fm_assert_equal(1uz, tuc.stats().cache_miss);
+
+    // the realloc_atlas pattern from sprite-atlas.cpp: move-assigning into the
+    // same wrapper keeps the address and swaps the GL name
+    tex = make_tex();
+    fm_assert_equal(unit, tuc.bind(tex));
+    fm_assert_equal(2uz, tuc.stats().cache_miss);
+}
 } // namespace
 
 void test_shader()
 {
     test_point();
     test_shader_program();
+    test_tuc_stale_binding();
     test_clip_depth();
 }
 
