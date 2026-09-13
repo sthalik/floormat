@@ -39,6 +39,7 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include <cstdio>
+#include <numeric>
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
 
@@ -185,17 +186,6 @@ constexpr float pan_segment_px = (float)pan_segment_frames * pan_speed;
 enum class ray_order : uint8_t { spokes, radar };
 constexpr inline auto sweep_order = ray_order::radar;
 
-constexpr uint32_t gcd_(uint32_t a, uint32_t b)
-{
-    while (b != 0)
-    {
-        const auto t = a % b;
-        a = b;
-        b = t;
-    }
-    return a;
-}
-
 // Which offset inside a sector frame f takes, under `spokes`. Taking them in order advances every
 // spoke by one waypoint a frame -- a fiftieth of a degree at the longest radius -- so consecutive
 // frames draw the same picture. An eighth of a sector is 1.4 degrees a frame, a revolution in
@@ -207,7 +197,7 @@ constexpr inline uint32_t sweep_sector_div = 8;
 uint32_t frame_stride(uint32_t num_frames)
 {
     auto s = num_frames / sweep_sector_div;
-    while (s > 1 && gcd_(s, num_frames) != 1)
+    while (s > 1 && std::gcd(s, num_frames) != 1)
         s--;
     return Math::max(s, 1u);
 }
