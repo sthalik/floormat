@@ -19,6 +19,10 @@
 #include "src/tile.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/anim-atlas.hpp"
+#include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
+#include "main/clickable.hpp"
 #include "src/light.hpp"
 #include "src/critter-script.hpp"
 #include "src/search-astar.hpp"
@@ -42,6 +46,8 @@
 #include <numeric>
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
+#include <cr/StructuredBindings.h>
+
 
 namespace floormat {
 
@@ -51,6 +57,9 @@ ArrayView<const pgo::scene> app::scenes() noexcept
 #define FM_SCENE(name, mode_) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &app::name ), driver_mode::mode_, }
     static constexpr pgo::scene Scenes[] = {
         FM_SCENE(scene_modes, coverage),
+        FM_SCENE(scene_input_events, coverage),
+        FM_SCENE(scene_popup_target, coverage),
+        FM_SCENE(scene_door, coverage),
         FM_SCENE(scene_ground_editor, coverage),
         FM_SCENE(scene_drag_paint, coverage),
         FM_SCENE(scene_benchmark, profile),
@@ -420,6 +429,135 @@ task app::scene_modes()
     co_yield {};
 }
 
+task app::inject_key_press(key k, uint32_t held_frames)
+{
+    const auto [code, mods] = keycode_for_key(k);
+    M->inject_key(code, mods, true);
+    co_yield {held_frames};
+    M->inject_key(code, mods, false);
+    co_yield {};
+}
+
+task app::inject_click(Vector2i pos, mouse_button button)
+{
+    M->inject_mouse_motion(pos, {}, 0);
+    co_yield {};
+    M->inject_mouse_button(button, pos, true);
+    co_yield {};
+    M->inject_mouse_button(button, pos, false);
+    co_yield {};
+}
+
+Vector2i app::sprite_center_pixel(const object& e)
+{
+    for (const auto& cl : M->clickable_scenery())
+        if (cl.e == &e)
+            return cl.dest.min() + cl.dest.size()/2;
+    fm_abort("no clickable for object %zu", (size_t)e.id);
+}
+
+task app::scene_input_events()
+{
+    const auto press = [&](key k, uint32_t held_frames) { return inject_key_press(k, held_frames); };
+
+    static constexpr key held[] = {
+        key_camera_up, key_camera_left, key_camera_down, key_camera_right, key_camera_reset,
+        key_left, key_right, key_up, key_down,
+    };
+    for (auto k : held)
+        co_await press(k, 4);
+
+    static constexpr key one_shots[] = {
+        key_rotate_tile, key_emit_timestamp, key_escape,
+        key_mode_floor, key_mode_walls, key_mode_scenery, key_mode_vobj, key_mode_tests,
+        key_mode_none,
+    };
+    for (auto k : one_shots)
+        co_await press(k, 1);
+
+    static constexpr key toggles[] = {
+        key_render_collision_boxes, key_render_clickables, key_render_vobjs,
+        key_render_all_z_levels,
+    };
+    for (auto k : toggles)
+    {
+        co_await press(k, 1);
+        co_await press(k, 1);
+    }
+
+    co_await press(key_noop, 1);
+    co_await press(key_COUNT, 1);
+
+    co_await inject_click({0, 0}, mouse_button_left);
+    co_await press(key_escape, 1);
+    co_await inject_click(M->window_size()/2, mouse_button_left);
+    co_await press(key_escape, 1);
+
+    M->inject_mouse_scroll(M->window_size()/2, {0, 1});
+    co_yield {};
+    M->inject_mouse_scroll(M->window_size()/2, {0, -1});
+    co_yield {};
+
+    co_await press(key_mode_none, 1);
+    fm_assert(_editor->mode() == editor_mode::none);
+}
+
+task app::scene_popup_target()
+{
+    do_set_mode(editor_mode::none);
+    auto C = ensure_player_character(M->world());
+    fm_assert(C);
+
+    center_camera_on(C->position());
+    co_yield {};
+
+    const auto center = sprite_center_pixel(*C);
+    co_await inject_click(center, mouse_button_right);
+
+    fm_assert(_popup_target.target == popup_target_type::scenery);
+    fm_assert_equal(C->id, _popup_target.id);
+
+    co_await inject_key_press(key_escape, 1);
+    fm_assert(_popup_target.target == popup_target_type::none);
+    fm_assert_equal(object_id{}, _popup_target.id);
+    fm_assert(!_pending_popup);
+}
+
+task app::scene_door()
+{
+    do_set_mode(editor_mode::none);
+    auto& w = M->world();
+
+    auto proto = loader.scenery("door1");
+    fm_assert(proto.scenery_type() == scenery_type::door);
+    const global_coords coord{chunk_coords_{0, 0, 0}, local_coords{8, 8}};
+    auto obj = w.make_scenery(w.make_id(), coord, move(proto));
+    fm_assert(obj && obj->scenery_type() == scenery_type::door);
+    auto& door = static_cast<door_scenery&>(*obj);
+    fm_assert(door.interactive);
+
+    center_camera_on(obj->position());
+    co_yield {};
+
+    const auto nframes = (int)door.atlas->info().nframes;
+    const auto frame0 = door.frame;
+    fm_assert(!door.active);
+
+    co_await inject_click(sprite_center_pixel(*obj), mouse_button_left);
+
+    fm_assert(door.active);
+    fm_assert(frame0 == 0 ? door.frame > frame0 : door.frame < frame0);
+
+    const auto anim_seconds = nframes / (double)door.atlas->info().fps;
+    for (const auto t0 = Time::now();
+         door.active && Time::to_seconds(Time::now() - t0) < anim_seconds*4; )
+        co_yield {};
+
+    fm_assert(!door.active);
+    fm_assert(door.frame == 0 || door.frame == nframes-1);
+    fm_assert_equal(false, door.closing);
+}
+
 task app::scene_ground_editor()
 {
     do_set_mode(editor_mode::floor);
@@ -672,7 +810,7 @@ task app::scene_maze()
 
         // The search is the whole scene, so without this it renders two frames several seconds
         // apart and the window reads as hung. Panning the route also runs the draw path across
-        // the world that was just searched, which one centred frame never does.
+        // the world that was just searched, which one centered frame never does.
         co_await pan_along_path(res.path());
     }
 }
@@ -850,7 +988,7 @@ task app::scene_maze2()
 
     // The search is the whole scene, so without this it renders two frames several seconds apart
     // and the window reads as hung. Panning the route also runs the draw path across the world
-    // that was just searched, which one centred frame never does.
+    // that was just searched, which one centered frame never does.
     co_await pan_along_path(res.path());
 }
 
@@ -871,14 +1009,14 @@ task app::scene_cover()
     populate_scene_cover();
     auto& w = M->world();
     auto C = ensure_player_character(w);
-    const auto centre = C->position();
-    center_camera_on(centre);
+    const auto center = C->position();
+    center_camera_on(center);
 
     // cover_test draws the distance grid for the selected octant plus a ray per octant from the
     // clicked cell. Nothing in the driver reproduces that, so the scene drives the test.
     do_key(key_mode_tests);
     tests().switch_to(floormat::tests::Test::cover);
-    set_cursor_at(centre);
+    set_cursor_at(center);
     // The test reads cursor_state().point() and quietly does nothing when it is empty.
     (void)cursor_point();
     // Mouse-up, not down: cover_test::handle_mouse_click returns early while is_down.
@@ -1034,8 +1172,8 @@ task app::scene_grids()
     auto& w = M->world();
     auto& c = w[chunk_coords_{0, 0, 0}];
     auto C = ensure_player_character(w);
-    const auto centre = C->position();
-    center_camera_on(centre);
+    const auto center = C->position();
+    center_camera_on(center);
 
     Pass::Pool pass_raycast{Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy}.validate()};
     Pass::Pool pass_cover{Pass::Params{8, 8}.validate()};
@@ -1063,7 +1201,7 @@ task app::scene_grids()
     // see this scene work and the only route the two overlays get profiled at all. Each click is
     // one step: grid_test re-extracts the chunk bitmap, cover_test fills one more octant.
     do_key(key_mode_tests);
-    set_cursor_at(centre);
+    set_cursor_at(center);
     // Both tests read cursor_state().point() and quietly do nothing when it is empty, so without
     // this the scene would run to completion having drawn neither overlay.
     (void)cursor_point();
@@ -1158,7 +1296,7 @@ task app::scene_object_ids()
     constexpr uint32_t num_objects = 1u << 18;
     constexpr uint32_t per_chunk = TILE_COUNT;
     constexpr uint32_t chunks_per_row = 32;
-    // Centred on the origin, where it used to sit far outside get_draw_bounds(). Only what the
+    // Centered on the origin, where it used to sit far outside get_draw_bounds(). Only what the
     // draw bounds cover is updated and drawn -- a screenful of lights against a quarter million in
     // the table -- and watching those go out is the only sign the scene is doing anything.
     constexpr int chunk_x0 = -(int)(chunks_per_row/2), chunk_y0 = chunk_x0;

@@ -7,6 +7,7 @@
 #include "keys.hpp"
 #include "editor.hpp"
 #include "compat/enum-bitset.hpp"
+#include "compat/array-size.hpp"
 #include "pgo-driver.hpp"
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
@@ -90,11 +91,6 @@ void app::clear_keys()
 
 void app::on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) noexcept
 {
-    // A driver run owns the cursor, the held buttons and the key bitset. Real input reaching any
-    // of the handlers below would fight it, so it is dropped here rather than merged.
-    if (M->are_events_ignored()) [[unlikely]]
-        return;
-
     do
     {
         cursor.in_imgui = _imgui->handlePointerMoveEvent(ev.val);
@@ -114,9 +110,6 @@ void app::on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) n
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down, const sdl2::EvClick& ev) noexcept
 {
-    if (M->are_events_ignored()) [[unlikely]]
-        return;
-
     const auto p = Vector2i(event.position);
 
     if (!(p >= Vector2i{} && p < M->window_size()))
@@ -137,9 +130,6 @@ void app::on_mouse_up_down(const mouse_button_event& event, bool is_down, const 
 
 void app::on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll& ev) noexcept
 {
-    if (M->are_events_ignored()) [[unlikely]]
-        return;
-
     const auto p = Vector2i(event.position);
 
     do
@@ -152,6 +142,50 @@ void app::on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll&
         do_mouse_scroll((int)ev.val.offset()[1]);
     }
     while (false);
+}
+
+auto app::keycode_for_key(key k) -> Pair<int, int>
+{
+    struct binding { key k; int keycode; int mods; };
+    static constexpr binding bindings[] = {
+        { key_noop,                   SDLK_LSHIFT, KMOD_NONE  },
+        { key_COUNT,                  SDLK_7,      KMOD_NONE  },
+        { key_camera_up,              SDLK_w,      KMOD_NONE  },
+        { key_camera_left,            SDLK_a,      KMOD_NONE  },
+        { key_camera_right,           SDLK_d,      KMOD_NONE  },
+        { key_camera_down,            SDLK_s,      KMOD_NONE  },
+        { key_camera_reset,           SDLK_HOME,   KMOD_NONE  },
+        { key_left,                   SDLK_LEFT,   KMOD_NONE  },
+        { key_right,                  SDLK_RIGHT,  KMOD_NONE  },
+        { key_up,                     SDLK_UP,     KMOD_NONE  },
+        { key_down,                   SDLK_DOWN,   KMOD_NONE  },
+        { key_rotate_tile,            SDLK_r,      KMOD_NONE  },
+        { key_mode_none,              SDLK_1,      KMOD_NONE  },
+        { key_mode_floor,             SDLK_2,      KMOD_NONE  },
+        { key_mode_walls,             SDLK_3,      KMOD_NONE  },
+        { key_mode_scenery,           SDLK_4,      KMOD_NONE  },
+        { key_mode_vobj,              SDLK_5,      KMOD_NONE  },
+        { key_mode_tests,             SDLK_6,      KMOD_NONE  },
+        { key_render_collision_boxes, SDLK_c,      KMOD_LALT  },
+        { key_render_clickables,      SDLK_l,      KMOD_LALT  },
+        { key_render_vobjs,           SDLK_v,      KMOD_LALT  },
+        { key_render_all_z_levels,    SDLK_t,      KMOD_NONE  },
+        { key_emit_timestamp,         SDLK_F2,     KMOD_NONE  },
+        { key_new_file,               SDLK_n,      KMOD_LCTRL },
+        { key_quit,                   SDLK_q,      KMOD_LCTRL },
+        { key_quicksave,              SDLK_F5,     KMOD_NONE  },
+        { key_quickload,              SDLK_F9,     KMOD_NONE  },
+        { key_escape,                 SDLK_ESCAPE, KMOD_NONE  },
+    };
+    static_assert(array_size(bindings) == key_COUNT - 2 + 1);
+
+    for (const auto& b : bindings)
+        if (b.k == k)
+        {
+            fm_assert(resolve_keybinding(b.keycode, b.mods).first() == k);
+            return { b.keycode, b.mods };
+        }
+    fm_abort("no keybinding for key '%d'", (int)k);
 }
 
 auto app::resolve_keybinding(int k_, int mods_) -> Pair<key, int>
@@ -243,10 +277,6 @@ void app::on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey
     auto [x, mods] = resolve_keybinding(event.key, event.mods);
     static_assert(key_GLOBAL >= key_NO_REPEAT);
 
-    // Quitting stays reachable so a runaway run is killable without the window manager.
-    if (M->are_events_ignored() && x != key_quit) [[unlikely]]
-        return;
-
     if ((x == key_COUNT || x < key_GLOBAL) && do_imgui_key(ev, is_down) ||
         (x == key_COUNT || x == key_escape) && do_tests_key(event, is_down))
         clear_non_global_keys();
@@ -261,9 +291,6 @@ void app::on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey
 
 void app::on_text_input_event(const text_input_event& event) noexcept
 {
-    if (M->are_events_ignored()) [[unlikely]]
-        return;
-
     struct {
         accessor(Containers::StringView, text)
     } e = {event.text};
