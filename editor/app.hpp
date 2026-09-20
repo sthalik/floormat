@@ -208,7 +208,6 @@ private:
 
     pgo::task inject_key_press(key k, uint32_t held_frames);
     pgo::task inject_click(Vector2i pos, mouse_button button);
-    Vector2i sprite_center_pixel(const object& e);
     pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
     pgo::task pan_along_path(ArrayView<const point> path);
     pgo::task scene_modes();
