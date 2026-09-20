@@ -1,10 +1,11 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "floormat/events.hpp"
 #include "src/timer.hpp"
 #include "src/raycast-diag.hpp"
 #include <array>
 #include <coroutine>
+
+namespace floormat { enum mouse_button : unsigned char; }
 
 namespace floormat::pgo {
 
@@ -108,7 +109,7 @@ struct state final
     // get_key_modifiers() returns this while running, so a physically-held Ctrl can't change
     // what a scene does.
     int mods = 0;
-    mouse_button held_buttons = mouse_button_none;
+    mouse_button held_buttons = {};
     bool running = false;
 };
 
