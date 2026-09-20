@@ -48,6 +48,23 @@
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
 
+#ifdef FLOORMAT_NO_PGO_DRIVER
+
+// pgo::state still exists -- events.cpp reads `running` and `mods` off it -- so only the
+// out-of-line task dtor its member needs is defined. No coroutine is ever created here.
+namespace floormat::pgo { task::~task() noexcept = default; }
+
+namespace floormat {
+
+// scenes() is declared but not defined: parse_cmdline() only calls it to validate
+// --driver-scenes, which this build doesn't accept.
+void app::driver_start() {}
+void app::driver_tick() {}
+void app::driver_draw_overlay() {}
+
+} // namespace floormat
+
+#else
 
 namespace floormat {
 
@@ -1553,3 +1570,5 @@ void app::driver_tick()
 }
 
 } // namespace floormat
+
+#endif // FLOORMAT_NO_PGO_DRIVER

@@ -4,6 +4,11 @@ target_include_directories(floormat-common SYSTEM INTERFACE ../external/gtl/incl
 target_compile_definitions(floormat-common INTERFACE -DSWL_VARIANT_NO_CONSTEXPR_EMPLACE -DSWL_VARIANT_NO_STD_HASH)
 get_target_property(variant-includes swl-variant INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(floormat-common SYSTEM INTERFACE ${variant-includes})
+# -fprofile-use matches per function, so a use build that drops the driver has no entry for it.
+# On floormat-common because it changes the layout of fm_settings.
+if(FLOORMAT_NO_PGO_DRIVER)
+    target_compile_definitions(floormat-common INTERFACE FLOORMAT_NO_PGO_DRIVER)
+endif()
 
 set(self floormat)
 file(GLOB sources *.cpp ../shaders/*.cpp ../compat/*.cpp ../entity/*.cpp CONFIGURE_ARGS)
