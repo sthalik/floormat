@@ -164,7 +164,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
-        .addOption("driver-scenes", "all").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
+        .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
 #endif
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args);
@@ -179,9 +179,11 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 #ifndef FLOORMAT_NO_PGO_DRIVER
     opts.driver = parse_driver(args);
     opts.driver_repeat = parse_uint("driver-repeat", args);
+    // Left empty, driver_scenes stays empty and driver_tick() selects by mode instead.
+    if (const auto arg = args.value<StringView>("driver-scenes"))
     {
         const auto scenes = app::scenes();
-        const auto driver_scenes = split_string(args.value<StringView>("driver-scenes"), ',');
+        const auto driver_scenes = split_string(arg, ',');
         Array<StringView> output; arrayReserve(output, 16);
         const auto pushnew = [&](StringView s) {
             if (!ranges::contains(output, s))
@@ -193,7 +195,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             {
                 for (const auto& s : scenes)
                     std::printf("%-16s%s\n", s.name.exceptPrefix("scene_"_s).data(),
-                                s.mode == driver_mode::coverage ? "coverage" : "profile");
+                                s.mode == driver_mode::coverage ? "coverage" : "coverage,profile");
                 std::fflush(stdout);
                 // Not std::exit(): a world is live by this point, and skipping its teardown trips
                 // the RTree pool's leak assert. quit() returns through Sdl2Application::exit.
@@ -222,6 +224,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             }
         }
         opts.driver_scenes = ","_s.join(output);
+        opts.driver_scenes_given = true;
     }
     if (opts.driver_repeat == 0)
     {

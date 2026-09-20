@@ -6,9 +6,9 @@
 namespace floormat {
 
 enum class driver_mode : uint8_t { off,
-    all,
-    coverage, // scenes useful for generating coverage data
-    profile,  // scenes useful for LTO+PGO runs
+    all,      // selects the same scenes as coverage
+    coverage, // every scene
+    profile,  // only the scenes marked profile, i.e. not the editor-only ones
 };
 
 struct fm_settings
@@ -26,9 +26,11 @@ struct fm_settings
 #ifndef FLOORMAT_NO_PGO_DRIVER
     // Passes over the scene table. Sampling by restart instead costs more than the scene itself.
     uint32_t driver_repeat = 1;
-    // Empty means every scene the driver mode selects. Otherwise a comma-separated list of scene
-    // names without their "scene_" prefix; naming a scene plays it whatever its mode says.
+    // Comma-separated scene names without their "scene_" prefix; naming a scene plays it whatever
+    // its mode says. Empty with driver_scenes_given means --driver-scenes=none, i.e. run nothing;
+    // empty without it means the driver mode picks.
     String driver_scenes;
+    bool driver_scenes_given = false;
 #endif
     bool vsync = true;
     bool resizable          : 1 = true,
