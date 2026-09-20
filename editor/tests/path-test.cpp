@@ -111,14 +111,14 @@ void path_test::draw_overlay(app& a)
     constexpr float line_thickness = 3, dot_radius = 5;
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
-    auto last = a.point_screen_pos(result.from);
+    auto last = a.point_to_pixel(result.from);
     draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
 
 
 
     for (auto pt : res.path())
     {
-        auto pos = a.point_screen_pos(pt);
+        auto pos = a.point_to_pixel(pt);
         draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, line_color, line_thickness);
         draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
         last = pos;
@@ -126,7 +126,7 @@ void path_test::draw_overlay(app& a)
 
     if (!res.is_found() && !res.path().isEmpty())
     {
-        auto pos = a.point_screen_pos(res.path().back());
+        auto pos = a.point_to_pixel(res.path().back());
         constexpr float spacing = 12, size1 = 7, size2 = 3, spacing2 = spacing + size2;
 
         draw.AddLine({pos.x() - spacing2, pos.y() - spacing2},

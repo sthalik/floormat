@@ -6,7 +6,7 @@ namespace floormat::wireframe {
 
 void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, float line_width)
 {
-    // same world->screen mapping as app::point_screen_pos()
+    // same world->screen mapping as app::point_to_pixel()
     const auto origin = Vector2(shader.camera_offset()) + shader.scale()*.5f;
     const auto tint = shader.tint();
     const auto color = ImGui::ColorConvertFloat4ToU32({tint[0], tint[1], tint[2], tint[3]});
