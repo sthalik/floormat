@@ -31,6 +31,8 @@ exception::exception(const Fmt& fmt, Ts&&... args) noexcept
 
 } // namespace floormat
 
+// The args go through `Ts&&...`, where a string literal deduces char const(&)[N]. Passing
+// them raw made every distinct expression length its own ctor specialization.
 #define fm_soft_assert(...)                                                         \
     do {                                                                            \
         if (!(__VA_ARGS__)) /*NOLINT(*-simplify-boolean-expr)*/                     \
@@ -40,8 +42,9 @@ exception::exception(const Fmt& fmt, Ts&&... args) noexcept
             else                                                                    \
                 throw ::floormat::exception{                                        \
                     "assertion failed: {} in {}:{}"_cf,                             \
-                    #__VA_ARGS__,                                                   \
-                    __FILE__, (floormat::size_t)__LINE__                            \
+                    ::Corrade::Containers::StringView{#__VA_ARGS__},                \
+                    ::Corrade::Containers::StringView{__FILE__},                    \
+                    (::floormat::uint32_t)__LINE__                                  \
                 };                                                                  \
         }                                                                           \
     } while (false)
