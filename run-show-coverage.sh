@@ -61,7 +61,7 @@ exe_tag() {
 # Each binary rejects the others' options, so these are per-exe
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=full --vsync=off --driver=all --driver-repeat 2" ;;
+        editor) echo "--magnum-gpu-validation=full --vsync=off --fixed-framerate=60 --driver=all --driver-repeat 2" ;;
     esac
 }
 

@@ -25,12 +25,19 @@ constexpr auto clear_color = 0x222222ff_rgbaf;
 
 void main_impl::do_update(Ns dt)
 {
+    _frame_timings.fps_counter.update(dt);
+
+    if (const auto hz = s.fixed_framerate) [[unlikely]]
+    {
+        const auto step = Second/hz;
+        dt = step == Ns{} ? Ns{1} : step;
+    }
+
     if (dt >= 500*Milliseconds) [[unlikely]]
     fm_debug("%zu frame took %.1f milliseconds",
              bad_frame_counter++, (double)(dt/Milliseconds));
 
     constexpr auto tenth_of_a_second = uint64_t(1e8);
-    _frame_timings.fps_counter.update(dt);
     dt.stamp = Math::min(tenth_of_a_second, dt.stamp);
 
     app.update(dt);
@@ -88,10 +95,7 @@ void main_impl::drawEvent()
     app.draw();
     GL::Renderer::flush();
 
-    auto dt = timeline.update();
-    if (const auto hz = s.fixed_framerate) [[unlikely]]
-        dt = Second/hz + Ns{1};
-    do_update(dt);
+    do_update(timeline.update());
 
 #ifdef FM_USE_DEPTH32
     GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);

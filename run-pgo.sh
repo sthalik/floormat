@@ -116,7 +116,7 @@ exe_tag() {
 # makes a driver that bailed out quit instead of idling forever.
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=full --vsync=off --driver=profile --driver-repeat $driver_repeat" ;;
+        editor) echo "--magnum-gpu-validation=full --vsync=off --fixed-framerate=60 --driver=profile --driver-repeat $driver_repeat" ;;
         # Instrumented, the benchmark's default 0.5s per case turns one training run into
         # minutes, and PGO reads the counts relative to each other, not their magnitude.
         # Repetitions rather than a longer min_time, because a repetition re-runs the fixture
