@@ -1,8 +1,10 @@
 #pragma once
 #include "compat/array-size.hpp"
-#include "floormat/settings.hpp"
 #include "editor/app.hpp"
 #include "src/grid.hpp"
+#include <cr/StringView.h>
+
+namespace floormat { enum class driver_mode : uint8_t; }
 
 namespace floormat::pgo {
 
