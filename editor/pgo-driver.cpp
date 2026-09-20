@@ -739,7 +739,7 @@ task app::scene_raycast()
     set_cursor_at(far_away);
     (void)cursor_point();
     {
-        const auto px = Vector2i(point_screen_pos(far_away));
+        const auto px = Vector2i(point_to_pixel(far_away));
         fm_assert(px.x() < 0 || px.y() < 0 || px.x() >= win.x() || px.y() >= win.y());
     }
 
@@ -1260,11 +1260,11 @@ void app::driver_draw_overlay()
         const auto route_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0.25f, 1}),
                    goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
         const auto n = (uint32_t)D.route.size();
-        auto prev = point_screen_pos(D.route.front());
+        auto prev = point_to_pixel(D.route.front());
         draw.AddCircle({prev.x(), prev.y()}, 9, route_color, 0, 3);
         for (auto i = 1u; i < n; i++)
         {
-            const auto p = point_screen_pos(D.route[i]);
+            const auto p = point_to_pixel(D.route[i]);
             draw.AddLine({prev.x(), prev.y()}, {p.x(), p.y()}, route_color, 3);
             prev = p;
         }

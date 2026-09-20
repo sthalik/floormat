@@ -73,7 +73,7 @@ struct app final : floormat_app
     floormat_main& main();
     const struct cursor_state& cursor_state();
     clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
-    Vector2 point_screen_pos(point pt);
+    Vector2 point_to_pixel(point pt);
     bptr<critter> ensure_player_character(world& w);
 
 private:
