@@ -22,12 +22,14 @@ struct fm_settings
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     uint32_t fixed_framerate = 0;   // 0 = feed update() the measured frame time
+    driver_mode driver = driver_mode::off;
+#ifndef FLOORMAT_NO_PGO_DRIVER
     // Passes over the scene table. Sampling by restart instead costs more than the scene itself.
     uint32_t driver_repeat = 1;
     // Empty means every scene the driver mode selects. Otherwise a comma-separated list of scene
     // names without their "scene_" prefix; naming a scene plays it whatever its mode says.
     String driver_scenes;
-    driver_mode driver = driver_mode::off;
+#endif
     bool vsync = true;
     bool resizable          : 1 = true,
          fullscreen         : 1 = false,
