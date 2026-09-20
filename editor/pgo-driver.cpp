@@ -25,6 +25,7 @@
 #include "src/scenery-proto.hpp"
 #include "main/clickable.hpp"
 #include "src/light.hpp"
+#include "src/hole.hpp"
 #include "src/critter-script.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-pred.hpp"
@@ -75,7 +76,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
 #define FM_SCENE(name, mode_) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &app::name ), driver_mode::mode_, }
     static constexpr pgo::scene Scenes[] = {
         FM_SCENE(scene_modes, coverage),
-        FM_SCENE(scene_input_events, coverage),
+        FM_SCENE(scene_input_events, profile),
         FM_SCENE(scene_popup_target, coverage),
         FM_SCENE(scene_door, coverage),
         FM_SCENE(scene_ground_editor, coverage),
@@ -227,6 +228,19 @@ uint32_t frame_stride(uint32_t num_frames)
     while (s > 1 && std::gcd(s, num_frames) != 1)
         s--;
     return Math::max(s, 1u);
+}
+
+Vector2i sprite_center_pixel(app& A, const object& e)
+{
+    for (const auto& cl : A.main().clickable_scenery())
+        if (cl.e == &e)
+        {
+            const auto pixel = cl.dest.center();
+            const auto* hit = A.find_clickable_scenery(pixel);
+            fm_assert(hit && hit->e == &e);
+            return pixel;
+        }
+    fm_abort("no clickable for object %zu", (size_t)e.id);
 }
 
 } // namespace
@@ -433,6 +447,29 @@ task app::scene_modes()
         co_yield {};
     }
 
+    // Ctrl+scroll is the only path to a Z level; without it do_mouse_scroll() returns early,
+    // and shift instead of ctrl clamps the floor at ground level.
+    constexpr uint32_t z_dwell_frames = 30;
+    fm_assert_equal(0, (int)_z_level);
+    set_modifier_state(kmod_ctrl, true);
+    do_mouse_scroll(1);
+    fm_assert_equal(1, (int)_z_level);
+    co_yield {z_dwell_frames};
+
+    // Off draws only the current Z level, so it shows nothing until _z_level has moved
+    fm_assert(_render_all_z_levels);
+    do_key(key_render_all_z_levels);
+    fm_assert(!_render_all_z_levels);
+    co_yield {z_dwell_frames};
+    do_key(key_render_all_z_levels);
+    fm_assert(_render_all_z_levels);
+    co_yield {z_dwell_frames};
+
+    do_mouse_scroll(-1);
+    set_modifier_state(kmod_ctrl, false);
+    fm_assert_equal(0, (int)_z_level);
+    co_yield {};
+
     // Modifiers are held state, and get_key_modifiers() has to report the driver's rather than
     // the physical keyboard's -- do_camera() feeds it into do_mouse_move() on every pan.
     fm_assert_equal(0, get_key_modifiers());
@@ -466,24 +503,19 @@ task app::inject_click(Vector2i pos, mouse_button button)
     co_yield {};
 }
 
-Vector2i app::sprite_center_pixel(const object& e)
-{
-    for (const auto& cl : M->clickable_scenery())
-        if (cl.e == &e)
-            return cl.dest.min() + cl.dest.size()/2;
-    fm_abort("no clickable for object %zu", (size_t)e.id);
-}
-
 task app::scene_input_events()
 {
     const auto press = [&](key k, uint32_t held_frames) { return inject_key_press(k, held_frames); };
+    // A camera pan or a mode switch is one frame of change, which at 60 Hz nobody watching can
+    // see. Everything here dwells afterwards.
+    constexpr uint32_t press_frames = 12, dwell_frames = 8;
 
     static constexpr key held[] = {
         key_camera_up, key_camera_left, key_camera_down, key_camera_right, key_camera_reset,
         key_left, key_right, key_up, key_down,
     };
     for (auto k : held)
-        co_await press(k, 4);
+        co_await press(k, press_frames);
 
     static constexpr key one_shots[] = {
         key_rotate_tile, key_emit_timestamp, key_escape,
@@ -491,7 +523,10 @@ task app::scene_input_events()
         key_mode_none,
     };
     for (auto k : one_shots)
+    {
         co_await press(k, 1);
+        co_yield {dwell_frames};
+    }
 
     static constexpr key toggles[] = {
         key_render_collision_boxes, key_render_clickables, key_render_vobjs,
@@ -500,7 +535,9 @@ task app::scene_input_events()
     for (auto k : toggles)
     {
         co_await press(k, 1);
+        co_yield {dwell_frames};
         co_await press(k, 1);
+        co_yield {dwell_frames};
     }
 
     co_await press(key_noop, 1);
@@ -508,13 +545,15 @@ task app::scene_input_events()
 
     co_await inject_click({0, 0}, mouse_button_left);
     co_await press(key_escape, 1);
+    co_yield {dwell_frames};
     co_await inject_click(M->window_size()/2, mouse_button_left);
     co_await press(key_escape, 1);
+    co_yield {dwell_frames};
 
     M->inject_mouse_scroll(M->window_size()/2, {0, 1});
-    co_yield {};
+    co_yield {dwell_frames};
     M->inject_mouse_scroll(M->window_size()/2, {0, -1});
-    co_yield {};
+    co_yield {dwell_frames};
 
     co_await press(key_mode_none, 1);
     fm_assert(_editor->mode() == editor_mode::none);
@@ -523,14 +562,17 @@ task app::scene_input_events()
 task app::scene_popup_target()
 {
     do_set_mode(editor_mode::none);
-    auto C = ensure_player_character(M->world());
+    auto& w = M->world();
+    auto C = ensure_player_character(w);
     fm_assert(C);
+    // scene_input_events leaves it mid-stride, and dest.center() is transparent on a walk frame
+    C->frame = 0;
 
     center_camera_on(C->position());
     co_yield {};
 
-    const auto center = sprite_center_pixel(*C);
-    co_await inject_click(center, mouse_button_right);
+    const auto pixel = sprite_center_pixel(*this, *C);
+    co_await inject_click(pixel, mouse_button_right);
 
     fm_assert(_popup_target.target == popup_target_type::scenery);
     fm_assert_equal(C->id, _popup_target.id);
@@ -539,6 +581,47 @@ task app::scene_popup_target()
     fm_assert(_popup_target.target == popup_target_type::none);
     fm_assert_equal(object_id{}, _popup_target.id);
     fm_assert(!_pending_popup);
+
+    // Covers every inspect_object_subtype() branch, and fills max_inspectors exactly
+    constexpr chunk_coords_ ch{0, 0, 0};
+    const auto place = [&](StringView name, uint8_t x) {
+        auto proto = loader.scenery(name);
+        return w.make_scenery(w.make_id(), {ch, local_coords{x, uint8_t{1}}}, move(proto))->id;
+    };
+    const object_id ids[] = {
+        C->id,
+        place("door1"_s, 1),
+        place("table1"_s, 2),
+        w.make_object<light>(w.make_id(), {ch, local_coords{3, 1}}, light_proto{})->id,
+        w.make_object<hole>(w.make_id(), {ch, local_coords{4, 1}}, hole_proto{})->id,
+        place("bench1"_s, 5),
+        place("chair1"_s, 6),
+        place("shelf1"_s, 7),
+    };
+
+    constexpr uint32_t stagger_frames = 15, hold_frames = 90;
+    const auto dpi = M->dpi_scale();
+    for (auto i = 0u; i < array_size(ids); i++)
+    {
+        add_inspector({ .id = ids[i], .target = popup_target_type::scenery, });
+        // draw_inspector() runs ahead of driver_tick(), so the window exists only next frame
+        co_yield {};
+        char id_buf[10], name[sizeof id_buf + 3];
+        entity_inspector_name(id_buf, ids[i]);
+        std::snprintf(name, sizeof name, "###%s", id_buf);
+        auto* win = ImGui::FindWindowByName(name);
+        fm_assert(win);
+        ImGui::SetWindowPos(win, {60*dpi[0] + 46*dpi[0]*(float)i,
+                                  60*dpi[1] + 26*dpi[1]*(float)i}, 0);
+        co_yield {stagger_frames};
+    }
+    fm_assert_equal(array_size(ids), inspectors.size());
+
+    co_yield {hold_frames};
+
+    kill_inspectors();
+    co_yield {};
+    fm_assert(inspectors.isEmpty());
 }
 
 task app::scene_door()
@@ -554,14 +637,17 @@ task app::scene_door()
     auto& door = static_cast<door_scenery&>(*obj);
     fm_assert(door.interactive);
 
+    // Long enough on either side of the click to see the door shut, swing, and stand open.
+    constexpr uint32_t dwell_frames = 45;
+
     center_camera_on(obj->position());
-    co_yield {};
+    co_yield {dwell_frames};
 
     const auto nframes = (int)door.atlas->info().nframes;
     const auto frame0 = door.frame;
     fm_assert(!door.active);
 
-    co_await inject_click(sprite_center_pixel(*obj), mouse_button_left);
+    co_await inject_click(sprite_center_pixel(*this, *obj), mouse_button_left);
 
     fm_assert(door.active);
     fm_assert(frame0 == 0 ? door.frame > frame0 : door.frame < frame0);
@@ -573,6 +659,8 @@ task app::scene_door()
     fm_assert(!door.active);
     fm_assert(door.frame == 0 || door.frame == nframes-1);
     fm_assert_equal(false, door.closing);
+
+    co_yield {dwell_frames};
 }
 
 task app::scene_ground_editor()
@@ -1288,9 +1376,7 @@ task app::scene_grids()
     // the world stops changing, which the fill loop cannot say -- each of its frames carries 16
     // object creations and three full pass builds.
     //
-    // Timed off the wall clock because the frame count is the unknown. smoothed_fps() cannot
-    // serve: under --fixed-framerate the counter is fed the flag's own dt (main/draw.cpp:92), so
-    // it reads back 60 whatever the frame took.
+    // Timed off the wall clock because the frame count is the unknown.
     constexpr float idle_seconds = 3;
     const auto idle_t0 = Time::now();
     uint32_t idle_frames = 0;
@@ -1498,19 +1584,21 @@ void app::driver_tick(Ns dt)
         std::printf("driver: %dx%d framebuffer, events ignored\n", size.x(), size.y());
         std::fflush(stdout);
 
-        const auto list = StringView{M->settings().driver_scenes};
-        // "all" is the default. "none" runs no scene at all, which is the driver's own
-        // per-frame overhead measured against a run that does nothing.
-        if (D.scene_mask == (uint32_t)-1)
-            D.scene_mask = 0;
-        for (auto name : list.splitWithoutEmptyParts(','))
+        // Without --driver-scenes the mask has to stay all-ones, so that the mode filter below
+        // sees it. An empty list with the flag given is --driver-scenes=none, which runs nothing
+        // and measures the driver's own per-frame overhead.
+        if (M->settings().driver_scenes_given)
         {
-            name = name.trimmed();
-            uint32_t i = 0;
-            while (i < Scenes.size() && Scenes[i].name.exceptPrefix("scene_"_s) != name)
-                i++;
-            fm_assert(i < Scenes.size()); // name not found
-            D.scene_mask |= 1u << i;
+            D.scene_mask = 0;
+            for (auto name : StringView{M->settings().driver_scenes}.splitWithoutEmptyParts(','))
+            {
+                name = name.trimmed();
+                uint32_t i = 0;
+                while (i < Scenes.size() && Scenes[i].name.exceptPrefix("scene_"_s) != name)
+                    i++;
+                fm_assert(i < Scenes.size()); // name not found
+                D.scene_mask |= 1u << i;
+            }
         }
     }
 
@@ -1547,7 +1635,8 @@ void app::driver_tick(Ns dt)
                 // scene by name and having it silently skipped would be worse than useless.
                 const auto want = D.scene_mask != (uint32_t)-1
                                   ? (D.scene_mask & 1u << D.scene_index) != 0
-                                  : mode == driver_mode::all || Scenes[D.scene_index].mode == mode;
+                                  : mode != driver_mode::profile
+                                    || Scenes[D.scene_index].mode == driver_mode::profile;
                 if (want)
                     break;
                 D.scene_index++;

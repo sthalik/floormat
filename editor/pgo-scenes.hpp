@@ -12,6 +12,8 @@ struct scene
 {
     StringView name;
     task (app::*fn)();
+    // coverage means coverage-only; profile scenes run under both. An editor-only scene marked
+    // profile would train the PGO profile on code a shipped build never reaches.
     driver_mode mode;
 };
 
