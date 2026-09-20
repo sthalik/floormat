@@ -59,6 +59,7 @@ uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
     return value;
 }
 
+#ifndef FLOORMAT_NO_PGO_DRIVER
 driver_mode parse_driver(const Corrade::Utility::Arguments& args)
 {
     auto str = args.value<StringView>("driver");
@@ -73,6 +74,7 @@ driver_mode parse_driver(const Corrade::Utility::Arguments& args)
     ERR_nospace << "invalid --driver argument '" << str << "': should be off, all, coverage or profile";
     std::exit(EX_USAGE);
 }
+#endif
 
 } // namespace
 
@@ -144,23 +146,35 @@ int app::exec()
 fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 {
     fm_settings opts;
+#ifdef FLOORMAT_NO_PGO_DRIVER
+    // Not registered below, so Corrade would reject them as unknown without saying why.
+    for (int i = 1; i < argc; i++)
+        if (StringView{argv[i]}.hasPrefix("--driver"_s))
+        {
+            ERR_nospace << argv[i] << " needs a build without FLOORMAT_NO_PGO_DRIVER";
+            std::exit(EX_USAGE);
+        }
+#endif
     Corrade::Utility::Arguments args{};
     args.addSkippedPrefix("magnum")
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
-        .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
         .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
+#ifndef FLOORMAT_NO_PGO_DRIVER
+        .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
         .addOption("driver-scenes", "all").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
+#endif
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args);
+    opts.fixed_framerate = parse_uint("fixed-framerate", args);
+#ifndef FLOORMAT_NO_PGO_DRIVER
     opts.driver = parse_driver(args);
     // Otherwise the scenes measure the swap interval. The raycast sweep alone yields 512 times
     // and the walk 1022, which at 60 Hz is time spent in the driver doing nothing.
     if (opts.driver != driver_mode::off)
         opts.vsync = false;
-    opts.fixed_framerate = parse_uint("fixed-framerate", args);
     opts.driver_repeat = parse_uint("driver-repeat", args);
     {
         const auto scenes = app::scenes();
@@ -211,6 +225,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         ERR_nospace << "--driver-repeat must be at least 1";
         std::exit(EX_USAGE);
     }
+#endif
     if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;

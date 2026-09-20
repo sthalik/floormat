@@ -172,15 +172,22 @@ find_profdata_tool() {
     return 1
 }
 
-# generate and use share one tree, so every stage switch rewrites the compile flags and ninja
+# generate and cs share one tree, so every stage switch rewrites the compile flags and ninja
 # rebuilds everything. That is the cost of the loop, not a bug.
 #
 # The profile path goes on every configure. The userconfig defaults FLOORMAT_PGO_PROFDATA only
 # when unset, so a stale cache value would be used in silence, and the guard
 # below would still pass.
 configure_tree() {
+    # The driver only trains the profile. A use build never runs it.
+    # Passed on every stage so a reused tree can't keep a stale value.
+    local no_driver=OFF
+    if test "$2" = use; then
+        no_driver=ON
+    fi
     echo "==> cmake $1 (FLOORMAT_PGO=$2)"
     cmake -S . -B "$1" -DFLOORMAT_PGO="$2" -DCMAKE_BUILD_TYPE=Release \
+          -DFLOORMAT_NO_PGO_DRIVER="$no_driver" \
           -DFLOORMAT_PGO_PROFDATA="$(native "$profdata")"
 }
 
