@@ -127,7 +127,7 @@ void cover_test::draw_overlay(app& a)
     cg.build_if_stale();
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
-    const auto pos = a.point_screen_pos(result.from);
+    const auto pos = a.point_to_pixel(result.from);
 
     constexpr float pi = Math::Constants<float>::pi();
     const auto ds = (int)pool.params().div_size;
@@ -140,9 +140,9 @@ void cover_test::draw_overlay(app& a)
 
         const auto chunk_nw = point{result.from.chunk3(), local_coords{0, 0},
                                     Vector2b{(int8_t)(-tile_size_xy/2), (int8_t)(-tile_size_xy/2)}};
-        const auto p00 = a.point_screen_pos(chunk_nw);
-        const auto pX  = a.point_screen_pos(chunk_nw + Vector2i{ds, 0});
-        const auto pY  = a.point_screen_pos(chunk_nw + Vector2i{0, ds});
+        const auto p00 = a.point_to_pixel(chunk_nw);
+        const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
+        const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});
         const Vector2 dx = pX - p00;
         const Vector2 dy = pY - p00;
 
@@ -188,7 +188,7 @@ void cover_test::draw_overlay(app& a)
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
         const auto len_px = (int)cg.distance(result.cell_idx, k) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
-        const auto end_px = a.point_screen_pos(end_pt);
+        const auto end_px = a.point_to_pixel(end_pt);
         draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, line_color);
     }
 
@@ -197,7 +197,7 @@ void cover_test::draw_overlay(app& a)
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
         const auto len_px = (int)cg.distance(result.cell_idx, sk) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
-        const auto end_px = a.point_screen_pos(end_pt);
+        const auto end_px = a.point_to_pixel(end_pt);
         const auto hi_color = ImGui::ColorConvertFloat4ToU32({1, 0.2f, 0.2f, 0.95f});
         constexpr float hi_thickness = 2.5f;
         draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, hi_color, hi_thickness);
