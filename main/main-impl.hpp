@@ -76,6 +76,10 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
 
     [[maybe_unused]] void viewportEvent(ViewportEvent& event) override;
     void set_events_ignored(bool value) override;
+    void inject_key(int keycode, int mods, bool is_down, bool is_repeated = false) override;
+    void inject_mouse_button(mouse_button button, Vector2i position, bool is_down) override;
+    void inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask) override;
+    void inject_mouse_scroll(Vector2i position, Vector2 offset) override;
     void resize_window(Vector2i size) override;
     [[maybe_unused]] void pointerPressEvent(PointerEvent& ev) override;
     [[maybe_unused]] void pointerReleaseEvent(PointerEvent& ev) override;

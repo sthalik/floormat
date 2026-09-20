@@ -26,6 +26,7 @@ struct draw_bounds;
 class SpriteBatch;
 struct global_coords;
 struct chunk_coords_;
+enum mouse_button : unsigned char;
 
 struct floormat_main
 {
@@ -85,9 +86,14 @@ struct floormat_main
     bool is_rendering_vobjs() const;
 
     // Set for a driver run: viewport events are dropped so the framebuffer keeps the size the run
-    // started at, and real input never reaches the editor. Ctrl+Q still gets through.
+    // started at, and real input never reaches the editor. Ctrl+Q and SDL_QUIT still get through.
     virtual void set_events_ignored(bool value);
     bool are_events_ignored() const;
+
+    virtual void inject_key(int keycode, int mods, bool is_down, bool is_repeated = false) = 0;
+    virtual void inject_mouse_button(mouse_button button, Vector2i position, bool is_down) = 0;
+    virtual void inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask) = 0;
+    virtual void inject_mouse_scroll(Vector2i position, Vector2 offset) = 0;
 
     // Applies the framebuffer rebuild directly rather than through an event, so it works while
     // events are ignored.
