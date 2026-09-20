@@ -258,6 +258,18 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
             set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
             add_subdirectory(sdl2 ${system})
+            # Debug configs build SDL2 shared and SDL2-static doesn't exist there.
+            foreach(tgt SDL2 SDL2-static)
+                if(TARGET ${tgt})
+                    # Drops the software blitters, RLE and YUV. Nothing calls setWindowIcon.
+                    target_compile_definitions(${tgt} PRIVATE SDL_LEAN_AND_MEAN=1)
+                endif()
+            endforeach()
+            if(TARGET SDL2-static)
+                # Defining the include guard skips SDL_dynapi.h, which #errors on a
+                # command-line SDL_DYNAMIC_API. jump_table otherwise roots all of SDL.
+                target_compile_definitions(SDL2-static PRIVATE SDL_dynapi_h_ SDL_DYNAMIC_API=0)
+            endif()
         endif()
     endfunction()
 
@@ -311,6 +323,24 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             target_compile_options(CorradeTestSuite PUBLIC -frtti)
         endif()
         add_subdirectory(magnum ${system})
+        # loader/texture.cpp sends .tga to Magnum's own TgaImporter and TgaImageConverter,
+        # which are separate plugins. Every other asset is PNG, including what
+        # sprite-atlas.cpp writes through AnyImageConverter. Leaving TGA in here would have
+        # the Stb plugins advertise Tga aliases competing with those.
+        sets(BOOL
+             MAGNUM_STBIMAGEIMPORTER_NO_BMP                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_GIF                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_HDR                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_JPEG                    ON
+             MAGNUM_STBIMAGEIMPORTER_NO_PIC                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_PNM                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_PSD                     ON
+             MAGNUM_STBIMAGEIMPORTER_NO_TGA                     ON
+
+             MAGNUM_STBIMAGECONVERTER_NO_BMP                    ON
+             MAGNUM_STBIMAGECONVERTER_NO_HDR                    ON
+             MAGNUM_STBIMAGECONVERTER_NO_JPEG                   ON
+             MAGNUM_STBIMAGECONVERTER_NO_TGA                    ON)
         add_subdirectory(magnum-plugins ${system})
         add_subdirectory(magnum-integration ${system})
     endfunction()
