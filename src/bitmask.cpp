@@ -4,6 +4,9 @@
 #include <cr/BitArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
+#ifdef __SSSE3__
+#include <tmmintrin.h>
+#endif
 
 namespace floormat {
 
@@ -11,9 +14,59 @@ constexpr uint8_t amin = 32;
 
 #if 1
 using u8 = uint8_t;
+using u16 = uint16_t;
 using u32 = uint32_t;
 
 namespace {
+
+#ifdef __SSSE3__
+
+void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
+{
+    const auto sel  = _mm_setr_epi8(3, 7, 11, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
+    const auto sign = _mm_set1_epi8((char)0x80);
+    const auto thr  = _mm_set1_epi8((char)((amin - 1) ^ 0x80));
+
+    for (auto j = 0u; j < H; j++)
+    {
+        const auto* row = src + (size_t)j * S;
+        const auto bitʹ = (H - j - 1)*W;
+        auto* p = dest + (bitʹ >> 3);
+        u32 acc = 0, have = bitʹ & 7, i = 0;
+
+        for (; i + 16 <= W; i += 16)
+        {
+            const auto* q = (const __m128i_u*)(row + (size_t)i*4);
+            auto a0 = _mm_shuffle_epi8(_mm_loadu_si128(q + 0), sel);
+            auto a1 = _mm_shuffle_epi8(_mm_loadu_si128(q + 1), sel);
+            auto a2 = _mm_shuffle_epi8(_mm_loadu_si128(q + 2), sel);
+            auto a3 = _mm_shuffle_epi8(_mm_loadu_si128(q + 3), sel);
+            auto al = _mm_unpacklo_epi64(_mm_unpacklo_epi32(a0, a1), _mm_unpacklo_epi32(a2, a3));
+            auto m = (u32)(u16)_mm_movemask_epi8(_mm_cmpgt_epi8(_mm_xor_si128(al, sign), thr));
+            acc |= m << have;
+            have += 16;
+            do {
+                *p++ |= (u8)acc;
+                acc >>= 8;
+                have -= 8;
+            } while (have >= 8);
+        }
+        for (; i < W; i++)
+        {
+            acc |= (u32)(row[(size_t)i*4 + 3] >= amin) << have;
+            if (++have >= 8)
+            {
+                *p++ |= (u8)acc;
+                acc >>= 8;
+                have -= 8;
+            }
+        }
+        if (have)
+            *p |= (u8)acc;
+    }
+}
+
+#else
 
 template<u32 Count>
 CORRADE_ALWAYS_INLINE
@@ -29,25 +82,30 @@ void bm_loop(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S,
     }
 }
 
-template<int N>
-CORRADE_ALWAYS_INLINE
-void bm_loop_body(const u8* __restrict src, u8* __restrict dest, u32 width, u32 height, u32 stride)
+void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 {
-    for (auto j = 0u; j < height; j++)
+    const u32 head = W & ~7u;
+    for (auto j = 0u; j < H; j++)
     {
         auto i = 0u;
-        while (i < (width & ~7u))
+        for (; i < head; i += 8)
+            bm_loop<8>(src, dest, W, H, S, i, j);
+        switch (W & 7)
         {
-            bm_loop<8>(src, dest, width, height, stride, i, j);
-            i += 8;
-        }
-        if constexpr(N > 0)
-        {
-            bm_loop<N>(src, dest, width, height, stride, i, j);
-            i += N;
+        case 7: bm_loop<1>(src, dest, W, H, S, i + 6, j); [[fallthrough]];
+        case 6: bm_loop<1>(src, dest, W, H, S, i + 5, j); [[fallthrough]];
+        case 5: bm_loop<1>(src, dest, W, H, S, i + 4, j); [[fallthrough]];
+        case 4: bm_loop<1>(src, dest, W, H, S, i + 3, j); [[fallthrough]];
+        case 3: bm_loop<1>(src, dest, W, H, S, i + 2, j); [[fallthrough]];
+        case 2: bm_loop<1>(src, dest, W, H, S, i + 1, j); [[fallthrough]];
+        case 1: bm_loop<1>(src, dest, W, H, S, i + 0, j); [[fallthrough]];
+        case 0: break;
+        default: std::unreachable();
         }
     }
 }
+
+#endif
 
 } // namespace
 
@@ -66,18 +124,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
     fm_debug_assert(bitmask.size() % 8 == 0);
     std::memset(bitmask.data(), 0, bitmask.size()/8);
 
-    switch (width & 7)
-    {
-    default: std::unreachable();
-    case 7: bm_loop_body<7>(src, dest, width, height, stride); break;
-    case 6: bm_loop_body<6>(src, dest, width, height, stride); break;
-    case 5: bm_loop_body<5>(src, dest, width, height, stride); break;
-    case 4: bm_loop_body<4>(src, dest, width, height, stride); break;
-    case 3: bm_loop_body<3>(src, dest, width, height, stride); break;
-    case 2: bm_loop_body<2>(src, dest, width, height, stride); break;
-    case 1: bm_loop_body<1>(src, dest, width, height, stride); break;
-    case 0: bm_loop_body<0>(src, dest, width, height, stride); break;
-    }
+    bm_rows(src, dest, width, height, stride);
 }
 #else
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
