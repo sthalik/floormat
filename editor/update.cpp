@@ -306,7 +306,7 @@ void app::update(Ns dt)
     set_cursor();
     tests_post_update(dt);
     // Last, so a step's actions land after this frame's world update and before the next draw.
-    driver_tick();
+    driver_tick(dt);
 }
 
 } // namespace floormat

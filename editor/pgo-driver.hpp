@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "src/timer.hpp"
+#include "src/nanosecond.hpp"
 #include "src/raycast-diag.hpp"
 #include <array>
 #include <coroutine>
@@ -93,6 +94,7 @@ struct state final
     uint32_t pass_index = 0;
     uint32_t frames_run = 0;
     uint32_t scene_first_frame = 0;
+    Ns scene_dt{};
     // What the frame-0 pin actually produced. Not settings().resolution: that is in window
     // units and window_size() is in framebuffer units, which differ under HiDPI.
     Vector2i base_window_size;

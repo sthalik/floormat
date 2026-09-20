@@ -12,6 +12,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/point.inl"
+#include "src/nanosecond.inl"
 #include "src/tile-defs.hpp"
 #include "src/grid.hpp"
 #include "src/grid-pass.hpp"
@@ -59,7 +60,7 @@ namespace floormat {
 // scenes() is declared but not defined: parse_cmdline() only calls it to validate
 // --driver-scenes, which this build doesn't accept.
 void app::driver_start() {}
-void app::driver_tick() {}
+void app::driver_tick(Ns) {}
 void app::driver_draw_overlay() {}
 
 } // namespace floormat
@@ -565,9 +566,8 @@ task app::scene_door()
     fm_assert(door.active);
     fm_assert(frame0 == 0 ? door.frame > frame0 : door.frame < frame0);
 
-    const auto anim_seconds = nframes / (double)door.atlas->info().fps;
-    for (const auto t0 = Time::now();
-         door.active && Time::to_seconds(Time::now() - t0) < anim_seconds*4; )
+    const auto budget = Second * (uint64_t)nframes * 4 / door.atlas->info().fps;
+    for (const auto dt0 = _driver->scene_dt; door.active && _driver->scene_dt - dt0 < budget; )
         co_yield {};
 
     fm_assert(!door.active);
@@ -1478,11 +1478,13 @@ bool app::driver_stop(StringView why)
     return true;
 }
 
-void app::driver_tick()
+void app::driver_tick(Ns dt)
 {
     auto& D = *_driver;
     if (!D.running)
         return;
+
+    D.scene_dt += dt;
 
     const auto& Scenes = scenes();
 
@@ -1563,6 +1565,7 @@ void app::driver_tick()
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
         D.scene_index++;
         D.scene_started = Time::now();
+        D.scene_dt = Ns{};
         D.scene_first_frame = D.frames_run;
     }
 

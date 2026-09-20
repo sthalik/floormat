@@ -171,10 +171,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     opts.fixed_framerate = parse_uint("fixed-framerate", args);
 #ifndef FLOORMAT_NO_PGO_DRIVER
     opts.driver = parse_driver(args);
-    // Otherwise the scenes measure the swap interval. The raycast sweep alone yields 512 times
-    // and the walk 1022, which at 60 Hz is time spent in the driver doing nothing.
-    if (opts.driver != driver_mode::off)
-        opts.vsync = false;
     opts.driver_repeat = parse_uint("driver-repeat", args);
     {
         const auto scenes = app::scenes();

@@ -199,7 +199,7 @@ private:
     point cursor_point();
     void set_window_size(Vector2i size);
     void driver_start();
-    void driver_tick();
+    void driver_tick(Ns dt);
     void driver_draw_overlay();
     [[nodiscard]] bool driver_stop(StringView why);
     pgo::task click_at_cursor(uint8_t button);
