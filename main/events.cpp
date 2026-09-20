@@ -5,6 +5,8 @@
 #include <cstring>
 #include <SDL_events.h>
 #include <SDL_keyboard.h>
+#include <SDL_timer.h>
+#include <SDL_video.h>
 
 namespace floormat {
 
@@ -20,6 +22,29 @@ any_event make_any_event(const SDL_Event& e)
     any_event ret;
     std::memcpy(&ret.buf, &e, sizeof(SDL_Event));
     return ret;
+}
+
+constexpr uint32_t ev_input_min = SDL_KEYDOWN, ev_input_max = SDL_MOUSEWHEEL;
+
+int SDLCALL reject_real_input(void*, SDL_Event* e)
+{
+    switch (e->type)
+    {
+    case SDL_WINDOWEVENT:
+    case SDL_DISPLAYEVENT:
+        return 0;
+    case SDL_KEYDOWN:
+    case SDL_KEYUP:
+        return e->key.keysym.sym == SDLK_q && (e->key.keysym.mod & KMOD_CTRL);
+    default:
+        return e->type < ev_input_min || e->type > ev_input_max;
+    }
+}
+
+void queue_event(const SDL_Event& e)
+{
+    auto ev = e;
+    SDL_PeepEvents(&ev, 1, SDL_ADDEVENT, 0, 0);
 }
 
 } // namespace
@@ -39,6 +64,15 @@ void main_impl::set_events_ignored(bool value)
 {
     const bool was_ignoring = are_events_ignored();
     floormat_main::set_events_ignored(value);
+
+    if (value)
+    {
+        SDL_SetEventFilter(reject_real_input, nullptr);
+        SDL_FlushEvents(ev_input_min, ev_input_max);
+    }
+    else
+        SDL_SetEventFilter(nullptr, nullptr);
+
     // Nothing re-sends a viewport event, so a resize that arrived while they were ignored would
     // leave the framebuffer stale until the next one.
     if (!was_ignoring || value || _framebuffer_size == framebufferSize())
@@ -46,6 +80,78 @@ void main_impl::set_events_ignored(bool value)
     _framebuffer_size = framebufferSize();
     recalc_viewport(_framebuffer_size, windowSize());
     app.on_viewport_event(_framebuffer_size);
+}
+
+void main_impl::inject_key(int keycode, int mods, bool is_down, bool is_repeated)
+{
+    SDL_Event e{};
+    e.key.type = is_down ? SDL_KEYDOWN : SDL_KEYUP;
+    e.key.timestamp = SDL_GetTicks();
+    e.key.windowID = SDL_GetWindowID(window());
+    e.key.state = is_down ? SDL_PRESSED : SDL_RELEASED;
+    e.key.repeat = (uint8_t)is_repeated;
+    e.key.keysym.sym = (SDL_Keycode)keycode;
+    e.key.keysym.scancode = SDL_GetScancodeFromKey((SDL_Keycode)keycode);
+    e.key.keysym.mod = (uint16_t)mods;
+    queue_event(e);
+}
+
+void main_impl::inject_mouse_button(mouse_button button, Vector2i position, bool is_down)
+{
+    const auto sdl_button = [](mouse_button b) -> uint8_t
+    {
+        switch (b)
+        {
+        case mouse_button_left:   return SDL_BUTTON_LEFT;
+        case mouse_button_middle: return SDL_BUTTON_MIDDLE;
+        case mouse_button_right:  return SDL_BUTTON_RIGHT;
+        case mouse_button_x1:     return SDL_BUTTON_X1;
+        case mouse_button_x2:     return SDL_BUTTON_X2;
+        case mouse_button_none:   break;
+        }
+        fm_abort("bad mouse button '%d'", (int)b);
+    };
+
+    SDL_Event e{};
+    e.button.type = is_down ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+    e.button.timestamp = SDL_GetTicks();
+    e.button.windowID = SDL_GetWindowID(window());
+    e.button.button = sdl_button(button);
+    e.button.state = is_down ? SDL_PRESSED : SDL_RELEASED;
+    e.button.clicks = 1;
+    e.button.x = position.x();
+    e.button.y = position.y();
+    queue_event(e);
+}
+
+void main_impl::inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask)
+{
+    SDL_Event e{};
+    e.motion.type = SDL_MOUSEMOTION;
+    e.motion.timestamp = SDL_GetTicks();
+    e.motion.windowID = SDL_GetWindowID(window());
+    e.motion.state = button_mask;
+    e.motion.x = position.x();
+    e.motion.y = position.y();
+    e.motion.xrel = rel.x();
+    e.motion.yrel = rel.y();
+    queue_event(e);
+}
+
+void main_impl::inject_mouse_scroll(Vector2i position, Vector2 offset)
+{
+    SDL_Event e{};
+    e.wheel.type = SDL_MOUSEWHEEL;
+    e.wheel.timestamp = SDL_GetTicks();
+    e.wheel.windowID = SDL_GetWindowID(window());
+    e.wheel.x = (int32_t)offset.x();
+    e.wheel.y = (int32_t)offset.y();
+    e.wheel.preciseX = offset.x();
+    e.wheel.preciseY = offset.y();
+    e.wheel.mouseX = position.x();
+    e.wheel.mouseY = position.y();
+    e.wheel.direction = SDL_MOUSEWHEEL_NORMAL;
+    queue_event(e);
 }
 
 void main_impl::pointerPressEvent(PointerEvent& ev)

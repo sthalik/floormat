@@ -32,6 +32,7 @@ class anim_atlas;
 struct object;
 struct critter;
 struct point;
+enum mouse_button : unsigned char;
 class editor;
 template<typename T> struct shared_ptr_wrapper;
 struct tests_data_;
@@ -127,6 +128,7 @@ private:
     void on_mouse_scroll(const mouse_scroll_event& event, const sdl2::EvScroll& ev) noexcept override;
     void on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey& ev) noexcept override;
     Pair<key, int> resolve_keybinding(int k, int mods);
+    Pair<int, int> keycode_for_key(key k);
     void on_text_input_event(const text_input_event& event) noexcept override;
     //bool on_text_editing_event(const text_editing_event& event) noexcept override;
     void on_viewport_event(const Magnum::Math::Vector2<int>& size) noexcept override;
@@ -203,9 +205,16 @@ private:
     pgo::task click_at_cursor(uint8_t button);
     pgo::task click_at(point pt, uint8_t button);
     pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
+
+    pgo::task inject_key_press(key k, uint32_t held_frames);
+    pgo::task inject_click(Vector2i pos, mouse_button button);
+    Vector2i sprite_center_pixel(const object& e);
     pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
     pgo::task pan_along_path(ArrayView<const point> path);
     pgo::task scene_modes();
+    pgo::task scene_input_events();
+    pgo::task scene_popup_target();
+    pgo::task scene_door();
     pgo::task scene_ground_editor();
     pgo::task scene_drag_paint();
     pgo::task scene_benchmark();
