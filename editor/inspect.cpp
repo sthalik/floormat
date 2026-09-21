@@ -74,7 +74,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     }
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
-    bool ret = false, reapply = false;
+    bool ret = false, committed = false;
     const char* const label = label_left(accessor.field_name, buf, (float)label_width);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
@@ -170,29 +170,32 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
-        // imgui parses InputScalar text only on the deactivation frame, so ret covers typed
-        // input there. Setters branching on IsItemDeactivatedAfterEdit need a write regardless.
-        reapply = !ret && ImGui::IsItemDeactivatedAfterEdit();
+        // imgui parses InputScalar text only on the deactivation frame, so a setter branching
+        // on IsItemDeactivatedAfterEdit needs the write even when nothing changed.
+        committed = ImGui::IsItemDeactivatedAfterEdit();
 
         value = Math::clamp(value, min, max);
     }
 
-    if (!should_disable && (reapply || (ret && !eqv(value, orig))))
-        if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
-        {
-            accessor.write_fun(datum, accessor.writer, &value);
+    const bool changed = ret && !eqv(value, orig);
+    if (should_disable)
+        return false;
+    if (!committed && !changed)
+        return false;
+    if (accessor.is_enabled(datum) < field_status::enabled)
+        return false;
 
-            T new_value{};
-            accessor.read_fun(datum, accessor.reader, &new_value);
-            if (value != new_value)
-            {
-                auto* state = ImGui::GetInputTextState(GImGui->ActiveId);
-                if (state)
-                    state->WantReloadUserBuf = true;
-            }
-            return true;
-        }
-    return false;
+    accessor.write_fun(datum, accessor.writer, &value);
+
+    T new_value{};
+    accessor.read_fun(datum, accessor.reader, &new_value);
+    if (value != new_value)
+    {
+        auto* state = ImGui::GetInputTextState(GImGui->ActiveId);
+        if (state)
+            state->WantReloadUserBuf = true;
+    }
+    return true;
 }
 
 } // namespace
