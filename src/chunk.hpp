@@ -146,12 +146,10 @@ private:
     [[nodiscard]] static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                                                 Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
 
-    void _remove_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _remove_bbox_dynamic(const bbox& x);
     void _remove_bbox_static(const bptr<object>& e, const bbox& x);
     void _remove_bbox_static_(const bptr<object>& e);
 
-    void _add_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_dynamic);
     void _add_bbox_dynamic(const bbox& x);
     void _add_bbox_static(const bptr<object>& e, const bbox& x);
     void _add_bbox_static_(const bptr<object>& e);

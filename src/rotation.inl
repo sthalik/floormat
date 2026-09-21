@@ -1,6 +1,8 @@
 #pragma once
 #include "compat/assert.hpp"
+#include "compat/limits.hpp"
 #include "rotation.hpp"
+#include <mg/Functions.h>
 #include <mg/Vector2.h>
 
 namespace floormat {
@@ -26,7 +28,10 @@ constexpr auto rotation_symmetry(rotation r)
 template<typename T>
 constexpr Math::Vector2<T> rotate_point(Math::Vector2<T> rect, rotation r_old, rotation r_new)
 {
+    static_assert(std::is_signed_v<T>);
     fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
+    // the mirror below is a multiply by -1, and -128 wraps back to itself in int8_t
+    rect = Math::max(rect, Math::Vector2<T>{T(-limits<T>::max)});
     auto [m_offset0, i_offset0, i_size0] = rotation_symmetry(r_old);
     auto offset0_ = rect * Math::Vector2<T>(m_offset0);
     auto offset_n = Math::Vector2<T>(offset0_[i_offset0.x()], offset0_[i_offset0.y()]);
