@@ -23,6 +23,10 @@ struct fm_settings
     Magnum::Math::Vector2<int> resolution{1024, 720};
     uint32_t fixed_framerate = 0;   // 0 = feed update() the measured frame time
     driver_mode driver = driver_mode::off;
+    // Safe because driver waits are counted in frames, never in wall-clock.
+    bool driver_no_swapbuffers = false;
+    // The two above are read outside the driver too. Guarding drawEvent()'s read would
+    // cost it its PGO profile.
 #ifndef FLOORMAT_NO_PGO_DRIVER
     // Passes over the scene table. Sampling by restart instead costs more than the scene itself.
     uint32_t driver_repeat = 1;
