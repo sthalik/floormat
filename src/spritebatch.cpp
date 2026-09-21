@@ -71,6 +71,27 @@ template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this
     arrayResize(A, NoInit, size);
 }
 
+// Sorts depths[0, n) ascending and sets indexes[i] = base + the position depths[i] came from.
+// Equal depths keep their order. scratch needs n elements.
+void sort_depths(float* depths, uint32_t* indexes, uint32_t base, uint32_t n, uint64_t* scratch)
+{
+    // Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
+    // as unsigned integers. The index in the low half makes equal depths sort by position.
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto u = std::bit_cast<uint32_t>(depths[i]);
+        const auto key = u ^ ((uint32_t)((int32_t)u >> 31) | 0x80000000u);
+        scratch[i] = (uint64_t)key << 32 | (base + i);
+    }
+    vqsort(scratch, n);
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto key = (uint32_t)(scratch[i] >> 32);
+        depths[i] = std::bit_cast<float>(key ^ ((uint32_t)((int32_t)~key >> 31) | 0x80000000u));
+        indexes[i] = (uint32_t)scratch[i];
+    }
+}
+
 } // namespace
 
 struct SpriteBatch::Impl
@@ -86,8 +107,8 @@ struct SpriteBatch::Impl
     // Emission order until end_chunk, run-sorted order after, so the merge reads a key without
     // going through sort_indexes first. Nothing reads it by value once end_chunk has run.
     Array<float> depths;
-    Array<uint32_t> starts, sort_indexes, merge_output;
-    Array<sort_key> sort_keys;
+    Array<uint32_t> starts, sort_indexes, merge_output, perm;
+    Array<uint64_t> sort_keys;
 
     slot slots[slot_count];
     GL::Buffer index_buffer_handle{NoCreate};
@@ -174,16 +195,46 @@ void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
 void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
 {
     begin_chunk();
+    auto& impl = *this->impl;
     const auto size = list.size();
-    for (auto i = 0u; i < size; i++)
+    const auto first = (uint32_t)impl.verts.size();
+
+    // Resize to the upper bound and shrink below, so the filtered branch needs no counting pass.
+    reserve(impl.verts, first + size);
+    reserve(impl.depths, first + size);
+
+    const auto* const Vin = list.Vertexes.data();
+    const auto* const Din = list.Depths.data();
+    auto* const V = impl.verts.data() + first;
+    auto* const D = impl.depths.data() + first;
+
+    uint32_t n = 0;
+
+    if (render_vobjs)
+        for (; n < size; n++)
+        {
+            V[n] = Vin[n];
+            D[n] = Din[n];
+        }
+    else
     {
-        const auto& v = list.Vertexes[i];
-        const auto& d = list.Depths[i];
-        auto* obj = list.Objects[i];
-        if (obj && !render_vobjs && obj->is_virtual())
-            continue;
-        emit(v, d);
+        object* const* const O = list.Objects.data();
+        for (auto i = 0u; i < size; i++)
+        {
+            const auto* obj = O[i];
+            if (obj && obj->is_virtual())
+                continue;
+            V[n] = Vin[i];
+            D[n] = Din[i];
+            n++;
+        }
+        if (n != size)
+        {
+            arrayResize(impl.verts, NoInit, first + n);
+            arrayResize(impl.depths, NoInit, first + n);
+        }
     }
+
     end_chunk(false);
 }
 
@@ -228,6 +279,45 @@ void SpriteBatch::end_chunk(bool do_sort)
 
     arrayAppend(impl.starts, last);
     impl.last_start = last;
+}
+
+// Sorting the zip_view directly moves 124 bytes per iter_move to order by a 4-byte key. Sort a
+// permutation instead, then walk its cycles in place.
+void SpriteBatch::sort_by_depth(SpriteList& list)
+{
+    auto& impl = *this->impl;
+    const auto n = list.size();
+    if (n < 2)
+        return;
+
+    reserve(impl.perm, n);
+    Array<uint64_t> scratch{NoInit, n};
+    sort_depths(list.Depths.data(), impl.perm.data(), 0, n, scratch.data());
+
+    auto* const V = list.Vertexes.data();
+    auto* const O = list.Objects.data();
+    auto* const P = impl.perm.data();
+
+    for (auto i = 0u; i < n; i++)
+    {
+        if (P[i] == i)
+            continue;
+        const auto v = V[i];
+        auto* const o = O[i];
+        auto j = i;
+        for (;;)
+        {
+            const auto k = P[j];
+            P[j] = j; // P[j] == j is also the visited mark, so no second array is needed
+            if (k == i)
+                break;
+            V[j] = V[k];
+            O[j] = O[k];
+            j = k;
+        }
+        V[j] = v;
+        O[j] = o;
+    }
 }
 
 void SpriteBatch::sort_vertex_buffer(bool do_sort)

@@ -11,7 +11,6 @@
 #include "loader/loader.hpp"
 #include "sprite-atlas.hpp"
 #include <algorithm>
-#include <ranges>
 
 namespace floormat {
 namespace ranges = std::ranges;
@@ -30,7 +29,11 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     const bool modify_static = _scenery_modified;
     _scenery_modified = false;
     if (modify_static)
+    {
         scenery_static_mesh.clear();
+        // upper bound: three quads per static object, none for a dynamic one
+        scenery_static_mesh.reserve(3 * (uint32_t)_objects.size());
+    }
 
     sb.begin_chunk();
 
@@ -137,16 +140,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     }
     sb.end_chunk(true);
 
-    constexpr auto less = [](const auto& a, const auto& b) {
-        const auto& [av, ad, ao] = a;
-        const auto& [bv, bd, bo] = b;
-        return ad < bd;
-    };
     if (modify_static)
-        ranges::sort(ranges::zip_view(scenery_static_mesh.Vertexes,
-                                      scenery_static_mesh.Depths,
-                                      scenery_static_mesh.Objects),
-                     less);
+        sb.sort_by_depth(scenery_static_mesh);
     sb.emit(scenery_static_mesh, render_vobjs);
 }
 

@@ -37,6 +37,7 @@ public:
     static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);
     void emit(SpriteList& list, bool render_vobjs);
+    void sort_by_depth(SpriteList& list);
 
     void emit_quick(tile_shader& shader, const anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth);
 
