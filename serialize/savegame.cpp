@@ -391,8 +391,10 @@ struct visitor_ : visitor_base<IsNewest>
     void visit_object_proto(o_light& s, std::nullptr_t, F&& f)
     {
         visit(s.max_distance, f);
+        fm_soft_assert(s.max_distance >= 0);
         if (PROTO >= 27) [[likely]]
             visit(s.radius, f);
+        fm_soft_assert(s.radius >= 0);
         visit(s.color, f);
         visit(s.falloff, f);
         visit(s.enabled, f);

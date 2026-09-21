@@ -533,6 +533,7 @@ void reader_state::read_chunks(reader_t& s)
                     enabled = (flags >> 6) & 1;
                 }
                 s >> proto.max_distance;
+                fm_soft_assert(proto.max_distance >= 0);
                 for (auto i = 0uz; i < 3; i++)
                     s >> proto.color[i];
                 if (PROTO >= 15) [[likely]]

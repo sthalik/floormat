@@ -342,6 +342,7 @@ struct entity_accessors<light, inspect_intent_t>
             E::type<float>::field{"range"_s,
                 [](const light& x) { return x.max_distance; },
                 [](light& x, float value) { x.max_distance = value; },
+                constantly(constraints::range<float>{0, 999999}),
             },
             E::type<float>::field{"radius"_s,
                 [](const light& x) { return x.radius; },
