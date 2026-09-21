@@ -192,7 +192,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     if (value != new_value)
     {
         auto* state = ImGui::GetInputTextState(GImGui->ActiveId);
-        if (state)
+        if (state && GImGui->ActiveId == ImGui::GetItemID())
             state->WantReloadUserBuf = true;
     }
     return true;
