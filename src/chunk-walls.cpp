@@ -365,9 +365,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                             tile_center + Vector2i{-half.x(), -half.y() - (int)Depth + (int)rs.x()},
                             depth_offset);
                     }
-                    Quads::vertexes v;
-                    for (uint8_t j = 0; j < 4; j++)
-                        v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                    const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
                     wsl.add(v, depth[0], nullptr);
                 }
             }
@@ -436,9 +434,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                                               tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()},
                                               depth_offset);
 
-                Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
                 wsl.add(v, depth[0], nullptr);
             }
             else if constexpr (G == Group_::side)
@@ -480,9 +476,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                                                        tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()},
                                                        depth_offset);
 
-                Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
-                    v[j] = {quad[j] + center, texcoords[j], depth[j]};
+                const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
                 wsl.add(v, depth[0], nullptr);
             }
             else if constexpr (G == Group_::top)
