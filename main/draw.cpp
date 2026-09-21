@@ -20,6 +20,7 @@ namespace {
 
 size_t bad_frame_counter = 0; // NOLINT
 constexpr auto clear_color = 0x222222ff_rgbaf;
+constexpr auto cornflower_blue = 0x6495edff_rgbaf;
 
 } // namespace
 
@@ -85,6 +86,13 @@ void main_impl::drawEvent()
     {
         _first_frame = false;
         cache_draw_on_startup();
+        if (s.driver_no_swapbuffers) [[unlikely]]
+        {
+            // Not clear_framebuffer(): that one clears the offscreen buffer, which reaches the
+            // screen only through the blit below. This is the last swapBuffers() of the run.
+            GL::defaultFramebuffer.clearColor(cornflower_blue);
+            swapBuffers();
+        }
     }
 
     _shader.set_tint({1, 1, 1, 1});
@@ -97,11 +105,13 @@ void main_impl::drawEvent()
 
     do_update(timeline.update());
 
+    if (!s.driver_no_swapbuffers) [[likely]]
+    {
 #ifdef FM_USE_DEPTH32
-    GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
+        GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
 #endif
-
-    swapBuffers();
+        swapBuffers();
+    }
     redraw();
 }
 

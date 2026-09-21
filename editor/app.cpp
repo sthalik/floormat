@@ -166,6 +166,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
         .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
+        .addBooleanOption("driver-no-swapbuffers").setHelp("driver-no-swapbuffers", "skip swapBuffers(), leaving the window blue")
 #endif
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args);
@@ -179,6 +180,12 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     }
 #ifndef FLOORMAT_NO_PGO_DRIVER
     opts.driver = parse_driver(args);
+    opts.driver_no_swapbuffers = args.isSet("driver-no-swapbuffers");
+    if (opts.driver_no_swapbuffers && opts.driver == driver_mode::off)
+    {
+        ERR_nospace << "--driver-no-swapbuffers needs --driver";
+        std::exit(EX_USAGE);
+    }
     opts.driver_repeat = parse_uint("driver-repeat", args);
     // Left empty, driver_scenes stays empty and driver_tick() selects by mode instead.
     if (const auto arg = args.value<StringView>("driver-scenes"))
