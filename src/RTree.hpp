@@ -9,6 +9,7 @@
 #include "RTree.h"
 #include <cmath>
 #include <cstddef>
+#include <numbers>
 #include <cr/GrowableArray.h>
 #include <cr/Algorithms.h>
 
@@ -126,8 +127,9 @@ RTREE_QUAL::RTree()
   } else {
     // Stirling's approximation, applicable to high dimensions
     // https://en.wikipedia.org/wiki/Volume_of_an_n-ball#Approximation_for_high_dimensions
-    m_unitSphereVolume = (ELEMTYPEREAL)(1.0 / std::sqrt(NUMDIMS * M_PI) *
-                                        std::pow(2 * M_PI * M_E / NUMDIMS, NUMDIMS / 2.0));
+    m_unitSphereVolume = (ELEMTYPEREAL)(1.0 / std::sqrt(NUMDIMS * std::numbers::pi) *
+                                        std::pow(2 * std::numbers::pi * std::numbers::e / NUMDIMS,
+                                                 NUMDIMS / 2.0));
   }
 }
 
