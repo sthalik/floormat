@@ -165,7 +165,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const auto div_size  = params.div_size;
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
-    // +div_size: bit must hold for any critter position in the cell, not just the centre
+    // +div_size: bit must hold for any critter position in the cell, not just the center
     const auto half = ((float)params.bbox_size + (float)div_size) * .5f;
     constexpr auto half_tile = tile_size_xy*.5f;
     const auto half_div = (float)(div_size / 2);
