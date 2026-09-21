@@ -20,6 +20,15 @@ min_time=${FM_MIN_TIME:-0.25s}
 warmup=${FM_WARMUP:-0.05}
 # Percent system-wide CPU load above which measuring is refused.
 max_load=${FM_MAX_LOAD:-15}
+# Average load over a pass above which that pass is thrown away. Read from a different counter
+# than max_load, which reads lower on the same idle machine, so the two numbers are not
+# comparable and this one is set only to catch a pass that had a second workload across it.
+max_pass_load=${FM_MAX_PASS_LOAD:-60}
+# Same, over the pinned cores alone. A process taking that pair moves max_pass_load by only
+# ~6% of 32 cores while inflating the timing by tens of percent. Scale is pair occupancy, busy
+# over capacity summed across both siblings, which is half what adding two per-core readings
+# gives: one pinned thread is ~50% here, not ~100%.
+max_core_load=${FM_MAX_CORE_LOAD:-65}
 # 0xC0 = logical 6,7 = physical core 3, both SMT siblings, on the 96 MB CCD0 die. A mask
 # covering only one sibling leaves the other free for the OS to schedule against us, and a
 # mask spanning 5,6 straddles two cores. Core 3 rather than core 0, which takes more DPCs.
@@ -52,6 +61,7 @@ usage() {
     echo "env: FM_SNAP_FROM=<build dir> for snapshot= (default $use_dir)" >&2
     echo "env: FM_ROUNDS=$rounds FM_PASSES=$passes FM_REPS=$reps FM_MIN_TIME=$min_time" >&2
     echo "     FM_AFFINITY=$affinity (hex mask) FM_MAX_LOAD=$max_load FM_FORCE=1 to override" >&2
+    echo "     FM_MAX_PASS_LOAD=$max_pass_load FM_MAX_CORE_LOAD=$max_core_load (discard a pass that ran that busy)" >&2
     echo "     FM_POWER_SCHEME=$power_scheme FM_POWER_RESTORE=${power_restore:-<active at startup>}" >&2
     exit 64
 }
@@ -412,6 +422,36 @@ check_idle() {
     }
 }
 
+affinity_cpus() {
+    _m=$(printf '%d' "0x$affinity" 2>/dev/null) || return 0
+    _i=0
+    while test "$_m" -gt 0; do
+        test $((_m & 1)) -eq 0 || printf 'cpu%d ' "$_i"
+        _m=$((_m >> 1))
+        _i=$((_i + 1))
+    done
+}
+
+# cpu_load costs 4s per call and reports one instant, so it cannot say what the machine did
+# across a pass. These counters cost ~1s and subtract to the exact average over any window.
+# Both probes come from one read so they describe the same window and cost one traversal.
+cpu_busy() {
+    awk -v want="$(affinity_cpus)" '
+        BEGIN     { n = split(want, a, " "); for (i = 1; i <= n; i++) sel[a[i]] = 1 }
+        /^cpu /   { ab = $2+$3+$4; at = ab+$5 }
+        $1 in sel { cb += $2+$3+$4; ct += $2+$3+$4+$5 }
+        END       { print ab, at, cb+0, ct+0 }' /proc/stat 2>/dev/null
+}
+
+# Window start and end as two busy/total pairs. Prints nothing when the counters are
+# unreadable, and an unreadable load must not discard a pass.
+busy_pct() {
+    test $# -eq 4 || return 0
+    test -n "$1" && test -n "$2" && test -n "$3" && test -n "$4" || return 0
+    test "$(($4 - $2))" -gt 0 || return 0
+    echo "$(( (($3 - $1) * 100) / ($4 - $2) ))"
+}
+
 # Configs are interleaved within a pass rather than run back to back, so the spread across
 # passes estimates between-invocation noise instead of drift. Pass 1 is warm-up and the
 # reporter drops it.
@@ -420,15 +460,33 @@ measure_phase() {
     check_idle
     say "=== measure phase  $(date '+%F %T')  passes=$passes reps=$reps min_time=$min_time affinity=0x$affinity"
     _p=1
+    _dropped=0
     while test $_p -le "$passes"; do
         mkdir -p -- "$out/pass$_p"
+        set -- $(cpu_busy)
+        _b0=${1:-}; _t0=${2:-}; _cb0=${3:-}; _ct0=${4:-}
         for c in $_cfgs; do
             _exe="$(resolve_bench "$snap/$c")" || exit 65
             run_pinned "$_exe" "$out/pass$_p/$c.json" "$out/pass$_p/$c.txt"
         done
-        say "    pass $_p/$passes  $(date '+%T')  load $(cpu_load)%"
+        set -- $(cpu_busy)
+        _pl="$(busy_pct "$_b0" "$_t0" "${1:-}" "${2:-}")"
+        _cl="$(busy_pct "$_cb0" "$_ct0" "${3:-}" "${4:-}")"
+        say "    pass $_p/$passes  $(date '+%T')  load ${_pl:-?}% machine, ${_cl:-?}% on 0x$affinity"
+        _why=
+        test -z "$_pl" || test "$_pl" -le "$max_pass_load" ||
+            _why="${_pl}% machine over FM_MAX_PASS_LOAD=${max_pass_load}%"
+        test -z "$_cl" || test "$_cl" -le "$max_core_load" ||
+            _why="${_why:+$_why, }${_cl}% on 0x$affinity over FM_MAX_CORE_LOAD=${max_core_load}%"
+        if test -n "$_why"; then
+            say "!!! pass $_p averaged $_why -- discarded"
+            rm -rf -- "$out/pass$_p"
+            _dropped=$((_dropped + 1))
+        fi
         _p=$((_p + 1))
     done
+    test "$_dropped" -eq 0 ||
+        say "!!! $_dropped of $passes passes discarded; the report says how many survived"
 }
 
 report_phase() {
