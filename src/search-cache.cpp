@@ -130,7 +130,7 @@ bool cache::is_passable_between_diag(world& w, Grid::Pass::Pool& pool, point a, 
     if (!is_passable_for_bbox(w, pool, b, p))
         return false;
     Vector2i vec = b - a;
-    // off-axis cells; coverage relies on the +div_size inflation in grid-pass.cpp
+    // off-axis cells; coverage relies on the cell-reach inflation in PassGrid::build_impl()
     if (!is_passable_for_bbox(w, pool, a + Vector2i{vec.x(), 0}, p))
         return false;
     if (!is_passable_for_bbox(w, pool, a + Vector2i{0, vec.y()}, p))
