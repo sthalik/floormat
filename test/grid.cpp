@@ -3,6 +3,8 @@
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
 #include "src/grid-pass.hpp"
+#include "src/hole.hpp"
+#include "src/RTree.hpp"
 #include "src/search.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
@@ -1175,6 +1177,55 @@ void test_bit_exact(const exact_config& cfg)
     fm_assert((uint32_t)(dc*dc) - count_passable(g) == cleared);
 }
 
+// A hole marker is a collision_type::none rtree entry, never a collider. Its pass_mode only
+// picks which pass_through_mask filter_bbox_through_holes() cuts for. search.cpp, raycast.cpp
+// and sweep-aabb.cpp all skip type none no matter the mode; build_impl() must agree.
+void test_hole_marker_never_blocks(uint32_t div_size, pass_mode hole_pass)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    auto h = w.make_object<hole>(w.make_id(), global_coords{COORD, {8, 8}}, hole_proto{});
+    h->set_bbox({}, {}, Vector2ub{48, 32}, hole_pass);
+    rebuild_passability(c);
+
+    // "tiles" ground is pass_mode::pass, so the marker is the only entry
+    fm_assert(c.rtree()->Count() == 1);
+    constexpr auto ctr = Vector2(tile_size_xy*8);
+    fm_assert(Search::is_passable_1(c, ctr - Vector2{8}, ctr + Vector2{8}, Search::without_critters()));
+
+    Pass::Pool pool{Pass::Params{div_size}};
+    tick(w, pool);
+    Pass::Grid g = pool[c];
+    g.build_if_stale(Search::without_critters());
+    const auto dc = g.div_count();
+    if (count_passable(g) != dc*dc)
+    {
+        Error{standard_error()} << "!!! fatal: div_size" << div_size << "hole pass mode"
+                                << (int)hole_pass << "cleared"
+                                << dc*dc - count_passable(g) << "of" << dc*dc << "cells";
+        fm_assert(false);
+    }
+}
+
+// The cut happens at rtree build time, so skipping the marker must not close the opening.
+void test_hole_still_opens_blocked_ground(uint32_t div_size)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_blocked_ground_all(c);
+    auto h = w.make_object<hole>(w.make_id(), global_coords{COORD, {8, 8}}, hole_proto{});
+    h->set_bbox({}, {}, Vector2ub{tile_size_xy}, pass_mode::pass);
+    rebuild_passability(c);
+
+    Pass::Pool pool{Pass::Params{div_size}};
+    tick(w, pool);
+    Pass::Grid g = pool[c];
+    g.build_if_stale(Search::without_critters());
+    const auto dc = g.div_count(), n = count_passable(g);
+    fm_assert(n > 0 && n < dc*dc);
+}
+
 } // namespace
 
 void test_grid()
@@ -1227,6 +1278,13 @@ void test_grid()
     }
     for (const auto& cfg : exact_configs)
         test_bit_exact(cfg);
+    for (const auto ds : { 4u, 16u })
+    {
+        for (const auto p : { pass_mode::blocked, pass_mode::see_through,
+                              pass_mode::shoot_through, pass_mode::pass })
+            test_hole_marker_never_blocks(ds, p);
+        test_hole_still_opens_blocked_ground(ds);
+    }
     test_bit_matches_every_position();
 }
 
