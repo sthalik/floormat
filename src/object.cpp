@@ -150,7 +150,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     const auto eʹ = c->_objects[i];
     fm_assert(&*eʹ == this);
 
-    if (coord_ == coord && offset_ == offset)
+    if (coord_ == coord && offset_ == offset && new_r == r)
         return;
 
     const bool dyn = is_dynamic(), upd_pass = updates_passability(), upd_walls = updates_walls();
