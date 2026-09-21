@@ -104,6 +104,7 @@ private:
     void populate_scene_benchmark();
     void populate_scene_benchmark_walkable(uint8_t width);
     void populate_scene_diagonal(uint8_t half_width);
+    void populate_scene_slide(bool dense);
     void populate_scene_maze();
     void populate_scene_maze2();
     void populate_scene_grids(uint32_t num_pins = 0);
@@ -218,6 +219,7 @@ private:
     pgo::task scene_drag_paint();
     pgo::task scene_benchmark();
     pgo::task scene_walk();
+    pgo::task scene_slide();
     pgo::task scene_maze();
     pgo::task scene_raycast();
     pgo::task scene_object_ids();
