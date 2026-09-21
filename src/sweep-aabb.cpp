@@ -50,7 +50,7 @@ sweep_result sweep_aabb_vs_aabb(Range2D start, Vector2 displacement, Range2D obs
     const float t_enter = Math::max(x.t_lo, y.t_lo);
     const float t_exit  = Math::min(x.t_hi, y.t_hi);
 
-    if (t_enter > t_exit || t_enter > 1.0f || t_exit <= 0.0f)
+    if (t_enter > t_exit || t_enter >= 1.0f || t_exit <= 0.0f)
         return { false, /*0.0f*/ };
     else
         return { true, /*Math::max(0.0f, t_enter)*/ };
