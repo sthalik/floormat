@@ -32,6 +32,7 @@ public:
     // dropped or duplicated quad is unobservable from outside.
     void sort_vertex_buffer(bool do_sort);
     ArrayView<const uint32_t> merged_order() const;
+    void unsort_vertex_buffer();
 
     static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);
