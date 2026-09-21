@@ -136,6 +136,12 @@ float app::draw_main_menu()
                 populate_hole_stress_test();
             if (ImGui::MenuItem("Labyrinth"))
                 populate_labyrinth();
+            ImGui::Separator();
+            if (ImGui::MenuItem("Raycast fractal"))
+                populate_raycast_fractal();
+            if (ImGui::MenuItem("Sweep AABB slit"))
+                populate_sweep_aabb_slit();
+            ImGui::Separator();
             if (ImGui::MenuItem("Scene corridor (carved)"))
                 populate_scene_benchmark_walkable(pgo::walk_corridor_width);
             if (ImGui::MenuItem("Scene corridor (1 tile)"))
@@ -160,10 +166,6 @@ float app::draw_main_menu()
                 populate_scene_lightmap();
             if (ImGui::MenuItem("Scene cover"))
                 populate_scene_cover();
-            if (ImGui::MenuItem("Raycast fractal"))
-                populate_raycast_fractal();
-            if (ImGui::MenuItem("Sweep AABB slit"))
-                populate_sweep_aabb_slit();
             if (ImGui::MenuItem("Scene benchmark (flat)"))
                 populate_scene_benchmark();
             if (ImGui::MenuItem("Scene benchmark (all Z)"))
