@@ -169,6 +169,13 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .parse(argc, argv);
     opts.vsync = parse_bool("vsync", args);
     opts.fixed_framerate = parse_uint("fixed-framerate", args);
+    // main_impl::do_update() clamps dt to 100 ms after substituting the fixed step, so
+    // anything slower than 10 Hz would quietly run at 10.
+    if (opts.fixed_framerate && opts.fixed_framerate < 10)
+    {
+        ERR_nospace << "--fixed-framerate must be at least 10";
+        std::exit(EX_USAGE);
+    }
 #ifndef FLOORMAT_NO_PGO_DRIVER
     opts.driver = parse_driver(args);
     opts.driver_repeat = parse_uint("driver-repeat", args);
