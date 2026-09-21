@@ -125,11 +125,29 @@ set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
 
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
-# -mavx for the VEX encoding. Three-operand form drops the movaps copies and folds
-# unaligned loads into arithmetic. Width stays at 128 because the hot paths are integer
-# and AVX has no 256-bit integer ops.
+# -mavx for the VEX encoding: bitmask.cpp's SSSE3 intrinsics lose the two-operand
+# movdqa copies and run 12% faster (20 paired passes).
+# The width pin is a separate decision and is not implied by -mno-avx2: without it
+# AVX1 still vectorizes float work to 256 bits, costing 1.2% of .text for no
+# measurable time. Integer work is capped at 128 either way.
+# sse42, avx1 and avx2 exist to measure what each half costs. Nothing ships them.
+if(NOT DEFINED FLOORMAT_SIMD)
+    set(FLOORMAT_SIMD "avx128" CACHE STRING "")
+endif()
+if(FLOORMAT_SIMD STREQUAL "avx128")
+    set(fm_simd "-march=x86-64-v2 -mavx -mno-avx2 -mprefer-vector-width=128")
+elseif(FLOORMAT_SIMD STREQUAL "avx1")
+    set(fm_simd "-march=x86-64-v2 -mavx -mno-avx2")
+elseif(FLOORMAT_SIMD STREQUAL "avx2")
+    set(fm_simd "-march=x86-64-v2 -mavx2 -maes")
+elseif(FLOORMAT_SIMD STREQUAL "sse42")
+    set(fm_simd "-march=x86-64-v2")
+else()
+    message(FATAL_ERROR "FLOORMAT_SIMD must be 'sse42', 'avx1', 'avx128' or 'avx2', "
+                        "got '${FLOORMAT_SIMD}'")
+endif()
 sets(STRING
-     CMAKE_C_FLAGS "-march=x86-64-v2 -mavx -mno-avx2 -mprefer-vector-width=128 -ggdb -gcolumn-info"
+     CMAKE_C_FLAGS "${fm_simd} -ggdb -gcolumn-info"
      CMAKE_C_FLAGS_DEBUG "-O0 -fstack-protector-all -ggdb -gdwarf-aranges"
      CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
