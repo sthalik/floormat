@@ -307,8 +307,11 @@ void chunk::_add_bbox_(const bptr<object>& e, const bbox& x, bool upd, bool is_d
 template<bool Dynamic>
 void chunk::_replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox& x1, bool b0, bool b1)
 {
-    if (_pass_modified)
-        return;
+    // the static branch only sets dirty flags, and one of them lands on the neighbor
+    // chunks, which _pass_modified doesn't cover. Same reasoning as add_object_pre().
+    if constexpr(Dynamic)
+        if (_pass_modified)
+            return;
 
     unsigned i = (unsigned)b1 << 1 | (unsigned)b0 << 0;
     CORRADE_ASSUME(i < 4u); (void)0;
