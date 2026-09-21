@@ -19,7 +19,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
 else()
     set(BUILD_SHARED_LIBS OFF)
-    add_compile_options(-march=native -mavx2)
     add_compile_options(-emit-llvm)
     add_compile_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
@@ -126,8 +125,11 @@ set(OpenCV_STATIC ON CACHE BOOL "" FORCE)
 
 set(CMAKE_INSTALL_MESSAGE NEVER)
 
+# -mavx for the VEX encoding. Three-operand form drops the movaps copies and folds
+# unaligned loads into arithmetic. Width stays at 128 because the hot paths are integer
+# and AVX has no 256-bit integer ops.
 sets(STRING
-     CMAKE_C_FLAGS "-march=x86-64-v2 -mtune=native -mavx2 -maes -g -gcolumn-info"
+     CMAKE_C_FLAGS "-march=x86-64-v2 -mavx -mno-avx2 -mprefer-vector-width=128 -g -gcolumn-info"
      CMAKE_C_FLAGS_DEBUG "-O0 -fstack-protector-all -g -gdwarf-aranges"
      CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
