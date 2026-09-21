@@ -27,10 +27,8 @@ void chunk::ensure_alloc_walls()
 
 namespace {
 
-using Wall::Group;
 using Wall::Group_;
 using Wall::Direction_;
-using Wall::Frame;
 
 struct HoleData
 {
@@ -217,19 +215,22 @@ Array<WallFragment> fragdata;
 Array<WallFragment> corner_fragdata;
 
 template<Group_ G, bool IsWest>
-void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff& W,
+void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                   SpriteList& wsl,
                   global_coords coord, uint32_t tile, ArrayView<const WallFragment> fragments)
 {
+    constexpr auto D = IsWest ? Direction_::W : Direction_::N;
+    const auto& dir = A.calc_direction(D);
+    static_assert(Wall::Direction::groups[(size_t)G].tag == G);
+    constexpr auto member = Wall::Direction::groups[(size_t)G].member;
+    const auto& group = dir.*member;
     if (!group.is_defined)
         return;
 
     const uint32_t k = tile*2 + IsWest;
-    constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto variant_2 = W.variants[k];
     const auto pos = local_coords{tile};
     const auto center = Vector3(point{c.coord(), pos, {}});
-    const auto& dir = A.calc_direction(D);
     const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
     const auto Depth = A.info().depth;
     const auto Depthʹ = (float)(int)Depth;
@@ -543,6 +544,22 @@ void do_wall_part(const Group& group, wall_atlas& A, chunk& c, chunk::wall_stuff
     }
 }
 
+template<bool IsWest>
+void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords coord, uint32_t k)
+{
+    auto* Aʹ = W.atlases[k*2 + IsWest].get();
+    if (!Aʹ)
+        return;
+    auto& A = *Aʹ;
+    const auto pos = local_coords{k};
+    const auto holes = find_wall_holes_in_world_coords(hole_data, c, pos, IsWest, HoleRegion::Wall);
+    const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A.info().depth,
+                                         IsWest, HoleRegion::Wall);
+    do_wall_part<Group_::wall, IsWest>(A, c, W, wsl, coord, k, fragments);
+    do_wall_part<Group_::side, IsWest>(A, c, W, wsl, coord, k, fragments);
+    do_wall_part<Group_::top,  IsWest>(A, c, W, wsl, coord, k, fragments);
+}
+
 } // namespace
 
 void chunk::ensure_wall_mesh(SpriteBatch& sb)
@@ -561,28 +578,8 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
             static_assert(Wall::Group_COUNT == /* 5 */ 4);
             static_assert((int)Direction_::COUNT == 2);
 
-            if (auto* A_nʹ = W.atlases[k*2 + 0].get())
-            {
-                auto& A_n = *A_nʹ;
-                const auto& dir = A_n.calc_direction(Direction_::N);
-                const auto pos = local_coords{k};
-                const auto holes = find_wall_holes_in_world_coords(hole_data, *this, pos, false, HoleRegion::Wall);
-                const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A_n.info().depth, false, HoleRegion::Wall);
-                do_wall_part<Group_::wall, false>(dir.wall, A_n, *this, W, wall_static_mesh, coord, k, fragments);
-                do_wall_part<Group_::side, false>(dir.side, A_n, *this, W, wall_static_mesh, coord, k, fragments);
-                do_wall_part<Group_::top,  false>(dir.top,  A_n, *this, W, wall_static_mesh, coord, k, fragments);
-            }
-            if (auto* A_wʹ = W.atlases[k*2 + 1].get())
-            {
-                auto& A_w = *A_wʹ;
-                const auto& dir = A_w.calc_direction(Direction_::W);
-                const auto pos = local_coords{k};
-                const auto holes = find_wall_holes_in_world_coords(hole_data, *this, pos, true, HoleRegion::Wall);
-                const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A_w.info().depth, true, HoleRegion::Wall);
-                do_wall_part<Group_::wall,  true>(dir.wall, A_w, *this, W, wall_static_mesh, coord, k, fragments);
-                do_wall_part<Group_::side,  true>(dir.side, A_w, *this, W, wall_static_mesh, coord, k, fragments);
-                do_wall_part<Group_::top,   true>(dir.top,  A_w, *this, W, wall_static_mesh, coord, k, fragments);
-            }
+            do_wall_tile<false>(*this, W, wall_static_mesh, coord, k);
+            do_wall_tile<true>(*this, W, wall_static_mesh, coord, k);
         }
     }
     sb.emit(wall_static_mesh, false);
