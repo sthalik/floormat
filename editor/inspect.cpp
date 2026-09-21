@@ -74,7 +74,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     }
     should_disable = should_disable || !accessor.can_write();
     [[maybe_unused]] auto disabler = begin_disabled(should_disable);
-    bool ret = false;
+    bool ret = false, reapply = false;
     const char* const label = label_left(accessor.field_name, buf, (float)label_width);
     T value{};
     accessor.read_fun(datum, accessor.reader, &value);
@@ -170,19 +170,14 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
             ret = ImGui::SliderScalarN(label, igdt, &value, T::Size, &min, &max);
             break;
         }
-        if (ImGui::IsItemDeactivatedAfterEdit() && !should_disable
-            && accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
-        {
-            T current{};
-            accessor.read_fun(datum, accessor.reader, &current);
-            accessor.write_fun(datum, accessor.writer, &current);
-            return true;
-        }
+        // imgui parses InputScalar text only on the deactivation frame, so ret covers typed
+        // input there. Setters branching on IsItemDeactivatedAfterEdit need a write regardless.
+        reapply = !ret && ImGui::IsItemDeactivatedAfterEdit();
 
         value = Math::clamp(value, min, max);
     }
 
-    if (ret && !should_disable && !eqv(value, orig))
+    if (!should_disable && (reapply || (ret && !eqv(value, orig))))
         if (accessor.is_enabled(datum) >= field_status::enabled && accessor.can_write())
         {
             accessor.write_fun(datum, accessor.writer, &value);
