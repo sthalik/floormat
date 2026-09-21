@@ -104,7 +104,8 @@ void app::do_rotate(bool backward)
             auto& e = *cl->e;
             auto i = e.index();
             auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
-            e.rotate(i, r);
+            if (e.can_rotate(r))
+                e.rotate(i, r);
         }
     }
 }

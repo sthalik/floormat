@@ -56,7 +56,10 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<rotation>::field{"rotation"_s,
                 [](const object& x) { return x.r; },
-                [](object& x, rotation r) { x.rotate(x.index(), r); },
+                [](object& x, rotation r) {
+                    if (x.can_rotate(r))
+                        x.rotate(x.index(), r);
+                },
             },
             E::type<uint16_t>::field{"frame"_s,
                 &object::frame,
