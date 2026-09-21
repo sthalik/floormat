@@ -1116,7 +1116,9 @@ task app::scene_maze2()
     populate_scene_maze2();
     auto& w = M->world();
     auto C = ensure_player_character(w);
-    const auto from = C->position();
+    // The populator parks the critter in the middle cell. These two are the graph diameter, which
+    // is the search the scene exists to profile.
+    const auto from = maze2_start();
     center_camera_on(from);
     co_yield {};
 
