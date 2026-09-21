@@ -21,6 +21,7 @@ void test_bitmask();
 void test_bptr();
 void test_chunk_iter();
 void test_coords();
+void test_corridor();
 void test_crc64();
 void test_critter();
 void test_dijkstra();
