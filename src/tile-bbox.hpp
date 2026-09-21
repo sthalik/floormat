@@ -46,12 +46,13 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(size_t k, T wal
     return { min, min + Vec2{wall_depth, tile_size_xy} };
 }
 
+// The west and north atlases can have different depths, so the corner isn't square.
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T west_depth, T north_depth)
 {
     using Vec2 = VectorTypeFor<2,T>;
-    auto min = tile_start<T>(k) - Vec2{wall_depth, 0};
-    return { min - Vec2{0, wall_depth}, min + Vec2{wall_depth, tile_size_xy} };
+    auto max = tile_start<T>(k);
+    return { max - Vec2{west_depth, north_depth}, max };
 }
 
 template<typename T = float>

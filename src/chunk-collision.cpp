@@ -202,8 +202,9 @@ void chunk::ensure_passability() noexcept
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
             filter_bbox_through_holes(rtree, id, wall_north(i, depth), has_holes, not_blocked_pass_through_mask);
 
-            if (tile.wall_west_atlas())
-                filter_bbox_through_holes(rtree, id, wall_pillar(i, depth), has_holes, not_blocked_pass_through_mask);
+            if (const auto* west = tile.wall_west_atlas().get())
+                filter_bbox_through_holes(rtree, id, wall_pillar(i, (float)west->info().depth, depth),
+                                          has_holes, not_blocked_pass_through_mask);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
