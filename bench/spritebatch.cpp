@@ -1,4 +1,5 @@
 #include "src/spritebatch.hpp"
+#include "src/sprite-list.hpp"
 #include "src/quads.hpp"
 #include <vector>
 #include <random>
@@ -186,6 +187,49 @@ void chunk_args(benchmark::Benchmark* b)
     b->Unit(benchmark::kNanosecond);
 }
 
+// The fixtures above reach SpriteBatch through the per-quad emit. emit(SpriteList&) is what
+// ground, walls and scenery actually call every frame, and nothing else covers it.
+SpriteList& get_list_fixture(uint32_t m)
+{
+    static SpriteList list;
+    static uint32_t cur = 0;
+    if (cur != m)
+    {
+        auto rng = std::mt19937{0x9e3779b9};
+        auto dist = std::uniform_real_distribution<float>{0, (float)m};
+        list.clear();
+        for (auto i = 0u; i < m; i++)
+            list.add(dummy_quad, dist(rng), nullptr);
+        cur = m;
+    }
+    return list;
+}
+
+void run_list(benchmark::State& state, bool render_vobjs)
+{
+    const auto k = (uint32_t)state.range(0);
+    auto& list = get_list_fixture((uint32_t)state.range(1));
+    auto sb = SpriteBatch{};
+
+    for (auto _ : state)
+    {
+        sb.clear();
+        for (auto i = 0u; i < k; i++)
+            sb.emit(list, render_vobjs);
+        benchmark::DoNotOptimize(sb.merged_order().data());
+    }
+}
+
+void list_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"k", "m"});
+    // 25 chunks of 256 ground quads is the opaque pass; walls add more on top.
+    for (auto k : {4, 25, 64})
+        b->Args({k, 256});
+    b->Args({64, 32});
+    b->Unit(benchmark::kNanosecond);
+}
+
 void run(benchmark::State& state, layout l, bool do_sort)
 {
     const auto& f = get_fixture((uint32_t)state.range(0), l);
@@ -240,6 +284,17 @@ void SpriteBatch_Frame(benchmark::State& state)
     run_chunks(state, true, true);
 }
 
+// What ground and walls do: every Objects entry is null, so the filter never reaches is_virtual().
+void SpriteBatch_Emit_List(benchmark::State& state)
+{
+    run_list(state, false);
+}
+
+void SpriteBatch_Emit_List_Vobjs(benchmark::State& state)
+{
+    run_list(state, true);
+}
+
 BENCHMARK(SpriteBatch_Merge_Blocked)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Interleaved)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Shuffled)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
@@ -248,6 +303,9 @@ BENCHMARK(SpriteBatch_Merge_Skipped)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::
 BENCHMARK(SpriteBatch_Chunk_Sorted)->Apply(chunk_args);
 BENCHMARK(SpriteBatch_Chunk_Unsorted)->Apply(chunk_args);
 BENCHMARK(SpriteBatch_Frame)->Apply(chunk_args);
+
+BENCHMARK(SpriteBatch_Emit_List)->Apply(list_args);
+BENCHMARK(SpriteBatch_Emit_List_Vobjs)->Apply(list_args);
 
 } // namespace
 
