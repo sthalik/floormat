@@ -10,14 +10,14 @@
 
 namespace floormat {
 
-constexpr uint8_t amin = 32;
-
 #if 1
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 
 namespace {
+
+constexpr uint8_t amin = 32;
 
 #ifdef __SSSE3__
 
@@ -113,6 +113,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
 {
     const auto pixels = tex.pixels();
     fm_soft_assert(tex.pixelSize() == 4);
+    fm_assert(bitmask.offset() == 0);
 
     const auto* src   = (const u8*)pixels.data();
     auto* const dest  = (u8*)bitmask.data();
