@@ -122,6 +122,70 @@ const fixture& get_fixture(uint32_t k, layout l)
     return f;
 }
 
+// m is quads per chunk. Keep it small: end_chunk(true)'s only production caller closes a run of
+// one chunk's dynamic objects, and below libc++'s __limit of 24 the per-run sort is an insertion
+// sort rather than introsort.
+std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m)
+{
+    auto rng = std::mt19937{0x9e3779b9};
+    auto dist = std::uniform_real_distribution<float>{0, (float)(k*m)};
+    auto runs = std::vector<std::vector<float>>(k, std::vector<float>(m));
+    for (auto& run : runs)
+        for (auto& d : run)
+            d = dist(rng);
+    return runs;
+}
+
+struct chunk_fixture
+{
+    std::vector<std::vector<float>> runs;
+    uint32_t k, m;
+};
+
+const chunk_fixture& get_chunk_fixture(uint32_t k, uint32_t m)
+{
+    static chunk_fixture f{{}, 0, 0};
+    if (f.k != k || f.m != m)
+    {
+        f.runs = make_chunks(k, m);
+        f.k = k;
+        f.m = m;
+    }
+    return f;
+}
+
+// clear() keeps the array capacity, so only the first iteration pays for growth.
+void run_chunks(benchmark::State& state, bool do_sort, bool merge)
+{
+    const auto& f = get_chunk_fixture((uint32_t)state.range(0), (uint32_t)state.range(1));
+    auto sb = SpriteBatch{};
+
+    for (auto _ : state)
+    {
+        sb.clear();
+        for (const auto& run : f.runs)
+        {
+            sb.begin_chunk();
+            for (float d : run)
+                sb.emit(dummy_quad, d);
+            sb.end_chunk(do_sort);
+        }
+        if (merge)
+            sb.sort_vertex_buffer(true);
+        benchmark::DoNotOptimize(sb.merged_order().data());
+    }
+}
+
+void chunk_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"k", "m"});
+    for (auto k : {4, 16, 64})
+        b->Args({k, 8});
+    b->Args({64, 32});
+    b->Args({64, 512});
+    b->Unit(benchmark::kNanosecond);
+}
+
 void run(benchmark::State& state, layout l, bool do_sort)
 {
     const auto& f = get_fixture((uint32_t)state.range(0), l);
@@ -161,10 +225,29 @@ void SpriteBatch_Merge_Skipped(benchmark::State& state)
     run(state, layout::shuffled, false);
 }
 
+void SpriteBatch_Chunk_Sorted(benchmark::State& state)
+{
+    run_chunks(state, true, false);
+}
+
+void SpriteBatch_Chunk_Unsorted(benchmark::State& state)
+{
+    run_chunks(state, false, false);
+}
+
+void SpriteBatch_Frame(benchmark::State& state)
+{
+    run_chunks(state, true, true);
+}
+
 BENCHMARK(SpriteBatch_Merge_Blocked)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Interleaved)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Shuffled)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Skipped)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
+
+BENCHMARK(SpriteBatch_Chunk_Sorted)->Apply(chunk_args);
+BENCHMARK(SpriteBatch_Chunk_Unsorted)->Apply(chunk_args);
+BENCHMARK(SpriteBatch_Frame)->Apply(chunk_args);
 
 } // namespace
 
