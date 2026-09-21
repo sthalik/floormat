@@ -8,6 +8,7 @@
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "src/sprite-atlas.hpp"
+#include "compat/setenv.hpp"
 #include <cfloat>
 #include <utility>
 #include <ranges>
@@ -62,7 +63,22 @@ struct slot
 {
     GL::Mesh mesh{NoCreate};
     GL::Buffer vertex_buffer_handle{NoCreate};
+    GL::Buffer index_buffer_handle{NoCreate};
+    // How much of this slot's index buffer holds identity indexes. A permuted upload overwrites
+    // them, so it drops back to 0 and the next identity upload rewrites from the start.
+    uint32_t index_uploaded = 0;
 };
+
+// Set to gather vertices into a staging array in depth order and keep the index buffer identity,
+// so the two ways of applying the merged order can be A/B'd in one driver session.
+bool permute_vertexes()
+{
+    static const bool ret = [] {
+        const auto* s = getenv("FLOORMAT_PERMUTE_VERTEXES");
+        return s && *s && !(s[0] == '0' && !s[1]);
+    }();
+    return ret;
+}
 
 template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this, many places naively reserve without 1.5
 {
@@ -101,7 +117,9 @@ struct SpriteBatch::Impl
     quick_draw quick;
 
     Array<Quads::vertexes> vertex_buffer;
-    Array<Quads::indexes> index_buffer;
+    // index_buffer stays identity for its whole life, so every slot can share one monotone
+    // upload watermark into it. A permuted order goes to index_permuted instead.
+    Array<Quads::indexes> index_buffer, index_permuted;
 
     Array<Quads::vertexes> verts;
     // Emission order until end_chunk, run-sorted order after, so the merge reads a key without
@@ -111,10 +129,8 @@ struct SpriteBatch::Impl
     Array<uint64_t> sort_keys;
 
     slot slots[slot_count];
-    GL::Buffer index_buffer_handle{NoCreate};
     uint32_t slot_idx = 0;
     uint32_t buffer_capacity = 0;
-    uint32_t index_uploaded = 0;
     uint32_t last_start = 0;
     bool in_chunk = false;
     // Cleared by both things that permute sort_indexes: end_chunk(true) and the merge.
@@ -171,12 +187,12 @@ void SpriteBatch::ensure_allocated(uint32_t count)
     if (count <= impl.buffer_capacity) [[likely]]
         return;
     uint32_t new_cap = 0;
-    const auto cap2 = ensure_buffer_size<Quads::indexes>(impl.index_buffer_handle, impl.buffer_capacity, count);
-    impl.index_uploaded = 0; // setData() orphaned the old contents
     for (auto& s : impl.slots)
     {
         auto cap  = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
+        const auto cap2 = ensure_buffer_size<Quads::indexes>(s.index_buffer_handle, impl.buffer_capacity, count);
         fm_debug_assert(cap == cap2);
+        s.index_uploaded = 0; // setData() orphaned the old contents
         new_cap = cap;
     }
     impl.buffer_capacity = new_cap;
@@ -333,7 +349,9 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     fm_debug_assert(impl.m.runs.isEmpty());
     fm_debug_assert(impl.m.tree.isEmpty());
     fm_debug_assert(impl.m.head.isEmpty());
-    reserve(impl.vertex_buffer, size);
+    const bool pv = permute_vertexes();
+    if (pv)
+        reserve(impl.vertex_buffer, size);
 
     // Array::operator[] is bounds-checked and no release build defines NDEBUG.
     // Pointers must be taken after every reserve() that can reallocate.
@@ -341,7 +359,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     const auto* const Vin = impl.verts.data();
     const auto* const S = impl.sort_indexes.data();
     const auto* const Starts = impl.starts.data();
-    auto* const V = impl.vertex_buffer.data();
+    auto* const V = pv ? impl.vertex_buffer.data() : nullptr;
 
 #ifndef FM_NO_DEBUG3
     // end_chunk(false) trusts the caller to have sorted the run. The only such caller feeding
@@ -355,9 +373,10 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     if (!do_sort || k <= 1)
     {
         // sort skipped (depth-buffered opaque pass), single chunk, or empty —
-        // copy vertices in input order.
-        for (auto i = 0u; i < size; i++)
-            V[i] = Vin[S[i]];
+        // sort_indexes already holds the order draw() needs.
+        if (pv)
+            for (auto i = 0u; i < size; i++)
+                V[i] = Vin[S[i]];
         return;
     }
 
@@ -428,9 +447,9 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         second = cur.run == w ? lo : -FLT_MAX;
     }
 
-    // write vertices in merged order
-    for (auto i = 0u; i < size; i++)
-        V[i] = Vin[M[i]];
+    if (pv)
+        for (auto i = 0u; i < size; i++)
+            V[i] = Vin[M[i]];
 
     // swap so draw() reads merged order from sort_indexes
     std::swap(impl.sort_indexes, impl.merge_output);
@@ -474,28 +493,44 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     fm_debug_assert(impl.last_start == size);
     fm_debug_assert(impl.merge_output.isEmpty());
 
-    // Nothing permuted sort_indexes, so the staging copy would reproduce impl.verts
-    // exactly. Upload from it and skip both the identity gather and the V allocation.
+    // Nothing permuted sort_indexes, so the merged order is the emission order and both the
+    // staging copy and the index permutation would come out identity.
     const bool direct = !do_sort && impl.s_is_identity;
     if (!direct)
-        sort_vertex_buffer(do_sort); // modifies V
+        sort_vertex_buffer(do_sort); // modifies V when the staging path is on
     ensure_allocated(size);
 
     auto& slot = impl.slots[impl.slot_idx];
+    const bool staged = !direct && permute_vertexes();
 
-    slot.vertex_buffer_handle.setSubData(0, ArrayView{ direct ? impl.verts.data() : V.data(), size });
+    slot.vertex_buffer_handle.setSubData(0, ArrayView{ staged ? V.data() : impl.verts.data(), size });
 
-    auto& I = impl.index_buffer;
-    const auto Isz = (uint32_t)I.size();
-    reserve(I, size);
-    for (auto i = Isz; i < size; i++)
-        I[i] = Quads::quad_indexes(i);
-    // quad_indexes(i) depends only on i, so already-uploaded entries never go stale
-    if (size > impl.index_uploaded)
+    if (staged || direct)
     {
-        impl.index_buffer_handle.setSubData(impl.index_uploaded * sizeof(Quads::indexes),
-                                            ArrayView{ I.data() + impl.index_uploaded, size - impl.index_uploaded });
-        impl.index_uploaded = size;
+        auto& I = impl.index_buffer;
+        const auto Isz = (uint32_t)I.size();
+        reserve(I, size);
+        for (auto i = Isz; i < size; i++)
+            I[i] = Quads::quad_indexes(i);
+        // quad_indexes(i) depends only on i, so already-uploaded entries never go stale
+        if (size > slot.index_uploaded)
+        {
+            slot.index_buffer_handle.setSubData(slot.index_uploaded * sizeof(Quads::indexes),
+                                                ArrayView{ I.data() + slot.index_uploaded, size - slot.index_uploaded });
+            slot.index_uploaded = size;
+        }
+    }
+    else
+    {
+        // Winding survives because quad_indexes(N) offsets a fixed pattern by N*vertexes_per_quad.
+        auto& I = impl.index_permuted;
+        reserve(I, size);
+        auto* const Ip = I.data();
+        const auto* const Sp = S.data();
+        for (auto i = 0u; i < size; i++)
+            Ip[i] = Quads::quad_indexes(Sp[i]);
+        slot.index_buffer_handle.setSubData(0, ArrayView{ Ip, size });
+        slot.index_uploaded = 0;
     }
 
     auto& mesh = slot.mesh;
@@ -503,7 +538,7 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     {
         mesh = GL::Mesh{GL::MeshPrimitive::Triangles};
         mesh.addVertexBuffer(slot.vertex_buffer_handle, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
-        mesh.setIndexBuffer(impl.index_buffer_handle, 0, Quads::index_gl_type);
+        mesh.setIndexBuffer(slot.index_buffer_handle, 0, Quads::index_gl_type);
     }
     mesh.setCount((Int)(Quads::indexes_per_quad * size));
     fm_assert(mesh.isIndexed());
