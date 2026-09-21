@@ -83,13 +83,11 @@ struct SpriteBatch::Impl
     Array<Quads::indexes> index_buffer;
 
     Array<Quads::vertexes> verts;
+    // Emission order until end_chunk, run-sorted order after, so the merge reads a key without
+    // going through sort_indexes first. Nothing reads it by value once end_chunk has run.
     Array<float> depths;
     Array<uint32_t> starts, sort_indexes, merge_output;
     Array<sort_key> sort_keys;
-    // dep_s[i] == depths[sort_indexes[i]], so the merge reads a key without going through
-    // sort_indexes first. Stale after sort_vertex_buffer swaps sort_indexes with merge_output;
-    // nothing reads it again until end_chunk rebuilds it next frame.
-    Array<float> dep_s;
 
     slot slots[slot_count];
     GL::Buffer index_buffer_handle{NoCreate};
@@ -136,7 +134,6 @@ void SpriteBatch::clear()
     arrayClear(impl.starts);
     arrayAppend(impl.starts, 0u); // leading bound, so end_chunk appends only run ends
     arrayClear(impl.sort_indexes);
-    arrayClear(impl.dep_s);
     arrayClear(impl.merge_output);
     arrayClear(impl.m.runs);
     arrayClear(impl.m.tree);
@@ -205,19 +202,18 @@ void SpriteBatch::end_chunk(bool do_sort)
 
     fm_debug_assert(S.size() == first);
     arrayResize(S, NoInit, last);
-    arrayResize(impl.dep_s, NoInit, last);
 
     for (auto i = first; i < last; i++)
         S.data()[i] = i;
 
     const auto n = last - first;
-    const auto* const D = impl.depths.data();
-    auto* const DS = impl.dep_s.data();
+    auto* const D = impl.depths.data();
 
     if (do_sort)
     {
         reserve(impl.sort_keys, n);
         auto* const K = impl.sort_keys.data();
+        // K holds every key before the write loop starts, so permuting D in place is safe.
         for (auto i = 0u; i < n; i++)
             K[i] = {D[first + i], first + i};
         ranges::sort(K, K + n, [](const sort_key& a, const sort_key& b) { return a.d < b.d; });
@@ -225,13 +221,10 @@ void SpriteBatch::end_chunk(bool do_sort)
         for (auto i = 0u; i < n; i++)
         {
             Sp[first + i] = K[i].i;
-            DS[first + i] = K[i].d;
+            D[first + i] = K[i].d;
         }
         impl.s_is_identity = false;
     }
-    else
-        for (auto i = 0u; i < n; i++)
-            DS[first + i] = D[first + i];
 
     arrayAppend(impl.starts, last);
     impl.last_start = last;
@@ -254,7 +247,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 
     // Array::operator[] is bounds-checked and no release build defines NDEBUG.
     // Pointers must be taken after every reserve() that can reallocate.
-    const auto* const DepS = impl.dep_s.data();
+    const auto* const D = impl.depths.data();
     const auto* const Vin = impl.verts.data();
     const auto* const S = impl.sort_indexes.data();
     const auto* const Starts = impl.starts.data();
@@ -266,7 +259,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     if (do_sort)
         for (auto r = 0u; r < k; r++)
             for (auto i = Starts[r] + 1; i < Starts[r + 1]; i++)
-                fm_assert(DepS[i-1] <= DepS[i]);
+                fm_assert(D[i-1] <= D[i]);
 #endif
 
     if (!do_sort || k <= 1)
@@ -294,7 +287,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     for (auto i = 0u; i < k; i++)
     {
         runs[i] = {Starts[i], Starts[i + 1]};
-        head[i] = DepS[Starts[i]];
+        head[i] = D[Starts[i]];
     }
 
     const uint32_t sentinel = k;
@@ -323,7 +316,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         auto& rw = runs[w];
         M[i] = S[rw.pos];
         rw.pos++;
-        head[w] = rw.pos < rw.end ? DepS[rw.pos] : FLT_MAX;
+        head[w] = rw.pos < rw.end ? D[rw.pos] : FLT_MAX;
 
         // Still the winner, so the tree, tree[0] and `second` are all unchanged.
         if (head[w] <= second)

@@ -192,8 +192,8 @@ void run(benchmark::State& state, layout l, bool do_sort)
     auto sb = SpriteBatch{};
     refill(sb, f.runs);
 
-    // sort_vertex_buffer leaves verts, depths, starts and dep_s alone, so undoing its swap
-    // restores every input it reads.
+    // sort_vertex_buffer leaves verts, depths and starts alone, so undoing its swap restores
+    // every input it reads.
     for (auto _ : state)
     {
         sb.sort_vertex_buffer(do_sort);
