@@ -12,6 +12,7 @@
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "serialize/json-wrapper.hpp"
+#include "stb-zlib.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {
@@ -19,12 +20,6 @@ namespace floormat {
 } // namespace floormat
 
 namespace floormat::loader_detail {
-
-namespace {
-
-constexpr auto default_font_filename = "imgui-default-ttf-font"_s;
-
-} // namespace
 
 StringView loader_impl::shader(StringView filename) noexcept
 {
@@ -38,12 +33,18 @@ StringView loader_impl::shader(StringView filename) noexcept
 
 ArrayView<const void> loader_impl::font() noexcept
 {
-    if (!font_res)
-        font_res = Optional<Utility::Resource>(InPlaceInit, "fonts");
-    auto ret = font_res->getRaw("default-imgui-font");
-    if (ret.isEmpty())
-        fm_abort("can't find font resource '%s'", default_font_filename.data());
-    return ret;
+    if (!font_buf)
+    {
+        auto res = Utility::Resource{"fonts"}.getRaw("default-imgui-font");
+        if (res.size() < 5)
+            fm_abort("can't find font resource 'default-imgui-font'");
+        auto size = (uint32_t)(uint8_t)res[0] << 24 | (uint32_t)(uint8_t)res[1] << 16
+                  | (uint32_t)(uint8_t)res[2] << 8  | (uint32_t)(uint8_t)res[3];
+        font_buf = Array<char>{NoInit, size};
+        if (!inflate_zlib(font_buf.data(), size, res.data() + 4, (uint32_t)res.size() - 4))
+            fm_abort("can't inflate font resource");
+    }
+    return font_buf;
 }
 
 loader_impl::loader_impl()

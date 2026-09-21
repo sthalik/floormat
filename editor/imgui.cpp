@@ -45,9 +45,8 @@ void app::init_imgui(Vector2i size)
             io.Fonts->Clear();
 #ifdef IMGUI_DISABLE_DEFAULT_FONT
             auto res = loader.font();
-            void* imgui_font_data = IM_ALLOC(res.size());
-            memcpy(imgui_font_data, res.data(), res.size());
-            io.Fonts->AddFontFromMemoryTTF(imgui_font_data, (int)res.size(), 16, &config);
+            config.FontDataOwnedByAtlas = false;
+            io.Fonts->AddFontFromMemoryTTF(const_cast<void*>(res.data()), (int)res.size(), 16, &config);
 #else
             io.Fonts->AddFontDefault(&config);
 #endif

@@ -28,7 +28,7 @@
 [submodule "font"]
 	path = external/font
 	url = https://github.com/sthalik/floormat
-	branch = asset/font/inter/v1
+	branch = asset/font/fixedsys-excelsior/v1
 [submodule "swl-variant"]
 	path = external/swl-variant
 	url = https://github.com/groundswellaudio/swl-variant.git
