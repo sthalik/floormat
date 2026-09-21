@@ -331,7 +331,7 @@ fns   = [thigh_L, knee_L, foot_L, yaw_deg, armR_deg, elbowR_deg, bob_m, sway_m]
 meters = {"BobM", "SwayM"}
 posemap = {k: lab for k, lab in KEYS}
 print("\nPer-frame values (LEFT leg; RIGHT = same at frame-10).")
-print("Thigh/Knee/Foot/Yaw/ArmR/ElbowR in degrees; BobM/SwayM in metres (~1.7 m rig).")
+print("Thigh/Knee/Foot/Yaw/ArmR/ElbowR in degrees; BobM/SwayM in meters (~1.7 m rig).")
 print("frame\tPose\t" + "\t".join(names))
 for f in range(0, 21):
     row = [str(f), posemap.get(f, "")]

@@ -68,10 +68,10 @@ constexpr inline uint32_t grid_pin_seed = 0x9d1d5eedu;
 // tile coordinate, so the combined pattern repeats no sooner than every 420 tiles.
 
 // A tile's own N/W wall strips lie *outside* it, at [T-depth, T), so only a half-extent above
-// tile_size_xy/2 reaches them; anything positive reaches the S/E neighbours'. Depth here is 32.
+// tile_size_xy/2 reaches them; anything positive reaches the S/E neighbors'. Depth here is 32.
 constexpr inline Vector2ub hole_sizes[] = {
-    { uint8_t(7*tile_size_xy/4), uint8_t(tile_size_xy/2)   }, // own W, E and S neighbours'
-    { uint8_t(tile_size_xy/2),   uint8_t(7*tile_size_xy/4) }, // own N, E and S neighbours'
+    { uint8_t(7*tile_size_xy/4), uint8_t(tile_size_xy/2)   }, // own W, E and S neighbors'
+    { uint8_t(tile_size_xy/2),   uint8_t(7*tile_size_xy/4) }, // own N, E and S neighbors'
     { uint8_t(3*tile_size_xy/2), uint8_t(3*tile_size_xy/2) }, // all four, plus the corner piece
 };
 
@@ -124,7 +124,7 @@ constexpr inline const char* const scenery_names[] = {
     "chair1", "stool1", "drawers1", "shelf1", "table4", "door1", "control panel (wall) 1",
 };
 
-// Prime count so the colour never lines up with any of the placement periods.
+// Prime count so the color never lines up with any of the placement periods.
 constexpr inline Vector4ub light_colors[] = {
     { 255,  64,  64, 255 }, { 255, 128,  32, 255 }, { 255, 192,  32, 255 },
     { 255, 255,  64, 255 }, { 192, 255,  64, 255 }, {  96, 255,  64, 255 },
@@ -153,7 +153,7 @@ uint32_t hash2(uint32_t x, uint32_t y) // same mixer as app::populate_raycast_fr
     return h;
 }
 
-// The lightmap image covers neighbor_count = 4 chunks per axis and iter_bounds() centres it at
+// The lightmap image covers neighbor_count = 4 chunks per axis and iter_bounds() centers it at
 // [x-2, x+1] (shaders/lightmap.cpp), so a 6x6 world is the smallest that gives every chunk of the
 // 3x3 testable middle a full block to render.
 constexpr inline int16_t lm_chunk_min = -3, lm_chunk_max = 2;
@@ -202,7 +202,7 @@ struct lm_layout { lm_light_spec lights[3]; lm_wall_run walls[2]; Vector2ub stoo
 // Five of them against four motifs, on periods that do not lock in step (3cx+cy mod 5 against
 // cx+2cy mod 4), so a 16-chunk preview block shows several combinations instead of one repeated.
 // Two of the five put a pair of lights within a third of their range of each other, which is
-// where the additive blend of two colours is actually visible; L2 runs a wall between such a pair.
+// where the additive blend of two colors is actually visible; L2 runs a wall between such a pair.
 // Every light keeps clear of the motifs' own geometry: columns 4 and 11 (colonnade), rows and
 // columns 2 and 13 (room box), and the {2,5,8,11} square lattice.
 constexpr inline lm_layout lm_layouts[] = {
@@ -216,7 +216,7 @@ constexpr inline lm_layout lm_layouts[] = {
         {{12,12}, 6, 0, light_falloff::linear} },
       { {{3,11}, 11, true}, {{3,3}, 7, false} },
       { {7,9}, {11,6}, {5,13}, {12,9} } },
-    { // a pair split by a wall, so the two colours meet along a hard edge
+    { // a pair split by a wall, so the two colors meet along a hard edge
       { {{5,7}, 9, 72, light_falloff::quadratic}, {{12,8}, 9, 24, light_falloff::quadratic},
         {{14,4}, 6, 0, light_falloff::linear} },
       { {{8,2}, 12, false}, {{3,12}, 5, true} },
@@ -226,7 +226,7 @@ constexpr inline lm_layout lm_layouts[] = {
         {{3,12}, 7, 72, light_falloff::quadratic} },
       { {{3,5}, 10, true}, {{12,5}, 8, false} },
       { {6,10}, {9,10}, {10,3}, {14,3} } },
-    { // all three clustered, so every stool between them throws three coloured shadows
+    { // all three clustered, so every stool between them throws three colored shadows
       { {{6,7}, 9, 24, light_falloff::quadratic}, {{9,6}, 9, 0, light_falloff::quadratic},
         {{8,10}, 9, 72, light_falloff::quadratic} },
       { {{2,13}, 12, true}, {{2,3}, 10, false} },
@@ -294,7 +294,7 @@ scenery_proto pin_proto(int size)
 void generate_raycast_pins(world& w)
 {
     auto ground = loader.ground_atlas("metal1");
-    // World origin is a chunk corner rather than a centre, so a symmetric pin field needs an
+    // World origin is a chunk corner rather than a center, so a symmetric pin field needs an
     // asymmetric chunk range to sit on.
     const auto ch0 = point::normalize_coords(point{}, Vector2i{-pin_field}).chunk3(),
                ch1 = point::normalize_coords(point{}, Vector2i{ pin_field}).chunk3();
@@ -462,7 +462,7 @@ void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int
 // and a wall row hides six rows behind it.
 //
 // half_width is set by the pass bitmap rather than by the critter. src/grid-pass.cpp:211-225
-// blocks the cells around every obstacle, so a cell needs its whole 3x3 tile neighbourhood clear;
+// blocks the cells around every obstacle, so a cell needs its whole 3x3 tile neighborhood clear;
 // on a 45-degree band that costs two tiles of u at each edge and leaves 2*half_width-3 passable.
 // Three is the minimum a diagonal step needs, because is_passable_between_diag() tests the two
 // off-axis cells as well.
@@ -619,7 +619,7 @@ Array<uint8_t> generate_maze_braid(uint32_t dim, uint32_t seed)
 {
     Array<uint8_t> flags{ValueInit, dim*dim};
     struct edge { uint32_t src, dst; };
-    // A cell is pushed at most once per neighbour over the whole run, so this never overflows.
+    // A cell is pushed at most once per neighbor over the whole run, so this never overflows.
     Array<edge> frontier{NoInit, 4*dim*dim};
     uint32_t top = 0, step = 0;
 
@@ -953,7 +953,7 @@ void generate_lightmap_scene(world& w)
                 const auto& spec = L.lights[m];
                 const auto k = n * (uint32_t)array_size(L.lights) + m;
                 light_proto p;
-                // 7 is coprime with 23, so neighbouring lights never share a colour -- and a pair
+                // 7 is coprime with 23, so neighboring lights never share a color -- and a pair
                 // placed to overlap gets two hues a third of the wheel apart, which is what makes
                 // the blend between them read as a mix rather than as a brighter blob.
                 const auto rgb = light_colors[k * 7 % array_size(light_colors)];
@@ -1068,7 +1068,7 @@ void app::populate_scene_raycast_pins()
     reset_world();
     auto& w = M->world();
     generate_raycast_pins(w);
-    // reset_world_post() already spawned it at global (0,0), which is the centre of the field.
+    // reset_world_post() already spawned it at global (0,0), which is the center of the field.
     ensure_player_character(w);
     center_camera_on(point{});
     M->reset_fps();
@@ -1090,8 +1090,8 @@ void app::populate_scene_maze2()
 point app::maze2_start() { return maze2_cell_point(generate_maze2().start); }
 point app::maze2_goal() { return maze2_cell_point(generate_maze2().goal); }
 
-// Three chunks each way so the centre one has all eight neighbours: a pass grid build searches
-// the 3x3 neighbourhood, and a missing chunk is a different path from an empty one.
+// Three chunks each way so the center one has all eight neighbors: a pass grid build searches
+// the 3x3 neighborhood, and a missing chunk is a different path from an empty one.
 // num_pins is for the menu entry only. The driver passes none and lays them down one at a time,
 // which is the whole point of that scene -- an empty chunk is not a cheap version of a full one.
 void app::populate_scene_grids(uint32_t num_pins)
@@ -1114,14 +1114,14 @@ void app::populate_scene_grids(uint32_t num_pins)
     // from one corner of it.
     auto C = ensure_player_character(w);
     auto index = C->index();
-    const point centre{chunk_coords_{0, 0, 0},
+    const point center{chunk_coords_{0, 0, 0},
                        local_coords{(uint8_t)(TILE_MAX_DIM/2), (uint8_t)(TILE_MAX_DIM/2)}, {}};
-    C->teleport_to(index, centre.coord(), Vector2b{}, rotation_COUNT);
-    center_camera_on(centre);
+    C->teleport_to(index, center.coord(), Vector2b{}, rotation_COUNT);
+    center_camera_on(center);
     M->reset_fps();
 }
 
-// One more pin in the centre chunk, at a hash-picked pixel. scene_grids rebuilds the grids after
+// One more pin in the center chunk, at a hash-picked pixel. scene_grids rebuilds the grids after
 // every call, so the run walks the whole occupancy curve from empty to saturated rather than
 // sampling one point on it.
 void app::add_grid_pin(uint32_t n)
