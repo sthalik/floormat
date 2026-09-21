@@ -1,7 +1,7 @@
 #include "erased-constraints.hpp"
 #include "compat/assert.hpp"
+#include "compat/limits.hpp"
 #include <cmath>
-#include <limits>
 #include <cr/Pair.h>
 #include <mg/Vector4.h>
 
@@ -22,11 +22,11 @@ template<typename T> Pair<T, T> range::convert() const
             constexpr auto Size = T::Size;
             T a, b;
             for (auto i = 0uz; i < Size; i++)
-                a[i] = std::numeric_limits<U>::min(), b[i] = std::numeric_limits<U>::max();
+                a[i] = limits<U>::min, b[i] = limits<U>::max;
             return {a, b};
         }
         else
-            return { std::numeric_limits<T>::min(), std::numeric_limits<T>::max() };
+            return { limits<T>::min, limits<T>::max };
     }
     else
     {
