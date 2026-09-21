@@ -7,6 +7,10 @@
 
 set(MATRIX_TSV "")
 
+# The converter's Test configure.h reads the importer's variables too, so both
+# plugins get cleared each iteration, not just the one being swept
+set(ALL_FORMATS BMP GIF HDR JPEG PIC PNG PNM PSD TGA)
+
 function(fm_matrix plugin upper formats)
     list(LENGTH formats n)
     math(EXPR last "(1 << ${n}) - 1")
@@ -15,8 +19,11 @@ function(fm_matrix plugin upper formats)
     foreach(mask RANGE 0 ${last})
         # A leftover from the previous iteration would produce a variant that
         # does not match its own name, as configure_file reads current scope
+        foreach(f IN LISTS ALL_FORMATS)
+            unset(MAGNUM_STBIMAGEIMPORTER_NO_${f})
+            unset(MAGNUM_STBIMAGECONVERTER_NO_${f})
+        endforeach()
         foreach(f IN LISTS formats)
-            unset(MAGNUM_${upper}_NO_${f})
             set(_MAGNUM_${upper}_NO_${f} "")
         endforeach()
 
@@ -74,6 +81,36 @@ function(fm_matrix plugin upper formats)
         target_include_directories(${target} BEFORE PRIVATE ${gen})
         target_include_directories(${target} SYSTEM PRIVATE ${MP}/src/external/stb)
         target_link_libraries(${target} PRIVATE Magnum::Trade)
+
+        # Through the upstream Test/configure.h.cmake rather than a header of our
+        # own, so the macros the guards read are the ones a real build produces
+        set(testgen ${CMAKE_BINARY_DIR}/gen/${plugin}Test/${id})
+        set(PNGIMPORTER_TEST_DIR ${MP}/src/MagnumPlugins/PngImporter/Test)
+        set(JPEGIMPORTER_TEST_DIR ${MP}/src/MagnumPlugins/JpegImporter/Test)
+        set(STBIMAGEIMPORTER_TEST_DIR ${MP}/src/MagnumPlugins/StbImageImporter/Test)
+        set(STBIMAGECONVERTER_TEST_OUTPUT_DIR ${CMAKE_BINARY_DIR}/testout/${id})
+        set(plugin_file ${dir}/${plugin}${CMAKE_SHARED_MODULE_SUFFIX})
+        if("${plugin}" STREQUAL "StbImageImporter")
+            set(STBIMAGEIMPORTER_PLUGIN_FILENAME ${plugin_file})
+            set(test_deps ${target})
+        else()
+            set(STBIMAGECONVERTER_PLUGIN_FILENAME ${plugin_file})
+            # Read back through an importer with everything left in, so a failure
+            # is always the converter's
+            set(STBIMAGEIMPORTER_PLUGIN_FILENAME
+                ${CMAKE_BINARY_DIR}/variants/StbImageImporter/000/StbImageImporter${CMAKE_SHARED_MODULE_SUFFIX})
+            set(test_deps ${target} StbImageImporter_000)
+        endif()
+
+        configure_file(${MP}/src/MagnumPlugins/${plugin}/Test/configure.h.cmake
+                       ${testgen}/configure.h)
+
+        add_executable(${target}_test ${MP}/src/MagnumPlugins/${plugin}/Test/${plugin}Test.cpp)
+        target_include_directories(${target}_test PRIVATE ${testgen})
+        target_compile_options(${target}_test PRIVATE -O1)
+        target_link_libraries(${target}_test PRIVATE
+            Corrade::TestSuite Magnum::DebugTools Magnum::Trade)
+        add_dependencies(${target}_test ${test_deps})
 
         file(STRINGS ${dir}/${plugin}.conf lines REGEX "^provides=")
         set(provides "")
