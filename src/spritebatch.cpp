@@ -38,10 +38,17 @@ uint32_t ensure_buffer_size(GL::Buffer& buf, uint32_t capacity, uint32_t count)
 struct merge_state
 {
     struct run { uint32_t pos, end; };
+    // The loser's key rides with its index: one load per replay level. Correct because a run's
+    // head changes only while it is tree[0], never while it sits as a loser.
+    struct node { uint32_t run; float d; };
     Array<run> runs;
-    Array<uint32_t> tree;
+    Array<node> tree;
     Array<float> head; // FLT_MAX once the run is exhausted
 };
+
+// Sort key and payload packed, so the comparator reads the key inline rather than gathering
+// depths[i] on every one of the N log N comparisons.
+struct sort_key { float d; uint32_t i; };
 
 struct quick_draw
 {
@@ -78,6 +85,11 @@ struct SpriteBatch::Impl
     Array<Quads::vertexes> verts;
     Array<float> depths;
     Array<uint32_t> starts, sort_indexes, merge_output;
+    Array<sort_key> sort_keys;
+    // dep_s[i] == depths[sort_indexes[i]], so the merge reads a key without going through
+    // sort_indexes first. Stale after sort_vertex_buffer swaps sort_indexes with merge_output;
+    // nothing reads it again until end_chunk rebuilds it next frame.
+    Array<float> dep_s;
 
     slot slots[slot_count];
     GL::Buffer index_buffer_handle{NoCreate};
@@ -124,6 +136,7 @@ void SpriteBatch::clear()
     arrayClear(impl.starts);
     arrayAppend(impl.starts, 0u); // leading bound, so end_chunk appends only run ends
     arrayClear(impl.sort_indexes);
+    arrayClear(impl.dep_s);
     arrayClear(impl.merge_output);
     arrayClear(impl.m.runs);
     arrayClear(impl.m.tree);
@@ -192,15 +205,33 @@ void SpriteBatch::end_chunk(bool do_sort)
 
     fm_debug_assert(S.size() == first);
     arrayResize(S, NoInit, last);
+    arrayResize(impl.dep_s, NoInit, last);
 
     for (auto i = first; i < last; i++)
         S.data()[i] = i;
 
+    const auto n = last - first;
+    const auto* const D = impl.depths.data();
+    auto* const DS = impl.dep_s.data();
+
     if (do_sort)
     {
-        ranges::sort(S.slice(first, last), [&A = std::as_const(impl.depths)](auto i, auto j) { return A[i] < A[j]; });
+        reserve(impl.sort_keys, n);
+        auto* const K = impl.sort_keys.data();
+        for (auto i = 0u; i < n; i++)
+            K[i] = {D[first + i], first + i};
+        ranges::sort(K, K + n, [](const sort_key& a, const sort_key& b) { return a.d < b.d; });
+        auto* const Sp = S.data();
+        for (auto i = 0u; i < n; i++)
+        {
+            Sp[first + i] = K[i].i;
+            DS[first + i] = K[i].d;
+        }
         impl.s_is_identity = false;
     }
+    else
+        for (auto i = 0u; i < n; i++)
+            DS[first + i] = D[first + i];
 
     arrayAppend(impl.starts, last);
     impl.last_start = last;
@@ -223,7 +254,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 
     // Array::operator[] is bounds-checked and no release build defines NDEBUG.
     // Pointers must be taken after every reserve() that can reallocate.
-    const auto* const Dep = impl.depths.data();
+    const auto* const DepS = impl.dep_s.data();
     const auto* const Vin = impl.verts.data();
     const auto* const S = impl.sort_indexes.data();
     const auto* const Starts = impl.starts.data();
@@ -235,7 +266,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     if (do_sort)
         for (auto r = 0u; r < k; r++)
             for (auto i = Starts[r] + 1; i < Starts[r + 1]; i++)
-                fm_assert(Dep[S[i-1]] <= Dep[S[i]]);
+                fm_assert(DepS[i-1] <= DepS[i]);
 #endif
 
     if (!do_sort || k <= 1)
@@ -263,7 +294,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     for (auto i = 0u; i < k; i++)
     {
         runs[i] = {Starts[i], Starts[i + 1]};
-        head[i] = Dep[S[Starts[i]]];
+        head[i] = DepS[Starts[i]];
     }
 
     const uint32_t sentinel = k;
@@ -271,21 +302,14 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
 
     // build tree: insert runs back to front
     for (auto i = 0u; i < k; i++)
-        tree[i] = sentinel;
+        tree[i] = {sentinel, -FLT_MAX};
     for (auto i = k - 1; i != (uint32_t)-1; i--)
     {
-        uint32_t winner = i;
-        float wd = head[i];
+        merge_state::node cur{i, head[i]};
         for (uint32_t p = (k + i) / 2; p > 0; p /= 2)
-        {
-            const float pd = head[tree[p]];
-            if (wd > pd)
-            {
-                std::swap(winner, tree[p]);
-                wd = pd;
-            }
-        }
-        tree[0] = winner;
+            if (cur.d > tree[p].d)
+                std::swap(cur, tree[p]);
+        tree[0] = cur;
     }
 
     // Runner-up key. Valid only while tree[0] is unchanged, so a replay that moves the
@@ -295,34 +319,30 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     // extract in sorted order
     for (auto i = 0u; i < size; i++)
     {
-        const auto w = tree[0];
+        const auto w = tree[0].run;
         auto& rw = runs[w];
         M[i] = S[rw.pos];
         rw.pos++;
-        head[w] = rw.pos < rw.end ? Dep[S[rw.pos]] : FLT_MAX;
+        head[w] = rw.pos < rw.end ? DepS[rw.pos] : FLT_MAX;
 
         // Still the winner, so the tree, tree[0] and `second` are all unchanged.
         if (head[w] <= second)
             continue;
 
         // replay from leaf w
-        uint32_t winner = w;
-        float wd = head[w], lo = FLT_MAX;
+        merge_state::node cur{w, head[w]};
+        float lo = FLT_MAX;
         for (uint32_t p = (k + w) / 2; p > 0; p /= 2)
         {
-            const float pd = head[tree[p]];
-            if (wd > pd)
-            {
-                std::swap(winner, tree[p]);
-                wd = pd;
-            }
-            else if (pd < lo)
-                lo = pd;
+            if (cur.d > tree[p].d)
+                std::swap(cur, tree[p]);
+            else if (tree[p].d < lo)
+                lo = tree[p].d;
         }
-        tree[0] = winner;
+        tree[0] = cur;
         // With no swap the else branch ran at every level, so lo is the min over all path
         // losers. Once swapped it is a partial min over the wrong path.
-        second = winner == w ? lo : -FLT_MAX;
+        second = cur.run == w ? lo : -FLT_MAX;
     }
 
     // write vertices in merged order
