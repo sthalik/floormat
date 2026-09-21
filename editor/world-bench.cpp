@@ -97,10 +97,10 @@ constexpr inline hole_z_profile hole_z_profiles[] = {
 // half a chunk. Density and ray length pull against each other, so halving the pitch to fill the
 // field visibly came with halving the pin.
 //
-// The pass grid inflates an obstacle by (bbox_size + div_size)/2 = 40 px per side, so one pin
-// blocks an 84-px square. The pitch has to clear that or the lattice leaves the DDA no clear cell
-// anywhere and the bitmap's skip path never runs. The grid pins keep the larger size, since
-// scene_grids counts pins against bitmap occupancy.
+// The pass grid inflates an obstacle by half the bbox plus the cell's reach, 39 px on the low side
+// and 40 on the high one, so one pin blocks an 83-px square. The pitch has to clear that or the
+// lattice leaves the DDA no clear cell anywhere and the bitmap's skip path never runs. The grid
+// pins keep the larger size, since scene_grids counts pins against bitmap occupancy.
 constexpr inline int pin_size = 4, grid_pin_size = 8, pin_pitch = 3*tile_size_xy/2,
                      pin_field = pgo::raycast_radius_max + pin_pitch;
 
@@ -428,10 +428,11 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
 // Out goes what blocks travel along it: the N walls, the interior W walls, and the objects.
 //
 // A corridor `width` tiles wide leaves `width-2` passable columns, which is also why
-// populate_labyrinth()'s step of 4 leaves 2. src/grid-pass.cpp:211-225 inflates a W wall on tile
+// populate_labyrinth()'s step of 4 leaves 2. PassGrid::build_impl() inflates a W wall on tile
 // i0 across cells i0-1..i0, so each side wall eats one column of the interior. Width 1 and 2 leave
-// none and cannot route at any div_size; width 5 is the first to leave 3, the minimum for a
-// diagonal step, since is_passable_between_diag() tests the two off-axis cells too.
+// none; width 5 is the first to leave 3, the minimum for a diagonal step, since
+// is_passable_between_diag() tests the two off-axis cells too. A cell is a tile only at div_size
+// 64 -- a finer grid resolves sub-tile columns, and width 2 leaves 4*width-6 of them at 16.
 void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int16_t cy_min, int16_t cy_max)
 {
     fm_assert(width > 0 && start_tile + width < TILE_MAX_DIM);
@@ -516,7 +517,7 @@ void fill_ground_chunks(world& w, int16_t cmin, int16_t cmax)
 // north-south one is not -- for that one, every tile a step east is a 192 px wall drawn in front,
 // and a wall row hides six rows behind it.
 //
-// half_width is set by the pass bitmap rather than by the critter. src/grid-pass.cpp:211-225
+// half_width is set by the pass bitmap rather than by the critter. PassGrid::build_impl()
 // blocks the cells around every obstacle, so a cell needs its whole 3x3 tile neighborhood clear;
 // on a 45-degree band that costs two tiles of u at each edge and leaves 2*half_width-3 passable.
 // Three is the minimum a diagonal step needs, because is_passable_between_diag() tests the two
