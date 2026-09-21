@@ -91,7 +91,7 @@ test_train=${FM_TEST_ARGS:---repeat 10}
 # process no matter what, so a single pass gives startup its maximum share of a profile that
 # is now entirely the editor's. Each further pass cuts that share by ~1/N, and past 3 or 4
 # there is nothing left to win.
-editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=full --vsync=off --fixed-framerate=60 --driver=profile --driver-repeat 3}
+editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=profile --driver-repeat 3}
 trainer_timeout=${FM_TRAINER_TIMEOUT:-1200}
 # Process restarts, for a trainer with no repeat option of its own. None has, now that
 # floormat-test takes --repeat.
