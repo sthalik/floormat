@@ -48,6 +48,7 @@ void test_saves();
 void test_scenery();
 void test_script();
 void test_shader();
+void test_slide();
 void test_spinlock();
 void test_split();
 void test_sprite_atlas();
