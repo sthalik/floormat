@@ -145,7 +145,7 @@ void app::center_camera_on(point pt)
 {
     // point_to_pixel() is affine in camera_offset with coefficient 1, so feeding the error
     // straight back lands exactly. Inverting tile_shader::project by hand would duplicate it.
-    // Solve towards the integer pixel rather than the true centre: an odd window size makes
+    // Solve towards the integer pixel rather than the true center: an odd window size makes
     // win/2 fractional, and half a pixel is still a whole unit of point::offset.
     _z_level = pt.chunk3().z;
     auto& shader = M->shader();

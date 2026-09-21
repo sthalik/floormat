@@ -189,7 +189,7 @@ def render(path, title, subtitle, panels, footer):
         pad = 15 * SS
         def y_of(v): return ybot - pad - (v - vmin) / (vmax - vmin) * (ybot - ytop - 2*pad)
         if ystep:
-            half = ystep / 2.0                       # minor guides halfway between labelled lines
+            half = ystep / 2.0                       # minor guides halfway between labeled lines
             for ns in range(math.ceil(vmin/half - 1e-9), math.floor(vmax/half + 1e-9) + 1):
                 if ns % 2 == 0: continue              # even multiples coincide with major lines below
                 yy = y_of(ns * half)
@@ -252,8 +252,8 @@ def render(path, title, subtitle, panels, footer):
                     ty = py + 16*SS
             labels[idx] = (tx, ty, tw, s, color)
             placed.append((tx, ty, tw))
-        # opaque background (panel colour) under every label first, then all text on top, so a
-        # neighbouring label's box can never paint over another label's digits.
+        # opaque background (panel color) under every label first, then all text on top, so a
+        # neighboring label's box can never paint over another label's digits.
         for tx, ty, tw, *_ in labels:
             d.rectangle([tx - 3*SS, ty - 1*SS, tx + tw + 3*SS, ty + 15*SS], fill=BG)
         for tx, ty, tw, s, _ in labels:
