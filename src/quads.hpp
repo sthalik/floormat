@@ -1,4 +1,6 @@
 #pragma once
+#include "compat/map.hpp"
+#include "compat/iota.hpp"
 #include <array>
 #include <mg/Vector3.h>
 
@@ -37,5 +39,17 @@ texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size, bool
 
 template<bool LR_1 = true, bool LR_2 = true, bool LR_3 = false, bool LR_4 = false>
 depths depth_quad(point L, point R, int32_t depth_offset);
+
+constexpr vertexes make_vertexes(const quad& q, const texcoords& tc, const depths& d, Vector3 center = {})
+{
+    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], d[j] }; },
+               iota_array<uint8_t, vertexes_per_quad>);
+}
+
+constexpr vertexes make_vertexes(const quad& q, const texcoords& tc, float depth, Vector3 center = {})
+{
+    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], depth }; },
+               iota_array<uint8_t, vertexes_per_quad>);
+}
 
 } // namespace floormat::Quads

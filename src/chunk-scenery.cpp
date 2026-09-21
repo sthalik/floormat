@@ -60,9 +60,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         if (is_dynamic)
         {
             const auto depth = Depth::value_at(depth_start, pt, depth_offset);
-            Quads::vertexes v;
-            for (uint8_t j = 0; j < 4; j++)
-                v[j] = {quad[j], uv3[j], depth};
+            const auto v = Quads::make_vertexes(quad, uv3, depth);
             sb.emit(v, depth);
         }
         else
