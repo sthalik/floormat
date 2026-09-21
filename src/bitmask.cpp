@@ -10,7 +10,6 @@
 
 namespace floormat {
 
-#if 1
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
@@ -109,6 +108,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 
 } // namespace
 
+#if 1
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
 {
     const auto pixels = tex.pixels();
