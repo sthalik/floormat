@@ -3,9 +3,11 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
+#include <cr/Array.h>
 #include <mg/Functions.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
 
 namespace floormat {
 
@@ -47,10 +49,89 @@ void bitmask_test()
     }
 }
 
+// Mirrors amin in src/bitmask.cpp, which has internal linkage there.
+constexpr uint8_t amin = 32;
+
+constexpr uint32_t pixel_hash(uint32_t x)
+{
+    x ^= x >> 16; x *= 0x7feb352du;
+    x ^= x >> 15; x *= 0x846ca68bu;
+    x ^= x >> 16;
+    return x;
+}
+
+// RGB holds the inverse of the alpha decision, so a shuffle mask reading the wrong byte of a
+// pixel inverts every bit instead of passing.
+void fill_pixels(unsigned char* buf, uint32_t W, uint32_t H, uint32_t seed)
+{
+    for (auto j = 0u; j < H; j++)
+        for (auto i = 0u; i < W; i++)
+        {
+            const auto h = pixel_hash(seed*0x9e3779b9u + j*65537u + i);
+            // Half the pixels straddle amin at 29..36, the rest spread over the whole range.
+            const auto a = (uint8_t)(h & 1 ? h >> 24 : 29 + (h >> 8 & 7));
+            auto* p = buf + (j*W + i)*4;
+            p[0] = p[1] = p[2] = (uint8_t)(a >= amin ? 0x00 : 0xff);
+            p[3] = a;
+        }
+}
+
+void check_bitmask(const unsigned char* px, uint32_t W, uint32_t H)
+{
+    const ImageView2D img{PixelFormat::RGBA8Unorm, {(int)W, (int)H}, {px, W*H*4}};
+    const auto bm = anim_atlas::make_bitmask(img);
+    const auto nbits = (uint32_t)bm.size();
+    fm_assert(nbits >= W*H);
+
+    for (auto j = 0u; j < H; j++)
+        for (auto i = 0u; i < W; i++)
+        {
+            const bool want = px[(j*W + i)*4 + 3] >= amin;
+            const auto bit = (H - j - 1)*W + i;
+            if (bm[bit] != want)
+                fm_abort("bitmask %ux%u: bit %u at (%u,%u) is %d, should be %d",
+                         W, H, bit, i, j, (int)bm[bit], (int)want);
+        }
+
+    // The allocation rounds up to a whole byte, so up to 7 bits of overrun land inside it where
+    // ASan cannot see them.
+    for (auto bit = W*H; bit < nbits; bit++)
+        if (bm[bit])
+            fm_abort("bitmask %ux%u: bit %u past the image is set", W, H, bit);
+}
+
+void bitmask_sweep_test()
+{
+    // Width covers every residue mod 16 three times, with zero, one and two whole SSSE3 blocks
+    // ahead of the scalar tail. Height covers every start offset: row j begins at bit
+    // (H-j-1)*W, so eight rows walk the full cycle of W mod 8.
+    constexpr uint32_t max_w = 48, max_h = 9;
+    unsigned char px[max_w*max_h*4];
+
+    for (auto W = 1u; W <= max_w; W++)
+        for (auto H = 1u; H <= max_h; H++)
+        {
+            fill_pixels(px, W, H, W*(max_h+1) + H);
+            check_bitmask(px, W, H);
+        }
+}
+
+void bitmask_wide_test()
+{
+    // The sweep stops at 48 where anim/npc-walk.png is 3382 wide. 3391 is prime, runs 211 SSSE3
+    // blocks with the widest possible tail, and 3391 % 8 == 7 walks every byte offset.
+    constexpr uint32_t W = 3391, H = 64;
+    Array<unsigned char> px{NoInit, (size_t)W*H*4};
+    fill_pixels(px.data(), W, H, 0xa5f3u);
+    check_bitmask(px.data(), W, H);
+}
+
 } // namespace
 
 void Test::test_bitmask()
 {
+    bitmask_sweep_test();
+    bitmask_wide_test();
     bitmask_test();
     //bitmask_benchmark();
 }
