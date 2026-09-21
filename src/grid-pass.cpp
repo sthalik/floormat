@@ -165,11 +165,15 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const auto div_size  = params.div_size;
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
-    // +div_size: bit must hold for any critter position in the cell, not just the center
-    const auto half = ((float)params.bbox_size + (float)div_size) * .5f;
     constexpr auto half_tile = tile_size_xy*.5f;
     const auto half_div = (float)(div_size / 2);
     const auto half_div_minus_half_tile = half_div - half_tile;
+    const auto half_bbox = (float)params.bbox_size * .5f;
+    // A bit must hold for every position in the cell, not just its anchor
+    // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
+    // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
+    const auto reach_below = half_div;
+    const auto reach_above = (float)(div_size - 1 - div_size / 2);
 
     chunk* const chunks[9] = {
         self,
@@ -183,7 +187,6 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
             a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size;
         return a;
     }();
-    const auto half_bbox = (float)params.bbox_size * .5f;
     const float pmin_self[2] = { -half_tile - half_bbox, -half_tile - half_bbox };
     const float pmax_self[2] = { (float)chunk_size_xy - half_tile + half_bbox,
                                  (float)chunk_size_xy - half_tile + half_bbox };
@@ -208,10 +211,11 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                 return true;
             all_empty = false;
 
-            const float bx0 = r.m_min[0] + off.x() - half;
-            const float by0 = r.m_min[1] + off.y() - half;
-            const float bx1 = r.m_max[0] + off.x() + half;
-            const float by1 = r.m_max[1] + off.y() + half;
+            // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
+            const float bx0 = r.m_min[0] + off.x() - half_bbox - reach_above;
+            const float by0 = r.m_min[1] + off.y() - half_bbox - reach_above;
+            const float bx1 = r.m_max[0] + off.x() + half_bbox + reach_below;
+            const float by1 = r.m_max[1] + off.y() + half_bbox + reach_below;
 
             // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
             int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
