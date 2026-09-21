@@ -881,7 +881,8 @@ point maze_cell_point(uint32_t i, uint32_t j)
                  local_coords{(uint8_t)lx, (uint8_t)ly}, {}};
 }
 
-void generate_scene(world& w, int z_min, int z_max, bool walls)
+void generate_scene(world& w, int z_min, int z_max, bool walls,
+                    int16_t cmin = bench_chunk_min, int16_t cmax = bench_chunk_max)
 {
     const auto a = load_assets();
     auto t = Time::now();
@@ -889,8 +890,8 @@ void generate_scene(world& w, int z_min, int z_max, bool walls)
 
     for (int z = z_min; z <= z_max; z++)
     {
-        for (int16_t cy = bench_chunk_min; cy <= bench_chunk_max; cy++)
-            for (int16_t cx = bench_chunk_min; cx <= bench_chunk_max; cx++)
+        for (int16_t cy = cmin; cy <= cmax; cy++)
+            for (int16_t cx = cmin; cx <= cmax; cx++)
             {
                 objects += generate_chunk(w, {cx, cy, (int8_t)z}, a, walls);
                 chunks++;
@@ -1071,7 +1072,7 @@ void app::populate_scene_benchmark_walkable(uint8_t width)
 {
     reset_world();
     auto& w = M->world();
-    generate_scene(w, 0, 0, false);
+    generate_scene(w, 0, 0, false, bench_chunk_min, walk_chunk_max);
     carve_corridor(w, 0, walk_corridor_tile, width, walk_chunk_min, walk_chunk_max);
     // Wide enough to leave a way past a baffle, narrow enough that the two sides overlap. The
     // width-1 menu entry satisfies neither and is meant to stay unroutable.
@@ -1106,7 +1107,6 @@ void app::populate_scene_slide(bool dense)
     C->set_bbox({}, {}, Vector2ub(pgo::slide_bbox), pass_mode::blocked);
     C->teleport_to(index, pgo::tile_at(pgo::slide_start_x, pgo::slide_start_y),
                    Vector2b{}, rotation_COUNT);
-    center_camera_on(C->position());
     M->reset_fps();
 }
 
@@ -1116,13 +1116,9 @@ void app::populate_scene_diagonal(uint8_t half_width)
     auto& w = M->world();
     generate_scene(w, 0, 0, true);
     carve_diagonal(w, diag_u0, half_width, bench_chunk_min, bench_chunk_max);
-    // The path test searches from wherever the player stands. ensure_player_character() spawns it
-    // at global (0,0), which is on the band already; move it to the north-west end so the whole
-    // cut is ahead of it.
-    auto C = ensure_player_character(w);
-    auto index = C->index();
-    C->teleport_to(index, global_coords{chunk_coords_{-4, -4, 0}, local_coords{0, 0}},
-                   Vector2b{}, rotation_COUNT);
+    // The path test searches from wherever the player stands, and reset_world_post() spawns it at
+    // global (0,0), which is on the band.
+    ensure_player_character(w);
     M->reset_fps();
 }
 
@@ -1147,7 +1143,6 @@ void app::populate_scene_raycast_pins()
     generate_raycast_pins(w);
     // reset_world_post() already spawned it at global (0,0), which is the center of the field.
     ensure_player_character(w);
-    center_camera_on(point{});
     M->reset_fps();
 }
 
@@ -1159,8 +1154,10 @@ void app::populate_scene_maze2()
     build_maze2(w, m.flags);
     auto C = ensure_player_character(w);
     auto index = C->index();
-    C->teleport_to(index, maze2_cell_point(m.start).coord(), Vector2b{}, rotation_COUNT);
-    center_camera_on(C->position());
+    // The middle cell. scene_maze2 reads its search endpoints from maze2_start()/maze2_goal(), so
+    // the critter only has to sit where the camera does.
+    C->teleport_to(index, maze2_cell_point(maze2_dim/2 * (maze2_dim + 1)).coord(),
+                   Vector2b{}, rotation_COUNT);
     M->reset_fps();
 }
 
@@ -1194,7 +1191,6 @@ void app::populate_scene_grids(uint32_t num_pins)
     const point center{chunk_coords_{0, 0, 0},
                        local_coords{(uint8_t)(TILE_MAX_DIM/2), (uint8_t)(TILE_MAX_DIM/2)}, {}};
     C->teleport_to(index, center.coord(), Vector2b{}, rotation_COUNT);
-    center_camera_on(center);
     M->reset_fps();
 }
 
@@ -1221,8 +1217,10 @@ void app::populate_scene_maze()
     build_maze(w, generate_maze(maze_dim, maze_seed), maze_dim, bench_chunk_min, bench_chunk_max);
     auto C = ensure_player_character(w);
     auto index = C->index();
-    C->teleport_to(index, maze_corner(0).coord(), Vector2b{}, rotation_COUNT);
-    center_camera_on(C->position());
+    // The middle cell. scene_maze's tour passes maze_corner(k) to Dijkstra itself, so the critter
+    // only has to sit where the camera does.
+    C->teleport_to(index, maze_cell_point(maze_dim/2, maze_dim/2).coord(),
+                   Vector2b{}, rotation_COUNT);
     M->reset_fps();
 }
 
@@ -1254,7 +1252,6 @@ void app::populate_scene_lightmap()
     auto index = C->index();
     const auto pt = lightmap_light(4);
     C->teleport_to(index, pt.coord(), Vector2b{}, rotation_COUNT);
-    center_camera_on(pt);
     // What the "Lightmap test" popup item sets. Without it the menu entry builds the world and
     // leaves the preview shut, which is the one thing this scene exists to show.
     tested_light_chunk = pt.chunk3();
