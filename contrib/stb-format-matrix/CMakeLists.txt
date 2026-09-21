@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.18)
+
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+project(stb-format-matrix CXX)
+
+set(FM "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+get_filename_component(FM "${FM}" ABSOLUTE)
+set(MP "${FM}/external/magnum-plugins")
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+macro(opt name value)
+    set(${name} ${value} CACHE BOOL "" FORCE)
+endmacro()
+
+opt(BUILD_SHARED_LIBS ON)
+opt(CORRADE_BUILD_TESTS OFF)
+opt(CORRADE_BUILD_DEPRECATED OFF)
+opt(CORRADE_WITH_INTERCONNECT OFF)
+opt(CORRADE_WITH_PLUGINMANAGER ON)
+opt(CORRADE_WITH_TESTSUITE OFF)
+
+opt(MAGNUM_BUILD_TESTS OFF)
+opt(MAGNUM_BUILD_PLUGINS_STATIC OFF)
+opt(MAGNUM_WITH_GL OFF)
+opt(MAGNUM_WITH_AUDIO OFF)
+opt(MAGNUM_WITH_DEBUGTOOLS OFF)
+opt(MAGNUM_WITH_MATERIALTOOLS OFF)
+opt(MAGNUM_WITH_MESHTOOLS OFF)
+opt(MAGNUM_WITH_PRIMITIVES OFF)
+opt(MAGNUM_WITH_SCENEGRAPH OFF)
+opt(MAGNUM_WITH_SCENETOOLS OFF)
+opt(MAGNUM_WITH_SHADERS OFF)
+opt(MAGNUM_WITH_SHADERTOOLS OFF)
+opt(MAGNUM_WITH_TEXT OFF)
+opt(MAGNUM_WITH_TEXTURETOOLS OFF)
+opt(MAGNUM_WITH_TRADE ON)
+opt(MAGNUM_WITH_ANYIMAGEIMPORTER OFF)
+opt(MAGNUM_WITH_ANYIMAGECONVERTER OFF)
+opt(MAGNUM_WITH_TGAIMPORTER OFF)
+opt(MAGNUM_WITH_TGAIMAGECONVERTER OFF)
+
+opt(MAGNUM_WITH_STBIMAGEIMPORTER ON)
+opt(MAGNUM_WITH_STBIMAGECONVERTER ON)
+
+add_subdirectory("${FM}/external/corrade" corrade EXCLUDE_FROM_ALL)
+add_subdirectory("${FM}/external/magnum" magnum EXCLUDE_FROM_ALL)
+add_subdirectory("${MP}" magnum-plugins EXCLUDE_FROM_ALL)
+
+include(matrix.cmake)
+
+add_executable(driver driver.cpp)
+target_link_libraries(driver PRIVATE Corrade::PluginManager Magnum::Trade)
+add_dependencies(driver StbImageImporter StbImageConverter)
