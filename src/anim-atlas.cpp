@@ -111,9 +111,11 @@ BitArray anim_atlas::make_bitmask(const ImageView2D& tex)
     if (tex.pixelSize() == 3)
         return {};
 
+    // pixels() is 3-dimensional: {height, width, pixel bytes}.
     const auto size = tex.pixels().size();
-    auto width = (size[0]+7)&~7uz;
-    auto array = BitArray{NoInit, width*size[1]};
+    // make_bitmask_() memsets size()/8 bytes, so the count has to be a whole number of them.
+    const auto nbits = (size[0]*size[1] + 7) & ~7uz;
+    auto array = BitArray{NoInit, nbits};
     make_bitmask_(tex, array);
     return array;
 }
