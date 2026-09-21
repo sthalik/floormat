@@ -6,6 +6,8 @@ endif()
 
 file(GLOB sources "*.cpp" "../loader/*.cpp" CONFIGURE_ARGS)
 add_library(${self} OBJECT "${sources}")
+target_include_directories(${self} SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../external/magnum-plugins/src/external/stb")
+set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/../loader/stb-zlib.cpp" APPEND PROPERTY COMPILE_OPTIONS "-w")
 target_link_libraries(
     ${self} PUBLIC
     Magnum::Magnum
