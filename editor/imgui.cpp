@@ -144,6 +144,10 @@ float app::draw_main_menu()
                 populate_scene_diagonal(3);
             if (ImGui::MenuItem("Scene diagonal (1 tile)"))
                 populate_scene_diagonal(0);
+            if (ImGui::MenuItem("Scene slide (dense)"))
+                populate_scene_slide(true);
+            if (ImGui::MenuItem("Scene slide (bare)"))
+                populate_scene_slide(false);
             if (ImGui::MenuItem("Scene maze"))
                 populate_scene_maze();
             if (ImGui::MenuItem("Scene maze 2 (braided)"))

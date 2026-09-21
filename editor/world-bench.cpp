@@ -455,6 +455,61 @@ void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int
     }
 }
 
+tile_ref slide_tile(world& w, int x, int y)
+{
+    const auto gc = pgo::tile_at(x, y);
+    auto& c = w[gc.chunk3()];
+    c.mark_modified();
+    return c[gc.local()];
+}
+
+void place_slide_geometry(world& w)
+{
+    const auto W = wall_image_proto{ loader.wall_atlas("test1", loader_policy::warn), (variant_t)-1 };
+
+    for (int x = pgo::slide_ledge_x0; x <= pgo::slide_ledge_x1; x++)
+        slide_tile(w, x, pgo::slide_ledge_y).wall_north() = W;
+    for (int y = pgo::slide_wall_y0; y <= pgo::slide_wall_y1; y++)
+        slide_tile(w, pgo::slide_wall_x, y).wall_west() = W;
+    for (int x = pgo::slide_wall_x; x <= pgo::slide_floor_x1; x++)
+        slide_tile(w, x, pgo::slide_floor_y).wall_north() = W;
+}
+
+// Unlike carve_corridor() no side walls go back in: the L is placed afterwards and anything else
+// left standing would deflect the run.
+void clear_chunks(world& w, int16_t cmin, int16_t cmax)
+{
+    for (int16_t cy = cmin; cy <= cmax; cy++)
+        for (int16_t cx = cmin; cx <= cmax; cx++)
+        {
+            auto& c = w[chunk_coords_{cx, cy, 0}];
+            for (auto k = 0u; k < TILE_COUNT; k++)
+            {
+                c[k].wall_north() = {};
+                c[k].wall_west() = {};
+            }
+            // Backwards because arrayRemove() shifts the tail down. reset_world() spawns the
+            // player at global (0,0), inside this block, so critters have to survive the cut.
+            for (auto i = (uint32_t)c.objects().size(); i-- > 0; )
+                if (c.objects()[i]->type() != object_type::critter)
+                    c.kill_object(i);
+            c.mark_modified();
+        }
+}
+
+void fill_ground_chunks(world& w, int16_t cmin, int16_t cmax)
+{
+    auto ground = loader.ground_atlas("floor-tiles");
+    for (int16_t cy = cmin; cy <= cmax; cy++)
+        for (int16_t cx = cmin; cx <= cmax; cx++)
+        {
+            auto& c = w[chunk_coords_{cx, cy, 0}];
+            for (auto k = 0u; k < TILE_COUNT; k++)
+                c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
+            c.mark_modified();
+        }
+}
+
 // Cuts a diagonal band out of the dense scene: walls and objects go, the ground stays. The band
 // runs along +x+y, which projects to straight down the screen, so its edges sit beside it at equal
 // depth instead of in front of it. That is the whole reason a diagonal cut is visible here and a
@@ -1030,6 +1085,28 @@ void app::populate_scene_benchmark_walkable(uint8_t width)
     C->teleport_to(index, global_coords{chunk_coords_{0, walk_chunk_min, 0},
                                         local_coords{(uint8_t)(walk_corridor_tile+1), 2}},
                    Vector2b{}, rotation_COUNT);
+    M->reset_fps();
+}
+
+void app::populate_scene_slide(bool dense)
+{
+    reset_world();
+    auto& w = M->world();
+    if (dense)
+    {
+        generate_scene(w, 0, 0, false);
+        clear_chunks(w, pgo::slide_chunk_min, pgo::slide_chunk_max);
+    }
+    else
+        fill_ground_chunks(w, pgo::slide_chunk_min, pgo::slide_chunk_max);
+    place_slide_geometry(w);
+
+    auto C = ensure_player_character(w);
+    auto index = C->index();
+    C->set_bbox({}, {}, Vector2ub(pgo::slide_bbox), pass_mode::blocked);
+    C->teleport_to(index, pgo::tile_at(pgo::slide_start_x, pgo::slide_start_y),
+                   Vector2b{}, rotation_COUNT);
+    center_camera_on(C->position());
     M->reset_fps();
 }
 

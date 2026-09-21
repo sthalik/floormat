@@ -83,6 +83,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_drag_paint, coverage),
         FM_SCENE(scene_benchmark, profile),
         FM_SCENE(scene_walk, profile),
+        FM_SCENE(scene_slide, profile),
         FM_SCENE(scene_maze, profile),
         FM_SCENE(scene_maze2, profile),
         FM_SCENE(scene_raycast, profile),
@@ -875,6 +876,49 @@ task app::scene_walk()
     // route against straight is what says the baffles are being walked around, not through.
     fm_debug("walk: %ux speed, %u waypoints, route %.0f px over %.0f straight, ended %.0f px out",
              (uint32_t)speed_mult, n, (double)route_len, (double)straight, (double)walked);
+}
+
+// Driven by the key bitmask, not a script: move_toward() reports blocked and gives up, so only
+// this path reaches update_movement_alternatives().
+task app::scene_slide()
+{
+    constexpr uint32_t poll_frames = 10, max_polls = 200;
+
+    populate_scene_slide(true);
+    auto& w = M->world();
+    auto C = ensure_player_character(w);
+    co_yield {};
+
+    const auto from = C->position();
+    // Same draw-bounds trap as scene_walk.
+    center_camera_on(from);
+    // arrows_to_dir() is screen-space: Left alone is world SW, a world cardinal needs two keys.
+    set_key_state(key_left, true);
+
+    auto last = from;
+    uint32_t polls = 0;
+    for (; polls < max_polls; polls++)
+    {
+        co_yield {poll_frames};
+        auto Cʹ = w.find_object<critter>(_character_id);
+        if (!Cʹ)
+            break;
+        const auto pos = Cʹ->position();
+        if (pos == last)
+            break;
+        last = pos;
+        center_camera_on(pos);
+    }
+    set_key_state(key_left, false);
+    co_yield {};
+
+    const auto corner = point{pgo::tile_at(pgo::slide_corner_x, pgo::slide_corner_y), {}};
+    const auto off = point::distance(last, corner);
+    // Running the poll out means it never wedged, which is the failure the layout has to avoid.
+    fm_assert(polls < max_polls);
+    fm_assert(off < tile_size_xy);
+    fm_debug("slide: %u polls, %u px walked, ended %u px from the corner",
+             polls, point::distance(from, last), off);
 }
 
 // The maze's own check, kept apart from the ray sweep because it never had anything to do with
