@@ -100,21 +100,43 @@ void refill(SpriteBatch& sb, const std::vector<std::vector<float>>& runs)
     }
 }
 
+// One entry suffices because repetitions of a fixture are consecutive.
+struct fixture
+{
+    std::vector<std::vector<float>> runs;
+    double streak;
+    uint32_t k;
+    layout l;
+};
+
+const fixture& get_fixture(uint32_t k, layout l)
+{
+    static fixture f{{}, 0, 0, layout::blocked};
+    if (f.k != k || f.l != l)
+    {
+        f.runs = make_runs(k, l);
+        f.streak = streak_rate(f.runs);
+        f.k = k;
+        f.l = l;
+    }
+    return f;
+}
+
 void run(benchmark::State& state, layout l, bool do_sort)
 {
-    const auto runs = make_runs((uint32_t)state.range(0), l);
+    const auto& f = get_fixture((uint32_t)state.range(0), l);
     auto sb = SpriteBatch{};
+    refill(sb, f.runs);
 
+    // sort_vertex_buffer leaves verts, depths, starts and dep_s alone, so undoing its swap
+    // restores every input it reads.
     for (auto _ : state)
     {
-        state.PauseTiming();
-        refill(sb, runs);
-        state.ResumeTiming();
-
         sb.sort_vertex_buffer(do_sort);
         benchmark::DoNotOptimize(sb.merged_order().data());
+        sb.unsort_vertex_buffer();
     }
-    state.counters["streak"] = streak_rate(runs);
+    state.counters["streak"] = f.streak;
 }
 
 void SpriteBatch_Merge_Blocked(benchmark::State& state)

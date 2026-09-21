@@ -104,7 +104,21 @@ struct fixture
         }
         for (auto b : seen)
             fm_assert(b);
+        check_stable(do_sort, order);
         reset();
+    }
+
+    // unsort_vertex_buffer has to restore every input the merge reads, so a second pass over
+    // the same batch must reproduce the first one exactly.
+    void check_stable(bool do_sort, ArrayView<const uint32_t> order)
+    {
+        const std::vector<uint32_t> first(order.begin(), order.end());
+        sb.unsort_vertex_buffer();
+        sb.sort_vertex_buffer(do_sort);
+        const auto again = sb.merged_order();
+        fm_assert(again.size() == first.size());
+        for (auto i = 0uz; i < first.size(); i++)
+            fm_assert(again[i] == first[i]);
     }
 
     // Every run emitted with end_chunk(false) leaves sort_indexes untouched. That identity

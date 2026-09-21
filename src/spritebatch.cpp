@@ -354,6 +354,22 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     impl.s_is_identity = false;
 }
 
+void SpriteBatch::unsort_vertex_buffer()
+{
+    auto& impl = *this->impl;
+    fm_assert(!impl.in_chunk);
+    arrayClear(impl.vertex_buffer);
+    // The early-out fills V and returns without swapping, so it leaves merge_output empty.
+    if (!impl.merge_output.isEmpty())
+    {
+        std::swap(impl.sort_indexes, impl.merge_output);
+        arrayClear(impl.merge_output);
+    }
+    arrayClear(impl.m.runs);
+    arrayClear(impl.m.tree);
+    arrayClear(impl.m.head);
+}
+
 void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 {
     auto& impl = *this->impl;
