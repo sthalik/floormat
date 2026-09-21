@@ -5,6 +5,10 @@ namespace floormat {
 
 SpriteList::SpriteList()
 {
+    // a default-constructed Array is non-growable and reallocates on every append until reserved
+    arrayReserve(Vertexes, 16);
+    arrayReserve(Depths, 16);
+    arrayReserve(Objects, 16);
 }
 
 uint32_t SpriteList::size() const
@@ -12,12 +16,15 @@ uint32_t SpriteList::size() const
     return (uint32_t)Vertexes.size();
 }
 
+void SpriteList::reserve(uint32_t count)
+{
+    arrayReserve(Vertexes, count);
+    arrayReserve(Depths, count);
+    arrayReserve(Objects, count);
+}
+
 void SpriteList::add(const Quads::vertexes& vertexes, float depth, object* obj)
 {
-    arrayReserve(Vertexes, 16);
-    arrayReserve(Depths, 16);
-    arrayReserve(Objects, 16);
-
     arrayAppend(Vertexes, vertexes);
     arrayAppend(Depths, depth);
     arrayAppend(Objects, obj);

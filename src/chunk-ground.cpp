@@ -24,6 +24,7 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
     {
         _ground_modified = false;
         ground_static_mesh.clear();
+        ground_static_mesh.reserve(TILE_COUNT);
 
         const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
         const float depth = Depth::value_at(depth_start, point{_coord, {}, {}}, -tile_size_xy * 4);
