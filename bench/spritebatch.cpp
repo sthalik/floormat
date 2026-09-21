@@ -262,8 +262,9 @@ void SpriteBatch_Merge_Shuffled(benchmark::State& state)
     run(state, layout::shuffled, true);
 }
 
-// do_sort=false takes the early-out copy in sort_vertex_buffer, so this is the floor the
-// three above are measured against.
+// do_sort=false early-outs before the tree is built, so this shares no code with the merge loop
+// and cannot control for its layout. It reads ~0 ns unless FLOORMAT_PERMUTE_VERTEXES is set,
+// which is the only thing left for it to measure.
 void SpriteBatch_Merge_Skipped(benchmark::State& state)
 {
     run(state, layout::shuffled, false);
