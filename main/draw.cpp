@@ -10,6 +10,7 @@
 #include "src/chunk.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/ArrayView.h>
+#include <algorithm>
 #include <mg/DefaultFramebuffer.h>
 #include <mg/Renderer.h>
 #include <mg/Color.h>
@@ -139,6 +140,16 @@ void main_impl::draw_world() noexcept
     const auto z_bounds = app.get_z_bounds();
     const auto chunks  = get_draw_bounds(_chunk_bounds_array, {});
     const auto sz = window_size();
+
+    // Front-to-back, so the opaque pass rejects more fragments early. get_draw_bounds() emits
+    // z-major, but depth is dominated by x+y: z spans 16 levels against a much wider visible xy.
+    // Sorted here rather than there because update_world() and the editor's cursor hit test read
+    // the same array and both change behaviour with its order.
+    std::sort(chunks.begin(), chunks.end(), [](chunk_coords_ a, chunk_coords_ b) {
+        constexpr auto w = (int32_t)TILE_MAX_DIM * tile_size_xy;
+        return w * ((int32_t)a.x + a.y) + tile_size_z * a.z
+             > w * ((int32_t)b.x + b.y) + tile_size_z * b.z;
+    });
 
     arrayResize(_clickable_scenery, 0);
 #ifdef FM_USE_DEPTH32
