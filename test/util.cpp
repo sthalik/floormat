@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include <mg/Vector4.h>
+#include <mg/Color.h>
 
 namespace floormat::Test {
 
@@ -35,11 +37,27 @@ constexpr bool test_array_size()
     return true;
 }
 
+constexpr bool test_array_size_magnum()
+{
+    fm_assert(static_array_size<Math::Vector<7, float>> == 7);
+    fm_assert(static_array_size<Vector2i> == 2);
+    fm_assert(static_array_size<Vector3ub> == 3);
+    fm_assert(static_array_size<Vector4> == 4);
+    fm_assert(static_array_size<Color3> == 3);
+    fm_assert(static_array_size<Color4ub> == 4);
+
+    fm_assert(array_size(Vector3i{}) == 3);
+    fm_assert(array_size(Color4{}) == 4);
+
+    return true;
+}
+
 } // namespace
 
 void test_util()
 {
     static_assert(test_array_size());
+    static_assert(test_array_size_magnum());
 }
 
 } // namespace floormat::Test
