@@ -211,25 +211,23 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
 
-    const auto& Dep = impl.depths;
-    const auto& Vin = impl.verts;
-    const auto size = (uint32_t)Vin.size();
-    auto& V = impl.vertex_buffer;
-    auto& M = impl.merge_output;
-    const auto& S = impl.sort_indexes;
-    const auto& Starts = impl.starts;
-    auto& runs = impl.m.runs;
-    auto& tree = impl.m.tree;
-    auto& head = impl.m.head;
+    const auto size = (uint32_t)impl.verts.size();
+    const auto k = (uint32_t)impl.starts.size() - 1; // number of runs
 
-    fm_assert(V.isEmpty());
-    fm_debug_assert(M.isEmpty());
-    fm_debug_assert(runs.isEmpty());
-    fm_debug_assert(tree.isEmpty());
-    fm_debug_assert(head.isEmpty());
-    reserve(V, size);
+    fm_assert(impl.vertex_buffer.isEmpty());
+    fm_debug_assert(impl.merge_output.isEmpty());
+    fm_debug_assert(impl.m.runs.isEmpty());
+    fm_debug_assert(impl.m.tree.isEmpty());
+    fm_debug_assert(impl.m.head.isEmpty());
+    reserve(impl.vertex_buffer, size);
 
-    const auto k = (uint32_t)Starts.size() - 1; // number of runs
+    // Array::operator[] is bounds-checked and no release build defines NDEBUG.
+    // Pointers must be taken after every reserve() that can reallocate.
+    const auto* const Dep = impl.depths.data();
+    const auto* const Vin = impl.verts.data();
+    const auto* const S = impl.sort_indexes.data();
+    const auto* const Starts = impl.starts.data();
+    auto* const V = impl.vertex_buffer.data();
 
 #ifndef FM_NO_DEBUG3
     // end_chunk(false) trusts the caller to have sorted the run. The only such caller feeding
@@ -249,10 +247,15 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         return;
     }
 
-    reserve(M, size);
-    reserve(runs, k);
-    reserve(tree, k);
-    reserve(head, k + 1);
+    reserve(impl.merge_output, size);
+    reserve(impl.m.runs, k);
+    reserve(impl.m.tree, k);
+    reserve(impl.m.head, k + 1);
+
+    auto* const M = impl.merge_output.data();
+    auto* const runs = impl.m.runs.data();
+    auto* const tree = impl.m.tree.data();
+    auto* const head = impl.m.head.data();
 
     // --- k-way merge via loser tree ---
 
