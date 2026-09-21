@@ -440,9 +440,7 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
     const auto* sp = g.sprites[frame];
     fm_assert(sp);
     const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !g.mirror_from.isEmpty());
-    Quads::vertexes vertexes;
-    for (auto i = 0uz; i < 4; i++)
-        vertexes[i] = { pos[i], uv3[i], depth[i] };
+    const auto vertexes = Quads::make_vertexes(pos, uv3, depth);
     const auto indexes = Quads::quad_indexes(0);
     auto& quick = impl.quick;
     auto& mesh = quick._mesh;
