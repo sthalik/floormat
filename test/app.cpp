@@ -160,6 +160,7 @@ int App::exec()
         FM_TEST(test_critter),
         FM_TEST(test_sweep_aabb),
         FM_TEST(test_slide),
+        FM_TEST(test_corridor),
         FM_TEST(test_dijkstra),
         FM_TEST(test_loader2),
         FM_TEST(test_loader3),
