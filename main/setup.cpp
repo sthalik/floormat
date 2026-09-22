@@ -97,11 +97,17 @@ auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::Window
         flags |= flag::Borderless;
     if (s.maximized)
         flags |= flag::Maximized;
+    if (s.minimized)
+        flags |= flag::Minimized;
     return flags;
 }
 
 auto main_impl::make_conf(const fm_settings& s) -> Configuration
 {
+    // SDL_ShowWindow() runs inside the Sdl2Application ctor this return value is an argument to,
+    // so anywhere later is too late. WIN_ShowWindow() reads the hint to pick SW_SHOWNA.
+    if (s.minimized)
+        SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
     return Configuration{}
         .setTitle(s.title ? (StringView)s.title : "floormat editor"_s)
         // --geometry is in pixels. The DpiScalingPolicy overload scales it by the primary monitor's
