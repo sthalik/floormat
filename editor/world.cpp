@@ -305,6 +305,76 @@ void app::populate_sweep_aabb_slit()
     c.mark_modified();
 }
 
+// Arrow keys only. search-astar.cpp keys the pass grid on max(bbox), so click-to-move pathfinds
+// this 254x32 critter as 254x254 and never finds a route.
+//
+// Walls can't bound the legs: a wall collider is a strip of wall_atlas depth lying outside its
+// own tile, which eats into the gap. A tile-sized scenery bbox matches whole_tile() exactly.
+void app::populate_l_corridor()
+{
+    reset_world();
+    auto& w = M->world();
+
+    constexpr chunk_coords_ ch{0, 0, 0};
+    auto& c = w[ch];
+
+    constexpr uint8_t bbox_long = 254, bbox_short = tile_size_xy/2;
+    constexpr uint8_t room_x0 = 6, room_x1 = 11, room_y0 = 3, room_y1 = 10;
+    constexpr uint8_t leg_w_y = 7, leg_w_x0 = 1, leg_w_x1 = 5;
+    // Held SE slides east along the room's south wall, so the leg has to be on the east edge.
+    // Centered, it would stall in the corner instead.
+    constexpr uint8_t leg_s_x = room_x1, leg_s_y0 = 11, leg_s_y1 = 14;
+    constexpr local_coords start{3, leg_w_y};
+
+    // Held NE parks the box in the room's north-east corner, 16 px from the north wall, where
+    // the 254-tall rotated one would stick 111 px out. Two tiles of clearance cut into the wall
+    // there receive it; a narrower cut wouldn't span the park spot, a wider one would let the
+    // 254-wide box climb in.
+    constexpr uint8_t notch_x0 = room_x1-2, notch_x1 = room_x1-1;
+    constexpr uint8_t notch_y0 = room_y0-2, notch_y1 = room_y0-1;
+
+    auto walkable = [&](int x, int y) {
+        return x >= 0 && y >= 0 && x < (int)TILE_MAX_DIM && y < (int)TILE_MAX_DIM &&
+               ((y == leg_w_y && x >= leg_w_x0 && x <= leg_w_x1) ||
+                (x == leg_s_x && y >= leg_s_y0 && y <= leg_s_y1) ||
+                (x >= room_x0 && x <= room_x1 && y >= room_y0 && y <= room_y1) ||
+                (x >= notch_x0 && x <= notch_x1 && y >= notch_y0 && y <= notch_y1));
+    };
+
+    auto floor1 = loader.ground_atlas("floor-tiles");
+    for (auto k = 0u; k < TILE_COUNT; k++)
+        c[k].ground() = { floor1, variant_t(k % floor1->num_tiles()) };
+
+    auto stool = loader.scenery("stool1");
+    stool.bbox_offset = {};
+    stool.bbox_size = Vector2ub(tile_size_xy);
+    stool.pass = pass_mode::blocked;
+
+    for (int y = 0; y < (int)TILE_MAX_DIM; y++)
+        for (int x = 0; x < (int)TILE_MAX_DIM; x++)
+        {
+            if (walkable(x, y))
+                continue;
+            // One ring is enough: the bbox can't overlap a blocker, so it can't reach behind one.
+            bool touches = false;
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    touches |= walkable(x + dx, y + dy);
+            if (touches)
+                w.make_scenery(w.make_id(), {ch, local_coords{(uint8_t)x, (uint8_t)y}}, scenery_proto(stool));
+        }
+
+    auto C = ensure_player_character(w);
+    auto i = C->index();
+    C->teleport_to(i, global_coords{ch, start}, Vector2b{}, rotation::NE);
+    C->set_bbox({}, {}, Vector2ub{bbox_long, bbox_short}, C->pass);
+    C->speed = 4;
+    C->delta = 0;
+    C->offset_frac = 0;
+
+    c.mark_modified();
+}
+
 void app::maybe_initialize_chunk_([[maybe_unused]] const chunk_coords_& pos, chunk& c)
 {
     auto floor1 = loader.ground_atlas("floor-tiles");
