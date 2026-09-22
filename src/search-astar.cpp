@@ -43,9 +43,7 @@ namespace {
 void simplify_path(ArrayView<const point> src, Array<point>& dest)
 {
     const auto size = (uint32_t)src.size();
-
-    if (size == 0) [[unlikely]]
-        return;
+    fm_assert(size > 0);
 
     arrayAppend(dest, src[0]);
     if (size < 2) [[unlikely]]
@@ -106,14 +104,11 @@ void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, const Array<visited>& nodes,
                          point from, point to, const uint32_t idx)
 {
+    fm_assert(idx != (uint32_t)-1);
+
     uint32_t len = 0;
     for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
         len++;
-
-    if (!len) [[unlikely]]
-        return;
-
-    fm_debug_assert(idx != (uint32_t)-1);
 
     const auto& to_node = nodes[idx];
     result.set_cost(to_node.dist + point::distance(to, to_node.pt));
