@@ -51,6 +51,8 @@ void tests_data::switch_to(Test i)
         current_test = tests_data::fields[(size_t)i].ctor();
     if (current_test)
         current_index = i;
+    // Test::none is the only one whose ctor returns null
+    fm_assert(current_index == i);
 }
 
 safe_ptr<tests_data_> tests_data_::make()

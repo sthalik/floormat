@@ -32,6 +32,7 @@
 #include "src/search-result.hpp"
 #include "src/raycast.hpp"
 #include "raycast-draw.hpp"
+#include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include <mg/Image.h>
 #include <mg/PixelFormat.h>
@@ -140,14 +141,13 @@ task& task::operator=(task&& other) noexcept
 void task::start()
 {
     // initial_suspend is suspend_always, so the body hasn't started yet.
-    if (h && !h.done())
-        h.resume();
+    fm_assert(!done());
+    h.resume();
 }
 
 void task::tick()
 {
-    if (done())
-        return;
+    fm_assert(!done());
     auto& p = h.promise();
     if (!p.sub.done())
     {
@@ -689,6 +689,11 @@ task app::scene_ground_editor()
             fm_assert_equal(pt, cursor_point());
             // click_at() suspends between press and release, so there is no separate pause.
             co_await click_at(pt, mouse_button_left);
+            auto* c = M->world().at(pt.chunk3());
+            fm_assert(c);
+            auto t = (*c)[pt.local()];
+            fm_assert(t.ground().atlas == cell.atlas);
+            fm_assert_equal(v, (uint32_t)t.ground().variant);
             n++;
         }
 
@@ -791,9 +796,11 @@ task app::scene_benchmark()
     };
     for (auto k : pans)
     {
+        const auto off0 = M->shader().camera_offset();
         set_key_state(k, true);
         co_yield {60};
         set_key_state(k, false);
+        fm_assert(M->shader().camera_offset() != off0);
         co_yield {};
     }
 }
@@ -1261,9 +1268,14 @@ task app::scene_lightmap()
                 sat += v >= 250;
             }
             const auto total = (uint32_t)(data.size()/4);
+            const auto mean = (double)sum/total;
+            const auto dark_pct = (double)dark*100/total, sat_pct = (double)sat*100/total;
             fm_debug("lightmap: accum %ux%u, mean %.1f, dark %.1f%%, saturated %.1f%%",
-                     (uint32_t)img.size().x(), (uint32_t)img.size().y(), (double)sum/total,
-                     (double)dark*100/total, (double)sat*100/total);
+                     (uint32_t)img.size().x(), (uint32_t)img.size().y(),
+                     mean, dark_pct, sat_pct);
+            // measured at mean 60.8, 43.0% dark, 3.6% saturated
+            fm_assert(mean >= 8 && mean <= 200);
+            fm_assert(dark_pct < 90 && sat_pct < 50);
         }
     }
 
