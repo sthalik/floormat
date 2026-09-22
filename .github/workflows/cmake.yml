@@ -69,6 +69,19 @@ jobs:
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
       if: matrix.os == 'ubuntu-latest'
 
+    - name: Test pgo-driver scenes
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        export LP_NUM_THREADS=$(nproc)
+        set -e
+        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args \
+            bin/floormat-editor --driver=all --driver-no-swapbuffers
+      if: matrix.os == 'ubuntu-latest'
+
 #    - name: Upload build
 #      uses: actions/upload-artifact@v2.2.4
 #      with:
