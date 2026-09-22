@@ -158,6 +158,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 #endif
     Corrade::Utility::Arguments args{};
     args.addSkippedPrefix("magnum")
+        .addBooleanOption("minimized").setHelp("minimized", "start minimized, without taking focus")
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
@@ -169,6 +170,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addBooleanOption("driver-no-swapbuffers").setHelp("driver-no-swapbuffers", "skip swapBuffers(), leaving the window blue")
 #endif
         .parse(argc, argv);
+    opts.minimized = args.isSet("minimized");
     opts.vsync = parse_bool("vsync", args);
     opts.fixed_framerate = parse_uint("fixed-framerate", args);
     // main_impl::do_update() clamps dt to 100 ms after substituting the fixed step, so
