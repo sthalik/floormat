@@ -175,6 +175,7 @@ auto app::keycode_for_key(key k) -> Pair<int, int>
         { key_quit,                   SDLK_q,      KMOD_LCTRL },
         { key_quicksave,              SDLK_F5,     KMOD_NONE  },
         { key_quickload,              SDLK_F9,     KMOD_NONE  },
+        { key_load_file,              SDLK_F9,     KMOD_LSHIFT},
         { key_escape,                 SDLK_ESCAPE, KMOD_NONE  },
     };
     static_assert(array_size(bindings) == key_COUNT - 2 + 1);
@@ -250,6 +251,9 @@ auto app::resolve_keybinding(int k_, int mods_) -> Pair<key, int>
                 case SDLK_v | ALT:  return key_render_vobjs;
                 case SDLK_t:        return key_render_all_z_levels;
                 case SDLK_F5:       return key_quicksave;
+                // The strip loop tries the unstripped key first; without this case shift is
+                // stripped and F9 answers key_quickload.
+                case SDLK_F9 | SHIFT: return key_load_file;
                 case SDLK_F9:       return key_quickload;
                 case SDLK_q | CTRL: return key_quit;
                 case SDLK_n | CTRL: return key_new_file;

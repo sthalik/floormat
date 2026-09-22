@@ -168,6 +168,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
         .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
         .addBooleanOption("driver-no-swapbuffers").setHelp("driver-no-swapbuffers", "skip swapBuffers(), leaving the window blue")
+        .addBooleanOption("driver-save-world").setHelp("driver-save-world", "write driver-saves/driver-NN_<scene>-{pre,post}.dat around every scene")
 #endif
         .parse(argc, argv);
     opts.minimized = args.isSet("minimized");
@@ -186,6 +187,12 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     if (opts.driver_no_swapbuffers && opts.driver == driver_mode::off)
     {
         ERR_nospace << "--driver-no-swapbuffers needs --driver";
+        std::exit(EX_USAGE);
+    }
+    opts.driver_save_world = args.isSet("driver-save-world");
+    if (opts.driver_save_world && opts.driver == driver_mode::off)
+    {
+        ERR_nospace << "--driver-save-world needs --driver";
         std::exit(EX_USAGE);
     }
     opts.driver_repeat = parse_uint("driver-repeat", args);
