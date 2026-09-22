@@ -12,7 +12,10 @@ namespace floormat {
 using std::chrono::duration_cast;
 using std::chrono::duration;
 
-using Clock = std::chrono::high_resolution_clock;
+// Not high_resolution_clock: libstdc++ aliases it to system_clock, which is settable, and
+// Time::now() subtracts an epoch into an unsigned so a backwards step wraps.
+using Clock = std::chrono::steady_clock;
+static_assert(Clock::is_steady);
 using SystemClock = std::chrono::system_clock;
 using Nsecs = duration<uint64_t, std::nano>;
 using Millis = duration<uint64_t, std::milli>; // 32-bit rep would truncate ms-since-epoch before the %1000
