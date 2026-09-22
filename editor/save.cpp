@@ -5,6 +5,7 @@
 #include "compat/format.hpp"
 #include "imgui-raii.hpp"
 #include <cstdio>
+#include <ctime>
 #include <cr/String.h>
 #include <cr/StringView.h>
 #include <cr/Array.h>
@@ -126,12 +127,23 @@ void app::draw_load_pane(float main_menu_height)
             {
                 if (!file.hasSuffix(".dat"_s))
                     continue;
+                auto path = Path::join(dir, file);
+                char date[24] = "";
+                if (const auto ns = Path::lastModification(path))
+                {
+                    const auto t = (std::time_t)(*ns / 1000000000);
+                    if (const auto* tm = std::localtime(&t))
+                        std::strftime(date, sizeof date, "%Y-%m-%d %H:%M", tm);
+                }
                 char label[256];
-                snformat(label, "{}/{}"_cf, dir_name, file);
-                if (ImGui::Selectable(label))
+                snformat(label, "{}"_cf, file);
+                const bool clicked = ImGui::Selectable(label);
+                ImGui::SameLine(300*dpi.x());
+                ImGui::TextUnformatted(date);
+                if (clicked)
                 {
                     _show_load_pane = false;
-                    load_world_file(Path::join(dir, file));
+                    load_world_file(path);
                     return;
                 }
             }
