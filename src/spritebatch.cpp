@@ -9,17 +9,15 @@
 #include "loader/loader.hpp"
 #include "src/sprite-atlas.hpp"
 #include "compat/setenv.hpp"
+#include "src/hwy.hpp"
+#include <bit>
 #include <cfloat>
 #include <utility>
-#include <ranges>
-#include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
 
 namespace floormat {
-
-namespace ranges = std::ranges;
 
 namespace {
 
@@ -46,10 +44,6 @@ struct merge_state
     Array<node> tree;
     Array<float> head; // FLT_MAX once the run is exhausted
 };
-
-// Sort key and payload packed, so the comparator reads the key inline rather than gathering
-// depths[i] on every one of the N log N comparisons.
-struct sort_key { float d; uint32_t i; };
 
 struct quick_draw
 {
@@ -268,29 +262,21 @@ void SpriteBatch::end_chunk(bool do_sort)
         return;
 
     fm_debug_assert(S.size() == first);
-    arrayResize(S, NoInit, last);
-
-    for (auto i = first; i < last; i++)
-        S.data()[i] = i;
-
-    const auto n = last - first;
-    auto* const D = impl.depths.data();
 
     if (do_sort)
     {
+        const auto n = last - first;
+        reserve(S, last);
         reserve(impl.sort_keys, n);
-        auto* const K = impl.sort_keys.data();
-        // K holds every key before the write loop starts, so permuting D in place is safe.
-        for (auto i = 0u; i < n; i++)
-            K[i] = {D[first + i], first + i};
-        ranges::sort(K, K + n, [](const sort_key& a, const sort_key& b) { return a.d < b.d; });
-        auto* const Sp = S.data();
-        for (auto i = 0u; i < n; i++)
-        {
-            Sp[first + i] = K[i].i;
-            D[first + i] = K[i].d;
-        }
+        sort_depths(impl.depths.data() + first, S.data() + first, first, n, impl.sort_keys.data());
         impl.s_is_identity = false;
+    }
+    else
+    {
+        arrayResize(S, NoInit, last);
+        auto* const Sp = S.data();
+        for (auto i = first; i < last; i++)
+            Sp[i] = i;
     }
 
     arrayAppend(impl.starts, last);
@@ -307,8 +293,8 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
         return;
 
     reserve(impl.perm, n);
-    Array<uint64_t> scratch{NoInit, n};
-    sort_depths(list.Depths.data(), impl.perm.data(), 0, n, scratch.data());
+    reserve(impl.sort_keys, n);
+    sort_depths(list.Depths.data(), impl.perm.data(), 0, n, impl.sort_keys.data());
 
     auto* const V = list.Vertexes.data();
     auto* const O = list.Objects.data();

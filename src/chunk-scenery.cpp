@@ -10,10 +10,8 @@
 #include "spritebatch.hpp"
 #include "loader/loader.hpp"
 #include "sprite-atlas.hpp"
-#include <algorithm>
 
 namespace floormat {
-namespace ranges = std::ranges;
 
 void chunk::add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs)
 {

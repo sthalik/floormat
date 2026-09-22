@@ -22,6 +22,7 @@ target_link_libraries(
     Magnum::Shaders
     #Magnum::DebugTools
 )
+target_link_libraries(${self} PRIVATE floormat-hwy)
 
 #target_precompile_headers(${self} PUBLIC precomp.hpp)
 
