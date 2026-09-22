@@ -194,6 +194,8 @@ void app::do_key(key k, int mods, int keycode)
         return do_quicksave();
     case key_quickload:
         return do_quickload();
+    case key_load_file:
+        return do_load_file();
     case key_new_file:
         return do_new_file();
     case key_escape:

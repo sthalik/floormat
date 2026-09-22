@@ -146,6 +146,8 @@ private:
 
     void do_quicksave();
     void do_quickload();
+    void do_load_file();
+    void load_world_file(StringView path);
     void do_new_file();
     void do_escape();
 
@@ -154,6 +156,7 @@ private:
     void draw_light_info();
     void draw_text_painter_test();
     void draw_lightmap_test(float main_menu_height);
+    void draw_load_pane(float main_menu_height);
     void do_lightmap_test();
 
     void draw_editor_pane(float main_menu_height);
@@ -203,6 +206,7 @@ private:
     void driver_start();
     void driver_tick(Ns dt);
     void driver_draw_overlay();
+    void driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post);
     pgo::task click_at_cursor(uint8_t button);
     pgo::task click_at(point pt, uint8_t button);
     pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
@@ -271,6 +275,7 @@ private:
     bool _render_vobjs        : 1 = true;
     bool _render_all_z_levels : 1 = true;
     bool _test_text_painter   : 1 = false;
+    bool _show_load_pane      : 1 = false;
 };
 
 } // namespace floormat

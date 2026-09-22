@@ -23,7 +23,7 @@ enum key : unsigned {
     key_GLOBAL,
     key_new_file,
     key_quit,
-    key_quicksave, key_quickload,
+    key_quicksave, key_quickload, key_load_file,
     key_escape,
     key_COUNT, key_MIN = key_noop,
 };
