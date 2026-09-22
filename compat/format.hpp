@@ -6,14 +6,18 @@
 
 namespace fmt {
 
-template<> struct formatter<Corrade::Containers::StringView> {
-  template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-  template<typename FormatContext> auto format(Corrade::Containers::StringView const& s, FormatContext& ctx) const;
+// Inherit parse() from the string formatter, or every format spec is a parse error:
+// a parse() that consumes nothing leaves the reader on '<' of "{:<44}" instead of '}'.
+template<> struct formatter<Corrade::Containers::StringView> : formatter<basic_string_view<char>> {
+  template<typename FormatContext> auto format(Corrade::Containers::StringView const& s, FormatContext& ctx) const {
+    return formatter<basic_string_view<char>>::format({s.data(), s.size()}, ctx);
+  }
 };
 
-template<> struct formatter<Corrade::Containers::String> {
-  template<typename ParseContext> static constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-  template<typename FormatContext> auto format(Corrade::Containers::String const& s, FormatContext& ctx) const;
+template<> struct formatter<Corrade::Containers::String> : formatter<basic_string_view<char>> {
+  template<typename FormatContext> auto format(Corrade::Containers::String const& s, FormatContext& ctx) const {
+    return formatter<basic_string_view<char>>::format({s.data(), s.size()}, ctx);
+  }
 };
 
 } // namespace fmt
@@ -71,13 +75,3 @@ size_t snformat(char(&buf)[N], Fmt&& fmt, Xs&&... args)
 }
 
 } // namespace floormat
-
-template<typename FormatContext>
-auto fmt::formatter<Corrade::Containers::StringView>::format(Corrade::Containers::StringView const& s, FormatContext& ctx) const {
-  return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
-}
-
-template<typename FormatContext>
-auto fmt::formatter<Corrade::Containers::String>::format(Corrade::Containers::String const& s, FormatContext& ctx) const {
-  return fmt::format_to(ctx.out(), "{}"_cf, basic_string_view<char>{s.data(), s.size()});
-}
