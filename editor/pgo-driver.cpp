@@ -1639,6 +1639,8 @@ void app::driver_tick(Ns dt)
                         (double)Time::to_milliseconds(D.scene_started.update()),
                         D.frames_run - D.scene_first_frame, D.pass_index + 1);
             std::fflush(stdout);
+            if (M->settings().driver_save_world)
+                driver_save_world(D.scene_index, name, true);
             // A leaked window size would silently change every later scene's fill rate, and the
             // line above would not say so. Restored after the print, so neither scene's timing
             // carries the framebuffer rebuild. Repaired rather than asserted because a user
@@ -1675,6 +1677,9 @@ void app::driver_tick(Ns dt)
             D.scene_index = 0;
         }
         DBG << ">>> scene:" << Scenes[D.scene_index].name;
+        // Before scene_started, so serializing does not land in the scene's own timing line.
+        if (M->settings().driver_save_world)
+            driver_save_world(D.scene_index + 1, Scenes[D.scene_index].name.exceptPrefix("scene_"_s), false);
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
         D.scene_index++;
         D.scene_started = Time::now();

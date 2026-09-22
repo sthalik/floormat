@@ -35,6 +35,7 @@ struct fm_settings
     // empty without it means the driver mode picks.
     String driver_scenes;
     bool driver_scenes_given = false;
+    bool driver_save_world = false;
 #endif
     bool vsync = true;
     bool resizable          : 1 = true,

@@ -72,16 +72,19 @@ float app::draw_main_menu()
     {
         if (auto b = begin_menu("File"))
         {
-            bool do_new = false, do_quickload = false, do_quit = false;
+            bool do_new = false, do_quickload = false, do_load = false, do_quit = false;
             ImGui::MenuItem("New", nullptr, &do_new);
             ImGui::Separator();
-            ImGui::MenuItem("Load quicksave", nullptr, &do_quickload);
+            ImGui::MenuItem("Load quicksave", "F9", &do_quickload);
+            ImGui::MenuItem("Load save file", "Shift+F9", &do_load);
             ImGui::Separator();
             ImGui::MenuItem("Quit", "Ctrl+Q", &do_quit);
             if (do_new)
                 do_key(key_new_file);
             else if (do_quickload)
                 do_key(key_quickload);
+            else if (do_load)
+                do_key(key_load_file);
             else if (do_quit)
                 do_key(key_quit);
         }
@@ -230,6 +233,7 @@ void app::draw_ui()
     //[[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
 
     draw_lightmap_test(main_menu_height);
+    draw_load_pane(main_menu_height);
 
     if (_editor->current_ground_editor() || _editor->current_wall_editor() ||
         _editor->current_scenery_editor() ||
