@@ -203,7 +203,6 @@ private:
     void driver_start();
     void driver_tick(Ns dt);
     void driver_draw_overlay();
-    [[nodiscard]] bool driver_stop(StringView why);
     pgo::task click_at_cursor(uint8_t button);
     pgo::task click_at(point pt, uint8_t button);
     pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);

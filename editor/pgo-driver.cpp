@@ -812,6 +812,7 @@ task app::scene_walk()
     // The corridor is the same length and the search is the same search; this only decides how
     // many frames the critter spends covering it.
     constexpr float speed_mult = 3;
+    constexpr uint32_t poll_frames = 15, max_polls = 400;
     populate_scene_benchmark_walkable(pgo::walk_corridor_width);
     auto& w = M->world();
     auto C = ensure_player_character(w);
@@ -829,14 +830,7 @@ task app::scene_walk()
     if (res.empty())
     {
         ERR_nospace << "driver: no path " << from << " -> " << to;
-        if (driver_stop("walk: no path"_s))
-        {
-            // Handed back, so leave the maze, the critter and the camera as they are and open
-            // Path search on them -- a click re-runs the query that just failed.
-            do_key(key_mode_tests);
-            tests().switch_to(floormat::tests::Test::path);
-        }
-        co_return;
+        fm_abort("%s", "walk: no path");
     }
     // res is moved into the script below, so the copy the overlay draws has to be taken first.
     auto& D = *_driver;
@@ -846,6 +840,7 @@ task app::scene_walk()
     C->script.do_reassign(critter_script::make_walk_script(move(res)), move(C));
 
     const auto n = (uint32_t)D.route.size();
+    const auto goal = D.route[n-1];
     float route_len = 0;
     for (auto i = 1u; i < n; i++)
         route_len += point::distance(D.route[i-1], D.route[i]);
@@ -853,12 +848,12 @@ task app::scene_walk()
     // The script moves the critter from update() and reports no completion, so watch for the
     // position going quiet instead.
     auto last = from;
-    for (auto i = 0u; i < 400; i++)
+    uint32_t polls = 0;
+    for (; polls < max_polls; polls++)
     {
-        co_yield {15};
+        co_yield {poll_frames};
         auto Cʹ = w.find_object<critter>(_character_id);
-        if (!Cʹ)
-            break;
+        fm_assert(Cʹ);
         const auto pos = Cʹ->position();
         if (pos == last)
             break;
@@ -867,15 +862,15 @@ task app::scene_walk()
     }
     D.route = {};
 
+    fm_assert(polls < max_polls);
     // The poll loop exits the first time the position stops changing, so a critter wedged against
-    // a corridor wall ends it just as quietly as one that arrived. Raising speed makes each step
-    // longer, which is exactly what would cause that.
-    const auto walked = point::distance(from, last);
-    const auto straight = point::distance(from, to);
-    fm_assert(walked > straight/2);
+    // a corridor wall ends it just as quietly as one that arrived. walk_path only reports done
+    // standing on the last waypoint, so anything short of it means a move came back blocked.
+    fm_assert_equal(goal, last);
     // route against straight is what says the baffles are being walked around, not through.
-    fm_debug("walk: %ux speed, %u waypoints, route %.0f px over %.0f straight, ended %.0f px out",
-             (uint32_t)speed_mult, n, (double)route_len, (double)straight, (double)walked);
+    fm_debug("walk: %ux speed, %u waypoints, route %.0f px over %.0f straight, %u polls",
+             (uint32_t)speed_mult, n, (double)route_len,
+             (double)point::distance(from, to), polls);
 }
 
 // Driven by the key bitmask, not a script: move_toward() reports blocked and gives up, so only
@@ -947,14 +942,7 @@ task app::scene_maze()
         if (res.empty())
         {
             ERR_nospace << "driver: maze has no path " << from << " -> " << to;
-            if (driver_stop("maze: unroutable"_s))
-            {
-                // Handed back, so leave the maze and the camera as they are and open Path search
-                // on them -- a click re-runs the query that just failed.
-                do_key(key_mode_tests);
-                tests().switch_to(floormat::tests::Test::path);
-            }
-            co_return;
+            fm_abort("%s", "maze: unroutable");
         }
 
         // The search is the whole scene, so without this it renders two frames several seconds
@@ -1129,12 +1117,7 @@ task app::scene_maze2()
     if (res.empty())
     {
         ERR_nospace << "driver: maze2 has no path " << from << " -> " << to;
-        if (driver_stop("maze2: unroutable"_s))
-        {
-            do_key(key_mode_tests);
-            tests().switch_to(floormat::tests::Test::path);
-        }
-        co_return;
+        fm_abort("%s", "maze2: unroutable");
     }
 
     // The search is the whole scene, so without this it renders two frames several seconds apart
@@ -1583,31 +1566,6 @@ void app::driver_start()
     _driver->scene_index = 0;
     _driver->pass_index = 0;
     _driver->frames_run = 0;
-}
-
-// Stops the run when a scene finds the world in a state it cannot proceed from. Returns true
-// if the editor was handed back rather than quit, so the caller can set up something worth
-// looking at.
-//
-// A profile run must still exit: the instrumented binary writes its profile from atexit, so
-// hanging there yields no profile at all and any script wrapping it hangs with it. Otherwise
-// the editor stays on screen. get_key_modifiers() is the only thing a run overrides and it
-// keys off `running`, so clearing that restores interactivity with no teardown of its own.
-bool app::driver_stop(StringView why)
-{
-    auto& D = *_driver;
-    if (!D.running)
-        return false;
-    D.running = false;
-    release_all_input();
-    M->set_events_ignored(false);
-    ERR_nospace << "driver stopped: " << why;
-    if (M->settings().driver == driver_mode::profile)
-    {
-        M->quit(1);
-        return false;
-    }
-    return true;
 }
 
 void app::driver_tick(Ns dt)
