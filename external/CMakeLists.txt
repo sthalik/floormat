@@ -357,6 +357,19 @@ endif()
 add_subdirectory(swl-variant)
 target_compile_definitions(swl-variant INTERFACE -DSWL_VARIANT_NO_CONSTEXPR_EMPLACE -DSWL_VARIANT_NO_STD_HASH)
 
+add_library(floormat-hwy STATIC
+    highway/hwy/targets.cc
+    highway/hwy/abort.cc
+    highway/hwy/contrib/sort/vqsort_u64a.cc
+)
+target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
+# -march=x86-64-v2 has no AES or PCLMUL, which Highway's SSE4 target requires. vqsort uses neither.
+target_compile_definitions(floormat-hwy PUBLIC
+    VQSORT_ONLY_STATIC=1
+    HWY_DISABLE_PCLMUL_AES
+    "HWY_DISABLED_TARGETS=(HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
+)
+
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
         target_compile_options(CorradeTestSuiteObjects PRIVATE -EHsc)

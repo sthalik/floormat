@@ -8,17 +8,15 @@
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "src/sprite-atlas.hpp"
+#include "src/hwy.hpp"
+#include <bit>
 #include <cfloat>
 #include <utility>
-#include <ranges>
-#include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
 
 namespace floormat {
-
-namespace ranges = std::ranges;
 
 namespace {
 
@@ -46,10 +44,6 @@ struct merge_state
     Array<float> head; // FLT_MAX once the run is exhausted
 };
 
-// Sort key and payload packed, so the comparator reads the key inline rather than gathering
-// depths[i] on every one of the N log N comparisons.
-struct sort_key { float d; uint32_t i; };
-
 struct quick_draw
 {
     GL::Mesh _mesh{NoCreate};
@@ -71,6 +65,27 @@ template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this
     arrayResize(A, NoInit, size);
 }
 
+// Sorts depths[0, n) ascending and sets indexes[i] = base + the position depths[i] came from.
+// Equal depths keep their order. scratch needs n elements.
+void sort_depths(float* depths, uint32_t* indexes, uint32_t base, uint32_t n, uint64_t* scratch)
+{
+    // Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
+    // as unsigned integers. The index in the low half makes equal depths sort by position.
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto u = std::bit_cast<uint32_t>(depths[i]);
+        const auto key = u ^ ((uint32_t)((int32_t)u >> 31) | 0x80000000u);
+        scratch[i] = (uint64_t)key << 32 | (base + i);
+    }
+    vqsort(scratch, n);
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto key = (uint32_t)(scratch[i] >> 32);
+        depths[i] = std::bit_cast<float>(key ^ ((uint32_t)((int32_t)~key >> 31) | 0x80000000u));
+        indexes[i] = (uint32_t)scratch[i];
+    }
+}
+
 } // namespace
 
 struct SpriteBatch::Impl
@@ -87,7 +102,7 @@ struct SpriteBatch::Impl
     // going through sort_indexes first. Nothing reads it by value once end_chunk has run.
     Array<float> depths;
     Array<uint32_t> starts, sort_indexes, merge_output;
-    Array<sort_key> sort_keys;
+    Array<uint64_t> sort_keys;
 
     slot slots[slot_count];
     GL::Buffer index_buffer_handle{NoCreate};
@@ -202,29 +217,21 @@ void SpriteBatch::end_chunk(bool do_sort)
         return;
 
     fm_debug_assert(S.size() == first);
-    arrayResize(S, NoInit, last);
-
-    for (auto i = first; i < last; i++)
-        S.data()[i] = i;
-
-    const auto n = last - first;
-    auto* const D = impl.depths.data();
 
     if (do_sort)
     {
+        const auto n = last - first;
+        reserve(S, last);
         reserve(impl.sort_keys, n);
-        auto* const K = impl.sort_keys.data();
-        // K holds every key before the write loop starts, so permuting D in place is safe.
-        for (auto i = 0u; i < n; i++)
-            K[i] = {D[first + i], first + i};
-        ranges::sort(K, K + n, [](const sort_key& a, const sort_key& b) { return a.d < b.d; });
-        auto* const Sp = S.data();
-        for (auto i = 0u; i < n; i++)
-        {
-            Sp[first + i] = K[i].i;
-            D[first + i] = K[i].d;
-        }
+        sort_depths(impl.depths.data() + first, S.data() + first, first, n, impl.sort_keys.data());
         impl.sort_indexes_in_orig_order = false;
+    }
+    else
+    {
+        arrayResize(S, NoInit, last);
+        auto* const Sp = S.data();
+        for (auto i = first; i < last; i++)
+            Sp[i] = i;
     }
 
     arrayAppend(impl.starts, last);
