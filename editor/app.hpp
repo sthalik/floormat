@@ -101,6 +101,7 @@ private:
     void populate_labyrinth();
     void populate_raycast_fractal();
     void populate_sweep_aabb_slit();
+    void populate_l_corridor();
     void populate_scene_benchmark();
     void populate_scene_benchmark_walkable(uint8_t width);
     void populate_scene_diagonal(uint8_t half_width);

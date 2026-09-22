@@ -141,6 +141,8 @@ float app::draw_main_menu()
                 populate_raycast_fractal();
             if (ImGui::MenuItem("Sweep AABB slit"))
                 populate_sweep_aabb_slit();
+            if (ImGui::MenuItem("L-corridor (long bbox)"))
+                populate_l_corridor();
             ImGui::Separator();
             if (ImGui::MenuItem("Scene corridor (carved)"))
                 populate_scene_benchmark_walkable(pgo::walk_corridor_width);
