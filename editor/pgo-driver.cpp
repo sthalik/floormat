@@ -674,8 +674,7 @@ task app::scene_ground_editor()
 
     for (const auto& [name, cell] : *ed)
     {
-        if (!cell.atlas)
-            continue;
+        fm_assert(cell.atlas);
 
         const auto variants = (uint32_t)cell.atlas->num_tiles();
         for (auto v = 0u; v < variants; v++)
@@ -702,6 +701,7 @@ task app::scene_ground_editor()
         co_yield {};
     }
 
+    fm_assert(n > 0);
     ed->clear_selection();
     fm_assert(!ed->is_anything_selected());
     co_yield {};
@@ -715,13 +715,8 @@ task app::scene_drag_paint()
     auto* ed = _editor->current_wall_editor();
     fm_assert(ed);
 
-    bptr<wall_atlas> atlas;
-    for (const auto& [name, cell] : *ed)
-        if (cell.atlas)
-        {
-            atlas = cell.atlas;
-            break;
-        }
+    fm_assert(ed->begin() != ed->end());
+    auto atlas = ed->begin()->second.atlas;
     fm_assert(atlas);
     ed->select_atlas(atlas);
     fm_assert(ed->is_atlas_selected(atlas));
@@ -896,8 +891,7 @@ task app::scene_slide()
     {
         co_yield {poll_frames};
         auto Cʹ = w.find_object<critter>(_character_id);
-        if (!Cʹ)
-            break;
+        fm_assert(Cʹ);
         const auto pos = Cʹ->position();
         if (pos == last)
             break;
@@ -1377,6 +1371,8 @@ task app::scene_grids()
         co_yield {};
     }
 
+    fm_assert(fill >= fill_target);
+
     // The pins are 8 px in a 1024-px chunk, so a bitmap that came back empty would mean the
     // objects never reached the RTree at all.
     pass_raycast.maybe_mark_stale_all(w.frame_no());
@@ -1614,11 +1610,10 @@ void app::driver_tick(Ns dt)
         {
             const auto name = Scenes[D.scene_index-1].name.exceptPrefix("scene_"_s);
             // Held input across a co_yield is normal -- that is how dragging works. Held input
-            // across a scene boundary is a bug. Warn rather than assert, because abort() skips
-            // atexit, which is where an instrumented run writes its profile.
+            // across a scene boundary is a bug.
             if (D.held_buttons != mouse_button_none || D.mods != 0 || keys_->any() ||
                 _editor->is_dragging())
-                fm_warn("driver: scene '%s' leaked held input", name.data());
+                fm_abort("driver: scene '%s' leaked held input", name.data());
             release_all_input();
             std::printf("%-24s%12.3f ms %7u frames  pass %u\n", name.data(),
                         (double)Time::to_milliseconds(D.scene_started.update()),
@@ -1626,9 +1621,14 @@ void app::driver_tick(Ns dt)
             std::fflush(stdout);
             // A leaked window size would silently change every later scene's fill rate, and the
             // line above would not say so. Restored after the print, so neither scene's timing
-            // carries the framebuffer rebuild.
+            // carries the framebuffer rebuild. Repaired rather than asserted because a user
+            // resizing the window is not the driver getting something wrong.
             if (M->window_size() != D.base_window_size)
+            {
+                fm_warn("driver: window resized to %dx%d, restoring",
+                        M->window_size().x(), M->window_size().y());
                 set_window_size(M->settings().resolution);
+            }
         }
         const auto mode = M->settings().driver;
         for (;;)
