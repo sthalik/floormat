@@ -829,9 +829,12 @@ task app::scene_walk()
     const auto dist = point::distance(from, to)*2 + tile_size_xy * TILE_MAX_DIM;
     auto res = M->astar().Dijkstra(w, from, to, dist, Vector2ui{C->bbox_size},
                                    Search::without_critters());
-    if (res.empty())
+    // A search that gives up still returns the route to the closest node it reached, so
+    // empty() stays false and the walk below runs that route to its end and reports success.
+    if (!res.is_found())
     {
-        ERR_nospace << "driver: no path " << from << " -> " << to;
+        ERR_nospace << "driver: no path " << from << " -> " << to
+                    << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
         fm_abort("%s", "walk: no path");
     }
     // res is moved into the script below, so the copy the overlay draws has to be taken first.
@@ -843,6 +846,7 @@ task app::scene_walk()
 
     const auto n = (uint32_t)D.route.size();
     const auto goal = D.route[n-1];
+    fm_assert_equal(to, goal);
     float route_len = 0;
     for (auto i = 1u; i < n; i++)
         route_len += point::distance(D.route[i-1], D.route[i]);
@@ -940,9 +944,11 @@ task app::scene_maze()
         const auto max_dist = point::distance(from, to) * 32;
         auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, Vector2ui{C->bbox_size},
                                           Search::without_critters());
-        if (res.empty())
+        // Same partial-route trap as scene_walk.
+        if (!res.is_found())
         {
-            ERR_nospace << "driver: maze has no path " << from << " -> " << to;
+            ERR_nospace << "driver: maze has no path " << from << " -> " << to
+                        << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
             fm_abort("%s", "maze: unroutable");
         }
 
@@ -1115,9 +1121,11 @@ task app::scene_maze2()
     const auto max_dist = point::distance(from, to) * 32;
     auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, Vector2ui{C->bbox_size},
                                       Search::without_critters());
-    if (res.empty())
+    // Same partial-route trap as scene_walk.
+    if (!res.is_found())
     {
-        ERR_nospace << "driver: maze2 has no path " << from << " -> " << to;
+        ERR_nospace << "driver: maze2 has no path " << from << " -> " << to
+                    << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
         fm_abort("%s", "maze2: unroutable");
     }
 
