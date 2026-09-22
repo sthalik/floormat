@@ -1129,10 +1129,10 @@ task app::scene_maze2()
 // segment count is generate_lightmap_scene()'s.
 task app::scene_cover()
 {
-    // One rotation a second, wall clock. --driver runs with vsync off, so a frame count would be a
-    // different dwell in every build, and this scene exists to be watched. 32 octants, so the whole
-    // thing is over half a minute whatever the build -- octant_seconds is the dial.
-    constexpr float octant_seconds = 0.3334f;
+    // One rotation a second of update() time. With --fixed-framerate, a slow build takes longer
+    // in real time but plays the same frames. 32 octants, so the whole thing is over half a
+    // minute at speed -- octant_dt is the dial.
+    constexpr auto octant_dt = Second/3;
 
     populate_scene_cover();
     auto& w = M->world();
@@ -1159,10 +1159,10 @@ task app::scene_cover()
     uint32_t built = 0;
     for (auto k = 0u; k < Cover::octant_count; k++)
     {
-        const auto t0 = Time::now();
+        const auto t0 = _driver->scene_dt;
         do
             co_yield {};
-        while (Time::to_seconds(Time::now() - t0) < octant_seconds);
+        while (_driver->scene_dt - t0 < octant_dt);
         auto val = tests().current_test->advance(*this, {});
         fm_assert(val.type == tests::base_test::ValueType::u32);
         built |= val.u32;
@@ -1171,8 +1171,8 @@ task app::scene_cover()
     // here means a fill silently failed rather than that the scene ran short.
     fm_assert_equal((uint32_t)-1, built);
 
-    fm_debug("cover: %u octants at %.1f s each, all built", Cover::octant_count,
-             (double)octant_seconds);
+    fm_debug("cover: %u octants at %u ms each, all built", Cover::octant_count,
+             (uint32_t)Time::to_milliseconds(octant_dt));
 
     // Left alive, cover_test keeps calling fill_next_unfilled() every frame of whatever scene
     // comes next -- tests_post_update() is gated on current_test alone, not the editor mode.
@@ -1401,19 +1401,19 @@ task app::scene_grids()
     // the world stops changing, which the fill loop cannot say -- each of its frames carries 16
     // object creations and three full pass builds.
     //
-    // Timed off the wall clock because the frame count is the unknown.
-    constexpr float idle_seconds = 3;
-    const auto idle_t0 = Time::now();
+    // Bounded by update() time so the frame count is the same everywhere, and measured against
+    // Time::now() because what a frame costs in real time is the question.
+    constexpr auto idle_dt = Second*3;
+    const auto idle_t0 = _driver->scene_dt;
+    const auto wall_t0 = Time::now();
     uint32_t idle_frames = 0;
-    Ns idle_ns{};
     do
     {
         co_yield {};
         idle_frames++;
-        idle_ns = Time::now() - idle_t0;
-    } while (Time::to_seconds(idle_ns) < idle_seconds);
+    } while (_driver->scene_dt - idle_t0 < idle_dt);
 
-    const auto idle_ms = (double)Time::to_milliseconds(idle_ns);
+    const auto idle_ms = (double)Time::to_milliseconds(Time::now() - wall_t0);
     fm_debug("grids: idle %u frames in %.2f s over %u objects, %.2f ms/frame, %.1f fps",
              idle_frames, idle_ms/1000, num_pins, idle_ms/idle_frames,
              (double)idle_frames*1000/idle_ms);
