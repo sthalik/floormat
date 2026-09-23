@@ -5,6 +5,7 @@
 #include <random>
 #include <type_traits>
 #include <cr/Array.h>
+#include <hwy/targets.h>
 
 namespace floormat::Test {
 namespace {
@@ -115,20 +116,26 @@ void check(uint32_t n)
 
 void test_vqsort()
 {
-    for (const uint32_t n : { 0u, 1u, 2u, 33u, 1000u })
+    // 0 = real dispatch; EMU128/SCALAR force the std::sort fallback path.
+    for (const int64_t forced : { 0LL, HWY_EMU128, HWY_SCALAR })
     {
-        check<uint16_t>(n);
-        check<int16_t>(n);
-        check<uint32_t>(n);
-        check<int32_t>(n);
-        check<uint64_t>(n);
-        check<int64_t>(n);
-        check<float>(n);
-        check<double>(n);
-        check<uint128_t>(n);
-        check<K64V64>(n);
-        check<K32V32>(n);
+        hwy::SetSupportedTargetsForTest(forced);
+        for (const uint32_t n : { 0u, 1u, 2u, 33u, 1000u })
+        {
+            check<uint16_t>(n);
+            check<int16_t>(n);
+            check<uint32_t>(n);
+            check<int32_t>(n);
+            check<uint64_t>(n);
+            check<int64_t>(n);
+            check<float>(n);
+            check<double>(n);
+            check<uint128_t>(n);
+            check<K64V64>(n);
+            check<K32V32>(n);
+        }
     }
+    hwy::SetSupportedTargetsForTest(0);
 }
 
 } // namespace floormat::Test
