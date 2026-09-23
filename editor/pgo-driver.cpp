@@ -562,6 +562,7 @@ task app::scene_input_events()
 
 task app::scene_popup_target()
 {
+    fm_assert(_popup_target.target == popup_target_type::none);
     do_set_mode(editor_mode::none);
     auto& w = M->world();
     auto C = ensure_player_character(w);

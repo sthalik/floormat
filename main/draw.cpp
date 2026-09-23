@@ -58,13 +58,16 @@ void main_impl::cache_draw_on_startup()
 {
     _shader.set_tint({1, 1, 1, 1});
     clear_framebuffer();
-    for (int i = 0; i < 3; i++)
-    {
-        // Not do_update(): these synthetic ticks aren't real frame times and
-        // would otherwise seed the FPS counter's settle-phase average with 1e9.
-        app.update(Ns{1});
-        draw_world();
-    }
+#ifndef FLOORMAT_NO_PGO_DRIVER
+    if (!s.no_warmup)
+#endif
+        for (int i = 0; i < 3; i++)
+        {
+            // Not do_update(): these synthetic ticks aren't real frame times and
+            // would otherwise seed the FPS counter's settle-phase average with 1e9.
+            app.update(Ns{1});
+            draw_world();
+        }
     clear_framebuffer();
     (void)timeline.update();
     swapBuffers();

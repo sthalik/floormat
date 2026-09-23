@@ -35,8 +35,9 @@ struct fm_settings
     // its mode says. Empty with driver_scenes_given means --driver-scenes=none, i.e. run nothing;
     // empty without it means the driver mode picks.
     String driver_scenes;
-    bool driver_scenes_given = false;
-    bool driver_save_world = false;
+    bool no_warmup           : 1 = false;
+    bool driver_scenes_given : 1 = false;
+    bool driver_save_world   : 1 = false;
 #endif
     bool vsync = true;
     bool resizable          : 1 = true,
