@@ -16,8 +16,16 @@ FM_SAME_LAYOUT(K32V32, value, key);
 
 namespace {
 
+// SupportedTargets() re-runs CPUID detection on every call.
+int8_t vectorized = -1;
+
 // EMU128 and HWY_SCALAR are slower than std::sort at n >= 512; route around them.
-bool is_vectorized() { return (hwy::SupportedTargets() & ~(int64_t)(HWY_EMU128 | HWY_SCALAR)) != 0; }
+bool is_vectorized()
+{
+    if (vectorized < 0) [[unlikely]]
+        vectorized = (hwy::SupportedTargets() & ~(int64_t)(HWY_EMU128 | HWY_SCALAR)) != 0;
+    return vectorized;
+}
 
 template<typename T> bool less(const T& a, const T& b) { return a < b; }
 bool less(const uint128_t& a, const uint128_t& b) { return a.hi != b.hi ? a.hi < b.hi : a.lo < b.lo; }
@@ -49,6 +57,8 @@ template<typename T> void fallback_select(T* keys, uint32_t n, uint32_t k, sort_
 }
 
 } // namespace
+
+void vqsort_refresh_targets() { vectorized = -1; }
 
 // vqsort casts keys to its lane type on entry and never reads them through H, so the struct cast is safe.
 #define FM_VQSORT(T, H)                                                                                    \
