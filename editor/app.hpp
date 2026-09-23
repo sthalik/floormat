@@ -148,6 +148,7 @@ private:
     void do_quickload();
     void do_load_file();
     void load_world_file(StringView path);
+    static String resolve_load_game_path(StringView name);
     void do_new_file();
     void do_escape();
 
