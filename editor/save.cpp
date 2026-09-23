@@ -3,6 +3,7 @@
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include "compat/format.hpp"
+#include "compat/sysexits.hpp"
 #include "imgui-raii.hpp"
 #include <cstdio>
 #include <ctime>
@@ -38,6 +39,11 @@ bool ensure_directory(StringView name)
     }
 }
 
+StringView relative_to_temp_path(StringView path)
+{
+    return path.hasPrefix(loader.TEMP_PATH) ? path.exceptPrefix(loader.TEMP_PATH.size()) : path;
+}
+
 } // namespace
 
 void app::do_quicksave()
@@ -56,18 +62,6 @@ void app::do_quicksave()
     std::fputs("done\n", stderr); std::fflush(stderr);
 }
 
-void app::load_world_file(StringView path)
-{
-    const auto name = path.hasPrefix(loader.TEMP_PATH)
-                      ? path.exceptPrefix(loader.TEMP_PATH.size()) : path;
-    std::fputs("load '", stderr);
-    std::fwrite(name.data(), name.size(), 1, stderr);
-    std::fputs("'... ", stderr);
-    std::fflush(stderr);
-    reset_world(world::deserialize(path, loader_policy::warn));
-    std::fputs("done\n", stderr); std::fflush(stderr);
-}
-
 void app::do_quickload()
 {
     auto file = Path::join(loader.TEMP_PATH, quicksave_file);
@@ -79,6 +73,43 @@ void app::do_quickload()
         return;
     }
     load_world_file(file);
+}
+
+void app::load_world_file(StringView path)
+{
+    // Re-checked: --load-game resolves the path in parse_cmdline, long before this call.
+    if (!Path::exists(path) || Path::isDirectory(path))
+    {
+        WARN_nospace << "no such file '" << relative_to_temp_path(path) << "'";
+        return;
+    }
+    const auto name = relative_to_temp_path(path);
+    std::fputs("load '", stderr);
+    std::fwrite(name.data(), name.size(), 1, stderr);
+    std::fputs("'... ", stderr);
+    std::fflush(stderr);
+    reset_world(world::deserialize(path, loader_policy::warn));
+    std::fputs("done\n", stderr); std::fflush(stderr);
+}
+
+String app::resolve_load_game_path(StringView name)
+{
+    // Path::join treats the filename as absolute only with forward slashes.
+    const auto file = Path::fromNativeSeparators(name);
+    auto path = Path::join(Path::join(loader.TEMP_PATH, StringView{save_dir}), file);
+    if (!Path::exists(path) || Path::isDirectory(path))
+    {
+        // Path::join returns an absolute `file` unchanged regardless of base: a no-op here.
+        auto fallback = Path::join(loader.startup_directory(), file);
+        if (Path::exists(fallback) && !Path::isDirectory(fallback))
+            path = move(fallback);
+    }
+    if (!Path::exists(path) || Path::isDirectory(path))
+    {
+        ERR_nospace << "--load-game: no such file '" << relative_to_temp_path(path) << "'";
+        std::exit(EX_USAGE);
+    }
+    return path;
 }
 
 void app::driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post)
