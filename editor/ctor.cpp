@@ -33,6 +33,8 @@ app::app(fm_settings&& opts) :
     reset_camera_offset();
     M->set_render_vobjs(_render_vobjs);
     reserve_inspector_array();
+    if (const auto& file = M->settings().load_game)
+        load_world_file(file);
     if (M->settings().driver != driver_mode::off)
         driver_start();
 
