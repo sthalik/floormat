@@ -1455,7 +1455,6 @@ task app::scene_object_ids()
     // doubles how many of them there are between full and empty.
     constexpr uint32_t kill_divisor = 8;
 
-    reset_world();
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
     for (int16_t cy = -ground_radius; cy <= ground_radius; cy++)

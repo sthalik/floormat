@@ -147,34 +147,40 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("L-corridor (long bbox)"))
                 populate_l_corridor();
             ImGui::Separator();
+            const auto scene = [this](auto&& fn) {
+                reset_world();
+                auto& w = M->world();
+                maybe_initialize_chunk_({}, w[{}]);
+                fn();
+            };
             if (ImGui::MenuItem("Scene corridor (carved)"))
-                populate_scene_benchmark_walkable(pgo::walk_corridor_width);
+                scene([this] { populate_scene_benchmark_walkable(pgo::walk_corridor_width); });
             if (ImGui::MenuItem("Scene corridor (1 tile)"))
-                populate_scene_benchmark_walkable(1);
+                scene([this] { populate_scene_benchmark_walkable(1); });
             if (ImGui::MenuItem("Scene diagonal (carved)"))
-                populate_scene_diagonal(3);
+                scene([this] { populate_scene_diagonal(3); });
             if (ImGui::MenuItem("Scene diagonal (1 tile)"))
-                populate_scene_diagonal(0);
+                scene([this] { populate_scene_diagonal(0); });
             if (ImGui::MenuItem("Scene slide (dense)"))
-                populate_scene_slide(true);
+                scene([this] { populate_scene_slide(true); });
             if (ImGui::MenuItem("Scene slide (bare)"))
-                populate_scene_slide(false);
+                scene([this] { populate_scene_slide(false); });
             if (ImGui::MenuItem("Scene maze"))
-                populate_scene_maze();
+                scene([this] { populate_scene_maze(); });
             if (ImGui::MenuItem("Scene maze 2 (braided)"))
-                populate_scene_maze2();
+                scene([this] { populate_scene_maze2(); });
             if (ImGui::MenuItem("Scene grids"))
-                populate_scene_grids(256);
+                scene([this] { populate_scene_grids(256); });
             if (ImGui::MenuItem("Scene raycast pins"))
-                populate_scene_raycast_pins();
+                scene([this] { populate_scene_raycast_pins(); });
             if (ImGui::MenuItem("Scene lightmap"))
-                populate_scene_lightmap();
+                scene([this] { populate_scene_lightmap(); });
             if (ImGui::MenuItem("Scene cover"))
-                populate_scene_cover();
+                scene([this] { populate_scene_cover(); });
             if (ImGui::MenuItem("Scene benchmark (flat)"))
-                populate_scene_benchmark();
+                scene([this] { populate_scene_benchmark(); });
             if (ImGui::MenuItem("Scene benchmark (all Z)"))
-                populate_scene_benchmark_all_z();
+                scene([this] { populate_scene_benchmark_all_z(); });
         }
 #endif
 

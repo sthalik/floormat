@@ -1064,14 +1064,12 @@ void carve_corridor_baffles(world& w, int16_t cx, uint8_t start_tile, uint8_t wi
 
 void app::populate_scene_benchmark()
 {
-    reset_world();
     generate_scene(M->world(), 0, 0, true);
     M->reset_fps();
 }
 
 void app::populate_scene_benchmark_walkable(uint8_t width)
 {
-    reset_world();
     auto& w = M->world();
     generate_scene(w, 0, 0, false, bench_chunk_min, walk_chunk_max);
     carve_corridor(w, 0, walk_corridor_tile, width, walk_chunk_min, walk_chunk_max);
@@ -1092,7 +1090,6 @@ void app::populate_scene_benchmark_walkable(uint8_t width)
 
 void app::populate_scene_slide(bool dense)
 {
-    reset_world();
     auto& w = M->world();
     if (dense)
     {
@@ -1113,7 +1110,6 @@ void app::populate_scene_slide(bool dense)
 
 void app::populate_scene_diagonal(uint8_t half_width)
 {
-    reset_world();
     auto& w = M->world();
     generate_scene(w, 0, 0, true);
     carve_diagonal(w, diag_u0, half_width, bench_chunk_min, bench_chunk_max);
@@ -1139,7 +1135,6 @@ point app::maze_corner(uint32_t k)
 
 void app::populate_scene_raycast_pins()
 {
-    reset_world();
     auto& w = M->world();
     generate_raycast_pins(w);
     // reset_world_post() already spawned it at global (0,0), which is the center of the field.
@@ -1149,7 +1144,6 @@ void app::populate_scene_raycast_pins()
 
 void app::populate_scene_maze2()
 {
-    reset_world();
     auto& w = M->world();
     const auto m = generate_maze2();
     build_maze2(w, m.flags);
@@ -1171,7 +1165,6 @@ point app::maze2_goal() { return maze2_cell_point(generate_maze2().goal); }
 // which is the whole point of that scene -- an empty chunk is not a cheap version of a full one.
 void app::populate_scene_grids(uint32_t num_pins)
 {
-    reset_world();
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
     for (int16_t cy = -1; cy <= 1; cy++)
@@ -1212,7 +1205,6 @@ void app::add_grid_pin(uint32_t n)
 
 void app::populate_scene_maze()
 {
-    reset_world();
     auto& w = M->world();
     generate_scene(w, 0, 0, false);
     build_maze(w, generate_maze(maze_dim, maze_seed), maze_dim, bench_chunk_min, bench_chunk_max);
@@ -1246,7 +1238,6 @@ void app::populate_scene_cover()
 
 void app::populate_scene_lightmap()
 {
-    reset_world();
     auto& w = M->world();
     generate_lightmap_scene(w);
     auto C = ensure_player_character(w);
@@ -1261,7 +1252,6 @@ void app::populate_scene_lightmap()
 
 void app::populate_scene_benchmark_all_z()
 {
-    reset_world();
     generate_scene(M->world(), chunk_z_min, chunk_z_max, true);
     M->reset_fps();
 }
