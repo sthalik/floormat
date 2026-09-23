@@ -9,6 +9,7 @@ target_link_libraries(${self}_o PUBLIC
     Magnum::GL Magnum::Trade
     nlohmann_json::nlohmann_json
     floormat-common
+    floormat-hwy
 )
 
 add_executable(${self} dummy.cc)
