@@ -35,8 +35,14 @@ app::app(fm_settings&& opts) :
     reserve_inspector_array();
     if (const auto& file = M->settings().load_game)
         load_world_file(file);
+
+#ifndef FLOORMAT_NO_PGO_DRIVER
     if (M->settings().driver != driver_mode::off)
+    {
+        M->settings().no_warmup = true;
         driver_start();
+    }
+#endif
 
 #if 0
     SpriteAtlas::dump_atlas(*loader.atlas().raw(), "d:/dev/floormat/editor-atlas.png");
