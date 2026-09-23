@@ -58,6 +58,7 @@ void test_spritebatch();
 void test_sprites();
 void test_sweep_aabb();
 void test_util();
+void test_vqsort();
 void test_texcoords();
 void test_wall_atlas();
 void test_wall_atlas2();

@@ -357,11 +357,13 @@ endif()
 add_subdirectory(swl-variant)
 target_compile_definitions(swl-variant INTERFACE -DSWL_VARIANT_NO_CONSTEXPR_EMPLACE -DSWL_VARIANT_NO_STD_HASH)
 
-add_library(floormat-hwy STATIC
-    highway/hwy/targets.cc
-    highway/hwy/abort.cc
-    highway/hwy/contrib/sort/vqsort_u64a.cc
-)
+# No f16: x86 has HWY_HAVE_FLOAT16 only on AVX3_SPR, which is disabled, so those entry points abort.
+set(floormat-hwy-sorts u16 i16 u32 i32 u64 i64 f32 f64 128 kv64 kv128)
+set(floormat-hwy-sources highway/hwy/targets.cc highway/hwy/abort.cc)
+foreach(t ${floormat-hwy-sorts})
+    list(APPEND floormat-hwy-sources highway/hwy/contrib/sort/vqsort_${t}a.cc highway/hwy/contrib/sort/vqsort_${t}d.cc)
+endforeach()
+add_library(floormat-hwy STATIC ${floormat-hwy-sources})
 target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
 # -march=x86-64-v2 has no AES or PCLMUL, which Highway's SSE4 target requires. vqsort uses neither.
 target_compile_definitions(floormat-hwy PUBLIC
