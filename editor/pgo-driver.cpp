@@ -1455,7 +1455,6 @@ task app::scene_object_ids()
     // doubles how many of them there are between full and empty.
     constexpr uint32_t kill_divisor = 8;
 
-    reset_world();
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
     for (int16_t cy = -ground_radius; cy <= ground_radius; cy++)
@@ -1624,6 +1623,7 @@ void app::driver_tick(Ns dt)
 
     D.frames_run++;
 
+    bool just_started = false;
     if (D.scene_task.done())
     {
         if (D.scene_index > 0)
@@ -1677,17 +1677,21 @@ void app::driver_tick(Ns dt)
             D.scene_index = 0;
         }
         DBG << ">>> scene:" << Scenes[D.scene_index].name;
-        // Before scene_started, so serializing does not land in the scene's own timing line.
-        if (M->settings().driver_save_world)
-            driver_save_world(D.scene_index + 1, Scenes[D.scene_index].name.exceptPrefix("scene_"_s), false);
+        reset_world();
+        maybe_initialize_chunk_({}, M->world()[{}]);
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
         D.scene_index++;
         D.scene_started = Time::now();
         D.scene_dt = Ns{};
         D.scene_first_frame = D.frames_run;
+        just_started = true;
     }
 
     D.scene_task.tick();
+    // populate_scene_*() runs inside the coroutine, on this first tick -- saving any earlier
+    // would serialize an empty world instead of this scene's content.
+    if (just_started && M->settings().driver_save_world)
+        driver_save_world(D.scene_index, Scenes[D.scene_index-1].name.exceptPrefix("scene_"_s), false);
 }
 
 } // namespace floormat
