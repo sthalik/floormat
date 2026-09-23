@@ -81,17 +81,12 @@ fi
 bench_train=${FM_BENCH_ARGS:---benchmark_min_time=3s}
 # In-process, so startup and atlas loading are counted once rather than once per pass.
 test_train=${FM_TEST_ARGS:---repeat 10}
-# --driver=profile, not =all: without --driver-scenes the mask stays all-ones and driver_tick()
-# filters by mode instead, so =all would also train on the coverage-only scenes. It also picks
-# the bail-out path:
-# driver_stop quits under profile and hands the editor back under all, where an unroutable maze
-# then burns the whole timeout. A killed process writes no profile at all -- measured, a
-# timeout -k kill leaves no .profraw where the same binary allowed to finish writes one.
+# --driver=all, see run-pgo.sh.
 # driver-repeat 3, not 1: SDL/GL setup, shader compile and the atlas parse run once per
 # process no matter what, so a single pass gives startup its maximum share of a profile that
 # is now entirely the editor's. Each further pass cuts that share by ~1/N, and past 3 or 4
 # there is nothing left to win.
-editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=profile --driver-repeat 3}
+editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=all --driver-no-swapbuffers --driver-repeat 3}
 trainer_timeout=${FM_TRAINER_TIMEOUT:-1200}
 # Process restarts, for a trainer with no repeat option of its own. None has, now that
 # floormat-test takes --repeat.

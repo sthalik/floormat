@@ -111,12 +111,10 @@ exe_tag() {
 }
 
 # Each binary rejects the others' options, so these are per-exe.
-# --driver=profile, not =all: without --driver-scenes the mask stays all-ones and driver_tick()
-# filters by mode instead, so =all would also train on the coverage-only scenes. Only profile
-# makes a driver that bailed out quit instead of idling forever.
+# --driver=all: =profile skips the coverage scenes, and their code paths then go untrained.
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=profile --driver-repeat $driver_repeat" ;;
+        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=all --driver-no-swapbuffers --driver-repeat $driver_repeat" ;;
         # Instrumented, the benchmark's default 0.5s per case turns one training run into
         # minutes, and PGO reads the counts relative to each other, not their magnitude.
         # Repetitions rather than a longer min_time, because a repetition re-runs the fixture
