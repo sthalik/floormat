@@ -28,6 +28,18 @@ else()
     add_compile_options(-Wno-nan-infinity-disabled)
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
     add_compile_options(-fpointer-tbaa)
+    add_compile_options(
+        #-ffast-math
+        #-fno-unsafe-math-optimizations
+        -fdenormal-fp-math=preserve-sign
+        -ffp-contract=fast
+        -fhonor-infinities -fno-honor-nans
+        -fno-math-errno -fno-signed-zeros -fno-trapping-math -fno-rounding-math
+        -freciprocal-math -fassociative-math
+        -fapprox-func
+        -fcomplex-arithmetic=basic -Wno-overriding-complex-range
+    )
+    add_link_options(-mdaz-ftz)
     # Line discriminators for AutoFDO
     add_compile_options(-fdebug-info-for-profiling)
     if(FLOORMAT_PGO STREQUAL "generate" OR FLOORMAT_PGO STREQUAL "cs" OR FLOORMAT_PGO STREQUAL "use") # instrumented PGO, not AutoFDO
@@ -146,13 +158,15 @@ else()
     message(FATAL_ERROR "FLOORMAT_SIMD must be 'sse42', 'avx1', 'avx128' or 'avx2', "
                         "got '${FLOORMAT_SIMD}'")
 endif()
+
 sets(STRING
      CMAKE_C_FLAGS "${fm_simd} -ggdb -gcolumn-info"
      CMAKE_C_FLAGS_DEBUG "-O0 -fstack-protector-all -ggdb -gdwarf-aranges"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ffast-math -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
+     CMAKE_C_FLAGS_RELEASE "-O3 -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
      CMAKE_SHARED_LINKER_FLAGS_DEBUG ""
 )
+
 sets(STRING
      CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}"
      CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}"
