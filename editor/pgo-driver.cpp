@@ -562,6 +562,7 @@ task app::scene_input_events()
 
 task app::scene_popup_target()
 {
+    fm_assert(_popup_target.target == popup_target_type::none);
     do_set_mode(editor_mode::none);
     auto& w = M->world();
     auto C = ensure_player_character(w);
@@ -1623,6 +1624,7 @@ void app::driver_tick(Ns dt)
 
     D.frames_run++;
 
+    bool just_started = false;
     if (D.scene_task.done())
     {
         if (D.scene_index > 0)
@@ -1676,17 +1678,21 @@ void app::driver_tick(Ns dt)
             D.scene_index = 0;
         }
         DBG << ">>> scene:" << Scenes[D.scene_index].name;
-        // Before scene_started, so serializing does not land in the scene's own timing line.
-        if (M->settings().driver_save_world)
-            driver_save_world(D.scene_index + 1, Scenes[D.scene_index].name.exceptPrefix("scene_"_s), false);
+        reset_world();
+        maybe_initialize_chunk_({}, M->world()[{}]);
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
         D.scene_index++;
         D.scene_started = Time::now();
         D.scene_dt = Ns{};
         D.scene_first_frame = D.frames_run;
+        just_started = true;
     }
 
     D.scene_task.tick();
+    // populate_scene_*() runs inside the coroutine, on this first tick -- saving any earlier
+    // would serialize an empty world instead of this scene's content.
+    if (just_started && M->settings().driver_save_world)
+        driver_save_world(D.scene_index, Scenes[D.scene_index-1].name.exceptPrefix("scene_"_s), false);
 }
 
 } // namespace floormat
