@@ -136,6 +136,7 @@ int App::exec()
         FM_TEST(test_fps),
         FM_TEST(test_texcoords),
         FM_TEST(test_shader),
+        FM_TEST(test_vqsort),
         // normal
 
         FM_TEST(test_bitmask),
