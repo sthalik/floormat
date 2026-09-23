@@ -120,6 +120,7 @@ void test_vqsort()
     for (const int64_t forced : { 0LL, HWY_EMU128, HWY_SCALAR })
     {
         hwy::SetSupportedTargetsForTest(forced);
+        vqsort_refresh_targets();
         for (const uint32_t n : { 0u, 1u, 2u, 33u, 1000u })
         {
             check<uint16_t>(n);
@@ -136,6 +137,7 @@ void test_vqsort()
         }
     }
     hwy::SetSupportedTargetsForTest(0);
+    vqsort_refresh_targets();
 }
 
 } // namespace floormat::Test
