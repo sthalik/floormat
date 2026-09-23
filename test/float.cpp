@@ -14,9 +14,7 @@ bool test_fpclassify()
     fm_assert_equal(FP_ZERO,     fpclassify(0.f));
     fm_assert_equal(FP_NORMAL,   fpclassify(1.f));
     fm_assert_equal(FP_NORMAL,   fpclassify(FLT_MIN));
-#ifndef __FAST_MATH__
     fm_assert_equal(FP_INFINITE, fpclassify(std::numeric_limits<float>::infinity()));
-#endif
 
     return true;
 }
