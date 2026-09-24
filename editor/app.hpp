@@ -13,8 +13,6 @@
 
 namespace Magnum::ImGuiIntegration { class Context; }
 
-namespace floormat::wireframe { struct meshes; }
-
 namespace floormat::tests { struct tests_data; }
 
 namespace floormat::imgui { class text_painter_pool; }
@@ -254,7 +252,6 @@ private:
     uint64_t _timestamp = 0;
     floormat_main* M;
     safe_ptr<ImGuiIntegration::Context> _imgui;
-    safe_ptr<floormat::wireframe::meshes> _wireframe;
     safe_ptr<tests_data_> _tests;
     safe_ptr<editor> _editor;
     safe_ptr<key_set> keys_;
