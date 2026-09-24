@@ -230,6 +230,8 @@ private:
     pgo::task scene_grids();
     pgo::task scene_lightmap();
     pgo::task scene_cover();
+    pgo::task scene_torture_flat();
+    pgo::task scene_torture_all_z();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);

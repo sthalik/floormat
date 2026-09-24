@@ -92,6 +92,8 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_grids, profile),
         FM_SCENE(scene_lightmap, profile),
         FM_SCENE(scene_cover, profile),
+        FM_SCENE(scene_torture_flat, profile),
+        FM_SCENE(scene_torture_all_z, profile),
     };
 #undef FM_SCENE
 
@@ -804,6 +806,25 @@ task app::scene_benchmark()
         fm_assert(M->shader().camera_offset() != off0);
         co_yield {};
     }
+}
+
+// scene_dt restarts at zero on the tick populate runs, so the hold counts from a built world.
+task app::scene_torture_flat()
+{
+    constexpr auto hold_dt = Second*5;
+    populate_scene_benchmark();
+    do
+        co_yield {};
+    while (_driver->scene_dt < hold_dt);
+}
+
+task app::scene_torture_all_z()
+{
+    constexpr auto hold_dt = Second*5;
+    populate_scene_benchmark_all_z();
+    do
+        co_yield {};
+    while (_driver->scene_dt < hold_dt);
 }
 
 task app::scene_walk()
