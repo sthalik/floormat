@@ -6,7 +6,6 @@
 #include "tests.hpp"
 #include "floormat/settings.hpp"
 #include "imgui-text.hpp"
-#include "draw/wireframe-meshes.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
@@ -18,7 +17,6 @@ namespace floormat {
 app::app(fm_settings&& opts) :
     M{floormat_main::create(*this, move(opts))},
     _imgui{InPlaceInit, NoCreate},
-    _wireframe{InPlaceInit},
     _tests{tests_data_::make()},
     _editor{InPlaceInit, this},
     keys_{InPlaceInit, 0u},
