@@ -177,9 +177,9 @@ float app::draw_main_menu()
                 scene([this] { populate_scene_lightmap(); });
             if (ImGui::MenuItem("Scene cover"))
                 scene([this] { populate_scene_cover(); });
-            if (ImGui::MenuItem("Scene benchmark (flat)"))
+            if (ImGui::MenuItem("Scene torture test (flat)"))
                 scene([this] { populate_scene_benchmark(); });
-            if (ImGui::MenuItem("Scene benchmark (all Z)"))
+            if (ImGui::MenuItem("Scene torture test (all Z)"))
                 scene([this] { populate_scene_benchmark_all_z(); });
         }
 #endif
