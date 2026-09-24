@@ -33,8 +33,11 @@ target_link_libraries(${self} PRIVATE ${self}_o
     floormat
 )
 
-if(WIN32)
+if(MSVC)
     target_sources(${self} PRIVATE "floormat-editor.manifest")
+elseif(WIN32)
+    # CMake embeds .manifest sources only with MSVC's linker.
+    target_sources(${self} PRIVATE "floormat-editor.rc")
 endif()
 
 fm_install_executable(${self})

@@ -315,7 +315,6 @@ int app::run_from_argv(const int argc, const char* const* const argv)
 int main(int argc, char** argv)
 {
     const floormat::with_game_mode game_mode;
-    floormat::floormat_main::init_pre();
 
     return floormat::app::run_from_argv(argc, argv);
 }
