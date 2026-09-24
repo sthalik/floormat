@@ -11,7 +11,7 @@
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 #include "src/anim-atlas.hpp"
-#include "draw/wireframe-meshes.hpp"
+#include "draw/wireframe.hpp"
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
@@ -44,16 +44,13 @@ void app::draw_cursor()
 
     if (!cursor.in_imgui)
     {
-        const auto draw = [&, pos = pt](auto& mesh, const auto& size) {
-            const auto center = Vector3(pos) * TILE_SIZE;
-            mesh.draw(shader, {center, size, LINE_WIDTH});
-        };
+        const auto center = Vector3(pt) * TILE_SIZE;
 
         if (const auto* ed = _editor->current_ground_editor())
         {
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
-            draw(_wireframe->quad, TILE_SIZE2);
+            wireframe::draw_quad(shader, center, TILE_SIZE2, LINE_WIDTH);
         }
         else if (const auto* ed = _editor->current_wall_editor())
         {
@@ -61,8 +58,8 @@ void app::draw_cursor()
                 shader.set_tint(inactive_color);
             switch (ed->rotation())
             {
-            case rotation::N: draw(_wireframe->wall_n, TILE_SIZE); break;
-            case rotation::W: draw(_wireframe->wall_w, TILE_SIZE); break;
+            case rotation::N: wireframe::draw_wall_n(shader, center, TILE_SIZE, LINE_WIDTH); break;
+            case rotation::W: wireframe::draw_wall_w(shader, center, TILE_SIZE, LINE_WIDTH); break;
             default: fm_assert(false);
             }
         }
@@ -71,7 +68,7 @@ void app::draw_cursor()
             if (!ed->is_anything_selected())
                 shader.set_tint(inactive_color);
             const auto& sel = ed->get_selected().proto;
-            draw(_wireframe->quad, TILE_SIZE2);
+            wireframe::draw_quad(shader, center, TILE_SIZE2, LINE_WIDTH);
             if (ed->is_anything_selected())
             {
                 shader.set_tint({1, 1, 1, 0.75f});
@@ -90,7 +87,7 @@ void app::draw_cursor()
             if (vo->is_anything_selected())
             {
                 const auto& atlas = vo->get_selected()->factory->atlas();
-                draw(_wireframe->quad, TILE_SIZE2);
+                wireframe::draw_quad(shader, center, TILE_SIZE2, LINE_WIDTH);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [sb] = M->meshes();
                 const auto pos = Vector3i(pt)*iTILE_SIZE;
@@ -155,7 +152,7 @@ void app::draw_collision_boxes()
                 auto size = (end - start);
                 auto center = Vector3(start + size * .5f, 0.f);
                 shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
-                _wireframe->rect.draw(shader, {center, size, 3});
+                wireframe::draw_quad(shader, center, size, 3);
                 return true;
             });
         }
@@ -201,7 +198,7 @@ void app::draw_collision_boxes()
                     Vector2 start{rect.m_min}, end{rect.m_max};
                     auto size = end - start;
                     auto center = Vector3(start + size*.5f, 0.f);
-                    _wireframe->rect.draw(shader, { center, size, 3 });
+                    wireframe::draw_quad(shader, center, size, 3);
                     return true;
                 });
             }
