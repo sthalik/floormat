@@ -1,6 +1,7 @@
 #pragma once
 #include "point.hpp"
 #include "src/tile-constants.hpp"
+#include "compat/floor-divmod.hpp"
 #include <mg/Functions.h>
 
 namespace floormat {
@@ -11,14 +12,13 @@ constexpr point::point(Vector3i p)
 
     for (auto i = 0u; i < 2; i++)
     {
-        auto v = p[i] + half_tile<int>;
-        c[i] = v / chunk_size<int> - (v % chunk_size<int> < 0);
-        auto r = v - c[i] * chunk_size<int>;
+        const auto [ch, r] = floor_divmod<chunk_size<int>>(p[i] + half_tile<int>);
+        c[i] = ch;
         t[i] = r / tile_size_xy;
-        _offset[i] = (int8_t)(r - t[i] * tile_size_xy - half_tile<int>);
+        _offset[i] = (int8_t)(r % tile_size_xy - half_tile<int>);
     }
 
-    cz = (int8_t)(p.z() / tile_size_z - (p.z() % tile_size_z < 0));
+    cz = (int8_t)floor_div<tile_size_z>(p.z());
     tile = local_coords{t};
 
     // a pixel past the chunk range would wrap silently into int16_t, so assert before the cast
