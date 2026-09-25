@@ -848,7 +848,7 @@ task app::scene_walk()
     center_camera_on(from);
     const auto to = point{chunk_coords_{0, pgo::walk_chunk_max, 0},
                           local_coords{col, TILE_MAX_DIM-3}, {}};
-    const auto dist = point::distance(from, to)*2 + tile_size_xy * TILE_MAX_DIM;
+    const auto dist = point::distance(from, to)*2 + chunk_size_xy;
     auto res = M->astar().Dijkstra(w, from, to, dist, Vector2ui{C->bbox_size},
                                    Search::without_critters());
     // A search that gives up still returns the route to the closest node it reached, so
@@ -1039,7 +1039,7 @@ task app::scene_raycast()
     // which the driver bypasses. The sweep leaves the viewport on its own at this radius; this
     // states the property in one place instead of leaving it incidental.
     const auto win = M->window_size();
-    const auto far_away = point::normalize_coords(from, Vector2i{4*(int)chunk_size_xy});
+    const auto far_away = point::normalize_coords(from, Vector2i{4*chunk_size<int>});
     set_cursor_at(far_away);
     (void)cursor_point();
     {

@@ -10,7 +10,6 @@ namespace floormat {
 class chunk;
 class world;
 struct local_coords;
-inline constexpr uint32_t chunk_size_xy = (uint32_t)tile_size_xy * (uint32_t)TILE_MAX_DIM;
 } // namespace floormat
 
 namespace floormat::detail::grid {

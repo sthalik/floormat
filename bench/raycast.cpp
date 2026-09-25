@@ -173,7 +173,7 @@ bool run_dense(point from, point to_orig, world& w)
 {
     auto seg = to_orig - from;
     auto seg_len = Math::sqrt((float)(seg.x()*(int64_t)seg.x() + seg.y()*(int64_t)seg.y()));
-    if (seg_len < 3.f * (float)(tile_size_xy * TILE_MAX_DIM))
+    if (seg_len < 3.f * chunk_size<float>)
     {
         fm_error("ray length %.0f px < 3 chunks", (double)seg_len);
         return false;
@@ -221,14 +221,9 @@ namespace old_rc {
 using rc::raycast_result_s;
 using rc::raycast_diag_s;
 
-template<typename T> constexpr inline auto tile_size = Math::Vector2<T>{iTILE_SIZE2};
-template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MAX_DIM} * tile_size<T>;
-
 using floormat::detail_rc::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = typename RTree::Rect;
-
-static_assert(tile_size<int>.x() == tile_size<int>.y());
 
 template<class T> constexpr inline T sign_(auto&& x) {
     constexpr auto zero = std::decay_t<decltype(x)>{0};
@@ -238,8 +233,8 @@ template<class T> constexpr inline T sign_(auto&& x) {
 constexpr Vector2 pt_to_vec(point from, point pt)
 {
     auto V = Vector2{};
-    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<float>;
-    V += (Vector2(pt.local()) - Vector2(from.local())) * tile_size<float>;
+    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<Vector2>;
+    V += (Vector2(pt.local()) - Vector2(from.local())) * TILE_SIZE2;
     V += (Vector2(pt.offset()) - Vector2(from.offset()));
     return V;
 }
@@ -283,29 +278,30 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 
 constexpr Vector2i chunk_offsets[3][3] = {
     {
-        { -chunk_size<int>.x(), -chunk_size<int>.y()    },
-        { -chunk_size<int>.x(),  0                      },
-        { -chunk_size<int>.x(),  chunk_size<int>.y()    },
+        { -chunk_size<int>, -chunk_size<int> },
+        { -chunk_size<int>,  0               },
+        { -chunk_size<int>,  chunk_size<int> },
     },
     {
-        { 0,                    -chunk_size<int>.y()    },
-        { 0,                     0                      },
-        { 0,                     chunk_size<int>.y()    },
+        { 0,                -chunk_size<int> },
+        { 0,                 0               },
+        { 0,                 chunk_size<int> },
     },
     {
-        {  chunk_size<int>.x(), -chunk_size<int>.y()    },
-        {  chunk_size<int>.x(),  0                      },
-        {  chunk_size<int>.x(),  chunk_size<int>.y()    },
+        {  chunk_size<int>, -chunk_size<int> },
+        {  chunk_size<int>,  0               },
+        {  chunk_size<int>,  chunk_size<int> },
     },
 };
 
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
+    using V = Math::Vector2<T>;
     // same slack on both sides as the chunk_bounds cull in search.cpp
-    constexpr auto max_bb_size = Math::Vector2<T>{T{0x100}, T{0x100}};
-    constexpr auto start = -tile_size<T>/T{2} - max_bb_size,
-                   end = chunk_size<T> - tile_size<T>/T{2} + max_bb_size;
+    constexpr auto max_bb_size = V{T{0x100}, T{0x100}};
+    constexpr auto start = -half_tile<V> - max_bb_size,
+                   end = chunk_size<V> - half_tile<V> + max_bb_size;
 
     return start.x() <= p1.x() && end.x() >= p0.x() &&
            start.y() <= p1.y() && end.y() >= p0.y();
@@ -365,8 +361,8 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
     auto major_len = max(1u, (unsigned)ceil(abs(V[major_axis]))),
          minor_len = max(1u, (unsigned)ceil(abs(V[minor_axis])));
     auto nsteps = 1u;
-    nsteps = max(nsteps, (minor_len + tile_size<unsigned>.x()-1)/tile_size<unsigned>.x());
-    nsteps = max(nsteps, (major_len + chunk_size<unsigned>.x()-1)/chunk_size<unsigned>.x());
+    nsteps = max(nsteps, (minor_len + tile_size<unsigned>-1)/tile_size<unsigned>);
+    nsteps = max(nsteps, (major_len + chunk_size<unsigned>-1)/chunk_size<unsigned>);
     auto size_ = Vector2ui{};
     size_[minor_axis] = (minor_len + nsteps*2 - 1) / nsteps;
     size_[major_axis] = (major_len + nsteps - 1) / nsteps;
@@ -411,8 +407,8 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
         }
         else if (k == nsteps)
         {
-            constexpr auto add = (tile_size<unsigned>.x()+1)/2,
-                           min_size = tile_size<unsigned>.x() + add;
+            constexpr auto add = (tile_size<unsigned>+1)/2,
+                           min_size = tile_size<unsigned> + add;
             if (size[major_axis] > min_size)
             {
                 auto sign = sign_<int>(V[major_axis]);
@@ -460,7 +456,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
             nbs = {};
         }
 
-        auto pt = Vector2i(center.local()) * tile_size<int> + Vector2i(center.offset());
+        auto pt = Vector2i(center.local()) * iTILE_SIZE2 + Vector2i(center.offset());
 
         for (int i = 0; i < 3; i++)
         {
@@ -485,8 +481,8 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
                     }
                 }
 
-                auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<int>;
-                origin = Vector2((Vector2i(from.local()) * tile_size<int>) + Vector2i(from.offset()) - ch_off);
+                auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<Vector2i>;
+                origin = Vector2((Vector2i(from.local()) * iTILE_SIZE2) + Vector2i(from.offset()) - ch_off);
                 auto* r = c->rtree();
                 r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
                     do_check_collider(data, r);

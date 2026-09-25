@@ -65,8 +65,8 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
     // offset + bbox_offset + bbox_size/2 past the tile edge
     constexpr auto bbox_size = Vector2{0x100, 0x100};
     constexpr auto chunk_bounds = Range2D{
-        -TILE_SIZE2/2 - bbox_size,
-        TILE_MAX_DIM*TILE_SIZE2 - TILE_SIZE2/2 + bbox_size,
+        -half_tile<Vector2> - bbox_size,
+        chunk_size<Vector2> - half_tile<Vector2> + bbox_size,
     };
     if (!rect_intersects(min, max, chunk_bounds.min(), chunk_bounds.max()))
         return true;
@@ -108,8 +108,7 @@ bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min
         if (c2)
         {
             static_assert(array_size(world::neighbor_offsets) == 8);
-            constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
-            const auto off = Vector2(nb)*Vector2(chunk_size);
+            const auto off = Vector2(nb)*chunk_size<Vector2>;
             const auto min_ = min - off, max_ = max - off;
 
             if (!is_passable_1(*c2, min_, max_, p))

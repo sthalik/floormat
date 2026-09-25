@@ -217,7 +217,7 @@ void app::update_world(Ns dt)
 {
     auto& world = M->world();
     const auto frame_no = world.increment_frame_no();
-    auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -iTILE_SIZE2 * TILE_MAX_DIM, iTILE_SIZE2 * TILE_MAX_DIM, });
+    auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -chunk_size<Vector2i>, chunk_size<Vector2i>, });
     for (auto ch : chunks)
     {
             auto* const cʹ = world.at(ch);

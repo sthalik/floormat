@@ -145,7 +145,6 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
                        point a, point b, const astar::pred& p)
 {
     constexpr int div = (int)div_size.x();
-    constexpr int half_tile = tile_size_xy / 2;
 
     const Vector2i a_pix = iTILE_SIZE2 * Vector2i(a.local()) + Vector2i(a.offset());
     const Vector2i b_pix = a_pix + (b - a);
@@ -158,16 +157,16 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
         return (s < 0 && s % div) ? q - 1 : q;
     };
 
-    const int idx_x_lo = floor_div(lo_pix.x() + half_tile);
-    const int idx_x_hi = floor_div(hi_pix.x() + half_tile);
-    const int idx_y_lo = floor_div(lo_pix.y() + half_tile);
-    const int idx_y_hi = floor_div(hi_pix.y() + half_tile);
+    const int idx_x_lo = floor_div(lo_pix.x() + half_tile<int>);
+    const int idx_x_hi = floor_div(hi_pix.x() + half_tile<int>);
+    const int idx_y_lo = floor_div(lo_pix.y() + half_tile<int>);
+    const int idx_y_hi = floor_div(hi_pix.y() + half_tile<int>);
 
     for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
         for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
         {
-            const Vector2i cell_pix{ix * div - half_tile + div/2,
-                                    iy * div - half_tile + div/2};
+            const Vector2i cell_pix{ix * div - half_tile<int> + div/2,
+                                    iy * div - half_tile<int> + div/2};
             const auto pt_in_cell = point::normalize_coords(a, cell_pix - a_pix);
             if (!cache.is_passable_for_bbox(w, pool, pt_in_cell, p))
                 return false;
@@ -278,8 +277,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
     auto& cache = *_cache;
     cache.allocate(from, max_dist);
 
-    [[maybe_unused]] constexpr auto size_max = uint32_t{tile_size_xy}*uint32_t{TILE_MAX_DIM};
-    fm_debug3_assert(own_size_ < Vector2ui{size_max});
+    fm_debug3_assert(own_size_ < chunk_size<Vector2ui>);
     const auto own_size = Math::max(own_size_, min_size);
     constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
 

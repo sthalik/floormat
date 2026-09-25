@@ -17,12 +17,9 @@ float value_at(point p)
 
 void test_point()
 {
-    constexpr auto chunk_size = tile_size_xy * (int)TILE_MAX_DIM;
-    constexpr auto tile_size  = Vector3i{tile_size_xy, tile_size_xy, tile_size_z};
-
     {
-        constexpr auto my_chunk = chunk_size * Vector3i{1, 2, 0};
-        constexpr auto my_tile  = tile_size * Vector3i{4, 5, 0};
+        constexpr auto my_chunk = chunk_size<int> * Vector3i{1, 2, 0};
+        constexpr auto my_tile  = iTILE_SIZE * Vector3i{4, 5, 0};
         constexpr auto my_pixel = my_chunk + my_tile + Vector3i{6, 7, 0};
 
         constexpr auto a = point {{1, 2, 0}, {4, 5}, {6, 7}};
@@ -37,8 +34,8 @@ void test_point()
         constexpr auto c = point {{1, 2, -1}, {4, 5}, {3, 10}};
         const auto Vc = value_at(c);
         fm_assert(Vc == Vb);
-        fm_assert_equal(Vector3i{1  * chunk_size + 4 * tile_size_xy + 3,
-                                 2  * chunk_size + 5 * tile_size_xy + 10,
+        fm_assert_equal(Vector3i{1  * chunk_size<int> + 4 * tile_size_xy + 3,
+                                 2  * chunk_size<int> + 5 * tile_size_xy + 10,
                                 -1  * tile_size_z},
                         Vector3i(c));
 
@@ -89,8 +86,8 @@ void test_point()
     {
         constexpr auto p = point{{7, -11, 3}, {5, 9}, {13, -17}};
         static_assert(Vector3i(p) == Vector3i{
-            chunk_size * 7 + tile_size_xy * 5 + 13,
-            chunk_size * -11 + tile_size_xy * 9 - 17,
+            chunk_size<int> * 7 + tile_size_xy * 5 + 13,
+            chunk_size<int> * -11 + tile_size_xy * 9 - 17,
             tile_size_z * 3,
         });
     }

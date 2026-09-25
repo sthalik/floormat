@@ -84,7 +84,7 @@ auto make_search_predicate(const CutResult<int>& res)
 
 void test2()
 {
-    const auto res = CutResult<int>::cut(bbox{{}, Vector2ub{tile_size_xy}}, bbox{Vector2i(-tile_size_xy/2), Vector2ub{tile_size_xy}});
+    const auto res = CutResult<int>::cut(bbox{{}, Vector2ub{tile_size_xy}}, bbox{-half_tile<Vector2i>, Vector2ub{tile_size_xy}});
     fm_assert(res.size == 2);
     const auto has = make_search_predicate(res);
     fm_assert(has({-32, 0}, {32, 32}));
@@ -93,7 +93,7 @@ void test2()
 
 void test3()
 {
-    constexpr auto h = tile_size_xy/2;
+    constexpr auto h = half_tile<int>;
 
     {
         const auto res = CutResult<Int>::cut({-h, -1}, {h, 1}, {-2, -100}, {2, 100});
@@ -112,7 +112,7 @@ void test3()
 
 void test_degenerate()
 {
-    constexpr auto h = tile_size_xy*.5f;
+    constexpr auto h = half_tile<float>;
 
     struct WallPos {
         Vector2 left, right;

@@ -18,20 +18,15 @@ namespace floormat::rc {
 
 namespace {
 
-template<typename T> constexpr inline auto tile_size = Math::Vector2<T>{iTILE_SIZE2};
-template<typename T> constexpr inline auto chunk_size = Math::Vector2<T>{TILE_MAX_DIM} * tile_size<T>;
-
 using floormat::detail_rc::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = typename RTree::Rect;
 
-static_assert(tile_size<int>.x() == tile_size<int>.y());
-
 constexpr Vector2 pt_to_vec(point from, point pt)
 {
     auto V = Vector2{};
-    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<float>;
-    V += (Vector2(pt.local()) - Vector2(from.local())) * tile_size<float>;
+    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<Vector2>;
+    V += (Vector2(pt.local()) - Vector2(from.local())) * TILE_SIZE2;
     V += (Vector2(pt.offset()) - Vector2(from.offset()));
     return V;
 }
@@ -78,10 +73,11 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
+    using V = Math::Vector2<T>;
     // same slack on both sides as the chunk_bounds cull in search.cpp
-    constexpr auto max_bb_size = Math::Vector2<T>{T{0x100}, T{0x100}};
-    constexpr auto start = -tile_size<T>/T{2} - max_bb_size,
-                   end = chunk_size<T> - tile_size<T>/T{2} + max_bb_size;
+    constexpr auto max_bb_size = V{T{0x100}, T{0x100}};
+    constexpr auto start = -half_tile<V> - max_bb_size,
+                   end = chunk_size<V> - half_tile<V> + max_bb_size;
 
     return start.x() <= p1.x() && end.x() >= p0.x() &&
            start.y() <= p1.y() && end.y() >= p0.y();
@@ -144,14 +140,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     if (pool.frame_no() != w.frame_no())
         pool.maybe_mark_stale_all(w.frame_no());
 
-    constexpr auto half_tile_i = tile_size<int>.x() / 2;
     const auto div_size_i = (int32_t)pool.params().div_size;
     const auto div_size_f = (float)div_size_i;
-    const auto cells_per_chunk = chunk_size<int>.x() / div_size_i;
+    const auto cells_per_chunk = chunk_size<int> / div_size_i;
 
     Vector2 from_shifted {
-        (float)(from.local().x * tile_size<int>.x() + from.offset().x() + half_tile_i),
-        (float)(from.local().y * tile_size<int>.y() + from.offset().y() + half_tile_i),
+        (float)(from.local().x * tile_size_xy + from.offset().x() + half_tile<int>),
+        (float)(from.local().y * tile_size_xy + from.offset().y() + half_tile<int>),
     };
 
     int32_t cell_x = (int32_t)floor(from_shifted.x() / div_size_f);
@@ -198,8 +193,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .dir_inv_norm = dir_inv_norm,
             .tmin = 0,
         };
-        auto chunk_count_max = (uint32_t)(abs(V.x()) / (float)chunk_size<int>.x()
-                                        + abs(V.y()) / (float)chunk_size<int>.y()) + 2u;
+        auto chunk_count_max = (uint32_t)(abs(V.x()) / chunk_size<float>
+                                        + abs(V.y()) / chunk_size<float>) + 2u;
         arrayClear(diag.path);
         arrayClear(diag.queries);
         arrayReserve(diag.path, chunk_count_max);
@@ -245,12 +240,12 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     from.chunk3().z };
                 point chunk_origin{ch_coord, local_coords{0, 0}, Vector2b{0, 0}};
                 auto chunk_center = point::normalize_coords(chunk_origin, Vector2i{
-                    chunk_size<int>.x() / 2 - half_tile_i,
-                    chunk_size<int>.y() / 2 - half_tile_i,
+                    chunk_size<int> / 2 - half_tile<int>,
+                    chunk_size<int> / 2 - half_tile<int>,
                 });
                 arrayAppend(diag.path, bbox{
                     chunk_center,
-                    Vector2ui{(uint32_t)chunk_size<int>.x(), (uint32_t)chunk_size<int>.y()},
+                    chunk_size<Vector2ui>,
                 });
             }
         }
@@ -306,10 +301,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 });
             }
 
-            float cell_min_x_f = (float)cell_x * div_size_f - (float)half_tile_i - fuzz2;
-            float cell_max_x_f = (float)(cell_x + 1) * div_size_f - (float)half_tile_i + fuzz2;
-            float cell_min_y_f = (float)cell_y * div_size_f - (float)half_tile_i - fuzz2;
-            float cell_max_y_f = (float)(cell_y + 1) * div_size_f - (float)half_tile_i + fuzz2;
+            float cell_min_x_f = (float)cell_x * div_size_f - half_tile<float> - fuzz2;
+            float cell_max_x_f = (float)(cell_x + 1) * div_size_f - half_tile<float> + fuzz2;
+            float cell_min_y_f = (float)cell_y * div_size_f - half_tile<float> - fuzz2;
+            float cell_max_y_f = (float)(cell_y + 1) * div_size_f - half_tile<float> + fuzz2;
 
             for (int i = 0; i < 3; i++)
             {
@@ -321,8 +316,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     int32_t nb_off_x = chunk_off_x + i - 1;
                     int32_t nb_off_y = chunk_off_y + j - 1;
 
-                    float nb_world_x = (float)(nb_off_x * chunk_size<int>.x());
-                    float nb_world_y = (float)(nb_off_y * chunk_size<int>.y());
+                    float nb_world_x = (float)(nb_off_x * chunk_size<int>);
+                    float nb_world_y = (float)(nb_off_y * chunk_size<int>);
 
                     Vector2 fmin{cell_min_x_f - nb_world_x, cell_min_y_f - nb_world_y};
                     Vector2 fmax{cell_max_x_f - nb_world_x, cell_max_y_f - nb_world_y};
@@ -331,8 +326,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         continue;
 
                     Vector2 origin {
-                        (float)(from.local().x * tile_size<int>.x() + from.offset().x()) - nb_world_x,
-                        (float)(from.local().y * tile_size<int>.y() + from.offset().y()) - nb_world_y,
+                        (float)(from.local().x * tile_size_xy + from.offset().x()) - nb_world_x,
+                        (float)(from.local().y * tile_size_xy + from.offset().y()) - nb_world_y,
                     };
 
                     nb->rtree()->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r)

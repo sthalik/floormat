@@ -74,10 +74,9 @@ global_coords main_impl::pixel_to_tile(Vector2d position, int8_t z_level) const 
 
 Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
 {
-    constexpr Vector2d pixel_size{tile_size_xy};
     constexpr Vector2d half{.5, .5};
     const Vector2d px = position - Vector2d{window_size()}*.5 - _shader.camera_offset();
-    return tile_shader::unproject(px*.5) / pixel_size + half;
+    return tile_shader::unproject(px*.5) / tile_size<Vector2d> + half;
 }
 
 point main_impl::pixel_to_point(Vector2d pixel, int8_t z_level) const noexcept
@@ -88,9 +87,8 @@ point main_impl::pixel_to_point(Vector2d pixel, int8_t z_level) const noexcept
     const auto subpixelʹ = Math::fmod(Vector2(tileʹ), 1.f);
     const auto subpixelʹ_neg = Vector2{Vector2i(tile.chunk()) < Vector2i{}};
     auto subpixel = TILE_SIZE2 * (subpixelʹ + subpixelʹ_neg);
-    constexpr auto half_tile = Vector2(iTILE_SIZE2/2);
-    subpixel -= half_tile;
-    subpixel = Math::clamp(Math::round(subpixel), -half_tile, half_tile-Vector2{1.f});
+    subpixel -= half_tile<Vector2>;
+    subpixel = Math::clamp(Math::round(subpixel), -half_tile<Vector2>, half_tile<Vector2>-Vector2{1.f});
     return point{ tile, Vector2b{subpixel} };
 }
 

@@ -19,8 +19,6 @@ namespace floormat::Test {
 
 namespace {
 
-constexpr auto chunk_size_xy = tile_size_xy * (int32_t)TILE_MAX_DIM;
-
 constexpr chunk_coords_ COORD{0, 0, 0};
 constexpr chunk_coords_ COORD_E{1, 0, 0};
 constexpr chunk_coords_ COORD_Eʹ{0, 1, 0};
@@ -101,7 +99,7 @@ void test_ground_only_is_fully_passable(uint32_t div_size)
     grid.build_if_stale(Search::without_critters());
 
     const auto dc = grid.div_count();
-    fm_assert(dc == (uint32_t)chunk_size_xy / div_size);
+    fm_assert(dc == chunk_size_xy / div_size);
     fm_assert(count_passable(grid) == dc * dc);
 }
 
@@ -360,8 +358,8 @@ void test_div_count_derived_from_div_size(uint32_t div_size)
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
 
-    fm_assert(g.div_count() == (uint32_t)chunk_size_xy / div_size);
-    fm_assert(g.div_count() * div_size == (uint32_t)chunk_size_xy);
+    fm_assert(g.div_count() == chunk_size_xy / div_size);
+    fm_assert(g.div_count() * div_size == chunk_size_xy);
 }
 
 void test_pool_destruction_with_live_grids()
@@ -1043,21 +1041,21 @@ void test_bit_matches_every_position()
 
     const auto& pred = Search::without_critters();
     const auto dc = g.div_count();
-    constexpr int d = (int)div_size, half_tile = tile_size_xy/2;
+    constexpr int d = (int)div_size;
     constexpr auto hb = (float)bbox_size * .5f;
     // scenery_tile(): center - bbox_size/2, then + bbox_size.
     constexpr int m = tile_size_xy*at_x + obstacle_offset.x() - obstacle_size/2,
                   M = m + obstacle_size;
     // Only cells that can see the obstacle. A full div_count² sweep here is 512² cells.
-    constexpr int lo = (m - (int)bbox_size - 2*d + half_tile) / d,
-                  hi = (M + (int)bbox_size + 2*d + half_tile) / d;
+    constexpr int lo = (m - (int)bbox_size - 2*d + half_tile<int>) / d,
+                  hi = (M + (int)bbox_size + 2*d + half_tile<int>) / d;
 
     for (int j = lo; j <= hi; j++)
         for (int i = lo; i <= hi; i++)
         {
             bool passable = true;
-            for (int py = j*d - half_tile; py < (j+1)*d - half_tile && passable; py++)
-                for (int px = i*d - half_tile; px < (i+1)*d - half_tile && passable; px++)
+            for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && passable; py++)
+                for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && passable; px++)
                     passable = Search::is_passable_1(c, Vector2{(float)px - hb, (float)py - hb},
                                                         Vector2{(float)px + hb, (float)py + hb}, pred);
             const auto idx = Pass::Grid::get_bitmask_index((uint32_t)i, (uint32_t)j, dc);
@@ -1086,28 +1084,26 @@ void test_cell_spans_match_forward_map(uint32_t div_size)
 
     const auto dc = g.div_count();
     const int d = (int)div_size;
-    constexpr int half_tile = tile_size_xy/2;
 
     for (uint8_t ly = 0; ly < 3; ly++)
         for (uint8_t lx = 0; lx < 3; lx++)
-            for (int oy = -half_tile; oy < half_tile; oy++)
-                for (int ox = -half_tile; ox < half_tile; ox++)
+            for (int oy = -half_tile<int>; oy < half_tile<int>; oy++)
+                for (int ox = -half_tile<int>; ox < half_tile<int>; ox++)
                 {
                     const int px = lx*tile_size_xy + ox, py = ly*tile_size_xy + oy;
-                    const int i = (px + half_tile) / d, j = (py + half_tile) / d;
+                    const int i = (px + half_tile<int>) / d, j = (py + half_tile<int>) / d;
                     const auto idx = g.get_bitmask_index_from_coord(local_coords{lx, ly},
                                                                     Vector2b{(int8_t)ox, (int8_t)oy});
                     fm_assert(idx == Pass::Grid::get_bitmask_index((uint32_t)i, (uint32_t)j, dc));
-                    fm_assert(px >= i*d - half_tile && px < (i+1)*d - half_tile);
-                    fm_assert(py >= j*d - half_tile && py < (j+1)*d - half_tile);
+                    fm_assert(px >= i*d - half_tile<int> && px < (i+1)*d - half_tile<int>);
+                    fm_assert(py >= j*d - half_tile<int> && py < (j+1)*d - half_tile<int>);
                 }
 }
 
 uint32_t cell_x_of(const Pass::Grid& g, int px)
 {
-    constexpr int half_tile = tile_size_xy/2;
-    const int lx = (px + half_tile) / tile_size_xy, ox = px - lx*tile_size_xy;
-    fm_assert(lx >= 0 && lx < (int)TILE_MAX_DIM && ox >= -half_tile && ox < half_tile);
+    const int lx = (px + half_tile<int>) / tile_size_xy, ox = px - lx*tile_size_xy;
+    fm_assert(lx >= 0 && lx < (int)TILE_MAX_DIM && ox >= -half_tile<int> && ox < half_tile<int>);
     auto idx = g.get_bitmask_index_from_coord(local_coords{(uint8_t)lx, 0}, Vector2b{(int8_t)ox, 0});
     return idx % g.div_count();
 }
@@ -1130,13 +1126,12 @@ void test_div_anchor_matches_cell_span(uint32_t div_size, uint32_t bbox_size)
     fm_assert(pool.params().bbox_size == bbox_size);
 
     const int dc = (int)g.div_count(), d = (int)div_size;
-    constexpr int half_tile = tile_size_xy/2;
     const int below = d/2, above = d - 1 - d/2;
     const auto hb = (float)bbox_size * .5f;
 
     for (int i = 0; i < dc; i++)
     {
-        const int a = i*d + d/2 - half_tile;
+        const int a = i*d + d/2 - half_tile<int>;
         const auto r = g.get_coord_from_div((uint32_t)i, (uint32_t)i);
         fm_assert(r.min().x() == (float)a - hb && r.max().x() == (float)a + hb);
         fm_assert(r.min().y() == (float)a - hb && r.max().y() == (float)a + hb);
@@ -1204,19 +1199,18 @@ void test_bit_exact(const exact_config& cfg)
     const auto nbs = w.neighbors(COORD);
     const auto& pred = Search::without_critters();
     const int dc = (int)g.div_count(), d = (int)cfg.div_size;
-    constexpr int half_tile = tile_size_xy/2;
     const auto hb = (float)cfg.bbox_size * .5f;
 
     // scenery_tile(): center - bbox_size/2, then + bbox_size
-    const int mx = cfg.chunk_delta.x()*chunk_size_xy + cfg.at_x*tile_size_xy
+    const int mx = cfg.chunk_delta.x()*chunk_size<int> + cfg.at_x*tile_size_xy
                    + cfg.obstacle_offset.x() - cfg.obstacle_size/2,
-              my = cfg.chunk_delta.y()*chunk_size_xy + cfg.at_y*tile_size_xy
+              my = cfg.chunk_delta.y()*chunk_size<int> + cfg.at_y*tile_size_xy
                    + cfg.obstacle_offset.y() - cfg.obstacle_size/2;
     const int Mx = mx + cfg.obstacle_size, My = my + cfg.obstacle_size;
     // only the cells that can reach the obstacle; a full dc² sweep is 1024² at div_size 1
     const int pad = (int)cfg.bbox_size + 2*d;
-    const int i_lo = Math::max(0, (mx - pad + half_tile) / d), i_hi = Math::min(dc - 1, (Mx + pad + half_tile) / d),
-              j_lo = Math::max(0, (my - pad + half_tile) / d), j_hi = Math::min(dc - 1, (My + pad + half_tile) / d);
+    const int i_lo = Math::max(0, (mx - pad + half_tile<int>) / d), i_hi = Math::min(dc - 1, (Mx + pad + half_tile<int>) / d),
+              j_lo = Math::max(0, (my - pad + half_tile<int>) / d), j_hi = Math::min(dc - 1, (My + pad + half_tile<int>) / d);
     fm_assert(i_lo <= i_hi && j_lo <= j_hi);
 
     uint32_t cleared = 0;
@@ -1224,8 +1218,8 @@ void test_bit_exact(const exact_config& cfg)
         for (int i = i_lo; i <= i_hi; i++)
         {
             bool passable = true;
-            for (int py = j*d - half_tile; py < (j+1)*d - half_tile && passable; py++)
-                for (int px = i*d - half_tile; px < (i+1)*d - half_tile && passable; px++)
+            for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && passable; py++)
+                for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && passable; px++)
                     passable = Search::is_passable_(&c, nbs, Vector2{(float)px - hb, (float)py - hb},
                                                              Vector2{(float)px + hb, (float)py + hb}, pred);
             cleared += !passable;

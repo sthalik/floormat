@@ -69,7 +69,6 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
         Math::max(start.max().y(), end_max.y()),
     };
 
-    constexpr auto chunk_extent = (float)tile_size_xy * (float)TILE_MAX_DIM;
     const auto self_coord = c.coord();
 
     sweep_result res = { .has_collider = false, /*.pos = limits<float>::max*/ };
@@ -83,8 +82,8 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
         // the pred, so r is in self-local coords; lift back into c's frame.
         const auto sc = self.coord();
         const Vector2 off{
-            (float)(sc.x - self_coord.x) * chunk_extent,
-            (float)(sc.y - self_coord.y) * chunk_extent,
+            (float)(sc.x - self_coord.x) * chunk_size<float>,
+            (float)(sc.y - self_coord.y) * chunk_size<float>,
         };
         const Range2D r_in_c{ r.min() + off, r.max() + off };
         const auto sw = sweep_aabb_vs_aabb(start, displacement, r_in_c);

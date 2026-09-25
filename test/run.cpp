@@ -56,7 +56,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
     if (grace.distance_L1 != (uint32_t)-1) [[unlikely]]
-        fm_assert(grace.distance_L1 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
+        fm_assert(grace.distance_L1 <= (uint32_t)chunk_size<Vector2>.length());
 
     mark_all_modified(w);
 

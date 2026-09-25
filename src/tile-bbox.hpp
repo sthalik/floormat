@@ -10,9 +10,8 @@ template<typename T = float>
 constexpr VectorTypeFor<2, T> tile_start(size_t k)
 {
     using Vec2 = VectorTypeFor<2,T>;
-    constexpr auto half_tile = Vec2{tile_size_xy/2};
     const local_coords coord{k};
-    return Vec2(TILE_SIZE2) * Vec2(coord) - half_tile;
+    return Vec2(TILE_SIZE2) * Vec2(coord) - half_tile<Vec2>;
 }
 
 constexpr Pair<Vector2i, Vector2i> scenery_tile(local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)

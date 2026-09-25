@@ -198,7 +198,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nfr
 {
     while (nframes > 0)
     {
-        constexpr uint32_t max = TILE_MAX_DIM * tile_size_xy / 2;
+        constexpr uint32_t max = chunk_size_xy / 2;
         auto cur = Math::min(max, nframes);
         if (update_movement_body(i, C, info, cur, new_r, new_r) != step_result::blocked)
         {

@@ -22,9 +22,9 @@ struct scene
 // scene_raycast's sweep, longest first: a quarter-chunk sweep is a tight scribble round the
 // character and reads badly as the opening one. The pin field in editor/world-bench.cpp has to
 // cover the longest of these and nothing else ties the two files together.
-constexpr inline int raycast_radii[] = { 5*(int)chunk_size_xy/4, (int)chunk_size_xy,
-                                         3*(int)chunk_size_xy/4, (int)chunk_size_xy/2,
-                                         (int)chunk_size_xy/4 };
+constexpr inline int raycast_radii[] = { 5*chunk_size<int>/4, chunk_size<int>,
+                                         3*chunk_size<int>/4, chunk_size<int>/2,
+                                         chunk_size<int>/4 };
 // Folded rather than indexed, so reordering the sweep cannot silently shrink the pin field.
 constexpr inline int raycast_radius_max = []
 {

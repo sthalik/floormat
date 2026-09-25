@@ -87,7 +87,6 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
     arrayResize(next_wall_fragments, 0);
     arrayReserve(next_wall_fragments, 16);
 
-    constexpr auto half_tile = tile_size_xy*.5f;
     const unsigned XAxis = !IsWest ? 0 : 1;
 
     auto offset = TILE_SIZE2 * Vector2(tile_pos);
@@ -95,8 +94,8 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
     auto [bb_along_min, bb_along_max] = [&] -> Pair<float, float> {
         switch (region)
         {
-        case HoleRegion::Wall:   return { -half_tile,         half_tile  };
-        case HoleRegion::Corner: return { -half_tile - depth, -half_tile };
+        case HoleRegion::Wall:   return { -half_tile<float>,         half_tile<float>  };
+        case HoleRegion::Corner: return { -half_tile<float> - depth, -half_tile<float> };
         }
         return {};
     }();
@@ -159,8 +158,8 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
         Vector3 w_min{NoInit}, w_max{NoInit};
         w_min[XAxis] = w.min().x();
         w_max[XAxis] = w.max().x();
-        w_min[1-XAxis] = -half_tile;
-        w_max[1-XAxis] = -half_tile;
+        w_min[1-XAxis] = -half_tile<float>;
+        w_max[1-XAxis] = -half_tile<float>;
         w_min[2] = w.min().y();
         w_max[2] = w.max().y();
 
@@ -235,7 +234,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
     const auto Depth = A.info().depth;
     const auto Depthʹ = (float)(int)Depth;
     const point tile_center {c.coord(), pos, {}};
-    constexpr auto half = iTILE_SIZE2/2;
+    constexpr auto half = half_tile<Vector2i>;
     constexpr float X = (float)half.x(), Y = (float)half.y(), Z = TILE_SIZE.z();
 
     if constexpr(G == Group_::side)

@@ -46,9 +46,8 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             auto C = a.ensure_player_character(m.world());
             fm_assert(C->is_dynamic());
 
-            constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
             auto pt0 = C->position();
-            auto vec = Math::abs(*ptʹ - pt0) * 2 + chunk_size * 1;
+            auto vec = Math::abs(*ptʹ - pt0) * 2 + chunk_size<Vector2i> * 1;
             auto dist = (uint32_t)vec.length();
             auto bb = Vector2ui{C->bbox_size};
             if (e.button == mouse_button_middle)

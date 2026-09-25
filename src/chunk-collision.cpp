@@ -49,11 +49,10 @@ template<bool IsNeighbor>
 bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
-    constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
     constexpr auto max_bbox_size = Vector2i{0x100};
     // same slack on both sides as the chunk_bounds cull in search.cpp
-    constexpr auto chunk_min = -iTILE_SIZE2/2 - max_bbox_size,
-                   chunk_max = TILE_MAX_DIM * iTILE_SIZE2 - iTILE_SIZE2 / 2 + max_bbox_size;
+    constexpr auto chunk_min = -half_tile<Vector2i> - max_bbox_size,
+                   chunk_max = chunk_size<Vector2i> - half_tile<Vector2i> + max_bbox_size;
     for (const bptr<object>& eʹʹ : c.objects())
     {
         auto& eʹ = *eʹʹ;
@@ -67,7 +66,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         auto center = Vector2i(e.offset) + Vector2i(e.bbox_offset) + Vector2i(e.coord.local()) * TILE_SIZE2;
         if constexpr(IsNeighbor)
         {
-            const auto off = Vector2i(chunk_offset)*chunk_size;
+            const auto off = Vector2i(chunk_offset)*chunk_size<Vector2i>;
             center += off;
         }
         const auto min = center - Vector2i(e.bbox_size/2), max = min + Vector2i(e.bbox_size);
