@@ -513,6 +513,34 @@ void test_chunk_pass_gen_monotonic_after_move_assign()
     fm_assert(c.pass_gen() > old);
 }
 
+void test_grids_after_world_move_ctor()
+{
+    auto a = world();
+    {
+        auto& c = a[COORD];
+        add_ground_all(c);
+        rebuild_passability(c);
+        tick(a, a.raycast_pass_pool());
+        a.raycast_pass_pool()[c].build_if_stale(Search::without_critters());
+    }
+    auto b = world(move(a));
+    auto& pool = b.raycast_pass_pool();
+    tick(b, pool);
+    Pass::Grid g = pool[b[COORD]];
+    g.build_if_stale(Search::without_critters());
+    const auto dc = g.div_count();
+    fm_assert(count_passable(g) == dc * dc);
+}
+
+void test_world_move_ctor_from_moved_from()
+{
+    auto a = world();
+    make_chunk_row(a, 3);
+    auto b = world(move(a));
+    auto c = world(move(a));
+    fm_assert(b.contains(chunk_coords_{2, 0, 0}));
+}
+
 void test_frame_counter_ticks_independently(uint32_t div_size)
 {
     auto w = world();
@@ -1311,6 +1339,8 @@ void test_grid()
     test_chunk_pass_gen_unique_after_collect();
     test_chunk_pass_gen_monotonic_after_move_ctor();
     test_chunk_pass_gen_monotonic_after_move_assign();
+    test_grids_after_world_move_ctor();
+    test_world_move_ctor_from_moved_from();
     for (const auto ds : { 1u, 2u, 4u, 16u, 64u })
     {
         test_cell_spans_match_forward_map(ds);
