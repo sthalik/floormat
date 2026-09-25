@@ -1,9 +1,25 @@
 #include "app.hpp"
 #include "src/point.inl"
+#include "compat/floor-divmod.hpp"
 
 namespace floormat {
 
 namespace {
+
+using P2 = Pair<int, int>;
+static_assert(floor_divmod<1024>(-1)    == P2{-1, 1023});
+static_assert(floor_divmod<1024>(-1024) == P2{-1, 0});
+static_assert(floor_divmod<1024>(-1025) == P2{-2, 1023});
+static_assert(floor_divmod<1024>(1023)  == P2{0, 1023});
+static_assert(floor_divmod<1024>(1024)  == P2{1, 0});
+static_assert(floor_divmod<192>(-1)     == P2{-1, 191});
+static_assert(floor_divmod<192>(-192)   == P2{-1, 0});
+static_assert(floor_divmod<192>(-193)   == P2{-2, 191});
+static_assert(floor_divmod<192>(191)    == P2{0, 191});
+static_assert(floor_divmod<192>(192)    == P2{1, 0});
+
+static_assert(point{Vector3i{-33, 991, 0}} == point{{-1, 0, 0}, {15, 15}, {31, 31}});
+static_assert(point{Vector3i{-32, 992, 0}} == point{{0, 1, 0}, {0, 0}, {-32, -32}});
 
 point norm(const point& pt, Vector2i delta)
 {

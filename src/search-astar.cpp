@@ -7,6 +7,7 @@
 #include "world.hpp"
 #include "point.inl"
 #include "compat/array-size.hpp"
+#include "compat/floor-divmod.hpp"
 #include "compat/format.hpp"
 #include "compat/function2.hpp"
 #include <cstdio>
@@ -151,16 +152,10 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
     const Vector2i lo_pix = Math::min(a_pix, b_pix);
     const Vector2i hi_pix = Math::max(a_pix, b_pix);
 
-    constexpr auto floor_div = [](int s) constexpr -> int
-    {
-        const int q = s / div;
-        return (s < 0 && s % div) ? q - 1 : q;
-    };
-
-    const int idx_x_lo = floor_div(lo_pix.x() + half_tile<int>);
-    const int idx_x_hi = floor_div(hi_pix.x() + half_tile<int>);
-    const int idx_y_lo = floor_div(lo_pix.y() + half_tile<int>);
-    const int idx_y_hi = floor_div(hi_pix.y() + half_tile<int>);
+    const int idx_x_lo = floor_div<div>(lo_pix.x() + half_tile<int>);
+    const int idx_x_hi = floor_div<div>(hi_pix.x() + half_tile<int>);
+    const int idx_y_lo = floor_div<div>(lo_pix.y() + half_tile<int>);
+    const int idx_y_hi = floor_div<div>(hi_pix.y() + half_tile<int>);
 
     for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
         for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
