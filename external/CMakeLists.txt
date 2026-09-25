@@ -371,6 +371,19 @@ target_compile_definitions(floormat-hwy PUBLIC
     HWY_DISABLE_PCLMUL_AES
     "HWY_DISABLED_TARGETS=(HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
 )
+# VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
+fm_no_fast_math(FINITE_MATH_ONLY SOURCE
+    highway/hwy/contrib/sort/vqsort_f32a.cc highway/hwy/contrib/sort/vqsort_f32d.cc
+    highway/hwy/contrib/sort/vqsort_f64a.cc highway/hwy/contrib/sort/vqsort_f64d.cc
+)
+# Undoes a global -mno-vzeroupper. Without it VQSort's AVX2/AVX3 code returns with dirty upper
+# halves, and later non-VEX SSE code pays a false dependency or a state-transition stall.
+# A universal build compiles every CMAKE_OSX_ARCHITECTURES entry in one clang call.
+if(APPLE AND "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+    target_compile_options(floormat-hwy PRIVATE -Xarch_x86_64 -mvzeroupper)
+elseif(NOT MSVC AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i[3-6]86)$")
+    target_compile_options(floormat-hwy PRIVATE -mvzeroupper)
+endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
