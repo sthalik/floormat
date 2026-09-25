@@ -225,7 +225,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     auto& c = npc->chunk();
     c.sort_objects();
     // kill_object() would tear down a script these worlds never initialized
-    c.remove_object(npc->index());
+    c.remove_object(*npc, npc->index());
     npc.destroy();
     return ret;
 }

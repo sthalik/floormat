@@ -12,8 +12,6 @@
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
-#include <algorithm>
-#include <iterator>
 #include <cr/GrowableArray.h>
 #include <cr/Pair.h>
 
@@ -60,14 +58,7 @@ object::~object() noexcept
 
 size_t object::index() const
 {
-    auto& c = chunk();
-    fm_assert(c._objects_sorted);
-    const auto fn = [id = id](const auto& a, const auto&) { return a->id < id; };
-    auto& es = c._objects;
-    auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);
-    fm_assert(it != es.cend());
-    fm_assert((*it)->id == id);
-    return (size_t)std::distance(es.cbegin(), it);
+    return chunk().objects().index_of(*this);
 }
 
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
@@ -147,9 +138,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
         fm_abort("wrong rotation %d for %s/%s!", (int)new_r, obj, anim);
     }
 
-    fm_assert(i < c->_objects.size());
-    const auto eʹ = c->_objects[i];
-    fm_assert(&*eʹ == this);
+    const auto eʹ = c->objects().ptr(*this, i);
 
     if (coord_ == coord && offset_ == offset && new_r == r)
         return;
@@ -178,7 +167,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     else
     {
         auto& w = *c->_world;
-        c->remove_object(i);
+        c->remove_object(*this, i);
         auto& c2 = w[coord_.chunk3()];
         non_const(c) = &c2;
         non_const(coord) = coord_;

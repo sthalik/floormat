@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "src/world.hpp"
-#include "src/chunk-iter.hpp"
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
@@ -92,7 +91,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         fm_assert(a1 == b1);
     }
 
-    for (auto i = 0uz; i < a.objects().size(); i++)
+    for (auto i = 0u; i < a.objects().size(); i++)
     {
         const auto& ae = a.objects()[i];
         const auto& be = b.objects()[i];
