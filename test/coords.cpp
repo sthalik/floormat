@@ -17,6 +17,7 @@ static_assert(floor_divmod<192>(-192)   == P2{-1, 0});
 static_assert(floor_divmod<192>(-193)   == P2{-2, 191});
 static_assert(floor_divmod<192>(191)    == P2{0, 191});
 static_assert(floor_divmod<192>(192)    == P2{1, 0});
+static_assert(floor_divmod<64>(Vector2i{-1, 64}) == Pair<Vector2i, Vector2i>{{-1, 1}, {63, 0}});
 
 static_assert(point{Vector3i{-33, 991, 0}} == point{{-1, 0, 0}, {15, 15}, {31, 31}});
 static_assert(point{Vector3i{-32, 992, 0}} == point{{0, 1, 0}, {0, 0}, {-32, -32}});

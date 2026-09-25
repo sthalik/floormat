@@ -28,22 +28,10 @@ point operator+(Vector2i delta, point pt) { return point::normalize_coords(pt, d
 point operator-(point pt, Vector2i delta) { return point::normalize_coords(pt, -delta); }
 point operator-(Vector2i delta, point pt) { return point::normalize_coords(pt, -delta); }
 
-namespace {
-
-constexpr Pair<int, int8_t> normalize_coord(int8_t cur, int new_off)
-{
-    const auto [t, r] = floor_divmod<tile_size_xy>(cur + new_off + half_tile<int>);
-    return { t, (int8_t)(r - half_tile<int>) };
-}
-
-} // namespace
-
 point point::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
 {
-    auto [cx, ox] = normalize_coord(cur.x(), new_off.x());
-    auto [cy, oy] = normalize_coord(cur.y(), new_off.y());
-    coord += Vector2i(cx, cy);
-    return { coord, { ox, oy }, };
+    const auto [tiles, r] = floor_divmod<tile_size_xy>(Vector2i(cur) + new_off + half_tile<Vector2i>);
+    return { coord + tiles, Vector2b(r - half_tile<Vector2i>) };
 }
 
 point point::normalize_coords(point pt, Vector2i delta)

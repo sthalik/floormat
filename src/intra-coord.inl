@@ -73,11 +73,9 @@ constexpr basic_intra_coord<TYPE>& basic_intra_coord<TYPE>::operator-=(Vector2i 
 template<intra_coord_base::Type TYPE>
 constexpr Vector2i basic_intra_coord<TYPE>::operator+=(Vector2i delta) requires (TYPE == Wrapping)
 {
-    const auto v = _v + delta;
-    const auto [cx, x] = floor_divmod<chunk_size<int>>(v.x());
-    const auto [cy, y] = floor_divmod<chunk_size<int>>(v.y());
-    _v = {x, y};
-    return {cx, cy};
+    const auto [chunks, pos] = floor_divmod<chunk_size<int>>(_v + delta);
+    _v = pos;
+    return chunks;
 }
 
 template<intra_coord_base::Type TYPE>
