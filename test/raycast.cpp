@@ -157,6 +157,28 @@ void Test::test_raycast()
         fm_assert(!res.success);
         fm_assert(res.collider.id == C->id);
     }
+    {
+        auto w2 = world{};
+        constexpr auto ch = chunk_coords_{8, 12, 0};
+
+        auto p = critter_proto{};
+        p.bbox_size = Vector2ub{42, 26};
+        auto C = w2.make_object<critter>(w2.make_id(), {ch, {8, 5}}, p);
+
+        auto diag = rc::raycast_diag_s{};
+        auto fwd = raycast_with_diag(diag, w2, point{ch, {2, 5}, {}}, point{ch, {13, 5}, {}}, 0);
+        fm_assert(!fwd.success);
+        fm_assert(fwd.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
+
+        auto back = raycast_with_diag(diag, w2, point{ch, {13, 5}, {}}, point{ch, {2, 5}, {}}, 0);
+        fm_assert(!back.success);
+        fm_assert(back.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 298.5f) < 1);
+
+        fm_assert(raycast(w2, point{ch, {2, 5}, {0,  14}}, point{ch, {13, 5}, {0,  14}}, 0).success);
+        fm_assert(raycast(w2, point{ch, {2, 5}, {0, -14}}, point{ch, {13, 5}, {0, -14}}, 0).success);
+    }
 }
 
 } // namespace floormat
