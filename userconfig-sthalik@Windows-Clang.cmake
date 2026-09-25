@@ -46,7 +46,7 @@ else()
         -fstrict-vtable-pointers
         -fstrict-enums
         -fnew-infallible
-        -fno-threadsafe-statics
+        #-fno-threadsafe-statics
 
         -DNDEBUG
     )
