@@ -81,15 +81,7 @@ Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
 
 point main_impl::pixel_to_point(Vector2d pixel, int8_t z_level) const noexcept
 {
-    const auto tileʹ = pixel_to_tile_(pixel);
-    const auto tileʹʹ = Math::floor(tileʹ);
-    const auto tile = global_coords{(int)tileʹʹ.x(), (int)tileʹʹ.y(), z_level};
-    const auto subpixelʹ = Math::fmod(Vector2(tileʹ), 1.f);
-    const auto subpixelʹ_neg = Vector2{Vector2i(tile.chunk()) < Vector2i{}};
-    auto subpixel = TILE_SIZE2 * (subpixelʹ + subpixelʹ_neg);
-    subpixel -= half_tile<Vector2>;
-    subpixel = Math::clamp(Math::round(subpixel), -half_tile<Vector2>, half_tile<Vector2>-Vector2{1.f});
-    return point{ tile, Vector2b{subpixel} };
+    return point::from_fractional_tile(pixel_to_tile_(pixel), z_level);
 }
 
 ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept

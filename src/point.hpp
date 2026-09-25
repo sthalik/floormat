@@ -42,6 +42,7 @@ struct point
 
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     static point normalize_coords(point pt, Vector2i delta);
+    static point from_fractional_tile(Vector2d tile, int8_t z_level);
 
     friend point operator+(point pt, Vector2i delta);
     friend point operator+(Vector2i delta, point pt);
