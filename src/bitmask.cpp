@@ -4,21 +4,22 @@
 #include <cr/BitArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
-#ifdef __SSSE3__
+// MSVC never defines __SSSE3__, only __AVX__ and up.
+#if defined __SSSE3__ || defined __AVX__
+#define FM_BITMASK_SSSE3
 #include <tmmintrin.h>
 #endif
 
 namespace floormat {
 
 using u8 = uint8_t;
-using u16 = uint16_t;
 using u32 = uint32_t;
 
 namespace {
 
 constexpr uint8_t amin = 32;
 
-#ifdef __SSSE3__
+#ifdef FM_BITMASK_SSSE3
 
 void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 {
@@ -35,13 +36,14 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 
         for (; i + 16 <= W; i += 16)
         {
-            const auto* q = (const __m128i_u*)(row + (size_t)i*4);
+            // MSVC has no __m128i_u, and -Wcast-align rejects a direct cast from u8*.
+            const auto* q = (const __m128i*)(const void*)(row + (size_t)i*4);
             auto a0 = _mm_shuffle_epi8(_mm_loadu_si128(q + 0), sel);
             auto a1 = _mm_shuffle_epi8(_mm_loadu_si128(q + 1), sel);
             auto a2 = _mm_shuffle_epi8(_mm_loadu_si128(q + 2), sel);
             auto a3 = _mm_shuffle_epi8(_mm_loadu_si128(q + 3), sel);
             auto al = _mm_unpacklo_epi64(_mm_unpacklo_epi32(a0, a1), _mm_unpacklo_epi32(a2, a3));
-            auto m = (u32)(u16)_mm_movemask_epi8(_mm_cmpgt_epi8(_mm_xor_si128(al, sign), thr));
+            auto m = (u32)_mm_movemask_epi8(_mm_cmpgt_epi8(_mm_xor_si128(al, sign), thr));
             acc |= m << have;
             have += 16;
             do {
