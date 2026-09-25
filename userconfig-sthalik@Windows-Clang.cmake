@@ -32,11 +32,10 @@ else()
         #-ffast-math
         #-fno-unsafe-math-optimizations
         -fdenormal-fp-math=preserve-sign
-        -ffp-contract=fast
-        -fhonor-infinities -fno-honor-nans
+        -ffp-model=aggressive -ffp-contract=fast
+        -fno-honor-infinities -fno-honor-nans
         -fno-math-errno -fno-signed-zeros -fno-trapping-math -fno-rounding-math
-        -freciprocal-math -fassociative-math
-        -fapprox-func
+        -freciprocal-math -fassociative-math -fapprox-func
         -fcomplex-arithmetic=basic -Wno-overriding-complex-range
     )
     add_link_options(-mdaz-ftz)
