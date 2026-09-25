@@ -28,7 +28,7 @@ struct cache
 
     size_t get_chunk_index(Vector2i chunk) const;
     static size_t get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord);
-    size_t get_tile_index(local_coords local, Vector2b offset) const;
+    size_t get_tile_index(intra_coord pos) const;
     static Vector2ui get_size_to_allocate(uint32_t max_dist);
 
     void allocate(point from, uint32_t max_dist);

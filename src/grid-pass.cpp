@@ -1,5 +1,6 @@
 #include "grid-pass.hpp"
 #include "grid.inl"
+#include "intra-coord.hpp"
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
@@ -132,7 +133,7 @@ struct PassGrid : GridBase
     void reset_for_reuse(chunk& ch, Params new_params);
 
     static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
-    uint32_t get_bitmask_index_from_coord(local_coords local, Vector2b offset) const;
+    uint32_t get_bitmask_index_from_coord(intra_coord pos) const;
     Range2D get_coord_from_div(uint32_t x, uint32_t y) const;
     bool is_all_empty() const noexcept { return all_empty; }
 
@@ -144,10 +145,10 @@ uint32_t PassGrid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
     return GridBase::pack_bit_index(x, y, div_count);
 }
 
-uint32_t PassGrid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
+uint32_t PassGrid::get_bitmask_index_from_coord(intra_coord pos) const
 {
     const auto div_count = chunk_size_xy / params.div_size;
-    return GridBase::pack_bit_index_from_coord(local, offset, params.div_size, div_count);
+    return GridBase::pack_bit_index_from_coord(pos, params.div_size, div_count);
 }
 
 Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
@@ -392,10 +393,10 @@ uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
     return detail::grid::PassGrid::get_bitmask_index(x, y, div_count);
 }
 
-uint32_t Grid::get_bitmask_index_from_coord(local_coords local, Vector2b offset) const
+uint32_t Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
     detail::grid::check_frame_sync(pool, grid);
-    return grid->get_bitmask_index_from_coord(local, offset);
+    return grid->get_bitmask_index_from_coord(pos);
 }
 
 Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const

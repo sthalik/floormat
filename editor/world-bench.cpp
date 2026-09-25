@@ -11,6 +11,7 @@
 #include "src/tile-image.hpp"
 #include "src/grid.hpp"
 #include "src/point.inl"
+#include "src/intra-coord.inl"
 #include "src/timer.hpp"
 #include "src/nanosecond.hpp"
 #include "compat/array-size.hpp"
@@ -1195,9 +1196,7 @@ void app::add_grid_pin(uint32_t n)
 {
     auto& w = M->world();
     const auto h = hash2(n, grid_pin_seed);
-    const Vector2i at{(int)(h % chunk_size_xy) - half_tile<int>,
-                      (int)(h / chunk_size_xy % chunk_size_xy) - half_tile<int>};
-    const auto pt = point::normalize_coords(point{}, at);
+    const auto pt = intra_coord{{(int)(h % chunk_size_xy), (int)(h / chunk_size_xy % chunk_size_xy)}}.to_point({});
     auto p = pin_proto(grid_pin_size);
     p.offset = pt.offset();
     w.make_scenery(w.make_id(), pt.coord(), move(p));

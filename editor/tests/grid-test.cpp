@@ -5,6 +5,7 @@
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
 #include "src/point.hpp"
+#include "src/intra-coord.inl"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
@@ -70,7 +71,6 @@ void grid_test::draw_overlay(app& a)
     constexpr float dot_radius = 3;
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1});
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
-    auto start = point{result.c, {0, 0}, {0, 0}};
 
     const auto dc = (int)result.div_count;
     const auto ds = (int)result.div_size;
@@ -80,8 +80,7 @@ void grid_test::draw_overlay(app& a)
             auto index = (uint32_t)j * (uint32_t)dc + (uint32_t)i;
             if (result.bits[index])
                 continue;
-            auto pos = -half_tile<Vector2i> + ds * Vector2i{i, j} + Vector2i{ds/2};
-            auto pt = point::normalize_coords(start, pos);
+            auto pt = intra_coord{ds * Vector2i{i, j} + Vector2i{ds/2}}.to_point(result.c);
             auto px = a.point_to_pixel(pt);
             draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);
         }
