@@ -180,8 +180,7 @@ void app::draw_collision_boxes()
             const with_shifted_camera_offset o{shader, c_pos};
             if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
             {
-                constexpr auto chunk_size = TILE_SIZE2 * TILE_MAX_DIM;
-                auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size;
+                auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size<Vector2>;
                 auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
                 auto t1 = t0+Vector2(1e-4f);
                 const auto* rtree = c.rtree();

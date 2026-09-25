@@ -60,9 +60,8 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
         auto C = a.ensure_player_character(w);
         if (auto pt = a.cursor_state().point())
         {
-            constexpr auto chunk_size = iTILE_SIZE2 * TILE_MAX_DIM;
             auto pt0 = C->position();
-            auto vec = Math::abs((pt->coord() - pt0.coord())) * iTILE_SIZE2 * 2 + chunk_size * 1;
+            auto vec = Math::abs((pt->coord() - pt0.coord())) * iTILE_SIZE2 * 2 + chunk_size<Vector2i> * 1;
             auto dist = (uint32_t)vec.length();
 
             has_pending = true;

@@ -95,7 +95,7 @@ constexpr bool test_offsets()
 constexpr bool test_offsets2()
 {
     using enum rotation;
-    constexpr auto tile_start = iTILE_SIZE2/-2;
+    constexpr auto tile_start = -half_tile<Vector2i>;
     constexpr auto sz = Vector2i(8, 16);
 
     {

@@ -10,10 +10,6 @@
 
 namespace floormat::Search {
 
-namespace {
-constexpr auto chunk_size_xy = (uint32_t)tile_size_xy * (uint32_t)TILE_MAX_DIM;
-} // namespace
-
 cache::cache(uint32_t div_size)
     : div_size_{div_size},
       div_count_{chunk_size_xy / div_size}
@@ -26,9 +22,8 @@ cache::~cache() noexcept = default;
 
 Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
 {
-    constexpr auto chunk_size = Vector2ui{chunk_size_xy};
-    constexpr auto rounding   = chunk_size - Vector2ui(1);
-    auto nchunks = (Vector2ui(max_dist) + rounding) / chunk_size;
+    constexpr auto rounding = chunk_size<Vector2ui> - Vector2ui(1);
+    auto nchunks = (Vector2ui(max_dist) + rounding) / chunk_size<Vector2ui>;
     return nchunks + Vector2ui(3);
 }
 
@@ -66,11 +61,10 @@ size_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(sta
 
 size_t cache::get_tile_index(local_coords local, Vector2b offset_) const
 {
-    constexpr auto half_tile = (int32_t)tile_size_xy / 2;
     Vector2i posʹ;
     posʹ += Vector2i(local) * (int32_t)tile_size_xy;
     posʹ += Vector2i(offset_);
-    posʹ += Vector2i(half_tile);
+    posʹ += half_tile<Vector2i>;
     fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))

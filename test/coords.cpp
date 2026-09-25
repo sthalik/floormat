@@ -28,9 +28,9 @@ void test_normalize_point()
 
 void test_point()
 {
-    constexpr auto c = tile_size_xy * (int32_t)TILE_MAX_DIM;
+    constexpr auto c = chunk_size<int32_t>;
     constexpr auto t = tile_size_xy;
-    constexpr auto h = tile_size_xy/2;
+    constexpr auto h = half_tile<int32_t>;
 
     constexpr auto v1 = Vector3i{-h, -h, 0};
     constexpr auto p1 = point{v1};
@@ -40,7 +40,7 @@ void test_point()
     constexpr auto p2 = point{v2};
     fm_assert_equal(v2, Vector3i{p2});
 
-    constexpr auto v3 = Vector3i{c * 128 + t * ((int32_t)TILE_MAX_DIM-1) + tile_size_xy/2 - 1, c * 42 + t * 3 - h/2, tile_size_z * 10};
+    constexpr auto v3 = Vector3i{c * 128 + t * ((int32_t)TILE_MAX_DIM-1) + h - 1, c * 42 + t * 3 - h/2, tile_size_z * 10};
     constexpr auto p3 = point{v3};
     fm_assert_equal(v3, Vector3i{p3});
 

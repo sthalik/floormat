@@ -139,7 +139,7 @@ void cover_test::draw_overlay(app& a)
         const uint32_t max_d = chunk_size_xy / pool.params().div_size;
 
         const auto chunk_nw = point{result.from.chunk3(), local_coords{0, 0},
-                                    Vector2b{(int8_t)(-tile_size_xy/2), (int8_t)(-tile_size_xy/2)}};
+                                    -half_tile<Vector2b>};
         const auto p00 = a.point_to_pixel(chunk_nw);
         const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
         const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});
