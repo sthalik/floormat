@@ -24,6 +24,7 @@ constexpr inline int32_t tile_size_z = 192;
 constexpr inline uint32_t chunk_size_xy = chunk_size<uint32_t>;
 
 constexpr inline int8_t  chunk_z_min = -1, chunk_z_max = 14;
+constexpr inline int32_t chunk_z_count = chunk_z_max - chunk_z_min + 1;
 
 constexpr inline uint32_t chunk_coord_bits = 16;
 constexpr inline int32_t  chunk_xy_max  =  (1 << (chunk_coord_bits-1)) - 1; // 32767 = INT16_MAX
