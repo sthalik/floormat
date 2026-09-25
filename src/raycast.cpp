@@ -91,6 +91,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     using Math::abs;
     using Math::floor;
+    using Math::max;
+    using Math::copysign;
 
     constexpr auto inv_eps = 1e6f, eps = 1/inv_eps;
     constexpr auto fuzz2 = 0.5f;
@@ -117,7 +119,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         return result;
     }
     auto dir = V * (1.f/ray_len);
-    auto dir_inv_norm = Vector2{1} / dir;
+    // A zero component would give inf, and release builds assume finite math.
+    // 1/1e-20 still fits after the slab test multiplies it by a distance.
+    auto dir_inv_norm = Vector2{1} / copysign(max(abs(dir), Vector2{1e-20f}), dir);
     auto signs = ray_aabb_signs(dir_inv_norm);
 
     result = {

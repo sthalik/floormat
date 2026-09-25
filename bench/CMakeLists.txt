@@ -19,9 +19,6 @@ else()
     target_link_libraries(${self}_o PUBLIC benchmark)
 endif()
 
-# Same ±inf ray direction as src/raycast.cpp.
-fm_no_fast_math(FINITE_MATH_ONLY SOURCE raycast.cpp)
-
 target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat floormat-hash)
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
