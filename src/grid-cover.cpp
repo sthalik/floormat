@@ -180,7 +180,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         const float t_delta_x = ax > 1e-6f ? (float)div_size / ax : FLT_MAX;
         const float t_delta_y = ay > 1e-6f ? (float)div_size / ay : FLT_MAX;
 
-        enum step_kind { sk_x, sk_y, sk_diag };
+        enum step_kind : uint8_t { sk_x, sk_y, sk_diag };
         step_kind sk;
         float step_t;
         if (sx == 0)         { sk = sk_y;    step_t = t_delta_y; }
