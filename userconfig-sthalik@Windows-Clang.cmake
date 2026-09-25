@@ -48,7 +48,7 @@ else()
         -fnew-infallible
         #-fno-threadsafe-statics
 
-        -DNDEBUG
+        #-DNDEBUG
     )
     # Post-link passes. lld only sees -mllvm when it comes through -Wl.
     add_link_options(
