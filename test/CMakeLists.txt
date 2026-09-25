@@ -15,10 +15,6 @@ target_link_libraries(${self}_o PUBLIC
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize floormat floormat-hash)
 
-if (FLOORMAT_ASAN)
-    set_target_properties(${self} PROPERTIES OUTPUT_NAME "floormat-test-asan")
-endif()
-
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
 
