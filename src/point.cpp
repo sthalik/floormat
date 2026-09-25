@@ -73,6 +73,15 @@ point point::normalize_coords(point pt, Vector2i delta)
     return normalize_coords(pt.coord(), pt.offset(), delta);
 }
 
+point point::from_fractional_tile(Vector2d tileʹ, int8_t z_level)
+{
+    const auto tileʹʹ = Math::floor(tileʹ);
+    const auto tile = global_coords{(int)tileʹʹ.x(), (int)tileʹʹ.y(), z_level};
+    auto subpixel = tile_size<Vector2d> * (tileʹ - tileʹʹ) - half_tile<Vector2d>;
+    subpixel = Math::clamp(Math::round(subpixel), -half_tile<Vector2d>, half_tile<Vector2d>-Vector2d{1});
+    return point{ tile, Vector2b{subpixel} };
+}
+
 
 namespace {
 namespace krap {
