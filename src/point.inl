@@ -7,18 +7,15 @@ namespace floormat {
 
 constexpr point::point(Vector3i p)
 {
-    constexpr int chunk_pixels = tile_size_xy * (int)TILE_MAX_DIM;
     Vector2i c, t;
-
-    constexpr int half_tile = tile_size_xy / 2;
 
     for (auto i = 0u; i < 2; i++)
     {
-        auto v = p[i] + half_tile;
-        c[i] = v / chunk_pixels - (v % chunk_pixels < 0);
-        auto r = v - c[i] * chunk_pixels;
+        auto v = p[i] + half_tile<int>;
+        c[i] = v / chunk_size<int> - (v % chunk_size<int> < 0);
+        auto r = v - c[i] * chunk_size<int>;
         t[i] = r / tile_size_xy;
-        _offset[i] = (int8_t)(r - t[i] * tile_size_xy - half_tile);
+        _offset[i] = (int8_t)(r - t[i] * tile_size_xy - half_tile<int>);
     }
 
     cz = (int8_t)(p.z() / tile_size_z - (p.z() % tile_size_z < 0));
@@ -60,7 +57,7 @@ constexpr Vector2i operator-(const point& p1, const point& p2)
 {
     fm_debug3_assert(p1.cz == p2.cz);
     Vector2i sum;
-    sum += iTILE_SIZE2 * TILE_MAX_DIM * (Vector2i(p1.cx, p1.cy) - Vector2i(p2.cx, p2.cy));
+    sum += chunk_size<Vector2i> * (Vector2i(p1.cx, p1.cy) - Vector2i(p2.cx, p2.cy));
     sum += iTILE_SIZE2 * (Vector2i(p1.tile.x, p1.tile.y) - Vector2i(p2.tile.x, p2.tile.y));
     sum += Vector2i(p1._offset) - Vector2i(p2._offset);
     return sum;
@@ -73,7 +70,7 @@ constexpr point::operator Vector3i() const
 
     for (auto i = 0u; i < 2; i++)
     {
-        val[i] += tile_size_xy * (int)TILE_MAX_DIM * c[i];
+        val[i] += chunk_size<int> * c[i];
         val[i] += tile_size_xy * t[i];
         val[i] += _offset[i];
     }

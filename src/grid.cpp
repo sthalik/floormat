@@ -93,11 +93,10 @@ uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)
 
 uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset, uint32_t div_size, uint32_t div_count)
 {
-    constexpr auto half_tile = tile_size_xy/2;
     Vector2i posʹ;
     posʹ += Vector2i(local) * tile_size_xy;
     posʹ += Vector2i(offset);
-    posʹ += Vector2i(half_tile);
+    posʹ += half_tile<Vector2i>;
     fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos{NoInit}; (void)pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
@@ -111,15 +110,14 @@ uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset
 
 Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size)
 {
-    constexpr auto half_tile = Vector2i{tile_size_xy/2};
     const auto bbox = Vector2(bbox_size);
     const auto half_bbox = bbox*.5f;
     auto pos = Vector2i{(int32_t)x, (int32_t)y};
     pos *= Vector2i{(int32_t)div_size};
     pos += Vector2i(div_size / 2);
-    pos -= half_tile;
-    fm_debug_assert(pos >= -half_tile);
-    fm_debug_assert(pos < Vector2i((int32_t)chunk_size_xy) - half_tile);
+    pos -= half_tile<Vector2i>;
+    fm_debug_assert(pos >= -half_tile<Vector2i>);
+    fm_debug_assert(pos < chunk_size<Vector2i> - half_tile<Vector2i>);
     auto posʹ = Vector2(pos);
     auto min = posʹ - half_bbox;
     auto max = min + bbox;

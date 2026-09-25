@@ -77,7 +77,7 @@ point point::normalize_coords(point pt, Vector2i delta)
 namespace {
 namespace krap {
 
-constexpr auto Ch = iTILE_SIZE2 * TILE_MAX_DIM;
+constexpr auto Ch = chunk_size<Vector2i>;
 
 static_assert(point::distance_l1(
     point{{ 1,  2, 0}, {3, 4}, {32, 32}},

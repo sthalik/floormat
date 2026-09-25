@@ -97,7 +97,7 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
     fm_assert(start.rotation < rotation_COUNT);
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    fm_assert(grace.distance_L1 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
+    fm_assert(grace.distance_L1 <= (uint32_t)chunk_size<Vector2>.length());
 
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);

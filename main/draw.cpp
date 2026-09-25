@@ -149,7 +149,7 @@ void main_impl::draw_world() noexcept
     // Sorted here rather than there because update_world() and the editor's cursor hit test read
     // the same array and both change behaviour with its order.
     std::sort(chunks.begin(), chunks.end(), [](chunk_coords_ a, chunk_coords_ b) {
-        constexpr auto w = (int32_t)TILE_MAX_DIM * tile_size_xy;
+        constexpr auto w = chunk_size<int32_t>;
         return w * ((int32_t)a.x + a.y) + tile_size_z * a.z
              > w * ((int32_t)b.x + b.y) + tile_size_z * b.z;
     });

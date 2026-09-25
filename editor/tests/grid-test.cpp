@@ -80,7 +80,7 @@ void grid_test::draw_overlay(app& a)
             auto index = (uint32_t)j * (uint32_t)dc + (uint32_t)i;
             if (result.bits[index])
                 continue;
-            auto pos = -iTILE_SIZE2/2 + ds * Vector2i{i, j} + Vector2i{ds/2};
+            auto pos = -half_tile<Vector2i> + ds * Vector2i{i, j} + Vector2i{ds/2};
             auto pt = point::normalize_coords(start, pos);
             auto px = a.point_to_pixel(pt);
             draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);

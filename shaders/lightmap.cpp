@@ -31,9 +31,7 @@ constexpr float real_image_size = 1024;
 
 constexpr auto half_neighbors = (int)Math::ceil(neighbor_count/2.f);
 
-constexpr auto image_size   = TILE_SIZE2 * TILE_MAX_DIM * neighbor_count;
-constexpr auto chunk_size   = TILE_SIZE2 * TILE_MAX_DIM;
-constexpr auto chunk_offset = TILE_SIZE2/2;
+constexpr auto image_size   = chunk_size<Vector2> * neighbor_count;
 
 constexpr auto clip_start = Vector2{-1, -1};
 constexpr auto clip_scale = 2/image_size;
@@ -230,7 +228,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 {
     neighbor_offset += Vector2((float)half_neighbors);
 
-    constexpr auto tile_size = TILE_SIZE2.sum()/2;
     float range = 0;
 
     fm_assert(light.falloff < light_falloff::COUNT);
@@ -246,10 +243,10 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         break;
     }
 
-    range *= tile_size;
+    range *= tile_size<float>;
     range = std::fmax(0.f, range);
 
-    auto center_fragcoord = light.center + neighbor_offset * chunk_size + chunk_offset;
+    auto center_fragcoord = light.center + neighbor_offset * chunk_size<Vector2> + half_tile<Vector2>;
     auto center_clip = clip_start + center_fragcoord * clip_scale;
 
     // light radius in pixels
@@ -329,7 +326,7 @@ int lightmap_shader::iter_bounds()
 
 void lightmap_shader::add_segment(Vector2 neighbor_offset, Vector2 endpoint_a, Vector2 endpoint_b)
 {
-    auto off = neighbor_offset*chunk_size + chunk_offset;
+    auto off = neighbor_offset*chunk_size<Vector2> + half_tile<Vector2>;
     endpoint_a += off;
     endpoint_b += off;
 

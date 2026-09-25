@@ -165,9 +165,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const auto div_size  = params.div_size;
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
-    constexpr auto half_tile = tile_size_xy*.5f;
     const auto half_div = (float)(div_size / 2);
-    const auto half_div_minus_half_tile = half_div - half_tile;
+    const auto half_div_minus_half_tile = half_div - half_tile<float>;
     const auto half_bbox = (float)params.bbox_size * .5f;
     // A bit must hold for every position in the cell, not just its anchor
     // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
@@ -181,15 +180,14 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         neighbors[4], neighbors[5], neighbors[6], neighbors[7],
     };
     static constexpr auto nb_offsets = []() {
-        constexpr float chunk_size = (float)tile_size_xy * (float)TILE_MAX_DIM;
         std::array<Vector2, 9> a{};
         for (auto i = 0u; i < 8; i++)
-            a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size;
+            a[i+1] = Vector2(world::neighbor_offsets[i]) * chunk_size<float>;
         return a;
     }();
-    const float pmin_self[2] = { -half_tile - half_bbox, -half_tile - half_bbox };
-    const float pmax_self[2] = { (float)chunk_size_xy - half_tile + half_bbox,
-                                 (float)chunk_size_xy - half_tile + half_bbox };
+    const float pmin_self[2] = { -half_tile<float> - half_bbox, -half_tile<float> - half_bbox };
+    const float pmax_self[2] = { chunk_size<float> - half_tile<float> + half_bbox,
+                                 chunk_size<float> - half_tile<float> + half_bbox };
     const float inv_div = 1.f / (float)div_size;
     const int idiv_count = (int)div_countʹ;
     all_empty = true;

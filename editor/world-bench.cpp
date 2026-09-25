@@ -116,7 +116,7 @@ constexpr inline int pin_size = 4, grid_pin_size = 8, pin_pitch = 3*tile_size_xy
 //
 // pin_clump_span is how much of a sector an arc walls off, and so directly how many rays run to
 // full length. At 1 the circle is sealed and nothing gets through.
-constexpr inline int pin_clump_deg = 15, pin_clump_r0 = (int)chunk_size_xy/4;
+constexpr inline int pin_clump_deg = 15, pin_clump_r0 = chunk_size<int>/4;
 constexpr inline float pin_clump_span = .4f;
 constexpr inline uint32_t pin_clump_rings = 7, pin_clump_seed = 0xc10b5eedu;
 
@@ -169,7 +169,7 @@ constexpr inline int lm_pillar_size = 12;
 // to be shadow casters, so they get a real footprint.
 constexpr inline int lm_stool_size = 48;
 
-// A light reaches max_distance*16 texels: add_light() multiplies tiles by TILE_SIZE2.sum()/2 and
+// A light reaches max_distance*16 texels: add_light() multiplies tiles by tile_size and
 // then by image_size_ratio = 1024/4096. The image is 1024 texels across 4 chunks, so past half of
 // it -- 2 chunks -- a light clips at the image edge whatever chunk it stands in.
 constexpr inline uint8_t lm_range_max = 2*TILE_MAX_DIM;
@@ -407,7 +407,7 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
             {
                 light_proto p;
                 p.color = light_colors[hash2((uint32_t)px ^ 0x5a5au, (uint32_t)py) % array_size(light_colors)];
-                // Tiles, not pixels: lightmap_shader::add_light() multiplies by TILE_SIZE2.sum()/2.
+                // Tiles, not pixels: lightmap_shader::add_light() multiplies by tile_size.
                 // Zero would drop the light before the falloff is read.
                 p.max_distance = 3;
                 p.falloff = light_falloff::linear;
@@ -1195,8 +1195,8 @@ void app::add_grid_pin(uint32_t n)
 {
     auto& w = M->world();
     const auto h = hash2(n, grid_pin_seed);
-    const Vector2i at{(int)(h % chunk_size_xy) - tile_size_xy/2,
-                      (int)(h / chunk_size_xy % chunk_size_xy) - tile_size_xy/2};
+    const Vector2i at{(int)(h % chunk_size_xy) - half_tile<int>,
+                      (int)(h / chunk_size_xy % chunk_size_xy) - half_tile<int>};
     const auto pt = point::normalize_coords(point{}, at);
     auto p = pin_proto(grid_pin_size);
     p.offset = pt.offset();

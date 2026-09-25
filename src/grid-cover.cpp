@@ -80,7 +80,7 @@ uint8_t raycast_one(chunk& self,
     const point chunk_nw{
         self.coord(),
         local_coords{0, 0},
-        Vector2b{(int8_t)(-tile_size_xy/2), (int8_t)(-tile_size_xy/2)},
+        -half_tile<Vector2b>,
     };
     const point from = chunk_nw + origin_local;
 
