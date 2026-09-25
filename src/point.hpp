@@ -1,5 +1,6 @@
 #pragma once
 #include "global-coords.hpp"
+#include "intra-coord-fwd.hpp"
 #include <compare>
 #include <type_traits>
 #include <cr/StlForwardTupleSizeElement.h>
@@ -20,6 +21,7 @@ struct point
     constexpr point();
     constexpr point(global_coords coord, Vector2b offset);
     constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset);
+    constexpr point(chunk_coords_ coord, intra_coord ic);
     explicit constexpr point(Vector3i pixel);
 
     constexpr bool operator==(const point&) const noexcept;
@@ -34,6 +36,7 @@ struct point
     constexpr local_coords local() const;
     constexpr Vector2b offset() const;
     template<size_t N> typename std::tuple_element<N, point>::type constexpr get() const;
+    template<intra_coord_base::Type TYPE = intra_coord_base::Checking> constexpr basic_intra_coord<TYPE> intra() const;
 
     friend Debug& operator<<(Debug& dbg, const point& pt);
 

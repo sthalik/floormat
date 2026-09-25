@@ -1,5 +1,6 @@
 #include "grid-cover.hpp"
 #include "grid.inl"
+#include "intra-coord.inl"
 #include "grid-pass.hpp"
 #include "object.hpp"
 #include "world.hpp"
@@ -77,12 +78,7 @@ uint8_t raycast_one(chunk& self,
         (int32_t)(cell_y * div_size) + half,
     };
 
-    const point chunk_nw{
-        self.coord(),
-        local_coords{0, 0},
-        -half_tile<Vector2b>,
-    };
-    const point from = chunk_nw + origin_local;
+    const point from = intra_coord{origin_local}.to_point(self.coord());
 
     const auto dir = direction_for_octant(octant);
     const Vector2i delta{Vector2(dir * (float)max_ray_px)};
@@ -117,7 +113,7 @@ struct CoverGrid : GridBase
     void clear_cells();
 
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
-    uint32_t get_cell_index_from_coord(local_coords local, Vector2b offset) const;
+    uint32_t get_cell_index_from_coord(intra_coord pos) const;
 
     void build_impl(chunk* self);
     bool fill_octant(uint32_t k, chunk& self);
@@ -129,10 +125,10 @@ uint32_t CoverGrid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
     return GridBase::pack_bit_index(x, y, div_count);
 }
 
-uint32_t CoverGrid::get_cell_index_from_coord(local_coords local, Vector2b offset) const
+uint32_t CoverGrid::get_cell_index_from_coord(intra_coord pos) const
 {
     const auto dc = chunk_size_xy / params.div_size;
-    return GridBase::pack_bit_index_from_coord(local, offset, params.div_size, dc);
+    return GridBase::pack_bit_index_from_coord(pos, params.div_size, dc);
 }
 
 void CoverGrid::clear_cells()
@@ -312,10 +308,10 @@ uint32_t Grid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
     return detail::grid::CoverGrid::get_cell_index(x, y, div_count);
 }
 
-uint32_t Grid::get_cell_index_from_coord(local_coords local, Vector2b offset) const
+uint32_t Grid::get_cell_index_from_coord(intra_coord pos) const
 {
     detail::grid::check_frame_sync(pool, grid);
-    return grid->get_cell_index_from_coord(local, offset);
+    return grid->get_cell_index_from_coord(pos);
 }
 
 const detail::grid::CoverCell& Grid::cell(uint32_t index) const

@@ -6,6 +6,7 @@
 #include "search.hpp"
 #include "world.hpp"
 #include "point.inl"
+#include "intra-coord.inl"
 #include "compat/array-size.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/format.hpp"
@@ -147,21 +148,20 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
 {
     constexpr int div = (int)div_size.x();
 
-    const Vector2i a_pix = iTILE_SIZE2 * Vector2i(a.local()) + Vector2i(a.offset());
+    const Vector2i a_pix = Vector2i(intra_coord{a});
     const Vector2i b_pix = a_pix + (b - a);
     const Vector2i lo_pix = Math::min(a_pix, b_pix);
     const Vector2i hi_pix = Math::max(a_pix, b_pix);
 
-    const int idx_x_lo = floor_div<div>(lo_pix.x() + half_tile<int>);
-    const int idx_x_hi = floor_div<div>(hi_pix.x() + half_tile<int>);
-    const int idx_y_lo = floor_div<div>(lo_pix.y() + half_tile<int>);
-    const int idx_y_hi = floor_div<div>(hi_pix.y() + half_tile<int>);
+    const int idx_x_lo = floor_div<div>(lo_pix.x());
+    const int idx_x_hi = floor_div<div>(hi_pix.x());
+    const int idx_y_lo = floor_div<div>(lo_pix.y());
+    const int idx_y_hi = floor_div<div>(hi_pix.y());
 
     for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
         for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
         {
-            const Vector2i cell_pix{ix * div - half_tile<int> + div/2,
-                                    iy * div - half_tile<int> + div/2};
+            const Vector2i cell_pix = Vector2i{ix, iy}*div + Vector2i{div/2};
             const auto pt_in_cell = point::normalize_coords(a, cell_pix - a_pix);
             if (!cache.is_passable_for_bbox(w, pool, pt_in_cell, p))
                 return false;
@@ -188,7 +188,7 @@ void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
         return;
 
     auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
-    auto tile_idx = cache.get_tile_index(new_pt.local(), new_pt.offset());
+    auto tile_idx = cache.get_tile_index(intra_coord{new_pt});
     auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
     if (new_idx != (uint32_t)-1)
@@ -282,14 +282,14 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
 
     auto* const from_chunk = w.at(from.chunk3());
     const auto from_neighbors = w.neighbors(from.chunk3());
-    const auto from_center = TILE_SIZE2 * Vector2(from.local()) + Vector2(from.offset());
+    const auto from_center = Vector2(intra_coord{from}.center_shifted());
     const auto own_half = Vector2(own_size/2);
 
     if (auto R = Range2D::fromCenter(from_center, own_half);
         !Search::is_passable_(from_chunk, from_neighbors, R.min(), R.max(), p))
         return {};
 
-    if (auto R = Range2D::fromCenter(TILE_SIZE2 * Vector2(to.local()) + Vector2(to.offset()), own_half);
+    if (auto R = Range2D::fromCenter(Vector2(intra_coord{to}.center_shifted()), own_half);
         !Search::is_passable_(w.at(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
         return {};
 

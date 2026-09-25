@@ -3,6 +3,7 @@
 #include "../imgui-raii.hpp"
 #include "compat/format.hpp"
 #include "src/point.hpp"
+#include "src/intra-coord.inl"
 #include "src/grid-cover.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
@@ -138,8 +139,7 @@ void cover_test::draw_overlay(app& a)
         const uint32_t dc = cg.div_count();
         const uint32_t max_d = chunk_size_xy / pool.params().div_size;
 
-        const auto chunk_nw = point{result.from.chunk3(), local_coords{0, 0},
-                                    -half_tile<Vector2b>};
+        const auto chunk_nw = intra_coord{}.to_point(result.from.chunk3());
         const auto p00 = a.point_to_pixel(chunk_nw);
         const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
         const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});
@@ -263,7 +263,7 @@ void cover_test::extract(app& a, point pt)
     Cover::Grid g = pool[*c];
     g.build_if_stale();
 
-    const auto idx = g.get_cell_index_from_coord(pt.local(), pt.offset());
+    const auto idx = g.get_cell_index_from_coord(intra_coord{pt});
 
     has_result = false;
     result = {

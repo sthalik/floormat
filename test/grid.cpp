@@ -3,6 +3,7 @@
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
 #include "src/grid-pass.hpp"
+#include "src/intra-coord.inl"
 #include "src/hole.hpp"
 #include "src/RTree.hpp"
 #include "src/search.hpp"
@@ -266,7 +267,7 @@ void test_bit_from_tile_center_passable(uint32_t div_size)
     for (auto j = 0u; j < TILE_MAX_DIM; j++)
         for (auto i = 0u; i < TILE_MAX_DIM; i++)
         {
-            const auto idx = grid.get_bitmask_index_from_coord(local_coords{(uint8_t)i, (uint8_t)j}, Vector2b{0, 0});
+            const auto idx = grid.get_bitmask_index_from_coord({local_coords{(uint8_t)i, (uint8_t)j}, {}});
             fm_assert(grid.bit(idx));
         }
 }
@@ -305,7 +306,7 @@ void test_cell_at_wall_is_blocked(uint32_t div_size)
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
 
-    const auto idx = g.get_bitmask_index_from_coord(local_coords{8, 7}, Vector2b{0, 28});
+    const auto idx = g.get_bitmask_index_from_coord({local_coords{8, 7}, Vector2b{0, 28}});
     fm_assert(!g.bit(idx));
 }
 
@@ -322,7 +323,7 @@ void test_cell_south_of_wall_is_passable(uint32_t div_size)
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
 
-    const auto idx = g.get_bitmask_index_from_coord(local_coords{8, 10}, Vector2b{0, 0});
+    const auto idx = g.get_bitmask_index_from_coord({local_coords{8, 10}, {}});
     fm_assert(g.bit(idx));
 }
 
@@ -341,7 +342,7 @@ void test_all_chunk_corners_passable(uint32_t div_size)
     const local_coords corners[] = { {0, 0}, {15, 0}, {0, 15}, {15, 15} };
     for (const auto lc : corners)
     {
-        const auto idx = g.get_bitmask_index_from_coord(lc, Vector2b{0, 0});
+        const auto idx = g.get_bitmask_index_from_coord({lc, {}});
         fm_assert(g.bit(idx));
     }
 }
@@ -1100,8 +1101,8 @@ void test_bit_matches_every_position()
         }
 }
 
-// pack_bit_index_from_coord() adds half_tile then floors, so cell i holds exactly the integer
-// positions [i*div_size - half_tile, (i+1)*div_size - half_tile - 1]. build_impl() inverts this.
+// intra_coord adds half_tile and pack_bit_index_from_coord() floors, so cell i holds exactly the
+// integer positions [i*div_size - half_tile, (i+1)*div_size - half_tile - 1]. build_impl() inverts this.
 void test_cell_spans_match_forward_map(uint32_t div_size)
 {
     auto w = world();
@@ -1124,8 +1125,8 @@ void test_cell_spans_match_forward_map(uint32_t div_size)
                 {
                     const int px = lx*tile_size_xy + ox, py = ly*tile_size_xy + oy;
                     const int i = (px + half_tile<int>) / d, j = (py + half_tile<int>) / d;
-                    const auto idx = g.get_bitmask_index_from_coord(local_coords{lx, ly},
-                                                                    Vector2b{(int8_t)ox, (int8_t)oy});
+                    const auto idx = g.get_bitmask_index_from_coord({local_coords{lx, ly},
+                                                                     Vector2b{(int8_t)ox, (int8_t)oy}});
                     fm_assert(idx == Pass::Grid::get_bitmask_index((uint32_t)i, (uint32_t)j, dc));
                     fm_assert(px >= i*d - half_tile<int> && px < (i+1)*d - half_tile<int>);
                     fm_assert(py >= j*d - half_tile<int> && py < (j+1)*d - half_tile<int>);
@@ -1134,9 +1135,7 @@ void test_cell_spans_match_forward_map(uint32_t div_size)
 
 uint32_t cell_x_of(const Pass::Grid& g, int px)
 {
-    const int lx = (px + half_tile<int>) / tile_size_xy, ox = px - lx*tile_size_xy;
-    fm_assert(lx >= 0 && lx < (int)TILE_MAX_DIM && ox >= -half_tile<int> && ox < half_tile<int>);
-    auto idx = g.get_bitmask_index_from_coord(local_coords{(uint8_t)lx, 0}, Vector2b{(int8_t)ox, 0});
+    auto idx = g.get_bitmask_index_from_coord(intra_coord::from_center_shifted({px, 0}));
     return idx % g.div_count();
 }
 

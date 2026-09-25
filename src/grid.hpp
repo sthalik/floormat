@@ -3,6 +3,7 @@
 #include "compat/function2.fwd.hpp"
 #include "global-coords.hpp"
 #include "tile-defs.hpp"
+#include "intra-coord-fwd.hpp"
 #include <array>
 #include <concepts>
 
@@ -42,7 +43,7 @@ struct GridBase
     void maybe_mark_stale();
 
     static uint32_t pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count);
-    static uint32_t pack_bit_index_from_coord(local_coords local, Vector2b offset, uint32_t div_size, uint32_t div_count);
+    static uint32_t pack_bit_index_from_coord(intra_coord pos, uint32_t div_size, uint32_t div_count);
     static Range2D coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size);
     static std::pair<uint32_t, uint8_t> byte_and_mask(uint32_t bit_index);
     static uint64_t next_build_no();
