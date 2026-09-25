@@ -31,7 +31,7 @@ else()
     add_compile_options(
         #-ffast-math
         #-fno-unsafe-math-optimizations
-        -fdenormal-fp-math=preserve-sign
+        #-fdenormal-fp-math=preserve-sign
         -ffp-model=aggressive -ffp-contract=fast
         -fno-honor-infinities -fno-honor-nans
         -fno-math-errno -fno-signed-zeros -fno-trapping-math -fno-rounding-math
