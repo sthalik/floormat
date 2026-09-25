@@ -10,7 +10,7 @@ if(OpenCV_FOUND)
     link_libraries(nlohmann_json::nlohmann_json)
     link_libraries(floormat-common)
 
-    file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+    file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
     add_executable(${self} "${sources}")
     target_link_libraries(${self} PRIVATE floormat-serialize floormat floormat-hash)

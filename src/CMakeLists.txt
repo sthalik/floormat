@@ -11,7 +11,7 @@ if(FLOORMAT_NO_PGO_DRIVER)
 endif()
 
 set(self floormat)
-file(GLOB sources *.cpp ../shaders/*.cpp ../compat/*.cpp ../entity/*.cpp CONFIGURE_ARGS)
+file(GLOB sources CONFIGURE_DEPENDS *.cpp ../shaders/*.cpp ../compat/*.cpp ../entity/*.cpp)
 add_library(${self} OBJECT "${sources}")
 target_link_libraries(
     ${self} PUBLIC
