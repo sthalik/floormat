@@ -68,6 +68,12 @@ bool set_value(HKEY key, const wchar_t* name, DWORD type, const void* data, uint
     return RegSetValueExW(key, name, 0, type, (const BYTE*)data, size) == ERROR_SUCCESS;
 }
 
+bool delete_value(HKEY key, const wchar_t* name) noexcept
+{
+    auto err = RegDeleteValueW(key, name);
+    return err == ERROR_SUCCESS || err == ERROR_FILE_NOT_FOUND;
+}
+
 enum class child_state : uint8_t { missing, other, match };
 
 child_state check_child(HKEY children, const wchar_t* guid, ArrayView<wchar_t> buf,
@@ -173,17 +179,17 @@ auto with_game_mode::designate() noexcept -> entry
         put_hex(p, id + 10, 6);
     }
     uint32_t pos = guid_len + 1;
+    bool listed = false;
     Array<wchar_t> buf{ValueInit, len + 1};
     for (const wchar_t* g = list.data(); g && *g; )
     {
         const auto n = uint32_t(std::wcslen(g) + 1);
         const auto state = check_child(children, g, buf, path.data(), len);
-        // Ours counts even with changed values: it's listed only once complete. Were Windows to
-        // rewrite it at each launch, restoring it would relaunch every time.
-        if (state == child_state::match ||
-            state == child_state::other && CompareStringOrdinal(g, -1, guid, (int)guid_len, TRUE) == CSTR_EQUAL)
+        if (state == child_state::match)
             return entry::already_set;
-        if (state == child_state::other)
+        if (CompareStringOrdinal(g, -1, guid, (int)guid_len, TRUE) == CSTR_EQUAL)
+            listed = true;
+        else if (state == child_state::other)
         {
             std::memcpy(new_list.data() + pos, g, n * sizeof(wchar_t));
             pos += n;
@@ -209,7 +215,8 @@ auto with_game_mode::designate() noexcept -> entry
     HKEY child;
     if (RegCreateKeyExW(children, guid, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &child, nullptr) != ERROR_SUCCESS)
         return entry::failed;
-    bool ok = set_value(child, L"Type", REG_DWORD, &type, sizeof type) &&
+    bool ok = delete_value(child, L"Arguments") &&
+              set_value(child, L"Type", REG_DWORD, &type, sizeof type) &&
               set_value(child, L"Revision", REG_DWORD, &revision, sizeof revision) &&
               set_value(child, L"Flags", REG_DWORD, &flags, sizeof flags) &&
               set_value(child, L"Parent", REG_BINARY, blob.pbData, blob.cbData) &&
@@ -229,7 +236,9 @@ auto with_game_mode::designate() noexcept -> entry
         ok = false;
     if (!ok)
     {
-        RegDeleteKeyW(children, guid);
+        // Still listed, so deleting it would hide every child, as above.
+        if (!listed)
+            RegDeleteKeyW(children, guid);
         return entry::failed;
     }
     return entry::added;
