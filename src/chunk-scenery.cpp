@@ -1,4 +1,5 @@
 #include "chunk.hpp"
+#include "object-storage.inl"
 #include "tile-constants.hpp"
 #include "shaders/shader.hpp"
 #include "object.hpp"
@@ -22,7 +23,7 @@ void chunk::add_clickables(const tile_shader& shader, Vector2i win_size, Array<c
 
 void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 {
-    fm_assert(_objects_sorted);
+    fm_assert(_objects._sorted);
 
     const bool modify_static = _scenery_modified;
     _scenery_modified = false;

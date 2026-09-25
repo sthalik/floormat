@@ -19,6 +19,7 @@
 #include "src/grid-cover.hpp"
 #include "src/tile.hpp"
 #include "src/world.hpp"
+#include "src/object-storage.inl"
 #include "src/critter.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/scenery.hpp"
@@ -1541,7 +1542,7 @@ task app::scene_object_ids()
             fm_assert(o);
             // kill_object() deletes the object out from under this bptr on purpose: the chunk
             // owns the lifetime, and a borrowed pointer observes the death instead of delaying it.
-            o->chunk().kill_object(o->index());
+            o->chunk().kill_object(*o, o->index());
         }
         num_live -= num_killed;
     }

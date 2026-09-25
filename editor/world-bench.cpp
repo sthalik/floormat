@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "pgo-scenes.hpp"
 #include "src/world.hpp"
+#include "src/object-storage.inl"
 #include "src/hole.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
@@ -450,9 +451,11 @@ void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int
             c[local_coords{(uint8_t)(start_tile + width), ly}].wall_west() = { wall, (variant_t)-1 };
         }
         // Backwards because arrayRemove() shifts the tail down.
-        for (auto i = (uint32_t)c.objects().size(); i-- > 0; )
-            if (auto lx = c.objects()[i]->coord.local().x; lx >= start_tile && lx < start_tile + width)
-                c.kill_object(i);
+        c.objects().visit_lists([&]<typename T>(object_list<T>& l) {
+            for (auto i = l.size(); i-- > 0; )
+                if (auto lx = l[i].coord.local().x; lx >= start_tile && lx < start_tile + width)
+                    c.kill_object(l[i], i);
+        });
         c.mark_modified();
     }
 }
@@ -492,9 +495,10 @@ void clear_chunks(world& w, int16_t cmin, int16_t cmax)
             }
             // Backwards because arrayRemove() shifts the tail down. reset_world() spawns the
             // player at global (0,0), inside this block, so critters have to survive the cut.
-            for (auto i = (uint32_t)c.objects().size(); i-- > 0; )
-                if (c.objects()[i]->type() != object_type::critter)
-                    c.kill_object(i);
+            c.objects().visit_lists<generic_scenery, door_scenery, light, hole>([&]<typename T>(object_list<T>& l) {
+                for (auto i = l.size(); i-- > 0; )
+                    c.kill_object(l[i], i);
+            });
             c.mark_modified();
         }
 }
@@ -550,13 +554,15 @@ void carve_diagonal(world& w, int u0, uint8_t half_width, int16_t cmin, int16_t 
             if (!hit)
                 continue;
             // Backwards because arrayRemove() shifts the tail down.
-            for (auto i = (uint32_t)c->objects().size(); i-- > 0; )
-            {
-                const auto lc = c->objects()[i]->coord.local();
-                const int u = u_chunk + lc.x - lc.y;
-                if (u >= u0 - h && u <= u0 + h)
-                    c->kill_object(i);
-            }
+            c->objects().visit_lists([&]<typename T>(object_list<T>& l) {
+                for (auto i = l.size(); i-- > 0; )
+                {
+                    const auto lc = l[i].coord.local();
+                    const int u = u_chunk + lc.x - lc.y;
+                    if (u >= u0 - h && u <= u0 + h)
+                        c->kill_object(l[i], i);
+                }
+            });
             c->mark_modified();
         }
 }
@@ -860,13 +866,15 @@ void build_maze(world& w, ArrayView<const uint8_t> flags, uint32_t cells, int16_
             if (!hit)
                 continue;
             // Backwards because arrayRemove() shifts the tail down.
-            for (auto i = (uint32_t)c->objects().size(); i-- > 0; )
-            {
-                const auto lc = c->objects()[i]->coord.local();
-                const int gx = x0 + lc.x, gy = y0 + lc.y;
-                if (in_maze(gx, gy) && is_open(gx, gy))
-                    c->kill_object(i);
-            }
+            c->objects().visit_lists([&]<typename T>(object_list<T>& l) {
+                for (auto i = l.size(); i-- > 0; )
+                {
+                    const auto lc = l[i].coord.local();
+                    const int gx = x0 + lc.x, gy = y0 + lc.y;
+                    if (in_maze(gx, gy) && is_open(gx, gy))
+                        c->kill_object(l[i], i);
+                }
+            });
             c->mark_modified();
         }
 }

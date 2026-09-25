@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"
+#include "src/object-storage.inl"
 #include "src/tile-bbox.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"

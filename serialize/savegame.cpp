@@ -18,6 +18,7 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/world.hpp"
+#include "src/object-storage.inl"
 
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
