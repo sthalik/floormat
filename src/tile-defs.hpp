@@ -12,6 +12,13 @@ template<scalar_or_vector2 T> constexpr inline T tile_size{64};
 template<scalar_or_vector2 T> constexpr inline T half_tile{tile_size<int32_t>/2};
 template<scalar_or_vector2 T> constexpr inline T chunk_size{tile_size<int32_t> * (int32_t)TILE_MAX_DIM};
 
+// T is a Range. Holds every collider rect of an object in the chunk:
+// offset + bbox_offset ± bbox_size/2 ends less than 0x100 past its tile.
+template<typename T> constexpr inline T chunk_collision_bounds{
+    -half_tile<typename T::VectorType> - typename T::VectorType{0x100},
+    chunk_size<typename T::VectorType> - half_tile<typename T::VectorType> + typename T::VectorType{0x100},
+};
+
 constexpr inline int32_t tile_size_xy = tile_size<int32_t>;
 constexpr inline int32_t tile_size_z = 192;
 constexpr inline uint32_t chunk_size_xy = chunk_size<uint32_t>;
