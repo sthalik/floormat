@@ -1,6 +1,5 @@
 #pragma once
-#include "compat/defs.hpp"
-#include "compat/superpage.hpp"
+#include "compat/multi-level-table.hpp"
 #include <array>
 
 namespace floormat {
@@ -11,15 +10,16 @@ struct chunk_coords_;
 
 namespace floormat::detail {
 
-struct chunk_table_outer;
+// key: oy:7 | ox:7 | z:4 | ly:9 | lx:9
+constexpr inline mlt_params chunk_table_params = mlt_params{
+    .levels = { {.bits = 14}, {.bits = 4}, {.bits = 18, .dynamic = true}, },
+    .top_source = mlt_source::superpage,
+    .page_source = mlt_source::superpage,
+}.validate();
 
 class chunk_table
 {
 public:
-    explicit chunk_table();
-    ~chunk_table() noexcept;
-    fm_DISABLE_COPY(chunk_table);
-
     chunk*       chunk_at(chunk_coords_ ch) noexcept;
     const chunk* chunk_at(chunk_coords_ ch) const noexcept;
 
@@ -33,8 +33,7 @@ public:
 #endif
 
 private:
-    chunk_table_outer* _outer;
-    superpage_alloc_t _outer_alloc;
+    multi_level_table<chunk*, chunk_table_params> _table;
 };
 
 } // namespace floormat::detail
