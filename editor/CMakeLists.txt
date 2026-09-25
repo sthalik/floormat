@@ -1,6 +1,6 @@
 set(self floormat-editor)
 
-file(GLOB sources "*.cpp" "tests/*.cpp" CONFIGURE_ARGS)
+file(GLOB sources CONFIGURE_DEPENDS "*.cpp" "tests/*.cpp")
 corrade_add_resource(floormat_editor_fonts_src "../external/font/fonts.conf")
 set_property(SOURCE "${floormat_editor_fonts_src}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
 

@@ -1,5 +1,5 @@
 set(self floormat-test)
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
@@ -18,12 +18,12 @@ target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize f
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
 
-file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat" CONFIGURE_ARGS)
+file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat")
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/test/save")
 endforeach()
 
-file(GLOB files "${CMAKE_CURRENT_SOURCE_DIR}/json/*.json" CONFIGURE_ARGS)
+file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/json/*.json")
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/test/json")
 endforeach()

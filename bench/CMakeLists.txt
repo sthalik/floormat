@@ -1,6 +1,6 @@
 set(self floormat-benchmark)
 
-file(GLOB sources "*.cpp" CONFIGURE_ARGS)
+file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
 add_library(${self}_o OBJECT "${sources}")
 add_executable(${self} dummy.cc)
