@@ -6,7 +6,7 @@
 
 namespace floormat {
 
-// T{} must be empty and own nothing: pages of T{} are freed without running destructors.
+// A T that tests false must own nothing: pages are freed without destroying such slots.
 template<typename T, mlt_params P>
 class multi_level_table final
 {
