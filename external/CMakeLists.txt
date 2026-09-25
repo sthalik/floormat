@@ -371,6 +371,16 @@ target_compile_definitions(floormat-hwy PUBLIC
     HWY_DISABLE_PCLMUL_AES
     "HWY_DISABLED_TARGETS=(HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
 )
+# VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
+fm_no_fast_math(FINITE_MATH_ONLY SOURCE
+    highway/hwy/contrib/sort/vqsort_f32a.cc highway/hwy/contrib/sort/vqsort_f32d.cc
+    highway/hwy/contrib/sort/vqsort_f64a.cc highway/hwy/contrib/sort/vqsort_f64d.cc
+)
+# Undoes a global -mno-vzeroupper. Without it VQSort's AVX2/AVX3 code returns with dirty upper
+# halves, and later non-VEX SSE code pays a false dependency or a state-transition stall.
+if(NOT MSVC)
+    target_compile_options(floormat-hwy PRIVATE -mvzeroupper)
+endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)

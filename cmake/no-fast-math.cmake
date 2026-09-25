@@ -1,0 +1,17 @@
+include_guard(GLOBAL)
+
+function(fm_no_fast_math)
+    cmake_parse_arguments(PARSE_ARGV 0 arg "FINITE_MATH_ONLY" "" "")
+    if(NOT arg_FINITE_MATH_ONLY OR NOT "${arg_UNPARSED_ARGUMENTS}" MATCHES "^(SOURCE|TARGET);")
+        message(FATAL_ERROR "usage: fm_no_fast_math(FINITE_MATH_ONLY {SOURCE|TARGET} ...)")
+    endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        # cl has no switch for finite math alone. -fp:precise would undo all of -fp:fast.
+        return()
+    elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set(opts /clang:-fno-finite-math-only)
+    else()
+        set(opts -fno-finite-math-only)
+    endif()
+    set_property(${arg_UNPARSED_ARGUMENTS} APPEND PROPERTY COMPILE_OPTIONS ${opts})
+endfunction()

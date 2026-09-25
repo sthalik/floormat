@@ -191,6 +191,8 @@ add_definitions(
     -DIMGUI_DISABLE_DEFAULT_FONT
 )
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/no-fast-math.cmake")
+
 add_subdirectory(external)
 
 if(CMAKE_SIZEOF_VOID_P GREATER_EQUAL 8)
