@@ -79,8 +79,8 @@ struct Grace
     static constexpr bool no_crash = true;
 };
 
-bool run(world& w, const function_view<Ns() const>& make_dt,
-         Start start, Expected expected, Grace grace = {})
+bool run_(critter& npc, const function_view<Ns() const>& make_dt,
+          Start start, Expected expected, Grace grace)
 {
     constexpr auto max_time = 300*Second;
     constexpr uint32_t max_steps = 800;
@@ -98,12 +98,6 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
     fm_assert(grace.distance_L1 <= (uint32_t)Vector2((iTILE_SIZE2 * TILE_MAX_DIM)).length());
-
-    mark_all_modified(w);
-
-    object_id id = 0;
-    auto npc_ = w.ensure_player_character(id, make_proto((float)start.accel));
-    auto& npc = *npc_;
 
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);
@@ -220,14 +214,46 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     return true;
 }
 
-void test1(StringView instance_name, const Function& make_dt, double accel)
+bool run(world& w, const function_view<Ns() const>& make_dt,
+         Start start, Expected expected, Grace grace = {})
+{
+    mark_all_modified(w);
+    object_id id = 0;
+    auto npc = w.ensure_player_character(id, make_proto((float)start.accel));
+    bool ret = run_(*npc, make_dt, start, expected, grace);
+    // otherwise the next run's ensure_player_character() returns this critter and ignores its proto
+    auto& c = npc->chunk();
+    c.sort_objects();
+    // kill_object() would tear down a script these worlds never initialized
+    c.remove_object(npc->index());
+    npc.destroy();
+    return ret;
+}
+
+world make_world1()
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
     auto w = world();
     w[{0,0,0}][{8,9}].wall_north() = W;
     w[{0,1,0}][{8,0}].wall_north() = W;
+    return w;
+}
 
+world make_world2()
+{
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+
+    auto w = world();
+    w[{-1,-1,0}][{13,13}].wall_north() = W;
+    w[{-1,-1,0}][{13,13}].wall_west() = W;
+    w[{1,1,0}][{4,5}].wall_north() = W;
+    w[{1,1,0}][{5,4}].wall_west() = W;
+    return w;
+}
+
+void test1(world& w, StringView instance_name, const Function& make_dt, double accel)
+{
     bool ret = run(w, make_dt,
                    Start{
                        .name = "test1"_s,
@@ -247,16 +273,8 @@ void test1(StringView instance_name, const Function& make_dt, double accel)
     (void)ret;
 }
 
-void test2(StringView instance_name, const Function& make_dt, double accel)
+void test2(world& w, StringView instance_name, const Function& make_dt, double accel)
 {
-    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
-
-    auto w = world();
-    w[{-1,-1,0}][{13,13}].wall_north() = W;
-    w[{-1,-1,0}][{13,13}].wall_west() = W;
-    w[{1,1,0}][{4,5}].wall_north() = W;
-    w[{1,1,0}][{5,4}].wall_west() = W;
-
     bool ret = run(w, make_dt,
                Start{
                    .name = "test2"_s,
@@ -277,51 +295,52 @@ void test2(StringView instance_name, const Function& make_dt, double accel)
     (void)ret;
 }
 
-void test_critter()
+void test_critter(world& w1, world& w2)
 {
-    test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
-    test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
-    test1("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
-    test1("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
-    test1("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
-    test1("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
-    test1("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
-    test1("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
-    test1("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
-    test1("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
-    test1("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
-    test1("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
-    test1("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
-    test1("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
-    test1("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
-    test1("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
-    test1("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+    test1(w1, "dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
+    test1(w1, "dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
+    test1(w1, "dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
+    test1(w1, "dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
+    test1(w1, "dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
+    test1(w1, "dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
+    test1(w1, "dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
+    test1(w1, "dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
+    test1(w1, "dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
+    test1(w1, "dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
+    test1(w1, "dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
+    test1(w1, "dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
+    test1(w1, "dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
+    test1(w1, "dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
+    test1(w1, "dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
+    test1(w1, "dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
+    test1(w1, "dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
 
-    test2("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
-    test2("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
-    test2("dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
-    test2("dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
-    test2("dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
-    test2("dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
-    test2("dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
-    test2("dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
-    test2("dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
-    test2("dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
-    test2("dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
-    test2("dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
-    test2("dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
-    test2("dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
-    test2("dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
-    test2("dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
-    test2("dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
+    test2(w2, "dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1);
+    test2(w2, "dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2);
+    test2(w2, "dt=16.667 accel=5",   constantly(Millisecond * 16.667),    5);
+    test2(w2, "dt=16.667 accel=0.5", constantly(Millisecond * 16.667),  0.5);
+    test2(w2, "dt=33.334 accel=1",   constantly(Millisecond * 33.334),    1);
+    test2(w2, "dt=33.334 accel=2",   constantly(Millisecond * 33.334),    2);
+    test2(w2, "dt=33.334 accel=5",   constantly(Millisecond * 33.334),    5);
+    test2(w2, "dt=33.334 accel=10",  constantly(Millisecond * 33.334),   10);
+    test2(w2, "dt=50.000 accel=1",   constantly(Millisecond * 50.000),    1);
+    test2(w2, "dt=50.000 accel=2",   constantly(Millisecond * 50.000),    2);
+    test2(w2, "dt=50.000 accel=5",   constantly(Millisecond * 50.000),    5);
+    test2(w2, "dt=100.00 accel=1",   constantly(Millisecond * 100.00),    1);
+    test2(w2, "dt=100.00 accel=2",   constantly(Millisecond * 100.00),    2);
+    test2(w2, "dt=100.00 accel=0.5", constantly(Millisecond * 100.00),  0.5);
+    test2(w2, "dt=200.00 accel=1",   constantly(Millisecond * 200.00),    1);
+    test2(w2, "dt=1.0000 accel=1",   constantly(Millisecond * 1.0000),    1);
+    test2(w2, "dt=1.0000 accel=0.5", constantly(Millisecond * 1.0000),  0.5);
 }
 
 void Critter_move(benchmark::State& st)
 {
+    auto w1 = make_world1(), w2 = make_world2();
     for (int i = 0; i < 3; i++)
-        test_critter();
+        test_critter(w1, w2);
     for (auto _ : st)
-        test_critter();
+        test_critter(w1, w2);
 }
 
 BENCHMARK(Critter_move)->Unit(benchmark::kMicrosecond);
