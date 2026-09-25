@@ -363,7 +363,8 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
     size_[minor_axis] = (minor_len + nsteps*2 - 1) / nsteps;
     size_[major_axis] = (major_len + nsteps - 1) / nsteps;
 
-    auto dir_inv_norm = Vector2{1} / dir;
+    // finite 1/dir, same as src/raycast.cpp
+    auto dir_inv_norm = Vector2{1} / copysign(max(abs(dir), Vector2{1e-20f}), dir);
     auto signs = ray_aabb_signs(dir_inv_norm);
 
     result = {
