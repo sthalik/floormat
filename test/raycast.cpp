@@ -2,6 +2,8 @@
 #include "compat/borrowed-ptr.inl"
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
+#include "src/intra-coord.inl"
+#include "src/grid-pass.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
 #include "loader/loader.hpp"
@@ -74,6 +76,9 @@ auto run(point from, point to, world& w, bool b, float len)
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0);
+    const auto div = (int)w.raycast_pass_pool().params().div_size;
+    for (const auto& q : diag.queries)
+        fm_assert(Vector2i(intra_coord{q.center}) % div == Vector2i{div / 2});
     if (res.success != b)
     {
         fm_error("success != %s", b ? "true" : "false");
