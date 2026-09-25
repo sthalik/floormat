@@ -86,6 +86,12 @@ world::world(world&& w) noexcept :
     w._script_finalized = false;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
+    if (!impl.get()) // moved from
+        return;
+    // pooled grids point back at the source world
+    impl->_pass_registry.reset();
+    impl->_cover_pass_pool.reset();
+    impl->_raycast_pass_pool.reset();
 }
 
 world& world::operator=(world&& w) noexcept
