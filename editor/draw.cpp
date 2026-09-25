@@ -146,7 +146,7 @@ void app::draw_collision_boxes()
 #endif
                 if (x.type == (uint64_t)collision_type::geometry)
                     if (x.pass == (uint64_t)pass_mode::pass)
-                        if (x.id < TILE_COUNT * 2 + 1)
+                        if (x.id < TILE_COUNT * 3 + 1)
                             return true;
                 Vector2 start{rect.m_min}, end{rect.m_max};
                 auto size = (end - start);
@@ -192,7 +192,7 @@ void app::draw_collision_boxes()
 #endif
                     if (x.type == (uint64_t)collision_type::geometry)
                         if (x.pass == (uint64_t)pass_mode::pass)
-                            if (x.id < TILE_COUNT*2+1)
+                            if (x.id < TILE_COUNT*3+1)
                                 return true;
                     Vector2 start{rect.m_min}, end{rect.m_max};
                     auto size = end - start;
