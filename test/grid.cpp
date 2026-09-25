@@ -539,6 +539,38 @@ void test_world_move_ctor_from_moved_from()
     fm_assert(b.contains(chunk_coords_{2, 0, 0}));
 }
 
+void test_grids_dropped_by_world_move_assign()
+{
+    auto a = world();
+    a[COORD];
+    auto b = world();
+    {
+        auto& c = b[chunk_coords_{5, 5, 0}];
+        add_ground_all(c);
+        rebuild_passability(c);
+        tick(b, b.raycast_pass_pool());
+        b.raycast_pass_pool()[c].build_if_stale(Search::without_critters());
+    }
+    b = move(a);
+    auto& pool = b.raycast_pass_pool();
+    tick(b, pool);
+    fm_assert(pool.pooled_count() == 0);
+}
+
+void test_world_assign_into_moved_from()
+{
+    auto a = world();
+    make_chunk_row(a, 3);
+    auto b = world(move(a));
+    a = move(b);
+    fm_assert(a.contains(chunk_coords_{2, 0, 0}));
+    a[COORD];
+    tick(a, a.raycast_pass_pool());
+    b = world();
+    b[COORD];
+    tick(b, b.raycast_pass_pool());
+}
+
 void test_frame_counter_ticks_independently(uint32_t div_size)
 {
     auto w = world();
@@ -1335,6 +1367,8 @@ void test_grid()
     test_chunk_pass_gen_monotonic_after_move_assign();
     test_grids_after_world_move_ctor();
     test_world_move_ctor_from_moved_from();
+    test_grids_dropped_by_world_move_assign();
+    test_world_assign_into_moved_from();
     for (const auto ds : { 1u, 2u, 4u, 16u, 64u })
     {
         test_cell_spans_match_forward_map(ds);
