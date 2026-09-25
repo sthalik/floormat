@@ -80,6 +80,8 @@ world::world(world&& w) noexcept :
     w._head = nullptr;
     w._tail = nullptr;
     w._object_counter = 0;
+    w._script_initialized = false;
+    w._script_finalized = false;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
 }
@@ -130,6 +132,8 @@ world& world::operator=(world&& w) noexcept
 world::~world() noexcept
 {
     fm_assert(_script_finalized || !_script_initialized);
+    if (!impl.get()) // moved from
+        return;
     for (chunk* c = _head; c; c = c->_next)
         c->on_teardown();
     _teardown = true;
