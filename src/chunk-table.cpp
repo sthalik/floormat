@@ -27,7 +27,7 @@ constexpr size_t z_entries = size_t(1) << z_bits;
 static_assert(outer_xbits + inner_xbits == total_xbits);
 static_assert(outer_ybits + inner_ybits == total_ybits);
 static_assert(inner_xbits <= 8 && inner_ybits <= 8); // chunk_table_inner xmin/xmax/ymin/ymax are uint8_t
-static_assert(z_entries >= size_t(chunk_z_max - chunk_z_min + 1));
+static_assert(z_entries >= size_t{chunk_z_count});
 static_assert(chunk_z_min <= 0 && chunk_z_max >= 0);
 
 inline uint32_t bias_x(int16_t x) noexcept
