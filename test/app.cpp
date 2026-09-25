@@ -130,6 +130,7 @@ int App::exec()
         FM_TEST(test_crc64),
         FM_TEST(test_bptr),
         FM_TEST(test_chunk_iter),
+        FM_TEST(test_multi_level_table),
         FM_TEST(test_entity),
         FM_TEST(test_float),
         FM_TEST(test_format),
