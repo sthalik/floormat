@@ -2,6 +2,7 @@
 #include "search.hpp"
 #include "grid-pass-pool.hpp"
 #include "point.inl"
+#include "intra-coord.inl"
 #include "world.hpp"
 #include "local-coords.hpp"
 #include "tile-defs.hpp"
@@ -59,18 +60,13 @@ size_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 
 size_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
 
-size_t cache::get_tile_index(local_coords local, Vector2b offset_) const
+size_t cache::get_tile_index(intra_coord posʹ) const
 {
-    Vector2i posʹ;
-    posʹ += Vector2i(local) * (int32_t)tile_size_xy;
-    posʹ += Vector2i(offset_);
-    posʹ += half_tile<Vector2i>;
-    fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-        pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size_);
+        pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)std::countr_zero(div_size_);
     else
-        pos = Vector2ui(posʹ) / div_size_;
+        pos = Vector2ui(Vector2i(posʹ)) / div_size_;
     auto idx = (size_t)pos.y() * div_count_ + (size_t)pos.x();
     fm_debug3_assert(idx < (size_t)div_count_ * div_count_);
     return idx;
@@ -90,7 +86,7 @@ void cache::add_index(point pt, uint32_t index)
 {
     fm_assert(pt.coord().z() == 0);
     auto ch = get_chunk_index(Vector2i(pt.chunk()));
-    auto tile = get_tile_index(pt.local(), pt.offset());
+    auto tile = get_tile_index(intra_coord{pt});
     add_index(ch, tile, index);
 }
 
@@ -110,12 +106,12 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     {
         auto grid = pool[*c];
         grid.build_if_stale(p);
-        return grid.bit(grid.get_bitmask_index_from_coord(pt.local(), pt.offset()));
+        return grid.bit(grid.get_bitmask_index_from_coord(intra_coord{pt}));
     }
 
     auto nbs = w.neighbors(pt.chunk3());
     auto half = (float)pool.params().bbox_size * .5f;
-    auto center = Vector2(Vector2i(pt.local()) * (int32_t)tile_size_xy + Vector2i(pt.offset()));
+    auto center = Vector2(intra_coord{pt}.center_shifted());
     return Search::is_passable_(nullptr, nbs, center - Vector2{half}, center + Vector2{half}, p);
 }
 
