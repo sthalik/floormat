@@ -96,7 +96,6 @@ world::world(world&& w) noexcept :
 
 world& world::operator=(world&& w) noexcept
 {
-    auto& impl = *this->impl;
     fm_debug_assert(&w != this);
     fm_assert(!w._script_initialized);
     fm_assert(!w._script_finalized);
@@ -105,11 +104,13 @@ world& world::operator=(world&& w) noexcept
     _script_finalized = false;
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
-    impl._objects = move(w.impl->_objects);
-    w.impl->_objects = {};
+    fm_assert(w._unique_id);
 
+    for (chunk* c = _head; c; c = c->_next)
+        c->on_teardown();
     // suppress unregister; _chunk_table is replaced wholesale below
     _teardown = true;
+    impl = move(w.impl);
     while (_head)
     {
         chunk* next = _head->_next;
@@ -126,8 +127,11 @@ world& world::operator=(world&& w) noexcept
     w._tail = nullptr;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
+    // see the move ctor
+    impl->_pass_registry.reset();
+    impl->_cover_pass_pool.reset();
+    impl->_raycast_pass_pool.reset();
 
-    fm_assert(w._unique_id);
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
     fm_debug_assert(w._unique_id == nullptr);
