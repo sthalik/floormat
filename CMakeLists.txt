@@ -189,6 +189,10 @@ set_directory_properties(PROPERTIES INTERFACE_CORRADE_CXX_STANDARD ${CMAKE_CXX_S
 add_definitions(
     -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS
     -DIMGUI_DISABLE_DEFAULT_FONT
+    # ImHashData's SSE4.2 path reads its input through ImU32*, a strict
+    # aliasing violation. Once LTO inlines it, the font size can drop out of
+    # the baked-font key and all sizes share one entry.
+    #-DIMGUI_USE_LEGACY_CRC32_ADLER
 )
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/no-fast-math.cmake")
