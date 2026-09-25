@@ -1,4 +1,5 @@
 #include "grid.hpp"
+#include "intra-coord.inl"
 #include "chunk.hpp"
 #include "world.hpp"
 #include "compat/function2.hpp"
@@ -91,18 +92,13 @@ uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)
     return j * div_count + i;
 }
 
-uint32_t GridBase::pack_bit_index_from_coord(local_coords local, Vector2b offset, uint32_t div_size, uint32_t div_count)
+uint32_t GridBase::pack_bit_index_from_coord(intra_coord posʹ, uint32_t div_size, uint32_t div_count)
 {
-    Vector2i posʹ;
-    posʹ += Vector2i(local) * tile_size_xy;
-    posʹ += Vector2i(offset);
-    posʹ += half_tile<Vector2i>;
-    fm_debug3_assert(posʹ >= Vector2i{0});
     Vector2ui pos{NoInit}; (void)pos;
     if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-        pos = Vector2ui(posʹ) >> (uint32_t)std::countr_zero(div_size);
+        pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)std::countr_zero(div_size);
     else
-        pos = Vector2ui(posʹ) / div_size;
+        pos = Vector2ui(Vector2i(posʹ)) / div_size;
     // per-axis: an out-of-range x with a small y still packs below div_count²
     fm_debug3_assert(pos.x() < div_count && pos.y() < div_count);
     return pack_bit_index(pos.x(), pos.y(), div_count);
@@ -112,14 +108,8 @@ Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size
 {
     const auto bbox = Vector2(bbox_size);
     const auto half_bbox = bbox*.5f;
-    auto pos = Vector2i{(int32_t)x, (int32_t)y};
-    pos *= Vector2i{(int32_t)div_size};
-    pos += Vector2i(div_size / 2);
-    pos -= half_tile<Vector2i>;
-    fm_debug_assert(pos >= -half_tile<Vector2i>);
-    fm_debug_assert(pos < chunk_size<Vector2i> - half_tile<Vector2i>);
-    auto posʹ = Vector2(pos);
-    auto min = posʹ - half_bbox;
+    const auto pos = intra_coord{Vector2i{(int32_t)x, (int32_t)y} * (int32_t)div_size + Vector2i{(int32_t)(div_size / 2)}};
+    auto min = Vector2(pos.center_shifted()) - half_bbox;
     auto max = min + bbox;
     return { min, max };
 }

@@ -127,6 +127,7 @@ int App::exec()
         FM_TEST(test_rtree_pool),
         FM_TEST(test_astar_pool),
         FM_TEST(test_coords),
+        FM_TEST(test_intra_coord),
         FM_TEST(test_crc64),
         FM_TEST(test_bptr),
         FM_TEST(test_chunk_iter),

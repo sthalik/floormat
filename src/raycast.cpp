@@ -1,5 +1,6 @@
 #include "raycast-diag.hpp"
 #include "tile-constants.hpp"
+#include "intra-coord.inl"
 #include "pass-mode.hpp"
 #include "world.hpp"
 #include "grid-pass.hpp"
@@ -144,36 +145,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto div_size_f = (float)div_size_i;
     const auto cells_per_chunk = chunk_size<int> / div_size_i;
 
-    Vector2 from_shifted {
-        (float)(from.local().x * tile_size_xy + from.offset().x() + half_tile<int>),
-        (float)(from.local().y * tile_size_xy + from.offset().y() + half_tile<int>),
-    };
+    const auto from_ic = intra_coord{from};
+    const auto from_shifted = Vector2(from_ic);
+    const auto from_center = Vector2(from_ic.center_shifted());
 
-    int32_t cell_x = (int32_t)floor(from_shifted.x() / div_size_f);
-    int32_t cell_y = (int32_t)floor(from_shifted.y() / div_size_f);
-
-    int32_t chunk_off_x, local_cell_x;
-    if (cell_x >= 0)
-    {
-        chunk_off_x = cell_x / cells_per_chunk;
-        local_cell_x = cell_x - chunk_off_x * cells_per_chunk;
-    }
-    else
-    {
-        chunk_off_x = -((cells_per_chunk - 1 - cell_x) / cells_per_chunk);
-        local_cell_x = cell_x - chunk_off_x * cells_per_chunk;
-    }
-    int32_t chunk_off_y, local_cell_y;
-    if (cell_y >= 0)
-    {
-        chunk_off_y = cell_y / cells_per_chunk;
-        local_cell_y = cell_y - chunk_off_y * cells_per_chunk;
-    }
-    else
-    {
-        chunk_off_y = -((cells_per_chunk - 1 - cell_y) / cells_per_chunk);
-        local_cell_y = cell_y - chunk_off_y * cells_per_chunk;
-    }
+    int32_t cell_x = from_ic.x() / div_size_i, cell_y = from_ic.y() / div_size_i;
+    int32_t chunk_off_x = 0, local_cell_x = cell_x;
+    int32_t chunk_off_y = 0, local_cell_y = cell_y;
 
     int step_x = dir.x() > 0 ? 1 : (dir.x() < 0 ? -1 : 0);
     int step_y = dir.y() > 0 ? 1 : (dir.y() < 0 ? -1 : 0);
@@ -238,13 +216,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     (int16_t)(from.chunk().x + chunk_off_x),
                     (int16_t)(from.chunk().y + chunk_off_y),
                     from.chunk3().z };
-                point chunk_origin{ch_coord, local_coords{0, 0}, Vector2b{0, 0}};
-                auto chunk_center = point::normalize_coords(chunk_origin, Vector2i{
-                    chunk_size<int> / 2 - half_tile<int>,
-                    chunk_size<int> / 2 - half_tile<int>,
-                });
                 arrayAppend(diag.path, bbox{
-                    chunk_center,
+                    intra_coord{chunk_size<Vector2i> / 2}.to_point(ch_coord),
                     chunk_size<Vector2ui>,
                 });
             }
@@ -325,10 +298,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     if (!within_chunk_bounds(fmin, fmax))
                         continue;
 
-                    Vector2 origin {
-                        (float)(from.local().x * tile_size_xy + from.offset().x()) - nb_world_x,
-                        (float)(from.local().y * tile_size_xy + from.offset().y()) - nb_world_y,
-                    };
+                    const auto origin = from_center - Vector2{nb_world_x, nb_world_y};
 
                     nb->rtree()->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r)
                     {

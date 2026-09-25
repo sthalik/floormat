@@ -3,6 +3,7 @@
 #include "src/collision.hpp"
 #include "src/pass-mode.hpp"
 #include "src/point.inl"
+#include "src/intra-coord.inl"
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
@@ -453,7 +454,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
             nbs = {};
         }
 
-        auto pt = Vector2i(center.local()) * iTILE_SIZE2 + Vector2i(center.offset());
+        auto pt = intra_coord{center}.center_shifted();
 
         for (int i = 0; i < 3; i++)
         {
@@ -479,7 +480,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
                 }
 
                 auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<Vector2i>;
-                origin = Vector2((Vector2i(from.local()) * iTILE_SIZE2) + Vector2i(from.offset()) - ch_off);
+                origin = Vector2(intra_coord{from}.center_shifted() - ch_off);
                 auto* r = c->rtree();
                 r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
                     do_check_collider(data, r);
