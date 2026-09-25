@@ -3,6 +3,7 @@
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
+#include "src/object-storage.inl"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 

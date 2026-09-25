@@ -1,5 +1,6 @@
 #include "world.hpp"
 #include "chunk.hpp"
+#include "object-storage.inl"
 #include "chunk-table.hpp"
 #include "object.hpp"
 #include "critter.hpp"

@@ -91,7 +91,7 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, 
             auto eʹ = w.find_object(id);
             if (!eʹ || &eʹ->chunk() != &c)
                 break;
-            c.kill_object(eʹ->index());
+            c.kill_object(*eʹ, eʹ->index());
         }
     }
     else

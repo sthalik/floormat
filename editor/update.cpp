@@ -5,6 +5,7 @@
 #include "scenery-editor.hpp"
 #include "vobj-editor.hpp"
 #include "src/world.hpp"
+#include "src/object-storage.inl"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
@@ -12,6 +13,9 @@
 #include "floormat/main.hpp"
 #include "floormat/draw-bounds.hpp"
 #include "src/critter.hpp"
+#include "src/scenery.hpp"
+#include "src/light.hpp"
+#include "src/hole.hpp"
 #include "src/nanosecond.hpp"
 #include "src/timer.hpp"
 #include "src/tile-constants.hpp"
@@ -224,21 +228,23 @@ void app::update_world(Ns dt)
             if (!cʹ)
                 continue;
             auto& c = *cʹ;
-            auto size = (uint32_t)c.objects().size();
-            for (auto i = 0u; i < size; i++)
-            {
-                auto index = size_t{i};
-                auto& e = *c.objects().data()[i].get();
-                if (e.last_frame_no == frame_no) [[unlikely]]
-                    continue;
-                e.last_frame_no = frame_no;
-                e.update(c.objects().data()[i], index, dt); // objects can't delete themselves during update()
-                if (&e.chunk() != cʹ || index > i) [[unlikely]]
+            c.objects().visit_lists([&]<typename T>(object_list<T>& l) {
+                auto size = l.size();
+                for (auto i = 0u; i < size; i++)
                 {
-                    i--;
-                    size = (uint32_t)c.objects().size();
+                    auto index = size_t{i};
+                    T& e = l[i];
+                    if (e.last_frame_no == frame_no) [[unlikely]]
+                        continue;
+                    e.last_frame_no = frame_no;
+                    e.update(l.ptr(i), index, dt); // objects can't delete themselves during update()
+                    if (&e.chunk() != cʹ || index > i) [[unlikely]]
+                    {
+                        i--;
+                        size = l.size();
+                    }
                 }
-            }
+            });
     }
 
 #if 0

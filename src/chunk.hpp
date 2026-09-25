@@ -8,6 +8,7 @@
 #include "script-enums.hpp"
 #include "sprite-list.hpp"
 #include "pass-through.hpp"
+#include "object-storage.hpp"
 #include <array>
 #include <cr/Array.h>
 #include <cr/Pointer.h>
@@ -22,7 +23,6 @@ struct object_proto;
 class SpriteBatch;
 struct tile_shader;
 struct clickable;
-class const_objects_view;
 
 class chunk final
 {
@@ -90,12 +90,12 @@ public:
 
     void on_teardown();
     bool is_teardown() const;
-    const_objects_view objects() const;
-    ArrayView<const bptr<object>> objects();
+    const object_storage& objects() const;
+    object_storage& objects();
 
-    void remove_object(size_t i);
+    void remove_object(const object& e, size_t i);
     // unlike remove_object(), tears the script down and deletes the object
-    void kill_object(size_t i, script_destroy_reason r = script_destroy_reason::kill);
+    void kill_object(const object& e, size_t i, script_destroy_reason r = script_destroy_reason::kill);
     void sort_objects();
 
     struct ground_stuff
@@ -113,7 +113,7 @@ public:
 private:
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
-    Array<bptr<object>> _objects;
+    object_storage _objects;
     class world* _world;
     Pointer<RTree> _rtree;
     chunk* _next = nullptr;
@@ -126,8 +126,7 @@ private:
                  _walls_modified   : 1 = true,
                  _scenery_modified : 1 = true,
                  _pass_modified    : 1 = true,
-                 _teardown         : 1 = false,
-                 _objects_sorted   : 1 = true;
+                 _teardown         : 1 = false;
 
     void add_object(const bptr<object>& e);
     void add_object_pre(const bptr<object>& e);

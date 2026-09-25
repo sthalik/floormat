@@ -53,7 +53,7 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
             auto eʹ = w.find_object(id);
             if (!eʹ || &eʹ->chunk() != &c || !eʹ->is_virtual())
                 break;
-            c.kill_object(eʹ->index());
+            c.kill_object(*eʹ, eʹ->index());
         }
     }
     else

@@ -1,4 +1,5 @@
 #include "chunk.hpp"
+#include "object-storage.inl"
 #include "ground-atlas.hpp"
 #include "object.hpp"
 #include "world.hpp"
@@ -158,7 +159,7 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
 
 void chunk::ensure_passability() noexcept
 {
-    fm_assert(_objects_sorted); // not strictly necessary
+    fm_assert(_objects._sorted); // not strictly necessary
 
     if (!_pass_modified)
         return;
