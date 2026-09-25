@@ -8,3 +8,5 @@
 *.profraw
 /CLAUDE.md
 /.claude/
+__pycache__/
+*.py[co]
