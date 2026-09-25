@@ -1,6 +1,5 @@
 #include "point.inl"
 #include "tile-constants.hpp"
-#include <bit>
 #include <cr/StructuredBindings.h>
 
 namespace floormat {
@@ -30,40 +29,19 @@ point operator-(point pt, Vector2i delta) { return point::normalize_coords(pt, -
 point operator-(Vector2i delta, point pt) { return point::normalize_coords(pt, -delta); }
 
 namespace {
-template<int tile_size>
-constexpr inline Pair<int, int8_t> normalize_coord(const int8_t cur, const int new_off)
+
+constexpr Pair<int, int8_t> normalize_coord(int8_t cur, int new_off)
 {
-    if constexpr(tile_size > 0 && (tile_size & tile_size-1) == 0)
-    {
-        constexpr int half = tile_size / 2;
-        constexpr int mask = tile_size - 1;
-        constexpr int shift = std::countr_zero((unsigned)tile_size);
-        const int val = cur + new_off + half;
-        return { val >> shift, (int8_t)((val & mask) - half) };
-    }
-    else
-    {
-        constexpr int8_t half_tile = tile_size/2;
-        const int tmp = cur + new_off;
-        auto x = (int8_t)(tmp % tile_size);
-        auto t = tmp / tile_size;
-        auto a = Math::abs(x);
-        auto s = Math::sign(x);
-        bool b = x >= half_tile | x < -half_tile;
-        auto tmask = -(int)b;
-        auto xmask = (int8_t)-(int8_t)b;
-        t += s & tmask;
-        x = (int8_t)((tile_size - a)*-s) & xmask | (int8_t)(x & ~xmask);
-        return { t, x };
-    }
+    const auto [t, r] = floor_divmod<tile_size_xy>(cur + new_off + half_tile<int>);
+    return { t, (int8_t)(r - half_tile<int>) };
 }
 
 } // namespace
 
 point point::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
 {
-    auto [cx, ox] = normalize_coord<iTILE_SIZE2.x()>(cur.x(), new_off.x());
-    auto [cy, oy] = normalize_coord<iTILE_SIZE2.y()>(cur.y(), new_off.y());
+    auto [cx, ox] = normalize_coord(cur.x(), new_off.x());
+    auto [cy, oy] = normalize_coord(cur.y(), new_off.y());
     coord += Vector2i(cx, cy);
     return { coord, { ox, oy }, };
 }
