@@ -61,14 +61,8 @@ template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{
 template<typename Chunk>
 bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
-    // full bbox_size of slack on both sides: an entry rect reaches up to
-    // offset + bbox_offset + bbox_size/2 past the tile edge
-    constexpr auto bbox_size = Vector2{0x100, 0x100};
-    constexpr auto chunk_bounds = Range2D{
-        -half_tile<Vector2> - bbox_size,
-        chunk_size<Vector2> - half_tile<Vector2> + bbox_size,
-    };
-    if (!rect_intersects(min, max, chunk_bounds.min(), chunk_bounds.max()))
+    constexpr auto bounds = chunk_collision_bounds<Range2D>;
+    if (!rect_intersects(min, max, bounds.min(), bounds.max()))
         return true;
 
     bool ret = true;
