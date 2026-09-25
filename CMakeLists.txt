@@ -248,6 +248,8 @@ elseif(NOT MSVC)
     add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
 endif()
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32-app-manifest.cmake")
+
 function(fm_install_executable self)
     get_property(self_ TARGET "${self}" PROPERTY OUTPUT_NAME)
     if (NOT "${self_}" STREQUAL "")
