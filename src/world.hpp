@@ -4,6 +4,7 @@
 #include "compat/borrowed-ptr.hpp"
 #include "chunk.hpp"
 #include "chunk-table.hpp"
+#include "object-table.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include "scenery-type.hpp"
@@ -31,11 +32,10 @@ private:
         bool operator==(const unique_id& other) const;
     };
 
-    struct object_id_hasher { size_t operator()(object_id id) const noexcept; };
-
     struct Impl;
     safe_ptr<Impl> impl;
     detail::chunk_table _chunk_table;
+    object_table _objects;
     chunk* _head = nullptr;
     chunk* _tail = nullptr;
 

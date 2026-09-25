@@ -970,6 +970,7 @@ ok:
 
         object_proto p;
         visit_object_header(p, s, f);
+        fm_soft_assert(!(id >> object_table::key_bits));
         if (PROTO < 28) [[unlikely]]
             p.bbox_size = fix_stupid_bbox(p.bbox_size);
         else
@@ -1048,6 +1049,7 @@ ok:
             {
                 object_counter << s;
                 fm_soft_assert(object_counter >= world::object_counter_init);
+                fm_soft_assert(!(object_counter >> object_table::key_bits));
             }
             nstrings << s;
             natlases << s;

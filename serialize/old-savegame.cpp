@@ -679,7 +679,10 @@ void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)
     if (PROTO >= 9) [[likely]]
         read_strings(s);
     if (PROTO >= 8) [[likely]]
+    {
         object_counter << s;
+        fm_soft_assert(!(object_counter >> object_table::key_bits));
+    }
     read_chunks(s);
     s.assert_end();
     if (PROTO >= 8) [[likely]]

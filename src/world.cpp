@@ -14,25 +14,19 @@
 #include "tile-defs.hpp"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/hash.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
-#include "compat/hash-table-load-factor.hpp"
 #include "compat/non-const.hpp"
 #include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
-#include <gtl/phmap.hpp>
 #include <mg/Functions.h>
 
 using namespace floormat;
-
-size_t world::object_id_hasher::operator()(object_id id) const noexcept { return gtl::Hash<object_id>{}(id); }
 
 namespace floormat {
 
 struct world::Impl
 {
-    gtl::flat_hash_map<object_id, bptr<object>, object_id_hasher> _objects;
     Pointer<Pass::PoolRegistry> _pass_registry;
     Pointer<Pass::Pool> _cover_pass_pool;
     Pointer<Pass::Pool> _raycast_pass_pool;
@@ -61,15 +55,12 @@ Grid::Pass::Pool& world::raycast_pass_pool()
     return *impl->_raycast_pass_pool;
 }
 
-world::world() : _unique_id{InPlace}
-{
-    auto& impl = *this->impl;
-    Hash::set_open_addressing_load_factor(impl._objects);
-}
+world::world() : _unique_id{InPlace} {}
 
 world::world(world&& w) noexcept :
     impl{move(w.impl)},
     _chunk_table{move(w._chunk_table)},
+    _objects{move(w._objects)},
     _head{w._head},
     _tail{w._tail},
     _unique_id{move(w._unique_id)},
@@ -112,6 +103,7 @@ world& world::operator=(world&& w) noexcept
     // suppress unregister; _chunk_table is replaced wholesale below
     _teardown = true;
     impl = move(w.impl);
+    _objects = move(w._objects);
     while (_head)
     {
         chunk* next = _head->_next;
@@ -151,7 +143,7 @@ world::~world() noexcept
     for (chunk* c = _head; c; c = c->_next)
         c->on_teardown();
     _teardown = true;
-    impl->_objects.clear();
+    _objects.clear();
     chunk* c = _head;
     while (c)
     {
@@ -195,10 +187,9 @@ bool world::contains(chunk_coords_ c) const noexcept
 
 void world::clear()
 {
-    auto& impl = *this->impl;
     fm_assert(!_teardown);
-    // ~object dereferences its chunk; drop the map's refs before chunks are deleted
-    impl._objects.clear();
+    // ~object dereferences its chunk; drop the table's refs before chunks are deleted
+    _objects.clear();
     while (_head)
     {
         chunk* next = _head->_next;
@@ -206,7 +197,6 @@ void world::clear()
         _head = next;
     }
     _tail = nullptr;
-    Hash::set_open_addressing_load_factor(impl._objects);
     _object_counter = object_counter_init;
 }
 
@@ -268,22 +258,20 @@ world::chunks_range<const chunk> world::chunks() const noexcept { return {_head}
 
 void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
-    auto& impl = *this->impl;
     fm_debug_assert(e);
     fm_debug_assert(e->id != 0);
+    fm_assert(!(e->id >> object_table::key_bits));
     fm_debug_assert(e->c);
     fm_debug_assert(pos.chunk3() == e->c->coord());
     fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
-    auto [_, fresh] = impl._objects.try_emplace(e->id, e);
-    if (!fresh) [[unlikely]]
+    if (!_objects.insert(e->id, e)) [[unlikely]]
         fm_throw("object already initialized id:{}"_cf, e->id);
     if (sorted)
         e->c->add_object(e);
     else
         e->c->add_object_unsorted(e);
-    Hash::set_open_addressing_load_factor(impl._objects);
     // objects made before init_scripts() are covered by its sweep instead
     if (_script_initialized && !_script_finalized) [[unlikely]]
         e->init_script(e);
@@ -291,20 +279,18 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
 
 void world::erase_object(object_id id, const object* self)
 {
-    auto& impl = *this->impl;
     fm_debug_assert(id != 0);
-    auto it = impl._objects.find(id);
-    fm_debug_assert(it != impl._objects.end());
+    const auto* s = _objects.find(id);
+    fm_debug_assert(s && *s);
     // a failed do_make_object() dies with the entry still owned by the original object
-    if (it != impl._objects.end() && &*it->second == self)
-        impl._objects.erase(it);
+    if (s && *s && &**s == self)
+        (void)_objects.erase(id);
 }
 
 bptr<object> world::find_object_(object_id id)
 {
-    auto& impl = *this->impl;
-    auto it = impl._objects.find(id);
-    auto ret = it == impl._objects.end() ? nullptr : it->second;
+    const auto* s = _objects.find(id);
+    bptr<object> ret = s ? *s : nullptr;
     fm_debug_assert(!ret || &ret->c->world() == this);
     return ret;
 }
