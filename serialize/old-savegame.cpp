@@ -87,6 +87,14 @@ Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
     return bbox_size;
 }
 
+// Some saves hold offsets past the tile edge, which the object ctor rejects.
+global_coords normalize_offset(global_coords coord, object_proto& proto)
+{
+    const auto pt = point::normalize_coords(coord, {}, Vector2i(proto.offset));
+    proto.offset = pt.offset();
+    return pt.coord();
+}
+
 } // namespace
 
 template<typename T> concept object_subtype = requires {
@@ -405,6 +413,8 @@ void reader_state::read_chunks(reader_t& s)
                 s >> e.bbox_size[1];
                 e.bbox_size = fix_stupid_bbox(e.bbox_size);
             };
+            global_coords pos;
+            const auto place = [&](object_proto& proto) { return pos = normalize_offset({ch, local}, proto); };
             SET_CHUNK_SIZE();
 
             switch (type)
@@ -451,7 +461,7 @@ void reader_state::read_chunks(reader_t& s)
                     read_bbox(s, proto);
                 }
                 SET_CHUNK_SIZE();
-                auto e = _world->make_object<critter, false>(oid, {ch, local}, proto);
+                auto e = _world->make_object<critter, false>(oid, place(proto), proto);
                 e->offset_frac = (uint16_t)((Vector2(offset_frac)*(1.f/65535)).length()*32768);
                 (void)e;
                 break;
@@ -511,7 +521,8 @@ void reader_state::read_chunks(reader_t& s)
                     else
                         fm_soft_assert(false);
                 }
-                _world->make_scenery<false>(oid, {ch, local}, move(sc));
+                place(sc);
+                _world->make_scenery<false>(oid, pos, move(sc));
                 break;
             }
             case object_type::light: {
@@ -548,7 +559,7 @@ void reader_state::read_chunks(reader_t& s)
                     read_bbox(s, proto);
                 }
                 SET_CHUNK_SIZE();
-                auto L = _world->make_object<light, false>(oid, {ch, local}, proto);
+                auto L = _world->make_object<light, false>(oid, place(proto), proto);
                 L->enabled = enabled;
                 (void)L;
                 break;
@@ -556,6 +567,9 @@ void reader_state::read_chunks(reader_t& s)
             case object_type::none:
             case object_type::COUNT: std::unreachable();
             }
+            // Only the chunk being read gets sorted below.
+            if (pos.chunk3() != ch)
+                (*_world)[pos.chunk3()].sort_objects();
         }
 
         SET_CHUNK_SIZE();
@@ -645,7 +659,8 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
         else
             fm_soft_assert(false);
     }
-    _world->make_scenery(_world->make_id(), coord, move(sc));
+    const auto pos = normalize_offset(coord, sc);
+    _world->make_scenery(_world->make_id(), pos, move(sc));
 }
 
 void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)

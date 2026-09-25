@@ -26,4 +26,12 @@ static_assert(rotate_bbox({ -32, -16 }, { 16, 32 },  rotation::W, rotation::S) =
 static_assert(rotate_bbox({ 1, 2 }, { 3, 4 }, rotation::E, rotation::E) == bbox{{1, 2}, {3, 4}});
 static_assert(rotate_bbox({ 1, 2 }, { 3, 4 }, rotation::N, rotation::N) == bbox{{1, 2}, {3, 4}});
 
+static_assert(rotate_offset({   0, -32 }, rotation::N, rotation::S) == Vector2b{  0,  31});
+static_assert(rotate_offset({   0, -32 }, rotation::N, rotation::E) == Vector2b{ 31,   0});
+static_assert(rotate_offset({   0, -32 }, rotation::N, rotation::W) == Vector2b{-32,   0});
+static_assert(rotate_offset({ -32,   0 }, rotation::N, rotation::E) == Vector2b{  0, -32});
+static_assert(rotate_offset({ -32,   0 }, rotation::N, rotation::S) == Vector2b{ 31,   0});
+static_assert(rotate_offset({ -32,   0 }, rotation::N, rotation::W) == Vector2b{  0,  31});
+static_assert(rotate_offset({  31,  31 }, rotation::N, rotation::S) == Vector2b{-31, -31});
+
 } // namespace floormat

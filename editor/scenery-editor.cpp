@@ -24,7 +24,7 @@ scenery_editor::scenery_editor() noexcept
 void scenery_editor::set_rotation(enum rotation r)
 {
     auto& s = _selected.proto;
-    s.offset = rotate_point(s.offset, s.r, r);
+    s.offset = rotate_offset(s.offset, s.r, r);
     s.bbox_offset = rotate_point(s.bbox_offset, s.r, r);
     s.bbox_size = rotate_size(s.bbox_size, s.r, r);
     s.r = r;

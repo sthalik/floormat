@@ -149,7 +149,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
     auto offset      = Vector2i(f.offset);          get("offset", offset);
     auto bbox_offset = Vector2i(f.bbox_offset);     get("bbox-offset", bbox_offset);
     auto bbox_size   = Vector2ui(f.bbox_size);      get("bbox-size", bbox_size);
-    fm_soft_assert(offset == Vector2i(Vector2b(offset)));
+    fm_soft_assert(offset >= -half_tile<Vector2i> && offset < half_tile<Vector2i>);
     fm_soft_assert(bbox_offset == Vector2i(Vector2b(bbox_offset)));
     fm_soft_assert(bbox_size == Vector2ui(Vector2ub(bbox_size)));
 

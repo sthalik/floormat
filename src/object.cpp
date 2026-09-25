@@ -42,6 +42,7 @@ object::object(object_id id, class chunk& c, const object_proto& proto) :
     fm_soft_assert(atlas->check_rotation(r));
     fm_soft_assert(frame < atlas->info().nframes);
     fm_assert(proto.bbox_size % Vector2ub{2} == Vector2ub{0});
+    fm_assert(offset >= -half_tile<Vector2b> && offset < half_tile<Vector2b>);
 }
 
 object::~object() noexcept
@@ -75,7 +76,7 @@ bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
     // rotate() only rotates the sub-tile offset for non-dynamic objects; mirror that
-    const auto offset_ = !is_dynamic() ? rotate_point(offset, old_r, new_r) : offset;
+    const auto offset_ = !is_dynamic() ? rotate_offset(offset, old_r, new_r) : offset;
     const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
     return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
@@ -92,7 +93,7 @@ bool object::can_rotate(rotation new_r)
 void object::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
-    auto offset_ = !is_dynamic() ? rotate_point(offset, r, new_r) : offset;
+    auto offset_ = !is_dynamic() ? rotate_offset(offset, r, new_r) : offset;
     auto bbox_offset_ = rotate_point(bbox_offset, r, new_r);
     auto bbox_size_ = rotate_size(bbox_size, r, new_r);
     set_bbox(offset_, bbox_offset_, bbox_size_, pass);
@@ -238,6 +239,7 @@ template uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& accum, uint32
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, pass_mode pass_)
 {
+    fm_assert(offset_ >= -half_tile<Vector2b> && offset_ < half_tile<Vector2b>);
     non_const(offset)      = offset_;
     non_const(bbox_offset) = bb_offset;
     non_const(bbox_size)   = bb_size;
