@@ -1,20 +1,15 @@
 #include "chunk.hpp"
-#include "chunk-iter.hpp"
 #include "object.hpp"
 #include "world.hpp"
 #include "log.hpp"
 #include "RTree.h"
 #include "compat/non-const.hpp"
 #include "ground-atlas.hpp"
-#include <algorithm>
-#include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 
 namespace floormat {
 
 namespace {
-
-constexpr auto object_id_lessp = [](const auto& a, const auto& b) { return a->id < b->id; };
 
 size_t _reload_no_ = 0; // NOLINT
 
@@ -24,7 +19,7 @@ bool chunk::empty(bool force) const noexcept
 {
     if (!force && !_maybe_empty) [[likely]]
         return false;
-    if (!_objects.isEmpty())
+    if (!_objects.empty())
         return _maybe_empty = false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
         if (_ground && _ground->atlases[i] ||
@@ -124,18 +119,14 @@ chunk::~chunk() noexcept
 {
     _world->unregister_chunk(this);
     _teardown = true;
-    arrayResize(_objects, 0);
-    arrayShrink(_objects);
+    _objects.clear();
     _rtree->RemoveAll();
 }
 
 void chunk::sort_objects()
 {
-    if (_objects_sorted)
-        return;
-    _objects_sorted = true;
-    mark_scenery_modified();
-    std::sort(_objects.begin(), _objects.end(), object_id_lessp);
+    if (_objects.sort())
+        mark_scenery_modified();
 }
 
 void chunk::add_object_pre(const bptr<object>& e)
@@ -162,21 +153,13 @@ void chunk::add_object_pre(const bptr<object>& e)
 void chunk::add_object_unsorted(const bptr<object>& e)
 {
     add_object_pre(e);
-    _objects_sorted = false;
-    arrayReserve(_objects, 8);
-    arrayAppend(_objects, e);
+    _objects.append(e);
 }
 
 size_t chunk::add_objectʹ(const bptr<object>& e)
 {
-    fm_assert(_objects_sorted);
     add_object_pre(e);
-    auto& es = _objects;
-    arrayReserve(es, 8);
-    auto* it = std::lower_bound(es.data(), es.data() + es.size(), e, object_id_lessp);
-    auto i = (size_t)std::distance(es.data(), it);
-    arrayInsert(es, i, e);
-    return i;
+    return _objects.insert(e);
 }
 
 void chunk::add_object(const bptr<object>& e) { (void)add_objectʹ(e); }
@@ -188,58 +171,42 @@ void chunk::on_teardown() // NOLINT(*-make-member-function-const)
 
 bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
 
-void chunk::remove_object(size_t i)
+void chunk::remove_object(const object& e, size_t i)
 {
-    fm_assert(_objects_sorted);
-    fm_debug_assert(i < _objects.size());
+    const auto eʹ = _objects.ptr(e, i);
+    fm_assert(e.c == this);
 
-    auto eʹ = _objects[i];
+    const bool dyn = e.is_dynamic();
+    const bool upd_passability = e.updates_passability();
+    const bool upd_walls = e.updates_walls();
+    if (!dyn)
+        mark_scenery_modified();
+
+    if (!dyn || upd_passability)
+        _remove_bbox_static_(eʹ);
+    else if (!_pass_modified) [[likely]]
     {
-        auto& e = *eʹ;
-        fm_assert(e.c == this);
-
-        const bool dyn = e.is_dynamic();
-        const bool upd_passability = e.updates_passability();
-        const bool upd_walls = e.updates_walls();
-        if (!dyn)
-            mark_scenery_modified();
-
-        if (!dyn || upd_passability)
-            _remove_bbox_static_(eʹ);
-        else if (!_pass_modified) [[likely]]
-        {
-            if (bbox bb; _bbox_for_scenery(e, bb))
-                _remove_bbox_dynamic(bb);
-        }
-
-        if (upd_walls)
-            mark_walls_modified();
-
+        if (bbox bb; _bbox_for_scenery(e, bb))
+            _remove_bbox_dynamic(bb);
     }
-    arrayRemove(_objects, i);
+
+    if (upd_walls)
+        mark_walls_modified();
+
+    _objects.erase(e, i);
 }
 
-void chunk::kill_object(size_t i, script_destroy_reason r)
+void chunk::kill_object(const object& e, size_t i, script_destroy_reason r)
 {
-    fm_debug_assert(i < _objects.size());
-    auto eʹ = _objects[i];
+    auto eʹ = _objects.ptr(e, i);
     // the script is handed a live bptr, so the object can only be deleted after it's torn down
     eʹ->destroy_script_pre(eʹ, r);
-    remove_object(i);
+    remove_object(e, i);
     eʹ->destroy_script_post();
     eʹ.destroy();
 }
 
-const_objects_view chunk::objects() const
-{
-    fm_assert(_objects_sorted);
-    return {_objects.data(), _objects.data() + _objects.size()};
-}
-
-ArrayView<const bptr<object>> chunk::objects()
-{
-    fm_assert(_objects_sorted);
-    return _objects;
-}
+const object_storage& chunk::objects() const { return _objects; }
+object_storage& chunk::objects() { return _objects; }
 
 } // namespace floormat

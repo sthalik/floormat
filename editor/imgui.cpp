@@ -8,7 +8,7 @@
 #include "scenery-editor.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
-#include "src/chunk-iter.hpp"
+#include "src/object-storage.inl"
 #include "src/anim-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
@@ -746,7 +746,7 @@ void app::do_popup_menu()
             ImGui::MenuItem("Rotate", nullptr, false, next_rot != e.r && e.can_rotate(next_rot)))
             e.rotate(i, next_rot);
         if (ImGui::MenuItem("Delete", nullptr, false))
-            e.chunk().kill_object(i);
+            e.chunk().kill_object(e, i);
     }
     else
         _popup_target = {};

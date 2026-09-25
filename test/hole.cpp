@@ -166,7 +166,7 @@ void test_neighbor_dirty()
     fm_assert(c.is_passability_modified());
 
     const auto gen1 = n.pass_gen();
-    c.remove_object(h->index());
+    c.remove_object(*h, h->index());
     fm_assert(n.is_passability_modified());
     fm_assert_not_equal(gen1, n.pass_gen());
 }
