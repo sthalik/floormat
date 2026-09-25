@@ -7,8 +7,8 @@
 #include "src/world.hpp"
 #include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
-#include <algorithm>
 #include <gtl/phmap.hpp>
+#include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
@@ -86,8 +86,8 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
                 {
                     const auto drawc = draw_coord.raw();
                     auto lastc = last.draw_coord.raw();
-                    const auto [minx, maxx] = std::minmax(drawc.x, lastc.x);
-                    const auto [miny, maxy] = std::minmax(drawc.y, lastc.y);
+                    const auto [minx, maxx] = Math::minmax(drawc.x, lastc.x);
+                    const auto [miny, maxy] = Math::minmax(drawc.y, lastc.y);
                     if (draw_offset[0])
                         for (uint32_t i = minx; i <= maxx; i++)
                             on_click_(world, { i, lastc.y, nullptr }, last.btn);
