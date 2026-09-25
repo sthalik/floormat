@@ -142,7 +142,9 @@ power_push() {
     fi
     _cur=$(powercfg //getactivescheme 2>/dev/null | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1)
     test -n "$power_restore" || power_restore="$_cur"
-    trap power_pop EXIT INT TERM
+    # Bash runs the EXIT trap when an untrapped HUP/INT/TERM kills it. Naming them here would
+    # make the handler return and the sweep keep running.
+    trap power_pop EXIT
     if test "$_cur" = "$power_scheme"; then
         say "--- power scheme already $power_scheme"
     elif powercfg //setactive "$power_scheme" 2>/dev/null; then
