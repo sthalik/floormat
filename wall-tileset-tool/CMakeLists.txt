@@ -15,5 +15,6 @@ if(OpenCV_FOUND)
     add_executable(${self} "${sources}")
     target_link_libraries(${self} PRIVATE floormat-serialize floormat floormat-hash)
 
+    fm_win32_app_manifest(${self})
     fm_install_executable(${self})
 endif()

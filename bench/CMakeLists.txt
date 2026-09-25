@@ -20,4 +20,5 @@ else()
 endif()
 
 target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat floormat-hash)
+fm_win32_app_manifest(${self})
 fm_install_executable(${self})
