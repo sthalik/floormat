@@ -58,12 +58,33 @@ void test_point()
 #endif
 }
 
+void test_from_fractional_tile()
+{
+    constexpr int8_t z = 3;
+
+    for (int w = -2*chunk_size<int>; w <= 2*chunk_size<int>; w++)
+    {
+        const auto px = Vector2i{w, -w - 13};
+        const auto tile = Vector2d(px) / tile_size<Vector2d> + Vector2d{.5};
+        fm_assert_equal(Vector3i{px, z*tile_size_z}, Vector3i(point::from_fractional_tile(tile, z)));
+    }
+
+    {
+        // both round to a whole tile in float
+        const auto tile = Vector2d{3 - 1e-8, -5 + 1e-8};
+        const auto px = (tile - Vector2d{.5}) * tile_size<Vector2d>;
+        const auto p = Vector3i(point::from_fractional_tile(tile, z));
+        fm_assert((Math::abs(Vector2d(p.xy()) - px) <= Vector2d{1}).all());
+    }
+}
+
 } // namespace
 
 void Test::test_coords()
 {
     test_normalize_point();
     test_point();
+    test_from_fractional_tile();
 }
 
 } // namespace floormat
