@@ -3,13 +3,13 @@
 #include "compat/base-of.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include "chunk.hpp"
+#include "chunk-table.hpp"
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
 
 namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
-namespace floormat::detail { class chunk_table; }
 
 namespace floormat {
 
@@ -35,7 +35,7 @@ private:
 
     struct Impl;
     safe_ptr<Impl> impl;
-    safe_ptr<detail::chunk_table> _chunk_table;
+    detail::chunk_table _chunk_table;
     chunk* _head = nullptr;
     chunk* _tail = nullptr;
 
