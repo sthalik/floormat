@@ -166,7 +166,7 @@ bool world::unique_id::operator==(const unique_id& other) const { return this ==
 
 chunk& world::operator[](chunk_coords_ coord) noexcept
 {
-    if (auto* c = _chunk_table->chunk_at(coord))
+    if (auto* c = _chunk_table.chunk_at(coord))
         return *c;
     else
         return make_chunk_(coord);
@@ -179,17 +179,17 @@ chunk& world::make_chunk_(chunk_coords_ coord)
 
 chunk* world::at(chunk_coords_ c) noexcept
 {
-    return _chunk_table->chunk_at(c);
+    return _chunk_table.chunk_at(c);
 }
 
 const chunk* world::at(chunk_coords_ c) const noexcept
 {
-    return _chunk_table->chunk_at(c);
+    return _chunk_table.chunk_at(c);
 }
 
 bool world::contains(chunk_coords_ c) const noexcept
 {
-    return _chunk_table->chunk_at(c) != nullptr;
+    return _chunk_table.chunk_at(c) != nullptr;
 }
 
 void world::clear()
@@ -337,25 +337,25 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
 
 std::array<chunk*, 8> world::neighbors(chunk_coords_ coord)
 {
-    return _chunk_table->neighbors(coord);
+    return _chunk_table.neighbors(coord);
 }
 
 std::array<const chunk*, 8> world::neighbors(chunk_coords_ coord) const
 {
-    return _chunk_table->neighbors(coord);
+    return _chunk_table.neighbors(coord);
 }
 
 void world::chunk_table_prepare_frame()
 {
 #ifndef FM_NO_DEBUG3
-    _chunk_table->check_in_sync(*this);
+    _chunk_table.check_in_sync(*this);
 #endif
 }
 
 void world::register_chunk(chunk* c) noexcept
 {
     fm_debug_assert(c->_prev == nullptr && c->_next == nullptr);
-    _chunk_table->update_slot(c->_coord, c);
+    _chunk_table.update_slot(c->_coord, c);
     c->_prev = _tail;
     if (_tail)
         _tail->_next = c;
@@ -368,7 +368,7 @@ void world::unregister_chunk(chunk* c) noexcept
 {
     if (_teardown)
         return;
-    _chunk_table->update_slot(c->_coord, nullptr);
+    _chunk_table.update_slot(c->_coord, nullptr);
     if (c->_prev)
         c->_prev->_next = c->_next;
     else

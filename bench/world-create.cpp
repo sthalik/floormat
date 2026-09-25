@@ -44,7 +44,7 @@ void World_Create_Keep(benchmark::State& state)
     for (auto _ : state)
         make_chunks(arrayAppend(worlds, InPlaceInit), side);
 }
-// Every world holds a 24 MiB large-page chunk table. One failed large-page allocation
+// Every world holds a 2 MiB large-page chunk table top. One failed large-page allocation
 // switches the whole process to 4 KiB pages, so the iteration count stays fixed.
 BENCHMARK(World_Create_Keep)->ArgName("side")->Arg(0)->Arg(2)->Arg(8)->Iterations(32)->Unit(benchmark::kMicrosecond);
 
