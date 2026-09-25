@@ -102,7 +102,7 @@ void check_bitmask(const unsigned char* px, uint32_t W, uint32_t H)
 
 void bitmask_sweep_test()
 {
-    // Width covers every residue mod 16 three times, with zero, one and two whole SSSE3 blocks
+    // Width covers every residue mod 16 three times, with zero, one and two whole SSE2 blocks
     // ahead of the scalar tail. Height covers every start offset: row j begins at bit
     // (H-j-1)*W, so eight rows walk the full cycle of W mod 8.
     constexpr uint32_t max_w = 48, max_h = 9;
@@ -118,7 +118,7 @@ void bitmask_sweep_test()
 
 void bitmask_wide_test()
 {
-    // The sweep stops at 48 where anim/npc-walk.png is 3382 wide. 3391 is prime, runs 211 SSSE3
+    // The sweep stops at 48 where anim/npc-walk.png is 3382 wide. 3391 is prime, runs 211 SSE2
     // blocks with the widest possible tail, and 3391 % 8 == 7 walks every byte offset.
     constexpr uint32_t W = 3391, H = 64;
     Array<unsigned char> px{NoInit, (size_t)W*H*4};
