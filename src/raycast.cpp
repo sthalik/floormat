@@ -263,13 +263,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     (int16_t)(from.chunk().x + chunk_off_x),
                     (int16_t)(from.chunk().y + chunk_off_y),
                     from.chunk3().z };
-                point chunk_origin{q_ch_coord, local_coords{0, 0}, Vector2b{0, 0}};
-                auto cell_center = point::normalize_coords(chunk_origin, Vector2i{
-                    local_cell_x * div_size_i,
-                    local_cell_y * div_size_i,
-                });
+                const Vector2i cell{local_cell_x, local_cell_y};
                 arrayAppend(diag.queries, bbox{
-                    cell_center,
+                    intra_coord{cell * div_size_i + Vector2i{div_size_i / 2}}.to_point(q_ch_coord),
                     Vector2ui{(uint32_t)(div_size_i + 1), (uint32_t)(div_size_i + 1)},
                 });
             }
