@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/limits.hpp"
 #include "rotation.hpp"
+#include "tile-defs.hpp"
 #include <mg/Functions.h>
 #include <mg/Vector2.h>
 
@@ -37,6 +38,12 @@ constexpr Math::Vector2<T> rotate_point(Math::Vector2<T> rect, rotation r_old, r
     auto offset_n = Math::Vector2<T>(offset0_[i_offset0.x()], offset0_[i_offset0.y()]);
     auto [m_offset1, i_offset1, i_size1] = rotation_symmetry(r_new);
     return Math::Vector2<T>{offset_n[i_offset1.x()], offset_n[i_offset1.y()]}*Math::Vector2<T>{m_offset1};
+}
+
+// The mirror turns -half_tile into +half_tile, outside a sub-tile offset.
+constexpr Vector2b rotate_offset(Vector2b offset, rotation r_old, rotation r_new)
+{
+    return Math::clamp(rotate_point(offset, r_old, r_new), -half_tile<Vector2b>, half_tile<Vector2b> - Vector2b{1});
 }
 
 constexpr Vector2ub rotate_size(Vector2ub size0, rotation r_old, rotation r_new)
