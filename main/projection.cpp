@@ -94,7 +94,7 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
         return Vector2i(pixel_to_tile(Vector2d(screen_pos)).chunk());
     };
 
-    constexpr auto z_height = (chunk_z_max - chunk_z_min + 1)*tile_size_z;
+    constexpr auto z_height = chunk_z_count*tile_size_z;
     static_assert(z_height >= 0);
 
     const auto p00 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(),          -z_height - chunk_overhang_y + extra_pixels.min().y()});
@@ -111,11 +111,10 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
 #endif
 
     const Vector2i span = max_xy - min_xy + Vector2i{1, 1};
-    constexpr auto z_count = size_t{int(chunk_z_max) - int(chunk_z_min) + 1};
     const Vector2d base_camera = _shader.camera_offset();
 
     fm_assert(span >= Vector2i{});
-    arrayReserve(output, size_t((span.x()+1) * (span.y()+1)) * z_count);
+    arrayReserve(output, size_t((span.x()+1) * (span.y()+1)) * size_t{chunk_z_count});
 
 #if 0
     if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
