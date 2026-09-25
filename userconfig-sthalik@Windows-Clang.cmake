@@ -40,6 +40,22 @@ else()
         -fcomplex-arithmetic=basic -Wno-overriding-complex-range
     )
     add_link_options(-mdaz-ftz)
+    add_compile_options(
+        -mtune=generic
+        -mno-vzeroupper
+
+        -fstrict-vtable-pointers
+        -fstrict-enums
+        -fnew-infallible
+        -fno-threadsafe-statics
+
+        -DNDEBUG
+    )
+    # Post-link passes. lld only sees -mllvm when it comes through -Wl.
+    add_link_options(
+        -Wl,-mllvm,-enable-ext-tsp-block-placement
+        -Wl,-mllvm,-hot-cold-split
+    )
     # Line discriminators for AutoFDO
     add_compile_options(-fdebug-info-for-profiling)
     if(FLOORMAT_PGO STREQUAL "generate" OR FLOORMAT_PGO STREQUAL "cs" OR FLOORMAT_PGO STREQUAL "use") # instrumented PGO, not AutoFDO
@@ -113,6 +129,10 @@ else()
     elseif(NOT "${FLOORMAT_PGO}" STREQUAL "")
         message(FATAL_ERROR "FLOORMAT_PGO must be 'generate', 'cs', 'use', 'sample' or empty, "
                             "got '${FLOORMAT_PGO}'")
+    endif()
+    if(NOT "${FLOORMAT_PGO}" STREQUAL "")
+        add_compile_options("SHELL:-mllvm -pgso=false")
+        add_link_options(-Wl,-mllvm,-pgso=false)
     endif()
 endif()
 

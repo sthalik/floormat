@@ -339,7 +339,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     if (pv)
         reserve(impl.vertex_buffer, size);
 
-    // Array::operator[] is bounds-checked and no release build defines NDEBUG.
+    // Array::operator[] is bounds-checked unless NDEBUG is defined.
     // Pointers must be taken after every reserve() that can reallocate.
     const auto* const D = impl.depths.data();
     const auto* const Vin = impl.verts.data();
