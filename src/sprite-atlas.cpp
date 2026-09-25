@@ -10,6 +10,7 @@
 #include <cr/GrowableArray.h>
 #include <cr/Path.h>
 #include <cr/StridedArrayView.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
@@ -239,7 +240,7 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
     }
     else
     {
-        const auto [min, max] = std::minmax(w, h);
+        const auto [min, max] = Math::minmax(w, h);
         fit = get_shelf(atlas, max, min, is_rotated = h > w);
     }
 #else

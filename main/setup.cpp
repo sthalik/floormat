@@ -7,7 +7,6 @@
 #include <mg/TextureFormat.h>
 #include <mg/Version.h>
 #include <SDL.h>
-#include <algorithm> // todo std::minmax
 
 namespace floormat {
 
@@ -195,7 +194,7 @@ unsigned main_impl::get_window_refresh_rate(SDL_Window* window, unsigned min, un
     // SDL reports refresh_rate == 0 for "unspecified" (headless, RDP, some VMs),
     // so clamp into [min, max] instead of asserting on the reported value.
     else if (dpymode.refresh_rate > 0)
-        return std::clamp((unsigned)dpymode.refresh_rate, min, max);
+        return Math::clamp((unsigned)dpymode.refresh_rate, min, max);
     return min;
 }
 
@@ -203,7 +202,7 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
 {
     const auto flags = (SDL_WindowFlags)SDL_GetWindowFlags(window());
 
-    int interval = std::abs(SDL_GL_GetSwapInterval());
+    int interval = Math::abs(SDL_GL_GetSwapInterval());
     bool vsync = interval != 0;
     //bool vsync = s.vsync ? interval != 0 : false;
     if (interval < 0) [[unlikely]]
