@@ -37,6 +37,3 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         -Wno-sign-conversion -Wno-zero-as-null-pointer-constant -Wno-cast-qual
         -Wno-shorten-64-to-32 -Wno-conditional-uninitialized -Wno-comma -Wno-unused-macros)
 endif()
-
-# 1 / dir is ±inf for an axis-aligned ray, and the slab test relies on it.
-fm_no_fast_math(FINITE_MATH_ONLY SOURCE raycast.cpp)
