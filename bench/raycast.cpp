@@ -14,6 +14,7 @@
 #include <cr/StructuredBindings.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
+#include <mg/Range.h>
 #include <mg/Timeline.h>
 
 namespace floormat {
@@ -297,14 +298,9 @@ constexpr Vector2i chunk_offsets[3][3] = {
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 {
-    using V = Math::Vector2<T>;
-    // same slack on both sides as the chunk_bounds cull in search.cpp
-    constexpr auto max_bb_size = V{T{0x100}, T{0x100}};
-    constexpr auto start = -half_tile<V> - max_bb_size,
-                   end = chunk_size<V> - half_tile<V> + max_bb_size;
-
-    return start.x() <= p1.x() && end.x() >= p0.x() &&
-           start.y() <= p1.y() && end.y() >= p0.y();
+    constexpr auto b = chunk_collision_bounds<Math::Range2D<T>>;
+    return b.min().x() <= p1.x() && b.max().x() >= p0.x() &&
+           b.min().y() <= p1.y() && b.max().y() >= p0.y();
 }
 
 raycast_result_s do_raycasting_old(world& w, point from, point to, object_id self)

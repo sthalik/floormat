@@ -49,10 +49,7 @@ template<bool IsNeighbor>
 bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
-    constexpr auto max_bbox_size = Vector2i{0x100};
-    // same slack on both sides as the chunk_bounds cull in search.cpp
-    constexpr auto chunk_min = -half_tile<Vector2i> - max_bbox_size,
-                   chunk_max = chunk_size<Vector2i> - half_tile<Vector2i> + max_bbox_size;
+    constexpr auto bounds = chunk_collision_bounds<Range2Di>;
     for (const bptr<object>& eʹʹ : c.objects())
     {
         auto& eʹ = *eʹʹ;
@@ -71,7 +68,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
         }
         const auto min = center - Vector2i(e.bbox_size/2), max = min + Vector2i(e.bbox_size);
         if constexpr(IsNeighbor)
-            if (!rect_intersects(min, max, chunk_min, chunk_max)) [[likely]]
+            if (!rect_intersects(min, max, bounds.min(), bounds.max())) [[likely]]
                 continue;
         fm_assert((max > min).all());
         rtree.Insert(Vector2(min).data(), Vector2(max).data(), make_id(collision_type::none, e.pass, e.id));
