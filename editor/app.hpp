@@ -58,7 +58,7 @@ enum class popup_target_type : unsigned char {
 };
 
 struct popup_target final {
-    object_id id; // todo switch to weak_ptr<object>
+    object_id id = 0; // todo switch to weak_ptr<object>
     popup_target_type target = popup_target_type::none;
     bool operator==(const popup_target&) const;
 };
