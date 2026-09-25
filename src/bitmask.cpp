@@ -4,10 +4,10 @@
 #include <cr/BitArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
-// MSVC never defines __SSSE3__, only __AVX__ and up.
-#if defined __SSSE3__ || defined __AVX__
-#define FM_BITMASK_SSSE3
-#include <tmmintrin.h>
+// MSVC never defines __SSE2__.
+#if defined __SSE2__ || defined _M_X64 || (defined _M_IX86_FP && _M_IX86_FP >= 2)
+#define FM_BITMASK_SSE2
+#include <emmintrin.h>
 #endif
 
 namespace floormat {
@@ -19,13 +19,13 @@ namespace {
 
 constexpr uint8_t amin = 32;
 
-#ifdef FM_BITMASK_SSSE3
+#ifdef FM_BITMASK_SSE2
 
 void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 {
-    const auto sel  = _mm_setr_epi8(3, 7, 11, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
-    const auto sign = _mm_set1_epi8((char)0x80);
-    const auto thr  = _mm_set1_epi8((char)((amin - 1) ^ 0x80));
+    static_assert(amin >= 1 && amin <= 128);
+    // Added to the alpha byte only. Bit 31 of each pixel becomes alpha >= amin.
+    const auto bias = _mm_set1_epi32((int)((128u - amin) << 24));
 
     for (auto j = 0u; j < H; j++)
     {
@@ -38,19 +38,20 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
         {
             // MSVC has no __m128i_u, and -Wcast-align rejects a direct cast from u8*.
             const auto* q = (const __m128i*)(const void*)(row + (size_t)i*4);
-            auto a0 = _mm_shuffle_epi8(_mm_loadu_si128(q + 0), sel);
-            auto a1 = _mm_shuffle_epi8(_mm_loadu_si128(q + 1), sel);
-            auto a2 = _mm_shuffle_epi8(_mm_loadu_si128(q + 2), sel);
-            auto a3 = _mm_shuffle_epi8(_mm_loadu_si128(q + 3), sel);
-            auto al = _mm_unpacklo_epi64(_mm_unpacklo_epi32(a0, a1), _mm_unpacklo_epi32(a2, a3));
-            auto m = (u32)_mm_movemask_epi8(_mm_cmpgt_epi8(_mm_xor_si128(al, sign), thr));
+            auto v0 = _mm_adds_epu8(_mm_loadu_si128(q + 0), bias);
+            auto v1 = _mm_adds_epu8(_mm_loadu_si128(q + 1), bias);
+            auto v2 = _mm_adds_epu8(_mm_loadu_si128(q + 2), bias);
+            auto v3 = _mm_adds_epu8(_mm_loadu_si128(q + 3), bias);
+            // Signed saturation keeps each lane's sign through both packs.
+            auto m = (u32)_mm_movemask_epi8(_mm_packs_epi16(_mm_packs_epi32(v0, v1), _mm_packs_epi32(v2, v3)));
             acc |= m << have;
-            have += 16;
-            do {
-                *p++ |= (u8)acc;
-                acc >>= 8;
-                have -= 8;
-            } while (have >= 8);
+            // have is in [0,7] before every block, so each block fills exactly two bytes.
+            uint16_t w;
+            std::memcpy(&w, p, sizeof w);
+            w |= (uint16_t)acc;
+            std::memcpy(p, &w, sizeof w);
+            p += 2;
+            acc >>= 16;
         }
         for (; i < W; i++)
         {
