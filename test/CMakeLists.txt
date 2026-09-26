@@ -11,8 +11,8 @@ target_link_libraries(${self}_o PUBLIC
     floormat-common
     floormat-hwy
 )
-# test_fpclassify checks infinity().
-fm_no_fast_math(FINITE_MATH_ONLY SOURCE float.cpp)
+# test_fpclassify checks infinity(). test_vqsort makes NaN keys and orders them with isnan().
+fm_no_fast_math(FINITE_MATH_ONLY SOURCE float.cpp vqsort.cpp)
 
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize floormat floormat-hash)
