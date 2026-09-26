@@ -23,6 +23,8 @@ target_link_libraries(
     #Magnum::DebugTools
 )
 target_link_libraries(${self} PRIVATE floormat-hwy)
+# The vqsort fallback calls std::isnan(), which finite math folds to false.
+fm_no_fast_math(FINITE_MATH_ONLY SOURCE hwy.cpp)
 
 #target_precompile_headers(${self} PUBLIC precomp.hpp)
 
