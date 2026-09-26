@@ -29,6 +29,7 @@ public:
     [[nodiscard]] T erase(uint64_t key) noexcept;
     void clear() noexcept;
     uint32_t page_count() const noexcept;
+    uint64_t size() const noexcept requires (P.free_empty);
 
 private:
     static constexpr size_t top_size = size_t{1} << top_bits;

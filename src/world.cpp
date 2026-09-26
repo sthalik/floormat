@@ -336,6 +336,17 @@ void world::chunk_table_prepare_frame()
 {
 #ifndef FM_NO_DEBUG3
     _chunk_table.check_in_sync(*this);
+    // the count catches an object that chunk::remove_object() left in no chunk
+    uint64_t count = 0;
+    for (const auto& c : chunks())
+        for (const object& e : c.objects())
+        {
+            const auto* s = _objects.find(e.id);
+            fm_assert(s && *s && &**s == &e);
+            fm_assert(e.c == &c);
+            count++;
+        }
+    fm_assert(count == _objects.size());
 #endif
 }
 
