@@ -170,6 +170,8 @@ void run(StringView input, StringView tmp)
     auto& c2 = w2[coord];
     fm_assert(!c2.empty(true));
     assert_chunks_equal(w[coord], c2);
+    w.chunk_table_prepare_frame();
+    w2.chunk_table_prepare_frame();
 }
 
 void test_save_1()

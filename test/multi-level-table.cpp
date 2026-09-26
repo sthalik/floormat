@@ -152,12 +152,14 @@ void check_id_like()
         fm_assert(tracked::live == 3);
         fm_assert(!t.insert(k0, tracked{43}));
         fm_assert(tracked::live == 3);
+        fm_assert(t.size() == 3);
         fm_assert(t.find(k0)->v == 31 && t.find(k1)->v == 37 && t.find(k2)->v == 41);
 
         const tracked* base1 = t.find(k1) - (k1 & mask);
         fm_assert(t.erase(k1).v == 37);
         fm_assert(tracked::live == 2);
         fm_assert(t.page_count() == 2);
+        fm_assert(t.size() == 2);
         fm_assert(!t.find(k1));
         fm_assert(t.insert(k3, tracked{47}));
         fm_assert(t.find(k3) - (k3 & mask) == base1);
@@ -171,14 +173,17 @@ void check_id_like()
         fm_assert(!t.find(k3 + 2));
         fm_assert(t.page_count() == 2);
         fm_assert(tracked::live == 2);
+        fm_assert(t.size() == 2);
 
         fm_assert(t.insert(k3, tracked{59 | tracked::reenter_flag}));
         fm_assert(t.insert(59, tracked{k3 | tracked::reenter_flag}));
         fm_assert(t.insert(k2 - 1, tracked{k0 | tracked::reenter_flag}));
         fm_assert(tracked::live == 5);
+        fm_assert(t.size() == 5);
         t.clear();
         fm_assert(tracked::live == 0);
         fm_assert(t.page_count() == 0);
+        fm_assert(t.size() == 0);
         fm_assert(!t.find(k0) && !t.find(k2) && !t.find(k3));
 
         fm_assert(t.insert(k1, tracked{67}));
@@ -187,6 +192,7 @@ void check_id_like()
         reenter_table = &t2;
         fm_assert(t2.find(k1)->v == 67 && t2.find(k0)->v == 71);
         fm_assert(t2.page_count() == 2);
+        fm_assert(t2.size() == 2 && t.size() == 0);
 
         id_like_table t3;
         fm_assert(t3.insert(k2, tracked{73}));
@@ -245,17 +251,24 @@ void check_deep()
     fm_assert(t.insert(32, 127));
     fm_assert(t.insert(4095, 131));
     fm_assert(t.page_count() == 3);
+    fm_assert(t.size() == 4);
     fm_assert(t.erase(31) == 113);
     fm_assert(t.page_count() == 3);
+    fm_assert(t.size() == 3);
     fm_assert(t.erase(0) == 109);
     fm_assert(t.page_count() == 2);
+    fm_assert(t.size() == 2);
     fm_assert(!t.find(0));
     fm_assert((value_at<deep_table, uint64_t>(t, 4095)) == 131);
     fm_assert(t.erase(4095) == 131);
     fm_assert(t.erase(32) == 127);
     fm_assert(t.page_count() == 0);
+    fm_assert(t.size() == 0);
     fm_assert(t.insert(4064, 137));
     fm_assert((value_at<deep_table, uint64_t>(t, 4064)) == 137);
+    fm_assert(t.size() == 1);
+    t.clear();
+    fm_assert(t.size() == 0);
 }
 
 } // namespace
