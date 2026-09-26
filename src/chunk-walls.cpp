@@ -16,6 +16,7 @@
 #include <cr/Optional.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Range.h>
+#include <mg/BatchFunctions.h>
 
 namespace floormat {
 
