@@ -11,7 +11,11 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/crc64.hpp"
 #include "compat/exception.hpp"
+#include "serialize/binary-serializer.hpp"
+#include <bit>
+#include <cstring>
 #include <cr/Path.h>
 #include <mg/Color.h>
 
@@ -149,6 +153,49 @@ void assert_chunks_equal(const chunk* a, const chunk* b)
         Path::remove(tmp);
     w.serialize(tmp);
     return world::deserialize(tmp, loader_policy::error);
+}
+
+// The writer runs the reader's checks, so a NaN has to be put into the file directly.
+void write_patched(StringView path, ArrayView<const char> save, float from, uint32_t to)
+{
+    constexpr auto crc_size = (uint32_t)sizeof(uint64_t);
+    fm_assert(save.size() > crc_size);
+    const auto body = (uint32_t)save.size() - crc_size;
+    auto pos = (uint32_t)-1, hits = 0u;
+    for (auto i = 0u; i + sizeof from <= body; i++)
+        if (std::memcmp(&save[i], &from, sizeof from) == 0)
+        {
+            pos = i;
+            hits++;
+        }
+    fm_assert(hits == 1);
+
+    auto buf = Array<char>{NoInit, save.size()};
+    std::memcpy(buf.data(), save.data(), save.size());
+    std::memcpy(&buf[pos], &to, sizeof to);
+    const auto crc = Serialize::maybe_byteswap(Hash::crc64_update(Hash::CRC64_INITIALIZER, buf.data(), body));
+    std::memcpy(&buf[body], &crc, sizeof crc);
+    fm_assert(Path::write(path, buf));
+}
+
+template<typename T>
+void check_nan_rejected(StringView path, ArrayView<const char> save, object_id id, float T::* field, float value)
+{
+    // A valid edit must load, so the NaN load can only fail on the value.
+    const auto other = value * 2;
+    write_patched(path, save, value, std::bit_cast<uint32_t>(other));
+    auto w = world::deserialize(path, loader_policy::error);
+    const auto obj = w.find_object<T>(id);
+    fm_assert(obj);
+    fm_assert((*obj).*field == other);
+
+    // Release builds assume no NaN, and clang compiles quiet_NaN() here to 0.
+    constexpr uint32_t nan_bits = 0x7fc00000;
+    write_patched(path, save, value, nan_bits);
+    bool caught = false;
+    try { (void)world::deserialize(path, loader_policy::error); }
+    catch (const floormat::exception&) { caught = true; }
+    fm_assert(caught);
 }
 
 void run(StringView input, StringView tmp)
@@ -323,6 +370,34 @@ void test_save_objs()
 #endif
 }
 
+void test_save_nan()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-nan.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-nan-patched.dat"_s);
+    constexpr auto ch = chunk_coords_{-5, 6, 0};
+
+    auto w = world();
+    critter_proto cp;
+    cp.name = "test"_s;
+    cp.speed = 1.7182817f;
+    cp.anim_speed = 3.1415927f;
+    const auto cid = w.make_id();
+    w.make_object<critter>(cid, {ch, {2, 3}}, cp);
+    light_proto lp;
+    lp.max_distance = 2.7182817f;
+    lp.radius = 7.389056f;
+    const auto lid = w.make_id();
+    w.make_object<light>(lid, {ch, {4, 5}}, lp);
+    w.serialize(tmp);
+    const auto save = Path::read(tmp);
+    fm_assert(save);
+
+    check_nan_rejected(patched, *save, cid, &critter::speed, cp.speed);
+    check_nan_rejected(patched, *save, cid, &critter::anim_speed, cp.anim_speed);
+    check_nan_rejected(patched, *save, lid, &light::max_distance, lp.max_distance);
+    check_nan_rejected(patched, *save, lid, &light::radius, lp.radius);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -336,6 +411,7 @@ void Test::test_saves()
     fm_assert(Path::exists(Path::join(loader.TEMP_PATH, "CMakeCache.txt")));
     test_save_2();
     test_save_objs();
+    test_save_nan();
 }
 
 } // namespace floormat
