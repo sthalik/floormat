@@ -131,7 +131,6 @@ int App::exec()
         FM_TEST(test_crc64),
         FM_TEST(test_bptr),
         FM_TEST(test_chunk_iter),
-        FM_TEST(test_multi_level_table),
         FM_TEST(test_entity),
         FM_TEST(test_float),
         FM_TEST(test_format),
@@ -170,6 +169,7 @@ int App::exec()
         FM_TEST(test_loader3),
         FM_TEST(test_saves),
         FM_TEST(test_sprites),
+        FM_TEST(test_multi_level_table),
     };
 
 #undef FM_TEST

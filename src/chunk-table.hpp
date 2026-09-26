@@ -12,7 +12,7 @@ namespace floormat::detail {
 
 // key: oy:7 | ox:7 | z:4 | ly:9 | lx:9
 constexpr inline mlt_params chunk_table_params = mlt_params{
-    .levels = { {.bits = 14}, {.bits = 4}, {.bits = 18, .dynamic = true}, },
+    .levels = { {.bits = {7, 7, 0}}, {.bits = {0, 0, 4}}, {.bits = {9, 9, 0}, .dynamic = true}, },
     .top_source = mlt_source::superpage,
     .page_source = mlt_source::superpage,
 }.validate();
@@ -31,6 +31,9 @@ public:
 #ifndef FM_NO_DEBUG3
     void check_in_sync(const world& w) const;
 #endif
+
+    // tests
+    const multi_level_table<chunk*, chunk_table_params>& raw_table() const noexcept;
 
 private:
     multi_level_table<chunk*, chunk_table_params> _table;

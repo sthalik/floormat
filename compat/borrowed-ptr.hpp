@@ -98,6 +98,8 @@ public:
     void destroy() noexcept;
     void swap(bptr& other) noexcept;
     uint32_t use_count() const noexcept;
+    // true after destroy() through another copy, unlike operator bool
+    bool has_block() const noexcept;
 
     T* get() const noexcept;
     T* operator->() const noexcept;
