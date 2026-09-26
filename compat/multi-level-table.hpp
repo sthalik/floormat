@@ -50,6 +50,14 @@ private:
         bool large = false;
     };
 
+public:
+    // tests
+    ArrayView<const entry> raw_top() const noexcept;
+    ArrayView<const page_record> raw_pages() const noexcept;
+    const page_record& raw_spare() const noexcept;
+    const superpage_alloc_t& raw_top_alloc() const noexcept;
+
+private:
     void detach(const page_record& rec) noexcept;
     T* add_page(uint32_t top_index, uint32_t zero_index) noexcept;
     void remove_page(T* page) noexcept;

@@ -11,6 +11,7 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/exception.hpp"
 #include <cr/Path.h>
 #include <mg/Color.h>
 
@@ -217,6 +218,20 @@ void test_save_objs()
         auto w2 = reload_from_save(tmp, w);
         const auto ctrʹʹʹ = w2.object_counter();
         fm_assert(ctrʹʹʹ == ctrʹʹ);
+    }
+
+    {   // --- counter at the object table's limit ---
+        constexpr object_id max_id = (object_id{1} << object_table::key_bits) - 1;
+        auto w = world();
+        w.set_object_counter(max_id);
+        auto w2 = reload_from_save(tmp, w);
+        fm_assert(w2.object_counter() == max_id);
+
+        w.set_object_counter(max_id + 1);
+        bool caught = false;
+        try { (void)reload_from_save(tmp, w); }
+        catch (const floormat::exception&) { caught = true; }
+        fm_assert(caught);
     }
 
     {   // ---  critter ---
