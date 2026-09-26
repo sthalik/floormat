@@ -32,15 +32,6 @@ void emit_debug_loc0(const char* file, int line, const char* function, fm_FORMAT
 
 } // namespace floormat::debug::detail
 
-
-namespace floormat::debug {
-
-void set_soft_assert_mode(bool value);
-bool soft_assert_mode();
-
-} // namespace floormat::debug
-
-
 namespace floormat {
 
 } // namespace floormat
