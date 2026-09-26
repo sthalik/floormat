@@ -12,8 +12,6 @@ namespace floormat::debug::detail {
 
 namespace {
 
-bool do_soft_assert = false;
-
 template<bool DoPrefix, bool DoSourceLocation>
 CORRADE_NEVER_INLINE
 void emit_debug_(const char* prefix, const char* file, int line, const char* function, const char* fmt, va_list arg_ptr)
@@ -84,10 +82,3 @@ void emit_abort()
 } // namespace floormat::debug::detail
 
 using namespace floormat::debug::detail;
-
-namespace floormat::debug {
-
-void set_soft_assert_mode(bool value) { do_soft_assert = value; }
-bool soft_assert_mode() { return detail::do_soft_assert; }
-
-} // namespace floormat::debug
