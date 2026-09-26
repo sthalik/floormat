@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/hwy.hpp"
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <random>
 #include <type_traits>
@@ -15,11 +16,29 @@ bool key_less(uint128_t a, uint128_t b) { return a.hi != b.hi ? a.hi < b.hi : a.
 bool key_less(K64V64 a, K64V64 b) { return a.key < b.key; }
 bool key_less(K32V32 a, K32V32 b) { return a.key < b.key; }
 
-template<typename T> bool full_less(T a, T b) { return key_less(a, b); }
+template<typename T> bool is_nan(T x)
+{
+    if constexpr (std::is_floating_point_v<T>)
+        return std::isnan(x);
+    else
+        return false;
+}
+
+// VQSort moves NaN to the back in both orders.
+template<typename T> bool precedes(T x, T y, sort_order order)
+{
+    if (is_nan(x))
+        return false;
+    if (is_nan(y))
+        return true;
+    return order == sort_order::ascending ? key_less(x, y) : key_less(y, x);
+}
+
+template<typename T> bool full_less(T a, T b) { return precedes(a, b, sort_order::ascending); }
 bool full_less(K64V64 a, K64V64 b) { return a.key != b.key ? a.key < b.key : a.value < b.value; }
 bool full_less(K32V32 a, K32V32 b) { return a.key != b.key ? a.key < b.key : a.value < b.value; }
 
-template<typename T> bool same(T a, T b) { return a == b; }
+template<typename T> bool same(T a, T b) { return a == b || (is_nan(a) && is_nan(b)); }
 bool same(uint128_t a, uint128_t b) { return a.lo == b.lo && a.hi == b.hi; }
 bool same(K64V64 a, K64V64 b) { return a.value == b.value && a.key == b.key; }
 bool same(K32V32 a, K32V32 b) { return a.value == b.value && a.key == b.key; }
@@ -33,7 +52,11 @@ template<typename T> T make_key(std::mt19937& rng, uint32_t)
         return std::numeric_limits<T>::lowest();
     const auto x = int32_t(rng() % 401) - 200;
     if constexpr (std::is_floating_point_v<T>)
+    {
+        if (r == 2)
+            return std::numeric_limits<T>::quiet_NaN();
         return T(x) * T(0.25);
+    }
     else if constexpr (std::is_signed_v<T>)
         return T(x);
     else
@@ -76,11 +99,13 @@ void check(uint32_t n)
         for (auto i = 0u; i < n; i++)
             fm_assert(same(b[i], canonical[i]));
     };
-    const auto equiv = [](T x, T y) { return !key_less(x, y) && !key_less(y, x); };
+    const auto equiv = [](T x, T y) {
+        return !precedes(x, y, sort_order::ascending) && !precedes(y, x, sort_order::ascending);
+    };
 
     for (const auto order : { sort_order::ascending, sort_order::descending })
     {
-        const auto before = [order](T x, T y) { return order == sort_order::ascending ? key_less(x, y) : key_less(y, x); };
+        const auto before = [order](T x, T y) { return precedes(x, y, order); };
         std::copy_n(input.data(), n, expected.data());
         std::stable_sort(expected.data(), expected.data() + n, before);
 
@@ -116,9 +141,14 @@ void check(uint32_t n)
 
 void test_vqsort()
 {
+    const int64_t native = hwy::SupportedTargets();
     // 0 = real dispatch; EMU128/SCALAR force the std::sort fallback path.
-    for (const int64_t forced : { 0LL, HWY_EMU128, HWY_SCALAR })
+    // SSE4 and AVX2 find NaN with _mm_cmpunord_ps, which finite math folds away.
+    for (const int64_t forced : { 0LL, HWY_SSE4, HWY_AVX2, HWY_EMU128, HWY_SCALAR })
     {
+        // A forced target runs even when the CPU lacks it.
+        if ((forced & (HWY_SSE4 | HWY_AVX2)) != 0 && (forced & native & HWY_TARGETS) == 0)
+            continue;
         hwy::SetSupportedTargetsForTest(forced);
         vqsort_refresh_targets();
         for (const uint32_t n : { 0u, 1u, 2u, 33u, 1000u })
