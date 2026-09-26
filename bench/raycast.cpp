@@ -1,5 +1,6 @@
 #include "src/raycast-diag.hpp"
 #include "src/raycast.hpp"
+#include "src/raycast-loop.hpp"
 #include "src/collision.hpp"
 #include "src/pass-mode.hpp"
 #include "src/point.inl"
@@ -222,6 +223,11 @@ namespace old_rc {
 
 using rc::raycast_result_s;
 using rc::raycast_diag_s;
+using rc::detail::pt_to_vec;
+using rc::detail::dir_inverse;
+using rc::detail::ray_aabb_signs;
+using rc::detail::ray_aabb_intersection;
+using rc::detail::within_chunk_bounds;
 
 using floormat::detail_rc::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
@@ -230,52 +236,6 @@ using Rect = typename RTree::Rect;
 template<class T> constexpr inline T sign_(auto&& x) {
     constexpr auto zero = std::decay_t<decltype(x)>{0};
     return T(x > zero) - T(x < zero);
-}
-
-constexpr Vector2 pt_to_vec(point from, point pt)
-{
-    auto V = Vector2{};
-    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<Vector2>;
-    V += (Vector2(pt.local()) - Vector2(from.local())) * TILE_SIZE2;
-    V += (Vector2(pt.offset()) - Vector2(from.offset()));
-    return V;
-}
-
-struct aabb_result
-{
-    float tmin;
-    bool result;
-};
-
-template<typename T>
-std::array<uint8_t, 2> ray_aabb_signs(Math::Vector2<T> ray_dir_inv_norm)
-{
-    bool signs[2];
-    for (unsigned d = 0; d < 2; ++d)
-        signs[d] = std::signbit(ray_dir_inv_norm[d]);
-    return { signs[0], signs[1] };
-}
-
-aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
-                                  std::array<Vector2, 2> box_minmax, std::array<uint8_t, 2> signs)
-{
-    using Math::min;
-    using Math::max;
-
-    float tmin = 0, tmax = 16777216;
-
-    for (unsigned d = 0; d < 2; ++d)
-    {
-        auto bmin = box_minmax[signs[d]][d];
-        auto bmax = box_minmax[!signs[d]][d];
-        float dmin = (bmin - ray_origin[d]) * ray_dir_inv_norm[d];
-        float dmax = (bmax - ray_origin[d]) * ray_dir_inv_norm[d];
-
-        tmin = max(dmin, tmin);
-        tmax = min(dmax, tmax);
-    }
-
-    return { tmin, tmin < tmax };
 }
 
 constexpr Vector2i chunk_offsets[3][3] = {
@@ -295,14 +255,6 @@ constexpr Vector2i chunk_offsets[3][3] = {
         {  chunk_size<int>,  chunk_size<int> },
     },
 };
-
-template<typename T>
-constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
-{
-    constexpr auto b = chunk_collision_bounds<Math::Range2D<T>>;
-    return b.min().x() <= p1.x() && b.max().x() >= p0.x() &&
-           b.min().y() <= p1.y() && b.max().y() >= p0.y();
-}
 
 raycast_result_s do_raycasting_old(world& w, point from, point to, object_id self)
 {
@@ -364,8 +316,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
     size_[minor_axis] = (minor_len + nsteps*2 - 1) / nsteps;
     size_[major_axis] = (major_len + nsteps - 1) / nsteps;
 
-    // finite 1/dir, same as src/raycast.cpp
-    auto dir_inv_norm = Vector2{1} / copysign(max(abs(dir), Vector2{1e-20f}), dir);
+    auto dir_inv_norm = dir_inverse(dir);
     auto signs = ray_aabb_signs(dir_inv_norm);
 
     result = {
