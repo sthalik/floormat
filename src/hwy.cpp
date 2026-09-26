@@ -1,6 +1,8 @@
 #include "hwy.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <type_traits>
 #include <hwy/contrib/sort/vqsort.h>
 #include <hwy/targets.h>
 
@@ -32,28 +34,44 @@ bool less(const uint128_t& a, const uint128_t& b) { return a.hi != b.hi ? a.hi <
 bool less(const K64V64& a, const K64V64& b) { return a.key < b.key; }
 bool less(const K32V32& a, const K32V32& b) { return a.key < b.key; }
 
+// VQSort puts NaN last in either order. With NaN, `<` is no strict weak ordering, which std::sort requires.
+template<sort_order Order> struct before
+{
+    template<typename T> bool operator()(const T& a, const T& b) const
+    {
+        if constexpr (std::is_floating_point_v<T>)
+        {
+            if (std::isnan(a))
+                return false;
+            if (std::isnan(b))
+                return true;
+        }
+        return Order == sort_order::ascending ? less(a, b) : less(b, a);
+    }
+};
+
 template<typename T> void fallback_sort(T* keys, uint32_t n, sort_order order)
 {
     if (order == sort_order::ascending)
-        std::sort(keys, keys + n, [](const T& a, const T& b) { return less(a, b); });
+        std::sort(keys, keys + n, before<sort_order::ascending>{});
     else
-        std::sort(keys, keys + n, [](const T& a, const T& b) { return less(b, a); });
+        std::sort(keys, keys + n, before<sort_order::descending>{});
 }
 
 template<typename T> void fallback_partial_sort(T* keys, uint32_t n, uint32_t k, sort_order order)
 {
     if (order == sort_order::ascending)
-        std::partial_sort(keys, keys + k, keys + n, [](const T& a, const T& b) { return less(a, b); });
+        std::partial_sort(keys, keys + k, keys + n, before<sort_order::ascending>{});
     else
-        std::partial_sort(keys, keys + k, keys + n, [](const T& a, const T& b) { return less(b, a); });
+        std::partial_sort(keys, keys + k, keys + n, before<sort_order::descending>{});
 }
 
 template<typename T> void fallback_select(T* keys, uint32_t n, uint32_t k, sort_order order)
 {
     if (order == sort_order::ascending)
-        std::nth_element(keys, keys + k, keys + n, [](const T& a, const T& b) { return less(a, b); });
+        std::nth_element(keys, keys + k, keys + n, before<sort_order::ascending>{});
     else
-        std::nth_element(keys, keys + k, keys + n, [](const T& a, const T& b) { return less(b, a); });
+        std::nth_element(keys, keys + k, keys + n, before<sort_order::descending>{});
 }
 
 } // namespace
