@@ -112,6 +112,7 @@ template<typename T, mlt_params P>
 bool multi_level_table<T, P>::insert(uint64_t key, T value) noexcept
 {
     detail_mlt::check_key<multi_level_table>(key);
+    fm_debug_assert(value);
     T* slot;
     [[maybe_unused]] page_ref* ref = nullptr;
     if constexpr (!has_pages)
@@ -193,33 +194,49 @@ T multi_level_table<T, P>::erase(uint64_t key) noexcept
 template<typename T, mlt_params P>
 void multi_level_table<T, P>::clear() noexcept
 {
+    // A T destructor may insert, so both loops repeat until nothing is left.
     if constexpr (!has_pages)
     {
-        for (size_t i = 0; i < top_size; i++)
-            (void)std::exchange(_top[i], T{});
+        for (bool again = true; again; )
+        {
+            again = false;
+            for (size_t i = 0; i < top_size; i++)
+                if (_top[i])
+                {
+                    (void)std::exchange(_top[i], T{});
+                    again = !std::is_trivially_destructible_v<T>;
+                }
+        }
     }
     else
     {
         // A T destructor that re-enters the table must find every page gone.
-        Array<page_record> pages = move(_pages);
-        for (const page_record& rec : pages)
-            detach(rec);
-        for (const page_record& rec : pages)
+        Array<page_record> pages;
+        while (!_pages.isEmpty())
         {
-            if constexpr (!std::is_trivially_destructible_v<T>)
-                for (size_t i = 0; i < page_size; i++)
-                    if (rec.page[i])
-                        (void)std::exchange(rec.page[i], T{});
-            free_page(rec);
-        }
-        if constexpr (zero_bits > 0)
+            // Array's move assignment swaps
+            arrayClear(pages);
+            pages = move(_pages);
+            for (const page_record& rec : pages)
+                detach(rec);
+            // before the destructors run, or a page they insert into a side array loses its ref
+            if constexpr (zero_bits > 0)
+                for (const page_record& rec : pages)
+                {
+                    split_entry& e = _top[rec.top_index];
+                    delete[] e.side;
+                    e.side = nullptr;
+                }
             for (const page_record& rec : pages)
             {
-                split_entry& e = _top[rec.top_index];
-                delete[] e.side;
-                e.side = nullptr;
+                if constexpr (!std::is_trivially_destructible_v<T>)
+                    for (size_t i = 0; i < page_size; i++)
+                        if (rec.page[i])
+                            (void)std::exchange(rec.page[i], T{});
+                free_page(rec);
             }
-        if (_pages.isEmpty())
+        }
+        if (!pages.isEmpty())
         {
             arrayClear(pages);
             _pages = move(pages);
@@ -246,6 +263,30 @@ uint64_t multi_level_table<T, P>::size() const noexcept requires (P.free_empty)
             n += e.live;
     }
     return n;
+}
+
+template<typename T, mlt_params P>
+auto multi_level_table<T, P>::raw_top() const noexcept -> ArrayView<const entry>
+{
+    return {_top, _top ? top_size : 0};
+}
+
+template<typename T, mlt_params P>
+auto multi_level_table<T, P>::raw_pages() const noexcept -> ArrayView<const page_record>
+{
+    return _pages;
+}
+
+template<typename T, mlt_params P>
+auto multi_level_table<T, P>::raw_spare() const noexcept -> const page_record&
+{
+    return _spare;
+}
+
+template<typename T, mlt_params P>
+const superpage_alloc_t& multi_level_table<T, P>::raw_top_alloc() const noexcept
+{
+    return _top_alloc;
 }
 
 template<typename T, mlt_params P>
