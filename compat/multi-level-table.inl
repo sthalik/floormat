@@ -234,6 +234,21 @@ uint32_t multi_level_table<T, P>::page_count() const noexcept
 }
 
 template<typename T, mlt_params P>
+uint64_t multi_level_table<T, P>::size() const noexcept requires (P.free_empty)
+{
+    uint64_t n = 0;
+    for (const page_record& rec : _pages)
+    {
+        const entry& e = _top[rec.top_index];
+        if constexpr (zero_bits > 0)
+            n += (rec.zero_index ? e.side[rec.zero_index] : e.zero).live;
+        else
+            n += e.live;
+    }
+    return n;
+}
+
+template<typename T, mlt_params P>
 void multi_level_table<T, P>::detach(const page_record& rec) noexcept
 {
     if constexpr (has_pages)
