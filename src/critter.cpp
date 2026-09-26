@@ -17,6 +17,7 @@
 #include <utility>
 #include <array>
 #include <mg/Functions.h>
+#include <mg/BatchFunctions.h>
 
 namespace floormat {
 

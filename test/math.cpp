@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include <mg/Functions.h>
+#include <mg/BatchFunctions.h>
+#include <limits>
 
 namespace floormat {
 
@@ -100,6 +102,21 @@ constexpr bool test_minmax()
     return true;
 }
 
+constexpr bool test_minmax_nan()
+{
+    constexpr auto nan = std::numeric_limits<float>::quiet_NaN();
+    fm_assert(Math::min({nan, 1.f, -3.f}) == -3.f);
+    fm_assert(Math::max({nan, 1.f, -3.f}) == 1.f);
+    // cl's constant evaluator treats both nan < x and x < nan as true
+#if !defined CORRADE_TARGET_MSVC || defined CORRADE_TARGET_CLANG_CL
+    fm_assert(Math::min({1.f, nan, -3.f}) == -3.f);
+    fm_assert(Math::max({1.f, nan, -3.f}) == 1.f);
+#endif
+    fm_assert(Math::isNan(Math::min({nan, nan})));
+
+    return true;
+}
+
 } // namespace
 
 void Test::test_math()
@@ -112,7 +129,13 @@ void Test::test_math()
     static_assert(test_ceil<float>());
     static_assert(test_ceil<double>());
     static_assert(test_minmax<int>());
+#ifdef MAGNUM_HAS_CONSTEXPR_ISNAN
     static_assert(test_minmax<float>());
+    static_assert(test_minmax_nan());
+#else
+    fm_assert(test_minmax<float>());
+    fm_assert(test_minmax_nan());
+#endif
 }
 
 } // namespace floormat

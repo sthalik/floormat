@@ -37,6 +37,7 @@
 #include "shaders/lightmap.hpp"
 #include <mg/Image.h>
 #include <mg/PixelFormat.h>
+#include <mg/BatchFunctions.h>
 #include "src/nanosecond.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
