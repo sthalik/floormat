@@ -1226,9 +1226,8 @@ task app::scene_lightmap()
     // shader passes are trivial at this image size -- so the scene's mass is frames, and every one
     // of them rebuilds the occlusion mesh and runs all 48 lights of the block.
     //
-    // With vsync off, 360 frames is about a second at the 2.7 ms this measures at 1440x1440,
-    // which is long enough to look at each preview.
-    constexpr uint32_t num_tested = 9, frames_per_light = 360;
+    // Each frame costs 2.4-4.5 s on CI's llvmpipe, so the count is kept low.
+    constexpr uint32_t num_tested = 9, frames_per_light = 8;
 
     populate_scene_lightmap();
     auto& w = M->world();
