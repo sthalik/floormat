@@ -143,6 +143,7 @@ T* bptr<T>::operator->() const noexcept
 template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
 
 template<typename T> bptr<T>::operator bool() const noexcept { return blk && blk->_ptr; }
+template<typename T> bool bptr<T>::has_block() const noexcept { return blk != nullptr; }
 
 template<typename T> bool bptr<T>::operator==(const bptr<const T>& other) const noexcept
 {
