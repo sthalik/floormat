@@ -32,9 +32,9 @@ std::atomic large_failed{false};
 [[maybe_unused]] constexpr size_t LARGE_PAGE_FALLBACK = 2u << 20;   // 2 MiB - typical x86_64 large page
 [[maybe_unused]] constexpr size_t SMALL_PAGE_FALLBACK = 4u << 10;   // 4 KiB - last-resort rounding
 
-inline size_t round_up_pow2(size_t bytes, size_t pow2) noexcept
+inline size_t round_up(size_t bytes, size_t page) noexcept
 {
-    return (bytes + pow2 - 1) & ~(pow2 - 1);
+    return (bytes + page - 1) & ~(page - 1);
 }
 
 #ifdef _WIN32
@@ -76,7 +76,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
     {
         if (size_t page = windows_enable_large_pages(); page > 0)
         {
-            size_t sz = round_up_pow2(bytes, page);
+            size_t sz = round_up(bytes, page);
             void* p = VirtualAlloc(nullptr, sz,
                                    MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                    PAGE_READWRITE);
@@ -85,7 +85,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
         }
         large_failed.store(true, std::memory_order_relaxed);
     }
-    size_t sz = round_up_pow2(bytes, SMALL_PAGE_FALLBACK);
+    size_t sz = round_up(bytes, SMALL_PAGE_FALLBACK);
     void* p = VirtualAlloc(nullptr, sz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     fm_assert(p);
     return { p, sz, false };
@@ -98,7 +98,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
 #  if defined __linux__ && defined MAP_HUGETLB
     if (!large_failed.load(std::memory_order_relaxed))
     {
-        size_t sz = round_up_pow2(bytes, LARGE_PAGE_FALLBACK);
+        size_t sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB;
 #    ifdef MAP_HUGE_2MB
         flags |= MAP_HUGE_2MB;
@@ -108,7 +108,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
             return { p, sz, true };
         large_failed.store(true, std::memory_order_relaxed);
     }
-    size_t sz = round_up_pow2(bytes, page);
+    size_t sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
@@ -121,7 +121,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
 #  elif defined __FreeBSD__ && defined MAP_ALIGNED_SUPER
     // FreeBSD: MAP_ALIGNED_SUPER is a hint; mmap doesn't fail if the kernel
     // declines. used_large reflects intent, not kernel confirmation.
-    size_t sz = round_up_pow2(bytes, page);
+    size_t sz = round_up(bytes, page);
     if (!large_failed.load(std::memory_order_relaxed))
     {
         void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
@@ -141,7 +141,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
 #    ifdef VM_FLAGS_SUPERPAGE_SIZE_2MB
     if (!large_failed.load(std::memory_order_relaxed))
     {
-        size_t large_sz = round_up_pow2(bytes, LARGE_PAGE_FALLBACK);
+        size_t large_sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         mach_vm_address_t addr = 0;
         kern_return_t kr = mach_vm_allocate(
             mach_task_self(), &addr, large_sz,
@@ -151,7 +151,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
         large_failed.store(true, std::memory_order_relaxed);
     }
 #    endif
-    size_t sz = round_up_pow2(bytes, page);
+    size_t sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
@@ -159,7 +159,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
 
 #  else
     // generic POSIX: plain anonymous mmap, zero-page-backed on demand.
-    size_t sz = round_up_pow2(bytes, page);
+    size_t sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
