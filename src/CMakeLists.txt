@@ -24,7 +24,7 @@ target_link_libraries(
 )
 target_link_libraries(${self} PRIVATE floormat-hwy)
 # The vqsort fallback calls std::isnan(), which finite math folds to false.
-fm_no_fast_math(FINITE_MATH_ONLY SOURCE hwy.cpp)
+fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE hwy.cpp)
 # 1 / dir is ±inf for an axis-aligned ray, and the slab test relies on it.
 fm_no_fast_math(FINITE_MATH_ONLY SOURCE raycast-loop.cpp)
 
