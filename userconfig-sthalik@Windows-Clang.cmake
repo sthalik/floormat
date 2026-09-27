@@ -143,7 +143,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # match varDecl(hasGlobalStorage(), isStaticDataMember())
 
 if(FLOORMAT_ASAN)
-    add_compile_options(-fsanitize=undefined,bounds,address)
+    add_compile_options(-Og -fsanitize=undefined,bounds,address)
     add_link_options(-fsanitize=undefined,bounds,address)
 endif()
 
