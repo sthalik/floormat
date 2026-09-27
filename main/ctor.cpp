@@ -1,5 +1,5 @@
 #include "main-impl.hpp"
-#include "compat/fpu.hpp"
+#include "compat/arch.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
