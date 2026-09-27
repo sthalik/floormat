@@ -2,7 +2,7 @@ set(_math "-fno-math-errno -fcx-limited-range -fexcess-precision=fast -fno-signe
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-O0 -ggdb -fstack-protector-all" # fstack-reuse=none
-     CMAKE_C_FLAGS_RELEASE "-O3 -march=x86-64-v2 -mtune=native -mavx -mavx2 -ftree-vectorize ${_math} -fmerge-all-constants -fno-stack-protector -static -flto -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively"
+     CMAKE_C_FLAGS_RELEASE "-O3 -march=x86-64-v2 -mtune=native -mavx -mavx2 -ftree-vectorize ${_math} -fmerge-all-constants -fno-stack-protector -static -flto -flto-partition=none -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively"
 )
 
 sets(STRING
