@@ -8,7 +8,8 @@ FM="$(cd "$(dirname "$0")/../.." && pwd)"
 MP="$FM/external/magnum-plugins"
 ROOT="$MP/build-spot"
 PREFIX="$ROOT/install"
-LLVM=D:/dev/llvm-23.1.0-rc3/bin
+clang=$(command -v clang++) || { echo "clang++ is not on PATH; run through clang64" >&2; exit 1; }
+LLVM=$(cygpath -m "$(dirname "$clang")")
 MATRIX="$MP/build"
 
 TOOLCHAIN=(
