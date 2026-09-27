@@ -37,7 +37,13 @@ Vector2 pt_to_vec(point from, point pt)
 
 Vector2 dir_inverse(Vector2 dir)
 {
+#if !defined _MSC_VER || defined __clang__
     return Vector2{1} / dir;
+#else
+    // Under cl's -fp:fast, Math::max drops the NaN from 0 * inf.
+    // 1/1e-20 still fits after the slab test multiplies it by a distance.
+    return Vector2{1} / Math::copysign(Math::max(Math::abs(dir), Vector2{1e-20f}), dir);
+#endif
 }
 
 std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm)
