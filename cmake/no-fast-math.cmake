@@ -8,7 +8,7 @@ function(fm_no_fast_math)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         # cl has no switch for finite math alone. -fp:precise would undo all of -fp:fast.
         return()
-    elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang$" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
         set(opts -clang:-fno-finite-math-only)
     else()
         set(opts -fno-finite-math-only)
