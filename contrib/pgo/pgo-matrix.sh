@@ -232,7 +232,8 @@ configure_tree() {
 # cmake --install rather than --target install: the latter means 'all', which is both three
 # extra LTO links and a dependency on targets this never times.
 build_tree() {
-    run cmake --build "$1" --target $targets
+    # Same LLVM_PROFILE_FILE as build_tree in run-pgo.sh.
+    run env LLVM_PROFILE_FILE="$(native "$PWD/$1")/buildtool-%m.profraw" cmake --build "$1" --target $targets
     run cmake --install "$1"
 }
 
