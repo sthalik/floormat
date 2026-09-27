@@ -63,6 +63,8 @@ else()
         endif()
         add_compile_options(-Wno-error=profile-instr-out-of-date -Wno-error=profile-instr-unprofiled
                             -Wno-error=backend-plugin)
+        add_compile_options("SHELL:-mllvm -no-pgo-warn-mismatch-comdat-weak=false")
+        add_link_options(-Wl,-mllvm,-no-pgo-warn-mismatch-comdat-weak=false)
         # Only cs and use read the file. A generate tree writes counters and ignores it,
         # so following it there rebuilds every object per re-merge for identical codegen.
         if(NOT FLOORMAT_PGO STREQUAL "generate" AND EXISTS "${FLOORMAT_PGO_PROFDATA}")
