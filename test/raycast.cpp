@@ -172,6 +172,7 @@ void Test::test_raycast()
 
         auto diag = rc::raycast_diag_s{};
         auto fwd = raycast_with_diag(diag, w2, point{ch, {2, 5}, {}}, point{ch, {13, 5}, {}}, 0);
+        fm_assert(diag.dir.y() == 0);
         fm_assert(!fwd.success);
         fm_assert(fwd.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
@@ -181,8 +182,47 @@ void Test::test_raycast()
         fm_assert(back.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 298.5f) < 1);
 
+        auto top = raycast_with_diag(diag, w2, point{ch, {2, 5}, {0, -13}}, point{ch, {13, 5}, {0, -13}}, 0);
+        fm_assert(top.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
+
+        auto bottom = raycast_with_diag(diag, w2, point{ch, {2, 5}, {0, 13}}, point{ch, {13, 5}, {0, 13}}, 0);
+        fm_assert(bottom.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
+
         fm_assert(raycast(w2, point{ch, {2, 5}, {0,  14}}, point{ch, {13, 5}, {0,  14}}, 0).success);
         fm_assert(raycast(w2, point{ch, {2, 5}, {0, -14}}, point{ch, {13, 5}, {0, -14}}, 0).success);
+    }
+    {
+        auto w2 = world{};
+        constexpr auto ch = chunk_coords_{8, 14, 0};
+
+        auto p = critter_proto{};
+        p.bbox_size = Vector2ub{22, 34};
+        auto C = w2.make_object<critter>(w2.make_id(), {ch, {5, 8}}, p);
+
+        auto diag = rc::raycast_diag_s{};
+        auto fwd = raycast_with_diag(diag, w2, point{ch, {5, 1}, {}}, point{ch, {5, 14}, {}}, 0);
+        fm_assert(diag.dir.x() == 0);
+        fm_assert(!fwd.success);
+        fm_assert(fwd.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
+
+        auto back = raycast_with_diag(diag, w2, point{ch, {5, 14}, {}}, point{ch, {5, 1}, {}}, 0);
+        fm_assert(!back.success);
+        fm_assert(back.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 366.5f) < 1);
+
+        auto left = raycast_with_diag(diag, w2, point{ch, {5, 1}, {-11, 0}}, point{ch, {5, 14}, {-11, 0}}, 0);
+        fm_assert(left.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
+
+        auto right = raycast_with_diag(diag, w2, point{ch, {5, 1}, {11, 0}}, point{ch, {5, 14}, {11, 0}}, 0);
+        fm_assert(right.collider.id == C->id);
+        fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
+
+        fm_assert(raycast(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
+        fm_assert(raycast(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
     }
 }
 
