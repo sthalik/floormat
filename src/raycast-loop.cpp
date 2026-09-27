@@ -40,7 +40,7 @@ Vector2 dir_inverse(Vector2 dir)
 #if !defined _MSC_VER || defined __clang__
     return Vector2{1} / dir;
 #else
-    // Under cl's -fp:fast, Math::max drops the NaN from 0 * inf.
+    // Under cl's -fp:fast, min/max don't keep the NaN order ray_aabb_intersection relies on.
     // 1/1e-20 still fits after the slab test multiplies it by a distance.
     return Vector2{1} / Math::copysign(Math::max(Math::abs(dir), Vector2{1e-20f}), dir);
 #endif
@@ -71,8 +71,10 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
         float dmin = (bmin - ray_origin[d]) * ray_dir_inv_norm[d];
         float dmax = (bmax - ray_origin[d]) * ray_dir_inv_norm[d];
 
-        tmin = max(dmin, tmin);
-        tmax = min(dmax, tmax);
+        // Magnum's min/max drop a NaN in the second argument. A ray along a box
+        // side gives 0 * inf = NaN here, so this order counts the side as a hit.
+        tmin = max(tmin, dmin);
+        tmax = min(tmax, dmax);
     }
 
     return { tmin, tmin < tmax };
