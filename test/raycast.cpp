@@ -2,6 +2,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
+#include "src/raycast-loop.hpp"
 #include "src/intra-coord.inl"
 #include "src/grid-pass.hpp"
 #include "src/world.hpp"
@@ -223,6 +224,40 @@ void Test::test_raycast()
 
         fm_assert(raycast(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
         fm_assert(raycast(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
+    }
+    {   // A ray running along a box side makes the slab test compute 0 * inf = NaN.
+        // ray_aabb_intersection passes it as min/max's second argument, which Magnum
+        // drops, so the side counts as a hit. raycast() can't produce this yet:
+        // origins are integers and it inflates rect sides to n + 0.5.
+        // If only the on-side rays fail, the NaN reached `tmin < tmax`: the min/max
+        // arguments were swapped back, or raycast-loop.cpp lost -fno-finite-math-only.
+        // cl clamps 1/0 to 1e20, tilting the ray toward +x/+y, so its max sides miss.
+        using namespace rc::detail;
+#if defined _MSC_VER && !defined __clang__
+        constexpr bool max_side = false;
+#else
+        constexpr bool max_side = true;
+#endif
+        constexpr auto box = std::array<Vector2, 2>{{{-7, -13}, {11, 19}}};
+        const auto check = [&](Vector2 origin, Vector2 dir, bool hit, float tmin) {
+            auto inv = dir_inverse(dir);
+            auto r = ray_aabb_intersection(origin, inv, box, ray_aabb_signs(inv));
+            return r.result == hit && (!hit || Math::abs(r.tmin - tmin) < 1e-6f);
+        };
+
+        fm_assert(check({-53, -12}, { 1,  0}, true,     46));
+        fm_assert(check({-53, -14}, { 1,  0}, false,     0));
+        fm_assert(check({ -6, -54}, { 0,  1}, true,     41));
+        fm_assert(check({ -8, -54}, { 0,  1}, false,     0));
+
+        fm_assert(check({-53, -13}, { 1,  0}, true,     46));
+        fm_assert(check({ 41, -13}, {-1,  0}, true,     30));
+        fm_assert(check({-53,  19}, { 1,  0}, max_side, 46));
+        fm_assert(check({ 41,  19}, {-1,  0}, max_side, 30));
+        fm_assert(check({ -7, -54}, { 0,  1}, true,     41));
+        fm_assert(check({ -7,  67}, { 0, -1}, true,     48));
+        fm_assert(check({ 11, -54}, { 0,  1}, max_side, 41));
+        fm_assert(check({ 11,  67}, { 0, -1}, max_side, 48));
     }
 }
 
