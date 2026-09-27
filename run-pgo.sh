@@ -191,7 +191,8 @@ configure_tree() {
 
 build_tree() {
     configure_tree "$1" "$2"
-    cmake --build "$1" --target install
+    # Instrumented corrade-rc runs in source directories and would leave default.profraw there.
+    LLVM_PROFILE_FILE="$(native "$PWD/$1")/buildtool-%m.profraw" cmake --build "$1" --target install
 }
 
 # %m pools per binary signature and adds into whatever file it finds, so a round that reuses
