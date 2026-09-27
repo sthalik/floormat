@@ -1,8 +1,8 @@
 #!/bin/bash
 set -u
 FM=D:/dev/floormat
-CXX=D:/dev/llvm-23.1.0-rc3/bin/clang++.exe
-NM=D:/dev/llvm-23.1.0-rc3/bin/llvm-nm.exe
+CXX=$(command -v clang++) || { echo "clang++ is not on PATH; run through clang64" >&2; exit 1; }
+NM=$(command -v llvm-nm) || { echo "llvm-nm is not on PATH; run through clang64" >&2; exit 1; }
 BUILD=${BUILD:-clang-asan}
 PLUGIN=${1:-importer}
 OBJDIR=${OBJDIR:-D:/Temp/stb-matrix-sweep}

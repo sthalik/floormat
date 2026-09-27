@@ -9,7 +9,8 @@ set -e
 
 FM="$(cd "$(dirname "$0")/../.." && pwd)"
 B="$FM/external/magnum-plugins/build"
-LLVM=D:/dev/llvm-23.1.0-rc3/bin
+clang=$(command -v clang++) || { echo "clang++ is not on PATH; run through clang64" >&2; exit 1; }
+LLVM=$(cygpath -m "$(dirname "$clang")")
 JOBS=${JOBS:-24}
 LOG=${LOG:-/tmp/stb-test-sweep.log}
 
