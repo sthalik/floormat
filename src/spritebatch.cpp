@@ -12,7 +12,6 @@
 #include "src/hwy.hpp"
 #include <bit>
 #include <cfloat>
-#include <utility>
 #include <cr/GrowableArray.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
@@ -126,9 +125,12 @@ struct SpriteBatch::Impl
     uint32_t slot_idx = 0;
     uint32_t buffer_capacity = 0;
     uint32_t last_start = 0;
+    // Where emit() writes next. verts and depths only grow within a frame, so their size() is
+    // past the written quads. last_start is the quad count.
+    uint32_t emit_pos = 0;
     bool in_chunk = false;
     // True only while sort_indexes[i] == i for all i. Cleared by both things that permute
-    // sort_indexes: end_chunk(true) and the merge. Only clear() sets it back.
+    // sort_indexes: end_chunk<true> and the merge. Only clear() sets it back.
     bool sort_indexes_in_orig_order = true;
 };
 
@@ -147,19 +149,26 @@ SpriteBatch::SpriteBatch()
 
 SpriteBatch::~SpriteBatch() noexcept = default;
 
-void SpriteBatch::begin_chunk()
+void SpriteBatch::begin_chunk(uint32_t max_quads)
 {
     auto& impl = *this->impl;
-    fm_assert(!impl.in_chunk);
-    fm_debug_assert(impl.sort_indexes.size() == impl.verts.size());
-    fm_debug_assert(impl.last_start == impl.verts.size());
+    fm_debug2_assert(!impl.in_chunk);
+    fm_debug2_assert(impl.sort_indexes.size() == impl.last_start);
+    fm_debug2_assert(impl.last_start <= impl.verts.size());
     impl.in_chunk = true;
+    const auto size = impl.last_start + max_quads;
+    if (impl.verts.size() < size)
+    {
+        reserve(impl.verts, size);
+        reserve(impl.depths, size);
+    }
+    impl.emit_pos = impl.last_start;
 }
 
 void SpriteBatch::clear()
 {
     auto& impl = *this->impl;
-    fm_assert(!impl.in_chunk);
+    fm_debug2_assert(!impl.in_chunk);
     arrayClear(impl.vertex_buffer);
     arrayClear(impl.verts);
     arrayClear(impl.depths);
@@ -172,6 +181,7 @@ void SpriteBatch::clear()
     arrayClear(impl.m.head);
     //arrayClear(impl.index_buffer);
     impl.last_start = 0;
+    impl.emit_pos = 0;
     impl.in_chunk = false;
     impl.sort_indexes_in_orig_order = true;
 }
@@ -186,7 +196,8 @@ void SpriteBatch::ensure_allocated(uint32_t count)
     {
         auto cap  = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
         const auto cap2 = ensure_buffer_size<Quads::indexes>(s.index_buffer_handle, impl.buffer_capacity, count);
-        fm_debug_assert(cap == cap2);
+        (void)cap2;
+        fm_debug2_assert(cap == cap2);
         s.index_uploaded = 0; // setData() orphaned the old contents
         new_cap = cap;
     }
@@ -196,23 +207,20 @@ void SpriteBatch::ensure_allocated(uint32_t count)
 void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
 {
     auto& impl = *this->impl;
-    fm_assert(impl.in_chunk);
-    arrayAppend(impl.verts, NoInit, 1);
-    arrayAppend(impl.depths, NoInit, 1);
-    impl.verts.back() = vertexes;
-    impl.depths.back() = depth;
+    fm_debug3_assert(impl.in_chunk);
+    const auto i = impl.emit_pos++;
+    fm_debug3_assert(i < impl.verts.size());
+    impl.verts.data()[i] = vertexes;
+    impl.depths.data()[i] = depth;
 }
 
 void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
 {
-    begin_chunk();
-    auto& impl = *this->impl;
     const auto size = list.size();
-    const auto first = (uint32_t)impl.verts.size();
-
-    // Resize to the upper bound and shrink below, so the filtered branch needs no counting pass.
-    reserve(impl.verts, first + size);
-    reserve(impl.depths, first + size);
+    // Sized to the upper bound, so the filtered branch needs no counting pass.
+    begin_chunk(size);
+    auto& impl = *this->impl;
+    const auto first = impl.emit_pos;
 
     const auto* const Vin = list.Vertexes.data();
     const auto* const Din = list.Depths.data();
@@ -239,32 +247,33 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
             D[n] = Din[i];
             n++;
         }
-        if (n != size)
-        {
-            arrayResize(impl.verts, NoInit, first + n);
-            arrayResize(impl.depths, NoInit, first + n);
-        }
     }
 
-    end_chunk(false);
+    impl.emit_pos = first + n;
+    end_chunk<false>();
 }
 
-void SpriteBatch::end_chunk(bool do_sort)
+template<bool do_sort>
+void SpriteBatch::end_chunk()
 {
     auto& impl = *this->impl;
-    fm_assert(impl.in_chunk);
+    fm_debug2_assert(impl.in_chunk);
     impl.in_chunk = false;
 
     const auto first = impl.last_start;
-    const auto last = (uint32_t)impl.verts.size();
+    const auto last = impl.emit_pos;
     auto& S = impl.sort_indexes;
+
+    fm_debug2_assert(last <= impl.verts.size());
 
     if (first == last) [[unlikely]]
         return;
 
-    fm_debug_assert(S.size() == first);
+    fm_debug2_assert(S.size() == first);
 
-    if (do_sort)
+    // The sort uses xmm6-xmm14, which Win64 makes callee-saved. With a runtime do_sort,
+    // unsorted calls saved them too.
+    if constexpr(do_sort)
     {
         const auto n = last - first;
         reserve(S, last);
@@ -274,7 +283,7 @@ void SpriteBatch::end_chunk(bool do_sort)
     }
     else
     {
-        arrayResize(S, NoInit, last);
+        reserve(S, last);
         auto* const Sp = S.data();
         for (auto i = first; i < last; i++)
             Sp[i] = i;
@@ -283,6 +292,9 @@ void SpriteBatch::end_chunk(bool do_sort)
     arrayAppend(impl.starts, last);
     impl.last_start = last;
 }
+
+template void SpriteBatch::end_chunk<false>();
+template void SpriteBatch::end_chunk<true>();
 
 // Sorting the zip_view directly moves 124 bytes per iter_move to order by a 4-byte key. Sort a
 // permutation instead, then walk its cycles in place.
@@ -328,7 +340,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
 
-    const auto size = (uint32_t)impl.verts.size();
+    const auto size = impl.last_start;
     const auto k = (uint32_t)impl.starts.size() - 1; // number of runs
 
     fm_assert(impl.vertex_buffer.isEmpty());
@@ -349,7 +361,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     auto* const V = pv ? impl.vertex_buffer.data() : nullptr;
 
 #ifndef FM_NO_DEBUG3
-    // end_chunk(false) trusts the caller to have sorted the run. The only such caller feeding
+    // end_chunk<false> trusts the caller to have sorted the run. The only such caller feeding
     // a sorted batch is chunk::scenery_static_mesh, sorted under `if (modify_static)`.
     if (do_sort)
         for (auto r = 0u; r < k; r++)
@@ -463,7 +475,7 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 {
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
-    const auto size = (uint32_t)impl.verts.size();
+    const auto size = impl.last_start;
 
     if (size == 0)
         return;
@@ -475,9 +487,8 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     auto& V = impl.vertex_buffer;
     fm_debug_assert(V.isEmpty());
     fm_debug_assert(size == S.size());
-    fm_debug_assert(size == impl.depths.size());
+    fm_debug_assert(size <= impl.verts.size());
     fm_debug_assert(impl.starts.size() > 1);
-    fm_debug_assert(impl.last_start == size);
     fm_debug_assert(impl.merge_output.isEmpty());
 
     // Nothing permuted sort_indexes, so the merged order is the emission order and both the
@@ -543,10 +554,9 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
     const auto pos = atlas.frame_quad(center, r, frame);
     const auto& g = atlas.group(r);
     const auto* sp = g.sprites[frame];
-    fm_assert(sp);
+    fm_debug3_assert(sp);
     const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !g.mirror_from.isEmpty());
     const auto vertexes = Quads::make_vertexes(pos, uv3, depth);
-    const auto indexes = Quads::quad_indexes(0);
     auto& quick = impl.quick;
     auto& mesh = quick._mesh;
 
@@ -555,8 +565,10 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
     quick._vertex_buffer.setSubData(0, {&vertexes, 1});
 
     if (!quick._index_buffer.id())
-        quick._index_buffer = GL::Buffer{{nullptr, sizeof indexes}, GL::BufferUsage::DynamicDraw};
-    quick._index_buffer.setSubData(0, {&indexes, 1});
+    {
+        const auto indexes = Quads::quad_indexes(0);
+        quick._index_buffer = GL::Buffer{{&indexes, 1}, GL::BufferUsage::StaticDraw};
+    }
 
     if (!mesh.id())
     {
@@ -564,7 +576,7 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
         mesh.addVertexBuffer(quick._vertex_buffer, 0, tile_shader::Position{}, tile_shader::TextureCoordinates{}, tile_shader::Depth{});
         mesh.setIndexBuffer(quick._index_buffer, 0, Quads::index_gl_type);
         mesh.setCount((Int)Quads::indexes_per_quad);
-        fm_assert(mesh.isIndexed());
+        fm_debug3_assert(mesh.isIndexed());
     }
     shader.draw(loader.atlas().texture(), quick._mesh);
 }

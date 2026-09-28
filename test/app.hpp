@@ -26,6 +26,7 @@ void test_corridor();
 void test_crc64();
 void test_critter();
 void test_dijkstra();
+void test_emit_quick();
 void test_entity();
 void test_float();
 void test_format();
