@@ -30,8 +30,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     if (modify_static)
     {
         scenery_static_mesh.clear();
-        // upper bound: three quads per static object, none for a dynamic one
-        scenery_static_mesh.reserve(3 * (uint32_t)_objects.size());
+        // upper bound: six quads per static object, none for a dynamic one
+        scenery_static_mesh.reserve(6 * (uint32_t)_objects.size());
     }
 
     sb.begin_chunk((uint32_t)_objects.size()); // static objects go to scenery_static_mesh instead
@@ -49,6 +49,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         //const auto pos = e->coord.local();
         //const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
         const auto pt = e.position();
+        const auto center = pt + Vector2i(e.bbox_offset);
         const auto quad = atlas->frame_quad(Vector3(pt), e.r, e.frame);
         const auto& group = atlas->group(e.r);
         const auto* sp = group.sprites[e.frame];
@@ -61,16 +62,16 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
         if (is_dynamic)
         {
-            const auto depth = Depth::value_at(depth_start, pt, depth_offset);
+            const auto depth = Depth::value_at(depth_start, center, depth_offset);
             const auto v = Quads::make_vertexes(quad, uv3, depth);
             sb.emit(v, depth);
         }
         else
         {
             // --- slope-based sprite split ---
-            const auto bb_half = Vector2(e.bbox_size) * 0.5f;
-            const float denom = bb_half.x() + bb_half.y();
-            const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
+            const float hx = e.bbox_size.x() * 0.5f, hy = e.bbox_size.y() * 0.5f;
+            const float denom = hx + hy;
+            const float slope = denom > 0.f ? f * (hx - hy) / denom : 0.f;
 
             // bbox center screen offset from sprite's ground anchor
             const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f) - Vector3(group.offset));
@@ -81,60 +82,63 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const float sprite_h = float(frame.size.y());
             const float bottom_y = float(frame.size.y()) - float(frame.ground.y());
 
-            // slope line y-value at left and right sprite edges
-            const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
-            const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
-
-            // t-values on left/right edges: 0 = bottom, 1 = top
-            const float t_left = Math::clamp((bottom_y - y_at_left) / sprite_h, 0.f, 1.f);
-            const float t_right = Math::clamp((bottom_y - y_at_right) / sprite_h, 0.f, 1.f);
-
-            // split points on left edge (BL→TL) and right edge (BR→TR)
-            // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
-            const auto right_split_uv  = uv3[0] + t_right * (uv3[1] - uv3[0]);
-            const auto right_split_pos = quad[0] + t_right * (quad[1] - quad[0]);
-            const auto left_split_uv   = uv3[2] + t_left * (uv3[3] - uv3[2]);
-            const auto left_split_pos  = quad[2] + t_left * (quad[3] - quad[2]);
-
             //const auto depth_bias = int32_t((uint32_t)e.bbox_size.min());
             const auto depth_bias = int32_t((Vector2ui(e.bbox_size)/2).sum());
-            const auto front_depth      = Depth::value_at(depth_start, pt, depth_offset + depth_bias);
-            const auto back_left_depth  = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.y()) - int(bb_half.x()));
-            const auto back_right_depth = Depth::value_at(depth_start, pt, depth_offset + int(bb_half.x()) - int(bb_half.y()));
+            const auto front_depth      = Depth::value_at(depth_start, center, depth_offset + depth_bias);
+            const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + int(hy) - int(hx));
+            const auto back_right_depth = Depth::value_at(depth_start, center, depth_offset + int(hx) - int(hy));
 
-            // front quad (below slope line, closer to camera)
-            Quads::vertexes v1 = {{
-                {quad[0], uv3[0], front_depth},                   // BR
-                {right_split_pos, right_split_uv, front_depth},   // right split
-                {quad[2], uv3[2], front_depth},                   // BL
-                {left_split_pos, left_split_uv, front_depth},     // left split
-            }};
-            scenery_static_mesh.add(v1, front_depth, &e);
+            const float x_nw = Math::clamp(bbox_scr.x() + hy - hx, left_x, right_x);
+            const float x_se = Math::clamp(bbox_scr.x() + hx - hy, left_x, right_x);
+            const float xs[4] = { left_x, Math::min(x_nw, x_se), Math::max(x_nw, x_se), right_x };
 
-            // midpoints for vertical split of back quad
-            const auto center_split_pos = (left_split_pos + right_split_pos) * 0.5f;
-            const auto center_split_uv  = (left_split_uv + right_split_uv) * 0.5f;
-            const auto center_top_pos   = (quad[3] + quad[1]) * 0.5f;
-            const auto center_top_uv    = (uv3[3] + uv3[1]) * 0.5f;
+            // t: 0 = sprite bottom, 1 = top
+            auto t_at = [&](float x) {
+                const float y = bbox_scr.y() + slope * (x - bbox_scr.x());
+                return Math::clamp((bottom_y - y) / sprite_h, 0.f, 1.f);
+            };
+            // depth of the bbox's south and east sides at this screen column, parallel to
+            // north and west wall faces so thin walls in front hide the whole sprite
+            auto depth_at = [&](float x) {
+                const float u = Math::clamp(x - bbox_scr.x(), -hx - hy, hx + hy);
+                const auto off = (int32_t)Math::floor(Math::min(u + 2 * hy, 2 * hx - u));
+                return Depth::value_at(depth_start, center, depth_offset + off);
+            };
+            // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
+            auto vert = [&](float x, float t, float depth) -> Quads::vertex {
+                const float s = (x - left_x) / (right_x - left_x);
+                return { quad[2] + s * (quad[0] - quad[2]) + t * (quad[3] - quad[2]),
+                         uv3[2] + s * (uv3[0] - uv3[2]) + t * (uv3[3] - uv3[2]),
+                         depth };
+            };
 
-            // back-left quad (above slope, screen-left half)
-            Quads::vertexes v2 = {{
-                {center_split_pos, center_split_uv, back_left_depth},  // BR
-                {center_top_pos, center_top_uv, back_left_depth},      // TR
-                {left_split_pos, left_split_uv, back_left_depth},      // BL
-                {quad[3], uv3[3], back_left_depth},                    // TL
-            }};
-            scenery_static_mesh.add(v2, back_left_depth, &e);
+            for (uint32_t i = 0; i < 3; i++)
+            {
+                const float xa = xs[i], xb = xs[i+1];
+                if (!(xb > xa))
+                    continue;
+                const float ta = t_at(xa), tb = t_at(xb);
+                const float da = depth_at(xa), db = depth_at(xb);
 
-            // back-right quad (above slope, screen-right half)
-            Quads::vertexes v3 = {{
-                {right_split_pos, right_split_uv, back_right_depth},   // BR
-                {quad[1], uv3[1], back_right_depth},                   // TR
-                {center_split_pos, center_split_uv, back_right_depth}, // BL
-                {center_top_pos, center_top_uv, back_right_depth},     // TL
-            }};
-            scenery_static_mesh.add(v3, back_right_depth, &e);
-            // --- end 3-piece split ---
+                if (ta > 0.f || tb > 0.f)
+                {
+                    const Quads::vertexes v = {{
+                        vert(xb, 0.f, db), vert(xb, tb, db),
+                        vert(xa, 0.f, da), vert(xa, ta, da),
+                    }};
+                    scenery_static_mesh.add(v, front_depth, &e);
+                }
+                if (ta < 1.f || tb < 1.f)
+                {
+                    const float back_depth = xa + xb < 2 * x_nw ? back_left_depth : back_right_depth;
+                    const Quads::vertexes v = {{
+                        vert(xb, tb, db), vert(xb, 1.f, db),
+                        vert(xa, ta, da), vert(xa, 1.f, da),
+                    }};
+                    scenery_static_mesh.add(v, back_depth, &e);
+                }
+            }
+            // --- end slope-based split ---
         }
     }
     sb.end_chunk<true>();
