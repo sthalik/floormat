@@ -8,6 +8,7 @@
 #include "tile-defs.hpp"
 #include "compat/function2.hpp"
 #include <bit>
+#include <cr/BitArrayView.h>
 
 namespace floormat::Search {
 
@@ -45,7 +46,7 @@ void cache::allocate(point from, uint32_t max_dist)
     }
     else
     {
-        exists.resetAll();
+        exists.prefix(total_cells).resetAll();
     }
 }
 
