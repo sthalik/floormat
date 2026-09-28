@@ -163,8 +163,8 @@ void app::draw_collision_boxes()
 
     if (cursor.pixel)
     {
-        auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
-        const auto pt = M->pixel_to_point(Vector2d{*cursor.pixel} + pos, _z_level);
+        auto pos = Vector2i(tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]}));
+        const auto pt = M->pixel_to_point(*cursor.pixel + pos, _z_level);
         for (auto ch : chunks)
         {
             if (ch.z != _z_level)

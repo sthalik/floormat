@@ -65,23 +65,14 @@ bool sat_rhombus_vs_rect(const std::array<Vector2d, 4>& poly, Range2Di screen_re
 
 } // namespace
 
-global_coords main_impl::pixel_to_tile(Vector2d position, int8_t z_level) const noexcept
+global_coords main_impl::pixel_to_tile(Vector2i position, int8_t z_level) const noexcept
 {
-    auto vec = pixel_to_tile_(position);
-    auto vec_ = Math::floor(vec);
-    return { (int32_t)vec_.x(), (int32_t)vec_.y(), z_level };
+    return pixel_to_point(position, z_level).coord();
 }
 
-Vector2d main_impl::pixel_to_tile_(Vector2d position) const noexcept
+point main_impl::pixel_to_point(Vector2i pixel, int8_t z_level) const noexcept
 {
-    constexpr Vector2d half{.5, .5};
-    const Vector2d px = position - Vector2d{window_size()}*.5 - _shader.camera_offset();
-    return tile_shader::unproject(px*.5) / tile_size<Vector2d> + half;
-}
-
-point main_impl::pixel_to_point(Vector2d pixel, int8_t z_level) const noexcept
-{
-    return point::from_fractional_tile(pixel_to_tile_(pixel), z_level);
+    return tile_shader::pixel_to_point(pixel, window_size(), Vector2i(_shader.camera_offset()*2), z_level);
 }
 
 ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept
@@ -91,7 +82,7 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
     const Vector2i win = window_size();
 
     const auto pixel_to_chunk = [this](Vector2i screen_pos) {
-        return Vector2i(pixel_to_tile(Vector2d(screen_pos)).chunk());
+        return Vector2i(pixel_to_tile(screen_pos).chunk());
     };
 
     constexpr auto z_height = chunk_z_count*tile_size_z;

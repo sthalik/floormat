@@ -268,6 +268,7 @@ private:
 
     Optional<chunk_coords_> tested_light_chunk;
 
+    Vector2d _camera_remainder;
     int8_t _z_level = 0;
 
     bool _pending_popup       : 1 = false;

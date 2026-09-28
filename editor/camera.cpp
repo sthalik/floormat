@@ -48,7 +48,11 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
         auto camera_offset = shader.camera_offset();
         const auto max_camera_offset = Vector2d(sz * 10);
 
-        camera_offset -= dir.normalized() * (double)Time::to_seconds(dt) * pixels_per_second;
+        // Moves in half pixels to keep the camera on the grid tile_shader::set_camera_offset() asserts.
+        _camera_remainder += dir.normalized() * (double)Time::to_seconds(dt) * pixels_per_second;
+        const auto step = Math::round(_camera_remainder*2)*.5;
+        _camera_remainder -= step;
+        camera_offset -= step;
         camera_offset = Math::clamp(camera_offset, -max_camera_offset, max_camera_offset);
         shader.set_camera_offset(camera_offset);
 
@@ -62,6 +66,7 @@ void app::reset_camera_offset()
     constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
     constexpr auto projected = tile_shader::project(size);
     M->shader().set_camera_offset(projected);
+    _camera_remainder = {};
     _z_level = 0;
     update_cursor_tile(cursor.pixel);
 }
@@ -79,8 +84,8 @@ object_id app::get_object_colliding_with_cursor()
 
     if (cursor.pixel)
     {
-        auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
-        const auto pt = M->pixel_to_point(Vector2d{*cursor.pixel} + pos, _z_level);
+        auto pos = Vector2i(tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]}));
+        const auto pt = M->pixel_to_point(*cursor.pixel + pos, _z_level);
 
         for (auto ch : chunks)
         {
@@ -127,7 +132,7 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     // assert_invariant !!cursor.tile == !!cursor.subpixel;
     if (pixel)
     {
-        auto [tile, subpixel] = M->pixel_to_point(Vector2d(*pixel), _z_level);
+        auto [tile, subpixel] = M->pixel_to_point(*pixel, _z_level);
         cursor.tile = tile;
         cursor.subpixel = subpixel;
     }
@@ -140,14 +145,14 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 
 void app::center_camera_on(point pt)
 {
-    // point_to_pixel() is affine in camera_offset with coefficient 1, so feeding the error
-    // straight back lands exactly. Inverting tile_shader::project by hand would duplicate it.
     // Solve towards the integer pixel rather than the true center: an odd window size makes
     // win/2 fractional, and half a pixel is still a whole unit of point::offset.
     _z_level = pt.chunk3().z;
-    auto& shader = M->shader();
-    const auto target = M->window_size()/2;
-    shader.set_camera_offset(shader.camera_offset() + (Vector2d{target} - Vector2d{point_to_pixel(pt)}));
+    const auto win = M->window_size();
+    const auto target = win/2;
+    const auto camera2 = 2*target - win - tile_shader::project2(Vector3i(pt));
+    M->shader().set_camera_offset(Vector2d(camera2)*.5);
+    _camera_remainder = {};
     update_cursor_tile(target);
 }
 

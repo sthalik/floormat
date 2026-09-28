@@ -305,7 +305,7 @@ void app::scroll(int8_t offset)
 void app::set_window_size(Vector2i size)
 {
     M->resize_window(size);
-    // pixel_to_tile_() subtracts window_size()*.5, so the same pixel names a different world
+    // pixel_to_point() subtracts window_size()*.5, so the same pixel names a different world
     // point afterwards. update_cursor_tile() does no bounds check, so a stale cursor.tile is
     // silently wrong rather than empty.
     update_cursor_tile(cursor.pixel);

@@ -3,6 +3,7 @@
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
 #include "texture-unit-cache.hpp"
+#include "src/point.inl"
 #include <cmath>
 #include <cr/Iterable.h>
 #include <mg/Vector4.h>
@@ -59,6 +60,9 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
 
 tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset)
 {
+    // pixel_to_point() takes the offset doubled, as integers.
+    const auto c2 = camera_offset*2;
+    fm_assert(c2.x() == std::round(c2.x()) && c2.y() == std::round(c2.y()));
     _camera_offset = camera_offset;
     return *this;
 }
@@ -102,6 +106,21 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
 void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
 {
     (void)tex;
+}
+
+Vector2i tile_shader::project2(Vector3i pt)
+{
+    const auto x = pt[0], y = pt[1], z = pt[2];
+    return { 2*(x-y), x+y-2*z };
+}
+
+point tile_shader::pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera2, int8_t z_level)
+{
+    const auto s2 = 2*pixel - window_size - camera2;
+    // unproject(s2), which is 4× the world position
+    const auto w4 = Vector2i{s2.x() + 2*s2.y(), 2*s2.y() - s2.x()};
+    const auto p = floor_divmod<4>(w4 + Vector2i{2}).first();
+    return point{Vector3i{p, z_level*tile_size_z}};
 }
 
 void tile_shader::setUniform(Uniform u, auto value)
