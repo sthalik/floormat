@@ -15,7 +15,7 @@ target_link_libraries(${self}_o PUBLIC
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE float.cpp vqsort.cpp)
 
 add_executable(${self} dummy.cc)
-target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize floormat floormat-hash)
+target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize floormat floormat-hash floormat-random)
 
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})

@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "compat/multi-level-table.inl"
 #include "compat/borrowed-ptr.inl"
-#include "random/xoshiro256starstar.hpp"
+#include "random/random.hpp"
 #include "src/chunk-table.hpp"
 #include "src/object-table.hpp"
 #include "src/world.hpp"
@@ -1174,9 +1174,9 @@ struct random_params
     uint32_t live_cap = (uint32_t)-1, page_cap = (uint32_t)-1;
 };
 
-uint32_t below(xoshiro256starstar& rng, uint32_t n)
+uint32_t below(Random::xoshiro256starstar& rng, uint32_t n)
 {
-    return uint32_t((rng() >> 32) * n >> 32);
+    return uint32_t((Random::next(rng) >> 32) * n >> 32);
 }
 
 constexpr uint64_t low_mask(uint32_t bits)
@@ -1222,7 +1222,7 @@ class random_run
     static inline random_run* current = nullptr;
 
     const random_params& p;
-    xoshiro256starstar rng;
+    Random::xoshiro256starstar rng;
     uint64_t serial = 0;
     gtl::flat_hash_map<uint64_t, entry> ref;
     Array<uint64_t> keys;
@@ -1402,7 +1402,7 @@ class random_run
         for (uint32_t i = 2; i < p.windows; i++)
         {
             const uint32_t shift = page_bits + (i % 2 ? zero_bits : 0);
-            const uint64_t b = i == 2 ? uint64_t{1} << shift : (rng() & key_mask) >> shift << shift;
+            const uint64_t b = i == 2 ? uint64_t{1} << shift : (Random::next(rng) & key_mask) >> shift << shift;
             const uint64_t base = b < w / 2 ? 0 : b - w / 2;
             arrayAppend(bases, base < last ? base : last);
         }
@@ -1417,7 +1417,7 @@ class random_run
     {
         if (p.mode == key_mode::walk)
             return window_key(below(rng, p.windows * p.window_size));
-        return rng() & key_mask;
+        return Random::next(rng) & key_mask;
     }
 
     uint64_t pick_key(bool ins)
@@ -1425,7 +1425,7 @@ class random_run
         if (p.mode == key_mode::walk)
         {
             const uint32_t n = p.windows * p.window_size;
-            const uint64_t r = rng();
+            const uint64_t r = Random::next(rng);
             if (r % 64 == 0)
                 walk_pos = uint32_t((r >> 32) * n >> 32);
             else
@@ -1433,7 +1433,7 @@ class random_run
             return window_key(walk_pos);
         }
         if constexpr (Table::key_bits > 16)
-            if (!keys.isEmpty() && rng() % 8 < (ins ? 1u : 6u))
+            if (!keys.isEmpty() && Random::next(rng) % 8 < (ins ? 1u : 6u))
                 return present_key();
         return fresh_key();
     }
@@ -1441,9 +1441,9 @@ class random_run
     uint64_t make_value(uint64_t k)
     {
         if constexpr (is_tracked)
-            if (p.hooks && rng() % 8 == 0)
+            if (p.hooks && Random::next(rng) % 8 == 0)
             {
-                const uint64_t r = rng();
+                const uint64_t r = Random::next(rng);
                 const uint32_t action = r % 64 == 0 ? act_clear : r >> 6 & 1 ? act_erase : act_insert;
                 const uint64_t which = r >> 7 & 7;
                 const uint64_t key = which == 0 ? k : which < 4 && !keys.isEmpty() ? present_key() : fresh_key();
@@ -1604,7 +1604,7 @@ class random_run
                     absent(k + 1);
             }
             for (uint32_t i = 0; i < 256; i++)
-                absent(rng() & key_mask);
+                absent(Random::next(rng) & key_mask);
         }
     }
 
@@ -1677,7 +1677,7 @@ class random_run
     bool phase_insert(uint32_t op)
     {
         const uint32_t insert_fifths = op / 2000 % 2 ? 1 : 4;
-        return rng() % 5 < insert_fifths && keys.size() < p.live_cap;
+        return Random::next(rng) % 5 < insert_fifths && keys.size() < p.live_cap;
     }
 
     void touch(uint64_t k, bool ins)
@@ -1749,7 +1749,7 @@ class random_run
     {
         point s = {};
         for (uint32_t d = 0; d < dims; d++)
-            s[d] = rng() & low_mask(site_bits[d]);
+            s[d] = Random::next(rng) & low_mask(site_bits[d]);
         return s;
     }
 
@@ -1791,7 +1791,7 @@ class random_run
         if (p.walk == walk_type::vertex_reinforced)
             at = page_corner();
         else if (p.walk == walk_type::langton_ant)
-            at = { rng() & low_mask(ant_x_bits), rng() & low_mask(ant_y_bits), at[2] };
+            at = { Random::next(rng) & low_mask(ant_x_bits), Random::next(rng) & low_mask(ant_y_bits), at[2] };
         else if (p.walk == walk_type::retrace)
         {
             fm_assert(Table::key_bits <= 20 && p.walkers > 0);
@@ -2036,7 +2036,7 @@ class random_run
         case walk_type::levy_flight: {
             // Pr(length >= l) = l^-1.5
             const uint32_t dir = below(rng, dirs);
-            const double u = double((rng() >> 11) + 1) * 0x1p-53;
+            const double u = double((Random::next(rng) >> 11) + 1) * 0x1p-53;
             at = moved(at, dir, uint64_t(std::pow(u, -1 / 1.5)));
             break;
         }
@@ -2089,7 +2089,7 @@ class random_run
             else
                 at = moved(at, below(rng, dirs));
             const uint32_t insert_fifths = torus_distance(at, home) <= 3 ? 4 : 1;
-            touch(key_at(at), rng() % 5 < insert_fifths && keys.size() < p.live_cap);
+            touch(key_at(at), Random::next(rng) % 5 < insert_fifths && keys.size() < p.live_cap);
             return;
         }
         case walk_type::random_environment: {
@@ -2103,7 +2103,7 @@ class random_run
         case walk_type::excited: {
             const bool first = per_site.try_emplace(key_at(at), 1u).second;
             uint32_t dir = below(rng, dirs);
-            if (first && dir == 1 && (rng() & 1))
+            if (first && dir == 1 && (Random::next(rng) & 1))
                 dir = 0;
             at = moved(at, dir);
             break;
@@ -2130,7 +2130,7 @@ class random_run
         case walk_type::page_corner_drift: {
             const uint32_t d = below(rng, dims);
             const uint64_t m = low_mask(box[d]), o = at[d] & m;
-            bool minus = (rng() & 1) != 0;
+            bool minus = (Random::next(rng) & 1) != 0;
             if (o != 0 && o != m && below(rng, 4) != 0)
                 minus = o <= m - o;
             at = moved(at, d * 2 + minus);
@@ -2141,7 +2141,7 @@ class random_run
     }
 
 public:
-    explicit random_run(const random_params& p) : p{p}, rng{p.seed} {}
+    explicit random_run(const random_params& p) : p{p} { Random::seed(rng, p.seed); }
 
     void run()
     {
@@ -2209,7 +2209,7 @@ void check_retrace(uint64_t seed, uint32_t walkers)
 }
 
 template<typename Table>
-void check_fill_block(uint64_t block, xoshiro256starstar& rng)
+void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
 {
     using T = std::remove_cvref_t<decltype(*std::declval<const Table&>().find(0))>;
     constexpr bool free_empty = requires (const Table& t) { t.size(); };
@@ -2343,12 +2343,13 @@ void check_fill(uint64_t seed)
 {
     constexpr uint32_t bits = Table::has_pages ? Table::page_bits : Table::key_bits;
     constexpr uint64_t last_block = (uint64_t{1} << (Table::key_bits - bits)) - 1;
-    xoshiro256starstar rng{seed};
+    Random::xoshiro256starstar rng;
+    Random::seed(rng, seed);
     check_fill_block<Table>(0, rng);
     if constexpr (last_block > 0)
     {
         check_fill_block<Table>(last_block, rng);
-        check_fill_block<Table>(rng() & last_block, rng);
+        check_fill_block<Table>(Random::next(rng) & last_block, rng);
     }
 }
 
@@ -2381,9 +2382,10 @@ void check_pack(uint64_t seed)
     }
     else
     {
-        xoshiro256starstar rng{seed};
+        Random::xoshiro256starstar rng;
+        Random::seed(rng, seed);
         for (uint32_t i = 0; i < 4096; i++)
-            check_key(rng() & key_mask);
+            check_key(Random::next(rng) & key_mask);
         for (uint32_t m = 0; m < 1u << Table::dims; m++)
         {
             coord3 c = {};
@@ -2603,15 +2605,16 @@ void check_world_random_ids()
     constexpr chunk_coords_ ch{0, 0, 0};
     constexpr uint32_t count = 64;
 
-    xoshiro256starstar rng{17};
-    const object_id cluster = 1025 + rng() % (max_id - 1024 - 4096);
+    Random::xoshiro256starstar rng;
+    Random::seed(rng, 17);
+    const object_id cluster = 1025 + Random::next(rng) % (max_id - 1024 - 4096);
     world w;
     object_id ids[count];
     bool dead[count] = {};
     gtl::flat_hash_set<object_id> seen;
     for (uint32_t i = 0; i < count; )
     {
-        const object_id id = i % 2 ? 1025 + rng() % (max_id - 1024) : cluster + rng() % 4096;
+        const object_id id = i % 2 ? 1025 + Random::next(rng) % (max_id - 1024) : cluster + Random::next(rng) % 4096;
         if (!seen.insert(id).second)
             continue;
         ids[i] = id;
@@ -2619,7 +2622,7 @@ void check_world_random_ids()
         i++;
     }
     for (uint32_t i = 0; i < count; i++)
-        if (rng() % 2)
+        if (Random::next(rng) % 2)
         {
             const auto o = w.find_object(ids[i]);
             o->chunk().kill_object(*o, o->index());
@@ -2635,7 +2638,7 @@ void check_world_random_ids()
             fm_assert(o && o->id == ids[i]);
     }
     for (uint32_t i = 0; i < 256; i++)
-        if (const object_id id = 1 + rng() % max_id; !seen.contains(id))
+        if (const object_id id = 1 + Random::next(rng) % max_id; !seen.contains(id))
             fm_assert(!w.find_object(id));
 }
 
@@ -2719,7 +2722,8 @@ void check_chunk_table_layout()
 
 void check_chunk_table_random()
 {
-    xoshiro256starstar rng{18};
+    Random::xoshiro256starstar rng;
+    Random::seed(rng, 18);
     gtl::flat_hash_map<uint64_t, chunk*> ref;
     detail::chunk_table t;
     const auto& mlt = t.raw_table();
@@ -2729,13 +2733,13 @@ void check_chunk_table_random()
         const auto it = ref.find(pack_coords(c));
         return it != ref.end() ? it->second : nullptr;
     };
-    const auto random_z = [&] { return int8_t(chunk_z_min + int32_t(rng() % uint32_t(chunk_z_count))); };
+    const auto random_z = [&] { return int8_t(chunk_z_min + int32_t(Random::next(rng) % uint32_t(chunk_z_count))); };
     const auto random_coords = [&] {
-        const uint64_t r = rng();
+        const uint64_t r = Random::next(rng);
         return chunk_coords_{int16_t(r), int16_t(r >> 16), random_z()};
     };
     const auto near_corner = [&] {
-        const uint64_t r = rng();
+        const uint64_t r = Random::next(rng);
         const auto x = int16_t(chunk_coord(uint32_t(r & 127), 0) - 8 + int32_t(r >> 8 & 15));
         const auto y = int16_t(chunk_coord(uint32_t(r >> 12 & 127), 0) - 8 + int32_t(r >> 20 & 15));
         return chunk_coords_{x, y, random_z()};
@@ -2773,7 +2777,7 @@ void check_chunk_table_random()
     uint32_t resets = 0;
     for (uint32_t op = 1; op <= 8000; op++)
     {
-        const uint64_t r = rng();
+        const uint64_t r = Random::next(rng);
         if (op / 1000 % 4 == 3)
             pos = random_coords();
         else if (r % 256 == 0)
