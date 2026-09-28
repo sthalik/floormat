@@ -9,6 +9,7 @@ namespace floormat {
 
 struct texture_unit_cache;
 struct local_coords;
+struct point;
 
 struct tile_shader final : private GL::AbstractShaderProgram
 {
@@ -31,6 +32,9 @@ struct tile_shader final : private GL::AbstractShaderProgram
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
+    static Vector2i project2(Vector3i pt);
+    // Nearest world point to the pixel, halves rounded up. camera2 is 2·camera_offset().
+    static point pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera2, int8_t z_level);
 
     template<typename T, typename... Xs> GL::AbstractShaderProgram& draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
 
