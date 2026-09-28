@@ -21,6 +21,7 @@
 #include "src/tile-constants.hpp"
 #include "keys.hpp"
 #include "compat/enum-bitset.hpp"
+#include <cr/GrowableArray.h>
 
 namespace floormat {
 
@@ -221,7 +222,16 @@ void app::update_world(Ns dt)
 {
     auto& world = M->world();
     const auto frame_no = world.increment_frame_no();
-    auto chunks = M->get_draw_bounds(_chunk_bounds_array, { -chunk_size<Vector2i>, chunk_size<Vector2i>, });
+    ArrayView<chunk_coords_> chunks;
+    if (_update_all_chunks)
+    {
+        arrayResize(_chunk_bounds_array, 0);
+        for (const auto& c : world.chunks())
+            arrayAppend(_chunk_bounds_array, c.coord());
+        chunks = _chunk_bounds_array;
+    }
+    else
+        chunks = M->get_draw_bounds(_chunk_bounds_array, { -chunk_size<Vector2i>, chunk_size<Vector2i>, });
     for (auto ch : chunks)
     {
             auto* const cʹ = world.at(ch);

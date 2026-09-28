@@ -223,6 +223,7 @@ private:
     pgo::task scene_benchmark();
     pgo::task scene_walk();
     pgo::task scene_slide();
+    pgo::task scene_npcs();
     pgo::task scene_maze();
     pgo::task scene_raycast();
     pgo::task scene_object_ids();
@@ -276,6 +277,7 @@ private:
     bool _render_all_z_levels : 1 = true;
     bool _test_text_painter   : 1 = false;
     bool _show_load_pane      : 1 = false;
+    bool _update_all_chunks   : 1 = false;
 };
 
 } // namespace floormat

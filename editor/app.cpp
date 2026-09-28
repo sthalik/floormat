@@ -115,6 +115,7 @@ void app::reset_world_pre()
     _render_vobjs = true;
     M->set_render_vobjs(_render_vobjs);
     _render_all_z_levels = true;
+    _update_all_chunks = false;
     _timestamp = 0;
     const auto pixel = cursor.pixel;
     cursor = {};
