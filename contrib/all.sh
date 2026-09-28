@@ -36,6 +36,13 @@ cd "$(dirname -- "$0" || exit $?)"
 #cd f:/build/floormat
 #set -x
 
+exec 9>lock
+if type flock >/dev/null 2>&1; then
+    flock -n 9
+elif type lockf >/dev/null 2>&1; then
+    lockf -kTt 0 9
+fi
+
 configurations='
 clang64 clang-asan
 vc      msvc-debug
