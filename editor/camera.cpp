@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/tile-constants.hpp"
 #include "src/global-coords.hpp"
+#include "src/point.inl"
 #include "shaders/shader.hpp"
 #include "floormat/main.hpp"
 #include "src/RTree-search.hpp"
@@ -79,9 +80,7 @@ object_id app::get_object_colliding_with_cursor()
     if (cursor.pixel)
     {
         auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
-        const auto [tile, subpixelʹ] = M->pixel_to_point(Vector2d{*cursor.pixel} + pos);
-        const auto curchunk = Vector2(tile.chunk()), curtile = Vector2(tile.local());
-        const auto subpixel = Vector2(subpixelʹ);
+        const auto pt = M->pixel_to_point(Vector2d{*cursor.pixel} + pos, _z_level);
 
         for (auto ch : chunks)
         {
@@ -94,8 +93,7 @@ object_id app::get_object_colliding_with_cursor()
             const with_shifted_camera_offset o{shader, c_pos};
             if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
             {
-                auto chunk_dist = (curchunk - Vector2(c_pos.x, c_pos.y))*chunk_size<Vector2>;
-                auto t0 = chunk_dist + curtile*TILE_SIZE2 + subpixel;
+                auto t0 = Vector2(pt - point{c_pos, {}, {}});
                 auto t1 = t0+Vector2(1e-4f);
                 const auto* rtree = c.rtree();
                 object_id ret = 0;
