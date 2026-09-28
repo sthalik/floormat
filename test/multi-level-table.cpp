@@ -2495,22 +2495,7 @@ void check_bptr_slots()
             fm_assert(t.size() == 0 && t.page_count() == 0);
     };
 
-    {
-        auto p = bptr<slot_obj>{InPlace};
-        {
-            Table t;
-            fm_assert(t.insert(k, p));
-            p.destroy();
-        }
-    }
-    {
-        auto p = bptr<slot_obj>{InPlace};
-        Table t;
-        fm_assert(t.insert(k, p));
-        p.destroy();
-        t.clear();
-        check_gone(t);
-    }
+    // An occupancy bug makes clear() and the destructor loop forever and erase() or insert() fail an assert.
     {
         auto p = bptr<slot_obj>{InPlace};
         Table t;
@@ -2528,6 +2513,22 @@ void check_bptr_slots()
         fm_assert(check_layers(t, [](uint64_t, const bptr<slot_obj>&) {}) == 1);
         fm_assert(t.erase(k).has_block());
         check_gone(t);
+    }
+    {
+        auto p = bptr<slot_obj>{InPlace};
+        Table t;
+        fm_assert(t.insert(k, p));
+        p.destroy();
+        t.clear();
+        check_gone(t);
+    }
+    {
+        auto p = bptr<slot_obj>{InPlace};
+        {
+            Table t;
+            fm_assert(t.insert(k, p));
+            p.destroy();
+        }
     }
 }
 
