@@ -34,7 +34,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         scenery_static_mesh.reserve(3 * (uint32_t)_objects.size());
     }
 
-    sb.begin_chunk();
+    sb.begin_chunk((uint32_t)_objects.size()); // static objects go to scenery_static_mesh instead
 
     for (const auto& eʹ : _objects)
     {
@@ -137,7 +137,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             // --- end 3-piece split ---
         }
     }
-    sb.end_chunk(true);
+    sb.end_chunk<true>();
 
     if (modify_static)
         sb.sort_by_depth(scenery_static_mesh);

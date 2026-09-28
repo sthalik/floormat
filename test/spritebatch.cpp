@@ -25,14 +25,14 @@ struct fixture
     uint32_t nruns = 0;
     bool ranks_defined = true;      // false once some run has a repeated depth
 
-    // Emitted in descending depth, so end_chunk(true) has real work to do.
+    // Emitted in descending depth, so end_chunk<true> has real work to do.
     void add_run(std::vector<float> run)
     {
         std::ranges::sort(run, std::greater<>{});
         emit_run(run, true);
     }
 
-    // Already ascending and emitted with end_chunk(false) — the static scenery path, where
+    // Already ascending and emitted with end_chunk<false> — the static scenery path, where
     // the run is sorted at build time and SpriteBatch is told to trust it.
     void add_presorted_run(std::vector<float> run)
     {
@@ -42,14 +42,14 @@ struct fixture
 
     void add_empty_run(bool do_sort)
     {
-        sb.begin_chunk();
-        sb.end_chunk(do_sort);
+        sb.begin_chunk(0);
+        do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
     }
 
     void emit_run(const std::vector<float>& run, bool do_sort)
     {
         const auto first = (uint32_t)depths.size();
-        sb.begin_chunk();
+        sb.begin_chunk((uint32_t)run.size());
         for (float d : run)
         {
             sb.emit(dummy_quad, d);
@@ -57,7 +57,7 @@ struct fixture
             run_of.push_back(nruns);
             rank_of.push_back(0);
         }
-        sb.end_chunk(do_sort);
+        do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
 
         // Rank by ascending depth within the run. ranges::sort is not stable, so a repeated
         // depth leaves the post-sort order unspecified and ranks become meaningless.
@@ -121,7 +121,7 @@ struct fixture
             fm_assert(again[i] == first[i]);
     }
 
-    // Every run emitted with end_chunk(false) leaves sort_indexes untouched. That identity
+    // Every run emitted with end_chunk<false> leaves sort_indexes untouched. That identity
     // is what draw()'s direct path relies on when it uploads impl.verts unpermuted.
     void check_identity()
     {

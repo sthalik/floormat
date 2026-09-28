@@ -23,8 +23,8 @@ class SpriteBatch
     safe_ptr<Impl> impl;
 
 public:
-    void begin_chunk();
-    void end_chunk(bool do_sort);
+    void begin_chunk(uint32_t max_quads);
+    template<bool do_sort> void end_chunk();
     void clear();
     void draw(tile_shader& shader, bool do_sort = true);
 
