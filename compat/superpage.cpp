@@ -10,6 +10,9 @@
 #else
 #include <sys/mman.h>
 #include <unistd.h>
+#  ifdef __FreeBSD__
+#    include <fcntl.h>
+#  endif
 #  ifdef __APPLE__
 #    include <mach/mach.h>
 #    include <mach/mach_vm.h>
@@ -60,6 +63,21 @@ size_t windows_enable_large_pages() noexcept
         if (!ok || err == ERROR_NOT_ALL_ASSIGNED)
             return 0;
         return page;
+    }();
+    return result;
+}
+#endif
+
+#if defined __FreeBSD__ && defined SHM_LARGEPAGE_ALLOC_DEFAULT
+int freebsd_psind_2m() noexcept
+{
+    static const int result = [] {
+        size_t sizes[8];
+        int n = getpagesizes(sizes, 8);
+        for (int i = 1; i < n; i++)
+            if (sizes[i] == LARGE_PAGE_FALLBACK)
+                return i;
+        return 0;
     }();
     return result;
 }
@@ -119,19 +137,33 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
     return { p, sz, false };
 
 #  elif defined __FreeBSD__ && defined MAP_ALIGNED_SUPER
-    // FreeBSD: MAP_ALIGNED_SUPER is a hint; mmap doesn't fail if the kernel
-    // declines. used_large reflects intent, not kernel confirmation.
-    size_t sz = round_up(bytes, page);
+#    ifdef SHM_LARGEPAGE_ALLOC_DEFAULT
     if (!large_failed.load(std::memory_order_relaxed))
     {
-        void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_ALIGNED_SUPER, -1, 0);
-        if (p != MAP_FAILED)
-            return { p, sz, true };
+        if (int psind = freebsd_psind_2m(); psind > 0)
+        {
+            size_t sz = round_up(bytes, LARGE_PAGE_FALLBACK);
+            // HARD can defragment forever. NOWAIT fails as soon as memory is fragmented.
+            int fd = shm_create_largepage(SHM_ANON, O_RDWR, psind, SHM_LARGEPAGE_ALLOC_DEFAULT, 0);
+            if (fd >= 0)
+            {
+                void* p = MAP_FAILED;
+                if (ftruncate(fd, (off_t)sz) == 0)
+                    p = mmap(nullptr, sz, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+                close(fd);
+                if (p != MAP_FAILED)
+                    return { p, sz, true };
+            }
+        }
         large_failed.store(true, std::memory_order_relaxed);
     }
+#    endif
+    // MAP_ALIGNED_SUPER gets superpages only if a free 2 MiB block exists.
+    size_t sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
-                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_ALIGNED_SUPER, -1, 0);
+    if (p == MAP_FAILED)
+        p = mmap(nullptr, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
     return { p, sz, false };
 
