@@ -94,10 +94,10 @@ void refill(SpriteBatch& sb, const std::vector<std::vector<float>>& runs)
     sb.clear();
     for (const auto& run : runs)
     {
-        sb.begin_chunk();
+        sb.begin_chunk((uint32_t)run.size());
         for (float d : run)
             sb.emit(dummy_quad, d);
-        sb.end_chunk(false); // already ascending, so no per-run sort in the timed path
+        sb.end_chunk<false>(); // already ascending, so no per-run sort in the timed path
     }
 }
 
@@ -123,7 +123,7 @@ const fixture& get_fixture(uint32_t k, layout l)
     return f;
 }
 
-// m is quads per chunk. Keep it small: end_chunk(true)'s only production caller closes a run of
+// m is quads per chunk. Keep it small: end_chunk<true>'s only production caller closes a run of
 // one chunk's dynamic objects, and below libc++'s __limit of 24 the per-run sort is an insertion
 // sort rather than introsort.
 std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m)
@@ -166,10 +166,10 @@ void run_chunks(benchmark::State& state, bool do_sort, bool merge)
         sb.clear();
         for (const auto& run : f.runs)
         {
-            sb.begin_chunk();
+            sb.begin_chunk((uint32_t)run.size());
             for (float d : run)
                 sb.emit(dummy_quad, d);
-            sb.end_chunk(do_sort);
+            do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
         }
         if (merge)
             sb.sort_vertex_buffer(true);
