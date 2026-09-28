@@ -3,7 +3,7 @@
 #include "compat/exception.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
-#include "src/random.hpp"
+#include "random/random.hpp"
 #include "keys.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
@@ -117,10 +117,11 @@ bool ground_editor::is_anything_selected() const
 template<std::random_access_iterator T>
 void fisher_yates(T begin, T end)
 {
+    static Random::ranlux48 g;
     const auto N = std::distance(begin, end);
     for (auto i = N-1; i >= 1; i--)
     {
-        const auto j = random(i+1);
+        const auto j = (decltype(i))(Random::next(g) % (uint64_t)(i+1));
         swap(begin[i], begin[j]);
     }
 }

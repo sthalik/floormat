@@ -1,11 +1,26 @@
 include_guard(GLOBAL)
 
 function(fm_no_fast_math)
-    cmake_parse_arguments(PARSE_ARGV 0 arg "FINITE_MATH_ONLY;MSVC" "" "")
-    if(NOT arg_FINITE_MATH_ONLY OR NOT "${arg_UNPARSED_ARGUMENTS}" MATCHES "^(SOURCE|TARGET);")
-        message(FATAL_ERROR "usage: fm_no_fast_math(FINITE_MATH_ONLY [MSVC] {SOURCE|TARGET} ...)")
+    cmake_parse_arguments(PARSE_ARGV 0 arg "FINITE_MATH_ONLY;PRECISE;MSVC" "" "")
+    if(NOT (arg_FINITE_MATH_ONLY OR arg_PRECISE) OR (arg_FINITE_MATH_ONLY AND arg_PRECISE)
+       OR NOT "${arg_UNPARSED_ARGUMENTS}" MATCHES "^(SOURCE|TARGET);")
+        message(FATAL_ERROR "usage: fm_no_fast_math({FINITE_MATH_ONLY [MSVC]|PRECISE} {SOURCE|TARGET} ...)")
     endif()
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(arg_PRECISE)
+        # For results that must not depend on the compiler: no reassociation, no FMA contraction.
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            set(opts -fp:precise)
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
+            set(opts -fno-fast-math -ffp-contract=off -fno-approx-func -fno-reciprocal-math -fno-associative-math
+                     -fsigned-zeros)
+            if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+                list(TRANSFORM opts PREPEND "-clang:")
+            endif()
+        else()
+            set(opts -fno-fast-math -fno-unsafe-math-optimizations -fno-associative-math -fno-reciprocal-math
+                     -fsigned-zeros -ffp-contract=off)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         # cl has no switch for finite math alone. -fp:precise undoes all of -fp:fast, so only on request.
         if(NOT arg_MSVC)
             return()
