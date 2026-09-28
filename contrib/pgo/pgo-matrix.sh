@@ -30,7 +30,7 @@
 # 3s-per-case benchmark run would drown the editor out. FM_TRAINERS takes a list if you want
 # the others back; nothing in the pipeline prevents it, sample profiles merge by function name.
 #
-# The editor opens a window and drives itself through the scene table (--driver=all). Do not
+# The editor opens a window and drives itself through the scene table (--scenes=all). Do not
 # start a run you are not going to leave alone.
 #
 # Snapshotting, timing and reporting are delegated to pgo-sweep.sh, which owns the pinning,
@@ -81,12 +81,12 @@ fi
 bench_train=${FM_BENCH_ARGS:---benchmark_min_time=3s}
 # In-process, so startup and atlas loading are counted once rather than once per pass.
 test_train=${FM_TEST_ARGS:---repeat 10}
-# --driver=all, see run-pgo.sh.
+# --scenes=all, see run-pgo.sh.
 # driver-repeat 3, not 1: SDL/GL setup, shader compile and the atlas parse run once per
 # process no matter what, so a single pass gives startup its maximum share of a profile that
 # is now entirely the editor's. Each further pass cuts that share by ~1/N, and past 3 or 4
 # there is nothing left to win.
-editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=all --driver-no-swapbuffers --minimized --driver-repeat 3}
+editor_train=${FM_EDITOR_ARGS:---magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --scenes=all --driver-no-swapbuffers --minimized --driver-repeat 3}
 trainer_timeout=${FM_TRAINER_TIMEOUT:-1200}
 # Process restarts, for a trainer with no repeat option of its own. None has, now that
 # floormat-test takes --repeat.
