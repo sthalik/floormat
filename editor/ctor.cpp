@@ -35,7 +35,7 @@ app::app(fm_settings&& opts) :
         load_world_file(file);
 
 #ifndef FLOORMAT_NO_PGO_DRIVER
-    if (M->settings().driver != driver_mode::off)
+    if (M->settings().driver)
     {
         M->settings().no_warmup = true;
         driver_start();

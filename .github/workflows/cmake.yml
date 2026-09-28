@@ -79,7 +79,7 @@ jobs:
         export LP_NUM_THREADS=$(nproc)
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args \
-            bin/floormat-editor --driver=all --driver-no-swapbuffers
+            bin/floormat-editor --scenes=all --driver-no-swapbuffers
       if: matrix.os == 'ubuntu-latest'
 
 #    - name: Upload build
