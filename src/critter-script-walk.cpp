@@ -48,7 +48,7 @@ void walk_script::delete_self() noexcept { delete this; }
 
 void walk_script::on_init(const bptr<critter>& c)
 {
-    Debug{} << "| start walking from" << c->position() << "to" << dest;
+    //Debug{} << "| start walking from" << c->position() << "to" << dest;
     c->moves.AUTO = true;
 
     switch (mode)
@@ -87,7 +87,7 @@ void walk_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
 
 done:
     //path = {};
-    Debug{} << "  finished walking";
+    //Debug{} << "  finished walking";
     c->clear_auto_movement();
     c->script.do_clear(c);
 }
