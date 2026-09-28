@@ -111,10 +111,10 @@ exe_tag() {
 }
 
 # Each binary rejects the others' options, so these are per-exe.
-# --driver=all: =profile skips the coverage scenes, and their code paths then go untrained.
+# --scenes=all: =profile skips the coverage scenes, and their code paths then go untrained.
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver=all --driver-no-swapbuffers --minimized --driver-repeat $driver_repeat" ;;
+        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --scenes=all --driver-no-swapbuffers --minimized --driver-repeat $driver_repeat" ;;
         # Instrumented, the benchmark's default 0.5s per case turns one training run into
         # minutes, and PGO reads the counts relative to each other, not their magnitude.
         # Repetitions rather than a longer min_time, because a repetition re-runs the fixture

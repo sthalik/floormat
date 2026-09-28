@@ -62,7 +62,7 @@ namespace floormat::pgo { task::~task() noexcept = default; }
 namespace floormat {
 
 // scenes() is declared but not defined: parse_cmdline() only calls it to validate
-// --driver-scenes, which this build doesn't accept.
+// --scenes, which this build doesn't accept.
 void app::driver_start() {}
 void app::driver_tick(Ns) {}
 void app::driver_draw_overlay() {}
@@ -79,7 +79,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
 #define FM_SCENE(name, mode_) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &app::name ), driver_mode::mode_, }
     static constexpr pgo::scene Scenes[] = {
         FM_SCENE(scene_modes, coverage),
-        FM_SCENE(scene_input_events, profile),
+        FM_SCENE(scene_input_events, coverage),
         FM_SCENE(scene_popup_target, coverage),
         FM_SCENE(scene_door, coverage),
         FM_SCENE(scene_ground_editor, coverage),
@@ -1536,21 +1536,17 @@ void app::driver_tick(Ns dt)
         std::printf("driver: %dx%d framebuffer, events ignored\n", size.x(), size.y());
         std::fflush(stdout);
 
-        // Without --driver-scenes the mask has to stay all-ones, so that the mode filter below
-        // sees it. An empty list with the flag given is --driver-scenes=none, which runs nothing
-        // and measures the driver's own per-frame overhead.
-        if (M->settings().driver_scenes_given)
+        // An empty list is --scenes=none, which runs nothing and measures the driver's own
+        // per-frame overhead.
+        D.scene_mask = 0;
+        for (auto name : StringView{M->settings().driver_scenes}.splitWithoutEmptyParts(','))
         {
-            D.scene_mask = 0;
-            for (auto name : StringView{M->settings().driver_scenes}.splitWithoutEmptyParts(','))
-            {
-                name = name.trimmed();
-                uint32_t i = 0;
-                while (i < Scenes.size() && Scenes[i].name.exceptPrefix("scene_"_s) != name)
-                    i++;
-                fm_assert(i < Scenes.size()); // name not found
-                D.scene_mask |= 1u << i;
-            }
+            name = name.trimmed();
+            uint32_t i = 0;
+            while (i < Scenes.size() && Scenes[i].name.exceptPrefix("scene_"_s) != name)
+                i++;
+            fm_assert(i < Scenes.size()); // name not found
+            D.scene_mask |= 1u << i;
         }
     }
 
@@ -1585,21 +1581,10 @@ void app::driver_tick(Ns dt)
                 set_window_size(M->settings().resolution);
             }
         }
-        const auto mode = M->settings().driver;
         for (;;)
         {
-            while (D.scene_index < Scenes.size())
-            {
-                // A name given on the command line wins over the mode filter -- asking for a
-                // scene by name and having it silently skipped would be worse than useless.
-                const auto want = D.scene_mask != (uint32_t)-1
-                                  ? (D.scene_mask & 1u << D.scene_index) != 0
-                                  : mode != driver_mode::profile
-                                    || Scenes[D.scene_index].mode == driver_mode::profile;
-                if (want)
-                    break;
+            while (D.scene_index < Scenes.size() && !(D.scene_mask & 1u << D.scene_index))
                 D.scene_index++;
-            }
             if (D.scene_index < Scenes.size())
                 break;
             if (++D.pass_index >= M->settings().driver_repeat)

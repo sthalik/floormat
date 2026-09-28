@@ -5,12 +5,6 @@
 
 namespace floormat {
 
-enum class driver_mode : uint8_t { off,
-    all,      // selects the same scenes as coverage
-    coverage, // every scene
-    profile,  // only the scenes marked profile, i.e. not the editor-only ones
-};
-
 struct fm_settings
 {
     inline fm_settings() noexcept = default;
@@ -23,7 +17,7 @@ struct fm_settings
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     uint32_t fixed_framerate = 0;   // 0 = feed update() the measured frame time
-    driver_mode driver = driver_mode::off;
+    bool driver = false;
     // Safe because driver waits are counted in frames, never in wall-clock.
     bool driver_no_swapbuffers = false;
     // The two above are read outside the driver too. Guarding drawEvent()'s read would
@@ -31,12 +25,10 @@ struct fm_settings
 #ifndef FLOORMAT_NO_PGO_DRIVER
     // Passes over the scene table. Sampling by restart instead costs more than the scene itself.
     uint32_t driver_repeat = 1;
-    // Comma-separated scene names without their "scene_" prefix; naming a scene plays it whatever
-    // its mode says. Empty with driver_scenes_given means --driver-scenes=none, i.e. run nothing;
-    // empty without it means the driver mode picks.
+    // Comma-separated scene names without their "scene_" prefix. Empty with the driver on is
+    // --scenes=none, which runs nothing.
     String driver_scenes;
     bool no_warmup           : 1 = false;
-    bool driver_scenes_given : 1 = false;
     bool driver_save_world   : 1 = false;
 #endif
     bool vsync = true;

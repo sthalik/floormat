@@ -6,7 +6,7 @@
 #include "src/tile-defs.hpp"
 #include <cr/StringView.h>
 
-namespace floormat { enum class driver_mode : uint8_t; }
+namespace floormat { enum class driver_mode : uint8_t { coverage, profile, }; }
 
 namespace floormat::pgo {
 
@@ -14,8 +14,9 @@ struct scene
 {
     StringView name;
     task (app::*fn)();
-    // coverage means coverage-only; profile scenes run under both. An editor-only scene marked
-    // profile would train the PGO profile on code a shipped build never reaches.
+    // --scenes=coverage and =profile each select the scenes with that mode. =all selects both. An
+    // editor-only scene marked profile would train the PGO profile on code a shipped build never
+    // reaches.
     driver_mode mode;
 };
 

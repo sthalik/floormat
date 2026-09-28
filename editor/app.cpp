@@ -60,25 +60,6 @@ uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
     return value;
 }
 
-#ifndef FLOORMAT_NO_PGO_DRIVER
-Optional<driver_mode> parse_driver(const Corrade::Utility::Arguments& args)
-{
-    auto str = args.value<StringView>("driver");
-    if (str.isEmpty())
-        return {};
-    else if (str == "off"_s)
-        return driver_mode::off;
-    else if (str == "all"_s)
-        return driver_mode::all;
-    else if (str == "coverage"_s)
-        return driver_mode::coverage;
-    else if (str == "profile"_s)
-        return driver_mode::profile;
-    ERR_nospace << "invalid --driver argument '" << str << "': should be off, all, coverage or profile";
-    std::exit(EX_USAGE);
-}
-#endif
-
 } // namespace
 
 Optional<struct point> cursor_state::point() const
@@ -153,7 +134,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 #ifdef FLOORMAT_NO_PGO_DRIVER
     // Not registered below, so Corrade would reject them as unknown without saying why.
     for (int i = 1; i < argc; i++)
-        if (StringView{argv[i]}.hasPrefix("--driver"_s))
+        if (StringView{argv[i]}.hasPrefix("--driver"_s) || StringView{argv[i]}.hasPrefix("--scenes"_s))
         {
             ERR_nospace << argv[i] << " needs a build without FLOORMAT_NO_PGO_DRIVER";
             std::exit(EX_USAGE);
@@ -168,9 +149,8 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
 #ifndef FLOORMAT_NO_PGO_DRIVER
-        .addOption("driver", "").setHelp("driver", "run driver scenes, then quit; off unless --driver-scenes is given", "off|all|coverage|profile")
+        .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
-        .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none; implies --driver=all", "a,b,c")
         .addBooleanOption("driver-no-swapbuffers").setHelp("driver-no-swapbuffers", "skip swapBuffers(), leaving the window blue")
         .addBooleanOption("driver-save-world").setHelp("driver-save-world", "write driver-saves/driver-NN_<scene>-{pre,post}.dat around every scene")
 #endif
@@ -188,10 +168,14 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         std::exit(EX_USAGE);
     }
 #ifndef FLOORMAT_NO_PGO_DRIVER
-    const auto driver = parse_driver(args);
-    // Left empty, driver_scenes stays empty and driver_tick() selects by mode instead.
-    if (const auto arg = args.value<StringView>("driver-scenes"))
+    if (const auto arg = args.value<StringView>("scenes"); arg != "off"_s)
     {
+        // split_string() yields nothing for it, which would pass as --scenes=none.
+        if (arg.isEmpty())
+        {
+            ERR_nospace << "invalid --scenes argument ''";
+            std::exit(EX_USAGE);
+        }
         const auto scenes = app::scenes();
         const auto driver_scenes = split_string(arg, ',');
         Array<StringView> output; arrayReserve(output, 16);
@@ -205,7 +189,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             {
                 for (const auto& s : scenes)
                     std::printf("%-16s%s\n", s.name.exceptPrefix("scene_"_s).data(),
-                                s.mode == driver_mode::coverage ? "coverage" : "coverage,profile");
+                                s.mode == driver_mode::coverage ? "coverage" : "profile");
                 std::fflush(stdout);
                 // Not std::exit(): a world is live by this point, and skipping its teardown trips
                 // the RTree pool's leak assert. quit() returns through Sdl2Application::exit.
@@ -213,11 +197,17 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             }
             else if (name == "none"_s)
                 arrayClear(output);
-            else if (name == "all")
+            else if (name == "all"_s)
             {
-                arrayClear(output);
                 for (const auto& s : scenes)
                     pushnew(s.name.exceptPrefix("scene_"_s));
+            }
+            else if (name == "coverage"_s || name == "profile"_s)
+            {
+                const auto mode = name == "coverage"_s ? driver_mode::coverage : driver_mode::profile;
+                for (const auto& s : scenes)
+                    if (s.mode == mode)
+                        pushnew(s.name.exceptPrefix("scene_"_s));
             }
             else
             {
@@ -225,35 +215,42 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
                     pushnew(name);
                 else
                 {
-                    auto err = ERR_nospace;
-                    err << "invalid --driver-scenes name '" << name << "', known scenes:";
-                    for (const auto& s : scenes)
-                        err << " " << s.name.exceptPrefix("scene_"_s);
+                    // Scoped because Error's dtor writes the newline and std::exit() skips dtors.
+                    {
+                        auto err = ERR_nospace;
+                        err << "invalid --scenes name '" << name << "', known scenes:";
+                        for (const auto& s : scenes)
+                            err << " " << s.name.exceptPrefix("scene_"_s);
+                    }
                     std::exit(EX_USAGE);
                 }
             }
         }
         opts.driver_scenes = ","_s.join(output);
-        opts.driver_scenes_given = true;
+        opts.driver = true;
     }
-    // A given list bypasses the mode filter in driver_tick(), so any mode would do.
-    opts.driver = driver ? *driver : opts.driver_scenes_given ? driver_mode::all : driver_mode::off;
     opts.driver_no_swapbuffers = args.isSet("driver-no-swapbuffers");
-    if (opts.driver_no_swapbuffers && opts.driver == driver_mode::off)
+    if (opts.driver_no_swapbuffers && !opts.driver)
     {
-        ERR_nospace << "--driver-no-swapbuffers needs --driver";
+        ERR_nospace << "--driver-no-swapbuffers needs --scenes";
         std::exit(EX_USAGE);
     }
     opts.driver_save_world = args.isSet("driver-save-world");
-    if (opts.driver_save_world && opts.driver == driver_mode::off)
+    if (opts.driver_save_world && !opts.driver)
     {
-        ERR_nospace << "--driver-save-world needs --driver";
+        ERR_nospace << "--driver-save-world needs --scenes";
         std::exit(EX_USAGE);
     }
     opts.driver_repeat = parse_uint("driver-repeat", args);
     if (opts.driver_repeat == 0)
     {
         ERR_nospace << "--driver-repeat must be at least 1";
+        std::exit(EX_USAGE);
+    }
+    // An explicit 1 reads the same as the default.
+    if (opts.driver_repeat != 1 && !opts.driver)
+    {
+        ERR_nospace << "--driver-repeat needs --scenes";
         std::exit(EX_USAGE);
     }
 #endif
