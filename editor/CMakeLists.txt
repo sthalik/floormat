@@ -26,7 +26,7 @@ set_property(SOURCE "events.cpp" "tests.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} PRIVATE ${self}_o
     ${self}-fonts-res floormat-shader-res
-    floormat-main floormat-serialize floormat-draw floormat-hash
+    floormat-main floormat-serialize floormat-draw floormat-hash floormat-random
     floormat
 )
 
