@@ -61,10 +61,12 @@ uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
 }
 
 #ifndef FLOORMAT_NO_PGO_DRIVER
-driver_mode parse_driver(const Corrade::Utility::Arguments& args)
+Optional<driver_mode> parse_driver(const Corrade::Utility::Arguments& args)
 {
     auto str = args.value<StringView>("driver");
-    if (str == "off"_s)
+    if (str.isEmpty())
+        return {};
+    else if (str == "off"_s)
         return driver_mode::off;
     else if (str == "all"_s)
         return driver_mode::all;
@@ -166,9 +168,9 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
 #ifndef FLOORMAT_NO_PGO_DRIVER
-        .addOption("driver", "off").setHelp("driver", "run driver scenes, then quit", "off|all|coverage|profile")
+        .addOption("driver", "").setHelp("driver", "run driver scenes, then quit; off unless --driver-scenes is given", "off|all|coverage|profile")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
-        .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none", "a,b,c")
+        .addOption("driver-scenes", "").setHelp("driver-scenes", "scene names, or list|all|none; implies --driver=all", "a,b,c")
         .addBooleanOption("driver-no-swapbuffers").setHelp("driver-no-swapbuffers", "skip swapBuffers(), leaving the window blue")
         .addBooleanOption("driver-save-world").setHelp("driver-save-world", "write driver-saves/driver-NN_<scene>-{pre,post}.dat around every scene")
 #endif
@@ -186,20 +188,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         std::exit(EX_USAGE);
     }
 #ifndef FLOORMAT_NO_PGO_DRIVER
-    opts.driver = parse_driver(args);
-    opts.driver_no_swapbuffers = args.isSet("driver-no-swapbuffers");
-    if (opts.driver_no_swapbuffers && opts.driver == driver_mode::off)
-    {
-        ERR_nospace << "--driver-no-swapbuffers needs --driver";
-        std::exit(EX_USAGE);
-    }
-    opts.driver_save_world = args.isSet("driver-save-world");
-    if (opts.driver_save_world && opts.driver == driver_mode::off)
-    {
-        ERR_nospace << "--driver-save-world needs --driver";
-        std::exit(EX_USAGE);
-    }
-    opts.driver_repeat = parse_uint("driver-repeat", args);
+    const auto driver = parse_driver(args);
     // Left empty, driver_scenes stays empty and driver_tick() selects by mode instead.
     if (const auto arg = args.value<StringView>("driver-scenes"))
     {
@@ -247,6 +236,21 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         opts.driver_scenes = ","_s.join(output);
         opts.driver_scenes_given = true;
     }
+    // A given list bypasses the mode filter in driver_tick(), so any mode would do.
+    opts.driver = driver ? *driver : opts.driver_scenes_given ? driver_mode::all : driver_mode::off;
+    opts.driver_no_swapbuffers = args.isSet("driver-no-swapbuffers");
+    if (opts.driver_no_swapbuffers && opts.driver == driver_mode::off)
+    {
+        ERR_nospace << "--driver-no-swapbuffers needs --driver";
+        std::exit(EX_USAGE);
+    }
+    opts.driver_save_world = args.isSet("driver-save-world");
+    if (opts.driver_save_world && opts.driver == driver_mode::off)
+    {
+        ERR_nospace << "--driver-save-world needs --driver";
+        std::exit(EX_USAGE);
+    }
+    opts.driver_repeat = parse_uint("driver-repeat", args);
     if (opts.driver_repeat == 0)
     {
         ERR_nospace << "--driver-repeat must be at least 1";
