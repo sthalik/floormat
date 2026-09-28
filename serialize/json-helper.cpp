@@ -40,7 +40,7 @@ auto json_helper::from_json_(StringView filename) noexcept(false) -> json
 
 void json_helper::to_json_(const json& j, StringView filename) noexcept(false)
 {
-    auto s = open_stream<std::ofstream, std::ios_base::out>(filename);
+    auto s = open_stream<std::ofstream, std::ios_base::out | std::ios_base::binary>(filename);
     s << j.dump(2, ' ') << "\n";
     s.flush();
     if (!s.good())
