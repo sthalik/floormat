@@ -205,15 +205,19 @@ void superpage_free(superpage_alloc_t a) noexcept
     if (!a.ptr)
         return;
 #ifdef _WIN32
-    VirtualFree(a.ptr, 0, MEM_RELEASE);
+    BOOL ok = VirtualFree(a.ptr, 0, MEM_RELEASE);
+    fm_assert(ok);
 #elif defined __APPLE__ && defined VM_FLAGS_SUPERPAGE_SIZE_2MB
     // macOS large path goes through mach_vm_allocate, plain path through mmap.
+    bool ok;
     if (a.used_large)
-        mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(a.ptr), a.size);
+        ok = mach_vm_deallocate(mach_task_self(), reinterpret_cast<mach_vm_address_t>(a.ptr), a.size) == KERN_SUCCESS;
     else
-        munmap(a.ptr, a.size);
+        ok = munmap(a.ptr, a.size) == 0;
+    fm_assert(ok);
 #else
-    munmap(a.ptr, a.size);
+    int r = munmap(a.ptr, a.size);
+    fm_assert(r == 0);
 #endif
 }
 
