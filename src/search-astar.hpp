@@ -6,6 +6,7 @@
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
+namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
 
@@ -32,6 +33,12 @@ public:
     // todo add simple bresenham short-circuit
     template<int Debug = 0>
     path_search_result Dijkstra(world& w, point from, point to,
+                                uint32_t max_dist, Vector2ui own_size,
+                                const pred& p,
+                                const heuristic& h = Search::octile_distance());
+
+    template<int Debug = 0>
+    path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, point from, point to,
                                 uint32_t max_dist, Vector2ui own_size,
                                 const pred& p,
                                 const heuristic& h = Search::octile_distance());
