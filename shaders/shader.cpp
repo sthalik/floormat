@@ -116,7 +116,7 @@ Vector2i tile_shader::project2(Vector3i pt)
 
 point tile_shader::pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera2, int8_t z_level)
 {
-    const auto s2 = 2*pixel - window_size - camera2;
+    const auto s2 = 2*pixel - window_size - camera2 + Vector2i{0, 2*z_level*tile_size_z};
     // unproject(s2), which is 4× the world position
     const auto w4 = Vector2i{s2.x() + 2*s2.y(), 2*s2.y() - s2.x()};
     const auto p = floor_divmod<4>(w4 + Vector2i{2}).first();

@@ -88,7 +88,7 @@ void test_pixel_to_point()
 
     {
         // world {31.5, 30.5}: x rounds up into the next tile
-        const auto p = tile_shader::pixel_to_point({321, 271}, {640, 480}, {}, z);
+        const auto p = tile_shader::pixel_to_point({321, 271 - zpx}, {640, 480}, {}, z);
         fm_assert_equal(point{{0, 0, z}, {1, 0}, {-32, 31}}, p);
     }
 
@@ -98,15 +98,16 @@ void test_pixel_to_point()
     constexpr auto c = chunk_size<int>;
     const Vector3i centers[] = {
         {0, 0, 0}, {c - half_tile<int>, -half_tile<int>, zpx}, {-c - 33, c + 31, zpx},
-        {lo, lo, 0}, {hi, hi, zpx}, {lo, hi, 0}, {hi, lo, zpx},
+        {lo, lo, 0}, {hi, hi, zpx}, {lo, hi, 0}, {hi, lo, zpx}, {c + 5, -c - 7, -tile_size_z},
     };
 
-    const auto check = [](Vector2i pixel, Vector2i win, Vector2i cam2) {
+    const auto check = [](Vector2i pixel, Vector2i win, Vector2i cam2, int8_t zl) {
         // Exact in double: every term is a multiple of 1/4 below 2^30.
-        const auto s = Vector2d(pixel) - Vector2d(win)*.5 - Vector2d(cam2)*.5;
+        const auto zp = zl*tile_size_z;
+        const auto s = Vector2d(pixel) - Vector2d(win)*.5 - Vector2d(cam2)*.5 + Vector2d{0., (double)zp};
         const auto w = tile_shader::unproject(s*.5);
-        const auto expected = Vector3i{Vector2i(Math::floor(w + Vector2d{.5})), zpx};
-        fm_assert_equal(expected, Vector3i(tile_shader::pixel_to_point(pixel, win, cam2, z)));
+        const auto expected = Vector3i{Vector2i(Math::floor(w + Vector2d{.5})), zp};
+        fm_assert_equal(expected, Vector3i(tile_shader::pixel_to_point(pixel, win, cam2, zl)));
     };
 
     for (auto win : wins)
@@ -117,16 +118,16 @@ void test_pixel_to_point()
         for (auto cam2 : cams)
             for (int y = -32; y < 32; y++)
                 for (int x = -32; x < 32; x++)
-                    check(win/2 + Vector2i{x, y}, win, cam2);
+                    check(win/2 + Vector2i{x, y}, win, cam2, z);
 
         for (auto world : centers)
         {
             const auto cam2 = camera2_centered_on(win, world);
-            const auto pixel = win/2 + Vector2i{0, world.z()};
-            fm_assert_equal(point{world}, tile_shader::pixel_to_point(pixel, win, cam2, int8_t(world.z()/tile_size_z)));
+            const auto zl = int8_t(world.z()/tile_size_z);
+            fm_assert_equal(point{world}, tile_shader::pixel_to_point(win/2, win, cam2, zl));
             for (int y = -32; y < 32; y++)
                 for (int x = -32; x < 32; x++)
-                    check(pixel + Vector2i{x, y}, win, cam2);
+                    check(win/2 + Vector2i{x, y}, win, cam2, zl);
         }
     }
 }
