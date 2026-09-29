@@ -127,9 +127,9 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     // assert_invariant !!cursor.tile == !!cursor.subpixel;
     if (pixel)
     {
-        auto [tile, subpixel] = M->pixel_to_point(Vector2d(*pixel), _z_level);
-        cursor.tile = tile;
-        cursor.subpixel = subpixel;
+        const auto pt = M->pixel_to_point(Vector2d(*pixel), _z_level);
+        cursor.tile = pt.coord();
+        cursor.subpixel = pt.offset();
     }
     else
     {
