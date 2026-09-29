@@ -281,9 +281,10 @@ void world::erase_object(object_id id, const object* self)
 {
     fm_debug_assert(id != 0);
     const auto* s = _objects.find(id);
-    fm_debug_assert(s && *s);
-    // a failed do_make_object() dies with the entry still owned by the original object
-    if (s && *s && &**s == self)
+    fm_debug_assert(s);
+    // a failed do_make_object() dies with the entry still owned by the original object;
+    // under bptr::destroy() our own entry already reads null
+    if (s && (!*s || &**s == self))
         (void)_objects.erase(id);
 }
 

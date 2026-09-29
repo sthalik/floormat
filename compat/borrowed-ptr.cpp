@@ -3,53 +3,24 @@
 
 namespace floormat::detail_bptr {
 
-void control_block::decrement(control_block*& blk) noexcept
-{
-    if (!blk)
-        return;
-    auto c2 = --blk->_hard_count;
-    fm_bptr_assert(c2 != (uint32_t)-1);
-    if (c2 == 0)
-    {
-        // Null before delete so a weak_bptr::lock() from within the destructor
-        // sees an expired block instead of resurrecting a dying object.
-        auto* ptr = blk->_ptr;
-        blk->_ptr = nullptr;
-        delete ptr;
-#ifdef FM_NO_WEAK_BPTR
-        delete blk;
-#endif
-    }
-#ifndef FM_NO_WEAK_BPTR
-    auto c = --blk->_soft_count;
-    fm_bptr_assert(c != (uint32_t)-1);
-    if (c == 0)
-    {
-        fm_bptr_assert(!blk->_ptr);
-        delete blk;
-    }
-#endif
-    blk = nullptr;
-}
-
-#ifndef FM_NO_WEAK_BPTR
-void control_block::weak_decrement(control_block*& blk) noexcept
-{
-    if (!blk)
-        return;
-    fm_bptr_assert(blk->_hard_count < blk->_soft_count);
-    auto c = --blk->_soft_count;
-    //fm_bptr_assert(c != (uint32_t)-1);
-    if (c == 0)
-    {
-        fm_bptr_assert(!blk->_ptr);
-        delete blk;
-    }
-    blk = nullptr;
-}
-#endif
+template struct control_block<non_atomic_refcount>;
 
 } // namespace floormat::detail_bptr
+
+namespace floormat::bptr_policy {
+
+namespace { thread_local char thread_tag; } // NOLINT(*-avoid-non-const-global-variables)
+
+void thread_check(thread_check_state& s) noexcept
+{
+    const void* tag = &thread_tag;
+    if (!s.owner)
+        s.owner = tag;
+    else
+        fm_assert(s.owner == tag);
+}
+
+} // namespace floormat::bptr_policy
 
 namespace floormat {
 

@@ -1,95 +1,180 @@
 #pragma once
 #include "borrowed-ptr.hpp"
+#include "assert.hpp"
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-namespace floormat {
+namespace floormat::detail_bptr {
 
-template<typename T> bptr<T>::~bptr() noexcept { detail_bptr::control_block::decrement(blk); }
-
-template<typename T> bptr<T>::bptr(const bptr<std::remove_const_t<T>>& ptr) noexcept requires std::is_const_v<T>: bptr{ptr, nullptr} {}
-template<typename T> bptr<T>::bptr(bptr<std::remove_const_t<T>>&& ptr) noexcept requires std::is_const_v<T>: bptr{move(ptr), nullptr} {}
-
-template<typename T> bptr<T>::bptr(const bptr& other) noexcept: bptr{other, nullptr} {}
-template<typename T> bptr<T>::bptr(bptr&& other) noexcept: bptr{move(other), nullptr} {}
-template<typename T> bptr<T>& bptr<T>::operator=(const bptr& other) noexcept { return _copy_assign(other); }
-template<typename T> bptr<T>& bptr<T>::operator=(bptr&& other) noexcept { return _move_assign(move(other)); }
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>::bptr(const bptr<Y>& other) noexcept:
-    bptr{other, nullptr}
-{}
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>& bptr<T>::operator=(const bptr<Y>& other) noexcept
-{ return _copy_assign(other); }
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>::bptr(bptr<Y>&& other) noexcept:
-    bptr{move(other), nullptr}
-{}
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-bptr<T>& bptr<T>::operator=(bptr<Y>&& other) noexcept
-{ return _move_assign(move(other)); }
-
-template<typename T> void bptr<T>::reset() noexcept { detail_bptr::control_block::decrement(blk); }
-
-template<typename T>
-template<detail_bptr::DerivedFrom<T> Y>
-void bptr<T>::reset(Y* ptr) noexcept
+template<typename Policy>
+inline bool control_block<Policy>::add_ref_lock() noexcept
 {
-    detail_bptr::control_block::decrement(blk);
-    blk = ptr ? new detail_bptr::control_block{const_cast<std::remove_const_t<Y>*>(ptr), 1,
-#ifndef FM_NO_WEAK_BPTR
-        1,
-#endif
-    } : nullptr;
-}
-
-template<typename T>
-void bptr<T>::destroy() noexcept
-{
-    if (!blk)
-        return;
-    delete blk->_ptr;
-    blk->_ptr = nullptr;
-}
-
-template<typename T> bptr<T>& bptr<T>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
-
-template<typename T>
-template<typename Y>
-bptr<T>::bptr(const bptr<Y>& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    if (blk)
+    if constexpr (counter::concurrent)
     {
-#ifndef FM_NO_WEAK_BPTR
-        ++blk->_soft_count;
-#endif
-        ++blk->_hard_count;
+        if (!counter::increment_if_nonzero(_hard_count, *this))
+            return false;
+        stats::copied();
+        // Only after the increment: destroy() clears _ptr while hard refs remain.
+        if (counter::load(_ptr))
+            return true;
+        release(this);
+        return false;
+    }
+    else
+    {
+        if (!counter::load(_ptr))
+            return false;
+        fm_debug3_assert(counter::load(_hard_count) > 0);
+        add_ref();
+        return true;
     }
 }
 
-template<typename T>
+template<typename Policy>
+void control_block<Policy>::release(control_block* b) noexcept
+{
+    if (!b)
+        return;
+    stats::released();
+    auto c = counter::decrement(b->_hard_count, *b);
+    fm_debug3_assert(c != (count_type)-1);
+    if (c == 0)
+    {
+        // Null before dispose so a weak_bptr::lock() from within the destructor
+        // sees an expired block instead of resurrecting a dying object.
+        if (auto* p = counter::exchange(b->_ptr, nullptr))
+        {
+            stats::object_disposed();
+            b->dispose(p);
+        }
+        if constexpr (Policy::has_weak)
+            weak_release(b);
+        else
+        {
+            stats::block_deallocated();
+            b->deallocate();
+        }
+    }
+}
+
+template<typename Policy>
+void control_block<Policy>::weak_release(control_block* b) noexcept
+{
+    if (!b)
+        return;
+    // Another thread can change either count between the two loads.
+    if constexpr (!counter::concurrent)
+        fm_debug3_assert(counter::load(b->_soft_count) > (counter::load(b->_hard_count) ? 1u : 0u));
+    auto c = counter::decrement(b->_soft_count, *b);
+    if (c == 0)
+    {
+        fm_debug3_assert(!counter::load(b->_ptr));
+        stats::block_deallocated();
+        b->deallocate();
+    }
+}
+
+template<typename Policy>
+void control_block<Policy>::destroy_object(control_block* b) noexcept
+{
+    // The destructor can drop the last reference, and an in-place object lives
+    // inside the block, so hold one until the destructor returns.
+    b->add_ref();
+    if (auto* p = counter::exchange(b->_ptr, nullptr))
+    {
+        stats::object_disposed();
+        b->dispose(p);
+    }
+    release(b);
+}
+
+} // namespace floormat::detail_bptr
+
+namespace floormat {
+
+template<typename T, typename P> basic_bptr<T, P>::~basic_bptr() noexcept { block::release(blk); }
+
+template<typename T, typename P> basic_bptr<T, P>::basic_bptr(const basic_bptr<std::remove_const_t<T>, P>& ptr) noexcept requires std::is_const_v<T>: basic_bptr{ptr, nullptr} {}
+template<typename T, typename P> basic_bptr<T, P>::basic_bptr(basic_bptr<std::remove_const_t<T>, P>&& ptr) noexcept requires std::is_const_v<T>: basic_bptr{move(ptr), nullptr} {}
+
+template<typename T, typename P> basic_bptr<T, P>::basic_bptr(const basic_bptr& other) noexcept: basic_bptr{other, nullptr} {}
+template<typename T, typename P> basic_bptr<T, P>::basic_bptr(basic_bptr&& other) noexcept: basic_bptr{move(other), nullptr} {}
+template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr& other) noexcept { return _copy_assign(other); }
+template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr&& other) noexcept { return _move_assign(move(other)); }
+
+template<typename T, typename P>
+template<detail_bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other) noexcept:
+    basic_bptr{other, nullptr}
+{}
+
+template<typename T, typename P>
+template<detail_bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr<Y, P>& other) noexcept
+{ return _copy_assign(other); }
+
+template<typename T, typename P>
+template<detail_bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other) noexcept:
+    basic_bptr{move(other), nullptr}
+{}
+
+template<typename T, typename P>
+template<detail_bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr<Y, P>&& other) noexcept
+{ return _move_assign(move(other)); }
+
+// Releasing the last reference can destroy the storage holding *this, so every release detaches
+// the block first and touches nothing of *this afterwards.
+template<typename T, typename P>
+void basic_bptr<T, P>::reset() noexcept
+{
+    auto* old = blk;
+    blk = nullptr;
+    block::release(old);
+}
+
+template<typename T, typename P>
+template<detail_bptr::DerivedFrom<T> Y>
+void basic_bptr<T, P>::reset(Y* ptr) noexcept
+{
+    auto* old = blk;
+    blk = detail_bptr::block_from_raw<std::remove_const_t<Y>, P>(const_cast<std::remove_const_t<Y>*>(ptr));
+    block::release(old);
+}
+
+template<typename T, typename P>
+void basic_bptr<T, P>::destroy() noexcept
+{
+    if (blk)
+        block::destroy_object(blk);
+}
+
+template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
+
+template<typename T, typename P>
 template<typename Y>
-bptr<T>::bptr(bptr<Y>&& other, std::nullptr_t) noexcept:
+basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other, std::nullptr_t) noexcept:
+    blk{other.blk}
+{
+    if (blk)
+        blk->add_ref();
+}
+
+template<typename T, typename P>
+template<typename Y>
+basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other, std::nullptr_t) noexcept:
     blk{other.blk}
 {
     other.blk = nullptr;
 }
 
-template<typename T>
+template<typename T, typename P>
 template<typename Y>
-bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
+basic_bptr<T, P>& basic_bptr<T, P>::_copy_assign(const basic_bptr<Y, P>& other) noexcept
 {
     if (blk != other.blk)
     {
@@ -97,104 +182,96 @@ bptr<T>& bptr<T>::_copy_assign(const bptr<Y>& other) noexcept
         // (a = a->child) can destroy the object holding other when we decrement.
         auto* new_blk = other.blk;
         if (new_blk)
-        {
-#ifndef FM_NO_WEAK_BPTR
-            ++new_blk->_soft_count;
-#endif
-            ++new_blk->_hard_count;
-        }
-        detail_bptr::control_block::decrement(blk);
+            new_blk->add_ref();
+        auto* old = blk;
         blk = new_blk;
+        block::release(old);
     }
     return *this;
 }
 
-template<typename T>
+template<typename T, typename P>
 template<typename Y>
-bptr<T>& bptr<T>::_move_assign(bptr<Y>&& other) noexcept
+basic_bptr<T, P>& basic_bptr<T, P>::_move_assign(basic_bptr<Y, P>&& other) noexcept
 {
-    if (blk != other.blk)
-    {
-        auto* new_blk = other.blk;
-        other.blk = nullptr;
-        detail_bptr::control_block::decrement(blk);
-        blk = new_blk;
-    }
+    // Detach other before releasing ours, for self-move and a = move(a->child).
+    auto* new_blk = other.blk;
+    other.blk = nullptr;
+    auto* old = blk;
+    blk = new_blk;
+    block::release(old);
     return *this;
 }
 
-template<typename T>
-T* bptr<T>::get() const noexcept
+template<typename T, typename P>
+T* basic_bptr<T, P>::get() const noexcept
 {
     if (blk) [[likely]]
-        return static_cast<T*>(blk->_ptr);
+        return static_cast<T*>(blk->get());
     else
         return nullptr;
 }
 
-template<typename T>
-T* bptr<T>::operator->() const noexcept
+template<typename T, typename P>
+T* basic_bptr<T, P>::operator->() const noexcept
 {
     auto* ret = get();
-    fm_bptr_assert(ret);
+    fm_debug3_assert(ret);
     return ret;
 }
 
-template<typename T> T& bptr<T>::operator*() const noexcept { return *operator->(); }
+template<typename T, typename P> T& basic_bptr<T, P>::operator*() const noexcept { return *operator->(); }
 
-template<typename T> bptr<T>::operator bool() const noexcept { return blk && blk->_ptr; }
-template<typename T> bool bptr<T>::has_block() const noexcept { return blk != nullptr; }
+template<typename T, typename P> basic_bptr<T, P>::operator bool() const noexcept { return blk && blk->get(); }
+template<typename T, typename P> bool basic_bptr<T, P>::has_block() const noexcept { return blk != nullptr; }
 
-template<typename T> bool bptr<T>::operator==(const bptr<const T>& other) const noexcept
+template<typename T, typename P> bool basic_bptr<T, P>::operator==(const basic_bptr<const T, P>& other) const noexcept
 {
-    return blk ? (other.blk && blk->_ptr == other.blk->_ptr) : !other.blk;
+    return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
 }
-template<typename T> bool bptr<T>::operator==(const bptr<T>& other) const noexcept requires (!std::is_const_v<T>) {
-    return blk ? (other.blk && blk->_ptr == other.blk->_ptr) : !other.blk;
+template<typename T, typename P> bool basic_bptr<T, P>::operator==(const basic_bptr<T, P>& other) const noexcept requires (!std::is_const_v<T>) {
+    return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
 }
 
-template<typename T> bool bptr<T>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->_ptr; }
+template<typename T, typename P> bool basic_bptr<T, P>::operator==(const std::nullptr_t&) const noexcept { return !blk || !blk->get(); }
 
-template<typename T> void bptr<T>::swap(bptr& other) noexcept { floormat::swap(blk, other.blk); }
+template<typename T, typename P> void basic_bptr<T, P>::swap(basic_bptr& other) noexcept { floormat::swap(blk, other.blk); }
 
-template<typename T>
-uint32_t bptr<T>::use_count() const noexcept
+template<typename T, typename P>
+auto basic_bptr<T, P>::use_count() const noexcept -> count_type
 {
-    if (blk && blk->_ptr) [[likely]]
-        return blk->_hard_count;
+    if (blk && blk->get()) [[likely]]
+        return blk->use_count();
     else
         return 0;
 }
 
-template<typename To, typename From>
+template<typename To, typename From, typename P>
 requires detail_bptr::StaticCastable<From, To>
-bptr<To> static_pointer_cast(bptr<From>&& p) noexcept
+basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept
 {
-    if (p.blk && p.blk->_ptr) [[likely]]
+    if (p.blk && p.blk->get()) [[likely]]
     {
-        bptr<To> ret{nullptr};
+        basic_bptr<To, P> ret{nullptr};
         ret.blk = p.blk;
         p.blk = nullptr;
         return ret;
     }
-    return bptr<To>{nullptr};
+    return basic_bptr<To, P>{nullptr};
 }
 
-template<typename To, typename From>
+template<typename To, typename From, typename P>
 requires detail_bptr::StaticCastable<From, To>
-bptr<To> static_pointer_cast(const bptr<From>& p) noexcept
+basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept
 {
-    if (p.blk && p.blk->_ptr) [[likely]]
+    if (p.blk && p.blk->get()) [[likely]]
     {
-        bptr<To> ret{nullptr};
-#ifndef FM_NO_WEAK_BPTR
-        ++p.blk->_soft_count;
-#endif
-        ++p.blk->_hard_count;
+        basic_bptr<To, P> ret{nullptr};
+        p.blk->add_ref();
         ret.blk = p.blk;
         return ret;
     }
-    return bptr<To>{nullptr};
+    return basic_bptr<To, P>{nullptr};
 }
 
 } // namespace floormat

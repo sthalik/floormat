@@ -7,8 +7,8 @@
 
 namespace floormat {
 
-template class bptr<light>;
-template class bptr<const light>;
+template class basic_bptr<light, non_atomic_refcount>;
+template class basic_bptr<const light, non_atomic_refcount>;
 
 light_proto::light_proto()
 {
