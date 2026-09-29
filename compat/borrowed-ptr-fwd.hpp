@@ -2,18 +2,19 @@
 
 namespace floormat {
 
-#define FM_BPTR_DEBUG
-//#define FM_NO_WEAK_BPTR
-
 struct bptr_base;
 
-template<typename T> class bptr;
-template<typename T> class weak_bptr;
+struct non_atomic_refcount;
+struct atomic_refcount;
+struct thread_checked_refcount;
 
-template<typename T> bptr(T* ptr) -> bptr<T>;
+template<typename T, typename Policy> class basic_bptr;
+template<typename T, typename Policy> class basic_weak_bptr;
 
-#ifndef FM_NO_WEAK_BPTR
-template<typename T> weak_bptr(const bptr<T>& ptr) -> weak_bptr<T>;
-#endif
+template<typename T> using bptr = basic_bptr<T, non_atomic_refcount>;
+template<typename T> using weak_bptr = basic_weak_bptr<T, non_atomic_refcount>;
+
+template<typename T> basic_bptr(T* ptr) -> basic_bptr<T, non_atomic_refcount>;
+template<typename T, typename Policy> basic_weak_bptr(const basic_bptr<T, Policy>& ptr) -> basic_weak_bptr<T, Policy>;
 
 } // namespace floormat

@@ -12,12 +12,12 @@
 
 namespace floormat {
 
-template class bptr<generic_scenery>;
-template class bptr<const generic_scenery>;
-template class bptr<scenery>;
-template class bptr<const scenery>;
-template class bptr<door_scenery>;
-template class bptr<const door_scenery>;
+template class basic_bptr<generic_scenery, non_atomic_refcount>;
+template class basic_bptr<const generic_scenery, non_atomic_refcount>;
+template class basic_bptr<scenery, non_atomic_refcount>;
+template class basic_bptr<const scenery, non_atomic_refcount>;
+template class basic_bptr<door_scenery, non_atomic_refcount>;
+template class basic_bptr<const door_scenery, non_atomic_refcount>;
 
 // --- scenery ---
 

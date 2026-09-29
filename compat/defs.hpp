@@ -95,6 +95,17 @@
 #define fm_ASAN 0
 #endif
 
+#ifdef __SANITIZE_THREAD__
+#define fm_TSAN 1
+#elif defined __has_feature
+#if __has_feature(thread_sanitizer)
+#define fm_TSAN 1
+#endif
+#endif
+#ifndef fm_TSAN
+#define fm_TSAN 0
+#endif
+
 #ifndef fm_FILENAME_MAX
 #define fm_FILENAME_MAX (260)
 #endif

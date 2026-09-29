@@ -1,49 +1,60 @@
 #pragma once
 #include "borrowed-ptr.hpp"
 
-#ifdef FM_NO_WEAK_BPTR
-#error weak_bptr not supported!
-#endif
-
 namespace floormat {
 
-template<typename T>
-class weak_bptr final
+template<typename T, typename Policy>
+class basic_weak_bptr final
 {
-    detail_bptr::control_block* blk;
+    static_assert(Policy::has_weak);
+    using block = detail_bptr::control_block<Policy>;
+    using count_type = typename Policy::counter::value_type;
 
-    static detail_bptr::control_block* _copy(detail_bptr::control_block* ptr);
-    weak_bptr& _copy_assign(detail_bptr::control_block* other) noexcept;
-    weak_bptr& _move_assign(detail_bptr::control_block*& other) noexcept;
+    block* blk;
+
+    static block* _copy(block* ptr) noexcept;
+    basic_weak_bptr& _copy_assign(block* other) noexcept;
+    basic_weak_bptr& _move_assign(block*& other) noexcept;
 
 public:
-    weak_bptr(std::nullptr_t) noexcept;
-    weak_bptr& operator=(std::nullptr_t) noexcept;
-    weak_bptr() noexcept;
-    ~weak_bptr() noexcept;
+    basic_weak_bptr(std::nullptr_t) noexcept;
+    basic_weak_bptr& operator=(std::nullptr_t) noexcept;
+    basic_weak_bptr() noexcept;
+    ~basic_weak_bptr() noexcept;
 
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr(const bptr<Y>& ptr) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr(const weak_bptr<Y>& ptr) noexcept;
-    weak_bptr(const weak_bptr& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr(const basic_bptr<Y, Policy>& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr(const basic_weak_bptr<Y, Policy>& ptr) noexcept;
+    basic_weak_bptr(const basic_weak_bptr& ptr) noexcept;
 
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr& operator=(const bptr<Y>& ptr) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr& operator=(const weak_bptr<Y>& ptr) noexcept;
-    weak_bptr& operator=(const weak_bptr& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr& operator=(const basic_bptr<Y, Policy>& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr& operator=(const basic_weak_bptr<Y, Policy>& ptr) noexcept;
+    basic_weak_bptr& operator=(const basic_weak_bptr& ptr) noexcept;
 
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr(weak_bptr<Y>&& ptr) noexcept;
-    weak_bptr(weak_bptr&& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr(basic_weak_bptr<Y, Policy>&& ptr) noexcept;
+    basic_weak_bptr(basic_weak_bptr&& ptr) noexcept;
 
-    template<detail_bptr::DerivedFrom<T> Y> weak_bptr& operator=(weak_bptr<Y>&& ptr) noexcept;
-    weak_bptr& operator=(weak_bptr&& ptr) noexcept;
+    template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr& operator=(basic_weak_bptr<Y, Policy>&& ptr) noexcept;
+    basic_weak_bptr& operator=(basic_weak_bptr&& ptr) noexcept;
 
     void reset() noexcept;
-    void swap(weak_bptr& other) noexcept;
+    void swap(basic_weak_bptr& other) noexcept;
 
-    uint32_t use_count() const noexcept;
+    count_type use_count() const noexcept;
     bool expired() const noexcept;
-    bptr<T> lock() const noexcept;
+    basic_bptr<T, Policy> lock() const noexcept;
 
-    bool operator==(const weak_bptr<const T>& other) const noexcept;
+    bool operator==(const basic_weak_bptr<const T, Policy>& other) const noexcept;
+    bool operator==(const basic_weak_bptr<T, Policy>& other) const noexcept requires (!std::is_const_v<T>);
+    template<detail_bptr::ComparableWith<T> Y> bool operator==(const basic_weak_bptr<Y, Policy>& other) const noexcept;
+
+    template<typename U, typename P> friend class basic_weak_bptr;
 };
+
+template<typename T, typename P>
+template<detail_bptr::ComparableWith<T> Y>
+bool basic_weak_bptr<T, P>::operator==(const basic_weak_bptr<Y, P>& other) const noexcept
+{
+    return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
+}
 
 } // namespace floormat

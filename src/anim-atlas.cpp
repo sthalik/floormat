@@ -17,8 +17,8 @@ constexpr inline char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", 
 constexpr inline auto rot_count = size_t(rotation_COUNT);
 } // namespace
 
-template class bptr<anim_atlas>;
-template class bptr<const anim_atlas>;
+template class basic_bptr<anim_atlas, non_atomic_refcount>;
+template class basic_bptr<const anim_atlas, non_atomic_refcount>;
 
 static_assert(array_size(name_array) == rot_count);
 static_assert(rot_count == 8);

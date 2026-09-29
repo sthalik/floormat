@@ -11,8 +11,8 @@
 
 namespace floormat {
 
-template class bptr<wall_atlas>;
-template class bptr<const wall_atlas>;
+template class basic_bptr<wall_atlas, non_atomic_refcount>;
+template class basic_bptr<const wall_atlas, non_atomic_refcount>;
 
 } // namespace floormat
 

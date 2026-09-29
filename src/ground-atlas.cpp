@@ -13,8 +13,8 @@
 
 namespace floormat {
 
-template class bptr<ground_atlas>;
-template class bptr<const ground_atlas>;
+template class basic_bptr<ground_atlas, non_atomic_refcount>;
+template class basic_bptr<const ground_atlas, non_atomic_refcount>;
 
 ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     _def{move(info)}, _path{make_path(_def.name)}

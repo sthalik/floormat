@@ -17,8 +17,8 @@
 
 namespace floormat {
 
-template class bptr<object>;
-template class bptr<const object>;
+template class basic_bptr<object, non_atomic_refcount>;
+template class basic_bptr<const object, non_atomic_refcount>;
 
 bool object_proto::operator==(const object_proto&) const = default;
 object_proto::object_proto(const object_proto&) noexcept = default;

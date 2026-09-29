@@ -1,5 +1,6 @@
 #pragma once
 #include "weak-borrowed-ptr.hpp"
+#include "borrowed-ptr.inl"
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -8,118 +9,120 @@
 
 namespace floormat {
 
-template<typename T> detail_bptr::control_block* weak_bptr<T>::_copy(detail_bptr::control_block* ptr)
+template<typename T, typename P>
+auto basic_weak_bptr<T, P>::_copy(block* ptr) noexcept -> block*
 {
-    if (ptr && ptr->_ptr)
+    if (ptr && ptr->get())
     {
-        ++ptr->_soft_count;
+        ptr->weak_add_ref();
         return ptr;
     }
     else
         return nullptr;
 }
 
-template<typename T>
-weak_bptr<T>& weak_bptr<T>::_copy_assign(detail_bptr::control_block* other) noexcept
+template<typename T, typename P>
+basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::_copy_assign(block* other) noexcept
 {
     if (blk != other)
     {
-        detail_bptr::control_block::weak_decrement(blk);
-
-        if (other && other->_ptr)
-        {
-            ++other->_soft_count;
-            blk = other;
-        }
-        else
-            blk = nullptr;
+        auto* old = blk;
+        blk = _copy(other);
+        block::weak_release(old);
     }
     return *this;
 }
 
-template<typename T>
-weak_bptr<T>& weak_bptr<T>::_move_assign(detail_bptr::control_block*& other) noexcept
+template<typename T, typename P>
+basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::_move_assign(block*& other) noexcept
 {
-    detail_bptr::control_block::weak_decrement(blk);
+    auto* old = blk;
+    blk = nullptr;
+    block::weak_release(old);
     blk = other;
     other = nullptr;
     return *this;
 }
 
-template<typename T> weak_bptr<T>::weak_bptr(std::nullptr_t) noexcept: blk{nullptr} {}
+template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr(std::nullptr_t) noexcept: blk{nullptr} {}
 
-template<typename T>
-weak_bptr<T>& weak_bptr<T>::operator=(std::nullptr_t) noexcept
+template<typename T, typename P>
+basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(std::nullptr_t) noexcept
 {
-    detail_bptr::control_block::weak_decrement(blk);
+    reset();
     return *this;
 }
 
-template<typename T> weak_bptr<T>::weak_bptr() noexcept: weak_bptr{nullptr} {}
+template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr() noexcept: basic_weak_bptr{nullptr} {}
 
-template<typename T> weak_bptr<T>::~weak_bptr() noexcept
+template<typename T, typename P> basic_weak_bptr<T, P>::~basic_weak_bptr() noexcept
 {
-    detail_bptr::control_block::weak_decrement(blk);
+    block::weak_release(blk);
 }
 
-template<typename T> template<detail_bptr::DerivedFrom<T> Y> weak_bptr<T>::weak_bptr(const bptr<Y>& ptr) noexcept: blk{_copy(ptr.blk)} {}
-template<typename T> template<detail_bptr::DerivedFrom<T> Y> weak_bptr<T>::weak_bptr(const weak_bptr<Y>& ptr) noexcept: blk{_copy(ptr.blk)} {}
-template<typename T> weak_bptr<T>::weak_bptr(const weak_bptr& ptr) noexcept: blk{_copy(ptr.blk)} {}
+template<typename T, typename P> template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_bptr<Y, P>& ptr) noexcept: blk{_copy(ptr.blk)} {}
+template<typename T, typename P> template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_weak_bptr<Y, P>& ptr) noexcept: blk{_copy(ptr.blk)} {}
+template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_weak_bptr& ptr) noexcept: blk{_copy(ptr.blk)} {}
 
-template<typename T> template<detail_bptr::DerivedFrom<T> Y> weak_bptr<T>& weak_bptr<T>::operator=(const bptr<Y>& ptr) noexcept { return _copy_assign(ptr.blk); }
-template<typename T> template<detail_bptr::DerivedFrom<T> Y> weak_bptr<T>& weak_bptr<T>::operator=(const weak_bptr<Y>& ptr) noexcept { return _copy_assign(ptr.blk); }
-template<typename T> weak_bptr<T>& weak_bptr<T>::operator=(const weak_bptr& ptr) noexcept { return _copy_assign(ptr.blk); }
+template<typename T, typename P> template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_bptr<Y, P>& ptr) noexcept { return _copy_assign(ptr.blk); }
+template<typename T, typename P> template<detail_bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_weak_bptr<Y, P>& ptr) noexcept { return _copy_assign(ptr.blk); }
+template<typename T, typename P> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_weak_bptr& ptr) noexcept { return _copy_assign(ptr.blk); }
 
-template<typename T>
+template<typename T, typename P>
 template<detail_bptr::DerivedFrom<T> Y>
-weak_bptr<T>::weak_bptr(weak_bptr<Y>&& ptr) noexcept: blk{ptr.blk}
+basic_weak_bptr<T, P>::basic_weak_bptr(basic_weak_bptr<Y, P>&& ptr) noexcept: blk{ptr.blk}
 { ptr.blk = nullptr; }
 
-template<typename T> weak_bptr<T>::weak_bptr(weak_bptr&& ptr) noexcept: blk{ptr.blk}
+template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr(basic_weak_bptr&& ptr) noexcept: blk{ptr.blk}
 { ptr.blk = nullptr; }
 
-template<typename T>
+template<typename T, typename P>
 template<detail_bptr::DerivedFrom<T> Y>
-weak_bptr<T>& weak_bptr<T>::operator=(weak_bptr<Y>&& ptr) noexcept
+basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(basic_weak_bptr<Y, P>&& ptr) noexcept
 { return _move_assign(ptr.blk); }
 
-template<typename T> weak_bptr<T>& weak_bptr<T>::operator=(weak_bptr&& ptr) noexcept { return _move_assign(ptr.blk); }
+template<typename T, typename P> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(basic_weak_bptr&& ptr) noexcept { return _move_assign(ptr.blk); }
 
-template<typename T> void weak_bptr<T>::reset() noexcept
-{ if (blk) detail_bptr::control_block::weak_decrement(blk); }
+template<typename T, typename P> void basic_weak_bptr<T, P>::reset() noexcept
+{
+    auto* old = blk;
+    blk = nullptr;
+    block::weak_release(old);
+}
 
-template<typename T> void weak_bptr<T>::swap(weak_bptr& other) noexcept
+template<typename T, typename P> void basic_weak_bptr<T, P>::swap(basic_weak_bptr& other) noexcept
 { floormat::swap(blk, other.blk); }
 
-template<typename T> uint32_t weak_bptr<T>::use_count() const noexcept
+template<typename T, typename P> auto basic_weak_bptr<T, P>::use_count() const noexcept -> count_type
 {
-    if (blk && blk->_ptr)
-        return blk->_hard_count;
+    if (blk && blk->get())
+        return blk->use_count();
     else
         return 0;
 }
 
-template<typename T> bool weak_bptr<T>::expired() const noexcept { return use_count() == 0; }
+template<typename T, typename P> bool basic_weak_bptr<T, P>::expired() const noexcept { return use_count() == 0; }
 
-template<typename T>
-bptr<T> weak_bptr<T>::lock() const noexcept
+template<typename T, typename P>
+basic_bptr<T, P> basic_weak_bptr<T, P>::lock() const noexcept
 {
-    if (blk && blk->_ptr)
+    if (blk && blk->add_ref_lock())
     {
-        fm_bptr_assert(blk->_hard_count > 0);
-        ++blk->_soft_count;
-        ++blk->_hard_count;
-        bptr<T> ret{nullptr};
+        basic_bptr<T, P> ret{nullptr};
         ret.blk = blk;
         return ret;
     }
     else
-        return bptr<T>{nullptr};
+        return basic_bptr<T, P>{nullptr};
 }
 
-template<typename T> bool weak_bptr<T>::operator==(const weak_bptr<const T>& other) const noexcept
+template<typename T, typename P> bool basic_weak_bptr<T, P>::operator==(const basic_weak_bptr<const T, P>& other) const noexcept
 {
-    return lock().get() == other.lock().get();
+    return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
+}
+template<typename T, typename P> bool basic_weak_bptr<T, P>::operator==(const basic_weak_bptr<T, P>& other) const noexcept requires (!std::is_const_v<T>)
+{
+    return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
 }
 
 } // namespace floormat
