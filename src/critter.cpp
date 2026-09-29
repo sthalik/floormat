@@ -21,8 +21,8 @@
 
 namespace floormat {
 
-template class bptr<critter>;
-template class bptr<const critter>;
+template class basic_bptr<critter, non_atomic_refcount>;
+template class basic_bptr<const critter, non_atomic_refcount>;
 
 namespace {
 
