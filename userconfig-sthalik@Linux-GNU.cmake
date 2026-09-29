@@ -15,11 +15,19 @@ sets(STRING
 #list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
 #list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 
-add_link_options(-static-libstdc++) # see https://gcc.gnu.org/pipermail/gcc-bugs/2022-May/787588.html
 add_link_options(-fuse-ld=gold)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 add_compile_options(-fdiagnostics-color=always)
 add_compile_options(-fstack-usage -Wstack-usage=12288)
+
+if(FLOORMAT_TSAN)
+    add_compile_options(-fsanitize=thread)
+    add_link_options(-fsanitize=thread)
+    sets(BOOL CORRADE_CPU_USE_IFUNC OFF)
+else()
+    # libtsan loads the shared libstdc++. A second, static copy crashes iostream output (corrade-rc).
+    add_link_options(-static-libstdc++) # see https://gcc.gnu.org/pipermail/gcc-bugs/2022-May/787588.html
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
