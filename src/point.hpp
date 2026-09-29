@@ -2,17 +2,6 @@
 #include "global-coords.hpp"
 #include "intra-coord-fwd.hpp"
 #include <compare>
-#include <type_traits>
-#include <cr/StlForwardTupleSizeElement.h>
-
-namespace floormat { struct point; }
-
-template<> struct std::tuple_size<floormat::point> : std::integral_constant<floormat::size_t, 2> {};
-
-template<floormat::size_t N> struct std::tuple_element<N, floormat::point>;
-
-template<> struct std::tuple_element<0, floormat::point> { using type = floormat::global_coords; };
-template<> struct std::tuple_element<1, floormat::point> { using type = Magnum::Vector2b; };
 
 namespace floormat {
 
@@ -35,7 +24,6 @@ struct point
     constexpr chunk_coords_ chunk3() const;
     constexpr local_coords local() const;
     constexpr Vector2b offset() const;
-    template<size_t N> typename std::tuple_element<N, point>::type constexpr get() const;
     template<intra_coord_base::Type TYPE = intra_coord_base::Checking> constexpr basic_intra_coord<TYPE> intra() const;
 
     friend Debug& operator<<(Debug& dbg, const point& pt);
@@ -77,15 +65,5 @@ constexpr chunk_coords_ point::chunk3() const { return {cx, cy, cz}; }
 constexpr chunk_coords point::chunk() const { return {cx, cy}; }
 constexpr local_coords point::local() const { return tile; }
 constexpr Vector2b point::offset() const { return _offset; }
-
-template<size_t N> typename std::tuple_element<N, point>::type constexpr point::get() const
-{
-    static_assert(N < 2);
-    if constexpr(N == 0)
-        return global_coords{{cx, cy}, tile, cz};
-    if constexpr(N == 1)
-        return _offset;
-    return {};
-}
 
 } // namespace floormat
