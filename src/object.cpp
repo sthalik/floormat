@@ -97,7 +97,8 @@ void object::rotate(size_t, rotation new_r)
 bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
                          Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    auto [coord_, offset_] = point::normalize_coords(coord2, offset, delta);
+    const auto pt = point::normalize_coords(coord2, offset, delta);
+    const auto coord_ = pt.coord();
 
     if (coord_.z() != coord.z()) [[unlikely]]
         return false;
@@ -105,7 +106,7 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
     auto& w = *c->_world;
     auto& cʹ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
 
-    const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(offset_) + Vector2(bbox_offset),
+    const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(pt.offset()) + Vector2(bbox_offset),
                half_bbox = Vector2(bbox_size)*.5f,
                min = center - half_bbox, max = min + Vector2(bbox_size);
     if (min == max)
@@ -181,8 +182,7 @@ bool object::move_to(size_t& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
         return false;
-    const auto [coord_, offset_] = point::normalize_coords(coord, offset, delta);
-    teleport_to(i, coord_, offset_, new_r);
+    teleport_to(i, point::normalize_coords(coord, offset, delta), new_r);
     return true;
 }
 
