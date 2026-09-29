@@ -9,8 +9,8 @@
 
 namespace floormat {
 
-template class bptr<hole>;
-template class bptr<const hole>;
+template class basic_bptr<hole, non_atomic_refcount>;
+template class basic_bptr<const hole, non_atomic_refcount>;
 
 namespace {
 
