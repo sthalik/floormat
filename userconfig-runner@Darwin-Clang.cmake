@@ -42,6 +42,7 @@ function(fm-userconfig-src)
         -Wno-weak-vtables
         -Wno-c99-compat
         -Wno-switch-default
+        -Wno-lifetime-safety-all
     )
     #end copy-paste
     add_compile_options(-Wno-poison-system-directories)
