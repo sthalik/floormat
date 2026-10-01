@@ -8,10 +8,11 @@ namespace floormat {
 
 // A slot is occupied when x.has_block(), or bool(x) for a T without it. An unoccupied T
 // must own nothing: pages are freed without destroying such slots.
-template<typename T, mlt_params P>
+template<typename T, mlt_params Pʹ>
 class multi_level_table final
 {
 public:
+    static constexpr auto P = Pʹ.validate();
     static constexpr uint32_t key_bits = P.key_bits();
     static constexpr uint32_t page_bits = P.page_bits();
     static constexpr uint32_t zero_bits = P.zero_bits();
