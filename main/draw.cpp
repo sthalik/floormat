@@ -76,6 +76,7 @@ void main_impl::cache_draw_on_startup()
 
 void main_impl::drawEvent()
 {
+    const auto t0 = Time::now();
 
     float ddpi = 96, hdpi = 96, vdpi = 96;
 
@@ -117,6 +118,9 @@ void main_impl::drawEvent()
         swapBuffers();
     }
     redraw();
+
+    if (_frame_times_file) [[unlikely]]
+        std::fprintf(_frame_times_file, "%llu\n", (unsigned long long)(Time::now() - t0).stamp);
 }
 
 template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>

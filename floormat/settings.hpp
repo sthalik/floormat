@@ -14,6 +14,7 @@ struct fm_settings
 
     String title = "floormat editor"_s;
     String load_game;
+    String log_frame_times;
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     uint32_t fixed_framerate = 0;   // 0 = feed update() the measured frame time
