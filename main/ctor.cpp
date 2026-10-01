@@ -4,7 +4,9 @@
 #include "src/search.hpp"
 #include "src/chunk.hpp"
 #include "src/object-storage.inl"
+#include "compat/strerror.hpp"
 #include <algorithm>
+#include <cerrno>
 #include <cr/GrowableArray.h>
 
 namespace floormat {
@@ -26,6 +28,16 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
     maybe_enable_clipcontrol_zero_to_one();
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
+    if (!s.log_frame_times.isEmpty())
+    {
+        _frame_times_file = std::fopen(s.log_frame_times.data(), "ab");
+        if (!_frame_times_file)
+        {
+            int error = errno;
+            char errbuf[128];
+            fm_abort("fopen(\"%s\", \"a\"): %s", s.log_frame_times.data(), get_error_string(errbuf, error).data());
+        }
+    }
     timeline = Time::now();
 }
 

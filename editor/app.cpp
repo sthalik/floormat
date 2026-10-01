@@ -148,6 +148,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
         .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
+        .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
@@ -158,6 +159,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     opts.minimized = args.isSet("minimized");
     if (const auto s = args.value<StringView>("load-game"))
         opts.load_game = resolve_load_game_path(s);
+    opts.log_frame_times = String{args.value<StringView>("log-frame-times")};
     opts.vsync = parse_bool("vsync", args);
     opts.fixed_framerate = parse_uint("fixed-framerate", args);
     // main_impl::do_update() clamps dt to 100 ms after substituting the fixed step, so

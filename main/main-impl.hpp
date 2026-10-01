@@ -11,6 +11,7 @@
 #include "shaders/lightmap.hpp"
 #include "main/clickable.hpp"
 #include <concepts>
+#include <cstdio>
 #include <mg/DebugOutput.h>
 #include <mg/Sdl2Application.h>
 
@@ -131,6 +132,7 @@ private:
     };
 
     Time timeline;
+    std::FILE* _frame_times_file = nullptr;
 
     Array<chunk_coords_> _chunk_bounds_array;
     fm_settings s;
