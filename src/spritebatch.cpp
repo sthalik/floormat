@@ -16,6 +16,12 @@
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
 
+#if defined __GNUC__ && !defined __clang__
+// GCC warns on always_inline without the inline keyword. That keyword would leave callers in other
+// TUs, which see a plain declaration, with an undefined symbol. GCC inlines it regardless.
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 namespace floormat {
 
 namespace {
@@ -149,7 +155,7 @@ SpriteBatch::SpriteBatch()
 
 SpriteBatch::~SpriteBatch() noexcept = default;
 
-void SpriteBatch::begin_chunk(uint32_t max_quads)
+[[fm_always_inline]] void SpriteBatch::begin_chunk(uint32_t max_quads)
 {
     auto& impl = *this->impl;
     fm_debug2_assert(!impl.in_chunk);
@@ -214,46 +220,10 @@ void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
     impl.depths.data()[i] = depth;
 }
 
-void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
-{
-    const auto size = list.size();
-    // Sized to the upper bound, so the filtered branch needs no counting pass.
-    begin_chunk(size);
-    auto& impl = *this->impl;
-    const auto first = impl.emit_pos;
-
-    const auto* const Vin = list.Vertexes.data();
-    const auto* const Din = list.Depths.data();
-    auto* const V = impl.verts.data() + first;
-    auto* const D = impl.depths.data() + first;
-
-    uint32_t n = 0;
-
-    if (render_vobjs)
-        for (; n < size; n++)
-        {
-            V[n] = Vin[n];
-            D[n] = Din[n];
-        }
-    else
-    {
-        object* const* const O = list.Objects.data();
-        for (auto i = 0u; i < size; i++)
-        {
-            const auto* obj = O[i];
-            if (obj && obj->is_virtual())
-                continue;
-            V[n] = Vin[i];
-            D[n] = Din[i];
-            n++;
-        }
-    }
-
-    impl.emit_pos = first + n;
-    end_chunk<false>();
-}
-
+// Defined before any use. A specialization named earlier is declared from the header and never
+// gets fm_always_inline.
 template<bool do_sort>
+[[fm_always_inline]]
 void SpriteBatch::end_chunk()
 {
     auto& impl = *this->impl;
@@ -295,6 +265,45 @@ void SpriteBatch::end_chunk()
 
 template void SpriteBatch::end_chunk<false>();
 template void SpriteBatch::end_chunk<true>();
+
+void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
+{
+    const auto size = list.size();
+    // Sized to the upper bound, so the filtered branch needs no counting pass.
+    begin_chunk(size);
+    auto& impl = *this->impl;
+    const auto first = impl.emit_pos;
+
+    const auto* const Vin = list.Vertexes.data();
+    const auto* const Din = list.Depths.data();
+    auto* const V = impl.verts.data() + first;
+    auto* const D = impl.depths.data() + first;
+
+    uint32_t n = 0;
+
+    if (render_vobjs)
+        for (; n < size; n++)
+        {
+            V[n] = Vin[n];
+            D[n] = Din[n];
+        }
+    else
+    {
+        object* const* const O = list.Objects.data();
+        for (auto i = 0u; i < size; i++)
+        {
+            const auto* obj = O[i];
+            if (obj && obj->is_virtual())
+                continue;
+            V[n] = Vin[i];
+            D[n] = Din[i];
+            n++;
+        }
+    }
+
+    impl.emit_pos = first + n;
+    end_chunk<false>();
+}
 
 // Sorting the zip_view directly moves 124 bytes per iter_move to order by a 4-byte key. Sort a
 // permutation instead, then walk its cycles in place.

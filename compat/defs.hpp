@@ -52,8 +52,10 @@
 
 #ifdef _MSC_VER
 #   define fm_noinline __declspec(noinline)
+#   define fm_always_inline msvc::forceinline
 #else
 #   define fm_noinline __attribute__((noinline))
+#   define fm_always_inline gnu::always_inline
 #endif
 
 #ifdef _MSC_VER
