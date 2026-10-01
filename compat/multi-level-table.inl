@@ -123,7 +123,7 @@ template<typename T, mlt_params P>
 bool multi_level_table<T, P>::insert(uint64_t key, T value) noexcept
 {
     detail_mlt::check_key<multi_level_table>(key);
-    fm_debug_assert(value);
+    fm_debug_assert(detail_mlt::occupied(value));
     T* slot;
     [[maybe_unused]] page_ref* ref = nullptr;
     if constexpr (!has_pages)
