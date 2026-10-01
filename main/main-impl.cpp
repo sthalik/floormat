@@ -27,6 +27,8 @@ int main_impl::exec()
 main_impl::~main_impl() noexcept
 {
     reset_world();
+    if (_frame_times_file)
+        std::fclose(_frame_times_file);
 }
 
 void main_impl::set_cursor(uint32_t cursor) noexcept
