@@ -109,6 +109,10 @@ struct mlt_params
     }
 };
 
+struct mlt_coords { uint32_t c[3]; };
+
+template<typename C, mlt_params P> struct mlt_coord_traits;
+
 template<typename T, mlt_params P> class multi_level_table;
 
 } // namespace floormat
