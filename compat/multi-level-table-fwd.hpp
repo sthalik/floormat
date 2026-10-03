@@ -12,7 +12,6 @@ struct mlt_bits
 
     constexpr mlt_bits() noexcept = default;
     constexpr mlt_bits(uint32_t x) noexcept : dim{x, 0, 0}, dims{1} {}
-    constexpr mlt_bits(uint32_t x, uint32_t y) noexcept : dim{x, y, 0}, dims{2} {}
     constexpr mlt_bits(uint32_t x, uint32_t y, uint32_t z) noexcept : dim{x, y, z}, dims{3} {}
 
     constexpr uint32_t total() const noexcept { return dim[0] + dim[1] + dim[2]; }
@@ -81,7 +80,7 @@ struct mlt_params
         fm_assert(n > 0);
         for (uint32_t i = n; i < max_depth; i++)
             fm_assert(!levels[i].bits.total() && !levels[i].dynamic && !levels[i].inline_zero);
-        fm_assert(dims() >= 1 && dims() <= 3);
+        fm_assert(dims() == 1 || dims() == 3);
         for (uint32_t i = 0; i < n; i++)
         {
             fm_assert(levels[i].bits.dims == dims());

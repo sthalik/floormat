@@ -223,33 +223,33 @@ constexpr inline mlt_params bit_split_free_params = mlt_params{
 }.validate();
 
 constexpr inline mlt_params plane_params = mlt_params{
-    .levels = { {.bits = {2, 1}}, {.bits = {3, 1}, .dynamic = true}, },
+    .levels = { {.bits = {2, 1, 0}}, {.bits = {3, 1, 0}, .dynamic = true}, },
 }.validate();
 
 constexpr inline mlt_params plane_deep_free_params = mlt_params{
-    .levels = { {.bits = {3, 0}}, {.bits = {0, 2}}, {.bits = {2, 1}, .dynamic = true}, },
+    .levels = { {.bits = {3, 0, 0}}, {.bits = {0, 2, 0}}, {.bits = {2, 1, 0}, .dynamic = true}, },
     .free_empty = true,
 }.validate();
 
 constexpr inline mlt_params plane_no_y_params = mlt_params{
-    .levels = { {.bits = {3, 0}}, {.bits = {2, 0}, .dynamic = true}, },
+    .levels = { {.bits = {3, 0, 0}}, {.bits = {2, 0, 0}, .dynamic = true}, },
 }.validate();
 
 constexpr inline mlt_params plane_zero_params = mlt_params{
-    .levels = { {.bits = {1, 1}}, {.bits = {1, 0}, .inline_zero = true}, {.bits = {2, 1}, .dynamic = true}, },
+    .levels = { {.bits = {1, 1, 0}}, {.bits = {1, 0, 0}, .inline_zero = true}, {.bits = {2, 1, 0}, .dynamic = true}, },
 }.validate();
 
 constexpr inline mlt_params plane_zero_free_params = mlt_params{
-    .levels = { {.bits = {1, 1}}, {.bits = {1, 0}, .inline_zero = true}, {.bits = {2, 1}, .dynamic = true}, },
+    .levels = { {.bits = {1, 1, 0}}, {.bits = {1, 0, 0}, .inline_zero = true}, {.bits = {2, 1, 0}, .dynamic = true}, },
     .free_empty = true,
 }.validate();
 
 constexpr inline mlt_params plane_no_pages_params = mlt_params{
-    .levels = { {.bits = {3, 2}}, },
+    .levels = { {.bits = {3, 2, 0}}, },
 }.validate();
 
 constexpr inline mlt_params plane_wide_params = mlt_params{
-    .levels = { {.bits = {16, 0}}, {.bits = {16, 1}, .dynamic = true}, },
+    .levels = { {.bits = {16, 0, 0}}, {.bits = {16, 1, 0}, .dynamic = true}, },
 }.validate();
 
 constexpr inline mlt_params space_free_params = mlt_params{
@@ -275,7 +275,7 @@ constexpr inline mlt_params space_one_entry_params = mlt_params{
 }.validate();
 
 constexpr inline mlt_params plane_large_params = mlt_params{
-    .levels = { {.bits = {2, 2}}, {.bits = {1, 1}, .inline_zero = true}, {.bits = {3, 3}, .dynamic = true}, },
+    .levels = { {.bits = {2, 2, 0}}, {.bits = {1, 1, 0}, .inline_zero = true}, {.bits = {3, 3, 0}, .dynamic = true}, },
     .free_empty = true,
 }.validate();
 
@@ -304,13 +304,12 @@ static_assert(!valid_params<mlt_params{ .levels = { {.bits = 31}, {.bits = 31}, 
 static_assert(!valid_params<mlt_params{ .levels = { {.bits = 32}, } }>);
 static_assert(!valid_params<mlt_params{ .levels = { {.bits = 1}, {.bits = 32, .dynamic = true}, } }>);
 static_assert(!valid_params<mlt_params{ .levels = { {.bits = 1}, {.bits = 32, .inline_zero = true}, {.bits = 1, .dynamic = true}, } }>);
-static_assert(valid_params<mlt_params{ .levels = { {.bits = {2, 1}}, {.bits = {3, 1}, .dynamic = true}, } }>);
-static_assert(valid_params<mlt_params{ .levels = { {.bits = {16, 0}}, {.bits = {16, 1}, .dynamic = true}, } }>);
+static_assert(valid_params<mlt_params{ .levels = { {.bits = {2, 1, 0}}, {.bits = {3, 1, 0}, .dynamic = true}, } }>);
+static_assert(valid_params<mlt_params{ .levels = { {.bits = {16, 0, 0}}, {.bits = {16, 1, 0}, .dynamic = true}, } }>);
 static_assert(valid_params<mlt_params{ .levels = { {.bits = {1, 0, 2}}, } }>);
-static_assert(!valid_params<mlt_params{ .levels = { {.bits = {2, 1}}, {.bits = 4, .dynamic = true}, } }>);
-static_assert(!valid_params<mlt_params{ .levels = { {.bits = {2, 1, 0}}, {.bits = {3, 1}, .dynamic = true}, } }>);
-static_assert(!valid_params<mlt_params{ .levels = { {.bits = {17, 0}}, {.bits = {16, 1}, .dynamic = true}, } }>);
-static_assert(!valid_params<mlt_params{ .levels = { {.bits = {0, 0}}, {.bits = {3, 1}, .dynamic = true}, } }>);
+static_assert(!valid_params<mlt_params{ .levels = { {.bits = {2, 1, 0}}, {.bits = 4, .dynamic = true}, } }>);
+static_assert(!valid_params<mlt_params{ .levels = { {.bits = {17, 0, 0}}, {.bits = {16, 1, 0}, .dynamic = true}, } }>);
+static_assert(!valid_params<mlt_params{ .levels = { {.bits = {0, 0, 0}}, {.bits = {3, 1, 0}, .dynamic = true}, } }>);
 
 using coord3 = std::array<uint32_t, 3>;
 
@@ -388,28 +387,14 @@ decltype(auto) at_coords(uint64_t k, F&& f)
 {
     const coord3 c = test_unpack<params_of<Table>>(k);
     fm_assert(test_pack<params_of<Table>>(c) == k);
-    if constexpr (Table::dims == 2)
-    {
-        fm_assert(Table::pack(c[0], c[1]) == k);
-        return f(c[0], c[1]);
-    }
-    else
-    {
-        fm_assert(Table::pack(c[0], c[1], c[2]) == k);
-        return f(c[0], c[1], c[2]);
-    }
+    fm_assert(Table::pack(c[0], c[1], c[2]) == k);
+    return f(c[0], c[1], c[2]);
 }
 
 template<typename Table>
 constexpr bool packs_to(coord3 c, uint64_t k)
 {
-    const uint64_t table_key = [&] {
-        if constexpr (Table::dims == 2)
-            return Table::pack(c[0], c[1]);
-        else
-            return Table::pack(c[0], c[1], c[2]);
-    }();
-    return table_key == k && test_pack<params_of<Table>>(c) == k && test_unpack<params_of<Table>>(k) == c;
+    return Table::pack(c[0], c[1], c[2]) == k && test_pack<params_of<Table>>(c) == k && test_unpack<params_of<Table>>(k) == c;
 }
 
 using chunk_like_table = multi_level_table<uint64_t, chunk_like_params>;
@@ -473,7 +458,7 @@ static_assert(packs_to<chunk_table_mlt>({1, 0, 0}, 1) && packs_to<chunk_table_ml
 static_assert(packs_to<chunk_table_mlt>({1 << 9, 0, 0}, uint64_t{1} << 22) && packs_to<chunk_table_mlt>({0, 1 << 9, 0}, uint64_t{1} << 29));
 static_assert(packs_to<chunk_table_mlt>({0, 0, 1}, 1 << 18) && packs_to<chunk_table_mlt>({0xffff, 0xffff, 15}, (uint64_t{1} << 36) - 1));
 
-static_assert(plane_table::dims == 2 && plane_table::key_bits == 7);
+static_assert(plane_table::dims == 3 && plane_table::key_bits == 7);
 static_assert(packs_to<plane_table>({1, 0, 0}, 1) && packs_to<plane_table>({0, 1, 0}, 8) && packs_to<plane_table>({8, 0, 0}, 16));
 static_assert(packs_to<plane_table>({0, 2, 0}, 64) && packs_to<plane_table>({31, 3, 0}, 127) && packs_to<plane_table>({5, 2, 0}, 69));
 static_assert(packs_to<plane_deep_free_table>({0, 1, 0}, 4) && packs_to<plane_deep_free_table>({0, 2, 0}, 8) && packs_to<plane_deep_free_table>({0, 4, 0}, 16));
@@ -2407,8 +2392,8 @@ void check_plane_wide()
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
         {
-            fm_assert(t.insert(x, y, uint8_t(n + 1)));
-            keys[n++] = Table::pack(x, y);
+            fm_assert(t.insert(x, y, 0, uint8_t(n + 1)));
+            keys[n++] = Table::pack(x, y, 0);
         }
     fm_assert(t.page_count() == 3);
     check_layout(t, size_t{8} << 16, keys);
@@ -2416,16 +2401,16 @@ void check_plane_wide()
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
         {
-            fm_assert(t.find(x, y) == t.find(keys[n]) && *t.find(x, y) == n + 1);
-            fm_assert(!t.insert(x, y, 1));
+            fm_assert(t.find(x, y, 0) == t.find(keys[n]) && *t.find(x, y, 0) == n + 1);
+            fm_assert(!t.insert(x, y, 0, 1));
             n++;
         }
-    fm_assert(t.find(2, 1) && !*t.find(2, 1) && t.find(0xfffffffe, 0) && !*t.find(0xfffffffe, 0));
-    fm_assert(!t.find(0x20000, 0) && !t.find(0xfffeffff, 1));
+    fm_assert(t.find(2, 1, 0) && !*t.find(2, 1, 0) && t.find(0xfffffffe, 0, 0) && !*t.find(0xfffffffe, 0, 0));
+    fm_assert(!t.find(0x20000, 0, 0) && !t.find(0xfffeffff, 1, 0));
     n = 0;
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
-            fm_assert(t.erase(x, y) == ++n);
+            fm_assert(t.erase(x, y, 0) == ++n);
     fm_assert(t.page_count() == 3);
     check_layout(t, size_t{8} << 16, {});
 }
