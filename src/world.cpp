@@ -28,7 +28,7 @@ namespace floormat {
 struct world::Impl
 {
     Pointer<Pass::PoolRegistry> _pass_registry;
-    Pointer<Pass::Pool> _cover_pass_pool;
+    Pointer<Pass::PoolRegistry> _cover_pass_registry;
     Pointer<Pass::Pool> _raycast_pass_pool;
 };
 
@@ -39,11 +39,12 @@ Grid::Pass::PoolRegistry& world::pass_pool_registry()
     return *impl->_pass_registry;
 }
 
-Grid::Pass::Pool& world::cover_pass_pool()
+Grid::Pass::PoolRegistry& world::cover_pass_registry()
 {
-    if (!impl->_cover_pass_pool)
-        impl->_cover_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{8, 8}.validate()});
-    return *impl->_cover_pass_pool;
+    // validate() snaps div_size down to bbox_size, so pool_for(d) yields a d/d pool
+    if (!impl->_cover_pass_registry)
+        impl->_cover_pass_registry.reset(new Grid::Pass::PoolRegistry{chunk_size_xy});
+    return *impl->_cover_pass_registry;
 }
 
 Grid::Pass::Pool& world::raycast_pass_pool()
@@ -82,7 +83,7 @@ world::world(world&& w) noexcept :
         return;
     // pooled grids point back at the source world
     impl->_pass_registry.reset();
-    impl->_cover_pass_pool.reset();
+    impl->_cover_pass_registry.reset();
     impl->_raycast_pass_pool.reset();
 }
 
@@ -122,7 +123,7 @@ world& world::operator=(world&& w) noexcept
         c->_world = this;
     // see the move ctor
     impl->_pass_registry.reset();
-    impl->_cover_pass_pool.reset();
+    impl->_cover_pass_registry.reset();
     impl->_raycast_pass_pool.reset();
 
     _unique_id = move(w._unique_id);
