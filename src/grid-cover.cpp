@@ -2,6 +2,7 @@
 #include "grid.inl"
 #include "intra-coord.inl"
 #include "grid-pass.hpp"
+#include "grid-pass-pool.hpp"
 #include "object.hpp"
 #include "world.hpp"
 #include "raycast.hpp"
@@ -18,8 +19,8 @@ namespace floormat::detail::grid {
 
 struct CoverCell
 {
-    // distance units are params.div_size, so a 1-chunk-range ray (=64 at div=16)
-    // fits in 6 bits.
+    // units of params.div_size. A 1-chunk ray is chunk_size_xy / div_size units,
+    // which saturates at 255 for div_size 4.
     uint8_t distance[Cover::octant_count];
 };
 
@@ -67,7 +68,6 @@ uint8_t raycast_one(chunk& self,
 {
     fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
-    fm_assert(pass_pool.params().div_size == div_size);
     fm_debug_assert(octant < octant_count);
     fm_debug_assert(cell_x < chunk_size_xy / div_size);
     fm_debug_assert(cell_y < chunk_size_xy / div_size);
@@ -156,12 +156,13 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     if (built_octants & (1u << k))
         return false;
 
-    auto& pass_pool = w->cover_pass_pool();
+    const uint32_t div_size = params.div_size;
+    auto& pass_pool = w->cover_pass_registry().pool_for(div_size);
+    fm_assert(pass_pool.params().div_size == div_size);
     pass_pool.maybe_mark_stale_all(w->frame_no());
     Timeline timeline;
     timeline.start();
 
-    const uint32_t div_size = params.div_size;
     const uint32_t dc = chunk_size_xy / div_size;
 
     const auto dir = direction_for_octant(k);
@@ -288,7 +289,7 @@ namespace floormat::Grid::Cover {
 
 Params Params::validate() const
 {
-    fm_assert(div_size > 0);
+    fm_assert(div_size >= Pass::Grid::min_bbox_size);
     fm_assert(chunk_size_xy % div_size == 0);
     return *this;
 }

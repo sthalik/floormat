@@ -1335,9 +1335,8 @@ task app::scene_grids()
     // grid, which is the one the grid test draws.
     constexpr float fill_target = .9f;
     // Cover's 8 aligned octants sweep the pass bitmap with a recurrence and are nearly free. The
-    // other 24 raycast every cell -- 16384 rays each, since div_size is pinned at 8 by
-    // raycast_one's assert against cover_pass_pool. Filling all 32 twice would cost more than the
-    // rest of the driver, so the expensive half is sampled.
+    // other 24 raycast every cell -- 16384 rays each at cover_test's div_size of 8. Filling all
+    // 32 twice would cost more than the rest of the driver, so the expensive half is sampled.
     constexpr uint32_t cover_octant_budget = 12;
 
     populate_scene_grids();
