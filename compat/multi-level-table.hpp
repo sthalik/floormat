@@ -11,8 +11,48 @@ namespace floormat {
 template<typename T, mlt_params Pʹ>
 class multi_level_table final
 {
-public:
     static constexpr auto P = Pʹ.validate();
+    static constexpr uint32_t top_size = 1u << P.top_bits();
+    static constexpr uint32_t page_size = 1u << P.page_bits();
+    static constexpr uint32_t page_mask = page_size - 1;
+    static constexpr uint32_t zero_mask = (1u << P.zero_bits()) - 1;
+    static constexpr uint32_t depth = P.depth();
+    static constexpr uint32_t dim_bits[3] = { P.dim_bits(0), P.dim_bits(1), P.dim_bits(2) };
+
+    struct coords { uint32_t c[3]; };
+    static constexpr uint64_t pack_coords(coords c) noexcept;
+    [[noreturn]] static void bad_coords(coords c) noexcept;
+
+    struct counted_page { T* page; uint32_t live; };
+    using page_ref = std::conditional_t<P.free_empty, counted_page, T*>;
+    struct split_entry { page_ref zero; page_ref* side; };
+    using entry = std::conditional_t<!P.has_pages(), T,
+                  std::conditional_t<(P.zero_bits() > 0), split_entry, page_ref>>;
+
+    struct page_record
+    {
+        T* page = nullptr;
+        uint32_t top_index = 0, zero_index = 0;
+        bool large = false;
+    };
+
+    page_ref* ref_at(uint32_t top_index, uint32_t zero_index) noexcept requires (P.has_pages());
+    void detach(const page_record& rec) noexcept;
+    T* add_page(uint32_t top_index, uint32_t zero_index) noexcept;
+    void release_page(uint32_t top_index, uint32_t zero_index, T* page) noexcept requires (P.free_empty);
+    void remove_page(T* page) noexcept;
+    void recycle(const page_record& rec) noexcept;
+    void free_page(const page_record& rec) noexcept;
+    void free_all_pages() noexcept;
+    void destroy() noexcept;
+
+    entry* _top = nullptr;
+    superpage_alloc_t _top_alloc;
+    Array<page_record> _pages;
+    page_record _spare;
+    bool _clearing = false;
+
+public:
     static constexpr uint32_t key_bits = P.key_bits();
     static constexpr uint32_t page_bits = P.page_bits();
     static constexpr uint32_t zero_bits = P.zero_bits();
@@ -41,54 +81,11 @@ public:
     [[nodiscard]] bool insert(uint32_t x, uint32_t y, uint32_t z, T value) noexcept requires (dims == 3);
     [[nodiscard]] T erase(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3);
 
-private:
-    static constexpr uint32_t top_size = 1u << top_bits;
-    static constexpr uint32_t page_size = 1u << page_bits;
-    static constexpr uint32_t page_mask = page_size - 1;
-    static constexpr uint32_t zero_mask = (1u << zero_bits) - 1;
-    static constexpr uint32_t depth = P.depth();
-    static constexpr uint32_t dim_bits[3] = { P.dim_bits(0), P.dim_bits(1), P.dim_bits(2) };
-
-    struct coords { uint32_t c[3]; };
-    static constexpr uint64_t pack_coords(coords c) noexcept;
-    [[noreturn]] static void bad_coords(coords c) noexcept;
-
-    struct counted_page { T* page; uint32_t live; };
-    using page_ref = std::conditional_t<P.free_empty, counted_page, T*>;
-    struct split_entry { page_ref zero; page_ref* side; };
-    using entry = std::conditional_t<!has_pages, T,
-                  std::conditional_t<(zero_bits > 0), split_entry, page_ref>>;
-
-    struct page_record
-    {
-        T* page = nullptr;
-        uint32_t top_index = 0, zero_index = 0;
-        bool large = false;
-    };
-
-public:
     // tests
     ArrayView<const entry> raw_top() const noexcept;
     ArrayView<const page_record> raw_pages() const noexcept;
     const page_record& raw_spare() const noexcept;
     const superpage_alloc_t& raw_top_alloc() const noexcept;
-
-private:
-    page_ref* ref_at(uint32_t top_index, uint32_t zero_index) noexcept requires (has_pages);
-    void detach(const page_record& rec) noexcept;
-    T* add_page(uint32_t top_index, uint32_t zero_index) noexcept;
-    void release_page(uint32_t top_index, uint32_t zero_index, T* page) noexcept requires (P.free_empty);
-    void remove_page(T* page) noexcept;
-    void recycle(const page_record& rec) noexcept;
-    void free_page(const page_record& rec) noexcept;
-    void free_all_pages() noexcept;
-    void destroy() noexcept;
-
-    entry* _top = nullptr;
-    superpage_alloc_t _top_alloc;
-    Array<page_record> _pages;
-    page_record _spare;
-    bool _clearing = false;
 };
 
 // Levels go outermost first. Inside a level, x takes the lowest bits.
