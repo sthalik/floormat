@@ -104,7 +104,6 @@ void app::draw_collision_boxes()
 {
     auto [z_cur, only] = get_z_bounds();
     const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
-    const auto sz = M->window_size();
     auto& world = M->world();
     auto& shader = M->shader();
 
@@ -134,29 +133,26 @@ void app::draw_collision_boxes()
         auto& c = *cʹ;
         c.ensure_passability();
         const with_shifted_camera_offset o{shader, pos};
-        if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
+        constexpr float maxf = 1 << 24, max2f[] = {maxf, maxf}, min2f[] = {-maxf, -maxf};
+        const auto& rtree = *c.rtree();
+        rtree.Search(min2f, max2f, [&](object_id data, const rect_type& rect)
         {
-            constexpr float maxf = 1 << 24, max2f[] = {maxf, maxf}, min2f[] = {-maxf, -maxf};
-            const auto& rtree = *c.rtree();
-            rtree.Search(min2f, max2f, [&](object_id data, const rect_type& rect)
-            {
-                [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+            [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
 #if 0
-                if (x.tag == (uint64_t)collision_type::geometry)
-                    return true;
-#endif
-                if (x.type == (uint64_t)collision_type::geometry)
-                    if (x.pass == (uint64_t)pass_mode::pass)
-                        if (x.id < TILE_COUNT * 3 + 1)
-                            return true;
-                Vector2 start{rect.m_min}, end{rect.m_max};
-                auto size = (end - start);
-                auto center = Vector3(start + size * .5f, 0.f);
-                shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
-                wireframe::draw_quad(shader, center, size, 3);
+            if (x.tag == (uint64_t)collision_type::geometry)
                 return true;
-            });
-        }
+#endif
+            if (x.type == (uint64_t)collision_type::geometry)
+                if (x.pass == (uint64_t)pass_mode::pass)
+                    if (x.id < TILE_COUNT * 3 + 1)
+                        return true;
+            Vector2 start{rect.m_min}, end{rect.m_max};
+            auto size = (end - start);
+            auto center = Vector3(start + size * .5f, 0.f);
+            shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
+            wireframe::draw_quad(shader, center, size, 3);
+            return true;
+        });
     }
 
     shader.set_tint({1, 0, 1, 1});
@@ -176,28 +172,25 @@ void app::draw_collision_boxes()
             auto& c = *cʹ;
             c.ensure_passability();
             const with_shifted_camera_offset o{shader, c_pos};
-            if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-            {
-                auto t0 = Vector2(pt - point{c_pos, {}, {}});
-                auto t1 = t0+Vector2(1e-4f);
-                const auto* rtree = c.rtree();
-                rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                    [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+            auto t0 = Vector2(pt - point{c_pos, {}, {}});
+            auto t1 = t0+Vector2(1e-4f);
+            const auto* rtree = c.rtree();
+            rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+                [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
 #if 0
-                    if (x.tag == (uint64_t)collision_type::geometry)
-                        return true;
-#endif
-                    if (x.type == (uint64_t)collision_type::geometry)
-                        if (x.pass == (uint64_t)pass_mode::pass)
-                            if (x.id < TILE_COUNT*3+1)
-                                return true;
-                    Vector2 start{rect.m_min}, end{rect.m_max};
-                    auto size = end - start;
-                    auto center = Vector3(start + size*.5f, 0.f);
-                    wireframe::draw_quad(shader, center, size, 3);
+                if (x.tag == (uint64_t)collision_type::geometry)
                     return true;
-                });
-            }
+#endif
+                if (x.type == (uint64_t)collision_type::geometry)
+                    if (x.pass == (uint64_t)pass_mode::pass)
+                        if (x.id < TILE_COUNT*3+1)
+                            return true;
+                Vector2 start{rect.m_min}, end{rect.m_max};
+                auto size = end - start;
+                auto center = Vector3(start + size*.5f, 0.f);
+                wireframe::draw_quad(shader, center, size, 3);
+                return true;
+            });
         }
     }
 

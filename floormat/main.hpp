@@ -72,7 +72,6 @@ struct floormat_main
 
     virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_chunks) const noexcept = 0;
 
-    [[nodiscard]] static bool check_chunk_visible(Vector2d offset, Vector2i win) noexcept;
     virtual struct meshes meshes() noexcept = 0;
 
     virtual class world& world() noexcept = 0;

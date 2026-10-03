@@ -1,7 +1,6 @@
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
 #include "floormat/draw-bounds.hpp"
-#include "src/camera-offset.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
 #include "src/nanosecond.inl"
@@ -124,21 +123,14 @@ void main_impl::drawEvent()
 }
 
 template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
-void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i window_size)
+void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks)
 {
     for (auto ch : chunks)
     {
         auto* cʹ = _world.at(ch);
         if (!cʹ)
             continue;
-        auto& c = *cʹ;
-        bool is_visible;
-        {
-            const with_shifted_camera_offset o{_shader, ch};
-            is_visible = check_chunk_visible(_shader.camera_offset(), window_size);
-        }
-        if (is_visible)
-            fun(c, ch.x, ch.y, ch.z);
+        fun(*cʹ, ch.x, ch.y, ch.z);
     }
 }
 
@@ -180,7 +172,7 @@ void main_impl::draw_world() noexcept
             draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
                 if (z != z_bounds.cur)
                     emit(c, x, y, z);
-            }, chunks, sz);
+            }, chunks);
             _shader.set_tint({1, 1, 1, 0.75});
             _sprite_batch.draw(_shader, do_sort);
         }
@@ -188,7 +180,7 @@ void main_impl::draw_world() noexcept
         draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
             if (!z_bounds.only || z == z_bounds.cur)
                 emit(c, x, y, z);
-        }, chunks, sz);
+        }, chunks);
         _shader.set_tint({1, 1, 1, 1});
         _sprite_batch.draw(_shader, do_sort);
     };
