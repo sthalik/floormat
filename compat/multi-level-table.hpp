@@ -17,11 +17,11 @@ class multi_level_table final
     static constexpr uint32_t page_mask = page_size - 1;
     static constexpr uint32_t zero_mask = (1u << P.zero_bits()) - 1;
     static constexpr uint32_t depth = P.depth();
-    static constexpr uint32_t dim_bits[3] = { P.dim_bits(0), P.dim_bits(1), P.dim_bits(2) };
 
-    struct coords { uint32_t c[3]; };
-    static constexpr uint64_t pack_coords(coords c) noexcept;
-    [[noreturn]] static void bad_coords(coords c) noexcept;
+    template<typename C>
+    static constexpr bool is_coord = P.dims() == 3 && requires (const C& c) { mlt_coord_traits<C, P>::coords(c); };
+
+    static constexpr uint64_t pack_coords(mlt_coords c) noexcept;
 
     struct counted_page { T* page; uint32_t live; };
     using page_ref = std::conditional_t<P.free_empty, counted_page, T*>;
@@ -75,11 +75,10 @@ public:
     uint32_t page_count() const noexcept;
     uint64_t size() const noexcept requires (P.free_empty);
 
-    static constexpr uint64_t pack(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3) { return pack_coords({x, y, z}); }
-
-    const T* find(uint32_t x, uint32_t y, uint32_t z) const noexcept requires (dims == 3);
-    [[nodiscard]] bool insert(uint32_t x, uint32_t y, uint32_t z, T value) noexcept requires (dims == 3);
-    [[nodiscard]] T erase(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3);
+    template<typename C> static constexpr uint64_t pack(const C& c) noexcept requires is_coord<C> { return pack_coords(mlt_coord_traits<C, P>::coords(c)); }
+    template<typename C> const T* find(const C& c) const noexcept requires is_coord<C> { return find(pack(c)); }
+    template<typename C> [[nodiscard]] bool insert(const C& c, T value) noexcept requires is_coord<C> { return insert(pack(c), move(value)); }
+    template<typename C> [[nodiscard]] T erase(const C& c) noexcept requires is_coord<C> { return erase(pack(c)); }
 
     // tests
     ArrayView<const entry> raw_top() const noexcept;
@@ -90,15 +89,8 @@ public:
 
 // Levels go outermost first. Inside a level, x takes the lowest bits.
 template<typename T, mlt_params P>
-constexpr uint64_t multi_level_table<T, P>::pack_coords(coords c) noexcept
+constexpr uint64_t multi_level_table<T, P>::pack_coords(mlt_coords c) noexcept
 {
-#ifndef FM_NO_DEBUG
-    uint64_t over = 0;
-    for (uint32_t d = 0; d < dims; d++)
-        over |= uint64_t{c.c[d]} >> dim_bits[d];
-    if (over) [[unlikely]]
-        bad_coords(c);
-#endif
     uint64_t key = 0;
     uint32_t key_shift = 0, coord_shift[3] = {};
     for (uint32_t i = depth; i-- > 0; )
