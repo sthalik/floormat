@@ -4,7 +4,6 @@
 
 namespace floormat::Grid::Pass {
 
-PoolRegistry::PoolRegistry(): PoolRegistry(tile_size_xy) {}
 PoolRegistry::PoolRegistry(uint32_t div_size) : div_size_{div_size} {}
 PoolRegistry::~PoolRegistry() noexcept = default;
 

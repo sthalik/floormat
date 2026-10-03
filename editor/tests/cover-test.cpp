@@ -63,7 +63,7 @@ struct cover_test final : base_test
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
-cover_test::cover_test(): pool{Cover::Params{ .div_size = div_size }} {}
+cover_test::cover_test(): pool{Cover::Params{div_size}} {}
 
 bool cover_test::handle_key(app& a, const key_event& e, bool is_down)
 {

@@ -18,8 +18,11 @@ using BitView = detail::grid::BitView;
 
 struct Params
 {
-    uint32_t div_size = tile_size_xy;
-    uint32_t bbox_size = div_size;
+    uint32_t div_size;
+    uint32_t bbox_size;
+
+    constexpr explicit Params(uint32_t div_size): div_size{div_size}, bbox_size{div_size} {}
+    constexpr Params(uint32_t div_size, uint32_t bbox_size): div_size{div_size}, bbox_size{bbox_size} {}
 
     Params validate() const;
 
