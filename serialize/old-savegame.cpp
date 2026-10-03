@@ -305,11 +305,13 @@ void reader_state::read_chunks(reader_t& s)
         magic << s;
         if (magic != chunk_magic)
             fm_throw("bad chunk magic"_cf);
-        chunk_coords_ ch;
-        ch.x << s;
-        ch.y << s;
+        int16_t cx, cy;
+        int8_t cz = 0;
+        cx << s;
+        cy << s;
         if (PROTO >= 10) [[likely]]
-            ch.z << s;
+            cz << s;
+        const chunk_coords_ ch{cx, cy, cz};
         auto& c = (*_world)[ch];
         c.mark_modified();
         for (auto i = 0uz; i < TILE_COUNT; i++)

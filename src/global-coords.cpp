@@ -64,11 +64,11 @@ static_assert(global_coords{1u + chunk_xy_bias << 4 | 3, 2u + chunk_xy_bias << 4
 static_assert(global_coords{-123, 456, 1}.z() == 1);
 static_assert(global_coords{-123, 511, 5}.chunk() == chunk_coords{-8, 31});
 
-static_assert(chunk_coords_{(char)10, (char)20, (char)30} + Vector3i(1, 2, 3) == chunk_coords_{(char)11, (char)22, (char)33});
-static_assert(chunk_coords_{(char)11, (char)22, (char)33} - Vector3i(1, 2, 3) == chunk_coords_{(char)10, (short)20, (short)30});
+static_assert(chunk_coords_{(char)10, (char)20, (char)3} + Vector3i(1, 2, 3) == chunk_coords_{(char)11, (char)22, (char)6});
+static_assert(chunk_coords_{(char)11, (char)22, (char)6} - Vector3i(1, 2, 3) == chunk_coords_{(char)10, (short)20, (short)3});
 
-static_assert(chunk_coords_{(short)10, (short)20, (char)30} + Vector2i(1, 2) == chunk_coords_{(short)11, (short)22, (char)30});
-static_assert(chunk_coords_{(short)11, (short)22, (char)30} - Vector2i(1, 2) == chunk_coords_{(short)10, (short)20, (char)30});
+static_assert(chunk_coords_{(short)10, (short)20, (char)3} + Vector2i(1, 2) == chunk_coords_{(short)11, (short)22, (char)3});
+static_assert(chunk_coords_{(short)11, (short)22, (char)3} - Vector2i(1, 2) == chunk_coords_{(short)10, (short)20, (char)3});
 
 constexpr auto g1 = global_coords{{1, 2, 0}, {3, 0}};
 constexpr auto g2 = global_coords{{1, 1, 0}, {3, TILE_MAX_DIM-1}};

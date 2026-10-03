@@ -32,8 +32,11 @@ struct chunk_coords_ final {
     int8_t z = 0;
 
     constexpr chunk_coords_() noexcept = default;
-    constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z} {}
-    constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : x{c.x}, y{c.y}, z{z} {}
+    constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z}
+    {
+        fm_assert(z >= chunk_z_min && z <= chunk_z_max);
+    }
+    constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : chunk_coords_{c.x, c.y, z} {}
 
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
     friend Debug& operator<<(Debug& dbg, const chunk_coords_& pt);
@@ -65,11 +68,11 @@ struct chunk_coords_ final {
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator+=(Math::Vector3<T> off) noexcept
     {
-        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); z = int8_t(z + int{off.z()}); return *this;
+        return *this = *this + off;
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator-=(Math::Vector3<T> off) noexcept
     {
-        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); z = int8_t(z - int{off.z()}); return *this;
+        return *this = *this - off;
     }
 
     constexpr Vector3i operator-(chunk_coords_ other) const noexcept
@@ -103,15 +106,8 @@ private:
 public:
     constexpr global_coords() noexcept = default;
     constexpr global_coords(chunk_coords c, local_coords xy, int8_t z) noexcept :
-        x{
-            uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) |
-            uint32_t(((int)z + z0::value) & 0x0f) << 20
-        },
-        y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
-    {
-        // cast to int32_t: comparing int16_t against the bounds trips -Wtautological-type-limit-compare
-        fm_assert((int32_t)c.x >= chunk_xy_min && (int32_t)c.x <= chunk_xy_max && (int32_t)c.y >= chunk_xy_min && (int32_t)c.y <= chunk_xy_max);
-    }
+        global_coords{chunk_coords_{c, z}, xy}
+    {}
     constexpr global_coords(uint32_t x, uint32_t y, std::nullptr_t) noexcept : x{x}, y{y}
     {
         int32_t cx = int32_t((x & ~z_mask::value) >> 4) - s0::value, cy = int32_t(y >> 4) - s0::value;
@@ -122,10 +118,15 @@ public:
         x{uint32_t(x + (s0::value<<4)) | uint32_t(((z + z0::value) & 0x0f) << 20)},
         y{uint32_t(y + (s0::value<<4))}
     {
-        fm_assert((x>>4) >= chunk_xy_min && (x>>4) <= chunk_xy_max && (y>>4) >= chunk_xy_min && (y>>4) <= chunk_xy_max);
+        fm_assert((x>>4) >= chunk_xy_min && (x>>4) <= chunk_xy_max && (y>>4) >= chunk_xy_min && (y>>4) <= chunk_xy_max
+               && z >= chunk_z_min && z <= chunk_z_max);
     }
     constexpr global_coords(chunk_coords_ c, local_coords xy) noexcept :
-        global_coords{chunk_coords{c.x, c.y}, xy, c.z}
+        x{
+            uint32_t((c.x + s0::value) << 4) | (xy.x & 0x0f) |
+            uint32_t(((int)c.z + z0::value) & 0x0f) << 20
+        },
+        y{ uint32_t((c.y + s0::value) << 4) | (xy.y & 0x0f) }
     {}
 
     constexpr local_coords local() const noexcept;
