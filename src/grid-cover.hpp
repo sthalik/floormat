@@ -18,7 +18,9 @@ inline constexpr uint32_t octant_count = 32;
 
 struct Params
 {
-    uint32_t div_size = tile_size_xy;
+    uint32_t div_size;
+
+    constexpr explicit Params(uint32_t div_size): div_size{div_size} {}
 
     Params validate() const;
     bool operator==(const Params&) const noexcept;

@@ -11,7 +11,6 @@ namespace floormat::Grid::Pass {
 class PoolRegistry final
 {
 public:
-    PoolRegistry();
     explicit PoolRegistry(uint32_t div_size);
     ~PoolRegistry() noexcept;
     fm_DISABLE_MOVE_COPY(PoolRegistry);
