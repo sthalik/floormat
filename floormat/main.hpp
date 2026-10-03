@@ -69,7 +69,7 @@ struct floormat_main
     virtual global_coords pixel_to_tile(Vector2i position, int8_t z_level = 0) const noexcept = 0;
     virtual point pixel_to_point(Vector2i position, int8_t z_level = 0) const noexcept = 0;
 
-    virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_chunks) const noexcept = 0;
+    virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept = 0;
 
     virtual struct meshes meshes() noexcept = 0;
 
