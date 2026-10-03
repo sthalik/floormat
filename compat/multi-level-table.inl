@@ -352,7 +352,7 @@ void multi_level_table<T, P>::bad_coords(coords c) noexcept
 }
 
 template<typename T, mlt_params P>
-auto multi_level_table<T, P>::ref_at(uint32_t top_index, uint32_t zero_index) noexcept -> page_ref* requires (has_pages)
+auto multi_level_table<T, P>::ref_at(uint32_t top_index, uint32_t zero_index) noexcept -> page_ref* requires (P.has_pages())
 {
     entry& e = _top[top_index];
     if constexpr (zero_bits > 0)
