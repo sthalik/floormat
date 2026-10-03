@@ -62,7 +62,7 @@ bool sat_rhombus_vs_rect(const std::array<Vector2i, 4>& poly, Range2Di screen_re
 }
 
 // In doubled pixels, the units of camera2 and project2().
-bool check_chunk_visible(Vector2i camera2, Vector2i win) noexcept
+bool check_chunk_visible(Vector2i camera2, Vector2i win, Range2Di extra_pixels) noexcept
 {
     constexpr auto len = chunk_size<int32_t>;
     const Vector2i origin2 = win + camera2;
@@ -75,8 +75,8 @@ bool check_chunk_visible(Vector2i camera2, Vector2i win) noexcept
     };
 
     const Range2Di screen_rect{
-        2*Vector2i{-chunk_overhang_x, -chunk_overhang_y},
-        2*Vector2i{ chunk_overhang_x + win.x(), chunk_overhang_y + win.y()},
+        2*(Vector2i{-chunk_overhang_x, -chunk_overhang_y} + extra_pixels.min()),
+        2*(Vector2i{ chunk_overhang_x + win.x(), chunk_overhang_y + win.y()} + extra_pixels.max()),
     };
 
     return sat_rhombus_vs_rect(rhombus, screen_rect);
@@ -141,10 +141,10 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
                     const Vector2i camera2 = base_camera2 + with_shifted_camera_offset::get_projected_chunk_offset2(ch);
 #if 0
                     if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-                        DBG << "  test" << ch << check_chunk_visible(camera2, win);
+                        DBG << "  test" << ch << check_chunk_visible(camera2, win, extra_pixels);
 #endif
 
-                    if (check_chunk_visible(camera2, win))
+                    if (check_chunk_visible(camera2, win, extra_pixels))
                     {
                         arrayAppend(output, ch);
 #if 0
