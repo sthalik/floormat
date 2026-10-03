@@ -35,14 +35,10 @@ public:
     uint32_t page_count() const noexcept;
     uint64_t size() const noexcept requires (P.free_empty);
 
-    static constexpr uint64_t pack(uint32_t x, uint32_t y) noexcept requires (dims == 2) { return pack_coords({x, y, 0}); }
     static constexpr uint64_t pack(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3) { return pack_coords({x, y, z}); }
 
-    const T* find(uint32_t x, uint32_t y) const noexcept requires (dims == 2);
     const T* find(uint32_t x, uint32_t y, uint32_t z) const noexcept requires (dims == 3);
-    [[nodiscard]] bool insert(uint32_t x, uint32_t y, T value) noexcept requires (dims == 2);
     [[nodiscard]] bool insert(uint32_t x, uint32_t y, uint32_t z, T value) noexcept requires (dims == 3);
-    [[nodiscard]] T erase(uint32_t x, uint32_t y) noexcept requires (dims == 2);
     [[nodiscard]] T erase(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3);
 
 private:

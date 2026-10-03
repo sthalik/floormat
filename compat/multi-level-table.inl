@@ -213,33 +213,15 @@ T multi_level_table<T, P>::erase(uint64_t key) noexcept
 }
 
 template<typename T, mlt_params P>
-const T* multi_level_table<T, P>::find(uint32_t x, uint32_t y) const noexcept requires (dims == 2)
-{
-    return find(pack(x, y));
-}
-
-template<typename T, mlt_params P>
 const T* multi_level_table<T, P>::find(uint32_t x, uint32_t y, uint32_t z) const noexcept requires (dims == 3)
 {
     return find(pack(x, y, z));
 }
 
 template<typename T, mlt_params P>
-bool multi_level_table<T, P>::insert(uint32_t x, uint32_t y, T value) noexcept requires (dims == 2)
-{
-    return insert(pack(x, y), move(value));
-}
-
-template<typename T, mlt_params P>
 bool multi_level_table<T, P>::insert(uint32_t x, uint32_t y, uint32_t z, T value) noexcept requires (dims == 3)
 {
     return insert(pack(x, y, z), move(value));
-}
-
-template<typename T, mlt_params P>
-T multi_level_table<T, P>::erase(uint32_t x, uint32_t y) noexcept requires (dims == 2)
-{
-    return erase(pack(x, y));
 }
 
 template<typename T, mlt_params P>
