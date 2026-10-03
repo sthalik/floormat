@@ -270,8 +270,8 @@ void app::draw_clickables()
     }
 
     // draw slope lines on static scenery
-    const auto& shader = M->shader();
     const auto win_size = M->window_size();
+    const auto camera = M->shader().camera_offsetʹ();
     for (const auto& ch : M->world().chunks())
     {
         for (const object& e : ch.objects())
@@ -299,8 +299,7 @@ void app::draw_clickables()
             const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
 
             // sprite's ground anchor on screen
-            const Vector2 center = Vector2(shader.camera_offset()) + Vector2(win_size)*.5f
-                                 + shader.project(Vector3(e.position()) + Vector3(g.offset));
+            const Vector2 center = tile_shader::point_to_pixel(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera);
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
             draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);

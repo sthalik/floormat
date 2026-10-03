@@ -596,8 +596,8 @@ void SpriteBatch::add_clickable(object* obj, const tile_shader& shader, Vector2i
     const auto& a = *s.atlas;
     const auto& g = a.group(s.r);
     const auto& f = a.frame(s.r, s.frame);
-    const Vector2i offset((Vector2(shader.camera_offset()) + Vector2(win_size)*.5f)
-                          + shader.project(Vector3(s.position()) + Vector3(g.offset)) - Vector2(f.ground));
+    const auto offset = tile_shader::point_to_pixelʹ(Vector3i(s.position()) + Vector3i(g.offset), win_size, shader.camera_offsetʹ())
+                        - f.ground;
     if (offset < win_size && offset + Vector2i(f.size) >= Vector2i())
     {
         arrayAppend(array, NoInit, 1);

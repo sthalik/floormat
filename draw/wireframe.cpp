@@ -13,15 +13,15 @@ using vertex_array = std::array<Vector3, num_corners>;
 
 void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, float line_width)
 {
-    // same world->screen mapping as app::point_to_pixel()
-    const auto origin = Vector2(shader.camera_offset()) + shader.scale()*.5f;
+    const auto win = Vector2i(shader.scale());
+    const auto camera = shader.camera_offsetʹ();
     const auto tint = shader.tint();
     const auto color = ImGui::ColorConvertFloat4ToU32({tint[0], tint[1], tint[2], tint[3]});
 
     ImVec2 points[num_corners];
     for (auto i = 0u; i < num_corners; i++)
     {
-        const auto pt = origin + tile_shader::project(corners[i]);
+        const auto pt = tile_shader::point_to_pixel(corners[i], win, camera);
         points[i] = { pt[0], pt[1] };
     }
 

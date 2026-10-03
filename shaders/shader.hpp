@@ -9,6 +9,7 @@ namespace floormat {
 
 struct texture_unit_cache;
 struct local_coords;
+struct point;
 
 struct tile_shader final : private GL::AbstractShaderProgram
 {
@@ -23,6 +24,8 @@ struct tile_shader final : private GL::AbstractShaderProgram
     Vector2 scale() const { return _scale; }
     tile_shader& set_scale(const Vector2& scale);
     Vector2d camera_offset() const { return _camera_offset; }
+    /// floor(camera_offset()). Its fraction stays in camera_offset().
+    Vector2i camera_offsetʹ() const { return _camera_offsetʹ; }
     tile_shader& set_camera_offset(const Vector2d& camera_offset);
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
@@ -31,6 +34,16 @@ struct tile_shader final : private GL::AbstractShaderProgram
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
+    /// project(), doubled: y is a half pixel when x+y is odd.
+    static Vector2i projectʹ(Vector3i pt);
+    /// Nearest point on z_level's floor to the pixel, halves rounded up. A point whose y
+    /// is a half pixel is picked from the pixel above it. camera is camera_offsetʹ().
+    static point pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, int8_t z_level);
+    /// window_size/2 + camera + project(world), exact. y ends in .5 when x+y is odd.
+    static Vector2 point_to_pixel(Vector3i world, Vector2i window_size, Vector2i camera);
+    static Vector2 point_to_pixel(Vector3 world, Vector2i window_size, Vector2i camera);
+    /// point_to_pixel() with a half-pixel y moved up: the pixel pixel_to_point() maps back to world.
+    static Vector2i point_to_pixelʹ(Vector3i world, Vector2i window_size, Vector2i camera);
 
     template<typename T, typename... Xs> GL::AbstractShaderProgram& draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
 
@@ -72,9 +85,10 @@ private:
 
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
     Vector2d _camera_offset;
+    Vector2i _camera_offsetʹ;
     Vector4 _tint, _real_tint;
     Vector2 _scale;
-    Vector2 _real_camera_offset;
+    Vector2i _real_camera_offsetʹ;
     bool _enable_lightmap : 1 = false;
     Int _sampler = 0, _real_sampler;
 };
