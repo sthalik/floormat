@@ -45,16 +45,12 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
         constexpr double screens_per_second = 0.75;
 
         const double pixels_per_second = sz.length() / screens_per_second;
-        auto camera_offset = shader.camera_offset();
-        const auto max_camera_offset = Vector2d(sz * 10);
+        const auto max_camera2 = sz * 20;
 
-        // Moves in half pixels to keep the camera on the grid tile_shader::set_camera_offset() asserts.
         _camera_remainder += dir.normalized() * (double)Time::to_seconds(dt) * pixels_per_second;
-        const auto step = Math::round(_camera_remainder*2)*.5;
-        _camera_remainder -= step;
-        camera_offset -= step;
-        camera_offset = Math::clamp(camera_offset, -max_camera_offset, max_camera_offset);
-        shader.set_camera_offset(camera_offset);
+        const auto step2 = Vector2i(Math::round(_camera_remainder*2));
+        _camera_remainder -= Vector2d(step2)*.5;
+        shader.set_camera2(Math::clamp(shader.camera2() - step2, -max_camera2, max_camera2));
 
         update_cursor_tile(cursor.pixel);
         do_mouse_move(mods);
@@ -63,9 +59,7 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
 
 void app::reset_camera_offset()
 {
-    constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
-    constexpr auto projected = tile_shader::project(size);
-    M->shader().set_camera_offset(projected);
+    M->shader().set_camera2(tile_shader::project2(Vector3i{-chunk_size<Vector2i>/2, 0}));
     _camera_remainder = {};
     _z_level = 0;
     update_cursor_tile(cursor.pixel);
@@ -145,7 +139,7 @@ void app::center_camera_on(point pt)
     const auto win = M->window_size();
     const auto target = win/2;
     const auto camera2 = 2*target - win - tile_shader::project2(Vector3i(pt));
-    M->shader().set_camera_offset(Vector2d(camera2)*.5);
+    M->shader().set_camera2(camera2);
     _camera_remainder = {};
     update_cursor_tile(target);
 }
@@ -163,7 +157,7 @@ Vector2 app::point_to_pixel(point pt)
     auto c3 = pt.chunk3();
     with_shifted_camera_offset co{shader, c3};
     auto world_pos = TILE_SIZE20 * Vector3(pt.local()) + Vector3(Vector2(pt.offset()), 0);
-    return Vector2(shader.camera_offset()) + Vector2(win_size)*.5f + shader.project(world_pos);
+    return Vector2(shader.camera2() + win_size)*.5f + shader.project(world_pos);
 }
 
 } // namespace floormat

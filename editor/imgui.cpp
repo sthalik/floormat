@@ -299,7 +299,7 @@ void app::draw_clickables()
             const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
 
             // sprite's ground anchor on screen
-            const Vector2 center = Vector2(shader.camera_offset()) + Vector2(win_size)*.5f
+            const Vector2 center = Vector2(shader.camera2() + win_size)*.5f
                                  + shader.project(Vector3(e.position()) + Vector3(g.offset));
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};

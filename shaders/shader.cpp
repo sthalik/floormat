@@ -4,8 +4,8 @@
 #include "compat/array-size.hpp"
 #include "texture-unit-cache.hpp"
 #include "src/point.inl"
-#include <cmath>
 #include <cr/Iterable.h>
+#include <mg/Functions.h>
 #include <mg/Vector4.h>
 #include <mg/Context.h>
 #include <mg/Shader.h>
@@ -43,7 +43,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
-    setUniform(OffsetUniform, Vector2(_camera_offset));
+    setUniform(OffsetUniform, Vector2(_camera2)*.5f);
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, 1);
@@ -58,12 +58,9 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
     return *this;
 }
 
-tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset)
+tile_shader& tile_shader::set_camera2(Vector2i camera2)
 {
-    // pixel_to_point() takes the offset doubled, as integers.
-    const auto c2 = camera_offset*2;
-    fm_assert(c2.x() == std::round(c2.x()) && c2.y() == std::round(c2.y()));
-    _camera_offset = camera_offset;
+    _camera2 = camera2;
     return *this;
 }
 
@@ -88,12 +85,12 @@ tile_shader& tile_shader::set_sampler(Int sampler)
 
 void tile_shader::draw_pre(GL::AbstractTexture& tex)
 {
-    fm_assert(std::fabs(_camera_offset[0]) <= 1 << 24 && std::fabs(_camera_offset[1]) <= 1 << 24);
+    fm_assert(Math::abs(_camera2[0]) <= 1 << 25 && Math::abs(_camera2[1]) <= 1 << 25);
 
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    const auto offset = Vector2(_camera_offset);
+    const auto offset = Vector2(_camera2)*.5f;
     if (offset != _real_camera_offset)
         setUniform(OffsetUniform, _real_camera_offset = offset);
 

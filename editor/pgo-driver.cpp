@@ -802,11 +802,11 @@ task app::scene_benchmark()
     };
     for (auto k : pans)
     {
-        const auto off0 = M->shader().camera_offset();
+        const auto off0 = M->shader().camera2();
         set_key_state(k, true);
         co_yield {60};
         set_key_state(k, false);
-        fm_assert(M->shader().camera_offset() != off0);
+        fm_assert(M->shader().camera2() != off0);
         co_yield {};
     }
 }

@@ -20,39 +20,37 @@ constexpr int chunk_overhang_x = tile_size_xy * 4;
 constexpr int chunk_overhang_y = tile_size_z * 2;
 
 template<size_t N>
-Pair<double, double> project_interval(const std::array<Vector2d, N>& pts, const Vector2d& axis) noexcept
+Pair<int, int> project_interval(const std::array<Vector2i, N>& pts, Vector2i axis) noexcept
 {
-    double mn = Math::dot(pts[0], axis);
-    double mx = mn;
+    int mn = Math::dot(pts[0], axis);
+    int mx = mn;
     for (std::size_t i = 1; i < N; ++i)
     {
-        const double p = Math::dot(pts[i], axis);
+        const int p = Math::dot(pts[i], axis);
         mn = Math::min(mn, p);
         mx = Math::max(mx, p);
     }
     return {mn, mx};
 }
 
-bool sat_rhombus_vs_rect(const std::array<Vector2d, 4>& poly, Range2Di screen_rect) noexcept
+bool sat_rhombus_vs_rect(const std::array<Vector2i, 4>& poly, Range2Di screen_rect) noexcept
 {
-    const std::array<Vector2d, 4> rect = {
-        Vector2d(screen_rect.min().x(), screen_rect.min().y()),
-        Vector2d(screen_rect.max().x(), screen_rect.min().y()),
-        Vector2d(screen_rect.max().x(), screen_rect.max().y()),
-        Vector2d(screen_rect.min().x(), screen_rect.max().y()),
+    const std::array<Vector2i, 4> rect = {
+        screen_rect.min(),
+        Vector2i(screen_rect.max().x(), screen_rect.min().y()),
+        screen_rect.max(),
+        Vector2i(screen_rect.min().x(), screen_rect.max().y()),
     };
 
-    const Vector2d e0 = poly[1] - poly[0];
-    const Vector2d e1 = poly[3] - poly[0];
-
-    const std::array<Vector2d, 4> axes = {
-        Vector2d{1, 0},
-        Vector2d{0, 1},
-        Vector2d{e0[1], -e0[0]},
-        Vector2d{e1[1], -e1[0]},
+    // Edge normals of the rhombus, divided by chunk_size so the dot products fit in int32.
+    constexpr std::array<Vector2i, 4> axes = {
+        Vector2i{1, 0},
+        Vector2i{0, 1},
+        Vector2i{1, -2},
+        Vector2i{1, 2},
     };
 
-    for (Vector2d axis : axes)
+    for (Vector2i axis : axes)
     {
         const auto [a0, a1] = project_interval(poly, axis);
         const auto [b0, b1] = project_interval(rect, axis);
@@ -63,25 +61,22 @@ bool sat_rhombus_vs_rect(const std::array<Vector2d, 4>& poly, Range2Di screen_re
     return true;
 }
 
-bool check_chunk_visible(Vector2d offset, Vector2i win) noexcept
+// In doubled pixels, the units of camera2 and project2().
+bool check_chunk_visible(Vector2i camera2, Vector2i win) noexcept
 {
-    // Chunk footprint in world XY, projected to an isometric rhombus.
-    constexpr Vector3d len = dTILE_SIZE * TILE_MAX_DIM20d;
-    const Vector2d origin = Vector2d{win}*.5 + offset;
+    constexpr auto len = chunk_size<int32_t>;
+    const Vector2i origin2 = win + camera2;
 
-    std::array<Vector2d, 4> rhombus = {
-        tile_shader::project(Vector3d{0.,       0.,       0.}) + origin,
-        tile_shader::project(Vector3d{len.x(),  0.,       0.}) + origin,
-        tile_shader::project(Vector3d{len.x(),  len.y(),  0.}) + origin,
-        tile_shader::project(Vector3d{0.,       len.y(),  0.}) + origin,
+    const std::array<Vector2i, 4> rhombus = {
+        tile_shader::project2(Vector3i{0,   0,   0}) + origin2,
+        tile_shader::project2(Vector3i{len, 0,   0}) + origin2,
+        tile_shader::project2(Vector3i{len, len, 0}) + origin2,
+        tile_shader::project2(Vector3i{0,   len, 0}) + origin2,
     };
 
-    // Same mapping used by rendering / pixel_to_tile inverse:
-    // screen = project(world) + win*0.5 + camera_offset
-
     const Range2Di screen_rect{
-        Vector2i{-chunk_overhang_x, -chunk_overhang_y},
-        Vector2i{ chunk_overhang_x + win.x(), chunk_overhang_y + win.y()},
+        2*Vector2i{-chunk_overhang_x, -chunk_overhang_y},
+        2*Vector2i{ chunk_overhang_x + win.x(), chunk_overhang_y + win.y()},
     };
 
     return sat_rhombus_vs_rect(rhombus, screen_rect);
@@ -96,7 +91,7 @@ global_coords main_impl::pixel_to_tile(Vector2i position, int8_t z_level) const 
 
 point main_impl::pixel_to_point(Vector2i pixel, int8_t z_level) const noexcept
 {
-    return tile_shader::pixel_to_point(pixel, window_size(), Vector2i(_shader.camera_offset()*2), z_level);
+    return tile_shader::pixel_to_point(pixel, window_size(), _shader.camera2(), z_level);
 }
 
 ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept
@@ -126,7 +121,7 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
 #endif
 
     const Vector2i span = max_xy - min_xy + Vector2i{1, 1};
-    const Vector2d base_camera = _shader.camera_offset();
+    const Vector2i base_camera2 = _shader.camera2();
 
     fm_assert(span >= Vector2i{});
     arrayReserve(output, size_t((span.x()+1) * (span.y()+1)) * size_t{chunk_z_count});
@@ -143,13 +138,13 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
                 const chunk_coords_ ch{(int16_t)x, (int16_t)y, (int8_t)z};
                 if (_world.contains(ch))
                 {
-                    const Vector2d effective_offset = base_camera + with_shifted_camera_offset::get_projected_chunk_offset(ch);
+                    const Vector2i camera2 = base_camera2 + with_shifted_camera_offset::get_projected_chunk_offset2(ch);
 #if 0
                     if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-                        DBG << "  test" << ch << check_chunk_visible(effective_offset, win);
+                        DBG << "  test" << ch << check_chunk_visible(camera2, win);
 #endif
 
-                    if (check_chunk_visible(effective_offset, win))
+                    if (check_chunk_visible(camera2, win))
                     {
                         arrayAppend(output, ch);
 #if 0

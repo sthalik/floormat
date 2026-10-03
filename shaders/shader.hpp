@@ -23,8 +23,9 @@ struct tile_shader final : private GL::AbstractShaderProgram
 
     Vector2 scale() const { return _scale; }
     tile_shader& set_scale(const Vector2& scale);
-    Vector2d camera_offset() const { return _camera_offset; }
-    tile_shader& set_camera_offset(const Vector2d& camera_offset);
+    // Camera offset doubled, so the half-pixel offsets of odd window sizes stay integers.
+    Vector2i camera2() const { return _camera2; }
+    tile_shader& set_camera2(Vector2i camera2);
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
     bool is_lightmap_enabled() const { return _enable_lightmap; }
@@ -33,7 +34,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
     static Vector2i project2(Vector3i pt);
-    // Nearest point on z_level's floor to the pixel, halves rounded up. camera2 is 2·camera_offset().
+    // Nearest point on z_level's floor to the pixel, halves rounded up.
     static point pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera2, int8_t z_level);
 
     template<typename T, typename... Xs> GL::AbstractShaderProgram& draw(GL::AbstractTexture& tex, T&& mesh, Xs&&... xs);
@@ -75,7 +76,7 @@ private:
     };
 
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
-    Vector2d _camera_offset;
+    Vector2i _camera2;
     Vector4 _tint, _real_tint;
     Vector2 _scale;
     Vector2 _real_camera_offset;
