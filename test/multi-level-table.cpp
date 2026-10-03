@@ -63,6 +63,12 @@ struct tracked
 
 } // namespace mlt_test
 
+template<mlt_params P>
+struct mlt_coord_traits<std::array<uint32_t, 3>, P>
+{
+    static constexpr mlt_coords coords(const std::array<uint32_t, 3>& c) noexcept { return {{ c[0], c[1], c[2] }}; }
+};
+
 namespace {
 
 using mlt_test::tracked;
@@ -387,14 +393,14 @@ decltype(auto) at_coords(uint64_t k, F&& f)
 {
     const coord3 c = test_unpack<params_of<Table>>(k);
     fm_assert(test_pack<params_of<Table>>(c) == k);
-    fm_assert(Table::pack(c[0], c[1], c[2]) == k);
-    return f(c[0], c[1], c[2]);
+    fm_assert(Table::pack(c) == k);
+    return f(c);
 }
 
 template<typename Table>
 constexpr bool packs_to(coord3 c, uint64_t k)
 {
-    return Table::pack(c[0], c[1], c[2]) == k && test_pack<params_of<Table>>(c) == k && test_unpack<params_of<Table>>(k) == c;
+    return Table::pack(c) == k && test_pack<params_of<Table>>(c) == k && test_unpack<params_of<Table>>(k) == c;
 }
 
 using chunk_like_table = multi_level_table<uint64_t, chunk_like_params>;
@@ -2392,8 +2398,8 @@ void check_plane_wide()
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
         {
-            fm_assert(t.insert(x, y, 0, uint8_t(n + 1)));
-            keys[n++] = Table::pack(x, y, 0);
+            fm_assert(t.insert(coord3{x, y, 0}, uint8_t(n + 1)));
+            keys[n++] = Table::pack(coord3{x, y, 0});
         }
     fm_assert(t.page_count() == 3);
     check_layout(t, size_t{8} << 16, keys);
@@ -2401,16 +2407,16 @@ void check_plane_wide()
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
         {
-            fm_assert(t.find(x, y, 0) == t.find(keys[n]) && *t.find(x, y, 0) == n + 1);
-            fm_assert(!t.insert(x, y, 0, 1));
+            fm_assert(t.find(coord3{x, y, 0}) == t.find(keys[n]) && *t.find(coord3{x, y, 0}) == n + 1);
+            fm_assert(!t.insert(coord3{x, y, 0}, 1));
             n++;
         }
-    fm_assert(t.find(2, 1, 0) && !*t.find(2, 1, 0) && t.find(0xfffffffe, 0, 0) && !*t.find(0xfffffffe, 0, 0));
-    fm_assert(!t.find(0x20000, 0, 0) && !t.find(0xfffeffff, 1, 0));
+    fm_assert(t.find(coord3{2, 1, 0}) && !*t.find(coord3{2, 1, 0}) && t.find(coord3{0xfffffffe, 0, 0}) && !*t.find(coord3{0xfffffffe, 0, 0}));
+    fm_assert(!t.find(coord3{0x20000, 0, 0}) && !t.find(coord3{0xfffeffff, 1, 0}));
     n = 0;
     for (uint32_t y = 0; y < 2; y++)
         for (uint32_t x : xs)
-            fm_assert(t.erase(x, y, 0) == ++n);
+            fm_assert(t.erase(coord3{x, y, 0}) == ++n);
     fm_assert(t.page_count() == 3);
     check_layout(t, size_t{8} << 16, {});
 }

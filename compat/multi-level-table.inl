@@ -213,24 +213,6 @@ T multi_level_table<T, P>::erase(uint64_t key) noexcept
 }
 
 template<typename T, mlt_params P>
-const T* multi_level_table<T, P>::find(uint32_t x, uint32_t y, uint32_t z) const noexcept requires (dims == 3)
-{
-    return find(pack(x, y, z));
-}
-
-template<typename T, mlt_params P>
-bool multi_level_table<T, P>::insert(uint32_t x, uint32_t y, uint32_t z, T value) noexcept requires (dims == 3)
-{
-    return insert(pack(x, y, z), move(value));
-}
-
-template<typename T, mlt_params P>
-T multi_level_table<T, P>::erase(uint32_t x, uint32_t y, uint32_t z) noexcept requires (dims == 3)
-{
-    return erase(pack(x, y, z));
-}
-
-template<typename T, mlt_params P>
 void multi_level_table<T, P>::clear() noexcept
 {
     fm_assert(!_clearing);
@@ -342,13 +324,6 @@ template<typename T, mlt_params P>
 const superpage_alloc_t& multi_level_table<T, P>::raw_top_alloc() const noexcept
 {
     return _top_alloc;
-}
-
-template<typename T, mlt_params P>
-void multi_level_table<T, P>::bad_coords(coords c) noexcept
-{
-    fm_abort("coordinates (%u, %u, %u) out of bounds for %.*s", c.c[0], c.c[1], c.c[2],
-             (int)name_of<multi_level_table>.size(), name_of<multi_level_table>.data());
 }
 
 template<typename T, mlt_params P>

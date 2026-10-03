@@ -20,20 +20,28 @@ static_assert(table::page_bits == 2 * side_bits);
 static_assert(table::key_bits == 2 * outer_bits + z_bits + 2 * side_bits);
 static_assert(chunk_z_count <= 1 << z_bits);
 
-struct biased_coords { uint32_t x, y, z; };
-
-inline biased_coords bias(chunk_coords_ ch) noexcept
-{
-    return { uint16_t(uint32_t(ch.x) + chunk_bias), uint16_t(uint32_t(ch.y) + chunk_bias), uint32_t(ch.z - chunk_z_min) };
-}
-
 } // namespace
+
+} // namespace floormat::detail
+
+namespace floormat {
+
+template<>
+struct mlt_coord_traits<chunk_coords_, detail::chunk_table_params>
+{
+    static constexpr mlt_coords coords(chunk_coords_ ch) noexcept
+    {
+        return {{ uint16_t(uint32_t(ch.x) + detail::chunk_bias), uint16_t(uint32_t(ch.y) + detail::chunk_bias), uint32_t(ch.z - chunk_z_min) }};
+    }
+};
+
+} // namespace floormat
+
+namespace floormat::detail {
 
 chunk* chunk_table::chunk_at(chunk_coords_ ch) noexcept
 {
-    fm_debug3_assert(ch.z >= chunk_z_min && ch.z <= chunk_z_max);
-    const auto b = bias(ch);
-    const auto* s = _table.find(b.x, b.y, b.z);
+    const auto* s = _table.find(ch);
     return s ? *s : nullptr;
 }
 
@@ -44,15 +52,13 @@ const chunk* chunk_table::chunk_at(chunk_coords_ ch) const noexcept
 
 void chunk_table::update_slot(chunk_coords_ ch, chunk* p) noexcept
 {
-    fm_assert(ch.z >= chunk_z_min && ch.z <= chunk_z_max);
-    const auto b = bias(ch);
     if (p)
     {
-        const bool ok = _table.insert(b.x, b.y, b.z, p);
+        const bool ok = _table.insert(ch, p);
         fm_assert(ok);
     }
     else
-        (void)_table.erase(b.x, b.y, b.z);
+        (void)_table.erase(ch);
 }
 
 std::array<chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) noexcept
