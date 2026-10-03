@@ -132,6 +132,14 @@ struct critter_header_s
     uint32_t& anim_progress;
 };
 
+template<typename T>
+struct flag_field
+{
+    uint8_t bits;
+    bool(*getter)(const T&);
+    void(*setter)(T&, bool);
+};
+
 using proto_t  = uint16_t;
 
 // ---------- proto versions ----------
@@ -278,55 +286,50 @@ struct visitor_ : visitor_base<IsNewest>
         flag_interactive = 1 << 2,
     };
 
-    template<typename F> void visit_scenery_proto(o_sc_g& s, F&& f)
+    template<typename T, size_t N, typename F>
+    void visit_flags(qual<T>& s, const flag_field<T>(&fields)[N], F&& f)
     {
-        using T = std::conditional_t<IsWriter, generic_scenery, generic_scenery_proto>;
-        constexpr struct {
-            uint8_t bits;
-            bool(*getter)(const T&);
-            void(*setter)(T&, bool);
-        } pairs[] = {
-            { flag_active,
-                [](const T& sc) { return !!sc.active; },
-                [](T& sc, bool value) { sc.active = value; }
-            },
-            { flag_interactive,
-                [](const T& sc) { return !!sc.interactive; },
-                [](T& sc, bool value) { sc.interactive = value; }
-            },
-        };
-
-        // todo! make function
+        uint8_t flags = 0;
         if constexpr(IsWriter)
         {
-            uint8_t flags = 0;
-            for (auto [bits, getter, setter] : pairs)
-                flags |= bits * getter(s);
+            for (const auto& x : fields)
+                flags |= x.bits * x.getter(s);
             visit(flags, f);
         }
         else
         {
-            uint8_t flags = 0;
             visit(flags, f);
-            for (auto [bits, getter, setter] : pairs)
-                setter(s, flags & bits);
+            for (const auto& x : fields)
+                x.setter(s, flags & x.bits);
         }
+    }
+
+    template<typename F> void visit_scenery_proto(o_sc_g& s, F&& f)
+    {
+        using T = std::conditional_t<IsWriter, generic_scenery, generic_scenery_proto>;
+        constexpr flag_field<T> fields[] = {
+            { flag_active,
+              [](const T& sc) { return !!sc.active; },
+              [](T& sc, bool value) { sc.active = value; }
+            },
+            { flag_interactive,
+              [](const T& sc) { return !!sc.interactive; },
+              [](T& sc, bool value) { sc.interactive = value; }
+            },
+        };
+        visit_flags(s, fields, f);
     }
 
     template<typename F> void visit_scenery_proto(o_sc_door& s, F&& f)
     {
         using T = std::conditional_t<IsWriter, door_scenery, door_scenery_proto>;
-        constexpr struct {
-            uint8_t bits;
-            bool(*getter)(const T&);
-            void(*setter)(T&, bool);
-        } pairs[] = {
+        constexpr flag_field<T> fields[] = {
             { flag_active,
               [](const T& sc) { return !!sc.active; },
               [](T& sc, bool value) { sc.active = value; }
             },
             { flag_closing,
-              [](const auto& sc) { return !!sc.closing; },
+              [](const T& sc) { return !!sc.closing; },
               [](T& sc, bool value) { sc.closing = value; }
             },
             { flag_interactive,
@@ -334,21 +337,7 @@ struct visitor_ : visitor_base<IsNewest>
               [](T& sc, bool value) { sc.interactive = value; }
             },
         };
-
-        if constexpr(IsWriter)
-        {
-            uint8_t flags = 0;
-            for (auto [bits, getter, setter] : pairs)
-                flags |= bits * getter(s);
-            visit(flags, f);
-        }
-        else
-        {
-            uint8_t flags = 0;
-            visit(flags, f);
-            for (auto [bits, getter, setter] : pairs)
-                setter(s, flags & bits);
-        }
+        visit_flags(s, fields, f);
     }
 
     template<typename F> void visit_object_proto(o_critter& obj, critter_header_s&& s, F&& f)
