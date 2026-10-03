@@ -133,12 +133,12 @@ struct critter_header_s
     uint32_t& anim_progress;
 };
 
-template<typename T>
+template<typename Object, typename Proto>
 struct flag_field
 {
     uint8_t bits;
-    bool(*getter)(const T&);
-    void(*setter)(T&, bool);
+    bool(*getter)(const Object&);
+    void(*setter)(Proto&, bool);
 };
 
 using proto_t  = uint16_t;
@@ -282,6 +282,10 @@ struct visitor_ : visitor_base<IsNewest>
     };
 
     enum : uint8_t {
+        flag_enabled = 1 << 0,
+    };
+
+    enum : uint8_t {
         flag_active      = 1 << 0,
         flag_closing     = 1 << 1,
         flag_interactive = 1 << 2,
@@ -314,15 +318,16 @@ struct visitor_ : visitor_base<IsNewest>
 
     template<typename F> void visit_scenery_proto(o_sc_g& s, F&& f)
     {
-        using T = std::conditional_t<IsWriter, generic_scenery, generic_scenery_proto>;
-        constexpr auto fields = std::to_array<flag_field<T>>({
+        using O = generic_scenery;
+        using P = generic_scenery_proto;
+        constexpr auto fields = std::to_array<flag_field<O, P>>({
             { flag_active,
-              [](const T& sc) { return !!sc.active; },
-              [](T& sc, bool value) { sc.active = value; }
+              [](const O& sc) { return !!sc.active; },
+              [](P& sc, bool value) { sc.active = value; }
             },
             { flag_interactive,
-              [](const T& sc) { return !!sc.interactive; },
-              [](T& sc, bool value) { sc.interactive = value; }
+              [](const O& sc) { return !!sc.interactive; },
+              [](P& sc, bool value) { sc.interactive = value; }
             },
         });
         visit_flags<fields>(s, f);
@@ -330,19 +335,20 @@ struct visitor_ : visitor_base<IsNewest>
 
     template<typename F> void visit_scenery_proto(o_sc_door& s, F&& f)
     {
-        using T = std::conditional_t<IsWriter, door_scenery, door_scenery_proto>;
-        constexpr auto fields = std::to_array<flag_field<T>>({
+        using O = door_scenery;
+        using P = door_scenery_proto;
+        constexpr auto fields = std::to_array<flag_field<O, P>>({
             { flag_active,
-              [](const T& sc) { return !!sc.active; },
-              [](T& sc, bool value) { sc.active = value; }
+              [](const O& sc) { return !!sc.active; },
+              [](P& sc, bool value) { sc.active = value; }
             },
             { flag_closing,
-              [](const T& sc) { return !!sc.closing; },
-              [](T& sc, bool value) { sc.closing = value; }
+              [](const O& sc) { return !!sc.closing; },
+              [](P& sc, bool value) { sc.closing = value; }
             },
             { flag_interactive,
-              [](const T& sc) { return !!sc.interactive; },
-              [](T& sc, bool value) { sc.interactive = value; }
+              [](const O& sc) { return !!sc.interactive; },
+              [](P& sc, bool value) { sc.interactive = value; }
             },
         });
         visit_flags<fields>(s, f);
@@ -382,7 +388,16 @@ struct visitor_ : visitor_base<IsNewest>
             visit(foo1, f);
             s.offset_frac = 0;
         }
-        visit(obj.playable, f);
+
+        using O = critter;
+        using P = critter_proto;
+        constexpr auto fields = std::to_array<flag_field<O, P>>({
+            { flag_playable,
+              [](const O& c) { return !!c.playable; },
+              [](P& c, bool value) { c.playable = value; }
+            },
+        });
+        visit_flags<fields>(obj, f);
     }
 
     template<typename F>
@@ -395,25 +410,30 @@ struct visitor_ : visitor_base<IsNewest>
         fm_soft_assert(s.radius >= 0);
         visit(s.color, f);
         visit(s.falloff, f);
-        visit(s.enabled, f);
+
+        using O = light;
+        using P = light_proto;
+        constexpr auto fields = std::to_array<flag_field<O, P>>({
+            { flag_enabled,
+              [](const O& l) { return !!l.enabled; },
+              [](P& l, bool value) { l.enabled = value; }
+            },
+        });
+        visit_flags<fields>(s, f);
     }
 
     template<typename F>
     void visit_object_proto(o_hole& s, std::nullptr_t, F&& f)
     {
-        uint8_t flags = 0;
-        if constexpr (IsWriter)
-        {
-            flags |= s.flags.enabled << 0;
-            visit(flags, f);
-        }
-        else
-        {
-            visit(flags, f);
-            s.flags.enabled = flags & 1;
-            flags >>= 1;
-            fm_soft_assert(flags == 0);
-        }
+        using O = hole;
+        using P = hole_proto;
+        constexpr auto fields = std::to_array<flag_field<O, P>>({
+            { flag_enabled,
+              [](const O& h) { return !!h.flags.enabled; },
+              [](P& h, bool value) { h.flags.enabled = value; }
+            },
+        });
+        visit_flags<fields>(s, f);
 
         visit(s.z_offset, f);
         visit(s.height, f);
