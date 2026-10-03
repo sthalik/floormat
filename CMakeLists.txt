@@ -139,6 +139,7 @@ if(NOT APPLE AND NOT WIN32)
 endif()
 
 if(MSVC)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-EHsc>)
     add_compile_options(-permissive-)
     add_compile_options( -Zc:inline -Zc:__cplusplus)
     add_compile_options(-external:W0)
