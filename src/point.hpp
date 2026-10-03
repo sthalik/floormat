@@ -52,9 +52,6 @@ constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk
 constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
     cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
 {
-    fm_assert((int32_t)coord.x >= chunk_xy_min && (int32_t)coord.x <= chunk_xy_max
-           && (int32_t)coord.y >= chunk_xy_min && (int32_t)coord.y <= chunk_xy_max
-           && coord.z >= chunk_z_min && coord.z <= chunk_z_max);
     fm_assert(offset >= -half_tile<Vector2b> && offset < half_tile<Vector2b>);
 }
 
