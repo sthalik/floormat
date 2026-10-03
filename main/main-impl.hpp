@@ -155,7 +155,7 @@ private:
     void draw_world() noexcept;
 
     template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
-    void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks, Vector2i win_size);
+    void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks);
 
     void register_debug_callback();
 

@@ -75,9 +75,7 @@ object_id app::get_object_colliding_with_cursor()
 {
     const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
 
-    const auto sz = M->window_size();
     auto& world = M->world();
-    auto& shader = M->shader();
 
     using rtree_type = std::decay_t<decltype(*world[{}].rtree())>;
     using rect_type = rtree_type::Rect;
@@ -88,38 +86,35 @@ object_id app::get_object_colliding_with_cursor()
 
         for (auto ch : chunks)
         {
-            const chunk_coords_ c_pos{ch.x, ch.y, _z_level};
-            auto* cʹ = world.at(c_pos);
+            if (ch.z != _z_level)
+                continue;
+            auto* cʹ = world.at(ch);
             if (!cʹ)
                 continue;
             auto& c = *cʹ;
             c.ensure_passability();
-            const with_shifted_camera_offset o{shader, c_pos};
-            if (floormat_main::check_chunk_visible(shader.camera_offset(), sz))
-            {
-                auto t0 = Vector2(pt - point{c_pos, {}, {}});
-                auto t1 = t0+Vector2(1e-4f);
-                const auto* rtree = c.rtree();
-                object_id ret = 0;
-                rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
-                    [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                    if (x.type == (uint64_t)collision_type::geometry)
-                        return true;
-                    Vector2 min{rect.m_min}, max{rect.m_max};
-                    if (t0 >= min && t0 <= max)
-                    {
-                        if (auto e_ = world.find_object(x.id);
-                            e_ && Vector2ui(e_->bbox_size).product() != 0)
-                        {
-                            ret = x.id;
-                            return false;
-                        }
-                    }
+            auto t0 = Vector2(pt - point{ch, {}, {}});
+            auto t1 = t0+Vector2(1e-4f);
+            const auto* rtree = c.rtree();
+            object_id ret = 0;
+            rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+                [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
+                if (x.type == (uint64_t)collision_type::geometry)
                     return true;
-                });
-                if (ret)
-                    return ret;
-            }
+                Vector2 min{rect.m_min}, max{rect.m_max};
+                if (t0 >= min && t0 <= max)
+                {
+                    if (auto e_ = world.find_object(x.id);
+                        e_ && Vector2ui(e_->bbox_size).product() != 0)
+                    {
+                        ret = x.id;
+                        return false;
+                    }
+                }
+                return true;
+            });
+            if (ret)
+                return ret;
         }
     }
     return 0;
