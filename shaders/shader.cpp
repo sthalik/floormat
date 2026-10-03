@@ -3,8 +3,9 @@
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
 #include "texture-unit-cache.hpp"
-#include <cmath>
+#include "src/point.inl"
 #include <cr/Iterable.h>
+#include <mg/Functions.h>
 #include <mg/Vector4.h>
 #include <mg/Context.h>
 #include <mg/Shader.h>
@@ -42,7 +43,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
 
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
-    setUniform(OffsetUniform, Vector2(_camera_offset));
+    setUniform(OffsetUniform, Vector2(_real_camera_offsetʹ)*.5f);
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, 1);
@@ -60,6 +61,8 @@ tile_shader& tile_shader::set_scale(const Vector2& scale)
 tile_shader& tile_shader::set_camera_offset(const Vector2d& camera_offset)
 {
     _camera_offset = camera_offset;
+    // floor(c + k) == floor(c) + k, which get_draw_bounds() needs to predict with_shifted_camera_offset.
+    _camera_offsetʹ = Vector2i(Math::floor(camera_offset));
     return *this;
 }
 
@@ -84,14 +87,16 @@ tile_shader& tile_shader::set_sampler(Int sampler)
 
 void tile_shader::draw_pre(GL::AbstractTexture& tex)
 {
-    fm_assert(std::fabs(_camera_offset[0]) <= 1 << 24 && std::fabs(_camera_offset[1]) <= 1 << 24);
-
     if (_tint != _real_tint)
         setUniform(TintUniform, _real_tint = _tint);
 
-    const auto offset = Vector2(_camera_offset);
-    if (offset != _real_camera_offset)
-        setUniform(OffsetUniform, _real_camera_offset = offset);
+    // GL's origin is win*.5 but the mappings use win/2, half a pixel apart on an odd axis.
+    // Doubled to keep that half an integer. Floats hold every integer up to 2^24.
+    const auto win = Vector2i(_scale);
+    const auto offsetʹ = 2*(win/2 + _camera_offsetʹ) - win;
+    fm_assert((Math::abs(offsetʹ) <= Vector2i{1 << 24}).all());
+    if (offsetʹ != _real_camera_offsetʹ)
+        setUniform(OffsetUniform, Vector2(_real_camera_offsetʹ = offsetʹ)*.5f);
 
     auto id = tuc.bind(tex);
     set_sampler(id);
@@ -102,6 +107,36 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
 void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
 {
     (void)tex;
+}
+
+Vector2i tile_shader::projectʹ(Vector3i pt)
+{
+    const auto x = pt[0], y = pt[1], z = pt[2];
+    return { 2*(x-y), x+y-2*z };
+}
+
+point tile_shader::pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, int8_t z_level)
+{
+    const auto sʹ = 2*(pixel - window_size/2 - camera) + Vector2i{0, 2*z_level*tile_size_z};
+    // unproject(sʹ), which is 4× the world position
+    const auto w4 = Vector2i{sʹ.x() + 2*sʹ.y(), 2*sʹ.y() - sʹ.x()};
+    const auto p = floor_divmod<4>(w4 + Vector2i{2}).first();
+    return point{Vector3i{p, z_level*tile_size_z}};
+}
+
+Vector2 tile_shader::point_to_pixel(Vector3i world, Vector2i window_size, Vector2i camera)
+{
+    return Vector2(projectʹ(world) + 2*(window_size/2 + camera))*.5f;
+}
+
+Vector2 tile_shader::point_to_pixel(Vector3 world, Vector2i window_size, Vector2i camera)
+{
+    return Vector2(window_size/2 + camera) + project(world);
+}
+
+Vector2i tile_shader::point_to_pixelʹ(Vector3i world, Vector2i window_size, Vector2i camera)
+{
+    return window_size/2 + camera + floor_divmod<2>(projectʹ(world)).first();
 }
 
 void tile_shader::setUniform(Uniform u, auto value)

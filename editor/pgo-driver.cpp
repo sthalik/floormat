@@ -305,7 +305,7 @@ void app::scroll(int8_t offset)
 void app::set_window_size(Vector2i size)
 {
     M->resize_window(size);
-    // pixel_to_tile_() subtracts window_size()*.5, so the same pixel names a different world
+    // pixel_to_point() subtracts window_size()/2, so the same pixel names a different world
     // point afterwards. update_cursor_tile() does no bounds check, so a stale cursor.tile is
     // silently wrong rather than empty.
     update_cursor_tile(cursor.pixel);
@@ -802,11 +802,11 @@ task app::scene_benchmark()
     };
     for (auto k : pans)
     {
-        const auto off0 = M->shader().camera_offset();
+        const auto off0 = M->shader().camera_offsetʹ();
         set_key_state(k, true);
         co_yield {60};
         set_key_state(k, false);
-        fm_assert(M->shader().camera_offset() != off0);
+        fm_assert(M->shader().camera_offsetʹ() != off0);
         co_yield {};
     }
 }
@@ -1046,7 +1046,7 @@ task app::scene_raycast()
     set_cursor_at(far_away);
     (void)cursor_point();
     {
-        const auto px = Vector2i(point_to_pixel(far_away));
+        const auto px = point_to_pixelʹ(far_away);
         fm_assert(px.x() < 0 || px.y() < 0 || px.x() >= win.x() || px.y() >= win.y());
     }
 

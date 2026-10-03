@@ -72,7 +72,10 @@ struct app final : floormat_app
     floormat_main& main();
     const struct cursor_state& cursor_state();
     clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
+    /// See tile_shader::point_to_pixel(): y ends in .5 when x+y is odd.
     Vector2 point_to_pixel(point pt);
+    /// See tile_shader::point_to_pixelʹ(): the pixel whose pick is pt.
+    Vector2i point_to_pixelʹ(point pt);
     bptr<critter> ensure_player_character(world& w);
 
 private:
@@ -191,7 +194,9 @@ private:
 
     void do_camera(const Ns& dt, const key_set& cmds, int mods);
     void reset_camera_offset();
+    /// Puts the pixel whose pick is pt at window_size()/2. A half-pixel y lies half a pixel below it.
     void center_camera_on(point pt);
+    /// Moves the cursor to the pixel whose pick is pt.
     void set_cursor_at(point pt);
 
     void set_key_state(key k, bool is_pressed);

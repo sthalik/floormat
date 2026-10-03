@@ -7,7 +7,6 @@
 #include "src/RTree-search.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
-#include "src/camera-offset.hpp"
 #include "src/timer.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.hpp"
@@ -59,9 +58,7 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
 
 void app::reset_camera_offset()
 {
-    constexpr Vector3d size = TILE_MAX_DIM20d*dTILE_SIZE*-.5;
-    constexpr auto projected = tile_shader::project(size);
-    M->shader().set_camera_offset(projected);
+    M->shader().set_camera_offset(Vector2d(tile_shader::projectʹ(Vector3i{-chunk_size<Vector2i>/2, 0})/2));
     _z_level = 0;
     update_cursor_tile(cursor.pixel);
 }
@@ -77,8 +74,7 @@ object_id app::get_object_colliding_with_cursor()
 
     if (cursor.pixel)
     {
-        auto pos = tile_shader::project(Vector3d{0., 0., -_z_level*dTILE_SIZE[2]});
-        const auto pt = M->pixel_to_point(Vector2d{*cursor.pixel} + pos, _z_level);
+        const auto pt = M->pixel_to_point(*cursor.pixel, _z_level);
 
         for (auto ch : chunks)
         {
@@ -122,7 +118,7 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
     // assert_invariant !!cursor.tile == !!cursor.subpixel;
     if (pixel)
     {
-        const auto pt = M->pixel_to_point(Vector2d(*pixel), _z_level);
+        const auto pt = M->pixel_to_point(*pixel, _z_level);
         cursor.tile = pt.coord();
         cursor.subpixel = pt.offset();
     }
@@ -135,31 +131,28 @@ void app::update_cursor_tile(const Optional<Vector2i>& pixel)
 
 void app::center_camera_on(point pt)
 {
-    // point_to_pixel() is affine in camera_offset with coefficient 1, so feeding the error
-    // straight back lands exactly. Inverting tile_shader::project by hand would duplicate it.
-    // Solve towards the integer pixel rather than the true center: an odd window size makes
-    // win/2 fractional, and half a pixel is still a whole unit of point::offset.
     _z_level = pt.chunk3().z;
-    auto& shader = M->shader();
-    const auto target = M->window_size()/2;
-    shader.set_camera_offset(shader.camera_offset() + (Vector2d{target} - Vector2d{point_to_pixel(pt)}));
+    const auto win = M->window_size();
+    const auto target = win/2;
+    const auto camera = target - tile_shader::point_to_pixelʹ(Vector3i(pt), win, {});
+    M->shader().set_camera_offset(Vector2d(camera));
     update_cursor_tile(target);
 }
 
 void app::set_cursor_at(point pt)
 {
     fm_assert(pt.chunk3().z == _z_level);
-    update_cursor_tile(Vector2i{Math::round(point_to_pixel(pt))});
+    update_cursor_tile(point_to_pixelʹ(pt));
 }
 
 Vector2 app::point_to_pixel(point pt)
 {
-    auto& shader = M->shader();
-    auto win_size = M->window_size();
-    auto c3 = pt.chunk3();
-    with_shifted_camera_offset co{shader, c3};
-    auto world_pos = TILE_SIZE20 * Vector3(pt.local()) + Vector3(Vector2(pt.offset()), 0);
-    return Vector2(shader.camera_offset()) + Vector2(win_size)*.5f + shader.project(world_pos);
+    return tile_shader::point_to_pixel(Vector3i(pt), M->window_size(), M->shader().camera_offsetʹ());
+}
+
+Vector2i app::point_to_pixelʹ(point pt)
+{
+    return tile_shader::point_to_pixelʹ(Vector3i(pt), M->window_size(), M->shader().camera_offsetʹ());
 }
 
 } // namespace floormat
