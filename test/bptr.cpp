@@ -4,11 +4,11 @@
 #include "compat/borrowed-ptr-stats.hpp"
 #include "compat/weak-borrowed-ptr.inl"
 #include "compat/assert.hpp"
+#include "compat/atomic.hpp"
 #include "compat/exception.hpp"
 #include "compat/defs.hpp"
 #include "random/random.hpp"
 #include <array>
-#include <atomic>
 #include <initializer_list>
 #include <latch>
 #include <thread>
@@ -36,18 +36,18 @@ struct Baz : bptr_base {};
 template<typename Tag>
 struct counting_allocator
 {
-    static inline std::atomic<int64_t> live, total;
+    static inline volatile int64_t live, total;
 
     template<typename X> static void* allocate()
     {
         void* p = bptr_policy::new_delete_allocator::allocate<X>();
-        live.fetch_add(1, std::memory_order_relaxed);
-        total.fetch_add(1, std::memory_order_relaxed);
+        atomic_fetch_add(&live, 1, memory_order::relaxed);
+        atomic_fetch_add(&total, 1, memory_order::relaxed);
         return p;
     }
     template<typename X> static void deallocate(void* p) noexcept
     {
-        live.fetch_sub(1, std::memory_order_relaxed);
+        atomic_fetch_sub(&live, 1, memory_order::relaxed);
         bptr_policy::new_delete_allocator::deallocate<X>(p);
     }
 };
@@ -61,7 +61,7 @@ struct pool_allocator
     struct slot { slot* next; };
 
     static inline slot* free_list = nullptr;
-    static inline std::atomic<int64_t> live, total;
+    static inline volatile int64_t live, total;
 
     template<typename X> static void* allocate()
     {
@@ -75,13 +75,13 @@ struct pool_allocator
         }
         else
             p = ::operator new(slot_size, std::align_val_t{slot_align});
-        live++;
-        total++;
+        atomic_fetch_add(&live, 1);
+        atomic_fetch_add(&total, 1);
         return p;
     }
     template<typename X> static void deallocate(void* p) noexcept
     {
-        live--;
+        atomic_fetch_sub(&live, 1);
         if constexpr (sizeof(X) > slot_size || alignof(X) > slot_align)
             bptr_policy::new_delete_allocator::deallocate<X>(p);
         else
@@ -283,11 +283,11 @@ heap_state heap_snapshot(bool bytes = true)
         s.bytes = allocated_bytes();
     if constexpr (has_stats<P>)
     {
-        s.blocks = P::stats::live_blocks;
-        s.objects = P::stats::live_objects;
+        s.blocks = atomic_load(&P::stats::live_blocks);
+        s.objects = atomic_load(&P::stats::live_objects);
     }
     if constexpr (counts_allocations<P>)
-        s.allocations = P::allocator::live;
+        s.allocations = atomic_load(&P::allocator::live);
     return s;
 }
 
@@ -1137,10 +1137,10 @@ void suite<P>::test27()
     if constexpr (counts_allocations<P>)
     {
         auto allocations = [](auto make) {
-            auto before = (int64_t)P::allocator::total;
+            auto before = atomic_load(&P::allocator::total);
             auto p = make();
             fm_assert(p);
-            return (int64_t)P::allocator::total - before;
+            return atomic_load(&P::allocator::total) - before;
         };
         A_total = 0; A_alive = 0;
         fm_assert(allocations([] { return bptr<A>{InPlace, 27}; }) == 1);
@@ -1648,11 +1648,11 @@ struct State
         ndied = 0;
         if constexpr (has_stats<P>)
         {
-            chaos_assert((int64_t)P::stats::live_objects == (int64_t)alive_count);
-            chaos_assert((int64_t)P::stats::live_blocks == model_blocks());
+            chaos_assert(atomic_load(&P::stats::live_objects) == (int64_t)alive_count);
+            chaos_assert(atomic_load(&P::stats::live_blocks) == model_blocks());
         }
         if constexpr (counts_allocations<P>)
-            chaos_assert((int64_t)P::allocator::live == model_blocks());
+            chaos_assert(atomic_load(&P::allocator::live) == model_blocks());
     }
 
     void check()
@@ -1746,7 +1746,7 @@ void run(const char* policy)
 void test28()
 {
     using P = counted_refcount;
-    auto total = [] { return (int64_t)P::allocator::total; };
+    auto total = [] { return atomic_load(&P::allocator::total); };
     auto t0 = total();
     Custom_disposed = 0;
     {
@@ -1785,17 +1785,17 @@ void test29()
     check_leaks<P>(before, "thread_counted", "test", 29, false);
 }
 
-std::atomic<int> Ct_alive; // NOLINT
+volatile int32_t Ct_alive; // NOLINT
 
 struct Ct : bptr_base
 {
     int val = 30;
-    Ct() noexcept { Ct_alive.fetch_add(1, std::memory_order_relaxed); }
+    Ct() noexcept { atomic_fetch_add(&Ct_alive, 1, memory_order::relaxed); }
     ~Ct() noexcept override
     {
         // Under TSan, a missing happens-before edge shows up as this write racing with readers.
         val = -1;
-        fm_assert(Ct_alive.fetch_sub(1, std::memory_order_relaxed) > 0);
+        fm_assert(atomic_fetch_sub(&Ct_alive, 1, memory_order::relaxed) > 0);
     }
     fm_DISABLE_MOVE_COPY(Ct);
 };
@@ -1836,7 +1836,7 @@ void test30()
             p = nullptr;
             for (auto& t : threads)
                 t.join();
-            fm_assert(Ct_alive == 0);
+            fm_assert(atomic_load(&Ct_alive) == 0);
             fm_assert(w.expired() && !w.lock());
         }
         check_leaks<P>(before, "atomic_counted", "test30 round", round, false);

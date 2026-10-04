@@ -27,19 +27,25 @@ struct control_block : Policy::counter::block_state
     using count_type = typename counter::value_type;
     using stats = typename Policy::stats;
     template<typename X> using cell = typename counter::template cell<X>;
+    // compat/atomic.hpp takes only integers. Not uintptr_t: on macOS it is unsigned long,
+    // and uint64_t is unsigned long long.
+    using ptr_int = std::conditional_t<sizeof(void*) == sizeof(uint64_t), uint64_t, uint32_t>;
 
-    cell<bptr_base*> _ptr;
+    cell<ptr_int> _ptr;
     cell<count_type> _hard_count{1};
     cell<count_type> _soft_count{1}; // weak refs, plus one held by all hard refs together
 
-    explicit control_block(bptr_base* ptr) noexcept: _ptr{ptr} {}
+    static ptr_int to_int(bptr_base* p) noexcept { return reinterpret_cast<ptr_int>(p); }
+    static bptr_base* to_ptr(ptr_int x) noexcept { return reinterpret_cast<bptr_base*>(x); }
+
+    explicit control_block(bptr_base* ptr) noexcept: _ptr{to_int(ptr)} {}
     control_block(const control_block&) = delete;
     control_block& operator=(const control_block&) = delete;
 
     virtual void dispose(bptr_base* p) noexcept = 0;
     virtual void deallocate() noexcept = 0;
 
-    bptr_base* get() const noexcept { return counter::load(_ptr); }
+    bptr_base* get() const noexcept { return to_ptr(counter::load(_ptr)); }
     count_type use_count() const noexcept { return counter::load(_hard_count); }
     void add_ref() noexcept
     {
@@ -125,7 +131,7 @@ struct inplace_block final : control_block<Policy>
         block_guard<Policy> guard{b};
         ::new (&b->_value) U{forward<Ts>(args)...};
         guard.b = nullptr;
-        Policy::counter::store(b->_ptr, &b->_value);
+        Policy::counter::store(b->_ptr, b->to_int(&b->_value));
         return b;
     }
 
