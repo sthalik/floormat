@@ -4,6 +4,7 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include <cmath>
 #include <cr/BitArrayView.h>
 #include <cr/StridedArrayView.h>
 #include <mg/Color.h>
@@ -97,7 +98,11 @@ auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const n
                top_right    = tile_shader::unproject({  sx - gx,     - gy }),
                bottom_left  = tile_shader::unproject({     - gx,  sy - gy }),
                top_left     = tile_shader::unproject({     - gx,     - gy });
-    const auto c = center + Vector3(group(r).offset);
+    auto c = center + Vector3(group(r).offset);
+    // Texcoords run texel centre to texel centre, so texels map 1:1 only from a quad on a whole pixel.
+    // A half-pixel y (odd x+y) is rounded up, as point_to_pixelʹ() does for the clickable rect.
+    const auto py = (c[x] + c[y])*.5f - c[z];
+    c[z] += py - std::floor(py);
     return {{
         { c[x] + bottom_right[x], c[y] + bottom_right[y],  c[z] },
         { c[x] + top_right[x],    c[y] + top_right[y],     c[z] },
