@@ -1,6 +1,6 @@
 #include "superpage.hpp"
 #include "assert.hpp"
-#include <atomic>
+#include "atomic.hpp"
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -30,7 +30,7 @@ namespace {
 
 // Circuit breaker: after the first failure, skip the large-page path entirely.
 // SeLockMemoryPrivilege missing, hugepage pool empty, etc. don't change mid-run.
-std::atomic large_failed{false};
+volatile uint8_t large_failed = 0;
 
 [[maybe_unused]] constexpr size_t LARGE_PAGE_FALLBACK = 2u << 20;   // 2 MiB - typical x86_64 large page
 [[maybe_unused]] constexpr size_t SMALL_PAGE_FALLBACK = 4u << 10;   // 4 KiB - last-resort rounding
@@ -90,7 +90,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
     fm_assert(bytes > 0);
 
 #ifdef _WIN32
-    if (!large_failed.load(std::memory_order_relaxed))
+    if (!atomic_load(&large_failed, memory_order::relaxed))
     {
         if (size_t page = windows_enable_large_pages(); page > 0)
         {
@@ -101,7 +101,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
             if (p)
                 return { p, sz, true };
         }
-        large_failed.store(true, std::memory_order_relaxed);
+        atomic_store(&large_failed, 1, memory_order::relaxed);
     }
     size_t sz = round_up(bytes, SMALL_PAGE_FALLBACK);
     void* p = VirtualAlloc(nullptr, sz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -114,7 +114,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
         page = SMALL_PAGE_FALLBACK;
 
 #  if defined __linux__ && defined MAP_HUGETLB
-    if (!large_failed.load(std::memory_order_relaxed))
+    if (!atomic_load(&large_failed, memory_order::relaxed))
     {
         size_t sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB;
@@ -124,7 +124,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
         void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE, flags, -1, 0);
         if (p != MAP_FAILED)
             return { p, sz, true };
-        large_failed.store(true, std::memory_order_relaxed);
+        atomic_store(&large_failed, 1, memory_order::relaxed);
     }
     size_t sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
@@ -138,7 +138,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
 
 #  elif defined __FreeBSD__ && defined MAP_ALIGNED_SUPER
 #    ifdef SHM_LARGEPAGE_ALLOC_DEFAULT
-    if (!large_failed.load(std::memory_order_relaxed))
+    if (!atomic_load(&large_failed, memory_order::relaxed))
     {
         if (int psind = freebsd_psind_2m(); psind > 0)
         {
@@ -155,7 +155,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
                     return { p, sz, true };
             }
         }
-        large_failed.store(true, std::memory_order_relaxed);
+        atomic_store(&large_failed, 1, memory_order::relaxed);
     }
 #    endif
     // MAP_ALIGNED_SUPER gets superpages only if a free 2 MiB block exists.
@@ -171,7 +171,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
     // Intel macOS: VM_FLAGS_SUPERPAGE_SIZE_2MB is defined only on x86_64 SDKs
     // and some macOS releases require an entitlement; circuit-break on failure.
 #    ifdef VM_FLAGS_SUPERPAGE_SIZE_2MB
-    if (!large_failed.load(std::memory_order_relaxed))
+    if (!atomic_load(&large_failed, memory_order::relaxed))
     {
         size_t large_sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         mach_vm_address_t addr = 0;
@@ -180,7 +180,7 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
             VM_FLAGS_ANYWHERE | VM_FLAGS_SUPERPAGE_SIZE_2MB);
         if (kr == KERN_SUCCESS)
             return { reinterpret_cast<void*>(addr), large_sz, true };
-        large_failed.store(true, std::memory_order_relaxed);
+        atomic_store(&large_failed, 1, memory_order::relaxed);
     }
 #    endif
     size_t sz = round_up(bytes, page);
