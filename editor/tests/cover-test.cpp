@@ -15,7 +15,11 @@ namespace {
 
 using namespace floormat::imgui;
 
-constexpr inline uint32_t div_size = 8;
+constexpr inline uint32_t default_div_size = 8;
+// Cover::Params::validate() rejects 1 and 2, below Pass::Grid::min_bbox_size.
+constexpr uint32_t div_sizes[] = { 4, 8, 16, 32, 64, 128, 256 };
+// odd, so the clicked chunk is in the middle
+constexpr uint32_t chunk_spans[] = { 1, 3, 5, 7 };
 
 struct dir_button { const char* name; uint32_t k; bool large; };
 constexpr dir_button compass_rose[3][3] = {
@@ -33,7 +37,8 @@ constexpr Color4 color_selected{1, 0.843f, 0, 0.8f};
 
 struct cover_test final : base_test
 {
-    Cover::Pool pool;
+    Pointer<Cover::Pool> pool;
+    uint32_t chunk_span = 1;
 
     cover_test();
     ~cover_test() noexcept override = default;
@@ -48,6 +53,9 @@ struct cover_test final : base_test
     Value advance(app& a, Value) override;
 
     void extract(app& a, point pt);
+    void set_div_size(app& a, uint32_t div_size);
+    chunk* chunk_at(world& w, int32_t dx, int32_t dy) const;
+    void draw_chunk(app& a, chunk& c, uint32_t sk);
 
     struct pending_s {
         point from;
@@ -63,7 +71,7 @@ struct cover_test final : base_test
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
-cover_test::cover_test(): pool{Cover::Params{div_size}} {}
+cover_test::cover_test(): pool{InPlaceInit, Cover::Params{default_div_size}} {}
 
 bool cover_test::handle_key(app& a, const key_event& e, bool is_down)
 {
@@ -113,6 +121,65 @@ bool cover_test::handle_mouse_move(app& a, const mouse_move_event& e)
     return false;
 }
 
+chunk* cover_test::chunk_at(world& w, int32_t dx, int32_t dy) const
+{
+    const auto ch = result.from.chunk3();
+    return w.at(chunk_coords_{(int16_t)(ch.x + dx), (int16_t)(ch.y + dy), ch.z});
+}
+
+void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
+{
+    Cover::Grid cg = (*pool)[c];
+    cg.build_if_stale();
+    if (!(cg.built_octants() & (1u << sk)))
+        return;
+
+    ImDrawList& draw = *ImGui::GetBackgroundDrawList();
+    const auto ds = (int)pool->params().div_size;
+    const uint32_t dc = cg.div_count();
+    const uint32_t max_d = chunk_size_xy / pool->params().div_size;
+
+    const auto chunk_nw = intra_coord{}.to_point(c.coord());
+    const auto p00 = a.point_to_pixel(chunk_nw);
+    const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
+    const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});
+    const Vector2 dx = pX - p00;
+    const Vector2 dy = pY - p00;
+
+    const auto rgb = [](uint8_t d, uint32_t md) -> ImU32 {
+        const float t = md > 0 ? Math::min(float(d) / float(md), 1.f) : 0.f;
+        float r, g, b;
+        if (t < 0.5f)
+        {
+            const float u = t * 2.f;
+            r = 1.f - u; g = u; b = 0.f;
+        }
+        else
+        {
+            const float u = (t - 0.5f) * 2.f;
+            r = 0.f; g = 1.f - u; b = u;
+        }
+        return ImGui::ColorConvertFloat4ToU32({r, g, b, 0.45f});
+    };
+
+    for (uint32_t cy = 0; cy < dc; cy++)
+        for (uint32_t cx = 0; cx < dc; cx++)
+        {
+            const uint32_t idx = Cover::Grid::get_cell_index(cx, cy, dc);
+            const uint8_t d = cg.distance(idx, sk);
+            const auto color = rgb(d, max_d);
+            const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
+            const Vector2 q1 = base + dx;
+            const Vector2 q2 = base + dx + dy;
+            const Vector2 q3 = base + dy;
+            draw.AddQuadFilled({base.x(), base.y()},
+                               {q1.x(),   q1.y()},
+                               {q2.x(),   q2.y()},
+                               {q3.x(),   q3.y()},
+                               color);
+        }
+}
+
 void cover_test::draw_overlay(app& a)
 {
     if (!has_result)
@@ -123,62 +190,24 @@ void cover_test::draw_overlay(app& a)
     if (!c)
         return;
 
-    pool.maybe_mark_stale_all(w.frame_no());
-    Cover::Grid cg = pool[*c];
+    pool->maybe_mark_stale_all(w.frame_no());
+
+    const auto sk = (uint32_t)selected_octant;
+    const auto r = (int32_t)chunk_span / 2;
+    for (int32_t dy = -r; dy <= r; dy++)
+        for (int32_t dx = -r; dx <= r; dx++)
+            if (auto* ch = chunk_at(w, dx, dy))
+                draw_chunk(a, *ch, sk);
+
+    Cover::Grid cg = (*pool)[*c];
     cg.build_if_stale();
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto pos = a.point_to_pixel(result.from);
 
     constexpr float pi = Math::Constants<float>::pi();
-    const auto ds = (int)pool.params().div_size;
+    const auto ds = (int)pool->params().div_size;
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
-    const auto sk = (uint32_t)selected_octant;
-
-    {
-        const uint32_t dc = cg.div_count();
-        const uint32_t max_d = chunk_size_xy / pool.params().div_size;
-
-        const auto chunk_nw = intra_coord{}.to_point(result.from.chunk3());
-        const auto p00 = a.point_to_pixel(chunk_nw);
-        const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
-        const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});
-        const Vector2 dx = pX - p00;
-        const Vector2 dy = pY - p00;
-
-        const auto rgb = [](uint8_t d, uint32_t md) -> ImU32 {
-            const float t = md > 0 ? Math::min(float(d) / float(md), 1.f) : 0.f;
-            float r, g, b;
-            if (t < 0.5f)
-            {
-                const float u = t * 2.f;
-                r = 1.f - u; g = u; b = 0.f;
-            }
-            else
-            {
-                const float u = (t - 0.5f) * 2.f;
-                r = 0.f; g = 1.f - u; b = u;
-            }
-            return ImGui::ColorConvertFloat4ToU32({r, g, b, 0.45f});
-        };
-
-        for (uint32_t cy = 0; cy < dc; cy++)
-            for (uint32_t cx = 0; cx < dc; cx++)
-            {
-                const uint32_t idx = Cover::Grid::get_cell_index(cx, cy, dc);
-                const uint8_t d = cg.distance(idx, sk);
-                const auto color = rgb(d, max_d);
-                const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
-                const Vector2 q1 = base + dx;
-                const Vector2 q2 = base + dx + dy;
-                const Vector2 q3 = base + dy;
-                draw.AddQuadFilled({base.x(), base.y()},
-                                   {q1.x(),   q1.y()},
-                                   {q2.x(),   q2.y()},
-                                   {q3.x(),   q3.y()},
-                                   color);
-            }
-    }
 
     for (uint32_t k = 0; k < Cover::octant_count; k++)
     {
@@ -224,12 +253,17 @@ void cover_test::update_post(app& a, const Ns&)
     auto* c = w.at(result.from.chunk3());
     if (!c)
         return;
-    pool.maybe_mark_stale_all(w.frame_no());
-    Cover::Grid cg = pool[*c];
+    pool->maybe_mark_stale_all(w.frame_no());
     const auto sk = (uint32_t)selected_octant;
-    if (cg.ensure_octant(sk))
+    if ((*pool)[*c].ensure_octant(sk))
         return;
-    cg.fill_next_unfilled();
+    const auto r = (int32_t)chunk_span / 2;
+    for (int32_t dy = -r; dy <= r; dy++)
+        for (int32_t dx = -r; dx <= r; dx++)
+            if (auto* ch = chunk_at(w, dx, dy); ch && ch != c)
+                if ((*pool)[*ch].ensure_octant(sk))
+                    return;
+    (*pool)[*c].fill_next_unfilled();
 }
 
 base_test::Value cover_test::advance(app& a, Value)
@@ -246,8 +280,8 @@ base_test::Value cover_test::advance(app& a, Value)
     if (!c)
         return ret;
     // The handle has to come after the stale sweep -- a pooled grid can be recycled by it.
-    pool.maybe_mark_stale_all(w.frame_no());
-    ret.u32 = pool[*c].built_octants();
+    pool->maybe_mark_stale_all(w.frame_no());
+    ret.u32 = (*pool)[*c].built_octants();
     ret.type = ValueType::u32;
     return ret;
 }
@@ -259,8 +293,8 @@ void cover_test::extract(app& a, point pt)
     if (!c)
         return;
 
-    pool.maybe_mark_stale_all(w.frame_no());
-    Cover::Grid g = pool[*c];
+    pool->maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = (*pool)[*c];
     g.build_if_stale();
 
     const auto idx = g.get_cell_index_from_coord(intra_coord{pt});
@@ -273,7 +307,19 @@ void cover_test::extract(app& a, point pt)
     has_result = true;
 }
 
-void cover_test::draw_ui(app&, float)
+void cover_test::set_div_size(app& a, uint32_t div_size)
+{
+    if (div_size == pool->params().div_size)
+        return;
+    pool.emplace(Cover::Params{div_size});
+    if (has_result)
+    {
+        has_result = false;
+        extract(a, result.from);
+    }
+}
+
+void cover_test::draw_ui(app& a, float)
 {
     constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr auto col1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
@@ -311,8 +357,33 @@ void cover_test::draw_ui(app&, float)
         text(buf);
 
         do_column("div_size");
-        snformat(buf, "{}"_cf, pool.params().div_size);
-        text(buf);
+        {
+            const auto ds = pool->params().div_size;
+            snformat(buf, "{}x{}"_cf, ds, ds);
+            ImGui::SetNextItemWidth(100);
+            if (auto b2 = begin_combo("##div_size", buf))
+                for (auto n : div_sizes)
+                {
+                    char label[16];
+                    snformat(label, "{}x{}"_cf, n, n);
+                    if (ImGui::Selectable(label, n == ds))
+                        set_div_size(a, n);
+                }
+        }
+
+        do_column("chunks");
+        {
+            snformat(buf, "{}x{}"_cf, chunk_span, chunk_span);
+            ImGui::SetNextItemWidth(100);
+            if (auto b2 = begin_combo("##chunk_span", buf))
+                for (auto n : chunk_spans)
+                {
+                    char label[16];
+                    snformat(label, "{}x{}"_cf, n, n);
+                    if (ImGui::Selectable(label, n == chunk_span))
+                        chunk_span = n;
+                }
+        }
 
         do_column("octant");
 
