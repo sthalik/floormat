@@ -1,7 +1,7 @@
 #pragma once
 #include "borrowed-ptr-policy.hpp"
+#include "atomic.hpp"
 #include "defs.hpp"
-#include <atomic>
 
 namespace floormat::bptr_policy {
 
@@ -9,34 +9,34 @@ template<typename W>
 struct atomic_counter
 {
     using value_type = W;
-    template<typename X> using cell = std::atomic<X>;
+    template<typename X> using cell = volatile X;
     struct block_state {};
     static constexpr bool concurrent = true;
 
-    template<typename X> static X load(const std::atomic<X>& c) noexcept { return c.load(std::memory_order_relaxed); }
-    template<typename X> static void store(std::atomic<X>& c, std::type_identity_t<X> value) noexcept { c.store(value, std::memory_order_relaxed); }
-    template<typename X> static X exchange(std::atomic<X>& c, std::type_identity_t<X> value) noexcept { return c.exchange(value, std::memory_order_acq_rel); }
-    static void increment(std::atomic<W>& c, block_state&) noexcept { c.fetch_add(1, std::memory_order_relaxed); }
-    static W decrement(std::atomic<W>& c, block_state&) noexcept
+    template<typename X> static X load(const volatile X& c) noexcept { return atomic_load(&c, memory_order::relaxed); }
+    template<typename X> static void store(volatile X& c, std::type_identity_t<X> value) noexcept { atomic_store(&c, value, memory_order::relaxed); }
+    template<typename X> static X exchange(volatile X& c, std::type_identity_t<X> value) noexcept { return atomic_exchange(&c, value, memory_order::acq_rel); }
+    static void increment(volatile W& c, block_state&) noexcept { atomic_fetch_add(&c, 1, memory_order::relaxed); }
+    static W decrement(volatile W& c, block_state&) noexcept
     {
         // TSan ignores atomic_thread_fence, and would report the destructor racing with other threads' last accesses.
         if constexpr (fm_TSAN)
-            return W(c.fetch_sub(1, std::memory_order_acq_rel) - 1);
+            return W(atomic_fetch_sub(&c, 1, memory_order::acq_rel) - 1);
         else
         {
-            W ret = W(c.fetch_sub(1, std::memory_order_release) - 1);
+            W ret = W(atomic_fetch_sub(&c, 1, memory_order::release) - 1);
             if (ret == 0)
-                std::atomic_thread_fence(std::memory_order_acquire);
+                atomic_thread_fence(memory_order::acquire);
             return ret;
         }
     }
-    static bool increment_if_nonzero(std::atomic<W>& c, block_state&) noexcept
+    static bool increment_if_nonzero(volatile W& c, block_state&) noexcept
     {
-        W n = c.load(std::memory_order_relaxed);
+        W n = atomic_load(&c, memory_order::relaxed);
         do
             if (n == 0)
                 return false;
-        while (!c.compare_exchange_weak(n, W(n + 1), std::memory_order_acq_rel, std::memory_order_relaxed));
+        while (!atomic_compare_exchange_weak(&c, n, W(n + 1), memory_order::acq_rel));
         return true;
     }
 };

@@ -18,14 +18,14 @@ inline bool control_block<Policy>::add_ref_lock() noexcept
             return false;
         stats::copied();
         // Only after the increment: destroy() clears _ptr while hard refs remain.
-        if (counter::load(_ptr))
+        if (get())
             return true;
         release(this);
         return false;
     }
     else
     {
-        if (!counter::load(_ptr))
+        if (!get())
             return false;
         fm_debug3_assert(counter::load(_hard_count) > 0);
         add_ref();
@@ -45,7 +45,7 @@ void control_block<Policy>::release(control_block* b) noexcept
     {
         // Null before dispose so a weak_bptr::lock() from within the destructor
         // sees an expired block instead of resurrecting a dying object.
-        if (auto* p = counter::exchange(b->_ptr, nullptr))
+        if (auto* p = to_ptr(counter::exchange(b->_ptr, to_int(nullptr))))
         {
             stats::object_disposed();
             b->dispose(p);
@@ -71,7 +71,7 @@ void control_block<Policy>::weak_release(control_block* b) noexcept
     auto c = counter::decrement(b->_soft_count, *b);
     if (c == 0)
     {
-        fm_debug3_assert(!counter::load(b->_ptr));
+        fm_debug3_assert(!b->get());
         stats::block_deallocated();
         b->deallocate();
     }
@@ -83,7 +83,7 @@ void control_block<Policy>::destroy_object(control_block* b) noexcept
     // The destructor can drop the last reference, and an in-place object lives
     // inside the block, so hold one until the destructor returns.
     b->add_ref();
-    if (auto* p = counter::exchange(b->_ptr, nullptr))
+    if (auto* p = to_ptr(counter::exchange(b->_ptr, to_int(nullptr))))
     {
         stats::object_disposed();
         b->dispose(p);
