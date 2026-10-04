@@ -6,11 +6,7 @@ namespace floormat {
 
 class Spinlock final
 {
-#ifdef _MSC_VER
-    long state = 0;
-#else
-    int32_t state = 0;
-#endif
+    volatile int32_t state = 0;
 
 public:
     void lock() noexcept;

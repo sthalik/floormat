@@ -1,81 +1,32 @@
 #include "spinlock.hpp"
 #include "assert.hpp"
-
-#ifdef _MSC_VER
-#include <windows.h>
-#else
-#if defined __i386__ || defined __x86_64__
-#include <immintrin.h>
-#endif
-#endif
+#include "atomic.hpp"
 
 namespace floormat {
-
-#ifdef _MSC_VER
-
-void Spinlock::lock() noexcept
-{
-    while (InterlockedCompareExchange(&state, 1, 0) != 0)
-        YieldProcessor();
-}
-
-bool Spinlock::try_lock() noexcept
-{
-    return InterlockedCompareExchange(&state, 1, 0) == 0;
-}
-
-void Spinlock::unlock() noexcept
-{
-    InterlockedExchange(&state, 0);
-}
-
-#else
 
 void Spinlock::lock() noexcept
 {
     for (;;)
     {
-        while (__atomic_load_n(&state, __ATOMIC_RELAXED))
-#if defined __x86_64__ || defined __i386__
-            _mm_pause()
-#elif defined __aarch64__
-            asm volatile("yield")
-#elif defined __riscv
-            asm volatile("pause")
-#elif defined __powerpc__ || defined __powerpc64__
-            asm volatile("or 27,27,27")
-#else
-            asm volatile("" ::: "memory")
-#endif
-            ;
+        while (atomic_load(&state, memory_order::relaxed))
+            cpu_relax();
 
-        // Phase 2: try to acquire (acquire)
-        int expected = 0;
-        if (__atomic_compare_exchange_n(
-            &state, &expected, 1,
-            false,
-            __ATOMIC_ACQUIRE,
-            __ATOMIC_RELAXED))
+        int32_t expected = 0;
+        if (atomic_compare_exchange_weak(&state, expected, 1, memory_order::acquire))
             return;
     }
 }
 
 bool Spinlock::try_lock() noexcept
 {
-    int expected = 0;
-    return __atomic_compare_exchange_n(
-        &state, &expected, 1,
-        false,
-        __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED);
+    int32_t expected = 0;
+    return atomic_compare_exchange(&state, expected, 1, memory_order::acquire);
 }
 
 void Spinlock::unlock() noexcept
 {
-    __atomic_store_n(&state, 0, __ATOMIC_RELEASE);
+    atomic_store(&state, 0, memory_order::release);
 }
-
-#endif
 
 template<LockC T> Locker<T>::Locker(T& lock) noexcept: L{lock}
 {

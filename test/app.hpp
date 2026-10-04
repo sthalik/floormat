@@ -17,6 +17,7 @@ chunk& make_test_chunk(world& w, chunk_coords_ ch);
 
 void test_astar();
 void test_astar_pool();
+void test_atomic();
 void test_bitmask();
 void test_bptr();
 void test_chunk_iter();
